@@ -21,6 +21,7 @@ interface NotationPreviewProps {
   score: Score
   selectedEventId?: string
   selectedMeasureId?: string
+  playbackEventId?: string
   onSelectEvent: (eventId: string) => void
   onSelectMeasure: (measureId: string) => void
 }
@@ -32,6 +33,7 @@ export function NotationPreview({
   score,
   selectedEventId,
   selectedMeasureId,
+  playbackEventId,
   onSelectEvent,
   onSelectMeasure
 }: NotationPreviewProps) {
@@ -68,6 +70,7 @@ export function NotationPreview({
     const measures = score.parts[0]?.staves[0]?.measures ?? []
     const measureWidth = (renderWidth - 32) / Math.max(measures.length, 1)
     const svg = container.querySelector('svg')
+    let playbackX: number | undefined
 
     measures.forEach((measure, measureIndex) => {
       const measureX = 16 + measureIndex * measureWidth
@@ -102,7 +105,7 @@ export function NotationPreview({
 
       const voices = measure.voices.map((voice) => {
         const notes = voice.events.map((event) =>
-          createStaveNote(event, measure, selectedEventId)
+          createStaveNote(event, measure, selectedEventId, playbackEventId)
         )
         const vexVoice = new Voice({
           numBeats: measure.timeSignature.beats,
@@ -140,14 +143,33 @@ export function NotationPreview({
             event.stopPropagation()
             onSelectEvent(eventId)
           })
+
+          if (eventId === playbackEventId) {
+            playbackX = note.getAbsoluteX()
+          }
         })
       })
     })
+
+    if (svg && playbackX !== undefined) {
+      const playhead = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'line'
+      )
+
+      playhead.classList.add('notation-playhead')
+      playhead.setAttribute('x1', String(playbackX))
+      playhead.setAttribute('x2', String(playbackX))
+      playhead.setAttribute('y1', '24')
+      playhead.setAttribute('y2', '138')
+      svg.append(playhead)
+    }
   }, [
     onSelectEvent,
     onSelectMeasure,
     renderWidth,
     score,
+    playbackEventId,
     selectedEventId,
     selectedMeasureId
   ])
@@ -158,7 +180,8 @@ export function NotationPreview({
 function createStaveNote(
   event: VoiceEvent,
   measure: Measure,
-  selectedEventId?: string
+  selectedEventId?: string,
+  playbackEventId?: string
 ): StaveNote {
   const clef = toVexFlowClef(measure.clef)
   const isRest = event.type === 'rest'
@@ -171,7 +194,12 @@ function createStaveNote(
 
   note.setAttribute('data-event-id', event.id)
 
-  if (event.id === selectedEventId) {
+  if (event.id === playbackEventId) {
+    note.setStyle({
+      fillStyle: '#25766f',
+      strokeStyle: '#25766f'
+    })
+  } else if (event.id === selectedEventId) {
     note.setStyle({
       fillStyle: '#b43d2f',
       strokeStyle: '#b43d2f'
