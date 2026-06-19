@@ -21,3 +21,29 @@ MuseScore is kept outside this repository as a read-only architectural reference
 `../references/musescore`
 
 Do not copy MuseScore source code, assets, generated files, or tests into this project.
+
+## Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run the desktop app in development:
+
+```bash
+npm run dev
+```
+
+Check TypeScript:
+
+```bash
+npm run typecheck
+```
+
+Build the app bundles:
+
+```bash
+npm run build
+```
