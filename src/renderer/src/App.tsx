@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   Clock3,
+  FileDown,
+  FileUp,
   MousePointer2,
   Music2,
   Pause,
@@ -15,6 +17,7 @@ import {
   type PitchStep,
   type ScoreCommand
 } from '../../score-core'
+import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import './styles.css'
 import {
   buildDeleteCommand,
@@ -71,6 +74,10 @@ const App = () => {
   const [mode, setMode] = useState<EditorMode>('select')
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [undoStack, setUndoStack] = useState<ScoreCommand[]>([])
+  const [fileStatus, setFileStatus] = useState<{
+    tone: 'neutral' | 'error'
+    message: string
+  }>()
 
   const eventLocation = useMemo(
     () =>
@@ -222,6 +229,68 @@ const App = () => {
     [score, selection]
   )
 
+  const importMusicXml = useCallback(async () => {
+    try {
+      const file = await window.inC.musicXml.open()
+
+      if (!file) {
+        return
+      }
+
+      const importedScore = parseMusicXml(file.contents)
+      const firstMeasure = importedScore.parts[0]?.staves[0]?.measures[0]
+      const firstEvent = firstMeasure?.voices[0]?.events[0]
+
+      setScore(importedScore)
+      setUndoStack([])
+      setMode('select')
+      setSelection(
+        firstEvent
+          ? {
+              type: 'event',
+              eventId: firstEvent.id
+            }
+          : {
+              type: 'measure',
+              measureId: firstMeasure?.id ?? 'measure-1'
+            }
+      )
+      setFileStatus({
+        tone: 'neutral',
+        message: `${file.fileName} imported`
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: getErrorMessage(error)
+      })
+    }
+  }, [])
+
+  const exportMusicXml = useCallback(async () => {
+    try {
+      const contents = serializeMusicXml(score)
+      const result = await window.inC.musicXml.save({
+        suggestedName: `${toFileName(score.title)}.musicxml`,
+        contents
+      })
+
+      if (!result) {
+        return
+      }
+
+      setFileStatus({
+        tone: 'neutral',
+        message: `${result.fileName} exported`
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: getErrorMessage(error)
+      })
+    }
+  }, [score])
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null
@@ -354,6 +423,17 @@ const App = () => {
       <section className="workspace" aria-label="Notation editor">
         <header className="toolbar">
           <div className="toolbar__group">
+            <div className="file-actions" aria-label="MusicXML file actions">
+              <button onClick={importMusicXml} type="button">
+                <FileUp aria-hidden="true" size={17} />
+                <span>Import</span>
+              </button>
+              <button onClick={exportMusicXml} type="button">
+                <FileDown aria-hidden="true" size={17} />
+                <span>Export</span>
+              </button>
+            </div>
+
             <div className="segmented-control" aria-label="Editing tools">
               {tools.map((tool) => {
                 const Icon = tool.icon
@@ -418,6 +498,11 @@ const App = () => {
           <span>{mode}</span>
           <span>{durationLabels[durationValue]}</span>
           <span>{undoStack.length} edits</span>
+          {fileStatus ? (
+            <span className={fileStatus.tone === 'error' ? 'is-error' : undefined}>
+              {fileStatus.message}
+            </span>
+          ) : null}
         </div>
 
         <div className="score-page" aria-label="Score page">
@@ -462,6 +547,20 @@ function getCommandEventId(command: ScoreCommand | undefined): string | undefine
   }
 
   return undefined
+}
+
+function toFileName(title: string): string {
+  const normalized = title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  return normalized || 'untitled-score'
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
 }
 
 createRoot(document.getElementById('root') as HTMLElement).render(<App />)

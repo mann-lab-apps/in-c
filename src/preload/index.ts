@@ -1,4 +1,7 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
+
+const openMusicXmlChannel = 'musicxml:open'
+const saveMusicXmlChannel = 'musicxml:save'
 
 const api = {
   appName: 'in-C',
@@ -6,6 +9,17 @@ const api = {
     node: process.versions.node,
     chrome: process.versions.chrome,
     electron: process.versions.electron
+  },
+  musicXml: {
+    open: () =>
+      ipcRenderer.invoke(openMusicXmlChannel) as Promise<{
+        fileName: string
+        contents: string
+      } | null>,
+    save: (input: { suggestedName: string; contents: string }) =>
+      ipcRenderer.invoke(saveMusicXmlChannel, input) as Promise<{
+        fileName: string
+      } | null>
   }
 }
 

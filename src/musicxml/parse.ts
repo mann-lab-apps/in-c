@@ -1,0 +1,385 @@
+import { XMLParser } from 'fast-xml-parser'
+
+import {
+  createMeasure,
+  createNote,
+  createPart,
+  createRest,
+  createScore,
+  createStaff,
+  createVoice,
+  type Clef,
+  type Duration,
+  type KeySignature,
+  type Score,
+  type TimeSignature,
+  type VoiceEvent
+} from '../score-core'
+import {
+  isDurationValue,
+  isKeyMode,
+  isPitchStep,
+  toArray
+} from './shared'
+
+interface XmlNode {
+  [key: string]: unknown
+}
+
+interface MeasureState {
+  clef: Clef
+  keySignature: KeySignature
+  timeSignature: TimeSignature
+}
+
+const parser = new XMLParser({
+  ignoreAttributes: false,
+  parseAttributeValue: false,
+  parseTagValue: false,
+  trimValues: true
+})
+
+const defaultMeasureState: MeasureState = {
+  clef: {
+    sign: 'G',
+    line: 2
+  },
+  keySignature: {
+    fifths: 0,
+    mode: 'major'
+  },
+  timeSignature: {
+    beats: 4,
+    beatType: 4
+  }
+}
+
+export function parseMusicXml(xml: string): Score {
+  let document: XmlNode
+
+  try {
+    document = parser.parse(xml) as XmlNode
+  } catch (error) {
+    throw new Error(`MusicXML 문서를 읽을 수 없습니다: ${getErrorMessage(error)}`)
+  }
+
+  const root = readNode(document, 'score-partwise')
+  const parts = toArray(root.part as XmlNode | XmlNode[] | undefined)
+
+  if (parts.length !== 1) {
+    throw new Error('MVP에서는 단일 part MusicXML만 가져올 수 있습니다.')
+  }
+
+  const partNode = parts[0]
+  const partId = readOptionalString(partNode, '@_id') ?? 'part-1'
+  const partList = readOptionalNode(root, 'part-list')
+  const scoreParts = toArray(
+    partList?.['score-part'] as XmlNode | XmlNode[] | undefined
+  )
+  const scorePart =
+    scoreParts.find((candidate) => candidate['@_id'] === partId) ?? scoreParts[0]
+  const partName = scorePart
+    ? readOptionalString(scorePart, 'part-name') ?? 'MusicXML Part'
+    : 'MusicXML Part'
+  const abbreviation = scorePart
+    ? readOptionalString(scorePart, 'part-abbreviation')
+    : undefined
+  const measureNodes = toArray(
+    partNode.measure as XmlNode | XmlNode[] | undefined
+  )
+
+  if (measureNodes.length === 0) {
+    throw new Error('MusicXML에 measure가 없습니다.')
+  }
+
+  let state = structuredClone(defaultMeasureState)
+  let eventCounter = 0
+  const measures = measureNodes.map((measureNode, measureIndex) => {
+    const attributes = readOptionalNode(measureNode, 'attributes')
+
+    if (attributes) {
+      validateSingleStaff(attributes)
+      state = readMeasureState(attributes, state)
+    }
+
+    if ('backup' in measureNode || 'forward' in measureNode) {
+      throw new Error('MVP에서는 여러 성부 또는 backup/forward를 지원하지 않습니다.')
+    }
+
+    const noteNodes = toArray(
+      measureNode.note as XmlNode | XmlNode[] | undefined
+    )
+    const events = noteNodes.map((noteNode) => {
+      eventCounter += 1
+      return readVoiceEvent(noteNode, eventCounter)
+    })
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+
+    return createMeasure({
+      id: `measure-${measureNumber}`,
+      number: measureNumber,
+      clef: { ...state.clef },
+      keySignature: { ...state.keySignature },
+      timeSignature: { ...state.timeSignature },
+      voices: [
+        createVoice({
+          id: 'voice-1',
+          events
+        })
+      ]
+    })
+  })
+
+  const title =
+    readOptionalString(root, 'work', 'work-title') ??
+    readOptionalString(root, 'movement-title') ??
+    'Imported score'
+  const composer = readComposer(root)
+
+  return createScore({
+    id: 'musicxml-score',
+    title,
+    composer,
+    parts: [
+      createPart({
+        id: partId,
+        name: partName,
+        abbreviation,
+        staves: [
+          createStaff({
+            id: `${partId}-staff-1`,
+            measures
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function readVoiceEvent(node: XmlNode, eventIndex: number): VoiceEvent {
+  if ('chord' in node) {
+    throw new Error('MVP에서는 chord 음표를 지원하지 않습니다.')
+  }
+
+  if ('grace' in node) {
+    throw new Error('MVP에서는 grace note를 지원하지 않습니다.')
+  }
+
+  const voice = readOptionalString(node, 'voice')
+
+  if (voice && voice !== '1') {
+    throw new Error('MVP에서는 voice 1만 지원합니다.')
+  }
+
+  const duration = readDuration(node)
+  const id = `event-${eventIndex}`
+
+  if ('rest' in node) {
+    return createRest({
+      id,
+      duration
+    })
+  }
+
+  const pitchNode = readNode(node, 'pitch')
+  const step = readString(pitchNode, 'step').toUpperCase()
+
+  if (!isPitchStep(step)) {
+    throw new Error(`지원하지 않는 pitch step입니다: ${step}`)
+  }
+
+  const alter = readOptionalInteger(pitchNode, 'alter')
+
+  if (
+    alter !== undefined &&
+    ![-2, -1, 0, 1, 2].includes(alter)
+  ) {
+    throw new Error(`지원하지 않는 alter 값입니다: ${alter}`)
+  }
+
+  return createNote({
+    id,
+    pitch: {
+      step,
+      octave: readInteger(pitchNode, 'octave'),
+      alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
+    },
+    duration
+  })
+}
+
+function readDuration(node: XmlNode): Duration {
+  const type = readString(node, 'type')
+
+  if (!isDurationValue(type)) {
+    throw new Error(`지원하지 않는 note type입니다: ${type}`)
+  }
+
+  return {
+    value: type,
+    dots: toArray(node.dot as XmlNode | XmlNode[] | undefined).length
+  }
+}
+
+function readMeasureState(
+  attributes: XmlNode,
+  previous: MeasureState
+): MeasureState {
+  const clefNode = readOptionalNode(attributes, 'clef')
+  const keyNode = readOptionalNode(attributes, 'key')
+  const timeNode = readOptionalNode(attributes, 'time')
+
+  return {
+    clef: clefNode ? readClef(clefNode) : previous.clef,
+    keySignature: keyNode ? readKeySignature(keyNode) : previous.keySignature,
+    timeSignature: timeNode ? readTimeSignature(timeNode) : previous.timeSignature
+  }
+}
+
+function readClef(node: XmlNode): Clef {
+  const sign = readString(node, 'sign')
+
+  if (!['G', 'F', 'C', 'percussion'].includes(sign)) {
+    throw new Error(`지원하지 않는 clef sign입니다: ${sign}`)
+  }
+
+  if (sign !== 'G') {
+    throw new Error('MVP 가져오기는 높은음자리표(G clef)만 지원합니다.')
+  }
+
+  return {
+    sign,
+    line: readInteger(node, 'line'),
+    octaveChange: readOptionalInteger(node, 'clef-octave-change')
+  } as Clef
+}
+
+function readKeySignature(node: XmlNode): KeySignature {
+  const mode = readOptionalString(node, 'mode')
+
+  if (mode && !isKeyMode(mode)) {
+    throw new Error(`지원하지 않는 key mode입니다: ${mode}`)
+  }
+
+  return {
+    fifths: readInteger(node, 'fifths'),
+    mode: mode && isKeyMode(mode) ? mode : undefined
+  }
+}
+
+function readTimeSignature(node: XmlNode): TimeSignature {
+  return {
+    beats: readInteger(node, 'beats'),
+    beatType: readInteger(node, 'beat-type')
+  }
+}
+
+function validateSingleStaff(attributes: XmlNode): void {
+  const staves = readOptionalInteger(attributes, 'staves')
+
+  if (staves !== undefined && staves !== 1) {
+    throw new Error('MVP에서는 단일 staff MusicXML만 가져올 수 있습니다.')
+  }
+}
+
+function readComposer(root: XmlNode): string | undefined {
+  const identification = readOptionalNode(root, 'identification')
+  const creators = toArray(
+    identification?.creator as XmlNode | XmlNode[] | undefined
+  )
+  const composer = creators.find(
+    (creator) => creator['@_type'] === 'composer'
+  )
+
+  return composer ? readText(composer) : undefined
+}
+
+function readNode(node: XmlNode, key: string): XmlNode {
+  const value = node[key]
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`MusicXML 필수 요소가 없습니다: ${key}`)
+  }
+
+  return value as XmlNode
+}
+
+function readOptionalNode(node: XmlNode, key: string): XmlNode | undefined {
+  const value = node[key]
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  return value as XmlNode
+}
+
+function readString(node: XmlNode, key: string): string {
+  const value = readOptionalString(node, key)
+
+  if (value === undefined || value.length === 0) {
+    throw new Error(`MusicXML 필수 값이 없습니다: ${key}`)
+  }
+
+  return value
+}
+
+function readOptionalString(
+  node: XmlNode,
+  ...path: string[]
+): string | undefined {
+  let value: unknown = node
+
+  for (const key of path) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      return undefined
+    }
+
+    value = (value as XmlNode)[key]
+  }
+
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value).trim()
+  }
+
+  if (value && typeof value === 'object' && '#text' in value) {
+    return String((value as XmlNode)['#text']).trim()
+  }
+
+  return undefined
+}
+
+function readInteger(node: XmlNode, key: string): number {
+  const value = readOptionalInteger(node, key)
+
+  if (value === undefined) {
+    throw new Error(`MusicXML 정수 값이 없습니다: ${key}`)
+  }
+
+  return value
+}
+
+function readOptionalInteger(node: XmlNode, key: string): number | undefined {
+  const value = readOptionalString(node, key)
+
+  if (value === undefined) {
+    return undefined
+  }
+
+  const number = Number.parseInt(value, 10)
+
+  if (!Number.isFinite(number)) {
+    throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
+  }
+
+  return number
+}
+
+function readText(node: XmlNode): string | undefined {
+  return readOptionalString(node, '#text')
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
