@@ -1,43 +1,308 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import {
+  Clock3,
+  MousePointer2,
+  Music2,
+  Pause,
+  RotateCcw,
+  Trash2
+} from 'lucide-react'
 
+import {
+  applyScoreCommand,
+  type DurationValue,
+  type PitchStep,
+  type ScoreCommand
+} from '../../score-core'
 import './styles.css'
+import {
+  buildDeleteCommand,
+  buildDurationCommand,
+  buildNoteEntryCommand,
+  buildRestEntryCommand,
+  createDuration,
+  durationLabels,
+  getAdjacentEventId,
+  locateEvent,
+  locateMeasure,
+  type EditorMode,
+  type EditorSelection
+} from './editor/editor-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
 
-const durations = ['Whole', 'Half', 'Quarter', 'Eighth']
-const tools = ['Select', 'Note', 'Rest', 'Tie']
+const durations: DurationValue[] = ['whole', 'half', 'quarter', 'eighth']
+const durationKeys: Partial<Record<string, DurationValue>> = {
+  '1': 'whole',
+  '2': 'half',
+  '4': 'quarter',
+  '8': 'eighth'
+}
+
+const tools: Array<{
+  mode: EditorMode
+  label: string
+  icon: typeof MousePointer2
+}> = [
+  {
+    mode: 'select',
+    label: 'Select',
+    icon: MousePointer2
+  },
+  {
+    mode: 'note',
+    label: 'Note',
+    icon: Music2
+  },
+  {
+    mode: 'rest',
+    label: 'Rest',
+    icon: Pause
+  }
+]
 
 const App = () => {
-  const [selectedEventId, setSelectedEventId] = useState('note-e4')
-  const selectEvent = useCallback((eventId: string) => {
-    setSelectedEventId(eventId)
-  }, [])
-  const selection = useMemo(() => {
-    for (const part of demoScore.parts) {
-      for (const staff of part.staves) {
-        for (const measure of staff.measures) {
-          for (const voice of measure.voices) {
-            if (voice.events.some((event) => event.id === selectedEventId)) {
-              return {
-                measure: measure.number,
-                voice: voice.id
-              }
-            }
+  const [score, setScore] = useState(() => demoScore)
+  const [selection, setSelection] = useState<EditorSelection>({
+    type: 'event',
+    eventId: 'note-e4'
+  })
+  const [mode, setMode] = useState<EditorMode>('select')
+  const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
+  const [undoStack, setUndoStack] = useState<ScoreCommand[]>([])
+
+  const eventLocation = useMemo(
+    () =>
+      selection.type === 'event'
+        ? locateEvent(score, selection.eventId)
+        : undefined,
+    [score, selection]
+  )
+  const measureLocation = useMemo(
+    () =>
+      selection.type === 'measure'
+        ? locateMeasure(score, selection.measureId)
+        : undefined,
+    [score, selection]
+  )
+
+  const executeCommand = useCallback(
+    (command: ScoreCommand | undefined) => {
+      if (!command) {
+        return false
+      }
+
+      const result = applyScoreCommand(score, command)
+      setScore(result.score)
+      setUndoStack((commands) => [...commands, result.undo])
+      return true
+    },
+    [score]
+  )
+
+  const undo = useCallback(() => {
+    const command = undoStack.at(-1)
+
+    if (!command) {
+      return
+    }
+
+    const result = applyScoreCommand(score, command)
+    setScore(result.score)
+    setUndoStack((commands) => commands.slice(0, -1))
+
+    if (
+      selection.type === 'event' &&
+      !locateEvent(result.score, selection.eventId)
+    ) {
+      setSelection({
+        type: 'measure',
+        measureId: command.target.measureId
+      })
+    }
+  }, [score, selection, undoStack])
+
+  const changeDuration = useCallback(
+    (value: DurationValue) => {
+      setDurationValue(value)
+
+      if (selection.type === 'event') {
+        executeCommand(
+          buildDurationCommand(score, selection, createDuration(value))
+        )
+      }
+    },
+    [executeCommand, score, selection]
+  )
+
+  const enterNote = useCallback(
+    (step: PitchStep) => {
+      const command = buildNoteEntryCommand(
+        score,
+        selection,
+        step,
+        createDuration(durationValue),
+        createEventId
+      )
+      const eventId = getCommandEventId(command)
+
+      if (executeCommand(command) && eventId) {
+        setMode('note')
+        setSelection({
+          type: 'event',
+          eventId
+        })
+      }
+    },
+    [durationValue, executeCommand, score, selection]
+  )
+
+  const enterRest = useCallback(() => {
+    const command = buildRestEntryCommand(
+      score,
+      selection,
+      createDuration(durationValue),
+      createEventId
+    )
+    const eventId = getCommandEventId(command)
+
+    if (executeCommand(command) && eventId) {
+      setMode('rest')
+      setSelection({
+        type: 'event',
+        eventId
+      })
+    }
+  }, [durationValue, executeCommand, score, selection])
+
+  const deleteSelection = useCallback(() => {
+    if (selection.type !== 'event') {
+      return
+    }
+
+    const location = locateEvent(score, selection.eventId)
+    const adjacentEventId =
+      getAdjacentEventId(score, selection.eventId, 1) ??
+      getAdjacentEventId(score, selection.eventId, -1)
+    const command = buildDeleteCommand(score, selection)
+
+    if (!location || !executeCommand(command)) {
+      return
+    }
+
+    setSelection(
+      adjacentEventId
+        ? {
+            type: 'event',
+            eventId: adjacentEventId
           }
-        }
+        : {
+            type: 'measure',
+            measureId: location.address.measureId
+          }
+    )
+  }, [executeCommand, score, selection])
+
+  const moveSelection = useCallback(
+    (direction: -1 | 1) => {
+      if (selection.type !== 'event') {
+        return
+      }
+
+      const eventId = getAdjacentEventId(score, selection.eventId, direction)
+
+      if (eventId) {
+        setSelection({
+          type: 'event',
+          eventId
+        })
+      }
+    },
+    [score, selection]
+  )
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+
+      if (
+        target?.tagName === 'INPUT' ||
+        target?.tagName === 'TEXTAREA' ||
+        target?.isContentEditable
+      ) {
+        return
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+        event.preventDefault()
+        undo()
+        return
+      }
+
+      const duration = durationKeys[event.key]
+
+      if (duration) {
+        event.preventDefault()
+        changeDuration(duration)
+        return
+      }
+
+      const pitch = event.key.toUpperCase()
+
+      if (/^[A-G]$/.test(pitch)) {
+        event.preventDefault()
+        enterNote(pitch as PitchStep)
+        return
+      }
+
+      switch (event.key) {
+        case 'r':
+        case 'R':
+          event.preventDefault()
+          enterRest()
+          break
+        case 'Delete':
+        case 'Backspace':
+          event.preventDefault()
+          deleteSelection()
+          break
+        case 'ArrowLeft':
+          event.preventDefault()
+          moveSelection(-1)
+          break
+        case 'ArrowRight':
+          event.preventDefault()
+          moveSelection(1)
+          break
+        case 'Escape':
+          setMode('select')
+          break
       }
     }
 
-    return undefined
-  }, [selectedEventId])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [
+    changeDuration,
+    deleteSelection,
+    enterNote,
+    enterRest,
+    moveSelection,
+    undo
+  ])
+
+  const selectedEventId =
+    selection.type === 'event' ? selection.eventId : undefined
+  const selectedMeasureId =
+    selection.type === 'measure' ? selection.measureId : undefined
 
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Score navigation">
         <div>
           <p className="eyebrow">in-C</p>
-          <h1>Untitled Score</h1>
+          <h1>{score.title}</h1>
         </div>
 
         <nav className="panel-list" aria-label="Open panels">
@@ -56,16 +321,31 @@ const App = () => {
           <h2>Selection</h2>
           <dl>
             <div>
+              <dt>Type</dt>
+              <dd>
+                {eventLocation?.event.type ??
+                  (measureLocation ? 'measure' : '—')}
+              </dd>
+            </div>
+            <div>
               <dt>Event</dt>
-              <dd>{selectedEventId}</dd>
+              <dd>{eventLocation?.event.id ?? '—'}</dd>
             </div>
             <div>
               <dt>Measure</dt>
-              <dd>{selection?.measure ?? '—'}</dd>
+              <dd>
+                {eventLocation?.measureNumber ??
+                  measureLocation?.measureNumber ??
+                  '—'}
+              </dd>
             </div>
             <div>
               <dt>Voice</dt>
-              <dd>{selection?.voice ?? '—'}</dd>
+              <dd>
+                {eventLocation?.address.voiceId ??
+                  measureLocation?.address.voiceId ??
+                  '—'}
+              </dd>
             </div>
           </dl>
         </section>
@@ -73,42 +353,115 @@ const App = () => {
 
       <section className="workspace" aria-label="Notation editor">
         <header className="toolbar">
-          <div className="segmented-control" aria-label="Editing tools">
-            {tools.map((tool) => (
-              <button
-                className={tool === 'Select' ? 'is-active' : undefined}
-                key={tool}
-                type="button"
-              >
-                {tool}
-              </button>
-            ))}
+          <div className="toolbar__group">
+            <div className="segmented-control" aria-label="Editing tools">
+              {tools.map((tool) => {
+                const Icon = tool.icon
+
+                return (
+                  <button
+                    aria-label={tool.label}
+                    aria-pressed={mode === tool.mode}
+                    className={mode === tool.mode ? 'is-active' : undefined}
+                    key={tool.mode}
+                    onClick={() => setMode(tool.mode)}
+                    title={tool.label}
+                    type="button"
+                  >
+                    <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
+                    <span>{tool.label}</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              aria-label="Undo"
+              className="icon-button"
+              disabled={undoStack.length === 0}
+              onClick={undo}
+              title="Undo"
+              type="button"
+            >
+              <RotateCcw aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Delete selection"
+              className="icon-button"
+              disabled={selection.type !== 'event'}
+              onClick={deleteSelection}
+              title="Delete selection"
+              type="button"
+            >
+              <Trash2 aria-hidden="true" size={18} />
+            </button>
           </div>
 
-          <div className="duration-strip" aria-label="Durations">
+          <div className="duration-strip" aria-label="Note duration">
+            <Clock3 aria-hidden="true" size={17} />
             {durations.map((duration) => (
-              <button key={duration} type="button">
-                {duration}
+              <button
+                aria-pressed={durationValue === duration}
+                className={durationValue === duration ? 'is-active' : undefined}
+                key={duration}
+                onClick={() => changeDuration(duration)}
+                type="button"
+              >
+                {durationLabels[duration]}
               </button>
             ))}
           </div>
         </header>
 
+        <div className="editor-status" aria-live="polite">
+          <span>{mode}</span>
+          <span>{durationLabels[durationValue]}</span>
+          <span>{undoStack.length} edits</span>
+        </div>
+
         <div className="score-page" aria-label="Score page">
           <div className="score-title">
-            <span>{demoScore.title}</span>
+            <span>{score.title}</span>
             <small>Andante · 4/4</small>
           </div>
 
           <NotationPreview
-            onSelectEvent={selectEvent}
-            score={demoScore}
+            onSelectEvent={(eventId) =>
+              setSelection({
+                type: 'event',
+                eventId
+              })
+            }
+            onSelectMeasure={(measureId) =>
+              setSelection({
+                type: 'measure',
+                measureId
+              })
+            }
+            score={score}
             selectedEventId={selectedEventId}
+            selectedMeasureId={selectedMeasureId}
           />
         </div>
       </section>
     </main>
   )
+}
+
+function createEventId(): string {
+  return `event-${crypto.randomUUID()}`
+}
+
+function getCommandEventId(command: ScoreCommand | undefined): string | undefined {
+  if (
+    command?.type === 'voice-event.insert' ||
+    command?.type === 'voice-event.replace'
+  ) {
+    return command.event.id
+  }
+
+  return undefined
 }
 
 createRoot(document.getElementById('root') as HTMLElement).render(<App />)

@@ -20,7 +20,9 @@ import {
 interface NotationPreviewProps {
   score: Score
   selectedEventId?: string
+  selectedMeasureId?: string
   onSelectEvent: (eventId: string) => void
+  onSelectMeasure: (measureId: string) => void
 }
 
 const MIN_RENDER_WIDTH = 560
@@ -29,7 +31,9 @@ const RENDER_HEIGHT = 190
 export function NotationPreview({
   score,
   selectedEventId,
-  onSelectEvent
+  selectedMeasureId,
+  onSelectEvent,
+  onSelectMeasure
 }: NotationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [renderWidth, setRenderWidth] = useState(MIN_RENDER_WIDTH)
@@ -63,10 +67,30 @@ export function NotationPreview({
     const context = renderer.getContext()
     const measures = score.parts[0]?.staves[0]?.measures ?? []
     const measureWidth = (renderWidth - 32) / Math.max(measures.length, 1)
+    const svg = container.querySelector('svg')
 
     measures.forEach((measure, measureIndex) => {
-      const stave = new Stave(16 + measureIndex * measureWidth, 34, measureWidth)
+      const measureX = 16 + measureIndex * measureWidth
+      const stave = new Stave(measureX, 34, measureWidth)
       const clef = toVexFlowClef(measure.clef)
+
+      if (svg) {
+        const selectionTarget = document.createElementNS(
+          'http://www.w3.org/2000/svg',
+          'rect'
+        )
+
+        selectionTarget.classList.add('notation-measure')
+        selectionTarget.classList.toggle('is-selected', measure.id === selectedMeasureId)
+        selectionTarget.setAttribute('data-measure-id', measure.id)
+        selectionTarget.setAttribute('x', String(measureX))
+        selectionTarget.setAttribute('y', '24')
+        selectionTarget.setAttribute('width', String(measureWidth))
+        selectionTarget.setAttribute('height', '112')
+        selectionTarget.setAttribute('rx', '4')
+        selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
+        svg.append(selectionTarget)
+      }
 
       if (measureIndex === 0) {
         stave
@@ -85,6 +109,7 @@ export function NotationPreview({
           beatValue: measure.timeSignature.beatType
         })
 
+        vexVoice.setMode(Voice.Mode.SOFT)
         vexVoice.addTickables(notes)
         return { notes, vexVoice }
       })
@@ -109,11 +134,23 @@ export function NotationPreview({
 
           svgElement.classList.add('notation-event')
           svgElement.setAttribute('data-event-id', eventId)
-          svgElement.addEventListener('click', () => onSelectEvent(eventId))
+          svgElement.setAttribute('role', 'button')
+          svgElement.setAttribute('tabindex', '0')
+          svgElement.addEventListener('click', (event) => {
+            event.stopPropagation()
+            onSelectEvent(eventId)
+          })
         })
       })
     })
-  }, [onSelectEvent, renderWidth, score, selectedEventId])
+  }, [
+    onSelectEvent,
+    onSelectMeasure,
+    renderWidth,
+    score,
+    selectedEventId,
+    selectedMeasureId
+  ])
 
   return <div className="notation-preview" ref={containerRef} />
 }
