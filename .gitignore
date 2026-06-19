@@ -1,0 +1,14 @@
+node_modules/
+dist/
+out/
+build/
+.vite/
+.DS_Store
+
+# Keep third-party source references outside this repository.
+references/
+external-references/
+
+*.log
+*.tmp
+*.musicxml.tmp
