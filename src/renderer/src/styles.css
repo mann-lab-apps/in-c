@@ -84,6 +84,7 @@ h2 {
 }
 
 .panel-list__item,
+.file-actions button,
 .segmented-control button,
 .duration-strip button,
 .icon-button {
@@ -166,6 +167,24 @@ h2 {
   gap: 8px;
 }
 
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid #cbc6ba;
+}
+
+.file-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  border-color: #c7c0b3;
+  background: #fbfaf6;
+}
+
 .segmented-control,
 .duration-strip {
   display: flex;
@@ -236,6 +255,11 @@ h2 {
   background: #a6aaa8;
   content: "";
   transform: translateY(-50%);
+}
+
+.editor-status .is-error {
+  color: #a23228;
+  font-weight: 700;
 }
 
 .score-page {
