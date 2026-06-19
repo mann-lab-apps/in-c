@@ -1,0 +1,309 @@
+:root {
+  color: #202326;
+  background: #ece8dd;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 960px;
+  min-height: 640px;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 280px minmax(680px, 1fr);
+  min-height: 100vh;
+  background:
+    linear-gradient(90deg, rgba(32, 35, 38, 0.05) 1px, transparent 1px) 0 0 / 40px
+      40px,
+    #ece8dd;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 28px 22px;
+  border-right: 1px solid #d3cdbf;
+  background: #f5f1e8;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #47616c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+  letter-spacing: 0;
+}
+
+h1 {
+  color: #14171a;
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+h2 {
+  font-size: 0.95rem;
+}
+
+.panel-list {
+  display: grid;
+  gap: 6px;
+}
+
+.panel-list__item,
+.segmented-control button,
+.duration-strip button {
+  min-height: 36px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #283035;
+  background: transparent;
+  cursor: default;
+}
+
+.panel-list__item {
+  width: 100%;
+  padding: 0 12px;
+  text-align: left;
+}
+
+.panel-list__item--active,
+.segmented-control .is-active {
+  border-color: #b9b7a7;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(20, 23, 26, 0.08);
+}
+
+.inspector {
+  margin-top: auto;
+  padding-top: 20px;
+  border-top: 1px solid #d8d2c5;
+}
+
+.inspector dl {
+  display: grid;
+  gap: 12px;
+  margin: 16px 0 0;
+}
+
+.inspector div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector dt {
+  color: #647076;
+  font-size: 0.82rem;
+}
+
+.inspector dd {
+  margin: 0;
+  color: #16191c;
+  font-weight: 700;
+}
+
+.workspace {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 68px;
+  padding: 14px 24px;
+  border-bottom: 1px solid #d3cdbf;
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(16px);
+}
+
+.segmented-control,
+.duration-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.segmented-control {
+  padding: 4px;
+  border: 1px solid #c7c0b3;
+  border-radius: 8px;
+  background: #e5dfd1;
+}
+
+.segmented-control button,
+.duration-strip button {
+  padding: 0 12px;
+}
+
+.duration-strip button {
+  border-color: #c7c0b3;
+  background: #fbfaf6;
+}
+
+.score-page {
+  width: min(900px, calc(100% - 64px));
+  min-height: 560px;
+  margin: 32px auto;
+  padding: 64px 72px;
+  background: #fffdf8;
+  box-shadow: 0 24px 60px rgba(31, 38, 43, 0.16);
+}
+
+.score-title {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-bottom: 72px;
+}
+
+.score-title span {
+  color: #151719;
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.score-title small {
+  color: #6b7277;
+  font-size: 0.9rem;
+}
+
+.staff-system {
+  position: relative;
+  height: 148px;
+}
+
+.staff-line {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 1px;
+  background: #111315;
+}
+
+.staff-line:nth-child(1) {
+  top: 32px;
+}
+
+.staff-line:nth-child(2) {
+  top: 44px;
+}
+
+.staff-line:nth-child(3) {
+  top: 56px;
+}
+
+.staff-line:nth-child(4) {
+  top: 68px;
+}
+
+.staff-line:nth-child(5) {
+  top: 80px;
+}
+
+.clef {
+  position: absolute;
+  top: 10px;
+  left: 8px;
+  font-family: Georgia, serif;
+  font-size: 4rem;
+  line-height: 1;
+}
+
+.time-signature {
+  position: absolute;
+  top: 30px;
+  left: 92px;
+  color: #111315;
+  font-family: Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 0.85;
+  text-align: center;
+}
+
+.measure-bar {
+  position: absolute;
+  top: 32px;
+  width: 1px;
+  height: 48px;
+  background: #111315;
+}
+
+.measure-bar--one {
+  left: 33%;
+}
+
+.measure-bar--two {
+  left: 62%;
+}
+
+.measure-bar--three {
+  right: 0;
+}
+
+.note {
+  position: absolute;
+  width: 22px;
+  height: 15px;
+  border: 2px solid #111315;
+  border-radius: 50%;
+  transform: rotate(-18deg);
+}
+
+.note::after {
+  position: absolute;
+  bottom: 8px;
+  left: 17px;
+  width: 2px;
+  height: 54px;
+  background: #111315;
+  content: "";
+}
+
+.note--one {
+  top: 58px;
+  left: 180px;
+}
+
+.note--two {
+  top: 46px;
+  left: 270px;
+}
+
+.note--three {
+  top: 52px;
+  left: 440px;
+}
+
+.note--four {
+  top: 40px;
+  left: 610px;
+}
