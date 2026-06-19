@@ -1,11 +1,37 @@
+import { useCallback, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
 import './styles.css'
+import { demoScore } from './notation/demo-score'
+import { NotationPreview } from './notation/NotationPreview'
 
 const durations = ['Whole', 'Half', 'Quarter', 'Eighth']
 const tools = ['Select', 'Note', 'Rest', 'Tie']
 
 const App = () => {
+  const [selectedEventId, setSelectedEventId] = useState('note-e4')
+  const selectEvent = useCallback((eventId: string) => {
+    setSelectedEventId(eventId)
+  }, [])
+  const selection = useMemo(() => {
+    for (const part of demoScore.parts) {
+      for (const staff of part.staves) {
+        for (const measure of staff.measures) {
+          for (const voice of measure.voices) {
+            if (voice.events.some((event) => event.id === selectedEventId)) {
+              return {
+                measure: measure.number,
+                voice: voice.id
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return undefined
+  }, [selectedEventId])
+
   return (
     <main className="app-shell">
       <aside className="sidebar" aria-label="Score navigation">
@@ -30,16 +56,16 @@ const App = () => {
           <h2>Selection</h2>
           <dl>
             <div>
-              <dt>Staff</dt>
-              <dd>1</dd>
+              <dt>Event</dt>
+              <dd>{selectedEventId}</dd>
             </div>
             <div>
               <dt>Measure</dt>
-              <dd>1</dd>
+              <dd>{selection?.measure ?? '—'}</dd>
             </div>
             <div>
               <dt>Voice</dt>
-              <dd>1</dd>
+              <dd>{selection?.voice ?? '—'}</dd>
             </div>
           </dl>
         </section>
@@ -70,24 +96,15 @@ const App = () => {
 
         <div className="score-page" aria-label="Score page">
           <div className="score-title">
-            <span>Untitled Score</span>
+            <span>{demoScore.title}</span>
             <small>Andante · 4/4</small>
           </div>
 
-          <div className="staff-system">
-            {[0, 1, 2, 3, 4].map((line) => (
-              <span className="staff-line" key={line} />
-            ))}
-            <span className="clef">𝄞</span>
-            <span className="time-signature">4<br />4</span>
-            <span className="measure-bar measure-bar--one" />
-            <span className="measure-bar measure-bar--two" />
-            <span className="measure-bar measure-bar--three" />
-            <span className="note note--one" />
-            <span className="note note--two" />
-            <span className="note note--three" />
-            <span className="note note--four" />
-          </div>
+          <NotationPreview
+            onSelectEvent={selectEvent}
+            score={demoScore}
+            selectedEventId={selectedEventId}
+          />
         </div>
       </section>
     </main>
