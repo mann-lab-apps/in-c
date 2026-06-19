@@ -121,9 +121,13 @@ h2 {
 }
 
 .inspector dd {
+  max-width: 136px;
+  overflow: hidden;
   margin: 0;
   color: #16191c;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .workspace {
@@ -195,115 +199,25 @@ h2 {
   font-size: 0.9rem;
 }
 
-.staff-system {
-  position: relative;
-  height: 148px;
+.notation-preview {
+  width: 100%;
+  min-width: 0;
+  min-height: 190px;
+  overflow: hidden;
 }
 
-.staff-line {
-  position: absolute;
-  right: 0;
-  left: 0;
-  height: 1px;
-  background: #111315;
+.notation-preview svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
-.staff-line:nth-child(1) {
-  top: 32px;
+.notation-event {
+  cursor: pointer;
 }
 
-.staff-line:nth-child(2) {
-  top: 44px;
-}
-
-.staff-line:nth-child(3) {
-  top: 56px;
-}
-
-.staff-line:nth-child(4) {
-  top: 68px;
-}
-
-.staff-line:nth-child(5) {
-  top: 80px;
-}
-
-.clef {
-  position: absolute;
-  top: 10px;
-  left: 8px;
-  font-family: Georgia, serif;
-  font-size: 4rem;
-  line-height: 1;
-}
-
-.time-signature {
-  position: absolute;
-  top: 30px;
-  left: 92px;
-  color: #111315;
-  font-family: Georgia, serif;
-  font-size: 1.15rem;
-  font-weight: 700;
-  line-height: 0.85;
-  text-align: center;
-}
-
-.measure-bar {
-  position: absolute;
-  top: 32px;
-  width: 1px;
-  height: 48px;
-  background: #111315;
-}
-
-.measure-bar--one {
-  left: 33%;
-}
-
-.measure-bar--two {
-  left: 62%;
-}
-
-.measure-bar--three {
-  right: 0;
-}
-
-.note {
-  position: absolute;
-  width: 22px;
-  height: 15px;
-  border: 2px solid #111315;
-  border-radius: 50%;
-  transform: rotate(-18deg);
-}
-
-.note::after {
-  position: absolute;
-  bottom: 8px;
-  left: 17px;
-  width: 2px;
-  height: 54px;
-  background: #111315;
-  content: "";
-}
-
-.note--one {
-  top: 58px;
-  left: 180px;
-}
-
-.note--two {
-  top: 46px;
-  left: 270px;
-}
-
-.note--three {
-  top: 52px;
-  left: 440px;
-}
-
-.note--four {
-  top: 40px;
-  left: 610px;
+.notation-event:focus-visible,
+.notation-event:hover {
+  color: #47616c;
+  filter: drop-shadow(0 0 1px currentColor);
 }
