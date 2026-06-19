@@ -7,7 +7,9 @@ import {
   MousePointer2,
   Music2,
   Pause,
+  Play,
   RotateCcw,
+  Square,
   Trash2
 } from 'lucide-react'
 
@@ -34,6 +36,7 @@ import {
 } from './editor/editor-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
+import { useScorePlayback } from './playback/useScorePlayback'
 
 const durations: DurationValue[] = ['whole', 'half', 'quarter', 'eighth']
 const durationKeys: Partial<Record<string, DurationValue>> = {
@@ -78,6 +81,7 @@ const App = () => {
     tone: 'neutral' | 'error'
     message: string
   }>()
+  const playback = useScorePlayback(score)
 
   const eventLocation = useMemo(
     () =>
@@ -326,6 +330,15 @@ const App = () => {
       }
 
       switch (event.key) {
+        case ' ':
+          event.preventDefault()
+
+          if (playback.status === 'playing') {
+            playback.pause()
+          } else {
+            playback.play()
+          }
+          break
         case 'r':
         case 'R':
           event.preventDefault()
@@ -358,6 +371,9 @@ const App = () => {
     enterNote,
     enterRest,
     moveSelection,
+    playback.pause,
+    playback.play,
+    playback.status,
     undo
   ])
 
@@ -492,12 +508,68 @@ const App = () => {
               </button>
             ))}
           </div>
+
         </header>
+
+        <div className="playback-strip">
+          <div className="transport-controls" aria-label="Playback controls">
+            <button
+              aria-label="Play"
+              className="icon-button"
+              disabled={playback.status === 'playing'}
+              onClick={playback.play}
+              title="Play"
+              type="button"
+            >
+              <Play aria-hidden="true" size={18} />
+            </button>
+            <button
+              aria-label="Pause"
+              className="icon-button"
+              disabled={playback.status !== 'playing'}
+              onClick={playback.pause}
+              title="Pause"
+              type="button"
+            >
+              <Pause aria-hidden="true" size={18} />
+            </button>
+            <button
+              aria-label="Stop"
+              className="icon-button"
+              disabled={playback.status === 'stopped'}
+              onClick={playback.stop}
+              title="Stop"
+              type="button"
+            >
+              <Square aria-hidden="true" size={17} />
+            </button>
+          </div>
+
+          <label className="tempo-control">
+            <span>Tempo</span>
+            <input
+              aria-label="Tempo"
+              max="240"
+              min="40"
+              onChange={(event) =>
+                playback.setTempo(Number.parseInt(event.target.value, 10))
+              }
+              step="1"
+              type="range"
+              value={playback.tempo}
+            />
+            <output>{playback.tempo} BPM</output>
+          </label>
+        </div>
 
         <div className="editor-status" aria-live="polite">
           <span>{mode}</span>
           <span>{durationLabels[durationValue]}</span>
           <span>{undoStack.length} edits</span>
+          <span>{playback.status}</span>
+          <span>
+            {playback.positionBeat.toFixed(1)} / {playback.totalBeats.toFixed(1)} beats
+          </span>
           {fileStatus ? (
             <span className={fileStatus.tone === 'error' ? 'is-error' : undefined}>
               {fileStatus.message}
@@ -525,6 +597,7 @@ const App = () => {
               })
             }
             score={score}
+            playbackEventId={playback.activeEventId}
             selectedEventId={selectedEventId}
             selectedMeasureId={selectedMeasureId}
           />
