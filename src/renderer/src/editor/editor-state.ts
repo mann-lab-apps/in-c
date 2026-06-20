@@ -9,9 +9,9 @@ import type {
   VoiceEvent
 } from '../../../score-core'
 import {
-  createTimePosition,
-  sortVoiceEvents,
-  voiceEventDurationTicks
+  buildRhythmDeleteCommand,
+  buildRhythmEditCommand,
+  sortVoiceEvents
 } from '../../../score-core'
 
 export type EditorMode = 'select' | 'note' | 'rest'
@@ -122,10 +122,10 @@ export function buildNoteEntryCommand(
       return undefined
     }
 
-    return {
-      type: 'voice-event.replace',
+    return buildRhythmEditCommand(score, {
       target: location.address,
       eventId: location.event.id,
+      createId,
       event: {
         type: 'note',
         id: location.event.id,
@@ -136,7 +136,7 @@ export function buildNoteEntryCommand(
         },
         duration
       }
-    }
+    })
   }
 
   const location = locateMeasure(score, selection.measureId)
@@ -147,38 +147,25 @@ export function buildNoteEntryCommand(
 
   const rest = location.events.find((event) => event.type === 'rest')
 
-  if (rest) {
-    return {
-      type: 'voice-event.replace',
-      target: location.address,
-      eventId: rest.id,
-      event: {
-        type: 'note',
-        id: rest.id,
-        position: rest.position,
-        pitch: {
-          step,
-          octave: 4
-        },
-        duration
-      }
-    }
+  if (!rest) {
+    return undefined
   }
 
-  return {
-    type: 'voice-event.insert',
+  return buildRhythmEditCommand(score, {
     target: location.address,
+    eventId: rest.id,
+    createId,
     event: {
       type: 'note',
-      id: createId(),
-      position: createTimePosition(getVoiceEndTick(location)),
+      id: rest.id,
+      position: rest.position,
       pitch: {
         step,
         octave: 4
       },
       duration
     }
-  }
+  })
 }
 
 export function buildRestEntryCommand(
@@ -194,17 +181,17 @@ export function buildRestEntryCommand(
       return undefined
     }
 
-    return {
-      type: 'voice-event.replace',
+    return buildRhythmEditCommand(score, {
       target: location.address,
       eventId: location.event.id,
+      createId,
       event: {
         type: 'rest',
         id: location.event.id,
         position: location.event.position,
         duration
       }
-    }
+    })
   }
 
   const location = locateMeasure(score, selection.measureId)
@@ -213,22 +200,30 @@ export function buildRestEntryCommand(
     return undefined
   }
 
-  return {
-    type: 'voice-event.insert',
+  const rest = location.events.find((event) => event.type === 'rest')
+
+  if (!rest) {
+    return undefined
+  }
+
+  return buildRhythmEditCommand(score, {
     target: location.address,
+    eventId: rest.id,
+    createId,
     event: {
       type: 'rest',
-      id: createId(),
-      position: createTimePosition(getVoiceEndTick(location)),
+      id: rest.id,
+      position: rest.position,
       duration
     }
-  }
+  })
 }
 
 export function buildDurationCommand(
   score: Score,
   selection: EditorSelection,
-  duration: Duration
+  duration: Duration,
+  createId: () => string = createRhythmEventId
 ): ScoreCommand | undefined {
   if (selection.type !== 'event') {
     return undefined
@@ -240,15 +235,20 @@ export function buildDurationCommand(
     return undefined
   }
 
-  return {
-    type: 'voice-event.replace',
+  return buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
+    createId,
     event: {
       ...location.event,
+      ...(location.event.type === 'rest'
+        ? {
+            fullMeasure: undefined
+          }
+        : {}),
       duration
     }
-  }
+  })
 }
 
 export function buildDeleteCommand(
@@ -265,11 +265,11 @@ export function buildDeleteCommand(
     return undefined
   }
 
-  return {
-    type: 'voice-event.remove',
-    target: location.address,
-    eventId: location.event.id
-  }
+  return buildRhythmDeleteCommand(
+    score,
+    location.address,
+    location.event.id
+  )
 }
 
 export function getAdjacentEventId(
@@ -295,20 +295,13 @@ export function getAdjacentEventId(
   return eventIds[currentIndex + direction]
 }
 
-function getVoiceEndTick(location: MeasureLocation): number {
-  return location.events.reduce(
-    (endTick, event) =>
-      Math.max(
-        endTick,
-        event.position.tick + voiceEventDurationTicks(event, location.measure)
-      ),
-    0
-  )
-}
-
 export function createDuration(value: DurationValue): Duration {
   return {
     value,
     dots: 0
   }
+}
+
+function createRhythmEventId(): string {
+  return `event-${crypto.randomUUID()}`
 }

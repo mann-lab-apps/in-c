@@ -1,4 +1,5 @@
 export * from './commands'
 export * from './factories'
+export * from './rhythm-editing'
 export * from './timing'
 export * from './types'

@@ -146,6 +146,12 @@ export type ScoreCommand =
       eventId: VoiceEventId
       event: VoiceEvent
     }
+  | {
+      type: 'voice-events.replace'
+      target: VoiceAddress
+      events: VoiceEvent[]
+      editedEventId?: VoiceEventId
+    }
 
 export interface CommandResult {
   score: Score

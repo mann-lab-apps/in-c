@@ -1,5 +1,13 @@
-import type { CommandResult, Score, ScoreCommand, Voice, VoiceAddress, VoiceEvent } from './types'
-import { sortVoiceEvents } from './timing'
+import type {
+  CommandResult,
+  Measure,
+  Score,
+  ScoreCommand,
+  Voice,
+  VoiceAddress,
+  VoiceEvent
+} from './types'
+import { sortVoiceEvents, validateMeasureRhythm } from './timing'
 
 export function applyScoreCommand(score: Score, command: ScoreCommand): CommandResult {
   switch (command.type) {
@@ -9,7 +17,51 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return removeVoiceEvent(score, command.target, command.eventId)
     case 'voice-event.replace':
       return replaceVoiceEvent(score, command.target, command.eventId, command.event)
+    case 'voice-events.replace':
+      return replaceVoiceEvents(
+        score,
+        command.target,
+        command.events,
+        command.editedEventId
+      )
   }
+}
+
+function replaceVoiceEvents(
+  score: Score,
+  target: VoiceAddress,
+  events: VoiceEvent[],
+  editedEventId?: string
+): CommandResult {
+  return updateVoice(score, target, (voice, measure) => {
+    const nextVoice = {
+      ...voice,
+      events: sortVoiceEvents(events)
+    }
+    const nextMeasure = {
+      ...measure,
+      voices: measure.voices.map((candidate) =>
+        candidate.id === voice.id ? nextVoice : candidate
+      )
+    }
+    const rhythm = validateMeasureRhythm(nextMeasure)
+
+    if (!rhythm.isExact) {
+      throw new Error(
+        `Rhythm transaction must preserve an exact measure: ${rhythm.status}`
+      )
+    }
+
+    return {
+      voice: nextVoice,
+      undo: {
+        type: 'voice-events.replace',
+        target,
+        events: voice.events,
+        editedEventId
+      }
+    }
+  })
 }
 
 function insertVoiceEvent(
@@ -97,7 +149,10 @@ function replaceVoiceEvent(
 function updateVoice(
   score: Score,
   target: VoiceAddress,
-  update: (voice: Voice) => { voice: Voice; undo: ScoreCommand }
+  update: (
+    voice: Voice,
+    measure: Measure
+  ) => { voice: Voice; undo: ScoreCommand }
 ): CommandResult {
   let didUpdate = false
   let undo: ScoreCommand | undefined
@@ -128,7 +183,7 @@ function updateVoice(
                   return voice
                 }
 
-                const result = update(voice)
+                const result = update(voice, measure)
                 didUpdate = true
                 undo = result.undo
                 return result.voice
