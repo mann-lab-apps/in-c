@@ -6,6 +6,14 @@
 - Target MusicXML import/export as the first interchange format.
 - Begin with single-part common Western notation before expanding to advanced engraving.
 
+## Single-Voice Requirement Baseline
+
+The detailed single-voice MVP requirements and current gap analysis are documented in:
+
+- `docs/research/single-voice-mvp-requirements.md`
+- `docs/research/in-c-single-voice-gap-analysis.md`
+- `docs/research/musescore-single-voice-observations.md`
+
 ## Initial Scope
 
 - Open a MusicXML file.
