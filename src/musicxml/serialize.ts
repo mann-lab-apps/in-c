@@ -1,6 +1,13 @@
 import { XMLBuilder } from 'fast-xml-parser'
 
-import type { Measure, Score, VoiceEvent } from '../score-core'
+import {
+  sortVoiceEvents,
+  validateMeasureRhythm,
+  voiceEventDurationTicks,
+  type Measure,
+  type Score,
+  type VoiceEvent
+} from '../score-core'
 import {
   clefToMusicXml,
   divisions,
@@ -58,8 +65,15 @@ export function serializeMusicXml(score: Score): string {
         '@_id': part.id,
         measure: staff.measures.map((measure) => ({
           '@_number': measure.number,
+          ...(measure.timing.type === 'pickup'
+            ? {
+                '@_implicit': 'yes'
+              }
+            : {}),
           attributes: buildAttributes(measure),
-          note: measure.voices[0].events.map(buildNote)
+          note: sortVoiceEvents(measure.voices[0].events).map((event) =>
+            buildNote(event, measure)
+          )
         }))
       }
     }
@@ -98,13 +112,18 @@ function buildAttributes(measure: Measure) {
   }
 }
 
-function buildNote(event: VoiceEvent) {
+function buildNote(event: VoiceEvent, measure: Measure) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
+  const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
 
   return {
     ...(event.type === 'rest'
       ? {
-          rest: ''
+          rest: isFullMeasureRest
+            ? {
+                '@_measure': 'yes'
+              }
+            : ''
         }
       : {
           pitch: {
@@ -117,7 +136,9 @@ function buildNote(event: VoiceEvent) {
             octave: event.pitch.octave
           }
         }),
-    duration: durationToTicks(event.duration),
+    duration: isFullMeasureRest
+      ? voiceEventDurationTicks(event, measure)
+      : durationToTicks(event.duration),
     voice: 1,
     type: event.duration.value,
     ...(dots.length > 0
@@ -137,5 +158,13 @@ function validateMeasure(measure: Measure): void {
 
   if (measure.clef.sign !== 'G') {
     throw new Error('MVP 내보내기는 높은음자리표(G clef)만 지원합니다.')
+  }
+
+  const rhythm = validateMeasureRhythm(measure)
+
+  if (!rhythm.isExact) {
+    throw new Error(
+      `measure ${measure.number}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
+    )
   }
 }

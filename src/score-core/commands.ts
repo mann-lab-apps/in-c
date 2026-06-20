@@ -1,4 +1,5 @@
 import type { CommandResult, Score, ScoreCommand, Voice, VoiceAddress, VoiceEvent } from './types'
+import { sortVoiceEvents } from './timing'
 
 export function applyScoreCommand(score: Score, command: ScoreCommand): CommandResult {
   switch (command.type) {
@@ -25,7 +26,7 @@ function insertVoiceEvent(
     return {
       voice: {
         ...voice,
-        events
+        events: sortVoiceEvents(events)
       },
       undo: {
         type: 'voice-event.remove',
@@ -81,7 +82,7 @@ function replaceVoiceEvent(
     return {
       voice: {
         ...voice,
-        events
+        events: sortVoiceEvents(events)
       },
       undo: {
         type: 'voice-event.replace',

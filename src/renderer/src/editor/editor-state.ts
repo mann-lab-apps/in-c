@@ -1,11 +1,17 @@
 import type {
   Duration,
   DurationValue,
+  Measure,
   PitchStep,
   Score,
   ScoreCommand,
   VoiceAddress,
   VoiceEvent
+} from '../../../score-core'
+import {
+  createTimePosition,
+  sortVoiceEvents,
+  voiceEventDurationTicks
 } from '../../../score-core'
 
 export type EditorMode = 'select' | 'note' | 'rest'
@@ -24,11 +30,13 @@ export interface EventLocation {
   address: VoiceAddress
   event: VoiceEvent
   eventIndex: number
+  measure: Measure
   measureNumber: number
 }
 
 export interface MeasureLocation {
   address: VoiceAddress
+  measure: Measure
   measureNumber: number
   events: VoiceEvent[]
 }
@@ -60,6 +68,7 @@ export function locateEvent(score: Score, eventId: string): EventLocation | unde
               },
               event: voice.events[eventIndex],
               eventIndex,
+              measure,
               measureNumber: measure.number
             }
           }
@@ -88,8 +97,9 @@ export function locateMeasure(
             measureId: measure.id,
             voiceId: voice.id
           },
+          measure,
           measureNumber: measure.number,
-          events: voice.events
+          events: sortVoiceEvents(voice.events)
         }
       }
     }
@@ -119,6 +129,7 @@ export function buildNoteEntryCommand(
       event: {
         type: 'note',
         id: location.event.id,
+        position: location.event.position,
         pitch: {
           step,
           octave: location.event.type === 'note' ? location.event.pitch.octave : 4
@@ -144,6 +155,7 @@ export function buildNoteEntryCommand(
       event: {
         type: 'note',
         id: rest.id,
+        position: rest.position,
         pitch: {
           step,
           octave: 4
@@ -159,6 +171,7 @@ export function buildNoteEntryCommand(
     event: {
       type: 'note',
       id: createId(),
+      position: createTimePosition(getVoiceEndTick(location)),
       pitch: {
         step,
         octave: 4
@@ -188,6 +201,7 @@ export function buildRestEntryCommand(
       event: {
         type: 'rest',
         id: location.event.id,
+        position: location.event.position,
         duration
       }
     }
@@ -205,6 +219,7 @@ export function buildRestEntryCommand(
     event: {
       type: 'rest',
       id: createId(),
+      position: createTimePosition(getVoiceEndTick(location)),
       duration
     }
   }
@@ -265,7 +280,9 @@ export function getAdjacentEventId(
   const eventIds = score.parts.flatMap((part) =>
     part.staves.flatMap((staff) =>
       staff.measures.flatMap((measure) =>
-        measure.voices.flatMap((voice) => voice.events.map((event) => event.id))
+        measure.voices.flatMap((voice) =>
+          sortVoiceEvents(voice.events).map((event) => event.id)
+        )
       )
     )
   )
@@ -276,6 +293,17 @@ export function getAdjacentEventId(
   }
 
   return eventIds[currentIndex + direction]
+}
+
+function getVoiceEndTick(location: MeasureLocation): number {
+  return location.events.reduce(
+    (endTick, event) =>
+      Math.max(
+        endTick,
+        event.position.tick + voiceEventDurationTicks(event, location.measure)
+      ),
+    0
+  )
 }
 
 export function createDuration(value: DurationValue): Duration {

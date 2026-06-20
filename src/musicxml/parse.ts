@@ -1,13 +1,18 @@
 import { XMLParser } from 'fast-xml-parser'
 
 import {
+  TICKS_PER_QUARTER,
+  createFullMeasureRest,
   createMeasure,
   createNote,
   createPart,
   createRest,
   createScore,
   createStaff,
+  createTimePosition,
   createVoice,
+  durationToTicks,
+  validateMeasureRhythm,
   type Clef,
   type Duration,
   type KeySignature,
@@ -28,6 +33,7 @@ interface XmlNode {
 
 interface MeasureState {
   clef: Clef
+  divisions: number
   keySignature: KeySignature
   timeSignature: TimeSignature
 }
@@ -44,6 +50,7 @@ const defaultMeasureState: MeasureState = {
     sign: 'G',
     line: 2
   },
+  divisions: TICKS_PER_QUARTER,
   keySignature: {
     fifths: 0,
     mode: 'major'
@@ -109,26 +116,75 @@ export function parseMusicXml(xml: string): Score {
     const noteNodes = toArray(
       measureNode.note as XmlNode | XmlNode[] | undefined
     )
+    let positionTick = 0
     const events = noteNodes.map((noteNode) => {
       eventCounter += 1
-      return readVoiceEvent(noteNode, eventCounter)
+      const event = readVoiceEvent(noteNode, eventCounter, positionTick)
+      const xmlDurationTicks = readMusicXmlDurationTicks(
+        noteNode,
+        state.divisions
+      )
+
+      if (
+        !(event.type === 'rest' && event.fullMeasure) &&
+        durationToTicks(event.duration) !== xmlDurationTicks
+      ) {
+        throw new Error(
+          `MusicXML event ${eventCounter}의 type과 duration이 일치하지 않습니다.`
+        )
+      }
+
+      positionTick += xmlDurationTicks
+      return event
     })
     const measureNumber =
       readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const isPickup = readOptionalString(measureNode, '@_implicit') === 'yes'
 
-    return createMeasure({
-      id: `measure-${measureNumber}`,
+    if (isPickup && positionTick === 0) {
+      throw new Error('MusicXML 못갖춘마디의 duration은 0보다 커야 합니다.')
+    }
+
+    const normalizedEvents =
+      events.length > 0
+        ? events
+        : [
+            createFullMeasureRest({
+              id: `${measureId}-full-measure-rest`
+            })
+          ]
+
+    const measure = createMeasure({
+      id: measureId,
       number: measureNumber,
+      timing: isPickup
+        ? {
+            type: 'pickup',
+            durationTicks: positionTick
+          }
+        : {
+            type: 'regular'
+          },
       clef: { ...state.clef },
       keySignature: { ...state.keySignature },
       timeSignature: { ...state.timeSignature },
       voices: [
         createVoice({
           id: 'voice-1',
-          events
+          events: normalizedEvents
         })
       ]
     })
+    const rhythm = validateMeasureRhythm(measure)
+
+    if (!rhythm.isExact) {
+      throw new Error(
+        `MusicXML measure ${measureNumber}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
+      )
+    }
+
+    return measure
   })
 
   const title =
@@ -157,7 +213,11 @@ export function parseMusicXml(xml: string): Score {
   })
 }
 
-function readVoiceEvent(node: XmlNode, eventIndex: number): VoiceEvent {
+function readVoiceEvent(
+  node: XmlNode,
+  eventIndex: number,
+  positionTick: number
+): VoiceEvent {
   if ('chord' in node) {
     throw new Error('MVP에서는 chord 음표를 지원하지 않습니다.')
   }
@@ -176,9 +236,13 @@ function readVoiceEvent(node: XmlNode, eventIndex: number): VoiceEvent {
   const id = `event-${eventIndex}`
 
   if ('rest' in node) {
+    const restNode = readOptionalNode(node, 'rest')
+
     return createRest({
       id,
-      duration
+      position: createTimePosition(positionTick),
+      duration,
+      fullMeasure: restNode?.['@_measure'] === 'yes'
     })
   }
 
@@ -200,6 +264,7 @@ function readVoiceEvent(node: XmlNode, eventIndex: number): VoiceEvent {
 
   return createNote({
     id,
+    position: createTimePosition(positionTick),
     pitch: {
       step,
       octave: readInteger(pitchNode, 'octave'),
@@ -232,9 +297,33 @@ function readMeasureState(
 
   return {
     clef: clefNode ? readClef(clefNode) : previous.clef,
+    divisions: readDivisions(attributes, previous.divisions),
     keySignature: keyNode ? readKeySignature(keyNode) : previous.keySignature,
     timeSignature: timeNode ? readTimeSignature(timeNode) : previous.timeSignature
   }
+}
+
+function readDivisions(attributes: XmlNode, previous: number): number {
+  const value = readOptionalInteger(attributes, 'divisions') ?? previous
+
+  if (value <= 0) {
+    throw new Error(`MusicXML divisions는 0보다 커야 합니다: ${value}`)
+  }
+
+  return value
+}
+
+function readMusicXmlDurationTicks(node: XmlNode, divisions: number): number {
+  const xmlDuration = readInteger(node, 'duration')
+  const ticks = (xmlDuration * TICKS_PER_QUARTER) / divisions
+
+  if (!Number.isSafeInteger(ticks) || ticks <= 0) {
+    throw new Error(
+      `MusicXML duration을 정수 tick으로 변환할 수 없습니다: ${xmlDuration}/${divisions}`
+    )
+  }
+
+  return ticks
 }
 
 function readClef(node: XmlNode): Clef {
