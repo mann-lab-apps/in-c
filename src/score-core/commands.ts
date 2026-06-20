@@ -3,6 +3,7 @@ import type {
   Measure,
   Score,
   ScoreCommand,
+  StaffAddress,
   Voice,
   VoiceAddress,
   VoiceEvent
@@ -24,6 +25,129 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
         command.events,
         command.editedEventId
       )
+    case 'staff-measure.insert':
+      return insertStaffMeasure(
+        score,
+        command.target,
+        command.measure,
+        command.index
+      )
+    case 'staff-measure.remove':
+      return removeStaffMeasure(score, command.target, command.measureId)
+    case 'score.batch':
+      return applyCommandBatch(score, command.commands)
+  }
+}
+
+function insertStaffMeasure(
+  score: Score,
+  target: StaffAddress,
+  measure: Measure,
+  index = Number.POSITIVE_INFINITY
+): CommandResult {
+  return updateStaffMeasures(score, target, (measures) => {
+    const insertionIndex = clampIndex(index, measures.length)
+    const nextMeasures = [...measures]
+    nextMeasures.splice(insertionIndex, 0, measure)
+
+    return {
+      measures: nextMeasures,
+      undo: {
+        type: 'staff-measure.remove',
+        target,
+        measureId: measure.id
+      }
+    }
+  })
+}
+
+function removeStaffMeasure(
+  score: Score,
+  target: StaffAddress,
+  measureId: string
+): CommandResult {
+  return updateStaffMeasures(score, target, (measures) => {
+    const index = measures.findIndex((measure) => measure.id === measureId)
+
+    if (index === -1) {
+      throw new Error(`Measure not found: ${measureId}`)
+    }
+
+    return {
+      measures: measures.filter((measure) => measure.id !== measureId),
+      undo: {
+        type: 'staff-measure.insert',
+        target,
+        measure: measures[index],
+        index
+      }
+    }
+  })
+}
+
+function applyCommandBatch(
+  score: Score,
+  commands: ScoreCommand[]
+): CommandResult {
+  let nextScore = score
+  const undoCommands: ScoreCommand[] = []
+
+  for (const command of commands) {
+    const result = applyScoreCommand(nextScore, command)
+    nextScore = result.score
+    undoCommands.unshift(result.undo)
+  }
+
+  return {
+    score: nextScore,
+    undo: {
+      type: 'score.batch',
+      commands: undoCommands
+    }
+  }
+}
+
+function updateStaffMeasures(
+  score: Score,
+  target: StaffAddress,
+  update: (
+    measures: Measure[]
+  ) => { measures: Measure[]; undo: ScoreCommand }
+): CommandResult {
+  let undo: ScoreCommand | undefined
+
+  const parts = score.parts.map((part) => {
+    if (part.id !== target.partId) {
+      return part
+    }
+
+    return {
+      ...part,
+      staves: part.staves.map((staff) => {
+        if (staff.id !== target.staffId) {
+          return staff
+        }
+
+        const result = update(staff.measures)
+        undo = result.undo
+        return {
+          ...staff,
+          measures: result.measures
+        }
+      })
+    }
+  })
+
+  if (!undo) {
+    throw new Error(`Staff not found: ${target.staffId}`)
+  }
+
+  return {
+    score: {
+      ...score,
+      parts
+    },
+    undo
   }
 }
 

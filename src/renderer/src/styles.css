@@ -370,6 +370,13 @@ h2 {
   pointer-events: none;
 }
 
+.notation-input-cursor {
+  stroke: #47616c;
+  stroke-linecap: round;
+  stroke-width: 3;
+  pointer-events: none;
+}
+
 .notation-event:focus-visible,
 .notation-event:hover {
   color: #47616c;
