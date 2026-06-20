@@ -9,6 +9,7 @@ import {
   Pause,
   Play,
   RotateCcw,
+  RotateCw,
   Square,
   Trash2
 } from 'lucide-react'
@@ -68,6 +69,11 @@ const tools: Array<{
   }
 ]
 
+interface EditorHistoryEntry {
+  command: ScoreCommand
+  selection: EditorSelection
+}
+
 const App = () => {
   const [score, setScore] = useState(() => demoScore)
   const [selection, setSelection] = useState<EditorSelection>({
@@ -76,7 +82,8 @@ const App = () => {
   })
   const [mode, setMode] = useState<EditorMode>('select')
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
-  const [undoStack, setUndoStack] = useState<ScoreCommand[]>([])
+  const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
+  const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [fileStatus, setFileStatus] = useState<{
     tone: 'neutral' | 'error'
     message: string
@@ -106,33 +113,58 @@ const App = () => {
 
       const result = applyScoreCommand(score, command)
       setScore(result.score)
-      setUndoStack((commands) => [...commands, result.undo])
+      setUndoStack((entries) => [
+        ...entries,
+        {
+          command: result.undo,
+          selection
+        }
+      ])
+      setRedoStack([])
       return true
     },
-    [score]
+    [score, selection]
   )
 
   const undo = useCallback(() => {
-    const command = undoStack.at(-1)
+    const entry = undoStack.at(-1)
 
-    if (!command) {
+    if (!entry) {
       return
     }
 
-    const result = applyScoreCommand(score, command)
+    const result = applyScoreCommand(score, entry.command)
     setScore(result.score)
-    setUndoStack((commands) => commands.slice(0, -1))
-
-    if (
-      selection.type === 'event' &&
-      !locateEvent(result.score, selection.eventId)
-    ) {
-      setSelection({
-        type: 'measure',
-        measureId: command.target.measureId
-      })
-    }
+    setUndoStack((entries) => entries.slice(0, -1))
+    setRedoStack((entries) => [
+      ...entries,
+      {
+        command: result.undo,
+        selection
+      }
+    ])
+    setSelection(entry.selection)
   }, [score, selection, undoStack])
+
+  const redo = useCallback(() => {
+    const entry = redoStack.at(-1)
+
+    if (!entry) {
+      return
+    }
+
+    const result = applyScoreCommand(score, entry.command)
+    setScore(result.score)
+    setRedoStack((entries) => entries.slice(0, -1))
+    setUndoStack((entries) => [
+      ...entries,
+      {
+        command: result.undo,
+        selection
+      }
+    ])
+    setSelection(entry.selection)
+  }, [redoStack, score, selection])
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
@@ -192,27 +224,9 @@ const App = () => {
       return
     }
 
-    const location = locateEvent(score, selection.eventId)
-    const adjacentEventId =
-      getAdjacentEventId(score, selection.eventId, 1) ??
-      getAdjacentEventId(score, selection.eventId, -1)
     const command = buildDeleteCommand(score, selection)
 
-    if (!location || !executeCommand(command)) {
-      return
-    }
-
-    setSelection(
-      adjacentEventId
-        ? {
-            type: 'event',
-            eventId: adjacentEventId
-          }
-        : {
-            type: 'measure',
-            measureId: location.address.measureId
-          }
-    )
+    executeCommand(command)
   }, [executeCommand, score, selection])
 
   const moveSelection = useCallback(
@@ -247,6 +261,7 @@ const App = () => {
 
       setScore(importedScore)
       setUndoStack([])
+      setRedoStack([])
       setMode('select')
       setSelection(
         firstEvent
@@ -307,7 +322,19 @@ const App = () => {
         return
       }
 
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
+      const usesCommandKey = event.metaKey || event.ctrlKey
+
+      if (
+        usesCommandKey &&
+        (event.key.toLowerCase() === 'y' ||
+          (event.shiftKey && event.key.toLowerCase() === 'z'))
+      ) {
+        event.preventDefault()
+        redo()
+        return
+      }
+
+      if (usesCommandKey && event.key.toLowerCase() === 'z') {
         event.preventDefault()
         undo()
         return
@@ -374,6 +401,7 @@ const App = () => {
     playback.pause,
     playback.play,
     playback.status,
+    redo,
     undo
   ])
 
@@ -480,6 +508,17 @@ const App = () => {
               type="button"
             >
               <RotateCcw aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Redo"
+              className="icon-button"
+              disabled={redoStack.length === 0}
+              onClick={redo}
+              title="Redo"
+              type="button"
+            >
+              <RotateCw aria-hidden="true" size={18} />
             </button>
 
             <button
@@ -619,7 +658,9 @@ function getCommandEventId(command: ScoreCommand | undefined): string | undefine
     return command.event.id
   }
 
-  return undefined
+  return command?.type === 'voice-events.replace'
+    ? command.editedEventId
+    : undefined
 }
 
 function toFileName(title: string): string {
