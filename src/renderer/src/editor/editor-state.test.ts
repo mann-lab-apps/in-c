@@ -30,7 +30,13 @@ describe('editor state', () => {
     })
     expect(locateMeasure(demoScore, 'measure-2')).toMatchObject({
       measureNumber: 2,
-      events: [{ id: 'note-g4' }, { id: 'rest-half' }]
+      events: [
+        { id: 'note-g4' },
+        { id: 'note-a4' },
+        { id: 'note-b4' },
+        { id: 'note-c5' },
+        { id: 'rest-half' }
+      ]
     })
   })
 
@@ -67,14 +73,14 @@ describe('editor state', () => {
     const durationCommand = buildDurationCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
-      createDuration('quarter'),
+      createDuration('16th'),
       () => 'split-rest'
     )
     const durationResult = applyScoreCommand(demoScore, durationCommand!)
     const restCommand = buildRestEntryCommand(
       durationResult.score,
       { type: 'event', eventId: 'note-g4' },
-      createDuration('quarter'),
+      createDuration('16th'),
       () => 'unused'
     )
     const restResult = applyScoreCommand(durationResult.score, restCommand!)
@@ -82,13 +88,13 @@ describe('editor state', () => {
     expect(readEvent(restResult.score, 'note-g4')).toMatchObject({
       type: 'rest',
       duration: {
-        value: 'quarter'
+        value: '16th'
       }
     })
     expect(readEvent(restResult.score, 'split-rest')).toMatchObject({
       type: 'rest',
       position: {
-        tick: 13_440
+        tick: 3_360
       }
     })
   })

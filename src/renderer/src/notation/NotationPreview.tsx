@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Accidental,
+  Beam,
   Dot,
   Formatter,
   Renderer,
@@ -15,6 +16,7 @@ import {
   type Score,
   type VoiceEvent
 } from '../../../score-core'
+import { createBeamGroups } from './beam-groups'
 import {
   toVexFlowAccidental,
   toVexFlowClef,
@@ -109,8 +111,29 @@ export function NotationPreview({
       stave.setContext(context).draw()
 
       const voices = measure.voices.map((voice) => {
-        const notes = sortVoiceEvents(voice.events).map((event) =>
+        const events = sortVoiceEvents(voice.events)
+        const notes = events.map((event) =>
           createStaveNote(event, measure, selectedEventId, playbackEventId)
+        )
+        const notesByEventId = new Map(
+          notes.map((note) => [
+            note.getAttribute('data-event-id') as string,
+            note
+          ])
+        )
+        const beams = createBeamGroups(measure, voice).map(
+          (group) =>
+            new Beam(
+              group.eventIds.map((eventId) => {
+                const note = notesByEventId.get(eventId)
+
+                if (!note) {
+                  throw new Error(`Beam event not found: ${eventId}`)
+                }
+
+                return note
+              })
+            )
         )
         const vexVoice = new Voice({
           numBeats: measure.timeSignature.beats,
@@ -119,7 +142,7 @@ export function NotationPreview({
 
         vexVoice.setMode(Voice.Mode.SOFT)
         vexVoice.addTickables(notes)
-        return { notes, vexVoice }
+        return { beams, notes, vexVoice }
       })
 
       new Formatter()
@@ -129,8 +152,9 @@ export function NotationPreview({
           stave
         )
 
-      voices.forEach(({ notes, vexVoice }) => {
+      voices.forEach(({ beams, notes, vexVoice }) => {
         vexVoice.draw(context, stave)
+        beams.forEach((beam) => beam.setContext(context).draw())
 
         notes.forEach((note) => {
           const eventId = note.getAttribute('data-event-id') as string
