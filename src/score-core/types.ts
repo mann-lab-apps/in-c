@@ -128,6 +128,11 @@ export interface VoiceAddress {
   voiceId: VoiceId
 }
 
+export interface StaffAddress {
+  partId: PartId
+  staffId: StaffId
+}
+
 export type ScoreCommand =
   | {
       type: 'voice-event.insert'
@@ -151,6 +156,21 @@ export type ScoreCommand =
       target: VoiceAddress
       events: VoiceEvent[]
       editedEventId?: VoiceEventId
+    }
+  | {
+      type: 'staff-measure.insert'
+      target: StaffAddress
+      measure: Measure
+      index?: number
+    }
+  | {
+      type: 'staff-measure.remove'
+      target: StaffAddress
+      measureId: MeasureId
+    }
+  | {
+      type: 'score.batch'
+      commands: ScoreCommand[]
     }
 
 export interface CommandResult {

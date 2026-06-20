@@ -16,8 +16,10 @@ import {
 
 import {
   applyScoreCommand,
+  type Duration,
   type DurationValue,
   type PitchStep,
+  type Score,
   type ScoreCommand
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
@@ -25,8 +27,6 @@ import './styles.css'
 import {
   buildDeleteCommand,
   buildDurationCommand,
-  buildNoteEntryCommand,
-  buildRestEntryCommand,
   createDuration,
   durationLabels,
   getAdjacentEventId,
@@ -35,16 +35,28 @@ import {
   type EditorMode,
   type EditorSelection
 } from './editor/editor-state'
+import {
+  buildSequentialInput,
+  createNoteInputState,
+  type NoteInputState
+} from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
 import { useScorePlayback } from './playback/useScorePlayback'
 
-const durations: DurationValue[] = ['whole', 'half', 'quarter', 'eighth']
+const durations: DurationValue[] = [
+  'whole',
+  'half',
+  'quarter',
+  'eighth',
+  '16th'
+]
 const durationKeys: Partial<Record<string, DurationValue>> = {
   '1': 'whole',
   '2': 'half',
   '4': 'quarter',
-  '8': 'eighth'
+  '8': 'eighth',
+  '6': '16th'
 }
 
 const tools: Array<{
@@ -71,6 +83,7 @@ const tools: Array<{
 
 interface EditorHistoryEntry {
   command: ScoreCommand
+  inputState?: NoteInputState
   selection: EditorSelection
 }
 
@@ -81,6 +94,7 @@ const App = () => {
     eventId: 'note-e4'
   })
   const [mode, setMode] = useState<EditorMode>('select')
+  const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
@@ -117,13 +131,14 @@ const App = () => {
         ...entries,
         {
           command: result.undo,
+          inputState: noteInputState,
           selection
         }
       ])
       setRedoStack([])
       return true
     },
-    [score, selection]
+    [noteInputState, score, selection]
   )
 
   const undo = useCallback(() => {
@@ -140,11 +155,13 @@ const App = () => {
       ...entries,
       {
         command: result.undo,
+        inputState: noteInputState,
         selection
       }
     ])
+    setNoteInputState(entry.inputState)
     setSelection(entry.selection)
-  }, [score, selection, undoStack])
+  }, [noteInputState, score, selection, undoStack])
 
   const redo = useCallback(() => {
     const entry = redoStack.at(-1)
@@ -160,64 +177,113 @@ const App = () => {
       ...entries,
       {
         command: result.undo,
+        inputState: noteInputState,
         selection
       }
     ])
+    setNoteInputState(entry.inputState)
     setSelection(entry.selection)
-  }, [redoStack, score, selection])
+  }, [noteInputState, redoStack, score, selection])
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
       setDurationValue(value)
 
-      if (selection.type === 'event') {
+      if (noteInputState) {
+        setNoteInputState({
+          ...noteInputState,
+          duration: createDuration(value)
+        })
+      } else if (selection.type === 'event') {
         executeCommand(
           buildDurationCommand(score, selection, createDuration(value))
         )
       }
     },
-    [executeCommand, score, selection]
+    [executeCommand, noteInputState, score, selection]
   )
 
   const enterNote = useCallback(
     (step: PitchStep) => {
-      const command = buildNoteEntryCommand(
-        score,
-        selection,
-        step,
-        createDuration(durationValue),
-        createEventId
-      )
-      const eventId = getCommandEventId(command)
+      const inputState =
+        noteInputState ??
+        createInputState(score, selection, createDuration(durationValue), 'note')
 
-      if (executeCommand(command) && eventId) {
+      if (!inputState) {
+        return
+      }
+
+      const input = buildSequentialInput(
+        score,
+        {
+          ...inputState,
+          mode: 'note'
+        },
+        step,
+        createInputId
+      )
+
+      if (input && executeCommand(input.command)) {
         setMode('note')
+        setNoteInputState(input.nextState)
         setSelection({
           type: 'event',
-          eventId
+          eventId: input.eventId
         })
       }
     },
-    [durationValue, executeCommand, score, selection]
+    [durationValue, executeCommand, noteInputState, score, selection]
   )
 
   const enterRest = useCallback(() => {
-    const command = buildRestEntryCommand(
-      score,
-      selection,
-      createDuration(durationValue),
-      createEventId
-    )
-    const eventId = getCommandEventId(command)
+    const inputState =
+      noteInputState ??
+      createInputState(score, selection, createDuration(durationValue), 'rest')
 
-    if (executeCommand(command) && eventId) {
+    if (!inputState) {
+      return
+    }
+
+    const input = buildSequentialInput(
+      score,
+      {
+        ...inputState,
+        mode: 'rest'
+      },
+      undefined,
+      createInputId
+    )
+
+    if (input && executeCommand(input.command)) {
       setMode('rest')
+      setNoteInputState(input.nextState)
       setSelection({
         type: 'event',
-        eventId
+        eventId: input.eventId
       })
     }
-  }, [durationValue, executeCommand, score, selection])
+  }, [durationValue, executeCommand, noteInputState, score, selection])
+
+  const activateTool = useCallback(
+    (toolMode: EditorMode) => {
+      setMode(toolMode)
+
+      if (toolMode === 'select') {
+        setNoteInputState(undefined)
+        return
+      }
+
+      setNoteInputState(
+        createInputState(
+          score,
+          selection,
+          createDuration(durationValue),
+          toolMode
+        )
+      )
+    },
+    [durationValue, score, selection]
+  )
 
   const deleteSelection = useCallback(() => {
     if (selection.type !== 'event') {
@@ -263,6 +329,7 @@ const App = () => {
       setUndoStack([])
       setRedoStack([])
       setMode('select')
+      setNoteInputState(undefined)
       setSelection(
         firstEvent
           ? {
@@ -386,6 +453,7 @@ const App = () => {
           break
         case 'Escape':
           setMode('select')
+          setNoteInputState(undefined)
           break
       }
     }
@@ -488,7 +556,7 @@ const App = () => {
                     aria-pressed={mode === tool.mode}
                     className={mode === tool.mode ? 'is-active' : undefined}
                     key={tool.mode}
-                    onClick={() => setMode(tool.mode)}
+                    onClick={() => activateTool(tool.mode)}
                     title={tool.label}
                     type="button"
                   >
@@ -604,6 +672,14 @@ const App = () => {
         <div className="editor-status" aria-live="polite">
           <span>{mode}</span>
           <span>{durationLabels[durationValue]}</span>
+          {noteInputState ? (
+            <span>
+              M
+              {locateMeasure(score, noteInputState.target.measureId)
+                ?.measureNumber ?? '—'}{' '}
+              · {noteInputState.tick} ticks
+            </span>
+          ) : null}
           <span>{undoStack.length} edits</span>
           <span>{playback.status}</span>
           <span>
@@ -623,6 +699,14 @@ const App = () => {
           </div>
 
           <NotationPreview
+            inputCursor={
+              noteInputState
+                ? {
+                    measureId: noteInputState.target.measureId,
+                    tick: noteInputState.tick
+                  }
+                : undefined
+            }
             onSelectEvent={(eventId) =>
               setSelection({
                 type: 'event',
@@ -646,20 +730,38 @@ const App = () => {
   )
 }
 
-function createEventId(): string {
-  return `event-${crypto.randomUUID()}`
+function createInputId(kind: 'event' | 'measure'): string {
+  return `${kind}-${crypto.randomUUID()}`
 }
 
-function getCommandEventId(command: ScoreCommand | undefined): string | undefined {
-  if (
-    command?.type === 'voice-event.insert' ||
-    command?.type === 'voice-event.replace'
-  ) {
-    return command.event.id
+function createInputState(
+  score: Score,
+  selection: EditorSelection,
+  duration: Duration,
+  mode: 'note' | 'rest'
+): NoteInputState | undefined {
+  if (selection.type === 'event') {
+    const location = locateEvent(score, selection.eventId)
+
+    return location
+      ? createNoteInputState({
+          target: location.address,
+          tick: location.event.position.tick,
+          duration,
+          mode
+        })
+      : undefined
   }
 
-  return command?.type === 'voice-events.replace'
-    ? command.editedEventId
+  const location = locateMeasure(score, selection.measureId)
+
+  return location
+    ? createNoteInputState({
+        target: location.address,
+        tick: location.events[0]?.position.tick ?? 0,
+        duration,
+        mode
+      })
     : undefined
 }
 

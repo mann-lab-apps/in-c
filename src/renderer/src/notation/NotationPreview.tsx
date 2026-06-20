@@ -26,6 +26,10 @@ import {
 
 interface NotationPreviewProps {
   score: Score
+  inputCursor?: {
+    measureId: string
+    tick: number
+  }
   selectedEventId?: string
   selectedMeasureId?: string
   playbackEventId?: string
@@ -38,6 +42,7 @@ const RENDER_HEIGHT = 190
 
 export function NotationPreview({
   score,
+  inputCursor,
   selectedEventId,
   selectedMeasureId,
   playbackEventId,
@@ -77,6 +82,7 @@ export function NotationPreview({
     const measures = score.parts[0]?.staves[0]?.measures ?? []
     const measureWidth = (renderWidth - 32) / Math.max(measures.length, 1)
     const svg = container.querySelector('svg')
+    let inputX: number | undefined
     let playbackX: number | undefined
 
     measures.forEach((measure, measureIndex) => {
@@ -142,7 +148,7 @@ export function NotationPreview({
 
         vexVoice.setMode(Voice.Mode.SOFT)
         vexVoice.addTickables(notes)
-        return { beams, notes, vexVoice }
+        return { beams, events, notes, vexVoice }
       })
 
       new Formatter()
@@ -152,11 +158,11 @@ export function NotationPreview({
           stave
         )
 
-      voices.forEach(({ beams, notes, vexVoice }) => {
+      voices.forEach(({ beams, events, notes, vexVoice }) => {
         vexVoice.draw(context, stave)
         beams.forEach((beam) => beam.setContext(context).draw())
 
-        notes.forEach((note) => {
+        notes.forEach((note, noteIndex) => {
           const eventId = note.getAttribute('data-event-id') as string
           const svgElement = note.getSVGElement()
 
@@ -176,9 +182,30 @@ export function NotationPreview({
           if (eventId === playbackEventId) {
             playbackX = note.getAbsoluteX()
           }
+
+          if (
+            measure.id === inputCursor?.measureId &&
+            events[noteIndex]?.position.tick === inputCursor.tick
+          ) {
+            inputX = note.getAbsoluteX()
+          }
         })
       })
     })
+
+    if (svg && inputX !== undefined) {
+      const cursor = document.createElementNS(
+        'http://www.w3.org/2000/svg',
+        'line'
+      )
+
+      cursor.classList.add('notation-input-cursor')
+      cursor.setAttribute('x1', String(inputX - 7))
+      cursor.setAttribute('x2', String(inputX - 7))
+      cursor.setAttribute('y1', '30')
+      cursor.setAttribute('y2', '132')
+      svg.append(cursor)
+    }
 
     if (svg && playbackX !== undefined) {
       const playhead = document.createElementNS(
@@ -198,6 +225,7 @@ export function NotationPreview({
     onSelectMeasure,
     renderWidth,
     score,
+    inputCursor,
     playbackEventId,
     selectedEventId,
     selectedMeasureId
