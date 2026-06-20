@@ -3,6 +3,17 @@ import { resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
+import {
+  TICKS_PER_QUARTER,
+  createMeasure,
+  createNote,
+  createPart,
+  createScore,
+  createStaff,
+  createTimePosition,
+  createVoice,
+  validateMeasureRhythm
+} from '../score-core'
 import { parseMusicXml } from './parse'
 import { serializeMusicXml } from './serialize'
 
@@ -48,6 +59,9 @@ describe('MusicXML MVP', () => {
                       events: [
                         {
                           type: 'note',
+                          position: {
+                            tick: 0
+                          },
                           pitch: {
                             step: 'C',
                             octave: 4
@@ -59,6 +73,9 @@ describe('MusicXML MVP', () => {
                         },
                         {
                           type: 'note',
+                          position: {
+                            tick: TICKS_PER_QUARTER
+                          },
                           pitch: {
                             step: 'F',
                             octave: 4,
@@ -67,6 +84,9 @@ describe('MusicXML MVP', () => {
                         },
                         {
                           type: 'rest',
+                          position: {
+                            tick: TICKS_PER_QUARTER * 2
+                          },
                           duration: {
                             value: 'half'
                           }
@@ -103,5 +123,95 @@ describe('MusicXML MVP', () => {
     expect(() => parseMusicXml(invalid)).toThrow(
       '단일 part MusicXML만 가져올 수 있습니다'
     )
+  })
+
+  it('rejects rhythmically incomplete measures during import and export', () => {
+    const incompleteXml = fixture.replace(
+      /<note>\s*<rest\/>[\s\S]*?<\/note>/,
+      ''
+    )
+
+    expect(() => parseMusicXml(incompleteXml)).toThrow(
+      '리듬 정합성이 올바르지 않습니다: gap'
+    )
+
+    const incompleteScore = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'late-note',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: {
+                            step: 'C',
+                            octave: 4
+                          }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(() => serializeMusicXml(incompleteScore)).toThrow(
+      '리듬 정합성이 올바르지 않습니다: gap'
+    )
+  })
+
+  it('preserves pickup measure duration across MusicXML round trips', () => {
+    const pickupScore = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timing: {
+                    type: 'pickup',
+                    durationTicks: TICKS_PER_QUARTER
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'pickup-note',
+                          position: createTimePosition(0),
+                          pitch: {
+                            step: 'G',
+                            octave: 4
+                          }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const exported = serializeMusicXml(pickupScore)
+    const roundTrip = parseMusicXml(exported)
+    const measure = roundTrip.parts[0].staves[0].measures[0]
+
+    expect(exported).toContain('implicit="yes"')
+    expect(measure.timing).toEqual({
+      type: 'pickup',
+      durationTicks: TICKS_PER_QUARTER
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 })

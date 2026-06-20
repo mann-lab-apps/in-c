@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDuration } from '../../../score-core'
+import {
+  TICKS_PER_QUARTER,
+  createDuration,
+  createMeasure,
+  createNote,
+  createPart,
+  createScore,
+  createStaff,
+  createTimePosition,
+  createVoice
+} from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
 import {
   createPlaybackTimeline,
@@ -64,5 +74,42 @@ describe('playback timeline', () => {
     expect(findPlaybackEvent(timeline, 1.5)?.eventId).toBe('note-d4')
     expect(findPlaybackEvent(timeline, 6.5)?.eventId).toBe('rest-half')
     expect(findPlaybackEvent(timeline, 8)).toBeUndefined()
+  })
+
+  it('uses explicit event positions instead of array-duration accumulation', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'late-note',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: {
+                            step: 'C',
+                            octave: 4
+                          }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(createPlaybackTimeline(score).events[0]).toMatchObject({
+      eventId: 'late-note',
+      startBeat: 2,
+      durationBeats: 1
+    })
   })
 })

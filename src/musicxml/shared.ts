@@ -5,6 +5,10 @@ import type {
   KeyMode,
   PitchStep
 } from '../score-core'
+import {
+  TICKS_PER_QUARTER,
+  durationToTicks as scoreDurationToTicks
+} from '../score-core'
 
 export const supportedDurationValues: DurationValue[] = [
   'whole',
@@ -16,17 +20,7 @@ export const supportedDurationValues: DurationValue[] = [
   '64th'
 ]
 
-export const durationTicks: Record<DurationValue, number> = {
-  whole: 512,
-  half: 256,
-  quarter: 128,
-  eighth: 64,
-  '16th': 32,
-  '32nd': 16,
-  '64th': 8
-}
-
-export const divisions = 128
+export const divisions = TICKS_PER_QUARTER
 
 export function isDurationValue(value: string): value is DurationValue {
   return supportedDurationValues.includes(value as DurationValue)
@@ -41,14 +35,7 @@ export function isKeyMode(value: string): value is KeyMode {
 }
 
 export function durationToTicks(duration: Duration): number {
-  const baseTicks = durationTicks[duration.value]
-  let multiplier = 1
-
-  for (let dotIndex = 1; dotIndex <= duration.dots; dotIndex += 1) {
-    multiplier += 1 / 2 ** dotIndex
-  }
-
-  return baseTicks * multiplier
+  return scoreDurationToTicks(duration)
 }
 
 export function clefToMusicXml(clef: Clef): {

@@ -8,6 +8,7 @@ import {
   createRest,
   createScore,
   createStaff,
+  createTimePosition,
   createVoice,
   type Score,
   type VoiceAddress,
@@ -59,9 +60,25 @@ describe('score-core', () => {
                   voices: [
                     {
                       id: 'voice-1',
-                      events: []
+                      events: [
+                        {
+                          id: 'measure-1-full-measure-rest',
+                          type: 'rest',
+                          position: {
+                            tick: 0
+                          },
+                          duration: {
+                            value: 'whole',
+                            dots: 0
+                          },
+                          fullMeasure: true
+                        }
+                      ]
                     }
-                  ]
+                  ],
+                  timing: {
+                    type: 'regular'
+                  }
                 }
               ]
             }
@@ -72,7 +89,7 @@ describe('score-core', () => {
   })
 
   it('inserts a note and returns a command that undoes the edit', () => {
-    const score = createScore()
+    const score = withEvents([])
     const note = createNote({
       id: 'note-1',
       pitch: {
@@ -99,9 +116,13 @@ describe('score-core', () => {
   })
 
   it('removes an event and can restore it at the same index', () => {
-    const firstRest = createRest({ id: 'rest-1' })
+    const firstRest = createRest({
+      id: 'rest-1',
+      position: createTimePosition(0)
+    })
     const note = createNote({
       id: 'note-1',
+      position: createTimePosition(13_440),
       pitch: {
         step: 'E',
         octave: 4

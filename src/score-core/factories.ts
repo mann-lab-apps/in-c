@@ -10,10 +10,12 @@ import type {
   Rest,
   Score,
   Staff,
+  TimePosition,
   TimeSignature,
   Voice,
   VoiceEvent
 } from './types'
+import { createTimePosition, sortVoiceEvents } from './timing'
 
 export const trebleClef: Clef = {
   sign: 'G',
@@ -39,29 +41,50 @@ export function createDuration(value: DurationValue, dots = 0): Duration {
 
 export function createNote(input: {
   id: string
+  position?: TimePosition
   pitch: Pitch
   duration?: Duration
 }): Note {
   return {
     type: 'note',
     id: input.id,
+    position: input.position ?? createTimePosition(0),
     pitch: input.pitch,
     duration: input.duration ?? createDuration('quarter')
   }
 }
 
-export function createRest(input: { id: string; duration?: Duration }): Rest {
+export function createRest(input: {
+  id: string
+  position?: TimePosition
+  duration?: Duration
+  fullMeasure?: boolean
+}): Rest {
   return {
     type: 'rest',
     id: input.id,
-    duration: input.duration ?? createDuration('quarter')
+    position: input.position ?? createTimePosition(0),
+    duration: input.duration ?? createDuration('quarter'),
+    fullMeasure: input.fullMeasure
   }
+}
+
+export function createFullMeasureRest(input: {
+  id: string
+  position?: TimePosition
+}): Rest {
+  return createRest({
+    id: input.id,
+    position: input.position,
+    duration: createDuration('whole'),
+    fullMeasure: true
+  })
 }
 
 export function createVoice(input?: { id?: string; events?: VoiceEvent[] }): Voice {
   return {
     id: input?.id ?? 'voice-1',
-    events: input?.events ?? []
+    events: sortVoiceEvents(input?.events ?? [])
   }
 }
 
@@ -72,14 +95,29 @@ export function createMeasure(input?: {
   keySignature?: KeySignature
   clef?: Clef
   voices?: Voice[]
+  timing?: Measure['timing']
 }): Measure {
+  const number = input?.number ?? 1
+  const id = input?.id ?? `measure-${number}`
+
   return {
-    id: input?.id ?? `measure-${input?.number ?? 1}`,
-    number: input?.number ?? 1,
+    id,
+    number,
+    timing: input?.timing ?? { type: 'regular' },
     timeSignature: input?.timeSignature ?? commonTime,
     keySignature: input?.keySignature ?? cMajor,
     clef: input?.clef ?? trebleClef,
-    voices: input?.voices ?? [createVoice()]
+    voices:
+      input?.voices ??
+      [
+        createVoice({
+          events: [
+            createFullMeasureRest({
+              id: `${id}-full-measure-rest`
+            })
+          ]
+        })
+      ]
   }
 }
 

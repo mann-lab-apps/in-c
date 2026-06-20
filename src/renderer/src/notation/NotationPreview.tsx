@@ -9,7 +9,12 @@ import {
   Voice
 } from 'vexflow'
 
-import type { Measure, Score, VoiceEvent } from '../../../score-core'
+import {
+  sortVoiceEvents,
+  type Measure,
+  type Score,
+  type VoiceEvent
+} from '../../../score-core'
 import {
   toVexFlowAccidental,
   toVexFlowClef,
@@ -104,7 +109,7 @@ export function NotationPreview({
       stave.setContext(context).draw()
 
       const voices = measure.voices.map((voice) => {
-        const notes = voice.events.map((event) =>
+        const notes = sortVoiceEvents(voice.events).map((event) =>
           createStaveNote(event, measure, selectedEventId, playbackEventId)
         )
         const vexVoice = new Voice({

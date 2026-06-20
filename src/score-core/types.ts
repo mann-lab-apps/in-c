@@ -4,6 +4,11 @@ export type StaffId = string
 export type MeasureId = string
 export type VoiceId = string
 export type VoiceEventId = string
+export type Tick = number
+
+export interface TimePosition {
+  tick: Tick
+}
 
 export type DurationValue =
   | 'whole'
@@ -54,6 +59,7 @@ export interface TimeSignature {
 export interface Note {
   type: 'note'
   id: VoiceEventId
+  position: TimePosition
   pitch: Pitch
   duration: Duration
   ties?: {
@@ -65,7 +71,9 @@ export interface Note {
 export interface Rest {
   type: 'rest'
   id: VoiceEventId
+  position: TimePosition
   duration: Duration
+  fullMeasure?: boolean
 }
 
 export type VoiceEvent = Note | Rest
@@ -78,11 +86,21 @@ export interface Voice {
 export interface Measure {
   id: MeasureId
   number: number
+  timing: MeasureTiming
   timeSignature: TimeSignature
   keySignature: KeySignature
   clef: Clef
   voices: Voice[]
 }
+
+export type MeasureTiming =
+  | {
+      type: 'regular'
+    }
+  | {
+      type: 'pickup'
+      durationTicks: Tick
+    }
 
 export interface Staff {
   id: StaffId

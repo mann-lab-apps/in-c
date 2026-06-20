@@ -1,4 +1,14 @@
-import type { Duration, Note, Pitch, Score } from '../../../score-core'
+import {
+  TICKS_PER_QUARTER,
+  durationToTicks,
+  measureDurationTicks,
+  sortVoiceEvents,
+  voiceEventDurationTicks,
+  type Duration,
+  type Note,
+  type Pitch,
+  type Score
+} from '../../../score-core'
 
 export interface PlaybackEvent {
   eventId: string
@@ -11,16 +21,6 @@ export interface PlaybackEvent {
 export interface PlaybackTimeline {
   events: PlaybackEvent[]
   totalBeats: number
-}
-
-const baseDurationBeats: Record<Duration['value'], number> = {
-  whole: 4,
-  half: 2,
-  quarter: 1,
-  eighth: 0.5,
-  '16th': 0.25,
-  '32nd': 0.125,
-  '64th': 0.0625
 }
 
 const pitchSemitones: Record<Pitch['step'], number> = {
@@ -40,25 +40,21 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
 
   for (const measure of measures) {
     const voice = measure.voices[0]
-    let measureBeat = 0
 
-    for (const event of voice?.events ?? []) {
-      const durationBeats = durationToBeats(event.duration)
+    for (const event of sortVoiceEvents(voice?.events ?? [])) {
+      const durationBeats =
+        voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
 
       events.push({
         eventId: event.id,
         measureId: measure.id,
-        startBeat: scoreBeat + measureBeat,
+        startBeat: scoreBeat + event.position.tick / TICKS_PER_QUARTER,
         durationBeats,
         frequency: event.type === 'note' ? pitchToFrequency(event.pitch) : undefined
       })
-      measureBeat += durationBeats
     }
 
-    scoreBeat += Math.max(
-      measureBeat,
-      measure.timeSignature.beats * (4 / measure.timeSignature.beatType)
-    )
+    scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
   return {
@@ -68,17 +64,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
 }
 
 export function durationToBeats(duration: Duration): number {
-  let multiplier = 1
-
-  for (let dotIndex = 1; dotIndex <= duration.dots; dotIndex += 1) {
-    multiplier += 1 / 2 ** dotIndex
-  }
-
-  if (duration.tuplet) {
-    multiplier *= duration.tuplet.normalNotes / duration.tuplet.actualNotes
-  }
-
-  return baseDurationBeats[duration.value] * multiplier
+  return durationToTicks(duration) / TICKS_PER_QUARTER
 }
 
 export function pitchToFrequency(pitch: Note['pitch']): number {
