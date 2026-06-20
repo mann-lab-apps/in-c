@@ -67,7 +67,25 @@ export const demoScore = createScore({
                       id: 'note-g4',
                       position: createTimePosition(0),
                       pitch: { step: 'G', octave: 4 },
-                      duration: createDuration('half')
+                      duration: createDuration('eighth')
+                    }),
+                    createNote({
+                      id: 'note-a4',
+                      position: createTimePosition(quarter / 2),
+                      pitch: { step: 'A', octave: 4 },
+                      duration: createDuration('eighth')
+                    }),
+                    createNote({
+                      id: 'note-b4',
+                      position: createTimePosition(quarter),
+                      pitch: { step: 'B', octave: 4 },
+                      duration: createDuration('eighth')
+                    }),
+                    createNote({
+                      id: 'note-c5',
+                      position: createTimePosition(quarter * 1.5),
+                      pitch: { step: 'C', octave: 5 },
+                      duration: createDuration('eighth')
                     }),
                     createRest({
                       id: 'rest-half',

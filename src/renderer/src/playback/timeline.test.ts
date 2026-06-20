@@ -47,20 +47,20 @@ describe('playback timeline', () => {
     const timeline = createPlaybackTimeline(demoScore)
 
     expect(timeline.totalBeats).toBe(8)
-    expect(timeline.events).toHaveLength(6)
+    expect(timeline.events).toHaveLength(9)
     expect(timeline.events[0]).toMatchObject({
       eventId: 'note-c4',
       measureId: 'measure-1',
       startBeat: 0,
       durationBeats: 1
     })
-    expect(timeline.events[4]).toMatchObject({
+    expect(timeline.events.find((event) => event.eventId === 'note-g4')).toMatchObject({
       eventId: 'note-g4',
       measureId: 'measure-2',
       startBeat: 4,
-      durationBeats: 2
+      durationBeats: 0.5
     })
-    expect(timeline.events[5]).toMatchObject({
+    expect(timeline.events.find((event) => event.eventId === 'rest-half')).toMatchObject({
       eventId: 'rest-half',
       startBeat: 6,
       durationBeats: 2,
@@ -72,6 +72,7 @@ describe('playback timeline', () => {
     const timeline = createPlaybackTimeline(demoScore)
 
     expect(findPlaybackEvent(timeline, 1.5)?.eventId).toBe('note-d4')
+    expect(findPlaybackEvent(timeline, 4.75)?.eventId).toBe('note-a4')
     expect(findPlaybackEvent(timeline, 6.5)?.eventId).toBe('rest-half')
     expect(findPlaybackEvent(timeline, 8)).toBeUndefined()
   })
