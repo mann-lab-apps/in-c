@@ -4,7 +4,8 @@ import {
   toVexFlowAccidental,
   toVexFlowClef,
   toVexFlowDuration,
-  toVexFlowKey
+  toVexFlowKey,
+  toVexFlowKeySignature
 } from './vexflow-adapter'
 
 describe('VexFlow adapter', () => {
@@ -28,5 +29,11 @@ describe('VexFlow adapter', () => {
     expect(toVexFlowClef({ sign: 'G', line: 2 })).toBe('treble')
     expect(toVexFlowClef({ sign: 'F', line: 4 })).toBe('bass')
     expect(toVexFlowClef({ sign: 'C', line: 4 })).toBe('tenor')
+  })
+
+  it('maps major and minor key signatures', () => {
+    expect(toVexFlowKeySignature({ fifths: 0, mode: 'major' })).toBe('C')
+    expect(toVexFlowKeySignature({ fifths: 2, mode: 'major' })).toBe('D')
+    expect(toVexFlowKeySignature({ fifths: -3, mode: 'minor' })).toBe('Cm')
   })
 })

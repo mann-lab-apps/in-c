@@ -4,10 +4,12 @@ import {
   Clock3,
   FileDown,
   FileUp,
+  Minus,
   MousePointer2,
   Music2,
   Pause,
   Play,
+  Plus,
   RotateCcw,
   RotateCw,
   Square,
@@ -35,6 +37,11 @@ import {
   type EditorMode,
   type EditorSelection
 } from './editor/editor-state'
+import {
+  buildInsertMeasureAfter,
+  buildRemoveMeasure,
+  resolveActiveMeasureId
+} from './editor/measure-management'
 import {
   buildSequentialInput,
   createNoteInputState,
@@ -118,6 +125,11 @@ const App = () => {
         : undefined,
     [score, selection]
   )
+  const activeMeasureId = useMemo(
+    () => resolveActiveMeasureId(score, selection, noteInputState),
+    [noteInputState, score, selection]
+  )
+  const measureCount = score.parts[0]?.staves[0]?.measures.length ?? 0
 
   const executeCommand = useCallback(
     (command: ScoreCommand | undefined) => {
@@ -294,6 +306,37 @@ const App = () => {
 
     executeCommand(command)
   }, [executeCommand, score, selection])
+
+  const addMeasure = useCallback(() => {
+    if (!activeMeasureId) {
+      return
+    }
+
+    const edit = buildInsertMeasureAfter(
+      score,
+      activeMeasureId,
+      createInputId,
+      noteInputState
+    )
+
+    if (edit && executeCommand(edit.command)) {
+      setSelection(edit.selection)
+      setNoteInputState(edit.inputState)
+    }
+  }, [activeMeasureId, executeCommand, noteInputState, score])
+
+  const removeMeasure = useCallback(() => {
+    if (!activeMeasureId) {
+      return
+    }
+
+    const edit = buildRemoveMeasure(score, activeMeasureId, noteInputState)
+
+    if (edit && executeCommand(edit.command)) {
+      setSelection(edit.selection)
+      setNoteInputState(edit.inputState)
+    }
+  }, [activeMeasureId, executeCommand, noteInputState, score])
 
   const moveSelection = useCallback(
     (direction: -1 | 1) => {
@@ -598,6 +641,28 @@ const App = () => {
               type="button"
             >
               <Trash2 aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Add measure"
+              className="icon-button"
+              disabled={!activeMeasureId}
+              onClick={addMeasure}
+              title="Add measure"
+              type="button"
+            >
+              <Plus aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Delete measure"
+              className="icon-button"
+              disabled={!activeMeasureId || measureCount <= 1}
+              onClick={removeMeasure}
+              title="Delete measure"
+              type="button"
+            >
+              <Minus aria-hidden="true" size={18} />
             </button>
           </div>
 

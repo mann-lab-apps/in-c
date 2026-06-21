@@ -67,14 +67,16 @@ event ID를 연결할 수 있어 선택, 강조, 키보드 편집, 재생 커서
 - 반음과 겹반음 표시
 - 점음표 표시
 - 박자표와 이벤트 tick 기반 자동 beam
+- 반응형 measure system wrapping
+- system 시작의 clef, key signature, time signature 표시
 - SVG event 선택과 강조
 
 아직 지원하지 않음:
 
 - 다성부 충돌 해결과 stem 정책
 - tie, slur, tuplet
-- 조표 이름 변환과 임시표 문맥
-- 페이지/시스템 자동 나눔
+- 임시표 문맥
+- 페이지 자동 나눔
 - 가사, 아티큘레이션, 다이내믹
 - 큰 악보를 위한 부분 렌더링
 
