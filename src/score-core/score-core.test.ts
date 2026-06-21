@@ -147,6 +147,73 @@ describe('score-core', () => {
     const restored = applyScoreCommand(removed.score, removed.undo)
     expect(readEvents(restored.score)).toEqual([firstRest, note])
   })
+
+  it('inserts and removes measures while keeping sequential numbers', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({ id: 'measure-a', number: 1 }),
+                createMeasure({ id: 'measure-b', number: 2 })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const inserted = applyScoreCommand(score, {
+      type: 'staff-measure.insert',
+      target: {
+        partId: 'part-1',
+        staffId: 'staff-1'
+      },
+      measure: createMeasure({
+        id: 'measure-new',
+        number: 99
+      }),
+      index: 1
+    })
+
+    expect(readMeasures(inserted.score).map(({ id, number }) => ({ id, number }))).toEqual([
+      { id: 'measure-a', number: 1 },
+      { id: 'measure-new', number: 2 },
+      { id: 'measure-b', number: 3 }
+    ])
+
+    const removed = applyScoreCommand(inserted.score, {
+      type: 'staff-measure.remove',
+      target: {
+        partId: 'part-1',
+        staffId: 'staff-1'
+      },
+      measureId: 'measure-new'
+    })
+
+    expect(readMeasures(removed.score).map(({ id, number }) => ({ id, number }))).toEqual([
+      { id: 'measure-a', number: 1 },
+      { id: 'measure-b', number: 2 }
+    ])
+    expect(applyScoreCommand(removed.score, removed.undo).score).toEqual(
+      inserted.score
+    )
+  })
+
+  it('does not remove the final measure from a staff', () => {
+    const score = createScore()
+
+    expect(() =>
+      applyScoreCommand(score, {
+        type: 'staff-measure.remove',
+        target: {
+          partId: 'part-1',
+          staffId: 'staff-1'
+        },
+        measureId: 'measure-1'
+      })
+    ).toThrow('at least one measure')
+  })
 })
 
 function withEvents(events: VoiceEvent[]): Score {
@@ -173,4 +240,8 @@ function withEvents(events: VoiceEvent[]): Score {
 
 function readEvents(score: Score): VoiceEvent[] {
   return score.parts[0].staves[0].measures[0].voices[0].events
+}
+
+function readMeasures(score: Score) {
+  return score.parts[0].staves[0].measures
 }

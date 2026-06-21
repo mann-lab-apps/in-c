@@ -51,7 +51,7 @@ function insertStaffMeasure(
     nextMeasures.splice(insertionIndex, 0, measure)
 
     return {
-      measures: nextMeasures,
+      measures: renumberMeasures(nextMeasures),
       undo: {
         type: 'staff-measure.remove',
         target,
@@ -73,8 +73,14 @@ function removeStaffMeasure(
       throw new Error(`Measure not found: ${measureId}`)
     }
 
+    if (measures.length === 1) {
+      throw new Error('A staff must contain at least one measure.')
+    }
+
     return {
-      measures: measures.filter((measure) => measure.id !== measureId),
+      measures: renumberMeasures(
+        measures.filter((measure) => measure.id !== measureId)
+      ),
       undo: {
         type: 'staff-measure.insert',
         target,
@@ -342,4 +348,11 @@ function clampIndex(index: number, length: number): number {
   }
 
   return index
+}
+
+function renumberMeasures(measures: Measure[]): Measure[] {
+  return measures.map((measure, index) => ({
+    ...measure,
+    number: index + 1
+  }))
 }

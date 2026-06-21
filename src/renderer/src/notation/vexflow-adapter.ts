@@ -1,4 +1,9 @@
-import type { Clef, Duration, Pitch } from '../../../score-core'
+import type {
+  Clef,
+  Duration,
+  KeySignature,
+  Pitch
+} from '../../../score-core'
 
 const durationValues: Record<Duration['value'], string> = {
   whole: 'w',
@@ -45,4 +50,45 @@ export function toVexFlowClef(clef: Clef): string {
     case 'tab':
       return 'treble'
   }
+}
+
+const majorKeys = [
+  'Cb',
+  'Gb',
+  'Db',
+  'Ab',
+  'Eb',
+  'Bb',
+  'F',
+  'C',
+  'G',
+  'D',
+  'A',
+  'E',
+  'B',
+  'F#',
+  'C#'
+]
+
+const minorKeys = [
+  'Abm',
+  'Ebm',
+  'Bbm',
+  'Fm',
+  'Cm',
+  'Gm',
+  'Dm',
+  'Am',
+  'Em',
+  'Bm',
+  'F#m',
+  'C#m',
+  'G#m',
+  'D#m',
+  'A#m'
+]
+
+export function toVexFlowKeySignature(keySignature: KeySignature): string {
+  const index = Math.max(-7, Math.min(7, keySignature.fifths)) + 7
+  return keySignature.mode === 'minor' ? minorKeys[index] : majorKeys[index]
 }

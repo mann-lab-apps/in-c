@@ -17,11 +17,13 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
+import { createSystemLayout } from './system-layout'
 import {
   toVexFlowAccidental,
   toVexFlowClef,
   toVexFlowDuration,
-  toVexFlowKey
+  toVexFlowKey,
+  toVexFlowKeySignature
 } from './vexflow-adapter'
 
 interface NotationPreviewProps {
@@ -38,7 +40,11 @@ interface NotationPreviewProps {
 }
 
 const MIN_RENDER_WIDTH = 560
-const RENDER_HEIGHT = 190
+
+interface CursorPoint {
+  x: number
+  y: number
+}
 
 export function NotationPreview({
   score,
@@ -76,18 +82,27 @@ export function NotationPreview({
 
     container.replaceChildren()
 
-    const renderer = new Renderer(container, Renderer.Backends.SVG)
-    renderer.resize(renderWidth, RENDER_HEIGHT)
-    const context = renderer.getContext()
     const measures = score.parts[0]?.staves[0]?.measures ?? []
-    const measureWidth = (renderWidth - 32) / Math.max(measures.length, 1)
+    const layout = createSystemLayout(measures, renderWidth)
+    const renderer = new Renderer(container, Renderer.Backends.SVG)
+    renderer.resize(renderWidth, layout.height)
+    const context = renderer.getContext()
     const svg = container.querySelector('svg')
-    let inputX: number | undefined
-    let playbackX: number | undefined
+    let inputPoint: CursorPoint | undefined
+    let playbackPoint: CursorPoint | undefined
 
-    measures.forEach((measure, measureIndex) => {
-      const measureX = 16 + measureIndex * measureWidth
-      const stave = new Stave(measureX, 34, measureWidth)
+    layout.placements.forEach((placement, placementIndex) => {
+      const { measure } = placement
+      const previousPlacement = layout.placements[placementIndex - 1]
+      const previousMeasure =
+        previousPlacement?.systemIndex === placement.systemIndex
+          ? previousPlacement.measure
+          : undefined
+      const stave = new Stave(
+        placement.x,
+        placement.y,
+        placement.width
+      )
       const clef = toVexFlowClef(measure.clef)
 
       if (svg) {
@@ -99,19 +114,40 @@ export function NotationPreview({
         selectionTarget.classList.add('notation-measure')
         selectionTarget.classList.toggle('is-selected', measure.id === selectedMeasureId)
         selectionTarget.setAttribute('data-measure-id', measure.id)
-        selectionTarget.setAttribute('x', String(measureX))
-        selectionTarget.setAttribute('y', '24')
-        selectionTarget.setAttribute('width', String(measureWidth))
+        selectionTarget.setAttribute('data-system-index', String(placement.systemIndex))
+        selectionTarget.setAttribute('x', String(placement.x))
+        selectionTarget.setAttribute('y', String(placement.y - 10))
+        selectionTarget.setAttribute('width', String(placement.width))
         selectionTarget.setAttribute('height', '112')
         selectionTarget.setAttribute('rx', '4')
         selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
         svg.append(selectionTarget)
       }
 
-      if (measureIndex === 0) {
-        stave
-          .addClef(clef)
-          .addTimeSignature(`${measure.timeSignature.beats}/${measure.timeSignature.beatType}`)
+      if (
+        placement.isSystemStart ||
+        !previousMeasure ||
+        !sameClef(previousMeasure, measure)
+      ) {
+        stave.addClef(clef)
+      }
+
+      if (
+        placement.isSystemStart ||
+        !previousMeasure ||
+        !sameKeySignature(previousMeasure, measure)
+      ) {
+        stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
+      }
+
+      if (
+        placement.isSystemStart ||
+        !previousMeasure ||
+        !sameTimeSignature(previousMeasure, measure)
+      ) {
+        stave.addTimeSignature(
+          `${measure.timeSignature.beats}/${measure.timeSignature.beatType}`
+        )
       }
 
       stave.setContext(context).draw()
@@ -180,44 +216,50 @@ export function NotationPreview({
           })
 
           if (eventId === playbackEventId) {
-            playbackX = note.getAbsoluteX()
+            playbackPoint = {
+              x: note.getAbsoluteX(),
+              y: placement.y
+            }
           }
 
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
           ) {
-            inputX = note.getAbsoluteX()
+            inputPoint = {
+              x: note.getAbsoluteX(),
+              y: placement.y
+            }
           }
         })
       })
     })
 
-    if (svg && inputX !== undefined) {
+    if (svg && inputPoint) {
       const cursor = document.createElementNS(
         'http://www.w3.org/2000/svg',
         'line'
       )
 
       cursor.classList.add('notation-input-cursor')
-      cursor.setAttribute('x1', String(inputX - 7))
-      cursor.setAttribute('x2', String(inputX - 7))
-      cursor.setAttribute('y1', '30')
-      cursor.setAttribute('y2', '132')
+      cursor.setAttribute('x1', String(inputPoint.x - 7))
+      cursor.setAttribute('x2', String(inputPoint.x - 7))
+      cursor.setAttribute('y1', String(inputPoint.y - 4))
+      cursor.setAttribute('y2', String(inputPoint.y + 98))
       svg.append(cursor)
     }
 
-    if (svg && playbackX !== undefined) {
+    if (svg && playbackPoint) {
       const playhead = document.createElementNS(
         'http://www.w3.org/2000/svg',
         'line'
       )
 
       playhead.classList.add('notation-playhead')
-      playhead.setAttribute('x1', String(playbackX))
-      playhead.setAttribute('x2', String(playbackX))
-      playhead.setAttribute('y1', '24')
-      playhead.setAttribute('y2', '138')
+      playhead.setAttribute('x1', String(playbackPoint.x))
+      playhead.setAttribute('x2', String(playbackPoint.x))
+      playhead.setAttribute('y1', String(playbackPoint.y - 10))
+      playhead.setAttribute('y2', String(playbackPoint.y + 104))
       svg.append(playhead)
     }
   }, [
@@ -232,6 +274,28 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function sameClef(previous: Measure, current: Measure): boolean {
+  return (
+    previous.clef.sign === current.clef.sign &&
+    previous.clef.line === current.clef.line &&
+    previous.clef.octaveChange === current.clef.octaveChange
+  )
+}
+
+function sameKeySignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.keySignature.fifths === current.keySignature.fifths &&
+    previous.keySignature.mode === current.keySignature.mode
+  )
+}
+
+function sameTimeSignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.timeSignature.beats === current.timeSignature.beats &&
+    previous.timeSignature.beatType === current.timeSignature.beatType
+  )
 }
 
 function createStaveNote(
