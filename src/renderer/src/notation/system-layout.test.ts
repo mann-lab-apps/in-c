@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { createMeasure } from '../../../score-core'
+import {
+  TICKS_PER_QUARTER,
+  createDuration,
+  createMeasure,
+  createNote,
+  createTimePosition,
+  createVoice
+} from '../../../score-core'
 import { createSystemLayout } from './system-layout'
 
 describe('system layout', () => {
@@ -32,11 +39,63 @@ describe('system layout', () => {
     ])
   })
 
-  it('keeps the last system measure width aligned with previous systems', () => {
+  it('stretches the last system to the full available width', () => {
     const layout = createSystemLayout(createMeasures(5), 900)
+    const lastPlacement = layout.placements[4]
 
-    expect(layout.placements[4].width).toBe(layout.placements[0].width)
-    expect(layout.placements[4].x).toBe(16)
+    expect(lastPlacement.x).toBe(16)
+    expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(884)
+    expect(lastPlacement.width).toBeGreaterThan(layout.placements[0].width)
+  })
+
+  it('fills every system independently without table-like column alignment', () => {
+    const layout = createSystemLayout(createMeasures(7), 900)
+
+    for (let systemIndex = 0; systemIndex < layout.systemCount; systemIndex += 1) {
+      const systemPlacements = layout.placements.filter(
+        (placement) => placement.systemIndex === systemIndex
+      )
+      const lastPlacement = systemPlacements.at(-1)!
+
+      expect(systemPlacements[0].x).toBe(16)
+      expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(884)
+    }
+  })
+
+  it('allocates more width to rhythmically dense measures', () => {
+    const sparse = createMeasure({
+      id: 'sparse',
+      number: 1
+    })
+    const dense = createMeasure({
+      id: 'dense',
+      number: 2,
+      voices: [
+        createVoice({
+          events: Array.from({ length: 8 }, (_, index) =>
+            createNote({
+              id: `note-${index}`,
+              position: createTimePosition(
+                index * (TICKS_PER_QUARTER / 2)
+              ),
+              pitch: {
+                step: 'C',
+                octave: 4
+              },
+              duration: createDuration('eighth')
+            })
+          )
+        })
+      ]
+    })
+    const layout = createSystemLayout([sparse, dense], 900)
+
+    expect(layout.placements[1].width).toBeGreaterThan(
+      layout.placements[0].width
+    )
+    expect(
+      layout.placements[1].x + layout.placements[1].width
+    ).toBeCloseTo(884)
   })
 
   it('increases the SVG height as systems are added', () => {
