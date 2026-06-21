@@ -10,6 +10,7 @@ import {
 import { demoScore } from '../notation/demo-score'
 import {
   buildDeleteCommand,
+  buildDotCommand,
   buildDurationCommand,
   buildNoteEntryCommand,
   buildRestEntryCommand,
@@ -132,6 +133,75 @@ describe('editor state', () => {
       }
     ])
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('adds and removes augmentation dots through rhythm transactions', () => {
+    const add = buildDotCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-c5' },
+      1,
+      () => 'dot-rest'
+    )
+    const added = applyScoreCommand(demoScore, add!)
+
+    expect(readEvent(added.score, 'note-c5')).toMatchObject({
+      type: 'note',
+      duration: { value: 'eighth', dots: 1 }
+    })
+    expect(readEvent(added.score, 'rest-half')).toMatchObject({
+      type: 'rest',
+      position: { tick: 30_240 }
+    })
+
+    const remove = buildDotCommand(
+      added.score,
+      { type: 'event', eventId: 'note-c5' },
+      -1,
+      () => 'released-rest'
+    )
+    const removed = applyScoreCommand(added.score, remove!)
+
+    expect(readEvent(removed.score, 'note-c5')).toMatchObject({
+      duration: { value: 'eighth', dots: 0 }
+    })
+    expect(applyScoreCommand(added.score, added.undo).score).toEqual(demoScore)
+  })
+
+  it('applies augmentation dots to rests with the same rhythm rules', () => {
+    const shortenedNote = buildDurationCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-c5' },
+      createDuration('16th'),
+      () => 'short-rest'
+    )
+    const prepared = applyScoreCommand(demoScore, shortenedNote!)
+    const add = buildDotCommand(
+      prepared.score,
+      { type: 'event', eventId: 'short-rest' },
+      1,
+      () => 'rest-remainder'
+    )
+    const result = applyScoreCommand(prepared.score, add!)
+
+    expect(readEvent(result.score, 'short-rest')).toMatchObject({
+      type: 'rest',
+      duration: { value: '16th', dots: 1 }
+    })
+    expect(
+      validateMeasureRhythm(
+        result.score.parts[0].staves[0].measures[1]
+      ).isExact
+    ).toBe(true)
+  })
+
+  it('rejects dot growth that would consume a note', () => {
+    expect(
+      buildDotCommand(
+        demoScore,
+        { type: 'event', eventId: 'note-c4' },
+        1
+      )
+    ).toBeUndefined()
   })
 
   it('builds delete commands and traverses events in score order', () => {

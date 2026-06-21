@@ -15,7 +15,11 @@ import type {
   Voice,
   VoiceEvent
 } from './types'
-import { createTimePosition, sortVoiceEvents } from './timing'
+import {
+  MAX_AUGMENTATION_DOTS,
+  createTimePosition,
+  sortVoiceEvents
+} from './timing'
 
 export const trebleClef: Clef = {
   sign: 'G',
@@ -33,6 +37,16 @@ export const commonTime: TimeSignature = {
 }
 
 export function createDuration(value: DurationValue, dots = 0): Duration {
+  if (
+    !Number.isInteger(dots) ||
+    dots < 0 ||
+    dots > MAX_AUGMENTATION_DOTS
+  ) {
+    throw new Error(
+      `Duration dots must be an integer from 0 to ${MAX_AUGMENTATION_DOTS}: ${dots}`
+    )
+  }
+
   return {
     value,
     dots
