@@ -1,10 +1,12 @@
 import {
+  applyScoreCommand,
   buildRhythmEditCommand,
   createFullMeasureRest,
   createMeasure,
   createNote,
   createRest,
   createVoice,
+  decomposeDurationTicks,
   durationToTicks,
   effectiveAlterAt,
   measureDurationTicks,
@@ -72,6 +74,22 @@ export function buildSequentialInput(
     return undefined
   }
 
+  const nextTick = state.tick + durationToTicks(state.duration)
+  const measureTicks = measureDurationTicks(location.measure)
+
+  if (nextTick > measureTicks) {
+    return state.mode === 'note'
+      ? buildTiedSequentialInput(
+          score,
+          state,
+          step!,
+          createId,
+          location,
+          event.id
+        )
+      : undefined
+  }
+
   const replacement =
     state.mode === 'rest'
       ? createRest({
@@ -101,9 +119,6 @@ export function buildSequentialInput(
     return undefined
   }
 
-  const nextTick = state.tick + durationToTicks(state.duration)
-  const measureTicks = measureDurationTicks(location.measure)
-
   if (nextTick < measureTicks) {
     return {
       command: editCommand,
@@ -114,10 +129,6 @@ export function buildSequentialInput(
         tick: nextTick
       }
     }
-  }
-
-  if (nextTick > measureTicks) {
-    return undefined
   }
 
   const nextMeasure = location.staff.measures[location.measureIndex + 1]
@@ -190,6 +201,231 @@ export function buildSequentialInput(
         measureId: newMeasure.id
       },
       tick: 0
+    }
+  }
+}
+
+function buildTiedSequentialInput(
+  score: Score,
+  state: NoteInputState,
+  step: PitchStep,
+  createId: (kind: 'event' | 'measure') => string,
+  initialLocation: NonNullable<ReturnType<typeof locateInputVoice>>,
+  firstEventId: string
+): SequentialInputResult | undefined {
+  const pitch = createInputPitch(
+    initialLocation,
+    step,
+    state.tick,
+    state.accidental
+  )
+  const commands: ScoreCommand[] = []
+  let workingScore = score
+  let remainingTicks = durationToTicks(state.duration)
+  let measureId = state.target.measureId
+  let tick = state.tick
+  let isFirstSegment = true
+
+  while (remainingTicks > 0) {
+    let location = locateInputVoice(workingScore, {
+      ...state.target,
+      measureId
+    })
+
+    if (!location) {
+      return undefined
+    }
+
+    const availableTicks = measureDurationTicks(location.measure) - tick
+
+    if (availableTicks <= 0) {
+      const next = ensureNextInputMeasure(
+        workingScore,
+        state.target,
+        location,
+        createId
+      )
+
+      if (!next) {
+        return undefined
+      }
+
+      if (next.command) {
+        commands.push(next.command)
+        workingScore = applyScoreCommand(workingScore, next.command).score
+      }
+
+      measureId = next.measureId
+      tick = 0
+      continue
+    }
+
+    const spanTicks = Math.min(remainingTicks, availableTicks)
+    const durations = decomposeDurationTicks(spanTicks)
+
+    if (!durations) {
+      return undefined
+    }
+
+    for (const duration of durations) {
+      location = locateInputVoice(workingScore, {
+        ...state.target,
+        measureId
+      })
+      const event = location?.voice.events.find(
+        (candidate) => candidate.position.tick === tick
+      )
+
+      if (!location || !event) {
+        return undefined
+      }
+
+      const segmentTicks = durationToTicks(duration)
+      const hasPrevious = !isFirstSegment
+      const hasNext = remainingTicks > segmentTicks
+      const note = createNote({
+        id: event.id,
+        position: event.position,
+        duration,
+        pitch,
+        ties:
+          hasPrevious || hasNext
+            ? {
+                stop: hasPrevious || undefined,
+                start: hasNext || undefined
+              }
+            : undefined
+      })
+      const command = buildRhythmEditCommand(workingScore, {
+        target: {
+          ...state.target,
+          measureId
+        },
+        eventId: event.id,
+        event: note,
+        createId: () => createId('event')
+      })
+
+      if (!command) {
+        return undefined
+      }
+
+      commands.push(command)
+      workingScore = applyScoreCommand(workingScore, command).score
+      remainingTicks -= segmentTicks
+      tick += segmentTicks
+      isFirstSegment = false
+    }
+  }
+
+  let finalLocation = locateInputVoice(workingScore, {
+    ...state.target,
+    measureId
+  })
+
+  if (!finalLocation) {
+    return undefined
+  }
+
+  if (tick === measureDurationTicks(finalLocation.measure)) {
+    const next = ensureNextInputMeasure(
+      workingScore,
+      state.target,
+      finalLocation,
+      createId
+    )
+
+    if (!next) {
+      return undefined
+    }
+
+    if (next.command) {
+      commands.push(next.command)
+      workingScore = applyScoreCommand(workingScore, next.command).score
+    }
+
+    measureId = next.measureId
+    tick = 0
+    finalLocation = locateInputVoice(workingScore, {
+      ...state.target,
+      measureId
+    })
+
+    if (!finalLocation) {
+      return undefined
+    }
+  }
+
+  return {
+    command: {
+      type: 'score.batch',
+      commands
+    },
+    eventId: firstEventId,
+    nextState: {
+      ...state,
+      accidental: undefined,
+      target: {
+        ...state.target,
+        measureId,
+        voiceId: finalLocation.voice.id
+      },
+      tick
+    }
+  }
+}
+
+function ensureNextInputMeasure(
+  score: Score,
+  target: VoiceAddress,
+  location: NonNullable<ReturnType<typeof locateInputVoice>>,
+  createId: (kind: 'event' | 'measure') => string
+): {
+  command?: ScoreCommand
+  measureId: string
+} | undefined {
+  const nextMeasure = location.staff.measures[location.measureIndex + 1]
+
+  if (nextMeasure) {
+    const nextVoice =
+      nextMeasure.voices.find((voice) => voice.id === target.voiceId) ??
+      nextMeasure.voices[0]
+
+    return nextVoice
+      ? {
+          measureId: nextMeasure.id
+        }
+      : undefined
+  }
+
+  const measureId = createId('measure')
+  const measure = createMeasure({
+    id: measureId,
+    number: location.measure.number + 1,
+    clef: { ...location.measure.clef },
+    keySignature: { ...location.measure.keySignature },
+    timeSignature: { ...location.measure.timeSignature },
+    voices: [
+      createVoice({
+        id: target.voiceId,
+        events: [
+          createFullMeasureRest({
+            id: createId('event')
+          })
+        ]
+      })
+    ]
+  })
+
+  return {
+    measureId,
+    command: {
+      type: 'staff-measure.insert',
+      target: {
+        partId: target.partId,
+        staffId: target.staffId
+      },
+      measure
     }
   }
 }

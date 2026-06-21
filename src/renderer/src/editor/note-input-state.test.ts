@@ -140,7 +140,7 @@ describe('note input state', () => {
     )
   })
 
-  it('rejects input that crosses a measure boundary', () => {
+  it('splits note input across a measure boundary and ties the segments', () => {
     const score = twoMeasureScore()
     const state = createNoteInputState({
       target,
@@ -149,7 +149,72 @@ describe('note input state', () => {
       mode: 'note'
     })
 
-    expect(buildSequentialInput(score, state, 'C', idSequence())).toBeUndefined()
+    const input = buildSequentialInput(score, state, 'C', idSequence())
+    const result = applyScoreCommand(score, input!.command)
+    const measures = result.score.parts[0].staves[0].measures
+
+    expect(input!.command.type).toBe('score.batch')
+    expect(measures[0].voices[0].events[3]).toMatchObject({
+      type: 'note',
+      duration: { value: 'quarter' },
+      ties: { start: true }
+    })
+    expect(measures[1].voices[0].events[0]).toMatchObject({
+      type: 'note',
+      position: { tick: 0 },
+      duration: { value: 'quarter' },
+      ties: { stop: true }
+    })
+    expect(input!.nextState).toMatchObject({
+      target: { measureId: 'measure-2' },
+      tick: quarter
+    })
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('keeps rests from crossing a measure boundary', () => {
+    const score = twoMeasureScore()
+    const state = createNoteInputState({
+      target,
+      tick: quarter * 3,
+      duration: createDuration('half'),
+      mode: 'rest'
+    })
+
+    expect(
+      buildSequentialInput(score, state, undefined, idSequence())
+    ).toBeUndefined()
+  })
+
+  it('creates an inherited measure for a tied overflow segment', () => {
+    const score = scoreWithEvents(quarterRests(0))
+    const state = createNoteInputState({
+      target,
+      tick: quarter * 3,
+      duration: createDuration('whole'),
+      mode: 'note'
+    })
+    const input = buildSequentialInput(score, state, 'C', idSequence())
+    const result = applyScoreCommand(score, input!.command)
+    const measures = result.score.parts[0].staves[0].measures
+
+    expect(measures).toHaveLength(2)
+    expect(measures[0].voices[0].events[3]).toMatchObject({
+      type: 'note',
+      duration: { value: 'quarter' },
+      ties: { start: true }
+    })
+    expect(measures[1].voices[0].events[0]).toMatchObject({
+      type: 'note',
+      duration: { value: 'half', dots: 1 },
+      ties: { stop: true }
+    })
+    expect(input!.nextState).toMatchObject({
+      target: { measureId: 'measure-2' },
+      tick: quarter * 3
+    })
+    expect(validateMeasureRhythm(measures[0]).isExact).toBe(true)
+    expect(validateMeasureRhythm(measures[1]).isExact).toBe(true)
   })
 
   it('chooses the nearest octave from the preceding note', () => {

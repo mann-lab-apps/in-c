@@ -264,7 +264,7 @@ function createRestsForSpan(input: {
     ]
   }
 
-  const durations = decomposeDuration(durationTicks)
+  const durations = decomposeDurationTicks(durationTicks)
 
   if (!durations) {
     return []
@@ -286,7 +286,9 @@ function createRestsForSpan(input: {
   })
 }
 
-function decomposeDuration(totalTicks: Tick): Duration[] | undefined {
+export function decomposeDurationTicks(
+  totalTicks: Tick
+): Duration[] | undefined {
   const cache = new Map<Tick, Duration[] | undefined>()
 
   function visit(remainingTicks: Tick): Duration[] | undefined {

@@ -7,10 +7,12 @@ import {
   Renderer,
   Stave,
   StaveNote,
+  StaveTie,
   Voice
 } from 'vexflow'
 
 import {
+  collectTiePairs,
   resolveNotePitch,
   shouldDisplayAccidental,
   sortVoiceEvents,
@@ -93,6 +95,8 @@ export function NotationPreview({
     const svg = container.querySelector('svg')
     let inputPoint: CursorPoint | undefined
     let playbackPoint: CursorPoint | undefined
+    const notesByEventId = new Map<string, StaveNote>()
+    const systemsByEventId = new Map<string, number>()
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
@@ -166,17 +170,22 @@ export function NotationPreview({
             playbackEventId
           )
         )
-        const notesByEventId = new Map(
+        const measureNotesByEventId = new Map(
           notes.map((note) => [
             note.getAttribute('data-event-id') as string,
             note
           ])
         )
+        notes.forEach((note) => {
+          const eventId = note.getAttribute('data-event-id') as string
+          notesByEventId.set(eventId, note)
+          systemsByEventId.set(eventId, placement.systemIndex)
+        })
         const beams = createBeamGroups(measure, voice).map(
           (group) =>
             new Beam(
               group.eventIds.map((eventId) => {
-                const note = notesByEventId.get(eventId)
+                const note = measureNotesByEventId.get(eventId)
 
                 if (!note) {
                   throw new Error(`Beam event not found: ${eventId}`)
@@ -244,6 +253,25 @@ export function NotationPreview({
       })
     })
 
+    collectTiePairs(score).forEach((pair) => {
+      const firstNote = notesByEventId.get(pair.fromEventId)
+      const lastNote = notesByEventId.get(pair.toEventId)
+
+      if (!firstNote || !lastNote) {
+        return
+      }
+
+      if (
+        systemsByEventId.get(pair.fromEventId) ===
+        systemsByEventId.get(pair.toEventId)
+      ) {
+        drawTie(context, firstNote, lastNote)
+      } else {
+        drawTie(context, firstNote, null)
+        drawTie(context, null, lastNote)
+      }
+    })
+
     if (svg && inputPoint) {
       const cursor = document.createElementNS(
         'http://www.w3.org/2000/svg',
@@ -283,6 +311,21 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function drawTie(
+  context: ReturnType<Renderer['getContext']>,
+  firstNote: StaveNote | null,
+  lastNote: StaveNote | null
+): void {
+  new StaveTie({
+    firstNote,
+    lastNote,
+    firstIndexes: [0],
+    lastIndexes: [0]
+  })
+    .setContext(context)
+    .draw()
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {
@@ -342,6 +385,7 @@ function createStaveNote(
   if (
     event.type === 'note' &&
     pitch &&
+    !event.ties?.stop &&
     shouldDisplayAccidental(measure, voice, event)
   ) {
     const accidental = toVexFlowAccidental(pitch)
