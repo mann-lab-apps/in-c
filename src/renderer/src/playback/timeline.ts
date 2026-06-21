@@ -2,11 +2,12 @@ import {
   TICKS_PER_QUARTER,
   durationToTicks,
   measureDurationTicks,
+  pitchToMidi,
+  resolveNotePitch,
   sortVoiceEvents,
   voiceEventDurationTicks,
   type Duration,
   type Note,
-  type Pitch,
   type Score
 } from '../../../score-core'
 
@@ -21,16 +22,6 @@ export interface PlaybackEvent {
 export interface PlaybackTimeline {
   events: PlaybackEvent[]
   totalBeats: number
-}
-
-const pitchSemitones: Record<Pitch['step'], number> = {
-  C: 0,
-  D: 2,
-  E: 4,
-  F: 5,
-  G: 7,
-  A: 9,
-  B: 11
 }
 
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
@@ -50,7 +41,10 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         measureId: measure.id,
         startBeat: scoreBeat + event.position.tick / TICKS_PER_QUARTER,
         durationBeats,
-        frequency: event.type === 'note' ? pitchToFrequency(event.pitch) : undefined
+        frequency:
+          event.type === 'note' && voice
+            ? pitchToFrequency(resolveNotePitch(measure, voice, event))
+            : undefined
       })
     }
 
@@ -68,10 +62,7 @@ export function durationToBeats(duration: Duration): number {
 }
 
 export function pitchToFrequency(pitch: Note['pitch']): number {
-  const midi =
-    (pitch.octave + 1) * 12 +
-    pitchSemitones[pitch.step] +
-    (pitch.alter ?? 0)
+  const midi = pitchToMidi(pitch)
 
   return 440 * 2 ** ((midi - 69) / 12)
 }

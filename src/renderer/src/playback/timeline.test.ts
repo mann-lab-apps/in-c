@@ -113,4 +113,48 @@ describe('playback timeline', () => {
       durationBeats: 1
     })
   })
+
+  it('resolves key signatures and preceding accidentals for playback', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  keySignature: { fifths: 1 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'key-f-sharp',
+                          position: createTimePosition(0),
+                          pitch: { step: 'F', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'explicit-natural',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'F', octave: 4, alter: 0 }
+                        }),
+                        createNote({
+                          id: 'inherited-natural',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: { step: 'F', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const events = createPlaybackTimeline(score).events
+
+    expect(events[0].frequency).toBeCloseTo(369.994, 3)
+    expect(events[1].frequency).toBeCloseTo(349.228, 3)
+    expect(events[2].frequency).toBeCloseTo(349.228, 3)
+  })
 })

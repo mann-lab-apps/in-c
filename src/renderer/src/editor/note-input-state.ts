@@ -6,7 +6,11 @@ import {
   createRest,
   createVoice,
   durationToTicks,
+  effectiveAlterAt,
   measureDurationTicks,
+  nearestPitch,
+  resolveNotePitch,
+  sortVoiceEvents,
   type Duration,
   type Pitch,
   type PitchStep,
@@ -79,11 +83,12 @@ export function buildSequentialInput(
           id: event.id,
           position: event.position,
           duration: state.duration,
-          pitch: {
-            step: step!,
-            octave: event.type === 'note' ? event.pitch.octave : 4,
-            alter: state.accidental
-          }
+          pitch: createInputPitch(
+            location,
+            step!,
+            state.tick,
+            state.accidental
+          )
         })
   const editCommand = buildRhythmEditCommand(score, {
     target: state.target,
@@ -105,6 +110,7 @@ export function buildSequentialInput(
       eventId: event.id,
       nextState: {
         ...state,
+        accidental: undefined,
         tick: nextTick
       }
     }
@@ -130,6 +136,7 @@ export function buildSequentialInput(
       eventId: event.id,
       nextState: {
         ...state,
+        accidental: undefined,
         target: {
           ...state.target,
           measureId: nextMeasure.id,
@@ -177,6 +184,7 @@ export function buildSequentialInput(
     eventId: event.id,
     nextState: {
       ...state,
+      accidental: undefined,
       target: {
         ...state.target,
         measureId: newMeasure.id
@@ -184,6 +192,79 @@ export function buildSequentialInput(
       tick: 0
     }
   }
+}
+
+function createInputPitch(
+  location: NonNullable<ReturnType<typeof locateInputVoice>>,
+  step: PitchStep,
+  tick: Tick,
+  accidental?: Pitch['alter']
+): Pitch {
+  const reference = findPreviousPitch(location, tick)
+  const octave = nearestPitch({
+    step,
+    alter: 0,
+    reference
+  }).octave
+  const alter = effectiveAlterAt({
+    measure: location.measure,
+    voice: location.voice,
+    step,
+    octave,
+    tick,
+    override: accidental
+  })
+
+  return {
+    step,
+    octave,
+    alter
+  }
+}
+
+function findPreviousPitch(
+  location: NonNullable<ReturnType<typeof locateInputVoice>>,
+  tick: Tick
+): Pitch | undefined {
+  const currentMeasureNote = sortVoiceEvents(location.voice.events)
+    .filter(
+      (event) =>
+        event.type === 'note' &&
+        event.position.tick < tick
+    )
+    .at(-1)
+
+  if (currentMeasureNote?.type === 'note') {
+    return resolveNotePitch(
+      location.measure,
+      location.voice,
+      currentMeasureNote
+    )
+  }
+
+  for (
+    let measureIndex = location.measureIndex - 1;
+    measureIndex >= 0;
+    measureIndex -= 1
+  ) {
+    const voice =
+      location.staff.measures[measureIndex].voices.find(
+        (candidate) => candidate.id === location.voice.id
+      ) ?? location.staff.measures[measureIndex].voices[0]
+    const note = sortVoiceEvents(voice?.events ?? [])
+      .filter((event) => event.type === 'note')
+      .at(-1)
+
+    if (note?.type === 'note') {
+      return resolveNotePitch(
+        location.staff.measures[measureIndex],
+        voice!,
+        note
+      )
+    }
+  }
+
+  return undefined
 }
 
 function locateInputVoice(score: Score, target: VoiceAddress) {

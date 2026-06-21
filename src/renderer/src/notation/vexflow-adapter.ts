@@ -29,7 +29,10 @@ export function toVexFlowDuration(duration: Duration, isRest = false): string {
 }
 
 export function toVexFlowKey(pitch: Pitch): string {
-  const accidental = pitch.alter === undefined ? '' : accidentalValues[pitch.alter]
+  const accidental =
+    pitch.alter === undefined || pitch.alter === 0
+      ? ''
+      : accidentalValues[pitch.alter]
   return `${pitch.step.toLowerCase()}${accidental}/${pitch.octave}`
 }
 

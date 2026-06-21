@@ -88,6 +88,7 @@ h2 {
 .transport-controls button,
 .segmented-control button,
 .duration-strip button,
+.accidental-control button,
 .icon-button {
   min-height: 36px;
   border: 1px solid transparent;
@@ -105,6 +106,7 @@ h2 {
 
 .panel-list__item--active,
 .segmented-control .is-active,
+.accidental-control .is-active,
 .duration-strip .is-active {
   border-color: #b9b7a7;
   background: #ffffff;
@@ -165,8 +167,11 @@ h2 {
 
 .toolbar__group {
   display: flex;
+  flex: 1 1 720px;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+  min-width: 0;
 }
 
 .file-actions {
@@ -194,6 +199,7 @@ h2 {
 }
 
 .segmented-control,
+.accidental-control,
 .duration-strip {
   display: flex;
   align-items: center;
@@ -205,6 +211,28 @@ h2 {
   border: 1px solid #c7c0b3;
   border-radius: 8px;
   background: #e5dfd1;
+}
+
+.accidental-control {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  background: #fbfaf6;
+}
+
+.accidental-control button {
+  display: inline-grid;
+  width: 34px;
+  padding: 0;
+  border-radius: 0;
+  font-family: Georgia, serif;
+  font-size: 1.25rem;
+  place-items: center;
+}
+
+.accidental-control button + button {
+  border-left-color: #d8d2c5;
 }
 
 .segmented-control button,
