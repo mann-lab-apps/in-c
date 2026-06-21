@@ -88,6 +88,7 @@ h2 {
 .transport-controls button,
 .segmented-control button,
 .duration-strip button,
+.dot-control button,
 .accidental-control button,
 .icon-button {
   min-height: 36px;
@@ -200,6 +201,7 @@ h2 {
 
 .segmented-control,
 .accidental-control,
+.dot-control,
 .duration-strip {
   display: flex;
   align-items: center;
@@ -242,6 +244,38 @@ h2 {
   justify-content: center;
   gap: 7px;
   padding: 0 12px;
+}
+
+.dot-control {
+  gap: 0;
+  overflow: hidden;
+  min-height: 36px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  background: #fbfaf6;
+}
+
+.dot-control button {
+  display: inline-grid;
+  width: 34px;
+  padding: 0;
+  border-radius: 0;
+  place-items: center;
+}
+
+.dot-control button + output,
+.dot-control output + button {
+  border-left: 1px solid #d8d2c5;
+}
+
+.dot-control output {
+  display: inline-grid;
+  width: 32px;
+  min-height: 34px;
+  color: #283035;
+  font-size: 0.85rem;
+  font-weight: 700;
+  place-items: center;
 }
 
 .icon-button {

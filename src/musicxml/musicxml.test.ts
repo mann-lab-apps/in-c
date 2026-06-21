@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest'
 
 import {
   TICKS_PER_QUARTER,
+  createDuration,
   createMeasure,
   createNote,
   createPart,
+  createRest,
   createScore,
   createStaff,
   createTimePosition,
@@ -317,6 +319,59 @@ describe('MusicXML MVP', () => {
     expect(events).toMatchObject([
       { type: 'note', ties: { start: true } },
       { type: 'note', ties: { stop: true } }
+    ])
+  })
+
+  it('preserves multiple augmentation dots across MusicXML round trips', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'double-dotted-note',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: createDuration('quarter', 2)
+                        }),
+                        createRest({
+                          id: 'double-dotted-rest',
+                          position: createTimePosition(
+                            TICKS_PER_QUARTER * 1.75
+                          ),
+                          duration: createDuration('quarter', 2)
+                        }),
+                        createRest({
+                          id: 'final-rest',
+                          position: createTimePosition(
+                            TICKS_PER_QUARTER * 3.5
+                          ),
+                          duration: createDuration('eighth')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const events =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported.match(/<dot\/>/g)).toHaveLength(4)
+    expect(events).toMatchObject([
+      { type: 'note', duration: { value: 'quarter', dots: 2 } },
+      { type: 'rest', duration: { value: 'quarter', dots: 2 } },
+      { type: 'rest', duration: { value: 'eighth', dots: 0 } }
     ])
   })
 })

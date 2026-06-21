@@ -12,6 +12,7 @@ import type {
 } from './types'
 
 export const TICKS_PER_QUARTER = 13_440
+export const MAX_AUGMENTATION_DOTS = 3
 
 const durationTicks: Record<DurationValue, Tick> = {
   whole: TICKS_PER_QUARTER * 4,
@@ -72,8 +73,14 @@ export function createTimePosition(tick: Tick): TimePosition {
 }
 
 export function durationToTicks(duration: Duration): Tick {
-  if (!Number.isInteger(duration.dots) || duration.dots < 0) {
-    throw new Error(`Duration dots must be a non-negative integer: ${duration.dots}`)
+  if (
+    !Number.isInteger(duration.dots) ||
+    duration.dots < 0 ||
+    duration.dots > MAX_AUGMENTATION_DOTS
+  ) {
+    throw new Error(
+      `Duration dots must be an integer from 0 to ${MAX_AUGMENTATION_DOTS}: ${duration.dots}`
+    )
   }
 
   const baseTicks = durationTicks[duration.value]

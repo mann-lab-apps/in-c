@@ -85,6 +85,43 @@ describe('note input state', () => {
     expect(restInput!.nextState.tick).toBe(quarter + quarter / 2)
   })
 
+  it('advances note and rest input by double-dotted durations', () => {
+    const score = createScore()
+    const duration = createDuration('eighth', 2)
+    const noteState = createNoteInputState({
+      target,
+      tick: 0,
+      duration,
+      mode: 'note'
+    })
+    const noteInput = buildSequentialInput(
+      score,
+      noteState,
+      'C',
+      idSequence()
+    )
+    const noteResult = applyScoreCommand(score, noteInput!.command)
+
+    expect(noteInput!.nextState.tick).toBe(quarter * 0.875)
+    expect(readEvents(noteResult.score)[0]).toMatchObject({
+      type: 'note',
+      duration: { value: 'eighth', dots: 2 }
+    })
+
+    const restState = {
+      ...noteInput!.nextState,
+      mode: 'rest' as const
+    }
+    const restInput = buildSequentialInput(
+      noteResult.score,
+      restState,
+      undefined,
+      idSequence()
+    )
+
+    expect(restInput!.nextState.tick).toBe(quarter * 1.75)
+  })
+
   it('moves to the next existing measure at a barline', () => {
     const score = twoMeasureScore()
     const state = createNoteInputState({

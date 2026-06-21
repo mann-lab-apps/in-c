@@ -23,6 +23,8 @@ describe('playback timeline', () => {
   it('converts durations, dots, and tuplets to quarter-note beats', () => {
     expect(durationToBeats(createDuration('whole'))).toBe(4)
     expect(durationToBeats(createDuration('eighth', 1))).toBe(0.75)
+    expect(durationToBeats(createDuration('quarter', 2))).toBe(1.75)
+    expect(durationToBeats(createDuration('quarter', 3))).toBe(1.875)
     expect(
       durationToBeats({
         value: 'quarter',

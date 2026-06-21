@@ -9,8 +9,10 @@ import type {
   VoiceEvent
 } from '../../../score-core'
 import {
+  MAX_AUGMENTATION_DOTS,
   buildRhythmDeleteCommand,
   buildRhythmEditCommand,
+  createDuration as createScoreDuration,
   sortVoiceEvents
 } from '../../../score-core'
 
@@ -251,6 +253,45 @@ export function buildDurationCommand(
   })
 }
 
+export function buildDotCommand(
+  score: Score,
+  selection: EditorSelection,
+  direction: -1 | 1,
+  createId: () => string = createRhythmEventId
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId)
+
+  if (!location) {
+    return undefined
+  }
+
+  const dots = location.event.duration.dots + direction
+
+  if (
+    dots < 0 ||
+    dots > MAX_AUGMENTATION_DOTS ||
+    (direction === -1 &&
+      location.event.type === 'note' &&
+      location.event.ties?.start)
+  ) {
+    return undefined
+  }
+
+  return buildDurationCommand(
+    score,
+    selection,
+    {
+      ...location.event.duration,
+      dots
+    },
+    createId
+  )
+}
+
 export function buildDeleteCommand(
   score: Score,
   selection: EditorSelection
@@ -295,11 +336,8 @@ export function getAdjacentEventId(
   return eventIds[currentIndex + direction]
 }
 
-export function createDuration(value: DurationValue): Duration {
-  return {
-    value,
-    dots: 0
-  }
+export function createDuration(value: DurationValue, dots = 0): Duration {
+  return createScoreDuration(value, dots)
 }
 
 function createRhythmEventId(): string {

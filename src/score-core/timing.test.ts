@@ -21,6 +21,12 @@ describe('score-core timing', () => {
   it('converts supported durations, dots, and tuplets to integer ticks', () => {
     expect(durationToTicks(createDuration('whole'))).toBe(quarter * 4)
     expect(durationToTicks(createDuration('eighth', 1))).toBe(quarter * 0.75)
+    expect(durationToTicks(createDuration('quarter', 2))).toBe(
+      quarter * 1.75
+    )
+    expect(durationToTicks(createDuration('quarter', 3))).toBe(
+      quarter * 1.875
+    )
     expect(
       durationToTicks({
         value: 'quarter',
@@ -31,6 +37,15 @@ describe('score-core timing', () => {
         }
       })
     ).toBe(quarter * (2 / 3))
+  })
+
+  it('rejects augmentation dot counts outside the supported range', () => {
+    expect(() => createDuration('quarter', 4)).toThrow(
+      'Duration dots must be an integer from 0 to 3'
+    )
+    expect(() =>
+      durationToTicks({ value: 'quarter', dots: -1 })
+    ).toThrow('Duration dots must be an integer from 0 to 3')
   })
 
   it('derives regular and pickup measure durations', () => {

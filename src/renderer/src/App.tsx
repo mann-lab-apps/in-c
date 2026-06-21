@@ -5,6 +5,8 @@ import {
   ArrowUp,
   ChevronsDown,
   ChevronsUp,
+  CircleMinus,
+  CirclePlus,
   Clock3,
   FileDown,
   FileUp,
@@ -25,6 +27,7 @@ import {
 import {
   applyScoreCommand,
   buildTieCommand,
+  MAX_AUGMENTATION_DOTS,
   type Duration,
   type DurationValue,
   type Pitch,
@@ -36,6 +39,7 @@ import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import './styles.css'
 import {
   buildDeleteCommand,
+  buildDotCommand,
   buildDurationCommand,
   createDuration,
   durationLabels,
@@ -143,6 +147,24 @@ const App = () => {
     [noteInputState, score, selection]
   )
   const measureCount = score.parts[0]?.staves[0]?.measures.length ?? 0
+  const activeDots =
+    noteInputState?.duration.dots ??
+    eventLocation?.event.duration.dots ??
+    0
+  const addDotCommand =
+    noteInputState || selection.type !== 'event'
+      ? undefined
+      : buildDotCommand(score, selection, 1)
+  const removeDotCommand =
+    noteInputState || selection.type !== 'event'
+      ? undefined
+      : buildDotCommand(score, selection, -1)
+  const canAddDot = noteInputState
+    ? activeDots < MAX_AUGMENTATION_DOTS
+    : Boolean(addDotCommand)
+  const canRemoveDot = noteInputState
+    ? activeDots > 0
+    : Boolean(removeDotCommand)
   const tieEnabled =
     eventLocation?.event.type === 'note' &&
     Boolean(eventLocation.event.ties?.start)
@@ -227,15 +249,44 @@ const App = () => {
       if (noteInputState) {
         setNoteInputState({
           ...noteInputState,
-          duration: createDuration(value)
+          duration: createDuration(value, noteInputState.duration.dots)
         })
       } else if (selection.type === 'event') {
+        const dots = eventLocation?.event.duration.dots ?? 0
         executeCommand(
-          buildDurationCommand(score, selection, createDuration(value))
+          buildDurationCommand(
+            score,
+            selection,
+            createDuration(value, dots)
+          )
         )
       }
     },
-    [executeCommand, noteInputState, score, selection]
+    [eventLocation, executeCommand, noteInputState, score, selection]
+  )
+
+  const changeDots = useCallback(
+    (direction: -1 | 1) => {
+      if (noteInputState) {
+        const dots = noteInputState.duration.dots + direction
+
+        if (dots < 0 || dots > MAX_AUGMENTATION_DOTS) {
+          return
+        }
+
+        setNoteInputState({
+          ...noteInputState,
+          duration: {
+            ...noteInputState.duration,
+            dots
+          }
+        })
+        return
+      }
+
+      executeCommand(direction === 1 ? addDotCommand : removeDotCommand)
+    },
+    [addDotCommand, executeCommand, noteInputState, removeDotCommand]
   )
 
   const changeAccidental = useCallback(
@@ -518,6 +569,14 @@ const App = () => {
       }
 
       switch (event.key) {
+        case '.':
+          event.preventDefault()
+          changeDots(1)
+          break
+        case ',':
+          event.preventDefault()
+          changeDots(-1)
+          break
         case ' ':
           event.preventDefault()
 
@@ -568,6 +627,7 @@ const App = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     changeDuration,
+    changeDots,
     deleteSelection,
     enterNote,
     enterRest,
@@ -829,6 +889,30 @@ const App = () => {
                 {durationLabels[duration]}
               </button>
             ))}
+
+            <div className="dot-control" aria-label="Augmentation dots">
+              <button
+                aria-label="Remove augmentation dot"
+                disabled={!canRemoveDot}
+                onClick={() => changeDots(-1)}
+                title="Remove augmentation dot"
+                type="button"
+              >
+                <CircleMinus aria-hidden="true" size={17} />
+              </button>
+              <output aria-label="Augmentation dot count">
+                {activeDots}
+              </output>
+              <button
+                aria-label="Add augmentation dot"
+                disabled={!canAddDot}
+                onClick={() => changeDots(1)}
+                title="Add augmentation dot"
+                type="button"
+              >
+                <CirclePlus aria-hidden="true" size={17} />
+              </button>
+            </div>
           </div>
 
         </header>
