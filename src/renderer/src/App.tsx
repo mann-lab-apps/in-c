@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import {
+  ArrowDown,
+  ArrowUp,
+  ChevronsDown,
+  ChevronsUp,
   Clock3,
   FileDown,
   FileUp,
@@ -20,6 +24,7 @@ import {
   applyScoreCommand,
   type Duration,
   type DurationValue,
+  type Pitch,
   type PitchStep,
   type Score,
   type ScoreCommand
@@ -42,6 +47,11 @@ import {
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
+import {
+  buildAccidentalCommand,
+  buildPitchMovementCommand,
+  type PitchMovement
+} from './editor/pitch-editing'
 import {
   buildSequentialInput,
   createNoteInputState,
@@ -213,6 +223,30 @@ const App = () => {
       }
     },
     [executeCommand, noteInputState, score, selection]
+  )
+
+  const changeAccidental = useCallback(
+    (alter: NonNullable<Pitch['alter']>) => {
+      if (noteInputState) {
+        setNoteInputState({
+          ...noteInputState,
+          accidental: alter
+        })
+        return
+      }
+
+      executeCommand(buildAccidentalCommand(score, selection, alter))
+    },
+    [executeCommand, noteInputState, score, selection]
+  )
+
+  const movePitch = useCallback(
+    (movement: PitchMovement, direction: -1 | 1) => {
+      executeCommand(
+        buildPitchMovementCommand(score, selection, movement, direction)
+      )
+    },
+    [executeCommand, score, selection]
   )
 
   const enterNote = useCallback(
@@ -494,6 +528,18 @@ const App = () => {
           event.preventDefault()
           moveSelection(1)
           break
+        case 'ArrowUp':
+        case 'ArrowDown':
+          event.preventDefault()
+          movePitch(
+            event.shiftKey
+              ? 'octave'
+              : event.altKey
+                ? 'chromatic'
+                : 'diatonic',
+            event.key === 'ArrowUp' ? 1 : -1
+          )
+          break
         case 'Escape':
           setMode('select')
           setNoteInputState(undefined)
@@ -508,6 +554,7 @@ const App = () => {
     deleteSelection,
     enterNote,
     enterRest,
+    movePitch,
     moveSelection,
     playback.pause,
     playback.play,
@@ -520,6 +567,8 @@ const App = () => {
     selection.type === 'event' ? selection.eventId : undefined
   const selectedMeasureId =
     selection.type === 'measure' ? selection.measureId : undefined
+  const canEditPitch = eventLocation?.event.type === 'note'
+  const accidentalEnabled = Boolean(noteInputState || canEditPitch)
 
   return (
     <main className="app-shell">
@@ -663,6 +712,75 @@ const App = () => {
               type="button"
             >
               <Minus aria-hidden="true" size={18} />
+            </button>
+
+            <div className="accidental-control" aria-label="Accidental">
+              {([
+                [-1, '♭', 'Flat'],
+                [0, '♮', 'Natural'],
+                [1, '♯', 'Sharp']
+              ] as const).map(([alter, symbol, label]) => (
+                <button
+                  aria-label={label}
+                  aria-pressed={noteInputState?.accidental === alter}
+                  className={
+                    noteInputState?.accidental === alter
+                      ? 'is-active'
+                      : undefined
+                  }
+                  disabled={!accidentalEnabled}
+                  key={alter}
+                  onClick={() => changeAccidental(alter)}
+                  title={label}
+                  type="button"
+                >
+                  {symbol}
+                </button>
+              ))}
+            </div>
+
+            <button
+              aria-label="Move pitch down"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('diatonic', -1)}
+              title="Move pitch down"
+              type="button"
+            >
+              <ArrowDown aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Move pitch up"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('diatonic', 1)}
+              title="Move pitch up"
+              type="button"
+            >
+              <ArrowUp aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Move pitch down an octave"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('octave', -1)}
+              title="Move pitch down an octave"
+              type="button"
+            >
+              <ChevronsDown aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="Move pitch up an octave"
+              className="icon-button"
+              disabled={!canEditPitch}
+              onClick={() => movePitch('octave', 1)}
+              title="Move pitch up an octave"
+              type="button"
+            >
+              <ChevronsUp aria-hidden="true" size={18} />
             </button>
           </div>
 

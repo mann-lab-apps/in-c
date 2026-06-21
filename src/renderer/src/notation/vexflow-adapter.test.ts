@@ -23,6 +23,8 @@ describe('VexFlow adapter', () => {
 
     expect(toVexFlowKey(pitch)).toBe('f#/4')
     expect(toVexFlowAccidental(pitch)).toBe('#')
+    expect(toVexFlowKey({ step: 'F', octave: 4, alter: 0 })).toBe('f/4')
+    expect(toVexFlowAccidental({ step: 'F', octave: 4, alter: 0 })).toBe('n')
   })
 
   it('maps supported clefs', () => {

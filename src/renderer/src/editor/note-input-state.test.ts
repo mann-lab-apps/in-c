@@ -5,12 +5,14 @@ import {
   applyScoreCommand,
   createDuration,
   createMeasure,
+  createNote,
   createPart,
   createRest,
   createScore,
   createStaff,
   createTimePosition,
   createVoice,
+  type VoiceEvent,
   validateMeasureRhythm
 } from '../../../score-core'
 import {
@@ -149,9 +151,93 @@ describe('note input state', () => {
 
     expect(buildSequentialInput(score, state, 'C', idSequence())).toBeUndefined()
   })
+
+  it('chooses the nearest octave from the preceding note', () => {
+    const score = scoreWithEvents([
+      createNote({
+        id: 'note-b4',
+        position: createTimePosition(0),
+        pitch: { step: 'B', octave: 4 }
+      }),
+      ...quarterRests(1)
+    ])
+    const state = createNoteInputState({
+      target,
+      tick: quarter,
+      duration: createDuration('quarter'),
+      mode: 'note'
+    })
+    const input = buildSequentialInput(score, state, 'C', idSequence())
+    const result = applyScoreCommand(score, input!.command)
+
+    expect(readEvents(result.score)[1]).toMatchObject({
+      type: 'note',
+      pitch: {
+        step: 'C',
+        octave: 5,
+        alter: 0
+      }
+    })
+  })
+
+  it('uses key signatures and same-measure accidental context', () => {
+    const score = scoreWithEvents(quarterRests(0), 1)
+    const firstState = createNoteInputState({
+      target,
+      tick: 0,
+      duration: createDuration('quarter'),
+      mode: 'note',
+      accidental: 0
+    })
+    const firstInput = buildSequentialInput(score, firstState, 'F', idSequence())
+    const firstResult = applyScoreCommand(score, firstInput!.command)
+    const secondInput = buildSequentialInput(
+      firstResult.score,
+      firstInput!.nextState,
+      'F',
+      idSequence()
+    )
+    const secondResult = applyScoreCommand(firstResult.score, secondInput!.command)
+
+    expect(firstInput!.nextState.accidental).toBeUndefined()
+    expect(readEvents(secondResult.score).slice(0, 2)).toMatchObject([
+      { type: 'note', pitch: { step: 'F', alter: 0 } },
+      { type: 'note', pitch: { step: 'F', alter: 0 } }
+    ])
+  })
+
+  it('resets accidental context at the next measure', () => {
+    const score = twoMeasureScore(1)
+    const state = createNoteInputState({
+      target,
+      tick: quarter * 3,
+      duration: createDuration('quarter'),
+      mode: 'note',
+      accidental: 0
+    })
+    const firstInput = buildSequentialInput(score, state, 'F', idSequence())
+    const firstResult = applyScoreCommand(score, firstInput!.command)
+    const secondInput = buildSequentialInput(
+      firstResult.score,
+      firstInput!.nextState,
+      'F',
+      idSequence()
+    )
+    const secondResult = applyScoreCommand(firstResult.score, secondInput!.command)
+    const measures = secondResult.score.parts[0].staves[0].measures
+
+    expect(measures[0].voices[0].events[3]).toMatchObject({
+      type: 'note',
+      pitch: { step: 'F', alter: 0 }
+    })
+    expect(measures[1].voices[0].events[0]).toMatchObject({
+      type: 'note',
+      pitch: { step: 'F', alter: 1 }
+    })
+  })
 })
 
-function twoMeasureScore() {
+function twoMeasureScore(fifths = 0) {
   return createScore({
     parts: [
       createPart({
@@ -161,6 +247,7 @@ function twoMeasureScore() {
               createMeasure({
                 id: 'measure-1',
                 number: 1,
+                keySignature: { fifths },
                 voices: [
                   createVoice({
                     id: 'voice-1',
@@ -177,9 +264,11 @@ function twoMeasureScore() {
               createMeasure({
                 id: 'measure-2',
                 number: 2,
+                keySignature: { fifths },
                 voices: [
                   createVoice({
-                    id: 'voice-1'
+                    id: 'voice-1',
+                    events: quarterRests(0)
                   })
                 ]
               })
@@ -189,6 +278,45 @@ function twoMeasureScore() {
       })
     ]
   })
+}
+
+function scoreWithEvents(
+  events: VoiceEvent[],
+  fifths = 0
+) {
+  return createScore({
+    parts: [
+      createPart({
+        staves: [
+          createStaff({
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                number: 1,
+                keySignature: { fifths },
+                voices: [
+                  createVoice({
+                    id: 'voice-1',
+                    events
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function quarterRests(startIndex: number) {
+  return Array.from({ length: 4 - startIndex }, (_, index) =>
+    createRest({
+      id: `rest-${startIndex + index + 1}`,
+      position: createTimePosition(quarter * (startIndex + index)),
+      duration: createDuration('quarter')
+    })
+  )
 }
 
 function readEvents(score: ReturnType<typeof createScore>) {

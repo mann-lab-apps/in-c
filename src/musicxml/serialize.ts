@@ -1,11 +1,15 @@
 import { XMLBuilder } from 'fast-xml-parser'
 
 import {
+  resolveNotePitch,
+  shouldDisplayAccidental,
   sortVoiceEvents,
   validateMeasureRhythm,
   voiceEventDurationTicks,
   type Measure,
+  type Pitch,
   type Score,
+  type Voice,
   type VoiceEvent
 } from '../score-core'
 import {
@@ -63,18 +67,22 @@ export function serializeMusicXml(score: Score): string {
       },
       part: {
         '@_id': part.id,
-        measure: staff.measures.map((measure) => ({
-          '@_number': measure.number,
-          ...(measure.timing.type === 'pickup'
-            ? {
-                '@_implicit': 'yes'
-              }
-            : {}),
-          attributes: buildAttributes(measure),
-          note: sortVoiceEvents(measure.voices[0].events).map((event) =>
-            buildNote(event, measure)
-          )
-        }))
+        measure: staff.measures.map((measure) => {
+          const voice = measure.voices[0]
+
+          return {
+            '@_number': measure.number,
+            ...(measure.timing.type === 'pickup'
+              ? {
+                  '@_implicit': 'yes'
+                }
+              : {}),
+            attributes: buildAttributes(measure),
+            note: sortVoiceEvents(voice.events).map((event) =>
+              buildNote(event, measure, voice)
+            )
+          }
+        })
       }
     }
   }
@@ -112,9 +120,14 @@ function buildAttributes(measure: Measure) {
   }
 }
 
-function buildNote(event: VoiceEvent, measure: Measure) {
+function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
   const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
+  const pitch =
+    event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
+  const displaysAccidental =
+    event.type === 'note' &&
+    shouldDisplayAccidental(measure, voice, event)
 
   return {
     ...(event.type === 'rest'
@@ -127,14 +140,21 @@ function buildNote(event: VoiceEvent, measure: Measure) {
         }
       : {
           pitch: {
-            step: event.pitch.step,
-            ...(event.pitch.alter !== undefined
+            step: pitch!.step,
+            ...(pitch!.alter !== 0 ||
+            event.pitch.alter === 0 ||
+            displaysAccidental
               ? {
-                  alter: event.pitch.alter
+                  alter: pitch!.alter
                 }
               : {}),
-            octave: event.pitch.octave
-          }
+            octave: pitch!.octave
+          },
+          ...(displaysAccidental
+            ? {
+                accidental: toMusicXmlAccidental(pitch!.alter!)
+              }
+            : {})
         }),
     duration: isFullMeasureRest
       ? voiceEventDurationTicks(event, measure)
@@ -146,6 +166,23 @@ function buildNote(event: VoiceEvent, measure: Measure) {
           dot: dots
         }
       : {})
+  }
+}
+
+function toMusicXmlAccidental(
+  alter: NonNullable<Pitch['alter']>
+): string {
+  switch (alter) {
+    case -2:
+      return 'flat-flat'
+    case -1:
+      return 'flat'
+    case 0:
+      return 'natural'
+    case 1:
+      return 'sharp'
+    case 2:
+      return 'double-sharp'
   }
 }
 

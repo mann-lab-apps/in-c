@@ -214,4 +214,61 @@ describe('MusicXML MVP', () => {
     })
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
+
+  it('exports only the accidentals that change written pitch context', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  keySignature: { fifths: 1 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'key-f-sharp',
+                          position: createTimePosition(0),
+                          pitch: { step: 'F', octave: 4, alter: 1 }
+                        }),
+                        createNote({
+                          id: 'natural-f',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'F', octave: 4, alter: 0 }
+                        }),
+                        createNote({
+                          id: 'continued-natural-f',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: { step: 'F', octave: 4, alter: 0 }
+                        }),
+                        createNote({
+                          id: 'restored-f-sharp',
+                          position: createTimePosition(TICKS_PER_QUARTER * 3),
+                          pitch: { step: 'F', octave: 4, alter: 1 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTripEvents =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported.match(/<accidental>natural<\/accidental>/g)).toHaveLength(1)
+    expect(exported.match(/<accidental>sharp<\/accidental>/g)).toHaveLength(1)
+    expect(roundTripEvents.map((event) => event.type === 'note' && event.pitch))
+      .toEqual([
+        { step: 'F', octave: 4, alter: 1 },
+        { step: 'F', octave: 4, alter: 0 },
+        { step: 'F', octave: 4, alter: 0 },
+        { step: 'F', octave: 4, alter: 1 }
+      ])
+  })
 })

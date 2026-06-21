@@ -11,9 +11,12 @@ import {
 } from 'vexflow'
 
 import {
+  resolveNotePitch,
+  shouldDisplayAccidental,
   sortVoiceEvents,
   type Measure,
   type Score,
+  type Voice as ScoreVoice,
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
@@ -155,7 +158,13 @@ export function NotationPreview({
       const voices = measure.voices.map((voice) => {
         const events = sortVoiceEvents(voice.events)
         const notes = events.map((event) =>
-          createStaveNote(event, measure, selectedEventId, playbackEventId)
+          createStaveNote(
+            event,
+            measure,
+            voice,
+            selectedEventId,
+            playbackEventId
+          )
         )
         const notesByEventId = new Map(
           notes.map((note) => [
@@ -301,14 +310,17 @@ function sameTimeSignature(previous: Measure, current: Measure): boolean {
 function createStaveNote(
   event: VoiceEvent,
   measure: Measure,
+  voice: ScoreVoice,
   selectedEventId?: string,
   playbackEventId?: string
 ): StaveNote {
   const clef = toVexFlowClef(measure.clef)
   const isRest = event.type === 'rest'
+  const pitch =
+    event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
   const note = new StaveNote({
     clef,
-    keys: isRest ? ['b/4'] : [toVexFlowKey(event.pitch)],
+    keys: isRest ? ['b/4'] : [toVexFlowKey(pitch!)],
     duration: toVexFlowDuration(event.duration, isRest),
     autoStem: true
   })
@@ -327,8 +339,12 @@ function createStaveNote(
     })
   }
 
-  if (event.type === 'note') {
-    const accidental = toVexFlowAccidental(event.pitch)
+  if (
+    event.type === 'note' &&
+    pitch &&
+    shouldDisplayAccidental(measure, voice, event)
+  ) {
+    const accidental = toVexFlowAccidental(pitch)
 
     if (accidental) {
       note.addModifier(new Accidental(accidental), 0)
