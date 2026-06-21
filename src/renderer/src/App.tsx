@@ -8,6 +8,7 @@ import {
   Clock3,
   FileDown,
   FileUp,
+  Link2,
   Minus,
   MousePointer2,
   Music2,
@@ -17,11 +18,13 @@ import {
   RotateCcw,
   RotateCw,
   Square,
-  Trash2
+  Trash2,
+  Unlink2
 } from 'lucide-react'
 
 import {
   applyScoreCommand,
+  buildTieCommand,
   type Duration,
   type DurationValue,
   type Pitch,
@@ -140,6 +143,16 @@ const App = () => {
     [noteInputState, score, selection]
   )
   const measureCount = score.parts[0]?.staves[0]?.measures.length ?? 0
+  const tieEnabled =
+    eventLocation?.event.type === 'note' &&
+    Boolean(eventLocation.event.ties?.start)
+  const tieCommand = useMemo(
+    () =>
+      eventLocation?.event.type === 'note'
+        ? buildTieCommand(score, eventLocation.event.id, !tieEnabled)
+        : undefined,
+    [eventLocation, score, tieEnabled]
+  )
 
   const executeCommand = useCallback(
     (command: ScoreCommand | undefined) => {
@@ -248,6 +261,10 @@ const App = () => {
     },
     [executeCommand, score, selection]
   )
+
+  const toggleTie = useCallback(() => {
+    executeCommand(tieCommand)
+  }, [executeCommand, tieCommand])
 
   const enterNote = useCallback(
     (step: PitchStep) => {
@@ -781,6 +798,21 @@ const App = () => {
               type="button"
             >
               <ChevronsUp aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label={tieEnabled ? 'Remove tie' : 'Add tie'}
+              className="icon-button"
+              disabled={!tieCommand}
+              onClick={toggleTie}
+              title={tieEnabled ? 'Remove tie' : 'Add tie'}
+              type="button"
+            >
+              {tieEnabled ? (
+                <Unlink2 aria-hidden="true" size={18} />
+              ) : (
+                <Link2 aria-hidden="true" size={18} />
+              )}
             </button>
           </div>
 

@@ -28,6 +28,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
+  let previousStartsTie = false
 
   for (const measure of measures) {
     const voice = measure.voices[0]
@@ -36,7 +37,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
       const durationBeats =
         voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
 
-      events.push({
+      const playbackEvent = {
         eventId: event.id,
         measureId: measure.id,
         startBeat: scoreBeat + event.position.tick / TICKS_PER_QUARTER,
@@ -45,7 +46,23 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
           event.type === 'note' && voice
             ? pitchToFrequency(resolveNotePitch(measure, voice, event))
             : undefined
-      })
+      }
+      const previous = events.at(-1)
+
+      if (
+        event.type === 'note' &&
+        event.ties?.stop &&
+        previousStartsTie &&
+        previous &&
+        previous?.frequency === playbackEvent.frequency &&
+        previous.startBeat + previous.durationBeats === playbackEvent.startBeat
+      ) {
+        previous.durationBeats += playbackEvent.durationBeats
+      } else {
+        events.push(playbackEvent)
+      }
+
+      previousStartsTie = event.type === 'note' && Boolean(event.ties?.start)
     }
 
     scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER

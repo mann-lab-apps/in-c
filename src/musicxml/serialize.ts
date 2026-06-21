@@ -4,6 +4,7 @@ import {
   resolveNotePitch,
   shouldDisplayAccidental,
   sortVoiceEvents,
+  validateTieRelations,
   validateMeasureRhythm,
   voiceEventDurationTicks,
   type Measure,
@@ -31,6 +32,11 @@ export function serializeMusicXml(score: Score): string {
 
   const part = score.parts[0]
   const staff = part.staves[0]
+  const tieErrors = validateTieRelations(score)
+
+  if (tieErrors.length > 0) {
+    throw new Error(`잘못된 타이 관계가 있습니다: ${tieErrors.join(', ')}`)
+  }
 
   staff.measures.forEach(validateMeasure)
 
@@ -127,7 +133,15 @@ function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
     event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
   const displaysAccidental =
     event.type === 'note' &&
+    !event.ties?.stop &&
     shouldDisplayAccidental(measure, voice, event)
+  const tieTypes =
+    event.type === 'note'
+      ? [
+          ...(event.ties?.stop ? ['stop'] as const : []),
+          ...(event.ties?.start ? ['start'] as const : [])
+        ]
+      : []
 
   return {
     ...(event.type === 'rest'
@@ -153,6 +167,18 @@ function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
           ...(displaysAccidental
             ? {
                 accidental: toMusicXmlAccidental(pitch!.alter!)
+              }
+            : {}),
+          ...(tieTypes.length > 0
+            ? {
+                tie: tieTypes.map((type) => ({
+                  '@_type': type
+                })),
+                notations: {
+                  tied: tieTypes.map((type) => ({
+                    '@_type': type
+                  }))
+                }
               }
             : {})
         }),

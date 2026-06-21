@@ -157,4 +157,48 @@ describe('playback timeline', () => {
     expect(events[1].frequency).toBeCloseTo(349.228, 3)
     expect(events[2].frequency).toBeCloseTo(349.228, 3)
   })
+
+  it('merges tied notes into one sustained playback event', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'tie-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          ties: { start: true }
+                        }),
+                        createNote({
+                          id: 'tie-stop',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'C', octave: 4 },
+                          ties: { stop: true }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.events).toHaveLength(1)
+    expect(timeline.events[0]).toMatchObject({
+      eventId: 'tie-start',
+      startBeat: 0,
+      durationBeats: 2
+    })
+  })
 })

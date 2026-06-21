@@ -12,6 +12,7 @@ import {
   createTimePosition,
   createVoice,
   durationToTicks,
+  validateTieRelations,
   validateMeasureRhythm,
   type Clef,
   type Duration,
@@ -193,7 +194,7 @@ export function parseMusicXml(xml: string): Score {
     'Imported score'
   const composer = readComposer(root)
 
-  return createScore({
+  const score = createScore({
     id: 'musicxml-score',
     title,
     composer,
@@ -211,6 +212,13 @@ export function parseMusicXml(xml: string): Score {
       })
     ]
   })
+  const tieErrors = validateTieRelations(score)
+
+  if (tieErrors.length > 0) {
+    throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${tieErrors.join(', ')}`)
+  }
+
+  return score
 }
 
 function readVoiceEvent(
@@ -270,8 +278,29 @@ function readVoiceEvent(
       octave: readInteger(pitchNode, 'octave'),
       alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
     },
-    duration
+    duration,
+    ties: readTieFlags(node)
   })
+}
+
+function readTieFlags(node: XmlNode) {
+  const directTypes = toArray(
+    node.tie as XmlNode | XmlNode[] | undefined
+  ).map((tie) => readOptionalString(tie, '@_type'))
+  const notations = readOptionalNode(node, 'notations')
+  const notationTypes = toArray(
+    notations?.tied as XmlNode | XmlNode[] | undefined
+  ).map((tie) => readOptionalString(tie, '@_type'))
+  const types = new Set([...directTypes, ...notationTypes])
+  const start = types.has('start')
+  const stop = types.has('stop')
+
+  return start || stop
+    ? {
+        start: start || undefined,
+        stop: stop || undefined
+      }
+    : undefined
 }
 
 function readDuration(node: XmlNode): Duration {

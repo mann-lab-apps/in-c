@@ -21,7 +21,8 @@ accidental override를 가진다. 입력 커서는 selection 강조나 재생 pl
 - 마디 끝에서는 다음 마디의 tick 0으로 이동한다.
 - 마지막 마디 끝에서는 clef, key signature와 time signature를 상속한 빈
   마디를 생성한다.
-- 마디 경계를 넘는 단일 duration은 타이 기능이 구현되기 전까지 거부한다.
+- 음표 duration이 마디 경계를 넘으면 마디별 음표로 분할하고 타이로
+  연결한다. 쉼표는 현재 마디 경계를 넘지 않는다.
 
 마지막 마디 입력과 새 마디 생성은 `score.batch` command 하나로 묶인다.
 따라서 undo/redo에서 입력 결과와 마디 생성이 함께 복원된다.

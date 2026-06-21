@@ -271,4 +271,52 @@ describe('MusicXML MVP', () => {
         { step: 'F', octave: 4, alter: 1 }
       ])
   })
+
+  it('preserves tie start and stop markers across MusicXML round trips', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'tie-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          ties: { start: true }
+                        }),
+                        createNote({
+                          id: 'tie-stop',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'C', octave: 4 },
+                          ties: { stop: true }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const events =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported).toContain('<tie type="start"/>')
+    expect(exported).toContain('<tie type="stop"/>')
+    expect(exported).toContain('<tied type="start"/>')
+    expect(exported).toContain('<tied type="stop"/>')
+    expect(events).toMatchObject([
+      { type: 'note', ties: { start: true } },
+      { type: 'note', ties: { stop: true } }
+    ])
+  })
 })

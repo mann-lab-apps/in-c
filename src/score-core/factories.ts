@@ -44,13 +44,15 @@ export function createNote(input: {
   position?: TimePosition
   pitch: Pitch
   duration?: Duration
+  ties?: Note['ties']
 }): Note {
   return {
     type: 'note',
     id: input.id,
     position: input.position ?? createTimePosition(0),
     pitch: input.pitch,
-    duration: input.duration ?? createDuration('quarter')
+    duration: input.duration ?? createDuration('quarter'),
+    ties: input.ties
   }
 }
 
