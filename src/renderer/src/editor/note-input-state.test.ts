@@ -16,7 +16,9 @@ import {
   validateMeasureRhythm
 } from '../../../score-core'
 import {
+  beginTupletInput,
   buildSequentialInput,
+  cancelTupletInput,
   createNoteInputState
 } from './note-input-state'
 
@@ -337,6 +339,146 @@ describe('note input state', () => {
       pitch: { step: 'F', alter: 1 }
     })
   })
+
+  it('buffers and commits a mixed eighth-note triplet as one command', () => {
+    const score = createScore()
+    const tripletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-1'
+    )!
+    const first = buildSequentialInput(
+      score,
+      tripletState,
+      'C',
+      idSequence()
+    )!
+    const second = buildSequentialInput(
+      score,
+      { ...first.nextState, mode: 'rest' },
+      undefined,
+      idSequence()
+    )!
+    const third = buildSequentialInput(
+      score,
+      { ...second.nextState, mode: 'note' },
+      'E',
+      idSequence()
+    )!
+    const result = applyScoreCommand(score, third.command)
+    const voice = result.score.parts[0].staves[0].measures[0].voices[0]
+
+    expect(first.pending).toBe(true)
+    expect(second.pending).toBe(true)
+    expect(third.pending).toBeUndefined()
+    expect(third.command.type).toBe('voice-content.replace')
+    expect(voice.events.slice(0, 3)).toMatchObject([
+      {
+        type: 'note',
+        position: { tick: 0 },
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      {
+        type: 'rest',
+        position: { tick: quarter / 3 }
+      },
+      {
+        type: 'note',
+        position: { tick: (quarter * 2) / 3 }
+      }
+    ])
+    expect(voice.tuplets).toEqual([
+      {
+        id: 'tuplet-1',
+        eventIds: voice.events.slice(0, 3).map((event) => event.id),
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    ])
+    expect(third.nextState).toMatchObject({
+      tick: quarter,
+      tupletInput: undefined,
+      duration: {
+        value: 'eighth',
+        dots: 0
+      }
+    })
+    expect(third.nextState.duration.tuplet).toBeUndefined()
+    expect(
+      validateMeasureRhythm(
+        result.score.parts[0].staves[0].measures[0]
+      ).isExact
+    ).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('cancels a buffered tuplet without changing the score', () => {
+    const state = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-1'
+    )!
+    const pending = buildSequentialInput(
+      createScore(),
+      state,
+      'C',
+      idSequence()
+    )!
+    const cancelled = cancelTupletInput(pending.nextState)
+
+    expect(cancelled.tupletInput).toBeUndefined()
+    expect(cancelled.duration.tuplet).toBeUndefined()
+    expect(cancelled.tick).toBe(0)
+  })
+
+  it('rejects nested, dotted, and measure-crossing tuplet input', () => {
+    const base = createNoteInputState({
+      target,
+      tick: 0,
+      duration: createDuration('eighth'),
+      mode: 'note'
+    })
+    const active = beginTupletInput(base, 'tuplet-1')!
+
+    expect(beginTupletInput(active, 'nested')).toBeUndefined()
+    expect(
+      beginTupletInput(
+        {
+          ...base,
+          duration: createDuration('eighth', 1)
+        },
+        'dotted'
+      )
+    ).toBeUndefined()
+
+    const boundaryState = beginTupletInput(
+      {
+        ...base,
+        tick: quarter * 3.5
+      },
+      'boundary'
+    )!
+
+    expect(
+      buildSequentialInput(
+        scoreWithEighthRests(),
+        boundaryState,
+        'C',
+        idSequence()
+      )
+    ).toBeUndefined()
+  })
 })
 
 function twoMeasureScore(fifths = 0) {
@@ -418,6 +560,18 @@ function quarterRests(startIndex: number) {
       position: createTimePosition(quarter * (startIndex + index)),
       duration: createDuration('quarter')
     })
+  )
+}
+
+function scoreWithEighthRests() {
+  return scoreWithEvents(
+    Array.from({ length: 8 }, (_, index) =>
+      createRest({
+        id: `eighth-rest-${index + 1}`,
+        position: createTimePosition((quarter / 2) * index),
+        duration: createDuration('eighth')
+      })
+    )
   )
 }
 

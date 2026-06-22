@@ -140,6 +140,51 @@ describe('beam groups', () => {
 
     expect(createBeamGroups(editedMeasure, editedMeasure.voices[0])).toEqual([])
   })
+
+  it('beams a complete eighth-note triplet within one beat', () => {
+    const duration = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const measure = createMeasure({
+      voices: [
+        createVoice({
+          events: [
+            ...Array.from({ length: 3 }, (_, index) =>
+              createNote({
+                id: `triplet-${index + 1}`,
+                position: createTimePosition((quarter / 3) * index),
+                pitch: { step: 'C', octave: 4 },
+                duration
+              })
+            ),
+            createRest({
+              id: 'remainder',
+              position: createTimePosition(quarter),
+              duration: createDuration('half', 1)
+            })
+          ],
+          tuplets: [
+            {
+              id: 'tuplet-1',
+              eventIds: ['triplet-1', 'triplet-2', 'triplet-3'],
+              actualNotes: 3,
+              normalNotes: 2
+            }
+          ]
+        })
+      ]
+    })
+
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([
+      {
+        eventIds: ['triplet-1', 'triplet-2', 'triplet-3']
+      }
+    ])
+  })
 })
 
 function measureWith(

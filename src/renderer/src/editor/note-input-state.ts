@@ -5,6 +5,7 @@ import {
   createMeasure,
   createNote,
   createRest,
+  createTimePosition,
   createVoice,
   decomposeDurationTicks,
   durationToTicks,
@@ -30,12 +31,23 @@ export interface NoteInputState {
   duration: Duration
   mode: NoteInputMode
   accidental?: Pitch['alter']
+  tupletInput?: {
+    id: string
+    actualNotes: number
+    normalNotes: number
+    members: Array<{
+      mode: NoteInputMode
+      step?: PitchStep
+      accidental?: Pitch['alter']
+    }>
+  }
 }
 
 export interface SequentialInputResult {
   command: ScoreCommand
   eventId: string
   nextState: NoteInputState
+  pending?: boolean
 }
 
 export function createNoteInputState(input: {
@@ -44,13 +56,58 @@ export function createNoteInputState(input: {
   duration: Duration
   mode: NoteInputMode
   accidental?: Pitch['alter']
+  tupletInput?: NoteInputState['tupletInput']
 }): NoteInputState {
   return {
     target: input.target,
     tick: input.tick,
     duration: input.duration,
     mode: input.mode,
-    accidental: input.accidental
+    accidental: input.accidental,
+    tupletInput: input.tupletInput
+  }
+}
+
+export function beginTupletInput(
+  state: NoteInputState,
+  id: string,
+  actualNotes = 3,
+  normalNotes = 2
+): NoteInputState | undefined {
+  if (
+    state.tupletInput ||
+    state.duration.dots > 0 ||
+    actualNotes <= 1 ||
+    normalNotes <= 0
+  ) {
+    return undefined
+  }
+
+  return {
+    ...state,
+    duration: {
+      ...state.duration,
+      tuplet: {
+        actualNotes,
+        normalNotes
+      }
+    },
+    tupletInput: {
+      id,
+      actualNotes,
+      normalNotes,
+      members: []
+    }
+  }
+}
+
+export function cancelTupletInput(state: NoteInputState): NoteInputState {
+  const { tuplet: _tuplet, ...duration } = state.duration
+
+  return {
+    ...state,
+    duration,
+    tupletInput: undefined
   }
 }
 
@@ -60,6 +117,10 @@ export function buildSequentialInput(
   step: PitchStep | undefined,
   createId: (kind: 'event' | 'measure') => string
 ): SequentialInputResult | undefined {
+  if (state.tupletInput) {
+    return buildTupletSequentialInput(score, state, step, createId)
+  }
+
   const location = locateInputVoice(score, state.target)
 
   if (!location) {
@@ -202,6 +263,279 @@ export function buildSequentialInput(
       },
       tick: 0
     }
+  }
+}
+
+function buildTupletSequentialInput(
+  score: Score,
+  state: NoteInputState,
+  step: PitchStep | undefined,
+  createId: (kind: 'event' | 'measure') => string
+): SequentialInputResult | undefined {
+  const tupletInput = state.tupletInput!
+
+  if (state.mode === 'note' && !step) {
+    return undefined
+  }
+
+  const member = {
+    mode: state.mode,
+    step,
+    accidental: state.accidental
+  }
+  const members = [...tupletInput.members, member]
+  const location = locateInputVoice(score, state.target)
+  const event = location?.voice.events.find(
+    (candidate) => candidate.position.tick === state.tick
+  )
+  const memberTicks = durationToTicks(state.duration)
+  const groupEndTick = state.tick + memberTicks * tupletInput.actualNotes
+
+  if (
+    !location ||
+    !event ||
+    groupEndTick > measureDurationTicks(location.measure)
+  ) {
+    return undefined
+  }
+
+  if (members.length < tupletInput.actualNotes) {
+    return {
+      command: {
+        type: 'score.batch',
+        commands: []
+      },
+      eventId: event.id,
+      pending: true,
+      nextState: {
+        ...state,
+        accidental: undefined,
+        tupletInput: {
+          ...tupletInput,
+          members
+        }
+      }
+    }
+  }
+
+  if (members.length > tupletInput.actualNotes) {
+    return undefined
+  }
+
+  const groupDuration = decomposeDurationTicks(
+    memberTicks * tupletInput.actualNotes
+  )
+
+  if (!groupDuration || groupDuration.length !== 1) {
+    return undefined
+  }
+
+  const spanCommand = buildRhythmEditCommand(score, {
+    target: state.target,
+    eventId: event.id,
+    event: createRest({
+      id: event.id,
+      position: event.position,
+      duration: groupDuration[0]
+    }),
+    createId: () => createId('event')
+  })
+
+  if (!spanCommand || spanCommand.type !== 'voice-events.replace') {
+    return undefined
+  }
+
+  let workingEvents = spanCommand.events.filter(
+    (candidate) => candidate.id !== event.id
+  )
+  let workingScore = replaceWorkingVoiceEvents(
+    score,
+    state.target,
+    workingEvents
+  )
+  let tick = state.tick
+  const eventIds: string[] = []
+
+  members.forEach((stagedMember, memberIndex) => {
+    const currentLocation = locateInputVoice(workingScore, state.target)
+
+    if (!currentLocation) {
+      return
+    }
+
+    const eventId = memberIndex === 0 ? event.id : createId('event')
+    const replacement =
+      stagedMember.mode === 'rest'
+        ? createRest({
+            id: eventId,
+            position: createTimePosition(tick),
+            duration: state.duration
+          })
+        : createNote({
+            id: eventId,
+            position: createTimePosition(tick),
+            duration: state.duration,
+            pitch: createInputPitch(
+              currentLocation,
+              stagedMember.step!,
+              tick,
+              stagedMember.accidental
+            )
+          })
+    workingEvents = sortVoiceEvents([...workingEvents, replacement])
+    workingScore = replaceWorkingVoiceEvents(
+      workingScore,
+      state.target,
+      workingEvents
+    )
+    eventIds.push(eventId)
+    tick += memberTicks
+  })
+
+  const finalLocation = locateInputVoice(workingScore, state.target)
+
+  if (
+    !finalLocation ||
+    eventIds.length !== tupletInput.actualNotes
+  ) {
+    return undefined
+  }
+
+  const lastEventId = eventIds.at(-1)
+
+  if (!lastEventId) {
+    return undefined
+  }
+
+  const contentCommand: ScoreCommand = {
+    type: 'voice-content.replace',
+    target: state.target,
+    events: finalLocation.voice.events,
+    tuplets: [
+      ...(location.voice.tuplets ?? []),
+      {
+        id: tupletInput.id,
+        eventIds,
+        actualNotes: tupletInput.actualNotes,
+        normalNotes: tupletInput.normalNotes
+      }
+    ],
+    editedEventId: lastEventId
+  }
+  const nextDuration = cancelTupletInput(state).duration
+
+  if (groupEndTick < measureDurationTicks(location.measure)) {
+    return {
+      command: contentCommand,
+      eventId: lastEventId,
+      nextState: {
+        ...state,
+        accidental: undefined,
+        duration: nextDuration,
+        tupletInput: undefined,
+        tick: groupEndTick
+      }
+    }
+  }
+
+  const nextMeasure = location.staff.measures[location.measureIndex + 1]
+
+  if (nextMeasure) {
+    const nextVoice =
+      nextMeasure.voices.find((voice) => voice.id === state.target.voiceId) ??
+      nextMeasure.voices[0]
+
+    if (!nextVoice) {
+      return undefined
+    }
+
+    return {
+      command: contentCommand,
+      eventId: lastEventId,
+      nextState: {
+        ...state,
+        accidental: undefined,
+        duration: nextDuration,
+        tupletInput: undefined,
+        target: {
+          ...state.target,
+          measureId: nextMeasure.id,
+          voiceId: nextVoice.id
+        },
+        tick: 0
+      }
+    }
+  }
+
+  const next = ensureNextInputMeasure(
+    score,
+    state.target,
+    location,
+    createId
+  )
+
+  if (!next?.command) {
+    return undefined
+  }
+
+  return {
+    command: {
+      type: 'score.batch',
+      commands: [contentCommand, next.command]
+    },
+    eventId: lastEventId,
+    nextState: {
+      ...state,
+      accidental: undefined,
+      duration: nextDuration,
+      tupletInput: undefined,
+      target: {
+        ...state.target,
+        measureId: next.measureId
+      },
+      tick: 0
+    }
+  }
+}
+
+function replaceWorkingVoiceEvents(
+  score: Score,
+  target: VoiceAddress,
+  events: NonNullable<
+    Extract<ScoreCommand, { type: 'voice-events.replace' }>['events']
+  >
+): Score {
+  return {
+    ...score,
+    parts: score.parts.map((part) =>
+      part.id !== target.partId
+        ? part
+        : {
+            ...part,
+            staves: part.staves.map((staff) =>
+              staff.id !== target.staffId
+                ? staff
+                : {
+                    ...staff,
+                    measures: staff.measures.map((measure) =>
+                      measure.id !== target.measureId
+                        ? measure
+                        : {
+                            ...measure,
+                            voices: measure.voices.map((voice) =>
+                              voice.id !== target.voiceId
+                                ? voice
+                                : {
+                                    ...voice,
+                                    events
+                                  }
+                            )
+                          }
+                    )
+                  }
+            )
+          }
+    )
   }
 }
 

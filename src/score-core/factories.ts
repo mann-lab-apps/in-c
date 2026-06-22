@@ -12,6 +12,7 @@ import type {
   Staff,
   TimePosition,
   TimeSignature,
+  TupletGroup,
   Voice,
   VoiceEvent
 } from './types'
@@ -97,10 +98,15 @@ export function createFullMeasureRest(input: {
   })
 }
 
-export function createVoice(input?: { id?: string; events?: VoiceEvent[] }): Voice {
+export function createVoice(input?: {
+  id?: string
+  events?: VoiceEvent[]
+  tuplets?: TupletGroup[]
+}): Voice {
   return {
     id: input?.id ?? 'voice-1',
-    events: sortVoiceEvents(input?.events ?? [])
+    events: sortVoiceEvents(input?.events ?? []),
+    tuplets: input?.tuplets
   }
 }
 

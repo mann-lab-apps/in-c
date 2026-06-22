@@ -6,6 +6,7 @@ import {
   createMeasure,
   createNote,
   createPart,
+  createRest,
   createScore,
   createStaff,
   createTimePosition,
@@ -201,6 +202,69 @@ describe('playback timeline', () => {
       eventId: 'tie-start',
       startBeat: 0,
       durationBeats: 2
+    })
+  })
+
+  it('places triplet events on proportional playback beats', () => {
+    const duration = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        ...Array.from({ length: 3 }, (_, index) =>
+                          createNote({
+                            id: `triplet-${index + 1}`,
+                            position: createTimePosition(
+                              (TICKS_PER_QUARTER / 3) * index
+                            ),
+                            pitch: { step: 'C', octave: 4 },
+                            duration
+                          })
+                        ),
+                        createRest({
+                          id: 'remainder',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ],
+                      tuplets: [
+                        {
+                          id: 'tuplet-1',
+                          eventIds: ['triplet-1', 'triplet-2', 'triplet-3'],
+                          actualNotes: 3,
+                          normalNotes: 2
+                        }
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const events = createPlaybackTimeline(score).events.slice(0, 3)
+
+    expect(events.map((event) => event.startBeat)).toEqual([
+      0,
+      1 / 3,
+      2 / 3
+    ])
+    events.forEach((event) => {
+      expect(event.durationBeats).toBeCloseTo(1 / 3)
     })
   })
 })
