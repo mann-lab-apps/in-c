@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && electron-vite build",
     "preview": "env -u ELECTRON_RUN_AS_NODE electron-vite preview",
     "test": "vitest run",
+    "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
