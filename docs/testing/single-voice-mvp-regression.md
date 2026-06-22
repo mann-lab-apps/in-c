@@ -53,5 +53,6 @@ npm run verify:mvp
 ## CI 경계
 
 GitHub Actions의 `test` job은 `npm test`와 production build를 실행한다.
-`electron-mvp` job은 Linux 가상 디스플레이에서 `npm run verify:mvp`를
-실행해 실제 SVG 좌표와 viewport 회귀를 검사한다.
+`electron-mvp` job은 Linux 가상 디스플레이에서 sandbox 권한이 없는
+호스팅 runner에 맞춘 `npm run verify:mvp:ci`를 실행해 실제 SVG 좌표와
+viewport 회귀를 검사한다.

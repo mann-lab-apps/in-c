@@ -34,4 +34,4 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: xvfb-run --auto-servernum npm run verify:mvp
+      - run: xvfb-run --auto-servernum npm run verify:mvp:ci
