@@ -6,6 +6,7 @@ import {
   sortVoiceEvents,
   validateTieRelations,
   validateMeasureRhythm,
+  validateVoiceTuplets,
   voiceEventDurationTicks,
   type Measure,
   type Pitch,
@@ -75,6 +76,7 @@ export function serializeMusicXml(score: Score): string {
         '@_id': part.id,
         measure: staff.measures.map((measure) => {
           const voice = measure.voices[0]
+          const tupletBoundaries = createTupletBoundaries(voice)
 
           return {
             '@_number': measure.number,
@@ -85,7 +87,12 @@ export function serializeMusicXml(score: Score): string {
               : {}),
             attributes: buildAttributes(measure),
             note: sortVoiceEvents(voice.events).map((event) =>
-              buildNote(event, measure, voice)
+              buildNote(
+                event,
+                measure,
+                voice,
+                tupletBoundaries.get(event.id)
+              )
             )
           }
         })
@@ -126,7 +133,15 @@ function buildAttributes(measure: Measure) {
   }
 }
 
-function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
+function buildNote(
+  event: VoiceEvent,
+  measure: Measure,
+  voice: Voice,
+  tupletBoundary?: {
+    start?: boolean
+    stop?: boolean
+  }
+) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
   const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
   const pitch =
@@ -142,6 +157,11 @@ function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
           ...(event.ties?.start ? ['start'] as const : [])
         ]
       : []
+  const notationTuplets = [
+    ...(tupletBoundary?.start ? ['start'] as const : []),
+    ...(tupletBoundary?.stop ? ['stop'] as const : [])
+  ]
+  const hasNotations = tieTypes.length > 0 || notationTuplets.length > 0
 
   return {
     ...(event.type === 'rest'
@@ -173,12 +193,7 @@ function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
             ? {
                 tie: tieTypes.map((type) => ({
                   '@_type': type
-                })),
-                notations: {
-                  tied: tieTypes.map((type) => ({
-                    '@_type': type
-                  }))
-                }
+                }))
               }
             : {})
         }),
@@ -187,12 +202,66 @@ function buildNote(event: VoiceEvent, measure: Measure, voice: Voice) {
       : durationToTicks(event.duration),
     voice: 1,
     type: event.duration.value,
+    ...(event.duration.tuplet
+      ? {
+          'time-modification': {
+            'actual-notes': event.duration.tuplet.actualNotes,
+            'normal-notes': event.duration.tuplet.normalNotes
+          }
+        }
+      : {}),
+    ...(hasNotations
+      ? {
+          notations: {
+            ...(tieTypes.length > 0
+              ? {
+                  tied: tieTypes.map((type) => ({
+                    '@_type': type
+                  }))
+                }
+              : {}),
+            ...(notationTuplets.length > 0
+              ? {
+                  tuplet: notationTuplets.map((type) => ({
+                    '@_type': type
+                  }))
+                }
+              : {})
+          }
+        }
+      : {}),
     ...(dots.length > 0
       ? {
           dot: dots
         }
       : {})
   }
+}
+
+function createTupletBoundaries(
+  voice: Voice
+): Map<string, { start?: boolean; stop?: boolean }> {
+  const boundaries = new Map<string, { start?: boolean; stop?: boolean }>()
+
+  for (const group of voice.tuplets ?? []) {
+    const firstId = group.eventIds[0]
+    const lastId = group.eventIds.at(-1)
+
+    if (!firstId || !lastId) {
+      continue
+    }
+
+    boundaries.set(firstId, {
+      ...boundaries.get(firstId),
+      start: true
+    })
+    boundaries.set(lastId, {
+      ...boundaries.get(lastId),
+      stop: true
+    })
+  }
+
+  return boundaries
 }
 
 function toMusicXmlAccidental(
@@ -224,10 +293,17 @@ function validateMeasure(measure: Measure): void {
   }
 
   const rhythm = validateMeasureRhythm(measure)
+  const tupletErrors = validateVoiceTuplets(measure.voices[0])
 
   if (!rhythm.isExact) {
     throw new Error(
       `measure ${measure.number}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
+    )
+  }
+
+  if (tupletErrors.length > 0) {
+    throw new Error(
+      `measure ${measure.number}의 tuplet 관계가 올바르지 않습니다: ${tupletErrors.join(', ')}`
     )
   }
 }

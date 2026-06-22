@@ -9,7 +9,8 @@
 - playback: 현재 재생 위치와 활성 이벤트
 
 `NoteInputState`는 voice 주소, measure 내 tick, duration, note/rest mode와
-accidental override를 가진다. 입력 커서는 selection 강조나 재생 playhead와
+accidental override를 가진다. tuplet 입력 중에는 아직 확정하지 않은 멤버를
+로컬 버퍼로 함께 관리한다. 입력 커서는 selection 강조나 재생 playhead와
 별도의 SVG 선으로 표시한다.
 
 ## 순차 입력
@@ -23,6 +24,8 @@ accidental override를 가진다. 입력 커서는 selection 강조나 재생 pl
   마디를 생성한다.
 - 음표 duration이 마디 경계를 넘으면 마디별 음표로 분할하고 타이로
   연결한다. 쉼표는 현재 마디 경계를 넘지 않는다.
+- tuplet은 그룹의 모든 멤버가 입력될 때까지 score를 변경하지 않는다.
+  마지막 멤버 입력 시 그룹 전체를 하나의 command로 확정한다.
 
 마지막 마디 입력과 새 마디 생성은 `score.batch` command 하나로 묶인다.
 따라서 undo/redo에서 입력 결과와 마디 생성이 함께 복원된다.

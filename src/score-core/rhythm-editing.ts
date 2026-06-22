@@ -17,6 +17,7 @@ import type {
   VoiceAddress,
   VoiceEvent
 } from './types'
+import { validateVoiceTuplets } from './tuplets'
 
 interface RhythmEditInput {
   target: VoiceAddress
@@ -140,7 +141,12 @@ export function buildRhythmEditCommand(
     )
   }
 
-  if (!validateMeasureRhythm(nextMeasure).isExact) {
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets(
+      nextMeasure.voices.find((voice) => voice.id === location.voice.id)!
+    ).length > 0
+  ) {
     return undefined
   }
 

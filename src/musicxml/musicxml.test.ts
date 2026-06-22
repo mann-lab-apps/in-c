@@ -374,4 +374,107 @@ describe('MusicXML MVP', () => {
       { type: 'rest', duration: { value: 'eighth', dots: 0 } }
     ])
   })
+
+  it('preserves mixed triplet groups across MusicXML round trips', () => {
+    const tripletDuration = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'triplet-note-1',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: tripletDuration
+                        }),
+                        createRest({
+                          id: 'triplet-rest',
+                          position: createTimePosition(
+                            TICKS_PER_QUARTER / 3
+                          ),
+                          duration: tripletDuration
+                        }),
+                        createNote({
+                          id: 'triplet-note-2',
+                          position: createTimePosition(
+                            (TICKS_PER_QUARTER * 2) / 3
+                          ),
+                          pitch: { step: 'E', octave: 4 },
+                          duration: tripletDuration
+                        }),
+                        createRest({
+                          id: 'remainder',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ],
+                      tuplets: [
+                        {
+                          id: 'triplet-1',
+                          eventIds: [
+                            'triplet-note-1',
+                            'triplet-rest',
+                            'triplet-note-2'
+                          ],
+                          actualNotes: 3,
+                          normalNotes: 2
+                        }
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const voice =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0]
+
+    expect(exported.match(/<time-modification>/g)).toHaveLength(3)
+    expect(exported).toContain('<tuplet type="start"/>')
+    expect(exported).toContain('<tuplet type="stop"/>')
+    expect(voice.events.slice(0, 3)).toMatchObject([
+      {
+        type: 'note',
+        duration: {
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      {
+        type: 'rest',
+        duration: {
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      {
+        type: 'note',
+        duration: {
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      }
+    ])
+    expect(voice.tuplets).toEqual([
+      {
+        id: 'measure-1-tuplet-1',
+        eventIds: ['event-1', 'event-2', 'event-3'],
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    ])
+  })
 })

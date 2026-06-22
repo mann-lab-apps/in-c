@@ -9,6 +9,7 @@ import type {
   VoiceEvent
 } from './types'
 import { sortVoiceEvents, validateMeasureRhythm } from './timing'
+import { validateVoiceTuplets } from './tuplets'
 
 export function applyScoreCommand(score: Score, command: ScoreCommand): CommandResult {
   switch (command.type) {
@@ -23,6 +24,14 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
         score,
         command.target,
         command.events,
+        command.editedEventId
+      )
+    case 'voice-content.replace':
+      return replaceVoiceContent(
+        score,
+        command.target,
+        command.events,
+        command.tuplets,
         command.editedEventId
       )
     case 'staff-measure.insert':
@@ -168,6 +177,11 @@ function replaceVoiceEvents(
       ...voice,
       events: sortVoiceEvents(events)
     }
+    const tupletErrors = validateVoiceTuplets(nextVoice)
+
+    if (tupletErrors.length > 0) {
+      throw new Error(`Tuplet transaction is invalid: ${tupletErrors.join(', ')}`)
+    }
     const nextMeasure = {
       ...measure,
       voices: measure.voices.map((candidate) =>
@@ -188,6 +202,51 @@ function replaceVoiceEvents(
         type: 'voice-events.replace',
         target,
         events: voice.events,
+        editedEventId
+      }
+    }
+  })
+}
+
+function replaceVoiceContent(
+  score: Score,
+  target: VoiceAddress,
+  events: VoiceEvent[],
+  tuplets: Voice['tuplets'],
+  editedEventId?: string
+): CommandResult {
+  return updateVoice(score, target, (voice, measure) => {
+    const nextVoice = {
+      ...voice,
+      events: sortVoiceEvents(events),
+      tuplets
+    }
+    const nextMeasure = {
+      ...measure,
+      voices: measure.voices.map((candidate) =>
+        candidate.id === voice.id ? nextVoice : candidate
+      )
+    }
+    const rhythm = validateMeasureRhythm(nextMeasure)
+    const tupletErrors = validateVoiceTuplets(nextVoice)
+
+    if (!rhythm.isExact) {
+      throw new Error(
+        `Tuplet transaction must preserve an exact measure: ${rhythm.status}`
+      )
+    }
+
+    if (tupletErrors.length > 0) {
+      throw new Error(`Tuplet transaction is invalid: ${tupletErrors.join(', ')}`)
+    }
+
+    return {
+      voice: nextVoice,
+      undo: {
+        type: 'voice-content.replace',
+        target,
+        events: voice.events,
+        tuplets: voice.tuplets,
         editedEventId
       }
     }

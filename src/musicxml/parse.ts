@@ -14,11 +14,13 @@ import {
   durationToTicks,
   validateTieRelations,
   validateMeasureRhythm,
+  validateVoiceTuplets,
   type Clef,
   type Duration,
   type KeySignature,
   type Score,
   type TimeSignature,
+  type TupletGroup,
   type VoiceEvent
 } from '../score-core'
 import {
@@ -155,6 +157,11 @@ export function parseMusicXml(xml: string): Score {
               id: `${measureId}-full-measure-rest`
             })
           ]
+    const tuplets = readTupletGroups(
+      noteNodes,
+      normalizedEvents,
+      measureId
+    )
 
     const measure = createMeasure({
       id: measureId,
@@ -173,15 +180,23 @@ export function parseMusicXml(xml: string): Score {
       voices: [
         createVoice({
           id: 'voice-1',
-          events: normalizedEvents
+          events: normalizedEvents,
+          tuplets
         })
       ]
     })
     const rhythm = validateMeasureRhythm(measure)
+    const tupletErrors = validateVoiceTuplets(measure.voices[0])
 
     if (!rhythm.isExact) {
       throw new Error(
         `MusicXML measure ${measureNumber}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
+      )
+    }
+
+    if (tupletErrors.length > 0) {
+      throw new Error(
+        `MusicXML measure ${measureNumber}의 tuplet 관계가 올바르지 않습니다: ${tupletErrors.join(', ')}`
       )
     }
 
@@ -310,10 +325,94 @@ function readDuration(node: XmlNode): Duration {
     throw new Error(`지원하지 않는 note type입니다: ${type}`)
   }
 
+  const timeModification = readOptionalNode(node, 'time-modification')
+
   return {
     value: type,
-    dots: toArray(node.dot as XmlNode | XmlNode[] | undefined).length
+    dots: toArray(node.dot as XmlNode | XmlNode[] | undefined).length,
+    ...(timeModification
+      ? {
+          tuplet: {
+            actualNotes: readInteger(timeModification, 'actual-notes'),
+            normalNotes: readInteger(timeModification, 'normal-notes')
+          }
+        }
+      : {})
   }
+}
+
+function readTupletGroups(
+  noteNodes: XmlNode[],
+  events: VoiceEvent[],
+  measureId: string
+): TupletGroup[] {
+  const groups: TupletGroup[] = []
+  let active:
+    | {
+        id: string
+        eventIds: string[]
+        actualNotes: number
+        normalNotes: number
+      }
+    | undefined
+
+  noteNodes.forEach((node, index) => {
+    const event = events[index]
+    const types = readTupletNotationTypes(node)
+    const ratio = event?.duration.tuplet
+
+    if (types.has('start')) {
+      if (active || !ratio) {
+        throw new Error('MusicXML의 중첩 또는 비율 없는 tuplet은 지원하지 않습니다.')
+      }
+
+      active = {
+        id: `${measureId}-tuplet-${groups.length + 1}`,
+        eventIds: [],
+        actualNotes: ratio.actualNotes,
+        normalNotes: ratio.normalNotes
+      }
+    }
+
+    if (ratio) {
+      if (
+        !active ||
+        active.actualNotes !== ratio.actualNotes ||
+        active.normalNotes !== ratio.normalNotes
+      ) {
+        throw new Error('MusicXML tuplet 그룹의 비율 또는 범위가 올바르지 않습니다.')
+      }
+
+      active.eventIds.push(event.id)
+    } else if (active) {
+      throw new Error('MusicXML tuplet 그룹에 time-modification이 없습니다.')
+    }
+
+    if (types.has('stop')) {
+      if (!active || active.eventIds.length !== active.actualNotes) {
+        throw new Error('MusicXML tuplet 그룹이 완전하지 않습니다.')
+      }
+
+      groups.push(active)
+      active = undefined
+    }
+  })
+
+  if (active) {
+    throw new Error('MusicXML tuplet 그룹의 종료 표식이 없습니다.')
+  }
+
+  return groups
+}
+
+function readTupletNotationTypes(node: XmlNode): Set<string | undefined> {
+  const notations = readOptionalNode(node, 'notations')
+
+  return new Set(
+    toArray(notations?.tuplet as XmlNode | XmlNode[] | undefined).map(
+      (tuplet) => readOptionalString(tuplet, '@_type')
+    )
+  )
 }
 
 function readMeasureState(

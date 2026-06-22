@@ -60,7 +60,9 @@ import {
   type PitchMovement
 } from './editor/pitch-editing'
 import {
+  beginTupletInput,
   buildSequentialInput,
+  cancelTupletInput,
   createNoteInputState,
   type NoteInputState
 } from './editor/note-input-state'
@@ -165,6 +167,9 @@ const App = () => {
   const canRemoveDot = noteInputState
     ? activeDots > 0
     : Boolean(removeDotCommand)
+  const isTupletInput = Boolean(noteInputState?.tupletInput)
+  const tupletMemberCount =
+    noteInputState?.tupletInput?.members.length ?? 0
   const tieEnabled =
     eventLocation?.event.type === 'note' &&
     Boolean(eventLocation.event.ties?.start)
@@ -244,6 +249,10 @@ const App = () => {
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
+      if (noteInputState?.tupletInput) {
+        return
+      }
+
       setDurationValue(value)
 
       if (noteInputState) {
@@ -268,6 +277,10 @@ const App = () => {
   const changeDots = useCallback(
     (direction: -1 | 1) => {
       if (noteInputState) {
+        if (noteInputState.tupletInput) {
+          return
+        }
+
         const dots = noteInputState.duration.dots + direction
 
         if (dots < 0 || dots > MAX_AUGMENTATION_DOTS) {
@@ -317,6 +330,36 @@ const App = () => {
     executeCommand(tieCommand)
   }, [executeCommand, tieCommand])
 
+  const toggleTuplet = useCallback(() => {
+    if (noteInputState?.tupletInput) {
+      setNoteInputState(cancelTupletInput(noteInputState))
+      return
+    }
+
+    const inputState =
+      noteInputState ??
+      createInputState(
+        score,
+        selection,
+        createDuration(durationValue),
+        mode === 'rest' ? 'rest' : 'note'
+      )
+
+    if (!inputState) {
+      return
+    }
+
+    const tupletState = beginTupletInput(
+      inputState,
+      `tuplet-${crypto.randomUUID()}`
+    )
+
+    if (tupletState) {
+      setMode(tupletState.mode)
+      setNoteInputState(tupletState)
+    }
+  }, [durationValue, mode, noteInputState, score, selection])
+
   const enterNote = useCallback(
     (step: PitchStep) => {
       const inputState =
@@ -337,9 +380,20 @@ const App = () => {
         createInputId
       )
 
-      if (input && executeCommand(input.command)) {
-        setMode('note')
+      if (!input) {
+        return
+      }
+
+      setMode('note')
+
+      if (input.pending) {
         setNoteInputState(input.nextState)
+        return
+      }
+
+      if (executeCommand(input.command)) {
+        setNoteInputState(input.nextState)
+
         setSelection({
           type: 'event',
           eventId: input.eventId
@@ -368,9 +422,20 @@ const App = () => {
       createInputId
     )
 
-    if (input && executeCommand(input.command)) {
-      setMode('rest')
+    if (!input) {
+      return
+    }
+
+    setMode('rest')
+
+    if (input.pending) {
       setNoteInputState(input.nextState)
+      return
+    }
+
+    if (executeCommand(input.command)) {
+      setNoteInputState(input.nextState)
+
       setSelection({
         type: 'event',
         eventId: input.eventId
@@ -591,6 +656,11 @@ const App = () => {
           event.preventDefault()
           enterRest()
           break
+        case 't':
+        case 'T':
+          event.preventDefault()
+          toggleTuplet()
+          break
         case 'Delete':
         case 'Backspace':
           event.preventDefault()
@@ -637,6 +707,7 @@ const App = () => {
     playback.play,
     playback.status,
     redo,
+    toggleTuplet,
     undo
   ])
 
@@ -882,6 +953,7 @@ const App = () => {
               <button
                 aria-pressed={durationValue === duration}
                 className={durationValue === duration ? 'is-active' : undefined}
+                disabled={isTupletInput}
                 key={duration}
                 onClick={() => changeDuration(duration)}
                 type="button"
@@ -893,7 +965,7 @@ const App = () => {
             <div className="dot-control" aria-label="Augmentation dots">
               <button
                 aria-label="Remove augmentation dot"
-                disabled={!canRemoveDot}
+                disabled={isTupletInput || !canRemoveDot}
                 onClick={() => changeDots(-1)}
                 title="Remove augmentation dot"
                 type="button"
@@ -905,7 +977,7 @@ const App = () => {
               </output>
               <button
                 aria-label="Add augmentation dot"
-                disabled={!canAddDot}
+                disabled={isTupletInput || !canAddDot}
                 onClick={() => changeDots(1)}
                 title="Add augmentation dot"
                 type="button"
@@ -913,6 +985,18 @@ const App = () => {
                 <CirclePlus aria-hidden="true" size={17} />
               </button>
             </div>
+
+            <button
+              aria-label={isTupletInput ? 'Cancel triplet' : 'Start triplet'}
+              aria-pressed={isTupletInput}
+              className={isTupletInput ? 'is-active' : undefined}
+              disabled={!isTupletInput && activeDots > 0}
+              onClick={toggleTuplet}
+              title={isTupletInput ? 'Cancel triplet' : 'Start triplet'}
+              type="button"
+            >
+              3:2
+            </button>
           </div>
 
         </header>
@@ -971,6 +1055,11 @@ const App = () => {
         <div className="editor-status" aria-live="polite">
           <span>{mode}</span>
           <span>{durationLabels[durationValue]}</span>
+          {noteInputState?.tupletInput ? (
+            <span>
+              Triplet {tupletMemberCount}/{noteInputState.tupletInput.actualNotes}
+            </span>
+          ) : null}
           {noteInputState ? (
             <span>
               M

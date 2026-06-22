@@ -14,6 +14,8 @@
 - 음표와 쉼표
 - whole, half, quarter, eighth, 16th, 32nd, 64th 길이
 - 점음표
+- tie
+- tuplet `time-modification`과 시작·종료 notation
 - `implicit="yes"`인 못갖춘마디
 - 온마디쉼표
 - 음높이 step, octave, alter -2부터 2
@@ -28,7 +30,7 @@
 - 여러 voice, `backup`, `forward`
 - chord
 - grace note
-- tie, slur, tuplet
+- slur
 - beam, articulation, ornament, dynamics
 - lyrics
 - transposition
@@ -45,7 +47,7 @@
 내보내기는 MusicXML 4.0 `score-partwise` 문서를 생성한다. 각 measure에
 divisions, 조표, 박자표, staff 수, clef를 기록해 독립적으로 읽을 수 있게 한다.
 divisions 값은 score-core의 `TICKS_PER_QUARTER`와 같은 13,440이며,
-지원하는 기본 길이와 점음표를 정수 duration으로 표현한다. 가져오기에서는
+지원하는 기본 길이, 점음표와 tuplet 비율을 정수 duration으로 표현한다. 가져오기에서는
 원본 divisions를 공통 tick으로 변환하고 note의 `type`과 `duration`이 서로
 다르면 오류로 보고한다.
 

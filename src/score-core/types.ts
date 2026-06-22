@@ -78,9 +78,17 @@ export interface Rest {
 
 export type VoiceEvent = Note | Rest
 
+export interface TupletGroup {
+  id: string
+  eventIds: VoiceEventId[]
+  actualNotes: number
+  normalNotes: number
+}
+
 export interface Voice {
   id: VoiceId
   events: VoiceEvent[]
+  tuplets?: TupletGroup[]
 }
 
 export interface Measure {
@@ -155,6 +163,13 @@ export type ScoreCommand =
       type: 'voice-events.replace'
       target: VoiceAddress
       events: VoiceEvent[]
+      editedEventId?: VoiceEventId
+    }
+  | {
+      type: 'voice-content.replace'
+      target: VoiceAddress
+      events: VoiceEvent[]
+      tuplets?: TupletGroup[]
       editedEventId?: VoiceEventId
     }
   | {

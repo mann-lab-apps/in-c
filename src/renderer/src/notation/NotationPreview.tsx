@@ -8,6 +8,7 @@ import {
   Stave,
   StaveNote,
   StaveTie,
+  Tuplet as VexTuplet,
   Voice
 } from 'vexflow'
 
@@ -195,6 +196,27 @@ export function NotationPreview({
               })
             )
         )
+        const tuplets = (voice.tuplets ?? []).map((group) => {
+          const groupEvents = group.eventIds.map((eventId) =>
+            events.find((event) => event.id === eventId)
+          )
+          const groupNotes = group.eventIds.map((eventId) => {
+            const note = measureNotesByEventId.get(eventId)
+
+            if (!note) {
+              throw new Error(`Tuplet event not found: ${eventId}`)
+            }
+
+            return note
+          })
+
+          return new VexTuplet(groupNotes, {
+            numNotes: group.actualNotes,
+            notesOccupied: group.normalNotes,
+            bracketed: groupEvents.some((event) => event?.type === 'rest'),
+            ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
+          })
+        })
         const vexVoice = new Voice({
           numBeats: measure.timeSignature.beats,
           beatValue: measure.timeSignature.beatType
@@ -202,7 +224,7 @@ export function NotationPreview({
 
         vexVoice.setMode(Voice.Mode.SOFT)
         vexVoice.addTickables(notes)
-        return { beams, events, notes, vexVoice }
+        return { beams, events, notes, tuplets, vexVoice }
       })
 
       new Formatter()
@@ -212,9 +234,10 @@ export function NotationPreview({
           stave
         )
 
-      voices.forEach(({ beams, events, notes, vexVoice }) => {
+      voices.forEach(({ beams, events, notes, tuplets, vexVoice }) => {
         vexVoice.draw(context, stave)
         beams.forEach((beam) => beam.setContext(context).draw())
+        tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
 
         notes.forEach((note, noteIndex) => {
           const eventId = note.getAttribute('data-event-id') as string
