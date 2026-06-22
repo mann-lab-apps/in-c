@@ -33,7 +33,6 @@ MVP 완료 판단은 기능 개수보다 다음 시나리오의 완결성으로 
 - chord
 - 여러 voice
 - 여러 staff와 여러 part
-- tuplet
 - grace note
 - slur, articulation, dynamics, lyrics
 - repeat, volta, coda

@@ -36,6 +36,7 @@ import {
   type ScoreCommand
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
+import { createSingleVoiceMvpScore } from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
 import {
   buildDeleteCommand,
@@ -114,11 +115,10 @@ interface EditorHistoryEntry {
 }
 
 const App = () => {
-  const [score, setScore] = useState(() => demoScore)
-  const [selection, setSelection] = useState<EditorSelection>({
-    type: 'event',
-    eventId: 'note-e4'
-  })
+  const [score, setScore] = useState(createInitialScore)
+  const [selection, setSelection] = useState<EditorSelection>(() =>
+    createInitialSelection(score)
+  )
   const [mode, setMode] = useState<EditorMode>('select')
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
@@ -1120,6 +1120,34 @@ const App = () => {
 
 function createInputId(kind: 'event' | 'measure'): string {
   return `${kind}-${crypto.randomUUID()}`
+}
+
+function createInitialScore(): Score {
+  return new URLSearchParams(window.location.search).get('fixture') ===
+    'single-voice-mvp'
+    ? createSingleVoiceMvpScore()
+    : demoScore
+}
+
+function createInitialSelection(score: Score): EditorSelection {
+  const preferred = locateEvent(score, 'note-e4')
+  const firstMeasure = score.parts[0]?.staves[0]?.measures[0]
+  const firstEvent = firstMeasure?.voices[0]?.events[0]
+
+  return preferred
+    ? {
+        type: 'event',
+        eventId: preferred.event.id
+      }
+    : firstEvent
+      ? {
+          type: 'event',
+          eventId: firstEvent.id
+        }
+      : {
+          type: 'measure',
+          measureId: firstMeasure?.id ?? 'measure-1'
+        }
 }
 
 function createInputState(

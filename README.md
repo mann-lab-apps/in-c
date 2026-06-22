@@ -36,6 +36,17 @@ Run the desktop app in development:
 npm run dev
 ```
 
+## Verification
+
+```bash
+npm test
+npm run build
+npm run verify:mvp
+```
+
+`verify:mvp`는 공통 8마디 단성부 fixture를 Electron에서 열어 desktop과
+최소 지원 폭의 SVG 이벤트 매핑을 검사한다.
+
 Check TypeScript:
 
 ```bash
