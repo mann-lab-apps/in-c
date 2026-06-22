@@ -5,10 +5,36 @@ import { demoScore } from '../notation/demo-score'
 import { locateEvent } from './editor-state'
 import {
   buildAccidentalCommand,
-  buildPitchMovementCommand
+  buildPitchMovementCommand,
+  buildPitchStepCommand
 } from './pitch-editing'
 
 describe('pitch editing commands', () => {
+  it('changes only the selected note pitch step without entering a new note', () => {
+    const selection = { type: 'event' as const, eventId: 'note-b4' }
+    const command = buildPitchStepCommand(demoScore, selection, 'C')
+    const result = applyScoreCommand(demoScore, command!)
+
+    expect(locateEvent(result.score, 'note-b4')?.event).toMatchObject({
+      type: 'note',
+      id: 'note-b4',
+      position: locateEvent(demoScore, 'note-b4')?.event.position,
+      duration: locateEvent(demoScore, 'note-b4')?.event.duration,
+      pitch: { step: 'C', octave: 5, alter: 0 }
+    })
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
+  })
+
+  it('does not turn a selected rest into a note while editing pitch', () => {
+    expect(
+      buildPitchStepCommand(
+        demoScore,
+        { type: 'event', eventId: 'rest-half' },
+        'C'
+      )
+    ).toBeUndefined()
+  })
+
   it('moves selected notes diatonically across octave boundaries', () => {
     const selection = { type: 'event' as const, eventId: 'note-b4' }
     const command = buildPitchMovementCommand(

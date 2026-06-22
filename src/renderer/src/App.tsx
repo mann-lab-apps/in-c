@@ -58,8 +58,14 @@ import {
 import {
   buildAccidentalCommand,
   buildPitchMovementCommand,
+  buildPitchStepCommand,
   type PitchMovement
 } from './editor/pitch-editing'
+import {
+  isTextEditingTarget,
+  resolvePitchKeyboardAction,
+  resolvePitchShortcut
+} from './editor/keyboard-input'
 import {
   beginTupletInput,
   buildSequentialInput,
@@ -107,6 +113,12 @@ const tools: Array<{
     icon: Pause
   }
 ]
+
+const modeStatus: Record<EditorMode, string> = {
+  select: 'Select · A–G edits selected note',
+  note: 'Note input · A–G enters notes',
+  rest: 'Rest input · R enters rests'
+}
 
 interface EditorHistoryEntry {
   command: ScoreCommand
@@ -322,6 +334,13 @@ const App = () => {
       executeCommand(
         buildPitchMovementCommand(score, selection, movement, direction)
       )
+    },
+    [executeCommand, score, selection]
+  )
+
+  const changePitchStep = useCallback(
+    (step: PitchStep) => {
+      executeCommand(buildPitchStepCommand(score, selection, step))
     },
     [executeCommand, score, selection]
   )
@@ -589,12 +608,10 @@ const App = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null
-
       if (
-        target?.tagName === 'INPUT' ||
-        target?.tagName === 'TEXTAREA' ||
-        target?.isContentEditable
+        isTextEditingTarget(event.target) ||
+        event.isComposing ||
+        event.key === 'Process'
       ) {
         return
       }
@@ -625,11 +642,23 @@ const App = () => {
         return
       }
 
-      const pitch = event.key.toUpperCase()
+      const pitch = resolvePitchShortcut(event)
+      const pitchAction = pitch
+        ? resolvePitchKeyboardAction(
+            mode,
+            eventLocation?.event.type === 'note'
+          )
+        : undefined
 
-      if (/^[A-G]$/.test(pitch)) {
+      if (pitch && pitchAction) {
         event.preventDefault()
-        enterNote(pitch as PitchStep)
+
+        if (pitchAction === 'enter-note') {
+          enterNote(pitch)
+        } else {
+          changePitchStep(pitch)
+        }
+
         return
       }
 
@@ -698,11 +727,14 @@ const App = () => {
   }, [
     changeDuration,
     changeDots,
+    changePitchStep,
     deleteSelection,
     enterNote,
     enterRest,
     movePitch,
     moveSelection,
+    mode,
+    eventLocation,
     playback.pause,
     playback.play,
     playback.status,
@@ -1053,7 +1085,7 @@ const App = () => {
         </div>
 
         <div className="editor-status" aria-live="polite">
-          <span>{mode}</span>
+          <span>{modeStatus[mode]}</span>
           <span>{durationLabels[durationValue]}</span>
           {noteInputState?.tupletInput ? (
             <span>

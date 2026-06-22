@@ -6,6 +6,118 @@ const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
+async function loadFixture(window) {
+  await window.loadFile(
+    path.resolve(__dirname, '../out/renderer/index.html'),
+    {
+      query: {
+        fixture: 'single-voice-mvp'
+      }
+    }
+  )
+  await new Promise((resolve) => setTimeout(resolve, 800))
+}
+
+async function verifyKeyboardRouting(window) {
+  const initialEventCount = await window.webContents.executeJavaScript(`
+    document.querySelectorAll('.notation-event').length
+  `)
+
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyA',
+        key: 'ㅁ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const selectMode = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      eventCount: document.querySelectorAll('.notation-event').length,
+      hasInputCursor: Boolean(
+        document.querySelector('.notation-input-cursor')
+      ),
+      status: document.querySelector('.editor-status span')?.textContent
+    })
+  `)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector('button[aria-label="Note"]')?.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyB',
+        key: 'ㅠ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const noteMode = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      hasInputCursor: Boolean(
+        document.querySelector('.notation-input-cursor')
+      ),
+      status: document.querySelector('.editor-status span')?.textContent
+    })
+  `)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector('input[aria-label="Tempo"]')?.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyC',
+        key: 'ㅊ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+
+  const textInputEditCount = await window.webContents.executeJavaScript(`
+    [...document.querySelectorAll('.editor-status span')]
+      .find((span) => span.textContent?.endsWith(' edits'))
+      ?.textContent
+  `)
+
+  if (
+    selectMode.eventCount !== initialEventCount ||
+    selectMode.hasInputCursor ||
+    selectMode.editCount !== '1 edits' ||
+    !selectMode.status?.startsWith('Select') ||
+    !noteMode.hasInputCursor ||
+    noteMode.editCount !== '2 edits' ||
+    !noteMode.status?.startsWith('Note input') ||
+    textInputEditCount !== noteMode.editCount
+  ) {
+    throw new Error(
+      `Keyboard routing verification failed: ${JSON.stringify({
+        initialEventCount,
+        selectMode,
+        noteMode,
+        textInputEditCount
+      })}`
+    )
+  }
+
+  return {
+    selectMode,
+    noteMode,
+    textInputEditCount
+  }
+}
+
 async function inspect(window, width, output) {
   window.setSize(width, 1000)
   await new Promise((resolve) => setTimeout(resolve, 600))
@@ -82,15 +194,9 @@ app.whenReady().then(async () => {
     }
   })
 
-  await window.loadFile(
-    path.resolve(__dirname, '../out/renderer/index.html'),
-    {
-      query: {
-        fixture: 'single-voice-mvp'
-      }
-    }
-  )
-  await new Promise((resolve) => setTimeout(resolve, 800))
+  await loadFixture(window)
+  const keyboard = await verifyKeyboardRouting(window)
+  await loadFixture(window)
 
   const desktop = await inspect(
     window,
@@ -119,7 +225,7 @@ app.whenReady().then(async () => {
     }
   }
 
-  console.log(JSON.stringify({ desktop, minimum }, null, 2))
+  console.log(JSON.stringify({ keyboard, desktop, minimum }, null, 2))
   window.close()
   app.quit()
 }).catch((error) => {

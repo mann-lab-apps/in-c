@@ -1,17 +1,69 @@
 import {
   buildRhythmEditCommand,
   effectiveAlterAt,
+  nearestPitch,
   resolveNotePitch,
   transposeChromatic,
   transposeDiatonic,
   transposeOctave,
   type Pitch,
+  type PitchStep,
   type Score,
   type ScoreCommand
 } from '../../../score-core'
 import { locateEvent, type EditorSelection } from './editor-state'
 
 export type PitchMovement = 'diatonic' | 'chromatic' | 'octave'
+
+export function buildPitchStepCommand(
+  score: Score,
+  selection: EditorSelection,
+  step: PitchStep
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId)
+
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+
+  if (!voice) {
+    return undefined
+  }
+
+  const pitch = nearestPitch({
+    step,
+    alter: 0,
+    reference: resolveNotePitch(location.measure, voice, location.event)
+  })
+
+  return buildRhythmEditCommand(score, {
+    target: location.address,
+    eventId: location.event.id,
+    createId: createEventId,
+    event: {
+      ...location.event,
+      pitch: {
+        ...pitch,
+        alter: effectiveAlterAt({
+          measure: location.measure,
+          voice,
+          step: pitch.step,
+          octave: pitch.octave,
+          tick: location.event.position.tick,
+          excludeEventId: location.event.id
+        })
+      }
+    }
+  })
+}
 
 export function buildPitchMovementCommand(
   score: Score,
