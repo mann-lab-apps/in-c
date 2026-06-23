@@ -1,0 +1,123 @@
+name: Release
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/release.yml"
+      - "build/**"
+      - "docs/distribution.md"
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/verify-packaged-app.cjs"
+      - "scripts/verify-release-artifacts.cjs"
+      - "scripts/verify-release-tag.cjs"
+      - "src/main/**"
+      - "src/preload/**"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macOS
+            os: macos-14
+            command: npm run package:mac
+          - platform: Windows
+            os: windows-latest
+            command: npm run package:win
+          - platform: Linux
+            os: ubuntu-latest
+            command: npm run package:linux
+
+    runs-on: ${{ matrix.os }}
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - if: github.event_name != 'pull_request'
+        run: npm run verify:release-tag
+      - run: npm test
+      - run: ${{ matrix.command }}
+      - run: npm run verify:artifacts
+
+      - name: Verify packaged app
+        if: runner.os != 'Linux'
+        run: npm run verify:package
+
+      - name: Verify packaged app on Linux
+        if: runner.os == 'Linux'
+        run: xvfb-run --auto-servernum npm run verify:package
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: in-c-${{ runner.os }}
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish GitHub prerelease
+    needs: package
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: in-c-*
+          path: release
+          merge-multiple: true
+
+      - name: Create checksums
+        run: |
+          cd release
+          sha256sum * > SHA256SUMS.txt
+
+      - name: Publish prerelease
+        run: |
+          gh release create "$RELEASE_TAG" release/* \
+            --prerelease \
+            --generate-notes \
+            --title "in-C ${RELEASE_TAG#v}" \
+            --verify-tag

@@ -58,3 +58,17 @@ Build the app bundles:
 ```bash
 npm run build
 ```
+
+## Packaging
+
+Create an unpacked app for the current operating system and run the packaged
+renderer smoke test:
+
+```bash
+npm run package:dir
+npm run verify:package
+```
+
+Native installers and GitHub prereleases are documented in
+[`docs/distribution.md`](docs/distribution.md). Release artifacts are unsigned
+until macOS and Windows signing credentials are configured.
