@@ -8,7 +8,7 @@ import {
   createTimePosition,
   createVoice
 } from '../../../score-core'
-import { createSystemLayout } from './system-layout'
+import { createSystemLayout, pitchStaffLine } from './system-layout'
 
 describe('system layout', () => {
   it('wraps measures instead of shrinking below the minimum width', () => {
@@ -104,6 +104,113 @@ describe('system layout', () => {
       190
     )
   })
+
+  it('adds vertical space for notes far above and below the staff', () => {
+    const measures = createMeasures(8)
+    measures[0].voices[0].events = [
+      createNote({
+        id: 'high-note',
+        position: createTimePosition(0),
+        pitch: { step: 'G', octave: 7 }
+      })
+    ]
+    measures[4].voices[0].events = [
+      createNote({
+        id: 'low-note',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 1 }
+      })
+    ]
+
+    const normalLayout = createSystemLayout(createMeasures(8), 900)
+    const expandedLayout = createSystemLayout(measures, 900)
+
+    expect(expandedLayout.placements[0].y).toBeGreaterThan(
+      normalLayout.placements[0].y
+    )
+    expect(expandedLayout.placements[4].y).toBeGreaterThan(
+      normalLayout.placements[4].y
+    )
+    expect(expandedLayout.height).toBeGreaterThan(normalLayout.height)
+  })
+
+  it('keeps baseline spacing until the reserved margin is reached, then grows linearly', () => {
+    const baseline = createSystemLayout(
+      [measureWithPitch('B', 4)],
+      900
+    )
+    const nearTop = createSystemLayout(
+      [measureWithPitch('C', 5)],
+      900
+    )
+    const octaveHigher = createSystemLayout(
+      [measureWithPitch('C', 6)],
+      900
+    )
+
+    expect(baseline.placements[0].y).toBe(28)
+    expect(nearTop.placements[0].y).toBeGreaterThan(
+      baseline.placements[0].y
+    )
+    expect(
+      octaveHigher.placements[0].y - nearTop.placements[0].y
+    ).toBeCloseTo(35)
+  })
+
+  it('uses only the highest and lowest notes in each system for vertical margins', () => {
+    const highOnly = createSystemLayout(
+      [measureWithPitches([
+        ['C', 4],
+        ['G', 7]
+      ])],
+      900
+    )
+    const highWithIntermediateNotes = createSystemLayout(
+      [measureWithPitches([
+        ['C', 4],
+        ['C', 5],
+        ['C', 6],
+        ['G', 7]
+      ])],
+      900
+    )
+    const bothExtremes = createSystemLayout(
+      [measureWithPitches([
+        ['C', 1],
+        ['C', 4],
+        ['G', 7]
+      ])],
+      900
+    )
+
+    expect(highWithIntermediateNotes.placements[0].y).toBe(
+      highOnly.placements[0].y
+    )
+    expect(highWithIntermediateNotes.height).toBe(highOnly.height)
+    expect(bothExtremes.placements[0].y).toBe(highOnly.placements[0].y)
+    expect(bothExtremes.height).toBeGreaterThan(highOnly.height)
+  })
+
+  it('maps pitches to VexFlow-compatible staff lines for supported clefs', () => {
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'G', line: 2 }
+      )
+    ).toBe(0)
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'F', line: 4 }
+      )
+    ).toBe(6)
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'C', line: 4 }
+      )
+    ).toBe(4)
+  })
 })
 
 function createMeasures(count: number) {
@@ -113,4 +220,44 @@ function createMeasures(count: number) {
       number: index + 1
     })
   )
+}
+
+function measureWithPitch(
+  step: 'C' | 'D' | 'E' | 'F' | 'G' | 'A' | 'B',
+  octave: number
+) {
+  return createMeasure({
+    voices: [
+      createVoice({
+        events: [
+          createNote({
+            id: `${step}-${octave}`,
+            position: createTimePosition(0),
+            pitch: { step, octave }
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function measureWithPitches(
+  pitches: Array<[
+    'C' | 'D' | 'E' | 'F' | 'G' | 'A' | 'B',
+    number
+  ]>
+) {
+  return createMeasure({
+    voices: [
+      createVoice({
+        events: pitches.map(([step, octave], index) =>
+          createNote({
+            id: `${step}-${octave}-${index}`,
+            position: createTimePosition(index * TICKS_PER_QUARTER),
+            pitch: { step, octave }
+          })
+        )
+      })
+    ]
+  })
 }

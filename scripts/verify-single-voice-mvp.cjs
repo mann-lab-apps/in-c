@@ -118,6 +118,95 @@ async function verifyKeyboardRouting(window) {
   }
 }
 
+async function verifyOutOfStaffNotes(window) {
+  const cases = [
+    {
+      buttonLabel: 'Move pitch up an octave',
+      clicks: 3,
+      eventId: 'm2-7',
+      name: 'high'
+    },
+    {
+      buttonLabel: 'Move pitch down an octave',
+      clicks: 4,
+      eventId: 'm2-7',
+      name: 'low'
+    }
+  ]
+  const results = []
+
+  for (const testCase of cases) {
+    await loadFixture(window)
+    await window.webContents.executeJavaScript(`
+      document.querySelector(
+        '.notation-event[data-event-id="${testCase.eventId}"]'
+      )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    `)
+
+    for (let click = 0; click < testCase.clicks; click += 1) {
+      await window.webContents.executeJavaScript(`
+        document.querySelector(
+          'button[aria-label="${testCase.buttonLabel}"]'
+        )?.click()
+      `)
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+
+    const result = await window.webContents.executeJavaScript(`
+      (() => {
+        const svg = document.querySelector('.notation-preview svg')
+        const event = document.querySelector(
+          '.notation-event[data-event-id="${testCase.eventId}"]'
+        )
+        const eventBox = event?.getBBox()
+        const svgWidth = Number(svg?.getAttribute('width'))
+        const svgHeight = Number(svg?.getAttribute('height'))
+
+        return {
+          eventBox: eventBox
+            ? {
+                x: eventBox.x,
+                y: eventBox.y,
+                width: eventBox.width,
+                height: eventBox.height
+              }
+            : undefined,
+          svgHeight,
+          svgWidth
+        }
+      })()
+    `)
+    const image = await window.webContents.capturePage()
+    fs.writeFileSync(
+      path.join(
+        app.getPath('temp'),
+        `in-c-mvp-out-of-staff-${testCase.name}.png`
+      ),
+      image.toPNG()
+    )
+    const box = result.eventBox
+    const isInside =
+      box &&
+      box.x >= 0 &&
+      box.y >= 0 &&
+      box.x + box.width <= result.svgWidth &&
+      box.y + box.height <= result.svgHeight
+
+    if (!isInside) {
+      throw new Error(
+        `Out-of-staff ${testCase.name} note verification failed: ${JSON.stringify(result)}`
+      )
+    }
+
+    results.push({
+      name: testCase.name,
+      ...result
+    })
+  }
+
+  return results
+}
+
 async function inspect(window, width, output) {
   window.setSize(width, 1000)
   await new Promise((resolve) => setTimeout(resolve, 600))
@@ -196,6 +285,7 @@ app.whenReady().then(async () => {
 
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
+  const outOfStaffNotes = await verifyOutOfStaffNotes(window)
   await loadFixture(window)
 
   const desktop = await inspect(
@@ -225,7 +315,13 @@ app.whenReady().then(async () => {
     }
   }
 
-  console.log(JSON.stringify({ keyboard, desktop, minimum }, null, 2))
+  console.log(
+    JSON.stringify(
+      { keyboard, outOfStaffNotes, desktop, minimum },
+      null,
+      2
+    )
+  )
   window.close()
   app.quit()
 }).catch((error) => {
