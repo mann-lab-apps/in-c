@@ -15,11 +15,11 @@ const args = [
   '--smoke-test',
   ...(process.platform === 'linux' && process.env.CI ? ['--no-sandbox'] : [])
 ]
+const environment = { ...process.env }
+delete environment.ELECTRON_RUN_AS_NODE
+
 const child = spawn(executable, args, {
-  env: {
-    ...process.env,
-    ELECTRON_RUN_AS_NODE: ''
-  },
+  env: environment,
   stdio: 'inherit'
 })
 const timeout = setTimeout(() => {
