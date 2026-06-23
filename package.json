@@ -1,7 +1,16 @@
 {
   "name": "in-c",
-  "version": "0.1.0",
+  "productName": "in-C",
+  "desktopName": "in-c.desktop",
+  "version": "0.1.0-alpha.1",
   "description": "Electron-based notation editor inspired by modern scorewriting workflows.",
+  "author": "mann-lab-apps",
+  "homepage": "https://github.com/mann-lab-apps/in-c",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mann-lab-apps/in-c.git"
+  },
+  "license": "UNLICENSED",
   "main": "./out/main/index.js",
   "private": true,
   "scripts": {
@@ -11,7 +20,16 @@
     "test": "vitest run",
     "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean:release": "node -e \"require('fs').rmSync('release',{recursive:true,force:true})\"",
+    "package": "npm run clean:release && npm run build && electron-builder --publish never",
+    "package:dir": "npm run clean:release && npm run build && electron-builder --dir",
+    "package:mac": "npm run clean:release && npm run build && electron-builder --mac dmg zip --universal --publish never",
+    "package:win": "npm run clean:release && npm run build && electron-builder --win nsis portable --x64 --publish never",
+    "package:linux": "npm run clean:release && npm run build && electron-builder --linux AppImage --x64 --publish never",
+    "verify:package": "node scripts/verify-packaged-app.cjs",
+    "verify:artifacts": "node scripts/verify-release-artifacts.cjs",
+    "verify:release-tag": "node scripts/verify-release-tag.cjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.9.2",
@@ -26,9 +44,91 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.1",
     "electron": "^42.4.1",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^4.0.0",
     "typescript": "^5.9.3",
     "vite": "^7.2.7",
     "vitest": "^4.1.9"
+  },
+  "build": {
+    "appId": "com.mannlab.inc",
+    "productName": "in-C",
+    "copyright": "Copyright © 2026 mann-lab-apps",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "category": "public.app-category.music",
+      "icon": "build/icon.icns",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "universal"
+          ]
+        }
+      ]
+    },
+    "dmg": {
+      "sign": false
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "${productName}-${version}-windows-${arch}-setup.${ext}",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    },
+    "portable": {
+      "artifactName": "${productName}-${version}-windows-${arch}-portable.${ext}"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo",
+      "syncDesktopName": true,
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "mann-lab-apps",
+      "repo": "in-c",
+      "releaseType": "prerelease"
+    }
   }
 }

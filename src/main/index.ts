@@ -5,6 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
+const isSmokeTest = process.argv.includes('--smoke-test')
 
 ipcMain.handle(openMusicXmlChannel, async () => {
   const result = await dialog.showOpenDialog({
@@ -78,8 +79,44 @@ const createWindow = (): void => {
     }
   })
 
-  mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
+  if (!isSmokeTest) {
+    mainWindow.once('ready-to-show', () => {
+      mainWindow.show()
+    })
+  }
+
+  mainWindow.webContents.once('did-finish-load', async () => {
+    if (!isSmokeTest) {
+      return
+    }
+
+    try {
+      const result = await mainWindow.webContents.executeJavaScript(`
+        ({
+          appName: window.inC?.appName,
+          hasMusicXmlBridge:
+            typeof window.inC?.musicXml?.open === 'function' &&
+            typeof window.inC?.musicXml?.save === 'function',
+          hasNotation: Boolean(document.querySelector('.notation-preview svg')),
+          hasToolbar: Boolean(document.querySelector('.toolbar'))
+        })
+      `)
+
+      if (
+        result.appName !== 'in-C' ||
+        !result.hasMusicXmlBridge ||
+        !result.hasNotation ||
+        !result.hasToolbar
+      ) {
+        throw new Error(`Packaged renderer check failed: ${JSON.stringify(result)}`)
+      }
+
+      console.log(`PACKAGED_APP_SMOKE_OK ${JSON.stringify(result)}`)
+      app.exit(0)
+    } catch (error) {
+      console.error(error)
+      app.exit(1)
+    }
   })
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

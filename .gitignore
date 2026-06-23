@@ -1,7 +1,11 @@
 node_modules/
 dist/
 out/
-build/
+build/*
+!build/icon.svg
+!build/icon.png
+!build/icon.icns
+release/
 .vite/
 .DS_Store
 
