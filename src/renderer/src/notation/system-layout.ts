@@ -1,7 +1,9 @@
 import {
   TICKS_PER_QUARTER,
   voiceEventDurationTicks,
-  type Measure
+  type Clef,
+  type Measure,
+  type Pitch
 } from '../../../score-core'
 
 export interface MeasurePlacement {
@@ -26,6 +28,20 @@ const MIN_MEASURE_WIDTH = 180
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 28
+const STAFF_LINE_SPACING = 10
+const MAX_LINE_WITHOUT_EXTRA_SPACE = 8
+const MIN_LINE_WITHOUT_EXTRA_SPACE = -6
+const STEM_SPACE_LINES = 4.8
+
+interface SystemVerticalSpace {
+  below: number
+  above: number
+}
+
+interface SystemPitchExtremes {
+  highestLine: number
+  lowestLine: number
+}
 
 export function createSystemLayout(
   measures: Measure[],
@@ -51,15 +67,20 @@ export function createSystemLayout(
     measures.length
   )
   const systemCount = Math.ceil(measures.length / measuresPerSystem)
-  const placements = Array.from({ length: systemCount }, (_, systemIndex) => {
+  const placements: MeasurePlacement[] = []
+  let verticalCursor = SYSTEM_TOP
+
+  for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
     const systemMeasures = measures.slice(
       systemIndex * measuresPerSystem,
       (systemIndex + 1) * measuresPerSystem
     )
     const widths = distributeSystemWidths(systemMeasures, availableWidth)
     let x = HORIZONTAL_PADDING
+    const verticalSpace = systemVerticalSpace(systemMeasures)
+    const y = verticalCursor + verticalSpace.above
 
-    return systemMeasures.map((measure, columnIndex) => {
+    systemMeasures.forEach((measure, columnIndex) => {
       const width = widths[columnIndex]
       const placement = {
         isSystemStart: columnIndex === 0,
@@ -67,22 +88,81 @@ export function createSystemLayout(
         systemIndex,
         width,
         x,
-        y: SYSTEM_TOP + systemIndex * SYSTEM_HEIGHT
+        y
       }
 
       x += width
-      return placement
+      placements.push(placement)
     })
-  }).flat()
+
+    verticalCursor = y + SYSTEM_HEIGHT + verticalSpace.below
+  }
 
   return {
-    height: Math.max(
-      MIN_RENDER_HEIGHT,
-      SYSTEM_TOP + systemCount * SYSTEM_HEIGHT
-    ),
+    height: Math.max(MIN_RENDER_HEIGHT, verticalCursor),
     measuresPerSystem,
     placements,
     systemCount
+  }
+}
+
+function systemVerticalSpace(measures: Measure[]): SystemVerticalSpace {
+  const { highestLine, lowestLine } = systemPitchExtremes(measures)
+
+  return {
+    above: Math.max(
+      0,
+      highestLine + STEM_SPACE_LINES - MAX_LINE_WITHOUT_EXTRA_SPACE
+    ) * STAFF_LINE_SPACING,
+    below: Math.max(
+      0,
+      MIN_LINE_WITHOUT_EXTRA_SPACE - (lowestLine - STEM_SPACE_LINES)
+    ) * STAFF_LINE_SPACING
+  }
+}
+
+function systemPitchExtremes(measures: Measure[]): SystemPitchExtremes {
+  let highestLine = MAX_LINE_WITHOUT_EXTRA_SPACE - STEM_SPACE_LINES
+  let lowestLine = MIN_LINE_WITHOUT_EXTRA_SPACE + STEM_SPACE_LINES
+
+  for (const measure of measures) {
+    for (const voice of measure.voices) {
+      for (const event of voice.events) {
+        if (event.type !== 'note') {
+          continue
+        }
+
+        const line = pitchStaffLine(event.pitch, measure.clef)
+        highestLine = Math.max(highestLine, line)
+        lowestLine = Math.min(lowestLine, line)
+      }
+    }
+  }
+
+  return {
+    highestLine,
+    lowestLine
+  }
+}
+
+export function pitchStaffLine(pitch: Pitch, clef: Clef): number {
+  const stepIndex = ['C', 'D', 'E', 'F', 'G', 'A', 'B'].indexOf(pitch.step)
+  const baseLine = ((pitch.octave - 4) * 7 + stepIndex) / 2
+
+  return baseLine + clefLineShift(clef)
+}
+
+function clefLineShift(clef: Clef): number {
+  switch (clef.sign) {
+    case 'G':
+      return 0
+    case 'F':
+      return 6
+    case 'C':
+      return clef.line >= 4 ? 4 : 3
+    case 'percussion':
+    case 'tab':
+      return 0
   }
 }
 

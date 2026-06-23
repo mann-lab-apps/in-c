@@ -46,9 +46,12 @@ npm run verify:mvp
 - system별 마지막 measure가 사용 가능한 전체 폭을 채운다.
 - tuplet과 tie SVG 그룹이 생성된다.
 - toolbar에 수평 overflow가 없다.
+- 선택 음표를 G7과 G0까지 이동해도 음표 머리, 기둥과 덧줄의 SVG 경계가
+  잘리지 않는다.
 
 캡처는 운영체제의 임시 디렉터리에 `in-c-mvp-desktop.png`와
-`in-c-mvp-minimum.png`로 저장한다.
+`in-c-mvp-minimum.png`, `in-c-mvp-out-of-staff-high.png`,
+`in-c-mvp-out-of-staff-low.png`로 저장한다.
 
 ## CI 경계
 
