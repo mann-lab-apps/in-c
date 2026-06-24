@@ -29,7 +29,10 @@
     "package:linux": "npm run clean:release && npm run build && electron-builder --linux AppImage --x64 --publish never",
     "verify:package": "node scripts/verify-packaged-app.cjs",
     "verify:artifacts": "node scripts/verify-release-artifacts.cjs",
-    "verify:release-tag": "node scripts/verify-release-tag.cjs"
+    "verify:release-tag": "node scripts/verify-release-tag.cjs",
+    "site:dev": "vite site --host 127.0.0.1",
+    "site:build": "vite build site --outDir ../out/site --emptyOutDir --base ./",
+    "site:preview": "vite preview site --host 127.0.0.1 --outDir ../out/site"
   },
   "dependencies": {
     "fast-xml-parser": "^5.9.2",

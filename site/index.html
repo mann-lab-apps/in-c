@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>in-C | 경량 사보 편집기</title>
+    <meta
+      name="description"
+      content="in-C는 단성부 악보 작성과 MusicXML 흐름을 빠르게 확인하기 위한 Electron 기반 경량 사보 편집기입니다."
+    />
+    <meta property="og:title" content="in-C | 경량 사보 편집기" />
+    <meta
+      property="og:description"
+      content="단성부 음표·쉼표 입력, MusicXML 가져오기·내보내기, 초기 prerelease 다운로드 안내."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/app-preview.svg" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#top" aria-label="in-C home">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in-C</span>
+      </a>
+      <nav aria-label="주요 링크">
+        <a href="#features">기능</a>
+        <a href="#download">다운로드</a>
+        <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero__content">
+          <p class="eyebrow">Electron notation editor</p>
+          <h1 id="hero-title">in-C</h1>
+          <p class="hero__lead">
+            단성부 악보 입력과 MusicXML 교환을 빠르게.
+          </p>
+          <div class="hero__actions">
+            <a class="button button--primary" data-primary-download href="https://github.com/mann-lab-apps/in-c/releases">
+              GitHub Releases 확인
+            </a>
+            <a class="button button--secondary" href="#limits">현재 제한 사항</a>
+          </div>
+          <dl class="release-strip" aria-label="릴리즈 상태">
+            <div>
+              <dt>상태</dt>
+              <dd data-release-state>Prerelease pending</dd>
+            </div>
+            <div>
+              <dt>버전</dt>
+              <dd data-release-version>v0.1.0-alpha.1</dd>
+            </div>
+            <div>
+              <dt>출시일</dt>
+              <dd data-release-date>릴리즈 대기 중</dd>
+            </div>
+          </dl>
+        </div>
+        <figure class="hero__preview">
+          <img
+            src="./assets/app-preview.svg"
+            width="1440"
+            height="900"
+            alt="in-C 앱의 편집 도구와 단성부 악보 미리보기 화면"
+          />
+        </figure>
+      </section>
+
+      <section id="features" class="section" aria-labelledby="features-title">
+        <div class="section__header">
+          <p class="eyebrow">MVP workflow</p>
+          <h2 id="features-title">단성부 악보 작성에 집중한 첫 버전</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <h3>음표·쉼표 입력</h3>
+            <p>선택, 음표, 쉼표 모드를 분리하고 키보드 중심 입력 흐름을 제공합니다.</p>
+          </article>
+          <article>
+            <h3>기본 리듬 표기</h3>
+            <p>점음표, 타이, 셋잇단음표와 자동 빔을 단성부 범위에서 다룹니다.</p>
+          </article>
+          <article>
+            <h3>MusicXML 흐름</h3>
+            <p>간단한 악보를 가져오고 내보내며 다른 사보 도구와 연결할 수 있습니다.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="download" class="section section--download" aria-labelledby="download-title">
+        <div class="section__header">
+          <p class="eyebrow">Download</p>
+          <h2 id="download-title">운영체제별 설치 파일</h2>
+          <p>
+            첫 공개 버전은 미서명 prerelease입니다. 설치 전 파일 이름과 체크섬을 확인해 주세요.
+          </p>
+        </div>
+        <div class="download-grid" data-downloads aria-live="polite">
+          <article class="download-card">
+            <h3>릴리즈 정보 불러오는 중</h3>
+            <p>JavaScript를 사용할 수 없으면 GitHub Releases에서 최신 파일을 확인할 수 있습니다.</p>
+            <a class="button button--secondary" href="https://github.com/mann-lab-apps/in-c/releases">
+              GitHub Releases
+            </a>
+          </article>
+        </div>
+        <p class="download-note">
+          체크섬은 <a data-checksums href="https://github.com/mann-lab-apps/in-c/releases">SHA256SUMS.txt</a>에서 확인합니다.
+        </p>
+      </section>
+
+      <section id="limits" class="section section--split" aria-labelledby="limits-title">
+        <div>
+          <p class="eyebrow">Prerelease scope</p>
+          <h2 id="limits-title">현재 제한 사항</h2>
+        </div>
+        <ul class="limit-list">
+          <li>화음, 코드 심벌, 가사 입력은 MVP 이후 기능입니다.</li>
+          <li>일부 빔 기울기와 높은/낮은 음역 렌더링은 계속 안정화 중입니다.</li>
+          <li>macOS와 Windows 설치 파일은 첫 배포에서 서명되지 않을 수 있습니다.</li>
+          <li>문제가 보이면 GitHub Issues에 재현 순서와 화면 캡처를 남겨 주세요.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 mann-lab-apps. in-C is an early prerelease notation editor.</p>
+      <div>
+        <a href="https://github.com/mann-lab-apps/in-c/issues">이슈 제보</a>
+        <a href="https://github.com/mann-lab-apps/in-c">저장소</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
