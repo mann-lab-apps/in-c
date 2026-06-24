@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">in-C editor preview</title>
+  <desc id="desc">A desktop notation editor with a sidebar, editing toolbar, and a single-staff score preview.</desc>
+  <rect width="1440" height="900" fill="#ece8dd"/>
+  <path d="M0 0h280v900H0z" fill="#f5f1e8"/>
+  <path d="M280 0h1v900h-1z" fill="#d3cdbf"/>
+  <text x="34" y="62" fill="#47616c" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">SCORE</text>
+  <text x="34" y="98" fill="#14171a" font-family="Inter, Arial, sans-serif" font-size="32" font-weight="800">Untitled Score</text>
+  <rect x="28" y="154" width="224" height="44" rx="8" fill="#fff" stroke="#b9b7a7"/>
+  <text x="50" y="182" fill="#283035" font-family="Inter, Arial, sans-serif" font-size="16">Full Score</text>
+  <rect x="28" y="216" width="224" height="44" rx="8" fill="none" stroke="#d8d2c5"/>
+  <text x="50" y="244" fill="#647076" font-family="Inter, Arial, sans-serif" font-size="16">Part View</text>
+  <path d="M280 0h1160v70H280z" fill="#fbfaf6" opacity=".82"/>
+  <path d="M280 70h1160v1H280z" fill="#d3cdbf"/>
+  <rect x="322" y="18" width="74" height="34" rx="7" fill="#fbfaf6" stroke="#c7c0b3"/>
+  <rect x="406" y="18" width="74" height="34" rx="7" fill="#fbfaf6" stroke="#c7c0b3"/>
+  <rect x="510" y="14" width="196" height="42" rx="9" fill="#e5dfd1" stroke="#c7c0b3"/>
+  <rect x="516" y="20" width="86" height="30" rx="7" fill="#fff" stroke="#b9b7a7"/>
+  <text x="536" y="41" fill="#283035" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">Select</text>
+  <text x="624" y="41" fill="#647076" font-family="Inter, Arial, sans-serif" font-size="14">Note</text>
+  <rect x="734" y="18" width="42" height="34" rx="7" fill="#fff" stroke="#c7c0b3"/>
+  <rect x="784" y="18" width="42" height="34" rx="7" fill="#fff" stroke="#c7c0b3"/>
+  <rect x="834" y="18" width="42" height="34" rx="7" fill="#fff" stroke="#c7c0b3"/>
+  <rect x="906" y="18" width="42" height="34" rx="7" fill="#fff" stroke="#c7c0b3"/>
+  <rect x="956" y="18" width="42" height="34" rx="7" fill="#fff" stroke="#c7c0b3"/>
+  <text x="322" y="122" fill="#47616c" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="700">SELECT MODE</text>
+  <text x="322" y="154" fill="#14171a" font-family="Inter, Arial, sans-serif" font-size="38" font-weight="800">Single-voice sketch, ready for MusicXML</text>
+  <rect x="322" y="208" width="1048" height="512" rx="10" fill="#fffdf7" stroke="#d8d2c5"/>
+  <g transform="translate(392 322)" fill="none" stroke="#111" stroke-width="2">
+    <path d="M0 0h880M0 18h880M0 36h880M0 54h880M0 72h880"/>
+    <path d="M0 0v72M180 0v72M356 0v72M532 0v72M708 0v72M880 0v72"/>
+    <path d="M0 246h880M0 264h880M0 282h880M0 300h880M0 318h880"/>
+    <path d="M0 246v72M220 246v72M440 246v72M660 246v72M880 246v72"/>
+  </g>
+  <g fill="#050505" font-family="Georgia, serif">
+    <text x="412" y="402" font-size="112">𝄞</text>
+    <text x="494" y="386" font-size="72" font-weight="700">4</text>
+    <text x="494" y="436" font-size="72" font-weight="700">4</text>
+    <text x="412" y="648" font-size="112">𝄞</text>
+    <text x="494" y="632" font-size="72" font-weight="700">4</text>
+    <text x="494" y="682" font-size="72" font-weight="700">4</text>
+  </g>
+  <g fill="#050505" stroke="#050505" stroke-width="4">
+    <ellipse cx="594" cy="428" rx="13" ry="9" transform="rotate(-20 594 428)"/>
+    <path d="M607 425v-82"/>
+    <ellipse cx="653" cy="410" rx="13" ry="9" transform="rotate(-20 653 410)"/>
+    <path d="M666 407v-82"/>
+    <ellipse cx="712" cy="392" rx="13" ry="9" transform="rotate(-20 712 392)"/>
+    <path d="M725 389v-82"/>
+    <path d="M607 343l118-18v18L607 361z"/>
+    <ellipse cx="812" cy="392" rx="13" ry="9" transform="rotate(-20 812 392)"/>
+    <path d="M825 389v-74"/>
+    <text x="768" y="425" font-family="Georgia, serif" font-size="50">♯</text>
+    <ellipse cx="887" cy="410" rx="13" ry="9" transform="rotate(-20 887 410)"/>
+    <path d="M900 407v-82"/>
+    <ellipse cx="960" cy="428" rx="13" ry="9" transform="rotate(-20 960 428)"/>
+    <path d="M973 425v-82"/>
+    <path d="M900 325l73 18v18l-73-18z"/>
+    <ellipse cx="1046" cy="428" rx="13" ry="9" transform="rotate(-20 1046 428)"/>
+    <path d="M1059 425v-82"/>
+    <ellipse cx="1122" cy="410" rx="13" ry="9" transform="rotate(-20 1122 410)"/>
+    <path d="M1135 407v-82"/>
+    <ellipse cx="1210" cy="392" rx="13" ry="9" transform="rotate(-20 1210 392)"/>
+    <path d="M1223 389v-82"/>
+    <ellipse cx="594" cy="674" rx="13" ry="9" transform="rotate(-20 594 674)"/>
+    <path d="M607 671v-82"/>
+    <ellipse cx="694" cy="656" rx="13" ry="9" transform="rotate(-20 694 656)"/>
+    <path d="M707 653v-82"/>
+    <ellipse cx="794" cy="638" rx="13" ry="9" transform="rotate(-20 794 638)"/>
+    <path d="M807 635v-82"/>
+    <ellipse cx="894" cy="656" rx="13" ry="9" transform="rotate(-20 894 656)"/>
+    <path d="M907 653v-82"/>
+    <ellipse cx="1004" cy="674" rx="13" ry="9" transform="rotate(-20 1004 674)"/>
+    <path d="M1017 671v-82"/>
+  </g>
+  <path d="M1252 328v108" stroke="#b43d2f" stroke-width="4"/>
+  <ellipse cx="1239" cy="439" rx="14" ry="10" fill="#b43d2f" transform="rotate(-20 1239 439)"/>
+  <rect x="1260" y="586" width="38" height="8" rx="3" fill="#050505"/>
+</svg>

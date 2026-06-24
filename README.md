@@ -72,3 +72,16 @@ npm run verify:package
 Native installers and GitHub prereleases are documented in
 [`docs/distribution.md`](docs/distribution.md). Release artifacts are unsigned
 until macOS and Windows signing credentials are configured.
+
+## Website
+
+The public introduction and download page lives in `site/`.
+
+```bash
+npm run site:dev
+npm run site:build
+```
+
+The page reads `site/download-manifest.json` for prerelease download metadata.
+Until the first GitHub Release is published, platform buttons link to the
+repository release list instead of nonexistent installer files.
