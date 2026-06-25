@@ -32,3 +32,31 @@ npm run site:build
 `.github/workflows/site.yml`은 pull request에서 사이트 빌드를 검증하고,
 `main` push 또는 수동 실행에서 GitHub Pages artifact를 배포한다. 저장소
 Settings > Pages에서 배포 source를 GitHub Actions로 설정해야 한다.
+
+## Google Analytics
+
+`site/analytics-config.json`에서 GA4를 켠다.
+
+```json
+{
+  "provider": "ga4",
+  "measurementId": "G-XXXXXXXXXX",
+  "enabled": true
+}
+```
+
+`measurementId`가 비어 있거나 `enabled`가 `false`이면 트래킹은 아무 동작도
+하지 않는다. 페이지 렌더링과 다운로드 링크 이동을 막지 않는다.
+
+수집 이벤트는 다음 범위로 제한한다.
+
+- `download_primary`: 첫 화면 기본 다운로드 버튼
+- `download_platform`: 운영체제별 다운로드 카드 버튼
+- `release_link`: GitHub Releases 링크
+- `checksum_link`: `SHA256SUMS.txt` 링크
+- `github_link`: GitHub 저장소 링크
+- `github_issue_link`: GitHub 이슈 제보 링크
+
+이벤트에는 가능한 경우 `location`, `platform`, `file_name`, `link_url`,
+`link_text`를 함께 보낸다. 개인 식별자, 쿠키 외 추가 사용자 속성, 앱 내부
+사용 행동은 이 사이트 트래킹 범위에 포함하지 않는다.

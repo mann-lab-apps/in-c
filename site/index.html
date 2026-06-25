@@ -27,7 +27,13 @@
       <nav aria-label="주요 링크">
         <a href="#features">기능</a>
         <a href="#download">다운로드</a>
-        <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
+        <a
+          data-track-event="github_link"
+          data-track-location="header"
+          href="https://github.com/mann-lab-apps/in-c"
+        >
+          GitHub
+        </a>
       </nav>
     </header>
 
@@ -40,7 +46,13 @@
             단성부 악보 입력과 MusicXML 교환을 빠르게.
           </p>
           <div class="hero__actions">
-            <a class="button button--primary" data-primary-download href="https://github.com/mann-lab-apps/in-c/releases">
+            <a
+              class="button button--primary"
+              data-primary-download
+              data-track-event="release_link"
+              data-track-location="hero"
+              href="https://github.com/mann-lab-apps/in-c/releases"
+            >
               GitHub Releases 확인
             </a>
             <a class="button button--secondary" href="#limits">현재 제한 사항</a>
@@ -103,13 +115,26 @@
           <article class="download-card">
             <h3>릴리즈 정보 불러오는 중</h3>
             <p>JavaScript를 사용할 수 없으면 GitHub Releases에서 최신 파일을 확인할 수 있습니다.</p>
-            <a class="button button--secondary" href="https://github.com/mann-lab-apps/in-c/releases">
+            <a
+              class="button button--secondary"
+              data-track-event="release_link"
+              data-track-location="download_fallback"
+              href="https://github.com/mann-lab-apps/in-c/releases"
+            >
               GitHub Releases
             </a>
           </article>
         </div>
         <p class="download-note">
-          체크섬은 <a data-checksums href="https://github.com/mann-lab-apps/in-c/releases">SHA256SUMS.txt</a>에서 확인합니다.
+          체크섬은
+          <a
+            data-checksums
+            data-track-event="checksum_link"
+            data-track-location="download"
+            href="https://github.com/mann-lab-apps/in-c/releases"
+          >
+            SHA256SUMS.txt
+          </a>에서 확인합니다.
         </p>
       </section>
 
@@ -130,8 +155,20 @@
     <footer class="site-footer">
       <p>© 2026 mann-lab-apps. in-C is an early prerelease notation editor.</p>
       <div>
-        <a href="https://github.com/mann-lab-apps/in-c/issues">이슈 제보</a>
-        <a href="https://github.com/mann-lab-apps/in-c">저장소</a>
+        <a
+          data-track-event="github_issue_link"
+          data-track-location="footer"
+          href="https://github.com/mann-lab-apps/in-c/issues"
+        >
+          이슈 제보
+        </a>
+        <a
+          data-track-event="github_link"
+          data-track-location="footer"
+          href="https://github.com/mann-lab-apps/in-c"
+        >
+          저장소
+        </a>
       </div>
     </footer>
 
