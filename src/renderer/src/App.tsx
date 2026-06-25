@@ -8,6 +8,7 @@ import {
   CircleMinus,
   CirclePlus,
   Clock3,
+  Eraser,
   FileDown,
   FileUp,
   Link2,
@@ -20,7 +21,6 @@ import {
   RotateCcw,
   RotateCw,
   Square,
-  Trash2,
   Unlink2
 } from 'lucide-react'
 
@@ -483,15 +483,45 @@ const App = () => {
     [durationValue, score, selection]
   )
 
-  const deleteSelection = useCallback(() => {
-    if (selection.type !== 'event') {
+  const clearSelection = useCallback(() => {
+    if (selection.type !== 'event' || !eventLocation) {
       return
     }
 
     const command = buildDeleteCommand(score, selection)
 
-    executeCommand(command)
-  }, [executeCommand, score, selection])
+    if (!command) {
+      setFileStatus({
+        tone: 'error',
+        message:
+          eventLocation.event.type === 'rest'
+            ? 'Selected rest is already empty. Adjacent rests can be merged.'
+            : 'Tied notes must be untied before clearing.'
+      })
+      return
+    }
+
+    const result = applyScoreCommand(score, command)
+    setScore(result.score)
+    setUndoStack((entries) => [
+      ...entries,
+      {
+        command: result.undo,
+        inputState: noteInputState,
+        selection
+      }
+    ])
+    setRedoStack([])
+    setNoteInputState(undefined)
+    setSelection(resolveSelectionAfterClear(score, result.score, selection.eventId))
+    setFileStatus({
+      tone: 'neutral',
+      message:
+        eventLocation.event.type === 'rest'
+          ? 'Adjacent rests merged'
+          : 'Note cleared to rest'
+    })
+  }, [eventLocation, noteInputState, score, selection])
 
   const addMeasure = useCallback(() => {
     if (!activeMeasureId) {
@@ -693,7 +723,7 @@ const App = () => {
         case 'Delete':
         case 'Backspace':
           event.preventDefault()
-          deleteSelection()
+          clearSelection()
           break
         case 'ArrowLeft':
           event.preventDefault()
@@ -728,7 +758,7 @@ const App = () => {
     changeDuration,
     changeDots,
     changePitchStep,
-    deleteSelection,
+    clearSelection,
     enterNote,
     enterRest,
     movePitch,
@@ -749,6 +779,13 @@ const App = () => {
     selection.type === 'measure' ? selection.measureId : undefined
   const canEditPitch = eventLocation?.event.type === 'note'
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
+  const clearSelectionLabel =
+    eventLocation?.event.type === 'rest'
+      ? 'Merge adjacent rests'
+      : 'Clear note to rest'
+  const canClearSelection =
+    selection.type === 'event' &&
+    Boolean(buildDeleteCommand(score, selection))
 
   return (
     <main className="app-shell">
@@ -862,14 +899,14 @@ const App = () => {
             </button>
 
             <button
-              aria-label="Delete selection"
+              aria-label={clearSelectionLabel}
               className="icon-button"
-              disabled={selection.type !== 'event'}
-              onClick={deleteSelection}
-              title="Delete selection"
+              disabled={!canClearSelection}
+              onClick={clearSelection}
+              title={clearSelectionLabel}
               type="button"
             >
-              <Trash2 aria-hidden="true" size={18} />
+              <Eraser aria-hidden="true" size={18} />
             </button>
 
             <button
@@ -1148,6 +1185,44 @@ const App = () => {
       </section>
     </main>
   )
+}
+
+function resolveSelectionAfterClear(
+  previousScore: Score,
+  nextScore: Score,
+  eventId: string
+): EditorSelection {
+  const nextEventId = getAdjacentEventId(previousScore, eventId, 1)
+
+  if (nextEventId && locateEvent(nextScore, nextEventId)) {
+    return {
+      type: 'event',
+      eventId: nextEventId
+    }
+  }
+
+  const previousEventId = getAdjacentEventId(previousScore, eventId, -1)
+
+  if (previousEventId && locateEvent(nextScore, previousEventId)) {
+    return {
+      type: 'event',
+      eventId: previousEventId
+    }
+  }
+
+  if (locateEvent(nextScore, eventId)) {
+    return {
+      type: 'event',
+      eventId
+    }
+  }
+
+  const previousLocation = locateEvent(previousScore, eventId)
+
+  return {
+    type: 'measure',
+    measureId: previousLocation?.address.measureId ?? 'measure-1'
+  }
 }
 
 function createInputId(kind: 'event' | 'measure'): string {

@@ -67,7 +67,7 @@ describe('monophonic rhythm editing', () => {
     )
   })
 
-  it('deletes a note by replacing it with an equal-duration rest', () => {
+  it('clears a note and merges the released slot with adjacent rests', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'half', 1)
@@ -75,16 +75,68 @@ describe('monophonic rhythm editing', () => {
     const command = buildRhythmDeleteCommand(score, target, 'note-1')
     const result = applyScoreCommand(score, command!)
 
-    expect(readEvents(result.score)[0]).toMatchObject({
-      id: 'note-1',
-      type: 'rest',
-      position: { tick: 0 },
-      duration: { value: 'quarter' }
-    })
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'note-1',
+        type: 'rest',
+        position: { tick: 0 },
+        fullMeasure: true
+      }
+    ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
 
     const undone = applyScoreCommand(result.score, result.undo)
     expect(undone.score).toEqual(score)
+  })
+
+  it('merges a selected rest with adjacent rests', () => {
+    const score = scoreWith([
+      rest('rest-1', 0, 'quarter'),
+      rest('rest-2', quarter, 'quarter'),
+      note('note-1', quarter * 2, 'half')
+    ])
+    const command = buildRhythmDeleteCommand(score, target, 'rest-2')
+    const result = applyScoreCommand(score, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'rest-2',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'half' }
+      },
+      {
+        id: 'note-1',
+        position: { tick: quarter * 2 }
+      }
+    ])
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('does not delete an isolated rest or a tied note', () => {
+    const isolatedRest = scoreWith([
+      rest('rest-1', 0, 'quarter'),
+      note('note-1', quarter, 'half', 1)
+    ])
+    const tiedNote = scoreWith([
+      {
+        ...note('note-1', 0, 'quarter'),
+        ties: { start: true }
+      },
+      {
+        ...note('note-2', quarter, 'quarter'),
+        ties: { stop: true }
+      },
+      rest('rest-1', quarter * 2, 'half')
+    ])
+
+    expect(
+      buildRhythmDeleteCommand(isolatedRest, target, 'rest-1')
+    ).toBeUndefined()
+    expect(
+      buildRhythmDeleteCommand(tiedNote, target, 'note-1')
+    ).toBeUndefined()
   })
 
   it('shrinks an event and fills the released time with rests', () => {

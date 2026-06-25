@@ -168,15 +168,92 @@ export function buildRhythmDeleteCommand(
     (candidate) => candidate.id === eventId
   )
 
-  if (!location || !event || event.type === 'rest') {
+  if (!location || !event || !validateMeasureRhythm(location.measure).isExact) {
     return undefined
   }
 
-  const durationTicks = voiceEventDurationTicks(event, location.measure)
+  if (event.type === 'note' && (event.ties?.start || event.ties?.stop)) {
+    return undefined
+  }
+
+  const events = sortVoiceEvents(location.voice.events)
+  const eventIndex = events.findIndex((candidate) => candidate.id === eventId)
+
+  if (eventIndex === -1) {
+    return undefined
+  }
+
+  const nextEvents = events.map((candidate) =>
+    candidate.id === event.id && candidate.type === 'note'
+      ? createEquivalentRest(candidate, location.measure)
+      : candidate
+  )
+  const restRun = findRestRun(nextEvents, location.measure, event.id)
+
+  if (!restRun || (event.type === 'rest' && restRun.startIndex === restRun.endIndex)) {
+    return undefined
+  }
+
+  const runStartTick = nextEvents[restRun.startIndex].position.tick
+  const runEndTick = eventEndTick(
+    nextEvents[restRun.endIndex],
+    location.measure
+  )
+  const mergedRests = createRestsForSpan({
+    measure: location.measure,
+    startTick: runStartTick,
+    endTick: runEndTick,
+    firstId: event.id,
+    createId: () => {
+      throw new Error('Deleting an event does not create additional rests.')
+    }
+  })
+
+  if (mergedRests.length === 0) {
+    return undefined
+  }
+
+  const mergedEvents = sortVoiceEvents([
+    ...nextEvents.slice(0, restRun.startIndex),
+    ...mergedRests,
+    ...nextEvents.slice(restRun.endIndex + 1)
+  ])
+  const nextMeasure = {
+    ...location.measure,
+    voices: location.measure.voices.map((voice) =>
+      voice.id === location.voice.id
+        ? {
+            ...voice,
+            events: mergedEvents
+          }
+        : voice
+    )
+  }
+
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets({
+      ...location.voice,
+      events: mergedEvents
+    }).length > 0
+  ) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target,
+    events: mergedEvents,
+    editedEventId: event.id
+  }
+}
+
+function createEquivalentRest(event: VoiceEvent, measure: Measure): VoiceEvent {
+  const durationTicks = voiceEventDurationTicks(event, measure)
   const isFullMeasure =
-    event.position.tick === 0 &&
-    durationTicks === measureDurationTicks(location.measure)
-  const rest = isFullMeasure
+    event.position.tick === 0 && durationTicks === measureDurationTicks(measure)
+
+  return isFullMeasure
     ? createFullMeasureRest({
         id: event.id,
         position: event.position
@@ -186,15 +263,48 @@ export function buildRhythmDeleteCommand(
         position: event.position,
         duration: event.duration
       })
+}
 
-  return buildRhythmEditCommand(score, {
-    target,
-    eventId,
-    event: rest,
-    createId: () => {
-      throw new Error('Deleting an event does not create additional rests.')
-    }
-  })
+function findRestRun(
+  events: VoiceEvent[],
+  measure: Measure,
+  eventId: string
+): { startIndex: number; endIndex: number } | undefined {
+  const eventIndex = events.findIndex((event) => event.id === eventId)
+
+  if (eventIndex === -1 || events[eventIndex].type !== 'rest') {
+    return undefined
+  }
+
+  let startIndex = eventIndex
+  let endIndex = eventIndex
+
+  while (
+    startIndex > 0 &&
+    events[startIndex - 1].type === 'rest' &&
+    eventEndTick(events[startIndex - 1], measure) ===
+      events[startIndex].position.tick
+  ) {
+    startIndex -= 1
+  }
+
+  while (
+    endIndex < events.length - 1 &&
+    events[endIndex + 1].type === 'rest' &&
+    eventEndTick(events[endIndex], measure) ===
+      events[endIndex + 1].position.tick
+  ) {
+    endIndex += 1
+  }
+
+  return {
+    startIndex,
+    endIndex
+  }
+}
+
+function eventEndTick(event: VoiceEvent, measure: Measure): Tick {
+  return event.position.tick + voiceEventDurationTicks(event, measure)
 }
 
 function consumeFollowingRests(input: {
