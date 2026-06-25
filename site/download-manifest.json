@@ -1,11 +1,11 @@
 {
   "version": "0.1.0-alpha.1",
   "releaseTag": "v0.1.0-alpha.1",
-  "releaseDate": null,
-  "releasePublished": false,
+  "releaseDate": "2026-06-25",
+  "releasePublished": true,
   "repositoryUrl": "https://github.com/mann-lab-apps/in-c",
-  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases",
-  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases",
+  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.1",
+  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.1/SHA256SUMS.txt",
   "signing": {
     "macOS": "미서명 prerelease. Gatekeeper 경고가 표시될 수 있습니다.",
     "Windows": "미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.",
@@ -18,10 +18,10 @@
       "label": "macOS",
       "architecture": "Universal",
       "format": "DMG",
-      "available": false,
+      "available": true,
       "fileName": "in-C-0.1.0-alpha.1-mac-universal.dmg",
-      "size": null,
-      "url": null
+      "size": "224.8 MB",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.1/in-C-0.1.0-alpha.1-mac-universal.dmg"
     },
     {
       "id": "windows",
@@ -29,21 +29,21 @@
       "label": "Windows",
       "architecture": "x64",
       "format": "NSIS installer",
-      "available": false,
+      "available": true,
       "fileName": "in-C-0.1.0-alpha.1-windows-x64-setup.exe",
-      "size": null,
-      "url": null
+      "size": "110.9 MB",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.1/in-C-0.1.0-alpha.1-windows-x64-setup.exe"
     },
     {
       "id": "linux",
       "platform": "Linux",
       "label": "Linux",
-      "architecture": "x64",
+      "architecture": "x86_64",
       "format": "AppImage",
-      "available": false,
-      "fileName": "in-C-0.1.0-alpha.1-linux-x64.AppImage",
-      "size": null,
-      "url": null
+      "available": true,
+      "fileName": "in-C-0.1.0-alpha.1-linux-x86_64.AppImage",
+      "size": "138.1 MB",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.1/in-C-0.1.0-alpha.1-linux-x86_64.AppImage"
     }
   ]
 }
