@@ -96,8 +96,8 @@ const renderDownloads = (manifest) => {
 
   if (releaseState) {
     releaseState.textContent = manifest.releasePublished
-      ? 'Prerelease available'
-      : 'Prerelease pending'
+      ? '다운로드 가능'
+      : '릴리즈 대기 중'
   }
 
   if (releaseVersion) {
