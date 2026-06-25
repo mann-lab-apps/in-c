@@ -144,12 +144,13 @@ h3 {
 }
 
 .hero__lead {
-  max-width: 560px;
+  max-width: min(560px, 100%);
   margin-bottom: 28px;
   color: #3d474b;
   font-size: clamp(1.18rem, 2.1vw, 1.55rem);
   line-height: 1.45;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
 }
 
 .hero__actions {
@@ -409,5 +410,9 @@ dd {
 
   h1 {
     font-size: 4rem;
+  }
+
+  .hero__lead {
+    font-size: 1.12rem;
   }
 }

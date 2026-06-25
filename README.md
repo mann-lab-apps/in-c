@@ -1,6 +1,8 @@
-# in-C
+# in C
 
-Electron-based notation editor inspired by modern scorewriting workflows.
+쉽고 유연한 악보 편집기.
+
+첫 버전은 단성부 악보 작성과 MusicXML 가져오기·내보내기에 집중합니다.
 
 ## Repository Layout
 
