@@ -13,8 +13,6 @@ import {
   FileUp,
   Link2,
   Minus,
-  MousePointer2,
-  Music2,
   Pause,
   Play,
   Plus,
@@ -28,6 +26,7 @@ import {
   applyScoreCommand,
   buildTieCommand,
   MAX_AUGMENTATION_DOTS,
+  voiceEventDurationTicks,
   type Duration,
   type DurationValue,
   type Pitch,
@@ -92,28 +91,6 @@ const durationKeys: Partial<Record<string, DurationValue>> = {
   '8': 'eighth',
   '6': '16th'
 }
-
-const tools: Array<{
-  mode: EditorMode
-  label: string
-  icon: typeof MousePointer2
-}> = [
-  {
-    mode: 'select',
-    label: 'Select',
-    icon: MousePointer2
-  },
-  {
-    mode: 'note',
-    label: 'Note',
-    icon: Music2
-  },
-  {
-    mode: 'rest',
-    label: 'Rest',
-    icon: Pause
-  }
-]
 
 const modeStatus: Record<EditorMode, string> = {
   select: 'Select · A–G edits selected note or rest',
@@ -380,7 +357,6 @@ const App = () => {
     )
 
     if (tupletState) {
-      setMode(tupletState.mode)
       setNoteInputState(tupletState)
     }
   }, [durationValue, mode, noteInputState, score, selection])
@@ -408,8 +384,6 @@ const App = () => {
       if (!input) {
         return
       }
-
-      setMode('note')
 
       if (input.pending) {
         setNoteInputState(input.nextState)
@@ -458,8 +432,6 @@ const App = () => {
       })
       return
     }
-
-    setMode('rest')
 
     if (input.pending) {
       setNoteInputState(input.nextState)
@@ -511,27 +483,6 @@ const App = () => {
       })
     }
   }, [eventLocation, executeCommand, score, selection])
-
-  const activateTool = useCallback(
-    (toolMode: EditorMode) => {
-      setMode(toolMode)
-
-      if (toolMode === 'select') {
-        setNoteInputState(undefined)
-        return
-      }
-
-      setNoteInputState(
-        createInputState(
-          score,
-          selection,
-          createDuration(durationValue),
-          toolMode
-        )
-      )
-    },
-    [durationValue, score, selection]
-  )
 
   const clearSelection = useCallback(() => {
     if (selection.type !== 'event' || !eventLocation) {
@@ -606,6 +557,21 @@ const App = () => {
 
   const moveSelection = useCallback(
     (direction: -1 | 1) => {
+      if (noteInputState) {
+        const eventId = getEventIdBeforeInputCursor(score, noteInputState)
+
+        if (direction === -1 && eventId) {
+          setMode('select')
+          setNoteInputState(undefined)
+          setSelection({
+            type: 'event',
+            eventId
+          })
+        }
+
+        return
+      }
+
       if (selection.type !== 'event') {
         return
       }
@@ -613,13 +579,29 @@ const App = () => {
       const eventId = getAdjacentEventId(score, selection.eventId, direction)
 
       if (eventId) {
+        setMode('select')
+        setNoteInputState(undefined)
         setSelection({
           type: 'event',
           eventId
         })
+        return
+      }
+
+      if (direction === 1) {
+        const inputState = createInputStateAfterEvent(
+          score,
+          selection.eventId,
+          createDuration(durationValue),
+          'note'
+        )
+
+        if (inputState) {
+          setNoteInputState(inputState)
+        }
       }
     },
-    [score, selection]
+    [durationValue, noteInputState, score, selection]
   )
 
   const importMusicXml = useCallback(async () => {
@@ -724,11 +706,13 @@ const App = () => {
 
       const pitch = resolvePitchShortcut(event)
       const pitchAction = pitch
-        ? resolvePitchKeyboardAction(
+        ? noteInputState
+          ? 'enter-note'
+          : resolvePitchKeyboardAction(
             mode,
             eventLocation?.event.type === 'note' ||
               eventLocation?.event.type === 'rest'
-          )
+            )
         : undefined
 
       if (pitch && pitchAction) {
@@ -764,7 +748,11 @@ const App = () => {
         case 'r':
         case 'R':
           event.preventDefault()
-          convertSelectionToRest()
+          if (noteInputState) {
+            enterRest()
+          } else {
+            convertSelectionToRest()
+          }
           break
         case 't':
         case 'T':
@@ -905,27 +893,6 @@ const App = () => {
                 <FileDown aria-hidden="true" size={17} />
                 <span>Export</span>
               </button>
-            </div>
-
-            <div className="segmented-control" aria-label="Editing tools">
-              {tools.map((tool) => {
-                const Icon = tool.icon
-
-                return (
-                  <button
-                    aria-label={tool.label}
-                    aria-pressed={mode === tool.mode}
-                    className={mode === tool.mode ? 'is-active' : undefined}
-                    key={tool.mode}
-                    onClick={() => activateTool(tool.mode)}
-                    title={tool.label}
-                    type="button"
-                  >
-                    <Icon aria-hidden="true" size={17} strokeWidth={1.8} />
-                    <span>{tool.label}</span>
-                  </button>
-                )
-              })}
             </div>
 
             <button
@@ -1174,7 +1141,11 @@ const App = () => {
         </div>
 
         <div className="editor-status" aria-live="polite">
-          <span>{modeStatus[mode]}</span>
+          <span>
+            {noteInputState
+              ? 'Input cursor · A–G adds notes, R adds rests'
+              : modeStatus[mode]}
+          </span>
           <span>{durationLabels[durationValue]}</span>
           {noteInputState?.tupletInput ? (
             <span>
@@ -1216,18 +1187,22 @@ const App = () => {
                   }
                 : undefined
             }
-            onSelectEvent={(eventId) =>
+            onSelectEvent={(eventId) => {
+              setMode('select')
+              setNoteInputState(undefined)
               setSelection({
                 type: 'event',
                 eventId
               })
-            }
-            onSelectMeasure={(measureId) =>
+            }}
+            onSelectMeasure={(measureId) => {
+              setMode('select')
+              setNoteInputState(undefined)
               setSelection({
                 type: 'measure',
                 measureId
               })
-            }
+            }}
             score={score}
             playbackEventId={playback.activeEventId}
             selectedEventId={selectedEventId}
@@ -1347,6 +1322,40 @@ function createInputState(
         mode
       })
     : undefined
+}
+
+function createInputStateAfterEvent(
+  score: Score,
+  eventId: string,
+  duration: Duration,
+  mode: 'note' | 'rest'
+): NoteInputState | undefined {
+  const location = locateEvent(score, eventId)
+
+  if (!location) {
+    return undefined
+  }
+
+  return createNoteInputState({
+    target: location.address,
+    tick:
+      location.event.position.tick +
+      voiceEventDurationTicks(location.event, location.measure),
+    duration,
+    mode
+  })
+}
+
+function getEventIdBeforeInputCursor(
+  score: Score,
+  inputState: NoteInputState
+): string | undefined {
+  const location = locateMeasure(score, inputState.target.measureId)
+  const previousEvent = location?.events
+    .filter((event) => event.position.tick < inputState.tick)
+    .at(-1)
+
+  return previousEvent?.id
 }
 
 function toFileName(title: string): string {

@@ -130,13 +130,23 @@ export function buildSequentialInput(
   const event = location.voice.events.find(
     (candidate) => candidate.position.tick === state.tick
   )
+  const measureTicks = measureDurationTicks(location.measure)
+
+  if (!event && state.tick === measureTicks) {
+    return buildSequentialInputAfterMeasureEnd(
+      score,
+      state,
+      step,
+      createId,
+      location
+    )
+  }
 
   if (!event || (state.mode === 'note' && !step)) {
     return undefined
   }
 
   const nextTick = state.tick + durationToTicks(state.duration)
-  const measureTicks = measureDurationTicks(location.measure)
 
   if (nextTick > measureTicks) {
     return state.mode === 'note'
@@ -539,6 +549,48 @@ function replaceWorkingVoiceEvents(
   }
 }
 
+function buildSequentialInputAfterMeasureEnd(
+  score: Score,
+  state: NoteInputState,
+  step: PitchStep | undefined,
+  createId: (kind: 'event' | 'measure') => string,
+  location: NonNullable<ReturnType<typeof locateInputVoice>>
+): SequentialInputResult | undefined {
+  const next = ensureNextInputMeasure(score, state.target, location, createId)
+
+  if (!next) {
+    return undefined
+  }
+
+  const workingScore = next.command
+    ? applyScoreCommand(score, next.command).score
+    : score
+  const nextState: NoteInputState = {
+    ...state,
+    target: {
+      ...state.target,
+      measureId: next.measureId,
+      voiceId: next.voiceId
+    },
+    tick: 0
+  }
+  const input = buildSequentialInput(workingScore, nextState, step, createId)
+
+  if (!input) {
+    return undefined
+  }
+
+  return {
+    ...input,
+    command: next.command
+      ? {
+          type: 'score.batch',
+          commands: [next.command, input.command]
+        }
+      : input.command
+  }
+}
+
 function buildTiedSequentialInput(
   score: Score,
   state: NoteInputState,
@@ -717,6 +769,7 @@ function ensureNextInputMeasure(
 ): {
   command?: ScoreCommand
   measureId: string
+  voiceId: string
 } | undefined {
   const nextMeasure = location.staff.measures[location.measureIndex + 1]
 
@@ -727,7 +780,8 @@ function ensureNextInputMeasure(
 
     return nextVoice
       ? {
-          measureId: nextMeasure.id
+          measureId: nextMeasure.id,
+          voiceId: nextVoice.id
         }
       : undefined
   }
@@ -753,6 +807,7 @@ function ensureNextInputMeasure(
 
   return {
     measureId,
+    voiceId: target.voiceId,
     command: {
       type: 'staff-measure.insert',
       target: {

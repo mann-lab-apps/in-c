@@ -48,9 +48,33 @@ async function verifyKeyboardRouting(window) {
   `)
 
   await window.webContents.executeJavaScript(`
-    document.querySelector('button[aria-label="Note"]')?.click()
+    document.querySelector(
+      '.notation-event[data-event-id="m8-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'ArrowRight'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const endCursor = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      hasInputCursor: Boolean(
+        document.querySelector('.notation-input-cursor')
+      ),
+      status: document.querySelector('.editor-status span')?.textContent
+    })
+  `)
+
   await window.webContents.executeJavaScript(`
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -62,16 +86,70 @@ async function verifyKeyboardRouting(window) {
   `)
   await new Promise((resolve) => setTimeout(resolve, 150))
 
-  const noteMode = await window.webContents.executeJavaScript(`
-    ({
-      editCount: [...document.querySelectorAll('.editor-status span')]
-        .find((span) => span.textContent?.endsWith(' edits'))
-        ?.textContent,
-      hasInputCursor: Boolean(
-        document.querySelector('.notation-input-cursor')
-      ),
-      status: document.querySelector('.editor-status span')?.textContent
-    })
+  const cursorNoteInput = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        hasInputCursor: Boolean(
+          document.querySelector('.notation-input-cursor')
+        ),
+        status: document.querySelector('.editor-status span')?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m8-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'ArrowRight'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'r'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const cursorRestInput = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        hasInputCursor: Boolean(
+          document.querySelector('.notation-input-cursor')
+        ),
+        status: document.querySelector('.editor-status span')?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
   `)
 
   await window.webContents.executeJavaScript(`
@@ -225,10 +303,20 @@ async function verifyKeyboardRouting(window) {
     selectMode.hasInputCursor ||
     selectMode.editCount !== '1 edits' ||
     !selectMode.status?.startsWith('Select') ||
-    !noteMode.hasInputCursor ||
-    noteMode.editCount !== '2 edits' ||
-    !noteMode.status?.startsWith('Note input') ||
-    textInputEditCount !== noteMode.editCount ||
+    !endCursor.hasInputCursor ||
+    endCursor.editCount !== '1 edits' ||
+    !endCursor.status?.startsWith('Input cursor') ||
+    !cursorNoteInput.hasInputCursor ||
+    cursorNoteInput.editCount !== '2 edits' ||
+    cursorNoteInput.eventCount !== initialEventCount + 2 ||
+    !cursorNoteInput.status?.startsWith('Input cursor') ||
+    cursorNoteInput.type !== 'note' ||
+    !cursorRestInput.hasInputCursor ||
+    cursorRestInput.editCount !== '1 edits' ||
+    cursorRestInput.eventCount !== initialEventCount + 2 ||
+    !cursorRestInput.status?.startsWith('Input cursor') ||
+    cursorRestInput.type !== 'rest' ||
+    textInputEditCount !== cursorRestInput.editCount ||
     restShortcutConvertsSelection.eventCount !== initialEventCount ||
     restShortcutConvertsSelection.editCount !== '1 edits' ||
     restShortcutConvertsSelection.hasInputCursor ||
@@ -249,7 +337,9 @@ async function verifyKeyboardRouting(window) {
       `Keyboard routing verification failed: ${JSON.stringify({
         initialEventCount,
         selectMode,
-        noteMode,
+        cursorNoteInput,
+        cursorRestInput,
+        endCursor,
         fullRestToNote,
         restShortcutConvertsSelection,
         restToNote,
@@ -260,7 +350,9 @@ async function verifyKeyboardRouting(window) {
 
   return {
     selectMode,
-    noteMode,
+    cursorNoteInput,
+    cursorRestInput,
+    endCursor,
     fullRestToNote,
     restShortcutConvertsSelection,
     restToNote,
