@@ -25,14 +25,24 @@ describe('pitch editing commands', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
   })
 
-  it('does not turn a selected rest into a note while editing pitch', () => {
+  it('turns a selected rest into a same-duration note', () => {
+    const selection = { type: 'event' as const, eventId: 'rest-half' }
+    const command = buildPitchStepCommand(demoScore, selection, 'A')
+    const result = applyScoreCommand(demoScore, command!)
+
     expect(
-      buildPitchStepCommand(
-        demoScore,
-        { type: 'event', eventId: 'rest-half' },
-        'C'
-      )
-    ).toBeUndefined()
+      result.score.parts[0].staves[0].measures[1].voices[0].events
+    ).toHaveLength(
+      demoScore.parts[0].staves[0].measures[1].voices[0].events.length
+    )
+    expect(locateEvent(result.score, 'rest-half')?.event).toMatchObject({
+      type: 'note',
+      id: 'rest-half',
+      position: locateEvent(demoScore, 'rest-half')?.event.position,
+      duration: locateEvent(demoScore, 'rest-half')?.event.duration,
+      pitch: { step: 'A', octave: 4, alter: 0 }
+    })
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
   })
 
   it('moves selected notes diatonically across octave boundaries', () => {

@@ -37,12 +37,13 @@ describe('keyboard input routing', () => {
     ).toBeUndefined()
   })
 
-  it('separates sequential input from selected-note editing by mode', () => {
+  it('separates sequential input from selected slot editing by mode', () => {
     expect(resolvePitchKeyboardAction('note', true)).toBe('enter-note')
     expect(resolvePitchKeyboardAction('note', false)).toBe('enter-note')
     expect(resolvePitchKeyboardAction('select', true)).toBe('edit-selection')
     expect(resolvePitchKeyboardAction('select', false)).toBeUndefined()
-    expect(resolvePitchKeyboardAction('rest', true)).toBeUndefined()
+    expect(resolvePitchKeyboardAction('rest', true)).toBe('edit-selection')
+    expect(resolvePitchKeyboardAction('rest', false)).toBeUndefined()
   })
 
   it('recognizes text editing targets', () => {
