@@ -25,7 +25,10 @@ import {
 import {
   applyScoreCommand,
   buildTieCommand,
+  durationToTicks,
   MAX_AUGMENTATION_DOTS,
+  measureDurationTicks,
+  sortVoiceEvents,
   voiceEventDurationTicks,
   type Duration,
   type DurationValue,
@@ -143,6 +146,10 @@ const App = () => {
     noteInputState?.duration.dots ??
     eventLocation?.event.duration.dots ??
     0
+  const activeDurationValue =
+    noteInputState?.duration.value ??
+    eventLocation?.event.duration.value ??
+    durationValue
   const addDotCommand =
     noteInputState || selection.type !== 'event'
       ? undefined
@@ -243,22 +250,31 @@ const App = () => {
         return
       }
 
-      setDurationValue(value)
-
       if (noteInputState) {
+        setDurationValue(value)
         setNoteInputState({
           ...noteInputState,
           duration: createDuration(value, noteInputState.duration.dots)
         })
       } else if (selection.type === 'event') {
         const dots = eventLocation?.event.duration.dots ?? 0
-        executeCommand(
-          buildDurationCommand(
-            score,
-            selection,
-            createDuration(value, dots)
-          )
-        )
+        const duration = createDuration(value, dots)
+        const command = buildDurationCommand(score, selection, duration)
+
+        if (executeCommand(command)) {
+          setDurationValue(value)
+          setFileStatus({
+            tone: 'neutral',
+            message: `Duration changed to ${durationLabels[value]}.`
+          })
+        } else {
+          setFileStatus({
+            tone: 'error',
+            message: describeDurationEditFailure(score, selection, duration)
+          })
+        }
+      } else {
+        setDurationValue(value)
       }
     },
     [eventLocation, executeCommand, noteInputState, score, selection]
@@ -1039,8 +1055,8 @@ const App = () => {
             <Clock3 aria-hidden="true" size={17} />
             {durations.map((duration) => (
               <button
-                aria-pressed={durationValue === duration}
-                className={durationValue === duration ? 'is-active' : undefined}
+                aria-pressed={activeDurationValue === duration}
+                className={activeDurationValue === duration ? 'is-active' : undefined}
                 disabled={isTupletInput}
                 key={duration}
                 onClick={() => changeDuration(duration)}
@@ -1356,6 +1372,62 @@ function getEventIdBeforeInputCursor(
     .at(-1)
 
   return previousEvent?.id
+}
+
+function describeDurationEditFailure(
+  score: Score,
+  selection: EditorSelection,
+  duration: Duration
+): string {
+  if (selection.type !== 'event') {
+    return 'Select a note or rest before changing duration.'
+  }
+
+  const location = locateEvent(score, selection.eventId)
+
+  if (!location) {
+    return 'Selected event could not be found.'
+  }
+
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+  const isTupletMember = Boolean(
+    location.event.duration.tuplet ||
+      voice?.tuplets?.some((group) =>
+        group.eventIds.includes(location.event.id)
+      )
+  )
+
+  if (isTupletMember) {
+    return 'Tuplet member durations cannot be changed independently yet.'
+  }
+
+  const startTick = location.event.position.tick
+  const currentEndTick =
+    startTick + voiceEventDurationTicks(location.event, location.measure)
+  const nextEndTick = startTick + durationToTicks(duration)
+  const measureEndTick = measureDurationTicks(location.measure)
+
+  if (nextEndTick > measureEndTick) {
+    return 'Duration would overflow the current measure.'
+  }
+
+  if (nextEndTick > currentEndTick) {
+    const events = sortVoiceEvents(voice?.events ?? [])
+    const blockingEvent = events.find(
+      (event) =>
+        event.position.tick >= currentEndTick &&
+        event.position.tick < nextEndTick &&
+        event.type !== 'rest'
+    )
+
+    return blockingEvent
+      ? 'Duration needs empty rest space, but the next note would be overwritten.'
+      : 'Duration needs more continuous rest space after the selected event.'
+  }
+
+  return 'Duration cannot be changed while preserving the measure rhythm.'
 }
 
 function toFileName(title: string): string {
