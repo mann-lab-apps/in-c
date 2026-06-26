@@ -114,6 +114,38 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('reuses rest ids when a merged rest span decomposes into multiple rests', () => {
+    const score = scoreWith([
+      rest('rest-1', 0, 'quarter'),
+      rest('rest-2', quarter, 'quarter'),
+      rest('rest-3', quarter * 2, 'eighth'),
+      note('note-1', quarter * 2.5, 'quarter', 1)
+    ])
+    const command = buildRhythmDeleteCommand(score, target, 'rest-2')
+    const result = applyScoreCommand(score, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'rest-2',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'half' }
+      },
+      {
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'eighth' }
+      },
+      {
+        id: 'note-1',
+        position: { tick: quarter * 2.5 }
+      }
+    ])
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
   it('does not delete an isolated rest or a tied note', () => {
     const isolatedRest = scoreWith([
       rest('rest-1', 0, 'quarter'),

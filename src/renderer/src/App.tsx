@@ -42,6 +42,7 @@ import {
   buildDeleteCommand,
   buildDotCommand,
   buildDurationCommand,
+  buildRestEntryCommand,
   createDuration,
   durationLabels,
   getAdjacentEventId,
@@ -115,7 +116,7 @@ const tools: Array<{
 ]
 
 const modeStatus: Record<EditorMode, string> = {
-  select: 'Select · A–G edits selected note',
+  select: 'Select · A–G edits selected note or rest',
   note: 'Note input · A–G enters notes',
   rest: 'Rest input · R enters rests'
 }
@@ -340,7 +341,12 @@ const App = () => {
 
   const changePitchStep = useCallback(
     (step: PitchStep) => {
-      executeCommand(buildPitchStepCommand(score, selection, step))
+      if (!executeCommand(buildPitchStepCommand(score, selection, step))) {
+        setFileStatus({
+          tone: 'error',
+          message: 'Select a note or rest that can be changed to a note.'
+        })
+      }
     },
     [executeCommand, score, selection]
   )
@@ -428,6 +434,10 @@ const App = () => {
       createInputState(score, selection, createDuration(durationValue), 'rest')
 
     if (!inputState) {
+      setFileStatus({
+        tone: 'error',
+        message: 'Select a note or rest before entering rests.'
+      })
       return
     }
 
@@ -442,6 +452,10 @@ const App = () => {
     )
 
     if (!input) {
+      setFileStatus({
+        tone: 'error',
+        message: `${durationLabels[durationValue]} rest cannot fit here without overwriting another note.`
+      })
       return
     }
 
@@ -461,6 +475,42 @@ const App = () => {
       })
     }
   }, [durationValue, executeCommand, noteInputState, score, selection])
+
+  const convertSelectionToRest = useCallback(() => {
+    if (selection.type !== 'event' || !eventLocation) {
+      setFileStatus({
+        tone: 'error',
+        message: 'Select a note before converting it to a rest.'
+      })
+      return
+    }
+
+    if (eventLocation.event.type === 'rest') {
+      setFileStatus({
+        tone: 'neutral',
+        message: 'Selected event is already a rest.'
+      })
+      return
+    }
+
+    if (
+      executeCommand(
+        buildRestEntryCommand(
+          score,
+          selection,
+          eventLocation.event.duration,
+          () => createInputId('event')
+        )
+      )
+    ) {
+      setMode('select')
+      setNoteInputState(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: 'Note converted to a rest.'
+      })
+    }
+  }, [eventLocation, executeCommand, score, selection])
 
   const activateTool = useCallback(
     (toolMode: EditorMode) => {
@@ -676,7 +726,8 @@ const App = () => {
       const pitchAction = pitch
         ? resolvePitchKeyboardAction(
             mode,
-            eventLocation?.event.type === 'note'
+            eventLocation?.event.type === 'note' ||
+              eventLocation?.event.type === 'rest'
           )
         : undefined
 
@@ -713,7 +764,7 @@ const App = () => {
         case 'r':
         case 'R':
           event.preventDefault()
-          enterRest()
+          convertSelectionToRest()
           break
         case 't':
         case 'T':
@@ -759,6 +810,7 @@ const App = () => {
     changeDots,
     changePitchStep,
     clearSelection,
+    convertSelectionToRest,
     enterNote,
     enterRest,
     movePitch,
@@ -1192,6 +1244,15 @@ function resolveSelectionAfterClear(
   nextScore: Score,
   eventId: string
 ): EditorSelection {
+  const clearedEvent = locateEvent(nextScore, eventId)?.event
+
+  if (clearedEvent?.type === 'rest' && clearedEvent.fullMeasure) {
+    return {
+      type: 'event',
+      eventId
+    }
+  }
+
   const nextEventId = getAdjacentEventId(previousScore, eventId, 1)
 
   if (nextEventId && locateEvent(nextScore, nextEventId)) {

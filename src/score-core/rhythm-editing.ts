@@ -199,14 +199,17 @@ export function buildRhythmDeleteCommand(
     nextEvents[restRun.endIndex],
     location.measure
   )
+  const createMergedRestId = createRestRunIdGenerator({
+    eventId: event.id,
+    events,
+    restRunEvents: nextEvents.slice(restRun.startIndex, restRun.endIndex + 1)
+  })
   const mergedRests = createRestsForSpan({
     measure: location.measure,
     startTick: runStartTick,
     endTick: runEndTick,
     firstId: event.id,
-    createId: () => {
-      throw new Error('Deleting an event does not create additional rests.')
-    }
+    createId: createMergedRestId
   })
 
   if (mergedRests.length === 0) {
@@ -245,6 +248,34 @@ export function buildRhythmDeleteCommand(
     target,
     events: mergedEvents,
     editedEventId: event.id
+  }
+}
+
+function createRestRunIdGenerator(input: {
+  eventId: string
+  events: VoiceEvent[]
+  restRunEvents: VoiceEvent[]
+}): () => string {
+  const usedIds = new Set(input.events.map((event) => event.id))
+  const reusableIds = input.restRunEvents
+    .map((event) => event.id)
+    .filter((id) => id !== input.eventId)
+
+  return () => {
+    const reusableId = reusableIds.shift()
+
+    if (reusableId) {
+      return reusableId
+    }
+
+    for (let index = 1; ; index += 1) {
+      const id = `${input.eventId}-merged-rest-${index}`
+
+      if (!usedIds.has(id)) {
+        usedIds.add(id)
+        return id
+      }
+    }
   }
 }
 

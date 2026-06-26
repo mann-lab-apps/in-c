@@ -60,13 +60,13 @@ export function resolvePitchShortcut(
 
 export function resolvePitchKeyboardAction(
   mode: EditorMode,
-  hasSelectedNote: boolean
+  hasSelectedPitchSlot: boolean
 ): PitchKeyboardAction | undefined {
   if (mode === 'note') {
     return 'enter-note'
   }
 
-  if (mode === 'select' && hasSelectedNote) {
+  if ((mode === 'select' || mode === 'rest') && hasSelectedPitchSlot) {
     return 'edit-selection'
   }
 
