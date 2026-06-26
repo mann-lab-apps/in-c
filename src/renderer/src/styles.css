@@ -86,7 +86,6 @@ h2 {
 .panel-list__item,
 .file-actions button,
 .transport-controls button,
-.segmented-control button,
 .duration-strip button,
 .dot-control button,
 .accidental-control button,
@@ -106,7 +105,6 @@ h2 {
 }
 
 .panel-list__item--active,
-.segmented-control .is-active,
 .accidental-control .is-active,
 .duration-strip .is-active {
   border-color: #b9b7a7;
@@ -199,20 +197,12 @@ h2 {
   background: #fbfaf6;
 }
 
-.segmented-control,
 .accidental-control,
 .dot-control,
 .duration-strip {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.segmented-control {
-  padding: 4px;
-  border: 1px solid #c7c0b3;
-  border-radius: 8px;
-  background: #e5dfd1;
 }
 
 .accidental-control {
@@ -237,7 +227,6 @@ h2 {
   border-left-color: #d8d2c5;
 }
 
-.segmented-control button,
 .duration-strip button {
   display: inline-flex;
   align-items: center;

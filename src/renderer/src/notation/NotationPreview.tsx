@@ -14,6 +14,7 @@ import {
 
 import {
   collectTiePairs,
+  measureDurationTicks,
   resolveNotePitch,
   shouldDisplayAccidental,
   sortVoiceEvents,
@@ -273,6 +274,17 @@ export function NotationPreview({
             }
           }
         })
+
+        if (
+          !inputPoint &&
+          measure.id === inputCursor?.measureId &&
+          inputCursor.tick === measureDurationTicks(measure)
+        ) {
+          inputPoint = {
+            x: placement.x + placement.width,
+            y: placement.y
+          }
+        }
       })
     })
 
