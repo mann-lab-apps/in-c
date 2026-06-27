@@ -415,6 +415,275 @@ async function verifyKeyboardRouting(window) {
     })
   `)
 
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m4-f-natural-1"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    document.querySelector('.tuplet-button')?.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletButton = await window.webContents.executeJavaScript(`
+    (() => {
+      const button = document.querySelector('.tuplet-button')
+
+      return {
+        ariaLabel: button?.getAttribute('aria-label'),
+        eventCount: document.querySelectorAll('.notation-event').length,
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        hasProgress: Boolean(document.querySelector('.tuplet-progress')),
+        shortcut: button?.querySelector('.shortcut-badge')?.textContent,
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        tupletCount: document.querySelectorAll('.vf-tuplet').length
+      }
+    })()
+  `)
+  await window.webContents.executeJavaScript(`
+    document.querySelector('.tuplet-button')?.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletButtonToggleOff = await window.webContents.executeJavaScript(`
+    ({
+      eventCount: document.querySelectorAll('.notation-event').length,
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      hasProgress: Boolean(document.querySelector('.tuplet-progress')),
+      status: [...document.querySelectorAll('.editor-status span')]
+        .at(-1)?.textContent,
+      tupletCount: document.querySelectorAll('.vf-tuplet').length
+    })
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m8-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'ArrowRight'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyT',
+        key: 'ㅅ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletShortcutStart = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      progress: document.querySelector('.tuplet-progress')?.textContent,
+      status: document.querySelector('.editor-status span')?.textContent,
+      tick: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.includes('ticks'))
+        ?.textContent
+    })
+  `)
+
+  for (const key of [
+    { code: 'KeyC', key: 'c' },
+    { key: 'r' }
+  ]) {
+    await window.webContents.executeJavaScript(`
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          ${key.code ? `code: ${JSON.stringify(key.code)},` : ''}
+          key: ${JSON.stringify(key.key)}
+        })
+      )
+    `)
+    await new Promise((resolve) => setTimeout(resolve, 150))
+  }
+
+  const tripletShortcutPreview = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      previewEventCount: document.querySelectorAll(
+        '.notation-event.is-preview'
+      ).length,
+      progress: document.querySelector('.tuplet-progress')?.textContent,
+      status: [...document.querySelectorAll('.editor-status span')]
+        .at(-1)?.textContent
+    })
+  `)
+
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyE',
+        key: 'e'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletShortcutComplete = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        hasProgress: Boolean(document.querySelector('.tuplet-progress')),
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        tupletCount: document.querySelectorAll('.vf-tuplet').length
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m4-g4"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyT',
+        key: 'ㅅ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletAvailableSpan = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      eventCount: document.querySelectorAll('.notation-event').length,
+      hasProgress: Boolean(document.querySelector('.tuplet-progress')),
+      status: [...document.querySelectorAll('.editor-status span')]
+        .at(-1)?.textContent,
+      tupletCount: document.querySelectorAll('.vf-tuplet').length
+    })
+  `)
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyT',
+        key: 'ㅅ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletAvailableSpanToggleOff = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      eventCount: document.querySelectorAll('.notation-event').length,
+      hasProgress: Boolean(document.querySelector('.tuplet-progress')),
+      status: [...document.querySelectorAll('.editor-status span')]
+        .at(-1)?.textContent,
+      tupletCount: document.querySelectorAll('.vf-tuplet').length
+    })
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m7-dotted-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 't'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletDottedRestStart = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      pressedDuration: document.querySelector(
+        '.duration-strip button[aria-pressed="true"]'
+      )?.textContent?.trim(),
+      progress: document.querySelector('.tuplet-progress')?.textContent,
+      status: document.querySelector('.editor-status span')?.textContent
+    })
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m7-triplet-c5"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'Backspace'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const tripletBackspaceClear = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        tupletCount: document.querySelectorAll('.vf-tuplet').length,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
   if (
     selectMode.eventCount !== initialEventCount ||
     selectMode.hasInputCursor ||
@@ -462,7 +731,50 @@ async function verifyKeyboardRouting(window) {
     durationShortcutFailure.eventCount !== initialEventCount ||
     durationShortcutFailure.pressedDuration !== 'Quarter' ||
     durationShortcutFailure.errorMessage !==
-      'Duration needs empty rest space, but the next note would be overwritten.'
+      'Duration needs empty rest space, but the next note would be overwritten.' ||
+    !tripletButton.ariaLabel?.includes('shortcut T') ||
+    tripletButton.shortcut !== 'T' ||
+    tripletButton.editCount !== '1 edits' ||
+    tripletButton.eventCount !== initialEventCount + 1 ||
+    tripletButton.hasProgress ||
+    tripletButton.tupletCount !== 2 ||
+    tripletButton.status !== 'Triplet applied to the selected span.' ||
+    tripletButtonToggleOff.editCount !== '2 edits' ||
+    tripletButtonToggleOff.eventCount !== initialEventCount ||
+    tripletButtonToggleOff.hasProgress ||
+    tripletButtonToggleOff.tupletCount !== 1 ||
+    tripletButtonToggleOff.status !== 'Triplet removed from the selected group.' ||
+    tripletShortcutStart.editCount !== '0 edits' ||
+    !tripletShortcutStart.status?.startsWith('Triplet input') ||
+    tripletShortcutStart.progress !== 'Triplet 0/3' ||
+    !tripletShortcutStart.tick?.startsWith('M8 · ') ||
+    tripletShortcutPreview.previewEventCount < 3 ||
+    tripletShortcutPreview.progress !== 'Triplet 2/3' ||
+    tripletShortcutPreview.status !== 'Triplet 2/3 staged. Add 1 more.' ||
+    tripletShortcutComplete.editCount !== '2 edits' ||
+    tripletShortcutComplete.eventCount !== initialEventCount + 4 ||
+    tripletShortcutComplete.hasProgress ||
+    tripletShortcutComplete.tupletCount !== 2 ||
+    tripletShortcutComplete.status !== 'Triplet completed.' ||
+    tripletAvailableSpan.editCount !== '1 edits' ||
+    tripletAvailableSpan.eventCount !== initialEventCount + 1 ||
+    tripletAvailableSpan.hasProgress ||
+    tripletAvailableSpan.status !== 'Triplet applied to the selected span.' ||
+    tripletAvailableSpan.tupletCount !== 2 ||
+    tripletAvailableSpanToggleOff.editCount !== '2 edits' ||
+    tripletAvailableSpanToggleOff.eventCount !== initialEventCount ||
+    tripletAvailableSpanToggleOff.hasProgress ||
+    tripletAvailableSpanToggleOff.status !==
+      'Triplet removed from the selected group.' ||
+    tripletAvailableSpanToggleOff.tupletCount !== 1 ||
+    tripletDottedRestStart.editCount !== '0 edits' ||
+    tripletDottedRestStart.progress ||
+    tripletDottedRestStart.status !== 'Select · A–G edits selected note or rest' ||
+    tripletBackspaceClear.editCount !== '1 edits' ||
+    tripletBackspaceClear.selectedEvent !== 'm7-triplet-c5' ||
+    tripletBackspaceClear.status !== 'Note cleared to rest' ||
+    tripletBackspaceClear.tupletCount !== 1 ||
+    tripletBackspaceClear.type !== 'rest'
   ) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
@@ -477,7 +789,16 @@ async function verifyKeyboardRouting(window) {
         fullRestToNote,
         restShortcutConvertsSelection,
         restToNote,
-        textInputShortcuts
+        textInputShortcuts,
+        tripletButton,
+        tripletButtonToggleOff,
+        tripletAvailableSpan,
+        tripletAvailableSpanToggleOff,
+        tripletDottedRestStart,
+        tripletBackspaceClear,
+        tripletShortcutComplete,
+        tripletShortcutPreview,
+        tripletShortcutStart
       })}`
     )
   }
@@ -493,7 +814,16 @@ async function verifyKeyboardRouting(window) {
     fullRestToNote,
     restShortcutConvertsSelection,
     restToNote,
-    textInputShortcuts
+    textInputShortcuts,
+    tripletButton,
+    tripletButtonToggleOff,
+    tripletAvailableSpan,
+    tripletAvailableSpanToggleOff,
+    tripletDottedRestStart,
+    tripletBackspaceClear,
+    tripletShortcutComplete,
+    tripletShortcutPreview,
+    tripletShortcutStart
   }
 }
 

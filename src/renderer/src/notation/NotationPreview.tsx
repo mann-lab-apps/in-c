@@ -249,13 +249,17 @@ export function NotationPreview({
           }
 
           svgElement.classList.add('notation-event')
+          svgElement.classList.toggle('is-preview', isPreviewEventId(eventId))
           svgElement.setAttribute('data-event-id', eventId)
-          svgElement.setAttribute('role', 'button')
-          svgElement.setAttribute('tabindex', '0')
-          svgElement.addEventListener('click', (event) => {
-            event.stopPropagation()
-            onSelectEvent(eventId)
-          })
+
+          if (!isPreviewEventId(eventId)) {
+            svgElement.setAttribute('role', 'button')
+            svgElement.setAttribute('tabindex', '0')
+            svgElement.addEventListener('click', (event) => {
+              event.stopPropagation()
+              onSelectEvent(eventId)
+            })
+          }
 
           if (eventId === playbackEventId) {
             playbackPoint = {
@@ -361,6 +365,10 @@ function drawTie(
   })
     .setContext(context)
     .draw()
+}
+
+function isPreviewEventId(eventId: string): boolean {
+  return eventId.startsWith('preview-')
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {

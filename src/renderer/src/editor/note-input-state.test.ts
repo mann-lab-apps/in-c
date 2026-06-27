@@ -19,7 +19,8 @@ import {
   beginTupletInput,
   buildSequentialInput,
   cancelTupletInput,
-  createNoteInputState
+  createNoteInputState,
+  createTupletInputPreviewScore
 } from './note-input-state'
 
 const quarter = TICKS_PER_QUARTER
@@ -440,6 +441,163 @@ describe('note input state', () => {
     expect(cancelled.tupletInput).toBeUndefined()
     expect(cancelled.duration.tuplet).toBeUndefined()
     expect(cancelled.tick).toBe(0)
+  })
+
+  it('previews staged tuplet members before the group is committed', () => {
+    const score = createScore()
+    const tripletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-preview'
+    )!
+    const first = buildSequentialInput(
+      score,
+      tripletState,
+      'C',
+      idSequence()
+    )!
+    const second = buildSequentialInput(
+      score,
+      { ...first.nextState, mode: 'note' },
+      'E',
+      idSequence()
+    )!
+    const preview = createTupletInputPreviewScore(score, second.nextState)
+    const previewVoice = preview.parts[0].staves[0].measures[0].voices[0]
+    const originalVoice = score.parts[0].staves[0].measures[0].voices[0]
+
+    expect(second.pending).toBe(true)
+    expect(originalVoice.tuplets).toBeUndefined()
+    expect(originalVoice.events).toHaveLength(1)
+    expect(previewVoice.events.slice(0, 3)).toMatchObject([
+      {
+        id: 'preview-tuplet-preview-1',
+        type: 'note',
+        position: { tick: 0 },
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      {
+        id: 'preview-tuplet-preview-2',
+        type: 'note',
+        position: { tick: quarter / 3 }
+      },
+      {
+        id: 'preview-tuplet-preview-3',
+        type: 'rest',
+        position: { tick: (quarter * 2) / 3 }
+      }
+    ])
+    expect(previewVoice.tuplets).toEqual([
+      {
+        id: 'preview-tuplet-preview',
+        eventIds: [
+          'preview-tuplet-preview-1',
+          'preview-tuplet-preview-2',
+          'preview-tuplet-preview-3'
+        ],
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    ])
+    expect(
+      validateMeasureRhythm(
+        preview.parts[0].staves[0].measures[0]
+      ).isExact
+    ).toBe(true)
+  })
+
+  it('requires rest space before committing tuplet input', () => {
+    const score = scoreWithEvents([
+      createNote({
+        id: 'note-1',
+        position: createTimePosition(0),
+        duration: createDuration('quarter'),
+        pitch: { step: 'C', octave: 4 }
+      }),
+      createRest({
+        id: 'rest-1',
+        position: createTimePosition(quarter),
+        duration: createDuration('half')
+      }),
+      createRest({
+        id: 'rest-2',
+        position: createTimePosition(quarter * 3),
+        duration: createDuration('quarter')
+      })
+    ])
+    const noteState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'blocked'
+    )!
+    const restState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: quarter,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-1'
+    )!
+
+    expect(buildSequentialInput(score, noteState, 'C', idSequence()))
+      .toBeUndefined()
+    expect(buildSequentialInput(score, restState, 'C', idSequence()))
+      .toBeDefined()
+  })
+
+  it('keeps the tuplet model open to other ratios', () => {
+    const score = createScore()
+    const quintupletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('16th'),
+        mode: 'note'
+      }),
+      'tuplet-5',
+      5,
+      4
+    )!
+    const ids = idSequence()
+    const first = buildSequentialInput(score, quintupletState, 'C', ids)!
+    const second = buildSequentialInput(score, first.nextState, 'D', ids)!
+    const third = buildSequentialInput(score, second.nextState, 'E', ids)!
+    const fourth = buildSequentialInput(score, third.nextState, 'F', ids)!
+    const fifth = buildSequentialInput(score, fourth.nextState, 'G', ids)!
+    const result = applyScoreCommand(score, fifth.command)
+    const voice = result.score.parts[0].staves[0].measures[0].voices[0]
+
+    expect(first.pending).toBe(true)
+    expect(fourth.pending).toBe(true)
+    expect(fifth.pending).toBeUndefined()
+    expect(voice.events.slice(0, 5)).toMatchObject(
+      Array.from({ length: 5 }, () => ({
+        duration: {
+          value: '16th',
+          tuplet: { actualNotes: 5, normalNotes: 4 }
+        }
+      }))
+    )
+    expect(voice.tuplets?.[0]).toMatchObject({
+      actualNotes: 5,
+      normalNotes: 4
+    })
+    expect(fifth.nextState).toMatchObject({
+      tick: quarter,
+      tupletInput: undefined
+    })
   })
 
   it('rejects nested, dotted, and measure-crossing tuplet input', () => {

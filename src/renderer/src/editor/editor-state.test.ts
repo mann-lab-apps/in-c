@@ -1,9 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  TICKS_PER_QUARTER,
   applyScoreCommand,
   createDuration,
+  createMeasure,
+  createNote,
+  createPart,
+  createRest,
   createScore,
+  createStaff,
+  createTimePosition,
+  createVoice,
   validateMeasureRhythm,
   type Score
 } from '../../../score-core'
@@ -14,6 +22,7 @@ import {
   buildDurationCommand,
   buildNoteEntryCommand,
   buildRestEntryCommand,
+  buildTupletGroupCommand,
   getAdjacentEventId,
   locateEvent,
   locateMeasure
@@ -204,6 +213,328 @@ describe('editor state', () => {
     ).toBeUndefined()
   })
 
+  it('turns only the selected tuplet span into a tuplet group', () => {
+    const command = buildTupletGroupCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      () => 'tuplet-remainder'
+    )
+    const result = applyScoreCommand(demoScore, command!)
+    const measure = result.score.parts[0].staves[0].measures[1]
+    const voice = measure.voices[0]
+
+    expect(command).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'note-g4'
+    })
+    expect(voice.events.slice(0, 4)).toMatchObject([
+      {
+        id: 'note-g4',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 0 }
+      },
+      {
+        id: 'note-a4',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 4_480 }
+      },
+      {
+        id: 'tuplet-remainder',
+        type: 'rest',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 8_960 }
+      },
+      {
+        id: 'note-b4',
+        position: { tick: 13_440 },
+        duration: { value: 'eighth' }
+      }
+    ])
+    expect(voice.tuplets?.[0]).toMatchObject({
+      eventIds: ['note-g4', 'note-a4', 'tuplet-remainder'],
+      actualNotes: 3,
+      normalNotes: 2
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('does not pull notes beyond the covered tuplet beats', () => {
+    const command = buildTupletGroupCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-c4' },
+      () => 'generated-triplet-rest'
+    )
+    const result = applyScoreCommand(demoScore, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+
+    expect(voice.events.slice(0, 4)).toMatchObject([
+      {
+        id: 'note-c4',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 0 }
+      },
+      {
+        id: 'note-d4',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: (TICKS_PER_QUARTER * 2) / 3 }
+      },
+      {
+        id: 'generated-triplet-rest',
+        type: 'rest',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: (TICKS_PER_QUARTER * 4) / 3 }
+      },
+      {
+        id: 'note-e4',
+        position: { tick: TICKS_PER_QUARTER * 2 },
+        duration: { value: 'quarter' }
+      }
+    ])
+    expect(voice.tuplets?.[0]).toMatchObject({
+      eventIds: ['note-c4', 'note-d4', 'generated-triplet-rest']
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('toggles an existing tuplet group back to regular durations', () => {
+    const apply = buildTupletGroupCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      () => 'tuplet-remainder'
+    )
+    const applied = applyScoreCommand(demoScore, apply!)
+    const remove = buildTupletGroupCommand(
+      applied.score,
+      { type: 'event', eventId: 'note-g4' },
+      () => 'unused'
+    )
+    const removed = applyScoreCommand(applied.score, remove!)
+    const measure = removed.score.parts[0].staves[0].measures[1]
+    const voice = measure.voices[0]
+
+    expect(remove).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'note-g4'
+    })
+    expect(voice.tuplets).toEqual([])
+    expect(voice.events.slice(0, 4)).toMatchObject([
+      {
+        id: 'note-g4',
+        duration: { value: 'eighth' },
+        position: { tick: 0 }
+      },
+      {
+        id: 'note-a4',
+        duration: { value: 'eighth' },
+        position: { tick: 6_720 }
+      },
+      {
+        id: 'note-b4',
+        duration: { value: 'eighth' },
+        position: { tick: 13_440 }
+      },
+      {
+        id: 'note-c5',
+        position: { tick: 20_160 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('creates a tuplet group when the tuplet span fits without 3 pre-existing events', () => {
+    const quarter = TICKS_PER_QUARTER
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createRest({
+                          id: 'rest-before',
+                          position: createTimePosition(0),
+                          duration: createDuration('half')
+                        }),
+                        createNote({
+                          id: 'note-third-beat',
+                          position: createTimePosition(quarter * 2),
+                          duration: createDuration('quarter'),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'rest-fourth-beat',
+                          position: createTimePosition(quarter * 3),
+                          duration: createDuration('quarter')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const command = buildTupletGroupCommand(
+      score,
+      { type: 'event', eventId: 'note-third-beat' },
+      idSequence('generated-triplet-rest')
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+
+    expect(voice.events.slice(1)).toMatchObject([
+      {
+        id: 'note-third-beat',
+        type: 'note',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: quarter * 2 }
+      },
+      {
+        type: 'rest',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: quarter * 2 + (quarter * 2) / 3 }
+      },
+      {
+        type: 'rest',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: quarter * 2 + (quarter * 4) / 3 }
+      }
+    ])
+    expect(voice.tuplets?.[0]).toMatchObject({
+      eventIds: [
+        'note-third-beat',
+        'generated-triplet-rest-1',
+        'generated-triplet-rest-2'
+      ],
+      actualNotes: 3,
+      normalNotes: 2
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('toggles a compact tuplet span back inside its occupied time', () => {
+    const quarter = TICKS_PER_QUARTER
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createRest({
+                          id: 'rest-before',
+                          position: createTimePosition(0),
+                          duration: createDuration('half')
+                        }),
+                        createNote({
+                          id: 'note-third-beat',
+                          position: createTimePosition(quarter * 2),
+                          duration: createDuration('quarter'),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'rest-fourth-beat',
+                          position: createTimePosition(quarter * 3),
+                          duration: createDuration('quarter')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const apply = buildTupletGroupCommand(
+      score,
+      { type: 'event', eventId: 'note-third-beat' },
+      idSequence('generated-triplet-rest')
+    )
+    const applied = applyScoreCommand(score, apply!)
+    const remove = buildTupletGroupCommand(
+      applied.score,
+      { type: 'event', eventId: 'note-third-beat' },
+      idSequence('unused')
+    )
+    const removed = applyScoreCommand(applied.score, remove!)
+    const measure = removed.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+
+    expect(remove).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'note-third-beat'
+    })
+    expect(voice.tuplets).toEqual([])
+    expect(voice.events.slice(1)).toMatchObject([
+      {
+        id: 'note-third-beat',
+        type: 'note',
+        duration: { value: 'quarter', tuplet: undefined },
+        position: { tick: quarter * 2 }
+      },
+      {
+        id: 'generated-triplet-rest-1',
+        type: 'rest',
+        duration: { value: 'quarter', tuplet: undefined },
+        position: { tick: quarter * 3 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('does not create a tuplet group when the span crosses a measure boundary', () => {
+    expect(
+      buildTupletGroupCommand(
+        demoScore,
+        { type: 'event', eventId: 'note-f-sharp-4' },
+        idSequence('unused')
+      )
+    ).toBeUndefined()
+  })
+
   it('builds delete commands and traverses events in score order', () => {
     expect(getAdjacentEventId(demoScore, 'note-f-sharp-4', 1)).toBe('note-g4')
     expect(getAdjacentEventId(demoScore, 'note-c4', -1)).toBeUndefined()
@@ -232,4 +563,10 @@ function readEvent(score: Score, eventId: string) {
     .flatMap((measure) => measure.voices)
     .flatMap((voice) => voice.events)
     .find((event) => event.id === eventId)
+}
+
+function idSequence(prefix: string): () => string {
+  let index = 0
+
+  return () => `${prefix}-${++index}`
 }

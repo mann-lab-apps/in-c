@@ -183,6 +183,39 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
+  if (event.type === 'note' && event.duration.tuplet) {
+    const replacement = createEquivalentRest(event, location.measure)
+    const nextEvents = sortVoiceEvents(
+      events.map((candidate) =>
+        candidate.id === event.id ? replacement : candidate
+      )
+    )
+    const nextVoice = {
+      ...location.voice,
+      events: nextEvents
+    }
+    const nextMeasure = {
+      ...location.measure,
+      voices: location.measure.voices.map((voice) =>
+        voice.id === location.voice.id ? nextVoice : voice
+      )
+    }
+
+    if (
+      !validateMeasureRhythm(nextMeasure).isExact ||
+      validateVoiceTuplets(nextVoice).length > 0
+    ) {
+      return undefined
+    }
+
+    return {
+      type: 'voice-events.replace',
+      target,
+      events: nextEvents,
+      editedEventId: event.id
+    }
+  }
+
   const nextEvents = events.map((candidate) =>
     candidate.id === event.id && candidate.type === 'note'
       ? createEquivalentRest(candidate, location.measure)
