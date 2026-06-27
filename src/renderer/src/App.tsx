@@ -90,9 +90,16 @@ const durations: DurationValue[] = [
 const durationKeys: Partial<Record<string, DurationValue>> = {
   '1': 'whole',
   '2': 'half',
-  '4': 'quarter',
-  '8': 'eighth',
-  '6': '16th'
+  '3': 'quarter',
+  '4': 'eighth',
+  '5': '16th'
+}
+const durationShortcuts: Partial<Record<DurationValue, string>> = {
+  whole: '1',
+  half: '2',
+  quarter: '3',
+  eighth: '4',
+  '16th': '5'
 }
 
 const modeStatus: Record<EditorMode, string> = {
@@ -1053,18 +1060,29 @@ const App = () => {
 
           <div className="duration-strip" aria-label="Note duration">
             <Clock3 aria-hidden="true" size={17} />
-            {durations.map((duration) => (
-              <button
-                aria-pressed={activeDurationValue === duration}
-                className={activeDurationValue === duration ? 'is-active' : undefined}
-                disabled={isTupletInput}
-                key={duration}
-                onClick={() => changeDuration(duration)}
-                type="button"
-              >
-                {durationLabels[duration]}
-              </button>
-            ))}
+            {durations.map((duration) => {
+              const shortcut = durationShortcuts[duration]
+              const label = shortcut
+                ? `${durationLabels[duration]} duration, shortcut ${shortcut}`
+                : `${durationLabels[duration]} duration`
+
+              return (
+                <button
+                  aria-label={label}
+                  aria-pressed={activeDurationValue === duration}
+                  className={
+                    activeDurationValue === duration ? 'is-active' : undefined
+                  }
+                  disabled={isTupletInput}
+                  key={duration}
+                  onClick={() => changeDuration(duration)}
+                  title={label}
+                  type="button"
+                >
+                  {durationLabels[duration]}
+                </button>
+              )
+            })}
 
             <div className="dot-control" aria-label="Augmentation dots">
               <button

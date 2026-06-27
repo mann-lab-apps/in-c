@@ -162,11 +162,25 @@ async function verifyKeyboardRouting(window) {
     )
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    document.querySelector('input[aria-label="Tempo"]')?.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '2'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
 
-  const textInputEditCount = await window.webContents.executeJavaScript(`
-    [...document.querySelectorAll('.editor-status span')]
-      .find((span) => span.textContent?.endsWith(' edits'))
-      ?.textContent
+  const textInputShortcuts = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      pressedDuration: document.querySelector(
+        '.duration-strip button[aria-pressed="true"]'
+      )?.textContent?.trim()
+    })
   `)
 
   await loadFixture(window)
@@ -306,13 +320,16 @@ async function verifyKeyboardRouting(window) {
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
   await window.webContents.executeJavaScript(`
-    [...document.querySelectorAll('.duration-strip button')]
-      .find((button) => button.textContent?.trim() === 'Quarter')
-      ?.click()
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '4'
+      })
+    )
   `)
   await new Promise((resolve) => setTimeout(resolve, 150))
 
-  const durationChange = await window.webContents.executeJavaScript(`
+  const durationShortcutChange = await window.webContents.executeJavaScript(`
     ({
       editCount: [...document.querySelectorAll('.editor-status span')]
         .find((span) => span.textContent?.endsWith(' edits'))
@@ -329,18 +346,62 @@ async function verifyKeyboardRouting(window) {
   await loadFixture(window)
   await window.webContents.executeJavaScript(`
     document.querySelector(
+      '.notation-event[data-event-id="m8-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'ArrowRight'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '2'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const durationShortcutCursor = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      hasInputCursor: Boolean(
+        document.querySelector('.notation-input-cursor')
+      ),
+      pressedDuration: document.querySelector(
+        '.duration-strip button[aria-pressed="true"]'
+      )?.textContent?.trim(),
+      status: document.querySelector('.editor-status span')?.textContent
+    })
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
       '.notation-event[data-event-id="m1-c4"]'
     )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
   await window.webContents.executeJavaScript(`
-    [...document.querySelectorAll('.duration-strip button')]
-      .find((button) => button.textContent?.trim() === 'Half')
-      ?.click()
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '2'
+      })
+    )
   `)
   await new Promise((resolve) => setTimeout(resolve, 150))
 
-  const durationFailure = await window.webContents.executeJavaScript(`
+  const durationShortcutFailure = await window.webContents.executeJavaScript(`
     ({
       editCount: [...document.querySelectorAll('.editor-status span')]
         .find((span) => span.textContent?.endsWith(' edits'))
@@ -372,7 +433,8 @@ async function verifyKeyboardRouting(window) {
     cursorRestInput.eventCount !== initialEventCount + 2 ||
     !cursorRestInput.status?.startsWith('Input cursor') ||
     cursorRestInput.type !== 'rest' ||
-    textInputEditCount !== cursorRestInput.editCount ||
+    textInputShortcuts.editCount !== cursorRestInput.editCount ||
+    textInputShortcuts.pressedDuration !== 'Quarter' ||
     restShortcutConvertsSelection.eventCount !== initialEventCount ||
     restShortcutConvertsSelection.editCount !== '1 edits' ||
     restShortcutConvertsSelection.hasInputCursor ||
@@ -388,20 +450,25 @@ async function verifyKeyboardRouting(window) {
     fullRestToNote.status !== 'Select · A–G edits selected note or rest' ||
     fullRestToNote.type !== 'note' ||
     fullRestToNote.event === 'm2-1' ||
-    durationChange.editCount !== '1 edits' ||
-    durationChange.eventCount !== initialEventCount ||
-    durationChange.pressedDuration !== 'Quarter' ||
-    durationChange.statusMessage !== 'Duration changed to Quarter.' ||
-    durationFailure.editCount !== '0 edits' ||
-    durationFailure.eventCount !== initialEventCount ||
-    durationFailure.pressedDuration !== 'Quarter' ||
-    durationFailure.errorMessage !==
+    durationShortcutChange.editCount !== '1 edits' ||
+    durationShortcutChange.eventCount !== initialEventCount + 1 ||
+    durationShortcutChange.pressedDuration !== 'Eighth' ||
+    durationShortcutChange.statusMessage !== 'Duration changed to Eighth.' ||
+    durationShortcutCursor.editCount !== '0 edits' ||
+    !durationShortcutCursor.hasInputCursor ||
+    durationShortcutCursor.pressedDuration !== 'Half' ||
+    !durationShortcutCursor.status?.startsWith('Input cursor') ||
+    durationShortcutFailure.editCount !== '0 edits' ||
+    durationShortcutFailure.eventCount !== initialEventCount ||
+    durationShortcutFailure.pressedDuration !== 'Quarter' ||
+    durationShortcutFailure.errorMessage !==
       'Duration needs empty rest space, but the next note would be overwritten.'
   ) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
-        durationChange,
-        durationFailure,
+        durationShortcutChange,
+        durationShortcutCursor,
+        durationShortcutFailure,
         initialEventCount,
         selectMode,
         cursorNoteInput,
@@ -410,7 +477,7 @@ async function verifyKeyboardRouting(window) {
         fullRestToNote,
         restShortcutConvertsSelection,
         restToNote,
-        textInputEditCount
+        textInputShortcuts
       })}`
     )
   }
@@ -420,12 +487,13 @@ async function verifyKeyboardRouting(window) {
     cursorNoteInput,
     cursorRestInput,
     endCursor,
-    durationChange,
-    durationFailure,
+    durationShortcutChange,
+    durationShortcutCursor,
+    durationShortcutFailure,
     fullRestToNote,
     restShortcutConvertsSelection,
     restToNote,
-    textInputEditCount
+    textInputShortcuts
   }
 }
 
