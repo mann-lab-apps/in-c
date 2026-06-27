@@ -88,6 +88,29 @@ describe('score-core', () => {
     })
   })
 
+  it('updates score metadata and returns an undo command', () => {
+    const score = createScore({
+      title: 'First sketch',
+      composer: 'In C'
+    })
+    const updated = applyScoreCommand(score, {
+      type: 'score-metadata.update',
+      title: '새 악보',
+      composer: '김작곡'
+    })
+
+    expect(updated.score).toMatchObject({
+      title: '새 악보',
+      composer: '김작곡'
+    })
+    expect(updated.undo).toEqual({
+      type: 'score-metadata.update',
+      title: 'First sketch',
+      composer: 'In C'
+    })
+    expect(applyScoreCommand(updated.score, updated.undo).score).toEqual(score)
+  })
+
   it('inserts a note and returns a command that undoes the edit', () => {
     const score = withEvents([])
     const note = createNote({

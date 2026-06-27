@@ -369,15 +369,45 @@ h2 {
   margin-bottom: 72px;
 }
 
-.score-title span {
+.metadata-display,
+.metadata-input {
+  width: min(100%, 520px);
+  border: 1px solid transparent;
+  border-radius: 4px;
   color: #151719;
+  background: transparent;
+  text-align: center;
+}
+
+.metadata-display {
+  min-height: 30px;
+  padding: 2px 8px;
+  cursor: text;
+}
+
+.metadata-display:hover,
+.metadata-display:focus-visible,
+.metadata-input:focus {
+  border-color: #b9b7a7;
+  background: #fbfaf6;
+}
+
+.metadata-display--title,
+.metadata-input--title {
   font-size: 1.4rem;
   font-weight: 700;
 }
 
-.score-title small {
+.metadata-display--composer,
+.metadata-input--composer {
   color: #6b7277;
   font-size: 0.9rem;
+}
+
+.metadata-input {
+  min-height: 30px;
+  padding: 2px 8px;
+  outline: none;
 }
 
 .notation-preview {

@@ -13,6 +13,8 @@ import { validateVoiceTuplets } from './tuplets'
 
 export function applyScoreCommand(score: Score, command: ScoreCommand): CommandResult {
   switch (command.type) {
+    case 'score-metadata.update':
+      return updateScoreMetadata(score, command.title, command.composer)
     case 'voice-event.insert':
       return insertVoiceEvent(score, command.target, command.event, command.index)
     case 'voice-event.remove':
@@ -45,6 +47,25 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return removeStaffMeasure(score, command.target, command.measureId)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreMetadata(
+  score: Score,
+  title: string,
+  composer: string | undefined
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      title,
+      composer
+    },
+    undo: {
+      type: 'score-metadata.update',
+      title: score.title,
+      composer: score.composer
+    }
   }
 }
 
