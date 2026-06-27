@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent
+} from 'react'
 import { createRoot } from 'react-dom/client'
 import {
   ArrowDown,
@@ -114,6 +120,18 @@ interface EditorHistoryEntry {
   selection: EditorSelection
 }
 
+type MetadataField = 'title' | 'composer'
+
+interface MetadataEdit {
+  field: MetadataField
+  value: string
+}
+
+const metadataMaxLength: Record<MetadataField, number> = {
+  title: 120,
+  composer: 80
+}
+
 const App = () => {
   const [score, setScore] = useState(createInitialScore)
   const [selection, setSelection] = useState<EditorSelection>(() =>
@@ -124,6 +142,7 @@ const App = () => {
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
+  const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
   const [fileStatus, setFileStatus] = useState<{
     tone: 'neutral' | 'error'
     message: string
@@ -250,6 +269,71 @@ const App = () => {
     setNoteInputState(entry.inputState)
     setSelection(entry.selection)
   }, [noteInputState, redoStack, score, selection])
+
+  const beginMetadataEdit = useCallback(
+    (field: MetadataField) => {
+      setMode('select')
+      setNoteInputState(undefined)
+      setMetadataEdit({
+        field,
+        value: field === 'title' ? score.title : score.composer ?? ''
+      })
+    },
+    [score.composer, score.title]
+  )
+
+  const cancelMetadataEdit = useCallback(() => {
+    setMetadataEdit(undefined)
+  }, [])
+
+  const commitMetadataEdit = useCallback(
+    (field: MetadataField, value: string) => {
+      const trimmed = value.trim()
+      const title = field === 'title'
+        ? trimmed || 'Untitled score'
+        : score.title
+      const composer = field === 'composer'
+        ? trimmed || undefined
+        : score.composer
+
+      setMetadataEdit(undefined)
+
+      if (title === score.title && composer === score.composer) {
+        return
+      }
+
+      if (
+        executeCommand({
+          type: 'score-metadata.update',
+          title,
+          composer
+        })
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message: 'Score metadata updated.'
+        })
+      }
+    },
+    [executeCommand, score.composer, score.title]
+  )
+
+  const handleMetadataKeyDown = useCallback(
+    (
+      event: ReactKeyboardEvent<HTMLInputElement>,
+      field: MetadataField,
+      value: string
+    ) => {
+      if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+        event.preventDefault()
+        commitMetadataEdit(field, value)
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        cancelMetadataEdit()
+      }
+    },
+    [cancelMetadataEdit, commitMetadataEdit]
+  )
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
@@ -1208,8 +1292,70 @@ const App = () => {
 
         <div className="score-page" aria-label="Score page">
           <div className="score-title">
-            <span>{score.title}</span>
-            <small>Andante · 4/4</small>
+            {metadataEdit?.field === 'title' ? (
+              <input
+                aria-label="Score title"
+                autoFocus
+                className="metadata-input metadata-input--title"
+                maxLength={metadataMaxLength.title}
+                onBlur={() =>
+                  commitMetadataEdit('title', metadataEdit.value)
+                }
+                onChange={(event) =>
+                  setMetadataEdit({
+                    field: 'title',
+                    value: event.target.value
+                  })
+                }
+                onFocus={(event) => event.currentTarget.select()}
+                onKeyDown={(event) =>
+                  handleMetadataKeyDown(event, 'title', metadataEdit.value)
+                }
+                value={metadataEdit.value}
+              />
+            ) : (
+              <button
+                aria-label="Edit score title"
+                className="metadata-display metadata-display--title"
+                onClick={() => beginMetadataEdit('title')}
+                type="button"
+              >
+                {score.title}
+              </button>
+            )}
+
+            {metadataEdit?.field === 'composer' ? (
+              <input
+                aria-label="Score composer"
+                autoFocus
+                className="metadata-input metadata-input--composer"
+                maxLength={metadataMaxLength.composer}
+                onBlur={() =>
+                  commitMetadataEdit('composer', metadataEdit.value)
+                }
+                onChange={(event) =>
+                  setMetadataEdit({
+                    field: 'composer',
+                    value: event.target.value
+                  })
+                }
+                onFocus={(event) => event.currentTarget.select()}
+                onKeyDown={(event) =>
+                  handleMetadataKeyDown(event, 'composer', metadataEdit.value)
+                }
+                placeholder="Composer"
+                value={metadataEdit.value}
+              />
+            ) : (
+              <button
+                aria-label="Edit score composer"
+                className="metadata-display metadata-display--composer"
+                onClick={() => beginMetadataEdit('composer')}
+                type="button"
+              >
+                {score.composer ?? 'Composer'}
+              </button>
+            )}
           </div>
 
           <NotationPreview

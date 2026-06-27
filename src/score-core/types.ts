@@ -143,6 +143,11 @@ export interface StaffAddress {
 
 export type ScoreCommand =
   | {
+      type: 'score-metadata.update'
+      title: string
+      composer?: string
+    }
+  | {
       type: 'voice-event.insert'
       target: VoiceAddress
       event: VoiceEvent

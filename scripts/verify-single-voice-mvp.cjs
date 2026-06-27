@@ -586,6 +586,226 @@ async function verifyOutOfStaffNotes(window) {
   return results
 }
 
+async function verifyMetadataEditing(window) {
+  await loadFixture(window)
+
+  await editMetadataField(window, 'title', '새 악보 제목', 'Enter')
+  await editMetadataField(window, 'composer', '김작곡', 'Enter')
+
+  const edited = await window.webContents.executeJavaScript(`
+    ({
+      composer: document.querySelector(
+        'button[aria-label="Edit score composer"]'
+      )?.textContent?.trim(),
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      sidebarTitle: document.querySelector('.sidebar h1')?.textContent?.trim(),
+      title: document.querySelector(
+        'button[aria-label="Edit score title"]'
+      )?.textContent?.trim()
+    })
+  `)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector('button[aria-label="Undo"]')?.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const undoneComposer = await window.webContents.executeJavaScript(`
+    ({
+      composer: document.querySelector(
+        'button[aria-label="Edit score composer"]'
+      )?.textContent?.trim(),
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      title: document.querySelector(
+        'button[aria-label="Edit score title"]'
+      )?.textContent?.trim()
+    })
+  `)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector('button[aria-label="Redo"]')?.click()
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const redoneComposer = await window.webContents.executeJavaScript(`
+    ({
+      composer: document.querySelector(
+        'button[aria-label="Edit score composer"]'
+      )?.textContent?.trim(),
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      title: document.querySelector(
+        'button[aria-label="Edit score title"]'
+      )?.textContent?.trim()
+    })
+  `)
+
+  await editMetadataField(window, 'title', '취소할 제목', 'Escape')
+
+  const cancelled = await window.webContents.executeJavaScript(`
+    ({
+      title: document.querySelector(
+        'button[aria-label="Edit score title"]'
+      )?.textContent?.trim()
+    })
+  `)
+
+  await openMetadataField(window, 'composer')
+  await window.webContents.executeJavaScript(`
+    window.setInputValue(
+      document.querySelector('input[aria-label="Score composer"]'),
+      '입력 중'
+    )
+    document
+      .querySelector('input[aria-label="Score composer"]')
+      .dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        code: 'KeyA',
+        key: 'ㅁ'
+      })
+    )
+    document
+      .querySelector('input[aria-label="Score composer"]')
+      .dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        key: '2'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const textInputProtection = await window.webContents.executeJavaScript(`
+    ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      inputOpen: Boolean(
+        document.querySelector('input[aria-label="Score composer"]')
+      ),
+      pressedDuration: document.querySelector(
+        '.duration-strip button[aria-pressed="true"]'
+      )?.textContent?.trim()
+    })
+  `)
+
+  const result = {
+    cancelled,
+    edited,
+    redoneComposer,
+    textInputProtection,
+    undoneComposer
+  }
+
+  if (
+    edited.title !== '새 악보 제목' ||
+    edited.sidebarTitle !== '새 악보 제목' ||
+    edited.composer !== '김작곡' ||
+    edited.editCount !== '2 edits' ||
+    undoneComposer.title !== '새 악보 제목' ||
+    undoneComposer.composer !== 'in-C' ||
+    undoneComposer.editCount !== '1 edits' ||
+    redoneComposer.title !== '새 악보 제목' ||
+    redoneComposer.composer !== '김작곡' ||
+    redoneComposer.editCount !== '2 edits' ||
+    cancelled.title !== '새 악보 제목' ||
+    !textInputProtection.inputOpen ||
+    textInputProtection.editCount !== '2 edits' ||
+    textInputProtection.pressedDuration !== 'Quarter'
+  ) {
+    throw new Error(
+      `Metadata editing verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
+async function editMetadataField(window, field, value, key) {
+  await openMetadataField(window, field)
+  const label = field === 'title' ? 'Score title' : 'Score composer'
+
+  await executeMetadataStep(
+    window,
+    `edit ${field}`,
+    `
+    const input = document.querySelector('input[aria-label="${label}"]')
+    window.setInputValue(input, ${JSON.stringify(value)})
+    input.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        cancelable: true,
+        key: ${JSON.stringify(key)}
+      })
+    )
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+}
+
+async function openMetadataField(window, field) {
+  const label = field === 'title' ? 'Edit score title' : 'Edit score composer'
+
+  await executeMetadataStep(
+    window,
+    `open ${field}`,
+    `
+    document.querySelector('button[aria-label="${label}"]')?.click()
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await executeMetadataStep(
+    window,
+    `prepare ${field} input setter`,
+    `
+    window.setInputValue = (input, value) => {
+      if (!input) {
+        throw new Error('Metadata input not found.')
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value'
+      ).set
+      setter.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+  `
+  )
+}
+
+async function executeMetadataStep(window, label, body) {
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      try {
+        ${body}
+        return { ok: true }
+      } catch (error) {
+        return {
+          ok: false,
+          label: ${JSON.stringify(label)},
+          message: error?.message,
+          stack: error?.stack
+        }
+      }
+    })()
+  `)
+
+  if (!result.ok) {
+    throw new Error(
+      `Metadata renderer step failed (${result.label}): ${result.message}\n${result.stack}`
+    )
+  }
+}
+
 async function inspect(window, width, output) {
   window.setSize(width, 1000)
   await new Promise((resolve) => setTimeout(resolve, 600))
@@ -664,6 +884,7 @@ app.whenReady().then(async () => {
 
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
+  const metadata = await verifyMetadataEditing(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
   await loadFixture(window)
 
@@ -696,7 +917,7 @@ app.whenReady().then(async () => {
 
   console.log(
     JSON.stringify(
-      { keyboard, outOfStaffNotes, desktop, minimum },
+      { keyboard, metadata, outOfStaffNotes, desktop, minimum },
       null,
       2
     )

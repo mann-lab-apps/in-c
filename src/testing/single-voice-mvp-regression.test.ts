@@ -125,6 +125,26 @@ describe('single-voice MVP regression', () => {
     )
   })
 
+  it('preserves edited title and composer through undo and MusicXML', () => {
+    const score = createSingleVoiceMvpScore()
+    const edited = applyScoreCommand(score, {
+      type: 'score-metadata.update',
+      title: '새 악보 제목',
+      composer: '김작곡'
+    })
+    const roundTrip = parseMusicXml(serializeMusicXml(edited.score))
+
+    expect(edited.score).toMatchObject({
+      title: '새 악보 제목',
+      composer: '김작곡'
+    })
+    expect(applyScoreCommand(edited.score, edited.undo).score).toEqual(score)
+    expect(roundTrip).toMatchObject({
+      title: '새 악보 제목',
+      composer: '김작곡'
+    })
+  })
+
   it('adds and removes an inherited measure without disturbing the fixture', () => {
     const score = createSingleVoiceMvpScore()
     const createId = (() => {
