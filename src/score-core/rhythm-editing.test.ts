@@ -171,6 +171,64 @@ describe('monophonic rhythm editing', () => {
     ).toBeUndefined()
   })
 
+  it('clears a tuplet note without merging it out of its group', () => {
+    const tripletDuration = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const score = scoreWith([
+      {
+        ...note('triplet-note-1', 0, 'eighth'),
+        duration: tripletDuration
+      },
+      {
+        ...note('triplet-note-2', quarter / 3, 'eighth'),
+        duration: tripletDuration
+      },
+      rest('triplet-rest-3', (quarter * 2) / 3, 'eighth'),
+      rest('rest-after', quarter, 'half', 1)
+    ])
+    score.parts[0].staves[0].measures[0].voices[0].events[2].duration =
+      tripletDuration
+    score.parts[0].staves[0].measures[0].voices[0].tuplets = [
+      {
+        id: 'tuplet-1',
+        eventIds: ['triplet-note-1', 'triplet-note-2', 'triplet-rest-3'],
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    ]
+    const command = buildRhythmDeleteCommand(
+      score,
+      target,
+      'triplet-note-2'
+    )
+    const result = applyScoreCommand(score, command!)
+    const voice = result.score.parts[0].staves[0].measures[0].voices[0]
+
+    expect(voice.events).toMatchObject([
+      { id: 'triplet-note-1', type: 'note' },
+      {
+        id: 'triplet-note-2',
+        type: 'rest',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      { id: 'triplet-rest-3', type: 'rest' },
+      { id: 'rest-after', type: 'rest' }
+    ])
+    expect(voice.tuplets).toEqual(
+      score.parts[0].staves[0].measures[0].voices[0].tuplets
+    )
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
   it('shrinks an event and fills the released time with rests', () => {
     const score = scoreWith([
       note('note-1', 0, 'half'),

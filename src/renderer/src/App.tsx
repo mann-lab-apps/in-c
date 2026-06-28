@@ -51,6 +51,7 @@ import {
   buildDotCommand,
   buildDurationCommand,
   buildRestEntryCommand,
+  buildTupletGroupCommand,
   createDuration,
   durationLabels,
   getAdjacentEventId,
@@ -80,6 +81,7 @@ import {
   buildSequentialInput,
   cancelTupletInput,
   createNoteInputState,
+  createTupletInputPreviewScore,
   type NoteInputState
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
@@ -106,6 +108,19 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
   quarter: '3',
   eighth: '4',
   '16th': '5'
+}
+const tripletPreset = {
+  actualNotes: 3,
+  durationValue: 'eighth',
+  label: 'Triplet',
+  normalNotes: 2,
+  shortcut: 'T'
+} satisfies {
+  actualNotes: number
+  durationValue: DurationValue
+  label: string
+  normalNotes: number
+  shortcut: string
 }
 
 const modeStatus: Record<EditorMode, string> = {
@@ -193,6 +208,9 @@ const App = () => {
   const isTupletInput = Boolean(noteInputState?.tupletInput)
   const tupletMemberCount =
     noteInputState?.tupletInput?.members.length ?? 0
+  const tupletProgress = noteInputState?.tupletInput
+    ? `${tupletMemberCount}/${noteInputState.tupletInput.actualNotes}`
+    : undefined
   const tieEnabled =
     eventLocation?.event.type === 'note' &&
     Boolean(eventLocation.event.ties?.start)
@@ -442,31 +460,78 @@ const App = () => {
   const toggleTuplet = useCallback(() => {
     if (noteInputState?.tupletInput) {
       setNoteInputState(cancelTupletInput(noteInputState))
+      setFileStatus({
+        tone: 'neutral',
+        message: 'Triplet input canceled.'
+      })
       return
     }
 
-    const inputState =
-      noteInputState ??
-      createInputState(
+    const duration = createDuration(tripletPreset.durationValue)
+
+    if (!noteInputState) {
+      const removesExistingTuplet = Boolean(eventLocation?.event.duration.tuplet)
+      const command = buildTupletGroupCommand(
         score,
         selection,
-        createDuration(durationValue),
-        mode === 'rest' ? 'rest' : 'note'
+        () => createInputId('event'),
+        tripletPreset.actualNotes,
+        tripletPreset.normalNotes
       )
 
-    if (!inputState) {
+      if (executeCommand(command)) {
+        setDurationValue(tripletPreset.durationValue)
+        setFileStatus({
+          tone: 'neutral',
+          message: removesExistingTuplet
+            ? 'Triplet removed from the selected group.'
+            : 'Triplet applied to the selected span.'
+        })
+      } else {
+        setFileStatus({
+          tone: 'error',
+          message:
+            'Triplet needs a selected event plus enough clear time in the measure.'
+        })
+      }
       return
+    }
+
+    const inputState = {
+      ...noteInputState,
+      duration,
+      mode: 'note' as const,
+      tupletInput: undefined
     }
 
     const tupletState = beginTupletInput(
       inputState,
-      `tuplet-${crypto.randomUUID()}`
+      `tuplet-${crypto.randomUUID()}`,
+      tripletPreset.actualNotes,
+      tripletPreset.normalNotes
     )
 
     if (tupletState) {
+      setDurationValue(tripletPreset.durationValue)
       setNoteInputState(tupletState)
+      setFileStatus({
+        tone: 'neutral',
+        message:
+          'Eighth-note triplet input started. Add 3 notes or rests with A–G and R.'
+      })
+    } else {
+      setFileStatus({
+        tone: 'error',
+        message: 'Triplet input cannot start from the current state.'
+      })
     }
-  }, [durationValue, mode, noteInputState, score, selection])
+  }, [
+    eventLocation,
+    executeCommand,
+    noteInputState,
+    score,
+    selection
+  ])
 
   const enterNote = useCallback(
     (step: PitchStep) => {
@@ -493,7 +558,15 @@ const App = () => {
       }
 
       if (input.pending) {
+        if (commandHasEffects(input.command) && !executeCommand(input.command)) {
+          return
+        }
+
         setNoteInputState(input.nextState)
+        setFileStatus({
+          tone: 'neutral',
+          message: describeTupletProgress(input.nextState)
+        })
         return
       }
 
@@ -504,6 +577,12 @@ const App = () => {
           type: 'event',
           eventId: input.eventId
         })
+        if (inputState.tupletInput) {
+          setFileStatus({
+            tone: 'neutral',
+            message: 'Triplet completed.'
+          })
+        }
       }
     },
     [durationValue, executeCommand, noteInputState, score, selection]
@@ -535,13 +614,23 @@ const App = () => {
     if (!input) {
       setFileStatus({
         tone: 'error',
-        message: `${durationLabels[durationValue]} rest cannot fit here without overwriting another note.`
+        message: noteInputState?.tupletInput
+          ? 'Triplet cannot fit here. Start within continuous space in the current measure.'
+          : `${durationLabels[durationValue]} rest cannot fit here without overwriting another note.`
       })
       return
     }
 
     if (input.pending) {
+      if (commandHasEffects(input.command) && !executeCommand(input.command)) {
+        return
+      }
+
       setNoteInputState(input.nextState)
+      setFileStatus({
+        tone: 'neutral',
+        message: describeTupletProgress(input.nextState)
+      })
       return
     }
 
@@ -552,6 +641,12 @@ const App = () => {
         type: 'event',
         eventId: input.eventId
       })
+      if (inputState.tupletInput) {
+        setFileStatus({
+          tone: 'neutral',
+          message: 'Triplet completed.'
+        })
+      }
     }
   }, [durationValue, executeCommand, noteInputState, score, selection])
 
@@ -834,6 +929,12 @@ const App = () => {
         return
       }
 
+      if (!event.altKey && !usesCommandKey && event.code === 'KeyT') {
+        event.preventDefault()
+        toggleTuplet()
+        return
+      }
+
       switch (event.key) {
         case '.':
           event.preventDefault()
@@ -892,6 +993,12 @@ const App = () => {
           )
           break
         case 'Escape':
+          if (noteInputState?.tupletInput) {
+            setFileStatus({
+              tone: 'neutral',
+              message: 'Triplet input canceled.'
+            })
+          }
           setMode('select')
           setNoteInputState(undefined)
           break
@@ -924,6 +1031,13 @@ const App = () => {
     selection.type === 'event' ? selection.eventId : undefined
   const selectedMeasureId =
     selection.type === 'measure' ? selection.measureId : undefined
+  const previewScore = useMemo(
+    () =>
+      noteInputState?.tupletInput
+        ? createTupletInputPreviewScore(score, noteInputState)
+        : score,
+    [noteInputState, score]
+  )
   const canEditPitch = eventLocation?.event.type === 'note'
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
   const clearSelectionLabel =
@@ -1193,15 +1307,24 @@ const App = () => {
             </div>
 
             <button
-              aria-label={isTupletInput ? 'Cancel triplet' : 'Start triplet'}
+              aria-label={
+                isTupletInput
+                  ? `Cancel triplet input, shortcut ${tripletPreset.shortcut} or Escape`
+                  : `Apply triplet or arm triplet input, shortcut ${tripletPreset.shortcut}`
+              }
               aria-pressed={isTupletInput}
-              className={isTupletInput ? 'is-active' : undefined}
-              disabled={!isTupletInput && activeDots > 0}
+              className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
               onClick={toggleTuplet}
-              title={isTupletInput ? 'Cancel triplet' : 'Start triplet'}
+              title={
+                isTupletInput
+                  ? `Cancel triplet (${tupletProgress})`
+                  : `Apply triplet or arm input (${tripletPreset.shortcut})`
+              }
               type="button"
             >
-              3:2
+              <span>{tripletPreset.label}</span>
+              <span className="tuplet-duration-label">8th</span>
+              <span className="shortcut-badge">{tripletPreset.shortcut}</span>
             </button>
           </div>
 
@@ -1261,13 +1384,15 @@ const App = () => {
         <div className="editor-status" aria-live="polite">
           <span>
             {noteInputState
-              ? 'Input cursor · A–G adds notes, R adds rests'
+              ? noteInputState.tupletInput
+                ? 'Triplet input · A–G adds notes, R adds rests, Esc cancels'
+                : 'Input cursor · A–G adds notes, R adds rests'
               : modeStatus[mode]}
           </span>
           <span>{durationLabels[durationValue]}</span>
           {noteInputState?.tupletInput ? (
-            <span>
-              Triplet {tupletMemberCount}/{noteInputState.tupletInput.actualNotes}
+            <span className="tuplet-progress">
+              {tripletPreset.label} {tupletProgress}
             </span>
           ) : null}
           {noteInputState ? (
@@ -1383,7 +1508,7 @@ const App = () => {
                 measureId
               })
             }}
-            score={score}
+            score={previewScore}
             playbackEventId={playback.activeEventId}
             selectedEventId={selectedEventId}
             selectedMeasureId={selectedMeasureId}
@@ -1401,7 +1526,10 @@ function resolveSelectionAfterClear(
 ): EditorSelection {
   const clearedEvent = locateEvent(nextScore, eventId)?.event
 
-  if (clearedEvent?.type === 'rest' && clearedEvent.fullMeasure) {
+  if (
+    clearedEvent?.type === 'rest' &&
+    (clearedEvent.fullMeasure || clearedEvent.duration.tuplet)
+  ) {
     return {
       type: 'event',
       eventId
@@ -1538,6 +1666,21 @@ function getEventIdBeforeInputCursor(
   return previousEvent?.id
 }
 
+function describeTupletProgress(state: NoteInputState): string {
+  const tupletInput = state.tupletInput
+
+  if (!tupletInput) {
+    return 'Triplet input is not active.'
+  }
+
+  const entered = tupletInput.members.length
+  const remaining = tupletInput.actualNotes - entered
+
+  return remaining > 0
+    ? `Triplet ${entered}/${tupletInput.actualNotes} staged. Add ${remaining} more.`
+    : 'Triplet completed.'
+}
+
 function describeDurationEditFailure(
   score: Score,
   selection: EditorSelection,
@@ -1606,6 +1749,11 @@ function toFileName(title: string): string {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
+}
+
+function commandHasEffects(command: ScoreCommand): boolean {
+  return command.type !== 'score.batch' ||
+    command.commands.some(commandHasEffects)
 }
 
 createRoot(document.getElementById('root') as HTMLElement).render(<App />)

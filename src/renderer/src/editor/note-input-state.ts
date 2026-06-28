@@ -20,7 +20,9 @@ import {
   type Score,
   type ScoreCommand,
   type Tick,
-  type VoiceAddress
+  type TupletGroup,
+  type VoiceAddress,
+  type VoiceEvent
 } from '../../../score-core'
 
 export type NoteInputMode = 'note' | 'rest'
@@ -109,6 +111,121 @@ export function cancelTupletInput(state: NoteInputState): NoteInputState {
     duration,
     tupletInput: undefined
   }
+}
+
+export function createTupletInputPreviewScore(
+  score: Score,
+  state: NoteInputState
+): Score {
+  const tupletInput = state.tupletInput
+
+  if (!tupletInput || tupletInput.members.length === 0) {
+    return score
+  }
+
+  const location = locateInputVoice(score, state.target)
+
+  if (!location) {
+    return score
+  }
+
+  const event = location.voice.events.find(
+    (candidate) => candidate.position.tick === state.tick
+  )
+  const memberTicks = durationToTicks(state.duration)
+  const groupEndTick = state.tick + memberTicks * tupletInput.actualNotes
+
+  if (
+    !event ||
+    event.type !== 'rest' ||
+    groupEndTick > measureDurationTicks(location.measure)
+  ) {
+    return score
+  }
+
+  const groupDuration = decomposeDurationTicks(
+    memberTicks * tupletInput.actualNotes
+  )
+
+  if (!groupDuration || groupDuration.length !== 1) {
+    return score
+  }
+
+  const spanCommand = buildRhythmEditCommand(score, {
+    target: state.target,
+    eventId: event.id,
+    event: createRest({
+      id: event.id,
+      position: event.position,
+      duration: groupDuration[0]
+    }),
+    createId: previewIdSequence(tupletInput.id, 'span-rest')
+  })
+
+  if (!spanCommand || spanCommand.type !== 'voice-events.replace') {
+    return score
+  }
+
+  let workingEvents = spanCommand.events.filter(
+    (candidate) => candidate.id !== event.id
+  )
+  let workingScore = replaceWorkingVoiceEvents(
+    score,
+    state.target,
+    workingEvents
+  )
+  const eventIds: string[] = []
+
+  for (let index = 0; index < tupletInput.actualNotes; index += 1) {
+    const member = tupletInput.members[index]
+    const position = createTimePosition(state.tick + memberTicks * index)
+    const eventId = `preview-${tupletInput.id}-${index + 1}`
+    const currentLocation = locateInputVoice(workingScore, state.target)
+
+    if (!currentLocation) {
+      return score
+    }
+
+    const previewEvent =
+      member?.mode === 'note' && member.step
+        ? createNote({
+            id: eventId,
+            position,
+            duration: state.duration,
+            pitch: createInputPitch(
+              currentLocation,
+              member.step,
+              position.tick,
+              member.accidental
+            )
+          })
+        : createRest({
+            id: eventId,
+            position,
+            duration: state.duration
+          })
+
+    eventIds.push(eventId)
+    workingEvents = sortVoiceEvents([...workingEvents, previewEvent])
+    workingScore = replaceWorkingVoiceEvents(
+      workingScore,
+      state.target,
+      workingEvents
+    )
+  }
+
+  return replaceWorkingVoiceContent(score, state.target, {
+    events: sortVoiceEvents([...workingEvents]),
+    tuplets: [
+      ...(location.voice.tuplets ?? []),
+      {
+        id: `preview-${tupletInput.id}`,
+        eventIds,
+        actualNotes: tupletInput.actualNotes,
+        normalNotes: tupletInput.normalNotes
+      }
+    ]
+  })
 }
 
 export function buildSequentialInput(
@@ -295,15 +412,31 @@ function buildTupletSequentialInput(
   }
   const members = [...tupletInput.members, member]
   const location = locateInputVoice(score, state.target)
+
+  if (!location) {
+    return undefined
+  }
+
   const event = location?.voice.events.find(
     (candidate) => candidate.position.tick === state.tick
   )
+
+  if (!event && state.tick === measureDurationTicks(location.measure)) {
+    return buildSequentialInputAfterMeasureEnd(
+      score,
+      state,
+      step,
+      createId,
+      location
+    )
+  }
+
   const memberTicks = durationToTicks(state.duration)
   const groupEndTick = state.tick + memberTicks * tupletInput.actualNotes
 
   if (
-    !location ||
     !event ||
+    event.type !== 'rest' ||
     groupEndTick > measureDurationTicks(location.measure)
   ) {
     return undefined
@@ -547,6 +680,55 @@ function replaceWorkingVoiceEvents(
           }
     )
   }
+}
+
+function replaceWorkingVoiceContent(
+  score: Score,
+  target: VoiceAddress,
+  content: {
+    events: VoiceEvent[]
+    tuplets: TupletGroup[]
+  }
+): Score {
+  return {
+    ...score,
+    parts: score.parts.map((part) =>
+      part.id !== target.partId
+        ? part
+        : {
+            ...part,
+            staves: part.staves.map((staff) =>
+              staff.id !== target.staffId
+                ? staff
+                : {
+                    ...staff,
+                    measures: staff.measures.map((measure) =>
+                      measure.id !== target.measureId
+                        ? measure
+                        : {
+                            ...measure,
+                            voices: measure.voices.map((voice) =>
+                              voice.id !== target.voiceId
+                                ? voice
+                                : {
+                                    ...voice,
+                                    events: content.events,
+                                    tuplets: content.tuplets
+                                  }
+                            )
+                          }
+                    )
+                  }
+            )
+          }
+    )
+  }
+}
+
+function previewIdSequence(prefix: string, kind: string): () => string {
+  let index = 0
+
+  return () => `preview-${prefix}-${kind}-${++index}`
 }
 
 function buildSequentialInputAfterMeasureEnd(

@@ -281,6 +281,31 @@ h2 {
   background: #fbfaf6;
 }
 
+.duration-strip .tuplet-button {
+  min-width: 108px;
+  font-weight: 700;
+}
+
+.tuplet-duration-label {
+  color: #647076;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.shortcut-badge {
+  display: inline-grid;
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0 5px;
+  border: 1px solid #c7c0b3;
+  border-radius: 4px;
+  color: #47616c;
+  background: #ffffff;
+  font-size: 0.72rem;
+  line-height: 1;
+  place-items: center;
+}
+
 .duration-strip > svg {
   margin: 0 4px 0 2px;
   color: #647076;
@@ -350,6 +375,11 @@ h2 {
 
 .editor-status .is-error {
   color: #a23228;
+  font-weight: 700;
+}
+
+.editor-status .tuplet-progress {
+  color: #3d545e;
   font-weight: 700;
 }
 
@@ -442,6 +472,18 @@ h2 {
 
 .notation-event {
   cursor: pointer;
+}
+
+.notation-event.is-preview {
+  color: #b43d2f;
+  cursor: default;
+  pointer-events: none;
+}
+
+.notation-event.is-preview path,
+.notation-event.is-preview rect {
+  fill: currentColor;
+  stroke: currentColor;
 }
 
 .notation-playhead {
