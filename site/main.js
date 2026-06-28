@@ -8,8 +8,8 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.1',
-  releaseTag: 'v0.1.0-alpha.1',
+  version: '0.1.0-alpha.2',
+  releaseTag: 'v0.1.0-alpha.2',
   releasePublished: false,
   releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases',
   checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases',
