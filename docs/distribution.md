@@ -51,6 +51,21 @@ Release에는 설치 파일과 `SHA256SUMS.txt`가 함께 게시된다.
 이미 존재하는 태그는 GitHub Actions의 `Release` workflow dispatch에서도
 선택할 수 있다. package version과 태그가 다르면 게시 전에 실패한다.
 
+## 버전과 브랜치 운영
+
+- 기능과 버그 수정은 이슈별 브랜치에서 작업하고 PR로 `main`에 squash merge한다.
+- `main`은 항상 다음 릴리즈 후보 상태로 유지한다.
+- 초기 배포 단계에서는 `0.1.0-alpha.N` prerelease를 사용하고, 사용자에게
+  전달할 빌드가 생길 때마다 `N`을 1씩 올린다.
+- 릴리즈 커밋은 `Prepare 0.1.0-alpha.N` 형식으로 `package.json`과
+  `package-lock.json` 버전만 포함한다.
+- 릴리즈 태그는 반드시 `v0.1.0-alpha.N` 형식으로 만들고, 태그는 해당
+  릴리즈 커밋을 가리킨다.
+- 태그는 재사용하지 않는다. 문제가 있으면 다음 alpha 버전으로 새 릴리즈를
+  만든다.
+- 릴리즈가 생성된 뒤 다운로드 페이지의 `site/download-manifest.json`을
+  새 태그와 산출물 정보로 갱신하고 `main`에 반영한다.
+
 ## 설치 경고
 
 ### macOS
