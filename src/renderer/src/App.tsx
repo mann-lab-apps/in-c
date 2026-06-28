@@ -374,7 +374,12 @@ const App = () => {
           setDurationValue(value)
           setFileStatus({
             tone: 'neutral',
-            message: `Duration changed to ${durationLabels[value]}.`
+            message: describeDurationEditSuccess(
+              score,
+              selection,
+              duration,
+              durationLabels[value]
+            )
           })
         } else {
           setFileStatus({
@@ -1681,6 +1686,32 @@ function describeTupletProgress(state: NoteInputState): string {
     : 'Triplet completed.'
 }
 
+function describeDurationEditSuccess(
+  score: Score,
+  selection: EditorSelection,
+  duration: Duration,
+  label: string
+): string {
+  if (selection.type !== 'event') {
+    return `Duration changed to ${label}.`
+  }
+
+  const location = locateEvent(score, selection.eventId)
+
+  if (!location) {
+    return `Duration changed to ${label}.`
+  }
+
+  const currentEndTick =
+    location.event.position.tick +
+    voiceEventDurationTicks(location.event, location.measure)
+  const nextEndTick = location.event.position.tick + durationToTicks(duration)
+
+  return nextEndTick > currentEndTick
+    ? `Duration changed to ${label} using following rests.`
+    : `Duration changed to ${label}.`
+}
+
 function describeDurationEditFailure(
   score: Score,
   selection: EditorSelection,
@@ -1722,16 +1753,44 @@ function describeDurationEditFailure(
 
   if (nextEndTick > currentEndTick) {
     const events = sortVoiceEvents(voice?.events ?? [])
-    const blockingEvent = events.find(
-      (event) =>
-        event.position.tick >= currentEndTick &&
-        event.position.tick < nextEndTick &&
-        event.type !== 'rest'
-    )
+    let coveredUntil = currentEndTick
 
-    return blockingEvent
-      ? 'Duration needs empty rest space, but the next note would be overwritten.'
-      : 'Duration needs more continuous rest space after the selected event.'
+    for (const event of events) {
+      if (event.position.tick >= nextEndTick) {
+        break
+      }
+
+      if (
+        event.id === location.event.id ||
+        event.position.tick + voiceEventDurationTicks(event, location.measure) <=
+          currentEndTick
+      ) {
+        continue
+      }
+
+      if (event.position.tick !== coveredUntil) {
+        return 'Duration needs continuous rest space after the selected event.'
+      }
+
+      if (event.type !== 'rest') {
+        return event.ties?.start || event.ties?.stop
+          ? `Duration is blocked by tied note ${event.id}.`
+          : `Duration is blocked by note ${event.id}.`
+      }
+
+      if (event.duration.tuplet) {
+        return 'Duration cannot consume tuplet rests; edit the tuplet group first.'
+      }
+
+      coveredUntil =
+        event.position.tick + voiceEventDurationTicks(event, location.measure)
+
+      if (coveredUntil >= nextEndTick) {
+        break
+      }
+    }
+
+    return 'Duration needs more continuous rest space after the selected event.'
   }
 
   return 'Duration cannot be changed while preserving the measure rhythm.'

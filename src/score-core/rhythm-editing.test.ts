@@ -282,6 +282,45 @@ describe('monophonic rhythm editing', () => {
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
   })
 
+  it('grows a selected rest by consuming following rests and keeping its id', () => {
+    const score = scoreWith([
+      rest('rest-1', 0, 'quarter'),
+      rest('rest-2', quarter, 'half'),
+      note('note-1', quarter * 3, 'quarter')
+    ])
+    const command = buildRhythmEditCommand(score, {
+      target,
+      eventId: 'rest-1',
+      event: rest('rest-1', 0, 'half'),
+      createId: idSequence('remaining-rest')
+    })
+    const result = applyScoreCommand(score, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'half' }
+      },
+      {
+        id: 'rest-2',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'note-1',
+        position: { tick: quarter * 3 }
+      }
+    ])
+    expect(command).toMatchObject({
+      editedEventId: 'rest-1'
+    })
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
   it('rejects growth that would consume a note or cross the measure boundary', () => {
     const blockedByNote = scoreWith([
       note('note-1', 0, 'quarter'),
