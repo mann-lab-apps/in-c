@@ -418,6 +418,45 @@ async function verifyKeyboardRouting(window) {
   await loadFixture(window)
   await window.webContents.executeJavaScript(`
     document.querySelector(
+      '.notation-event[data-event-id="m6-e5"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '3'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const durationShortcutConsumesRest = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        pressedDuration: document.querySelector(
+          '.duration-strip button[aria-pressed="true"]'
+        )?.textContent?.trim(),
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
       '.notation-event[data-event-id="m4-f-natural-1"]'
     )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
@@ -731,7 +770,14 @@ async function verifyKeyboardRouting(window) {
     durationShortcutFailure.eventCount !== initialEventCount ||
     durationShortcutFailure.pressedDuration !== 'Quarter' ||
     durationShortcutFailure.errorMessage !==
-      'Duration needs empty rest space, but the next note would be overwritten.' ||
+      'Duration is blocked by note m1-d4.' ||
+    durationShortcutConsumesRest.editCount !== '1 edits' ||
+    durationShortcutConsumesRest.eventCount !== initialEventCount ||
+    durationShortcutConsumesRest.pressedDuration !== 'Quarter' ||
+    durationShortcutConsumesRest.selectedEvent !== 'm6-e5' ||
+    durationShortcutConsumesRest.status !==
+      'Duration changed to Quarter using following rests.' ||
+    durationShortcutConsumesRest.type !== 'note' ||
     !tripletButton.ariaLabel?.includes('shortcut T') ||
     tripletButton.shortcut !== 'T' ||
     tripletButton.editCount !== '1 edits' ||
@@ -779,6 +825,7 @@ async function verifyKeyboardRouting(window) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
         durationShortcutChange,
+        durationShortcutConsumesRest,
         durationShortcutCursor,
         durationShortcutFailure,
         initialEventCount,
@@ -809,6 +856,7 @@ async function verifyKeyboardRouting(window) {
     cursorRestInput,
     endCursor,
     durationShortcutChange,
+    durationShortcutConsumesRest,
     durationShortcutCursor,
     durationShortcutFailure,
     fullRestToNote,
