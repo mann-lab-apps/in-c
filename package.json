@@ -2,7 +2,7 @@
   "name": "in-c",
   "productName": "in-C",
   "desktopName": "in-c.desktop",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "description": "Electron-based notation editor inspired by modern scorewriting workflows.",
   "author": "mann-lab-apps",
   "homepage": "https://github.com/mann-lab-apps/in-c",
