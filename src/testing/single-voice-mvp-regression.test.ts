@@ -106,7 +106,18 @@ describe('single-voice MVP regression', () => {
     })
     const deleted = applyScoreCommand(shortened.score, deleteCommand!)
 
-    expect(locateEvent(deleted.score, 'm4-g4')?.event.type).toBe('rest')
+    expect(locateEvent(deleted.score, 'm4-f-natural-2')?.event).toMatchObject({
+      type: 'note',
+      duration: { value: 'quarter' },
+      ties: { start: true }
+    })
+    expect(locateEvent(deleted.score, 'm4-g4')?.event).toMatchObject({
+      type: 'note',
+      pitch: { step: 'F', octave: 4, alter: 0 },
+      duration: { value: 'quarter' },
+      ties: { stop: true }
+    })
+    expect(validateTieRelations(deleted.score)).toEqual([])
 
     const undoDelete = applyScoreCommand(deleted.score, deleted.undo)
     const undoDuration = applyScoreCommand(undoDelete.score, shortened.undo)

@@ -457,6 +457,110 @@ async function verifyKeyboardRouting(window) {
   await loadFixture(window)
   await window.webContents.executeJavaScript(`
     document.querySelector(
+      '.notation-event[data-event-id="m5-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: '3'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const restDurationShrink = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        pressedDuration: document.querySelector(
+          '.duration-strip button[aria-pressed="true"]'
+        )?.textContent?.trim(),
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'Backspace'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const restDeleteAfterShrink = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m4-g4"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'Backspace'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const noteDeleteAbsorbsPrevious = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        selectedEvent: inspectorValues[1],
+        status: [...document.querySelectorAll('.editor-status span')]
+          .at(-1)?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
       '.notation-event[data-event-id="m4-f-natural-1"]'
     )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
   `)
@@ -778,6 +882,22 @@ async function verifyKeyboardRouting(window) {
     durationShortcutConsumesRest.status !==
       'Duration changed to Quarter using following rests.' ||
     durationShortcutConsumesRest.type !== 'note' ||
+    restDurationShrink.editCount !== '1 edits' ||
+    restDurationShrink.eventCount !== initialEventCount + 1 ||
+    restDurationShrink.pressedDuration !== 'Quarter' ||
+    restDurationShrink.selectedEvent !== 'm5-half-rest' ||
+    restDurationShrink.status !== 'Rest duration changed to Quarter.' ||
+    restDurationShrink.type !== 'rest' ||
+    restDeleteAfterShrink.editCount !== '2 edits' ||
+    restDeleteAfterShrink.eventCount !== initialEventCount ||
+    restDeleteAfterShrink.selectedEvent !== 'm5-g4' ||
+    restDeleteAfterShrink.status !== 'Rest deleted' ||
+    restDeleteAfterShrink.type !== 'note' ||
+    noteDeleteAbsorbsPrevious.editCount !== '1 edits' ||
+    noteDeleteAbsorbsPrevious.eventCount !== initialEventCount ||
+    noteDeleteAbsorbsPrevious.selectedEvent !== 'm4-a4' ||
+    noteDeleteAbsorbsPrevious.status !== 'Note deleted' ||
+    noteDeleteAbsorbsPrevious.type !== 'note' ||
     !tripletButton.ariaLabel?.includes('shortcut T') ||
     tripletButton.shortcut !== 'T' ||
     tripletButton.editCount !== '1 edits' ||
@@ -816,11 +936,12 @@ async function verifyKeyboardRouting(window) {
     tripletDottedRestStart.editCount !== '0 edits' ||
     tripletDottedRestStart.progress ||
     tripletDottedRestStart.status !== 'Select · A–G edits selected note or rest' ||
-    tripletBackspaceClear.editCount !== '1 edits' ||
+    tripletBackspaceClear.editCount !== '0 edits' ||
     tripletBackspaceClear.selectedEvent !== 'm7-triplet-c5' ||
-    tripletBackspaceClear.status !== 'Note cleared to rest' ||
+    tripletBackspaceClear.status !==
+      'Tuplet members cannot be deleted independently yet.' ||
     tripletBackspaceClear.tupletCount !== 1 ||
-    tripletBackspaceClear.type !== 'rest'
+    tripletBackspaceClear.type !== 'note'
   ) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
@@ -829,6 +950,9 @@ async function verifyKeyboardRouting(window) {
         durationShortcutCursor,
         durationShortcutFailure,
         initialEventCount,
+        noteDeleteAbsorbsPrevious,
+        restDeleteAfterShrink,
+        restDurationShrink,
         selectMode,
         cursorNoteInput,
         cursorRestInput,
@@ -860,6 +984,9 @@ async function verifyKeyboardRouting(window) {
     durationShortcutCursor,
     durationShortcutFailure,
     fullRestToNote,
+    noteDeleteAbsorbsPrevious,
+    restDeleteAfterShrink,
+    restDurationShrink,
     restShortcutConvertsSelection,
     restToNote,
     textInputShortcuts,

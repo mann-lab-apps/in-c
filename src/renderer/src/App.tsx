@@ -702,9 +702,9 @@ const App = () => {
       setFileStatus({
         tone: 'error',
         message:
-          eventLocation.event.type === 'rest'
-            ? 'Selected rest is already empty. Adjacent rests can be merged.'
-            : 'Tied notes must be untied before clearing.'
+          eventLocation.event.duration.tuplet
+            ? 'Tuplet members cannot be deleted independently yet.'
+            : 'Tied notes must be untied before deleting.'
       })
       return
     }
@@ -726,8 +726,8 @@ const App = () => {
       tone: 'neutral',
       message:
         eventLocation.event.type === 'rest'
-          ? 'Adjacent rests merged'
-          : 'Note cleared to rest'
+          ? 'Rest deleted'
+          : 'Note deleted'
     })
   }, [eventLocation, noteInputState, score, selection])
 
@@ -1706,10 +1706,11 @@ function describeDurationEditSuccess(
     location.event.position.tick +
     voiceEventDurationTicks(location.event, location.measure)
   const nextEndTick = location.event.position.tick + durationToTicks(duration)
+  const subject = location.event.type === 'rest' ? 'Rest duration' : 'Duration'
 
   return nextEndTick > currentEndTick
-    ? `Duration changed to ${label} using following rests.`
-    : `Duration changed to ${label}.`
+    ? `${subject} changed to ${label} using following rests.`
+    : `${subject} changed to ${label}.`
 }
 
 function describeDurationEditFailure(
