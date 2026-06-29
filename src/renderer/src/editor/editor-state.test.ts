@@ -13,7 +13,8 @@ import {
   createTimePosition,
   createVoice,
   validateMeasureRhythm,
-  type Score
+  type Score,
+  type VoiceEvent
 } from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
 import {
@@ -139,6 +140,49 @@ describe('editor state', () => {
           value: 'half',
           dots: 1
         }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('keeps a selected mid-measure rest while pulling following events forward', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      rest('middle-rest', TICKS_PER_QUARTER, 'half'),
+      note('note-2', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const command = buildDurationCommand(
+      score,
+      { type: 'event', eventId: 'middle-rest' },
+      createDuration('quarter'),
+      () => 'released-rest'
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+
+    expect(command).toMatchObject({
+      editedEventId: 'middle-rest'
+    })
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'note-1',
+        position: { tick: 0 }
+      },
+      {
+        id: 'middle-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER },
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'note-2',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      },
+      {
+        id: 'released-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 3 },
+        duration: { value: 'quarter' }
       }
     ])
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
@@ -538,21 +582,34 @@ describe('editor state', () => {
   it('builds delete commands and traverses events in score order', () => {
     expect(getAdjacentEventId(demoScore, 'note-f-sharp-4', 1)).toBe('note-g4')
     expect(getAdjacentEventId(demoScore, 'note-c4', -1)).toBeUndefined()
-    expect(
-      buildDeleteCommand(demoScore, {
-        type: 'event',
-        eventId: 'note-d4'
-      })
-    ).toMatchObject({
-      type: 'voice-events.replace',
-      editedEventId: 'note-d4',
-      events: expect.arrayContaining([
+    const command = buildDeleteCommand(demoScore, {
+      type: 'event',
+      eventId: 'note-d4'
+    })
+
+    expect(command).toMatchObject({
+      type: 'voice-events.replace'
+    })
+    if (command?.type !== 'voice-events.replace') {
+      throw new Error('Expected a voice event replacement command')
+    }
+    expect(command.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'note-c4',
+          type: 'note',
+          duration: expect.objectContaining({ value: 'quarter' }),
+          ties: expect.objectContaining({ start: true })
+        }),
         expect.objectContaining({
           id: 'note-d4',
-          type: 'rest'
+          type: 'note',
+          pitch: expect.objectContaining({ step: 'C', octave: 4 }),
+          duration: expect.objectContaining({ value: 'quarter' }),
+          ties: expect.objectContaining({ stop: true })
         })
       ])
-    })
+    )
   })
 })
 
@@ -563,6 +620,56 @@ function readEvent(score: Score, eventId: string) {
     .flatMap((measure) => measure.voices)
     .flatMap((voice) => voice.events)
     .find((event) => event.id === eventId)
+}
+
+function scoreWith(events: VoiceEvent[]): Score {
+  return createScore({
+    parts: [
+      createPart({
+        staves: [
+          createStaff({
+            measures: [
+              createMeasure({
+                voices: [
+                  createVoice({
+                    events
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function note(
+  id: string,
+  tick: number,
+  value: Parameters<typeof createDuration>[0]
+) {
+  return createNote({
+    id,
+    position: createTimePosition(tick),
+    pitch: {
+      step: 'C',
+      octave: 4
+    },
+    duration: createDuration(value)
+  })
+}
+
+function rest(
+  id: string,
+  tick: number,
+  value: Parameters<typeof createDuration>[0]
+) {
+  return createRest({
+    id,
+    position: createTimePosition(tick),
+    duration: createDuration(value)
+  })
 }
 
 function idSequence(prefix: string): () => string {
