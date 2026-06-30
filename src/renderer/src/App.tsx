@@ -24,6 +24,7 @@ import {
   Plus,
   RotateCcw,
   RotateCw,
+  Save,
   Square,
   Unlink2
 } from 'lucide-react'
@@ -851,7 +852,7 @@ const App = () => {
     }
   }, [])
 
-  const exportMusicXml = useCallback(async () => {
+  const saveMusicXml = useCallback(async () => {
     try {
       const contents = serializeMusicXml(score)
       const result = await window.inC.musicXml.save({
@@ -865,7 +866,7 @@ const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName} exported`
+        message: `${result.fileName} saved`
       })
     } catch (error) {
       setFileStatus({
@@ -874,6 +875,28 @@ const App = () => {
       })
     }
   }, [score])
+
+  const savePdf = useCallback(async () => {
+    try {
+      const result = await window.inC.pdf.save({
+        suggestedName: `${toFileName(score.title)}.pdf`
+      })
+
+      if (!result) {
+        return
+      }
+
+      setFileStatus({
+        tone: 'neutral',
+        message: `${result.fileName} converted to PDF`
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: getErrorMessage(error)
+      })
+    }
+  }, [score.title])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1110,14 +1133,18 @@ const App = () => {
       <section className="workspace" aria-label="Notation editor">
         <header className="toolbar">
           <div className="toolbar__group">
-            <div className="file-actions" aria-label="MusicXML file actions">
+            <div className="file-actions" aria-label="File actions">
               <button onClick={importMusicXml} type="button">
                 <FileUp aria-hidden="true" size={17} />
-                <span>Import</span>
+                <span>가져오기</span>
               </button>
-              <button onClick={exportMusicXml} type="button">
+              <button onClick={saveMusicXml} type="button">
+                <Save aria-hidden="true" size={17} />
+                <span>저장하기</span>
+              </button>
+              <button onClick={savePdf} type="button">
                 <FileDown aria-hidden="true" size={17} />
-                <span>Export</span>
+                <span>PDF 변환</span>
               </button>
             </div>
 
