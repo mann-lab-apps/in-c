@@ -963,6 +963,16 @@ const App = () => {
         return
       }
 
+      if (isRestShortcut(event) && !event.altKey && !usesCommandKey) {
+        event.preventDefault()
+        if (noteInputState) {
+          enterRest()
+        } else {
+          convertSelectionToRest()
+        }
+        return
+      }
+
       switch (event.key) {
         case '.':
           event.preventDefault()
@@ -979,15 +989,6 @@ const App = () => {
             playback.pause()
           } else {
             playback.play()
-          }
-          break
-        case 'r':
-        case 'R':
-          event.preventDefault()
-          if (noteInputState) {
-            enterRest()
-          } else {
-            convertSelectionToRest()
           }
           break
         case 't':
@@ -1603,6 +1604,10 @@ function resolveSelectionAfterClear(
 
 function createInputId(kind: 'event' | 'measure'): string {
   return `${kind}-${crypto.randomUUID()}`
+}
+
+function isRestShortcut(event: KeyboardEvent): boolean {
+  return event.code === 'KeyR' || event.key === 'r' || event.key === 'R'
 }
 
 function createInitialScore(): Score {

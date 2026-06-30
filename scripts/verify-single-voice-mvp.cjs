@@ -152,6 +152,53 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m8-half-rest"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'ArrowRight'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyR',
+        key: 'ㄱ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const koreanCursorRestInput = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        hasInputCursor: Boolean(
+          document.querySelector('.notation-input-cursor')
+        ),
+        status: document.querySelector('.editor-status span')?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
   await window.webContents.executeJavaScript(`
     document.querySelector('input[aria-label="Tempo"]')?.dispatchEvent(
       new KeyboardEvent('keydown', {
@@ -167,6 +214,17 @@ async function verifyKeyboardRouting(window) {
       new KeyboardEvent('keydown', {
         bubbles: true,
         key: '2'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await window.webContents.executeJavaScript(`
+    document.querySelector('input[aria-label="Tempo"]')?.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyR',
+        key: 'ㄱ',
+        isComposing: true
       })
     )
   `)
@@ -195,6 +253,38 @@ async function verifyKeyboardRouting(window) {
   await new Promise((resolve) => setTimeout(resolve, 150))
 
   const restShortcutConvertsSelection = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith(' edits'))
+          ?.textContent,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        hasInputCursor: Boolean(
+          document.querySelector('.notation-input-cursor')
+        ),
+        status: document.querySelector('.editor-status span')?.textContent,
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyR',
+        key: 'ㄱ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const koreanRestShortcutConvertsSelection = await window.webContents.executeJavaScript(`
     (() => {
       const inspectorValues = [
         ...document.querySelectorAll('.inspector dd')
@@ -845,6 +935,11 @@ async function verifyKeyboardRouting(window) {
     cursorRestInput.eventCount !== initialEventCount + 2 ||
     !cursorRestInput.status?.startsWith('Input cursor') ||
     cursorRestInput.type !== 'rest' ||
+    !koreanCursorRestInput.hasInputCursor ||
+    koreanCursorRestInput.editCount !== '1 edits' ||
+    koreanCursorRestInput.eventCount !== initialEventCount + 2 ||
+    !koreanCursorRestInput.status?.startsWith('Input cursor') ||
+    koreanCursorRestInput.type !== 'rest' ||
     textInputShortcuts.editCount !== cursorRestInput.editCount ||
     textInputShortcuts.pressedDuration !== 'Quarter' ||
     restShortcutConvertsSelection.eventCount !== initialEventCount ||
@@ -852,6 +947,11 @@ async function verifyKeyboardRouting(window) {
     restShortcutConvertsSelection.hasInputCursor ||
     !restShortcutConvertsSelection.status?.startsWith('Select') ||
     restShortcutConvertsSelection.type !== 'rest' ||
+    koreanRestShortcutConvertsSelection.eventCount !== initialEventCount ||
+    koreanRestShortcutConvertsSelection.editCount !== '1 edits' ||
+    koreanRestShortcutConvertsSelection.hasInputCursor ||
+    !koreanRestShortcutConvertsSelection.status?.startsWith('Select') ||
+    koreanRestShortcutConvertsSelection.type !== 'rest' ||
     restToNote.eventCount !== initialEventCount ||
     restToNote.hasInputCursor ||
     restToNote.editCount !== '1 edits' ||
@@ -950,6 +1050,8 @@ async function verifyKeyboardRouting(window) {
         durationShortcutCursor,
         durationShortcutFailure,
         initialEventCount,
+        koreanCursorRestInput,
+        koreanRestShortcutConvertsSelection,
         noteDeleteAbsorbsPrevious,
         restDeleteAfterShrink,
         restDurationShrink,
@@ -984,6 +1086,8 @@ async function verifyKeyboardRouting(window) {
     durationShortcutCursor,
     durationShortcutFailure,
     fullRestToNote,
+    koreanCursorRestInput,
+    koreanRestShortcutConvertsSelection,
     noteDeleteAbsorbsPrevious,
     restDeleteAfterShrink,
     restDurationShrink,
