@@ -20,6 +20,7 @@ import {
   buildInsertMeasureAfter,
   buildRemoveMeasure
 } from '../renderer/src/editor/measure-management'
+import { createNewScore } from '../renderer/src/editor/new-score'
 import {
   buildSequentialInput,
   createNoteInputState
@@ -153,6 +154,43 @@ describe('single-voice MVP regression', () => {
     expect(roundTrip).toMatchObject({
       title: '새 악보 제목',
       composer: '김작곡'
+    })
+  })
+
+  it('creates an input-ready score from new score settings', () => {
+    const score = createNewScore({
+      title: '현악 연습곡',
+      composer: '김작곡',
+      partName: 'Violin',
+      partAbbreviation: 'Vln.',
+      keySignature: { fifths: 2, mode: 'major' },
+      timeSignature: { beats: 3, beatType: 4 },
+      measureCount: 5
+    })
+    const part = score.parts[0]
+    const measures = part.staves[0].measures
+
+    expect(score).toMatchObject({
+      title: '현악 연습곡',
+      composer: '김작곡'
+    })
+    expect(part).toMatchObject({
+      name: 'Violin',
+      abbreviation: 'Vln.'
+    })
+    expect(measures).toHaveLength(5)
+    measures.forEach((measure, index) => {
+      expect(measure).toMatchObject({
+        number: index + 1,
+        keySignature: { fifths: 2, mode: 'major' },
+        timeSignature: { beats: 3, beatType: 4 }
+      })
+      expect(measure.voices[0].events).toHaveLength(1)
+      expect(measure.voices[0].events[0]).toMatchObject({
+        type: 'rest',
+        fullMeasure: true
+      })
+      expect(validateMeasureRhythm(measure).isExact).toBe(true)
     })
   })
 
