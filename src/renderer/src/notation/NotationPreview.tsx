@@ -47,6 +47,8 @@ interface NotationPreviewProps {
 }
 
 const MIN_RENDER_WIDTH = 560
+const STABLE_BEAM_MAX_SLOPE = 0.12
+const STABLE_BEAM_SLOPE_COST = 220
 
 interface CursorPoint {
   x: number
@@ -183,19 +185,18 @@ export function NotationPreview({
           notesByEventId.set(eventId, note)
           systemsByEventId.set(eventId, placement.systemIndex)
         })
-        const beams = createBeamGroups(measure, voice).map(
-          (group) =>
-            new Beam(
-              group.eventIds.map((eventId) => {
-                const note = measureNotesByEventId.get(eventId)
+        const beams = createBeamGroups(measure, voice).map((group) =>
+          createStableBeam(
+            group.eventIds.map((eventId) => {
+              const note = measureNotesByEventId.get(eventId)
 
-                if (!note) {
-                  throw new Error(`Beam event not found: ${eventId}`)
-                }
+              if (!note) {
+                throw new Error(`Beam event not found: ${eventId}`)
+              }
 
-                return note
-              })
-            )
+              return note
+            })
+          )
         )
         const tuplets = (voice.tuplets ?? []).map((group) => {
           const groupEvents = group.eventIds.map((eventId) =>
@@ -369,6 +370,16 @@ function drawTie(
 
 function isPreviewEventId(eventId: string): boolean {
   return eventId.startsWith('preview-')
+}
+
+function createStableBeam(notes: StaveNote[]): Beam {
+  const beam = new Beam(notes, true)
+
+  beam.renderOptions.maxSlope = STABLE_BEAM_MAX_SLOPE
+  beam.renderOptions.minSlope = -STABLE_BEAM_MAX_SLOPE
+  beam.renderOptions.slopeCost = STABLE_BEAM_SLOPE_COST
+
+  return beam
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {

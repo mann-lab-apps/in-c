@@ -1091,6 +1091,109 @@ async function verifyOutOfStaffNotes(window) {
   return results
 }
 
+async function verifyBeamRendering(window) {
+  await loadFixture(window)
+
+  const before = await readBeamMetrics(window)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m2-7"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const after = await readBeamMetrics(window)
+  const maxSlope = Math.max(
+    ...before.beamFaces.map((beam) => Math.abs(beam.slope)),
+    ...after.beamFaces.map((beam) => Math.abs(beam.slope))
+  )
+  const result = {
+    after,
+    before,
+    maxSlope
+  }
+
+  if (
+    before.beamFaces.length < 4 ||
+    after.beamFaces.length !== before.beamFaces.length ||
+    maxSlope > 0.13 ||
+    JSON.stringify(after.signatures) !== JSON.stringify(before.signatures)
+  ) {
+    throw new Error(`Beam rendering verification failed: ${JSON.stringify(result)}`)
+  }
+
+  return result
+}
+
+async function readBeamMetrics(window) {
+  return window.webContents.executeJavaScript(`
+    (() => {
+      const beamFaces = [...document.querySelectorAll('.vf-beam path')]
+        .map((path) => {
+          const box = path.getBBox()
+
+          if (box.width < 8 || box.height > 24) {
+            return undefined
+          }
+
+          const d = path.getAttribute('d') ?? ''
+          const values = [...d.matchAll(/-?\\d+(?:\\.\\d+)?/g)]
+            .map((match) => Number(match[0]))
+
+          if (values.length < 4) {
+            return undefined
+          }
+
+          const points = []
+
+          for (let index = 0; index < values.length - 1; index += 2) {
+            points.push({
+              x: values[index],
+              y: values[index + 1]
+            })
+          }
+
+          const minX = Math.min(...points.map((point) => point.x))
+          const maxX = Math.max(...points.map((point) => point.x))
+          const leftY = average(
+            points
+              .filter((point) => point.x === minX)
+              .map((point) => point.y)
+          )
+          const rightY = average(
+            points
+              .filter((point) => point.x === maxX)
+              .map((point) => point.y)
+          )
+          const width = maxX - minX
+          const slope = width === 0 ? 0 : (rightY - leftY) / width
+
+          return {
+            box: {
+              height: box.height,
+              width: box.width,
+              x: box.x,
+              y: box.y
+            },
+            d,
+            slope
+          }
+        })
+        .filter(Boolean)
+
+      return {
+        beamFaces,
+        signatures: beamFaces.map((beam) => beam.d)
+      }
+
+      function average(values) {
+        return values.reduce((sum, value) => sum + value, 0) / values.length
+      }
+    })()
+  `)
+}
+
 async function verifyMetadataEditing(window) {
   await loadFixture(window)
 
@@ -1421,6 +1524,7 @@ app.whenReady().then(async () => {
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
   const metadata = await verifyMetadataEditing(window)
+  const beams = await verifyBeamRendering(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
   await loadFixture(window)
 
@@ -1453,7 +1557,15 @@ app.whenReady().then(async () => {
 
   console.log(
     JSON.stringify(
-      { keyboard, fileActions, metadata, outOfStaffNotes, desktop, minimum },
+      {
+        keyboard,
+        beams,
+        fileActions,
+        metadata,
+        outOfStaffNotes,
+        desktop,
+        minimum
+      },
       null,
       2
     )
