@@ -1234,6 +1234,36 @@ async function verifyMetadataEditing(window) {
   return result
 }
 
+async function verifyFileActions(window) {
+  await loadFixture(window)
+
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const labels = [
+        ...document.querySelectorAll('.file-actions button span')
+      ].map((label) => label.textContent?.trim())
+
+      return {
+        ariaLabel: document
+          .querySelector('.file-actions')
+          ?.getAttribute('aria-label'),
+        labels
+      }
+    })()
+  `)
+
+  if (
+    result.ariaLabel !== 'File actions' ||
+    result.labels.includes('Export') ||
+    !result.labels.includes('저장하기') ||
+    !result.labels.includes('PDF 변환')
+  ) {
+    throw new Error(`File actions verification failed: ${JSON.stringify(result)}`)
+  }
+
+  return result
+}
+
 async function editMetadataField(window, field, value, key) {
   await openMetadataField(window, field)
   const label = field === 'title' ? 'Score title' : 'Score composer'
@@ -1389,6 +1419,7 @@ app.whenReady().then(async () => {
 
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
+  const fileActions = await verifyFileActions(window)
   const metadata = await verifyMetadataEditing(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
   await loadFixture(window)
@@ -1422,7 +1453,7 @@ app.whenReady().then(async () => {
 
   console.log(
     JSON.stringify(
-      { keyboard, metadata, outOfStaffNotes, desktop, minimum },
+      { keyboard, fileActions, metadata, outOfStaffNotes, desktop, minimum },
       null,
       2
     )

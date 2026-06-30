@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
+const savePdfChannel = 'pdf:save'
 
 const api = {
   appName: 'in-C',
@@ -18,6 +19,12 @@ const api = {
       } | null>,
     save: (input: { suggestedName: string; contents: string }) =>
       ipcRenderer.invoke(saveMusicXmlChannel, input) as Promise<{
+        fileName: string
+      } | null>
+  },
+  pdf: {
+    save: (input: { suggestedName: string }) =>
+      ipcRenderer.invoke(savePdfChannel, input) as Promise<{
         fileName: string
       } | null>
   }

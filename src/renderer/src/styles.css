@@ -516,3 +516,51 @@ h2 {
     padding-left: 18px;
   }
 }
+
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+@media print {
+  :root,
+  body {
+    background: #ffffff;
+  }
+
+  body {
+    min-height: 0;
+  }
+
+  .app-shell,
+  .workspace {
+    display: block;
+    min-height: 0;
+    background: #ffffff;
+  }
+
+  .sidebar,
+  .toolbar,
+  .playback-strip,
+  .editor-status {
+    display: none;
+  }
+
+  .score-page {
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .metadata-display,
+  .metadata-input {
+    border-color: transparent;
+  }
+
+  .notation-preview {
+    overflow: visible;
+  }
+}

@@ -5,6 +5,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
+const savePdfChannel = 'pdf:save'
 const isSmokeTest = process.argv.includes('--smoke-test')
 
 ipcMain.handle(openMusicXmlChannel, async () => {
@@ -41,7 +42,7 @@ ipcMain.handle(
     }
   ) => {
     const result = await dialog.showSaveDialog({
-      title: 'MusicXML 내보내기',
+      title: 'MusicXML 저장하기',
       defaultPath: input.suggestedName,
       filters: [
         {
@@ -56,6 +57,48 @@ ipcMain.handle(
     }
 
     await writeFile(result.filePath, input.contents, 'utf8')
+    return {
+      fileName: basename(result.filePath)
+    }
+  }
+)
+
+ipcMain.handle(
+  savePdfChannel,
+  async (
+    event,
+    input: {
+      suggestedName: string
+    }
+  ) => {
+    const result = await dialog.showSaveDialog({
+      title: 'PDF 변환',
+      defaultPath: input.suggestedName,
+      filters: [
+        {
+          name: 'PDF',
+          extensions: ['pdf']
+        }
+      ]
+    })
+
+    if (result.canceled || !result.filePath) {
+      return null
+    }
+
+    const senderWindow = BrowserWindow.fromWebContents(event.sender)
+
+    if (!senderWindow) {
+      throw new Error('PDF를 생성할 창을 찾을 수 없습니다.')
+    }
+
+    const pdfData = await senderWindow.webContents.printToPDF({
+      preferCSSPageSize: true,
+      printBackground: true
+    })
+
+    await writeFile(result.filePath, pdfData)
+
     return {
       fileName: basename(result.filePath)
     }
@@ -97,6 +140,7 @@ const createWindow = (): void => {
           hasMusicXmlBridge:
             typeof window.inC?.musicXml?.open === 'function' &&
             typeof window.inC?.musicXml?.save === 'function',
+          hasPdfBridge: typeof window.inC?.pdf?.save === 'function',
           hasNotation: Boolean(document.querySelector('.notation-preview svg')),
           hasToolbar: Boolean(document.querySelector('.toolbar'))
         })
@@ -105,6 +149,7 @@ const createWindow = (): void => {
       if (
         result.appName !== 'in-C' ||
         !result.hasMusicXmlBridge ||
+        !result.hasPdfBridge ||
         !result.hasNotation ||
         !result.hasToolbar
       ) {
