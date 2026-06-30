@@ -1471,6 +1471,116 @@ async function verifyFileActions(window) {
   return result
 }
 
+async function verifyNewScoreWizard(window) {
+  await loadFixture(window)
+
+  await executeMetadataStep(
+    window,
+    'open new score wizard',
+    `
+    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await executeMetadataStep(
+    window,
+    'fill new score wizard',
+    `
+    const setInputValue = (input, value) => {
+      if (!input) {
+        throw new Error('New score input not found.')
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value'
+      ).set
+      setter.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    const setSelectValue = (select, value) => {
+      if (!select) {
+        throw new Error('New score select not found.')
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        'value'
+      ).set
+      setter.call(select, value)
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+    const labels = [...document.querySelectorAll('.new-score-form label')]
+    const field = (name) =>
+      labels.find((label) => label.textContent?.includes(name))
+        ?.querySelector('input, select')
+
+    setInputValue(field('제목'), '새 출발')
+    setInputValue(field('작곡가'), '김작곡')
+    setSelectValue(field('파트'), 'violin')
+    setSelectValue(field('조표'), 'd-major')
+    setSelectValue(field('박자표'), '3-4')
+    setInputValue(field('마디 수'), '3')
+    setInputValue(field('템포'), '96')
+    document
+      .querySelector('form[aria-label="새 악보 만들기"]')
+      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+      const statusValues = [
+        ...document.querySelectorAll('.editor-status span')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        title: document
+          .querySelector('button[aria-label="Edit score title"]')
+          ?.textContent?.trim(),
+        sidebarTitle: document.querySelector('.sidebar h1')?.textContent?.trim(),
+        composer: document
+          .querySelector('button[aria-label="Edit score composer"]')
+          ?.textContent?.trim(),
+        measureCount: document.querySelectorAll('.notation-measure').length,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        selectedType: inspectorValues[0],
+        selectedEvent: inspectorValues[1],
+        selectedMeasure: inspectorValues[2],
+        tempo: document.querySelector('.tempo-control output')?.textContent?.trim(),
+        status: statusValues.at(-1),
+        dialogOpen: Boolean(
+          document.querySelector('form[aria-label="새 악보 만들기"]')
+        )
+      }
+    })()
+  `)
+
+  if (
+    result.title !== '새 출발' ||
+    result.sidebarTitle !== '새 출발' ||
+    result.composer !== '김작곡' ||
+    result.measureCount !== 3 ||
+    result.eventCount !== 3 ||
+    result.selectedType !== 'rest' ||
+    result.selectedEvent !== 'measure-1-full-measure-rest' ||
+    result.selectedMeasure !== '1' ||
+    result.tempo !== '96 BPM' ||
+    result.status !== '새 악보를 만들었습니다.' ||
+    result.dialogOpen
+  ) {
+    throw new Error(
+      `New score wizard verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
 async function editMetadataField(window, field, value, key) {
   await openMetadataField(window, field)
   const label = field === 'title' ? 'Score title' : 'Score composer'
@@ -1627,6 +1737,7 @@ app.whenReady().then(async () => {
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
+  const newScore = await verifyNewScoreWizard(window)
   const metadata = await verifyMetadataEditing(window)
   const beams = await verifyBeamRendering(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
@@ -1665,6 +1776,7 @@ app.whenReady().then(async () => {
         keyboard,
         beams,
         fileActions,
+        newScore,
         metadata,
         outOfStaffNotes,
         desktop,

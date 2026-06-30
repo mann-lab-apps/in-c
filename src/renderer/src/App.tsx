@@ -16,6 +16,7 @@ import {
   Clock3,
   Eraser,
   FileDown,
+  FilePlus2,
   FileUp,
   Link2,
   Minus,
@@ -66,6 +67,15 @@ import {
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
+import {
+  createNewScore,
+  keySignaturePresets,
+  partPresets,
+  resolveKeySignaturePreset,
+  resolvePartPreset,
+  resolveTimeSignaturePreset,
+  timeSignaturePresets
+} from './editor/new-score'
 import {
   buildAccidentalCommand,
   buildPitchMovementCommand,
@@ -143,6 +153,16 @@ interface MetadataEdit {
   value: string
 }
 
+interface NewScoreDraft {
+  title: string
+  composer: string
+  partPresetId: string
+  keySignatureId: string
+  timeSignatureId: string
+  measureCount: number
+  tempo: number
+}
+
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
   composer: 80
@@ -159,6 +179,7 @@ const App = () => {
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
+  const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
   const [fileStatus, setFileStatus] = useState<{
     tone: 'neutral' | 'error'
     message: string
@@ -353,6 +374,63 @@ const App = () => {
     },
     [cancelMetadataEdit, commitMetadataEdit]
   )
+
+  const openNewScoreWizard = useCallback(() => {
+    if (
+      undoStack.length > 0 &&
+      !window.confirm(
+        '현재 악보의 변경사항이 사라집니다. 새 악보를 만들까요?'
+      )
+    ) {
+      return
+    }
+
+    setMetadataEdit(undefined)
+    setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
+  }, [playback.tempo, undoStack.length])
+
+  const cancelNewScoreWizard = useCallback(() => {
+    setNewScoreDraft(undefined)
+  }, [])
+
+  const submitNewScoreWizard = useCallback(() => {
+    if (!newScoreDraft) {
+      return
+    }
+
+    const part = resolvePartPreset(newScoreDraft.partPresetId)
+    const keySignature = resolveKeySignaturePreset(
+      newScoreDraft.keySignatureId
+    ).value
+    const timeSignature = resolveTimeSignaturePreset(
+      newScoreDraft.timeSignatureId
+    ).value
+    const nextScore = createNewScore({
+      title: newScoreDraft.title,
+      composer: newScoreDraft.composer,
+      partName: part.label,
+      partAbbreviation: part.abbreviation,
+      keySignature,
+      timeSignature,
+      measureCount: newScoreDraft.measureCount
+    })
+
+    playback.stop()
+    playback.setTempo(newScoreDraft.tempo)
+    setScore(nextScore)
+    setUndoStack([])
+    setRedoStack([])
+    setMode('select')
+    setNoteInputState(undefined)
+    setMetadataEdit(undefined)
+    setNewScoreDraft(undefined)
+    setDurationValue('quarter')
+    setSelection(createInitialSelection(nextScore))
+    setFileStatus({
+      tone: 'neutral',
+      message: '새 악보를 만들었습니다.'
+    })
+  }, [newScoreDraft, playback])
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
@@ -1135,6 +1213,14 @@ const App = () => {
         <header className="toolbar">
           <div className="toolbar__group">
             <div className="file-actions" aria-label="File actions">
+              <button
+                aria-label="새 악보 만들기"
+                onClick={openNewScoreWizard}
+                type="button"
+              >
+                <FilePlus2 aria-hidden="true" size={17} />
+                <span>새 악보</span>
+              </button>
               <button onClick={importMusicXml} type="button">
                 <FileUp aria-hidden="true" size={17} />
                 <span>가져오기</span>
@@ -1548,6 +1634,163 @@ const App = () => {
           />
         </div>
       </section>
+
+      {newScoreDraft ? (
+        <div className="modal-backdrop" role="presentation">
+          <form
+            aria-label="새 악보 만들기"
+            className="new-score-dialog"
+            onSubmit={(event) => {
+              event.preventDefault()
+              submitNewScoreWizard()
+            }}
+            role="dialog"
+          >
+            <header>
+              <h2>새 악보</h2>
+            </header>
+
+            <div className="new-score-form">
+              <label>
+                <span>제목</span>
+                <input
+                  autoFocus
+                  maxLength={metadataMaxLength.title}
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      title: event.target.value
+                    })
+                  }
+                  value={newScoreDraft.title}
+                />
+              </label>
+
+              <label>
+                <span>작곡가</span>
+                <input
+                  maxLength={metadataMaxLength.composer}
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      composer: event.target.value
+                    })
+                  }
+                  value={newScoreDraft.composer}
+                />
+              </label>
+
+              <label>
+                <span>파트</span>
+                <select
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      partPresetId: event.target.value
+                    })
+                  }
+                  value={newScoreDraft.partPresetId}
+                >
+                  {partPresets.map((part) => (
+                    <option key={part.id} value={part.id}>
+                      {part.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>조표</span>
+                <select
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      keySignatureId: event.target.value
+                    })
+                  }
+                  value={newScoreDraft.keySignatureId}
+                >
+                  {keySignaturePresets.map((keySignature) => (
+                    <option key={keySignature.id} value={keySignature.id}>
+                      {keySignature.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>박자표</span>
+                <select
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      timeSignatureId: event.target.value
+                    })
+                  }
+                  value={newScoreDraft.timeSignatureId}
+                >
+                  {timeSignaturePresets.map((timeSignature) => (
+                    <option key={timeSignature.id} value={timeSignature.id}>
+                      {timeSignature.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>마디 수</span>
+                <input
+                  max="64"
+                  min="1"
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      measureCount: normalizeNumberInput(
+                        event.target.valueAsNumber,
+                        1,
+                        64,
+                        newScoreDraft.measureCount
+                      )
+                    })
+                  }
+                  type="number"
+                  value={newScoreDraft.measureCount}
+                />
+              </label>
+
+              <label>
+                <span>템포</span>
+                <input
+                  max="240"
+                  min="40"
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      tempo: normalizeNumberInput(
+                        event.target.valueAsNumber,
+                        40,
+                        240,
+                        newScoreDraft.tempo
+                      )
+                    })
+                  }
+                  type="number"
+                  value={newScoreDraft.tempo}
+                />
+              </label>
+            </div>
+
+            <footer className="dialog-actions">
+              <button onClick={cancelNewScoreWizard} type="button">
+                취소
+              </button>
+              <button className="primary-action" type="submit">
+                만들기
+              </button>
+            </footer>
+          </form>
+        </div>
+      ) : null}
     </main>
   )
 }
@@ -1608,6 +1851,31 @@ function createInputId(kind: 'event' | 'measure'): string {
 
 function isRestShortcut(event: KeyboardEvent): boolean {
   return event.code === 'KeyR' || event.key === 'r' || event.key === 'R'
+}
+
+function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
+  return {
+    title: 'Untitled Score',
+    composer: 'in-C',
+    partPresetId: 'piano',
+    keySignatureId: 'c-major',
+    timeSignatureId: '4-4',
+    measureCount: 8,
+    tempo
+  }
+}
+
+function normalizeNumberInput(
+  value: number,
+  min: number,
+  max: number,
+  fallback: number
+): number {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+
+  return Math.min(max, Math.max(min, Math.round(value)))
 }
 
 function createInitialScore(): Score {
