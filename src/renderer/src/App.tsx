@@ -67,11 +67,13 @@ import {
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
+import { buildKeySignatureCommand } from './editor/key-signature'
 import {
   createNewScore,
   keySignaturePresets,
   partPresets,
   resolveKeySignaturePreset,
+  resolveKeySignaturePresetId,
   resolvePartPreset,
   resolveTimeSignaturePreset,
   timeSignaturePresets
@@ -213,6 +215,13 @@ const App = () => {
     noteInputState?.duration.value ??
     eventLocation?.event.duration.value ??
     durationValue
+  const activeKeySignature =
+    eventLocation?.measure.keySignature ??
+    measureLocation?.measure.keySignature ??
+    score.parts[0]?.staves[0]?.measures[0]?.keySignature
+  const activeKeySignatureId = activeKeySignature
+    ? resolveKeySignaturePresetId(activeKeySignature)
+    : keySignaturePresets[0].id
   const addDotCommand =
     noteInputState || selection.type !== 'event'
       ? undefined
@@ -514,6 +523,23 @@ const App = () => {
       executeCommand(buildAccidentalCommand(score, selection, alter))
     },
     [executeCommand, noteInputState, score, selection]
+  )
+
+  const changeKeySignature = useCallback(
+    (presetId: string) => {
+      const keySignature = resolveKeySignaturePreset(presetId).value
+      const command = buildKeySignatureCommand(score, selection, keySignature)
+
+      if (executeCommand(command)) {
+        setMode('select')
+        setNoteInputState(undefined)
+        setFileStatus({
+          tone: 'neutral',
+          message: 'Key signature changed from the selected measure.'
+        })
+      }
+    },
+    [executeCommand, score, selection]
   )
 
   const movePitch = useCallback(
@@ -1314,6 +1340,22 @@ const App = () => {
                 </button>
               ))}
             </div>
+
+            <label className="key-signature-control">
+              <span>조표</span>
+              <select
+                aria-label="Key signature"
+                disabled={!activeMeasureId}
+                onChange={(event) => changeKeySignature(event.target.value)}
+                value={activeKeySignatureId}
+              >
+                {keySignaturePresets.map((keySignature) => (
+                  <option key={keySignature.id} value={keySignature.id}>
+                    {keySignature.label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <button
               aria-label="Move pitch down"

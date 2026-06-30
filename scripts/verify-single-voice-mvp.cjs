@@ -1581,6 +1581,64 @@ async function verifyNewScoreWizard(window) {
   return result
 }
 
+async function verifyKeySignatureControl(window) {
+  await loadFixture(window)
+
+  await executeMetadataStep(
+    window,
+    'change key signature from selected measure',
+    `
+    document
+      .querySelector('.notation-measure[data-measure-id="measure-2"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+
+    const select = document.querySelector('select[aria-label="Key signature"]')
+
+    if (!select) {
+      throw new Error('Key signature select not found.')
+    }
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLSelectElement.prototype,
+      'value'
+    ).set
+    setter.call(select, 'c-major')
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 250))
+
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const statusValues = [
+        ...document.querySelectorAll('.editor-status span')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: statusValues.find((value) => value?.endsWith(' edits')),
+        selectedMeasure: [...document.querySelectorAll('.inspector dd')]
+          .map((value) => value.textContent?.trim())[2],
+        status: statusValues.at(-1),
+        value: document.querySelector('select[aria-label="Key signature"]')
+          ?.value
+      }
+    })()
+  `)
+
+  if (
+    result.editCount !== '1 edits' ||
+    result.selectedMeasure !== '2' ||
+    result.status !== 'Key signature changed from the selected measure.' ||
+    result.value !== 'c-major'
+  ) {
+    throw new Error(
+      `Key signature control verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
 async function editMetadataField(window, field, value, key) {
   await openMetadataField(window, field)
   const label = field === 'title' ? 'Score title' : 'Score composer'
@@ -1738,6 +1796,7 @@ app.whenReady().then(async () => {
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
   const newScore = await verifyNewScoreWizard(window)
+  const keySignature = await verifyKeySignatureControl(window)
   const metadata = await verifyMetadataEditing(window)
   const beams = await verifyBeamRendering(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
@@ -1777,6 +1836,7 @@ app.whenReady().then(async () => {
         beams,
         fileActions,
         newScore,
+        keySignature,
         metadata,
         outOfStaffNotes,
         desktop,
