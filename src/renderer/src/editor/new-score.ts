@@ -21,72 +21,72 @@ export interface NewScoreOptions {
 export const keySignaturePresets = [
   {
     id: 'c-major',
-    label: 'C major',
+    label: '다장조',
     value: { fifths: 0, mode: 'major' }
   },
   {
     id: 'a-minor',
-    label: 'A minor',
+    label: '가단조',
     value: { fifths: 0, mode: 'minor' }
   },
   {
     id: 'g-major',
-    label: 'G major',
+    label: '사장조',
     value: { fifths: 1, mode: 'major' }
   },
   {
     id: 'e-minor',
-    label: 'E minor',
+    label: '마단조',
     value: { fifths: 1, mode: 'minor' }
   },
   {
     id: 'd-major',
-    label: 'D major',
+    label: '라장조',
     value: { fifths: 2, mode: 'major' }
   },
   {
     id: 'b-minor',
-    label: 'B minor',
+    label: '나단조',
     value: { fifths: 2, mode: 'minor' }
   },
   {
     id: 'a-major',
-    label: 'A major',
+    label: '가장조',
     value: { fifths: 3, mode: 'major' }
   },
   {
     id: 'f-sharp-minor',
-    label: 'F# minor',
+    label: '올림바단조',
     value: { fifths: 3, mode: 'minor' }
   },
   {
     id: 'f-major',
-    label: 'F major',
+    label: '바장조',
     value: { fifths: -1, mode: 'major' }
   },
   {
     id: 'd-minor',
-    label: 'D minor',
+    label: '라단조',
     value: { fifths: -1, mode: 'minor' }
   },
   {
     id: 'bb-major',
-    label: 'Bb major',
+    label: '내림나장조',
     value: { fifths: -2, mode: 'major' }
   },
   {
     id: 'g-minor',
-    label: 'G minor',
+    label: '사단조',
     value: { fifths: -2, mode: 'minor' }
   },
   {
     id: 'eb-major',
-    label: 'Eb major',
+    label: '내림마장조',
     value: { fifths: -3, mode: 'major' }
   },
   {
     id: 'c-minor',
-    label: 'C minor',
+    label: '다단조',
     value: { fifths: -3, mode: 'minor' }
   }
 ] satisfies Array<{
@@ -125,32 +125,32 @@ export const timeSignaturePresets = [
 export const partPresets = [
   {
     id: 'piano',
-    label: 'Piano',
+    label: '피아노',
     abbreviation: 'Pno.'
   },
   {
     id: 'violin',
-    label: 'Violin',
+    label: '바이올린',
     abbreviation: 'Vln.'
   },
   {
     id: 'cello',
-    label: 'Cello',
+    label: '첼로',
     abbreviation: 'Vc.'
   },
   {
     id: 'flute',
-    label: 'Flute',
+    label: '플루트',
     abbreviation: 'Fl.'
   },
   {
     id: 'voice',
-    label: 'Voice',
+    label: '성악',
     abbreviation: 'Vox'
   },
   {
     id: 'melody',
-    label: 'Melody',
+    label: '멜로디',
     abbreviation: 'Mel.'
   }
 ] as const
@@ -168,12 +168,12 @@ export function createNewScore(options: NewScoreOptions): Score {
 
   return createScore({
     id: `score-${crypto.randomUUID()}`,
-    title: options.title.trim() || 'Untitled Score',
+    title: options.title.trim() || '제목 없는 악보',
     composer: options.composer?.trim() || undefined,
     parts: [
       createPart({
         id: 'part-1',
-        name: options.partName.trim() || 'Piano',
+        name: options.partName.trim() || '피아노',
         abbreviation: options.partAbbreviation?.trim() || undefined,
         staves: [
           createStaff({

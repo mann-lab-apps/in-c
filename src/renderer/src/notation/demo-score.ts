@@ -15,12 +15,12 @@ const quarter = TICKS_PER_QUARTER
 
 export const demoScore = createScore({
   id: 'renderer-prototype',
-  title: 'Untitled Score',
+  title: '제목 없는 악보',
   composer: 'in-C',
   parts: [
     createPart({
       id: 'piano',
-      name: 'Piano',
+      name: '피아노',
       staves: [
         createStaff({
           id: 'piano-staff',

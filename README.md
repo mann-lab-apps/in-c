@@ -4,41 +4,42 @@
 
 첫 버전은 단성부 악보 작성과 MusicXML 가져오기·내보내기에 집중합니다.
 
-## Repository Layout
+## 디렉토리 구조
 
 - `src/main`: Electron main process.
-- `src/preload`: Secure preload bridge between Electron and the renderer.
-- `src/renderer`: Application UI.
-- `src/score-core`: Notation domain model and editing commands.
-- `src/engraving`: Rendering adapters for notation engines.
-- `src/playback`: Playback scheduling and audio integration.
-- `src/io`: MusicXML and project file import/export.
-- `docs/research`: Reference notes and product decisions.
-- `docs/architecture`: Architecture records and technical design notes.
+- `src/preload`: Electron과 renderer를 잇는 보안 preload bridge.
+- `src/renderer`: 앱 UI.
+- `src/score-core`: 악보 도메인 모델과 편집 command.
+- `src/engraving`: 사보 렌더링 adapter.
+- `src/playback`: 재생 스케줄링과 오디오 연동.
+- `src/io`: MusicXML과 프로젝트 파일 가져오기·내보내기.
+- `docs/research`: 레퍼런스 조사와 제품 판단 기록.
+- `docs/architecture`: 아키텍처와 기술 설계 기록.
 
-## Reference Boundary
+## 레퍼런스 경계
 
-MuseScore is kept outside this repository as a read-only architectural reference:
+MuseScore는 이 저장소 밖에 읽기 전용 아키텍처 레퍼런스로 둡니다.
 
 `../references/musescore`
 
-Do not copy MuseScore source code, assets, generated files, or tests into this project.
+MuseScore의 소스 코드, asset, 생성 파일, 테스트를 이 프로젝트 안으로 복사하지
+않습니다.
 
-## Development
+## 개발
 
-Install dependencies:
+의존성을 설치합니다.
 
 ```bash
 npm install
 ```
 
-Run the desktop app in development:
+개발 모드로 데스크톱 앱을 실행합니다.
 
 ```bash
 npm run dev
 ```
 
-## Verification
+## 검증
 
 ```bash
 npm test
@@ -49,41 +50,40 @@ npm run verify:mvp
 `verify:mvp`는 공통 8마디 단성부 fixture를 Electron에서 열어 desktop과
 최소 지원 폭의 SVG 이벤트 매핑을 검사한다.
 
-Check TypeScript:
+TypeScript를 검사합니다.
 
 ```bash
 npm run typecheck
 ```
 
-Build the app bundles:
+앱 bundle을 빌드합니다.
 
 ```bash
 npm run build
 ```
 
-## Packaging
+## 패키징
 
-Create an unpacked app for the current operating system and run the packaged
-renderer smoke test:
+현재 운영체제용 unpacked app을 만들고 패키징된 renderer smoke test를 실행합니다.
 
 ```bash
 npm run package:dir
 npm run verify:package
 ```
 
-Native installers and GitHub prereleases are documented in
-[`docs/distribution.md`](docs/distribution.md). Release artifacts are unsigned
-until macOS and Windows signing credentials are configured.
+네이티브 installer와 GitHub prerelease 절차는
+[`docs/distribution.md`](docs/distribution.md)에 정리되어 있습니다. macOS와
+Windows 서명 인증서를 설정하기 전까지 release artifact는 unsigned 상태입니다.
 
-## Website
+## 웹사이트
 
-The public introduction and download page lives in `site/`.
+공개 소개와 다운로드 페이지는 `site/`에 있습니다.
 
 ```bash
 npm run site:dev
 npm run site:build
 ```
 
-The page reads `site/download-manifest.json` for prerelease download metadata.
-Until the first GitHub Release is published, platform buttons link to the
-repository release list instead of nonexistent installer files.
+페이지는 `site/download-manifest.json`에서 prerelease 다운로드 metadata를
+읽습니다. 첫 GitHub Release가 게시되기 전에는 플랫폼 버튼이 존재하지 않는
+installer 파일 대신 저장소 release 목록으로 연결됩니다.
