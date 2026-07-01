@@ -94,28 +94,22 @@ export function validateTieRelations(score: Score): string[] {
 
 export function buildTieCommand(
   score: Score,
-  fromEventId: string,
+  eventId: string,
   enabled: boolean
 ): ScoreCommand | undefined {
   const events = flattenVoiceEvents(score)
-  const fromIndex = events.findIndex(
-    (location) => location.event.id === fromEventId
-  )
-  const from = events[fromIndex]
-  const to = enabled
-    ? events[fromIndex + 1]
-    : events.slice(fromIndex + 1).find(
-        (location) =>
-          location.event.type === 'note' &&
-          location.event.ties?.stop &&
-          from &&
-          sameTieSequence(from.address, location.address)
-      )
+  const endpoints = enabled
+    ? resolveTieCreationEndpoints(events, eventId)
+    : resolveTieRemovalEndpoints(events, eventId)
+
+  if (!endpoints) {
+    return undefined
+  }
+
+  const { from, to } = endpoints
 
   if (
-    !from ||
     from.event.type !== 'note' ||
-    !to ||
     to.event.type !== 'note' ||
     (enabled
       ? !isAdjacentEqualPitch(from, to)
@@ -153,6 +147,58 @@ export function buildTieCommand(
       replaceNoteCommand(to, nextTo)
     ]
   }
+}
+
+function resolveTieCreationEndpoints(
+  events: EventLocation[],
+  eventId: string
+): { from: EventLocation; to: EventLocation } | undefined {
+  const fromIndex = events.findIndex((location) => location.event.id === eventId)
+  const from = events[fromIndex]
+  const to = events[fromIndex + 1]
+
+  return from && to ? { from, to } : undefined
+}
+
+function resolveTieRemovalEndpoints(
+  events: EventLocation[],
+  eventId: string
+): { from: EventLocation; to: EventLocation } | undefined {
+  const selectedIndex = events.findIndex(
+    (location) => location.event.id === eventId
+  )
+  const selected = events[selectedIndex]
+
+  if (!selected || selected.event.type !== 'note') {
+    return undefined
+  }
+
+  if (selected.event.ties?.start) {
+    const to = events.slice(selectedIndex + 1).find(
+      (location) =>
+        location.event.type === 'note' &&
+        location.event.ties?.stop &&
+        sameTieSequence(selected.address, location.address)
+    )
+
+    return to ? { from: selected, to } : undefined
+  }
+
+  if (selected.event.ties?.stop) {
+    const from = events
+      .slice(0, selectedIndex)
+      .reverse()
+      .find(
+        (location) =>
+          location.event.type === 'note' &&
+          location.event.ties?.start &&
+          sameTieSequence(location.address, selected.address)
+      )
+
+    return from ? { from, to: selected } : undefined
+  }
+
+  return undefined
 }
 
 function isAdjacentEqualPitch(

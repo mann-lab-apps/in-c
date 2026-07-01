@@ -251,15 +251,15 @@ const App = () => {
   const tupletProgress = noteInputState?.tupletInput
     ? `${tupletMemberCount}/${noteInputState.tupletInput.actualNotes}`
     : undefined
-  const tieEnabled =
+  const tieSelected =
     eventLocation?.event.type === 'note' &&
-    Boolean(eventLocation.event.ties?.start)
+    Boolean(eventLocation.event.ties?.start || eventLocation.event.ties?.stop)
   const tieCommand = useMemo(
     () =>
       eventLocation?.event.type === 'note'
-        ? buildTieCommand(score, eventLocation.event.id, !tieEnabled)
+        ? buildTieCommand(score, eventLocation.event.id, !tieSelected)
         : undefined,
-    [eventLocation, score, tieEnabled]
+    [eventLocation, score, tieSelected]
   )
 
   const executeCommand = useCallback(
@@ -595,8 +595,22 @@ const App = () => {
   )
 
   const toggleTie = useCallback(() => {
-    executeCommand(tieCommand)
-  }, [executeCommand, tieCommand])
+    if (executeCommand(tieCommand)) {
+      setFileStatus({
+        tone: 'neutral',
+        message: tieSelected ? 'Tie removed.' : 'Tie added.'
+      })
+      return
+    }
+
+    setFileStatus({
+      tone: 'error',
+      message:
+        eventLocation?.event.type === 'note'
+          ? 'Tie needs an adjacent note with the same pitch.'
+          : 'Select a note to add or remove a tie.'
+    })
+  }, [eventLocation, executeCommand, tieCommand, tieSelected])
 
   const toggleTuplet = useCallback(() => {
     if (noteInputState?.tupletInput) {
@@ -1124,6 +1138,12 @@ const App = () => {
         return
       }
 
+      if (!event.altKey && !usesCommandKey && event.code === 'KeyL') {
+        event.preventDefault()
+        toggleTie()
+        return
+      }
+
       if (isRestShortcut(event) && !event.altKey && !usesCommandKey) {
         event.preventDefault()
         if (noteInputState) {
@@ -1214,6 +1234,7 @@ const App = () => {
     playback.play,
     playback.status,
     redo,
+    toggleTie,
     toggleTuplet,
     undo
   ])
@@ -1476,14 +1497,14 @@ const App = () => {
             </button>
 
             <button
-              aria-label={tieEnabled ? 'Remove tie' : 'Add tie'}
+              aria-label={tieSelected ? 'Remove tie' : 'Add tie'}
               className="icon-button"
               disabled={!tieCommand}
               onClick={toggleTie}
-              title={tieEnabled ? 'Remove tie' : 'Add tie'}
+              title={tieSelected ? 'Remove tie (L)' : 'Add tie (L)'}
               type="button"
             >
-              {tieEnabled ? (
+              {tieSelected ? (
                 <Unlink2 aria-hidden="true" size={18} />
               ) : (
                 <Link2 aria-hidden="true" size={18} />

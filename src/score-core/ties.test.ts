@@ -38,6 +38,15 @@ describe('score-core ties', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('removes a tie when the selected note is the tie stop', () => {
+    const score = tiedFixture(true)
+    const command = buildTieCommand(score, 'note-2', false)
+    const result = applyScoreCommand(score, command!)
+
+    expect(collectTiePairs(result.score)).toEqual([])
+    expect(validateTieRelations(result.score)).toEqual([])
+  })
+
   it('creates a tie across a measure boundary as one undoable batch', () => {
     const score = crossMeasureFixture()
     const command = buildTieCommand(score, 'measure-1-note', true)
