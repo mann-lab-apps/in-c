@@ -142,7 +142,11 @@ export function buildNoteEntryCommand(
           step,
           octave: location.event.type === 'note' ? location.event.pitch.octave : 4
         },
-        duration
+        duration: resolveReplacementDuration(
+          location.measure,
+          location.event,
+          duration
+        )
       }
     })
   }
@@ -171,9 +175,21 @@ export function buildNoteEntryCommand(
         step,
         octave: 4
       },
-      duration
+      duration: resolveReplacementDuration(location.measure, rest, duration)
     }
   })
+}
+
+export function resolveReplacementDuration(
+  measure: Measure,
+  event: VoiceEvent,
+  fallback: Duration
+): Duration {
+  if (event.type !== 'rest' || !event.fullMeasure) {
+    return fallback
+  }
+
+  return decomposeDurationTicks(measureDurationTicks(measure))?.[0] ?? fallback
 }
 
 export function buildRestEntryCommand(

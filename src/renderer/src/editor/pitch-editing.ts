@@ -15,7 +15,11 @@ import {
   type ScoreCommand,
   type Voice
 } from '../../../score-core'
-import { locateEvent, type EditorSelection } from './editor-state'
+import {
+  locateEvent,
+  resolveReplacementDuration,
+  type EditorSelection
+} from './editor-state'
 
 export type PitchMovement = 'diatonic' | 'chromatic' | 'octave'
 
@@ -64,7 +68,11 @@ export function buildPitchStepCommand(
       type: 'note',
       id: location.event.id,
       position: location.event.position,
-      duration: location.event.duration,
+      duration: resolveReplacementDuration(
+        location.measure,
+        location.event,
+        location.event.duration
+      ),
       ...(location.event.type === 'note' && location.event.ties
         ? {
             ties: location.event.ties
