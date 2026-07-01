@@ -1230,6 +1230,80 @@ async function verifyBeamRendering(window) {
   return result
 }
 
+async function verifyTieEditing(window) {
+  await loadFixture(window)
+
+  const before = await readTieMetrics(window)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m4-f-natural-1"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyL',
+        key: 'ㅣ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const added = await readTieMetrics(window)
+
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m4-f-natural-2"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyL',
+        key: 'ㅣ'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const removed = await readTieMetrics(window)
+  const result = {
+    added,
+    before,
+    removed
+  }
+
+  if (
+    added.tieCount !== before.tieCount + 1 ||
+    added.status !== 'Tie added.' ||
+    removed.tieCount !== before.tieCount ||
+    removed.status !== 'Tie removed.'
+  ) {
+    throw new Error(`Tie editing verification failed: ${JSON.stringify(result)}`)
+  }
+
+  return result
+}
+
+async function readTieMetrics(window) {
+  return window.webContents.executeJavaScript(`
+    (() => ({
+      editCount: [...document.querySelectorAll('.editor-status span')]
+        .find((span) => span.textContent?.endsWith(' edits'))
+        ?.textContent,
+      status: [...document.querySelectorAll('.editor-status span')]
+        .map((span) => span.textContent?.trim())
+        .find((text) => text === 'Tie added.' || text === 'Tie removed.'),
+      tieCount: document.querySelectorAll('.vf-stavetie').length
+    }))()
+  `)
+}
+
 async function readBeamMetrics(window) {
   return window.webContents.executeJavaScript(`
     (() => {
@@ -2000,6 +2074,7 @@ app.whenReady().then(async () => {
   const measureDeletion = await verifyMeasureDeletion(window)
   const metadata = await verifyMetadataEditing(window)
   const beams = await verifyBeamRendering(window)
+  const ties = await verifyTieEditing(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
   await loadFixture(window)
 
@@ -2035,6 +2110,7 @@ app.whenReady().then(async () => {
       {
         keyboard,
         beams,
+        ties,
         fileActions,
         newScore,
         keySignature,

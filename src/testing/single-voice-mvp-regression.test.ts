@@ -4,6 +4,8 @@ import { parseMusicXml, serializeMusicXml } from '../musicxml'
 import {
   TICKS_PER_QUARTER,
   applyScoreCommand,
+  buildTieCommand,
+  collectTiePairs,
   createDuration,
   createMeasure,
   createNote,
@@ -70,6 +72,38 @@ describe('single-voice MVP regression', () => {
       createBeamGroups(measures[1], measures[1].voices[0])
     ).toHaveLength(4)
     expect(measures[6].voices[0].tuplets).toHaveLength(1)
+  })
+
+  it('toggles a same-pitch adjacent tie without changing the rhythm', () => {
+    const score = createSingleVoiceMvpScore()
+    const command = buildTieCommand(score, 'm4-f-natural-1', true)
+    const tied = applyScoreCommand(score, command!)
+
+    expect(collectTiePairs(tied.score)).toEqual(
+      expect.arrayContaining([
+        {
+          fromEventId: 'm4-f-natural-1',
+          toEventId: 'm4-f-natural-2'
+        }
+      ])
+    )
+    expect(validateTieRelations(tied.score)).toEqual([])
+    expect(
+      validateMeasureRhythm(tied.score.parts[0].staves[0].measures[3]).isExact
+    ).toBe(true)
+
+    const roundTripped = parseMusicXml(serializeMusicXml(tied.score))
+    expect(validateTieRelations(roundTripped)).toEqual([])
+    expect(collectTiePairs(roundTripped)).toHaveLength(
+      collectTiePairs(tied.score).length
+    )
+
+    const remove = buildTieCommand(tied.score, 'm4-f-natural-2', false)
+    const removed = applyScoreCommand(tied.score, remove!)
+    expect(collectTiePairs(removed.score)).not.toContainEqual({
+      fromEventId: 'm4-f-natural-1',
+      toEventId: 'm4-f-natural-2'
+    })
   })
 
   it('completes sequential input and restores compound edits with undo/redo', () => {
