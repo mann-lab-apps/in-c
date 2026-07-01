@@ -216,6 +216,18 @@ export function resolveTimeSignaturePreset(
   )
 }
 
+export function resolveTimeSignaturePresetId(
+  timeSignature: TimeSignature
+): string {
+  return (
+    timeSignaturePresets.find(
+      (preset) =>
+        preset.value.beats === timeSignature.beats &&
+        preset.value.beatType === timeSignature.beatType
+    )?.id ?? timeSignaturePresets[2].id
+  )
+}
+
 export function resolvePartPreset(id: string): (typeof partPresets)[number] {
   return partPresets.find((preset) => preset.id === id) ?? partPresets[0]
 }

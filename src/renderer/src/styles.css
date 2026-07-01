@@ -205,6 +205,7 @@ h2 {
 .accidental-control,
 .dot-control,
 .key-signature-control,
+.time-signature-control,
 .duration-strip {
   display: flex;
   align-items: center;
@@ -233,14 +234,16 @@ h2 {
   border-left-color: #d8d2c5;
 }
 
-.key-signature-control {
+.key-signature-control,
+.time-signature-control {
   gap: 6px;
   color: #59646a;
   font-size: 0.78rem;
   font-weight: 700;
 }
 
-.key-signature-control select {
+.key-signature-control select,
+.time-signature-control select {
   min-height: 36px;
   max-width: 116px;
   padding: 0 28px 0 10px;

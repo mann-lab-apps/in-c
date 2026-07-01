@@ -76,8 +76,10 @@ import {
   resolveKeySignaturePresetId,
   resolvePartPreset,
   resolveTimeSignaturePreset,
+  resolveTimeSignaturePresetId,
   timeSignaturePresets
 } from './editor/new-score'
+import { buildTimeSignatureCommand } from './editor/time-signature'
 import {
   buildAccidentalCommand,
   buildPitchMovementCommand,
@@ -222,6 +224,13 @@ const App = () => {
   const activeKeySignatureId = activeKeySignature
     ? resolveKeySignaturePresetId(activeKeySignature)
     : keySignaturePresets[0].id
+  const activeTimeSignature =
+    eventLocation?.measure.timeSignature ??
+    measureLocation?.measure.timeSignature ??
+    score.parts[0]?.staves[0]?.measures[0]?.timeSignature
+  const activeTimeSignatureId = activeTimeSignature
+    ? resolveTimeSignaturePresetId(activeTimeSignature)
+    : timeSignaturePresets[2].id
   const addDotCommand =
     noteInputState || selection.type !== 'event'
       ? undefined
@@ -536,6 +545,28 @@ const App = () => {
         setFileStatus({
           tone: 'neutral',
           message: 'Key signature changed from the selected measure.'
+        })
+      }
+    },
+    [executeCommand, score, selection]
+  )
+
+  const changeTimeSignature = useCallback(
+    (presetId: string) => {
+      const timeSignature = resolveTimeSignaturePreset(presetId).value
+      const command = buildTimeSignatureCommand(score, selection, timeSignature)
+
+      if (executeCommand(command)) {
+        setMode('select')
+        setNoteInputState(undefined)
+        setFileStatus({
+          tone: 'neutral',
+          message: 'Time signature changed for the selected measure.'
+        })
+      } else {
+        setFileStatus({
+          tone: 'error',
+          message: 'Time signature does not fit the selected measure rhythm.'
         })
       }
     },
@@ -1352,6 +1383,22 @@ const App = () => {
                 {keySignaturePresets.map((keySignature) => (
                   <option key={keySignature.id} value={keySignature.id}>
                     {keySignature.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="time-signature-control">
+              <span>박자표</span>
+              <select
+                aria-label="Time signature"
+                disabled={!activeMeasureId}
+                onChange={(event) => changeTimeSignature(event.target.value)}
+                value={activeTimeSignatureId}
+              >
+                {timeSignaturePresets.map((timeSignature) => (
+                  <option key={timeSignature.id} value={timeSignature.id}>
+                    {timeSignature.label}
                   </option>
                 ))}
               </select>

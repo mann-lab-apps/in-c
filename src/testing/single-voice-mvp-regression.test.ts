@@ -5,7 +5,14 @@ import {
   TICKS_PER_QUARTER,
   applyScoreCommand,
   createDuration,
+  createMeasure,
+  createNote,
+  createPart,
+  createRest,
   createScore,
+  createStaff,
+  createTimePosition,
+  createVoice,
   resolveNotePitch,
   validateMeasureRhythm,
   validateTieRelations,
@@ -24,6 +31,7 @@ import {
 import { buildKeySignatureCommand } from '../renderer/src/editor/key-signature'
 import { buildPitchStepCommand } from '../renderer/src/editor/pitch-editing'
 import { createNewScore } from '../renderer/src/editor/new-score'
+import { buildTimeSignatureCommand } from '../renderer/src/editor/time-signature'
 import {
   buildSequentialInput,
   createNoteInputState
@@ -278,6 +286,112 @@ describe('single-voice MVP regression', () => {
         .parts[0].staves[0].measures.map((measure) => measure.keySignature)
     )
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
+  })
+
+  it('changes time signature for the selected measure and refits rests', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-c4',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: createDuration('quarter')
+                        }),
+                        createRest({
+                          id: 'trailing-rest',
+                          position: createTimePosition(quarter),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const command = buildTimeSignatureCommand(
+      score,
+      { type: 'measure', measureId: 'measure-1' },
+      { beats: 2, beatType: 4 }
+    )
+    const changed = applyScoreCommand(score, command!)
+    const measure = changed.score.parts[0].staves[0].measures[0]
+
+    expect(measure.timeSignature).toEqual({ beats: 2, beatType: 4 })
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'note-c4',
+        type: 'note',
+        duration: { value: 'quarter', dots: 0 }
+      },
+      {
+        id: 'trailing-rest',
+        type: 'rest',
+        position: { tick: quarter },
+        duration: { value: 'quarter', dots: 0 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+
+    const roundTrip = parseMusicXml(serializeMusicXml(changed.score))
+
+    expect(roundTrip.parts[0].staves[0].measures[0].timeSignature).toEqual({
+      beats: 2,
+      beatType: 4
+    })
+    expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
+  })
+
+  it('rejects time signatures that cannot contain existing notes', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'whole-c4',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(
+      buildTimeSignatureCommand(
+        score,
+        { type: 'measure', measureId: 'measure-1' },
+        { beats: 3, beatType: 4 }
+      )
+    ).toBeUndefined()
   })
 
   it('adds and removes an inherited measure without disturbing the fixture', () => {
