@@ -1706,6 +1706,138 @@ async function verifyTimeSignatureControl(window) {
   return result
 }
 
+async function verifyMeasureDeletion(window) {
+  await loadFixture(window)
+
+  await executeMetadataStep(
+    window,
+    'delete selected measure with keyboard',
+    `
+    document
+      .querySelector('.notation-measure[data-measure-id="measure-3"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await executeMetadataStep(
+    window,
+    'press backspace on selected measure',
+    `
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        key: 'Backspace'
+      })
+    )
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 250))
+
+  const deleted = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+      const statusValues = [
+        ...document.querySelectorAll('.editor-status span')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: statusValues.find((value) => value?.endsWith(' edits')),
+        eventCount: document.querySelectorAll('.notation-event').length,
+        measureCount: document.querySelectorAll('.notation-measure').length,
+        selectedEvent: inspectorValues[1],
+        selectedMeasure: inspectorValues[2],
+        selectedType: inspectorValues[0],
+        status: statusValues.at(-1)
+      }
+    })()
+  `)
+
+  await loadFixture(window)
+  await executeMetadataStep(
+    window,
+    'create one-measure score',
+    `
+    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await executeMetadataStep(
+    window,
+    'submit one-measure score',
+    `
+    const labels = [...document.querySelectorAll('.new-score-form label')]
+    const field = (name) =>
+      labels.find((label) => label.textContent?.includes(name))
+        ?.querySelector('input, select')
+    const input = field('마디 수')
+
+    if (!input) {
+      throw new Error('Measure count input not found.')
+    }
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      'value'
+    ).set
+    setter.call(input, '1')
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    document
+      .querySelector('form[aria-label="새 악보 만들기"]')
+      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 250))
+  await executeMetadataStep(
+    window,
+    'try deleting final measure',
+    `
+    document.querySelector('button[aria-label="Delete measure"]')?.click()
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  const finalMeasure = await window.webContents.executeJavaScript(`
+    (() => {
+      const statusValues = [
+        ...document.querySelectorAll('.editor-status span')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: statusValues.find((value) => value?.endsWith(' edits')),
+        measureCount: document.querySelectorAll('.notation-measure').length,
+        status: statusValues.at(-1)
+      }
+    })()
+  `)
+
+  if (
+    deleted.editCount !== '1 edits' ||
+    deleted.eventCount !== 30 ||
+    deleted.measureCount !== 7 ||
+    deleted.selectedEvent !== '—' ||
+    deleted.selectedMeasure !== '3' ||
+    deleted.selectedType !== 'measure' ||
+    deleted.status !== 'Measure deleted.' ||
+    finalMeasure.editCount !== '0 edits' ||
+    finalMeasure.measureCount !== 1 ||
+    finalMeasure.status !== 'Cannot delete the last measure.'
+  ) {
+    throw new Error(
+      `Measure deletion verification failed: ${JSON.stringify({
+        deleted,
+        finalMeasure
+      })}`
+    )
+  }
+
+  return {
+    deleted,
+    finalMeasure
+  }
+}
+
 async function editMetadataField(window, field, value, key) {
   await openMetadataField(window, field)
   const label = field === 'title' ? 'Score title' : 'Score composer'
@@ -1865,6 +1997,7 @@ app.whenReady().then(async () => {
   const newScore = await verifyNewScoreWizard(window)
   const keySignature = await verifyKeySignatureControl(window)
   const timeSignature = await verifyTimeSignatureControl(window)
+  const measureDeletion = await verifyMeasureDeletion(window)
   const metadata = await verifyMetadataEditing(window)
   const beams = await verifyBeamRendering(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
@@ -1906,6 +2039,7 @@ app.whenReady().then(async () => {
         newScore,
         keySignature,
         timeSignature,
+        measureDeletion,
         metadata,
         outOfStaffNotes,
         desktop,

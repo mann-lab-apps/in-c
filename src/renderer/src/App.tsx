@@ -887,6 +887,18 @@ const App = () => {
 
   const removeMeasure = useCallback(() => {
     if (!activeMeasureId) {
+      setFileStatus({
+        tone: 'error',
+        message: 'Select a measure before deleting a measure.'
+      })
+      return
+    }
+
+    if (measureCount <= 1) {
+      setFileStatus({
+        tone: 'error',
+        message: 'Cannot delete the last measure.'
+      })
       return
     }
 
@@ -895,8 +907,22 @@ const App = () => {
     if (edit && executeCommand(edit.command)) {
       setSelection(edit.selection)
       setNoteInputState(edit.inputState)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message: 'Measure deleted.'
+      })
     }
-  }, [activeMeasureId, executeCommand, noteInputState, score])
+  }, [activeMeasureId, executeCommand, measureCount, noteInputState, score])
+
+  const deleteSelection = useCallback(() => {
+    if (selection.type === 'measure') {
+      removeMeasure()
+      return
+    }
+
+    clearSelection()
+  }, [clearSelection, removeMeasure, selection.type])
 
   const moveSelection = useCallback(
     (direction: -1 | 1) => {
@@ -1134,7 +1160,7 @@ const App = () => {
         case 'Delete':
         case 'Backspace':
           event.preventDefault()
-          clearSelection()
+          deleteSelection()
           break
         case 'ArrowLeft':
           event.preventDefault()
@@ -1177,6 +1203,7 @@ const App = () => {
     changePitchStep,
     clearSelection,
     convertSelectionToRest,
+    deleteSelection,
     enterNote,
     enterRest,
     movePitch,
@@ -1339,7 +1366,7 @@ const App = () => {
             <button
               aria-label="Delete measure"
               className="icon-button"
-              disabled={!activeMeasureId || measureCount <= 1}
+              disabled={!activeMeasureId}
               onClick={removeMeasure}
               title="Delete measure"
               type="button"
