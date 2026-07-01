@@ -1639,6 +1639,73 @@ async function verifyKeySignatureControl(window) {
   return result
 }
 
+async function verifyTimeSignatureControl(window) {
+  await loadFixture(window)
+
+  await executeMetadataStep(
+    window,
+    'select measure for time signature change',
+    `
+    document
+      .querySelector('.notation-measure[data-measure-id="measure-3"]')
+      ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  await executeMetadataStep(
+    window,
+    'change time signature for selected measure',
+    `
+    const select = document.querySelector('select[aria-label="Time signature"]')
+
+    if (!select) {
+      throw new Error('Time signature select not found.')
+    }
+
+    const setter = Object.getOwnPropertyDescriptor(
+      HTMLSelectElement.prototype,
+      'value'
+    ).set
+    setter.call(select, '2-4')
+    select.dispatchEvent(new Event('change', { bubbles: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 250))
+
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const statusValues = [
+        ...document.querySelectorAll('.editor-status span')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        editCount: statusValues.find((value) => value?.endsWith(' edits')),
+        eventCount: document.querySelectorAll('.notation-event').length,
+        selectedMeasure: [...document.querySelectorAll('.inspector dd')]
+          .map((value) => value.textContent?.trim())[2],
+        status: statusValues.at(-1),
+        value: document.querySelector('select[aria-label="Time signature"]')
+          ?.value
+      }
+    })()
+  `)
+
+  if (
+    result.editCount !== '1 edits' ||
+    result.eventCount !== 32 ||
+    result.selectedMeasure !== '3' ||
+    result.status !== 'Time signature changed for the selected measure.' ||
+    result.value !== '2-4'
+  ) {
+    throw new Error(
+      `Time signature control verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
 async function editMetadataField(window, field, value, key) {
   await openMetadataField(window, field)
   const label = field === 'title' ? 'Score title' : 'Score composer'
@@ -1797,6 +1864,7 @@ app.whenReady().then(async () => {
   const fileActions = await verifyFileActions(window)
   const newScore = await verifyNewScoreWizard(window)
   const keySignature = await verifyKeySignatureControl(window)
+  const timeSignature = await verifyTimeSignatureControl(window)
   const metadata = await verifyMetadataEditing(window)
   const beams = await verifyBeamRendering(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
@@ -1837,6 +1905,7 @@ app.whenReady().then(async () => {
         fileActions,
         newScore,
         keySignature,
+        timeSignature,
         metadata,
         outOfStaffNotes,
         desktop,
