@@ -22,6 +22,7 @@ import {
   buildRemoveMeasure
 } from '../renderer/src/editor/measure-management'
 import { buildKeySignatureCommand } from '../renderer/src/editor/key-signature'
+import { buildPitchStepCommand } from '../renderer/src/editor/pitch-editing'
 import { createNewScore } from '../renderer/src/editor/new-score'
 import {
   buildSequentialInput,
@@ -195,6 +196,42 @@ describe('single-voice MVP regression', () => {
       expect(validateMeasureRhythm(measure).isExact).toBe(true)
     })
   })
+
+  it.each([
+    ['2/4', { beats: 2, beatType: 4 }, { value: 'half', dots: 0 }],
+    ['3/4', { beats: 3, beatType: 4 }, { value: 'half', dots: 1 }],
+    ['6/8', { beats: 6, beatType: 8 }, { value: 'half', dots: 1 }]
+  ] as const)(
+    'changes a %s full-measure rest to a note with the measure duration',
+    (_label, timeSignature, duration) => {
+      const score = createNewScore({
+        title: 'Non Common Time',
+        composer: 'in-C',
+        partName: 'Piano',
+        keySignature: { fifths: 0, mode: 'major' },
+        timeSignature,
+        measureCount: 1
+      })
+      const command = buildPitchStepCommand(
+        score,
+        {
+          type: 'event',
+          eventId: 'measure-1-full-measure-rest'
+        },
+        'C'
+      )
+      const changed = applyScoreCommand(score, command!)
+      const measure = changed.score.parts[0].staves[0].measures[0]
+      const event = measure.voices[0].events[0]
+
+      expect(event).toMatchObject({
+        id: 'measure-1-full-measure-rest',
+        type: 'note',
+        duration
+      })
+      expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    }
+  )
 
   it('changes key signature from the selected measure while preserving pitches', () => {
     const score = createSingleVoiceMvpScore()
