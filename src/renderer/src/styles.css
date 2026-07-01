@@ -204,6 +204,7 @@ h2 {
 
 .accidental-control,
 .dot-control,
+.key-signature-control,
 .duration-strip {
   display: flex;
   align-items: center;
@@ -230,6 +231,23 @@ h2 {
 
 .accidental-control button + button {
   border-left-color: #d8d2c5;
+}
+
+.key-signature-control {
+  gap: 6px;
+  color: #59646a;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.key-signature-control select {
+  min-height: 36px;
+  max-width: 116px;
+  padding: 0 28px 0 10px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  color: #283035;
+  background: #fbfaf6;
 }
 
 .duration-strip button {

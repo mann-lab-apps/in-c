@@ -21,38 +21,73 @@ export interface NewScoreOptions {
 export const keySignaturePresets = [
   {
     id: 'c-major',
-    label: 'C major / A minor',
+    label: 'C major',
     value: { fifths: 0, mode: 'major' }
   },
   {
+    id: 'a-minor',
+    label: 'A minor',
+    value: { fifths: 0, mode: 'minor' }
+  },
+  {
     id: 'g-major',
-    label: 'G major / E minor',
+    label: 'G major',
     value: { fifths: 1, mode: 'major' }
   },
   {
+    id: 'e-minor',
+    label: 'E minor',
+    value: { fifths: 1, mode: 'minor' }
+  },
+  {
     id: 'd-major',
-    label: 'D major / B minor',
+    label: 'D major',
     value: { fifths: 2, mode: 'major' }
   },
   {
+    id: 'b-minor',
+    label: 'B minor',
+    value: { fifths: 2, mode: 'minor' }
+  },
+  {
     id: 'a-major',
-    label: 'A major / F# minor',
+    label: 'A major',
     value: { fifths: 3, mode: 'major' }
   },
   {
+    id: 'f-sharp-minor',
+    label: 'F# minor',
+    value: { fifths: 3, mode: 'minor' }
+  },
+  {
     id: 'f-major',
-    label: 'F major / D minor',
+    label: 'F major',
     value: { fifths: -1, mode: 'major' }
   },
   {
+    id: 'd-minor',
+    label: 'D minor',
+    value: { fifths: -1, mode: 'minor' }
+  },
+  {
     id: 'bb-major',
-    label: 'Bb major / G minor',
+    label: 'Bb major',
     value: { fifths: -2, mode: 'major' }
   },
   {
+    id: 'g-minor',
+    label: 'G minor',
+    value: { fifths: -2, mode: 'minor' }
+  },
+  {
     id: 'eb-major',
-    label: 'Eb major / C minor',
+    label: 'Eb major',
     value: { fifths: -3, mode: 'major' }
+  },
+  {
+    id: 'c-minor',
+    label: 'C minor',
+    value: { fifths: -3, mode: 'minor' }
   }
 ] satisfies Array<{
   id: string
@@ -157,6 +192,18 @@ export function resolveKeySignaturePreset(
   return (
     keySignaturePresets.find((preset) => preset.id === id) ??
     keySignaturePresets[0]
+  )
+}
+
+export function resolveKeySignaturePresetId(
+  keySignature: KeySignature
+): string {
+  return (
+    keySignaturePresets.find(
+      (preset) =>
+        preset.value.fifths === keySignature.fifths &&
+        preset.value.mode === keySignature.mode
+    )?.id ?? keySignaturePresets[0].id
   )
 }
 

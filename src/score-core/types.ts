@@ -189,6 +189,11 @@ export type ScoreCommand =
       measureId: MeasureId
     }
   | {
+      type: 'staff-measures.replace'
+      target: StaffAddress
+      measures: Measure[]
+    }
+  | {
       type: 'score.batch'
       commands: ScoreCommand[]
     }

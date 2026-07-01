@@ -6,6 +6,7 @@ import {
   applyScoreCommand,
   createDuration,
   createScore,
+  resolveNotePitch,
   validateMeasureRhythm,
   validateTieRelations,
   validateVoiceTuplets
@@ -20,6 +21,7 @@ import {
   buildInsertMeasureAfter,
   buildRemoveMeasure
 } from '../renderer/src/editor/measure-management'
+import { buildKeySignatureCommand } from '../renderer/src/editor/key-signature'
 import { createNewScore } from '../renderer/src/editor/new-score'
 import {
   buildSequentialInput,
@@ -192,6 +194,53 @@ describe('single-voice MVP regression', () => {
       })
       expect(validateMeasureRhythm(measure).isExact).toBe(true)
     })
+  })
+
+  it('changes key signature from the selected measure while preserving pitches', () => {
+    const score = createSingleVoiceMvpScore()
+    const command = buildKeySignatureCommand(
+      score,
+      { type: 'measure', measureId: 'measure-2' },
+      { fifths: 0, mode: 'major' }
+    )
+    const changed = applyScoreCommand(score, command!)
+    const measures = changed.score.parts[0].staves[0].measures
+    const measure2 = measures[1]
+    const measure1 = measures[0]
+    const voice2 = measure2.voices[0]
+    const fSharp = voice2.events.find((event) => event.id === 'm2-7')
+
+    expect(measure1.keySignature).toEqual({ fifths: 1, mode: 'major' })
+    expect(measures.slice(1).map((measure) => measure.keySignature)).toEqual(
+      Array.from({ length: 7 }, () => ({ fifths: 0, mode: 'major' }))
+    )
+    expect(fSharp).toMatchObject({
+      type: 'note',
+      pitch: { step: 'F', alter: 1 }
+    })
+    expect(
+      fSharp?.type === 'note'
+        ? resolveNotePitch(measure2, voice2, fSharp)
+        : undefined
+    ).toMatchObject({
+      step: 'F',
+      alter: 1
+    })
+    measures.forEach((measure) => {
+      expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    })
+
+    const roundTrip = parseMusicXml(serializeMusicXml(changed.score))
+
+    expect(
+      createScoreSemanticSnapshot(roundTrip).parts[0].staves[0].measures.map(
+        (measure) => measure.keySignature
+      )
+    ).toEqual(
+      createScoreSemanticSnapshot(changed.score)
+        .parts[0].staves[0].measures.map((measure) => measure.keySignature)
+    )
+    expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
   it('adds and removes an inherited measure without disturbing the fixture', () => {

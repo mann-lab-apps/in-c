@@ -223,6 +223,45 @@ describe('score-core', () => {
     )
   })
 
+  it('replaces staff measures and restores them with undo', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({ id: 'measure-1', number: 1 }),
+                createMeasure({ id: 'measure-2', number: 2 })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const nextMeasures = score.parts[0].staves[0].measures.map((measure) => ({
+      ...measure,
+      keySignature: { fifths: -1, mode: 'major' as const }
+    }))
+    const replaced = applyScoreCommand(score, {
+      type: 'staff-measures.replace',
+      target: {
+        partId: 'part-1',
+        staffId: 'staff-1'
+      },
+      measures: nextMeasures
+    })
+
+    expect(
+      replaced.score.parts[0].staves[0].measures.map(
+        (measure) => measure.keySignature
+      )
+    ).toEqual([
+      { fifths: -1, mode: 'major' },
+      { fifths: -1, mode: 'major' }
+    ])
+    expect(applyScoreCommand(replaced.score, replaced.undo).score).toEqual(score)
+  })
+
   it('does not remove the final measure from a staff', () => {
     const score = createScore()
 

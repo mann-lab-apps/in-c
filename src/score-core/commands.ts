@@ -45,6 +45,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       )
     case 'staff-measure.remove':
       return removeStaffMeasure(score, command.target, command.measureId)
+    case 'staff-measures.replace':
+      return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
   }
@@ -119,6 +121,25 @@ function removeStaffMeasure(
       }
     }
   })
+}
+
+function replaceStaffMeasures(
+  score: Score,
+  target: StaffAddress,
+  measures: Measure[]
+): CommandResult {
+  if (measures.length === 0) {
+    throw new Error('A staff must contain at least one measure.')
+  }
+
+  return updateStaffMeasures(score, target, (previousMeasures) => ({
+    measures: renumberMeasures(measures),
+    undo: {
+      type: 'staff-measures.replace',
+      target,
+      measures: previousMeasures
+    }
+  }))
 }
 
 function applyCommandBatch(
