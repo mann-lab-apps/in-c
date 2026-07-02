@@ -15,7 +15,8 @@
 - `src/io`: MusicXML과 프로젝트 파일 가져오기·내보내기.
 - `docs/research`: 레퍼런스 조사와 제품 판단 기록.
 - `docs/product`: 사용자 여정과 현재 제품 기준. 스토리 맵은
-  [`docs/product/story-map.md`](docs/product/story-map.md)에 정리합니다.
+  [`docs/product/story-map.md`](docs/product/story-map.md), AI Agent 협업 절차는
+  [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md)에 정리합니다.
 - `docs/architecture`: 아키텍처와 기술 설계 기록.
 
 ## 레퍼런스 경계
