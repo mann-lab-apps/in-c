@@ -50,13 +50,13 @@ export interface MeasureLocation {
 }
 
 export const durationLabels: Record<DurationValue, string> = {
-  whole: 'Whole',
-  half: 'Half',
-  quarter: 'Quarter',
-  eighth: 'Eighth',
-  '16th': '16th',
-  '32nd': '32nd',
-  '64th': '64th'
+  whole: '온음표',
+  half: '2분음표',
+  quarter: '4분음표',
+  eighth: '8분음표',
+  '16th': '16분음표',
+  '32nd': '32분음표',
+  '64th': '64분음표'
 }
 
 export function locateEvent(score: Score, eventId: string): EventLocation | undefined {

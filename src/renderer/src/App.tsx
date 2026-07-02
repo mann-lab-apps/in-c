@@ -127,7 +127,7 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
 const tripletPreset = {
   actualNotes: 3,
   durationValue: 'eighth',
-  label: 'Triplet',
+  label: '셋잇단음표',
   normalNotes: 2,
   shortcut: 'T'
 } satisfies {
@@ -139,10 +139,19 @@ const tripletPreset = {
 }
 
 const modeStatus: Record<EditorMode, string> = {
-  select: 'Select · A–G edits selected note or rest',
-  note: 'Note input · A–G enters notes',
-  rest: 'Rest input · R enters rests'
+  select: '선택 모드 · A-G로 선택한 음표나 쉼표를 바꿉니다',
+  note: '음표 입력 · A-G로 음표를 입력합니다',
+  rest: '쉼표 입력 · R로 쉼표를 입력합니다'
 }
+const eventTypeLabels = {
+  note: '음표',
+  rest: '쉼표'
+} as const
+const playbackStatusLabels = {
+  paused: '일시정지',
+  playing: '재생 중',
+  stopped: '정지'
+} as const
 
 interface EditorHistoryEntry {
   command: ScoreCommand
@@ -348,7 +357,7 @@ const App = () => {
     (field: MetadataField, value: string) => {
       const trimmed = value.trim()
       const title = field === 'title'
-        ? trimmed || 'Untitled score'
+        ? trimmed || '제목 없는 악보'
         : score.title
       const composer = field === 'composer'
         ? trimmed || undefined
@@ -369,7 +378,7 @@ const App = () => {
       ) {
         setFileStatus({
           tone: 'neutral',
-          message: 'Score metadata updated.'
+          message: '악보 정보를 수정했습니다.'
         })
       }
     },
@@ -544,7 +553,7 @@ const App = () => {
         setNoteInputState(undefined)
         setFileStatus({
           tone: 'neutral',
-          message: 'Key signature changed from the selected measure.'
+          message: '선택한 마디부터 조표를 바꿨습니다.'
         })
       }
     },
@@ -561,12 +570,12 @@ const App = () => {
         setNoteInputState(undefined)
         setFileStatus({
           tone: 'neutral',
-          message: 'Time signature changed for the selected measure.'
+          message: '선택한 마디의 박자표를 바꿨습니다.'
         })
       } else {
         setFileStatus({
           tone: 'error',
-          message: 'Time signature does not fit the selected measure rhythm.'
+          message: '선택한 마디의 리듬이 새 박자표에 맞지 않습니다.'
         })
       }
     },
@@ -587,7 +596,7 @@ const App = () => {
       if (!executeCommand(buildPitchStepCommand(score, selection, step))) {
         setFileStatus({
           tone: 'error',
-          message: 'Select a note or rest that can be changed to a note.'
+          message: '음표로 바꿀 수 있는 음표나 쉼표를 선택해 주세요.'
         })
       }
     },
@@ -598,7 +607,7 @@ const App = () => {
     if (executeCommand(tieCommand)) {
       setFileStatus({
         tone: 'neutral',
-        message: tieSelected ? 'Tie removed.' : 'Tie added.'
+        message: tieSelected ? '타이를 해제했습니다.' : '타이를 추가했습니다.'
       })
       return
     }
@@ -607,8 +616,8 @@ const App = () => {
       tone: 'error',
       message:
         eventLocation?.event.type === 'note'
-          ? 'Tie needs an adjacent note with the same pitch.'
-          : 'Select a note to add or remove a tie.'
+          ? '타이는 같은 음높이의 바로 다음 음표와 연결할 수 있습니다.'
+          : '타이를 추가하거나 해제할 음표를 선택해 주세요.'
     })
   }, [eventLocation, executeCommand, tieCommand, tieSelected])
 
@@ -617,7 +626,7 @@ const App = () => {
       setNoteInputState(cancelTupletInput(noteInputState))
       setFileStatus({
         tone: 'neutral',
-        message: 'Triplet input canceled.'
+        message: '셋잇단음표 입력을 취소했습니다.'
       })
       return
     }
@@ -639,14 +648,14 @@ const App = () => {
         setFileStatus({
           tone: 'neutral',
           message: removesExistingTuplet
-            ? 'Triplet removed from the selected group.'
-            : 'Triplet applied to the selected span.'
+            ? '선택한 셋잇단음표를 해제했습니다.'
+            : '선택한 구간에 셋잇단음표를 적용했습니다.'
         })
       } else {
         setFileStatus({
           tone: 'error',
           message:
-            'Triplet needs a selected event plus enough clear time in the measure.'
+            '셋잇단음표를 만들려면 선택한 음표와 마디 안의 충분한 빈 박자가 필요합니다.'
         })
       }
       return
@@ -672,12 +681,12 @@ const App = () => {
       setFileStatus({
         tone: 'neutral',
         message:
-          'Eighth-note triplet input started. Add 3 notes or rests with A–G and R.'
+          '8분음표 셋잇단 입력을 시작했습니다. A-G와 R로 세 음표 또는 쉼표를 입력해 주세요.'
       })
     } else {
       setFileStatus({
         tone: 'error',
-        message: 'Triplet input cannot start from the current state.'
+        message: '현재 위치에서는 셋잇단음표 입력을 시작할 수 없습니다.'
       })
     }
   }, [
@@ -735,7 +744,7 @@ const App = () => {
         if (inputState.tupletInput) {
           setFileStatus({
             tone: 'neutral',
-            message: 'Triplet completed.'
+            message: '셋잇단음표 입력을 완료했습니다.'
           })
         }
       }
@@ -751,7 +760,7 @@ const App = () => {
     if (!inputState) {
       setFileStatus({
         tone: 'error',
-        message: 'Select a note or rest before entering rests.'
+        message: '쉼표를 입력할 음표나 쉼표를 먼저 선택해 주세요.'
       })
       return
     }
@@ -770,8 +779,8 @@ const App = () => {
       setFileStatus({
         tone: 'error',
         message: noteInputState?.tupletInput
-          ? 'Triplet cannot fit here. Start within continuous space in the current measure.'
-          : `${durationLabels[durationValue]} rest cannot fit here without overwriting another note.`
+          ? '이 위치에는 셋잇단음표가 들어갈 수 없습니다. 현재 마디 안의 이어진 빈 박자에서 시작해 주세요.'
+          : `${durationLabels[durationValue]} 쉼표가 들어갈 빈 박자가 부족합니다.`
       })
       return
     }
@@ -798,9 +807,9 @@ const App = () => {
       })
       if (inputState.tupletInput) {
         setFileStatus({
-          tone: 'neutral',
-          message: 'Triplet completed.'
-        })
+            tone: 'neutral',
+            message: '셋잇단음표 입력을 완료했습니다.'
+          })
       }
     }
   }, [durationValue, executeCommand, noteInputState, score, selection])
@@ -809,7 +818,7 @@ const App = () => {
     if (selection.type !== 'event' || !eventLocation) {
       setFileStatus({
         tone: 'error',
-        message: 'Select a note before converting it to a rest.'
+        message: '쉼표로 바꿀 음표를 선택해 주세요.'
       })
       return
     }
@@ -817,7 +826,7 @@ const App = () => {
     if (eventLocation.event.type === 'rest') {
       setFileStatus({
         tone: 'neutral',
-        message: 'Selected event is already a rest.'
+        message: '이미 쉼표가 선택되어 있습니다.'
       })
       return
     }
@@ -836,7 +845,7 @@ const App = () => {
       setNoteInputState(undefined)
       setFileStatus({
         tone: 'neutral',
-        message: 'Note converted to a rest.'
+        message: '음표를 쉼표로 바꿨습니다.'
       })
     }
   }, [eventLocation, executeCommand, score, selection])
@@ -853,8 +862,8 @@ const App = () => {
         tone: 'error',
         message:
           eventLocation.event.duration.tuplet
-            ? 'Tuplet members cannot be deleted independently yet.'
-            : 'Tied notes must be untied before deleting.'
+            ? '잇단음표 구성음은 아직 따로 지울 수 없습니다.'
+            : '타이로 연결된 음표는 타이를 먼저 해제한 뒤 지워 주세요.'
       })
       return
     }
@@ -876,8 +885,8 @@ const App = () => {
       tone: 'neutral',
       message:
         eventLocation.event.type === 'rest'
-          ? 'Rest deleted'
-          : 'Note deleted'
+          ? '쉼표를 지웠습니다.'
+          : '음표를 지웠습니다.'
     })
   }, [eventLocation, noteInputState, score, selection])
 
@@ -903,7 +912,7 @@ const App = () => {
     if (!activeMeasureId) {
       setFileStatus({
         tone: 'error',
-        message: 'Select a measure before deleting a measure.'
+        message: '삭제할 마디를 선택해 주세요.'
       })
       return
     }
@@ -911,7 +920,7 @@ const App = () => {
     if (measureCount <= 1) {
       setFileStatus({
         tone: 'error',
-        message: 'Cannot delete the last measure.'
+        message: '마지막 남은 마디는 삭제할 수 없습니다.'
       })
       return
     }
@@ -924,7 +933,7 @@ const App = () => {
       setMode('select')
       setFileStatus({
         tone: 'neutral',
-        message: 'Measure deleted.'
+        message: '마디를 삭제했습니다.'
       })
     }
   }, [activeMeasureId, executeCommand, measureCount, noteInputState, score])
@@ -1017,7 +1026,7 @@ const App = () => {
       )
       setFileStatus({
         tone: 'neutral',
-        message: `${file.fileName} imported`
+        message: `${file.fileName}을 가져왔습니다.`
       })
     } catch (error) {
       setFileStatus({
@@ -1041,7 +1050,7 @@ const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName} saved`
+        message: `${result.fileName}을 저장했습니다.`
       })
     } catch (error) {
       setFileStatus({
@@ -1063,7 +1072,7 @@ const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName} converted to PDF`
+        message: `${result.fileName}로 PDF를 만들었습니다.`
       })
     } catch (error) {
       setFileStatus({
@@ -1206,7 +1215,7 @@ const App = () => {
           if (noteInputState?.tupletInput) {
             setFileStatus({
               tone: 'neutral',
-              message: 'Triplet input canceled.'
+              message: '셋잇단음표 입력을 취소했습니다.'
             })
           }
           setMode('select')
@@ -1254,48 +1263,51 @@ const App = () => {
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
   const clearSelectionLabel =
     eventLocation?.event.type === 'rest'
-      ? 'Merge adjacent rests'
-      : 'Clear note to rest'
+      ? '쉼표 지우기'
+      : '음표 지우기'
   const canClearSelection =
     selection.type === 'event' &&
     Boolean(buildDeleteCommand(score, selection))
 
   return (
     <main className="app-shell">
-      <aside className="sidebar" aria-label="Score navigation">
+      <aside className="sidebar" aria-label="악보 탐색">
         <div>
           <p className="eyebrow">in-C</p>
           <h1>{score.title}</h1>
         </div>
 
-        <nav className="panel-list" aria-label="Open panels">
+        <nav className="panel-list" aria-label="패널 열기">
           <button className="panel-list__item panel-list__item--active" type="button">
-            Score
+            악보
           </button>
           <button className="panel-list__item" type="button">
-            Parts
+            파트
           </button>
           <button className="panel-list__item" type="button">
-            Mixer
+            믹서
           </button>
         </nav>
 
-        <section className="inspector" aria-label="Selection inspector">
-          <h2>Selection</h2>
+        <section className="inspector" aria-label="선택 정보">
+          <h2>선택 정보</h2>
           <dl>
             <div>
-              <dt>Type</dt>
+              <dt>종류</dt>
               <dd>
-                {eventLocation?.event.type ??
-                  (measureLocation ? 'measure' : '—')}
+                {eventLocation
+                  ? eventTypeLabels[eventLocation.event.type]
+                  : measureLocation
+                    ? '마디'
+                    : '—'}
               </dd>
             </div>
             <div>
-              <dt>Event</dt>
+              <dt>ID</dt>
               <dd>{eventLocation?.event.id ?? '—'}</dd>
             </div>
             <div>
-              <dt>Measure</dt>
+              <dt>마디</dt>
               <dd>
                 {eventLocation?.measureNumber ??
                   measureLocation?.measureNumber ??
@@ -1303,7 +1315,7 @@ const App = () => {
               </dd>
             </div>
             <div>
-              <dt>Voice</dt>
+              <dt>성부</dt>
               <dd>
                 {eventLocation?.address.voiceId ??
                   measureLocation?.address.voiceId ??
@@ -1314,10 +1326,10 @@ const App = () => {
         </section>
       </aside>
 
-      <section className="workspace" aria-label="Notation editor">
+      <section className="workspace" aria-label="악보 편집기">
         <header className="toolbar">
           <div className="toolbar__group">
-            <div className="file-actions" aria-label="File actions">
+            <div className="file-actions" aria-label="파일 작업">
               <button
                 aria-label="새 악보 만들기"
                 onClick={openNewScoreWizard}
@@ -1341,22 +1353,22 @@ const App = () => {
             </div>
 
             <button
-              aria-label="Undo"
+              aria-label="실행 취소"
               className="icon-button"
               disabled={undoStack.length === 0}
               onClick={undo}
-              title="Undo"
+              title="실행 취소"
               type="button"
             >
               <RotateCcw aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label="Redo"
+              aria-label="다시 실행"
               className="icon-button"
               disabled={redoStack.length === 0}
               onClick={redo}
-              title="Redo"
+              title="다시 실행"
               type="button"
             >
               <RotateCw aria-hidden="true" size={18} />
@@ -1374,32 +1386,32 @@ const App = () => {
             </button>
 
             <button
-              aria-label="Add measure"
+              aria-label="마디 추가"
               className="icon-button"
               disabled={!activeMeasureId}
               onClick={addMeasure}
-              title="Add measure"
+              title="마디 추가"
               type="button"
             >
               <Plus aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label="Delete measure"
+              aria-label="마디 삭제"
               className="icon-button"
               disabled={!activeMeasureId}
               onClick={removeMeasure}
-              title="Delete measure"
+              title="마디 삭제"
               type="button"
             >
               <Minus aria-hidden="true" size={18} />
             </button>
 
-            <div className="accidental-control" aria-label="Accidental">
+            <div className="accidental-control" aria-label="임시표">
               {([
-                [-1, '♭', 'Flat'],
-                [0, '♮', 'Natural'],
-                [1, '♯', 'Sharp']
+                [-1, '♭', '플랫'],
+                [0, '♮', '제자리표'],
+                [1, '♯', '샤프']
               ] as const).map(([alter, symbol, label]) => (
                 <button
                   aria-label={label}
@@ -1423,7 +1435,7 @@ const App = () => {
             <label className="key-signature-control">
               <span>조표</span>
               <select
-                aria-label="Key signature"
+                aria-label="조표"
                 disabled={!activeMeasureId}
                 onChange={(event) => changeKeySignature(event.target.value)}
                 value={activeKeySignatureId}
@@ -1439,7 +1451,7 @@ const App = () => {
             <label className="time-signature-control">
               <span>박자표</span>
               <select
-                aria-label="Time signature"
+                aria-label="박자표"
                 disabled={!activeMeasureId}
                 onChange={(event) => changeTimeSignature(event.target.value)}
                 value={activeTimeSignatureId}
@@ -1453,55 +1465,55 @@ const App = () => {
             </label>
 
             <button
-              aria-label="Move pitch down"
+              aria-label="음높이 한 칸 내리기"
               className="icon-button"
               disabled={!canEditPitch}
               onClick={() => movePitch('diatonic', -1)}
-              title="Move pitch down"
+              title="음높이 한 칸 내리기"
               type="button"
             >
               <ArrowDown aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label="Move pitch up"
+              aria-label="음높이 한 칸 올리기"
               className="icon-button"
               disabled={!canEditPitch}
               onClick={() => movePitch('diatonic', 1)}
-              title="Move pitch up"
+              title="음높이 한 칸 올리기"
               type="button"
             >
               <ArrowUp aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label="Move pitch down an octave"
+              aria-label="한 옥타브 내리기"
               className="icon-button"
               disabled={!canEditPitch}
               onClick={() => movePitch('octave', -1)}
-              title="Move pitch down an octave"
+              title="한 옥타브 내리기"
               type="button"
             >
               <ChevronsDown aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label="Move pitch up an octave"
+              aria-label="한 옥타브 올리기"
               className="icon-button"
               disabled={!canEditPitch}
               onClick={() => movePitch('octave', 1)}
-              title="Move pitch up an octave"
+              title="한 옥타브 올리기"
               type="button"
             >
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
             <button
-              aria-label={tieSelected ? 'Remove tie' : 'Add tie'}
+              aria-label={tieSelected ? '타이 해제' : '타이 추가'}
               className="icon-button"
               disabled={!tieCommand}
               onClick={toggleTie}
-              title={tieSelected ? 'Remove tie (L)' : 'Add tie (L)'}
+              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
               type="button"
             >
               {tieSelected ? (
@@ -1512,13 +1524,13 @@ const App = () => {
             </button>
           </div>
 
-          <div className="duration-strip" aria-label="Note duration">
+          <div className="duration-strip" aria-label="음가">
             <Clock3 aria-hidden="true" size={17} />
             {durations.map((duration) => {
               const shortcut = durationShortcuts[duration]
               const label = shortcut
-                ? `${durationLabels[duration]} duration, shortcut ${shortcut}`
-                : `${durationLabels[duration]} duration`
+                ? `${durationLabels[duration]}, 단축키 ${shortcut}`
+                : durationLabels[duration]
 
               return (
                 <button
@@ -1538,24 +1550,24 @@ const App = () => {
               )
             })}
 
-            <div className="dot-control" aria-label="Augmentation dots">
+            <div className="dot-control" aria-label="점음표">
               <button
-                aria-label="Remove augmentation dot"
+                aria-label="점 줄이기"
                 disabled={isTupletInput || !canRemoveDot}
                 onClick={() => changeDots(-1)}
-                title="Remove augmentation dot"
+                title="점 줄이기"
                 type="button"
               >
                 <CircleMinus aria-hidden="true" size={17} />
               </button>
-              <output aria-label="Augmentation dot count">
+              <output aria-label="점 개수">
                 {activeDots}
               </output>
               <button
-                aria-label="Add augmentation dot"
+                aria-label="점 추가"
                 disabled={isTupletInput || !canAddDot}
                 onClick={() => changeDots(1)}
-                title="Add augmentation dot"
+                title="점 추가"
                 type="button"
               >
                 <CirclePlus aria-hidden="true" size={17} />
@@ -1565,21 +1577,21 @@ const App = () => {
             <button
               aria-label={
                 isTupletInput
-                  ? `Cancel triplet input, shortcut ${tripletPreset.shortcut} or Escape`
-                  : `Apply triplet or arm triplet input, shortcut ${tripletPreset.shortcut}`
+                  ? `셋잇단음표 입력 취소, 단축키 ${tripletPreset.shortcut} 또는 Esc`
+                  : `셋잇단음표 적용 또는 입력 준비, 단축키 ${tripletPreset.shortcut}`
               }
               aria-pressed={isTupletInput}
               className={`tuplet-button${isTupletInput ? ' is-active' : ''}`}
               onClick={toggleTuplet}
               title={
                 isTupletInput
-                  ? `Cancel triplet (${tupletProgress})`
-                  : `Apply triplet or arm input (${tripletPreset.shortcut})`
+                  ? `셋잇단음표 취소 (${tupletProgress})`
+                  : `셋잇단음표 적용 또는 입력 준비 (${tripletPreset.shortcut})`
               }
               type="button"
             >
               <span>{tripletPreset.label}</span>
-              <span className="tuplet-duration-label">8th</span>
+              <span className="tuplet-duration-label">8분</span>
               <span className="shortcut-badge">{tripletPreset.shortcut}</span>
             </button>
           </div>
@@ -1587,33 +1599,33 @@ const App = () => {
         </header>
 
         <div className="playback-strip">
-          <div className="transport-controls" aria-label="Playback controls">
+          <div className="transport-controls" aria-label="재생 컨트롤">
             <button
-              aria-label="Play"
+              aria-label="재생"
               className="icon-button"
               disabled={playback.status === 'playing'}
               onClick={playback.play}
-              title="Play"
+              title="재생"
               type="button"
             >
               <Play aria-hidden="true" size={18} />
             </button>
             <button
-              aria-label="Pause"
+              aria-label="일시정지"
               className="icon-button"
               disabled={playback.status !== 'playing'}
               onClick={playback.pause}
-              title="Pause"
+              title="일시정지"
               type="button"
             >
               <Pause aria-hidden="true" size={18} />
             </button>
             <button
-              aria-label="Stop"
+              aria-label="정지"
               className="icon-button"
               disabled={playback.status === 'stopped'}
               onClick={playback.stop}
-              title="Stop"
+              title="정지"
               type="button"
             >
               <Square aria-hidden="true" size={17} />
@@ -1621,9 +1633,9 @@ const App = () => {
           </div>
 
           <label className="tempo-control">
-            <span>Tempo</span>
+            <span>템포</span>
             <input
-              aria-label="Tempo"
+              aria-label="템포"
               max="240"
               min="40"
               onChange={(event) =>
@@ -1641,8 +1653,8 @@ const App = () => {
           <span>
             {noteInputState
               ? noteInputState.tupletInput
-                ? 'Triplet input · A–G adds notes, R adds rests, Esc cancels'
-                : 'Input cursor · A–G adds notes, R adds rests'
+                ? '셋잇단음표 입력 · A-G로 음표, R로 쉼표, Esc로 취소'
+                : '입력 커서 · A-G로 음표, R로 쉼표를 추가합니다'
               : modeStatus[mode]}
           </span>
           <span>{durationLabels[durationValue]}</span>
@@ -1656,13 +1668,13 @@ const App = () => {
               M
               {locateMeasure(score, noteInputState.target.measureId)
                 ?.measureNumber ?? '—'}{' '}
-              · {noteInputState.tick} ticks
+              · {noteInputState.tick}틱
             </span>
           ) : null}
-          <span>{undoStack.length} edits</span>
-          <span>{playback.status}</span>
+          <span>{undoStack.length}회 수정</span>
+          <span>{playbackStatusLabels[playback.status]}</span>
           <span>
-            {playback.positionBeat.toFixed(1)} / {playback.totalBeats.toFixed(1)} beats
+            {playback.positionBeat.toFixed(1)} / {playback.totalBeats.toFixed(1)}박
           </span>
           {fileStatus ? (
             <span className={fileStatus.tone === 'error' ? 'is-error' : undefined}>
@@ -1671,11 +1683,11 @@ const App = () => {
           ) : null}
         </div>
 
-        <div className="score-page" aria-label="Score page">
+        <div className="score-page" aria-label="악보 페이지">
           <div className="score-title">
             {metadataEdit?.field === 'title' ? (
               <input
-                aria-label="Score title"
+                aria-label="악보 제목"
                 autoFocus
                 className="metadata-input metadata-input--title"
                 maxLength={metadataMaxLength.title}
@@ -1696,7 +1708,7 @@ const App = () => {
               />
             ) : (
               <button
-                aria-label="Edit score title"
+                aria-label="악보 제목 수정"
                 className="metadata-display metadata-display--title"
                 onClick={() => beginMetadataEdit('title')}
                 type="button"
@@ -1707,7 +1719,7 @@ const App = () => {
 
             {metadataEdit?.field === 'composer' ? (
               <input
-                aria-label="Score composer"
+                aria-label="작곡가"
                 autoFocus
                 className="metadata-input metadata-input--composer"
                 maxLength={metadataMaxLength.composer}
@@ -1724,17 +1736,17 @@ const App = () => {
                 onKeyDown={(event) =>
                   handleMetadataKeyDown(event, 'composer', metadataEdit.value)
                 }
-                placeholder="Composer"
+                placeholder="작곡가"
                 value={metadataEdit.value}
               />
             ) : (
               <button
-                aria-label="Edit score composer"
+                aria-label="작곡가 수정"
                 className="metadata-display metadata-display--composer"
                 onClick={() => beginMetadataEdit('composer')}
                 type="button"
               >
-                {score.composer ?? 'Composer'}
+                {score.composer ?? '작곡가'}
               </button>
             )}
           </div>
@@ -1992,7 +2004,7 @@ function isRestShortcut(event: KeyboardEvent): boolean {
 
 function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
   return {
-    title: 'Untitled Score',
+    title: '제목 없는 악보',
     composer: 'in-C',
     partPresetId: 'piano',
     keySignatureId: 'c-major',
@@ -2112,15 +2124,15 @@ function describeTupletProgress(state: NoteInputState): string {
   const tupletInput = state.tupletInput
 
   if (!tupletInput) {
-    return 'Triplet input is not active.'
+    return '셋잇단음표 입력 상태가 아닙니다.'
   }
 
   const entered = tupletInput.members.length
   const remaining = tupletInput.actualNotes - entered
 
   return remaining > 0
-    ? `Triplet ${entered}/${tupletInput.actualNotes} staged. Add ${remaining} more.`
-    : 'Triplet completed.'
+    ? `셋잇단음표 ${entered}/${tupletInput.actualNotes}개 입력됨. ${remaining}개 더 입력해 주세요.`
+    : '셋잇단음표 입력을 완료했습니다.'
 }
 
 function describeDurationEditSuccess(
@@ -2130,24 +2142,24 @@ function describeDurationEditSuccess(
   label: string
 ): string {
   if (selection.type !== 'event') {
-    return `Duration changed to ${label}.`
+    return `음가를 ${label}로 바꿨습니다.`
   }
 
   const location = locateEvent(score, selection.eventId)
 
   if (!location) {
-    return `Duration changed to ${label}.`
+    return `음가를 ${label}로 바꿨습니다.`
   }
 
   const currentEndTick =
     location.event.position.tick +
     voiceEventDurationTicks(location.event, location.measure)
   const nextEndTick = location.event.position.tick + durationToTicks(duration)
-  const subject = location.event.type === 'rest' ? 'Rest duration' : 'Duration'
+  const subject = location.event.type === 'rest' ? '쉼표 음가' : '음가'
 
   return nextEndTick > currentEndTick
-    ? `${subject} changed to ${label} using following rests.`
-    : `${subject} changed to ${label}.`
+    ? `${subject}를 ${label}로 바꾸고 뒤의 쉼표를 사용했습니다.`
+    : `${subject}를 ${label}로 바꿨습니다.`
 }
 
 function describeDurationEditFailure(
@@ -2156,13 +2168,13 @@ function describeDurationEditFailure(
   duration: Duration
 ): string {
   if (selection.type !== 'event') {
-    return 'Select a note or rest before changing duration.'
+    return '음가를 바꿀 음표나 쉼표를 선택해 주세요.'
   }
 
   const location = locateEvent(score, selection.eventId)
 
   if (!location) {
-    return 'Selected event could not be found.'
+    return '선택한 음표나 쉼표를 찾을 수 없습니다.'
   }
 
   const voice = location.measure.voices.find(
@@ -2176,7 +2188,7 @@ function describeDurationEditFailure(
   )
 
   if (isTupletMember) {
-    return 'Tuplet member durations cannot be changed independently yet.'
+    return '잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.'
   }
 
   const startTick = location.event.position.tick
@@ -2186,7 +2198,7 @@ function describeDurationEditFailure(
   const measureEndTick = measureDurationTicks(location.measure)
 
   if (nextEndTick > measureEndTick) {
-    return 'Duration would overflow the current measure.'
+    return '음가가 현재 마디를 넘어갑니다.'
   }
 
   if (nextEndTick > currentEndTick) {
@@ -2207,17 +2219,17 @@ function describeDurationEditFailure(
       }
 
       if (event.position.tick !== coveredUntil) {
-        return 'Duration needs continuous rest space after the selected event.'
+        return '선택한 음표 뒤에 이어진 쉼표 공간이 필요합니다.'
       }
 
       if (event.type !== 'rest') {
         return event.ties?.start || event.ties?.stop
-          ? `Duration is blocked by tied note ${event.id}.`
-          : `Duration is blocked by note ${event.id}.`
+          ? `타이로 연결된 음표 ${event.id} 때문에 음가를 늘릴 수 없습니다.`
+          : `음표 ${event.id} 때문에 음가를 늘릴 수 없습니다.`
       }
 
       if (event.duration.tuplet) {
-        return 'Duration cannot consume tuplet rests; edit the tuplet group first.'
+        return '잇단음표 쉼표는 자동으로 사용할 수 없습니다. 잇단음표 그룹을 먼저 수정해 주세요.'
       }
 
       coveredUntil =
@@ -2228,10 +2240,10 @@ function describeDurationEditFailure(
       }
     }
 
-    return 'Duration needs more continuous rest space after the selected event.'
+    return '선택한 음표 뒤에 더 많은 이어진 쉼표 공간이 필요합니다.'
   }
 
-  return 'Duration cannot be changed while preserving the measure rhythm.'
+  return '마디의 박자를 유지한 채로는 음가를 바꿀 수 없습니다.'
 }
 
 function toFileName(title: string): string {
