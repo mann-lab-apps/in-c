@@ -1508,20 +1508,6 @@ const App = () => {
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
-            <button
-              aria-label={tieSelected ? '타이 해제' : '타이 추가'}
-              className="icon-button"
-              disabled={!tieCommand}
-              onClick={toggleTie}
-              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
-              type="button"
-            >
-              {tieSelected ? (
-                <Unlink2 aria-hidden="true" size={18} />
-              ) : (
-                <Link2 aria-hidden="true" size={18} />
-              )}
-            </button>
           </div>
 
           <div className="duration-strip" aria-label="음가">
@@ -1573,6 +1559,24 @@ const App = () => {
                 <CirclePlus aria-hidden="true" size={17} />
               </button>
             </div>
+
+            <button
+              aria-label={tieSelected ? '타이 해제, 단축키 L' : '타이 추가, 단축키 L'}
+              aria-pressed={tieSelected}
+              className={`tie-button${tieSelected ? ' is-active' : ''}`}
+              disabled={!tieCommand}
+              onClick={toggleTie}
+              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
+              type="button"
+            >
+              {tieSelected ? (
+                <Unlink2 aria-hidden="true" size={17} />
+              ) : (
+                <Link2 aria-hidden="true" size={17} />
+              )}
+              <span>타이</span>
+              <span className="shortcut-badge">L</span>
+            </button>
 
             <button
               aria-label={
