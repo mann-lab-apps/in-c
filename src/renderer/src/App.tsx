@@ -863,7 +863,7 @@ const App = () => {
         message:
           eventLocation.event.duration.tuplet
             ? '잇단음표 구성음은 아직 따로 지울 수 없습니다.'
-            : '타이로 연결된 음표는 타이를 먼저 해제한 뒤 지워 주세요.'
+            : '선택한 음표 또는 쉼표를 이 위치에서는 지울 수 없습니다.'
       })
       return
     }
@@ -1508,20 +1508,6 @@ const App = () => {
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
-            <button
-              aria-label={tieSelected ? '타이 해제' : '타이 추가'}
-              className="icon-button"
-              disabled={!tieCommand}
-              onClick={toggleTie}
-              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
-              type="button"
-            >
-              {tieSelected ? (
-                <Unlink2 aria-hidden="true" size={18} />
-              ) : (
-                <Link2 aria-hidden="true" size={18} />
-              )}
-            </button>
           </div>
 
           <div className="duration-strip" aria-label="음가">
@@ -1573,6 +1559,24 @@ const App = () => {
                 <CirclePlus aria-hidden="true" size={17} />
               </button>
             </div>
+
+            <button
+              aria-label={tieSelected ? '타이 해제, 단축키 L' : '타이 추가, 단축키 L'}
+              aria-pressed={tieSelected}
+              className={`tie-button${tieSelected ? ' is-active' : ''}`}
+              disabled={!tieCommand}
+              onClick={toggleTie}
+              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
+              type="button"
+            >
+              {tieSelected ? (
+                <Unlink2 aria-hidden="true" size={17} />
+              ) : (
+                <Link2 aria-hidden="true" size={17} />
+              )}
+              <span>타이</span>
+              <span className="shortcut-badge">L</span>
+            </button>
 
             <button
               aria-label={

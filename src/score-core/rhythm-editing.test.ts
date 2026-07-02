@@ -298,8 +298,51 @@ describe('monophonic rhythm editing', () => {
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
   })
 
-  it('does not delete a tied note', () => {
-    const tiedNote = scoreWith([
+  it('deletes a rest into an existing tied note chain', () => {
+    const tiedChain = scoreWith([
+      {
+        ...note('note-1', 0, 'quarter'),
+        ties: { start: true }
+      },
+      {
+        ...note('note-2', quarter, 'quarter'),
+        ties: { stop: true }
+      },
+      rest('rest-1', quarter * 2, 'quarter'),
+      rest('rest-2', quarter * 3, 'quarter')
+    ])
+    const command = buildRhythmDeleteCommand(tiedChain, target, 'rest-1')
+    const result = applyScoreCommand(tiedChain, command!)
+
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'note-1',
+        type: 'note',
+        ties: { start: true }
+      },
+      {
+        id: 'note-2',
+        type: 'note',
+        ties: { stop: true, start: true }
+      },
+      {
+        id: 'rest-1',
+        type: 'note',
+        pitch: { step: 'C', octave: 4 },
+        ties: { stop: true }
+      },
+      {
+        id: 'rest-2',
+        type: 'rest'
+      }
+    ])
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(tiedChain)
+  })
+
+  it('deletes a leading tied start and clears the orphaned tie stop', () => {
+    const tiedLeadingNote = scoreWith([
       {
         ...note('note-1', 0, 'quarter'),
         ties: { start: true }
@@ -310,10 +353,98 @@ describe('monophonic rhythm editing', () => {
       },
       rest('rest-1', quarter * 2, 'half')
     ])
+    const command = buildRhythmDeleteCommand(tiedLeadingNote, target, 'note-1')
+    const result = applyScoreCommand(tiedLeadingNote, command!)
 
-    expect(
-      buildRhythmDeleteCommand(tiedNote, target, 'note-1')
-    ).toBeUndefined()
+    expect(readEvents(result.score)).toMatchObject([
+      {
+        id: 'note-2',
+        type: 'note',
+        position: { tick: 0 },
+        ties: undefined
+      },
+      {
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: quarter },
+        duration: { value: 'half', dots: 1 }
+      }
+    ])
+    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(validateTieRelations(result.score)).toEqual([])
+  })
+
+  it('deletes a cross-measure tie stop and clears the previous tie start', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        rest('rest-1', 0, 'half', 1),
+                        {
+                          ...note('tie-start', quarter * 3, 'quarter'),
+                          ties: { start: true }
+                        }
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        {
+                          ...note('tie-stop', 0, 'quarter'),
+                          ties: { stop: true }
+                        },
+                        rest('rest-2', quarter, 'half', 1)
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const command = buildRhythmDeleteCommand(
+      score,
+      {
+        ...target,
+        measureId: 'measure-2'
+      },
+      'tie-stop'
+    )
+    const result = applyScoreCommand(score, command!)
+    const firstMeasureEvents =
+      result.score.parts[0].staves[0].measures[0].voices[0].events
+    const secondMeasureEvents =
+      result.score.parts[0].staves[0].measures[1].voices[0].events
+
+    expect(command?.type).toBe('score.batch')
+    expect(firstMeasureEvents.at(-1)).toMatchObject({
+      id: 'tie-start',
+      type: 'note',
+      ties: undefined
+    })
+    expect(secondMeasureEvents[0]).toMatchObject({
+      id: 'rest-2',
+      type: 'rest',
+      position: { tick: 0 },
+      fullMeasure: true
+    })
+    expect(validateTieRelations(result.score)).toEqual([])
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
   it('rejects deleting a tuplet note independently', () => {

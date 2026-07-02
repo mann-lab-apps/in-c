@@ -1,4 +1,5 @@
 import { createFullMeasureRest, createNote, createRest } from './factories'
+import { resolveNotePitch } from './pitch'
 import {
   durationToTicks,
   measureDurationTicks,
@@ -6,6 +7,7 @@ import {
   validateMeasureRhythm,
   voiceEventDurationTicks
 } from './timing'
+import { validateTieRelations } from './ties'
 import type {
   Duration,
   DurationValue,
@@ -13,6 +15,7 @@ import type {
   Note,
   Score,
   ScoreCommand,
+  Staff,
   Tick,
   Voice,
   VoiceAddress,
@@ -233,10 +236,6 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
-  if (event.type === 'note' && (event.ties?.start || event.ties?.stop)) {
-    return undefined
-  }
-
   const events = sortVoiceEvents(location.voice.events)
   const eventIndex = events.findIndex((candidate) => candidate.id === eventId)
 
@@ -292,11 +291,7 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
-  return {
-    type: 'voice-events.replace',
-    target,
-    events: nextEvents
-  }
+  return buildTieNormalizedReplaceCommand(score, target, nextEvents)
 }
 
 function deleteLeadingEvent(input: {
@@ -337,7 +332,7 @@ function deleteEventIntoPreviousEvent(input: {
   const previousEvent = input.events[input.eventIndex - 1]
 
   if (previousEvent.type === 'note') {
-    if (previousEvent.duration.tuplet || previousEvent.ties) {
+    if (previousEvent.duration.tuplet) {
       return undefined
     }
 
@@ -398,10 +393,16 @@ function createTiedAbsorptionEvents(input: {
   const notes: Note[] = [
     {
       ...input.previousEvent,
-      ties: { start: true }
+      ties: {
+        ...input.previousEvent.ties,
+        start: true
+      }
     }
   ]
   let tick = input.absorbedEvent.position.tick
+  const continuesExistingTie =
+    input.absorbedEvent.type === 'note' &&
+    Boolean(input.absorbedEvent.ties?.start)
 
   durations.forEach((duration, index) => {
     const hasNext = index < durations.length - 1
@@ -414,7 +415,7 @@ function createTiedAbsorptionEvents(input: {
         duration,
         ties: {
           stop: true,
-          start: hasNext || undefined
+          start: hasNext || (continuesExistingTie && !hasNext) || undefined
         }
       })
     )
@@ -422,6 +423,272 @@ function createTiedAbsorptionEvents(input: {
   })
 
   return notes
+}
+
+function buildTieNormalizedReplaceCommand(
+  score: Score,
+  target: VoiceAddress,
+  targetEvents: VoiceEvent[]
+): ScoreCommand | undefined {
+  const nextScore = replaceVoiceEventsInScore(score, target, targetEvents)
+  const normalizedVoice = normalizeTieRelationsForVoice(nextScore, target)
+
+  if (!normalizedVoice) {
+    return undefined
+  }
+
+  const commands: ScoreCommand[] = []
+
+  for (const measure of normalizedVoice.measures) {
+    const voice = measure.voices.find(
+      (candidate) => candidate.id === target.voiceId
+    )
+
+    if (!voice) {
+      return undefined
+    }
+
+    if (
+      !validateMeasureRhythm(measure).isExact ||
+      validateVoiceTuplets(voice).length > 0
+    ) {
+      return undefined
+    }
+
+    const previousEvents = getVoiceEvents(score, {
+      ...target,
+      measureId: measure.id
+    })
+
+    if (!previousEvents || sameEvents(previousEvents, voice.events)) {
+      continue
+    }
+
+    commands.push({
+      type: 'voice-events.replace',
+      target: {
+        ...target,
+        measureId: measure.id
+      },
+      events: voice.events
+    })
+  }
+
+  if (commands.length === 0) {
+    return undefined
+  }
+
+  const normalizedScore = replaceMeasuresInScore(
+    score,
+    target,
+    normalizedVoice.measures
+  )
+
+  if (validateTieRelations(normalizedScore).length > 0) {
+    return undefined
+  }
+
+  return commands.length === 1
+    ? commands[0]
+    : {
+        type: 'score.batch',
+        commands
+      }
+}
+
+function normalizeTieRelationsForVoice(
+  score: Score,
+  target: VoiceAddress
+): { measures: Measure[] } | undefined {
+  const staff = locateStaff(score, target)
+
+  if (!staff) {
+    return undefined
+  }
+
+  const locations = staff.measures.flatMap((measure) => {
+    const voice = measure.voices.find(
+      (candidate) => candidate.id === target.voiceId
+    )
+
+    return voice
+      ? sortVoiceEvents(voice.events).map((event) => ({
+          measure,
+          voice,
+          event
+        }))
+      : []
+  })
+  const nextEventsById = new Map<string, VoiceEvent>()
+
+  locations.forEach((location, index) => {
+    if (location.event.type !== 'note') {
+      nextEventsById.set(location.event.id, location.event)
+      return
+    }
+
+    const previous = locations[index - 1]
+    const next = locations[index + 1]
+    const ties = {
+      stop:
+        location.event.ties?.stop &&
+        previous?.event.type === 'note' &&
+        previous.event.ties?.start &&
+        areAdjacentEqualPitch(previous, location)
+          ? true
+          : undefined,
+      start:
+        location.event.ties?.start &&
+        next?.event.type === 'note' &&
+        next.event.ties?.stop &&
+        areAdjacentEqualPitch(location, next)
+          ? true
+          : undefined
+    }
+
+    nextEventsById.set(location.event.id, {
+      ...location.event,
+      ties: ties.start || ties.stop ? ties : undefined
+    })
+  })
+
+  return {
+    measures: staff.measures.map((measure) => ({
+      ...measure,
+      voices: measure.voices.map((voice) =>
+        voice.id === target.voiceId
+          ? {
+              ...voice,
+              events: sortVoiceEvents(
+                voice.events.map(
+                  (event) => nextEventsById.get(event.id) ?? event
+                )
+              )
+            }
+          : voice
+      )
+    }))
+  }
+}
+
+function areAdjacentEqualPitch(
+  left: { measure: Measure; voice: Voice; event: VoiceEvent },
+  right: { measure: Measure; voice: Voice; event: VoiceEvent }
+): boolean {
+  if (left.event.type !== 'note' || right.event.type !== 'note') {
+    return false
+  }
+
+  const leftPitch = resolveNotePitch(left.measure, left.voice, left.event)
+  const rightPitch = resolveNotePitch(right.measure, right.voice, right.event)
+
+  return (
+    leftPitch.step === rightPitch.step &&
+    leftPitch.octave === rightPitch.octave &&
+    leftPitch.alter === rightPitch.alter
+  )
+}
+
+function replaceVoiceEventsInScore(
+  score: Score,
+  target: VoiceAddress,
+  events: VoiceEvent[]
+): Score {
+  return {
+    ...score,
+    parts: score.parts.map((part) =>
+      part.id === target.partId
+        ? {
+            ...part,
+            staves: part.staves.map((staff) =>
+              staff.id === target.staffId
+                ? {
+                    ...staff,
+                    measures: staff.measures.map((measure) =>
+                      measure.id === target.measureId
+                        ? replaceVoiceEventsInMeasure(
+                            measure,
+                            target.voiceId,
+                            events
+                          )
+                        : measure
+                    )
+                  }
+                : staff
+            )
+          }
+        : part
+    )
+  }
+}
+
+function replaceMeasuresInScore(
+  score: Score,
+  target: VoiceAddress,
+  measures: Measure[]
+): Score {
+  const measureById = new Map(measures.map((measure) => [measure.id, measure]))
+
+  return {
+    ...score,
+    parts: score.parts.map((part) =>
+      part.id === target.partId
+        ? {
+            ...part,
+            staves: part.staves.map((staff) =>
+              staff.id === target.staffId
+                ? {
+                    ...staff,
+                    measures: staff.measures.map(
+                      (measure) => measureById.get(measure.id) ?? measure
+                    )
+                  }
+                : staff
+            )
+          }
+        : part
+    )
+  }
+}
+
+function replaceVoiceEventsInMeasure(
+  measure: Measure,
+  voiceId: string,
+  events: VoiceEvent[]
+): Measure {
+  return {
+    ...measure,
+    voices: measure.voices.map((voice) =>
+      voice.id === voiceId
+        ? {
+            ...voice,
+            events
+          }
+        : voice
+    )
+  }
+}
+
+function getVoiceEvents(
+  score: Score,
+  target: VoiceAddress
+): VoiceEvent[] | undefined {
+  const location = locateVoice(score, target)
+
+  return location ? sortVoiceEvents(location.voice.events) : undefined
+}
+
+function locateStaff(score: Score, target: VoiceAddress): Staff | undefined {
+  const part = score.parts.find((candidate) => candidate.id === target.partId)
+
+  return part?.staves.find((candidate) => candidate.id === target.staffId)
+}
+
+function sameEvents(left: VoiceEvent[], right: VoiceEvent[]): boolean {
+  return (
+    JSON.stringify(sortVoiceEvents(left)) ===
+    JSON.stringify(sortVoiceEvents(right))
+  )
 }
 
 function inputIdFromEvent(eventId: string): () => string {

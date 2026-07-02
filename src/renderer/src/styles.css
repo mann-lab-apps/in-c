@@ -307,9 +307,14 @@ h2 {
   background: #fbfaf6;
 }
 
+.duration-strip .tie-button,
 .duration-strip .tuplet-button {
   min-width: 108px;
   font-weight: 700;
+}
+
+.duration-strip .tie-button {
+  min-width: 82px;
 }
 
 .tuplet-duration-label {
