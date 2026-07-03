@@ -33,6 +33,12 @@ export type EditorSelection =
       type: 'measure'
       measureId: string
     }
+  | {
+      type: 'range'
+      anchorEventId: string
+      focusEventId: string
+      eventIds: string[]
+    }
 
 export interface EventLocation {
   address: VoiceAddress
@@ -116,6 +122,69 @@ export function locateMeasure(
   return undefined
 }
 
+export function createRangeSelection(
+  score: Score,
+  anchorEventId: string,
+  focusEventId: string
+): EditorSelection | undefined {
+  const anchor = locateEvent(score, anchorEventId)
+  const focus = locateEvent(score, focusEventId)
+
+  if (!anchor || !focus || !sameVoiceAddress(anchor.address, focus.address)) {
+    return undefined
+  }
+
+  const eventIds = getVoiceEventIds(score, anchor.address)
+  const anchorIndex = eventIds.indexOf(anchorEventId)
+  const focusIndex = eventIds.indexOf(focusEventId)
+
+  if (anchorIndex === -1 || focusIndex === -1) {
+    return undefined
+  }
+
+  const startIndex = Math.min(anchorIndex, focusIndex)
+  const endIndex = Math.max(anchorIndex, focusIndex)
+  const selectedEventIds = eventIds.slice(startIndex, endIndex + 1)
+
+  return selectedEventIds.length === 1
+    ? {
+        type: 'event',
+        eventId: focusEventId
+      }
+    : {
+        type: 'range',
+        anchorEventId,
+        focusEventId,
+        eventIds: selectedEventIds
+      }
+}
+
+export function getSelectionFocusEventId(
+  selection: EditorSelection
+): string | undefined {
+  if (selection.type === 'event') {
+    return selection.eventId
+  }
+
+  if (selection.type === 'range') {
+    return selection.focusEventId
+  }
+
+  return undefined
+}
+
+export function getSelectedEventIds(selection: EditorSelection): string[] {
+  if (selection.type === 'event') {
+    return [selection.eventId]
+  }
+
+  if (selection.type === 'range') {
+    return selection.eventIds
+  }
+
+  return []
+}
+
 export function buildNoteEntryCommand(
   score: Score,
   selection: EditorSelection,
@@ -149,6 +218,10 @@ export function buildNoteEntryCommand(
         )
       }
     })
+  }
+
+  if (selection.type !== 'measure') {
+    return undefined
   }
 
   const location = locateMeasure(score, selection.measureId)
@@ -216,6 +289,10 @@ export function buildRestEntryCommand(
         duration
       }
     })
+  }
+
+  if (selection.type !== 'measure') {
+    return undefined
   }
 
   const location = locateMeasure(score, selection.measureId)
@@ -526,7 +603,18 @@ export function getAdjacentEventId(
   eventId: string,
   direction: -1 | 1
 ): string | undefined {
-  const eventIds = score.parts.flatMap((part) =>
+  const eventIds = getScoreEventIds(score)
+  const currentIndex = eventIds.indexOf(eventId)
+
+  if (currentIndex === -1) {
+    return undefined
+  }
+
+  return eventIds[currentIndex + direction]
+}
+
+function getScoreEventIds(score: Score): string[] {
+  return score.parts.flatMap((part) =>
     part.staves.flatMap((staff) =>
       staff.measures.flatMap((measure) =>
         measure.voices.flatMap((voice) =>
@@ -535,13 +623,34 @@ export function getAdjacentEventId(
       )
     )
   )
-  const currentIndex = eventIds.indexOf(eventId)
+}
 
-  if (currentIndex === -1) {
-    return undefined
-  }
+function getVoiceEventIds(score: Score, address: VoiceAddress): string[] {
+  return score.parts.flatMap((part) =>
+    part.id !== address.partId
+      ? []
+      : part.staves.flatMap((staff) =>
+          staff.id !== address.staffId
+            ? []
+            : staff.measures.flatMap((measure) => {
+                const voice = measure.voices.find(
+                  (candidate) => candidate.id === address.voiceId
+                )
 
-  return eventIds[currentIndex + direction]
+                return voice
+                  ? sortVoiceEvents(voice.events).map((event) => event.id)
+                  : []
+              })
+        )
+  )
+}
+
+function sameVoiceAddress(left: VoiceAddress, right: VoiceAddress): boolean {
+  return (
+    left.partId === right.partId &&
+    left.staffId === right.staffId &&
+    left.voiceId === right.voiceId
+  )
 }
 
 export function createDuration(value: DurationValue, dots = 0): Duration {

@@ -40,9 +40,11 @@ interface NotationPreviewProps {
     tick: number
   }
   selectedEventId?: string
+  selectedEventIds?: string[]
   selectedMeasureId?: string
   playbackEventId?: string
-  onSelectEvent: (eventId: string) => void
+  onSelectEvent: (eventId: string, extendRange?: boolean) => void
+  onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
   onSelectMeasure: (measureId: string) => void
 }
 
@@ -59,9 +61,11 @@ export function NotationPreview({
   score,
   inputCursor,
   selectedEventId,
+  selectedEventIds = [],
   selectedMeasureId,
   playbackEventId,
   onSelectEvent,
+  onSelectEventRange,
   onSelectMeasure
 }: NotationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -101,6 +105,14 @@ export function NotationPreview({
     let playbackPoint: CursorPoint | undefined
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
+    const selectedEventIdSet = new Set(selectedEventIds)
+    let dragAnchorEventId: string | undefined
+
+    const clearDragAnchor = () => {
+      dragAnchorEventId = undefined
+    }
+
+    window.addEventListener('mouseup', clearDragAnchor)
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
@@ -170,6 +182,7 @@ export function NotationPreview({
             event,
             measure,
             voice,
+            selectedEventIdSet,
             selectedEventId,
             playbackEventId
           )
@@ -258,7 +271,21 @@ export function NotationPreview({
             svgElement.setAttribute('tabindex', '0')
             svgElement.addEventListener('click', (event) => {
               event.stopPropagation()
-              onSelectEvent(eventId)
+              onSelectEvent(eventId, event.shiftKey)
+            })
+            svgElement.addEventListener('mousedown', (event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              dragAnchorEventId = eventId
+              onSelectEvent(eventId, event.shiftKey)
+            })
+            svgElement.addEventListener('mouseenter', (event) => {
+              if (!dragAnchorEventId || event.buttons !== 1) {
+                return
+              }
+
+              event.preventDefault()
+              onSelectEventRange(dragAnchorEventId, eventId)
             })
           }
 
@@ -339,14 +366,20 @@ export function NotationPreview({
       playhead.setAttribute('y2', String(playbackPoint.y + 104))
       svg.append(playhead)
     }
+
+    return () => {
+      window.removeEventListener('mouseup', clearDragAnchor)
+    }
   }, [
     onSelectEvent,
+    onSelectEventRange,
     onSelectMeasure,
     renderWidth,
     score,
     inputCursor,
     playbackEventId,
     selectedEventId,
+    selectedEventIds,
     selectedMeasureId
   ])
 
@@ -408,6 +441,7 @@ function createStaveNote(
   event: VoiceEvent,
   measure: Measure,
   voice: ScoreVoice,
+  selectedEventIds: Set<string>,
   selectedEventId?: string,
   playbackEventId?: string
 ): StaveNote {
@@ -429,7 +463,7 @@ function createStaveNote(
       fillStyle: '#25766f',
       strokeStyle: '#25766f'
     })
-  } else if (event.id === selectedEventId) {
+  } else if (selectedEventIds.has(event.id) || event.id === selectedEventId) {
     note.setStyle({
       fillStyle: '#b43d2f',
       strokeStyle: '#b43d2f'

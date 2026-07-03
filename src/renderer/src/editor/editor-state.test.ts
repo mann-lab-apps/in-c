@@ -24,7 +24,9 @@ import {
   buildNoteEntryCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
+  createRangeSelection,
   getAdjacentEventId,
+  getSelectedEventIds,
   locateEvent,
   locateMeasure
 } from './editor-state'
@@ -48,6 +50,39 @@ describe('editor state', () => {
         { id: 'note-c5' },
         { id: 'rest-half' }
       ]
+    })
+  })
+
+  it('creates an ordered event range selection in one voice', () => {
+    const selection = createRangeSelection(demoScore, 'note-g4', 'note-c5')
+
+    expect(selection).toEqual({
+      type: 'range',
+      anchorEventId: 'note-g4',
+      focusEventId: 'note-c5',
+      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5']
+    })
+    expect(getSelectedEventIds(selection!)).toEqual([
+      'note-g4',
+      'note-a4',
+      'note-b4',
+      'note-c5'
+    ])
+  })
+
+  it('keeps range selection ordered when extending backward', () => {
+    expect(createRangeSelection(demoScore, 'note-c5', 'note-g4')).toEqual({
+      type: 'range',
+      anchorEventId: 'note-c5',
+      focusEventId: 'note-g4',
+      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5']
+    })
+  })
+
+  it('collapses a one-event range back to an event selection', () => {
+    expect(createRangeSelection(demoScore, 'note-g4', 'note-g4')).toEqual({
+      type: 'event',
+      eventId: 'note-g4'
     })
   })
 
