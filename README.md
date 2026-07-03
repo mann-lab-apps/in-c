@@ -12,12 +12,12 @@
 - `src/score-core`: 악보 도메인 모델과 편집 command.
 - `src/engraving`: 사보 렌더링 adapter.
 - `src/playback`: 재생 스케줄링과 오디오 연동.
-- `src/io`: MusicXML 가져오기·내보내기와 프로젝트 파일 저장·열기.
+- `src/io`: MusicXML 가져오기·내보내기와 파일 I/O.
 - `docs/research`: 레퍼런스 조사와 제품 판단 기록.
 - `docs/product`: 사용자 여정과 현재 제품 기준. 스토리 맵은
   [`docs/product/story-map.md`](docs/product/story-map.md), AI Agent 협업 절차는
   [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md)에 정리합니다.
-- `docs/architecture`: 아키텍처와 기술 설계 기록. 프로젝트 파일과 자동저장
+- `docs/architecture`: 아키텍처와 기술 설계 기록. MusicXML 우선 저장
   전략은 [`docs/architecture/project-file.md`](docs/architecture/project-file.md)에
   정리합니다.
 
