@@ -6,7 +6,7 @@ import {
   type ScoreCommand,
   type StaffAddress
 } from '../../../score-core'
-import type { EditorSelection } from './editor-state'
+import { getSelectionFocusEventId, type EditorSelection } from './editor-state'
 import type { NoteInputState } from './note-input-state'
 
 export interface MeasureEditResult {
@@ -133,12 +133,18 @@ export function resolveActiveMeasureId(
     return selection.measureId
   }
 
+  const eventId = getSelectionFocusEventId(selection)
+
+  if (!eventId) {
+    return undefined
+  }
+
   for (const part of score.parts) {
     for (const staff of part.staves) {
       for (const measure of staff.measures) {
         if (
           measure.voices.some((voice) =>
-            voice.events.some((event) => event.id === selection.eventId)
+            voice.events.some((event) => event.id === eventId)
           )
         ) {
           return measure.id

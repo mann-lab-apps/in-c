@@ -54,9 +54,12 @@ import {
   buildDurationCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
+  createRangeSelection,
   createDuration,
   durationLabels,
   getAdjacentEventId,
+  getSelectedEventIds,
+  getSelectionFocusEventId,
   locateEvent,
   locateMeasure,
   type EditorMode,
@@ -200,10 +203,11 @@ const App = () => {
   const playback = useScorePlayback(score)
 
   const eventLocation = useMemo(
-    () =>
-      selection.type === 'event'
-        ? locateEvent(score, selection.eventId)
-        : undefined,
+    () => {
+      const eventId = getSelectionFocusEventId(selection)
+
+      return eventId ? locateEvent(score, eventId) : undefined
+    },
     [score, selection]
   )
   const measureLocation = useMemo(
@@ -948,7 +952,7 @@ const App = () => {
   }, [clearSelection, removeMeasure, selection.type])
 
   const moveSelection = useCallback(
-    (direction: -1 | 1) => {
+    (direction: -1 | 1, extendRange = false) => {
       if (noteInputState) {
         const eventId = getEventIdBeforeInputCursor(score, noteInputState)
 
@@ -964,26 +968,46 @@ const App = () => {
         return
       }
 
-      if (selection.type !== 'event') {
+      const currentEventId = getSelectionFocusEventId(selection)
+
+      if (!currentEventId) {
         return
       }
 
-      const eventId = getAdjacentEventId(score, selection.eventId, direction)
+      const eventId = getAdjacentEventId(score, currentEventId, direction)
 
       if (eventId) {
         setMode('select')
         setNoteInputState(undefined)
-        setSelection({
-          type: 'event',
-          eventId
-        })
+
+        if (extendRange) {
+          const anchorEventId =
+            selection.type === 'range' ? selection.anchorEventId : currentEventId
+          const rangeSelection = createRangeSelection(
+            score,
+            anchorEventId,
+            eventId
+          )
+
+          setSelection(
+            rangeSelection ?? {
+              type: 'event',
+              eventId
+            }
+          )
+        } else {
+          setSelection({
+            type: 'event',
+            eventId
+          })
+        }
         return
       }
 
-      if (direction === 1) {
+      if (direction === 1 && !extendRange) {
         const inputState = createInputStateAfterEvent(
           score,
-          selection.eventId,
+          currentEventId,
           createDuration(durationValue),
           'note'
         )
@@ -994,6 +1018,54 @@ const App = () => {
       }
     },
     [durationValue, noteInputState, score, selection]
+  )
+
+  const selectEvent = useCallback(
+    (eventId: string, extendRange = false) => {
+      setMode('select')
+      setNoteInputState(undefined)
+
+      if (extendRange) {
+        const anchorEventId =
+          selection.type === 'range'
+            ? selection.anchorEventId
+            : getSelectionFocusEventId(selection)
+        const rangeSelection = anchorEventId
+          ? createRangeSelection(score, anchorEventId, eventId)
+          : undefined
+
+        setSelection(
+          rangeSelection ?? {
+            type: 'event',
+            eventId
+          }
+        )
+        return
+      }
+
+      setSelection({
+        type: 'event',
+        eventId
+      })
+    },
+    [score, selection]
+  )
+
+  const selectEventRange = useCallback(
+    (anchorEventId: string, focusEventId: string) => {
+      const rangeSelection = createRangeSelection(
+        score,
+        anchorEventId,
+        focusEventId
+      )
+
+      if (rangeSelection) {
+        setMode('select')
+        setNoteInputState(undefined)
+        setSelection(rangeSelection)
+      }
+    },
+    [score]
   )
 
   const importMusicXml = useCallback(async () => {
@@ -1193,11 +1265,11 @@ const App = () => {
           break
         case 'ArrowLeft':
           event.preventDefault()
-          moveSelection(-1)
+          moveSelection(-1, event.shiftKey)
           break
         case 'ArrowRight':
           event.preventDefault()
-          moveSelection(1)
+          moveSelection(1, event.shiftKey)
           break
         case 'ArrowUp':
         case 'ArrowDown':
@@ -1248,8 +1320,11 @@ const App = () => {
     undo
   ])
 
-  const selectedEventId =
-    selection.type === 'event' ? selection.eventId : undefined
+  const selectedEventId = getSelectionFocusEventId(selection)
+  const selectedEventIds = useMemo(
+    () => getSelectedEventIds(selection),
+    [selection]
+  )
   const selectedMeasureId =
     selection.type === 'measure' ? selection.measureId : undefined
   const previewScore = useMemo(
@@ -1295,7 +1370,9 @@ const App = () => {
             <div>
               <dt>종류</dt>
               <dd>
-                {eventLocation
+                {selection.type === 'range'
+                  ? '범위'
+                  : eventLocation
                   ? eventTypeLabels[eventLocation.event.type]
                   : measureLocation
                     ? '마디'
@@ -1304,7 +1381,11 @@ const App = () => {
             </div>
             <div>
               <dt>ID</dt>
-              <dd>{eventLocation?.event.id ?? '—'}</dd>
+              <dd>
+                {selection.type === 'range'
+                  ? `${selection.eventIds.length}개 선택`
+                  : eventLocation?.event.id ?? '—'}
+              </dd>
             </div>
             <div>
               <dt>마디</dt>
@@ -1764,14 +1845,8 @@ const App = () => {
                   }
                 : undefined
             }
-            onSelectEvent={(eventId) => {
-              setMode('select')
-              setNoteInputState(undefined)
-              setSelection({
-                type: 'event',
-                eventId
-              })
-            }}
+            onSelectEvent={selectEvent}
+            onSelectEventRange={selectEventRange}
             onSelectMeasure={(measureId) => {
               setMode('select')
               setNoteInputState(undefined)
@@ -1783,6 +1858,7 @@ const App = () => {
             score={previewScore}
             playbackEventId={playback.activeEventId}
             selectedEventId={selectedEventId}
+            selectedEventIds={selectedEventIds}
             selectedMeasureId={selectedMeasureId}
           />
         </div>
@@ -2065,8 +2141,10 @@ function createInputState(
   duration: Duration,
   mode: 'note' | 'rest'
 ): NoteInputState | undefined {
-  if (selection.type === 'event') {
-    const location = locateEvent(score, selection.eventId)
+  const focusedEventId = getSelectionFocusEventId(selection)
+
+  if (focusedEventId) {
+    const location = locateEvent(score, focusedEventId)
 
     return location
       ? createNoteInputState({
@@ -2076,6 +2154,10 @@ function createInputState(
           mode
         })
       : undefined
+  }
+
+  if (selection.type !== 'measure') {
+    return undefined
   }
 
   const location = locateMeasure(score, selection.measureId)

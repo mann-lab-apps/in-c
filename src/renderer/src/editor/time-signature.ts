@@ -15,7 +15,12 @@ import {
   type Voice,
   type VoiceEvent
 } from '../../../score-core'
-import { locateEvent, locateMeasure, type EditorSelection } from './editor-state'
+import {
+  getSelectionFocusEventId,
+  locateEvent,
+  locateMeasure,
+  type EditorSelection
+} from './editor-state'
 
 export function buildTimeSignatureCommand(
   score: Score,
@@ -25,7 +30,7 @@ export function buildTimeSignatureCommand(
   const location =
     selection.type === 'measure'
       ? locateMeasure(score, selection.measureId)
-      : locateEvent(score, selection.eventId)
+      : locateFocusedEvent(score, selection)
 
   if (!location) {
     return undefined
@@ -65,6 +70,12 @@ export function buildTimeSignatureCommand(
     },
     measures
   }
+}
+
+function locateFocusedEvent(score: Score, selection: EditorSelection) {
+  const eventId = getSelectionFocusEventId(selection)
+
+  return eventId ? locateEvent(score, eventId) : undefined
 }
 
 function applyTimeSignatureToMeasure(

@@ -917,6 +917,41 @@ async function verifyKeyboardRouting(window) {
     })()
   `)
 
+  await loadFixture(window)
+  await window.webContents.executeJavaScript(`
+    document.querySelector(
+      '.notation-event[data-event-id="m1-c4"]'
+    )?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 100))
+
+  for (let count = 0; count < 2; count += 1) {
+    await window.webContents.executeJavaScript(`
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', {
+          bubbles: true,
+          key: 'ArrowRight',
+          shiftKey: true
+        })
+      )
+    `)
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  const rangeSelection = await window.webContents.executeJavaScript(`
+    (() => {
+      const inspectorValues = [
+        ...document.querySelectorAll('.inspector dd')
+      ].map((value) => value.textContent?.trim())
+
+      return {
+        eventCount: document.querySelectorAll('.notation-event').length,
+        selectedCount: inspectorValues[1],
+        type: inspectorValues[0]
+      }
+    })()
+  `)
+
   if (
     selectMode.eventCount !== initialEventCount ||
     selectMode.hasInputCursor ||
@@ -1041,7 +1076,10 @@ async function verifyKeyboardRouting(window) {
     tripletBackspaceClear.status !==
       '잇단음표 구성음은 아직 따로 지울 수 없습니다.' ||
     tripletBackspaceClear.tupletCount !== 1 ||
-    tripletBackspaceClear.type !== '음표'
+    tripletBackspaceClear.type !== '음표' ||
+    rangeSelection.eventCount !== initialEventCount ||
+    rangeSelection.selectedCount !== '3개 선택' ||
+    rangeSelection.type !== '범위'
   ) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
@@ -1069,6 +1107,7 @@ async function verifyKeyboardRouting(window) {
         tripletAvailableSpanToggleOff,
         tripletDottedRestStart,
         tripletBackspaceClear,
+        rangeSelection,
         tripletShortcutComplete,
         tripletShortcutPreview,
         tripletShortcutStart
@@ -1100,6 +1139,7 @@ async function verifyKeyboardRouting(window) {
     tripletAvailableSpanToggleOff,
     tripletDottedRestStart,
     tripletBackspaceClear,
+    rangeSelection,
     tripletShortcutComplete,
     tripletShortcutPreview,
     tripletShortcutStart

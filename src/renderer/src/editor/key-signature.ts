@@ -10,7 +10,11 @@ import {
   type Voice,
   type VoiceEvent
 } from '../../../score-core'
-import { locateMeasure, type EditorSelection } from './editor-state'
+import {
+  getSelectionFocusEventId,
+  locateMeasure,
+  type EditorSelection
+} from './editor-state'
 
 export function buildKeySignatureCommand(
   score: Score,
@@ -20,7 +24,7 @@ export function buildKeySignatureCommand(
   const measureId =
     selection.type === 'measure'
       ? selection.measureId
-      : findSelectedEventMeasureId(score, selection.eventId)
+      : findSelectedEventMeasureId(score, getSelectionFocusEventId(selection))
   const location = measureId ? locateMeasure(score, measureId) : undefined
 
   if (!location) {
@@ -62,8 +66,12 @@ export function buildKeySignatureCommand(
 
 function findSelectedEventMeasureId(
   score: Score,
-  eventId: string
+  eventId: string | undefined
 ): string | undefined {
+  if (!eventId) {
+    return undefined
+  }
+
   for (const part of score.parts) {
     for (const staff of part.staves) {
       for (const measure of staff.measures) {
