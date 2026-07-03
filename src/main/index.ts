@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
@@ -6,7 +6,19 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
 const savePdfChannel = 'pdf:save'
+const readAutosaveChannel = 'autosave:read'
+const writeAutosaveChannel = 'autosave:write'
+const clearAutosaveChannel = 'autosave:clear'
 const isSmokeTest = process.argv.includes('--smoke-test')
+
+interface AutosaveSnapshot {
+  score: unknown
+  metadata: {
+    title: string
+    updatedAt: string
+    version: string
+  }
+}
 
 ipcMain.handle(openMusicXmlChannel, async () => {
   const result = await dialog.showOpenDialog({
@@ -105,6 +117,47 @@ ipcMain.handle(
   }
 )
 
+ipcMain.handle(readAutosaveChannel, async () => {
+  try {
+    return JSON.parse(await readFile(autosavePath(), 'utf8')) as AutosaveSnapshot
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return null
+    }
+
+    throw error
+  }
+})
+
+ipcMain.handle(
+  writeAutosaveChannel,
+  async (
+    _event,
+    input: {
+      score: unknown
+      title: string
+    }
+  ) => {
+    const snapshot: AutosaveSnapshot = {
+      score: input.score,
+      metadata: {
+        title: input.title,
+        updatedAt: new Date().toISOString(),
+        version: app.getVersion()
+      }
+    }
+
+    await mkdir(autosaveDirectory(), { recursive: true })
+    await writeFile(autosavePath(), JSON.stringify(snapshot, null, 2), 'utf8')
+
+    return snapshot.metadata
+  }
+)
+
+ipcMain.handle(clearAutosaveChannel, async () => {
+  await rm(autosavePath(), { force: true })
+})
+
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -141,6 +194,10 @@ const createWindow = (): void => {
             typeof window.inC?.musicXml?.open === 'function' &&
             typeof window.inC?.musicXml?.save === 'function',
           hasPdfBridge: typeof window.inC?.pdf?.save === 'function',
+          hasAutosaveBridge:
+            typeof window.inC?.autosave?.read === 'function' &&
+            typeof window.inC?.autosave?.write === 'function' &&
+            typeof window.inC?.autosave?.clear === 'function',
           hasNotation: Boolean(document.querySelector('.notation-preview svg')),
           hasToolbar: Boolean(document.querySelector('.toolbar'))
         })
@@ -150,6 +207,7 @@ const createWindow = (): void => {
         result.appName !== 'in-C' ||
         !result.hasMusicXmlBridge ||
         !result.hasPdfBridge ||
+        !result.hasAutosaveBridge ||
         !result.hasNotation ||
         !result.hasToolbar
       ) {
@@ -192,3 +250,20 @@ app.on('window-all-closed', () => {
     app.quit()
   }
 })
+
+function autosaveDirectory(): string {
+  return join(app.getPath('userData'), 'autosave')
+}
+
+function autosavePath(): string {
+  return join(autosaveDirectory(), 'recovery.json')
+}
+
+function isMissingFileError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'ENOENT'
+  )
+}
