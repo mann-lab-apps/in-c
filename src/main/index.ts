@@ -42,7 +42,7 @@ ipcMain.handle(
     }
   ) => {
     const result = await dialog.showSaveDialog({
-      title: 'MusicXML 저장하기',
+      title: 'MusicXML 내보내기',
       defaultPath: input.suggestedName,
       filters: [
         {

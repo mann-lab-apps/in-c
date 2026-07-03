@@ -1576,7 +1576,9 @@ async function verifyFileActions(window) {
   if (
     result.ariaLabel !== '파일 작업' ||
     result.labels.includes('Export') ||
-    !result.labels.includes('저장하기') ||
+    result.labels.includes('저장하기') ||
+    !result.labels.includes('MusicXML 가져오기') ||
+    !result.labels.includes('MusicXML 내보내기') ||
     !result.labels.includes('PDF 변환')
   ) {
     throw new Error(`파일 작업 verification failed: ${JSON.stringify(result)}`)
