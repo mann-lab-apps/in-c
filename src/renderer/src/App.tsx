@@ -16,6 +16,7 @@ import {
   Clock3,
   Eraser,
   FileDown,
+  FileMusic,
   FilePlus2,
   FileUp,
   Link2,
@@ -25,7 +26,6 @@ import {
   Plus,
   RotateCcw,
   RotateCw,
-  Save,
   Square,
   Unlink2
 } from 'lucide-react'
@@ -1122,7 +1122,7 @@ const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName}을 저장했습니다.`
+        message: `${result.fileName}을 MusicXML로 내보냈습니다.`
       })
     } catch (error) {
       setFileStatus({
@@ -1419,15 +1419,30 @@ const App = () => {
                 <FilePlus2 aria-hidden="true" size={17} />
                 <span>새 악보</span>
               </button>
-              <button onClick={importMusicXml} type="button">
+              <button
+                aria-label="MusicXML 가져오기"
+                onClick={importMusicXml}
+                title="MusicXML 가져오기"
+                type="button"
+              >
                 <FileUp aria-hidden="true" size={17} />
-                <span>가져오기</span>
+                <span>MusicXML 가져오기</span>
               </button>
-              <button onClick={saveMusicXml} type="button">
-                <Save aria-hidden="true" size={17} />
-                <span>저장하기</span>
+              <button
+                aria-label="MusicXML 내보내기"
+                onClick={saveMusicXml}
+                title="MusicXML 내보내기"
+                type="button"
+              >
+                <FileMusic aria-hidden="true" size={17} />
+                <span>MusicXML 내보내기</span>
               </button>
-              <button onClick={savePdf} type="button">
+              <button
+                aria-label="PDF 변환"
+                onClick={savePdf}
+                title="PDF 변환"
+                type="button"
+              >
                 <FileDown aria-hidden="true" size={17} />
                 <span>PDF 변환</span>
               </button>

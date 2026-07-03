@@ -251,7 +251,7 @@ MVP에서는 full score view 하나만 둔다.
 1. `.incproj` 저장/열기 최소 구현.
 2. 저장 상태와 메뉴/버튼 용어 정리.
 3. 자동저장과 복구 dialog 구현.
-4. MusicXML/PDF 내보내기와 저장하기 UI 분리.
+4. MusicXML/PDF 내보내기와 프로젝트 저장 UI 분리.
 5. 레이아웃 힌트와 파트보 view 확장.
 
 ## 후속 구현 이슈
