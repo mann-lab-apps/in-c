@@ -198,8 +198,8 @@ const createWindow = (): void => {
             typeof window.inC?.autosave?.read === 'function' &&
             typeof window.inC?.autosave?.write === 'function' &&
             typeof window.inC?.autosave?.clear === 'function',
-          hasNotation: Boolean(document.querySelector('.notation-preview svg')),
-          hasToolbar: Boolean(document.querySelector('.toolbar'))
+          hasStartScreen: Boolean(document.querySelector('.start-screen')),
+          hasStartActions: document.querySelectorAll('.start-action').length >= 3
         })
       `)
 
@@ -208,8 +208,8 @@ const createWindow = (): void => {
         !result.hasMusicXmlBridge ||
         !result.hasPdfBridge ||
         !result.hasAutosaveBridge ||
-        !result.hasNotation ||
-        !result.hasToolbar
+        !result.hasStartScreen ||
+        !result.hasStartActions
       ) {
         throw new Error(`Packaged renderer check failed: ${JSON.stringify(result)}`)
       }
