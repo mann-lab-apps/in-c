@@ -206,6 +206,9 @@ const App = () => {
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
   const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
+  const [startScreenVisible, setStartScreenVisible] = useState(
+    () => !isFixtureMode()
+  )
   const [fileStatus, setFileStatus] = useState<{
     tone: 'neutral' | 'error'
     message: string
@@ -385,6 +388,7 @@ const App = () => {
     setNewScoreDraft(undefined)
     setSelection(createInitialSelection(recoverySnapshot.score))
     setRecoverySnapshot(undefined)
+    setStartScreenVisible(false)
     setFileStatus({
       tone: 'neutral',
       message: '복구본을 열었습니다. 필요한 경우 MusicXML로 내보내 주세요.'
@@ -578,6 +582,8 @@ const App = () => {
     setNewScoreDraft(undefined)
     setDurationValue('quarter')
     setSelection(createInitialSelection(nextScore))
+    setRecoverySnapshot(undefined)
+    setStartScreenVisible(false)
     setFileStatus({
       tone: 'neutral',
       message: '새 악보를 만들었습니다.'
@@ -1208,6 +1214,8 @@ const App = () => {
       setRedoStack([])
       setMode('select')
       setNoteInputState(undefined)
+      setRecoverySnapshot(undefined)
+      setStartScreenVisible(false)
       setSelection(
         firstEvent
           ? {
@@ -1470,7 +1478,73 @@ const App = () => {
     Boolean(buildDeleteCommand(score, selection))
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
+      {startScreenVisible ? (
+        <section className="start-screen" aria-labelledby="start-screen-title">
+          <div className="start-screen__content">
+            <p className="eyebrow">in-C</p>
+            <h1 id="start-screen-title">무엇을 시작할까요?</h1>
+            <p>
+              새 악보를 만들거나 MusicXML 파일을 가져오세요. 자동저장 복구본이
+              있으면 이어서 열 수 있습니다.
+            </p>
+
+            <div className="start-actions" aria-label="시작 작업">
+              <button
+                className="start-action"
+                onClick={openNewScoreWizard}
+                type="button"
+              >
+                <FilePlus2 aria-hidden="true" size={24} />
+                <span>새 악보 만들기</span>
+                <small>파트, 조표, 박자표, 마디 수를 정하고 시작합니다.</small>
+              </button>
+
+              <button
+                className="start-action"
+                onClick={importMusicXml}
+                type="button"
+              >
+                <FileUp aria-hidden="true" size={24} />
+                <span>MusicXML 가져오기</span>
+                <small>다른 사보 도구에서 만든 악보를 불러옵니다.</small>
+              </button>
+
+              <button
+                className="start-action"
+                disabled={!recoverySnapshot}
+                onClick={recoverAutosave}
+                type="button"
+              >
+                <RotateCcw aria-hidden="true" size={24} />
+                <span>
+                  {recoverySnapshot ? '복구본 열기' : '복구본 없음'}
+                </span>
+                <small>
+                  {recoverySnapshot
+                    ? `${recoverySnapshot.metadata.title} · ${formatRecoveryTime(
+                        recoverySnapshot.metadata.updatedAt
+                      )}`
+                    : '자동저장된 작업이 있으면 여기에 표시됩니다.'}
+                </small>
+              </button>
+            </div>
+
+            {fileStatus ? (
+              <p
+                className={
+                  fileStatus.tone === 'error'
+                    ? 'start-screen__status is-error'
+                    : 'start-screen__status'
+                }
+              >
+                {fileStatus.message}
+              </p>
+            ) : null}
+          </div>
+        </section>
+      ) : (
+        <>
       <aside className="sidebar" aria-label="악보 탐색">
         <div>
           <p className="eyebrow">in-C</p>
@@ -2003,6 +2077,8 @@ const App = () => {
           />
         </div>
       </section>
+        </>
+      )}
 
       {newScoreDraft ? (
         <div className="modal-backdrop" role="presentation">
@@ -2161,7 +2237,7 @@ const App = () => {
         </div>
       ) : null}
 
-      {recoverySnapshot ? (
+      {recoverySnapshot && !startScreenVisible ? (
         <div className="modal-backdrop" role="presentation">
           <section
             aria-label="자동저장 복구"
