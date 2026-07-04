@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
 const savePdfChannel = 'pdf:save'
+const readAutosaveChannel = 'autosave:read'
+const writeAutosaveChannel = 'autosave:write'
+const clearAutosaveChannel = 'autosave:clear'
 
 const api = {
   appName: 'in-C',
@@ -27,6 +30,24 @@ const api = {
       ipcRenderer.invoke(savePdfChannel, input) as Promise<{
         fileName: string
       } | null>
+  },
+  autosave: {
+    read: () =>
+      ipcRenderer.invoke(readAutosaveChannel) as Promise<{
+        score: unknown
+        metadata: {
+          title: string
+          updatedAt: string
+          version: string
+        }
+      } | null>,
+    write: (input: { score: unknown; title: string }) =>
+      ipcRenderer.invoke(writeAutosaveChannel, input) as Promise<{
+        title: string
+        updatedAt: string
+        version: string
+      }>,
+    clear: () => ipcRenderer.invoke(clearAutosaveChannel) as Promise<void>
   }
 }
 

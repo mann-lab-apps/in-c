@@ -2,6 +2,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
@@ -179,6 +180,15 @@ interface NewScoreDraft {
   tempo: number
 }
 
+interface AutosaveRecoverySnapshot {
+  score: Score
+  metadata: {
+    title: string
+    updatedAt: string
+    version: string
+  }
+}
+
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
   composer: 80
@@ -200,6 +210,10 @@ const App = () => {
     tone: 'neutral' | 'error'
     message: string
   }>()
+  const [autosaveRevision, setAutosaveRevision] = useState(0)
+  const [recoverySnapshot, setRecoverySnapshot] =
+    useState<AutosaveRecoverySnapshot>()
+  const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score)
 
   const eventLocation = useMemo(
@@ -283,6 +297,7 @@ const App = () => {
 
       const result = applyScoreCommand(score, command)
       setScore(result.score)
+      setAutosaveRevision((revision) => revision + 1)
       setUndoStack((entries) => [
         ...entries,
         {
@@ -297,6 +312,109 @@ const App = () => {
     [noteInputState, score, selection]
   )
 
+  useEffect(() => {
+    if (isFixtureMode() || autosaveHasLoaded.current) {
+      return
+    }
+
+    autosaveHasLoaded.current = true
+    let isActive = true
+
+    window.inC.autosave
+      .read()
+      .then((snapshot) => {
+        if (!isActive || !snapshot || !isAutosaveRecoverySnapshot(snapshot)) {
+          return
+        }
+
+        setRecoverySnapshot(snapshot)
+      })
+      .catch((error) => {
+        if (!isActive) {
+          return
+        }
+
+        setFileStatus({
+          tone: 'error',
+          message: `자동저장 복구본을 읽지 못했습니다. ${getErrorMessage(error)}`
+        })
+      })
+
+    return () => {
+      isActive = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isFixtureMode() || autosaveRevision === 0 || recoverySnapshot) {
+      return
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      window.inC.autosave
+        .write({
+          score,
+          title: score.title
+        })
+        .catch((error) => {
+          setFileStatus({
+            tone: 'error',
+            message: `자동저장에 실패했습니다. ${getErrorMessage(error)}`
+          })
+        })
+    }, 1200)
+
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
+  }, [autosaveRevision, recoverySnapshot, score])
+
+  const recoverAutosave = useCallback(() => {
+    if (!recoverySnapshot) {
+      return
+    }
+
+    playback.stop()
+    setScore(recoverySnapshot.score)
+    setAutosaveRevision((revision) => revision + 1)
+    setUndoStack([])
+    setRedoStack([])
+    setMode('select')
+    setNoteInputState(undefined)
+    setMetadataEdit(undefined)
+    setNewScoreDraft(undefined)
+    setSelection(createInitialSelection(recoverySnapshot.score))
+    setRecoverySnapshot(undefined)
+    setFileStatus({
+      tone: 'neutral',
+      message: '복구본을 열었습니다. 필요한 경우 MusicXML로 내보내 주세요.'
+    })
+  }, [playback, recoverySnapshot])
+
+  const discardAutosave = useCallback(async () => {
+    try {
+      await window.inC.autosave.clear()
+      setRecoverySnapshot(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: '복구본을 삭제했습니다.'
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: `복구본을 삭제하지 못했습니다. ${getErrorMessage(error)}`
+      })
+    }
+  }, [])
+
+  const postponeAutosave = useCallback(() => {
+    setRecoverySnapshot(undefined)
+    setFileStatus({
+      tone: 'neutral',
+      message: '복구본은 다음 실행 때 다시 확인합니다.'
+    })
+  }, [])
+
   const undo = useCallback(() => {
     const entry = undoStack.at(-1)
 
@@ -306,6 +424,7 @@ const App = () => {
 
     const result = applyScoreCommand(score, entry.command)
     setScore(result.score)
+    setAutosaveRevision((revision) => revision + 1)
     setUndoStack((entries) => entries.slice(0, -1))
     setRedoStack((entries) => [
       ...entries,
@@ -328,6 +447,7 @@ const App = () => {
 
     const result = applyScoreCommand(score, entry.command)
     setScore(result.score)
+    setAutosaveRevision((revision) => revision + 1)
     setRedoStack((entries) => entries.slice(0, -1))
     setUndoStack((entries) => [
       ...entries,
@@ -449,6 +569,7 @@ const App = () => {
     playback.stop()
     playback.setTempo(newScoreDraft.tempo)
     setScore(nextScore)
+    setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
     setRedoStack([])
     setMode('select')
@@ -874,6 +995,7 @@ const App = () => {
 
     const result = applyScoreCommand(score, command)
     setScore(result.score)
+    setAutosaveRevision((revision) => revision + 1)
     setUndoStack((entries) => [
       ...entries,
       {
@@ -1081,6 +1203,7 @@ const App = () => {
       const firstEvent = firstMeasure?.voices[0]?.events[0]
 
       setScore(importedScore)
+      setAutosaveRevision((revision) => revision + 1)
       setUndoStack([])
       setRedoStack([])
       setMode('select')
@@ -1120,6 +1243,8 @@ const App = () => {
         return
       }
 
+      await window.inC.autosave.clear()
+      setAutosaveRevision(0)
       setFileStatus({
         tone: 'neutral',
         message: `${result.fileName}을 MusicXML로 내보냈습니다.`
@@ -2035,6 +2160,52 @@ const App = () => {
           </form>
         </div>
       ) : null}
+
+      {recoverySnapshot ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            aria-label="자동저장 복구"
+            className="recovery-dialog"
+            role="dialog"
+          >
+            <header>
+              <h2>복구할 작업이 있습니다</h2>
+            </header>
+
+            <p>
+              마지막 작업이 자동저장되어 있습니다. 복구본을 열어 확인한 뒤
+              필요한 경우 MusicXML로 내보내 주세요.
+            </p>
+
+            <dl className="recovery-details">
+              <div>
+                <dt>악보</dt>
+                <dd>{recoverySnapshot.metadata.title}</dd>
+              </div>
+              <div>
+                <dt>저장 시각</dt>
+                <dd>{formatRecoveryTime(recoverySnapshot.metadata.updatedAt)}</dd>
+              </div>
+            </dl>
+
+            <footer className="dialog-actions">
+              <button onClick={discardAutosave} type="button">
+                삭제
+              </button>
+              <button onClick={postponeAutosave} type="button">
+                나중에
+              </button>
+              <button
+                className="primary-action"
+                onClick={recoverAutosave}
+                type="button"
+              >
+                복구
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
     </main>
   )
 }
@@ -2123,10 +2294,70 @@ function normalizeNumberInput(
 }
 
 function createInitialScore(): Score {
+  return isFixtureMode() ? createSingleVoiceMvpScore() : demoScore
+}
+
+function isFixtureMode(): boolean {
   return new URLSearchParams(window.location.search).get('fixture') ===
     'single-voice-mvp'
-    ? createSingleVoiceMvpScore()
-    : demoScore
+}
+
+function isAutosaveRecoverySnapshot(
+  value: unknown
+): value is AutosaveRecoverySnapshot {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const snapshot = value as {
+    score?: unknown
+    metadata?: unknown
+  }
+
+  return isScoreLike(snapshot.score) && isRecoveryMetadata(snapshot.metadata)
+}
+
+function isScoreLike(value: unknown): value is Score {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const score = value as Partial<Score>
+
+  return (
+    typeof score.id === 'string' &&
+    typeof score.title === 'string' &&
+    Array.isArray(score.parts)
+  )
+}
+
+function isRecoveryMetadata(
+  value: unknown
+): value is AutosaveRecoverySnapshot['metadata'] {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const metadata = value as Partial<AutosaveRecoverySnapshot['metadata']>
+
+  return (
+    typeof metadata.title === 'string' &&
+    typeof metadata.updatedAt === 'string' &&
+    typeof metadata.version === 'string'
+  )
+}
+
+function formatRecoveryTime(value: string): string {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return value
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    dateStyle: 'medium',
+    timeStyle: 'short'
+  }).format(date)
 }
 
 function createInitialSelection(score: Score): EditorSelection {
