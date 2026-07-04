@@ -1,5 +1,6 @@
 # This file is an ATDD conversation draft, not a full product guide.
-# Source of product truth: docs/product/story-map.md
+# Review workflow: docs/product/acceptance/README.md
+# Legacy context: docs/product/story-map.md
 # Related story: STORY-MVP-002
 
 @story-mvp-002 @note-input @atdd-draft
