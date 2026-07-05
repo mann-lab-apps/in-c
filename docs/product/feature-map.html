@@ -471,6 +471,7 @@
           </p>
         </div>
         <nav class="hero-actions" aria-label="문서 바로가기">
+          <a class="button" href="#flow-heading">기능 플로우</a>
           <a class="button" href="./feature-map.md">Markdown 문서</a>
           <a class="button" href="./acceptance/README.md">인수 시나리오</a>
           <a class="button" href="./agent-workflow.md">협업 워크플로우</a>
@@ -478,6 +479,16 @@
       </header>
 
       <section class="summary" id="summary" aria-label="피쳐맵 요약"></section>
+
+      <section class="panel flow-panel" aria-labelledby="flow-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="flow-heading">기능 플로우 예시</h2>
+            <p class="panel-note">`flow` 데이터가 있는 기능만 플로우차트로 표시한다.</p>
+          </div>
+        </div>
+        <div class="flow-grid" id="feature-flows"></div>
+      </section>
 
       <section class="panel" aria-labelledby="map-heading">
         <div class="panel-header">
@@ -505,16 +516,6 @@
             </svg>
           </div>
         </div>
-      </section>
-
-      <section class="panel flow-panel" aria-labelledby="flow-heading">
-        <div class="panel-header">
-          <div>
-            <h2 id="flow-heading">기능 플로우 예시</h2>
-            <p class="panel-note">`flow` 데이터가 있는 기능만 플로우차트로 표시한다.</p>
-          </div>
-        </div>
-        <div class="flow-grid" id="feature-flows"></div>
       </section>
 
       <section aria-labelledby="table-heading">
@@ -1109,6 +1110,17 @@
           `${filtered.length}개 기능 표시 중 · 전체 ${rows.length}개`;
       }
 
+      function scrollToHashAfterRender() {
+        if (!window.location.hash) {
+          return;
+        }
+
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+          target.scrollIntoView({ block: "start" });
+        }
+      }
+
       document.querySelector("#search").addEventListener("input", renderTable);
       document.querySelector("#zoom-out").addEventListener("click", () => updateMapZoom(mapZoom - 0.1));
       document.querySelector("#zoom-in").addEventListener("click", () => updateMapZoom(mapZoom + 0.1));
@@ -1119,6 +1131,7 @@
       renderFlows();
       renderFilters();
       renderTable();
+      scrollToHashAfterRender();
     </script>
   </body>
 </html>
