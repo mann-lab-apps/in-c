@@ -8,58 +8,62 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 ## 전체 지도
 
 ```mermaid
-%%{init: {"mindmap": {"useMaxWidth": false, "padding": 24, "maxNodeWidth": 280}}}%%
+%%{init: {"mindmap": {"useMaxWidth": false, "padding": 48, "maxNodeWidth": 280}}}%%
 mindmap
   root((in C Composers))
-    시작과 악보 설정
-      시작화면
-      새 악보 만들기
-      제목과 부제목
-      박자표
-      조표
-      full-measure rest
-    입력
-      음가 선택
-      A-G 음표 입력
-      쉼표와 음표 변환
-      R 쉼표 입력
-      입력 커서
-      한글 입력 상태
-    리듬 편집
-      음가 변경
-      삭제와 병합
-      점음표
-      셋잇단음표
-      범위 선택
-    악보 배치와 렌더링
-      자동 system 줄바꿈
-      마디 폭
-      자동 빔
-      덧줄
-      선택 표시
-      수동 break
-    재생
+    악보 작성
+      시작과 악보 설정
+        시작화면
+        새 악보 만들기
+        제목과 부제목
+        박자표
+        조표
+        full-measure rest
+      입력
+        음가 선택
+        A-G 음표 입력
+        쉼표와 음표 변환
+        R 쉼표 입력
+        입력 커서
+        한글 입력 상태
+    악보 편집
+      리듬 편집
+        음가 변경
+        삭제와 병합
+        점음표
+        셋잇단음표
+        범위 선택
+      악보 배치와 렌더링
+        자동 system 줄바꿈
+        마디 폭
+        자동 빔
+        덧줄
+        선택 표시
+        수동 break
+    확인과 출력
       재생
-      일시정지
-      정지
-      템포
-      타이와 셋잇단음표
-    저장 가져오기 내보내기
-      MusicXML 가져오기
-      MusicXML 내보내기
-      PDF 변환
-      자동저장 복구
-      프로젝트 파일
-    배포와 소개 페이지
-      GitHub prerelease
-      macOS 패키징
-      Windows 패키징
-      Linux 패키징
-      다운로드 페이지
-      Google Analytics
-    제품 문서와 검토 방식
-      Gherkin 인수 시나리오
-      AI Agent 협업 워크플로우
+        재생
+        일시정지
+        정지
+        템포
+        타이와 셋잇단음표
+      저장 가져오기 내보내기
+        MusicXML 가져오기
+        MusicXML 내보내기
+        PDF 변환
+        자동저장 복구
+        프로젝트 파일
+    배포와 운영
+      배포와 소개 페이지
+        GitHub prerelease
+        macOS 패키징
+        Windows 패키징
+        Linux 패키징
+        다운로드 페이지
+        Google Analytics
+      제품 문서와 검토 방식
+        Gherkin 인수 시나리오
+        AI Agent 협업 워크플로우
 ```
 
 ## 상세 표 바로가기
