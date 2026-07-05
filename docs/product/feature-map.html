@@ -1,0 +1,688 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>in C Composers Feature Map</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #fbfaf6;
+        --ink: #1f2428;
+        --muted: #65717a;
+        --line: #d9d2c2;
+        --panel: #ffffff;
+        --panel-soft: #f3efe7;
+        --accent: #315b72;
+        --write: #78b88a;
+        --edit: #e88974;
+        --review: #ddb773;
+        --ops: #9582ca;
+        --supported: #1f7a4d;
+        --partial: #9b6614;
+        --unsupported: #9b2d20;
+        --experiment: #5a569b;
+        --deferred: #59636b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1760px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 4vw, 64px);
+        line-height: 1.02;
+      }
+
+      .lede {
+        max-width: 780px;
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 8px 13px;
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 14px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 26px;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 16px 18px;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .panel-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .map {
+        overflow: auto;
+        padding: 24px;
+      }
+
+      .map-stage {
+        min-width: 1320px;
+        padding: 12px;
+      }
+
+      .root-node {
+        width: fit-content;
+        margin: 0 auto 24px;
+        border: 3px solid var(--accent);
+        border-radius: 999px;
+        background: #e5edf0;
+        padding: 22px 30px;
+        text-align: center;
+        font-size: 26px;
+        font-weight: 900;
+      }
+
+      .domain-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(280px, 1fr));
+        gap: 18px;
+      }
+
+      .domain {
+        --domain-color: var(--accent);
+        border: 2px solid color-mix(in srgb, var(--domain-color), white 28%);
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--domain-color), white 86%);
+        padding: 14px;
+      }
+
+      .domain[data-domain="score-authoring"] {
+        --domain-color: var(--write);
+      }
+
+      .domain[data-domain="score-editing"] {
+        --domain-color: var(--edit);
+      }
+
+      .domain[data-domain="review-output"] {
+        --domain-color: var(--review);
+      }
+
+      .domain[data-domain="distribution-ops"] {
+        --domain-color: var(--ops);
+      }
+
+      .domain-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+        border-radius: 6px;
+        background: var(--domain-color);
+        padding: 11px 12px;
+        color: #111;
+        font-size: 18px;
+        font-weight: 900;
+      }
+
+      .domain-count {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+        padding: 2px 8px;
+        font-size: 13px;
+      }
+
+      .section-node {
+        border: 1px solid color-mix(in srgb, var(--domain-color), black 10%);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.78);
+        padding: 12px;
+      }
+
+      .section-node + .section-node {
+        margin-top: 12px;
+      }
+
+      .section-title {
+        margin: 0 0 9px;
+        color: #111;
+        font-size: 15px;
+        font-weight: 900;
+      }
+
+      .feature-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .feature-chip {
+        max-width: 100%;
+        border: 1px solid color-mix(in srgb, var(--domain-color), white 25%);
+        border-radius: 999px;
+        background: #fff;
+        padding: 5px 9px;
+        color: #24292f;
+        font-size: 12px;
+        font-weight: 700;
+        overflow-wrap: anywhere;
+      }
+
+      .tools {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin: 28px 0 14px;
+      }
+
+      .search {
+        min-height: 42px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 10px 12px;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .filter {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        padding: 7px 11px;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .filter[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: #dce9ee;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      table {
+        width: 100%;
+        min-width: 1080px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #eee7da;
+        color: #384047;
+        font-size: 13px;
+      }
+
+      tbody tr:hover {
+        background: #f8f4ed;
+      }
+
+      .status {
+        display: inline-flex;
+        min-width: 68px;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .status-supported {
+        background: var(--supported);
+      }
+
+      .status-partial {
+        background: var(--partial);
+      }
+
+      .status-unsupported {
+        background: var(--unsupported);
+      }
+
+      .status-experiment {
+        background: var(--experiment);
+      }
+
+      .status-deferred {
+        background: var(--deferred);
+      }
+
+      .links {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .links a {
+        color: #24566b;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          width: min(100vw - 28px, 1760px);
+          padding-top: 28px;
+        }
+
+        .hero,
+        .tools {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-actions,
+        .filters {
+          justify-content: flex-start;
+        }
+
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <h1>in C Composers 피쳐맵</h1>
+          <p class="lede">
+            하나의 기능 데이터를 기준으로 시각 지도와 상세 표를 함께 렌더링한다.
+            남은 작업, 우선순위, 논의 히스토리는 GitHub 이슈에서 관리한다.
+          </p>
+        </div>
+        <nav class="hero-actions" aria-label="문서 바로가기">
+          <a class="button" href="./feature-map.md">Markdown 문서</a>
+          <a class="button" href="./acceptance/README.md">인수 시나리오</a>
+          <a class="button" href="./agent-workflow.md">협업 워크플로우</a>
+        </nav>
+      </header>
+
+      <section class="summary" id="summary" aria-label="피쳐맵 요약"></section>
+
+      <section class="panel" aria-labelledby="map-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="map-heading">시각 지도</h2>
+            <p class="panel-note">큰 영역, 기능 묶음, 세부 기능의 3단계로 본다.</p>
+          </div>
+        </div>
+        <div class="map" tabindex="0">
+          <div class="map-stage">
+            <div class="root-node">in C Composers</div>
+            <div class="domain-grid" id="feature-map"></div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="table-heading">
+        <div class="tools">
+          <input
+            class="search"
+            id="search"
+            type="search"
+            placeholder="기능, 문서, 시나리오 검색"
+            aria-label="기능 검색"
+          />
+          <div class="filters" id="filters" aria-label="상태 필터"></div>
+        </div>
+        <div class="panel-header">
+          <div>
+            <h2 id="table-heading">상세 표</h2>
+            <p class="panel-note" id="result-count"></p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>큰 영역</th>
+                <th>기능 묶음</th>
+                <th>기능</th>
+                <th>상태</th>
+                <th>인수 시나리오</th>
+                <th>관련 문서</th>
+              </tr>
+            </thead>
+            <tbody id="feature-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./feature-map-data.js"></script>
+    <script>
+      const featureMap = window.FEATURE_MAP || [];
+      const statusMeta = window.FEATURE_STATUS_META || {};
+      const statusOrder = ["전체", "지원", "부분 지원", "미지원", "실험", "보류"];
+      const statusClass = {
+        "지원": "status-supported",
+        "부분 지원": "status-partial",
+        "미지원": "status-unsupported",
+        "실험": "status-experiment",
+        "보류": "status-deferred"
+      };
+
+      let activeStatus = "전체";
+
+      const rows = featureMap.flatMap((domain) =>
+        domain.sections.flatMap((section) =>
+          section.items.map((item) => ({
+            domainId: domain.id,
+            domain: domain.title,
+            section: section.title,
+            ...item
+          }))
+        )
+      );
+
+      function repoLink(path) {
+        return `../../${path}`;
+      }
+
+      function countDomainItems(domain) {
+        return domain.sections.reduce((sum, section) => sum + section.items.length, 0);
+      }
+
+      function renderSummary() {
+        const summary = document.querySelector("#summary");
+        const scenarioCount = new Set(rows.flatMap((row) => row.acceptance)).size;
+        const metrics = [
+          ["큰 영역", featureMap.length],
+          ["기능 묶음", featureMap.flatMap((domain) => domain.sections).length],
+          ["세부 기능", rows.length],
+          ["인수 시나리오", scenarioCount],
+          ["지원 기능", rows.filter((row) => row.status === "지원").length]
+        ];
+
+        summary.replaceChildren(
+          ...metrics.map(([label, value]) => {
+            const metric = document.createElement("div");
+            metric.className = "metric";
+            metric.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
+            return metric;
+          })
+        );
+      }
+
+      function renderMap() {
+        const map = document.querySelector("#feature-map");
+        map.replaceChildren(
+          ...featureMap.map((domain) => {
+            const domainNode = document.createElement("article");
+            domainNode.className = "domain";
+            domainNode.dataset.domain = domain.id;
+
+            const title = document.createElement("div");
+            title.className = "domain-title";
+            title.innerHTML = `<span>${domain.title}</span><span class="domain-count">${countDomainItems(domain)}</span>`;
+            domainNode.append(title);
+
+            domain.sections.forEach((section) => {
+              const sectionNode = document.createElement("section");
+              sectionNode.className = "section-node";
+
+              const heading = document.createElement("h3");
+              heading.className = "section-title";
+              heading.textContent = section.title;
+
+              const list = document.createElement("ul");
+              list.className = "feature-list";
+              section.items.forEach((item) => {
+                const chip = document.createElement("li");
+                chip.className = "feature-chip";
+                chip.title = `${item.status} · ${item.name}`;
+                chip.textContent = item.name;
+                list.append(chip);
+              });
+
+              sectionNode.append(heading, list);
+              domainNode.append(sectionNode);
+            });
+
+            return domainNode;
+          })
+        );
+      }
+
+      function renderFilters() {
+        const filters = document.querySelector("#filters");
+        filters.replaceChildren(
+          ...statusOrder.map((status) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "filter";
+            button.textContent = status;
+            button.title = statusMeta[status] || "모든 상태 보기";
+            button.setAttribute("aria-pressed", String(status === activeStatus));
+            button.addEventListener("click", () => {
+              activeStatus = status;
+              renderFilters();
+              renderTable();
+            });
+            return button;
+          })
+        );
+      }
+
+      function renderLinks(paths) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "links";
+
+        if (!paths.length) {
+          const empty = document.createElement("span");
+          empty.className = "empty";
+          empty.textContent = "없음";
+          wrapper.append(empty);
+          return wrapper;
+        }
+
+        paths.forEach((path) => {
+          const link = document.createElement("a");
+          link.href = repoLink(path);
+          link.textContent = path;
+          wrapper.append(link);
+        });
+
+        return wrapper;
+      }
+
+      function rowMatchesSearch(row, query) {
+        if (!query) {
+          return true;
+        }
+
+        const haystack = [
+          row.domain,
+          row.section,
+          row.name,
+          row.status,
+          ...row.acceptance,
+          ...row.docs
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(query.toLowerCase());
+      }
+
+      function renderTable() {
+        const query = document.querySelector("#search").value.trim();
+        const filtered = rows.filter(
+          (row) =>
+            (activeStatus === "전체" || row.status === activeStatus) &&
+            rowMatchesSearch(row, query)
+        );
+        const tbody = document.querySelector("#feature-table");
+
+        tbody.replaceChildren(
+          ...filtered.map((row) => {
+            const tr = document.createElement("tr");
+            const cells = [
+              row.domain,
+              row.section,
+              row.name,
+              row.status,
+              renderLinks(row.acceptance),
+              renderLinks(row.docs)
+            ];
+
+            cells.forEach((value, index) => {
+              const td = document.createElement("td");
+              if (index === 3) {
+                const badge = document.createElement("span");
+                badge.className = `status ${statusClass[value] || ""}`;
+                badge.textContent = value;
+                td.append(badge);
+              } else if (value instanceof HTMLElement) {
+                td.append(value);
+              } else {
+                td.textContent = value;
+              }
+              tr.append(td);
+            });
+
+            return tr;
+          })
+        );
+
+        document.querySelector("#result-count").textContent =
+          `${filtered.length}개 기능 표시 중 · 전체 ${rows.length}개`;
+      }
+
+      document.querySelector("#search").addEventListener("input", renderTable);
+
+      renderSummary();
+      renderMap();
+      renderFilters();
+      renderTable();
+    </script>
+  </body>
+</html>
