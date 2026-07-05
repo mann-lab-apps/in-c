@@ -91,7 +91,35 @@ window.FEATURE_MAP = [
             name: "선택 쉼표를 음표로 변환",
             status: "지원",
             acceptance: ["docs/product/acceptance/rest-to-note.feature"],
-            docs: ["docs/architecture/note-input-state.md"]
+            docs: ["docs/architecture/note-input-state.md"],
+            flow: {
+              id: "rest-to-note-flow",
+              title: "선택 쉼표를 음표로 변환",
+              summary:
+                "쉼표가 선택된 상태에서 A-G를 입력하면 선택된 쉼표와 같은 음가의 음표로 바뀐다.",
+              steps: [
+                {
+                  label: "쉼표 선택",
+                  note: "편집 대상 이벤트가 rest인지 확인한다."
+                },
+                {
+                  label: "A-G 입력",
+                  note: "한글 입력 상태에서도 음이름 입력으로 해석한다."
+                },
+                {
+                  label: "음가 유지",
+                  note: "선택된 쉼표의 duration을 새 음표에 그대로 사용한다."
+                },
+                {
+                  label: "음표로 교체",
+                  note: "마디 길이는 늘리지 않고 같은 위치의 이벤트만 바꾼다."
+                },
+                {
+                  label: "새 음표 선택",
+                  note: "변환된 음표가 계속 선택되어 후속 편집을 이어간다."
+                }
+              ]
+            }
           },
           {
             name: "R 쉼표 입력과 변환",

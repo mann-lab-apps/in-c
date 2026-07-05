@@ -96,7 +96,7 @@
 
       .summary {
         display: grid;
-        grid-template-columns: repeat(5, minmax(120px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 10px;
         margin-bottom: 22px;
       }
@@ -272,6 +272,90 @@
         background: #dce9ee;
       }
 
+      .flow-panel {
+        margin-top: 28px;
+      }
+
+      .flow-grid {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .flow-card {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fffdf8;
+        padding: 16px;
+      }
+
+      .flow-card h3 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      .flow-summary {
+        margin: 6px 0 16px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .flow-chart {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .flow-step {
+        position: relative;
+        min-height: 118px;
+        border: 2px solid #78b88a;
+        border-radius: 8px;
+        background: #ffffff;
+        padding: 14px 14px 14px 16px;
+      }
+
+      .flow-step::after {
+        content: "→";
+        position: absolute;
+        top: 50%;
+        right: -18px;
+        color: #78b88a;
+        font-size: 22px;
+        font-weight: 900;
+        transform: translateY(-50%);
+      }
+
+      .flow-step:last-child::after {
+        content: "";
+      }
+
+      .flow-step-index {
+        display: inline-flex;
+        width: 24px;
+        height: 24px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 999px;
+        background: #78b88a;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .flow-step-title {
+        display: block;
+        margin-top: 10px;
+        font-weight: 900;
+      }
+
+      .flow-step-note {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
       .table-wrap {
         overflow: auto;
         border: 1px solid var(--line);
@@ -281,7 +365,7 @@
 
       table {
         width: 100%;
-        min-width: 1080px;
+        min-width: 1180px;
         border-collapse: collapse;
       }
 
@@ -423,6 +507,16 @@
         </div>
       </section>
 
+      <section class="panel flow-panel" aria-labelledby="flow-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="flow-heading">기능 플로우 예시</h2>
+            <p class="panel-note">`flow` 데이터가 있는 기능만 플로우차트로 표시한다.</p>
+          </div>
+        </div>
+        <div class="flow-grid" id="feature-flows"></div>
+      </section>
+
       <section aria-labelledby="table-heading">
         <div class="tools">
           <input
@@ -450,6 +544,7 @@
                 <th>상태</th>
                 <th>인수 시나리오</th>
                 <th>관련 문서</th>
+                <th>플로우</th>
               </tr>
             </thead>
             <tbody id="feature-table"></tbody>
@@ -485,6 +580,7 @@
           }))
         )
       );
+      const flowRows = rows.filter((row) => row.flow);
 
       function repoLink(path) {
         return `../../${path}`;
@@ -502,6 +598,7 @@
           ["기능 묶음", featureMap.flatMap((domain) => domain.sections).length],
           ["세부 기능", rows.length],
           ["인수 시나리오", scenarioCount],
+          ["플로우차트", flowRows.length],
           ["지원 기능", rows.filter((row) => row.status === "지원").length]
         ];
 
@@ -886,6 +983,66 @@
         return wrapper;
       }
 
+      function renderFlowLink(row) {
+        if (!row.flow) {
+          const empty = document.createElement("span");
+          empty.className = "empty";
+          empty.textContent = "없음";
+          return empty;
+        }
+
+        const link = document.createElement("a");
+        link.href = `#${row.flow.id}`;
+        link.textContent = row.flow.title;
+        return link;
+      }
+
+      function renderFlows() {
+        const container = document.querySelector("#feature-flows");
+
+        if (!flowRows.length) {
+          const empty = document.createElement("p");
+          empty.className = "empty";
+          empty.textContent = "아직 등록된 기능 플로우가 없다.";
+          container.replaceChildren(empty);
+          return;
+        }
+
+        container.replaceChildren(
+          ...flowRows.map((row) => {
+            const card = document.createElement("article");
+            card.className = "flow-card";
+            card.id = row.flow.id;
+
+            const title = document.createElement("h3");
+            title.textContent = row.flow.title;
+
+            const summary = document.createElement("p");
+            summary.className = "flow-summary";
+            summary.textContent = row.flow.summary;
+
+            const chart = document.createElement("div");
+            chart.className = "flow-chart";
+
+            row.flow.steps.forEach((step, index) => {
+              const stepNode = document.createElement("section");
+              stepNode.className = "flow-step";
+              stepNode.innerHTML = `
+                <span class="flow-step-index">${index + 1}</span>
+                <span class="flow-step-title"></span>
+                <p class="flow-step-note"></p>
+              `;
+              stepNode.querySelector(".flow-step-title").textContent = step.label;
+              stepNode.querySelector(".flow-step-note").textContent = step.note;
+              chart.append(stepNode);
+            });
+
+            card.append(title, summary, chart);
+            return card;
+          })
+        );
+      }
+
       function rowMatchesSearch(row, query) {
         if (!query) {
           return true;
@@ -896,6 +1053,8 @@
           row.section,
           row.name,
           row.status,
+          row.flow?.title || "",
+          row.flow?.summary || "",
           ...row.acceptance,
           ...row.docs
         ]
@@ -923,7 +1082,8 @@
               row.name,
               row.status,
               renderLinks(row.acceptance),
-              renderLinks(row.docs)
+              renderLinks(row.docs),
+              renderFlowLink(row)
             ];
 
             cells.forEach((value, index) => {
@@ -956,6 +1116,7 @@
 
       renderSummary();
       renderMap();
+      renderFlows();
       renderFilters();
       renderTable();
     </script>

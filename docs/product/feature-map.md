@@ -16,6 +16,8 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 
 - 기능 목록을 추가하거나 수정할 때는 `feature-map-data.js`를 먼저 갱신한다.
 - `feature-map.html`은 `feature-map-data.js`만 읽어 시각 지도와 상세 표를 만든다.
+- 기능 흐름을 실험적으로 검토할 때는 해당 기능 데이터에 `flow`를 추가한다. `flow`가
+  있는 기능만 HTML 피쳐맵의 기능 플로우 섹션에 표시된다.
 - 인수 시나리오가 필요한 기능은 `docs/product/acceptance/*.feature`에 기준을 추가하고
   `feature-map-data.js`의 `acceptance` 필드에 연결한다.
 - 논의 히스토리와 우선순위는 이 문서에 쌓지 않고 GitHub 이슈에 남긴다.
