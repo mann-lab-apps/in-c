@@ -8,6 +8,7 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 ## 전체 지도
 
 ```mermaid
+%%{init: {"mindmap": {"useMaxWidth": false, "padding": 24, "maxNodeWidth": 280}}}%%
 mindmap
   root((in-C Feature Map))
     시작과 악보 설정
