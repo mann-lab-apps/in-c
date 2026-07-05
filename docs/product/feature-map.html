@@ -272,90 +272,6 @@
         background: #dce9ee;
       }
 
-      .flow-panel {
-        margin-top: 28px;
-      }
-
-      .flow-grid {
-        display: grid;
-        gap: 16px;
-        padding: 18px;
-      }
-
-      .flow-card {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        background: #fffdf8;
-        padding: 16px;
-      }
-
-      .flow-card h3 {
-        margin: 0;
-        font-size: 18px;
-      }
-
-      .flow-summary {
-        margin: 6px 0 16px;
-        color: var(--muted);
-        font-size: 14px;
-      }
-
-      .flow-chart {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
-        align-items: stretch;
-      }
-
-      .flow-step {
-        position: relative;
-        min-height: 118px;
-        border: 2px solid #78b88a;
-        border-radius: 8px;
-        background: #ffffff;
-        padding: 14px 14px 14px 16px;
-      }
-
-      .flow-step::after {
-        content: "→";
-        position: absolute;
-        top: 50%;
-        right: -18px;
-        color: #78b88a;
-        font-size: 22px;
-        font-weight: 900;
-        transform: translateY(-50%);
-      }
-
-      .flow-step:last-child::after {
-        content: "";
-      }
-
-      .flow-step-index {
-        display: inline-flex;
-        width: 24px;
-        height: 24px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 999px;
-        background: #78b88a;
-        color: #fff;
-        font-size: 12px;
-        font-weight: 900;
-      }
-
-      .flow-step-title {
-        display: block;
-        margin-top: 10px;
-        font-weight: 900;
-      }
-
-      .flow-step-note {
-        margin: 6px 0 0;
-        color: var(--muted);
-        font-size: 13px;
-      }
-
       .table-wrap {
         overflow: auto;
         border: 1px solid var(--line);
@@ -471,7 +387,7 @@
           </p>
         </div>
         <nav class="hero-actions" aria-label="문서 바로가기">
-          <a class="button" href="#flow-heading">기능 플로우</a>
+          <a class="button" href="#map-heading">플로우 예시</a>
           <a class="button" href="./feature-map.md">Markdown 문서</a>
           <a class="button" href="./acceptance/README.md">인수 시나리오</a>
           <a class="button" href="./agent-workflow.md">협업 워크플로우</a>
@@ -480,21 +396,11 @@
 
       <section class="summary" id="summary" aria-label="피쳐맵 요약"></section>
 
-      <section class="panel flow-panel" aria-labelledby="flow-heading">
-        <div class="panel-header">
-          <div>
-            <h2 id="flow-heading">기능 플로우 예시</h2>
-            <p class="panel-note">`flow` 데이터가 있는 기능만 플로우차트로 표시한다.</p>
-          </div>
-        </div>
-        <div class="flow-grid" id="feature-flows"></div>
-      </section>
-
       <section class="panel" aria-labelledby="map-heading">
         <div class="panel-header">
           <div>
             <h2 id="map-heading">시각 지도</h2>
-            <p class="panel-note">같은 데이터를 중앙 노드, 큰 영역, 기능 묶음, 세부 기능의 마인드맵으로 그린다.</p>
+            <p class="panel-note">`flow` 데이터가 있는 피쳐는 노드 하위에 예시 플로우를 함께 표시한다.</p>
           </div>
           <div class="map-controls" aria-label="마인드맵 확대 축소">
             <button class="map-control" id="zoom-out" type="button" title="축소">−</button>
@@ -642,6 +548,8 @@
           item: { x: 2130, w: 310 }
         },
         itemGap: 10,
+        flowStep: { w: 250, h: 30 },
+        flowGap: 7,
         sectionGap: 38,
         domainGap: 92,
         verticalMargin: 70
@@ -680,8 +588,24 @@
         return lines.length ? lines : [String(text)];
       }
 
-      function itemHeight(item) {
+      function itemBaseHeight(item) {
         return Math.max(34, wrapLabel(item.name, 22).length * 14 + 18);
+      }
+
+      function flowHeight(item) {
+        if (!item.flow) {
+          return 0;
+        }
+
+        return (
+          mapLayout.flowGap +
+          item.flow.steps.length * mapLayout.flowStep.h +
+          Math.max(0, item.flow.steps.length - 1) * mapLayout.flowGap
+        );
+      }
+
+      function itemHeight(item) {
+        return itemBaseHeight(item) + flowHeight(item);
       }
 
       function sectionHeight(section) {
@@ -725,20 +649,53 @@
             let itemCursor = sectionTop;
 
             section.items.forEach((item) => {
-              const height = itemHeight(item);
+              const height = itemBaseHeight(item);
+              const totalHeight = itemHeight(item);
               const itemNode = {
                 type: "item",
                 side,
                 domainId: domain.id,
+                id: item.flow?.id,
                 label: item.name,
                 status: item.status,
+                flow: item.flow,
                 x: specs.item.x,
                 y: itemCursor + height / 2,
                 w: specs.item.w,
                 h: height
               };
               itemNodes.push(itemNode);
-              itemCursor += height + mapLayout.itemGap;
+
+              if (item.flow) {
+                let flowCursor = itemCursor + height + mapLayout.flowGap;
+                let previousNode = itemNode;
+                item.flow.steps.forEach((step, index) => {
+                  const flowNode = {
+                    type: "flow-step",
+                    side,
+                    domainId: domain.id,
+                    label: `${index + 1}. ${step.label}`,
+                    status: item.status,
+                    note: step.note,
+                    x: itemNode.x + (itemNode.w - mapLayout.flowStep.w) / 2,
+                    y: flowCursor + mapLayout.flowStep.h / 2,
+                    w: mapLayout.flowStep.w,
+                    h: mapLayout.flowStep.h
+                  };
+                  itemNodes.push(flowNode);
+                  links.push({
+                    from: previousNode,
+                    to: flowNode,
+                    domainId: domain.id,
+                    weight: 2,
+                    kind: "flow"
+                  });
+                  previousNode = flowNode;
+                  flowCursor += mapLayout.flowStep.h + mapLayout.flowGap;
+                });
+              }
+
+              itemCursor += totalHeight + mapLayout.itemGap;
             });
 
             const sectionBottom = itemCursor - mapLayout.itemGap;
@@ -753,7 +710,7 @@
               h: specs.section.h
             };
 
-            itemNodes.forEach((itemNode) => {
+            itemNodes.filter((itemNode) => itemNode.type === "item").forEach((itemNode) => {
               links.push({ from: sectionNode, to: itemNode, domainId: domain.id, weight: 3 });
             });
             domainSectionNodes.push(sectionNode);
@@ -801,6 +758,21 @@
 
       function drawLink(svg, link) {
         const color = domainColors[link.domainId] || "#315b72";
+        if (link.kind === "flow") {
+          const x = link.from.x + link.from.w / 2;
+          const fromY = link.from.y + link.from.h / 2;
+          const toY = link.to.y - link.to.h / 2;
+          const path = svgEl("path", {
+            class: "mindmap-link",
+            d: `M ${x} ${fromY} L ${x} ${toY}`,
+            stroke: color,
+            "stroke-width": link.weight,
+            "stroke-dasharray": "4 5"
+          });
+          svg.append(path);
+          return;
+        }
+
         const side = link.to.side;
         const from = connectionPoint(link.from, side, true);
         const to = connectionPoint(link.to, side, false);
@@ -846,7 +818,7 @@
           y: node.y - node.h / 2,
           width: node.w,
           height: node.h,
-          rx: node.type === "root" ? 32 : node.type === "item" ? 16 : 8,
+          rx: node.type === "root" ? 32 : node.type === "item" ? 16 : node.type === "flow-step" ? 14 : 8,
           fill:
             node.type === "root"
               ? "#e5edf0"
@@ -854,9 +826,11 @@
                 ? color
                 : node.type === "section"
                   ? "#ffffff"
-                  : "#fffdf8",
+                  : node.type === "flow-step"
+                    ? "#f7fbf8"
+                    : "#fffdf8",
           stroke: node.type === "root" ? "#315b72" : color,
-          "stroke-width": node.type === "item" ? 1.5 : node.type === "section" ? 2 : 3
+          "stroke-width": node.type === "item" || node.type === "flow-step" ? 1.5 : node.type === "section" ? 2 : 3
         });
 
         group.append(rect);
@@ -873,10 +847,34 @@
           );
         }
 
+        if (node.type === "flow-step") {
+          group.append(
+            svgEl("circle", {
+              class: "status-dot",
+              cx: node.x + 14,
+              cy: node.y,
+              r: 4,
+              fill: color
+            })
+          );
+          const title = svgEl("title");
+          title.textContent = node.note || node.label;
+          group.append(title);
+        }
+
         drawText(group, node, {
           fontSize: node.type === "root" ? 24 : node.type === "domain" ? 17 : node.type === "section" ? 14 : 12,
           lineHeight: node.type === "root" ? 24 : node.type === "domain" ? 18 : 14,
-          wrap: node.type === "root" ? 18 : node.type === "domain" ? 12 : node.type === "section" ? 14 : 22
+          wrap:
+            node.type === "root"
+              ? 18
+              : node.type === "domain"
+                ? 12
+                : node.type === "section"
+                  ? 14
+                  : node.type === "flow-step"
+                    ? 22
+                    : 22
         });
 
         if (node.type === "domain") {
@@ -993,55 +991,9 @@
         }
 
         const link = document.createElement("a");
-        link.href = `#${row.flow.id}`;
-        link.textContent = row.flow.title;
+        link.href = "#map-heading";
+        link.textContent = "마인드맵 하위 표시";
         return link;
-      }
-
-      function renderFlows() {
-        const container = document.querySelector("#feature-flows");
-
-        if (!flowRows.length) {
-          const empty = document.createElement("p");
-          empty.className = "empty";
-          empty.textContent = "아직 등록된 기능 플로우가 없다.";
-          container.replaceChildren(empty);
-          return;
-        }
-
-        container.replaceChildren(
-          ...flowRows.map((row) => {
-            const card = document.createElement("article");
-            card.className = "flow-card";
-            card.id = row.flow.id;
-
-            const title = document.createElement("h3");
-            title.textContent = row.flow.title;
-
-            const summary = document.createElement("p");
-            summary.className = "flow-summary";
-            summary.textContent = row.flow.summary;
-
-            const chart = document.createElement("div");
-            chart.className = "flow-chart";
-
-            row.flow.steps.forEach((step, index) => {
-              const stepNode = document.createElement("section");
-              stepNode.className = "flow-step";
-              stepNode.innerHTML = `
-                <span class="flow-step-index">${index + 1}</span>
-                <span class="flow-step-title"></span>
-                <p class="flow-step-note"></p>
-              `;
-              stepNode.querySelector(".flow-step-title").textContent = step.label;
-              stepNode.querySelector(".flow-step-note").textContent = step.note;
-              chart.append(stepNode);
-            });
-
-            card.append(title, summary, chart);
-            return card;
-          })
-        );
       }
 
       function rowMatchesSearch(row, query) {
@@ -1128,7 +1080,6 @@
 
       renderSummary();
       renderMap();
-      renderFlows();
       renderFilters();
       renderTable();
       scrollToHashAfterRender();
