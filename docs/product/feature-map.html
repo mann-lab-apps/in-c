@@ -148,116 +148,84 @@
         font-size: 14px;
       }
 
+      .map-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .map-control {
+        display: inline-flex;
+        min-width: 36px;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .zoom-value {
+        min-width: 52px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+      }
+
       .map {
         overflow: auto;
         padding: 24px;
       }
 
       .map-stage {
-        min-width: 1320px;
-        padding: 12px;
-      }
-
-      .root-node {
-        width: fit-content;
-        margin: 0 auto 24px;
-        border: 3px solid var(--accent);
-        border-radius: 999px;
-        background: #e5edf0;
-        padding: 22px 30px;
-        text-align: center;
-        font-size: 26px;
-        font-weight: 900;
-      }
-
-      .domain-grid {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(280px, 1fr));
-        gap: 18px;
-      }
-
-      .domain {
-        --domain-color: var(--accent);
-        border: 2px solid color-mix(in srgb, var(--domain-color), white 28%);
+        min-width: 2520px;
         border-radius: 8px;
-        background: color-mix(in srgb, var(--domain-color), white 86%);
-        padding: 14px;
+        background:
+          linear-gradient(rgba(49, 91, 114, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(49, 91, 114, 0.05) 1px, transparent 1px),
+          #fffdf8;
+        background-size: 48px 48px;
       }
 
-      .domain[data-domain="score-authoring"] {
-        --domain-color: var(--write);
+      .mindmap-svg {
+        display: block;
+        min-width: 2520px;
       }
 
-      .domain[data-domain="score-editing"] {
-        --domain-color: var(--edit);
+      .mindmap-link {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0.7;
       }
 
-      .domain[data-domain="review-output"] {
-        --domain-color: var(--review);
+      .mindmap-node rect {
+        filter: drop-shadow(0 2px 2px rgba(24, 30, 34, 0.1));
       }
 
-      .domain[data-domain="distribution-ops"] {
-        --domain-color: var(--ops);
+      .mindmap-node text {
+        pointer-events: none;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: #172027;
+        font-weight: 800;
       }
 
-      .domain-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        margin-bottom: 14px;
-        border-radius: 6px;
-        background: var(--domain-color);
-        padding: 11px 12px;
-        color: #111;
-        font-size: 18px;
-        font-weight: 900;
-      }
-
-      .domain-count {
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.65);
-        padding: 2px 8px;
-        font-size: 13px;
-      }
-
-      .section-node {
-        border: 1px solid color-mix(in srgb, var(--domain-color), black 10%);
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.78);
-        padding: 12px;
-      }
-
-      .section-node + .section-node {
-        margin-top: 12px;
-      }
-
-      .section-title {
-        margin: 0 0 9px;
-        color: #111;
-        font-size: 15px;
-        font-weight: 900;
-      }
-
-      .feature-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 7px;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-
-      .feature-chip {
-        max-width: 100%;
-        border: 1px solid color-mix(in srgb, var(--domain-color), white 25%);
-        border-radius: 999px;
-        background: #fff;
-        padding: 5px 9px;
-        color: #24292f;
-        font-size: 12px;
+      .mindmap-node .node-subtle {
+        fill: #63717a;
+        font-size: 11px;
         font-weight: 700;
-        overflow-wrap: anywhere;
+      }
+
+      .status-dot {
+        stroke: rgba(255, 255, 255, 0.9);
+        stroke-width: 2;
       }
 
       .tools {
@@ -431,13 +399,26 @@
         <div class="panel-header">
           <div>
             <h2 id="map-heading">시각 지도</h2>
-            <p class="panel-note">큰 영역, 기능 묶음, 세부 기능의 3단계로 본다.</p>
+            <p class="panel-note">같은 데이터를 중앙 노드, 큰 영역, 기능 묶음, 세부 기능의 마인드맵으로 그린다.</p>
+          </div>
+          <div class="map-controls" aria-label="마인드맵 확대 축소">
+            <button class="map-control" id="zoom-out" type="button" title="축소">−</button>
+            <span class="zoom-value" id="zoom-value">100%</span>
+            <button class="map-control" id="zoom-in" type="button" title="확대">+</button>
+            <button class="map-control" id="zoom-reset" type="button" title="원래 크기">1:1</button>
           </div>
         </div>
         <div class="map" tabindex="0">
           <div class="map-stage">
-            <div class="root-node">in C Composers</div>
-            <div class="domain-grid" id="feature-map"></div>
+            <svg
+              class="mindmap-svg"
+              id="feature-map"
+              role="img"
+              aria-labelledby="mindmap-title mindmap-desc"
+            >
+              <title id="mindmap-title">in C Composers 피쳐맵</title>
+              <desc id="mindmap-desc">기능 데이터를 바탕으로 그린 마인드맵</desc>
+            </svg>
           </div>
         </div>
       </section>
@@ -491,6 +472,8 @@
       };
 
       let activeStatus = "전체";
+      let mapZoom = 1;
+      let mapHeight = 0;
 
       const rows = featureMap.flatMap((domain) =>
         domain.sections.flatMap((section) =>
@@ -532,44 +515,333 @@
         );
       }
 
-      function renderMap() {
-        const map = document.querySelector("#feature-map");
-        map.replaceChildren(
-          ...featureMap.map((domain) => {
-            const domainNode = document.createElement("article");
-            domainNode.className = "domain";
-            domainNode.dataset.domain = domain.id;
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const domainColors = {
+        "score-authoring": "#78b88a",
+        "score-editing": "#e88974",
+        "review-output": "#ddb773",
+        "distribution-ops": "#9582ca"
+      };
+      const statusColors = {
+        "지원": "#1f7a4d",
+        "부분 지원": "#9b6614",
+        "미지원": "#9b2d20",
+        "실험": "#5a569b",
+        "보류": "#59636b"
+      };
+      const mapLayout = {
+        width: 2520,
+        minHeight: 1040,
+        root: { x: 1130, w: 260, h: 84 },
+        left: {
+          domain: { x: 820, w: 250, h: 54 },
+          section: { x: 480, w: 260, h: 46 },
+          item: { x: 90, w: 310 }
+        },
+        right: {
+          domain: { x: 1450, w: 250, h: 54 },
+          section: { x: 1790, w: 260, h: 46 },
+          item: { x: 2130, w: 310 }
+        },
+        itemGap: 10,
+        sectionGap: 38,
+        domainGap: 92,
+        verticalMargin: 70
+      };
 
-            const title = document.createElement("div");
-            title.className = "domain-title";
-            title.innerHTML = `<span>${domain.title}</span><span class="domain-count">${countDomainItems(domain)}</span>`;
-            domainNode.append(title);
+      function svgEl(name, attributes = {}) {
+        const element = document.createElementNS(SVG_NS, name);
+        Object.entries(attributes).forEach(([key, value]) => {
+          element.setAttribute(key, String(value));
+        });
+        return element;
+      }
 
-            domain.sections.forEach((section) => {
-              const sectionNode = document.createElement("section");
-              sectionNode.className = "section-node";
+      function wrapLabel(text, limit) {
+        const words = String(text).split(" ");
+        const lines = [];
+        let current = "";
 
-              const heading = document.createElement("h3");
-              heading.className = "section-title";
-              heading.textContent = section.title;
+        words.forEach((word) => {
+          const next = current ? `${current} ${word}` : word;
+          if (next.length <= limit) {
+            current = next;
+            return;
+          }
 
-              const list = document.createElement("ul");
-              list.className = "feature-list";
-              section.items.forEach((item) => {
-                const chip = document.createElement("li");
-                chip.className = "feature-chip";
-                chip.title = `${item.status} · ${item.name}`;
-                chip.textContent = item.name;
-                list.append(chip);
-              });
+          if (current) {
+            lines.push(current);
+          }
+          current = word;
+        });
 
-              sectionNode.append(heading, list);
-              domainNode.append(sectionNode);
+        if (current) {
+          lines.push(current);
+        }
+
+        return lines.length ? lines : [String(text)];
+      }
+
+      function itemHeight(item) {
+        return Math.max(34, wrapLabel(item.name, 22).length * 14 + 18);
+      }
+
+      function sectionHeight(section) {
+        const itemHeights = section.items.map(itemHeight);
+        return Math.max(
+          82,
+          itemHeights.reduce((sum, height) => sum + height, 0) +
+            mapLayout.itemGap * Math.max(0, itemHeights.length - 1)
+        );
+      }
+
+      function domainHeight(domain) {
+        const sectionHeights = domain.sections.map(sectionHeight);
+        return (
+          sectionHeights.reduce((sum, height) => sum + height, 0) +
+          mapLayout.sectionGap * Math.max(0, sectionHeights.length - 1)
+        );
+      }
+
+      function sideHeight(domains) {
+        return (
+          domains.reduce((sum, domain) => sum + domainHeight(domain), 0) +
+          mapLayout.domainGap * Math.max(0, domains.length - 1)
+        );
+      }
+
+      function layoutSide(domains, side, startY) {
+        const specs = mapLayout[side];
+        const nodes = [];
+        const links = [];
+        let cursor = startY;
+
+        domains.forEach((domain) => {
+          const domainSectionNodes = [];
+          const domainItemNodes = [];
+          let domainTop = cursor;
+
+          domain.sections.forEach((section) => {
+            const sectionTop = cursor;
+            const itemNodes = [];
+            let itemCursor = sectionTop;
+
+            section.items.forEach((item) => {
+              const height = itemHeight(item);
+              const itemNode = {
+                type: "item",
+                side,
+                domainId: domain.id,
+                label: item.name,
+                status: item.status,
+                x: specs.item.x,
+                y: itemCursor + height / 2,
+                w: specs.item.w,
+                h: height
+              };
+              itemNodes.push(itemNode);
+              itemCursor += height + mapLayout.itemGap;
             });
 
-            return domainNode;
-          })
+            const sectionBottom = itemCursor - mapLayout.itemGap;
+            const sectionNode = {
+              type: "section",
+              side,
+              domainId: domain.id,
+              label: section.title,
+              x: specs.section.x,
+              y: (sectionTop + sectionBottom) / 2,
+              w: specs.section.w,
+              h: specs.section.h
+            };
+
+            itemNodes.forEach((itemNode) => {
+              links.push({ from: sectionNode, to: itemNode, domainId: domain.id, weight: 3 });
+            });
+            domainSectionNodes.push(sectionNode);
+            domainItemNodes.push(...itemNodes);
+            cursor = sectionBottom + mapLayout.sectionGap;
+          });
+
+          const domainBottom = cursor - mapLayout.sectionGap;
+          const domainNode = {
+            type: "domain",
+            side,
+            domainId: domain.id,
+            label: domain.title,
+            count: countDomainItems(domain),
+            x: specs.domain.x,
+            y: (domainTop + domainBottom) / 2,
+            w: specs.domain.w,
+            h: specs.domain.h
+          };
+
+          domainSectionNodes.forEach((sectionNode) => {
+            links.push({ from: domainNode, to: sectionNode, domainId: domain.id, weight: 5 });
+          });
+
+          nodes.push(domainNode, ...domainSectionNodes, ...domainItemNodes);
+          cursor = domainBottom + mapLayout.domainGap;
+        });
+
+        return { nodes, links };
+      }
+
+      function connectionPoint(node, side, asParent) {
+        if (side === "left") {
+          return {
+            x: asParent ? node.x : node.x + node.w,
+            y: node.y
+          };
+        }
+
+        return {
+          x: asParent ? node.x + node.w : node.x,
+          y: node.y
+        };
+      }
+
+      function drawLink(svg, link) {
+        const color = domainColors[link.domainId] || "#315b72";
+        const side = link.to.side;
+        const from = connectionPoint(link.from, side, true);
+        const to = connectionPoint(link.to, side, false);
+        const controlDistance = Math.max(90, Math.abs(to.x - from.x) * 0.48);
+        const c1x = side === "left" ? from.x - controlDistance : from.x + controlDistance;
+        const c2x = side === "left" ? to.x + controlDistance : to.x - controlDistance;
+        const path = svgEl("path", {
+          class: "mindmap-link",
+          d: `M ${from.x} ${from.y} C ${c1x} ${from.y}, ${c2x} ${to.y}, ${to.x} ${to.y}`,
+          stroke: color,
+          "stroke-width": link.weight
+        });
+        svg.append(path);
+      }
+
+      function drawText(group, node, options) {
+        const text = svgEl("text", {
+          x: node.x + node.w / 2,
+          y: node.y,
+          "font-size": options.fontSize
+        });
+        const lines = wrapLabel(node.label, options.wrap);
+        const lineHeight = options.lineHeight;
+        const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
+
+        lines.forEach((line, index) => {
+          const tspan = svgEl("tspan", {
+            x: node.x + node.w / 2,
+            y: startY + index * lineHeight
+          });
+          tspan.textContent = line;
+          text.append(tspan);
+        });
+
+        group.append(text);
+      }
+
+      function drawNode(svg, node) {
+        const color = domainColors[node.domainId] || "#315b72";
+        const group = svgEl("g", { class: `mindmap-node mindmap-node-${node.type}` });
+        const rect = svgEl("rect", {
+          x: node.x,
+          y: node.y - node.h / 2,
+          width: node.w,
+          height: node.h,
+          rx: node.type === "root" ? 32 : node.type === "item" ? 16 : 8,
+          fill:
+            node.type === "root"
+              ? "#e5edf0"
+              : node.type === "domain"
+                ? color
+                : node.type === "section"
+                  ? "#ffffff"
+                  : "#fffdf8",
+          stroke: node.type === "root" ? "#315b72" : color,
+          "stroke-width": node.type === "item" ? 1.5 : node.type === "section" ? 2 : 3
+        });
+
+        group.append(rect);
+
+        if (node.type === "item") {
+          group.append(
+            svgEl("circle", {
+              class: "status-dot",
+              cx: node.x + 16,
+              cy: node.y,
+              r: 6,
+              fill: statusColors[node.status] || "#59636b"
+            })
+          );
+        }
+
+        drawText(group, node, {
+          fontSize: node.type === "root" ? 24 : node.type === "domain" ? 17 : node.type === "section" ? 14 : 12,
+          lineHeight: node.type === "root" ? 24 : node.type === "domain" ? 18 : 14,
+          wrap: node.type === "root" ? 18 : node.type === "domain" ? 12 : node.type === "section" ? 14 : 22
+        });
+
+        if (node.type === "domain") {
+          const count = svgEl("text", {
+            class: "node-subtle",
+            x: node.x + node.w / 2,
+            y: node.y + 18
+          });
+          count.textContent = `${node.count} features`;
+          group.append(count);
+        }
+
+        svg.append(group);
+      }
+
+      function applyMapZoom() {
+        const svg = document.querySelector("#feature-map");
+        svg.setAttribute("width", Math.round(mapLayout.width * mapZoom));
+        svg.setAttribute("height", Math.round(mapHeight * mapZoom));
+        document.querySelector("#zoom-value").textContent = `${Math.round(mapZoom * 100)}%`;
+      }
+
+      function updateMapZoom(nextZoom) {
+        mapZoom = Math.min(1.8, Math.max(0.55, nextZoom));
+        applyMapZoom();
+      }
+
+      function renderMap() {
+        const svg = document.querySelector("#feature-map");
+        const leftDomains = featureMap.slice(0, 2);
+        const rightDomains = featureMap.slice(2);
+        const leftHeight = sideHeight(leftDomains);
+        const rightHeight = sideHeight(rightDomains);
+        const height = Math.max(
+          mapLayout.minHeight,
+          Math.max(leftHeight, rightHeight) + mapLayout.verticalMargin * 2
         );
+        const rootY = Math.min(height / 2, 520);
+        mapHeight = height;
+        const rootNode = {
+          type: "root",
+          side: "right",
+          label: "in C Composers",
+          x: mapLayout.root.x,
+          y: rootY,
+          w: mapLayout.root.w,
+          h: mapLayout.root.h
+        };
+        const left = layoutSide(leftDomains, "left", (height - leftHeight) / 2);
+        const right = layoutSide(rightDomains, "right", (height - rightHeight) / 2);
+        const rootLinks = [...left.nodes, ...right.nodes]
+          .filter((node) => node.type === "domain")
+          .map((node) => ({ from: rootNode, to: node, domainId: node.domainId, weight: 7 }));
+
+        svg.setAttribute("viewBox", `0 0 ${mapLayout.width} ${height}`);
+        svg.replaceChildren(
+          svg.querySelector("title"),
+          svg.querySelector("desc")
+        );
+
+        [...rootLinks, ...left.links, ...right.links].forEach((link) => drawLink(svg, link));
+        [...left.nodes, ...right.nodes, rootNode].forEach((node) => drawNode(svg, node));
+        applyMapZoom();
       }
 
       function renderFilters() {
@@ -678,6 +950,9 @@
       }
 
       document.querySelector("#search").addEventListener("input", renderTable);
+      document.querySelector("#zoom-out").addEventListener("click", () => updateMapZoom(mapZoom - 0.1));
+      document.querySelector("#zoom-in").addEventListener("click", () => updateMapZoom(mapZoom + 0.1));
+      document.querySelector("#zoom-reset").addEventListener("click", () => updateMapZoom(1));
 
       renderSummary();
       renderMap();
