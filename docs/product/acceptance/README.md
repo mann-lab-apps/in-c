@@ -33,6 +33,7 @@
 ## 기존 문서와의 관계
 
 - `docs/product/acceptance/*.feature`: 현재 작업 검토의 핵심 문서.
+- `docs/product/feature-map.md`: 현재 제품 기능 영역과 상태를 보는 지도.
 - `docs/product/agent-workflow.md`: AI Agent가 시나리오를 언제 확인하고 갱신할지
   정리한 절차.
 - `docs/product/story-map.md`: 기존 사용자 여정 맵. 새 Gherkin 시나리오 체계가

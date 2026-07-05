@@ -1,9 +1,9 @@
 # 제품 스토리 맵 (Legacy)
 
 > Legacy: 이 문서는 기존 사용자 여정 맵이다. 새 작업 검토의 핵심 문서는
-> `docs/product/acceptance/*.feature`에 작성하는 Gherkin 인수 시나리오다.
-> 이 문서는 전체 맥락을 참고할 때만 사용하고, 새 기준은 가능한 한 `.feature`
-> 파일로 남긴다.
+> `docs/product/acceptance/*.feature`에 작성하는 Gherkin 인수 시나리오다. 현재
+> 기능 상태 지도는 `docs/product/feature-map.md`를 우선한다. 이 문서는 전체
+> 맥락을 참고할 때만 사용하고, 새 기준은 가능한 한 `.feature` 파일로 남긴다.
 
 이 문서는 in C의 현재 사용자 여정과 제품 기준을 한눈에 보기 위한 지도다.
 긴 히스토리나 논쟁을 남기는 문서가 아니라, 지금 합의된 상태만 유지한다.
