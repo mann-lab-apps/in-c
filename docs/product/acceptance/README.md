@@ -47,4 +47,11 @@
 
 ## 현재 시나리오
 
+- `score-setup.feature`: 새 악보를 만들고 제목, 박자표, 조표를 설정한다.
+- `note-input.feature`: 음가를 선택하고 음표와 쉼표를 입력한다.
 - `rest-to-note.feature`: 선택된 쉼표를 같은 위치와 같은 음가의 음표로 바꾼다.
+- `rhythm-duration.feature`: 선택 이벤트의 음가를 바꾸고 남은 시간을 정리한다.
+- `delete-event.feature`: 선택 이벤트를 삭제하고 마디 길이를 유지한다.
+- `augmentation-dots.feature`: 점음표와 겹점음표를 입력한다.
+- `tuplets.feature`: 셋잇단음표를 입력하고 해제한다.
+- `import-export.feature`: MusicXML 가져오기, MusicXML 내보내기, PDF 변환을 확인한다.

@@ -18,39 +18,39 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
 | 시작화면 | 지원 | 없음 | `docs/architecture/project-file.md` |
-| 새 악보 만들기 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 제목과 부제목 수정 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 박자표 선택 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 조표 선택 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 생성 후 박자표 변경 | 부분 지원 | 없음 | `docs/architecture/rhythmic-timeline.md` |
-| 생성 후 조표 변경 | 부분 지원 | 없음 | `docs/musicxml-mvp.md` |
+| 새 악보 만들기 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 제목과 부제목 수정 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 박자표 선택 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 조표 선택 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 생성 후 박자표 변경 | 부분 지원 | `docs/product/acceptance/score-setup.feature` | `docs/architecture/rhythmic-timeline.md` |
+| 생성 후 조표 변경 | 부분 지원 | `docs/product/acceptance/score-setup.feature` | `docs/musicxml-mvp.md` |
 | full-measure rest 실제 길이 처리 | 부분 지원 | `docs/product/acceptance/rest-to-note.feature` | `docs/architecture/rhythmic-timeline.md` |
 
 ## 입력
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 음가 선택 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
-| `A`-`G` 음표 입력 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
-| 선택 음표 음높이 변경 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
+| 음가 선택 | 지원 | `docs/product/acceptance/note-input.feature` | `docs/architecture/note-input-state.md` |
+| `A`-`G` 음표 입력 | 지원 | `docs/product/acceptance/note-input.feature` | `docs/architecture/note-input-state.md` |
+| 선택 음표 음높이 변경 | 지원 | `docs/product/acceptance/note-input.feature` | `docs/architecture/note-input-state.md` |
 | 선택 쉼표를 음표로 변환 | 지원 | `docs/product/acceptance/rest-to-note.feature` | `docs/architecture/note-input-state.md` |
-| `R` 쉼표 입력과 변환 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
-| 마지막 이벤트 뒤 입력 커서 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
-| 한글 입력 상태의 핵심 단축키 | 부분 지원 | `docs/product/acceptance/rest-to-note.feature` | `docs/brand/korean-product-language.md` |
+| `R` 쉼표 입력과 변환 | 지원 | `docs/product/acceptance/note-input.feature` | `docs/architecture/note-input-state.md` |
+| 마지막 이벤트 뒤 입력 커서 | 지원 | `docs/product/acceptance/note-input.feature` | `docs/architecture/note-input-state.md` |
+| 한글 입력 상태의 핵심 단축키 | 부분 지원 | `docs/product/acceptance/note-input.feature`, `docs/product/acceptance/rest-to-note.feature` | `docs/brand/korean-product-language.md` |
 
 ## 리듬 편집
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 선택 이벤트 음가 변경 | 지원 | 없음 | `docs/architecture/rhythm-editing-transactions.md` |
-| 짧아진 음가의 남은 시간 쉼표 채움 | 지원 | 없음 | `docs/architecture/rhythm-editing-transactions.md` |
-| 길어진 음가의 뒤 이벤트 소비 | 지원 | 없음 | `docs/architecture/rhythm-editing-transactions.md` |
-| `Backspace` 삭제와 앞 이벤트 병합 | 지원 | 없음 | `docs/architecture/delete-rest-policy.md` |
-| 첫 이벤트 삭제와 뒤 이벤트 당김 | 지원 | 없음 | `docs/architecture/delete-rest-policy.md` |
-| 타이 인접 구간 삭제 | 지원 | 없음 | `docs/architecture/ties-and-measure-splitting.md` |
-| 점음표와 겹점음표 | 지원 | 없음 | `docs/architecture/augmentation-dots.md` |
-| 셋잇단음표 기본 입력 | 지원 | 없음 | `docs/architecture/tuplets.md` |
-| 셋잇단음표 해제와 예외 안내 | 부분 지원 | 없음 | `docs/architecture/tuplets.md` |
+| 선택 이벤트 음가 변경 | 지원 | `docs/product/acceptance/rhythm-duration.feature` | `docs/architecture/rhythm-editing-transactions.md` |
+| 짧아진 음가의 남은 시간 쉼표 채움 | 지원 | `docs/product/acceptance/rhythm-duration.feature` | `docs/architecture/rhythm-editing-transactions.md` |
+| 길어진 음가의 뒤 이벤트 소비 | 지원 | `docs/product/acceptance/rhythm-duration.feature` | `docs/architecture/rhythm-editing-transactions.md` |
+| `Backspace` 삭제와 앞 이벤트 병합 | 지원 | `docs/product/acceptance/delete-event.feature` | `docs/architecture/delete-rest-policy.md` |
+| 첫 이벤트 삭제와 뒤 이벤트 당김 | 지원 | `docs/product/acceptance/delete-event.feature` | `docs/architecture/delete-rest-policy.md` |
+| 타이 인접 구간 삭제 | 지원 | `docs/product/acceptance/delete-event.feature` | `docs/architecture/ties-and-measure-splitting.md` |
+| 점음표와 겹점음표 | 지원 | `docs/product/acceptance/augmentation-dots.feature` | `docs/architecture/augmentation-dots.md` |
+| 셋잇단음표 기본 입력 | 지원 | `docs/product/acceptance/tuplets.feature` | `docs/architecture/tuplets.md` |
+| 셋잇단음표 해제와 예외 안내 | 부분 지원 | `docs/product/acceptance/tuplets.feature` | `docs/architecture/tuplets.md` |
 | 범위 선택 기반 삭제와 일괄 편집 | 부분 지원 | 없음 | `docs/architecture/measure-selection.md` |
 
 ## 악보 배치와 렌더링
@@ -81,9 +81,9 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| MusicXML 가져오기 | 지원 | 없음 | `docs/musicxml-mvp.md` |
-| MusicXML 내보내기 | 지원 | 없음 | `docs/musicxml-mvp.md` |
-| PDF 변환 | 지원 | 없음 | `docs/musicxml-mvp.md` |
+| MusicXML 가져오기 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
+| MusicXML 내보내기 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
+| PDF 변환 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
 | 앱 내부 자동저장 복구 | 지원 | 없음 | `docs/architecture/project-file.md` |
 | 전용 프로젝트 파일 | 보류 | 없음 | `docs/architecture/project-file.md` |
 | 최근 파일과 예제 악보 진입점 | 미지원 | 없음 | `docs/architecture/project-file.md` |
