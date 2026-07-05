@@ -36,8 +36,6 @@
 - `docs/product/feature-map.md`: 현재 제품 기능 영역과 상태를 보는 지도.
 - `docs/product/agent-workflow.md`: AI Agent가 시나리오를 언제 확인하고 갱신할지
   정리한 절차.
-- `docs/product/story-map.md`: 기존 사용자 여정 맵. 새 Gherkin 시나리오 체계가
-  자리 잡을 때까지 참고하는 legacy 문서다.
 
 ## 파일 작성 규칙
 

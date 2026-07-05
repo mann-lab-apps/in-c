@@ -18,13 +18,13 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
 | 시작화면 | 지원 | 없음 | `docs/architecture/project-file.md` |
-| 새 악보 만들기 | 지원 | 없음 | `docs/product/story-map.md` |
-| 제목과 부제목 수정 | 지원 | 없음 | `docs/product/story-map.md` |
-| 박자표 선택 | 지원 | 없음 | `docs/product/story-map.md` |
-| 조표 선택 | 지원 | 없음 | `docs/product/story-map.md` |
-| 생성 후 박자표 변경 | 부분 지원 | 없음 | `docs/product/story-map.md` |
-| 생성 후 조표 변경 | 부분 지원 | 없음 | `docs/product/story-map.md` |
-| full-measure rest 실제 길이 처리 | 부분 지원 | `docs/product/acceptance/rest-to-note.feature` | `docs/product/story-map.md` |
+| 새 악보 만들기 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 제목과 부제목 수정 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 박자표 선택 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 조표 선택 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 생성 후 박자표 변경 | 부분 지원 | 없음 | `docs/architecture/rhythmic-timeline.md` |
+| 생성 후 조표 변경 | 부분 지원 | 없음 | `docs/musicxml-mvp.md` |
+| full-measure rest 실제 길이 처리 | 부분 지원 | `docs/product/acceptance/rest-to-note.feature` | `docs/architecture/rhythmic-timeline.md` |
 
 ## 입력
 
@@ -62,20 +62,20 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | 내용 기반 마디 폭 계산 | 지원 | 없음 | `docs/architecture/measure-systems.md` |
 | 기본 자동 빔 | 지원 | 없음 | `docs/architecture/automatic-beaming.md` |
 | 복잡한 박자와 리듬의 빔 안정성 | 부분 지원 | 없음 | `docs/architecture/automatic-beaming.md` |
-| 오선 밖 음표와 덧줄 렌더링 | 지원 | 없음 | `docs/product/story-map.md` |
+| 오선 밖 음표와 덧줄 렌더링 | 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
 | 선택 이벤트와 입력 커서 표시 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
-| 수동 system/page break | 미지원 | 없음 | `docs/product/story-map.md` |
+| 수동 system/page break | 미지원 | 없음 | `docs/architecture/measure-systems.md` |
 
 ## 재생
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 재생 | 지원 | 없음 | `docs/product/story-map.md` |
-| 일시정지 | 지원 | 없음 | `docs/product/story-map.md` |
-| 정지 | 지원 | 없음 | `docs/product/story-map.md` |
-| 템포 조절 | 지원 | 없음 | `docs/product/story-map.md` |
+| 재생 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 일시정지 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 정지 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
+| 템포 조절 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
 | 타이와 셋잇단음표 playback 반영 | 부분 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
-| 재생 커서와 편집 선택 동기화 | 부분 지원 | 없음 | `docs/product/story-map.md` |
+| 재생 커서와 편집 선택 동기화 | 부분 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
 
 ## 저장, 가져오기, 내보내기
 
@@ -83,10 +83,10 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | --- | --- | --- | --- |
 | MusicXML 가져오기 | 지원 | 없음 | `docs/musicxml-mvp.md` |
 | MusicXML 내보내기 | 지원 | 없음 | `docs/musicxml-mvp.md` |
-| PDF 변환 | 지원 | 없음 | `docs/product/story-map.md` |
+| PDF 변환 | 지원 | 없음 | `docs/musicxml-mvp.md` |
 | 앱 내부 자동저장 복구 | 지원 | 없음 | `docs/architecture/project-file.md` |
 | 전용 프로젝트 파일 | 보류 | 없음 | `docs/architecture/project-file.md` |
-| 최근 파일과 예제 악보 진입점 | 미지원 | 없음 | `docs/product/story-map.md` |
+| 최근 파일과 예제 악보 진입점 | 미지원 | 없음 | `docs/architecture/project-file.md` |
 
 ## 배포와 소개 페이지
 
@@ -105,4 +105,3 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | --- | --- | --- | --- |
 | Gherkin 인수 시나리오 | 실험 | `docs/product/acceptance/rest-to-note.feature` | `docs/product/acceptance/README.md` |
 | AI Agent 협업 워크플로우 | 실험 | 없음 | `docs/product/agent-workflow.md` |
-| legacy 스토리 맵 | 보류 | 없음 | `docs/product/story-map.md` |

@@ -1,7 +1,5 @@
 # This file is an ATDD conversation draft, not a full product guide.
 # Review workflow: docs/product/acceptance/README.md
-# Legacy context: docs/product/story-map.md
-# Related story: STORY-MVP-002
 
 @story-mvp-002 @note-input @atdd-draft
 Feature: 쉼표를 음표로 바꾸기
