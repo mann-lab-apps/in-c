@@ -10,7 +10,7 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 ```mermaid
 %%{init: {"mindmap": {"useMaxWidth": false, "padding": 24, "maxNodeWidth": 280}}}%%
 mindmap
-  root((in-C Feature Map))
+  root((in C Composers))
     시작과 악보 설정
       시작화면
       새 악보 만들기
