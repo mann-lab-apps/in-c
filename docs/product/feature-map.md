@@ -13,11 +13,14 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 - `실험`: 방향을 검증 중인 기능이나 문서 체계다.
 - `보류`: 현재 방향에서는 의도적으로 뒤로 미룬다.
 
+인수 시나리오가 `없음`인 항목은 아직 사용자 동작 검토 대상이 아니거나,
+별도 이슈에서 기준을 정하기 전까지 보류한 기능이다.
+
 ## 시작과 악보 설정
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 시작화면 | 지원 | 없음 | `docs/architecture/project-file.md` |
+| 시작화면 | 지원 | `docs/product/acceptance/start-and-recovery.feature` | `docs/architecture/project-file.md` |
 | 새 악보 만들기 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
 | 제목과 부제목 수정 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
 | 박자표 선택 | 지원 | `docs/product/acceptance/score-setup.feature` | `docs/research/single-voice-mvp-requirements.md` |
@@ -51,31 +54,31 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | 점음표와 겹점음표 | 지원 | `docs/product/acceptance/augmentation-dots.feature` | `docs/architecture/augmentation-dots.md` |
 | 셋잇단음표 기본 입력 | 지원 | `docs/product/acceptance/tuplets.feature` | `docs/architecture/tuplets.md` |
 | 셋잇단음표 해제와 예외 안내 | 부분 지원 | `docs/product/acceptance/tuplets.feature` | `docs/architecture/tuplets.md` |
-| 범위 선택 기반 삭제와 일괄 편집 | 부분 지원 | 없음 | `docs/architecture/measure-selection.md` |
+| 범위 선택 기반 삭제와 일괄 편집 | 부분 지원 | `docs/product/acceptance/range-selection.feature` | `docs/architecture/measure-selection.md` |
 
 ## 악보 배치와 렌더링
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 자동 system 줄바꿈 | 지원 | 없음 | `docs/architecture/measure-systems.md` |
-| system 마지막 마디 폭 채움 | 지원 | 없음 | `docs/architecture/measure-systems.md` |
-| 내용 기반 마디 폭 계산 | 지원 | 없음 | `docs/architecture/measure-systems.md` |
-| 기본 자동 빔 | 지원 | 없음 | `docs/architecture/automatic-beaming.md` |
-| 복잡한 박자와 리듬의 빔 안정성 | 부분 지원 | 없음 | `docs/architecture/automatic-beaming.md` |
-| 오선 밖 음표와 덧줄 렌더링 | 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
-| 선택 이벤트와 입력 커서 표시 | 지원 | 없음 | `docs/architecture/note-input-state.md` |
+| 자동 system 줄바꿈 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/measure-systems.md` |
+| system 마지막 마디 폭 채움 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/measure-systems.md` |
+| 내용 기반 마디 폭 계산 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/measure-systems.md` |
+| 기본 자동 빔 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/automatic-beaming.md` |
+| 복잡한 박자와 리듬의 빔 안정성 | 부분 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/automatic-beaming.md` |
+| 오선 밖 음표와 덧줄 렌더링 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/testing/single-voice-mvp-regression.md` |
+| 선택 이벤트와 입력 커서 표시 | 지원 | `docs/product/acceptance/layout-rendering.feature` | `docs/architecture/note-input-state.md` |
 | 수동 system/page break | 미지원 | 없음 | `docs/architecture/measure-systems.md` |
 
 ## 재생
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| 재생 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 일시정지 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 정지 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 템포 조절 | 지원 | 없음 | `docs/research/single-voice-mvp-requirements.md` |
-| 타이와 셋잇단음표 playback 반영 | 부분 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
-| 재생 커서와 편집 선택 동기화 | 부분 지원 | 없음 | `docs/testing/single-voice-mvp-regression.md` |
+| 재생 | 지원 | `docs/product/acceptance/playback.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 일시정지 | 지원 | `docs/product/acceptance/playback.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 정지 | 지원 | `docs/product/acceptance/playback.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 템포 조절 | 지원 | `docs/product/acceptance/playback.feature` | `docs/research/single-voice-mvp-requirements.md` |
+| 타이와 셋잇단음표 playback 반영 | 부분 지원 | `docs/product/acceptance/playback.feature` | `docs/testing/single-voice-mvp-regression.md` |
+| 재생 커서와 편집 선택 동기화 | 부분 지원 | `docs/product/acceptance/playback.feature` | `docs/testing/single-voice-mvp-regression.md` |
 
 ## 저장, 가져오기, 내보내기
 
@@ -84,7 +87,7 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 | MusicXML 가져오기 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
 | MusicXML 내보내기 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
 | PDF 변환 | 지원 | `docs/product/acceptance/import-export.feature` | `docs/musicxml-mvp.md` |
-| 앱 내부 자동저장 복구 | 지원 | 없음 | `docs/architecture/project-file.md` |
+| 앱 내부 자동저장 복구 | 지원 | `docs/product/acceptance/start-and-recovery.feature` | `docs/architecture/project-file.md` |
 | 전용 프로젝트 파일 | 보류 | 없음 | `docs/architecture/project-file.md` |
 | 최근 파일과 예제 악보 진입점 | 미지원 | 없음 | `docs/architecture/project-file.md` |
 
@@ -92,12 +95,12 @@ GitHub 이슈에 남기고, 구체 동작 검토 기준은 `docs/product/accepta
 
 | 기능 | 현재 상태 | 인수 시나리오 | 관련 문서 |
 | --- | --- | --- | --- |
-| GitHub prerelease | 지원 | 없음 | `docs/distribution.md` |
-| macOS 패키징 | 지원 | 없음 | `docs/distribution.md` |
-| Windows 패키징 | 지원 | 없음 | `docs/distribution.md` |
-| Linux 패키징 | 지원 | 없음 | `docs/distribution.md` |
-| 다운로드 페이지 | 지원 | 없음 | `docs/site.md` |
-| Google Analytics 기본 이벤트 | 지원 | 없음 | `docs/site.md` |
+| GitHub prerelease | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/distribution.md` |
+| macOS 패키징 | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/distribution.md` |
+| Windows 패키징 | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/distribution.md` |
+| Linux 패키징 | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/distribution.md` |
+| 다운로드 페이지 | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/site.md` |
+| Google Analytics 기본 이벤트 | 지원 | `docs/product/acceptance/distribution-download.feature` | `docs/site.md` |
 
 ## 제품 문서와 검토 방식
 
