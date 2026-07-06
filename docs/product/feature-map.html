@@ -1,0 +1,1088 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>in C Composers Feature Map</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --paper: #fbfaf6;
+        --ink: #1f2428;
+        --muted: #65717a;
+        --line: #d9d2c2;
+        --panel: #ffffff;
+        --panel-soft: #f3efe7;
+        --accent: #315b72;
+        --write: #78b88a;
+        --edit: #e88974;
+        --review: #ddb773;
+        --ops: #9582ca;
+        --supported: #1f7a4d;
+        --partial: #9b6614;
+        --unsupported: #9b2d20;
+        --experiment: #5a569b;
+        --deferred: #59636b;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        line-height: 1.5;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .page {
+        width: min(1760px, calc(100vw - 48px));
+        margin: 0 auto;
+        padding: 40px 0 56px;
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) auto;
+        gap: 24px;
+        align-items: end;
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(32px, 4vw, 64px);
+        line-height: 1.02;
+      }
+
+      .lede {
+        max-width: 780px;
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 17px;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 40px;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 8px 13px;
+        color: var(--ink);
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 22px;
+      }
+
+      .metric {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 14px;
+      }
+
+      .metric strong {
+        display: block;
+        font-size: 26px;
+        line-height: 1;
+      }
+
+      .metric span {
+        display: block;
+        margin-top: 8px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      .panel-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line);
+        padding: 16px 18px;
+      }
+
+      .panel-header h2 {
+        margin: 0;
+        font-size: 20px;
+      }
+
+      .panel-note {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .map-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .map-control {
+        display: inline-flex;
+        min-width: 36px;
+        min-height: 36px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        color: var(--ink);
+        font: inherit;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      .zoom-value {
+        min-width: 52px;
+        color: var(--muted);
+        font-size: 13px;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .map {
+        overflow: auto;
+        padding: 24px;
+      }
+
+      .map-stage {
+        min-width: 2520px;
+        border-radius: 8px;
+        background:
+          linear-gradient(rgba(49, 91, 114, 0.05) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(49, 91, 114, 0.05) 1px, transparent 1px),
+          #fffdf8;
+        background-size: 48px 48px;
+      }
+
+      .mindmap-svg {
+        display: block;
+        min-width: 2520px;
+      }
+
+      .mindmap-link {
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        opacity: 0.7;
+      }
+
+      .mindmap-node rect {
+        filter: drop-shadow(0 2px 2px rgba(24, 30, 34, 0.1));
+      }
+
+      .mindmap-node text {
+        pointer-events: none;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        fill: #172027;
+        font-weight: 800;
+      }
+
+      .mindmap-node .node-subtle {
+        fill: #63717a;
+        font-size: 11px;
+        font-weight: 700;
+      }
+
+      .status-dot {
+        stroke: rgba(255, 255, 255, 0.9);
+        stroke-width: 2;
+      }
+
+      .tools {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        margin: 28px 0 14px;
+      }
+
+      .search {
+        min-height: 42px;
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        padding: 10px 12px;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+
+      .filter {
+        min-height: 36px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        padding: 7px 11px;
+        color: var(--ink);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+
+      .filter[aria-pressed="true"] {
+        border-color: var(--accent);
+        background: #dce9ee;
+      }
+
+      .table-wrap {
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      table {
+        width: 100%;
+        min-width: 1180px;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #eee7da;
+        color: #384047;
+        font-size: 13px;
+      }
+
+      tbody tr:hover {
+        background: #f8f4ed;
+      }
+
+      .status {
+        display: inline-flex;
+        min-width: 68px;
+        justify-content: center;
+        border-radius: 999px;
+        padding: 4px 8px;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .status-supported {
+        background: var(--supported);
+      }
+
+      .status-partial {
+        background: var(--partial);
+      }
+
+      .status-unsupported {
+        background: var(--unsupported);
+      }
+
+      .status-experiment {
+        background: var(--experiment);
+      }
+
+      .status-deferred {
+        background: var(--deferred);
+      }
+
+      .links {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .links a {
+        color: #24566b;
+        font-size: 13px;
+        overflow-wrap: anywhere;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      @media (max-width: 900px) {
+        .page {
+          width: min(100vw - 28px, 1760px);
+          padding-top: 28px;
+        }
+
+        .hero,
+        .tools {
+          grid-template-columns: 1fr;
+        }
+
+        .hero-actions,
+        .filters {
+          justify-content: flex-start;
+        }
+
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <div>
+          <h1>in C Composers 피쳐맵</h1>
+          <p class="lede">
+            하나의 기능 데이터를 기준으로 시각 지도와 상세 표를 함께 렌더링한다.
+            남은 작업, 우선순위, 논의 히스토리는 GitHub 이슈에서 관리한다.
+          </p>
+        </div>
+        <nav class="hero-actions" aria-label="문서 바로가기">
+          <a class="button" href="#map-heading">플로우 예시</a>
+          <a class="button" href="./feature-map.md">Markdown 문서</a>
+          <a class="button" href="./acceptance/README.md">인수 시나리오</a>
+          <a class="button" href="./agent-workflow.md">협업 워크플로우</a>
+        </nav>
+      </header>
+
+      <section class="summary" id="summary" aria-label="피쳐맵 요약"></section>
+
+      <section class="panel" aria-labelledby="map-heading">
+        <div class="panel-header">
+          <div>
+            <h2 id="map-heading">시각 지도</h2>
+            <p class="panel-note">`flow` 데이터가 있는 피쳐는 노드 하위에 예시 플로우를 함께 표시한다.</p>
+          </div>
+          <div class="map-controls" aria-label="마인드맵 확대 축소">
+            <button class="map-control" id="zoom-out" type="button" title="축소">−</button>
+            <span class="zoom-value" id="zoom-value">100%</span>
+            <button class="map-control" id="zoom-in" type="button" title="확대">+</button>
+            <button class="map-control" id="zoom-reset" type="button" title="원래 크기">1:1</button>
+          </div>
+        </div>
+        <div class="map" tabindex="0">
+          <div class="map-stage">
+            <svg
+              class="mindmap-svg"
+              id="feature-map"
+              role="img"
+              aria-labelledby="mindmap-title mindmap-desc"
+            >
+              <title id="mindmap-title">in C Composers 피쳐맵</title>
+              <desc id="mindmap-desc">기능 데이터를 바탕으로 그린 마인드맵</desc>
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="table-heading">
+        <div class="tools">
+          <input
+            class="search"
+            id="search"
+            type="search"
+            placeholder="기능, 문서, 시나리오 검색"
+            aria-label="기능 검색"
+          />
+          <div class="filters" id="filters" aria-label="상태 필터"></div>
+        </div>
+        <div class="panel-header">
+          <div>
+            <h2 id="table-heading">상세 표</h2>
+            <p class="panel-note" id="result-count"></p>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>큰 영역</th>
+                <th>기능 묶음</th>
+                <th>기능</th>
+                <th>상태</th>
+                <th>인수 시나리오</th>
+                <th>관련 문서</th>
+                <th>플로우</th>
+              </tr>
+            </thead>
+            <tbody id="feature-table"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="./feature-map-data.js"></script>
+    <script>
+      const featureMap = window.FEATURE_MAP || [];
+      const statusMeta = window.FEATURE_STATUS_META || {};
+      const statusOrder = ["전체", "지원", "부분 지원", "미지원", "실험", "보류"];
+      const statusClass = {
+        "지원": "status-supported",
+        "부분 지원": "status-partial",
+        "미지원": "status-unsupported",
+        "실험": "status-experiment",
+        "보류": "status-deferred"
+      };
+
+      let activeStatus = "전체";
+      let mapZoom = 1;
+      let mapHeight = 0;
+
+      const rows = featureMap.flatMap((domain) =>
+        domain.sections.flatMap((section) =>
+          section.items.map((item) => ({
+            domainId: domain.id,
+            domain: domain.title,
+            section: section.title,
+            ...item
+          }))
+        )
+      );
+      const flowRows = rows.filter((row) => row.flow);
+
+      function repoLink(path) {
+        return `../../${path}`;
+      }
+
+      function countDomainItems(domain) {
+        return domain.sections.reduce((sum, section) => sum + section.items.length, 0);
+      }
+
+      function renderSummary() {
+        const summary = document.querySelector("#summary");
+        const scenarioCount = new Set(rows.flatMap((row) => row.acceptance)).size;
+        const metrics = [
+          ["큰 영역", featureMap.length],
+          ["기능 묶음", featureMap.flatMap((domain) => domain.sections).length],
+          ["세부 기능", rows.length],
+          ["인수 시나리오", scenarioCount],
+          ["플로우차트", flowRows.length],
+          ["지원 기능", rows.filter((row) => row.status === "지원").length]
+        ];
+
+        summary.replaceChildren(
+          ...metrics.map(([label, value]) => {
+            const metric = document.createElement("div");
+            metric.className = "metric";
+            metric.innerHTML = `<strong>${value}</strong><span>${label}</span>`;
+            return metric;
+          })
+        );
+      }
+
+      const SVG_NS = "http://www.w3.org/2000/svg";
+      const domainColors = {
+        "score-authoring": "#78b88a",
+        "score-editing": "#e88974",
+        "review-output": "#ddb773",
+        "distribution-ops": "#9582ca"
+      };
+      const statusColors = {
+        "지원": "#1f7a4d",
+        "부분 지원": "#9b6614",
+        "미지원": "#9b2d20",
+        "실험": "#5a569b",
+        "보류": "#59636b"
+      };
+      const mapLayout = {
+        width: 2520,
+        minHeight: 1040,
+        root: { x: 1130, w: 260, h: 84 },
+        left: {
+          domain: { x: 820, w: 250, h: 54 },
+          section: { x: 480, w: 260, h: 46 },
+          item: { x: 90, w: 310 }
+        },
+        right: {
+          domain: { x: 1450, w: 250, h: 54 },
+          section: { x: 1790, w: 260, h: 46 },
+          item: { x: 2130, w: 310 }
+        },
+        itemGap: 10,
+        flowStep: { w: 250, h: 30 },
+        flowGap: 7,
+        sectionGap: 38,
+        domainGap: 92,
+        verticalMargin: 70
+      };
+
+      function svgEl(name, attributes = {}) {
+        const element = document.createElementNS(SVG_NS, name);
+        Object.entries(attributes).forEach(([key, value]) => {
+          element.setAttribute(key, String(value));
+        });
+        return element;
+      }
+
+      function wrapLabel(text, limit) {
+        const words = String(text).split(" ");
+        const lines = [];
+        let current = "";
+
+        words.forEach((word) => {
+          const next = current ? `${current} ${word}` : word;
+          if (next.length <= limit) {
+            current = next;
+            return;
+          }
+
+          if (current) {
+            lines.push(current);
+          }
+          current = word;
+        });
+
+        if (current) {
+          lines.push(current);
+        }
+
+        return lines.length ? lines : [String(text)];
+      }
+
+      function itemBaseHeight(item) {
+        return Math.max(34, wrapLabel(item.name, 22).length * 14 + 18);
+      }
+
+      function flowHeight(item) {
+        if (!item.flow) {
+          return 0;
+        }
+
+        return (
+          mapLayout.flowGap +
+          item.flow.steps.length * mapLayout.flowStep.h +
+          Math.max(0, item.flow.steps.length - 1) * mapLayout.flowGap
+        );
+      }
+
+      function itemHeight(item) {
+        return itemBaseHeight(item) + flowHeight(item);
+      }
+
+      function sectionHeight(section) {
+        const itemHeights = section.items.map(itemHeight);
+        return Math.max(
+          82,
+          itemHeights.reduce((sum, height) => sum + height, 0) +
+            mapLayout.itemGap * Math.max(0, itemHeights.length - 1)
+        );
+      }
+
+      function domainHeight(domain) {
+        const sectionHeights = domain.sections.map(sectionHeight);
+        return (
+          sectionHeights.reduce((sum, height) => sum + height, 0) +
+          mapLayout.sectionGap * Math.max(0, sectionHeights.length - 1)
+        );
+      }
+
+      function sideHeight(domains) {
+        return (
+          domains.reduce((sum, domain) => sum + domainHeight(domain), 0) +
+          mapLayout.domainGap * Math.max(0, domains.length - 1)
+        );
+      }
+
+      function layoutSide(domains, side, startY) {
+        const specs = mapLayout[side];
+        const nodes = [];
+        const links = [];
+        let cursor = startY;
+
+        domains.forEach((domain) => {
+          const domainSectionNodes = [];
+          const domainItemNodes = [];
+          let domainTop = cursor;
+
+          domain.sections.forEach((section) => {
+            const sectionTop = cursor;
+            const itemNodes = [];
+            let itemCursor = sectionTop;
+
+            section.items.forEach((item) => {
+              const height = itemBaseHeight(item);
+              const totalHeight = itemHeight(item);
+              const itemNode = {
+                type: "item",
+                side,
+                domainId: domain.id,
+                id: item.flow?.id,
+                label: item.name,
+                status: item.status,
+                flow: item.flow,
+                x: specs.item.x,
+                y: itemCursor + height / 2,
+                w: specs.item.w,
+                h: height
+              };
+              itemNodes.push(itemNode);
+
+              if (item.flow) {
+                let flowCursor = itemCursor + height + mapLayout.flowGap;
+                let previousNode = itemNode;
+                item.flow.steps.forEach((step, index) => {
+                  const flowNode = {
+                    type: "flow-step",
+                    side,
+                    domainId: domain.id,
+                    label: `${index + 1}. ${step.label}`,
+                    status: item.status,
+                    note: step.note,
+                    x: itemNode.x + (itemNode.w - mapLayout.flowStep.w) / 2,
+                    y: flowCursor + mapLayout.flowStep.h / 2,
+                    w: mapLayout.flowStep.w,
+                    h: mapLayout.flowStep.h
+                  };
+                  itemNodes.push(flowNode);
+                  links.push({
+                    from: previousNode,
+                    to: flowNode,
+                    domainId: domain.id,
+                    weight: 2,
+                    kind: "flow"
+                  });
+                  previousNode = flowNode;
+                  flowCursor += mapLayout.flowStep.h + mapLayout.flowGap;
+                });
+              }
+
+              itemCursor += totalHeight + mapLayout.itemGap;
+            });
+
+            const sectionBottom = itemCursor - mapLayout.itemGap;
+            const sectionNode = {
+              type: "section",
+              side,
+              domainId: domain.id,
+              label: section.title,
+              x: specs.section.x,
+              y: (sectionTop + sectionBottom) / 2,
+              w: specs.section.w,
+              h: specs.section.h
+            };
+
+            itemNodes.filter((itemNode) => itemNode.type === "item").forEach((itemNode) => {
+              links.push({ from: sectionNode, to: itemNode, domainId: domain.id, weight: 3 });
+            });
+            domainSectionNodes.push(sectionNode);
+            domainItemNodes.push(...itemNodes);
+            cursor = sectionBottom + mapLayout.sectionGap;
+          });
+
+          const domainBottom = cursor - mapLayout.sectionGap;
+          const domainNode = {
+            type: "domain",
+            side,
+            domainId: domain.id,
+            label: domain.title,
+            count: countDomainItems(domain),
+            x: specs.domain.x,
+            y: (domainTop + domainBottom) / 2,
+            w: specs.domain.w,
+            h: specs.domain.h
+          };
+
+          domainSectionNodes.forEach((sectionNode) => {
+            links.push({ from: domainNode, to: sectionNode, domainId: domain.id, weight: 5 });
+          });
+
+          nodes.push(domainNode, ...domainSectionNodes, ...domainItemNodes);
+          cursor = domainBottom + mapLayout.domainGap;
+        });
+
+        return { nodes, links };
+      }
+
+      function connectionPoint(node, side, asParent) {
+        if (side === "left") {
+          return {
+            x: asParent ? node.x : node.x + node.w,
+            y: node.y
+          };
+        }
+
+        return {
+          x: asParent ? node.x + node.w : node.x,
+          y: node.y
+        };
+      }
+
+      function drawLink(svg, link) {
+        const color = domainColors[link.domainId] || "#315b72";
+        if (link.kind === "flow") {
+          const x = link.from.x + link.from.w / 2;
+          const fromY = link.from.y + link.from.h / 2;
+          const toY = link.to.y - link.to.h / 2;
+          const path = svgEl("path", {
+            class: "mindmap-link",
+            d: `M ${x} ${fromY} L ${x} ${toY}`,
+            stroke: color,
+            "stroke-width": link.weight,
+            "stroke-dasharray": "4 5"
+          });
+          svg.append(path);
+          return;
+        }
+
+        const side = link.to.side;
+        const from = connectionPoint(link.from, side, true);
+        const to = connectionPoint(link.to, side, false);
+        const controlDistance = Math.max(90, Math.abs(to.x - from.x) * 0.48);
+        const c1x = side === "left" ? from.x - controlDistance : from.x + controlDistance;
+        const c2x = side === "left" ? to.x + controlDistance : to.x - controlDistance;
+        const path = svgEl("path", {
+          class: "mindmap-link",
+          d: `M ${from.x} ${from.y} C ${c1x} ${from.y}, ${c2x} ${to.y}, ${to.x} ${to.y}`,
+          stroke: color,
+          "stroke-width": link.weight
+        });
+        svg.append(path);
+      }
+
+      function drawText(group, node, options) {
+        const text = svgEl("text", {
+          x: node.x + node.w / 2,
+          y: node.y,
+          "font-size": options.fontSize
+        });
+        const lines = wrapLabel(node.label, options.wrap);
+        const lineHeight = options.lineHeight;
+        const startY = node.y - ((lines.length - 1) * lineHeight) / 2;
+
+        lines.forEach((line, index) => {
+          const tspan = svgEl("tspan", {
+            x: node.x + node.w / 2,
+            y: startY + index * lineHeight
+          });
+          tspan.textContent = line;
+          text.append(tspan);
+        });
+
+        group.append(text);
+      }
+
+      function drawNode(svg, node) {
+        const color = domainColors[node.domainId] || "#315b72";
+        const group = svgEl("g", { class: `mindmap-node mindmap-node-${node.type}` });
+        const rect = svgEl("rect", {
+          x: node.x,
+          y: node.y - node.h / 2,
+          width: node.w,
+          height: node.h,
+          rx: node.type === "root" ? 32 : node.type === "item" ? 16 : node.type === "flow-step" ? 14 : 8,
+          fill:
+            node.type === "root"
+              ? "#e5edf0"
+              : node.type === "domain"
+                ? color
+                : node.type === "section"
+                  ? "#ffffff"
+                  : node.type === "flow-step"
+                    ? "#f7fbf8"
+                    : "#fffdf8",
+          stroke: node.type === "root" ? "#315b72" : color,
+          "stroke-width": node.type === "item" || node.type === "flow-step" ? 1.5 : node.type === "section" ? 2 : 3
+        });
+
+        group.append(rect);
+
+        if (node.type === "item") {
+          group.append(
+            svgEl("circle", {
+              class: "status-dot",
+              cx: node.x + 16,
+              cy: node.y,
+              r: 6,
+              fill: statusColors[node.status] || "#59636b"
+            })
+          );
+        }
+
+        if (node.type === "flow-step") {
+          group.append(
+            svgEl("circle", {
+              class: "status-dot",
+              cx: node.x + 14,
+              cy: node.y,
+              r: 4,
+              fill: color
+            })
+          );
+          const title = svgEl("title");
+          title.textContent = node.note || node.label;
+          group.append(title);
+        }
+
+        drawText(group, node, {
+          fontSize: node.type === "root" ? 24 : node.type === "domain" ? 17 : node.type === "section" ? 14 : 12,
+          lineHeight: node.type === "root" ? 24 : node.type === "domain" ? 18 : 14,
+          wrap:
+            node.type === "root"
+              ? 18
+              : node.type === "domain"
+                ? 12
+                : node.type === "section"
+                  ? 14
+                  : node.type === "flow-step"
+                    ? 22
+                    : 22
+        });
+
+        if (node.type === "domain") {
+          const count = svgEl("text", {
+            class: "node-subtle",
+            x: node.x + node.w / 2,
+            y: node.y + 18
+          });
+          count.textContent = `${node.count} features`;
+          group.append(count);
+        }
+
+        svg.append(group);
+      }
+
+      function applyMapZoom() {
+        const svg = document.querySelector("#feature-map");
+        svg.setAttribute("width", Math.round(mapLayout.width * mapZoom));
+        svg.setAttribute("height", Math.round(mapHeight * mapZoom));
+        document.querySelector("#zoom-value").textContent = `${Math.round(mapZoom * 100)}%`;
+      }
+
+      function updateMapZoom(nextZoom) {
+        mapZoom = Math.min(1.8, Math.max(0.55, nextZoom));
+        applyMapZoom();
+      }
+
+      function renderMap() {
+        const svg = document.querySelector("#feature-map");
+        const leftDomains = featureMap.slice(0, 2);
+        const rightDomains = featureMap.slice(2);
+        const leftHeight = sideHeight(leftDomains);
+        const rightHeight = sideHeight(rightDomains);
+        const height = Math.max(
+          mapLayout.minHeight,
+          Math.max(leftHeight, rightHeight) + mapLayout.verticalMargin * 2
+        );
+        const rootY = Math.min(height / 2, 520);
+        mapHeight = height;
+        const rootNode = {
+          type: "root",
+          side: "right",
+          label: "in C Composers",
+          x: mapLayout.root.x,
+          y: rootY,
+          w: mapLayout.root.w,
+          h: mapLayout.root.h
+        };
+        const left = layoutSide(leftDomains, "left", (height - leftHeight) / 2);
+        const right = layoutSide(rightDomains, "right", (height - rightHeight) / 2);
+        const rootLinks = [...left.nodes, ...right.nodes]
+          .filter((node) => node.type === "domain")
+          .map((node) => ({ from: rootNode, to: node, domainId: node.domainId, weight: 7 }));
+
+        svg.setAttribute("viewBox", `0 0 ${mapLayout.width} ${height}`);
+        svg.replaceChildren(
+          svg.querySelector("title"),
+          svg.querySelector("desc")
+        );
+
+        [...rootLinks, ...left.links, ...right.links].forEach((link) => drawLink(svg, link));
+        [...left.nodes, ...right.nodes, rootNode].forEach((node) => drawNode(svg, node));
+        applyMapZoom();
+      }
+
+      function renderFilters() {
+        const filters = document.querySelector("#filters");
+        filters.replaceChildren(
+          ...statusOrder.map((status) => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.className = "filter";
+            button.textContent = status;
+            button.title = statusMeta[status] || "모든 상태 보기";
+            button.setAttribute("aria-pressed", String(status === activeStatus));
+            button.addEventListener("click", () => {
+              activeStatus = status;
+              renderFilters();
+              renderTable();
+            });
+            return button;
+          })
+        );
+      }
+
+      function renderLinks(paths) {
+        const wrapper = document.createElement("div");
+        wrapper.className = "links";
+
+        if (!paths.length) {
+          const empty = document.createElement("span");
+          empty.className = "empty";
+          empty.textContent = "없음";
+          wrapper.append(empty);
+          return wrapper;
+        }
+
+        paths.forEach((path) => {
+          const link = document.createElement("a");
+          link.href = repoLink(path);
+          link.textContent = path;
+          wrapper.append(link);
+        });
+
+        return wrapper;
+      }
+
+      function renderFlowLink(row) {
+        if (!row.flow) {
+          const empty = document.createElement("span");
+          empty.className = "empty";
+          empty.textContent = "없음";
+          return empty;
+        }
+
+        const link = document.createElement("a");
+        link.href = "#map-heading";
+        link.textContent = "마인드맵 하위 표시";
+        return link;
+      }
+
+      function rowMatchesSearch(row, query) {
+        if (!query) {
+          return true;
+        }
+
+        const haystack = [
+          row.domain,
+          row.section,
+          row.name,
+          row.status,
+          row.flow?.title || "",
+          row.flow?.summary || "",
+          ...row.acceptance,
+          ...row.docs
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return haystack.includes(query.toLowerCase());
+      }
+
+      function renderTable() {
+        const query = document.querySelector("#search").value.trim();
+        const filtered = rows.filter(
+          (row) =>
+            (activeStatus === "전체" || row.status === activeStatus) &&
+            rowMatchesSearch(row, query)
+        );
+        const tbody = document.querySelector("#feature-table");
+
+        tbody.replaceChildren(
+          ...filtered.map((row) => {
+            const tr = document.createElement("tr");
+            const cells = [
+              row.domain,
+              row.section,
+              row.name,
+              row.status,
+              renderLinks(row.acceptance),
+              renderLinks(row.docs),
+              renderFlowLink(row)
+            ];
+
+            cells.forEach((value, index) => {
+              const td = document.createElement("td");
+              if (index === 3) {
+                const badge = document.createElement("span");
+                badge.className = `status ${statusClass[value] || ""}`;
+                badge.textContent = value;
+                td.append(badge);
+              } else if (value instanceof HTMLElement) {
+                td.append(value);
+              } else {
+                td.textContent = value;
+              }
+              tr.append(td);
+            });
+
+            return tr;
+          })
+        );
+
+        document.querySelector("#result-count").textContent =
+          `${filtered.length}개 기능 표시 중 · 전체 ${rows.length}개`;
+      }
+
+      function scrollToHashAfterRender() {
+        if (!window.location.hash) {
+          return;
+        }
+
+        const target = document.querySelector(window.location.hash);
+        if (target) {
+          target.scrollIntoView({ block: "start" });
+        }
+      }
+
+      document.querySelector("#search").addEventListener("input", renderTable);
+      document.querySelector("#zoom-out").addEventListener("click", () => updateMapZoom(mapZoom - 0.1));
+      document.querySelector("#zoom-in").addEventListener("click", () => updateMapZoom(mapZoom + 0.1));
+      document.querySelector("#zoom-reset").addEventListener("click", () => updateMapZoom(1));
+
+      renderSummary();
+      renderMap();
+      renderFilters();
+      renderTable();
+      scrollToHashAfterRender();
+    </script>
+  </body>
+</html>
