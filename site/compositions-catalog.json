@@ -81,18 +81,18 @@
       "slug": "shenandoah",
       "title": "Shenandoah",
       "subtitle": "traditional American folk song",
-      "status": "planned",
+      "status": "available",
       "difficulty": "초급",
-      "key": "미정",
-      "meter": "미정",
-      "tags": ["traditional", "single-voice", "public-domain-review"],
-      "source": "Traditional American folk song; score engraving pending.",
-      "copyrightNote": "전통 선율 기반으로 직접 단선율 사보 후 등록합니다. 등록 전 원전과 편곡 저작권을 재확인합니다.",
-      "relatedColumns": [],
+      "key": "C major",
+      "meter": "4/4",
+      "tags": ["traditional", "american-folk-song", "single-voice", "public-domain"],
+      "source": "Traditional American folk song. Direct single-voice study engraving for in C Compositions, referencing Library of Congress song history and avoiding modern arrangements.",
+      "copyrightNote": "Library of Congress는 Shenandoah를 traditional American folk tune으로 설명하며, 19세기 말까지 널리 퍼진 선율로 다룹니다. 특정 현대 편곡, 합창 편곡, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 포함하지 않았습니다.",
+      "relatedColumns": ["클래식 입문 지도", "민요와 선율"],
       "assets": {
-        "pdf": null,
-        "musicxml": null,
-        "chromatics": null,
+        "pdf": "./compositions/shenandoah.pdf",
+        "musicxml": "./compositions/shenandoah.musicxml",
+        "chromatics": "./compositions/shenandoah.musicxml",
         "preview": null
       }
     }
