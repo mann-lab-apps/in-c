@@ -1,6 +1,25 @@
 {
-  "updatedAt": "2026-07-07",
+  "updatedAt": "2026-07-08",
   "compositions": [
+    {
+      "slug": "amazing-grace",
+      "title": "Amazing Grace",
+      "subtitle": "NEW BRITAIN hymn tune",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "F major",
+      "meter": "3/4",
+      "tags": ["hymn", "single-voice", "public-domain", "beginner"],
+      "source": "NEW BRITAIN hymn tune, first published in Virginia Harmony, 1831. Direct single-voice engraving for in C Compositions.",
+      "copyrightNote": "NEW BRITAIN 선율은 1831년 자료로 확인되는 public domain hymn tune입니다. 현대 편곡이나 특정 출판 악보를 복제하지 않고, 단선율 학습용으로 직접 사보했습니다. 가사는 포함하지 않았습니다.",
+      "relatedColumns": ["클래식 입문 지도"],
+      "assets": {
+        "pdf": "./compositions/amazing-grace.pdf",
+        "musicxml": "./compositions/amazing-grace.musicxml",
+        "chromatics": "./compositions/amazing-grace.musicxml",
+        "preview": null
+      }
+    },
     {
       "slug": "sakura-sakura",
       "title": "Sakura Sakura",
