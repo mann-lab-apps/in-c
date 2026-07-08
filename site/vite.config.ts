@@ -1,12 +1,32 @@
-import { resolve } from 'node:path'
+import { readdirSync } from 'node:fs'
+import { basename, resolve } from 'node:path'
 import { defineConfig } from 'vite'
+
+const getHtmlPages = (root: string, prefix: string) =>
+  Object.fromEntries(
+    readdirSync(root, { withFileTypes: true })
+      .filter(
+        (entry) =>
+          entry.isFile() &&
+          entry.name.endsWith('.html') &&
+          !entry.name.startsWith('_')
+      )
+      .map((entry) => [
+        `${prefix}/${basename(entry.name, '.html')}`,
+        resolve(root, entry.name)
+      ])
+  )
+
+const columnPages = getHtmlPages(resolve(__dirname, 'columns'), 'columns')
 
 export default defineConfig({
   build: {
     rollupOptions: {
       input: {
         index: resolve(__dirname, 'index.html'),
-        compositions: resolve(__dirname, 'compositions.html')
+        columns: resolve(__dirname, 'columns.html'),
+        compositions: resolve(__dirname, 'compositions.html'),
+        ...columnPages
       }
     }
   }

@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Columns | 클래식 이해 지도 | in C</title>
+    <meta
+      name="description"
+      content="Columns는 클래식을 이해하는 지도를 만들고, 사용자가 원하는 질문에서부터 읽어갈 수 있도록 돕는 in C의 칼럼 공간입니다."
+    />
+    <meta property="og:title" content="Columns | 클래식 이해 지도" />
+    <meta
+      property="og:description"
+      content="처음 듣기, 음악의 언어, 작곡가와 시대, 연주와 악보를 오가며 클래식을 읽습니다."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/app-preview.svg" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="in C home">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="주요 링크">
+        <a aria-current="page" href="./columns.html">Columns</a>
+        <a href="./compositions.html">Compositions</a>
+        <a href="./index.html#top">Chromatics</a>
+        <a href="./index.html#download">다운로드</a>
+        <a
+          data-track-event="github_link"
+          data-track-location="columns_header"
+          href="https://github.com/mann-lab-apps/in-c"
+        >
+          GitHub
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="columns-hero" aria-labelledby="columns-title">
+        <p class="eyebrow">Columns</p>
+        <h1 id="columns-title">클래식을 이해하는 지도</h1>
+        <p>
+          정해진 순서대로 읽지 않아도 괜찮습니다. 듣고 싶은 곡, 궁금한 사람,
+          직접 열어보고 싶은 악보에서 출발하세요.
+        </p>
+      </section>
+
+      <section class="columns-layout" aria-label="Columns 탐색">
+        <aside class="columns-map-panel" aria-label="클래식 이해 지도">
+          <div class="panel-heading">
+            <p class="eyebrow">Map</p>
+            <h2>원하는 입구 고르기</h2>
+          </div>
+          <div class="knowledge-map" data-column-map></div>
+        </aside>
+
+        <aside class="columns-list-panel" aria-label="칼럼 목록">
+          <div class="panel-heading">
+            <p class="eyebrow">Topics</p>
+            <h2>칼럼 목록</h2>
+          </div>
+          <ol class="column-list" data-column-list></ol>
+        </aside>
+
+        <article class="column-article" data-column-article aria-live="polite"></article>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 mann-lab-apps. Columns는 in C가 만드는 클래식 읽기 지도입니다.</p>
+      <div>
+        <a href="./index.html#top">Chromatics</a>
+        <a href="./compositions.html">Compositions</a>
+        <a
+          data-track-event="github_issue_link"
+          data-track-location="columns_footer"
+          href="https://github.com/mann-lab-apps/in-c/issues"
+        >
+          이슈 제보
+        </a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+    <script type="module" src="./columns.js"></script>
+  </body>
+</html>

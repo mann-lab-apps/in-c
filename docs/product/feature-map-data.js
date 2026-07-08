@@ -401,6 +401,12 @@ window.FEATURE_MAP = [
             docs: ["docs/site.md"]
           },
           {
+            name: "Columns 클래식 이해 지도",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/columns.feature"],
+            docs: ["docs/site.md"]
+          },
+          {
             name: "Google Analytics 기본 이벤트",
             status: "지원",
             acceptance: ["docs/product/acceptance/distribution-download.feature"],
