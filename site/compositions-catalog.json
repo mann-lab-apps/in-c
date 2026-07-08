@@ -21,6 +21,25 @@
       }
     },
     {
+      "slug": "arirang",
+      "title": "아리랑",
+      "subtitle": "traditional Korean folk song",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "C major",
+      "meter": "3/4",
+      "tags": ["traditional", "korean-folk-song", "single-voice", "public-domain"],
+      "source": "Traditional Korean folk song. Direct single-voice study engraving for in C Compositions, referencing the UNESCO intangible cultural heritage description rather than a modern edition.",
+      "copyrightNote": "아리랑은 세대를 거쳐 공동으로 형성된 한국 전통 민요로 취급합니다. 특정 현대 편곡, 반주, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 버전별 권리와 표기 차이가 있을 수 있어 포함하지 않았습니다.",
+      "relatedColumns": ["클래식 입문 지도", "한국 선율"],
+      "assets": {
+        "pdf": "./compositions/arirang.pdf",
+        "musicxml": "./compositions/arirang.musicxml",
+        "chromatics": "./compositions/arirang.musicxml",
+        "preview": null
+      }
+    },
+    {
       "slug": "sakura-sakura",
       "title": "Sakura Sakura",
       "subtitle": "traditional Japanese melody",
