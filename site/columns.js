@@ -14,6 +14,8 @@ const escapeHtml = (value) =>
 const renderInlineMarkdown = (value) =>
   escapeHtml(value).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
 
+const getColumnUrl = (slug) => `./columns/${slug}.html`
+
 const renderMarkdown = (markdown) => {
   const blocks = []
   const lines = markdown.trim().split('\n')
@@ -298,7 +300,7 @@ const renderMap = (selectedSlug) => {
 
         const isPublished = column.status === 'public'
         const isActive = column.slug === selectedSlug
-        const href = isPublished ? `?column=${column.slug}` : '#'
+        const href = isPublished ? getColumnUrl(column.slug) : '#'
         const className = [
           'mind-map-column',
           isActive ? 'is-active' : '',
@@ -345,7 +347,7 @@ const renderList = (selectedSlug) => {
     .map(
       (column) => `
         <li>
-          <a class="column-list-item ${column.slug === selectedSlug ? 'is-active' : ''}" href="?column=${column.slug}" data-column-link="${column.slug}">
+          <a class="column-list-item ${column.slug === selectedSlug ? 'is-active' : ''}" href="${getColumnUrl(column.slug)}" data-column-link="${column.slug}">
             <span>${escapeHtml(column.category)}</span>
             <strong>${escapeHtml(column.title)}</strong>
             <small>${column.readingMinutes}분 · ${column.tags.map(escapeHtml).join(', ')}</small>
