@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Compositions | in C</title>
+    <meta
+      name="description"
+      content="in C Compositions는 공개 도메인 또는 전통 선율 기반 단선율 악보를 모아 PDF, MusicXML, Chromatics 열기 동선으로 연결합니다."
+    />
+    <meta property="og:title" content="Compositions | in C" />
+    <meta
+      property="og:description"
+      content="단선율 악보의 출처, 저작권 확인 메모, 난이도, 조성, 박자, 다운로드 동선을 정리합니다."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="./assets/app-preview.svg" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="./index.html#top" aria-label="in C home">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="주요 링크">
+        <a href="./index.html#features">기능</a>
+        <a href="./index.html#download">다운로드</a>
+        <a href="./compositions.html" aria-current="page">Compositions</a>
+        <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="hero hero--compact" aria-labelledby="compositions-hero-title">
+        <div class="hero__content">
+          <p class="eyebrow">Compositions</p>
+          <h1 id="compositions-hero-title">단선율 악보 공유</h1>
+          <p class="hero__lead">
+            공개 도메인 또는 전통 선율을 직접 단선율로 사보해 PDF, MusicXML, Chromatics 열기 동선과 함께 정리합니다.
+          </p>
+          <div class="hero__actions">
+            <a class="button button--primary" href="#composition-list">악보 목록 보기</a>
+            <a class="button button--secondary" href="#composition-detail">상세 구조 보기</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="composition-list" class="section" aria-labelledby="composition-list-title">
+        <div class="section__header">
+          <p class="eyebrow">Library</p>
+          <h2 id="composition-list-title">공개 악보 목록</h2>
+          <p>
+            개별 악보 등록 이슈에서 검증된 MusicXML과 PDF가 추가되면 같은 카드와 상세 URL에 연결됩니다.
+          </p>
+        </div>
+        <div class="composition-grid" data-composition-list aria-live="polite"></div>
+      </section>
+
+      <section id="composition-detail" class="section section--download" aria-labelledby="composition-detail-title">
+        <div class="section__header">
+          <p class="eyebrow">Detail</p>
+          <h2 id="composition-detail-title">악보 상세와 다운로드 동선</h2>
+          <p>
+            상세 페이지는 제목, 출처, 저작권 확인 메모, 난이도, 조성, 박자, 태그, Columns 연결을 함께 보여줍니다.
+          </p>
+        </div>
+        <div data-composition-detail aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 mann-lab-apps. Compositions는 검증된 단선율 악보만 게시합니다.</p>
+      <div>
+        <a href="./index.html">홈</a>
+        <a href="https://github.com/mann-lab-apps/in-c/issues">이슈 제보</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./compositions.js"></script>
+  </body>
+</html>

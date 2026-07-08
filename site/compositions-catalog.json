@@ -1,0 +1,62 @@
+{
+  "updatedAt": "2026-07-07",
+  "compositions": [
+    {
+      "slug": "sakura-sakura",
+      "title": "Sakura Sakura",
+      "subtitle": "traditional Japanese melody",
+      "status": "planned",
+      "difficulty": "초급",
+      "key": "미정",
+      "meter": "미정",
+      "tags": ["traditional", "single-voice", "public-domain-review"],
+      "source": "Traditional melody; score engraving pending.",
+      "copyrightNote": "전통 선율 기반으로 직접 단선율 사보 후 등록합니다. 등록 전 원전과 편곡 저작권을 재확인합니다.",
+      "relatedColumns": [],
+      "assets": {
+        "pdf": null,
+        "musicxml": null,
+        "chromatics": null,
+        "preview": null
+      }
+    },
+    {
+      "slug": "the-ash-grove",
+      "title": "The Ash Grove",
+      "subtitle": "traditional Welsh melody",
+      "status": "planned",
+      "difficulty": "초급",
+      "key": "미정",
+      "meter": "미정",
+      "tags": ["traditional", "single-voice", "public-domain-review"],
+      "source": "Traditional Welsh melody; score engraving pending.",
+      "copyrightNote": "전통 선율 기반으로 직접 단선율 사보 후 등록합니다. 등록 전 원전과 편곡 저작권을 재확인합니다.",
+      "relatedColumns": [],
+      "assets": {
+        "pdf": null,
+        "musicxml": null,
+        "chromatics": null,
+        "preview": null
+      }
+    },
+    {
+      "slug": "shenandoah",
+      "title": "Shenandoah",
+      "subtitle": "traditional American folk song",
+      "status": "planned",
+      "difficulty": "초급",
+      "key": "미정",
+      "meter": "미정",
+      "tags": ["traditional", "single-voice", "public-domain-review"],
+      "source": "Traditional American folk song; score engraving pending.",
+      "copyrightNote": "전통 선율 기반으로 직접 단선율 사보 후 등록합니다. 등록 전 원전과 편곡 저작권을 재확인합니다.",
+      "relatedColumns": [],
+      "assets": {
+        "pdf": null,
+        "musicxml": null,
+        "chromatics": null,
+        "preview": null
+      }
+    }
+  ]
+}
