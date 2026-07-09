@@ -431,7 +431,7 @@ window.FEATURE_MAP = [
             name: "Google Analytics 기본 이벤트",
             status: "지원",
             acceptance: ["docs/product/acceptance/distribution-download.feature"],
-            docs: ["docs/site.md"]
+            docs: ["docs/site.md", "docs/product/analytics-events.md"]
           }
         ]
       },

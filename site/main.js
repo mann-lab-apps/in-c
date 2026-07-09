@@ -1,5 +1,6 @@
+import { bindTrackedLinks, configureAnalytics } from './analytics.js'
+
 const manifestUrl = new URL('./download-manifest.json', import.meta.url)
-const analyticsConfigUrl = new URL('./analytics-config.json', import.meta.url)
 
 const platformMatchers = [
   { id: 'macos', patterns: ['Mac', 'iPhone', 'iPad'] },
@@ -17,65 +18,6 @@ const fallbackManifest = {
 }
 
 const formatValue = (value, fallback = '릴리즈 대기 중') => value ?? fallback
-
-const isGa4MeasurementId = (measurementId) =>
-  /^G-[A-Z0-9]+$/.test(measurementId)
-
-const appendScript = (src) =>
-  new Promise((resolve, reject) => {
-    const script = document.createElement('script')
-    script.async = true
-    script.src = src
-    script.addEventListener('load', resolve, { once: true })
-    script.addEventListener('error', reject, { once: true })
-    document.head.append(script)
-  })
-
-const configureAnalytics = async () => {
-  try {
-    const response = await fetch(analyticsConfigUrl)
-    if (!response.ok) {
-      return
-    }
-
-    const config = await response.json()
-    const measurementId = String(config.measurementId ?? '').trim()
-
-    if (
-      config.provider !== 'ga4' ||
-      config.enabled !== true ||
-      !isGa4MeasurementId(measurementId)
-    ) {
-      return
-    }
-
-    window.dataLayer = window.dataLayer || []
-    window.gtag = function gtag() {
-      window.dataLayer.push(arguments)
-    }
-    window.gtag('js', new Date())
-    window.gtag('config', measurementId, {
-      send_page_view: true
-    })
-
-    await appendScript(
-      `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`
-    )
-  } catch {
-    // Analytics must never block downloads or page rendering.
-  }
-}
-
-const trackEvent = (name, params = {}) => {
-  if (typeof window.gtag !== 'function') {
-    return
-  }
-
-  window.gtag('event', name, {
-    app_name: 'in-C',
-    ...params
-  })
-}
 
 const detectPlatform = () => {
   const platformText = [
@@ -177,28 +119,6 @@ const renderDownloads = (manifest) => {
   if (checksumLink) {
     checksumLink.href = manifest.checksumsUrl
   }
-}
-
-const bindTrackedLinks = () => {
-  document.addEventListener('click', (event) => {
-    if (!(event.target instanceof Element)) {
-      return
-    }
-
-    const link = event.target.closest('a[data-track-event]')
-
-    if (!link) {
-      return
-    }
-
-    trackEvent(link.dataset.trackEvent, {
-      link_url: link.href,
-      link_text: link.textContent?.trim(),
-      location: link.dataset.trackLocation,
-      platform: link.dataset.trackPlatform,
-      file_name: link.dataset.trackFile
-    })
-  })
 }
 
 const init = async () => {
