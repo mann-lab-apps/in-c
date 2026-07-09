@@ -422,6 +422,12 @@ window.FEATURE_MAP = [
             docs: ["docs/site.md", "docs/product/columns/authoring-workflow.md"]
           },
           {
+            name: "Compositions 후보 수집 파이프라인",
+            status: "지원",
+            acceptance: [],
+            docs: ["docs/product/compositions/collection-pipeline.md"]
+          },
+          {
             name: "Google Analytics 기본 이벤트",
             status: "지원",
             acceptance: ["docs/product/acceptance/distribution-download.feature"],
