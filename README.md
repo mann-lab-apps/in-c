@@ -20,7 +20,9 @@
   절차는 [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md)에
   정리합니다.
 - `docs/architecture`: 아키텍처와 기술 설계 기록. MusicXML 우선 저장
-  전략은 [`docs/architecture/project-file.md`](docs/architecture/project-file.md)에
+  전략은 [`docs/architecture/project-file.md`](docs/architecture/project-file.md),
+  브랜치 운영 전략은
+  [`docs/architecture/branch-strategy.md`](docs/architecture/branch-strategy.md)에
   정리합니다.
 
 ## 레퍼런스 경계
