@@ -22,9 +22,12 @@ describe('keyboard input routing', () => {
     ['KeyE', 'ㄷ', 'E'],
     ['KeyF', 'ㄹ', 'F'],
     ['KeyG', 'ㅎ', 'G']
-  ])('maps physical %s to %s regardless of the active layout', (code, key, pitch) => {
+  ])(
+    '[rest-to-note.korean-input] maps physical %s to %s regardless of the active layout',
+    (code, key, pitch) => {
     expect(resolvePitchShortcut(keyEvent({ code, key }))).toBe(pitch)
-  })
+    }
+  )
 
   it('falls back to the logical key for environments without a code', () => {
     expect(resolvePitchShortcut(keyEvent({ code: '', key: 'c' }))).toBe('C')

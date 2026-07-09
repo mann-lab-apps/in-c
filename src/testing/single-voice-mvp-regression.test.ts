@@ -244,7 +244,7 @@ describe('single-voice MVP regression', () => {
     ['3/4', { beats: 3, beatType: 4 }, { value: 'half', dots: 1 }],
     ['6/8', { beats: 6, beatType: 8 }, { value: 'half', dots: 1 }]
   ] as const)(
-    'changes a %s full-measure rest to a note with the measure duration',
+    '[rest-to-note.full-measure-rest] changes a %s full-measure rest to a note with the measure duration',
     (_label, timeSignature, duration) => {
       const score = createNewScore({
         title: 'Non Common Time',

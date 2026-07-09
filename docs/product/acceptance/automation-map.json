@@ -1,0 +1,32 @@
+{
+  "features": [
+    {
+      "feature": "docs/product/acceptance/rest-to-note.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "Pilot mapping for issue #141. Gherkin remains the review document; Vitest covers selected scenario IDs.",
+      "scenarios": [
+        {
+          "id": "rest-to-note.convert-selected-rest",
+          "tag": "@scenario-rest-to-note-convert-selected-rest",
+          "tests": [
+            "src/renderer/src/editor/pitch-editing.test.ts"
+          ]
+        },
+        {
+          "id": "rest-to-note.korean-input",
+          "tag": "@scenario-rest-to-note-korean-input",
+          "tests": [
+            "src/renderer/src/editor/keyboard-input.test.ts"
+          ]
+        },
+        {
+          "id": "rest-to-note.full-measure-rest",
+          "tag": "@scenario-rest-to-note-full-measure-rest",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
+    }
+  ]
+}

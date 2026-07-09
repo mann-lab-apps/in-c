@@ -446,6 +446,15 @@ window.FEATURE_MAP = [
             docs: ["docs/product/acceptance/README.md"]
           },
           {
+            name: "Gherkin 자동 테스트 매핑",
+            status: "실험",
+            acceptance: ["docs/product/acceptance/rest-to-note.feature"],
+            docs: [
+              "docs/product/acceptance/README.md",
+              "docs/product/acceptance/automation-map.json"
+            ]
+          },
+          {
             name: "AI Agent 협업 워크플로우",
             status: "실험",
             acceptance: [],
