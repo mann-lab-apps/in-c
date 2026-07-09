@@ -246,7 +246,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "복잡한 박자와 리듬의 빔 안정성",
-            status: "부분 지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: ["docs/architecture/automatic-beaming.md"]
           },

@@ -40,7 +40,7 @@ export function createBeamGroups(
     const groupEndTick = (currentBeatGroup + 1) * groupTicks
     const isBeamable =
       event.type === 'note' &&
-      durationToTicks(event.duration) <= TICKS_PER_QUARTER / 2 &&
+      durationToTicks(event.duration) < TICKS_PER_QUARTER &&
       endTick <= groupEndTick
     const isContinuous =
       candidateEndTick === undefined || candidateEndTick === startTick
