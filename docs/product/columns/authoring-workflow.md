@@ -56,6 +56,7 @@ robots 파일은 `scripts/generate-columns-seo.mjs`로 생성한다.
 - `publishedAt`: 게시일
 - `readingMinutes`: 읽는 시간
 - `relatedWorks`: 관련 작품
+- `relatedCompositions`: Compositions에 공개된 관련 악보 링크
 - `relatedComposers`: 관련 작곡가
 - `relatedPerformances`: 관련 공연
 - `body`: Markdown subset 본문

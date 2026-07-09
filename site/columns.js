@@ -126,6 +126,20 @@ const createChipList = (items) =>
         .join('')}</ul>`
     : '<p>아직 연결된 항목이 없습니다.</p>'
 
+const createCompositionChipList = (items = []) =>
+  items.length > 0
+    ? `<ul class="chip-list">${items
+        .map(
+          (item) =>
+            `<li><a href="./compositions.html?score=${encodeURIComponent(
+              item.slug
+            )}" data-track-event="composition_select" data-track-content-type="composition" data-track-content-slug="${escapeHtml(
+              item.slug
+            )}">${escapeHtml(item.title)}</a></li>`
+        )
+        .join('')}</ul>`
+    : '<p>아직 연결된 항목이 없습니다.</p>'
+
 const getMindMapLayout = () => {
   const groupPositions = [
     { x: 680, y: 104, direction: 'top' },
@@ -268,6 +282,10 @@ const renderArticle = (column) => {
       <section>
         <h2>관련 작품</h2>
         ${createChipList(column.relatedWorks)}
+      </section>
+      <section>
+        <h2>관련 악보</h2>
+        ${createCompositionChipList(column.relatedCompositions)}
       </section>
       <section>
         <h2>관련 작곡가</h2>
