@@ -322,6 +322,129 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('preserves measure attribute changes while normalizing note order to the score timeline', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1">
+      <part-name>Violin</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key>
+          <fifths>0</fifths>
+          <mode>major</mode>
+        </key>
+        <time>
+          <beats>2</beats>
+          <beat-type>4</beat-type>
+        </time>
+        <staves>1</staves>
+        <clef>
+          <sign>G</sign>
+          <line>2</line>
+        </clef>
+      </attributes>
+      <note>
+        <pitch>
+          <step>C</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+      </note>
+    </measure>
+    <measure number="2">
+      <attributes>
+        <key>
+          <fifths>1</fifths>
+          <mode>major</mode>
+        </key>
+        <time>
+          <beats>3</beats>
+          <beat-type>4</beat-type>
+        </time>
+      </attributes>
+      <note>
+        <pitch>
+          <step>F</step>
+          <octave>4</octave>
+        </pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+      </note>
+      <note>
+        <rest/>
+        <duration>2</duration>
+        <voice>1</voice>
+        <type>half</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`
+    const score = parseMusicXml(xml)
+    const [firstMeasure, secondMeasure] = score.parts[0].staves[0].measures
+    const roundTrip = parseMusicXml(serializeMusicXml(score))
+
+    expect(firstMeasure).toMatchObject({
+      keySignature: { fifths: 0, mode: 'major' },
+      timeSignature: { beats: 2, beatType: 4 }
+    })
+    expect(secondMeasure).toMatchObject({
+      keySignature: { fifths: 1, mode: 'major' },
+      timeSignature: { beats: 3, beatType: 4 }
+    })
+    expect(firstMeasure.voices[0].events).toMatchObject([
+      { type: 'note', position: { tick: 0 } },
+      { type: 'rest', position: { tick: TICKS_PER_QUARTER } }
+    ])
+    expect(secondMeasure.voices[0].events).toMatchObject([
+      { type: 'note', position: { tick: 0 } },
+      { type: 'rest', position: { tick: TICKS_PER_QUARTER } }
+    ])
+    expect(validateMeasureRhythm(firstMeasure).isExact).toBe(true)
+    expect(validateMeasureRhythm(secondMeasure).isExact).toBe(true)
+    expect(roundTrip.parts[0].staves[0].measures).toMatchObject([
+      {
+        keySignature: { fifths: 0, mode: 'major' },
+        timeSignature: { beats: 2, beatType: 4 }
+      },
+      {
+        keySignature: { fifths: 1, mode: 'major' },
+        timeSignature: { beats: 3, beatType: 4 }
+      }
+    ])
+  })
+
+  it('rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
+    const backupXml = fixture.replace(
+      '</measure>',
+      '<backup><duration>1</duration></backup></measure>'
+    )
+    const forwardXml = fixture.replace(
+      '</measure>',
+      '<forward><duration>1</duration></forward></measure>'
+    )
+
+    expect(() => parseMusicXml(backupXml)).toThrow(
+      'backup/forward를 지원하지 않습니다'
+    )
+    expect(() => parseMusicXml(forwardXml)).toThrow(
+      'backup/forward를 지원하지 않습니다'
+    )
+  })
+
   it('preserves multiple augmentation dots across MusicXML round trips', () => {
     const score = createScore({
       parts: [
