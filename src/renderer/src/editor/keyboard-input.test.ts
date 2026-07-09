@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isRedoShortcut,
+  isRestShortcut,
+  isTieShortcut,
   isTextEditingTarget,
+  isTupletShortcut,
+  isUndoShortcut,
+  resolveDotShortcut,
+  resolveDurationShortcut,
   resolvePitchKeyboardAction,
   resolvePitchShortcut
 } from './keyboard-input'
@@ -23,6 +30,38 @@ describe('keyboard input routing', () => {
     expect(resolvePitchShortcut(keyEvent({ code: '', key: 'c' }))).toBe('C')
   })
 
+  it.each([
+    ['Digit1', '!', 'whole'],
+    ['Digit2', '@', 'half'],
+    ['Digit3', '#', 'quarter'],
+    ['Digit4', '$', 'eighth'],
+    ['Digit5', '%', '16th']
+  ])('maps physical %s to %s duration regardless of the logical key', (code, key, duration) => {
+    expect(resolveDurationShortcut(keyEvent({ code, key }))).toBe(duration)
+  })
+
+  it('maps physical punctuation keys to dot edits', () => {
+    expect(resolveDotShortcut(keyEvent({ code: 'Period', key: 'ㄹ' }))).toBe(1)
+    expect(resolveDotShortcut(keyEvent({ code: 'Comma', key: ',' }))).toBe(-1)
+  })
+
+  it('maps physical command keys for rest, tuplet, tie, undo, and redo', () => {
+    expect(isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ' }))).toBe(true)
+    expect(isTupletShortcut(keyEvent({ code: 'KeyT', key: 'ㅅ' }))).toBe(true)
+    expect(isTieShortcut(keyEvent({ code: 'KeyL', key: 'ㅣ' }))).toBe(true)
+    expect(
+      isUndoShortcut(keyEvent({ code: 'KeyZ', key: 'ㅋ', metaKey: true }))
+    ).toBe(true)
+    expect(
+      isRedoShortcut(keyEvent({ code: 'KeyY', key: 'ㅛ', ctrlKey: true }))
+    ).toBe(true)
+    expect(
+      isRedoShortcut(
+        keyEvent({ code: 'KeyZ', key: 'ㅋ', metaKey: true, shiftKey: true })
+      )
+    ).toBe(true)
+  })
+
   it('does not capture pitch shortcuts during composition or command chords', () => {
     expect(
       resolvePitchShortcut(
@@ -35,6 +74,17 @@ describe('keyboard input routing', () => {
     expect(
       resolvePitchShortcut(keyEvent({ code: 'KeyA', key: 'a', ctrlKey: true }))
     ).toBeUndefined()
+    expect(
+      resolveDurationShortcut(
+        keyEvent({ code: 'Digit3', key: '3', isComposing: true })
+      )
+    ).toBeUndefined()
+    expect(
+      resolveDotShortcut(keyEvent({ code: 'Period', key: '.', metaKey: true }))
+    ).toBeUndefined()
+    expect(
+      isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ', isComposing: true }))
+    ).toBe(false)
   })
 
   it('separates sequential input from selected slot editing by mode', () => {
@@ -63,8 +113,8 @@ describe('keyboard input routing', () => {
 })
 
 function keyEvent(
-  overrides: Partial<Parameters<typeof resolvePitchShortcut>[0]>
-): Parameters<typeof resolvePitchShortcut>[0] {
+  overrides: Partial<Parameters<typeof isRedoShortcut>[0]>
+): Parameters<typeof isRedoShortcut>[0] {
   return {
     altKey: false,
     code: '',
@@ -72,6 +122,7 @@ function keyEvent(
     isComposing: false,
     key: '',
     metaKey: false,
+    shiftKey: false,
     ...overrides
   }
 }

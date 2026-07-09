@@ -91,7 +91,14 @@ import {
   type PitchMovement
 } from './editor/pitch-editing'
 import {
+  isRedoShortcut,
+  isRestShortcut,
   isTextEditingTarget,
+  isTieShortcut,
+  isTupletShortcut,
+  isUndoShortcut,
+  resolveDotShortcut,
+  resolveDurationShortcut,
   resolvePitchKeyboardAction,
   resolvePitchShortcut
 } from './editor/keyboard-input'
@@ -114,13 +121,6 @@ const durations: DurationValue[] = [
   'eighth',
   '16th'
 ]
-const durationKeys: Partial<Record<string, DurationValue>> = {
-  '1': 'whole',
-  '2': 'half',
-  '3': 'quarter',
-  '4': 'eighth',
-  '5': '16th'
-}
 const durationShortcuts: Partial<Record<DurationValue, string>> = {
   whole: '1',
   half: '2',
@@ -1297,25 +1297,19 @@ const App = () => {
         return
       }
 
-      const usesCommandKey = event.metaKey || event.ctrlKey
-
-      if (
-        usesCommandKey &&
-        (event.key.toLowerCase() === 'y' ||
-          (event.shiftKey && event.key.toLowerCase() === 'z'))
-      ) {
+      if (isRedoShortcut(event)) {
         event.preventDefault()
         redo()
         return
       }
 
-      if (usesCommandKey && event.key.toLowerCase() === 'z') {
+      if (isUndoShortcut(event)) {
         event.preventDefault()
         undo()
         return
       }
 
-      const duration = durationKeys[event.key]
+      const duration = resolveDurationShortcut(event)
 
       if (duration) {
         event.preventDefault()
@@ -1346,19 +1340,19 @@ const App = () => {
         return
       }
 
-      if (!event.altKey && !usesCommandKey && event.code === 'KeyT') {
+      if (isTupletShortcut(event)) {
         event.preventDefault()
         toggleTuplet()
         return
       }
 
-      if (!event.altKey && !usesCommandKey && event.code === 'KeyL') {
+      if (isTieShortcut(event)) {
         event.preventDefault()
         toggleTie()
         return
       }
 
-      if (isRestShortcut(event) && !event.altKey && !usesCommandKey) {
+      if (isRestShortcut(event)) {
         event.preventDefault()
         if (noteInputState) {
           enterRest()
@@ -1368,15 +1362,15 @@ const App = () => {
         return
       }
 
+      const dotChange = resolveDotShortcut(event)
+
+      if (dotChange) {
+        event.preventDefault()
+        changeDots(dotChange)
+        return
+      }
+
       switch (event.key) {
-        case '.':
-          event.preventDefault()
-          changeDots(1)
-          break
-        case ',':
-          event.preventDefault()
-          changeDots(-1)
-          break
         case ' ':
           event.preventDefault()
 
@@ -2338,10 +2332,6 @@ function resolveSelectionAfterClear(
 
 function createInputId(kind: 'event' | 'measure'): string {
   return `${kind}-${crypto.randomUUID()}`
-}
-
-function isRestShortcut(event: KeyboardEvent): boolean {
-  return event.code === 'KeyR' || event.key === 'r' || event.key === 'R'
 }
 
 function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
