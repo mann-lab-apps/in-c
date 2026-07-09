@@ -22,6 +22,8 @@ import {
   buildDotCommand,
   buildDurationCommand,
   buildNoteEntryCommand,
+  buildRangeClipboard,
+  buildRangePasteCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
   createRangeSelection,
@@ -698,6 +700,71 @@ describe('editor state', () => {
       type: 'range'
     })
     expect(buildDeleteCommand(demoScore, selection!)).toBeUndefined()
+  })
+
+  it('copies and pastes a same-length simple range', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      note('note-2', TICKS_PER_QUARTER, 'quarter'),
+      rest('rest-1', TICKS_PER_QUARTER * 2, 'quarter'),
+      rest('rest-2', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const source = createRangeSelection(score, 'note-1', 'note-2')
+    const target = createRangeSelection(score, 'rest-1', 'rest-2')
+    const clipboard = buildRangeClipboard(score, source!)
+    const command = buildRangePasteCommand(
+      score,
+      target!,
+      clipboard!,
+      idSequence('pasted')
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+
+    expect(clipboard).toMatchObject({
+      durationTicks: TICKS_PER_QUARTER * 2,
+      eventCount: 2
+    })
+    expect(measure.voices[0].events).toMatchObject([
+      { id: 'note-1', type: 'note', position: { tick: 0 } },
+      {
+        id: 'note-2',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER }
+      },
+      {
+        id: 'pasted-1',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      },
+      {
+        id: 'pasted-2',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER * 3 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('rejects range paste when the target range has a different duration', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'eighth'),
+      note('note-2', TICKS_PER_QUARTER / 2, 'eighth'),
+      rest('target-rest-1', TICKS_PER_QUARTER, 'quarter'),
+      rest('target-rest-2', TICKS_PER_QUARTER * 2, 'quarter'),
+      rest('tail-rest', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const source = createRangeSelection(score, 'note-1', 'note-2')
+    const target = createRangeSelection(score, 'target-rest-1', 'target-rest-2')
+    const clipboard = buildRangeClipboard(score, source!)
+
+    expect(buildRangePasteCommand(
+      score,
+      target!,
+      clipboard!,
+      idSequence('unused')
+    )).toBeUndefined()
   })
 })
 

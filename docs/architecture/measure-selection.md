@@ -41,16 +41,19 @@ selected, the active measure is that measure.
 Range selection is event-level selection, not measure selection. It is useful
 for contiguous notes and rests inside the same voice.
 
-The supported range command is deletion:
+The supported range commands are deletion and simple copy/paste:
 
 - The selected range must be contiguous in voice order.
 - Every selected event must be in the same measure and voice.
 - The command must keep the measure exactly filled.
-- Undo and redo treat the whole range deletion as one edit.
+- Copy/paste is limited to same-duration target ranges.
+- Full-measure rests, tuplets, and tied notes are excluded from range clipboard
+  editing for now.
+- Undo and redo treat each range deletion or paste as one edit.
 
-Copy, paste, and batch edits are not part of this first range-editing scope.
-Those features need a separate clipboard payload, target-capacity validation,
-and explicit policies for ties and tuplets before they can be safe.
+Batch edits are not part of this first range-editing scope. They need explicit
+operation policies, target-capacity validation, and relation handling before
+they can be safe.
 
 ## Context Menu Direction
 
