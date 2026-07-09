@@ -52,6 +52,24 @@ describe('beam groups', () => {
     expect(createBeamGroups(measure, measure.voices[0])).toHaveLength(3)
   })
 
+  it('groups 2/4 eighth notes by quarter-note beats', () => {
+    const measure = measureWith(
+      {
+        beats: 2,
+        beatType: 4
+      },
+      Array.from({ length: 4 }, (_, index) =>
+        note(`note-${index + 1}`, index * eighth, 'eighth')
+      )
+    )
+
+    expect(beatGroupDurationTicks(measure)).toBe(quarter)
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([
+      { eventIds: ['note-1', 'note-2'] },
+      { eventIds: ['note-3', 'note-4'] }
+    ])
+  })
+
   it('groups 6/8 notes into two dotted-quarter beats', () => {
     const measure = measureWith(
       {
@@ -67,6 +85,63 @@ describe('beam groups', () => {
     expect(createBeamGroups(measure, measure.voices[0])).toEqual([
       { eventIds: ['note-1', 'note-2', 'note-3'] },
       { eventIds: ['note-4', 'note-5', 'note-6'] }
+    ])
+  })
+
+  it('groups 6/8 sixteenth notes inside dotted-quarter beats', () => {
+    const sixteenth = quarter / 4
+    const measure = measureWith(
+      {
+        beats: 6,
+        beatType: 8
+      },
+      Array.from({ length: 12 }, (_, index) =>
+        note(`note-${index + 1}`, index * sixteenth, '16th')
+      )
+    )
+
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([
+      {
+        eventIds: [
+          'note-1',
+          'note-2',
+          'note-3',
+          'note-4',
+          'note-5',
+          'note-6'
+        ]
+      },
+      {
+        eventIds: [
+          'note-7',
+          'note-8',
+          'note-9',
+          'note-10',
+          'note-11',
+          'note-12'
+        ]
+      }
+    ])
+  })
+
+  it('beams dotted short notes but still breaks at quarter notes', () => {
+    const measure = measureWith(
+      {
+        beats: 4,
+        beatType: 4
+      },
+      [
+        note('dotted-eighth', 0, 'eighth', 1),
+        note('sixteenth', quarter * 0.75, '16th'),
+        note('quarter-note', quarter, 'quarter'),
+        note('eighth-1', quarter * 2, 'eighth'),
+        note('eighth-2', quarter * 2 + eighth, 'eighth')
+      ]
+    )
+
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([
+      { eventIds: ['dotted-eighth', 'sixteenth'] },
+      { eventIds: ['eighth-1', 'eighth-2'] }
     ])
   })
 
@@ -91,6 +166,27 @@ describe('beam groups', () => {
     expect(createBeamGroups(measure, measure.voices[0])).toEqual([
       { eventIds: ['note-1', 'note-2'] },
       { eventIds: ['note-3', 'note-4'] }
+    ])
+  })
+
+  it('keeps tied notes subject to the same beat and continuity rules', () => {
+    const measure = measureWith(
+      {
+        beats: 4,
+        beatType: 4
+      },
+      [
+        note('tie-start', 0, '16th', 0, { start: true }),
+        note('tie-stop', quarter / 4, '16th', 0, { stop: true }),
+        rest('rest-break', eighth, 'eighth'),
+        note('next-beat-1', quarter, 'eighth'),
+        note('next-beat-2', quarter + eighth, 'eighth')
+      ]
+    )
+
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([
+      { eventIds: ['tie-start', 'tie-stop'] },
+      { eventIds: ['next-beat-1', 'next-beat-2'] }
     ])
   })
 
@@ -208,7 +304,8 @@ function note(
   id: string,
   tick: number,
   value: Parameters<typeof createDuration>[0],
-  dots = 0
+  dots = 0,
+  ties?: Parameters<typeof createNote>[0]['ties']
 ) {
   return createNote({
     id,
@@ -217,7 +314,8 @@ function note(
       step: 'C',
       octave: 4
     },
-    duration: createDuration(value, dots)
+    duration: createDuration(value, dots),
+    ties
   })
 }
 
