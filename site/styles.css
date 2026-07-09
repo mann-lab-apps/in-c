@@ -717,7 +717,10 @@ dd {
 }
 
 .tag-list li,
-.chip-list li {
+.chip-list li,
+.chip-list a {
+  display: inline-flex;
+  align-items: center;
   padding: 6px 9px;
   border-radius: 999px;
   color: #39464b;
@@ -725,6 +728,13 @@ dd {
   font-size: 0.8rem;
   font-weight: 800;
   list-style: none;
+  text-decoration: none;
+}
+
+.chip-list a:hover,
+.chip-list a:focus-visible {
+  color: #9b2f24;
+  background: #fff2e7;
 }
 
 .markdown-body {
@@ -875,6 +885,67 @@ dd {
   gap: 14px;
 }
 
+.composition-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.28fr);
+  gap: 12px;
+  margin: 22px 0 12px;
+}
+
+.composition-filters label {
+  display: grid;
+  gap: 7px;
+  color: #5b656a;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.composition-filters input,
+.composition-filters select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d5cbbd;
+  border-radius: 7px;
+  background: #fffdf8;
+  color: #1a2023;
+  font: inherit;
+  font-size: 0.98rem;
+}
+
+.composition-filters input {
+  padding: 0 12px;
+}
+
+.composition-filters select {
+  padding: 0 10px;
+}
+
+.composition-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.composition-tags button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #d7cec2;
+  border-radius: 999px;
+  background: #fbf6ec;
+  color: #405057;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.composition-tags button.is-active {
+  border-color: #b43d2f;
+  background: #fff2e7;
+  color: #9b2f24;
+}
+
 .composition-card,
 .composition-detail-card {
   min-width: 0;
@@ -888,6 +959,11 @@ dd {
   display: grid;
   gap: 18px;
   padding: 22px;
+}
+
+.composition-card.is-active {
+  border-color: #b43d2f;
+  box-shadow: 0 14px 30px rgba(180, 61, 47, 0.12);
 }
 
 .composition-card__head {
@@ -931,7 +1007,10 @@ dd {
   gap: 8px;
 }
 
-.tag-list span {
+.tag-list span,
+.tag-list a {
+  display: inline-flex;
+  align-items: center;
   padding: 5px 8px;
   border: 1px solid #d5cbbd;
   border-radius: 999px;
@@ -939,6 +1018,14 @@ dd {
   background: #fffdf8;
   font-size: 0.78rem;
   font-weight: 800;
+  text-decoration: none;
+}
+
+.tag-list a:hover,
+.tag-list a:focus-visible {
+  border-color: #b43d2f;
+  color: #9b2f24;
+  background: #fff2e7;
 }
 
 .button:disabled {
@@ -957,7 +1044,8 @@ dd {
 
 @media (max-width: 980px) {
   .composition-grid,
-  .composition-facts {
+  .composition-facts,
+  .composition-filters {
     grid-template-columns: 1fr;
   }
 }

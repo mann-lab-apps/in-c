@@ -16,6 +16,7 @@
 | --- | --- | --- | --- |
 | `column_view` | Columns에서 칼럼이 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `category`, `reading_minutes` | 어떤 주제의 칼럼이 실제로 선택되는가 |
 | `column_read_complete` | 칼럼 본문 끝에 도달했을 때 | `content_type`, `content_slug`, `content_title`, `category`, `reading_minutes` | 끝까지 읽히는 칼럼의 길이와 주제는 무엇인가 |
+| `column_link` | Compositions 상세에서 관련 Columns 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | 악보에서 읽기 콘텐츠로 넘어가는 흐름이 있는가 |
 | `composition_view` | Compositions 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `difficulty`, `key`, `meter` | 어떤 악보가 실제 관심을 받는가 |
 | `composition_select` | Compositions 목록에서 상세 보기 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | 목록에서 어떤 악보를 눌러보는가 |
 | `composition_download` | PDF, MusicXML, Chromatics 링크 클릭 | `content_type`, `content_slug`, `file_name`, `link_url`, `link_text` | 사용자가 어떤 파일 형태를 원하고 있는가 |

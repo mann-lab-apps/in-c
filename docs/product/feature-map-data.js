@@ -428,6 +428,15 @@ window.FEATURE_MAP = [
             docs: ["docs/product/compositions/collection-pipeline.md"]
           },
           {
+            name: "Compositions 단선율 악보 라이브러리",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/compositions.feature"],
+            docs: [
+              "docs/product/compositions/collection-pipeline.md",
+              "docs/product/analytics-events.md"
+            ]
+          },
+          {
             name: "Google Analytics 기본 이벤트",
             status: "지원",
             acceptance: ["docs/product/acceptance/distribution-download.feature"],

@@ -55,6 +55,25 @@
             개별 악보 등록 이슈에서 검증된 MusicXML과 PDF가 추가되면 같은 카드와 상세 URL에 연결됩니다.
           </p>
         </div>
+        <form class="composition-filters" data-composition-filters role="search">
+          <label>
+            <span>검색</span>
+            <input
+              type="search"
+              name="query"
+              autocomplete="off"
+              placeholder="제목, 태그, 출처"
+              data-composition-query
+            />
+          </label>
+          <label>
+            <span>난이도</span>
+            <select name="difficulty" data-composition-difficulty>
+              <option value="">전체</option>
+            </select>
+          </label>
+        </form>
+        <div class="composition-tags" data-composition-tags aria-label="태그 필터"></div>
         <div class="composition-grid" data-composition-list aria-live="polite"></div>
       </section>
 
