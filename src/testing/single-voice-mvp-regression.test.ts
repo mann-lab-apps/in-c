@@ -389,6 +389,107 @@ describe('single-voice MVP regression', () => {
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
+  it('changes an empty full-measure rest measure to the target meter', () => {
+    const score = createNewScore({
+      title: 'Meter Sketch',
+      composer: 'in-C',
+      partName: 'Piano',
+      keySignature: { fifths: 0, mode: 'major' },
+      timeSignature: { beats: 4, beatType: 4 },
+      measureCount: 1
+    })
+    const command = buildTimeSignatureCommand(
+      score,
+      { type: 'measure', measureId: 'measure-1' },
+      { beats: 6, beatType: 8 }
+    )
+    const changed = applyScoreCommand(score, command!)
+    const measure = changed.score.parts[0].staves[0].measures[0]
+
+    expect(measure.timeSignature).toEqual({ beats: 6, beatType: 8 })
+    expect(measure.voices[0].events).toEqual([
+      expect.objectContaining({
+        id: 'measure-1-full-measure-rest',
+        type: 'rest',
+        fullMeasure: true
+      })
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+
+    const roundTrip = parseMusicXml(serializeMusicXml(changed.score))
+    const roundTripMeasure = roundTrip.parts[0].staves[0].measures[0]
+
+    expect(roundTripMeasure.timeSignature).toEqual({ beats: 6, beatType: 8 })
+    expect(validateMeasureRhythm(roundTripMeasure).isExact).toBe(true)
+  })
+
+  it('extends a measure after a time signature change by filling clear time with rests', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-c4',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          duration: createDuration('quarter')
+                        }),
+                        createRest({
+                          id: 'existing-rest',
+                          position: createTimePosition(quarter),
+                          duration: createDuration('quarter')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const command = buildTimeSignatureCommand(
+      score,
+      { type: 'measure', measureId: 'measure-1' },
+      { beats: 4, beatType: 4 }
+    )
+    const changed = applyScoreCommand(score, command!)
+    const measure = changed.score.parts[0].staves[0].measures[0]
+
+    expect(measure.timeSignature).toEqual({ beats: 4, beatType: 4 })
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'note-c4',
+        type: 'note',
+        position: { tick: 0 },
+        duration: { value: 'quarter', dots: 0 }
+      },
+      {
+        id: 'existing-rest',
+        type: 'rest',
+        position: { tick: quarter },
+        duration: { value: 'quarter', dots: 0 }
+      },
+      {
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half', dots: 0 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
+  })
+
   it('rejects time signatures that cannot contain existing notes', () => {
     const score = createScore({
       parts: [

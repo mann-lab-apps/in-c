@@ -47,13 +47,13 @@ window.FEATURE_MAP = [
           },
           {
             name: "생성 후 박자표 변경",
-            status: "부분 지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/score-setup.feature"],
             docs: ["docs/architecture/rhythmic-timeline.md"]
           },
           {
             name: "생성 후 조표 변경",
-            status: "부분 지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/score-setup.feature"],
             docs: ["docs/musicxml-mvp.md"]
           },
