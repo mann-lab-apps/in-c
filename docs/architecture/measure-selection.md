@@ -19,6 +19,12 @@ Delete and Backspace are selection-sensitive.
 
 - Event selection deletes or merges the selected event through the rhythm delete
   path.
+- Range selection deletes same-measure, same-voice event ranges through the
+  rhythm delete path. The editor applies the selected events from right to left
+  and wraps the edits in one undoable batch command.
+- Range deletion is intentionally limited to one measure for now. A range that
+  crosses a measure boundary is rejected with user-facing guidance instead of
+  guessing how to rebalance neighboring measures.
 - Measure selection deletes the selected measure.
 - The last remaining measure is never deleted. The editor keeps the measure and
   shows `Cannot delete the last measure.`
@@ -29,6 +35,22 @@ Delete and Backspace are selection-sensitive.
 The toolbar delete-measure button uses the active measure. When an event is
 selected, the active measure is the containing measure. When a measure is
 selected, the active measure is that measure.
+
+## Range Edit Scope
+
+Range selection is event-level selection, not measure selection. It is useful
+for contiguous notes and rests inside the same voice.
+
+The supported range command is deletion:
+
+- The selected range must be contiguous in voice order.
+- Every selected event must be in the same measure and voice.
+- The command must keep the measure exactly filled.
+- Undo and redo treat the whole range deletion as one edit.
+
+Copy, paste, and batch edits are not part of this first range-editing scope.
+Those features need a separate clipboard payload, target-capacity validation,
+and explicit policies for ties and tuplets before they can be safe.
 
 ## Context Menu Direction
 
