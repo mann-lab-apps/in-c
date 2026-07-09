@@ -350,6 +350,12 @@ window.FEATURE_MAP = [
             docs: ["docs/musicxml-mvp.md"]
           },
           {
+            name: "PNG 이미지 내보내기",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/import-export.feature"],
+            docs: ["docs/architecture/image-export.md"]
+          },
+          {
             name: "앱 내부 자동저장 복구",
             status: "지원",
             acceptance: ["docs/product/acceptance/start-and-recovery.feature"],

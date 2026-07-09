@@ -42,3 +42,11 @@ Feature: 악보를 가져오고 내보내기
     When 사용자가 PDF 변환을 실행한다
     Then 앱은 현재 악보의 PDF 파일을 생성한다
     And PDF 변환은 MusicXML 내보내기와 별도 행동으로 보인다
+
+  @discussion
+  Scenario: 악보를 이미지로 내보낸다
+    Given 편집 가능한 단성부 악보가 열려 있다
+    When 사용자가 이미지로 내보내기를 실행한다
+    Then 앱은 화면 렌더링과 같은 layout의 PNG 파일을 생성한다
+    And PDF 변환과 이미지 내보내기는 별도 행동으로 보인다
+    And 기본 출력은 흰 배경과 2x 해상도를 사용한다
