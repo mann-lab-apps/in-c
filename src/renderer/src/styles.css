@@ -590,6 +590,14 @@ h2 {
   cursor: pointer;
 }
 
+.notation-event.is-selected {
+  color: #b43d2f;
+}
+
+.notation-event.is-playback {
+  color: #25766f;
+}
+
 .notation-event.is-preview {
   color: #b43d2f;
   cursor: default;
@@ -602,10 +610,7 @@ h2 {
   stroke: currentColor;
 }
 
-.notation-playhead {
-  stroke: #25766f;
-  stroke-linecap: round;
-  stroke-width: 2;
+.notation-state-overlays {
   pointer-events: none;
 }
 
@@ -613,6 +618,14 @@ h2 {
   stroke: #47616c;
   stroke-linecap: round;
   stroke-width: 3;
+  pointer-events: none;
+}
+
+.notation-playhead {
+  stroke: #25766f;
+  stroke-dasharray: 7 5;
+  stroke-linecap: round;
+  stroke-width: 2;
   pointer-events: none;
 }
 

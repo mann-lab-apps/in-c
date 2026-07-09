@@ -257,9 +257,12 @@ window.FEATURE_MAP = [
             docs: ["docs/testing/single-voice-mvp-regression.md"]
           },
           {
-            name: "선택 이벤트와 입력 커서 표시",
+            name: "선택 이벤트, 입력 커서, 재생 커서 표시",
             status: "지원",
-            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/playback.feature"
+            ],
             docs: ["docs/architecture/note-input-state.md"]
           },
           {
