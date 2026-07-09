@@ -58,7 +58,7 @@ button:disabled {
 
 .start-screen {
   display: grid;
-  width: min(960px, 100%);
+  width: min(1120px, 100%);
   min-height: min(620px, calc(100vh - 56px));
   align-items: center;
 }
@@ -84,7 +84,7 @@ button:disabled {
 
 .start-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   margin-top: 10px;
 }
@@ -132,6 +132,103 @@ button:disabled {
 
 .start-screen__status.is-error {
   color: #a33125;
+}
+
+.recent-files {
+  display: grid;
+  gap: 10px;
+  max-width: 920px;
+  padding: 16px;
+  border: 1px solid #d4cec1;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.72);
+}
+
+.recent-files__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recent-files__header div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recent-files__header svg {
+  color: #47616c;
+}
+
+.recent-files__header h2 {
+  margin: 0;
+  color: #202326;
+  font-size: 0.96rem;
+}
+
+.recent-files__header button {
+  padding: 7px 10px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  color: #202326;
+  background: #fffdf8;
+  cursor: pointer;
+}
+
+.recent-files__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.recent-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #d4cec1;
+  border-radius: 6px;
+  color: #202326;
+  background: #fffdf8;
+  cursor: pointer;
+  text-align: left;
+}
+
+.recent-file:hover,
+.recent-file:focus-visible,
+.recent-files__header button:hover,
+.recent-files__header button:focus-visible {
+  border-color: #47616c;
+}
+
+.recent-file.is-missing {
+  border-color: #b65a4c;
+}
+
+.recent-file span,
+.recent-file small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-file span {
+  min-width: 0;
+  font-weight: 700;
+}
+
+.recent-file small {
+  flex: 0 0 auto;
+  max-width: 42%;
+  color: #5f6a70;
+}
+
+.recent-files__empty {
+  color: #5f6a70;
+  font-size: 0.92rem;
 }
 
 .sidebar {
@@ -785,6 +882,20 @@ h2 {
 
   .start-action {
     min-height: 132px;
+  }
+
+  .recent-files__list {
+    grid-template-columns: 1fr;
+  }
+
+  .recent-file {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .recent-file small {
+    max-width: 100%;
   }
 
   .new-score-form {
