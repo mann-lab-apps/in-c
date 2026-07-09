@@ -190,6 +190,12 @@ interface AutosaveRecoverySnapshot {
   }
 }
 
+interface RecentMusicXmlFile {
+  filePath: string
+  fileName: string
+  openedAt: string
+}
+
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
   composer: 80
@@ -217,6 +223,10 @@ const App = () => {
   const [autosaveRevision, setAutosaveRevision] = useState(0)
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<AutosaveRecoverySnapshot>()
+  const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
+    RecentMusicXmlFile[]
+  >([])
+  const [missingRecentFilePath, setMissingRecentFilePath] = useState<string>()
   const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score)
 
@@ -346,6 +356,34 @@ const App = () => {
 
     return () => {
       isActive = false
+    }
+  }, [])
+
+  useEffect(() => {
+    if (isFixtureMode()) {
+      return
+    }
+
+    let cancelled = false
+
+    window.inC.recentMusicXml
+      .list()
+      .then((files) => {
+        if (!cancelled) {
+          setRecentMusicXmlFiles(files)
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setFileStatus({
+            tone: 'error',
+            message: `최근 파일 목록을 읽지 못했습니다. ${getErrorMessage(error)}`
+          })
+        }
+      })
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -1201,6 +1239,39 @@ const App = () => {
     [score]
   )
 
+  const openScore = useCallback((nextScore: Score, message: string) => {
+    const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
+    const firstEvent = firstMeasure?.voices[0]?.events[0]
+
+    setScore(nextScore)
+    setAutosaveRevision((revision) => revision + 1)
+    setUndoStack([])
+    setRedoStack([])
+    setMode('select')
+    setNoteInputState(undefined)
+    setRecoverySnapshot(undefined)
+    setStartScreenVisible(false)
+    setSelection(
+      firstEvent
+        ? {
+            type: 'event',
+            eventId: firstEvent.id
+          }
+        : {
+            type: 'measure',
+            measureId: firstMeasure?.id ?? 'measure-1'
+          }
+    )
+    setFileStatus({
+      tone: 'neutral',
+      message
+    })
+  }, [])
+
+  const openExampleScore = useCallback(() => {
+    openScore(createSingleVoiceMvpScore(), '예제 악보를 열었습니다.')
+  }, [openScore])
+
   const importMusicXml = useCallback(async () => {
     try {
       const file = await window.inC.musicXml.open()
@@ -1210,39 +1281,100 @@ const App = () => {
       }
 
       const importedScore = parseMusicXml(file.contents)
-      const firstMeasure = importedScore.parts[0]?.staves[0]?.measures[0]
-      const firstEvent = firstMeasure?.voices[0]?.events[0]
 
-      setScore(importedScore)
-      setAutosaveRevision((revision) => revision + 1)
-      setUndoStack([])
-      setRedoStack([])
-      setMode('select')
-      setNoteInputState(undefined)
-      setRecoverySnapshot(undefined)
-      setStartScreenVisible(false)
-      setSelection(
-        firstEvent
-          ? {
-              type: 'event',
-              eventId: firstEvent.id
-            }
-          : {
-              type: 'measure',
-              measureId: firstMeasure?.id ?? 'measure-1'
-            }
-      )
-      setFileStatus({
-        tone: 'neutral',
-        message: `${file.fileName}을 가져왔습니다.`
-      })
+      setMissingRecentFilePath(undefined)
+      openScore(importedScore, `${file.fileName}을 가져왔습니다.`)
+
+      try {
+        const recentFiles = await window.inC.recentMusicXml.add({
+          filePath: file.filePath,
+          fileName: file.fileName
+        })
+
+        setRecentMusicXmlFiles(recentFiles)
+      } catch (recentError) {
+        setFileStatus({
+          tone: 'error',
+          message: `악보는 열었지만 최근 파일 목록에 저장하지 못했습니다. ${getErrorMessage(
+            recentError
+          )}`
+        })
+      }
     } catch (error) {
       setFileStatus({
         tone: 'error',
         message: getErrorMessage(error)
       })
     }
-  }, [])
+  }, [openScore])
+
+  const openRecentMusicXml = useCallback(
+    async (file: RecentMusicXmlFile) => {
+      try {
+        const openedFile = await window.inC.recentMusicXml.open({
+          filePath: file.filePath
+        })
+        const importedScore = parseMusicXml(openedFile.contents)
+
+        setMissingRecentFilePath(undefined)
+        openScore(importedScore, `${openedFile.fileName}을 다시 열었습니다.`)
+
+        try {
+          const recentFiles = await window.inC.recentMusicXml.add({
+            filePath: openedFile.filePath,
+            fileName: openedFile.fileName
+          })
+
+          setRecentMusicXmlFiles(recentFiles)
+        } catch (recentError) {
+          setFileStatus({
+            tone: 'error',
+            message: `악보는 열었지만 최근 파일 목록을 갱신하지 못했습니다. ${getErrorMessage(
+              recentError
+            )}`
+          })
+        }
+      } catch (error) {
+        const message = getErrorMessage(error)
+
+        if (message.includes('최근 파일을 찾을 수 없습니다')) {
+          setMissingRecentFilePath(file.filePath)
+        }
+
+        setFileStatus({
+          tone: 'error',
+          message
+        })
+      }
+    },
+    [openScore]
+  )
+
+  const removeMissingRecentMusicXml = useCallback(async () => {
+    if (!missingRecentFilePath) {
+      return
+    }
+
+    try {
+      const recentFiles = await window.inC.recentMusicXml.remove({
+        filePath: missingRecentFilePath
+      })
+
+      setRecentMusicXmlFiles(recentFiles)
+      setMissingRecentFilePath(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: '최근 파일 목록에서 지웠습니다.'
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: `최근 파일 목록을 정리하지 못했습니다. ${getErrorMessage(
+          error
+        )}`
+      })
+    }
+  }, [missingRecentFilePath])
 
   const saveMusicXml = useCallback(async () => {
     try {
@@ -1511,6 +1643,16 @@ const App = () => {
 
               <button
                 className="start-action"
+                onClick={openExampleScore}
+                type="button"
+              >
+                <FileMusic aria-hidden="true" size={24} />
+                <span>예제 악보 열기</span>
+                <small>단성부 입력, 빔, 셋잇단음표가 포함된 샘플을 엽니다.</small>
+              </button>
+
+              <button
+                className="start-action"
                 disabled={!recoverySnapshot}
                 onClick={recoverAutosave}
                 type="button"
@@ -1528,6 +1670,48 @@ const App = () => {
                 </small>
               </button>
             </div>
+
+            <section
+              aria-label="최근 MusicXML 파일"
+              className="recent-files"
+            >
+              <header className="recent-files__header">
+                <div>
+                  <Clock3 aria-hidden="true" size={18} />
+                  <h2>최근 MusicXML</h2>
+                </div>
+                {missingRecentFilePath ? (
+                  <button onClick={removeMissingRecentMusicXml} type="button">
+                    목록에서 지우기
+                  </button>
+                ) : null}
+              </header>
+
+              {recentMusicXmlFiles.length > 0 ? (
+                <div className="recent-files__list">
+                  {recentMusicXmlFiles.map((file) => (
+                    <button
+                      className={
+                        file.filePath === missingRecentFilePath
+                          ? 'recent-file is-missing'
+                          : 'recent-file'
+                      }
+                      key={file.filePath}
+                      onClick={() => openRecentMusicXml(file)}
+                      type="button"
+                    >
+                      <span>{file.fileName}</span>
+                      <small>{formatRecoveryTime(file.openedAt)}</small>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="recent-files__empty">
+                  아직 최근 파일이 없습니다. MusicXML을 가져오면 여기에
+                  표시됩니다.
+                </p>
+              )}
+            </section>
 
             {fileStatus ? (
               <p

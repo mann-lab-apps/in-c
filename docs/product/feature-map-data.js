@@ -363,8 +363,8 @@ window.FEATURE_MAP = [
           },
           {
             name: "최근 파일과 예제 악보 진입점",
-            status: "미지원",
-            acceptance: [],
+            status: "지원",
+            acceptance: ["docs/product/acceptance/start-and-recovery.feature"],
             docs: ["docs/architecture/project-file.md"]
           }
         ]

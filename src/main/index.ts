@@ -9,6 +9,10 @@ const savePdfChannel = 'pdf:save'
 const readAutosaveChannel = 'autosave:read'
 const writeAutosaveChannel = 'autosave:write'
 const clearAutosaveChannel = 'autosave:clear'
+const listRecentMusicXmlChannel = 'recent-musicxml:list'
+const addRecentMusicXmlChannel = 'recent-musicxml:add'
+const openRecentMusicXmlChannel = 'recent-musicxml:open'
+const removeRecentMusicXmlChannel = 'recent-musicxml:remove'
 const isSmokeTest = process.argv.includes('--smoke-test')
 
 interface AutosaveSnapshot {
@@ -18,6 +22,12 @@ interface AutosaveSnapshot {
     updatedAt: string
     version: string
   }
+}
+
+interface RecentMusicXmlFile {
+  filePath: string
+  fileName: string
+  openedAt: string
 }
 
 ipcMain.handle(openMusicXmlChannel, async () => {
@@ -39,6 +49,7 @@ ipcMain.handle(openMusicXmlChannel, async () => {
   }
 
   return {
+    filePath,
     fileName: basename(filePath),
     contents: await readFile(filePath, 'utf8')
   }
@@ -158,6 +169,57 @@ ipcMain.handle(clearAutosaveChannel, async () => {
   await rm(autosavePath(), { force: true })
 })
 
+ipcMain.handle(listRecentMusicXmlChannel, async () => readRecentMusicXmlFiles())
+
+ipcMain.handle(
+  addRecentMusicXmlChannel,
+  async (
+    _event,
+    input: {
+      filePath: string
+      fileName: string
+    }
+  ) => addRecentMusicXmlFile(input)
+)
+
+ipcMain.handle(
+  openRecentMusicXmlChannel,
+  async (
+    _event,
+    input: {
+      filePath: string
+    }
+  ) => {
+    const recentFiles = await readRecentMusicXmlFiles()
+    const recent = recentFiles.find((file) => file.filePath === input.filePath)
+    const fileName = recent?.fileName ?? basename(input.filePath)
+
+    try {
+      return {
+        filePath: input.filePath,
+        fileName,
+        contents: await readFile(input.filePath, 'utf8')
+      }
+    } catch (error) {
+      if (isMissingFileError(error)) {
+        throw new Error(`최근 파일을 찾을 수 없습니다: ${fileName}`)
+      }
+
+      throw error
+    }
+  }
+)
+
+ipcMain.handle(
+  removeRecentMusicXmlChannel,
+  async (
+    _event,
+    input: {
+      filePath: string
+    }
+  ) => removeRecentMusicXmlFile(input.filePath)
+)
+
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -198,8 +260,13 @@ const createWindow = (): void => {
             typeof window.inC?.autosave?.read === 'function' &&
             typeof window.inC?.autosave?.write === 'function' &&
             typeof window.inC?.autosave?.clear === 'function',
+          hasRecentBridge:
+            typeof window.inC?.recentMusicXml?.list === 'function' &&
+            typeof window.inC?.recentMusicXml?.add === 'function' &&
+            typeof window.inC?.recentMusicXml?.open === 'function' &&
+            typeof window.inC?.recentMusicXml?.remove === 'function',
           hasStartScreen: Boolean(document.querySelector('.start-screen')),
-          hasStartActions: document.querySelectorAll('.start-action').length >= 3
+          hasStartActions: document.querySelectorAll('.start-action').length >= 4
         })
       `)
 
@@ -208,6 +275,7 @@ const createWindow = (): void => {
         !result.hasMusicXmlBridge ||
         !result.hasPdfBridge ||
         !result.hasAutosaveBridge ||
+        !result.hasRecentBridge ||
         !result.hasStartScreen ||
         !result.hasStartActions
       ) {
@@ -257,6 +325,82 @@ function autosaveDirectory(): string {
 
 function autosavePath(): string {
   return join(autosaveDirectory(), 'recovery.json')
+}
+
+function recentMusicXmlPath(): string {
+  return join(app.getPath('userData'), 'recent-musicxml.json')
+}
+
+async function readRecentMusicXmlFiles(): Promise<RecentMusicXmlFile[]> {
+  try {
+    const parsed = JSON.parse(
+      await readFile(recentMusicXmlPath(), 'utf8')
+    ) as unknown
+
+    return Array.isArray(parsed)
+      ? parsed.filter(isRecentMusicXmlFile).slice(0, 5)
+      : []
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return []
+    }
+
+    throw error
+  }
+}
+
+async function addRecentMusicXmlFile(input: {
+  filePath: string
+  fileName: string
+}): Promise<RecentMusicXmlFile[]> {
+  const recentFiles = await readRecentMusicXmlFiles()
+  const nextFiles = [
+    {
+      filePath: input.filePath,
+      fileName: input.fileName,
+      openedAt: new Date().toISOString()
+    },
+    ...recentFiles.filter((file) => file.filePath !== input.filePath)
+  ].slice(0, 5)
+
+  await writeRecentMusicXmlFiles(nextFiles)
+  return nextFiles
+}
+
+async function removeRecentMusicXmlFile(
+  filePath: string
+): Promise<RecentMusicXmlFile[]> {
+  const nextFiles = (await readRecentMusicXmlFiles()).filter(
+    (file) => file.filePath !== filePath
+  )
+
+  await writeRecentMusicXmlFiles(nextFiles)
+  return nextFiles
+}
+
+async function writeRecentMusicXmlFiles(
+  recentFiles: RecentMusicXmlFile[]
+): Promise<void> {
+  await mkdir(app.getPath('userData'), { recursive: true })
+  await writeFile(
+    recentMusicXmlPath(),
+    JSON.stringify(recentFiles, null, 2),
+    'utf8'
+  )
+}
+
+function isRecentMusicXmlFile(value: unknown): value is RecentMusicXmlFile {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+
+  const recent = value as Partial<RecentMusicXmlFile>
+
+  return (
+    typeof recent.filePath === 'string' &&
+    typeof recent.fileName === 'string' &&
+    typeof recent.openedAt === 'string'
+  )
 }
 
 function isMissingFileError(error: unknown): boolean {

@@ -6,6 +6,16 @@ const savePdfChannel = 'pdf:save'
 const readAutosaveChannel = 'autosave:read'
 const writeAutosaveChannel = 'autosave:write'
 const clearAutosaveChannel = 'autosave:clear'
+const listRecentMusicXmlChannel = 'recent-musicxml:list'
+const addRecentMusicXmlChannel = 'recent-musicxml:add'
+const openRecentMusicXmlChannel = 'recent-musicxml:open'
+const removeRecentMusicXmlChannel = 'recent-musicxml:remove'
+
+interface RecentMusicXmlFile {
+  filePath: string
+  fileName: string
+  openedAt: string
+}
 
 const api = {
   appName: 'in-C',
@@ -17,6 +27,7 @@ const api = {
   musicXml: {
     open: () =>
       ipcRenderer.invoke(openMusicXmlChannel) as Promise<{
+        filePath: string
         fileName: string
         contents: string
       } | null>,
@@ -48,6 +59,28 @@ const api = {
         version: string
       }>,
     clear: () => ipcRenderer.invoke(clearAutosaveChannel) as Promise<void>
+  },
+  recentMusicXml: {
+    list: () =>
+      ipcRenderer.invoke(listRecentMusicXmlChannel) as Promise<
+        RecentMusicXmlFile[]
+      >,
+    add: (input: { filePath: string; fileName: string }) =>
+      ipcRenderer.invoke(
+        addRecentMusicXmlChannel,
+        input
+      ) as Promise<RecentMusicXmlFile[]>,
+    open: (input: { filePath: string }) =>
+      ipcRenderer.invoke(openRecentMusicXmlChannel, input) as Promise<{
+        filePath: string
+        fileName: string
+        contents: string
+      }>,
+    remove: (input: { filePath: string }) =>
+      ipcRenderer.invoke(
+        removeRecentMusicXmlChannel,
+        input
+      ) as Promise<RecentMusicXmlFile[]>
   }
 }
 
