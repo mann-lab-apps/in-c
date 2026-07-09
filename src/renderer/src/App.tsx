@@ -90,6 +90,7 @@ import {
   buildPitchStepCommand,
   type PitchMovement
 } from './editor/pitch-editing'
+import { describeTupletToggleFailure } from './editor/tuplet-feedback'
 import {
   isRedoShortcut,
   isRestShortcut,
@@ -785,8 +786,12 @@ const App = () => {
       } else {
         setFileStatus({
           tone: 'error',
-          message:
-            '셋잇단음표를 만들려면 선택한 음표와 마디 안의 충분한 빈 박자가 필요합니다.'
+          message: describeTupletToggleFailure(
+            score,
+            selection,
+            tripletPreset.actualNotes,
+            tripletPreset.normalNotes
+          )
         })
       }
       return
