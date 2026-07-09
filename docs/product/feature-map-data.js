@@ -332,6 +332,12 @@ window.FEATURE_MAP = [
             docs: ["docs/musicxml-mvp.md"]
           },
           {
+            name: "MusicXML 문서 순서와 음악 시간 순서 검증",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/import-export.feature"],
+            docs: ["docs/musicxml-mvp.md"]
+          },
+          {
             name: "MusicXML 내보내기",
             status: "지원",
             acceptance: ["docs/product/acceptance/import-export.feature"],

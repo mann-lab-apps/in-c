@@ -42,6 +42,12 @@
 지원하지 않는 구조는 조용히 삭제하지 않고 가져오기 또는 내보내기 오류로
 알린다.
 
+가져오기는 MusicXML note 문서 순서를 그대로 renderer에 전달하지 않는다. 지원
+범위 안에서는 각 note의 `<duration>`을 score-core tick으로 누적해 measure 안
+`position.tick`을 만든다. 마디별 `attributes` 변경은 해당 measure부터
+상태로 반영한다. `backup`과 `forward`처럼 문서 순서와 음악 시간 순서를
+분리해서 해석해야 하는 구조는 MVP에서 가져오지 않고 명확한 오류로 안내한다.
+
 ## 내보내기
 
 내보내기는 MusicXML 4.0 `score-partwise` 문서를 생성한다. 각 measure에
