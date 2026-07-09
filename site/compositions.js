@@ -1,3 +1,5 @@
+import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
+
 const catalogUrl = new URL('./compositions-catalog.json', import.meta.url)
 
 const statusLabels = {
@@ -11,12 +13,16 @@ const selectedSlug = params.get('score')
 const formatList = (items) =>
   items.length > 0 ? items.map((item) => `<span>${item}</span>`).join('') : '<span>연결 전</span>'
 
-const createAction = (label, url, type) => {
+const createAction = (label, url, type, composition, fileType) => {
   if (!url) {
     return `<button class="button button--secondary" type="button" disabled>${label} 준비 중</button>`
   }
 
-  return `<a class="button ${type === 'primary' ? 'button--primary' : 'button--secondary'}" href="${url}">${label}</a>`
+  return `<a class="button ${
+    type === 'primary' ? 'button--primary' : 'button--secondary'
+  }" href="${url}" data-track-event="composition_download" data-track-content-type="composition" data-track-content-slug="${
+    composition.slug
+  }" data-track-file="${fileType}">${label}</a>`
 }
 
 const renderCompositionDetail = (composition) => {
@@ -42,9 +48,9 @@ const renderCompositionDetail = (composition) => {
         <div><dt>출처</dt><dd>${composition.source}</dd></div>
       </dl>
       <div class="composition-actions" aria-label="악보 열기와 다운로드">
-        ${createAction('PDF 다운로드', composition.assets.pdf, 'primary')}
-        ${createAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary')}
-        ${createAction('Chromatics에서 열기', composition.assets.chromatics, 'secondary')}
+        ${createAction('PDF 다운로드', composition.assets.pdf, 'primary', composition, 'pdf')}
+        ${createAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary', composition, 'musicxml')}
+        ${createAction('Chromatics에서 열기', composition.assets.chromatics, 'secondary', composition, 'chromatics')}
       </div>
       <section class="composition-note" aria-labelledby="copyright-title">
         <h3 id="copyright-title">저작권/출처 확인 메모</h3>
@@ -56,6 +62,15 @@ const renderCompositionDetail = (composition) => {
       </section>
     </article>
   `
+
+  trackEvent('composition_view', {
+    content_type: 'composition',
+    content_slug: composition.slug,
+    content_title: composition.title,
+    difficulty: composition.difficulty,
+    key: composition.key,
+    meter: composition.meter
+  })
 }
 
 const renderCompositionList = (compositions) => {
@@ -83,7 +98,7 @@ const renderCompositionList = (compositions) => {
           <div><dt>박자</dt><dd>${composition.meter}</dd></div>
         </dl>
         <div class="tag-list">${formatList(composition.tags)}</div>
-        <a class="button button--secondary" href="?score=${composition.slug}">상세 보기</a>
+        <a class="button button--secondary" href="?score=${composition.slug}" data-track-event="composition_select" data-track-content-type="composition" data-track-content-slug="${composition.slug}">상세 보기</a>
       `
       return card
     })
@@ -91,6 +106,9 @@ const renderCompositionList = (compositions) => {
 }
 
 const init = async () => {
+  bindTrackedLinks()
+  configureAnalytics()
+
   const response = await fetch(catalogUrl)
   const catalog = await response.json()
   const compositions = catalog.compositions ?? []

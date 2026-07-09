@@ -1,7 +1,14 @@
+import {
+  bindTrackedLinks,
+  configureAnalytics,
+  createReadCompletionTracker,
+  trackEvent
+} from './analytics.js'
 import { columnMap, columns } from './columns-data.js'
 
 const publishedColumns = columns.filter((column) => column.status === 'public')
 const articleBySlug = new Map(publishedColumns.map((column) => [column.slug, column]))
+const trackReadCompletion = createReadCompletionTracker()
 
 const escapeHtml = (value) =>
   String(value)
@@ -241,6 +248,14 @@ const renderArticle = (column) => {
       </section>
     </aside>
   `
+
+  trackReadCompletion(`column:${column.slug}`, article, 'column_read_complete', {
+    content_type: 'column',
+    content_slug: column.slug,
+    content_title: column.title,
+    category: column.category,
+    reading_minutes: column.readingMinutes
+  })
 }
 
 const renderMap = (selectedSlug) => {
@@ -375,6 +390,13 @@ const selectColumn = (slug, { pushState = false } = {}) => {
   renderMap(column.slug)
   renderList(column.slug)
   renderArticle(column)
+  trackEvent('column_view', {
+    content_type: 'column',
+    content_slug: column.slug,
+    content_title: column.title,
+    category: column.category,
+    reading_minutes: column.readingMinutes
+  })
 }
 
 document.addEventListener('click', (event) => {
@@ -403,4 +425,6 @@ window.addEventListener('popstate', () => {
   selectColumn(getSelectedSlug())
 })
 
+bindTrackedLinks()
+configureAnalytics()
 selectColumn(getSelectedSlug())
