@@ -32,6 +32,7 @@ import {
   toVexFlowKey,
   toVexFlowKeySignature
 } from './vexflow-adapter'
+import { resolveNotationEventTone } from './visual-state'
 
 interface NotationPreviewProps {
   score: Score
@@ -264,6 +265,24 @@ export function NotationPreview({
 
           svgElement.classList.add('notation-event')
           svgElement.classList.toggle('is-preview', isPreviewEventId(eventId))
+          svgElement.classList.toggle(
+            'is-selected',
+            resolveNotationEventTone(
+              eventId,
+              selectedEventIdSet,
+              selectedEventId,
+              playbackEventId
+            ) === 'selected'
+          )
+          svgElement.classList.toggle(
+            'is-playback',
+            resolveNotationEventTone(
+              eventId,
+              selectedEventIdSet,
+              selectedEventId,
+              playbackEventId
+            ) === 'playback'
+          )
           svgElement.setAttribute('data-event-id', eventId)
 
           if (!isPreviewEventId(eventId)) {
@@ -339,32 +358,48 @@ export function NotationPreview({
       }
     })
 
-    if (svg && inputPoint) {
+    const overlayGroup =
+      svg && (inputPoint || playbackPoint)
+        ? document.createElementNS('http://www.w3.org/2000/svg', 'g')
+        : undefined
+
+    if (overlayGroup) {
+      overlayGroup.classList.add('notation-state-overlays')
+      overlayGroup.setAttribute(
+        'aria-label',
+        '입력 커서와 재생 커서 상태 표시'
+      )
+      svg?.append(overlayGroup)
+    }
+
+    if (overlayGroup && inputPoint) {
       const cursor = document.createElementNS(
         'http://www.w3.org/2000/svg',
         'line'
       )
 
       cursor.classList.add('notation-input-cursor')
+      cursor.setAttribute('aria-label', '다음 입력 위치')
       cursor.setAttribute('x1', String(inputPoint.x - 7))
       cursor.setAttribute('x2', String(inputPoint.x - 7))
       cursor.setAttribute('y1', String(inputPoint.y - 4))
       cursor.setAttribute('y2', String(inputPoint.y + 98))
-      svg.append(cursor)
+      overlayGroup.append(cursor)
     }
 
-    if (svg && playbackPoint) {
+    if (overlayGroup && playbackPoint) {
       const playhead = document.createElementNS(
         'http://www.w3.org/2000/svg',
         'line'
       )
 
       playhead.classList.add('notation-playhead')
+      playhead.setAttribute('aria-label', '재생 위치')
       playhead.setAttribute('x1', String(playbackPoint.x))
       playhead.setAttribute('x2', String(playbackPoint.x))
       playhead.setAttribute('y1', String(playbackPoint.y - 10))
       playhead.setAttribute('y2', String(playbackPoint.y + 104))
-      svg.append(playhead)
+      overlayGroup.append(playhead)
     }
 
     return () => {
@@ -458,16 +493,26 @@ function createStaveNote(
 
   note.setAttribute('data-event-id', event.id)
 
-  if (event.id === playbackEventId) {
-    note.setStyle({
-      fillStyle: '#25766f',
-      strokeStyle: '#25766f'
-    })
-  } else if (selectedEventIds.has(event.id) || event.id === selectedEventId) {
-    note.setStyle({
-      fillStyle: '#b43d2f',
-      strokeStyle: '#b43d2f'
-    })
+  switch (
+    resolveNotationEventTone(
+      event.id,
+      selectedEventIds,
+      selectedEventId,
+      playbackEventId
+    )
+  ) {
+    case 'selected':
+      note.setStyle({
+        fillStyle: '#b43d2f',
+        strokeStyle: '#b43d2f'
+      })
+      break
+    case 'playback':
+      note.setStyle({
+        fillStyle: '#25766f',
+        strokeStyle: '#25766f'
+      })
+      break
   }
 
   if (
