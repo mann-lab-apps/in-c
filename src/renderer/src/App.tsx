@@ -14,7 +14,9 @@ import {
   ChevronsUp,
   CircleMinus,
   CirclePlus,
+  ClipboardPaste,
   Clock3,
+  Copy,
   Eraser,
   FileDown,
   FileMusic,
@@ -53,6 +55,8 @@ import {
   buildDeleteCommand,
   buildDotCommand,
   buildDurationCommand,
+  buildRangeClipboard,
+  buildRangePasteCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
   createRangeSelection,
@@ -64,7 +68,8 @@ import {
   locateEvent,
   locateMeasure,
   type EditorMode,
-  type EditorSelection
+  type EditorSelection,
+  type RangeClipboard
 } from './editor/editor-state'
 import {
   buildInsertMeasureAfter,
@@ -209,6 +214,7 @@ const App = () => {
   const [mode, setMode] = useState<EditorMode>('select')
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
+  const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
@@ -1082,6 +1088,76 @@ const App = () => {
     })
   }, [eventLocation, noteInputState, score, selection])
 
+  const copySelection = useCallback(() => {
+    const clipboard = buildRangeClipboard(score, selection)
+
+    if (!clipboard) {
+      setFileStatus({
+        tone: 'error',
+        message: '같은 마디의 단순 범위만 복사할 수 있습니다.'
+      })
+      return
+    }
+
+    setRangeClipboard(clipboard)
+    setFileStatus({
+      tone: 'neutral',
+      message: `${clipboard.eventCount}개 이벤트를 복사했습니다.`
+    })
+  }, [score, selection])
+
+  const pasteSelection = useCallback(() => {
+    if (!rangeClipboard) {
+      setFileStatus({
+        tone: 'error',
+        message: '먼저 같은 마디의 범위를 복사해 주세요.'
+      })
+      return
+    }
+
+    const command = buildRangePasteCommand(
+      score,
+      selection,
+      rangeClipboard,
+      () => createInputId('event')
+    )
+
+    if (!command) {
+      setFileStatus({
+        tone: 'error',
+        message:
+          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이와 셋잇단음표는 아직 제외됩니다.'
+      })
+      return
+    }
+
+    const result = applyScoreCommand(score, command)
+    setScore(result.score)
+    setAutosaveRevision((revision) => revision + 1)
+    setUndoStack((entries) => [
+      ...entries,
+      {
+        command: result.undo,
+        inputState: noteInputState,
+        selection
+      }
+    ])
+    setRedoStack([])
+    setNoteInputState(undefined)
+
+    if ('editedEventId' in command && command.editedEventId) {
+      setSelection({
+        type: 'event',
+        eventId: command.editedEventId
+      })
+    }
+
+    setFileStatus({
+      tone: 'neutral',
+      message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.`
+    })
+  }, [noteInputState, rangeClipboard, score, selection])
+
   const addMeasure = useCallback(() => {
     if (!activeMeasureId) {
       return
@@ -1451,6 +1527,20 @@ const App = () => {
         return
       }
 
+      const usesCommandKey = event.metaKey || event.ctrlKey
+
+      if (usesCommandKey && !event.altKey && event.code === 'KeyC') {
+        event.preventDefault()
+        copySelection()
+        return
+      }
+
+      if (usesCommandKey && !event.altKey && event.code === 'KeyV') {
+        event.preventDefault()
+        pasteSelection()
+        return
+      }
+
       if (isRedoShortcut(event)) {
         event.preventDefault()
         redo()
@@ -1585,6 +1675,7 @@ const App = () => {
     changePitchStep,
     clearSelection,
     convertSelectionToRest,
+    copySelection,
     deleteSelection,
     enterNote,
     enterRest,
@@ -1595,6 +1686,7 @@ const App = () => {
     playback.pause,
     playback.play,
     playback.status,
+    pasteSelection,
     redo,
     toggleTie,
     toggleTuplet,
@@ -1626,6 +1718,11 @@ const App = () => {
   const canClearSelection =
     (selection.type === 'event' || selection.type === 'range') &&
     Boolean(buildDeleteCommand(score, selection))
+  const canCopySelection = Boolean(buildRangeClipboard(score, selection))
+  const canPasteSelection = Boolean(
+    rangeClipboard &&
+      buildRangePasteCommand(score, selection, rangeClipboard, previewInputId)
+  )
 
   return (
     <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
@@ -1869,6 +1966,28 @@ const App = () => {
               type="button"
             >
               <RotateCw aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="선택 범위 복사"
+              className="icon-button"
+              disabled={!canCopySelection}
+              onClick={copySelection}
+              title="선택 범위 복사"
+              type="button"
+            >
+              <Copy aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label="선택 범위에 붙여넣기"
+              className="icon-button"
+              disabled={!canPasteSelection}
+              onClick={pasteSelection}
+              title="선택 범위에 붙여넣기"
+              type="button"
+            >
+              <ClipboardPaste aria-hidden="true" size={18} />
             </button>
 
             <button
@@ -2540,6 +2659,10 @@ function resolveSelectionAfterClear(
 
 function createInputId(kind: 'event' | 'measure'): string {
   return `${kind}-${crypto.randomUUID()}`
+}
+
+function previewInputId(): string {
+  return `preview-${crypto.randomUUID()}`
 }
 
 function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {

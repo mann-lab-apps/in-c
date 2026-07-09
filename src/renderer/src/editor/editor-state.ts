@@ -2,7 +2,9 @@ import type {
   Duration,
   DurationValue,
   Measure,
+  Note,
   PitchStep,
+  Rest,
   Score,
   ScoreCommand,
   VoiceAddress,
@@ -20,7 +22,9 @@ import {
   decomposeDurationTicks,
   durationToTicks,
   measureDurationTicks,
-  sortVoiceEvents
+  sortVoiceEvents,
+  validateMeasureRhythm,
+  validateVoiceTuplets
 } from '../../../score-core'
 
 export type EditorMode = 'select' | 'note' | 'rest'
@@ -54,6 +58,17 @@ export interface MeasureLocation {
   measure: Measure
   measureNumber: number
   events: VoiceEvent[]
+}
+
+export interface RangeClipboardEvent {
+  relativeTick: number
+  event: VoiceEvent
+}
+
+export interface RangeClipboard {
+  durationTicks: number
+  eventCount: number
+  events: RangeClipboardEvent[]
 }
 
 export const durationLabels: Record<DurationValue, string> = {
@@ -184,6 +199,94 @@ export function getSelectedEventIds(selection: EditorSelection): string[] {
   }
 
   return []
+}
+
+export function buildRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): RangeClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const range = locateSameMeasureRange(score, selection)
+
+  if (!range || !isSimpleRange(range.events)) {
+    return undefined
+  }
+
+  const startTick = range.events[0].position.tick
+  const endTick = eventEndTick(range.events[range.events.length - 1])
+
+  return {
+    durationTicks: endTick - startTick,
+    eventCount: range.events.length,
+    events: range.events.map((event) => ({
+      relativeTick: event.position.tick - startTick,
+      event
+    }))
+  }
+}
+
+export function buildRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: RangeClipboard,
+  createId: () => string
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const range = locateSameMeasureRange(score, selection)
+
+  if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
+    return undefined
+  }
+
+  const startTick = range.events[0].position.tick
+  const endTick = eventEndTick(range.events[range.events.length - 1])
+
+  if (endTick - startTick !== clipboard.durationTicks) {
+    return undefined
+  }
+
+  const selectedIds = new Set(range.events.map((event) => event.id))
+  const pastedEvents = clipboard.events.map(({ event, relativeTick }) =>
+    cloneClipboardEvent(event, startTick + relativeTick, createId)
+  )
+  const nextEvents = sortVoiceEvents([
+    ...range.voice.events.filter((event) => !selectedIds.has(event.id)),
+    ...pastedEvents
+  ])
+  const nextMeasure = {
+    ...range.measure,
+    voices: range.measure.voices.map((voice) =>
+      voice.id === range.address.voiceId
+        ? {
+            ...voice,
+            events: nextEvents
+          }
+        : voice
+    )
+  }
+
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets({
+      ...range.voice,
+      events: nextEvents
+    }).length > 0
+  ) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: range.address,
+    events: nextEvents,
+    editedEventId: pastedEvents[0]?.id
+  }
 }
 
 export function buildNoteEntryCommand(
@@ -753,6 +856,107 @@ function createRestsForSpan(
     tick += durationToTicks(duration)
     return rest
   })
+}
+
+function locateSameMeasureRange(
+  score: Score,
+  selection: Extract<EditorSelection, { type: 'range' }>
+):
+  | {
+      address: VoiceAddress
+      measure: Measure
+      voice: Measure['voices'][number]
+      events: VoiceEvent[]
+    }
+  | undefined {
+  const locations = selection.eventIds.map((eventId) =>
+    locateEvent(score, eventId)
+  )
+
+  if (locations.some((location) => !location)) {
+    return undefined
+  }
+
+  const first = locations[0]
+
+  if (
+    !first ||
+    !locations.every(
+      (location) =>
+        location &&
+        sameVoiceAddress(first.address, location.address) &&
+        first.address.measureId === location.address.measureId
+    )
+  ) {
+    return undefined
+  }
+
+  const voice = first.measure.voices.find(
+    (candidate) => candidate.id === first.address.voiceId
+  )
+
+  if (!voice) {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const events = sortVoiceEvents(voice.events).filter((event) =>
+    selectedIds.has(event.id)
+  )
+
+  if (events.length !== selection.eventIds.length) {
+    return undefined
+  }
+
+  return {
+    address: first.address,
+    measure: first.measure,
+    voice,
+    events
+  }
+}
+
+function isSimpleRange(events: VoiceEvent[]): boolean {
+  return events.every((event) => {
+    if (event.duration.tuplet) {
+      return false
+    }
+
+    if (event.type === 'rest') {
+      return !event.fullMeasure
+    }
+
+    return !event.ties?.start && !event.ties?.stop
+  })
+}
+
+function cloneClipboardEvent(
+  event: VoiceEvent,
+  tick: number,
+  createId: () => string
+): VoiceEvent {
+  if (event.type === 'rest') {
+    return {
+      type: 'rest',
+      id: createId(),
+      position: createTimePosition(tick),
+      duration: {
+        ...event.duration
+      }
+    } satisfies Rest
+  }
+
+  return {
+    type: 'note',
+    id: createId(),
+    position: createTimePosition(tick),
+    pitch: {
+      ...event.pitch
+    },
+    duration: {
+      ...event.duration
+    }
+  } satisfies Note
 }
 
 function eventEndTick(event: VoiceEvent): number {
