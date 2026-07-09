@@ -204,7 +204,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "셋잇단음표 해제와 예외 안내",
-            status: "부분 지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/tuplets.feature"],
             docs: ["docs/architecture/tuplets.md"]
           },
