@@ -17,7 +17,9 @@
 - `docs/product`: 사용자 여정과 현재 제품 기준. 현재 기능 상태는
   [`docs/product/feature-map.md`](docs/product/feature-map.md), Gherkin 인수
   시나리오는 [`docs/product/acceptance`](docs/product/acceptance), AI Agent 협업
-  절차는 [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md)에
+  절차는 [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md),
+  Compositions 운영 흐름은
+  [`docs/product/compositions/collection-pipeline.md`](docs/product/compositions/collection-pipeline.md)에
   정리합니다.
 - `docs/architecture`: 아키텍처와 기술 설계 기록. MusicXML 우선 저장
   전략은 [`docs/architecture/project-file.md`](docs/architecture/project-file.md),
