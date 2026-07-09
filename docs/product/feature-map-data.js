@@ -417,7 +417,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "Columns 클래식 이해 지도",
-            status: "부분 지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/columns.feature"],
             docs: ["docs/site.md", "docs/product/columns/authoring-workflow.md"]
           },

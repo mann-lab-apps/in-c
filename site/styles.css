@@ -424,7 +424,8 @@ dd {
 }
 
 .knowledge-map {
-  overflow-x: auto;
+  position: relative;
+  overflow: hidden;
   padding: 12px;
   border: 1px solid #e0d8ce;
   border-radius: 8px;
@@ -436,26 +437,74 @@ dd {
     #fffdf8;
 }
 
+.mind-map-toolbar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid rgba(126, 116, 96, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 253, 248, 0.92);
+  box-shadow: 0 10px 26px rgba(39, 44, 45, 0.12);
+}
+
+.mind-map-toolbar button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #263237;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.mind-map-toolbar button:hover,
+.mind-map-toolbar button:focus-visible {
+  background: #efe7dc;
+  outline: 0;
+}
+
 .mind-map-svg {
   display: block;
-  min-width: 920px;
   width: 100%;
+  min-height: 520px;
   height: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.mind-map-svg.is-dragging {
+  cursor: grabbing;
+}
+
+.mind-map-viewport {
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .mind-map-link {
   fill: none;
-  stroke: #cfc5b6;
+  stroke: rgba(92, 104, 108, 0.24);
   stroke-linecap: round;
-  stroke-width: 4;
+  stroke-width: 6;
 }
 
 .mind-map-link--thin {
-  stroke-width: 2.5;
+  stroke-width: 3.2;
 }
 
 .mind-map-link.is-active {
   stroke: #b43d2f;
+  stroke-width: 7;
 }
 
 .mind-map-center circle {
@@ -471,14 +520,35 @@ dd {
 }
 
 .mind-map-group rect {
-  fill: #e8eee9;
-  stroke: #b9c6c0;
+  fill: #eef3ef;
+  stroke: #bbc8c1;
   stroke-width: 2;
+}
+
+.mind-map-group--start rect {
+  fill: #f7eadb;
+  stroke: #d8b27f;
+}
+
+.mind-map-group--language rect {
+  fill: #e7f0f1;
+  stroke: #9cb9bd;
+}
+
+.mind-map-group--people rect {
+  fill: #f2e8f6;
+  stroke: #c4a3d2;
+}
+
+.mind-map-group--practice rect {
+  fill: #eaf1df;
+  stroke: #aac17f;
 }
 
 .mind-map-group.is-active rect {
   fill: #fff8ef;
   stroke: #b43d2f;
+  stroke-width: 3;
 }
 
 .mind-map-title {
@@ -498,6 +568,10 @@ dd {
   text-decoration: none;
 }
 
+.mind-map-column:focus-visible {
+  outline: 0;
+}
+
 .mind-map-column rect {
   fill: #fbf6ec;
   stroke: #d7cec2;
@@ -508,12 +582,14 @@ dd {
 .mind-map-column:focus-visible rect {
   fill: #fffdf8;
   stroke: #47616c;
+  stroke-width: 3;
 }
 
 .mind-map-column.is-active rect {
   fill: #fff2e7;
   stroke: #b43d2f;
   stroke-width: 3;
+  filter: drop-shadow(0 10px 10px rgba(180, 61, 47, 0.16));
 }
 
 .mind-map-column.is-private {
