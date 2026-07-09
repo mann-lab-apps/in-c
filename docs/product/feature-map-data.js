@@ -135,7 +135,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "한글 입력 상태의 핵심 단축키",
-            status: "부분 지원",
+            status: "지원",
             acceptance: [
               "docs/product/acceptance/note-input.feature",
               "docs/product/acceptance/rest-to-note.feature"
