@@ -10,6 +10,7 @@ import type {
 } from '../../../score-core'
 import {
   MAX_AUGMENTATION_DOTS,
+  applyScoreCommand,
   buildRhythmDeleteCommand,
   buildRhythmEditCommand,
   createNote,
@@ -581,6 +582,10 @@ export function buildDeleteCommand(
   score: Score,
   selection: EditorSelection
 ): ScoreCommand | undefined {
+  if (selection.type === 'range') {
+    return buildRangeDeleteCommand(score, selection)
+  }
+
   if (selection.type !== 'event') {
     return undefined
   }
@@ -596,6 +601,73 @@ export function buildDeleteCommand(
     location.address,
     location.event.id
   )
+}
+
+function buildRangeDeleteCommand(
+  score: Score,
+  selection: Extract<EditorSelection, { type: 'range' }>
+): ScoreCommand | undefined {
+  const locations = selection.eventIds.map((eventId) =>
+    locateEvent(score, eventId)
+  )
+
+  if (locations.some((location) => !location)) {
+    return undefined
+  }
+
+  const first = locations[0]
+
+  if (
+    !first ||
+    !locations.every(
+      (location) =>
+        location &&
+        sameVoiceAddress(first.address, location.address) &&
+        first.address.measureId === location.address.measureId
+    )
+  ) {
+    return undefined
+  }
+
+  let nextScore = score
+  const commands: ScoreCommand[] = []
+
+  for (const eventId of [...selection.eventIds].reverse()) {
+    const location = locateEvent(nextScore, eventId)
+
+    if (!location || !sameVoiceAddress(first.address, location.address)) {
+      return undefined
+    }
+
+    const command = buildRhythmDeleteCommand(
+      nextScore,
+      location.address,
+      location.event.id
+    )
+
+    if (!command) {
+      return undefined
+    }
+
+    try {
+      nextScore = applyScoreCommand(nextScore, command).score
+    } catch {
+      return undefined
+    }
+
+    commands.push(command)
+  }
+
+  if (commands.length === 0) {
+    return undefined
+  }
+
+  return commands.length === 1
+    ? commands[0]
+    : {
+        type: 'score.batch',
+        commands
+      }
 }
 
 export function getAdjacentEventId(

@@ -1025,19 +1025,26 @@ const App = () => {
   }, [eventLocation, executeCommand, score, selection])
 
   const clearSelection = useCallback(() => {
-    if (selection.type !== 'event' || !eventLocation) {
+    if (
+      (selection.type !== 'event' && selection.type !== 'range') ||
+      !eventLocation
+    ) {
       return
     }
 
     const command = buildDeleteCommand(score, selection)
 
     if (!command) {
-      setFileStatus({
-        tone: 'error',
-        message:
-          eventLocation.event.duration.tuplet
+      const message =
+        selection.type === 'range'
+          ? '같은 마디의 연속 범위만 안정적으로 지울 수 있습니다.'
+          : eventLocation.event.duration.tuplet
             ? '잇단음표 구성음은 아직 따로 지울 수 없습니다.'
             : '선택한 음표 또는 쉼표를 이 위치에서는 지울 수 없습니다.'
+
+      setFileStatus({
+        tone: 'error',
+        message
       })
       return
     }
@@ -1055,11 +1062,21 @@ const App = () => {
     ])
     setRedoStack([])
     setNoteInputState(undefined)
-    setSelection(resolveSelectionAfterClear(score, result.score, selection.eventId))
+    setSelection(
+      resolveSelectionAfterClear(
+        score,
+        result.score,
+        selection.type === 'range'
+          ? selection.eventIds[selection.eventIds.length - 1]
+          : selection.eventId
+      )
+    )
     setFileStatus({
       tone: 'neutral',
       message:
-        eventLocation.event.type === 'rest'
+        selection.type === 'range'
+          ? `${selection.eventIds.length}개 이벤트를 지웠습니다.`
+          : eventLocation.event.type === 'rest'
           ? '쉼표를 지웠습니다.'
           : '음표를 지웠습니다.'
     })
@@ -1601,11 +1618,13 @@ const App = () => {
   const canEditPitch = eventLocation?.event.type === 'note'
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
   const clearSelectionLabel =
-    eventLocation?.event.type === 'rest'
+    selection.type === 'range'
+      ? '선택 범위 지우기'
+      : eventLocation?.event.type === 'rest'
       ? '쉼표 지우기'
       : '음표 지우기'
   const canClearSelection =
-    selection.type === 'event' &&
+    (selection.type === 'event' || selection.type === 'range') &&
     Boolean(buildDeleteCommand(score, selection))
 
   return (

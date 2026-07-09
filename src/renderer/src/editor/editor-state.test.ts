@@ -646,6 +646,59 @@ describe('editor state', () => {
       ])
     )
   })
+
+  it('deletes a same-measure range as one undoable rhythm edit', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      rest('rest-1', TICKS_PER_QUARTER, 'quarter'),
+      rest('rest-2', TICKS_PER_QUARTER * 2, 'quarter'),
+      note('note-2', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const selection = createRangeSelection(score, 'rest-1', 'rest-2')
+    const command = buildDeleteCommand(score, selection!)
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+
+    expect(selection).toMatchObject({
+      type: 'range',
+      eventIds: ['rest-1', 'rest-2']
+    })
+    expect(command).toMatchObject({
+      type: 'score.batch'
+    })
+    expect(measure.voices[0].events).toHaveLength(3)
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'note-1',
+        type: 'note',
+        duration: { value: 'quarter' },
+        ties: { start: true }
+      },
+      {
+        id: 'rest-1',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER },
+        duration: { value: 'half' },
+        ties: { stop: true }
+      },
+      {
+        id: 'note-2',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER * 3 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('rejects range deletion across measure boundaries', () => {
+    const selection = createRangeSelection(demoScore, 'note-f-sharp-4', 'note-g4')
+
+    expect(selection).toMatchObject({
+      type: 'range'
+    })
+    expect(buildDeleteCommand(demoScore, selection!)).toBeUndefined()
+  })
 })
 
 function readEvent(score: Score, eventId: string) {

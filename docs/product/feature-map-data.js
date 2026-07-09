@@ -209,8 +209,14 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/tuplets.md"]
           },
           {
-            name: "범위 선택 기반 삭제와 일괄 편집",
-            status: "부분 지원",
+            name: "범위 선택 기반 삭제",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/range-selection.feature"],
+            docs: ["docs/architecture/measure-selection.md"]
+          },
+          {
+            name: "범위 선택 기반 복사·붙여넣기와 일괄 편집",
+            status: "미지원",
             acceptance: ["docs/product/acceptance/range-selection.feature"],
             docs: ["docs/architecture/measure-selection.md"]
           }
