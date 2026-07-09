@@ -10,6 +10,7 @@ Feature: 쉼표를 음표로 바꾸기
     Given 앱이 편집 가능한 단성부 악보를 열어 둔다
     And 현재 입력 음가는 "quarter"이다
 
+  @scenario-rest-to-note-convert-selected-rest
   Scenario Outline: 선택된 쉼표에 음이름을 입력하면 같은 음가의 음표로 바뀐다
     Given <time_signature> 악보의 <measure_number>번째 마디에 <rest_duration> 쉼표가 선택되어 있다
     And 선택된 쉼표의 시작 위치는 <start_beat>이다
@@ -26,7 +27,7 @@ Feature: 쉼표를 음표로 바꾸기
       | "4/4"          | 1              | "eighth"      | 2.5        | "G"       | "G4"       |
       | "3/4"          | 2              | "half"        | 2          | "A"       | "A4"       |
 
-  @korean-input
+  @korean-input @scenario-rest-to-note-korean-input
   Scenario: 한글 입력 상태에서도 물리 음이름 키로 쉼표를 음표로 바꾼다
     Given "4/4" 악보의 1번째 마디에 "quarter" 쉼표가 선택되어 있다
     And 사용자의 키보드 입력기가 한글 상태이다
@@ -35,7 +36,7 @@ Feature: 쉼표를 음표로 바꾸기
     And 선택된 이벤트의 음가는 "quarter"이다
     And 1번째 마디의 전체 박자 길이는 변하지 않는다
 
-  @discussion
+  @discussion @scenario-rest-to-note-full-measure-rest
   Scenario Outline: 온마디쉼표 표기는 실제 마디 길이에 맞는 음표로 바뀐다
     Given <time_signature> 악보의 <measure_number>번째 마디가 온마디쉼표 표기로 비어 있다
     And 그 온마디쉼표가 선택되어 있다

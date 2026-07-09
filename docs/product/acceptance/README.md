@@ -12,8 +12,9 @@
   부분을 지적한다.
 - 시나리오는 구현 지시서가 아니라, 사용자가 어떤 행동을 했을 때 무엇을
   통과로 볼지 합의하는 문서다.
-- Cucumber 같은 실행 도구와의 결합은 나중에 검토한다. 지금은 Gherkin 문법을
-  협업 언어로 사용한다.
+- Cucumber 같은 실행 도구와의 결합은 보류한다. 지금은 Gherkin 문법을 협업
+  언어로 사용하고, 자동화가 필요한 시나리오는 `automation-map.json`에서
+  Vitest 테스트와 연결한다.
 
 ## 작업 방식
 
@@ -33,9 +34,30 @@
 ## 기존 문서와의 관계
 
 - `docs/product/acceptance/*.feature`: 현재 작업 검토의 핵심 문서.
+- `docs/product/acceptance/automation-map.json`: 자동 검증과 연결한 시나리오 ID
+  목록. 모든 시나리오가 여기에 있어야 하는 것은 아니며, 회귀 위험이 큰 흐름부터
+  추가한다.
 - `docs/product/feature-map.md`: 현재 제품 기능 영역과 상태를 보는 지도.
 - `docs/product/agent-workflow.md`: AI Agent가 시나리오를 언제 확인하고 갱신할지
   정리한 절차.
+
+## 자동화 파일럿
+
+`rest-to-note.feature`를 기준으로 세 가지 방식을 비교했다.
+
+- Cucumber + step definitions: Gherkin과 테스트를 강하게 결합할 수 있지만, 현재는
+  step 유지비가 기능 규모보다 크다.
+- Electron 검증 스크립트와 태그 매핑: 실제 앱 흐름 검증에는 적합하지만, 모든
+  편집 규칙을 데스크톱 smoke test로 옮기면 느리고 불안정해진다.
+- Vitest 시나리오 ID 매핑: 기존 단위 테스트와 회귀 테스트를 유지하면서 feature
+  문서의 태그와 테스트 케이스명을 연결할 수 있다.
+
+현재 결론은 Vitest 시나리오 ID 매핑을 우선 적용하는 것이다. `.feature` 파일에는
+`@scenario-*` 태그를 붙이고, 대응 테스트명에는 `rest-to-note.convert-selected-rest`
+같은 안정적인 ID를 포함한다. `src/testing/acceptance-traceability.test.ts`는
+`automation-map.json`의 태그와 테스트 ID가 실제 파일에 남아 있는지만 확인한다.
+이 테스트는 Gherkin 문장을 실행하지 않고, 문서와 테스트의 연결이 끊기는 것을
+막는 용도다.
 
 ## 파일 작성 규칙
 
@@ -44,6 +66,8 @@
 - 정상 흐름을 먼저 쓰고, 중요한 경계 조건만 추가한다.
 - 아직 합의가 필요한 시나리오는 `@discussion` 태그를 붙인다.
 - 자동화되지 않은 시나리오라도 실제 검토 기준으로 유효하면 남긴다.
+- 자동 테스트와 연결한 시나리오는 `@scenario-*` 태그와
+  `automation-map.json` 항목을 함께 갱신한다.
 
 ## 현재 시나리오
 

@@ -25,7 +25,7 @@ describe('pitch editing commands', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
   })
 
-  it('turns a selected rest into a same-duration note', () => {
+  it('[rest-to-note.convert-selected-rest] turns a selected rest into a same-duration note', () => {
     const selection = { type: 'event' as const, eventId: 'rest-half' }
     const command = buildPitchStepCommand(demoScore, selection, 'A')
     const result = applyScoreCommand(demoScore, command!)
