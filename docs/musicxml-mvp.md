@@ -55,6 +55,10 @@ divisions 값은 score-core의 `TICKS_PER_QUARTER`와 같은 13,440이며,
 박자표 길이를 정확히 채워야 하며, 못갖춘마디는 `implicit="yes"`와 실제
 duration을 통해 score-core의 pickup timing을 보존한다.
 
+생성 후 조표를 변경할 때는 기존 음표의 실제 pitch 의미를 보존한다. 새 조표에서
+암묵적으로 표현되지 않는 pitch는 명시 임시표로 기록하며, MusicXML export/import
+round-trip 후에도 조표와 pitch 의미가 유지되어야 한다.
+
 ## Fixture
 
 `src/musicxml/fixtures/single-part-treble.musicxml`은 단일 피아노 part,
