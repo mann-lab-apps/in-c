@@ -365,6 +365,64 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports slurs', () => {
+    const score = createScore({
+      title: 'Slur Sketch',
+      slurs: [
+        {
+          id: 'slur-phrase',
+          startEventId: 'note-slur-start',
+          endEventId: 'note-slur-end'
+        }
+      ],
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-slur-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'note-slur-end',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<slur type="start"/>')
+    expect(exported).toContain('<slur type="stop"/>')
+    expect(roundTrip.slurs).toEqual([
+      {
+        id: 'slur-1',
+        startEventId: 'event-1',
+        endEventId: 'event-2'
+      }
+    ])
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

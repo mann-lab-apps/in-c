@@ -1596,6 +1596,59 @@ const App = () => {
     [executeCommand, score, selection]
   )
 
+  const toggleSlur = useCallback(() => {
+    if (selection.type !== 'range' || selection.eventIds.length < 2) {
+      setFileStatus({
+        tone: 'error',
+        message: '슬러로 묶을 음표 범위를 선택해 주세요.'
+      })
+      return
+    }
+
+    const startEventId = selection.eventIds[0]
+    const endEventId = selection.eventIds[selection.eventIds.length - 1]
+    const startLocation = locateEvent(score, startEventId)
+    const endLocation = locateEvent(score, endEventId)
+
+    if (
+      !startLocation ||
+      !endLocation ||
+      startLocation.event.type !== 'note' ||
+      endLocation.event.type !== 'note'
+    ) {
+      setFileStatus({
+        tone: 'error',
+        message: '슬러는 음표에서 시작하고 음표에서 끝나야 합니다.'
+      })
+      return
+    }
+
+    const currentSlurs = score.slurs ?? []
+    const matchingSlur = currentSlurs.find(
+      (slur) =>
+        slur.startEventId === startEventId && slur.endEventId === endEventId
+    )
+    const slurs = matchingSlur
+      ? currentSlurs.filter((slur) => slur.id !== matchingSlur.id)
+      : [
+          ...currentSlurs,
+          {
+            id: `slur-${crypto.randomUUID()}`,
+            startEventId,
+            endEventId
+          }
+        ]
+
+    executeCommand({
+      type: 'score-slurs.update',
+      slurs: slurs.length > 0 ? slurs : undefined
+    })
+    setFileStatus({
+      tone: 'neutral',
+      message: matchingSlur ? '슬러를 해제했습니다.' : '슬러를 추가했습니다.'
+    })
+  }, [executeCommand, score, selection])
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -2455,6 +2508,13 @@ const App = () => {
                   </button>
                 </div>
               </div>
+              <button
+                className="inspector-properties__command"
+                onClick={toggleSlur}
+                type="button"
+              >
+                슬러 토글
+              </button>
             </section>
           ) : null}
 

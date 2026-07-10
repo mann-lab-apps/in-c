@@ -344,6 +344,21 @@ window.FEATURE_MAP = [
             docs: []
           },
           {
+            name: "같은 system 안의 슬러",
+            status: "지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/note-input.feature"
+            ],
+            docs: []
+          },
+          {
+            name: "시스템 경계와 중첩 슬러",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: []
+          },
+          {
             name: "스타카토와 악센트 아티큘레이션",
             status: "지원",
             acceptance: [

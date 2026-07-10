@@ -161,6 +161,12 @@ export interface Hairpin {
   type: HairpinType
 }
 
+export interface Slur {
+  id: string
+  startEventId: VoiceEventId
+  endEventId: VoiceEventId
+}
+
 export interface Score {
   id: ScoreId
   title: string
@@ -170,6 +176,7 @@ export interface Score {
   staffTexts?: StaffText[]
   dynamics?: DynamicMark[]
   hairpins?: Hairpin[]
+  slurs?: Slur[]
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -216,6 +223,10 @@ export type ScoreCommand =
   | {
       type: 'score-hairpins.update'
       hairpins?: Hairpin[]
+    }
+  | {
+      type: 'score-slurs.update'
+      slurs?: Slur[]
     }
   | {
       type: 'score-layout.update'
