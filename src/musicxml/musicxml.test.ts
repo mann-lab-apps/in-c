@@ -134,6 +134,30 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports rehearsal marks', () => {
+    const score = createScore({
+      title: 'Marked Sketch',
+      rehearsalMarks: [
+        {
+          id: 'rehearsal-a',
+          measureId: 'measure-1',
+          text: 'A'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<rehearsal>A</rehearsal>')
+    expect(roundTrip.rehearsalMarks).toEqual([
+      {
+        id: 'measure-1-rehearsal-1',
+        measureId: 'measure-1',
+        text: 'A'
+      }
+    ])
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

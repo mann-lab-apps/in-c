@@ -121,6 +121,10 @@ export function NotationPreview({
       drawTempoMarking(svg, score.tempo.text ?? `♩ = ${score.tempo.bpm}`)
     }
 
+    const rehearsalMarksByMeasureId = new Map(
+      (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
+    )
+
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
       const previousPlacement = layout.placements[placementIndex - 1]
@@ -181,6 +185,12 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+
+      const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
+
+      if (svg && rehearsalMark) {
+        drawRehearsalMark(svg, placement.x + 18, placement.y - 28, rehearsalMark.text)
+      }
 
       const voices = measure.voices.map((voice) => {
         const events = sortVoiceEvents(voice.events)
@@ -435,6 +445,30 @@ function drawTempoMarking(svg: SVGSVGElement, label: string): void {
   text.setAttribute('y', '22')
   text.textContent = label
   svg.append(text)
+}
+
+function drawRehearsalMark(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+  const width = Math.max(24, label.length * 10 + 14)
+
+  group.classList.add('notation-rehearsal-mark')
+  rect.setAttribute('x', String(x))
+  rect.setAttribute('y', String(y))
+  rect.setAttribute('width', String(width))
+  rect.setAttribute('height', '24')
+  rect.setAttribute('rx', '3')
+  text.setAttribute('x', String(x + width / 2))
+  text.setAttribute('y', String(y + 17))
+  text.textContent = label
+  group.append(rect, text)
+  svg.append(group)
 }
 
 function drawTie(

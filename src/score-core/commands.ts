@@ -17,6 +17,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreMetadata(score, command.title, command.composer)
     case 'score-tempo.update':
       return updateScoreTempo(score, command.tempo)
+    case 'score-rehearsal-marks.update':
+      return updateScoreRehearsalMarks(score, command.rehearsalMarks)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -53,6 +55,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreRehearsalMarks(
+  score: Score,
+  rehearsalMarks: Score['rehearsalMarks']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      rehearsalMarks
+    },
+    undo: {
+      type: 'score-rehearsal-marks.update',
+      rehearsalMarks: score.rehearsalMarks
+    }
   }
 }
 

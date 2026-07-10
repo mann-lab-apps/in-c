@@ -66,3 +66,10 @@ Feature: 악보를 읽기 좋게 배치하기
     And 화면 렌더링은 page break를 system break보다 강한 layout hint로 취급한다
     When 사용자가 같은 마디에서 페이지 나누기를 다시 실행한다
     Then 수동 page break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
+
+  Scenario: 선택한 마디에 리허설 마크를 입력한다
+    Given 여러 마디가 있는 단성부 악보가 열려 있다
+    And 마디가 선택되어 있다
+    When 사용자가 리허설 마크 "A"를 입력한다
+    Then 선택한 마디 위에는 박스 형태의 "A" 마크가 표시된다
+    And MusicXML로 내보냈다가 다시 가져와도 리허설 마크가 유지된다

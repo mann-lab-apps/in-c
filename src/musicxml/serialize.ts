@@ -77,6 +77,7 @@ export function serializeMusicXml(score: Score): string {
         measure: staff.measures.map((measure) => {
           const voice = measure.voices[0]
           const tupletBoundaries = createTupletBoundaries(voice)
+          const directions = buildMeasureDirections(score, measure)
 
           return {
             '@_number': measure.number,
@@ -86,9 +87,9 @@ export function serializeMusicXml(score: Score): string {
                 }
               : {}),
             attributes: buildAttributes(measure),
-            ...(measure.number === 1 && score.tempo
+            ...(directions.length > 0
               ? {
-                  direction: buildTempoDirection(score.tempo.bpm)
+                  direction: directions
                 }
               : {}),
             note: sortVoiceEvents(voice.events).map((event) =>
@@ -108,6 +109,17 @@ export function serializeMusicXml(score: Score): string {
   return builder.build(document)
 }
 
+function buildMeasureDirections(score: Score, measure: Measure) {
+  return [
+    ...(measure.number === 1 && score.tempo
+      ? [buildTempoDirection(score.tempo.bpm)]
+      : []),
+    ...(score.rehearsalMarks ?? [])
+      .filter((mark) => mark.measureId === measure.id)
+      .map((mark) => buildRehearsalDirection(mark.text))
+  ]
+}
+
 function buildTempoDirection(bpm: number) {
   return {
     '@_placement': 'above',
@@ -119,6 +131,17 @@ function buildTempoDirection(bpm: number) {
     },
     sound: {
       '@_tempo': bpm
+    }
+  }
+}
+
+function buildRehearsalDirection(text: string) {
+  return {
+    '@_placement': 'above',
+    'direction-type': {
+      rehearsal: {
+        '#text': text
+      }
     }
   }
 }

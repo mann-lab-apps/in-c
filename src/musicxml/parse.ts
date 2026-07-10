@@ -209,12 +209,14 @@ export function parseMusicXml(xml: string): Score {
     'Imported score'
   const composer = readComposer(root)
   const tempo = readTempoMarking(measureNodes)
+  const rehearsalMarks = readRehearsalMarks(measureNodes)
 
   const score = createScore({
     id: 'musicxml-score',
     title,
     composer,
     tempo,
+    rehearsalMarks,
     parts: [
       createPart({
         id: partId,
@@ -277,6 +279,38 @@ function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
   }
 
   return undefined
+}
+
+function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
+  const marks = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const directionType = readOptionalNode(direction, 'direction-type')
+      const rehearsal = directionType
+        ? readOptionalString(directionType, 'rehearsal')
+        : undefined
+
+      if (!rehearsal) {
+        return []
+      }
+
+      return [
+        {
+          id: `${measureId}-rehearsal-${directionIndex + 1}`,
+          measureId,
+          text: rehearsal
+        }
+      ]
+    })
+  })
+
+  return marks.length > 0 ? marks : undefined
 }
 
 function readVoiceEvent(
