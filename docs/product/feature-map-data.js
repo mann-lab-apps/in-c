@@ -88,6 +88,12 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/note-input-state.md"]
           },
           {
+            name: "Inspector 선택 이벤트 속성 편집",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: ["docs/product/acceptance/note-input.feature"]
+          },
+          {
             name: "선택 쉼표를 음표로 변환",
             status: "지원",
             acceptance: ["docs/product/acceptance/rest-to-note.feature"],

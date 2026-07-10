@@ -1778,6 +1778,10 @@ const App = () => {
     [noteInputState, score]
   )
   const canEditPitch = eventLocation?.event.type === 'note'
+  const selectedPitchAlter =
+    eventLocation?.event.type === 'note'
+      ? eventLocation.event.pitch.alter ?? 0
+      : undefined
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
   const clearSelectionLabel =
     selection.type === 'range'
@@ -1976,6 +1980,91 @@ const App = () => {
               </dd>
             </div>
           </dl>
+
+          <section className="inspector-properties" aria-label="선택 속성">
+            <h3>속성</h3>
+            {eventLocation ? (
+              <div className="inspector-properties__grid">
+                <label>
+                  <span>음가</span>
+                  <select
+                    aria-label="선택 이벤트 음가"
+                    onChange={(event) =>
+                      changeDuration(event.target.value as DurationValue)
+                    }
+                    value={eventLocation.event.duration.value}
+                  >
+                    {(['whole', 'half', 'quarter', 'eighth', '16th'] as const).map(
+                      (value) => (
+                        <option key={value} value={value}>
+                          {durationLabels[value]}
+                        </option>
+                      )
+                    )}
+                  </select>
+                </label>
+
+                <div className="inspector-properties__row">
+                  <span>점</span>
+                  <div className="inspector-properties__buttons">
+                    <button
+                      disabled={!canRemoveDot}
+                      onClick={() => changeDots(-1)}
+                      type="button"
+                    >
+                      -
+                    </button>
+                    <output>{eventLocation.event.duration.dots}</output>
+                    <button
+                      disabled={!canAddDot}
+                      onClick={() => changeDots(1)}
+                      type="button"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="inspector-properties__row">
+                  <span>임시표</span>
+                  <div className="inspector-properties__buttons">
+                    {([
+                      [-1, '♭', '플랫'],
+                      [0, '♮', '제자리표'],
+                      [1, '♯', '샤프']
+                    ] as const).map(([alter, symbol, label]) => (
+                      <button
+                        aria-label={label}
+                        aria-pressed={selectedPitchAlter === alter}
+                        className={
+                          selectedPitchAlter === alter ? 'is-active' : undefined
+                        }
+                        disabled={!canEditPitch}
+                        key={alter}
+                        onClick={() => changeAccidental(alter)}
+                        type="button"
+                      >
+                        {symbol}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  className="inspector-properties__command"
+                  disabled={eventLocation.event.type !== 'note'}
+                  onClick={convertSelectionToRest}
+                  type="button"
+                >
+                  쉼표로 변환
+                </button>
+              </div>
+            ) : (
+              <p className="inspector-properties__empty">
+                음표나 쉼표를 선택하면 편집 가능한 속성이 표시됩니다.
+              </p>
+            )}
+          </section>
         </section>
       </aside>
 
