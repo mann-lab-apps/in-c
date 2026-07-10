@@ -296,7 +296,13 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/measure-systems.md"]
           },
           {
-            name: "수동 page break와 페이지 설정",
+            name: "수동 page break",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: ["docs/architecture/measure-systems.md"]
+          },
+          {
+            name: "페이지 크기, 여백, PDF 페이지 설정",
             status: "미지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: ["docs/architecture/measure-systems.md"]

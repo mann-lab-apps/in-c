@@ -265,8 +265,15 @@ const App = () => {
     () => new Set(score.layout?.systemBreakBeforeMeasureIds ?? []),
     [score.layout?.systemBreakBeforeMeasureIds]
   )
+  const pageBreakIds = useMemo(
+    () => new Set(score.layout?.pageBreakBeforeMeasureIds ?? []),
+    [score.layout?.pageBreakBeforeMeasureIds]
+  )
   const activeMeasureHasSystemBreak = activeMeasureId
     ? systemBreakIds.has(activeMeasureId)
+    : false
+  const activeMeasureHasPageBreak = activeMeasureId
+    ? pageBreakIds.has(activeMeasureId)
     : false
   const activeDots =
     noteInputState?.duration.dots ??
@@ -1276,6 +1283,45 @@ const App = () => {
     score.layout
   ])
 
+  const togglePageBreak = useCallback(() => {
+    if (!activeMeasureId || activeMeasureIndex <= 0) {
+      setFileStatus({
+        tone: 'error',
+        message: '첫 마디 앞에는 페이지 나누기를 추가할 수 없습니다.'
+      })
+      return
+    }
+
+    const currentBreaks = score.layout?.pageBreakBeforeMeasureIds ?? []
+    const nextBreaks = activeMeasureHasPageBreak
+      ? currentBreaks.filter((measureId) => measureId !== activeMeasureId)
+      : [...currentBreaks, activeMeasureId]
+    const layout = {
+      ...score.layout,
+      pageBreakBeforeMeasureIds: nextBreaks.length > 0 ? nextBreaks : undefined
+    }
+
+    if (
+      executeCommand({
+        type: 'score-layout.update',
+        layout
+      })
+    ) {
+      setFileStatus({
+        tone: 'neutral',
+        message: activeMeasureHasPageBreak
+          ? '페이지 나누기를 해제했습니다.'
+          : '선택한 마디 앞에 페이지 나누기를 추가했습니다.'
+      })
+    }
+  }, [
+    activeMeasureHasPageBreak,
+    activeMeasureId,
+    activeMeasureIndex,
+    executeCommand,
+    score.layout
+  ])
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -1801,6 +1847,10 @@ const App = () => {
   const systemBreakLabel = activeMeasureHasSystemBreak
     ? '시스템 나누기 해제'
     : '시스템 나누기 추가'
+  const canTogglePageBreak = activeMeasureIndex > 0
+  const pageBreakLabel = activeMeasureHasPageBreak
+    ? '페이지 나누기 해제'
+    : '페이지 나누기 추가'
 
   return (
     <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
@@ -2196,6 +2246,18 @@ const App = () => {
               type="button"
             >
               <ChevronsDown aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label={pageBreakLabel}
+              aria-pressed={activeMeasureHasPageBreak}
+              className="icon-button"
+              disabled={!canTogglePageBreak}
+              onClick={togglePageBreak}
+              title={pageBreakLabel}
+              type="button"
+            >
+              <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
             <div className="accidental-control" aria-label="임시표">

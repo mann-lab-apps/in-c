@@ -56,3 +56,18 @@ cursor 좌표를 다시 계산한다.
 
 현재 구현은 수동 system break만 지원한다. page break, page size, margin,
 orientation, MusicXML print/layout round-trip은 별도 후속 범위로 둔다.
+
+## 수동 페이지 나누기
+
+문서 layout hint는 `Score.layout.pageBreakBeforeMeasureIds`에 저장한다.
+각 ID는 해당 마디 앞에서 새 page를 시작하라는 의미다.
+
+- 첫 마디 앞의 page break는 무시한다.
+- page break는 system break보다 강한 layout hint다. 현재 화면 렌더링에서는
+  새 페이지의 첫 system을 시작하는 방식으로 반영한다.
+- 자동 줄바꿈은 page break 이후에도 계속 적용된다.
+- page break는 음악 시간, 재생, MusicXML 음표 의미를 바꾸지 않는다.
+
+현재 구현은 화면 system 배치와 편집 힌트 저장을 우선 지원한다. page size,
+margin, orientation, 실제 PDF 페이지 분할과 MusicXML print/layout
+round-trip은 후속 범위로 둔다.

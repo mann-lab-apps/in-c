@@ -132,6 +132,7 @@ export interface Score {
 
 export interface ScoreLayout {
   systemBreakBeforeMeasureIds?: MeasureId[]
+  pageBreakBeforeMeasureIds?: MeasureId[]
 }
 
 export interface VoiceAddress {
