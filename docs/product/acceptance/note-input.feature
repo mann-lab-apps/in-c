@@ -36,6 +36,18 @@ Feature: 음표와 쉼표를 입력하기
     And 선택된 이벤트의 시작 위치는 변하지 않는다
     And 마디의 전체 박자 길이는 변하지 않는다
 
+  Scenario: Inspector에서 선택 이벤트 속성을 수정한다
+    Given "quarter" "C4" 음표가 선택되어 있다
+    When 사용자가 Inspector에서 음가를 "eighth"로 바꾼다
+    Then 선택된 이벤트는 "eighth" 음가가 된다
+    When 사용자가 Inspector에서 점을 추가한다
+    Then 선택된 이벤트에는 점이 추가된다
+    When 사용자가 Inspector에서 샤프를 선택한다
+    Then 선택된 이벤트에는 샤프가 적용된다
+    When 사용자가 Inspector에서 쉼표로 변환을 실행한다
+    Then 선택된 이벤트는 같은 위치와 음가의 쉼표가 된다
+    And 각 변경은 Undo로 되돌릴 수 있다
+
   Scenario: 마지막 이벤트 뒤 입력 커서에서 새 음표와 쉼표를 추가한다
     Given 마지막 이벤트가 선택되어 있다
     When 사용자가 오른쪽 화살표를 누른다
