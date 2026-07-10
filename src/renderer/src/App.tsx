@@ -57,6 +57,7 @@ import {
   buildDurationCommand,
   buildRangeClipboard,
   buildRangePasteCommand,
+  buildRangeRestCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
   createRangeSelection,
@@ -995,6 +996,25 @@ const App = () => {
   }, [durationValue, executeCommand, noteInputState, score, selection])
 
   const convertSelectionToRest = useCallback(() => {
+    if (selection.type === 'range') {
+      if (executeCommand(buildRangeRestCommand(score, selection))) {
+        setMode('select')
+        setNoteInputState(undefined)
+        setFileStatus({
+          tone: 'neutral',
+          message: `${selection.eventIds.length}개 선택 범위를 쉼표로 바꿨습니다.`
+        })
+        return
+      }
+
+      setFileStatus({
+        tone: 'error',
+        message:
+          '같은 마디의 단순 범위만 쉼표로 바꿀 수 있습니다. 타이와 셋잇단음표는 아직 제외됩니다.'
+      })
+      return
+    }
+
     if (selection.type !== 'event' || !eventLocation) {
       setFileStatus({
         tone: 'error',

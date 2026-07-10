@@ -24,6 +24,7 @@ import {
   buildNoteEntryCommand,
   buildRangeClipboard,
   buildRangePasteCommand,
+  buildRangeRestCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
   createRangeSelection,
@@ -765,6 +766,78 @@ describe('editor state', () => {
       clipboard!,
       idSequence('unused')
     )).toBeUndefined()
+  })
+
+  it('converts selected notes in a range to rests as one edit', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      note('note-2', TICKS_PER_QUARTER, 'quarter'),
+      rest('rest-1', TICKS_PER_QUARTER * 2, 'quarter'),
+      note('note-3', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const selection = createRangeSelection(score, 'note-1', 'rest-1')
+    const command = buildRangeRestCommand(score, selection!)
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+
+    expect(command).toMatchObject({
+      type: 'voice-events.replace',
+      editedEventId: 'note-1'
+    })
+    expect(measure.voices[0].events).toMatchObject([
+      { id: 'note-1', type: 'rest', position: { tick: 0 } },
+      {
+        id: 'note-2',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER }
+      },
+      {
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      },
+      {
+        id: 'note-3',
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER * 3 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('rejects range rest conversion when no selected notes change', () => {
+    const score = scoreWith([
+      rest('rest-1', 0, 'quarter'),
+      rest('rest-2', TICKS_PER_QUARTER, 'quarter'),
+      note('note-1', TICKS_PER_QUARTER * 2, 'half')
+    ])
+    const selection = createRangeSelection(score, 'rest-1', 'rest-2')
+
+    expect(buildRangeRestCommand(score, selection!)).toBeUndefined()
+  })
+
+  it('rejects range rest conversion when selected notes are tied', () => {
+    const score = scoreWith([
+      createNote({
+        id: 'note-1',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 },
+        duration: createDuration('quarter'),
+        ties: { start: true }
+      }),
+      createNote({
+        id: 'note-2',
+        position: createTimePosition(TICKS_PER_QUARTER),
+        pitch: { step: 'C', octave: 4 },
+        duration: createDuration('quarter'),
+        ties: { stop: true }
+      }),
+      rest('rest-1', TICKS_PER_QUARTER * 2, 'half')
+    ])
+    const selection = createRangeSelection(score, 'note-1', 'note-2')
+
+    expect(buildRangeRestCommand(score, selection!)).toBeUndefined()
   })
 })
 

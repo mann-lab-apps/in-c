@@ -289,6 +289,75 @@ export function buildRangePasteCommand(
   }
 }
 
+export function buildRangeRestCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const range = locateSameMeasureRange(score, selection)
+
+  if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
+    return undefined
+  }
+
+  const selectedIds = new Set(range.events.map((event) => event.id))
+  const changedEventIds = new Set(
+    range.events
+      .filter((event) => event.type === 'note')
+      .map((event) => event.id)
+  )
+
+  if (changedEventIds.size === 0) {
+    return undefined
+  }
+
+  const nextEvents = sortVoiceEvents(
+    range.voice.events.map((event) => {
+      if (!selectedIds.has(event.id) || event.type === 'rest') {
+        return event
+      }
+
+      return {
+        type: 'rest',
+        id: event.id,
+        position: event.position,
+        duration: event.duration
+      } satisfies Rest
+    })
+  )
+  const nextMeasure = {
+    ...range.measure,
+    voices: range.measure.voices.map((voice) =>
+      voice.id === range.address.voiceId
+        ? {
+            ...voice,
+            events: nextEvents
+          }
+        : voice
+    )
+  }
+
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets({
+      ...range.voice,
+      events: nextEvents
+    }).length > 0
+  ) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: range.address,
+    events: nextEvents,
+    editedEventId: range.events[0].id
+  }
+}
+
 export function buildNoteEntryCommand(
   score: Score,
   selection: EditorSelection,
