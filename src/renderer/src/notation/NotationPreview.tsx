@@ -440,21 +440,31 @@ export function NotationPreview({
     })
 
     if (svg) {
-      for (const slur of score.slurs ?? []) {
+      ;(score.slurs ?? []).forEach((slur, slurIndex) => {
         const start = pointsByEventId.get(slur.startEventId)
         const end = pointsByEventId.get(slur.endEventId)
+        const startSystem = systemsByEventId.get(slur.startEventId)
+        const endSystem = systemsByEventId.get(slur.endEventId)
 
         if (
           !start ||
           !end ||
-          systemsByEventId.get(slur.startEventId) !==
-            systemsByEventId.get(slur.endEventId)
+          startSystem === undefined ||
+          endSystem === undefined
         ) {
-          continue
+          return
         }
 
-        drawSlur(svg, start, end)
-      }
+        drawSlurSegments(
+          svg,
+          start,
+          end,
+          startSystem,
+          endSystem,
+          boundsBySystemIndex,
+          slurIndex
+        )
+      })
 
       for (const hairpin of score.hairpins ?? []) {
         const start = pointsByEventId.get(hairpin.startEventId)
@@ -678,16 +688,60 @@ function drawHairpinSegment(
   svg.append(group)
 }
 
-function drawSlur(svg: SVGSVGElement, start: CursorPoint, end: CursorPoint): void {
+function drawSlurSegments(
+  svg: SVGSVGElement,
+  start: CursorPoint,
+  end: CursorPoint,
+  startSystem: number,
+  endSystem: number,
+  boundsBySystemIndex: Map<number, SystemBounds>,
+  slurIndex: number
+): void {
+  const firstSystem = Math.min(startSystem, endSystem)
+  const lastSystem = Math.max(startSystem, endSystem)
+
+  for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
+    const bounds = boundsBySystemIndex.get(systemIndex)
+
+    if (!bounds) {
+      continue
+    }
+
+    const isFirst = systemIndex === startSystem
+    const isLast = systemIndex === endSystem
+    const x1 = isFirst ? start.x + 6 : bounds.x1 + 22
+    const x2 = isLast ? Math.max(x1 + 28, end.x + 12) : bounds.x2 - 18
+
+    if (x2 <= x1 + 8) {
+      continue
+    }
+
+    drawSlurSegment(svg, x1, x2, bounds.y, slurIndex, isFirst, isLast)
+  }
+}
+
+function drawSlurSegment(
+  svg: SVGSVGElement,
+  x1: number,
+  x2: number,
+  staffY: number,
+  slurIndex: number,
+  isFirst: boolean,
+  isLast: boolean
+): void {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  const x1 = start.x + 6
-  const x2 = Math.max(x1 + 28, end.x + 12)
-  const y = Math.min(start.y, end.y) - 10
+  const offset = (slurIndex % 3) * 8
+  const y = staffY - 10 - offset
   const controlX = (x1 + x2) / 2
-  const controlY = y - 26
+  const controlY = y - 26 - offset
+  const startX = isFirst ? x1 : x1 - 8
+  const endX = isLast ? x2 : x2 + 8
 
   path.classList.add('notation-slur')
-  path.setAttribute('d', `M ${x1} ${y} Q ${controlX} ${controlY} ${x2} ${y}`)
+  path.setAttribute(
+    'd',
+    `M ${startX} ${y} Q ${controlX} ${controlY} ${endX} ${y}`
+  )
   svg.append(path)
 }
 

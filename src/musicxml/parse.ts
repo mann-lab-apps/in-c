@@ -511,7 +511,8 @@ function readSlurs(
         slurs.push({
           id: `slur-${slurs.length + 1}`,
           startEventId,
-          endEventId: event.id
+          endEventId: event.id,
+          number: parseSlurNumber(number)
         })
         activeSlurs.delete(number)
       })
@@ -519,6 +520,12 @@ function readSlurs(
   })
 
   return slurs.length > 0 ? slurs : undefined
+}
+
+function parseSlurNumber(value: string): number | undefined {
+  const number = Number.parseInt(value, 10)
+
+  return Number.isInteger(number) && number > 0 ? number : undefined
 }
 
 function readVoiceEvent(
