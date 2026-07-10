@@ -86,6 +86,11 @@ export function serializeMusicXml(score: Score): string {
                 }
               : {}),
             attributes: buildAttributes(measure),
+            ...(measure.number === 1 && score.tempo
+              ? {
+                  direction: buildTempoDirection(score.tempo.bpm)
+                }
+              : {}),
             note: sortVoiceEvents(voice.events).map((event) =>
               buildNote(
                 event,
@@ -101,6 +106,21 @@ export function serializeMusicXml(score: Score): string {
   }
 
   return builder.build(document)
+}
+
+function buildTempoDirection(bpm: number) {
+  return {
+    '@_placement': 'above',
+    'direction-type': {
+      metronome: {
+        'beat-unit': 'quarter',
+        'per-minute': bpm
+      }
+    },
+    sound: {
+      '@_tempo': bpm
+    }
+  }
 }
 
 function buildAttributes(measure: Measure) {

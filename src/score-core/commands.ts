@@ -15,6 +15,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
   switch (command.type) {
     case 'score-metadata.update':
       return updateScoreMetadata(score, command.title, command.composer)
+    case 'score-tempo.update':
+      return updateScoreTempo(score, command.tempo)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -51,6 +53,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreTempo(
+  score: Score,
+  tempo: Score['tempo']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      tempo
+    },
+    undo: {
+      type: 'score-tempo.update',
+      tempo: score.tempo
+    }
   }
 }
 

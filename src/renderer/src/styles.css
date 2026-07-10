@@ -792,6 +792,12 @@ h2 {
   stroke: currentColor;
 }
 
+.notation-tempo-marking {
+  fill: #111827;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

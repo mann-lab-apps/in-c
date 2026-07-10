@@ -17,6 +17,10 @@ export const demoScore = createScore({
   id: 'renderer-prototype',
   title: '제목 없는 악보',
   composer: 'in-C',
+  tempo: {
+    bpm: 120,
+    text: '♩ = 120'
+  },
   parts: [
     createPart({
       id: 'piano',

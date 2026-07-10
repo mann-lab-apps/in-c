@@ -207,6 +207,10 @@ const metadataMaxLength: Record<MetadataField, number> = {
   composer: 80
 }
 
+const DEFAULT_TEMPO_BPM = 120
+const MIN_TEMPO_BPM = 40
+const MAX_TEMPO_BPM = 240
+
 const App = () => {
   const [score, setScore] = useState(createInitialScore)
   const [selection, setSelection] = useState<EditorSelection>(() =>
@@ -236,6 +240,7 @@ const App = () => {
   const [missingRecentFilePath, setMissingRecentFilePath] = useState<string>()
   const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score)
+  const scoreTempo = score.tempo?.bpm ?? DEFAULT_TEMPO_BPM
 
   const eventLocation = useMemo(
     () => {
@@ -631,11 +636,11 @@ const App = () => {
       partAbbreviation: part.abbreviation,
       keySignature,
       timeSignature,
-      measureCount: newScoreDraft.measureCount
+      measureCount: newScoreDraft.measureCount,
+      tempo: newScoreDraft.tempo
     })
 
     playback.stop()
-    playback.setTempo(newScoreDraft.tempo)
     setScore(nextScore)
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
@@ -653,6 +658,26 @@ const App = () => {
       message: '새 악보를 만들었습니다.'
     })
   }, [newScoreDraft, playback])
+
+  const changeScoreTempo = useCallback(
+    (nextTempo: number) => {
+      const tempo = normalizeNumberInput(
+        nextTempo,
+        MIN_TEMPO_BPM,
+        MAX_TEMPO_BPM,
+        scoreTempo
+      )
+
+      executeCommand({
+        type: 'score-tempo.update',
+        tempo: {
+          bpm: tempo,
+          text: `♩ = ${tempo}`
+        }
+      })
+    },
+    [executeCommand, scoreTempo]
+  )
 
   const changeDuration = useCallback(
     (value: DurationValue) => {
@@ -2496,13 +2521,13 @@ const App = () => {
               max="240"
               min="40"
               onChange={(event) =>
-                playback.setTempo(Number.parseInt(event.target.value, 10))
+                changeScoreTempo(Number.parseInt(event.target.value, 10))
               }
               step="1"
               type="range"
-              value={playback.tempo}
+              value={scoreTempo}
             />
-            <output>{playback.tempo} BPM</output>
+            <output>{scoreTempo} BPM</output>
           </label>
         </div>
 

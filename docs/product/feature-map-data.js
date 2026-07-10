@@ -344,6 +344,18 @@ window.FEATURE_MAP = [
             docs: ["docs/research/single-voice-mvp-requirements.md"]
           },
           {
+            name: "전역 템포 마킹 입력과 MusicXML 왕복",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/playback.feature"],
+            docs: ["docs/research/single-voice-mvp-requirements.md"]
+          },
+          {
+            name: "마디 중간 템포 변경과 tempo map 재생",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/playback.feature"],
+            docs: ["docs/research/single-voice-mvp-requirements.md"]
+          },
+          {
             name: "타이와 셋잇단음표 playback 반영",
             status: "부분 지원",
             acceptance: ["docs/product/acceptance/playback.feature"],

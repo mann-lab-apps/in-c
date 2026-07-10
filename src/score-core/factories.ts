@@ -168,6 +168,7 @@ export function createScore(input?: {
   id?: string
   title?: string
   composer?: string
+  tempo?: Score['tempo']
   layout?: Score['layout']
   parts?: Part[]
 }): Score {
@@ -175,6 +176,7 @@ export function createScore(input?: {
     id: input?.id ?? 'score-1',
     title: input?.title ?? 'Untitled score',
     composer: input?.composer,
+    tempo: input?.tempo,
     layout: input?.layout,
     parts: input?.parts ?? [createPart()]
   }

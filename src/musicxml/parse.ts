@@ -208,11 +208,13 @@ export function parseMusicXml(xml: string): Score {
     readOptionalString(root, 'movement-title') ??
     'Imported score'
   const composer = readComposer(root)
+  const tempo = readTempoMarking(measureNodes)
 
   const score = createScore({
     id: 'musicxml-score',
     title,
     composer,
+    tempo,
     parts: [
       createPart({
         id: partId,
@@ -234,6 +236,47 @@ export function parseMusicXml(xml: string): Score {
   }
 
   return score
+}
+
+function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
+  for (const measureNode of measureNodes) {
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    for (const direction of directions) {
+      const sound = readOptionalNode(direction, 'sound')
+      const soundTempo = sound
+        ? readOptionalNumber(sound, '@_tempo')
+        : undefined
+
+      if (soundTempo !== undefined) {
+        const bpm = normalizeTempo(soundTempo)
+        return {
+          bpm,
+          text: `♩ = ${bpm}`
+        }
+      }
+
+      const directionType = readOptionalNode(direction, 'direction-type')
+      const metronome = directionType
+        ? readOptionalNode(directionType, 'metronome')
+        : undefined
+      const perMinute = metronome
+        ? readOptionalNumber(metronome, 'per-minute')
+        : undefined
+
+      if (perMinute !== undefined) {
+        const bpm = normalizeTempo(perMinute)
+        return {
+          bpm,
+          text: `♩ = ${bpm}`
+        }
+      }
+    }
+  }
+
+  return undefined
 }
 
 function readVoiceEvent(
@@ -591,6 +634,26 @@ function readOptionalInteger(node: XmlNode, key: string): number | undefined {
   }
 
   return number
+}
+
+function readOptionalNumber(node: XmlNode, key: string): number | undefined {
+  const value = readOptionalString(node, key)
+
+  if (value === undefined) {
+    return undefined
+  }
+
+  const number = Number.parseFloat(value)
+
+  if (!Number.isFinite(number)) {
+    throw new Error(`MusicXML 숫자 값이 올바르지 않습니다: ${key}`)
+  }
+
+  return number
+}
+
+function normalizeTempo(value: number): number {
+  return Math.min(240, Math.max(40, Math.round(value)))
 }
 
 function readText(node: XmlNode): string | undefined {
