@@ -818,6 +818,14 @@ h2 {
   font-weight: 600;
 }
 
+.notation-dynamic-mark {
+  fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 20px;
+  font-style: italic;
+  font-weight: 700;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

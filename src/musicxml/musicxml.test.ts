@@ -182,6 +182,30 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('exports and re-imports dynamic markings', () => {
+    const score = createScore({
+      title: 'Dynamic Sketch',
+      dynamics: [
+        {
+          id: 'dynamic-mf',
+          measureId: 'measure-1',
+          value: 'mf'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<mf/>')
+    expect(roundTrip.dynamics).toEqual([
+      {
+        id: 'measure-1-dynamic-1',
+        measureId: 'measure-1',
+        value: 'mf'
+      }
+    ])
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

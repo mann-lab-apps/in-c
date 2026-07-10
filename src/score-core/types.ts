@@ -139,6 +139,14 @@ export interface StaffText {
   text: string
 }
 
+export type DynamicValue = 'p' | 'mp' | 'mf' | 'f'
+
+export interface DynamicMark {
+  id: string
+  measureId: MeasureId
+  value: DynamicValue
+}
+
 export interface Score {
   id: ScoreId
   title: string
@@ -146,6 +154,7 @@ export interface Score {
   tempo?: TempoMarking
   rehearsalMarks?: RehearsalMark[]
   staffTexts?: StaffText[]
+  dynamics?: DynamicMark[]
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -184,6 +193,10 @@ export type ScoreCommand =
   | {
       type: 'score-staff-texts.update'
       staffTexts?: StaffText[]
+    }
+  | {
+      type: 'score-dynamics.update'
+      dynamics?: DynamicMark[]
     }
   | {
       type: 'score-layout.update'

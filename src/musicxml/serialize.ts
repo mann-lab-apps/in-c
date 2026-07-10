@@ -119,7 +119,10 @@ function buildMeasureDirections(score: Score, measure: Measure) {
       .map((mark) => buildRehearsalDirection(mark.text)),
     ...(score.staffTexts ?? [])
       .filter((text) => text.measureId === measure.id)
-      .map((text) => buildStaffTextDirection(text.text))
+      .map((text) => buildStaffTextDirection(text.text)),
+    ...(score.dynamics ?? [])
+      .filter((dynamic) => dynamic.measureId === measure.id)
+      .map((dynamic) => buildDynamicDirection(dynamic.value))
   ]
 }
 
@@ -155,6 +158,17 @@ function buildStaffTextDirection(text: string) {
     'direction-type': {
       words: {
         '#text': text
+      }
+    }
+  }
+}
+
+function buildDynamicDirection(value: string) {
+  return {
+    '@_placement': 'below',
+    'direction-type': {
+      dynamics: {
+        [value]: ''
       }
     }
   }

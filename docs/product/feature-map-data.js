@@ -326,6 +326,24 @@ window.FEATURE_MAP = [
             docs: []
           },
           {
+            name: "텍스트 다이내믹 p/mp/mf/f",
+            status: "지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/playback.feature"
+            ],
+            docs: []
+          },
+          {
+            name: "헤어핀 crescendo/diminuendo",
+            status: "미지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/playback.feature"
+            ],
+            docs: []
+          },
+          {
             name: "system text와 expression text",
             status: "미지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],

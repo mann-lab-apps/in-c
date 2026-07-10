@@ -21,6 +21,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreRehearsalMarks(score, command.rehearsalMarks)
     case 'score-staff-texts.update':
       return updateScoreStaffTexts(score, command.staffTexts)
+    case 'score-dynamics.update':
+      return updateScoreDynamics(score, command.dynamics)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -57,6 +59,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreDynamics(
+  score: Score,
+  dynamics: Score['dynamics']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      dynamics
+    },
+    undo: {
+      type: 'score-dynamics.update',
+      dynamics: score.dynamics
+    }
   }
 }
 
