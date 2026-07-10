@@ -57,3 +57,12 @@ Feature: 악보를 읽기 좋게 배치하기
     And 각 system의 마지막 마디는 사용 가능한 전체 폭을 채운다
     When 사용자가 같은 마디에서 시스템 나누기를 다시 실행한다
     Then 수동 system break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
+
+  Scenario: 선택한 마디 앞에 수동 page break를 지정한다
+    Given 여러 마디가 있는 단성부 악보가 열려 있다
+    And 첫 마디가 아닌 마디가 선택되어 있다
+    When 사용자가 페이지 나누기를 추가한다
+    Then 선택한 마디는 새 페이지의 첫 system으로 배치된다
+    And 화면 렌더링은 page break를 system break보다 강한 layout hint로 취급한다
+    When 사용자가 같은 마디에서 페이지 나누기를 다시 실행한다
+    Then 수동 page break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다

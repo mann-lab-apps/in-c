@@ -99,6 +99,24 @@ describe('system layout', () => {
     })
   })
 
+  it('starts a new system before measures with manual page breaks', () => {
+    const layout = createSystemLayout(createMeasures(6), 900, {
+      layout: {
+        pageBreakBeforeMeasureIds: ['measure-4']
+      }
+    })
+
+    expect(layout.systemCount).toBe(2)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 0, 1, 1, 1
+    ])
+    expect(layout.placements[3]).toMatchObject({
+      isSystemStart: true,
+      measure: expect.objectContaining({ id: 'measure-4' }),
+      x: 16
+    })
+  })
+
   it('allocates more width to rhythmically dense measures', () => {
     const sparse = createMeasure({
       id: 'sparse',

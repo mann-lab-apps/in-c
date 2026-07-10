@@ -119,7 +119,10 @@ function createSystemMeasureGroups(
   measuresPerSystem: number,
   layout: ScoreLayout | undefined
 ): Measure[][] {
-  const manualBreaks = new Set(layout?.systemBreakBeforeMeasureIds ?? [])
+  const manualBreaks = new Set([
+    ...(layout?.systemBreakBeforeMeasureIds ?? []),
+    ...(layout?.pageBreakBeforeMeasureIds ?? [])
+  ])
   const systems: Measure[][] = []
   let currentSystem: Measure[] = []
 
