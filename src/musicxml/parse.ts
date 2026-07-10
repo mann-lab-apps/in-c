@@ -15,6 +15,7 @@ import {
   validateTieRelations,
   validateMeasureRhythm,
   validateVoiceTuplets,
+  type Articulation,
   type Clef,
   type Duration,
   type DynamicValue,
@@ -449,8 +450,26 @@ function readVoiceEvent(
       alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
     },
     duration,
-    ties: readTieFlags(node)
+    ties: readTieFlags(node),
+    articulations: readArticulations(node)
   })
+}
+
+function readArticulations(node: XmlNode): Articulation[] | undefined {
+  const notations = readOptionalNode(node, 'notations')
+  const articulations = notations
+    ? readOptionalNode(notations, 'articulations')
+    : undefined
+
+  if (!articulations) {
+    return undefined
+  }
+
+  const values = (['staccato', 'accent'] as const).filter(
+    (articulation) => articulation in articulations
+  )
+
+  return values.length > 0 ? values : undefined
 }
 
 function readTieFlags(node: XmlNode) {

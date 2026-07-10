@@ -206,6 +206,51 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('exports and re-imports note articulations', () => {
+    const score = createScore({
+      title: 'Articulation Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-articulated',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          articulations: ['staccato', 'accent']
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const event = roundTrip.parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(exported).toContain('<staccato/>')
+    expect(exported).toContain('<accent/>')
+    expect(event).toMatchObject({
+      type: 'note',
+      articulations: ['staccato', 'accent']
+    })
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',
