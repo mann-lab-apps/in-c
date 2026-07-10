@@ -210,6 +210,7 @@ export function parseMusicXml(xml: string): Score {
   const composer = readComposer(root)
   const tempo = readTempoMarking(measureNodes)
   const rehearsalMarks = readRehearsalMarks(measureNodes)
+  const staffTexts = readStaffTexts(measureNodes)
 
   const score = createScore({
     id: 'musicxml-score',
@@ -217,6 +218,7 @@ export function parseMusicXml(xml: string): Score {
     composer,
     tempo,
     rehearsalMarks,
+    staffTexts,
     parts: [
       createPart({
         id: partId,
@@ -311,6 +313,38 @@ function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
   })
 
   return marks.length > 0 ? marks : undefined
+}
+
+function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
+  const texts = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const directionType = readOptionalNode(direction, 'direction-type')
+      const words = directionType
+        ? readOptionalString(directionType, 'words')
+        : undefined
+
+      if (!words) {
+        return []
+      }
+
+      return [
+        {
+          id: `${measureId}-staff-text-${directionIndex + 1}`,
+          measureId,
+          text: words
+        }
+      ]
+    })
+  })
+
+  return texts.length > 0 ? texts : undefined
 }
 
 function readVoiceEvent(

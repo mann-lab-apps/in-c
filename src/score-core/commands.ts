@@ -19,6 +19,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreTempo(score, command.tempo)
     case 'score-rehearsal-marks.update':
       return updateScoreRehearsalMarks(score, command.rehearsalMarks)
+    case 'score-staff-texts.update':
+      return updateScoreStaffTexts(score, command.staffTexts)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -55,6 +57,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreStaffTexts(
+  score: Score,
+  staffTexts: Score['staffTexts']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      staffTexts
+    },
+    undo: {
+      type: 'score-staff-texts.update',
+      staffTexts: score.staffTexts
+    }
   }
 }
 

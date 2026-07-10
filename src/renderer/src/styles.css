@@ -811,6 +811,13 @@ h2 {
   text-anchor: middle;
 }
 
+.notation-staff-text {
+  fill: #111827;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

@@ -283,6 +283,9 @@ const App = () => {
   const activeMeasureRehearsalMark = activeMeasureId
     ? score.rehearsalMarks?.find((mark) => mark.measureId === activeMeasureId)
     : undefined
+  const activeMeasureStaffText = activeMeasureId
+    ? score.staffTexts?.find((text) => text.measureId === activeMeasureId)
+    : undefined
   const activeDots =
     noteInputState?.duration.dots ??
     eventLocation?.event.duration.dots ??
@@ -1389,6 +1392,45 @@ const App = () => {
     [activeMeasureId, executeCommand, score.rehearsalMarks]
   )
 
+  const updateActiveStaffText = useCallback(
+    (value: string) => {
+      if (!activeMeasureId) {
+        return
+      }
+
+      const text = value.trim()
+      const currentTexts = score.staffTexts ?? []
+      const existingText = currentTexts.find(
+        (staffText) => staffText.measureId === activeMeasureId
+      )
+
+      if ((existingText?.text ?? '') === text) {
+        return
+      }
+
+      const otherTexts = currentTexts.filter(
+        (staffText) => staffText.measureId !== activeMeasureId
+      )
+      const staffTexts =
+        text.length > 0
+          ? [
+              ...otherTexts,
+              {
+                id: existingText?.id ?? `staff-text-${crypto.randomUUID()}`,
+                measureId: activeMeasureId,
+                text
+              }
+            ]
+          : otherTexts
+
+      executeCommand({
+        type: 'score-staff-texts.update',
+        staffTexts: staffTexts.length > 0 ? staffTexts : undefined
+      })
+    },
+    [activeMeasureId, executeCommand, score.staffTexts]
+  )
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -2208,6 +2250,32 @@ const App = () => {
                     }
                   }}
                   placeholder="A"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>스태프 텍스트</span>
+                <input
+                  aria-label="스태프 텍스트"
+                  defaultValue={activeMeasureStaffText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureStaffText?.text ?? ''
+                  }-staff-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveStaffText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureStaffText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="dolce"
                   type="text"
                 />
               </label>

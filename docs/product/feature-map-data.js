@@ -315,6 +315,18 @@ window.FEATURE_MAP = [
           },
           {
             name: "일반 텍스트와 스태프 텍스트",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: []
+          },
+          {
+            name: "마디 기준 스태프 텍스트",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: []
+          },
+          {
+            name: "system text와 expression text",
             status: "미지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: []

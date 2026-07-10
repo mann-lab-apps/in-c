@@ -124,6 +124,9 @@ export function NotationPreview({
     const rehearsalMarksByMeasureId = new Map(
       (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
     )
+    const staffTextsByMeasureId = new Map(
+      (score.staffTexts ?? []).map((text) => [text.measureId, text])
+    )
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
@@ -190,6 +193,12 @@ export function NotationPreview({
 
       if (svg && rehearsalMark) {
         drawRehearsalMark(svg, placement.x + 18, placement.y - 28, rehearsalMark.text)
+      }
+
+      const staffText = staffTextsByMeasureId.get(measure.id)
+
+      if (svg && staffText) {
+        drawStaffText(svg, placement.x + 18, placement.y - 8, staffText.text)
       }
 
       const voices = measure.voices.map((voice) => {
@@ -469,6 +478,21 @@ function drawRehearsalMark(
   text.textContent = label
   group.append(rect, text)
   svg.append(group)
+}
+
+function drawStaffText(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-staff-text')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
 }
 
 function drawTie(
