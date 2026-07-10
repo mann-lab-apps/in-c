@@ -34,6 +34,7 @@ export function serializeMusicXml(score: Score): string {
   const part = score.parts[0]
   const staff = part.staves[0]
   const tieErrors = validateTieRelations(score)
+  const slurBoundaries = createSlurBoundaries(score)
 
   if (tieErrors.length > 0) {
     throw new Error(`잘못된 타이 관계가 있습니다: ${tieErrors.join(', ')}`)
@@ -97,7 +98,8 @@ export function serializeMusicXml(score: Score): string {
                 event,
                 measure,
                 voice,
-                tupletBoundaries.get(event.id)
+                tupletBoundaries.get(event.id),
+                slurBoundaries.get(event.id)
               )
             )
           }
@@ -243,6 +245,10 @@ function buildNote(
   tupletBoundary?: {
     start?: boolean
     stop?: boolean
+  },
+  slurBoundary?: {
+    start?: boolean
+    stop?: boolean
   }
 ) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
@@ -264,12 +270,17 @@ function buildNote(
     ...(tupletBoundary?.start ? ['start'] as const : []),
     ...(tupletBoundary?.stop ? ['stop'] as const : [])
   ]
+  const notationSlurs = [
+    ...(slurBoundary?.start ? ['start'] as const : []),
+    ...(slurBoundary?.stop ? ['stop'] as const : [])
+  ]
   const articulations =
     event.type === 'note' ? event.articulations ?? [] : []
   const hasFermata = Boolean(event.fermata)
   const hasNotations =
     tieTypes.length > 0 ||
     notationTuplets.length > 0 ||
+    notationSlurs.length > 0 ||
     articulations.length > 0 ||
     hasFermata
 
@@ -337,6 +348,13 @@ function buildNote(
                   }))
                 }
               : {}),
+            ...(notationSlurs.length > 0
+              ? {
+                  slur: notationSlurs.map((type) => ({
+                    '@_type': type
+                  }))
+                }
+              : {}),
             ...(articulations.length > 0
               ? {
                   articulations: Object.fromEntries(
@@ -379,6 +397,25 @@ function createTupletBoundaries(
     })
     boundaries.set(lastId, {
       ...boundaries.get(lastId),
+      stop: true
+    })
+  }
+
+  return boundaries
+}
+
+function createSlurBoundaries(
+  score: Score
+): Map<string, { start?: boolean; stop?: boolean }> {
+  const boundaries = new Map<string, { start?: boolean; stop?: boolean }>()
+
+  for (const slur of score.slurs ?? []) {
+    boundaries.set(slur.startEventId, {
+      ...boundaries.get(slur.startEventId),
+      start: true
+    })
+    boundaries.set(slur.endEventId, {
+      ...boundaries.get(slur.endEventId),
       stop: true
     })
   }

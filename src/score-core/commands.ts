@@ -25,6 +25,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreDynamics(score, command.dynamics)
     case 'score-hairpins.update':
       return updateScoreHairpins(score, command.hairpins)
+    case 'score-slurs.update':
+      return updateScoreSlurs(score, command.slurs)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -61,6 +63,19 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreSlurs(score: Score, slurs: Score['slurs']): CommandResult {
+  return {
+    score: {
+      ...score,
+      slurs
+    },
+    undo: {
+      type: 'score-slurs.update',
+      slurs: score.slurs
+    }
   }
 }
 

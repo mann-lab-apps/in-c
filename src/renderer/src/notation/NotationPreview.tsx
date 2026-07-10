@@ -414,6 +414,22 @@ export function NotationPreview({
     })
 
     if (svg) {
+      for (const slur of score.slurs ?? []) {
+        const start = pointsByEventId.get(slur.startEventId)
+        const end = pointsByEventId.get(slur.endEventId)
+
+        if (
+          !start ||
+          !end ||
+          systemsByEventId.get(slur.startEventId) !==
+            systemsByEventId.get(slur.endEventId)
+        ) {
+          continue
+        }
+
+        drawSlur(svg, start, end)
+      }
+
       for (const hairpin of score.hairpins ?? []) {
         const start = pointsByEventId.get(hairpin.startEventId)
         const end = pointsByEventId.get(hairpin.endEventId)
@@ -587,6 +603,19 @@ function drawHairpin(
 
   group.append(upper, lower)
   svg.append(group)
+}
+
+function drawSlur(svg: SVGSVGElement, start: CursorPoint, end: CursorPoint): void {
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  const x1 = start.x + 6
+  const x2 = Math.max(x1 + 28, end.x + 12)
+  const y = Math.min(start.y, end.y) - 10
+  const controlX = (x1 + x2) / 2
+  const controlY = y - 26
+
+  path.classList.add('notation-slur')
+  path.setAttribute('d', `M ${x1} ${y} Q ${controlX} ${controlY} ${x2} ${y}`)
+  svg.append(path)
 }
 
 function drawArticulations(

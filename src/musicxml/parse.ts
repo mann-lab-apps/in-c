@@ -216,6 +216,7 @@ export function parseMusicXml(xml: string): Score {
   const staffTexts = readStaffTexts(measureNodes)
   const dynamics = readDynamics(measureNodes)
   const hairpins = readHairpins(measureNodes, measures)
+  const slurs = readSlurs(measureNodes, measures)
 
   const score = createScore({
     id: 'musicxml-score',
@@ -226,6 +227,7 @@ export function parseMusicXml(xml: string): Score {
     staffTexts,
     dynamics,
     hairpins,
+    slurs,
     parts: [
       createPart({
         id: partId,
@@ -461,6 +463,61 @@ function readHairpins(
   })
 
   return hairpins.length > 0 ? hairpins : undefined
+}
+
+function readSlurs(
+  measureNodes: XmlNode[],
+  measures: Score['parts'][number]['staves'][number]['measures']
+): Score['slurs'] {
+  const activeSlurs = new Map<string, string>()
+  const slurs: NonNullable<Score['slurs']> = []
+
+  measureNodes.forEach((measureNode, measureIndex) => {
+    const events = measures[measureIndex]?.voices[0]?.events ?? []
+    const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
+
+    noteNodes.forEach((noteNode, noteIndex) => {
+      const event = events[noteIndex]
+
+      if (!event || event.type !== 'note') {
+        return
+      }
+
+      const notations = readOptionalNode(noteNode, 'notations')
+      const slurNodes = toArray(
+        notations?.slur as XmlNode | XmlNode[] | undefined
+      )
+
+      slurNodes.forEach((slurNode) => {
+        const type = readOptionalString(slurNode, '@_type')
+        const number = readOptionalString(slurNode, '@_number') ?? '1'
+
+        if (type === 'start') {
+          activeSlurs.set(number, event.id)
+          return
+        }
+
+        if (type !== 'stop') {
+          return
+        }
+
+        const startEventId = activeSlurs.get(number)
+
+        if (!startEventId) {
+          return
+        }
+
+        slurs.push({
+          id: `slur-${slurs.length + 1}`,
+          startEventId,
+          endEventId: event.id
+        })
+        activeSlurs.delete(number)
+      })
+    })
+  })
+
+  return slurs.length > 0 ? slurs : undefined
 }
 
 function readVoiceEvent(
