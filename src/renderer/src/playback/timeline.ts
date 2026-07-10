@@ -21,6 +21,7 @@ const DYNAMIC_VELOCITY = {
 const HAIRPIN_DELTA = 0.08
 const MIN_VELOCITY = 0.06
 const MAX_VELOCITY = 0.24
+const FERMATA_DURATION_MULTIPLIER = 1.5
 
 export interface PlaybackEvent {
   eventId: string
@@ -41,19 +42,23 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
+  let expressionBeatOffset = 0
   let previousStartsTie = false
 
   for (const measure of measures) {
     const voice = measure.voices[0]
 
     for (const event of sortVoiceEvents(voice?.events ?? [])) {
-      const durationBeats =
+      const notatedDurationBeats =
         voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
+      const durationBeats =
+        notatedDurationBeats * (event.fermata ? FERMATA_DURATION_MULTIPLIER : 1)
 
       const playbackEvent = {
         eventId: event.id,
         measureId: measure.id,
-        startBeat: scoreBeat + event.position.tick / TICKS_PER_QUARTER,
+        startBeat:
+          scoreBeat + event.position.tick / TICKS_PER_QUARTER + expressionBeatOffset,
         durationBeats,
         frequency:
           event.type === 'note' && voice
@@ -79,6 +84,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
       }
 
       previousStartsTie = event.type === 'note' && Boolean(event.ties?.start)
+      expressionBeatOffset += durationBeats - notatedDurationBeats
     }
 
     scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
@@ -86,7 +92,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
 
   return {
     events: applyHairpinVelocity(score, events),
-    totalBeats: scoreBeat
+    totalBeats: scoreBeat + expressionBeatOffset
   }
 }
 

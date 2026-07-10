@@ -43,6 +43,7 @@ import {
   voiceEventDurationTicks,
   type Duration,
   type DurationValue,
+  type BreathMark,
   type HairpinType,
   type Pitch,
   type PitchStep,
@@ -219,6 +220,14 @@ const articulationValues: Array<{
 }> = [
   { label: '스타카토', value: 'staccato' },
   { label: '악센트', value: 'accent' }
+]
+const breathMarkValues: Array<{
+  label: string
+  symbol: string
+  value: BreathMark
+}> = [
+  { label: '숨표', symbol: ',', value: 'breath' },
+  { label: 'Caesura', symbol: '//', value: 'caesura' }
 ]
 
 const App = () => {
@@ -1529,6 +1538,26 @@ const App = () => {
     })
   }, [eventLocation, executeCommand])
 
+  const toggleBreathMark = useCallback(
+    (breathMark: BreathMark) => {
+      if (!eventLocation) {
+        return
+      }
+
+      executeCommand({
+        type: 'voice-event.replace',
+        target: eventLocation.address,
+        eventId: eventLocation.event.id,
+        event: {
+          ...eventLocation.event,
+          breathMark:
+            eventLocation.event.breathMark === breathMark ? undefined : breathMark
+        }
+      })
+    },
+    [eventLocation, executeCommand]
+  )
+
   const toggleHairpin = useCallback(
     (type: HairpinType) => {
       if (selection.type !== 'range' || selection.eventIds.length < 2) {
@@ -2156,6 +2185,7 @@ const App = () => {
       ? new Set(eventLocation.event.articulations ?? [])
       : new Set<Articulation>()
   const selectedEventHasFermata = Boolean(eventLocation?.event.fermata)
+  const selectedEventBreathMark = eventLocation?.event.breathMark
   const selectedPitchAlter =
     eventLocation?.event.type === 'note'
       ? eventLocation.event.pitch.alter ?? 0
@@ -2453,6 +2483,20 @@ const App = () => {
                     >
                       𝄐
                     </button>
+                    {breathMarkValues.map(({ label, symbol, value }) => (
+                      <button
+                        aria-label={label}
+                        aria-pressed={selectedEventBreathMark === value}
+                        className={
+                          selectedEventBreathMark === value ? 'is-active' : undefined
+                        }
+                        key={value}
+                        onClick={() => toggleBreathMark(value)}
+                        type="button"
+                      >
+                        {symbol}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

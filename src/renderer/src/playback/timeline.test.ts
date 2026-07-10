@@ -363,4 +363,52 @@ describe('playback timeline', () => {
     expect(end.velocityEnd).toBeCloseTo(0.24)
     expect(rest.velocityStart).toBeCloseTo(0.16)
   })
+
+  it('extends playback time after fermatas', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  timeSignature: { beats: 2, beatType: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'held-note',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          fermata: true
+                        }),
+                        createNote({
+                          id: 'after-fermata',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.events[0]).toMatchObject({
+      eventId: 'held-note',
+      startBeat: 0,
+      durationBeats: 1.5
+    })
+    expect(timeline.events[1]).toMatchObject({
+      eventId: 'after-fermata',
+      startBeat: 1.5,
+      durationBeats: 1
+    })
+    expect(timeline.totalBeats).toBe(2.5)
+  })
 })

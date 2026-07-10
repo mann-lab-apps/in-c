@@ -62,6 +62,7 @@ export function createNote(input: {
   ties?: Note['ties']
   articulations?: Note['articulations']
   fermata?: boolean
+  breathMark?: Note['breathMark']
 }): Note {
   return {
     type: 'note',
@@ -71,7 +72,8 @@ export function createNote(input: {
     duration: input.duration ?? createDuration('quarter'),
     ties: input.ties,
     articulations: input.articulations,
-    fermata: input.fermata
+    fermata: input.fermata,
+    breathMark: input.breathMark
   }
 }
 
@@ -81,6 +83,7 @@ export function createRest(input: {
   duration?: Duration
   fullMeasure?: boolean
   fermata?: boolean
+  breathMark?: Rest['breathMark']
 }): Rest {
   return {
     type: 'rest',
@@ -88,7 +91,8 @@ export function createRest(input: {
     position: input.position ?? createTimePosition(0),
     duration: input.duration ?? createDuration('quarter'),
     fullMeasure: input.fullMeasure,
-    fermata: input.fermata
+    fermata: input.fermata,
+    breathMark: input.breathMark
   }
 }
 

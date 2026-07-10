@@ -57,6 +57,7 @@ export interface TimeSignature {
 }
 
 export type Articulation = 'staccato' | 'accent'
+export type BreathMark = 'breath' | 'caesura'
 
 export interface Note {
   type: 'note'
@@ -70,6 +71,7 @@ export interface Note {
   }
   articulations?: Articulation[]
   fermata?: boolean
+  breathMark?: BreathMark
 }
 
 export interface Rest {
@@ -79,6 +81,7 @@ export interface Rest {
   duration: Duration
   fullMeasure?: boolean
   fermata?: boolean
+  breathMark?: BreathMark
 }
 
 export type VoiceEvent = Note | Rest

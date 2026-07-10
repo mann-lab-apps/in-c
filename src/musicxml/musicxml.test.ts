@@ -365,6 +365,61 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports breath marks and caesuras', () => {
+    const score = createScore({
+      title: 'Breath Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-breath',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          breathMark: 'breath'
+                        }),
+                        createRest({
+                          id: 'rest-caesura',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('quarter'),
+                          breathMark: 'caesura'
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const events = roundTrip.parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported).toContain('<breath-mark/>')
+    expect(exported).toContain('<caesura/>')
+    expect(events[0]).toMatchObject({
+      type: 'note',
+      breathMark: 'breath'
+    })
+    expect(events[1]).toMatchObject({
+      type: 'rest',
+      breathMark: 'caesura'
+    })
+  })
+
   it('exports and re-imports slurs', () => {
     const score = createScore({
       title: 'Slur Sketch',
