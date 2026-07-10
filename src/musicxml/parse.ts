@@ -17,6 +17,7 @@ import {
   validateVoiceTuplets,
   type Clef,
   type Duration,
+  type DynamicValue,
   type KeySignature,
   type Score,
   type TimeSignature,
@@ -211,6 +212,7 @@ export function parseMusicXml(xml: string): Score {
   const tempo = readTempoMarking(measureNodes)
   const rehearsalMarks = readRehearsalMarks(measureNodes)
   const staffTexts = readStaffTexts(measureNodes)
+  const dynamics = readDynamics(measureNodes)
 
   const score = createScore({
     id: 'musicxml-score',
@@ -219,6 +221,7 @@ export function parseMusicXml(xml: string): Score {
     tempo,
     rehearsalMarks,
     staffTexts,
+    dynamics,
     parts: [
       createPart({
         id: partId,
@@ -345,6 +348,47 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
   })
 
   return texts.length > 0 ? texts : undefined
+}
+
+function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
+  const allowedDynamics = new Set<DynamicValue>(['p', 'mp', 'mf', 'f'])
+  const dynamics = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const directionType = readOptionalNode(direction, 'direction-type')
+      const dynamicNode = directionType
+        ? readOptionalNode(directionType, 'dynamics')
+        : undefined
+
+      if (!dynamicNode) {
+        return []
+      }
+
+      const value = Object.keys(dynamicNode).find((key): key is DynamicValue =>
+        allowedDynamics.has(key as DynamicValue)
+      )
+
+      if (!value) {
+        return []
+      }
+
+      return [
+        {
+          id: `${measureId}-dynamic-${directionIndex + 1}`,
+          measureId,
+          value
+        }
+      ]
+    })
+  })
+
+  return dynamics.length > 0 ? dynamics : undefined
 }
 
 function readVoiceEvent(

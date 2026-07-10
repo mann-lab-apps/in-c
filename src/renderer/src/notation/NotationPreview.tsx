@@ -127,6 +127,9 @@ export function NotationPreview({
     const staffTextsByMeasureId = new Map(
       (score.staffTexts ?? []).map((text) => [text.measureId, text])
     )
+    const dynamicsByMeasureId = new Map(
+      (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
+    )
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
@@ -199,6 +202,12 @@ export function NotationPreview({
 
       if (svg && staffText) {
         drawStaffText(svg, placement.x + 18, placement.y - 8, staffText.text)
+      }
+
+      const dynamic = dynamicsByMeasureId.get(measure.id)
+
+      if (svg && dynamic) {
+        drawDynamicMark(svg, placement.x + 22, placement.y + 78, dynamic.value)
       }
 
       const voices = measure.voices.map((voice) => {
@@ -489,6 +498,21 @@ function drawStaffText(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-staff-text')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawDynamicMark(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-dynamic-mark')
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label

@@ -210,6 +210,7 @@ const metadataMaxLength: Record<MetadataField, number> = {
 const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
+const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
 
 const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -285,6 +286,9 @@ const App = () => {
     : undefined
   const activeMeasureStaffText = activeMeasureId
     ? score.staffTexts?.find((text) => text.measureId === activeMeasureId)
+    : undefined
+  const activeMeasureDynamic = activeMeasureId
+    ? score.dynamics?.find((dynamic) => dynamic.measureId === activeMeasureId)
     : undefined
   const activeDots =
     noteInputState?.duration.dots ??
@@ -1431,6 +1435,44 @@ const App = () => {
     [activeMeasureId, executeCommand, score.staffTexts]
   )
 
+  const updateActiveDynamic = useCallback(
+    (value: string) => {
+      if (!activeMeasureId) {
+        return
+      }
+
+      const dynamic = dynamicValues.find((candidate) => candidate === value)
+      const currentDynamics = score.dynamics ?? []
+      const existingDynamic = currentDynamics.find(
+        (mark) => mark.measureId === activeMeasureId
+      )
+
+      if ((existingDynamic?.value ?? '') === (dynamic ?? '')) {
+        return
+      }
+
+      const otherDynamics = currentDynamics.filter(
+        (mark) => mark.measureId !== activeMeasureId
+      )
+      const dynamics = dynamic
+        ? [
+            ...otherDynamics,
+            {
+              id: existingDynamic?.id ?? `dynamic-${crypto.randomUUID()}`,
+              measureId: activeMeasureId,
+              value: dynamic
+            }
+          ]
+        : otherDynamics
+
+      executeCommand({
+        type: 'score-dynamics.update',
+        dynamics: dynamics.length > 0 ? dynamics : undefined
+      })
+    },
+    [activeMeasureId, executeCommand, score.dynamics]
+  )
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -2278,6 +2320,22 @@ const App = () => {
                   placeholder="dolce"
                   type="text"
                 />
+              </label>
+
+              <label>
+                <span>다이내믹</span>
+                <select
+                  aria-label="다이내믹"
+                  onChange={(event) => updateActiveDynamic(event.target.value)}
+                  value={activeMeasureDynamic?.value ?? ''}
+                >
+                  <option value="">없음</option>
+                  {dynamicValues.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
               </label>
             </section>
           ) : null}
