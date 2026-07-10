@@ -427,7 +427,8 @@ describe('MusicXML MVP', () => {
         {
           id: 'slur-phrase',
           startEventId: 'note-slur-start',
-          endEventId: 'note-slur-end'
+          endEventId: 'note-slur-end',
+          number: 2
         }
       ],
       parts: [
@@ -467,13 +468,93 @@ describe('MusicXML MVP', () => {
     const exported = serializeMusicXml(score)
     const roundTrip = parseMusicXml(exported)
 
-    expect(exported).toContain('<slur type="start"/>')
-    expect(exported).toContain('<slur type="stop"/>')
+    expect(exported).toContain('<slur type="start" number="2"/>')
+    expect(exported).toContain('<slur type="stop" number="2"/>')
     expect(roundTrip.slurs).toEqual([
       {
         id: 'slur-1',
         startEventId: 'event-1',
-        endEventId: 'event-2'
+        endEventId: 'event-2',
+        number: 2
+      }
+    ])
+  })
+
+  it('exports and re-imports overlapping slurs with distinct numbers', () => {
+    const score = createScore({
+      title: 'Nested Slur Sketch',
+      slurs: [
+        {
+          id: 'outer-slur',
+          startEventId: 'note-1',
+          endEventId: 'note-3',
+          number: 1
+        },
+        {
+          id: 'inner-slur',
+          startEventId: 'note-1',
+          endEventId: 'note-2',
+          number: 2
+        }
+      ],
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-1',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'note-2',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'note-3',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: { step: 'E', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 3),
+                          duration: createDuration('quarter')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<slur type="start" number="1"/>')
+    expect(exported).toContain('<slur type="start" number="2"/>')
+    expect(exported).toContain('<slur type="stop" number="1"/>')
+    expect(exported).toContain('<slur type="stop" number="2"/>')
+    expect(roundTrip.slurs).toEqual([
+      {
+        id: 'slur-1',
+        startEventId: 'event-1',
+        endEventId: 'event-2',
+        number: 2
+      },
+      {
+        id: 'slur-2',
+        startEventId: 'event-1',
+        endEventId: 'event-3',
+        number: 1
       }
     ])
   })

@@ -247,8 +247,8 @@ function buildNote(
     stop?: boolean
   },
   slurBoundary?: {
-    start?: boolean
-    stop?: boolean
+    starts?: string[]
+    stops?: string[]
   }
 ) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
@@ -271,8 +271,14 @@ function buildNote(
     ...(tupletBoundary?.stop ? ['stop'] as const : [])
   ]
   const notationSlurs = [
-    ...(slurBoundary?.start ? ['start'] as const : []),
-    ...(slurBoundary?.stop ? ['stop'] as const : [])
+    ...(slurBoundary?.starts ?? []).map((number) => ({
+      number,
+      type: 'start' as const
+    })),
+    ...(slurBoundary?.stops ?? []).map((number) => ({
+      number,
+      type: 'stop' as const
+    }))
   ]
   const articulations =
     event.type === 'note' ? event.articulations ?? [] : []
@@ -355,8 +361,9 @@ function buildNote(
               : {}),
             ...(notationSlurs.length > 0
               ? {
-                  slur: notationSlurs.map((type) => ({
-                    '@_type': type
+                  slur: notationSlurs.map(({ number, type }) => ({
+                    '@_type': type,
+                    '@_number': number
                   }))
                 }
               : {}),
@@ -411,19 +418,23 @@ function createTupletBoundaries(
 
 function createSlurBoundaries(
   score: Score
-): Map<string, { start?: boolean; stop?: boolean }> {
-  const boundaries = new Map<string, { start?: boolean; stop?: boolean }>()
+): Map<string, { starts?: string[]; stops?: string[] }> {
+  const boundaries = new Map<string, { starts?: string[]; stops?: string[] }>()
 
-  for (const slur of score.slurs ?? []) {
+  ;(score.slurs ?? []).forEach((slur, index) => {
+    const number = String(slur.number ?? index + 1)
+    const startBoundary = boundaries.get(slur.startEventId)
+    const stopBoundary = boundaries.get(slur.endEventId)
+
     boundaries.set(slur.startEventId, {
-      ...boundaries.get(slur.startEventId),
-      start: true
+      ...startBoundary,
+      starts: [...(startBoundary?.starts ?? []), number]
     })
     boundaries.set(slur.endEventId, {
-      ...boundaries.get(slur.endEventId),
-      stop: true
+      ...stopBoundary,
+      stops: [...(stopBoundary?.stops ?? []), number]
     })
-  }
+  })
 
   return boundaries
 }

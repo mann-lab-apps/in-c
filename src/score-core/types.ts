@@ -168,6 +168,7 @@ export interface Slur {
   id: string
   startEventId: VoiceEventId
   endEventId: VoiceEventId
+  number?: number
 }
 
 export interface Score {

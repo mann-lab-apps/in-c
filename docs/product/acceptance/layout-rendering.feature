@@ -123,10 +123,12 @@ Feature: 악보를 읽기 좋게 배치하기
     And MusicXML로 내보냈다가 다시 가져와도 숨표와 caesura가 유지된다
 
   Scenario: 선택한 음표 범위에 슬러를 입력한다
-    Given 같은 system 안의 여러 음표가 범위로 선택되어 있다
+    Given 여러 음표가 범위로 선택되어 있다
     When 사용자가 슬러를 추가한다
     Then 선택 범위의 첫 음표와 마지막 음표는 곡선 슬러로 연결된다
     And 슬러는 같은 음 사이의 타이와 별도 relation으로 저장된다
+    And 슬러가 system 줄바꿈을 지나면 각 system에서 이어지는 곡선 segment로 표시된다
+    And 겹친 슬러는 서로 다른 offset과 MusicXML number로 구분된다
     When 사용자가 같은 범위에서 슬러를 다시 실행한다
     Then 슬러는 제거된다
     And MusicXML로 내보냈다가 다시 가져와도 slur start/stop 정보가 유지된다

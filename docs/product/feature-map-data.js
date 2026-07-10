@@ -344,7 +344,7 @@ window.FEATURE_MAP = [
             docs: []
           },
           {
-            name: "같은 system 안의 슬러",
+            name: "슬러 입력과 곡선 렌더링",
             status: "지원",
             acceptance: [
               "docs/product/acceptance/layout-rendering.feature",
@@ -354,7 +354,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "시스템 경계와 중첩 슬러",
-            status: "미지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: []
           },
