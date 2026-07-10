@@ -19,6 +19,7 @@ import {
   type Clef,
   type Duration,
   type DynamicValue,
+  type HairpinType,
   type KeySignature,
   type Score,
   type TimeSignature,
@@ -214,6 +215,7 @@ export function parseMusicXml(xml: string): Score {
   const rehearsalMarks = readRehearsalMarks(measureNodes)
   const staffTexts = readStaffTexts(measureNodes)
   const dynamics = readDynamics(measureNodes)
+  const hairpins = readHairpins(measureNodes, measures)
 
   const score = createScore({
     id: 'musicxml-score',
@@ -223,6 +225,7 @@ export function parseMusicXml(xml: string): Score {
     rehearsalMarks,
     staffTexts,
     dynamics,
+    hairpins,
     parts: [
       createPart({
         id: partId,
@@ -390,6 +393,74 @@ function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
   })
 
   return dynamics.length > 0 ? dynamics : undefined
+}
+
+function readHairpins(
+  measureNodes: XmlNode[],
+  measures: Score['parts'][number]['staves'][number]['measures']
+): Score['hairpins'] {
+  const activeHairpins = new Map<
+    string,
+    { startEventId: string; type: HairpinType }
+  >()
+  const hairpins = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measure = measures[measureIndex]
+    const measureNoteIds =
+      measure?.voices[0]?.events
+        .filter((event) => event.type === 'note')
+        .map((event) => event.id) ?? []
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+    const completed: NonNullable<Score['hairpins']> = []
+
+    directions.forEach((direction, directionIndex) => {
+      const directionType = readOptionalNode(direction, 'direction-type')
+      const wedges = toArray(
+        directionType?.wedge as XmlNode | XmlNode[] | undefined
+      )
+
+      wedges.forEach((wedge) => {
+        const wedgeType = readOptionalString(wedge, '@_type')
+        const number = readOptionalString(wedge, '@_number') ?? '1'
+
+        if (wedgeType === 'crescendo' || wedgeType === 'diminuendo') {
+          const startEventId = measureNoteIds[0]
+
+          if (startEventId) {
+            activeHairpins.set(number, {
+              startEventId,
+              type: wedgeType
+            })
+          }
+          return
+        }
+
+        if (wedgeType !== 'stop') {
+          return
+        }
+
+        const activeHairpin = activeHairpins.get(number)
+        const endEventId = measureNoteIds.at(-1)
+
+        if (!activeHairpin || !endEventId) {
+          return
+        }
+
+        completed.push({
+          id: `hairpin-${completed.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
+          startEventId: activeHairpin.startEventId,
+          endEventId,
+          type: activeHairpin.type
+        })
+        activeHairpins.delete(number)
+      })
+    })
+
+    return completed
+  })
+
+  return hairpins.length > 0 ? hairpins : undefined
 }
 
 function readVoiceEvent(

@@ -174,6 +174,7 @@ export function createScore(input?: {
   rehearsalMarks?: Score['rehearsalMarks']
   staffTexts?: Score['staffTexts']
   dynamics?: Score['dynamics']
+  hairpins?: Score['hairpins']
   layout?: Score['layout']
   parts?: Part[]
 }): Score {
@@ -185,6 +186,7 @@ export function createScore(input?: {
     rehearsalMarks: input?.rehearsalMarks,
     staffTexts: input?.staffTexts,
     dynamics: input?.dynamics,
+    hairpins: input?.hairpins,
     layout: input?.layout,
     parts: input?.parts ?? [createPart()]
   }

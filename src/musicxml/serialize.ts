@@ -110,6 +110,20 @@ export function serializeMusicXml(score: Score): string {
 }
 
 function buildMeasureDirections(score: Score, measure: Measure) {
+  const hairpinDirections = (score.hairpins ?? []).flatMap((hairpin) => {
+    const directions = []
+
+    if (measureHasEvent(measure, hairpin.startEventId)) {
+      directions.push(buildHairpinDirection(hairpin.type))
+    }
+
+    if (measureHasEvent(measure, hairpin.endEventId)) {
+      directions.push(buildHairpinDirection('stop'))
+    }
+
+    return directions
+  })
+
   return [
     ...(measure.number === 1 && score.tempo
       ? [buildTempoDirection(score.tempo.bpm)]
@@ -122,7 +136,8 @@ function buildMeasureDirections(score: Score, measure: Measure) {
       .map((text) => buildStaffTextDirection(text.text)),
     ...(score.dynamics ?? [])
       .filter((dynamic) => dynamic.measureId === measure.id)
-      .map((dynamic) => buildDynamicDirection(dynamic.value))
+      .map((dynamic) => buildDynamicDirection(dynamic.value)),
+    ...hairpinDirections
   ]
 }
 
@@ -172,6 +187,23 @@ function buildDynamicDirection(value: string) {
       }
     }
   }
+}
+
+function buildHairpinDirection(type: string) {
+  return {
+    '@_placement': 'below',
+    'direction-type': {
+      wedge: {
+        '@_type': type
+      }
+    }
+  }
+}
+
+function measureHasEvent(measure: Measure, eventId: string): boolean {
+  return measure.voices.some((voice) =>
+    voice.events.some((event) => event.id === eventId)
+  )
 }
 
 function buildAttributes(measure: Measure) {

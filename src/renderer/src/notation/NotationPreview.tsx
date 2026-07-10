@@ -108,6 +108,7 @@ export function NotationPreview({
     let playbackPoint: CursorPoint | undefined
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
+    const pointsByEventId = new Map<string, CursorPoint>()
     const selectedEventIdSet = new Set(selectedEventIds)
     let dragAnchorEventId: string | undefined
 
@@ -349,6 +350,11 @@ export function NotationPreview({
             }
           }
 
+          pointsByEventId.set(eventId, {
+            x: note.getAbsoluteX(),
+            y: placement.y
+          })
+
           const event = events[noteIndex]
 
           if (svg && event?.type === 'note' && event.articulations?.length) {
@@ -402,6 +408,24 @@ export function NotationPreview({
         drawTie(context, null, lastNote)
       }
     })
+
+    if (svg) {
+      for (const hairpin of score.hairpins ?? []) {
+        const start = pointsByEventId.get(hairpin.startEventId)
+        const end = pointsByEventId.get(hairpin.endEventId)
+
+        if (
+          !start ||
+          !end ||
+          systemsByEventId.get(hairpin.startEventId) !==
+            systemsByEventId.get(hairpin.endEventId)
+        ) {
+          continue
+        }
+
+        drawHairpin(svg, start, end, hairpin.type)
+      }
+    }
 
     const overlayGroup =
       svg && (inputPoint || playbackPoint)
@@ -528,6 +552,37 @@ function drawDynamicMark(
   text.setAttribute('y', String(y))
   text.textContent = label
   svg.append(text)
+}
+
+function drawHairpin(
+  svg: SVGSVGElement,
+  start: CursorPoint,
+  end: CursorPoint,
+  type: string
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const x1 = start.x + 10
+  const x2 = Math.max(x1 + 24, end.x + 22)
+  const y = Math.max(start.y, end.y) + 82
+  const opening = 10
+  const leftOpen = type === 'diminuendo'
+  const rightOpen = type === 'crescendo'
+
+  group.classList.add('notation-hairpin')
+
+  upper.setAttribute('x1', String(x1))
+  upper.setAttribute('y1', String(y + (leftOpen ? -opening : 0)))
+  upper.setAttribute('x2', String(x2))
+  upper.setAttribute('y2', String(y + (rightOpen ? -opening : 0)))
+  lower.setAttribute('x1', String(x1))
+  lower.setAttribute('y1', String(y + (leftOpen ? opening : 0)))
+  lower.setAttribute('x2', String(x2))
+  lower.setAttribute('y2', String(y + (rightOpen ? opening : 0)))
+
+  group.append(upper, lower)
+  svg.append(group)
 }
 
 function drawArticulations(

@@ -43,6 +43,7 @@ import {
   voiceEventDurationTicks,
   type Duration,
   type DurationValue,
+  type HairpinType,
   type Pitch,
   type PitchStep,
   type Score,
@@ -1512,6 +1513,73 @@ const App = () => {
     [eventLocation, executeCommand]
   )
 
+  const toggleHairpin = useCallback(
+    (type: HairpinType) => {
+      if (selection.type !== 'range' || selection.eventIds.length < 2) {
+        setFileStatus({
+          tone: 'error',
+          message: '헤어핀을 넣을 음표 범위를 선택해 주세요.'
+        })
+        return
+      }
+
+      const startEventId = selection.eventIds[0]
+      const endEventId = selection.eventIds[selection.eventIds.length - 1]
+      const startLocation = locateEvent(score, startEventId)
+      const endLocation = locateEvent(score, endEventId)
+
+      if (
+        !startLocation ||
+        !endLocation ||
+        startLocation.event.type !== 'note' ||
+        endLocation.event.type !== 'note'
+      ) {
+        setFileStatus({
+          tone: 'error',
+          message: '헤어핀은 음표에서 시작하고 음표에서 끝나야 합니다.'
+        })
+        return
+      }
+
+      const currentHairpins = score.hairpins ?? []
+      const matchingHairpin = currentHairpins.find(
+        (hairpin) =>
+          hairpin.startEventId === startEventId &&
+          hairpin.endEventId === endEventId
+      )
+      const otherHairpins = currentHairpins.filter(
+        (hairpin) => hairpin.id !== matchingHairpin?.id
+      )
+      const hairpins =
+        matchingHairpin?.type === type
+          ? otherHairpins
+          : [
+              ...otherHairpins,
+              {
+                id: matchingHairpin?.id ?? `hairpin-${crypto.randomUUID()}`,
+                startEventId,
+                endEventId,
+                type
+              }
+            ]
+
+      executeCommand({
+        type: 'score-hairpins.update',
+        hairpins: hairpins.length > 0 ? hairpins : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message:
+          matchingHairpin?.type === type
+            ? '헤어핀을 해제했습니다.'
+            : type === 'crescendo'
+              ? '크레셴도 헤어핀을 추가했습니다.'
+              : '디미누엔도 헤어핀을 추가했습니다.'
+      })
+    },
+    [executeCommand, score, selection]
+  )
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -2332,6 +2400,31 @@ const App = () => {
               </p>
             )}
           </section>
+
+          {selection.type === 'range' ? (
+            <section className="inspector-properties" aria-label="범위 기호">
+              <h3>범위 기호</h3>
+              <div className="inspector-properties__row">
+                <span>헤어핀</span>
+                <div className="inspector-properties__buttons">
+                  <button
+                    aria-label="크레셴도 헤어핀"
+                    onClick={() => toggleHairpin('crescendo')}
+                    type="button"
+                  >
+                    &lt;
+                  </button>
+                  <button
+                    aria-label="디미누엔도 헤어핀"
+                    onClick={() => toggleHairpin('diminuendo')}
+                    type="button"
+                  >
+                    &gt;
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {activeMeasureId ? (
             <section className="inspector-properties" aria-label="마디 텍스트">

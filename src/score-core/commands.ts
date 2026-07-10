@@ -23,6 +23,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreStaffTexts(score, command.staffTexts)
     case 'score-dynamics.update':
       return updateScoreDynamics(score, command.dynamics)
+    case 'score-hairpins.update':
+      return updateScoreHairpins(score, command.hairpins)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -59,6 +61,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreHairpins(
+  score: Score,
+  hairpins: Score['hairpins']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      hairpins
+    },
+    undo: {
+      type: 'score-hairpins.update',
+      hairpins: score.hairpins
+    }
   }
 }
 
