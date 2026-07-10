@@ -256,7 +256,18 @@ const App = () => {
     () => resolveActiveMeasureId(score, selection, noteInputState),
     [noteInputState, score, selection]
   )
-  const measureCount = score.parts[0]?.staves[0]?.measures.length ?? 0
+  const measures = score.parts[0]?.staves[0]?.measures ?? []
+  const measureCount = measures.length
+  const activeMeasureIndex = activeMeasureId
+    ? measures.findIndex((measure) => measure.id === activeMeasureId)
+    : -1
+  const systemBreakIds = useMemo(
+    () => new Set(score.layout?.systemBreakBeforeMeasureIds ?? []),
+    [score.layout?.systemBreakBeforeMeasureIds]
+  )
+  const activeMeasureHasSystemBreak = activeMeasureId
+    ? systemBreakIds.has(activeMeasureId)
+    : false
   const activeDots =
     noteInputState?.duration.dots ??
     eventLocation?.event.duration.dots ??
@@ -1226,6 +1237,45 @@ const App = () => {
     }
   }, [activeMeasureId, executeCommand, measureCount, noteInputState, score])
 
+  const toggleSystemBreak = useCallback(() => {
+    if (!activeMeasureId || activeMeasureIndex <= 0) {
+      setFileStatus({
+        tone: 'error',
+        message: '첫 마디 앞에는 시스템 나누기를 추가할 수 없습니다.'
+      })
+      return
+    }
+
+    const currentBreaks = score.layout?.systemBreakBeforeMeasureIds ?? []
+    const nextBreaks = activeMeasureHasSystemBreak
+      ? currentBreaks.filter((measureId) => measureId !== activeMeasureId)
+      : [...currentBreaks, activeMeasureId]
+    const layout = {
+      ...score.layout,
+      systemBreakBeforeMeasureIds: nextBreaks.length > 0 ? nextBreaks : undefined
+    }
+
+    if (
+      executeCommand({
+        type: 'score-layout.update',
+        layout
+      })
+    ) {
+      setFileStatus({
+        tone: 'neutral',
+        message: activeMeasureHasSystemBreak
+          ? '시스템 나누기를 해제했습니다.'
+          : '선택한 마디 앞에 시스템 나누기를 추가했습니다.'
+      })
+    }
+  }, [
+    activeMeasureHasSystemBreak,
+    activeMeasureId,
+    activeMeasureIndex,
+    executeCommand,
+    score.layout
+  ])
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -1743,6 +1793,10 @@ const App = () => {
     rangeClipboard &&
       buildRangePasteCommand(score, selection, rangeClipboard, previewInputId)
   )
+  const canToggleSystemBreak = activeMeasureIndex > 0
+  const systemBreakLabel = activeMeasureHasSystemBreak
+    ? '시스템 나누기 해제'
+    : '시스템 나누기 추가'
 
   return (
     <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
@@ -2041,6 +2095,18 @@ const App = () => {
               type="button"
             >
               <Minus aria-hidden="true" size={18} />
+            </button>
+
+            <button
+              aria-label={systemBreakLabel}
+              aria-pressed={activeMeasureHasSystemBreak}
+              className="icon-button"
+              disabled={!canToggleSystemBreak}
+              onClick={toggleSystemBreak}
+              title={systemBreakLabel}
+              type="button"
+            >
+              <ChevronsDown aria-hidden="true" size={18} />
             </button>
 
             <div className="accidental-control" aria-label="임시표">

@@ -284,9 +284,15 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/note-input-state.md"]
           },
           {
-            name: "수동 system/page break",
+            name: "수동 system break",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: ["docs/architecture/measure-systems.md"]
+          },
+          {
+            name: "수동 page break와 페이지 설정",
             status: "미지원",
-            acceptance: [],
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: ["docs/architecture/measure-systems.md"]
           }
         ]
