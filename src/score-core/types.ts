@@ -69,6 +69,7 @@ export interface Note {
     stop?: boolean
   }
   articulations?: Articulation[]
+  fermata?: boolean
 }
 
 export interface Rest {
@@ -77,6 +78,7 @@ export interface Rest {
   position: TimePosition
   duration: Duration
   fullMeasure?: boolean
+  fermata?: boolean
 }
 
 export type VoiceEvent = Note | Rest

@@ -311,6 +311,60 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports fermatas on notes and rests', () => {
+    const score = createScore({
+      title: 'Fermata Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-fermata',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          fermata: true
+                        }),
+                        createRest({
+                          id: 'rest-fermata',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('quarter'),
+                          fermata: true
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const events = roundTrip.parts[0].staves[0].measures[0].voices[0].events
+
+    expect(exported.match(/<fermata\/>/g)).toHaveLength(2)
+    expect(events[0]).toMatchObject({
+      type: 'note',
+      fermata: true
+    })
+    expect(events[1]).toMatchObject({
+      type: 'rest',
+      fermata: true
+    })
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',
