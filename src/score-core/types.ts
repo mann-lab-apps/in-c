@@ -127,11 +127,18 @@ export interface TempoMarking {
   text?: string
 }
 
+export interface RehearsalMark {
+  id: string
+  measureId: MeasureId
+  text: string
+}
+
 export interface Score {
   id: ScoreId
   title: string
   composer?: string
   tempo?: TempoMarking
+  rehearsalMarks?: RehearsalMark[]
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -162,6 +169,10 @@ export type ScoreCommand =
   | {
       type: 'score-tempo.update'
       tempo?: TempoMarking
+    }
+  | {
+      type: 'score-rehearsal-marks.update'
+      rehearsalMarks?: RehearsalMark[]
     }
   | {
       type: 'score-layout.update'

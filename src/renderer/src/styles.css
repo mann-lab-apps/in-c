@@ -798,6 +798,19 @@ h2 {
   font-weight: 700;
 }
 
+.notation-rehearsal-mark rect {
+  fill: #ffffff;
+  stroke: #111827;
+  stroke-width: 1.5;
+}
+
+.notation-rehearsal-mark text {
+  fill: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

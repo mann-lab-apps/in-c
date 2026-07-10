@@ -280,6 +280,9 @@ const App = () => {
   const activeMeasureHasPageBreak = activeMeasureId
     ? pageBreakIds.has(activeMeasureId)
     : false
+  const activeMeasureRehearsalMark = activeMeasureId
+    ? score.rehearsalMarks?.find((mark) => mark.measureId === activeMeasureId)
+    : undefined
   const activeDots =
     noteInputState?.duration.dots ??
     eventLocation?.event.duration.dots ??
@@ -1347,6 +1350,45 @@ const App = () => {
     score.layout
   ])
 
+  const updateActiveRehearsalMark = useCallback(
+    (value: string) => {
+      if (!activeMeasureId) {
+        return
+      }
+
+      const text = value.trim()
+      const currentMarks = score.rehearsalMarks ?? []
+      const existingMark = currentMarks.find(
+        (mark) => mark.measureId === activeMeasureId
+      )
+
+      if ((existingMark?.text ?? '') === text) {
+        return
+      }
+
+      const otherMarks = currentMarks.filter(
+        (mark) => mark.measureId !== activeMeasureId
+      )
+      const rehearsalMarks =
+        text.length > 0
+          ? [
+              ...otherMarks,
+              {
+                id: existingMark?.id ?? `rehearsal-${crypto.randomUUID()}`,
+                measureId: activeMeasureId,
+                text
+              }
+            ]
+          : otherMarks
+
+      executeCommand({
+        type: 'score-rehearsal-marks.update',
+        rehearsalMarks: rehearsalMarks.length > 0 ? rehearsalMarks : undefined
+      })
+    },
+    [activeMeasureId, executeCommand, score.rehearsalMarks]
+  )
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -2140,6 +2182,37 @@ const App = () => {
               </p>
             )}
           </section>
+
+          {activeMeasureId ? (
+            <section className="inspector-properties" aria-label="마디 텍스트">
+              <h3>마디 표시</h3>
+              <label>
+                <span>리허설 마크</span>
+                <input
+                  aria-label="리허설 마크"
+                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureRehearsalMark?.text ?? ''
+                  }`}
+                  maxLength={12}
+                  onBlur={(event) =>
+                    updateActiveRehearsalMark(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureRehearsalMark?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="A"
+                  type="text"
+                />
+              </label>
+            </section>
+          ) : null}
         </section>
       </aside>
 
