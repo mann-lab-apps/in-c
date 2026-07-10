@@ -221,7 +221,13 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/measure-selection.md"]
           },
           {
-            name: "범위 선택 기반 일괄 편집",
+            name: "범위 선택 기반 쉼표 일괄 변환",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/range-selection.feature"],
+            docs: ["docs/architecture/measure-selection.md"]
+          },
+          {
+            name: "범위 선택 기반 고급 일괄 편집",
             status: "미지원",
             acceptance: ["docs/product/acceptance/range-selection.feature"],
             docs: ["docs/architecture/measure-selection.md"]
