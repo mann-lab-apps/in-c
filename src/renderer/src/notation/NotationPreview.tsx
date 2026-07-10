@@ -366,6 +366,10 @@ export function NotationPreview({
             )
           }
 
+          if (svg && event?.fermata) {
+            drawFermata(svg, note.getAbsoluteX(), placement.y)
+          }
+
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
@@ -612,6 +616,16 @@ function drawArticulations(
       svg.append(text)
     }
   })
+}
+
+function drawFermata(svg: SVGSVGElement, x: number, staffY: number): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-fermata')
+  text.setAttribute('x', String(x + 4))
+  text.setAttribute('y', String(staffY - 22))
+  text.textContent = '𝄐'
+  svg.append(text)
 }
 
 function drawTie(

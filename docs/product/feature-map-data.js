@@ -362,6 +362,21 @@ window.FEATURE_MAP = [
             docs: []
           },
           {
+            name: "페르마타",
+            status: "지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/playback.feature"
+            ],
+            docs: []
+          },
+          {
+            name: "숨표와 caesura",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: []
+          },
+          {
             name: "system text와 expression text",
             status: "미지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],

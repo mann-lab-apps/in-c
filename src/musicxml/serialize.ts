@@ -266,10 +266,12 @@ function buildNote(
   ]
   const articulations =
     event.type === 'note' ? event.articulations ?? [] : []
+  const hasFermata = Boolean(event.fermata)
   const hasNotations =
     tieTypes.length > 0 ||
     notationTuplets.length > 0 ||
-    articulations.length > 0
+    articulations.length > 0 ||
+    hasFermata
 
   return {
     ...(event.type === 'rest'
@@ -340,6 +342,11 @@ function buildNote(
                   articulations: Object.fromEntries(
                     articulations.map((articulation) => [articulation, ''])
                   )
+                }
+              : {}),
+            ...(hasFermata
+              ? {
+                  fermata: ''
                 }
               : {})
           }

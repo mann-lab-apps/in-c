@@ -1513,6 +1513,22 @@ const App = () => {
     [eventLocation, executeCommand]
   )
 
+  const toggleFermata = useCallback(() => {
+    if (!eventLocation) {
+      return
+    }
+
+    executeCommand({
+      type: 'voice-event.replace',
+      target: eventLocation.address,
+      eventId: eventLocation.event.id,
+      event: {
+        ...eventLocation.event,
+        fermata: eventLocation.event.fermata ? undefined : true
+      }
+    })
+  }, [eventLocation, executeCommand])
+
   const toggleHairpin = useCallback(
     (type: HairpinType) => {
       if (selection.type !== 'range' || selection.eventIds.length < 2) {
@@ -2086,6 +2102,7 @@ const App = () => {
     eventLocation?.event.type === 'note'
       ? new Set(eventLocation.event.articulations ?? [])
       : new Set<Articulation>()
+  const selectedEventHasFermata = Boolean(eventLocation?.event.fermata)
   const selectedPitchAlter =
     eventLocation?.event.type === 'note'
       ? eventLocation.event.pitch.alter ?? 0
@@ -2370,6 +2387,21 @@ const App = () => {
                 >
                   쉼표로 변환
                 </button>
+
+                <div className="inspector-properties__row">
+                  <span>정지 기호</span>
+                  <div className="inspector-properties__buttons">
+                    <button
+                      aria-label="페르마타"
+                      aria-pressed={selectedEventHasFermata}
+                      className={selectedEventHasFermata ? 'is-active' : undefined}
+                      onClick={toggleFermata}
+                      type="button"
+                    >
+                      𝄐
+                    </button>
+                  </div>
+                </div>
 
                 <div className="inspector-properties__row">
                   <span>아티큘레이션</span>

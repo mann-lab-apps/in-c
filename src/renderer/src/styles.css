@@ -841,6 +841,14 @@ h2 {
   text-anchor: middle;
 }
 
+.notation-fermata {
+  fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

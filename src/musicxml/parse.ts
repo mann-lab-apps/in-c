@@ -492,7 +492,8 @@ function readVoiceEvent(
       id,
       position: createTimePosition(positionTick),
       duration,
-      fullMeasure: restNode?.['@_measure'] === 'yes'
+      fullMeasure: restNode?.['@_measure'] === 'yes',
+      fermata: readFermata(node)
     })
   }
 
@@ -522,8 +523,15 @@ function readVoiceEvent(
     },
     duration,
     ties: readTieFlags(node),
-    articulations: readArticulations(node)
+    articulations: readArticulations(node),
+    fermata: readFermata(node)
   })
+}
+
+function readFermata(node: XmlNode): boolean | undefined {
+  const notations = readOptionalNode(node, 'notations')
+
+  return notations && 'fermata' in notations ? true : undefined
 }
 
 function readArticulations(node: XmlNode): Articulation[] | undefined {
