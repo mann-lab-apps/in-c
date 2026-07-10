@@ -386,6 +386,16 @@ export function NotationPreview({
             drawFermata(svg, note.getAbsoluteX(), placement.y)
           }
 
+          if (svg && event?.breathMark) {
+            drawBreathMark(
+              svg,
+              note.getAbsoluteX(),
+              placement.y,
+              event.breathMark,
+              Boolean(event.fermata)
+            )
+          }
+
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
@@ -717,6 +727,22 @@ function drawFermata(svg: SVGSVGElement, x: number, staffY: number): void {
   text.setAttribute('x', String(x + 4))
   text.setAttribute('y', String(staffY - 22))
   text.textContent = '𝄐'
+  svg.append(text)
+}
+
+function drawBreathMark(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  breathMark: string,
+  hasFermata: boolean
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-breath-mark')
+  text.setAttribute('x', String(x + 14))
+  text.setAttribute('y', String(staffY - (hasFermata ? 2 : 16)))
+  text.textContent = breathMark === 'caesura' ? '//' : ','
   svg.append(text)
 }
 

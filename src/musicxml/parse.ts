@@ -16,6 +16,7 @@ import {
   validateMeasureRhythm,
   validateVoiceTuplets,
   type Articulation,
+  type BreathMark,
   type Clef,
   type Duration,
   type DynamicValue,
@@ -550,7 +551,8 @@ function readVoiceEvent(
       position: createTimePosition(positionTick),
       duration,
       fullMeasure: restNode?.['@_measure'] === 'yes',
-      fermata: readFermata(node)
+      fermata: readFermata(node),
+      breathMark: readBreathMark(node)
     })
   }
 
@@ -581,8 +583,23 @@ function readVoiceEvent(
     duration,
     ties: readTieFlags(node),
     articulations: readArticulations(node),
-    fermata: readFermata(node)
+    fermata: readFermata(node),
+    breathMark: readBreathMark(node)
   })
+}
+
+function readBreathMark(node: XmlNode): BreathMark | undefined {
+  const articulations = readNotationArticulations(node)
+
+  if (!articulations) {
+    return undefined
+  }
+
+  if ('caesura' in articulations) {
+    return 'caesura'
+  }
+
+  return 'breath-mark' in articulations ? 'breath' : undefined
 }
 
 function readFermata(node: XmlNode): boolean | undefined {
@@ -592,10 +609,7 @@ function readFermata(node: XmlNode): boolean | undefined {
 }
 
 function readArticulations(node: XmlNode): Articulation[] | undefined {
-  const notations = readOptionalNode(node, 'notations')
-  const articulations = notations
-    ? readOptionalNode(notations, 'articulations')
-    : undefined
+  const articulations = readNotationArticulations(node)
 
   if (!articulations) {
     return undefined
@@ -606,6 +620,12 @@ function readArticulations(node: XmlNode): Articulation[] | undefined {
   )
 
   return values.length > 0 ? values : undefined
+}
+
+function readNotationArticulations(node: XmlNode): XmlNode | undefined {
+  const notations = readOptionalNode(node, 'notations')
+
+  return notations ? readOptionalNode(notations, 'articulations') : undefined
 }
 
 function readTieFlags(node: XmlNode) {

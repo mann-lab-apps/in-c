@@ -276,12 +276,17 @@ function buildNote(
   ]
   const articulations =
     event.type === 'note' ? event.articulations ?? [] : []
+  const articulationNotations = [
+    ...articulations,
+    ...(event.breathMark === 'breath' ? ['breath-mark'] : []),
+    ...(event.breathMark === 'caesura' ? ['caesura'] : [])
+  ]
   const hasFermata = Boolean(event.fermata)
   const hasNotations =
     tieTypes.length > 0 ||
     notationTuplets.length > 0 ||
     notationSlurs.length > 0 ||
-    articulations.length > 0 ||
+    articulationNotations.length > 0 ||
     hasFermata
 
   return {
@@ -355,10 +360,10 @@ function buildNote(
                   }))
                 }
               : {}),
-            ...(articulations.length > 0
+            ...(articulationNotations.length > 0
               ? {
                   articulations: Object.fromEntries(
-                    articulations.map((articulation) => [articulation, ''])
+                    articulationNotations.map((articulation) => [articulation, ''])
                   )
                 }
               : {}),

@@ -387,7 +387,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "숨표와 caesura",
-            status: "미지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
             docs: []
           },
