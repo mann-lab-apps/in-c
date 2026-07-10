@@ -133,12 +133,19 @@ export interface RehearsalMark {
   text: string
 }
 
+export interface StaffText {
+  id: string
+  measureId: MeasureId
+  text: string
+}
+
 export interface Score {
   id: ScoreId
   title: string
   composer?: string
   tempo?: TempoMarking
   rehearsalMarks?: RehearsalMark[]
+  staffTexts?: StaffText[]
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -173,6 +180,10 @@ export type ScoreCommand =
   | {
       type: 'score-rehearsal-marks.update'
       rehearsalMarks?: RehearsalMark[]
+    }
+  | {
+      type: 'score-staff-texts.update'
+      staffTexts?: StaffText[]
     }
   | {
       type: 'score-layout.update'

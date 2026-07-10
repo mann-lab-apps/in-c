@@ -158,6 +158,30 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('exports and re-imports staff text words', () => {
+    const score = createScore({
+      title: 'Text Sketch',
+      staffTexts: [
+        {
+          id: 'staff-text-1',
+          measureId: 'measure-1',
+          text: 'dolce'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<words>dolce</words>')
+    expect(roundTrip.staffTexts).toEqual([
+      {
+        id: 'measure-1-staff-text-1',
+        measureId: 'measure-1',
+        text: 'dolce'
+      }
+    ])
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

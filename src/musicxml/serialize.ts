@@ -116,7 +116,10 @@ function buildMeasureDirections(score: Score, measure: Measure) {
       : []),
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => mark.measureId === measure.id)
-      .map((mark) => buildRehearsalDirection(mark.text))
+      .map((mark) => buildRehearsalDirection(mark.text)),
+    ...(score.staffTexts ?? [])
+      .filter((text) => text.measureId === measure.id)
+      .map((text) => buildStaffTextDirection(text.text))
   ]
 }
 
@@ -140,6 +143,17 @@ function buildRehearsalDirection(text: string) {
     '@_placement': 'above',
     'direction-type': {
       rehearsal: {
+        '#text': text
+      }
+    }
+  }
+}
+
+function buildStaffTextDirection(text: string) {
+  return {
+    '@_placement': 'above',
+    'direction-type': {
+      words: {
         '#text': text
       }
     }
