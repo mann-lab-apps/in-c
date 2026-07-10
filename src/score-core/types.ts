@@ -150,6 +150,15 @@ export interface DynamicMark {
   value: DynamicValue
 }
 
+export type HairpinType = 'crescendo' | 'diminuendo'
+
+export interface Hairpin {
+  id: string
+  startEventId: VoiceEventId
+  endEventId: VoiceEventId
+  type: HairpinType
+}
+
 export interface Score {
   id: ScoreId
   title: string
@@ -158,6 +167,7 @@ export interface Score {
   rehearsalMarks?: RehearsalMark[]
   staffTexts?: StaffText[]
   dynamics?: DynamicMark[]
+  hairpins?: Hairpin[]
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -200,6 +210,10 @@ export type ScoreCommand =
   | {
       type: 'score-dynamics.update'
       dynamics?: DynamicMark[]
+    }
+  | {
+      type: 'score-hairpins.update'
+      hairpins?: Hairpin[]
     }
   | {
       type: 'score-layout.update'

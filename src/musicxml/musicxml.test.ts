@@ -206,6 +206,66 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('exports and re-imports hairpin wedges', () => {
+    const score = createScore({
+      title: 'Hairpin Sketch',
+      hairpins: [
+        {
+          id: 'hairpin-cresc',
+          startEventId: 'note-start',
+          endEventId: 'note-end',
+          type: 'crescendo'
+        }
+      ],
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'note-end',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<wedge type="crescendo"/>')
+    expect(exported).toContain('<wedge type="stop"/>')
+    expect(roundTrip.hairpins).toEqual([
+      {
+        id: 'hairpin-1-1-2',
+        startEventId: 'event-1',
+        endEventId: 'event-2',
+        type: 'crescendo'
+      }
+    ])
+  })
+
   it('exports and re-imports note articulations', () => {
     const score = createScore({
       title: 'Articulation Sketch',

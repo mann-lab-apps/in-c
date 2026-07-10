@@ -43,6 +43,12 @@ Feature: 작성한 악보를 재생으로 확인하기
     When 사용자가 악보를 저장하거나 다시 불러온다
     Then 다이내믹 값은 재생 엔진이 해석할 수 있는 score 데이터로 유지된다
 
+  @discussion
+  Scenario: 헤어핀은 향후 재생 velocity automation 데이터로 보존된다
+    Given crescendo 또는 diminuendo 헤어핀이 포함된 악보가 열려 있다
+    When 사용자가 악보를 저장하거나 다시 불러온다
+    Then 헤어핀 시작과 끝 위치는 재생 엔진이 해석할 수 있는 score 데이터로 유지된다
+
   Scenario: 타이와 셋잇단음표는 실제 재생 길이에 반영된다
     Given 타이와 셋잇단음표가 포함된 악보가 열려 있다
     When 사용자가 재생을 누른다
