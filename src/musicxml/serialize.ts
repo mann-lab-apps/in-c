@@ -232,7 +232,12 @@ function buildNote(
     ...(tupletBoundary?.start ? ['start'] as const : []),
     ...(tupletBoundary?.stop ? ['stop'] as const : [])
   ]
-  const hasNotations = tieTypes.length > 0 || notationTuplets.length > 0
+  const articulations =
+    event.type === 'note' ? event.articulations ?? [] : []
+  const hasNotations =
+    tieTypes.length > 0 ||
+    notationTuplets.length > 0 ||
+    articulations.length > 0
 
   return {
     ...(event.type === 'rest'
@@ -296,6 +301,13 @@ function buildNote(
                   tuplet: notationTuplets.map((type) => ({
                     '@_type': type
                   }))
+                }
+              : {}),
+            ...(articulations.length > 0
+              ? {
+                  articulations: Object.fromEntries(
+                    articulations.map((articulation) => [articulation, ''])
+                  )
                 }
               : {})
           }

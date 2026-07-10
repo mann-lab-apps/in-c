@@ -60,6 +60,7 @@ export function createNote(input: {
   pitch: Pitch
   duration?: Duration
   ties?: Note['ties']
+  articulations?: Note['articulations']
 }): Note {
   return {
     type: 'note',
@@ -67,7 +68,8 @@ export function createNote(input: {
     position: input.position ?? createTimePosition(0),
     pitch: input.pitch,
     duration: input.duration ?? createDuration('quarter'),
-    ties: input.ties
+    ties: input.ties,
+    articulations: input.articulations
   }
 }
 

@@ -344,6 +344,24 @@ window.FEATURE_MAP = [
             docs: []
           },
           {
+            name: "스타카토와 악센트 아티큘레이션",
+            status: "지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/note-input.feature"
+            ],
+            docs: []
+          },
+          {
+            name: "테누토, 마르카토 등 확장 아티큘레이션",
+            status: "미지원",
+            acceptance: [
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/note-input.feature"
+            ],
+            docs: []
+          },
+          {
             name: "system text와 expression text",
             status: "미지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],

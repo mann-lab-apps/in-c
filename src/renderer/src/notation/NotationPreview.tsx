@@ -349,6 +349,17 @@ export function NotationPreview({
             }
           }
 
+          const event = events[noteIndex]
+
+          if (svg && event?.type === 'note' && event.articulations?.length) {
+            drawArticulations(
+              svg,
+              note.getAbsoluteX(),
+              placement.y,
+              event.articulations
+            )
+          }
+
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
@@ -517,6 +528,35 @@ function drawDynamicMark(
   text.setAttribute('y', String(y))
   text.textContent = label
   svg.append(text)
+}
+
+function drawArticulations(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  articulations: string[]
+): void {
+  articulations.forEach((articulation, index) => {
+    const y = staffY - 12 - index * 12
+
+    if (articulation === 'staccato') {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+
+      dot.classList.add('notation-articulation')
+      dot.setAttribute('cx', String(x + 4))
+      dot.setAttribute('cy', String(y))
+      dot.setAttribute('r', '2.6')
+      svg.append(dot)
+    } else if (articulation === 'accent') {
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+      text.classList.add('notation-articulation')
+      text.setAttribute('x', String(x))
+      text.setAttribute('y', String(y + 4))
+      text.textContent = '>'
+      svg.append(text)
+    }
+  })
 }
 
 function drawTie(

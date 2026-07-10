@@ -46,7 +46,8 @@ import {
   type Pitch,
   type PitchStep,
   type Score,
-  type ScoreCommand
+  type ScoreCommand,
+  type Articulation
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import { createSingleVoiceMvpScore } from '../../testing/single-voice-mvp-fixture'
@@ -211,6 +212,13 @@ const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
+const articulationValues: Array<{
+  label: string
+  value: Articulation
+}> = [
+  { label: '스타카토', value: 'staccato' },
+  { label: '악센트', value: 'accent' }
+]
 
 const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -1473,6 +1481,37 @@ const App = () => {
     [activeMeasureId, executeCommand, score.dynamics]
   )
 
+  const toggleArticulation = useCallback(
+    (articulation: Articulation) => {
+      if (!eventLocation || eventLocation.event.type !== 'note') {
+        return
+      }
+
+      const currentArticulations = new Set(
+        eventLocation.event.articulations ?? []
+      )
+
+      if (currentArticulations.has(articulation)) {
+        currentArticulations.delete(articulation)
+      } else {
+        currentArticulations.add(articulation)
+      }
+
+      const articulations = Array.from(currentArticulations)
+
+      executeCommand({
+        type: 'voice-event.replace',
+        target: eventLocation.address,
+        eventId: eventLocation.event.id,
+        event: {
+          ...eventLocation.event,
+          articulations: articulations.length > 0 ? articulations : undefined
+        }
+      })
+    },
+    [eventLocation, executeCommand]
+  )
+
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
       removeMeasure()
@@ -1975,6 +2014,10 @@ const App = () => {
     [noteInputState, score]
   )
   const canEditPitch = eventLocation?.event.type === 'note'
+  const selectedNoteArticulations =
+    eventLocation?.event.type === 'note'
+      ? new Set(eventLocation.event.articulations ?? [])
+      : new Set<Articulation>()
   const selectedPitchAlter =
     eventLocation?.event.type === 'note'
       ? eventLocation.event.pitch.alter ?? 0
@@ -2259,6 +2302,29 @@ const App = () => {
                 >
                   쉼표로 변환
                 </button>
+
+                <div className="inspector-properties__row">
+                  <span>아티큘레이션</span>
+                  <div className="inspector-properties__buttons">
+                    {articulationValues.map(({ label, value }) => (
+                      <button
+                        aria-label={label}
+                        aria-pressed={selectedNoteArticulations.has(value)}
+                        className={
+                          selectedNoteArticulations.has(value)
+                            ? 'is-active'
+                            : undefined
+                        }
+                        disabled={eventLocation.event.type !== 'note'}
+                        key={value}
+                        onClick={() => toggleArticulation(value)}
+                        type="button"
+                      >
+                        {value === 'staccato' ? '•' : '>'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <p className="inspector-properties__empty">

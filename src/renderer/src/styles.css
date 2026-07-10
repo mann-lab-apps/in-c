@@ -826,6 +826,13 @@ h2 {
   font-weight: 700;
 }
 
+.notation-articulation {
+  fill: #111827;
+  font-size: 16px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
 .notation-state-overlays {
   pointer-events: none;
 }

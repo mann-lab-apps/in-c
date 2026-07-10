@@ -56,6 +56,8 @@ export interface TimeSignature {
   beatType: number
 }
 
+export type Articulation = 'staccato' | 'accent'
+
 export interface Note {
   type: 'note'
   id: VoiceEventId
@@ -66,6 +68,7 @@ export interface Note {
     start?: boolean
     stop?: boolean
   }
+  articulations?: Articulation[]
 }
 
 export interface Rest {
