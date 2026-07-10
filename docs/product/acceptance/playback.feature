@@ -43,11 +43,11 @@ Feature: 작성한 악보를 재생으로 확인하기
     When 사용자가 악보를 저장하거나 다시 불러온다
     Then 다이내믹 값은 재생 엔진이 해석할 수 있는 score 데이터로 유지된다
 
-  @discussion
-  Scenario: 헤어핀은 향후 재생 velocity automation 데이터로 보존된다
+  Scenario: 헤어핀은 재생 velocity automation으로 반영된다
     Given crescendo 또는 diminuendo 헤어핀이 포함된 악보가 열려 있다
-    When 사용자가 악보를 저장하거나 다시 불러온다
-    Then 헤어핀 시작과 끝 위치는 재생 엔진이 해석할 수 있는 score 데이터로 유지된다
+    When 사용자가 재생을 누른다
+    Then 헤어핀 범위의 음량은 시작 dynamic 기준에서 방향에 따라 선형으로 변한다
+    And 헤어핀 밖의 이벤트는 해당 마디 dynamic 기준 음량을 유지한다
 
   @discussion
   Scenario: 페르마타는 향후 재생 길이 해석 데이터로 보존된다
