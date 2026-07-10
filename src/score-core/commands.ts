@@ -15,6 +15,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
   switch (command.type) {
     case 'score-metadata.update':
       return updateScoreMetadata(score, command.title, command.composer)
+    case 'score-layout.update':
+      return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
       return insertVoiceEvent(score, command.target, command.event, command.index)
     case 'voice-event.remove':
@@ -49,6 +51,22 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreLayout(
+  score: Score,
+  layout: Score['layout']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      layout
+    },
+    undo: {
+      type: 'score-layout.update',
+      layout: score.layout
+    }
   }
 }
 

@@ -62,6 +62,43 @@ describe('system layout', () => {
     }
   })
 
+  it('starts a new system before measures with manual system breaks', () => {
+    const layout = createSystemLayout(createMeasures(6), 900, {
+      layout: {
+        systemBreakBeforeMeasureIds: ['measure-3', 'measure-6']
+      }
+    })
+
+    expect(layout.systemCount).toBe(3)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 1, 1, 1, 2
+    ])
+    expect(layout.placements[2]).toMatchObject({
+      isSystemStart: true,
+      measure: expect.objectContaining({ id: 'measure-3' }),
+      x: 16
+    })
+    expect(layout.placements[5]).toMatchObject({
+      isSystemStart: true,
+      measure: expect.objectContaining({ id: 'measure-6' }),
+      x: 16
+    })
+  })
+
+  it('ignores manual system breaks before the first measure', () => {
+    const layout = createSystemLayout(createMeasures(4), 900, {
+      layout: {
+        systemBreakBeforeMeasureIds: ['measure-1']
+      }
+    })
+
+    expect(layout.systemCount).toBe(1)
+    expect(layout.placements[0]).toMatchObject({
+      isSystemStart: true,
+      measure: expect.objectContaining({ id: 'measure-1' })
+    })
+  })
+
   it('allocates more width to rhythmically dense measures', () => {
     const sparse = createMeasure({
       id: 'sparse',

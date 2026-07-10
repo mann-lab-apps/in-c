@@ -40,3 +40,19 @@ VexFlow 객체와 독립적인 순수 계산이며 다음 규칙을 사용한다
 selection overlay와 input/playback cursor는 measure ID와 event ID를 통해
 계산된 시스템 placement에 매핑된다. 창 크기가 바뀌면 전체 placement와
 cursor 좌표를 다시 계산한다.
+
+## 수동 시스템 나누기
+
+문서 layout hint는 `Score.layout.systemBreakBeforeMeasureIds`에 저장한다.
+각 ID는 해당 마디 앞에서 새 system을 시작하라는 의미다.
+
+- 첫 마디 앞의 system break는 무시한다.
+- 자동 줄바꿈은 계속 적용되며, 수동 break는 자동 capacity보다 먼저 system을
+  끊는다.
+- 수동 break로 만들어진 system도 기존 폭 배분 규칙을 사용해 마지막 마디가
+  사용 가능한 전체 폭을 채운다.
+- system break는 음악 시간, 재생, MusicXML 음표 의미를 바꾸지 않는 layout
+  hint다.
+
+현재 구현은 수동 system break만 지원한다. page break, page size, margin,
+orientation, MusicXML print/layout round-trip은 별도 후속 범위로 둔다.

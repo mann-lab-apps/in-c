@@ -97,7 +97,9 @@ export function NotationPreview({
     container.replaceChildren()
 
     const measures = score.parts[0]?.staves[0]?.measures ?? []
-    const layout = createSystemLayout(measures, renderWidth)
+    const layout = createSystemLayout(measures, renderWidth, {
+      layout: score.layout
+    })
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(renderWidth, layout.height)
     const context = renderer.getContext()

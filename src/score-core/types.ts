@@ -126,7 +126,12 @@ export interface Score {
   id: ScoreId
   title: string
   composer?: string
+  layout?: ScoreLayout
   parts: Part[]
+}
+
+export interface ScoreLayout {
+  systemBreakBeforeMeasureIds?: MeasureId[]
 }
 
 export interface VoiceAddress {
@@ -146,6 +151,10 @@ export type ScoreCommand =
       type: 'score-metadata.update'
       title: string
       composer?: string
+    }
+  | {
+      type: 'score-layout.update'
+      layout?: ScoreLayout
     }
   | {
       type: 'voice-event.insert'

@@ -168,12 +168,14 @@ export function createScore(input?: {
   id?: string
   title?: string
   composer?: string
+  layout?: Score['layout']
   parts?: Part[]
 }): Score {
   return {
     id: input?.id ?? 'score-1',
     title: input?.title ?? 'Untitled score',
     composer: input?.composer,
+    layout: input?.layout,
     parts: input?.parts ?? [createPart()]
   }
 }

@@ -3,7 +3,8 @@ import {
   voiceEventDurationTicks,
   type Clef,
   type Measure,
-  type Pitch
+  type Pitch,
+  type ScoreLayout
 } from '../../../score-core'
 
 export interface MeasurePlacement {
@@ -20,6 +21,10 @@ export interface SystemLayout {
   measuresPerSystem: number
   placements: MeasurePlacement[]
   systemCount: number
+}
+
+export interface SystemLayoutOptions {
+  layout?: ScoreLayout
 }
 
 const HORIZONTAL_PADDING = 16
@@ -45,7 +50,8 @@ interface SystemPitchExtremes {
 
 export function createSystemLayout(
   measures: Measure[],
-  renderWidth: number
+  renderWidth: number,
+  options: SystemLayoutOptions = {}
 ): SystemLayout {
   if (measures.length === 0) {
     return {
@@ -66,15 +72,17 @@ export function createSystemLayout(
     widthCapacity,
     measures.length
   )
-  const systemCount = Math.ceil(measures.length / measuresPerSystem)
+  const systemMeasuresList = createSystemMeasureGroups(
+    measures,
+    measuresPerSystem,
+    options.layout
+  )
+  const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
   let verticalCursor = SYSTEM_TOP
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
-    const systemMeasures = measures.slice(
-      systemIndex * measuresPerSystem,
-      (systemIndex + 1) * measuresPerSystem
-    )
+    const systemMeasures = systemMeasuresList[systemIndex]
     const widths = distributeSystemWidths(systemMeasures, availableWidth)
     let x = HORIZONTAL_PADDING
     const verticalSpace = systemVerticalSpace(systemMeasures)
@@ -104,6 +112,35 @@ export function createSystemLayout(
     placements,
     systemCount
   }
+}
+
+function createSystemMeasureGroups(
+  measures: Measure[],
+  measuresPerSystem: number,
+  layout: ScoreLayout | undefined
+): Measure[][] {
+  const manualBreaks = new Set(layout?.systemBreakBeforeMeasureIds ?? [])
+  const systems: Measure[][] = []
+  let currentSystem: Measure[] = []
+
+  for (const measure of measures) {
+    if (
+      currentSystem.length > 0 &&
+      (manualBreaks.has(measure.id) ||
+        currentSystem.length >= measuresPerSystem)
+    ) {
+      systems.push(currentSystem)
+      currentSystem = []
+    }
+
+    currentSystem.push(measure)
+  }
+
+  if (currentSystem.length > 0) {
+    systems.push(currentSystem)
+  }
+
+  return systems
 }
 
 function systemVerticalSpace(measures: Measure[]): SystemVerticalSpace {
