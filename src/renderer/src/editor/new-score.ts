@@ -16,6 +16,7 @@ export interface NewScoreOptions {
   keySignature: KeySignature
   timeSignature: TimeSignature
   measureCount: number
+  tempo?: number
 }
 
 export const keySignaturePresets = [
@@ -157,6 +158,7 @@ export const partPresets = [
 
 export function createNewScore(options: NewScoreOptions): Score {
   const measureCount = Math.max(1, Math.floor(options.measureCount))
+  const tempo = options.tempo ?? 120
   const measures = Array.from({ length: measureCount }, (_, index) =>
     createMeasure({
       id: `measure-${index + 1}`,
@@ -170,6 +172,10 @@ export function createNewScore(options: NewScoreOptions): Score {
     id: `score-${crypto.randomUUID()}`,
     title: options.title.trim() || '제목 없는 악보',
     composer: options.composer?.trim() || undefined,
+    tempo: {
+      bpm: tempo,
+      text: `♩ = ${tempo}`
+    },
     parts: [
       createPart({
         id: 'part-1',

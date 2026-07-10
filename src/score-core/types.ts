@@ -122,10 +122,16 @@ export interface Part {
   staves: Staff[]
 }
 
+export interface TempoMarking {
+  bpm: number
+  text?: string
+}
+
 export interface Score {
   id: ScoreId
   title: string
   composer?: string
+  tempo?: TempoMarking
   layout?: ScoreLayout
   parts: Part[]
 }
@@ -152,6 +158,10 @@ export type ScoreCommand =
       type: 'score-metadata.update'
       title: string
       composer?: string
+    }
+  | {
+      type: 'score-tempo.update'
+      tempo?: TempoMarking
     }
   | {
       type: 'score-layout.update'

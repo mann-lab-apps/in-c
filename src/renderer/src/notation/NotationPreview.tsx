@@ -117,6 +117,10 @@ export function NotationPreview({
 
     window.addEventListener('mouseup', clearDragAnchor)
 
+    if (svg && score.tempo) {
+      drawTempoMarking(svg, score.tempo.text ?? `♩ = ${score.tempo.bpm}`)
+    }
+
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
       const previousPlacement = layout.placements[placementIndex - 1]
@@ -421,6 +425,16 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function drawTempoMarking(svg: SVGSVGElement, label: string): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-tempo-marking')
+  text.setAttribute('x', '32')
+  text.setAttribute('y', '22')
+  text.textContent = label
+  svg.append(text)
 }
 
 function drawTie(

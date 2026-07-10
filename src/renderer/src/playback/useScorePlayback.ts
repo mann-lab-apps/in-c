@@ -11,11 +11,13 @@ export type PlaybackStatus = 'stopped' | 'playing' | 'paused'
 
 const MIN_TEMPO = 40
 const MAX_TEMPO = 240
+const DEFAULT_TEMPO = 120
 
 export function useScorePlayback(score: Score) {
   const timeline = useMemo(() => createPlaybackTimeline(score), [score])
   const [status, setStatus] = useState<PlaybackStatus>('stopped')
-  const [tempo, setTempoState] = useState(120)
+  const scoreTempo = normalizeTempo(score.tempo?.bpm ?? DEFAULT_TEMPO)
+  const [tempo, setTempoState] = useState(scoreTempo)
   const [positionBeat, setPositionBeat] = useState(0)
   const [activeEventId, setActiveEventId] = useState<string | undefined>()
   const audioContextRef = useRef<AudioContext | undefined>(undefined)
@@ -30,6 +32,11 @@ export function useScorePlayback(score: Score) {
   useEffect(() => {
     tempoRef.current = tempo
   }, [tempo])
+
+  useEffect(() => {
+    tempoRef.current = scoreTempo
+    setTempoState(scoreTempo)
+  }, [scoreTempo])
 
   useEffect(() => {
     timelineRef.current = timeline
@@ -253,4 +260,8 @@ export function useScorePlayback(score: Score) {
     pause,
     stop
   }
+}
+
+function normalizeTempo(value: number): number {
+  return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(value)))
 }

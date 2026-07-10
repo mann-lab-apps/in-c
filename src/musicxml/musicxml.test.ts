@@ -116,6 +116,24 @@ describe('MusicXML MVP', () => {
     expect(roundTrip).toEqual(score)
   })
 
+  it('exports and re-imports a global tempo marking', () => {
+    const score = createScore({
+      title: 'Tempo Sketch',
+      tempo: {
+        bpm: 96,
+        text: '♩ = 96'
+      }
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<sound tempo="96"/>')
+    expect(roundTrip.tempo).toEqual({
+      bpm: 96,
+      text: '♩ = 96'
+    })
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

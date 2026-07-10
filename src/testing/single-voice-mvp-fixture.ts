@@ -31,6 +31,10 @@ export const singleVoiceMvpScore = createScore({
   id: 'single-voice-mvp',
   title: 'Single Voice MVP',
   composer: 'in-C',
+  tempo: {
+    bpm: 120,
+    text: '♩ = 120'
+  },
   parts: [
     createPart({
       id: 'part-1',
