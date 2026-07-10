@@ -11,12 +11,25 @@ import {
   type Score
 } from '../../../score-core'
 
+const DEFAULT_VELOCITY = 0.16
+const DYNAMIC_VELOCITY = {
+  p: 0.09,
+  mp: 0.12,
+  mf: DEFAULT_VELOCITY,
+  f: 0.22
+} as const
+const HAIRPIN_DELTA = 0.08
+const MIN_VELOCITY = 0.06
+const MAX_VELOCITY = 0.24
+
 export interface PlaybackEvent {
   eventId: string
   measureId: string
   startBeat: number
   durationBeats: number
   frequency?: number
+  velocityStart: number
+  velocityEnd: number
 }
 
 export interface PlaybackTimeline {
@@ -45,7 +58,9 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         frequency:
           event.type === 'note' && voice
             ? pitchToFrequency(resolveNotePitch(measure, voice, event))
-            : undefined
+            : undefined,
+        velocityStart: resolveMeasureVelocity(score, measure.id),
+        velocityEnd: resolveMeasureVelocity(score, measure.id)
       }
       const previous = events.at(-1)
 
@@ -58,6 +73,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         previous.startBeat + previous.durationBeats === playbackEvent.startBeat
       ) {
         previous.durationBeats += playbackEvent.durationBeats
+        previous.velocityEnd = playbackEvent.velocityEnd
       } else {
         events.push(playbackEvent)
       }
@@ -69,7 +85,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   }
 
   return {
-    events,
+    events: applyHairpinVelocity(score, events),
     totalBeats: scoreBeat
   }
 }
@@ -93,4 +109,69 @@ export function findPlaybackEvent(
       beat >= event.startBeat &&
       beat < event.startBeat + event.durationBeats
   )
+}
+
+function resolveMeasureVelocity(score: Score, measureId: string): number {
+  const dynamic = score.dynamics?.find((mark) => mark.measureId === measureId)
+
+  return dynamic ? DYNAMIC_VELOCITY[dynamic.value] : DEFAULT_VELOCITY
+}
+
+function applyHairpinVelocity(
+  score: Score,
+  events: PlaybackEvent[]
+): PlaybackEvent[] {
+  const nextEvents = events.map((event) => ({ ...event }))
+
+  for (const hairpin of score.hairpins ?? []) {
+    const startEvent = nextEvents.find((event) => event.eventId === hairpin.startEventId)
+    const endEvent = nextEvents.find((event) => event.eventId === hairpin.endEventId)
+
+    if (!startEvent || !endEvent) {
+      continue
+    }
+
+    const spanStart = startEvent.startBeat
+    const spanEnd = endEvent.startBeat + endEvent.durationBeats
+    const spanDuration = spanEnd - spanStart
+
+    if (spanDuration <= 0) {
+      continue
+    }
+
+    const baseVelocity = startEvent.velocityStart
+    const targetVelocity =
+      hairpin.type === 'crescendo'
+        ? clampVelocity(baseVelocity + HAIRPIN_DELTA)
+        : clampVelocity(baseVelocity - HAIRPIN_DELTA)
+
+    nextEvents.forEach((event) => {
+      const eventEnd = event.startBeat + event.durationBeats
+
+      if (eventEnd <= spanStart || event.startBeat >= spanEnd) {
+        return
+      }
+
+      event.velocityStart = interpolateVelocity(
+        baseVelocity,
+        targetVelocity,
+        (Math.max(event.startBeat, spanStart) - spanStart) / spanDuration
+      )
+      event.velocityEnd = interpolateVelocity(
+        baseVelocity,
+        targetVelocity,
+        (Math.min(eventEnd, spanEnd) - spanStart) / spanDuration
+      )
+    })
+  }
+
+  return nextEvents
+}
+
+function interpolateVelocity(start: number, end: number, ratio: number): number {
+  return clampVelocity(start + (end - start) * Math.min(1, Math.max(0, ratio)))
+}
+
+function clampVelocity(value: number): number {
+  return Math.min(MAX_VELOCITY, Math.max(MIN_VELOCITY, value))
 }

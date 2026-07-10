@@ -104,12 +104,16 @@ export function useScorePlayback(score: Score) {
           startTime +
           (event.startBeat + event.durationBeats - eventStartBeat) *
             secondsPerBeat
+        const startVelocity = resolveEventVelocityAtBeat(event, eventStartBeat)
+        const endVelocity = event.velocityEnd
+        const sustainStart = Math.min(startTime + 0.015, endTime)
+        const releaseStart = Math.max(sustainStart, endTime - 0.04)
 
         oscillator.type = 'triangle'
         oscillator.frequency.setValueAtTime(event.frequency, startTime)
         gain.gain.setValueAtTime(0.0001, startTime)
-        gain.gain.exponentialRampToValueAtTime(0.16, startTime + 0.015)
-        gain.gain.setValueAtTime(0.16, Math.max(startTime + 0.015, endTime - 0.04))
+        gain.gain.exponentialRampToValueAtTime(startVelocity, sustainStart)
+        gain.gain.linearRampToValueAtTime(endVelocity, releaseStart)
         gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
         oscillator.connect(gain)
         gain.connect(context.destination)
@@ -264,4 +268,17 @@ export function useScorePlayback(score: Score) {
 
 function normalizeTempo(value: number): number {
   return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(value)))
+}
+
+function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number {
+  if (event.durationBeats <= 0) {
+    return event.velocityStart
+  }
+
+  const ratio = Math.min(
+    1,
+    Math.max(0, (beat - event.startBeat) / event.durationBeats)
+  )
+
+  return event.velocityStart + (event.velocityEnd - event.velocityStart) * ratio
 }

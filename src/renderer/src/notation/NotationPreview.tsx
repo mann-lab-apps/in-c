@@ -58,6 +58,12 @@ interface CursorPoint {
   y: number
 }
 
+interface SystemBounds {
+  x1: number
+  x2: number
+  y: number
+}
+
 export function NotationPreview({
   score,
   inputCursor,
@@ -109,6 +115,7 @@ export function NotationPreview({
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
     const pointsByEventId = new Map<string, CursorPoint>()
+    const boundsBySystemIndex = new Map<number, SystemBounds>()
     const selectedEventIdSet = new Set(selectedEventIds)
     let dragAnchorEventId: string | undefined
 
@@ -134,6 +141,15 @@ export function NotationPreview({
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
+      const systemBounds = boundsBySystemIndex.get(placement.systemIndex)
+      boundsBySystemIndex.set(placement.systemIndex, {
+        x1: Math.min(systemBounds?.x1 ?? placement.x, placement.x),
+        x2: Math.max(
+          systemBounds?.x2 ?? placement.x + placement.width,
+          placement.x + placement.width
+        ),
+        y: placement.y
+      })
       const previousPlacement = layout.placements[placementIndex - 1]
       const previousMeasure =
         previousPlacement?.systemIndex === placement.systemIndex
@@ -433,17 +449,22 @@ export function NotationPreview({
       for (const hairpin of score.hairpins ?? []) {
         const start = pointsByEventId.get(hairpin.startEventId)
         const end = pointsByEventId.get(hairpin.endEventId)
+        const startSystem = systemsByEventId.get(hairpin.startEventId)
+        const endSystem = systemsByEventId.get(hairpin.endEventId)
 
-        if (
-          !start ||
-          !end ||
-          systemsByEventId.get(hairpin.startEventId) !==
-            systemsByEventId.get(hairpin.endEventId)
-        ) {
+        if (!start || !end || startSystem === undefined || endSystem === undefined) {
           continue
         }
 
-        drawHairpin(svg, start, end, hairpin.type)
+        drawHairpinSegments(
+          svg,
+          start,
+          end,
+          hairpin.type,
+          startSystem,
+          endSystem,
+          boundsBySystemIndex
+        )
       }
     }
 
@@ -574,32 +595,74 @@ function drawDynamicMark(
   svg.append(text)
 }
 
-function drawHairpin(
+function drawHairpinSegments(
   svg: SVGSVGElement,
   start: CursorPoint,
   end: CursorPoint,
-  type: string
+  type: string,
+  startSystem: number,
+  endSystem: number,
+  boundsBySystemIndex: Map<number, SystemBounds>
+): void {
+  const firstSystem = Math.min(startSystem, endSystem)
+  const lastSystem = Math.max(startSystem, endSystem)
+
+  for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
+    const bounds = boundsBySystemIndex.get(systemIndex)
+
+    if (!bounds) {
+      continue
+    }
+
+    const isFirst = systemIndex === startSystem
+    const isLast = systemIndex === endSystem
+    const x1 = isFirst ? start.x + 10 : bounds.x1 + 22
+    const x2 = isLast ? Math.max(x1 + 24, end.x + 22) : bounds.x2 - 18
+
+    if (x2 <= x1 + 8) {
+      continue
+    }
+
+    drawHairpinSegment(svg, x1, x2, bounds.y, type, isFirst, isLast)
+  }
+}
+
+function drawHairpinSegment(
+  svg: SVGSVGElement,
+  x1: number,
+  x2: number,
+  staffY: number,
+  type: string,
+  isFirst: boolean,
+  isLast: boolean
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const x1 = start.x + 10
-  const x2 = Math.max(x1 + 24, end.x + 22)
-  const y = Math.max(start.y, end.y) + 82
-  const opening = 10
-  const leftOpen = type === 'diminuendo'
-  const rightOpen = type === 'crescendo'
+  const y = staffY + 82
+  const leftOpening =
+    type === 'diminuendo'
+      ? 10
+      : isFirst
+        ? 0
+        : 8
+  const rightOpening =
+    type === 'crescendo'
+      ? 10
+      : isLast
+        ? 0
+        : 8
 
   group.classList.add('notation-hairpin')
 
   upper.setAttribute('x1', String(x1))
-  upper.setAttribute('y1', String(y + (leftOpen ? -opening : 0)))
+  upper.setAttribute('y1', String(y - leftOpening))
   upper.setAttribute('x2', String(x2))
-  upper.setAttribute('y2', String(y + (rightOpen ? -opening : 0)))
+  upper.setAttribute('y2', String(y - rightOpening))
   lower.setAttribute('x1', String(x1))
-  lower.setAttribute('y1', String(y + (leftOpen ? opening : 0)))
+  lower.setAttribute('y1', String(y + leftOpening))
   lower.setAttribute('x2', String(x2))
-  lower.setAttribute('y2', String(y + (rightOpen ? opening : 0)))
+  lower.setAttribute('y2', String(y + rightOpening))
 
   group.append(upper, lower)
   svg.append(group)

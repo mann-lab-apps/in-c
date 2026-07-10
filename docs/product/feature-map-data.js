@@ -336,7 +336,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "헤어핀 crescendo/diminuendo",
-            status: "부분 지원",
+            status: "지원",
             acceptance: [
               "docs/product/acceptance/layout-rendering.feature",
               "docs/product/acceptance/playback.feature"
