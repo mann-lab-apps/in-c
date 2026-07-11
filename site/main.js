@@ -9,12 +9,46 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.3',
-  releaseTag: 'v0.1.0-alpha.3',
-  releasePublished: false,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases',
-  downloads: []
+  version: '0.1.0-alpha.4',
+  releaseTag: 'v0.1.0-alpha.4',
+  releasePublished: true,
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.4',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/SHA256SUMS.txt',
+  downloads: [
+    {
+      id: 'macos',
+      platform: 'macOS',
+      label: 'macOS',
+      architecture: 'Universal',
+      format: 'DMG',
+      available: true,
+      fileName: 'in-C-0.1.0-alpha.4-mac-universal.dmg',
+      size: '224.9 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-mac-universal.dmg'
+    },
+    {
+      id: 'windows',
+      platform: 'Windows',
+      label: 'Windows',
+      architecture: 'x64',
+      format: 'NSIS installer',
+      available: true,
+      fileName: 'in-C-0.1.0-alpha.4-windows-x64-setup.exe',
+      size: '111.0 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-windows-x64-setup.exe'
+    },
+    {
+      id: 'linux',
+      platform: 'Linux',
+      label: 'Linux',
+      architecture: 'x86_64',
+      format: 'AppImage',
+      available: true,
+      fileName: 'in-C-0.1.0-alpha.4-linux-x86_64.AppImage',
+      size: '138.1 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-linux-x86_64.AppImage'
+    }
+  ]
 }
 
 const formatValue = (value, fallback = '릴리즈 대기 중') => value ?? fallback

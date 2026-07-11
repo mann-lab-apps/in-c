@@ -1,11 +1,11 @@
 {
-  "version": "0.1.0-alpha.3",
-  "releaseTag": "v0.1.0-alpha.3",
-  "releaseDate": "2026-07-04",
+  "version": "0.1.0-alpha.4",
+  "releaseTag": "v0.1.0-alpha.4",
+  "releaseDate": "2026-07-11",
   "releasePublished": true,
   "repositoryUrl": "https://github.com/mann-lab-apps/in-c",
-  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.3",
-  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.3/SHA256SUMS.txt",
+  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.4",
+  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/SHA256SUMS.txt",
   "signing": {
     "macOS": "미서명 prerelease. Gatekeeper 경고가 표시될 수 있습니다.",
     "Windows": "미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.",
@@ -19,9 +19,9 @@
       "architecture": "Universal",
       "format": "DMG",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.3-mac-universal.dmg",
+      "fileName": "in-C-0.1.0-alpha.4-mac-universal.dmg",
       "size": "224.9 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.3/in-C-0.1.0-alpha.3-mac-universal.dmg"
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-mac-universal.dmg"
     },
     {
       "id": "windows",
@@ -30,9 +30,9 @@
       "architecture": "x64",
       "format": "NSIS installer",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.3-windows-x64-setup.exe",
-      "size": "110.9 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.3/in-C-0.1.0-alpha.3-windows-x64-setup.exe"
+      "fileName": "in-C-0.1.0-alpha.4-windows-x64-setup.exe",
+      "size": "111.0 MB",
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-windows-x64-setup.exe"
     },
     {
       "id": "linux",
@@ -41,9 +41,9 @@
       "architecture": "x86_64",
       "format": "AppImage",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.3-linux-x86_64.AppImage",
+      "fileName": "in-C-0.1.0-alpha.4-linux-x86_64.AppImage",
       "size": "138.1 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.3/in-C-0.1.0-alpha.3-linux-x86_64.AppImage"
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-linux-x86_64.AppImage"
     }
   ]
 }
