@@ -1,4 +1,4 @@
-import { readdirSync } from 'node:fs'
+import { readFileSync, readdirSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
@@ -20,6 +20,18 @@ const getHtmlPages = (root: string, prefix: string) =>
 const columnPages = getHtmlPages(resolve(__dirname, 'columns'), 'columns')
 
 export default defineConfig({
+  plugins: [
+    {
+      name: 'copy-download-manifest',
+      generateBundle() {
+        this.emitFile({
+          type: 'asset',
+          fileName: 'download-manifest.json',
+          source: readFileSync(resolve(__dirname, 'download-manifest.json'), 'utf8')
+        })
+      }
+    }
+  ],
   build: {
     rollupOptions: {
       input: {
