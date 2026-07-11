@@ -1240,12 +1240,14 @@ async function verifyReleaseScenarioBounds(window) {
 
   const desktop = await readReleaseScenarioBounds(window, 1400)
   const minimum = await readReleaseScenarioBounds(window, 1100)
+  const compact = await readReleaseScenarioBounds(window, 960)
   const result = {
+    compact,
     desktop,
     minimum
   }
 
-  for (const metrics of [desktop, minimum]) {
+  for (const metrics of [desktop, minimum, compact]) {
     if (
       !metrics.hasFermata ||
       !metrics.hasTempo ||

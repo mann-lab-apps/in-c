@@ -125,6 +125,11 @@ export function NotationPreview({
 
     window.addEventListener('mouseup', clearDragAnchor)
 
+    if (svg) {
+      svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
+      svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
+    }
+
     if (svg && score.tempo) {
       drawTempoMarking(svg, score.tempo.text ?? `♩ = ${score.tempo.bpm}`)
     }
