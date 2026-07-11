@@ -230,7 +230,7 @@ const breathMarkValues: Array<{
   value: BreathMark
 }> = [
   { label: '숨표', symbol: ',', value: 'breath' },
-  { label: 'Caesura', symbol: '//', value: 'caesura' }
+  { label: '중지표', symbol: '//', value: 'caesura' }
 ]
 
 const App = () => {
@@ -2504,7 +2504,7 @@ const App = () => {
                 </div>
 
                 <div className="inspector-properties__row">
-                  <span>아티큘레이션</span>
+                  <span>표현 기호</span>
                   <div className="inspector-properties__buttons">
                     {articulationValues.map(({ label, value }) => (
                       <button
@@ -2569,9 +2569,9 @@ const App = () => {
             <section className="inspector-properties" aria-label="마디 텍스트">
               <h3>마디 표시</h3>
               <label>
-                <span>리허설 마크</span>
+                <span>연습표</span>
                 <input
-                  aria-label="리허설 마크"
+                  aria-label="연습표"
                   defaultValue={activeMeasureRehearsalMark?.text ?? ''}
                   key={`${activeMeasureId}-${
                     activeMeasureRehearsalMark?.text ?? ''
@@ -2595,9 +2595,9 @@ const App = () => {
               </label>
 
               <label>
-                <span>스태프 텍스트</span>
+                <span>보표 글자</span>
                 <input
-                  aria-label="스태프 텍스트"
+                  aria-label="보표 글자"
                   defaultValue={activeMeasureStaffText?.text ?? ''}
                   key={`${activeMeasureId}-${
                     activeMeasureStaffText?.text ?? ''
@@ -2621,9 +2621,9 @@ const App = () => {
               </label>
 
               <label>
-                <span>다이내믹</span>
+                <span>셈여림</span>
                 <select
-                  aria-label="다이내믹"
+                  aria-label="셈여림"
                   onChange={(event) => updateActiveDynamic(event.target.value)}
                   value={activeMeasureDynamic?.value ?? ''}
                 >
@@ -3012,9 +3012,9 @@ const App = () => {
           </div>
 
           <label className="tempo-control">
-            <span>템포</span>
+            <span>빠르기</span>
             <input
-              aria-label="템포"
+              aria-label="빠르기"
               max="240"
               min="40"
               onChange={(event) =>
@@ -3284,7 +3284,7 @@ const App = () => {
               </label>
 
               <label>
-                <span>템포</span>
+                <span>빠르기</span>
                 <input
                   max="240"
                   min="40"

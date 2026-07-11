@@ -200,7 +200,7 @@ async function verifyKeyboardRouting(window) {
   `)
 
   await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="템포"]')?.dispatchEvent(
+    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
         code: 'KeyC',
@@ -210,7 +210,7 @@ async function verifyKeyboardRouting(window) {
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
   await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="템포"]')?.dispatchEvent(
+    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
         key: '2'
@@ -219,7 +219,7 @@ async function verifyKeyboardRouting(window) {
   `)
   await new Promise((resolve) => setTimeout(resolve, 100))
   await window.webContents.executeJavaScript(`
-    document.querySelector('input[aria-label="템포"]')?.dispatchEvent(
+    document.querySelector('input[aria-label="빠르기"]')?.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
         code: 'KeyR',
@@ -1252,6 +1252,7 @@ async function verifyReleaseScenarioBounds(window) {
       !metrics.hasFermata ||
       !metrics.hasTempo ||
       metrics.clippedElements.length > 0 ||
+      metrics.dynamicMeasureStartOverlap.length > 0 ||
       metrics.systemRightOverflow.length > 0 ||
       metrics.horizontalViewportOverflow.length > 0
     ) {
@@ -1276,6 +1277,7 @@ async function readReleaseScenarioBounds(window, width) {
         '.notation-measure',
         '.notation-fermata',
         '.notation-articulation',
+        '.notation-dynamic-mark',
         '.notation-tempo-marking',
         '.notation-input-cursor',
         '.notation-slur'
@@ -1381,9 +1383,36 @@ async function readReleaseScenarioBounds(window, width) {
             : undefined
         })
         .filter(Boolean)
+      const dynamicMeasureStartOverlap = [
+        ...document.querySelectorAll('.notation-dynamic-mark')
+      ]
+        .map((dynamic) => {
+          const measureId = dynamic.getAttribute('data-measure-id')
+          const measure = measureId
+            ? document.querySelector(
+                \`.notation-measure[data-measure-id="\${measureId}"]\`
+              )
+            : undefined
+          const x = Number(dynamic.getAttribute('x'))
+          const measureX = Number(measure?.getAttribute('x'))
+          const overlapsStartArea =
+            Number.isFinite(x) &&
+            Number.isFinite(measureX) &&
+            x < measureX + 72
+
+          return overlapsStartArea
+            ? {
+                measureId,
+                measureX,
+                x
+              }
+            : undefined
+        })
+        .filter(Boolean)
 
       return {
         clippedElements,
+        dynamicMeasureStartOverlap,
         hasFermata: Boolean(document.querySelector('.notation-fermata')),
         hasTempo: Boolean(document.querySelector('.notation-tempo-marking')),
         svgHeight: Number(svg?.getAttribute('height')),
@@ -1798,7 +1827,7 @@ async function verifyNewScoreWizard(window) {
     setSelectValue(field('조표'), 'd-major')
     setSelectValue(field('박자표'), '3-4')
     setInputValue(field('마디 수'), '3')
-    setInputValue(field('템포'), '96')
+    setInputValue(field('빠르기'), '96')
     document
       .querySelector('form[aria-label="새 악보 만들기"]')
       ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))

@@ -226,12 +226,6 @@ export function NotationPreview({
         drawStaffText(svg, placement.x + 18, placement.y - 8, staffText.text)
       }
 
-      const dynamic = dynamicsByMeasureId.get(measure.id)
-
-      if (svg && dynamic) {
-        drawDynamicMark(svg, placement.x + 22, placement.y + 78, dynamic.value)
-      }
-
       const voices = measure.voices.map((voice) => {
         const events = sortVoiceEvents(voice.events)
         const notes = events.map((event) =>
@@ -306,6 +300,8 @@ export function NotationPreview({
           stave
         )
 
+      let firstEventX: number | undefined
+
       voices.forEach(({ beams, events, notes, tuplets, vexVoice }) => {
         vexVoice.draw(context, stave)
         beams.forEach((beam) => beam.setContext(context).draw())
@@ -375,6 +371,7 @@ export function NotationPreview({
             x: note.getAbsoluteX(),
             y: placement.y
           })
+          firstEventX = Math.min(firstEventX ?? note.getAbsoluteX(), note.getAbsoluteX())
 
           const event = events[noteIndex]
 
@@ -423,6 +420,18 @@ export function NotationPreview({
           }
         }
       })
+
+      const dynamic = dynamicsByMeasureId.get(measure.id)
+
+      if (svg && dynamic) {
+        drawDynamicMark(
+          svg,
+          (firstEventX ?? placement.x + 88) - 2,
+          placement.y + 78,
+          dynamic.value,
+          measure.id
+        )
+      }
     })
 
     collectTiePairs(score).forEach((pair) => {
@@ -609,11 +618,13 @@ function drawDynamicMark(
   svg: SVGSVGElement,
   x: number,
   y: number,
-  label: string
+  label: string,
+  measureId: string
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-dynamic-mark')
+  text.setAttribute('data-measure-id', measureId)
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
