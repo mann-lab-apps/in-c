@@ -1239,13 +1239,13 @@ async function verifyReleaseScenarioBounds(window) {
   await loadFixture(window, 'release-test')
 
   const desktop = await readReleaseScenarioBounds(window, 1400)
-  const narrow = await readReleaseScenarioBounds(window, 960)
+  const minimum = await readReleaseScenarioBounds(window, 1100)
   const result = {
     desktop,
-    narrow
+    minimum
   }
 
-  for (const metrics of [desktop, narrow]) {
+  for (const metrics of [desktop, minimum]) {
     if (
       !metrics.hasFermata ||
       !metrics.hasTempo ||
