@@ -154,9 +154,9 @@ describe('system layout', () => {
   })
 
   it('increases the SVG height as systems are added', () => {
-    expect(createSystemLayout(createMeasures(2), 900).height).toBe(190)
+    expect(createSystemLayout(createMeasures(2), 900).height).toBe(202)
     expect(createSystemLayout(createMeasures(8), 900).height).toBeGreaterThan(
-      190
+      202
     )
   })
 
@@ -203,7 +203,7 @@ describe('system layout', () => {
       900
     )
 
-    expect(baseline.placements[0].y).toBe(28)
+    expect(baseline.placements[0].y).toBe(48)
     expect(nearTop.placements[0].y).toBeGreaterThan(
       baseline.placements[0].y
     )

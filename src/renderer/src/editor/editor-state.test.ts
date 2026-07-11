@@ -4,6 +4,7 @@ import {
   TICKS_PER_QUARTER,
   applyScoreCommand,
   createDuration,
+  createFullMeasureRest,
   createMeasure,
   createNote,
   createPart,
@@ -746,6 +747,74 @@ describe('editor state', () => {
     ])
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('copies a single whole note and pastes it over a full-measure rest', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        note('whole-note', 0, 'whole')
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createFullMeasureRest({
+                          id: 'measure-2-full-rest'
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const clipboard = buildRangeClipboard(score, {
+      type: 'event',
+      eventId: 'whole-note'
+    })
+    const command = buildRangePasteCommand(
+      score,
+      {
+        type: 'event',
+        eventId: 'measure-2-full-rest'
+      },
+      clipboard!,
+      idSequence('pasted-whole')
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[1]
+
+    expect(clipboard).toMatchObject({
+      durationTicks: TICKS_PER_QUARTER * 4,
+      eventCount: 1
+    })
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'pasted-whole-1',
+        type: 'note',
+        position: { tick: 0 },
+        duration: { value: 'whole' }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
   it('rejects range paste when the target range has a different duration', () => {

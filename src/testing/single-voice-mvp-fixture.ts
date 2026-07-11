@@ -182,6 +182,61 @@ export function createSingleVoiceMvpScore(): Score {
   return structuredClone(singleVoiceMvpScore)
 }
 
+export function createReleaseTestScore(): Score {
+  const score = createSingleVoiceMvpScore()
+  score.id = 'release-test'
+  score.title = 'release-test'
+  score.tempo = {
+    bpm: 75,
+    text: '♩ = 75'
+  }
+  score.rehearsalMarks = [
+    {
+      id: 'release-rehearsal-a',
+      measureId: 'measure-1',
+      text: 'A'
+    }
+  ]
+  score.staffTexts = [
+    {
+      id: 'release-staff-text',
+      measureId: 'measure-1',
+      text: 'dolce'
+    }
+  ]
+  score.dynamics = [
+    {
+      id: 'release-dynamic',
+      measureId: 'measure-1',
+      value: 'mf'
+    }
+  ]
+  score.hairpins = [
+    {
+      id: 'release-hairpin',
+      startEventId: 'm1-c4',
+      endEventId: 'm1-f-sharp-4',
+      type: 'crescendo'
+    }
+  ]
+  score.slurs = [
+    {
+      id: 'release-slur',
+      startEventId: 'm1-c4',
+      endEventId: 'm1-f-sharp-4'
+    }
+  ]
+
+  const firstEvent = score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]
+
+  if (firstEvent?.type === 'note') {
+    firstEvent.fermata = true
+    firstEvent.articulations = ['staccato']
+  }
+
+  return score
+}
+
 export function createScoreSemanticSnapshot(score: Score) {
   return {
     title: score.title,

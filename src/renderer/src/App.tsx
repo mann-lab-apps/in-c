@@ -52,7 +52,10 @@ import {
   type Articulation
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
-import { createSingleVoiceMvpScore } from '../../testing/single-voice-mvp-fixture'
+import {
+  createReleaseTestScore,
+  createSingleVoiceMvpScore
+} from '../../testing/single-voice-mvp-fixture'
 import './styles.css'
 import {
   buildDeleteCommand,
@@ -3447,12 +3450,22 @@ function normalizeNumberInput(
 }
 
 function createInitialScore(): Score {
-  return isFixtureMode() ? createSingleVoiceMvpScore() : demoScore
+  switch (fixtureMode()) {
+    case 'single-voice-mvp':
+      return createSingleVoiceMvpScore()
+    case 'release-test':
+      return createReleaseTestScore()
+    default:
+      return demoScore
+  }
+}
+
+function fixtureMode(): string | null {
+  return new URLSearchParams(window.location.search).get('fixture')
 }
 
 function isFixtureMode(): boolean {
-  return new URLSearchParams(window.location.search).get('fixture') ===
-    'single-voice-mvp'
+  return Boolean(fixtureMode())
 }
 
 function isAutosaveRecoverySnapshot(
