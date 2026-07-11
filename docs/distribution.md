@@ -33,6 +33,9 @@ npm run package:linux
 
 ## GitHub Release
 
+배포 전에 [`docs/releases/checklist-template.md`](releases/checklist-template.md)를
+릴리즈 PR이나 이슈에 복사하고 모든 필수 항목을 확인한다.
+
 `package.json` 버전과 같은 `v` 접두사 태그를 push하면 Release workflow가
 시작된다.
 
