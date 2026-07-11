@@ -51,13 +51,18 @@ macOS, Windows와 Linux job은 각각 네이티브 패키지를 만들고 packag
 smoke test를 실행한다. 세 job이 모두 성공해야 prerelease가 생성된다.
 Release에는 설치 파일과 `SHA256SUMS.txt`가 함께 게시된다.
 
+Release workflow는 `v*` 태그를 만든 뒤에야 native artifact를 검증할 수 있다.
+따라서 릴리즈 전에는 로컬 검증과 PR/브랜치 CI를 사전 게이트로 사용한다. 태그 후
+Release workflow가 실패하면 태그를 재사용하지 않고 다음 alpha 버전으로 새
+prerelease를 만든다.
+
 이미 존재하는 태그는 GitHub Actions의 `Release` workflow dispatch에서도
 선택할 수 있다. package version과 태그가 다르면 게시 전에 실패한다.
 
 ## 버전과 브랜치 운영
 
-- 기능과 버그 수정은 이슈별 브랜치에서 작업하고 PR로 `main`에 squash merge한다.
-- `main`은 항상 다음 릴리즈 후보 상태로 유지한다.
+- 기능과 버그 수정은 이슈별 브랜치에서 작업하고 PR로 `dev`에 squash merge한다.
+- `dev`는 다음 릴리즈 후보를 통합하고, 검증된 릴리즈 후보만 `main`에 반영한다.
 - 초기 배포 단계에서는 `0.1.0-alpha.N` prerelease를 사용하고, 사용자에게
   전달할 빌드가 생길 때마다 `N`을 1씩 올린다.
 - 릴리즈 커밋은 `Prepare 0.1.0-alpha.N` 형식으로 `package.json`과

@@ -205,11 +205,7 @@ export function buildRangeClipboard(
   score: Score,
   selection: EditorSelection
 ): RangeClipboard | undefined {
-  if (selection.type !== 'range') {
-    return undefined
-  }
-
-  const range = locateSameMeasureRange(score, selection)
+  const range = locateSelectionRange(score, selection)
 
   if (!range || !isSimpleRange(range.events)) {
     return undefined
@@ -234,13 +230,13 @@ export function buildRangePasteCommand(
   clipboard: RangeClipboard,
   createId: () => string
 ): ScoreCommand | undefined {
-  if (selection.type !== 'range') {
-    return undefined
-  }
+  const range = locateSelectionRange(score, selection)
 
-  const range = locateSameMeasureRange(score, selection)
-
-  if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
+  if (
+    !range ||
+    !isSimpleRange(range.events, { allowFullMeasureRest: true }) ||
+    range.voice.tuplets?.length
+  ) {
     return undefined
   }
 
@@ -985,14 +981,58 @@ function locateSameMeasureRange(
   }
 }
 
-function isSimpleRange(events: VoiceEvent[]): boolean {
+function locateSelectionRange(
+  score: Score,
+  selection: EditorSelection
+):
+  | {
+      address: VoiceAddress
+      measure: Measure
+      voice: Measure['voices'][number]
+      events: VoiceEvent[]
+    }
+  | undefined {
+  if (selection.type === 'range') {
+    return locateSameMeasureRange(score, selection)
+  }
+
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId)
+
+  if (!location) {
+    return undefined
+  }
+
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    address: location.address,
+    measure: location.measure,
+    voice,
+    events: [location.event]
+  }
+}
+
+function isSimpleRange(
+  events: VoiceEvent[],
+  options: { allowFullMeasureRest?: boolean } = {}
+): boolean {
   return events.every((event) => {
     if (event.duration.tuplet) {
       return false
     }
 
     if (event.type === 'rest') {
-      return !event.fullMeasure
+      return options.allowFullMeasureRest || !event.fullMeasure
     }
 
     return !event.ties?.start && !event.ties?.stop

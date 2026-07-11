@@ -556,7 +556,7 @@ function drawTempoMarking(svg: SVGSVGElement, label: string): void {
 
   text.classList.add('notation-tempo-marking')
   text.setAttribute('x', '32')
-  text.setAttribute('y', '22')
+  text.setAttribute('y', '36')
   text.textContent = label
   svg.append(text)
 }

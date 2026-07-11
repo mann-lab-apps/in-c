@@ -6,12 +6,12 @@ const { app, BrowserWindow } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
-async function loadFixture(window) {
+async function loadFixture(window, fixture = 'single-voice-mvp') {
   await window.loadFile(
     path.resolve(__dirname, '../out/renderer/index.html'),
     {
       query: {
-        fixture: 'single-voice-mvp'
+        fixture
       }
     }
   )
@@ -1235,6 +1235,165 @@ async function verifyOutOfStaffNotes(window) {
   return results
 }
 
+async function verifyReleaseScenarioBounds(window) {
+  await loadFixture(window, 'release-test')
+
+  const desktop = await readReleaseScenarioBounds(window, 1400)
+  const narrow = await readReleaseScenarioBounds(window, 960)
+  const result = {
+    desktop,
+    narrow
+  }
+
+  for (const metrics of [desktop, narrow]) {
+    if (
+      !metrics.hasFermata ||
+      !metrics.hasTempo ||
+      metrics.clippedElements.length > 0 ||
+      metrics.systemRightOverflow.length > 0 ||
+      metrics.horizontalViewportOverflow.length > 0
+    ) {
+      throw new Error(
+        `Release scenario bounds verification failed: ${JSON.stringify(result)}`
+      )
+    }
+  }
+
+  return result
+}
+
+async function readReleaseScenarioBounds(window, width) {
+  window.setSize(width, 1000)
+  await new Promise((resolve) => setTimeout(resolve, 600))
+
+  return window.webContents.executeJavaScript(`
+    (() => {
+      const svg = document.querySelector('.notation-preview svg')
+      const svgBox = svg?.getBoundingClientRect()
+      const clippedSelectors = [
+        '.notation-measure',
+        '.notation-fermata',
+        '.notation-articulation',
+        '.notation-tempo-marking',
+        '.notation-input-cursor',
+        '.notation-slur'
+      ]
+      const horizontalSelectors = [
+        '.notation-event',
+        ...clippedSelectors
+      ]
+      const tolerance = 0.75
+      const clippedCandidates = clippedSelectors.flatMap((selector) =>
+        [...document.querySelectorAll(selector)].map((element, index) => ({
+          element,
+          id:
+            element.getAttribute('data-event-id') ??
+            element.getAttribute('data-measure-id') ??
+            element.textContent?.trim() ??
+            selector,
+          index,
+          selector
+        }))
+      )
+      const horizontalCandidates = horizontalSelectors.flatMap((selector) =>
+        [...document.querySelectorAll(selector)].map((element, index) => ({
+          element,
+          id:
+            element.getAttribute('data-event-id') ??
+            element.getAttribute('data-measure-id') ??
+            element.textContent?.trim() ??
+            selector,
+          index,
+          selector
+        }))
+      )
+      const clippedElements = !svgBox
+        ? [{ selector: 'svg', id: 'missing', index: 0 }]
+        : clippedCandidates
+            .map(({ element, id, index, selector }) => {
+              const box = element.getBoundingClientRect()
+              const clipped =
+                box.left < svgBox.left - tolerance ||
+                box.top < svgBox.top - tolerance ||
+                box.right > svgBox.right + tolerance ||
+                box.bottom > svgBox.bottom + tolerance
+
+              return clipped
+                ? {
+                    selector,
+                    id,
+                    index,
+                    box: {
+                      bottom: box.bottom,
+                      left: box.left,
+                      right: box.right,
+                      top: box.top
+                    },
+                    svgBox: {
+                      bottom: svgBox.bottom,
+                      left: svgBox.left,
+                      right: svgBox.right,
+                      top: svgBox.top
+                    }
+                  }
+                : undefined
+            })
+            .filter(Boolean)
+      const measures = [...document.querySelectorAll('.notation-measure')]
+      const svgWidth = Number(svg?.getAttribute('width'))
+      const systemRightOverflow = [
+        ...new Set(measures.map((measure) => measure.getAttribute('data-system-index')))
+      ]
+        .map((systemIndex) => {
+          const systemMeasures = measures.filter(
+            (measure) => measure.getAttribute('data-system-index') === systemIndex
+          )
+          const last = systemMeasures.at(-1)
+          const rightEdge =
+            Number(last?.getAttribute('x')) + Number(last?.getAttribute('width'))
+          return {
+            rightEdge,
+            systemIndex
+          }
+        })
+        .filter(({ rightEdge }) => rightEdge > svgWidth - 15.25)
+      const horizontalViewportOverflow = horizontalCandidates
+        .map(({ element, id, index, selector }) => {
+          const box = element.getBoundingClientRect()
+          const overflow =
+            box.left < -tolerance ||
+            box.right > window.innerWidth + tolerance
+
+          return overflow
+            ? {
+                selector,
+                id,
+                index,
+                box: {
+                  bottom: box.bottom,
+                  left: box.left,
+                  right: box.right,
+                  top: box.top
+                }
+              }
+            : undefined
+        })
+        .filter(Boolean)
+
+      return {
+        clippedElements,
+        hasFermata: Boolean(document.querySelector('.notation-fermata')),
+        hasTempo: Boolean(document.querySelector('.notation-tempo-marking')),
+        svgHeight: Number(svg?.getAttribute('height')),
+        svgWidth,
+        systemRightOverflow,
+        horizontalViewportOverflow,
+        width: window.innerWidth
+      }
+    })()
+  `)
+}
+
 async function verifyBeamRendering(window) {
   await loadFixture(window)
 
@@ -2118,6 +2277,7 @@ app.whenReady().then(async () => {
   const beams = await verifyBeamRendering(window)
   const ties = await verifyTieEditing(window)
   const outOfStaffNotes = await verifyOutOfStaffNotes(window)
+  const releaseScenarioBounds = await verifyReleaseScenarioBounds(window)
   await loadFixture(window)
 
   const desktop = await inspect(
@@ -2160,6 +2320,7 @@ app.whenReady().then(async () => {
         measureDeletion,
         metadata,
         outOfStaffNotes,
+        releaseScenarioBounds,
         desktop,
         minimum
       },
