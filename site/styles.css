@@ -1007,6 +1007,13 @@ dd {
   gap: 8px;
 }
 
+.composition-action-note {
+  margin: -6px 0 0;
+  color: #5d6a6f;
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
 .tag-list span,
 .tag-list a {
   display: inline-flex;
