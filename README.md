@@ -1,8 +1,18 @@
 # in C
 
-쉽고 유연한 악보 편집기.
+in C는 클래식에 대해 모르는 것을 숨기지 않고, 각자가 들은 것과 듣지 못한 것을
+솔직하게 나눌 수 있는 소통 공간을 만듭니다.
 
-첫 버전은 단성부 악보 작성과 MusicXML 가져오기·내보내기에 집중합니다.
+현재 레포에는 in C 생태계의 초기 창작 도구인 Chromatics, Columns, Compositions,
+공개 소개와 다운로드 페이지가 함께 들어 있습니다. Chromatics는 무료 사보 및 악보
+편집 도구이며, in C 자체가 아니라 악보 라이브러리와 커뮤니티에서 함께 이야기할
+음악적 객체를 만드는 도구입니다.
+
+in C의 문제 인식은 두 그룹을 함께 봅니다. 비전문가에게는 클래식 문화에 들어가기
+어렵고 관심이 깊어질수록 주변 사람과 공유할 언어가 부족한 문제가 있습니다.
+전문가에게는 공연 홍보와 정보교류가 오프라인 관계망, 개인 SNS, 단체 채팅방,
+예매처 상세페이지에 흩어지는 문제가 있습니다. in C는 작품, 악보, 질문, 공연,
+사람을 연결해 두 그룹이 만날 수 있는 맥락을 만듭니다.
 
 ## 디렉토리 구조
 
@@ -14,10 +24,14 @@
 - `src/playback`: 재생 스케줄링과 오디오 연동.
 - `src/io`: MusicXML 가져오기·내보내기와 파일 I/O.
 - `docs/research`: 레퍼런스 조사와 제품 판단 기록.
-- `docs/product`: 사용자 여정과 현재 제품 기준. 현재 기능 상태는
+- `docs/product`: 사용자 여정과 현재 제품 기준. in C의 포지셔닝은
+  [`docs/product/positioning.md`](docs/product/positioning.md), 실행 순서는
+  [`docs/product/roadmap.md`](docs/product/roadmap.md), 현재 기능 상태는
   [`docs/product/feature-map.md`](docs/product/feature-map.md), Gherkin 인수
   시나리오는 [`docs/product/acceptance`](docs/product/acceptance), AI Agent 협업
   절차는 [`docs/product/agent-workflow.md`](docs/product/agent-workflow.md),
+  웹·데스크탑·모바일 표면 전략은
+  [`docs/product/surface-strategy.md`](docs/product/surface-strategy.md),
   Compositions 운영 흐름은
   [`docs/product/compositions/collection-pipeline.md`](docs/product/compositions/collection-pipeline.md)에
   정리합니다.
@@ -88,7 +102,7 @@ Windows 서명 인증서를 설정하기 전까지 release artifact는 unsigned 
 
 ## 웹사이트
 
-공개 소개와 다운로드 페이지는 `site/`에 있습니다.
+공개 소개와 다운로드 페이지, Columns, Compositions는 `site/`에 있습니다.
 
 ```bash
 npm run site:dev

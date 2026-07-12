@@ -66,7 +66,7 @@ const getFilteredCompositions = () => {
   })
 }
 
-const createAction = (label, url, type, composition, fileType) => {
+const createDownloadAction = (label, url, type, composition, fileType) => {
   if (!url) {
     return `<button class="button button--secondary" type="button" disabled>${label} 준비 중</button>`
   }
@@ -76,6 +76,14 @@ const createAction = (label, url, type, composition, fileType) => {
   }" href="${url}" data-track-event="composition_download" data-track-content-type="composition" data-track-content-slug="${
     composition.slug
   }" data-track-file="${fileType}">${label}</a>`
+}
+
+const createChromaticsAction = (url, composition) => {
+  if (!url) {
+    return '<button class="button button--primary" type="button" disabled>Chromatics 열기 준비 중</button>'
+  }
+
+  return `<a class="button button--primary" href="${url}" data-track-event="open_in_chromatics" data-track-content-type="composition" data-track-content-slug="${composition.slug}" data-track-file="chromatics">Chromatics에서 열기</a>`
 }
 
 const renderFilters = () => {
@@ -134,10 +142,10 @@ const renderCompositionDetail = (composition) => {
         <div><dt>출처</dt><dd>${escapeHtml(composition.source)}</dd></div>
       </dl>
       <div class="composition-actions" aria-label="악보 열기와 다운로드">
-        ${createAction('PDF 다운로드', composition.assets.pdf, 'primary', composition, 'pdf')}
-        ${createAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary', composition, 'musicxml')}
-        ${createAction('Chromatics에서 열기', composition.assets.chromatics, 'secondary', composition, 'chromatics')}
+        ${createChromaticsAction(composition.assets.chromatics, composition)}
+        ${createDownloadAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary', composition, 'musicxml')}
       </div>
+      <p class="composition-action-note">PDF가 필요하면 Chromatics에서 악보를 연 뒤 PDF 변환을 사용해 주세요.</p>
       <section class="composition-note" aria-labelledby="copyright-title">
         <h3 id="copyright-title">저작권/출처 확인 메모</h3>
         <p>${escapeHtml(composition.copyrightNote)}</p>
