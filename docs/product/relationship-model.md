@@ -1,0 +1,75 @@
+# Product Relationship Model
+
+작성일: 2026-07-13
+
+## 목적
+
+Columns, Compositions, Concerts, Creators, Classes, Chromatics가 기능 모음으로 흩어지지
+않도록 작품 중심의 관계 모델을 정의한다. 초기에는 서버 DB가 아니라 `site/*.js`와 JSON에서
+관리 가능한 정적 데이터 구조로 시작한다.
+
+## ID 정책
+
+| 엔티티 | ID 예시 | 원칙 |
+| --- | --- | --- |
+| 작품 | `work:mozart-k545-i` | 작곡가, 작품번호, 악장 또는 통용 제목을 안정적으로 조합 |
+| 작곡가 | `person:wolfgang-amadeus-mozart` | Creator와 구분하되 같은 person namespace 사용 가능 |
+| Creator | `creator:kim-example` | 공개 프로필 slug 기준 |
+| 공연 | `concert:2026-07-suwon-recital` | 날짜와 지역/공연 slug 조합 |
+| Column | `column:listen-with-one-question` | 기존 column slug 사용 |
+| Class | `class:intro-listening-2026-07` | 주제와 기간 조합 |
+| 악보/파일 | `score:amazing-grace-melody` | Compositions catalog slug와 연결 |
+
+## 핵심 관계
+
+| 관계 | 의미 | 예시 |
+| --- | --- | --- |
+| `work.composers[]` | 작품과 작곡가 | 작품 -> Mozart |
+| `work.scores[]` | 작품과 악보/Chromatics 원본 | 작품 -> MusicXML/PDF |
+| `work.columns[]` | 작품과 읽을거리/질문 | 작품 -> Columns |
+| `work.concerts[]` | 작품이 포함된 공연 | 작품 -> 공연 |
+| `creator.concerts[]` | Creator의 공연 | 연주자 -> 공연 |
+| `creator.classes[]` | Creator의 클래스 | 강사/해설자 -> 클래스 |
+| `class.works[]` | 클래스에서 다루는 작품 | 클래스 -> 작품 |
+
+## 정적 데이터 최소 스키마
+
+```json
+{
+  "works": [
+    {
+      "id": "work:example",
+      "title": "Example Work",
+      "composers": ["person:example-composer"],
+      "scores": ["score:example"],
+      "columns": ["column:example"],
+      "concerts": ["concert:example"]
+    }
+  ],
+  "creators": [
+    {
+      "id": "creator:example",
+      "name": "Example Creator",
+      "roles": ["performer", "teacher"],
+      "concerts": ["concert:example"],
+      "classes": ["class:example"]
+    }
+  ]
+}
+```
+
+## 사용자 흐름
+
+- 작품 페이지에서 악보, Columns, 공연 프리뷰, 관련 Creator를 한 번에 본다.
+- Compositions의 `Open in Chromatics`는 `score:*`를 열고 다시 작품 페이지로 돌아올 수
+  있어야 한다.
+- Concerts는 공연만 보여주지 않고 포함 작품과 Creator 프로필을 함께 연결한다.
+- Classes는 Creator와 작품을 연결해 감상 강좌가 Columns/Concerts로 이어지게 한다.
+
+## 적용 대상
+
+- `site/compositions-catalog.json`
+- `site/columns-data.js`
+- 향후 `site/creators-data.js`, `site/concerts-data.js`, `site/classes-data.js`
+- `docs/product/feature-map-data.js`
+- `docs/product/acceptance/*.feature`
