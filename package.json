@@ -32,7 +32,8 @@
     "verify:release-tag": "node scripts/verify-release-tag.cjs",
     "site:dev": "vite site --host 127.0.0.1",
     "site:build": "vite build site --outDir ../out/site --emptyOutDir --base ./",
-    "site:preview": "vite preview site --host 127.0.0.1 --outDir ../out/site"
+    "site:preview": "vite preview site --host 127.0.0.1 --outDir ../out/site",
+    "verify:site-production": "node scripts/verify-production-site.cjs"
   },
   "dependencies": {
     "fast-xml-parser": "^5.9.2",
