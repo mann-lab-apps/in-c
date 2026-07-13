@@ -238,9 +238,34 @@ export function createReleaseTestScore(): Score {
 }
 
 export function createScoreSemanticSnapshot(score: Score) {
+  const eventIndexById = createEventIndexById(score)
+
   return {
     title: score.title,
     composer: score.composer,
+    tempo: score.tempo,
+    rehearsalMarks: score.rehearsalMarks?.map(({ measureId, text }) => ({
+      measureId,
+      text
+    })),
+    staffTexts: score.staffTexts?.map(({ measureId, text }) => ({
+      measureId,
+      text
+    })),
+    dynamics: score.dynamics?.map(({ measureId, value }) => ({
+      measureId,
+      value
+    })),
+    hairpins: score.hairpins?.map((hairpin) => ({
+      startIndex: eventIndexById.get(hairpin.startEventId),
+      endIndex: eventIndexById.get(hairpin.endEventId),
+      type: hairpin.type
+    })),
+    slurs: score.slurs?.map((slur) => ({
+      startIndex: eventIndexById.get(slur.startEventId),
+      endIndex: eventIndexById.get(slur.endEventId),
+      number: slur.number ?? 1
+    })),
     parts: score.parts.map((part) => ({
       name: part.name,
       abbreviation: part.abbreviation,
@@ -301,12 +326,37 @@ function semanticEvent(
                   start: Boolean(event.ties.start),
                   stop: Boolean(event.ties.stop)
                 }
-              : undefined
+              : undefined,
+          articulations: event.articulations,
+          fermata: Boolean(event.fermata),
+          breathMark: event.breathMark
         }
       : {
-          fullMeasure: Boolean(event.fullMeasure)
+          fullMeasure: Boolean(event.fullMeasure),
+          fermata: Boolean(event.fermata),
+          breathMark: event.breathMark
         })
   }
+}
+
+function createEventIndexById(score: Score): Map<string, number> {
+  const eventIndexById = new Map<string, number>()
+  let index = 0
+
+  score.parts.forEach((part) => {
+    part.staves.forEach((staff) => {
+      staff.measures.forEach((currentMeasure) => {
+        currentMeasure.voices.forEach((voice) => {
+          sortVoiceEvents(voice.events).forEach((event) => {
+            eventIndexById.set(event.id, index)
+            index += 1
+          })
+        })
+      })
+    })
+  })
+
+  return eventIndexById
 }
 
 function measure(
