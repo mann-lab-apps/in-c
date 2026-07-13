@@ -648,6 +648,16 @@ describe('MusicXML MVP', () => {
     ).toThrow('MusicXML 정수 값이 올바르지 않습니다: duration')
   })
 
+  it('rejects note-level staff assignments outside the supported single staff', () => {
+    const xml = fixture.replace(
+      '<voice>1</voice>',
+      `<voice>1</voice>
+        <staff>2</staff>`
+    )
+
+    expect(() => parseMusicXml(xml)).toThrow('staff 1만 지원합니다')
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',
