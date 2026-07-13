@@ -3,15 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chromatics | in C의 초기 악보 편집기</title>
+    <title>in C | 클래식 읽기와 악보 창작</title>
     <meta
       name="description"
-      content="Chromatics는 in C 생태계의 초기 창작 도구로, 단성부 악보 작성과 MusicXML 교환에 집중합니다."
+      content="in C는 Columns, Compositions, Concerts, Creators, Classes와 Chromatics 앱을 연결해 클래식을 읽고 악보로 열어보는 제품군입니다."
     />
-    <meta property="og:title" content="Chromatics | in C의 초기 악보 편집기" />
+    <meta property="og:title" content="in C | 클래식 읽기와 악보 창작" />
     <meta
       property="og:description"
-      content="in C의 사보 프로그램 Chromatics는 단성부 악보 작성과 MusicXML 가져오기·내보내기에 집중합니다."
+      content="Columns에서 듣는 질문을 찾고, Compositions에서 악보를 열고, Chromatics 앱에서 직접 사보합니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="./assets/app-preview.svg" />
@@ -26,9 +26,11 @@
       </a>
       <nav aria-label="주요 링크">
         <a href="./columns.html">Columns</a>
-        <a href="#features">기능</a>
-        <a href="#download">다운로드</a>
         <a href="./compositions.html">Compositions</a>
+        <a href="#product-map">Concerts</a>
+        <a href="#product-map">Creators</a>
+        <a href="#product-map">Classes</a>
+        <a href="#download">Chromatics 앱</a>
         <a
           data-track-event="github_link"
           data-track-location="header"
@@ -42,24 +44,23 @@
     <main id="top">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero__content">
-          <p class="eyebrow">in C의 사보 프로그램</p>
-          <h1 id="hero-title">Chromatics</h1>
+          <p class="eyebrow">클래식 읽기와 악보 창작</p>
+          <h1 id="hero-title">in C</h1>
           <p class="hero__lead">
-            단성부 악보와 MusicXML을 쉽게 다룹니다.
+            Columns에서 듣는 질문을 찾고, Compositions에서 악보를 열고, Chromatics 앱에서 직접 사보합니다.
           </p>
           <div class="hero__actions">
+            <a class="button button--primary" href="./columns.html">Columns 읽기</a>
+            <a class="button button--secondary" href="./compositions.html">악보 둘러보기</a>
             <a
-              class="button button--primary"
+              class="button button--secondary"
               data-primary-download
               data-track-event="release_link"
               data-track-location="hero"
               href="https://github.com/mann-lab-apps/in-c/releases"
             >
-              GitHub Releases 확인
+              Chromatics 앱 다운로드
             </a>
-            <a class="button button--secondary" href="#limits">현재 제한 사항</a>
-            <a class="button button--secondary" href="./columns.html">Columns 읽기</a>
-            <a class="button button--secondary" href="./compositions.html">악보 둘러보기</a>
           </div>
           <dl class="release-strip" aria-label="릴리즈 상태">
             <div>
@@ -86,9 +87,46 @@
         </figure>
       </section>
 
+      <section id="product-map" class="section" aria-labelledby="product-map-title">
+        <div class="section__header">
+          <p class="eyebrow">Product Map</p>
+          <h2 id="product-map-title">작품을 중심으로 이어지는 in C 제품군</h2>
+          <p>
+            현재는 Columns와 Compositions, Chromatics 앱을 먼저 공개하고, Concerts,
+            Creators, Classes는 작품 페이지와 함께 확장합니다.
+          </p>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <h3>Columns</h3>
+            <p>듣기 전에 붙잡을 질문과 짧은 감상 글을 제공합니다.</p>
+          </article>
+          <article>
+            <h3>Compositions</h3>
+            <p>검수된 단선율 악보를 Chromatics에서 열 수 있게 연결합니다.</p>
+          </article>
+          <article>
+            <h3>Concerts</h3>
+            <p>공연 전에 오늘 들을 지점을 짧게 보여주는 프리뷰 영역입니다.</p>
+          </article>
+          <article>
+            <h3>Creators</h3>
+            <p>작곡가, 연주자, 기획자를 작품과 콘텐츠로 연결합니다.</p>
+          </article>
+          <article>
+            <h3>Classes</h3>
+            <p>감상 클래스와 레슨을 작품, Columns, Creator와 이어줍니다.</p>
+          </article>
+          <article>
+            <h3>Chromatics 앱</h3>
+            <p>in C의 무료 악보 편집 도구입니다. 제품군 전체가 아니라 창작 표면입니다.</p>
+          </article>
+        </div>
+      </section>
+
       <section id="features" class="section" aria-labelledby="features-title">
         <div class="section__header">
-          <p class="eyebrow">첫 버전의 집중점</p>
+          <p class="eyebrow">Chromatics 앱</p>
           <h2 id="features-title">Chromatics는 단성부 악보 작성에 집중합니다</h2>
         </div>
         <div class="feature-grid">
@@ -171,9 +209,12 @@
     </main>
 
     <footer class="site-footer">
-      <p>© 2026 mann-lab-apps. Chromatics는 초기 배포 단계의 악보 편집기입니다.</p>
+      <p>© 2026 mann-lab-apps. in C는 클래식 읽기와 악보 창작을 연결합니다.</p>
       <div>
         <a href="./columns.html">Columns</a>
+        <a href="./compositions.html">Compositions</a>
+        <a href="#product-map">제품군</a>
+        <a href="#download">Chromatics 앱</a>
         <a
           data-track-event="github_issue_link"
           data-track-location="footer"
