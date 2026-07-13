@@ -34,9 +34,15 @@ Compositions 동선이 첫 화면 CTA에서 바로 보이게 한다.
 ```bash
 npm run site:dev
 npm run site:build
+npm run verify:site-production
 ```
 
 빌드 결과는 `out/site`에 생성된다.
+
+`verify:site-production`은 `https://in-c.mannlab.app`의 주요 페이지, sitemap,
+robots, 다운로드 manifest, GitHub Pages fallback redirect, TLS 인증서를 확인하는
+배포 후 smoke test다. 다른 도메인을 임시로 확인할 때는 `PRODUCTION_SITE_URL`을
+지정한다.
 
 ## 다운로드 데이터
 
