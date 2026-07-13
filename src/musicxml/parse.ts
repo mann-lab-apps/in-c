@@ -946,9 +946,13 @@ function readOptionalInteger(node: XmlNode, key: string): number | undefined {
     return undefined
   }
 
-  const number = Number.parseInt(value, 10)
+  if (!/^-?\d+$/.test(value)) {
+    throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
+  }
 
-  if (!Number.isFinite(number)) {
+  const number = Number(value)
+
+  if (!Number.isSafeInteger(number)) {
     throw new Error(`MusicXML 정수 값이 올바르지 않습니다: ${key}`)
   }
 

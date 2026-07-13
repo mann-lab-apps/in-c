@@ -638,6 +638,16 @@ describe('MusicXML MVP', () => {
     expect(() => parseMusicXml(xml)).toThrow('slur의 종료 표식이 없습니다')
   })
 
+  it('rejects MusicXML integer fields with decimal or trailing text', () => {
+    expect(() =>
+      parseMusicXml(fixture.replace('<divisions>4</divisions>', '<divisions>4.5</divisions>'))
+    ).toThrow('MusicXML 정수 값이 올바르지 않습니다: divisions')
+
+    expect(() =>
+      parseMusicXml(fixture.replace('<duration>4</duration>', '<duration>4abc</duration>'))
+    ).toThrow('MusicXML 정수 값이 올바르지 않습니다: duration')
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',
