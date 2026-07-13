@@ -112,6 +112,11 @@ fallback 흐름:
 
 ## Copyright Checklist
 
+세부 metadata schema와 공개 상태 기준은
+`docs/product/compositions/copyright-metadata.md`를 따른다. 공개 catalog의
+`copyrightNote`는 사용자에게 보여줄 요약이며, 후보 검수에는 권리 영역을 분리한
+`rights` 구조를 사용한다.
+
 후보 issue를 ready 상태로 바꾸기 전에 다음 항목을 확인한다.
 
 - 원선율이 traditional이거나 작곡자 사망 후 충분한 시간이 지났는가.
