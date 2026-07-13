@@ -118,6 +118,7 @@ GitHub Release와 사이트 배포가 끝난 뒤 Codex가 다시 확인한다.
 ## 사람이 점검
 
 사람은 기능을 따로따로 누르기보다 작은 악보 하나를 완성하면서 점검한다.
+자세한 순서는 `docs/releases/manual-score-completion-qa.md`를 따른다.
 
 - [ ] 패키징된 앱을 직접 실행했다.
 - [ ] `release-test` 새 악보를 만들고 제목, 작곡자, 빠르기를 설정했다.
