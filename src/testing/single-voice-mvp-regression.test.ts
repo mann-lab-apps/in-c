@@ -46,6 +46,7 @@ import {
 } from '../renderer/src/playback/timeline'
 import {
   createScoreSemanticSnapshot,
+  createReleaseTestScore,
   createSingleVoiceMvpScore
 } from './single-voice-mvp-fixture'
 
@@ -175,6 +176,15 @@ describe('single-voice MVP regression', () => {
 
   it('preserves musical meaning across MusicXML export and import', () => {
     const score = createSingleVoiceMvpScore()
+    const roundTrip = parseMusicXml(serializeMusicXml(score))
+
+    expect(createScoreSemanticSnapshot(roundTrip)).toEqual(
+      createScoreSemanticSnapshot(score)
+    )
+  })
+
+  it('preserves the release-test score across MusicXML save and reopen', () => {
+    const score = createReleaseTestScore()
     const roundTrip = parseMusicXml(serializeMusicXml(score))
 
     expect(createScoreSemanticSnapshot(roundTrip)).toEqual(
