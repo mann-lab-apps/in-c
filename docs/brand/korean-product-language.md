@@ -26,6 +26,26 @@ in-C의 1차 사용자는 한국 음악인이다. 앱 문구는 번역투보다 
 - `key signature`: 조표
 - `time signature`: 박자표
 
+## 음악 UI 용어
+
+편집기 메뉴, 툴바, 속성 패널, 상태 영역에 노출되는 핵심 음악 용어는
+`src/renderer/src/editor/korean-music-terms.ts`의 값을 기준으로 쓴다.
+`src/renderer/src/editor/korean-music-terms.test.ts`는 새 용어가 영어 구현어로
+되돌아가지 않도록 보호한다.
+
+| 개념 | UI 문구 |
+| --- | --- |
+| `articulation` 그룹 | 표현 기호 |
+| `dynamic` | 셈여림 |
+| `tempo` | 빠르기 |
+| `rehearsal mark` | 연습표 |
+| `staff text` | 보표 글자 |
+| `fermata` | 페르마타 |
+| `staccato` | 스타카토 |
+| `accent` | 악센트 |
+| `breath mark` | 숨표 |
+| `caesura` | 중지표 |
+
 ## 원문 유지
 
 다음 표현은 한글화하면 오히려 어색하거나 표준 파일/기술 이름이므로 원문을
