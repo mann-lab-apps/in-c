@@ -113,6 +113,27 @@ describe('keyboard input routing', () => {
     ).toBe(true)
     expect(isTextEditingTarget({ tagName: 'BUTTON' } as HTMLElement)).toBe(false)
   })
+
+  it('recognizes children inside text editing targets', () => {
+    expect(
+      isTextEditingTarget({
+        tagName: 'SPAN',
+        parentElement: {
+          tagName: 'DIV',
+          isContentEditable: true
+        }
+      } as HTMLElement)
+    ).toBe(true)
+    expect(
+      isTextEditingTarget({
+        tagName: 'SPAN',
+        parentElement: {
+          tagName: 'DIV',
+          getAttribute: (name: string) => (name === 'role' ? 'textbox' : null)
+        }
+      } as unknown as HTMLElement)
+    ).toBe(true)
+  })
 })
 
 function keyEvent(
