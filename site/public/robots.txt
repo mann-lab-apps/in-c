@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://mann-lab-apps.github.io/in-c/sitemap.xml
+Sitemap: https://in-c.mannlab.app/sitemap.xml

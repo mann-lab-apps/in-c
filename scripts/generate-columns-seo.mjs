@@ -6,7 +6,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const siteRoot = resolve(repoRoot, 'site')
 const columnsRoot = resolve(siteRoot, 'columns')
 const publicRoot = resolve(siteRoot, 'public')
-const baseUrl = 'https://mann-lab-apps.github.io/in-c'
+const baseUrl = 'https://in-c.mannlab.app'
 
 const columnsDataSource = readFileSync(resolve(siteRoot, 'columns-data.js'), 'utf8')
 const columnsModule = await import(
@@ -126,8 +126,10 @@ const renderArticle = (column) => {
       <nav aria-label="주요 링크">
         <a aria-current="page" href="../columns.html">Columns</a>
         <a href="../compositions.html">Compositions</a>
-        <a href="../index.html#top">Chromatics</a>
-        <a href="../index.html#download">다운로드</a>
+        <a href="../index.html#product-map">Concerts</a>
+        <a href="../index.html#product-map">Creators</a>
+        <a href="../index.html#product-map">Classes</a>
+        <a href="../index.html#download">Chromatics 앱</a>
         <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
       </nav>
     </header>
@@ -179,7 +181,8 @@ ${renderMarkdown(column.body)}
       <p>© 2026 mann-lab-apps. Columns는 in C가 만드는 클래식 읽기 지도입니다.</p>
       <div>
         <a href="../columns.html">Columns</a>
-        <a href="../index.html#top">Chromatics</a>
+        <a href="../index.html#product-map">제품군</a>
+        <a href="../index.html#download">Chromatics 앱</a>
       </div>
     </footer>
     <script type="module" src="../main.js"></script>
