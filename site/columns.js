@@ -140,6 +140,63 @@ const createCompositionChipList = (items = []) =>
         .join('')}</ul>`
     : '<p>아직 연결된 항목이 없습니다.</p>'
 
+const feedbackOptions = [
+  { value: 'heard_something', label: '오늘 들을 지점이 생겼어요' },
+  { value: 'still_confusing', label: '아직 어렵게 느껴져요' },
+  { value: 'want_next_question', label: '다음 질문이 궁금해요' }
+]
+
+const renderFeedbackPanel = (column) => `
+  <section class="feedback-panel" data-feedback-panel="${escapeHtml(
+    column.slug
+  )}" aria-label="칼럼 피드백">
+    <div>
+      <p class="eyebrow">Feedback</p>
+      <h2>이 글이 듣는 데 도움이 되었나요?</h2>
+      <p>개인정보 없이 짧은 응답만 남깁니다.</p>
+    </div>
+    <button class="button button--secondary" data-feedback-open="${escapeHtml(
+      column.slug
+    )}" type="button">답하기</button>
+  </section>
+`
+
+const renderFeedbackForm = (panel, column) => {
+  panel.innerHTML = `
+    <form class="feedback-form" data-feedback-form="${escapeHtml(column.slug)}">
+      <div>
+        <p class="eyebrow">Feedback</p>
+        <h2>하나만 골라 주세요</h2>
+      </div>
+      <div class="feedback-options">
+        ${feedbackOptions
+          .map(
+            (option, index) => `
+              <label>
+                <input ${
+                  index === 0 ? 'checked' : ''
+                } name="feedback" type="radio" value="${escapeHtml(option.value)}" />
+                <span>${escapeHtml(option.label)}</span>
+              </label>
+            `
+          )
+          .join('')}
+      </div>
+      <button class="button button--primary" type="submit">보내기</button>
+    </form>
+  `
+}
+
+const renderFeedbackThanks = (panel) => {
+  panel.innerHTML = `
+    <div class="feedback-thanks" role="status">
+      <p class="eyebrow">Feedback</p>
+      <h2>고맙습니다</h2>
+      <p>다음 Columns 질문을 정할 때 함께 보겠습니다.</p>
+    </div>
+  `
+}
+
 const getMindMapLayout = () => {
   const groupPositions = [
     { x: 680, y: 104, direction: 'top' },
@@ -278,6 +335,7 @@ const renderArticle = (column) => {
     <div class="markdown-body">
       ${renderMarkdown(column.body)}
     </div>
+    ${renderFeedbackPanel(column)}
     <aside class="related-panel" aria-label="관련 항목">
       <section>
         <h2>관련 작품</h2>
@@ -533,6 +591,28 @@ document.addEventListener('click', (event) => {
     return
   }
 
+  const feedbackButton = event.target.closest('[data-feedback-open]')
+
+  if (feedbackButton) {
+    const slug = feedbackButton.dataset.feedbackOpen
+    const column = slug ? articleBySlug.get(slug) : undefined
+    const panel = slug
+      ? document.querySelector(`[data-feedback-panel="${CSS.escape(slug)}"]`)
+      : null
+
+    if (column && panel) {
+      renderFeedbackForm(panel, column)
+      trackEvent('feedback_open', {
+        content_type: 'column',
+        content_slug: column.slug,
+        content_title: column.title,
+        location: 'column_article'
+      })
+    }
+
+    return
+  }
+
   const link = event.target.closest('[data-column-link]')
 
   if (!link) {
@@ -548,6 +628,37 @@ document.addEventListener('click', (event) => {
 
   event.preventDefault()
   selectColumn(slug, { pushState: true })
+})
+
+document.addEventListener('submit', (event) => {
+  const form = event.target
+
+  if (!(form instanceof HTMLFormElement) || !form.matches('[data-feedback-form]')) {
+    return
+  }
+
+  event.preventDefault()
+
+  const slug = form.dataset.feedbackForm
+  const column = slug ? articleBySlug.get(slug) : undefined
+  const panel = slug
+    ? document.querySelector(`[data-feedback-panel="${CSS.escape(slug)}"]`)
+    : null
+  const formData = new FormData(form)
+  const answer = String(formData.get('feedback') ?? '')
+
+  if (!column || !panel || !answer) {
+    return
+  }
+
+  trackEvent('feedback_submit', {
+    content_type: 'column',
+    content_slug: column.slug,
+    content_title: column.title,
+    answer,
+    location: 'column_article'
+  })
+  renderFeedbackThanks(panel)
 })
 
 window.addEventListener('popstate', () => {
