@@ -34,10 +34,14 @@ Compositions 동선이 첫 화면 CTA에서 바로 보이게 한다.
 ```bash
 npm run site:dev
 npm run site:build
+npm run verify:site-seo
 npm run verify:site-production
 ```
 
 빌드 결과는 `out/site`에 생성된다.
+
+`verify:site-seo`는 정적 HTML의 canonical, Open Graph, Twitter card,
+sitemap, robots, social preview 이미지 파일을 공식 도메인 기준으로 확인한다.
 
 `verify:site-production`은 `https://in-c.mannlab.app`의 주요 페이지, sitemap,
 robots, 다운로드 manifest, GitHub Pages fallback redirect, TLS 인증서를 확인하는

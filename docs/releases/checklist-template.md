@@ -65,6 +65,7 @@
 - [ ] `npm run package:dir`
 - [ ] `npm run verify:package`
 - [ ] `npm run site:build`
+- [ ] `npm run verify:site-seo`
 
 ## 원격 사전 자동화
 
