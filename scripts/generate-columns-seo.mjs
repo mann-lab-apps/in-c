@@ -7,6 +7,8 @@ const siteRoot = resolve(repoRoot, 'site')
 const columnsRoot = resolve(siteRoot, 'columns')
 const publicRoot = resolve(siteRoot, 'public')
 const baseUrl = 'https://in-c.mannlab.app'
+const socialImageUrl = `${baseUrl}/social-preview.png`
+const socialImageAlt = 'in C 앱 아이콘'
 
 const columnsDataSource = readFileSync(resolve(siteRoot, 'columns-data.js'), 'utf8')
 const columnsModule = await import(
@@ -108,11 +110,15 @@ const renderArticle = (column) => {
     <meta property="og:description" content="${escapeHtml(column.summary)}" />
     <meta property="og:type" content="article" />
     <meta property="og:url" content="${url}" />
-    <meta property="og:image" content="${baseUrl}/assets/app-preview.svg" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="${socialImageUrl}" />
+    <meta property="og:image:alt" content="${socialImageAlt}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${escapeHtml(column.title)} | Columns" />
     <meta name="twitter:description" content="${escapeHtml(column.summary)}" />
-    <meta name="twitter:image" content="${baseUrl}/assets/app-preview.svg" />
+    <meta name="twitter:image" content="${socialImageUrl}" />
+    <meta name="twitter:image:alt" content="${socialImageAlt}" />
     <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
     <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../styles.css" />
