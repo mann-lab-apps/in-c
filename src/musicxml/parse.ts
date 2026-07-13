@@ -572,6 +572,12 @@ function readVoiceEvent(
     throw new Error('MVP에서는 voice 1만 지원합니다.')
   }
 
+  const staff = readOptionalInteger(node, 'staff')
+
+  if (staff !== undefined && staff !== 1) {
+    throw new Error('MVP에서는 staff 1만 지원합니다.')
+  }
+
   const duration = readDuration(node)
   const id = `event-${eventIndex}`
 
