@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <title>in C로 이동 중</title>
+    <script>
+      const target = new URL('../', window.location.href)
+      target.hash = window.location.hash
+      window.location.replace(target)
+    </script>
+  </head>
+  <body>
+    <p><a href="../">in C 홈으로 이동</a></p>
+  </body>
+</html>

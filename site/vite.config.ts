@@ -36,6 +36,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: resolve(__dirname, 'index.html'),
+        legacyInC: resolve(__dirname, 'in-c/index.html'),
         columns: resolve(__dirname, 'columns.html'),
         compositions: resolve(__dirname, 'compositions.html'),
         ...columnPages
