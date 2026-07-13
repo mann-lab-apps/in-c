@@ -579,6 +579,57 @@ window.FEATURE_MAP = [
             status: "지원",
             acceptance: ["docs/product/acceptance/distribution-download.feature"],
             docs: ["docs/site.md", "docs/product/analytics-events.md"]
+          },
+          {
+            name: "작품 페이지 관계 허브",
+            status: "실험",
+            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
+            docs: ["docs/product/relationship-model.md"]
+          },
+          {
+            name: "Concerts 공연 프리뷰",
+            status: "실험",
+            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
+            docs: [
+              "docs/research/concert-promotion-market.md",
+              "docs/product/relationship-model.md"
+            ]
+          },
+          {
+            name: "Creators 프로필",
+            status: "실험",
+            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
+            docs: [
+              "docs/research/classical-market-research.md",
+              "docs/product/relationship-model.md"
+            ]
+          },
+          {
+            name: "Classes 감상 강좌",
+            status: "실험",
+            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
+            docs: [
+              "docs/research/classical-market-research.md",
+              "docs/product/relationship-model.md"
+            ]
+          },
+          {
+            name: "Communities 최소 대화 흐름",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
+            docs: ["docs/brand/brand-foundation.md"]
+          },
+          {
+            name: "Open in Chromatics",
+            status: "실험",
+            acceptance: [
+              "docs/product/acceptance/compositions.feature",
+              "docs/product/acceptance/product-surfaces.feature"
+            ],
+            docs: [
+              "docs/product/compositions/collection-pipeline.md",
+              "docs/product/relationship-model.md"
+            ]
           }
         ]
       },
