@@ -92,7 +92,7 @@ in C의 시장조사는 창업오디션 제출을 위한 일회성 자료 수집
 
 - 반복 가능한 시장 원장: `docs/research/*.md`
 - 제출 전 확인해야 할 수치: `applications/2026-suwon-startup-audition/market-data-to-verify.md`
-- 제출 문장 후보: `applications/2026-suwon-startup-audition/business-plan-market-notes.md`
+- 제출 문장 후보: `docs/research/business-plan-market-notes.md`
 - 인터뷰 섭외 목록, 연락처, 원문, 녹취: 레포와 오디션 폴더 밖에서 별도 관리
 
 ## 산출물 경계
@@ -101,7 +101,7 @@ in C의 시장조사는 창업오디션 제출을 위한 일회성 자료 수집
 | --- | --- | --- | --- | --- |
 | 반복 리서치 원장 | `docs/research/` | 제품 운영과 다음 조사의 기준 | 출처, 조회일, 표본 기록, 조사 양식, 체크리스트 | 인터뷰 원문, 연락처, 비공개 협력자 정보 |
 | 오디션 제출 전 확인 수치 | `applications/2026-suwon-startup-audition/market-data-to-verify.md` | 제출 문서에 넣기 전 마지막 검증 | 확정 후보 수치, 출처, 기준연도, 확인 상태 | 출처 없는 추정치 |
-| 사업계획서 문장 후보 | `applications/2026-suwon-startup-audition/business-plan-market-notes.md` | 제출 문장으로 옮길 수 있는 해석 | 확정 수치 기반 문장, 표본이라고 밝힌 정성 메모 | 표본을 전체 시장처럼 단정한 표현 |
+| 사업계획서 문장 후보 | `docs/research/business-plan-market-notes.md` | 제출 문장으로 옮길 수 있는 해석 | 확정 수치 기반 문장, 표본이라고 밝힌 정성 메모 | 표본을 전체 시장처럼 단정한 표현 |
 | 운영 체크리스트 | GitHub Issue 또는 `docs/research/market-research-workflow.md` | 월간/분기 반복 실행 | 담당 이슈, 체크 항목, 완료 여부 | 개인정보, 원문 스크랩 |
 
 ## 반영 흐름
