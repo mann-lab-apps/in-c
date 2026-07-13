@@ -2,7 +2,7 @@
 # Review workflow: docs/product/acceptance/README.md
 
 @io @musicxml @pdf @atdd-draft
-Feature: 악보를 가져오고 내보내기
+Feature: 악보를 가져오고 저장하기
   사용자는 작성한 악보를 MusicXML로 주고받고, 필요하면 PDF로 변환할 수 있어야 한다.
 
   Scenario: MusicXML 파일을 가져온다
@@ -25,23 +25,24 @@ Feature: 악보를 가져오고 내보내기
     And 각 이벤트의 position은 MusicXML duration 누적으로 정규화된다
     And 다시 MusicXML로 내보냈다가 가져와도 박자표, 조표, duration 의미가 유지된다
 
-  Scenario: 작성한 악보를 MusicXML로 내보낸다
+  Scenario: 작성한 악보를 MusicXML로 저장한다
     Given 편집 가능한 단성부 악보가 열려 있다
-    When 사용자가 MusicXML 내보내기를 실행한다
+    When 사용자가 저장을 실행한다
     Then 앱은 현재 악보의 MusicXML 파일을 생성한다
     And 생성된 MusicXML은 다시 가져왔을 때 음악 의미가 유지된다
 
-  Scenario: MusicXML 가져오기와 내보내기는 저장 행동과 구분된다
+  Scenario: MusicXML 저장은 자동저장과 구분된다
     Given 편집 가능한 단성부 악보가 열려 있다
     When 사용자가 파일 작업 UI를 확인한다
-    Then MusicXML 가져오기 행동과 MusicXML 내보내기 행동은 구분되어 보인다
-    And 앱 내부 저장 또는 복구 행동과도 구분되어 보인다
+    Then MusicXML 가져오기 행동과 저장 행동은 구분되어 보인다
+    And 저장 행동은 MusicXML 파일 형식을 안내한다
+    And 앱 내부 자동저장 또는 복구 행동과도 구분되어 보인다
 
   Scenario: 악보를 PDF로 변환한다
     Given 편집 가능한 단성부 악보가 열려 있다
     When 사용자가 PDF 변환을 실행한다
     Then 앱은 현재 악보의 PDF 파일을 생성한다
-    And PDF 변환은 MusicXML 내보내기와 별도 행동으로 보인다
+    And PDF 변환은 MusicXML 저장과 별도 행동으로 보인다
 
   @discussion
   Scenario: 악보를 이미지로 내보낸다

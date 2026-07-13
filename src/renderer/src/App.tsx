@@ -2662,13 +2662,13 @@ const App = () => {
                 <span>MusicXML 가져오기</span>
               </button>
               <button
-                aria-label="MusicXML 내보내기"
+                aria-label="MusicXML로 저장"
                 onClick={saveMusicXml}
-                title="MusicXML 내보내기"
+                title="현재 악보를 MusicXML 파일로 저장"
                 type="button"
               >
                 <FileMusic aria-hidden="true" size={17} />
-                <span>MusicXML 내보내기</span>
+                <span>저장</span>
               </button>
               <button
                 aria-label="PDF 변환"
