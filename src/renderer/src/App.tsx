@@ -97,6 +97,11 @@ import {
 } from './editor/new-score'
 import { buildTimeSignatureCommand } from './editor/time-signature'
 import {
+  articulationTermOptions,
+  breathMarkTermOptions,
+  koreanMusicTerms
+} from './editor/korean-music-terms'
+import {
   buildAccidentalCommand,
   buildPitchMovementCommand,
   buildPitchStepCommand,
@@ -217,21 +222,6 @@ const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
-const articulationValues: Array<{
-  label: string
-  value: Articulation
-}> = [
-  { label: '스타카토', value: 'staccato' },
-  { label: '악센트', value: 'accent' }
-]
-const breathMarkValues: Array<{
-  label: string
-  symbol: string
-  value: BreathMark
-}> = [
-  { label: '숨표', symbol: ',', value: 'breath' },
-  { label: '중지표', symbol: '//', value: 'caesura' }
-]
 
 const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -2478,7 +2468,7 @@ const App = () => {
                   <span>정지 기호</span>
                   <div className="inspector-properties__buttons">
                     <button
-                      aria-label="페르마타"
+                      aria-label={koreanMusicTerms.fermata}
                       aria-pressed={selectedEventHasFermata}
                       className={selectedEventHasFermata ? 'is-active' : undefined}
                       onClick={toggleFermata}
@@ -2486,7 +2476,7 @@ const App = () => {
                     >
                       𝄐
                     </button>
-                    {breathMarkValues.map(({ label, symbol, value }) => (
+                    {breathMarkTermOptions.map(({ label, symbol, value }) => (
                       <button
                         aria-label={label}
                         aria-pressed={selectedEventBreathMark === value}
@@ -2504,9 +2494,9 @@ const App = () => {
                 </div>
 
                 <div className="inspector-properties__row">
-                  <span>표현 기호</span>
+                  <span>{koreanMusicTerms.expressiveSymbols}</span>
                   <div className="inspector-properties__buttons">
-                    {articulationValues.map(({ label, value }) => (
+                    {articulationTermOptions.map(({ label, value }) => (
                       <button
                         aria-label={label}
                         aria-pressed={selectedNoteArticulations.has(value)}
@@ -2569,9 +2559,9 @@ const App = () => {
             <section className="inspector-properties" aria-label="마디 텍스트">
               <h3>마디 표시</h3>
               <label>
-                <span>연습표</span>
+                <span>{koreanMusicTerms.rehearsalMark}</span>
                 <input
-                  aria-label="연습표"
+                  aria-label={koreanMusicTerms.rehearsalMark}
                   defaultValue={activeMeasureRehearsalMark?.text ?? ''}
                   key={`${activeMeasureId}-${
                     activeMeasureRehearsalMark?.text ?? ''
@@ -2595,9 +2585,9 @@ const App = () => {
               </label>
 
               <label>
-                <span>보표 글자</span>
+                <span>{koreanMusicTerms.staffText}</span>
                 <input
-                  aria-label="보표 글자"
+                  aria-label={koreanMusicTerms.staffText}
                   defaultValue={activeMeasureStaffText?.text ?? ''}
                   key={`${activeMeasureId}-${
                     activeMeasureStaffText?.text ?? ''
@@ -2621,9 +2611,9 @@ const App = () => {
               </label>
 
               <label>
-                <span>셈여림</span>
+                <span>{koreanMusicTerms.dynamics}</span>
                 <select
-                  aria-label="셈여림"
+                  aria-label={koreanMusicTerms.dynamics}
                   onChange={(event) => updateActiveDynamic(event.target.value)}
                   value={activeMeasureDynamic?.value ?? ''}
                 >
@@ -3012,9 +3002,9 @@ const App = () => {
           </div>
 
           <label className="tempo-control">
-            <span>빠르기</span>
+            <span>{koreanMusicTerms.tempo}</span>
             <input
-              aria-label="빠르기"
+              aria-label={koreanMusicTerms.tempo}
               max="240"
               min="40"
               onChange={(event) =>
@@ -3284,7 +3274,7 @@ const App = () => {
               </label>
 
               <label>
-                <span>빠르기</span>
+                <span>{koreanMusicTerms.tempo}</span>
                 <input
                   max="240"
                   min="40"
