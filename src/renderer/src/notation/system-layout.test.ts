@@ -265,6 +265,24 @@ describe('system layout', () => {
         { sign: 'C', line: 4 }
       )
     ).toBe(4)
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'C', line: 1 }
+      )
+    ).toBe(1)
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'F', line: 3 }
+      )
+    ).toBe(5)
+    expect(
+      pitchStaffLine(
+        { step: 'C', octave: 4 },
+        { sign: 'G', line: 1 }
+      )
+    ).toBe(-1)
   })
 })
 

@@ -262,6 +262,17 @@ describe('score-core', () => {
     expect(applyScoreCommand(replaced.score, replaced.undo).score).toEqual(score)
   })
 
+  it('rejects empty command batches instead of creating no-op undo entries', () => {
+    const score = createScore()
+
+    expect(() =>
+      applyScoreCommand(score, {
+        type: 'score.batch',
+        commands: []
+      })
+    ).toThrow('batch must contain at least one command')
+  })
+
   it('does not remove the final measure from a staff', () => {
     const score = createScore()
 

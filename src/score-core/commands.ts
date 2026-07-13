@@ -269,6 +269,10 @@ function applyCommandBatch(
   score: Score,
   commands: ScoreCommand[]
 ): CommandResult {
+  if (commands.length === 0) {
+    throw new Error('A score batch must contain at least one command.')
+  }
+
   let nextScore = score
   const undoCommands: ScoreCommand[] = []
 

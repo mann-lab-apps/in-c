@@ -559,6 +559,85 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('parses every direction-type when a MusicXML direction contains multiple entries', () => {
+    const xml = fixture.replace(
+      '</attributes>',
+      `</attributes>
+      <direction>
+        <direction-type>
+          <rehearsal>A</rehearsal>
+        </direction-type>
+        <direction-type>
+          <words>dolce</words>
+        </direction-type>
+        <direction-type>
+          <dynamics>
+            <mf/>
+          </dynamics>
+        </direction-type>
+        <direction-type>
+          <metronome>
+            <beat-unit>quarter</beat-unit>
+            <per-minute>88</per-minute>
+          </metronome>
+        </direction-type>
+      </direction>`
+    )
+    const score = parseMusicXml(xml)
+
+    expect(score.tempo).toEqual({
+      bpm: 88,
+      text: '♩ = 88'
+    })
+    expect(score.rehearsalMarks).toEqual([
+      {
+        id: 'measure-1-rehearsal-1-1',
+        measureId: 'measure-1',
+        text: 'A'
+      }
+    ])
+    expect(score.staffTexts).toEqual([
+      {
+        id: 'measure-1-staff-text-1-2',
+        measureId: 'measure-1',
+        text: 'dolce'
+      }
+    ])
+    expect(score.dynamics).toEqual([
+      {
+        id: 'measure-1-dynamic-1-3',
+        measureId: 'measure-1',
+        value: 'mf'
+      }
+    ])
+  })
+
+  it('rejects MusicXML hairpins that never stop', () => {
+    const xml = fixture.replace(
+      '</attributes>',
+      `</attributes>
+      <direction>
+        <direction-type>
+          <wedge type="crescendo"/>
+        </direction-type>
+      </direction>`
+    )
+
+    expect(() => parseMusicXml(xml)).toThrow('hairpin의 종료 표식이 없습니다')
+  })
+
+  it('rejects MusicXML slurs that never stop', () => {
+    const xml = fixture.replace(
+      '<type>quarter</type>',
+      `<type>quarter</type>
+        <notations>
+          <slur type="start" number="1"/>
+        </notations>`
+    )
+
+    expect(() => parseMusicXml(xml)).toThrow('slur의 종료 표식이 없습니다')
+  })
+
   it('rejects multiple parts instead of silently dropping data', () => {
     const invalid = fixture.replace(
       '</score-partwise>',

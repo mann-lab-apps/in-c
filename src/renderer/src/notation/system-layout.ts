@@ -195,11 +195,11 @@ export function pitchStaffLine(pitch: Pitch, clef: Clef): number {
 function clefLineShift(clef: Clef): number {
   switch (clef.sign) {
     case 'G':
-      return 0
+      return clef.line - 2
     case 'F':
-      return 6
+      return clef.line + 2
     case 'C':
-      return clef.line >= 4 ? 4 : 3
+      return clef.line
     case 'percussion':
     case 'tab':
       return 0

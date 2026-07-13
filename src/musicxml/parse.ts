@@ -272,13 +272,12 @@ function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
         }
       }
 
-      const directionType = readOptionalNode(direction, 'direction-type')
-      const metronome = directionType
-        ? readOptionalNode(directionType, 'metronome')
-        : undefined
-      const perMinute = metronome
-        ? readOptionalNumber(metronome, 'per-minute')
-        : undefined
+      const perMinute = readDirectionTypes(direction)
+        .map((directionType) => readOptionalNode(directionType, 'metronome'))
+        .map((metronome) =>
+          metronome ? readOptionalNumber(metronome, 'per-minute') : undefined
+        )
+        .find((value) => value !== undefined)
 
       if (perMinute !== undefined) {
         const bpm = normalizeTempo(perMinute)
@@ -303,22 +302,23 @@ function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
     )
 
     return directions.flatMap((direction, directionIndex) => {
-      const directionType = readOptionalNode(direction, 'direction-type')
-      const rehearsal = directionType
-        ? readOptionalString(directionType, 'rehearsal')
-        : undefined
+      const directionTypes = readDirectionTypes(direction)
 
-      if (!rehearsal) {
-        return []
-      }
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        const rehearsal = readOptionalString(directionType, 'rehearsal')
 
-      return [
-        {
-          id: `${measureId}-rehearsal-${directionIndex + 1}`,
-          measureId,
-          text: rehearsal
+        if (!rehearsal) {
+          return []
         }
-      ]
+
+        return [
+          {
+            id: `${measureId}-rehearsal-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            text: rehearsal
+          }
+        ]
+      })
     })
   })
 
@@ -335,22 +335,23 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
     )
 
     return directions.flatMap((direction, directionIndex) => {
-      const directionType = readOptionalNode(direction, 'direction-type')
-      const words = directionType
-        ? readOptionalString(directionType, 'words')
-        : undefined
+      const directionTypes = readDirectionTypes(direction)
 
-      if (!words) {
-        return []
-      }
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        const words = readOptionalString(directionType, 'words')
 
-      return [
-        {
-          id: `${measureId}-staff-text-${directionIndex + 1}`,
-          measureId,
-          text: words
+        if (!words) {
+          return []
         }
-      ]
+
+        return [
+          {
+            id: `${measureId}-staff-text-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            text: words
+          }
+        ]
+      })
     })
   })
 
@@ -368,30 +369,31 @@ function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
     )
 
     return directions.flatMap((direction, directionIndex) => {
-      const directionType = readOptionalNode(direction, 'direction-type')
-      const dynamicNode = directionType
-        ? readOptionalNode(directionType, 'dynamics')
-        : undefined
+      const directionTypes = readDirectionTypes(direction)
 
-      if (!dynamicNode) {
-        return []
-      }
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        const dynamicNode = readOptionalNode(directionType, 'dynamics')
 
-      const value = Object.keys(dynamicNode).find((key): key is DynamicValue =>
-        allowedDynamics.has(key as DynamicValue)
-      )
-
-      if (!value) {
-        return []
-      }
-
-      return [
-        {
-          id: `${measureId}-dynamic-${directionIndex + 1}`,
-          measureId,
-          value
+        if (!dynamicNode) {
+          return []
         }
-      ]
+
+        const value = Object.keys(dynamicNode).find((key): key is DynamicValue =>
+          allowedDynamics.has(key as DynamicValue)
+        )
+
+        if (!value) {
+          return []
+        }
+
+        return [
+          {
+            id: `${measureId}-dynamic-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            value
+          }
+        ]
+      })
     })
   })
 
@@ -418,9 +420,8 @@ function readHairpins(
     const completed: NonNullable<Score['hairpins']> = []
 
     directions.forEach((direction, directionIndex) => {
-      const directionType = readOptionalNode(direction, 'direction-type')
-      const wedges = toArray(
-        directionType?.wedge as XmlNode | XmlNode[] | undefined
+      const wedges = readDirectionTypes(direction).flatMap((directionType) =>
+        toArray(directionType.wedge as XmlNode | XmlNode[] | undefined)
       )
 
       wedges.forEach((wedge) => {
@@ -446,8 +447,12 @@ function readHairpins(
         const activeHairpin = activeHairpins.get(number)
         const endEventId = measureNoteIds.at(-1)
 
-        if (!activeHairpin || !endEventId) {
-          return
+        if (!activeHairpin) {
+          throw new Error('MusicXML hairpin stop에 대응하는 시작 표식이 없습니다.')
+        }
+
+        if (!endEventId) {
+          throw new Error('MusicXML hairpin stop을 연결할 note가 없습니다.')
         }
 
         completed.push({
@@ -462,6 +467,10 @@ function readHairpins(
 
     return completed
   })
+
+  if (activeHairpins.size > 0) {
+    throw new Error('MusicXML hairpin의 종료 표식이 없습니다.')
+  }
 
   return hairpins.length > 0 ? hairpins : undefined
 }
@@ -505,7 +514,7 @@ function readSlurs(
         const startEventId = activeSlurs.get(number)
 
         if (!startEventId) {
-          return
+          throw new Error('MusicXML slur stop에 대응하는 시작 표식이 없습니다.')
         }
 
         slurs.push({
@@ -519,7 +528,23 @@ function readSlurs(
     })
   })
 
+  if (activeSlurs.size > 0) {
+    throw new Error('MusicXML slur의 종료 표식이 없습니다.')
+  }
+
   return slurs.length > 0 ? slurs : undefined
+}
+
+function readDirectionTypes(direction: XmlNode): XmlNode[] {
+  return toArray(direction['direction-type'] as XmlNode | XmlNode[] | undefined)
+    .filter(
+      (value): value is XmlNode =>
+        Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    )
+}
+
+function directionTypeIdSuffix(directionTypes: XmlNode[], typeIndex: number): string {
+  return directionTypes.length > 1 ? `-${typeIndex + 1}` : ''
 }
 
 function parseSlurNumber(value: string): number | undefined {
