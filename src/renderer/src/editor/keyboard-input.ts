@@ -32,15 +32,24 @@ export interface PitchShortcutEvent {
 }
 
 export function isTextEditingTarget(target: EventTarget | null): boolean {
-  const element = target as HTMLElement | null
-  const tagName = element?.tagName?.toUpperCase()
+  let element = target as HTMLElement | null
 
-  return Boolean(
-    tagName === 'INPUT' ||
+  while (element) {
+    const tagName = element.tagName?.toUpperCase()
+
+    if (
+      tagName === 'INPUT' ||
       tagName === 'TEXTAREA' ||
-      element?.isContentEditable ||
-      element?.getAttribute?.('role') === 'textbox'
-  )
+      element.isContentEditable ||
+      element.getAttribute?.('role') === 'textbox'
+    ) {
+      return true
+    }
+
+    element = element.parentElement
+  }
+
+  return false
 }
 
 export function resolvePitchShortcut(
