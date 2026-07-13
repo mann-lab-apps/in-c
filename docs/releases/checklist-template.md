@@ -65,6 +65,7 @@
 - [ ] `npm run package:dir`
 - [ ] `npm run verify:package`
 - [ ] `npm run site:build`
+- [ ] `npm run verify:analytics`
 - [ ] `npm run verify:site-seo`
 
 ## 원격 사전 자동화
@@ -148,6 +149,8 @@ GitHub Release와 사이트 배포가 끝난 뒤 Codex가 다시 확인한다.
 - [ ] GitHub Release가 prerelease로 표시되는지 확인했다.
 - [ ] GitHub Pages 배포 후 공개 사이트에서 새 버전이 보이는지 확인했다.
 - [ ] GA4 또는 분석 설정을 유지할지 끌지 결정했고, 설정이 의도와 맞다.
+- [ ] GA4 Realtime 또는 DebugView에서 다운로드, Columns, Compositions,
+  Chromatics 열기, 피드백 이벤트를 확인했다.
 
 ## 배포 실행
 

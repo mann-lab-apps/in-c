@@ -1,8 +1,44 @@
 const analyticsConfigUrl = new URL('./analytics-config.json', import.meta.url)
 const pendingEvents = []
+const maxPendingEvents = 25
+let analyticsState = 'pending'
+
+const allowedEventParams = new Set([
+  'answer',
+  'app_name',
+  'category',
+  'content_slug',
+  'content_title',
+  'content_type',
+  'difficulty',
+  'file_name',
+  'key',
+  'link_text',
+  'link_url',
+  'location',
+  'meter',
+  'platform',
+  'reading_minutes'
+])
 
 const isGa4MeasurementId = (measurementId) =>
   /^G-[A-Z0-9]+$/.test(measurementId)
+
+const disableAnalytics = () => {
+  analyticsState = 'disabled'
+  pendingEvents.length = 0
+}
+
+const sanitizeParams = (params) =>
+  Object.fromEntries(
+    Object.entries(params).filter(
+      ([key, value]) =>
+        allowedEventParams.has(key) &&
+        value !== undefined &&
+        value !== null &&
+        value !== ''
+    )
+  )
 
 const appendScript = (src) =>
   new Promise((resolve, reject) => {
@@ -29,9 +65,11 @@ export const configureAnalytics = async () => {
       config.enabled !== true ||
       !isGa4MeasurementId(measurementId)
     ) {
+      disableAnalytics()
       return
     }
 
+    analyticsState = 'ready'
     window.dataLayer = window.dataLayer || []
     window.gtag = function gtag() {
       window.dataLayer.push(arguments)
@@ -50,19 +88,26 @@ export const configureAnalytics = async () => {
       `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(measurementId)}`
     )
   } catch {
+    disableAnalytics()
     // Analytics must never block page rendering or navigation.
   }
 }
 
 export const trackEvent = (name, params = {}) => {
+  if (analyticsState === 'disabled') {
+    return
+  }
+
   if (typeof window.gtag !== 'function') {
-    pendingEvents.push([name, params])
+    if (pendingEvents.length < maxPendingEvents) {
+      pendingEvents.push([name, sanitizeParams(params)])
+    }
     return
   }
 
   window.gtag('event', name, {
-    app_name: 'in-C',
-    ...params
+    ...sanitizeParams(params),
+    app_name: 'in-C'
   })
 }
 
