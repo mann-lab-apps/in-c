@@ -761,6 +761,56 @@ dd {
   padding-left: 22px;
 }
 
+.feedback-panel,
+.feedback-form,
+.feedback-thanks {
+  display: grid;
+  gap: 18px;
+  margin: 30px 0;
+  padding: 20px;
+  border: 1px solid #d8cebf;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.feedback-panel {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.feedback-panel h2,
+.feedback-form h2,
+.feedback-thanks h2 {
+  margin: 0 0 8px;
+  font-size: 1.18rem;
+  line-height: 1.3;
+}
+
+.feedback-panel p,
+.feedback-form p,
+.feedback-thanks p {
+  margin: 0;
+  color: #5d6a6f;
+  line-height: 1.55;
+}
+
+.feedback-options {
+  display: grid;
+  gap: 8px;
+}
+
+.feedback-options label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #ded5c9;
+  border-radius: 7px;
+  background: #f8f1e6;
+  color: #303b3f;
+  font-weight: 800;
+}
+
 .related-panel {
   display: grid;
   gap: 12px;
@@ -1053,6 +1103,10 @@ dd {
   .composition-grid,
   .composition-facts,
   .composition-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-panel {
     grid-template-columns: 1fr;
   }
 }
