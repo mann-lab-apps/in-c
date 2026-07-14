@@ -764,13 +764,38 @@ function buildSequentialInputAfterMeasureEnd(
 
   return {
     ...input,
-    command: next.command
-      ? {
-          type: 'score.batch',
-          commands: [next.command, input.command]
-        }
-      : input.command
+    command: combineCommands(next.command, input.command)
   }
+}
+
+function combineCommands(
+  ...commands: Array<ScoreCommand | undefined>
+): ScoreCommand {
+  const effectiveCommands = commands.filter(hasCommandEffects)
+
+  if (effectiveCommands.length === 0) {
+    return {
+      type: 'score.batch',
+      commands: []
+    }
+  }
+
+  return effectiveCommands.length === 1
+    ? effectiveCommands[0]!
+    : {
+        type: 'score.batch',
+        commands: effectiveCommands
+      }
+}
+
+function hasCommandEffects(
+  command: ScoreCommand | undefined
+): command is ScoreCommand {
+  return Boolean(
+    command &&
+      (command.type !== 'score.batch' ||
+        command.commands.some(hasCommandEffects))
+  )
 }
 
 function buildTiedSequentialInput(

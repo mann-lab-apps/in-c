@@ -1750,26 +1750,37 @@ async function verifyFileActions(window) {
 
   const result = await window.webContents.executeJavaScript(`
     (() => {
-      const labels = [
-        ...document.querySelectorAll('.file-actions button span')
-      ].map((label) => label.textContent?.trim())
+      const buttons = [
+        ...document.querySelectorAll('.file-actions button')
+      ].map((button) => ({
+        ariaLabel: button.getAttribute('aria-label'),
+        label: button.querySelector('span')?.textContent?.trim()
+      }))
 
       return {
         ariaLabel: document
           .querySelector('.file-actions')
           ?.getAttribute('aria-label'),
-        labels
+        buttons,
+        labels: buttons.map((button) => button.label)
       }
     })()
   `)
+  const buttonLabels = result.buttons.map((button) => button.label)
+  const buttonAriaLabels = result.buttons.map((button) => button.ariaLabel)
 
   if (
     result.ariaLabel !== '파일 작업' ||
-    result.labels.includes('Export') ||
-    result.labels.includes('저장하기') ||
-    !result.labels.includes('MusicXML 가져오기') ||
-    !result.labels.includes('MusicXML 내보내기') ||
-    !result.labels.includes('PDF 변환')
+    buttonLabels.includes('Export') ||
+    buttonLabels.includes('저장하기') ||
+    !buttonLabels.includes('새 악보') ||
+    !buttonLabels.includes('MusicXML 가져오기') ||
+    !buttonLabels.includes('저장') ||
+    !buttonLabels.includes('PDF 변환') ||
+    !buttonAriaLabels.includes('새 악보 만들기') ||
+    !buttonAriaLabels.includes('MusicXML 가져오기') ||
+    !buttonAriaLabels.includes('MusicXML로 저장') ||
+    !buttonAriaLabels.includes('PDF 변환')
   ) {
     throw new Error(`파일 작업 verification failed: ${JSON.stringify(result)}`)
   }

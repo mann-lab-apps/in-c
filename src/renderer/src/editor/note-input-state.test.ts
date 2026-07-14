@@ -420,6 +420,43 @@ describe('note input state', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('starts buffered tuplet input at the end of the final measure', () => {
+    const score = createScore()
+    const tripletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: quarter * 4,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-after-end'
+    )!
+    const first = buildSequentialInput(
+      score,
+      tripletState,
+      'C',
+      idSequence()
+    )!
+    const firstResult = applyScoreCommand(score, first.command)
+
+    expect(first.pending).toBe(true)
+    expect(first.nextState).toMatchObject({
+      target: {
+        measureId: 'measure-2'
+      },
+      tick: 0,
+      tupletInput: {
+        members: [
+          {
+            mode: 'note',
+            step: 'C'
+          }
+        ]
+      }
+    })
+    expect(firstResult.score.parts[0].staves[0].measures).toHaveLength(2)
+  })
+
   it('cancels a buffered tuplet without changing the score', () => {
     const state = beginTupletInput(
       createNoteInputState({
