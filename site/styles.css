@@ -1148,10 +1148,59 @@ dd {
   margin-bottom: 0;
 }
 
+.product-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.48fr) minmax(420px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.product-list {
+  display: grid;
+  gap: 12px;
+}
+
+.product-card,
+.product-detail-card {
+  min-width: 0;
+  border: 1px solid #d5cbbd;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.84);
+}
+
+.product-card {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.product-card.is-active {
+  border-color: #b43d2f;
+  background: #fff8ef;
+  box-shadow: inset 0 0 0 1px rgba(180, 61, 47, 0.22);
+}
+
+.product-card p,
+.product-detail-card p {
+  color: #4e5a5f;
+  line-height: 1.65;
+}
+
+.product-detail-card {
+  display: grid;
+  gap: 18px;
+  padding: clamp(24px, 4vw, 34px);
+}
+
+.product-detail-card h2 {
+  font-size: clamp(2.2rem, 5vw, 4.4rem);
+}
+
 @media (max-width: 980px) {
   .composition-grid,
   .composition-facts,
-  .composition-filters {
+  .composition-filters,
+  .product-layout {
     grid-template-columns: 1fr;
   }
 

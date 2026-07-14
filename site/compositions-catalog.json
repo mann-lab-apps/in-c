@@ -17,8 +17,10 @@
       ],
       "source": "NEW BRITAIN hymn tune, first published in Virginia Harmony, 1831. Direct single-voice engraving for in C Compositions.",
       "copyrightNote": "NEW BRITAIN 선율은 1831년 자료로 확인되는 public domain hymn tune입니다. 현대 편곡이나 특정 출판 악보를 복제하지 않고, 단선율 학습용으로 직접 사보했습니다. 가사는 포함하지 않았습니다.",
+      "workId": "work:amazing-grace",
       "relatedColumns": [
-        "클래식 입문 지도"
+        "open-a-simple-score",
+        "not-hearing-is-normal"
       ],
       "assets": {
         "pdf": null,
@@ -43,9 +45,10 @@
       ],
       "source": "Traditional Korean folk song. Direct single-voice study engraving for in C Compositions, referencing the UNESCO intangible cultural heritage description rather than a modern edition.",
       "copyrightNote": "아리랑은 세대를 거쳐 공동으로 형성된 한국 전통 민요로 취급합니다. 특정 현대 편곡, 반주, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 버전별 권리와 표기 차이가 있을 수 있어 포함하지 않았습니다.",
+      "workId": "work:arirang",
       "relatedColumns": [
-        "클래식 입문 지도",
-        "한국 선율"
+        "melody-before-theory",
+        "not-hearing-is-normal"
       ],
       "assets": {
         "pdf": null,
@@ -70,9 +73,9 @@
       ],
       "source": "Traditional Japanese folk song. Direct single-voice study engraving for in C Compositions, referencing public descriptions of the folk melody and avoiding modern editions.",
       "copyrightNote": "Sakura Sakura는 일본 전통 민요로 널리 알려진 선율입니다. 특정 현대 편곡, 반주, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 버전별 출처와 표기 차이가 있어 포함하지 않았습니다.",
+      "workId": "work:sakura-sakura",
       "relatedColumns": [
-        "클래식 입문 지도",
-        "동아시아 선율"
+        "melody-before-theory"
       ],
       "assets": {
         "pdf": null,
@@ -98,8 +101,7 @@
       "source": "Traditional Welsh melody. Direct single-voice study engraving for in C Compositions, referencing Hymnary tune metadata and avoiding modern arrangements.",
       "copyrightNote": "Hymnary의 ASH GROVE tune metadata에서 source는 Traditional Welsh Melody, copyright는 Public Domain으로 확인됩니다. 현대 가사, 편곡, 반주, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다.",
       "relatedColumns": [
-        "클래식 입문 지도",
-        "민요와 선율"
+        "melody-before-theory"
       ],
       "assets": {
         "pdf": null,
@@ -125,8 +127,7 @@
       "source": "Traditional American folk song. Direct single-voice study engraving for in C Compositions, referencing Library of Congress song history and avoiding modern arrangements.",
       "copyrightNote": "Library of Congress는 Shenandoah를 traditional American folk tune으로 설명하며, 19세기 말까지 널리 퍼진 선율로 다룹니다. 특정 현대 편곡, 합창 편곡, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 포함하지 않았습니다.",
       "relatedColumns": [
-        "클래식 입문 지도",
-        "민요와 선율"
+        "melody-before-theory"
       ],
       "assets": {
         "pdf": null,

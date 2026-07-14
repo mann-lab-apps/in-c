@@ -3,7 +3,11 @@ export const columnMap = [
     id: 'start',
     title: '처음 듣기',
     description: '클래식이 멀게 느껴질 때 들어갈 수 있는 가장 낮은 문턱',
-    columns: ['why-classical-feels-hard', 'listen-with-one-question']
+    columns: [
+      'why-classical-feels-hard',
+      'not-hearing-is-normal',
+      'listen-with-one-question'
+    ]
   },
   {
     id: 'language',
@@ -55,6 +59,37 @@ Columns는 하나의 정답 순서를 강요하기보다, 클래식을 이해하
 - 질문이 생기면 다음 칼럼이나 악보로 이동합니다.
 
 공부가 아니라 탐색에 가깝게 시작하면, 클래식은 조금 더 친근한 세계가 됩니다.
+`
+  },
+  {
+    slug: 'not-hearing-is-normal',
+    status: 'public',
+    title: '안 들리는 게 당연합니다',
+    summary:
+      '클래식 감상은 맞히는 일이 아니라, 아직 안 들리는 지점을 알아차리는 일에서 시작합니다.',
+    category: '처음 듣기',
+    tags: ['입문', '감상', '질문'],
+    publishedAt: '2026-07-14',
+    readingMinutes: 3,
+    relatedWorks: ['Amazing Grace', '아리랑'],
+    relatedCompositions: [
+      { title: 'Amazing Grace', slug: 'amazing-grace' },
+      { title: '아리랑', slug: 'arirang' }
+    ],
+    relatedComposers: ['Traditional'],
+    relatedPerformances: ['처음 듣는 선율의 밤'],
+    body: `
+## 모르는 상태를 숨기지 않기
+
+처음 듣는 곡에서 아무것도 잡히지 않는 일은 실패가 아닙니다. 오히려 거기서 감상이 시작됩니다.
+
+클래식은 자주 아는 사람만 말할 수 있는 언어처럼 느껴집니다. 하지만 음악을 듣는 첫 순간에 필요한 것은 정답보다 작은 관찰입니다.
+
+- 어디서 숨을 쉬는 것처럼 멈췄나요?
+- 같은 멜로디가 돌아온 것 같았나요?
+- 끝났다고 생각했는데 다시 시작된 순간이 있었나요?
+
+안 들리는 것을 인정하면 질문이 생깁니다. in C의 Columns와 Works는 그 질문을 다음 악보, 다음 공연, 다음 사람으로 연결하기 위한 지도입니다.
 `
   },
   {

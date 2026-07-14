@@ -1,6 +1,10 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
+import { columns } from './columns-data.js'
+import { works } from './product-data.js'
 
 const catalogUrl = new URL('./compositions-catalog.json', import.meta.url)
+const columnsBySlug = new Map(columns.map((column) => [column.slug, column]))
+const worksById = new Map(works.map((work) => [work.id, work]))
 
 const statusLabels = {
   available: '공개됨',
@@ -30,10 +34,15 @@ const formatColumnLinks = (items) =>
   items.length > 0
     ? items
         .map(
-          (item) =>
-            `<a href="./columns.html" data-track-event="column_link" data-track-content-type="column" data-track-content-slug="${escapeHtml(
+          (item) => {
+            const column = columnsBySlug.get(item)
+            const label = column?.title ?? item
+            const href = column ? `./columns/${column.slug}.html` : './columns.html'
+
+            return `<a href="${href}" data-track-event="column_link" data-track-content-type="column" data-track-content-slug="${escapeHtml(
               item
-            )}">${escapeHtml(item)}</a>`
+            )}">${escapeHtml(label)}</a>`
+          }
         )
         .join('')
     : '<span>연결 전</span>'
@@ -84,6 +93,20 @@ const createChromaticsAction = (url, composition) => {
   }
 
   return `<a class="button button--primary" href="${url}" data-track-event="open_in_chromatics" data-track-content-type="composition" data-track-content-slug="${composition.slug}" data-track-file="chromatics">Chromatics에서 열기</a>`
+}
+
+const createWorkLink = (workId) => {
+  const work = worksById.get(workId)
+
+  if (!work) {
+    return '<span>연결 전</span>'
+  }
+
+  return `<a href="./works.html?work=${encodeURIComponent(
+    work.slug
+  )}" data-track-event="work_link" data-track-content-type="work" data-track-content-slug="${escapeHtml(
+    work.slug
+  )}">${escapeHtml(work.title)}</a>`
 }
 
 const renderFilters = () => {
@@ -145,7 +168,11 @@ const renderCompositionDetail = (composition) => {
         ${createChromaticsAction(composition.assets.chromatics, composition)}
         ${createDownloadAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary', composition, 'musicxml')}
       </div>
-      <p class="composition-action-note">PDF가 필요하면 Chromatics에서 악보를 연 뒤 PDF 변환을 사용해 주세요.</p>
+      <p class="composition-action-note">브라우저가 MusicXML을 내려받으면 Chromatics 앱에서 파일을 열어 주세요. PDF가 필요하면 Chromatics에서 변환합니다.</p>
+      <section class="composition-note" aria-labelledby="work-title">
+        <h3 id="work-title">작품 허브</h3>
+        <div class="tag-list">${createWorkLink(composition.workId)}</div>
+      </section>
       <section class="composition-note" aria-labelledby="copyright-title">
         <h3 id="copyright-title">저작권/출처 확인 메모</h3>
         <p>${escapeHtml(composition.copyrightNote)}</p>

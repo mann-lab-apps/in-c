@@ -5,9 +5,11 @@ import {
   trackEvent
 } from './analytics.js'
 import { columnMap, columns } from './columns-data.js'
+import { works } from './product-data.js'
 
 const publishedColumns = columns.filter((column) => column.status === 'public')
 const articleBySlug = new Map(publishedColumns.map((column) => [column.slug, column]))
+const workByTitle = new Map(works.map((work) => [work.title, work]))
 const trackReadCompletion = createReadCompletionTracker()
 const mapCenter = { x: 680, y: 360 }
 const mapZoomStep = 0.16
@@ -122,7 +124,19 @@ const getSelectedSlug = () => {
 const createChipList = (items) =>
   items.length > 0
     ? `<ul class="chip-list">${items
-        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .map((item) => {
+          const work = workByTitle.get(item)
+
+          if (!work) {
+            return `<li>${escapeHtml(item)}</li>`
+          }
+
+          return `<li><a href="./works.html?work=${encodeURIComponent(
+            work.slug
+          )}" data-track-event="work_link" data-track-content-type="work" data-track-content-slug="${escapeHtml(
+            work.slug
+          )}">${escapeHtml(item)}</a></li>`
+        })
         .join('')}</ul>`
     : '<p>아직 연결된 항목이 없습니다.</p>'
 
