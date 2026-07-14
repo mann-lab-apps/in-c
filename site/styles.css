@@ -1,6 +1,20 @@
 :root {
+  --inc-color-background: #f4f0e7;
+  --inc-color-surface: #fffdf8;
+  --inc-color-surface-muted: #faf7f0;
+  --inc-color-text: #111416;
+  --inc-color-text-soft: #4d5b60;
+  --inc-color-border: #d4cec1;
+  --inc-color-border-strong: #c7c0b3;
+  --inc-color-accent: #b43d2f;
+  --inc-color-accent-contrast: #fffdf8;
+  --inc-color-focus: #47616c;
+  --inc-color-error: #a33125;
+  --inc-radius-control: 6px;
+  --inc-radius-card: 8px;
+  --inc-control-height: 46px;
   color: #1f2528;
-  background: #f4f0e7;
+  background: var(--inc-color-background);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
@@ -39,7 +53,7 @@ a {
 }
 
 a:focus-visible {
-  outline: 3px solid #47616c;
+  outline: 3px solid var(--inc-color-focus);
   outline-offset: 4px;
 }
 
@@ -91,7 +105,7 @@ a:focus-visible {
 }
 
 .site-header nav a[aria-current="page"] {
-  color: #b43d2f;
+  color: var(--inc-color-accent);
 }
 
 .hero {
@@ -167,7 +181,7 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  min-height: var(--inc-control-height);
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -176,8 +190,8 @@ h3 {
 }
 
 .button--primary {
-  color: #fffdf8;
-  background: #b43d2f;
+  color: var(--inc-color-accent-contrast);
+  background: var(--inc-color-accent);
 }
 
 .button--secondary {

@@ -20,6 +20,8 @@
     "test": "vitest run",
     "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
+    "verify:e2e": "npm run verify:mvp",
+    "verify:visual-regression": "npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts",
     "typecheck": "tsc --noEmit",
     "clean:release": "node -e \"require('fs').rmSync('release',{recursive:true,force:true})\"",
     "package": "npm run clean:release && npm run build && electron-builder --publish never",

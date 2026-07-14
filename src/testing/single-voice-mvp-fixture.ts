@@ -243,7 +243,7 @@ export function createScoreSemanticSnapshot(score: Score) {
   return {
     title: score.title,
     composer: score.composer,
-    tempo: score.tempo,
+    tempo: normalizeTempoForSnapshot(score.tempo),
     rehearsalMarks: score.rehearsalMarks?.map(({ measureId, text }) => ({
       measureId,
       text
@@ -305,6 +305,19 @@ export function createScoreSemanticSnapshot(score: Score) {
         })
       }))
     }))
+  }
+}
+
+function normalizeTempoForSnapshot(tempo: Score['tempo']) {
+  if (!tempo) {
+    return undefined
+  }
+
+  return {
+    bpm: tempo.bpm,
+    beatUnit: tempo.beatUnit ?? 'quarter',
+    dots: tempo.dots ?? 0,
+    text: tempo.text
   }
 }
 

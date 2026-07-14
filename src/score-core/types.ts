@@ -132,6 +132,8 @@ export interface Part {
 
 export interface TempoMarking {
   bpm: number
+  beatUnit?: DurationValue
+  dots?: number
   text?: string
 }
 

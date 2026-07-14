@@ -60,6 +60,8 @@
 - [ ] `npm run typecheck`
 - [ ] `npm run build`
 - [ ] `npm run verify:mvp`
+- [ ] `npm run verify:e2e`
+- [ ] `npm run verify:visual-regression`
 - [ ] 릴리즈 QA 시나리오의 visual regression 또는 bounds 검증이 통과했다.
   - 기본 확인: `npm run verify:mvp`의 `releaseScenarioBounds` 결과에서 clipping,
     system right overflow, horizontal viewport overflow가 없어야 한다.

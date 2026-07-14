@@ -221,16 +221,43 @@ describe('MusicXML MVP', () => {
       title: 'Tempo Sketch',
       tempo: {
         bpm: 96,
-        text: '♩ = 96'
+        beatUnit: 'quarter',
+        text: 'Allegro ♩ = 96'
       }
     })
     const exported = serializeMusicXml(score)
     const roundTrip = parseMusicXml(exported)
 
     expect(exported).toContain('<sound tempo="96"/>')
+    expect(exported).toContain('<words>Allegro ♩ = 96</words>')
     expect(roundTrip.tempo).toEqual({
       bpm: 96,
-      text: '♩ = 96'
+      beatUnit: 'quarter',
+      dots: 0,
+      text: 'Allegro ♩ = 96'
+    })
+  })
+
+  it('round-trips dotted tempo beat units', () => {
+    const score = createScore({
+      title: 'Dotted Tempo Sketch',
+      tempo: {
+        bpm: 72,
+        beatUnit: 'quarter',
+        dots: 1,
+        text: 'Andante dotted quarter = 72'
+      }
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<beat-unit>quarter</beat-unit>')
+    expect(exported).toContain('<beat-unit-dot/>')
+    expect(roundTrip.tempo).toEqual({
+      bpm: 72,
+      beatUnit: 'quarter',
+      dots: 1,
+      text: 'Andante dotted quarter = 72'
     })
   })
 
@@ -687,6 +714,8 @@ describe('MusicXML MVP', () => {
 
     expect(score.tempo).toEqual({
       bpm: 88,
+      beatUnit: 'quarter',
+      dots: 0,
       text: '♩ = 88'
     })
     expect(score.rehearsalMarks).toEqual([

@@ -50,3 +50,17 @@
 - 공통 score package 분리 가능성 검토
 - 저장 API와 문서 권한 contract
 - 브라우저 렌더링 smoke test
+
+## 전환 판단
+
+웹 서비스형 편집기는 데스크톱 앱을 대체하는 프로젝트가 아니다. 다음 조건이 보이면
+MVP scaffold를 별도 이슈로 만든다.
+
+- Compositions에서 사용자가 MusicXML을 열어본 뒤 저장/공유를 요구한다.
+- Supabase project와 문서 권한 schema가 준비된다.
+- 공개 보기 URL, 공유 링크, 읽기 전용 권한이 제품 가치를 만든다.
+- Electron file dialog와 autosave에 의존하지 않는 browser storage/fetch adapter가
+  필요하다.
+
+단기에는 웹 공개 탐색과 데스크톱 Chromatics를 유지한다. 웹 편집기 MVP는 계정 저장,
+공유 링크, 읽기 전용 공개 보기부터 시작하고, 고급 입력은 데스크톱 앱의 역할로 둔다.

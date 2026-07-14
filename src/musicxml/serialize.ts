@@ -128,7 +128,7 @@ function buildMeasureDirections(score: Score, measure: Measure) {
 
   return [
     ...(measure.number === 1 && score.tempo
-      ? [buildTempoDirection(score.tempo.bpm)]
+      ? [buildTempoDirection(score.tempo)]
       : []),
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => mark.measureId === measure.id)
@@ -143,17 +143,30 @@ function buildMeasureDirections(score: Score, measure: Measure) {
   ]
 }
 
-function buildTempoDirection(bpm: number) {
+function buildTempoDirection(tempo: NonNullable<Score['tempo']>) {
+  const beatUnit = tempo.beatUnit ?? 'quarter'
+  const dots = Math.max(0, tempo.dots ?? 0)
+
   return {
     '@_placement': 'above',
     'direction-type': {
+      ...(tempo.text
+        ? {
+            words: tempo.text
+          }
+        : {}),
       metronome: {
-        'beat-unit': 'quarter',
-        'per-minute': bpm
+        'beat-unit': beatUnit,
+        ...(dots > 0
+          ? {
+              'beat-unit-dot': Array.from({ length: dots }, () => '')
+            }
+          : {}),
+        'per-minute': tempo.bpm
       }
     },
     sound: {
-      '@_tempo': bpm
+      '@_tempo': tempo.bpm
     }
   }
 }

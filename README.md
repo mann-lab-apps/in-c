@@ -70,10 +70,19 @@ npm run dev
 npm test
 npm run build
 npm run verify:mvp
+npm run verify:e2e
+npm run verify:visual-regression
 ```
 
 `verify:mvp`는 공통 8마디 단성부 fixture를 Electron에서 열어 desktop과
 최소 지원 폭의 SVG 이벤트 매핑을 검사한다.
+
+`verify:e2e`는 현재 릴리즈용 Electron happy path 검증 진입점이다. 새 악보,
+입력, 선택, 복사/붙여넣기, 삭제, 저장/내보내기 계열 흐름은 `verify:mvp`와 같은
+Electron 시나리오에서 점검한다.
+
+`verify:visual-regression`은 release QA MusicXML fixture와 system layout bounds를
+검증한다. Playwright screenshot diff는 별도 후속 범위다.
 
 TypeScript를 검사합니다.
 

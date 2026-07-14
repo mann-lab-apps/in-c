@@ -11,3 +11,6 @@ The app is split by responsibility rather than by framework layer alone.
 - `src/io` imports and exports external file formats.
 
 The most important rule is that `score-core` must not depend on Electron or a specific engraving library.
+
+Large notation extensions are staged in [`notation-extension-roadmap.md`](notation-extension-roadmap.md)
+before touching shared score-core contracts.

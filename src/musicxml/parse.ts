@@ -19,6 +19,7 @@ import {
   type BreathMark,
   type Clef,
   type Duration,
+  type DurationValue,
   type DynamicValue,
   type HairpinType,
   type KeySignature,
@@ -259,37 +260,56 @@ function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
     )
 
     for (const direction of directions) {
+      const directionTypes = readDirectionTypes(direction)
+      const metronomeDirectionType = directionTypes.find((directionType) =>
+        Boolean(readOptionalNode(directionType, 'metronome'))
+      )
+      const words = metronomeDirectionType
+        ? readOptionalString(metronomeDirectionType, 'words')
+        : undefined
+      const metronome = metronomeDirectionType
+        ? readOptionalNode(metronomeDirectionType, 'metronome')
+        : undefined
       const sound = readOptionalNode(direction, 'sound')
       const soundTempo = sound
         ? readOptionalNumber(sound, '@_tempo')
         : undefined
 
-      if (soundTempo !== undefined) {
-        const bpm = normalizeTempo(soundTempo)
+      const perMinute = metronome
+        ? readOptionalNumber(metronome, 'per-minute')
+        : undefined
+      const tempoValue = soundTempo ?? perMinute
+
+      if (tempoValue !== undefined) {
+        const bpm = normalizeTempo(tempoValue)
+        const beatUnit = metronome
+          ? readOptionalString(metronome, 'beat-unit')
+          : undefined
         return {
           bpm,
-          text: `♩ = ${bpm}`
-        }
-      }
-
-      const perMinute = readDirectionTypes(direction)
-        .map((directionType) => readOptionalNode(directionType, 'metronome'))
-        .map((metronome) =>
-          metronome ? readOptionalNumber(metronome, 'per-minute') : undefined
-        )
-        .find((value) => value !== undefined)
-
-      if (perMinute !== undefined) {
-        const bpm = normalizeTempo(perMinute)
-        return {
-          bpm,
-          text: `♩ = ${bpm}`
+          beatUnit: isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter',
+          dots: metronome ? toArray(metronome['beat-unit-dot']).length : 0,
+          text: words ?? tempoLabel(bpm, beatUnit)
         }
       }
     }
   }
 
   return undefined
+}
+
+function isTempoBeatUnit(value: string | undefined): value is DurationValue {
+  return value === 'whole' ||
+    value === 'half' ||
+    value === 'quarter' ||
+    value === 'eighth' ||
+    value === '16th' ||
+    value === '32nd' ||
+    value === '64th'
+}
+
+function tempoLabel(bpm: number, beatUnit: string | undefined): string {
+  return `${beatUnit === 'eighth' ? '♪' : '♩'} = ${bpm}`
 }
 
 function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
@@ -338,6 +358,10 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
+        if (readOptionalNode(directionType, 'metronome')) {
+          return []
+        }
+
         const words = readOptionalString(directionType, 'words')
 
         if (!words) {

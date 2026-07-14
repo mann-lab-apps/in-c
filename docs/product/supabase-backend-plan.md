@@ -50,6 +50,17 @@ SUPABASE_SERVICE_ROLE_KEY=
 `VITE_` 값은 public client에서 읽을 수 있으므로 anon key만 둔다. service role key는
 GitHub Actions, server function, local admin script 같은 비공개 실행 환경에서만 쓴다.
 
+## 로컬 준비물
+
+Supabase project 생성 전까지 저장소 안에서 관리하는 준비물은 다음이다.
+
+- `supabase/.env.example`: public anon key와 service role key의 환경 변수 이름.
+- `supabase/migrations/0001_initial_content_schema.sql`: 공개 콘텐츠, 관계 테이블,
+  feedback_events, RLS policy 초안.
+
+이 파일들은 실제 Supabase 프로젝트에 적용하지 않았다. 프로젝트 생성, migration
+적용, environment variable 등록은 모두 외부 운영 변경이므로 사용자 승인 후 진행한다.
+
 ## 1차 SQL 초안
 
 ```sql
@@ -110,5 +121,6 @@ create table public.feedback_events (
 
 ## 완료 판단
 
-프로젝트 생성 전 단계에서는 이 문서와 정적 schema 초안이 완료 조건이다. 실제
-구축 완료는 다음 사용자 승인 후 별도 작업으로 본다.
+프로젝트 생성 전 단계에서는 이 문서, `supabase/.env.example`,
+`supabase/migrations/0001_initial_content_schema.sql`이 완료 조건이다. 실제 구축
+완료는 다음 사용자 승인 후 별도 작업으로 본다.

@@ -20,6 +20,7 @@ overflow, dynamics/staff placement 겹침 같은 시각 회귀를 확인한다.
 
 ```bash
 npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts
+npm run verify:visual-regression
 npm run test:components
 ```
 
@@ -33,7 +34,8 @@ npm run test:components
 
 ## Snapshot 확장 기준
 
-Playwright 또는 Electron screenshot snapshot은 다음 단계에서 붙인다.
+Playwright 또는 Electron screenshot snapshot은 다음 단계에서 붙인다. 현재 자동화는
+renderer bounds와 fixture import를 blocker로 보고, pixel diff artifact는 후속 범위다.
 
 - viewport: desktop 900px 이상, narrow 320px.
 - snapshot 대상: 첫 system 상단, 마지막 마디 오른쪽 끝, dynamics/hairpin 영역.
