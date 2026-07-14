@@ -92,7 +92,8 @@ function getPages() {
   const pages = [
     { filePath: 'index.html', publicPath: 'index.html' },
     { filePath: 'columns.html', publicPath: 'columns.html' },
-    { filePath: 'compositions.html', publicPath: 'compositions.html' }
+    { filePath: 'compositions.html', publicPath: 'compositions.html' },
+    { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 
   const columnsRoot = resolve(siteRoot, 'columns')

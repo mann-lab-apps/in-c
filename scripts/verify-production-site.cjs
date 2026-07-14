@@ -139,7 +139,15 @@ async function assertCertificate() {
 }
 
 addCheck('production pages return HTTP 200', async () => {
-  const paths = ['/', '/#download', '/columns.html', '/compositions.html', '/sitemap.xml', '/robots.txt']
+  const paths = [
+    '/',
+    '/#download',
+    '/columns.html',
+    '/compositions.html',
+    '/privacy.html',
+    '/sitemap.xml',
+    '/robots.txt'
+  ]
 
   for (const path of paths) {
     const response = await fetchWithTimeout(toUrl(path), { method: 'HEAD' })
@@ -178,12 +186,15 @@ addCheck('robots and sitemap use the production domain', async () => {
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/index.html</loc>`, 'sitemap.xml')
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/columns.html</loc>`, 'sitemap.xml')
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/compositions.html</loc>`, 'sitemap.xml')
+  assertIncludes(sitemap.text, `<loc>${expectedOrigin}/privacy.html</loc>`, 'sitemap.xml')
 })
 
 addCheck('published canonical URL uses the production domain', async () => {
   const columns = await readText('/columns.html')
+  const privacy = await readText('/privacy.html')
 
   assertIncludes(columns.text, `<link rel="canonical" href="${expectedOrigin}/columns.html" />`, 'columns.html')
+  assertIncludes(privacy.text, `<link rel="canonical" href="${expectedOrigin}/privacy.html" />`, 'privacy.html')
 })
 
 addCheck('download manifest schema and release links are reachable', async () => {
