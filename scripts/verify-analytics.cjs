@@ -4,6 +4,7 @@ const { extname, join, resolve } = require('node:path')
 const repoRoot = resolve(__dirname, '..')
 const siteRoot = resolve(repoRoot, 'site')
 const docsPath = resolve(repoRoot, 'docs/product/analytics-events.md')
+const operationsDocsPath = resolve(repoRoot, 'docs/product/analytics-operations.md')
 const configPath = resolve(siteRoot, 'analytics-config.json')
 const forbiddenParamNames = new Set([
   'address',
@@ -14,6 +15,27 @@ const forbiddenParamNames = new Set([
   'user_id',
   'userid'
 ])
+const requiredKeyEvents = [
+  'download_primary',
+  'download_platform',
+  'open_in_chromatics',
+  'composition_download',
+  'feedback_submit'
+]
+const requiredCustomDimensions = [
+  'content_type',
+  'content_slug',
+  'content_title',
+  'category',
+  'reading_minutes',
+  'difficulty',
+  'key',
+  'meter',
+  'platform',
+  'file_name',
+  'location',
+  'answer'
+]
 
 function read(relativePath) {
   return readFileSync(resolve(repoRoot, relativePath), 'utf8')
@@ -141,10 +163,33 @@ function verifyPrivacyGuard(source) {
   }
 }
 
+function verifyOperationsDocs(markdown) {
+  for (const event of requiredKeyEvents) {
+    if (!markdown.includes(`\`${event}\``)) {
+      throw new Error(`analytics operations docs missing key event: ${event}`)
+    }
+  }
+
+  for (const dimension of requiredCustomDimensions) {
+    if (!markdown.includes(`\`${dimension}\``)) {
+      throw new Error(`analytics operations docs missing custom dimension: ${dimension}`)
+    }
+  }
+
+  if (!markdown.includes('Search Console')) {
+    throw new Error('analytics operations docs must include Search Console setup')
+  }
+
+  if (!markdown.includes('Realtime') || !markdown.includes('DebugView')) {
+    throw new Error('analytics operations docs must include Realtime and DebugView checks')
+  }
+}
+
 function main() {
   verifyConfig()
 
   const docs = readFileSync(docsPath, 'utf8')
+  const operationsDocs = readFileSync(operationsDocsPath, 'utf8')
   const documentedEvents = parseImplementedEvents(docs)
   const source = getSourceBundle()
   const sourceEvents = parseSourceEvents(source)
@@ -156,6 +201,7 @@ function main() {
   )
 
   verifyPrivacyGuard(source)
+  verifyOperationsDocs(operationsDocs)
 
   if (missingFromDocs.length > 0) {
     throw new Error(

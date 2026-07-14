@@ -189,6 +189,7 @@ ${renderMarkdown(column.body)}
         <a href="../columns.html">Columns</a>
         <a href="../index.html#product-map">제품군</a>
         <a href="../index.html#download">Chromatics 앱</a>
+        <a href="../privacy.html">고지</a>
       </div>
     </footer>
     <script type="module" src="../main.js"></script>
@@ -209,6 +210,7 @@ const sitemapUrls = [
   `${baseUrl}/index.html`,
   `${baseUrl}/columns.html`,
   `${baseUrl}/compositions.html`,
+  `${baseUrl}/privacy.html`,
   ...publicColumns.map((column) => `${baseUrl}/columns/${column.slug}.html`)
 ]
 
