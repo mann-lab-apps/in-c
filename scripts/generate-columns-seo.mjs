@@ -135,7 +135,7 @@ const renderArticle = (column) => {
         <a href="../works.html">Works</a>
         <a href="../concerts.html">Concerts</a>
         <a href="../creators.html">Creators</a>
-        <a href="../index.html#product-map">Classes</a>
+        <a href="../classes.html">Classes</a>
         <a href="../index.html#download">Chromatics 앱</a>
         <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
       </nav>
@@ -191,6 +191,7 @@ ${renderMarkdown(column.body)}
         <a href="../works.html">Works</a>
         <a href="../concerts.html">Concerts</a>
         <a href="../creators.html">Creators</a>
+        <a href="../classes.html">Classes</a>
         <a href="../index.html#download">Chromatics 앱</a>
         <a href="../privacy.html">고지</a>
       </div>
@@ -216,6 +217,7 @@ const sitemapUrls = [
   `${baseUrl}/works.html`,
   `${baseUrl}/concerts.html`,
   `${baseUrl}/creators.html`,
+  `${baseUrl}/classes.html`,
   `${baseUrl}/privacy.html`,
   ...publicColumns.map((column) => `${baseUrl}/columns/${column.slug}.html`)
 ]

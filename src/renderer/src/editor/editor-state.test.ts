@@ -817,6 +817,75 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
+  it('copies a single whole note and pastes it over another whole-note range', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        note('source-whole-note', 0, 'whole')
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'target-whole-note',
+                          position: createTimePosition(0),
+                          pitch: { step: 'G', octave: 4 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const clipboard = buildRangeClipboard(score, {
+      type: 'event',
+      eventId: 'source-whole-note'
+    })
+    const command = buildRangePasteCommand(
+      score,
+      {
+        type: 'event',
+        eventId: 'target-whole-note'
+      },
+      clipboard!,
+      idSequence('pasted-whole-note')
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[1]
+
+    expect(command).toBeDefined()
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        id: 'pasted-whole-note-1',
+        type: 'note',
+        position: { tick: 0 },
+        duration: { value: 'whole' },
+        pitch: { step: 'C', octave: 4 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
   it('rejects range paste when the target range has a different duration', () => {
     const score = scoreWith([
       note('note-1', 0, 'eighth'),

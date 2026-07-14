@@ -96,6 +96,7 @@ function getPages() {
     { filePath: 'works.html', publicPath: 'works.html' },
     { filePath: 'concerts.html', publicPath: 'concerts.html' },
     { filePath: 'creators.html', publicPath: 'creators.html' },
+    { filePath: 'classes.html', publicPath: 'classes.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 

@@ -100,6 +100,7 @@
       ],
       "source": "Traditional Welsh melody. Direct single-voice study engraving for in C Compositions, referencing Hymnary tune metadata and avoiding modern arrangements.",
       "copyrightNote": "Hymnary의 ASH GROVE tune metadata에서 source는 Traditional Welsh Melody, copyright는 Public Domain으로 확인됩니다. 현대 가사, 편곡, 반주, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다.",
+      "workId": "work:the-ash-grove",
       "relatedColumns": [
         "melody-before-theory"
       ],
@@ -126,6 +127,7 @@
       ],
       "source": "Traditional American folk song. Direct single-voice study engraving for in C Compositions, referencing Library of Congress song history and avoiding modern arrangements.",
       "copyrightNote": "Library of Congress는 Shenandoah를 traditional American folk tune으로 설명하며, 19세기 말까지 널리 퍼진 선율로 다룹니다. 특정 현대 편곡, 합창 편곡, 음원, 출판 악보를 복제하지 않고 단선율 학습용으로 직접 사보했습니다. 가사는 포함하지 않았습니다.",
+      "workId": "work:shenandoah",
       "relatedColumns": [
         "melody-before-theory"
       ],

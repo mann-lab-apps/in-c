@@ -23,6 +23,10 @@ const fixture = readFileSync(
   resolve('src/musicxml/fixtures/single-part-treble.musicxml'),
   'utf8'
 )
+const releaseQaFixture = readFileSync(
+  resolve('src/musicxml/fixtures/release-qa.musicxml'),
+  'utf8'
+)
 
 describe('MusicXML MVP', () => {
   it('parses a single-part treble-clef fixture into score-core', () => {
@@ -103,6 +107,57 @@ describe('MusicXML MVP', () => {
         }
       ]
     })
+  })
+
+  it('parses the release QA fixture with visual-regression expressions', () => {
+    const score = parseMusicXml(releaseQaFixture)
+
+    expect(score).toMatchObject({
+      title: 'Release QA Scenario',
+      composer: 'in-C QA',
+      tempo: {
+        bpm: 92
+      },
+      rehearsalMarks: [
+        {
+          measureId: 'measure-1',
+          text: 'A'
+        }
+      ],
+      dynamics: [
+        {
+          measureId: 'measure-1',
+          value: 'mf'
+        },
+        {
+          measureId: 'measure-4',
+          value: 'p'
+        }
+      ]
+    })
+
+    const measures = score.parts[0].staves[0].measures
+
+    expect(measures).toHaveLength(4)
+    expect(measures.every((measure) => validateMeasureRhythm(measure).isExact)).toBe(true)
+    expect(measures[0].voices[0].events[0]).toMatchObject({
+      type: 'note',
+      articulations: ['staccato']
+    })
+    expect(measures[0].voices[0].events[3]).toMatchObject({
+      type: 'note',
+      fermata: true
+    })
+    expect(measures[2].voices[0].events[0]).toMatchObject({
+      type: 'rest',
+      fermata: true
+    })
+    expect(score.hairpins).toHaveLength(1)
+    expect(score.hairpins?.[0]).toMatchObject({
+      type: 'crescendo'
+    })
+    expect(score.hairpins?.[0].startEventId).toBeTruthy()
+    expect(score.hairpins?.[0].endEventId).toBeTruthy()
   })
 
   it('exports and re-imports the supported subset', () => {

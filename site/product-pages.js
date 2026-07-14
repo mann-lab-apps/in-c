@@ -1,7 +1,7 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
 import { columns } from './columns-data.js'
 import compositionCatalog from './compositions-catalog.json'
-import { concerts, creators, works } from './product-data.js'
+import { classes, concerts, creators, works } from './product-data.js'
 
 const escapeHtml = (value) =>
   String(value)
@@ -61,7 +61,7 @@ const renderCreatorChips = (ids) =>
     ids
       .map((id) => creatorsById.get(id))
       .filter(Boolean)
-        .map((creator) =>
+      .map((creator) =>
         link(
           `./creators.html?creator=${creator.slug}`,
           creator.displayName,
@@ -82,6 +82,21 @@ const renderConcertChips = (ids) =>
           concert.title,
           'concert_link',
           `data-track-content-type="concert" data-track-content-slug="${escapeHtml(concert.slug)}"`
+        )
+      )
+  )
+
+const renderClassChips = (ids) =>
+  chipList(
+    ids
+      .map((id) => classes.find((classItem) => classItem.id === id))
+      .filter(Boolean)
+      .map((classItem) =>
+        link(
+          `./classes.html?class=${classItem.slug}`,
+          classItem.title,
+          'class_link',
+          `data-track-content-type="class" data-track-content-slug="${escapeHtml(classItem.slug)}"`
         )
       )
   )
@@ -169,6 +184,7 @@ const renderCreatorDetail = (creator) => {
       <div class="tag-list">${creator.roles.map((role) => `<span>${escapeHtml(role)}</span>`).join('')}</div>
       <section class="composition-note"><h3>관련 작품</h3>${renderWorkChips(creator.works)}</section>
       <section class="composition-note"><h3>관련 공연</h3>${renderConcertChips(creator.concerts)}</section>
+      <section class="composition-note"><h3>관련 Classes</h3>${renderClassChips(creator.classes)}</section>
       <section class="composition-note"><h3>관련 Columns</h3>${renderColumnChips(creator.columns)}</section>
     </article>
   `
@@ -199,6 +215,36 @@ const renderConcertDetail = (concert) => {
   `
 }
 
+const renderClassDetail = (classItem) => {
+  const detail = document.querySelector('[data-product-detail]')
+  if (!detail) return
+
+  setDetail(classItem, 'class', classItem.title, 'class_view')
+  detail.innerHTML = `
+    <article class="product-detail-card">
+      <header>
+        <p class="eyebrow">Class</p>
+        <h2>${escapeHtml(classItem.title)}</h2>
+        <p>${escapeHtml(classItem.summary)}</p>
+      </header>
+      <dl class="composition-facts">
+        <div><dt>유형</dt><dd>${escapeHtml(classItem.type)}</dd></div>
+        <div><dt>형식</dt><dd>${escapeHtml(classItem.format)}</dd></div>
+        <div><dt>수준</dt><dd>${escapeHtml(classItem.level)}</dd></div>
+      </dl>
+      <section class="composition-note">
+        <h3>학습 경로</h3>
+        <ul class="limit-list">
+          ${classItem.outline.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}
+        </ul>
+      </section>
+      <section class="composition-note"><h3>강사/Creator</h3>${renderCreatorChips(classItem.creators)}</section>
+      <section class="composition-note"><h3>관련 작품</h3>${renderWorkChips(classItem.works)}</section>
+      <section class="composition-note"><h3>관련 Columns</h3>${renderColumnChips(classItem.columns)}</section>
+    </article>
+  `
+}
+
 const pageConfig = {
   works: {
     items: works,
@@ -220,6 +266,13 @@ const pageConfig = {
     select: (slug) => concerts.find((item) => item.slug === slug) ?? concerts[0],
     renderDetail: renderConcertDetail,
     labelKey: 'dateLabel'
+  },
+  classes: {
+    items: classes,
+    param: 'class',
+    select: (slug) => classes.find((item) => item.slug === slug) ?? classes[0],
+    renderDetail: renderClassDetail,
+    labelKey: 'type'
   }
 }
 

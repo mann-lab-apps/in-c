@@ -62,6 +62,8 @@
 - [ ] 릴리즈 QA 시나리오의 visual regression 또는 bounds 검증이 통과했다.
   - 기본 확인: `npm run verify:mvp`의 `releaseScenarioBounds` 결과에서 clipping,
     system right overflow, horizontal viewport overflow가 없어야 한다.
+  - 경량 fixture 확인: `npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts`
+    에서 `src/musicxml/fixtures/release-qa.musicxml` parse와 bounds 검증이 통과해야 한다.
 - [ ] `npm run package:dir`
 - [ ] `npm run verify:package`
 - [ ] `npm run site:build`
@@ -126,6 +128,8 @@ GitHub Release와 사이트 배포가 끝난 뒤 Codex가 다시 확인한다.
 
 - [ ] 패키징된 앱을 직접 실행했다.
 - [ ] `release-test` 새 악보를 만들고 제목, 작곡자, 빠르기를 설정했다.
+- [ ] `src/musicxml/fixtures/release-qa.musicxml`을 열어 자동 bounds 검증과 같은 악보를
+  수동으로 확인했다.
 - [ ] 4-8마디 안에서 음표, 쉼표, duration 변경, 삭제, range 선택,
   복사/붙여넣기를 사용해 짧은 선율을 완성했다.
 - [ ] 완성 중 이음줄, 셈여림선, 늘임표, 숨표 또는 중지표, 셈여림,

@@ -52,6 +52,42 @@ export const works = [
     columns: ['melody-before-theory'],
     creators: ['creator:traditional-melody'],
     concerts: []
+  },
+  {
+    id: 'work:the-ash-grove',
+    slug: 'the-ash-grove',
+    title: 'The Ash Grove',
+    originalTitle: 'traditional Welsh melody',
+    summary:
+      '웨일스 전통 선율을 한 줄 악보로 열어보고, 문장 끝의 호흡과 반복을 살펴보는 초급 작품입니다.',
+    era: 'traditional',
+    genre: 'folk song',
+    key: 'F major',
+    meter: '4/4',
+    copyrightStatus: 'public-domain traditional melody',
+    listeningPoint: '같은 리듬형이 문장마다 어떻게 방향을 바꾸는지 들어봅니다.',
+    scores: ['the-ash-grove'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:shenandoah',
+    slug: 'shenandoah',
+    title: 'Shenandoah',
+    originalTitle: 'traditional American folk song',
+    summary:
+      '넓게 흐르는 미국 전통 선율을 Chromatics로 열어 긴 음과 도약의 균형을 확인합니다.',
+    era: 'traditional',
+    genre: 'folk song',
+    key: 'C major',
+    meter: '4/4',
+    copyrightStatus: 'public-domain traditional melody',
+    listeningPoint: '긴 음 뒤에 이어지는 움직임이 선율의 폭을 어떻게 만드는지 들어봅니다.',
+    scores: ['shenandoah'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
   }
 ]
 
@@ -63,7 +99,13 @@ export const creators = [
     roles: ['source tradition', 'public domain repertoire'],
     summary:
       '작곡가 개인보다 공동체와 전승이 만든 선율을 묶어 소개하는 초기 Creator 프로필입니다.',
-    works: ['work:amazing-grace', 'work:arirang', 'work:sakura-sakura'],
+    works: [
+      'work:amazing-grace',
+      'work:arirang',
+      'work:sakura-sakura',
+      'work:the-ash-grove',
+      'work:shenandoah'
+    ],
     concerts: ['concert:first-listening-night', 'concert:folk-melody-preview'],
     columns: ['melody-before-theory', 'open-a-simple-score'],
     classes: ['class:first-melody-listening']
@@ -108,7 +150,7 @@ export const concerts = [
     summary:
       '전통 선율을 악보 한 줄과 함께 보고, 공연 전에 들을 지점을 하나만 정하는 프리뷰입니다.',
     listeningPoint: '긴 음과 짧은 음이 번갈아 나오는 곳을 표시해 봅니다.',
-    works: ['work:arirang', 'work:sakura-sakura'],
+    works: ['work:arirang', 'work:sakura-sakura', 'work:the-ash-grove', 'work:shenandoah'],
     creators: ['creator:traditional-melody'],
     columns: ['melody-before-theory'],
     externalUrl: null
@@ -120,10 +162,18 @@ export const classes = [
     id: 'class:first-melody-listening',
     slug: 'first-melody-listening',
     title: '처음 듣는 사람을 위한 선율 읽기',
+    type: '감상 클래스',
+    format: '온라인 정보형',
+    level: '입문',
     summary:
       '신청과 결제 없이, 작품 페이지와 Columns를 따라가는 정보형 클래스 후보입니다.',
-    works: ['work:amazing-grace', 'work:arirang'],
+    works: ['work:amazing-grace', 'work:arirang', 'work:the-ash-grove'],
     creators: ['creator:in-c-editorial'],
-    columns: ['why-classical-feels-hard', 'melody-before-theory']
+    columns: ['why-classical-feels-hard', 'melody-before-theory'],
+    outline: [
+      '안 들리는 지점을 숨기지 않고 질문으로 바꿉니다.',
+      '한 줄 선율에서 반복, 쉼, 긴 음을 찾습니다.',
+      'Columns와 Works를 오가며 다음 감상 경로를 고릅니다.'
+    ]
   }
 ]

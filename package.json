@@ -34,6 +34,7 @@
     "site:build": "vite build site --outDir ../out/site --emptyOutDir --base ./",
     "site:preview": "vite preview site --host 127.0.0.1 --outDir ../out/site",
     "verify:analytics": "node scripts/verify-analytics.cjs",
+    "verify:site-content": "node scripts/verify-site-content.mjs",
     "verify:site-seo": "node scripts/verify-site-seo.cjs",
     "verify:site-production": "node scripts/verify-production-site.cjs"
   },

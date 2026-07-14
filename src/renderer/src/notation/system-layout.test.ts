@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,7 +11,13 @@ import {
   createTimePosition,
   createVoice
 } from '../../../score-core'
+import { parseMusicXml } from '../../../musicxml'
 import { createSystemLayout, pitchStaffLine } from './system-layout'
+
+const releaseQaFixture = readFileSync(
+  resolve('src/musicxml/fixtures/release-qa.musicxml'),
+  'utf8'
+)
 
 describe('system layout', () => {
   it('wraps measures instead of shrinking below the minimum width', () => {
@@ -154,9 +163,9 @@ describe('system layout', () => {
   })
 
   it('increases the SVG height as systems are added', () => {
-    expect(createSystemLayout(createMeasures(2), 900).height).toBe(202)
+    expect(createSystemLayout(createMeasures(2), 900).height).toBe(226)
     expect(createSystemLayout(createMeasures(8), 900).height).toBeGreaterThan(
-      202
+      226
     )
   })
 
@@ -203,7 +212,7 @@ describe('system layout', () => {
       900
     )
 
-    expect(baseline.placements[0].y).toBe(48)
+    expect(baseline.placements[0].y).toBe(72)
     expect(nearTop.placements[0].y).toBeGreaterThan(
       baseline.placements[0].y
     )
@@ -244,6 +253,61 @@ describe('system layout', () => {
     expect(highWithIntermediateNotes.height).toBe(highOnly.height)
     expect(bothExtremes.placements[0].y).toBe(highOnly.placements[0].y)
     expect(bothExtremes.height).toBeGreaterThan(highOnly.height)
+  })
+
+  it('reserves enough first-system top margin for fermata and rehearsal marks', () => {
+    const layout = createSystemLayout([measureWithPitch('C', 4)], 900)
+    const firstPlacement = layout.placements[0]
+    const rehearsalTop = firstPlacement.y - 28
+    const fermataBaseline = firstPlacement.y - 22
+
+    expect(firstPlacement.y).toBeGreaterThanOrEqual(72)
+    expect(rehearsalTop).toBeGreaterThanOrEqual(40)
+    expect(fermataBaseline).toBeGreaterThanOrEqual(46)
+  })
+
+  it('keeps system right edges inside the render width at narrow viewport widths', () => {
+    const renderWidth = 320
+    const layout = createSystemLayout(createMeasures(6), renderWidth)
+
+    expect(layout.measuresPerSystem).toBe(1)
+
+    for (const placement of layout.placements) {
+      expect(placement.x).toBeGreaterThanOrEqual(16)
+      expect(placement.x + placement.width).toBeLessThanOrEqual(
+        renderWidth - 16
+      )
+    }
+  })
+
+  it('keeps release QA scenario bounds inside desktop and narrow viewports', () => {
+    const score = parseMusicXml(releaseQaFixture)
+    const measures = score.parts[0].staves[0].measures
+
+    for (const renderWidth of [900, 320]) {
+      const layout = createSystemLayout(measures, renderWidth)
+
+      for (const placement of layout.placements) {
+        expect(placement.x).toBeGreaterThanOrEqual(16)
+        expect(placement.x + placement.width).toBeLessThanOrEqual(
+          renderWidth - 16
+        )
+      }
+
+      const firstPlacement = layout.placements[0]
+      expect(firstPlacement.y - 28).toBeGreaterThanOrEqual(40)
+      expect(firstPlacement.y - 22).toBeGreaterThanOrEqual(46)
+
+      for (const dynamic of score.dynamics ?? []) {
+        const placement = layout.placements.find(
+          (candidate) => candidate.measure.id === dynamic.measureId
+        )
+
+        expect(placement).toBeDefined()
+        expect(placement!.y + 78).toBeGreaterThan(placement!.y + 40)
+        expect(placement!.y + 78).toBeLessThan(placement!.y + 154)
+      }
+    }
   })
 
   it('maps pitches to VexFlow-compatible staff lines for supported clefs', () => {

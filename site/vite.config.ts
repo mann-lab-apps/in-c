@@ -42,6 +42,7 @@ export default defineConfig({
         works: resolve(__dirname, 'works.html'),
         concerts: resolve(__dirname, 'concerts.html'),
         creators: resolve(__dirname, 'creators.html'),
+        classes: resolve(__dirname, 'classes.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }

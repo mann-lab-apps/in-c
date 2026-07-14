@@ -90,7 +90,8 @@ fallback 흐름:
 7. MusicXML 작성: Chromatics가 열 수 있는 단성부 MusicXML을 만든다.
 8. Chromatics 확인: MusicXML을 Chromatics에서 열어 표기 품질과 PDF 변환 가능성을 확인한다.
 9. 카탈로그 반영: `site/compositions-catalog.json`에 published 항목을 추가한다.
-10. 검증: site build, MusicXML parse, Chromatics 열기 fallback, `git diff --check`를 확인한다.
+10. 검증: site build, `npm run verify:site-content`, MusicXML parse, Chromatics 열기
+    fallback, `git diff --check`를 확인한다.
 
 ## Automation Boundary
 
@@ -140,3 +141,7 @@ fallback 흐름:
 - 중복 검사기: title, alternative title, source URL 기준으로 issue와 catalog를 비교한다.
 - catalog validator: 공개 항목의 MusicXML/Chromatics 열기 링크와 필수 metadata를 검증한다.
 - artifact verifier: MusicXML parse, Chromatics 열기 fallback, 체크섬 생성을 한 번에 실행한다.
+
+현재 경량 catalog validator는 `npm run verify:site-content`로 실행한다. 이 명령은
+공개 Compositions 항목의 MusicXML/Chromatics 링크, PDF 비노출 정책, related Columns,
+workId 관계를 확인한다.
