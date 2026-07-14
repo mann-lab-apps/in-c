@@ -88,6 +88,132 @@ export const works = [
     columns: ['melody-before-theory'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:ode-to-joy',
+    slug: 'ode-to-joy',
+    title: 'Ode to Joy',
+    originalTitle: 'Beethoven Symphony No. 9 fourth movement theme',
+    summary:
+      '베토벤 교향곡 9번의 익숙한 주제를 한 줄 악보로 열어 반복과 방향감을 확인합니다.',
+    era: 'Classical / early Romantic',
+    genre: 'symphonic theme',
+    key: 'C major',
+    meter: '4/4',
+    copyrightStatus: 'public-domain theme',
+    listeningPoint: '같은 음으로 시작해 한 음씩 움직이는 선율이 어떻게 함께 부를 수 있는 문장이 되는지 들어봅니다.',
+    scores: ['ode-to-joy'],
+    columns: ['melody-before-theory', 'listen-with-one-question'],
+    creators: ['creator:ludwig-van-beethoven'],
+    concerts: ['concert:first-listening-night']
+  },
+  {
+    id: 'work:ah-vous-dirai-je-maman',
+    slug: 'ah-vous-dirai-je-maman',
+    title: 'Ah! vous dirai-je, maman',
+    originalTitle: '18th-century French melody',
+    summary:
+      'Twinkle, Twinkle로 익숙한 선율을 한 줄 악보로 열고 반복 구조를 눈으로 확인합니다.',
+    era: '18th-century melody',
+    genre: 'children song / variation theme',
+    key: 'C major',
+    meter: '4/4',
+    copyrightStatus: 'public-domain melody',
+    listeningPoint: '두 마디 단위로 같은 리듬이 어떻게 다른 음역으로 이동하는지 따라갑니다.',
+    scores: ['ah-vous-dirai-je-maman'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:simple-gifts',
+    slug: 'simple-gifts',
+    title: 'Simple Gifts',
+    originalTitle: 'Shaker song attributed to Joseph Brackett',
+    summary:
+      '미국 Shaker 선율을 Chromatics로 열어 도약과 순차 진행이 만드는 문장을 살펴봅니다.',
+    era: '1848 Shaker song',
+    genre: 'folk hymn',
+    key: 'G major',
+    meter: '4/4',
+    copyrightStatus: 'public-domain melody',
+    listeningPoint: '도약 뒤에 이어지는 짧은 움직임이 선율을 안정시키는 방식을 들어봅니다.',
+    scores: ['simple-gifts'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:joseph-brackett'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:scarborough-fair',
+    slug: 'scarborough-fair',
+    title: 'Scarborough Fair',
+    originalTitle: 'traditional English ballad',
+    summary:
+      '영국 전통 발라드 선율을 한 줄 악보로 열고 modal한 색채를 관찰합니다.',
+    era: 'traditional',
+    genre: 'ballad',
+    key: 'D minor / modal color',
+    meter: '4/4',
+    copyrightStatus: 'traditional melody',
+    listeningPoint: '좁은 움직임과 긴 머무름이 이야기하듯 이어지는 지점을 들어봅니다.',
+    scores: ['scarborough-fair'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:greensleeves',
+    slug: 'greensleeves',
+    title: 'Greensleeves',
+    originalTitle: 'traditional English melody',
+    summary:
+      '16세기 문헌에 등장하는 전통 선율을 단선율로 열어 3박자의 흐름을 확인합니다.',
+    era: 'traditional',
+    genre: 'folk melody',
+    key: 'A minor',
+    meter: '3/4',
+    copyrightStatus: 'traditional melody',
+    listeningPoint: '상행 후 다시 내려오는 곡선이 매 마디의 호흡을 어떻게 만드는지 들어봅니다.',
+    scores: ['greensleeves'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:frere-jacques',
+    slug: 'frere-jacques',
+    title: 'Frere Jacques',
+    originalTitle: 'traditional French round',
+    summary:
+      '돌림노래로 알려진 프랑스 전통 동요를 한 줄 악보로 열어 반복 단위를 확인합니다.',
+    era: 'traditional',
+    genre: 'round',
+    key: 'C major',
+    meter: '4/4',
+    copyrightStatus: 'traditional melody',
+    listeningPoint: '같은 문장이 두 번 반복된 뒤 음역이 올라가는 구조를 따라갑니다.',
+    scores: ['frere-jacques'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
+  },
+  {
+    id: 'work:doraji-taryeong',
+    slug: 'doraji-taryeong',
+    title: '도라지타령',
+    originalTitle: 'traditional Korean folk song',
+    summary:
+      '한국 민요 선율을 단선율로 열고, 짧은 쉼과 긴 음이 만드는 장단감을 살펴봅니다.',
+    era: 'traditional',
+    genre: 'folk song',
+    key: 'C major',
+    meter: '3/4',
+    copyrightStatus: 'traditional melody',
+    listeningPoint: '긴 음에 도착하기 전의 짧은 움직임이 선율의 흥을 어떻게 만드는지 들어봅니다.',
+    scores: ['doraji-taryeong'],
+    columns: ['melody-before-theory'],
+    creators: ['creator:traditional-melody'],
+    concerts: ['concert:folk-melody-preview']
   }
 ]
 
@@ -104,10 +230,39 @@ export const creators = [
       'work:arirang',
       'work:sakura-sakura',
       'work:the-ash-grove',
-      'work:shenandoah'
+      'work:shenandoah',
+      'work:ah-vous-dirai-je-maman',
+      'work:scarborough-fair',
+      'work:greensleeves',
+      'work:frere-jacques',
+      'work:doraji-taryeong'
     ],
     concerts: ['concert:first-listening-night', 'concert:folk-melody-preview'],
     columns: ['melody-before-theory', 'open-a-simple-score'],
+    classes: ['class:first-melody-listening']
+  },
+  {
+    id: 'creator:ludwig-van-beethoven',
+    slug: 'ludwig-van-beethoven',
+    displayName: 'Ludwig van Beethoven',
+    roles: ['composer', 'public domain repertoire'],
+    summary:
+      '고전주의와 낭만주의의 경계에서 익숙한 선율과 큰 형식의 감각을 함께 남긴 작곡가입니다.',
+    works: ['work:ode-to-joy'],
+    concerts: ['concert:first-listening-night'],
+    columns: ['listen-with-one-question', 'melody-before-theory'],
+    classes: ['class:first-melody-listening']
+  },
+  {
+    id: 'creator:joseph-brackett',
+    slug: 'joseph-brackett',
+    displayName: 'Joseph Brackett',
+    roles: ['composer', 'Shaker song'],
+    summary:
+      'Simple Gifts로 널리 알려진 19세기 Shaker 선율을 남긴 작곡가입니다.',
+    works: ['work:simple-gifts'],
+    concerts: ['concert:folk-melody-preview'],
+    columns: ['melody-before-theory'],
     classes: ['class:first-melody-listening']
   },
   {
@@ -150,8 +305,19 @@ export const concerts = [
     summary:
       '전통 선율을 악보 한 줄과 함께 보고, 공연 전에 들을 지점을 하나만 정하는 프리뷰입니다.',
     listeningPoint: '긴 음과 짧은 음이 번갈아 나오는 곳을 표시해 봅니다.',
-    works: ['work:arirang', 'work:sakura-sakura', 'work:the-ash-grove', 'work:shenandoah'],
-    creators: ['creator:traditional-melody'],
+    works: [
+      'work:arirang',
+      'work:sakura-sakura',
+      'work:the-ash-grove',
+      'work:shenandoah',
+      'work:ah-vous-dirai-je-maman',
+      'work:simple-gifts',
+      'work:scarborough-fair',
+      'work:greensleeves',
+      'work:frere-jacques',
+      'work:doraji-taryeong'
+    ],
+    creators: ['creator:traditional-melody', 'creator:joseph-brackett'],
     columns: ['melody-before-theory'],
     externalUrl: null
   }
@@ -167,8 +333,14 @@ export const classes = [
     level: '입문',
     summary:
       '신청과 결제 없이, 작품 페이지와 Columns를 따라가는 정보형 클래스 후보입니다.',
-    works: ['work:amazing-grace', 'work:arirang', 'work:the-ash-grove'],
-    creators: ['creator:in-c-editorial'],
+    works: [
+      'work:amazing-grace',
+      'work:arirang',
+      'work:the-ash-grove',
+      'work:ode-to-joy',
+      'work:frere-jacques'
+    ],
+    creators: ['creator:in-c-editorial', 'creator:ludwig-van-beethoven'],
     columns: ['why-classical-feels-hard', 'melody-before-theory'],
     outline: [
       '안 들리는 지점을 숨기지 않고 질문으로 바꿉니다.',

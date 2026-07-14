@@ -137,6 +137,199 @@
         "chromatics": "./compositions/shenandoah.musicxml",
         "preview": null
       }
+    },
+    {
+      "slug": "ode-to-joy",
+      "title": "Ode to Joy",
+      "subtitle": "theme from Beethoven Symphony No. 9",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "C major",
+      "meter": "4/4",
+      "tags": [
+        "beethoven",
+        "classical",
+        "single-voice",
+        "public-domain",
+        "beginner"
+      ],
+      "source": "Beethoven Symphony No. 9 fourth movement theme, completed in 1824. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "Beethoven의 원곡 주제는 public domain으로 다룹니다. 현대 편곡, 교육용 악보, 특정 출판본을 복제하지 않고 단선율 입문용으로 직접 사보했습니다. Schiller 텍스트는 포함하지 않았습니다.",
+      "workId": "work:ode-to-joy",
+      "relatedColumns": [
+        "melody-before-theory",
+        "listen-with-one-question"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/ode-to-joy.musicxml",
+        "chromatics": "./compositions/ode-to-joy.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "ah-vous-dirai-je-maman",
+      "title": "Ah! vous dirai-je, maman",
+      "subtitle": "18th-century French melody",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "C major",
+      "meter": "4/4",
+      "tags": [
+        "french-melody",
+        "children-song",
+        "single-voice",
+        "public-domain",
+        "beginner"
+      ],
+      "source": "18th-century French melody associated with Twinkle, Twinkle, Little Star. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "기본 선율은 public domain으로 다룹니다. 현대 교육용 편곡, 삽화가 포함된 악보, 특정 출판본을 복제하지 않고 단선율로 직접 사보했습니다.",
+      "workId": "work:ah-vous-dirai-je-maman",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/ah-vous-dirai-je-maman.musicxml",
+        "chromatics": "./compositions/ah-vous-dirai-je-maman.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "simple-gifts",
+      "title": "Simple Gifts",
+      "subtitle": "Shaker song",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "G major",
+      "meter": "4/4",
+      "tags": [
+        "shaker-song",
+        "american-folk-song",
+        "single-voice",
+        "public-domain"
+      ],
+      "source": "1848 Shaker song attributed to Joseph Brackett. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "원 선율은 public domain으로 다룹니다. Copland 등 현대 작곡가의 편곡이나 반주를 사용하지 않고 단선율 학습용으로 직접 사보했습니다.",
+      "workId": "work:simple-gifts",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/simple-gifts.musicxml",
+        "chromatics": "./compositions/simple-gifts.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "scarborough-fair",
+      "title": "Scarborough Fair",
+      "subtitle": "traditional English ballad",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "D minor / modal color",
+      "meter": "4/4",
+      "tags": [
+        "traditional",
+        "english-ballad",
+        "single-voice",
+        "public-domain"
+      ],
+      "source": "Traditional English ballad melody. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "전통 선율을 기준으로 다룹니다. Simon & Garfunkel 등 현대 편곡과 녹음, 반주, 특정 출판 악보를 복제하지 않았습니다.",
+      "workId": "work:scarborough-fair",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/scarborough-fair.musicxml",
+        "chromatics": "./compositions/scarborough-fair.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "greensleeves",
+      "title": "Greensleeves",
+      "subtitle": "traditional English melody",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "A minor",
+      "meter": "3/4",
+      "tags": [
+        "traditional",
+        "english-melody",
+        "single-voice",
+        "public-domain"
+      ],
+      "source": "Traditional English melody with early print references from the 16th century. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "전통 선율을 기준으로 다룹니다. 현대 편곡, 화성, 반주, 가사 번역, 특정 출판 악보를 복제하지 않았습니다.",
+      "workId": "work:greensleeves",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/greensleeves.musicxml",
+        "chromatics": "./compositions/greensleeves.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "frere-jacques",
+      "title": "Frere Jacques",
+      "subtitle": "traditional French round",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "C major",
+      "meter": "4/4",
+      "tags": [
+        "traditional",
+        "round",
+        "children-song",
+        "single-voice",
+        "public-domain"
+      ],
+      "source": "Traditional French round. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "전통 동요 선율을 기준으로 다룹니다. 현대 교육용 편곡이나 반주 악보를 복제하지 않고 기본 단선율만 직접 사보했습니다.",
+      "workId": "work:frere-jacques",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/frere-jacques.musicxml",
+        "chromatics": "./compositions/frere-jacques.musicxml",
+        "preview": null
+      }
+    },
+    {
+      "slug": "doraji-taryeong",
+      "title": "도라지타령",
+      "subtitle": "traditional Korean folk song",
+      "status": "available",
+      "difficulty": "초급",
+      "key": "C major",
+      "meter": "3/4",
+      "tags": [
+        "traditional",
+        "korean-folk-song",
+        "single-voice",
+        "public-domain"
+      ],
+      "source": "Traditional Korean folk song. Direct single-voice study engraving for in C Compositions.",
+      "copyrightNote": "한국 전통 민요 선율로 취급합니다. 현대 공연 채보, 반주 편곡, 교육용 악보 파일을 그대로 복제하지 않고 단선율 학습용으로 직접 사보했습니다.",
+      "workId": "work:doraji-taryeong",
+      "relatedColumns": [
+        "melody-before-theory"
+      ],
+      "assets": {
+        "pdf": null,
+        "musicxml": "./compositions/doraji-taryeong.musicxml",
+        "chromatics": "./compositions/doraji-taryeong.musicxml",
+        "preview": null
+      }
     }
   ]
 }

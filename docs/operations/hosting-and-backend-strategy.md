@@ -1,6 +1,7 @@
 # Hosting and Backend Strategy
 
 작성일: 2026-07-14
+최근 검토: 2026-07-14
 
 이 문서는 #311, #317, #316, #318의 1차 판단 기준을 한곳에 묶는다. 가격과 무료
 한도는 서비스 정책 변경 가능성이 크므로, 실제 전환 전에는 공식 문서를 다시 확인한다.
@@ -8,10 +9,12 @@
 ## 결론
 
 - 단기 production: GitHub Pages를 유지한다.
-- 장기 정적 hosting 1순위: Cloudflare Pages.
+- 장기 정적 hosting 주요 후보: Cloudflare Pages.
 - Next.js 또는 서버 렌더링 중심으로 전환할 때의 후보: Vercel Pro.
 - Supabase는 MVP 백엔드 후보로 유지하되, 프로젝트 생성과 비용 발생 작업은 사용자
   승인 후 진행한다.
+- Cloudflare Pages 이전은 아직 확정하지 않는다. 현재 결정은 "주요 후보로 올려
+  비교한다"에 머문다.
 
 ## GitHub Pages 유지 조건
 
@@ -35,7 +38,8 @@ GitHub Pages는 현재 정적 사이트와 GitHub Actions 배포에 충분하다
 
 | 후보 | 무료/초기 한도 메모 | in C 판단 |
 | --- | --- | --- |
-| Cloudflare Pages | Free: 1 concurrent build, 500 builds/month, 100 custom domains/project, unlimited sites/static requests/bandwidth | 정적 사이트와 custom domain 운영 1순위 |
+| GitHub Pages | Published site 1 GB, soft bandwidth 100 GB/month, deployment timeout 10 minutes, soft build limit 10/hour | 지금 비용과 운영 복잡도가 가장 낮은 기본값 |
+| Cloudflare Pages | Free: 1 concurrent build, 500 builds/month, 100 custom domains/project, unlimited sites/static requests/bandwidth | 정적 사이트와 custom domain 운영의 주요 이전 후보 |
 | Vercel | Hobby는 non-commercial/personal use 제한, Pro는 월 $20 계열 | Next.js/full-stack 전환 시 Pro 후보 |
 | Netlify | Free는 300 credits/month 기준, Pro는 월 $20 계열 | preview deploy UX가 필요하면 후보 |
 | AWS Amplify | 2025-07-15 이후 신규 AWS 계정은 Free Tier credit 체계, 이후 사용량 과금 | AWS backend와 묶을 때만 검토 |
@@ -43,9 +47,62 @@ GitHub Pages는 현재 정적 사이트와 GitHub Actions 배포에 충분하다
 공식 문서:
 
 - https://pages.cloudflare.com/
+- https://developers.cloudflare.com/pages/configuration/custom-domains/
 - https://vercel.com/docs/plans/hobby
+- https://vercel.com/docs/limits
 - https://www.netlify.com/pricing/
+- https://docs.netlify.com/manage/accounts-and-billing/billing/billing-for-credit-based-plans/how-credits-work/
 - https://aws.amazon.com/amplify/pricing/
+
+## Frontend hosting 실행 검토
+
+#319는 실제 이전 실행 이슈가 아니라 후보 검토 이슈다. Cloudflare Pages는 주요
+후보로 올리되, 다음 질문을 통과할 때만 이전을 실행한다.
+
+Cloudflare Pages가 적합한 경우:
+
+- 정적 site hosting과 custom subdomain 운영을 GitHub Pages보다 더 예측 가능하게
+  만들 필요가 있다.
+- preview/production branch 배포와 rollback UI가 반복적으로 필요하다.
+- `npm run site:build` 결과물인 `out/site`를 provider build 또는 GitHub Actions
+  upload 방식으로 안정적으로 배포할 수 있다.
+- 향후 Pages Functions, Workers, KV 같은 edge 확장 가능성이 실제 제품 로드맵에
+  들어온다.
+- bandwidth 비용 예측이 GitHub Pages나 Netlify/AWS 계열보다 중요하다.
+
+GitHub Pages 유지가 더 적합한 경우:
+
+- 현재처럼 정적 HTML/CSS/JS와 GitHub Actions 배포만으로 충분하다.
+- custom domain, sitemap, canonical, analytics, download manifest 검증이 이미
+  안정적으로 통과한다.
+- Cloudflare 계정 연결, DNS 변경, Pages project 운영이 지금의 문제보다 더 큰
+  운영 부담이다.
+- frontend hosting보다 Supabase 백엔드, 콘텐츠, 테스트 안전망이 더 시급하다.
+
+보류 후보 판단:
+
+- Vercel은 Next.js, SSR, app router, edge function 중심 전환이 있을 때 다시 검토한다.
+  Hobby의 non-commercial/personal 제한 때문에 서비스 성격이 커지면 Pro 기준으로 본다.
+- Netlify는 deploy preview UX가 중요해질 때 다시 검토한다. credit 모델에서는
+  bandwidth, production deploy, requests 사용량을 함께 계산해야 한다.
+- AWS Amplify는 AWS backend와 한 번에 묶는 조직적 이유가 있을 때만 본다. 정적
+  사이트 하나만 위해 도입하기에는 비용/권한/운영 복잡도가 크다.
+
+실행 전 승인 필요 작업:
+
+- Cloudflare Pages, Vercel, Netlify, Amplify project 생성.
+- provider GitHub App/OAuth 연결.
+- DNS, CNAME, nameserver, production URL 변경.
+- GitHub Pages 비활성화.
+- secret 또는 environment variable 등록.
+
+현재 권장안:
+
+- 2026-07-14 현재는 GitHub Pages를 유지한다.
+- Cloudflare Pages는 장기 정적 hosting 주요 후보로 두되, 실제 이전은 preview
+  deploy/rollback 필요가 반복되거나 GitHub Pages 제한에 근접할 때 실행한다.
+- 이전 준비가 필요해지면 먼저 dry-run checklist와 rollback checklist를 작성하고,
+  사용자의 명시 승인을 받은 뒤 project/DNS 작업을 진행한다.
 
 ## Hosting 전환 트리거
 

@@ -223,7 +223,7 @@ const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
 
-const App = () => {
+export const App = () => {
   const [score, setScore] = useState(createInitialScore)
   const [selection, setSelection] = useState<EditorSelection>(() =>
     createInitialSelection(score)
@@ -3753,4 +3753,8 @@ function commandHasEffects(command: ScoreCommand): boolean {
     command.commands.some(commandHasEffects)
 }
 
-createRoot(document.getElementById('root') as HTMLElement).render(<App />)
+const rootElement = document.getElementById('root')
+
+if (rootElement) {
+  createRoot(rootElement).render(<App />)
+}

@@ -109,6 +109,12 @@ function verifyCompositions() {
       `${composition.slug} MusicXML file is missing`
     )
     assert(
+      existsSync(
+        publicAssetPath(composition.assets.musicxml.replace(/\.musicxml$/, '.pdf'))
+      ),
+      `${composition.slug} PDF sidecar file is missing`
+    )
+    assert(
       composition.assets.pdf === null,
       `${composition.slug} must not expose PDF as the primary catalog asset`
     )

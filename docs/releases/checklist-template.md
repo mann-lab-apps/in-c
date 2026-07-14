@@ -56,6 +56,7 @@
 
 - [ ] `npm ci`
 - [ ] `npm test`
+- [ ] `npm run test:components`
 - [ ] `npm run typecheck`
 - [ ] `npm run build`
 - [ ] `npm run verify:mvp`

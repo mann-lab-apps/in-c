@@ -36,7 +36,8 @@
     "verify:analytics": "node scripts/verify-analytics.cjs",
     "verify:site-content": "node scripts/verify-site-content.mjs",
     "verify:site-seo": "node scripts/verify-site-seo.cjs",
-    "verify:site-production": "node scripts/verify-production-site.cjs"
+    "verify:site-production": "node scripts/verify-production-site.cjs",
+    "test:components": "vitest run src/renderer/src/App.test.tsx"
   },
   "dependencies": {
     "fast-xml-parser": "^5.9.2",
@@ -46,6 +47,8 @@
     "vexflow": "^5.0.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^24.10.2",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
@@ -53,6 +56,7 @@
     "electron": "^42.4.1",
     "electron-builder": "^26.15.3",
     "electron-vite": "^4.0.0",
+    "jsdom": "^29.1.1",
     "typescript": "^5.9.3",
     "vite": "^7.2.7",
     "vitest": "^4.1.9"

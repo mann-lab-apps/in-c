@@ -39,6 +39,7 @@ Compositions 동선이 첫 화면 CTA에서 바로 보이게 한다.
 ```bash
 npm run site:dev
 npm run site:build
+npm run test:components
 npm run verify:analytics
 npm run verify:site-content
 npm run verify:site-seo
@@ -53,6 +54,9 @@ npm run verify:site-production
 `verify:site-content`는 사이트 빌드 산출물의 다운로드 manifest 포함 여부,
 Compositions MusicXML/Chromatics asset, Works/Concerts/Creators/Classes 관계를
 확인한다.
+
+`test:components`는 jsdom에서 앱 셸을 렌더링해 시작 화면, toolbar, 재생 컨트롤,
+한국어 UI 용어가 기본 상태에서 노출되는지 확인한다.
 
 `verify:site-seo`는 정적 HTML의 canonical, Open Graph, Twitter card,
 sitemap, robots, social preview 이미지 파일을 공식 도메인 기준으로 확인한다.

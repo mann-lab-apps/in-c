@@ -27,8 +27,53 @@ const releaseQaFixture = readFileSync(
   resolve('src/musicxml/fixtures/release-qa.musicxml'),
   'utf8'
 )
+const compositionCatalog = JSON.parse(
+  readFileSync(resolve('site/compositions-catalog.json'), 'utf8')
+) as {
+  compositions: Array<{
+    slug: string
+    status: string
+    assets?: {
+      musicxml?: string
+    }
+  }>
+}
 
 describe('MusicXML MVP', () => {
+  it('parses every available public Composition MusicXML file', () => {
+    const availableCompositions = compositionCatalog.compositions.filter(
+      (composition) => composition.status === 'available'
+    )
+
+    expect(availableCompositions.length).toBeGreaterThan(0)
+
+    for (const composition of availableCompositions) {
+      const musicXmlPath = composition.assets?.musicxml
+
+      expect(musicXmlPath, `${composition.slug} missing MusicXML path`).toBeTruthy()
+
+      const score = parseMusicXml(
+        readFileSync(
+          resolve('site/public', musicXmlPath!.replace(/^\.\//, '')),
+          'utf8'
+        )
+      )
+
+      expect(score.title, composition.slug).toBeTruthy()
+
+      for (const part of score.parts) {
+        for (const staff of part.staves) {
+          for (const measure of staff.measures) {
+            expect(
+              validateMeasureRhythm(measure).status,
+              `${composition.slug} measure ${measure.number} rhythm`
+            ).toBe('exact')
+          }
+        }
+      }
+    }
+  })
+
   it('parses a single-part treble-clef fixture into score-core', () => {
     const score = parseMusicXml(fixture)
 

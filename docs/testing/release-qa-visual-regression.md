@@ -20,6 +20,7 @@ overflow, dynamics/staff placement 겹침 같은 시각 회귀를 확인한다.
 
 ```bash
 npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts
+npm run test:components
 ```
 
 검증 기준:
@@ -28,6 +29,7 @@ npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layou
 - desktop 폭과 narrow 폭 모두에서 system right edge가 render width 안에 있어야 한다.
 - 첫 system의 rehearsal mark와 fermata 기준 y 위치가 viewBox 상단 여백 안에 있어야 한다.
 - dynamics baseline이 staff 아래에 있으면서 system height 밖으로 나가지 않아야 한다.
+- App 셸이 jsdom에서 시작 화면, toolbar, 재생 컨트롤, fixture-mode entry를 렌더링해야 한다.
 
 ## Snapshot 확장 기준
 
