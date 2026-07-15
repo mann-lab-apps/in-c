@@ -59,6 +59,11 @@ export interface TimeSignature {
 export type Articulation = 'staccato' | 'accent'
 export type BreathMark = 'breath' | 'caesura'
 
+export interface TremoloMark {
+  type: 'single'
+  marks: 1 | 2 | 3
+}
+
 export interface Note {
   type: 'note'
   id: VoiceEventId
@@ -72,6 +77,7 @@ export interface Note {
   articulations?: Articulation[]
   fermata?: boolean
   breathMark?: BreathMark
+  tremolo?: TremoloMark
 }
 
 export interface Rest {
@@ -106,6 +112,7 @@ export interface Measure {
   timeSignature: TimeSignature
   keySignature: KeySignature
   clef: Clef
+  repeat?: RepeatMark
   voices: Voice[]
 }
 
@@ -135,6 +142,27 @@ export interface TempoMarking {
   beatUnit?: DurationValue
   dots?: number
   text?: string
+}
+
+export interface TempoEvent extends TempoMarking {
+  id: string
+  measureId: MeasureId
+  tick: Tick
+}
+
+export type OctaveShiftType = '8va' | '8vb' | '15ma' | '15mb'
+
+export interface OctaveShift {
+  id: string
+  startEventId: VoiceEventId
+  endEventId: VoiceEventId
+  type: OctaveShiftType
+}
+
+export interface RepeatMark {
+  start?: boolean
+  end?: boolean
+  times?: number
 }
 
 export interface RehearsalMark {
@@ -178,6 +206,8 @@ export interface Score {
   title: string
   composer?: string
   tempo?: TempoMarking
+  tempoEvents?: TempoEvent[]
+  octaveShifts?: OctaveShift[]
   rehearsalMarks?: RehearsalMark[]
   staffTexts?: StaffText[]
   dynamics?: DynamicMark[]

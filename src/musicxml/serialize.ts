@@ -79,6 +79,7 @@ export function serializeMusicXml(score: Score): string {
           const voice = measure.voices[0]
           const tupletBoundaries = createTupletBoundaries(voice)
           const directions = buildMeasureDirections(score, measure)
+          const barlines = buildRepeatBarlines(measure)
 
           return {
             '@_number': measure.number,
@@ -101,7 +102,12 @@ export function serializeMusicXml(score: Score): string {
                 tupletBoundaries.get(event.id),
                 slurBoundaries.get(event.id)
               )
-            )
+            ),
+            ...(barlines.length > 0
+              ? {
+                  barline: barlines
+                }
+              : {})
           }
         })
       }
@@ -112,6 +118,22 @@ export function serializeMusicXml(score: Score): string {
 }
 
 function buildMeasureDirections(score: Score, measure: Measure) {
+  const tempoEventDirections = (score.tempoEvents ?? [])
+    .filter((event) => event.measureId === measure.id)
+    .map((event) => buildTempoDirection(event, event.tick))
+  const octaveShiftDirections = (score.octaveShifts ?? []).flatMap((shift) => {
+    const directions = []
+
+    if (measureHasEvent(measure, shift.startEventId)) {
+      directions.push(buildOctaveShiftDirection(shift.type, 'start'))
+    }
+
+    if (measureHasEvent(measure, shift.endEventId)) {
+      directions.push(buildOctaveShiftDirection(shift.type, 'stop'))
+    }
+
+    return directions
+  })
   const hairpinDirections = (score.hairpins ?? []).flatMap((hairpin) => {
     const directions = []
 
@@ -130,6 +152,8 @@ function buildMeasureDirections(score: Score, measure: Measure) {
     ...(measure.number === 1 && score.tempo
       ? [buildTempoDirection(score.tempo)]
       : []),
+    ...tempoEventDirections,
+    ...octaveShiftDirections,
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => mark.measureId === measure.id)
       .map((mark) => buildRehearsalDirection(mark.text)),
@@ -143,7 +167,10 @@ function buildMeasureDirections(score: Score, measure: Measure) {
   ]
 }
 
-function buildTempoDirection(tempo: NonNullable<Score['tempo']>) {
+function buildTempoDirection(
+  tempo: NonNullable<Score['tempo']>,
+  offsetTicks?: number
+) {
   const beatUnit = tempo.beatUnit ?? 'quarter'
   const dots = Math.max(0, tempo.dots ?? 0)
 
@@ -165,8 +192,30 @@ function buildTempoDirection(tempo: NonNullable<Score['tempo']>) {
         'per-minute': tempo.bpm
       }
     },
+    ...(offsetTicks && offsetTicks > 0
+      ? {
+          offset: offsetTicks
+        }
+      : {}),
     sound: {
       '@_tempo': tempo.bpm
+    }
+  }
+}
+
+function buildOctaveShiftDirection(
+  type: NonNullable<Score['octaveShifts']>[number]['type'],
+  markerType: 'start' | 'stop'
+) {
+  const isDown = type.endsWith('vb')
+
+  return {
+    '@_placement': isDown ? 'below' : 'above',
+    'direction-type': {
+      'octave-shift': {
+        '@_type': markerType === 'stop' ? 'stop' : isDown ? 'down' : 'up',
+        '@_size': type.startsWith('15') ? 15 : 8
+      }
     }
   }
 }
@@ -213,6 +262,36 @@ function buildHairpinDirection(type: string) {
       }
     }
   }
+}
+
+function buildRepeatBarlines(measure: Measure) {
+  return [
+    ...(measure.repeat?.start
+      ? [
+          {
+            '@_location': 'left',
+            repeat: {
+              '@_direction': 'forward'
+            }
+          }
+        ]
+      : []),
+    ...(measure.repeat?.end
+      ? [
+          {
+            '@_location': 'right',
+            repeat: {
+              '@_direction': 'backward',
+              ...(measure.repeat.times
+                ? {
+                    '@_times': measure.repeat.times
+                  }
+                : {})
+            }
+          }
+        ]
+      : [])
+  ]
 }
 
 function measureHasEvent(measure: Measure, eventId: string): boolean {
@@ -300,12 +379,22 @@ function buildNote(
     ...(event.breathMark === 'breath' ? ['breath-mark'] : []),
     ...(event.breathMark === 'caesura' ? ['caesura'] : [])
   ]
+  const ornamentNotations =
+    event.type === 'note' && event.tremolo
+      ? {
+          tremolo: {
+            '@_type': 'single',
+            '#text': event.tremolo.marks
+          }
+        }
+      : undefined
   const hasFermata = Boolean(event.fermata)
   const hasNotations =
     tieTypes.length > 0 ||
     notationTuplets.length > 0 ||
     notationSlurs.length > 0 ||
     articulationNotations.length > 0 ||
+    Boolean(ornamentNotations) ||
     hasFermata
 
   return {
@@ -385,6 +474,11 @@ function buildNote(
                   articulations: Object.fromEntries(
                     articulationNotations.map((articulation) => [articulation, ''])
                   )
+                }
+              : {}),
+            ...(ornamentNotations
+              ? {
+                  ornaments: ornamentNotations
                 }
               : {}),
             ...(hasFermata
@@ -474,10 +568,6 @@ function validateMeasure(measure: Measure): void {
     throw new Error(
       `MVP 내보내기는 measure ${measure.number}의 단일 voice만 지원합니다.`
     )
-  }
-
-  if (measure.clef.sign !== 'G') {
-    throw new Error('MVP 내보내기는 높은음자리표(G clef)만 지원합니다.')
   }
 
   const rhythm = validateMeasureRhythm(measure)

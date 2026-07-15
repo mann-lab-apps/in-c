@@ -81,8 +81,9 @@ npm run verify:visual-regression
 입력, 선택, 복사/붙여넣기, 삭제, 저장/내보내기 계열 흐름은 `verify:mvp`와 같은
 Electron 시나리오에서 점검한다.
 
-`verify:visual-regression`은 release QA MusicXML fixture와 system layout bounds를
-검증한다. Playwright screenshot diff는 별도 후속 범위다.
+`verify:visual-regression`은 release QA MusicXML fixture, system layout bounds,
+Electron notation snapshot baseline을 함께 검증한다. snapshot 실패 시 임시 폴더에
+PNG artifact와 metric diff JSON이 남는다.
 
 TypeScript를 검사합니다.
 

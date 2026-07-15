@@ -4,6 +4,7 @@ import type { Score } from '../../../score-core'
 import {
   createPlaybackTimeline,
   findPlaybackEvent,
+  tempoMarkingToQuarterBpm,
   type PlaybackEvent
 } from './timeline'
 
@@ -16,7 +17,9 @@ const DEFAULT_TEMPO = 120
 export function useScorePlayback(score: Score) {
   const timeline = useMemo(() => createPlaybackTimeline(score), [score])
   const [status, setStatus] = useState<PlaybackStatus>('stopped')
-  const scoreTempo = normalizeTempo(score.tempo?.bpm ?? DEFAULT_TEMPO)
+  const scoreTempo = normalizeTempo(
+    score.tempo ? tempoMarkingToQuarterBpm(score.tempo) : DEFAULT_TEMPO
+  )
   const [tempo, setTempoState] = useState(scoreTempo)
   const [positionBeat, setPositionBeat] = useState(0)
   const [activeEventId, setActiveEventId] = useState<string | undefined>()

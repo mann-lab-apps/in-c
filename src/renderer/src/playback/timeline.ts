@@ -8,7 +8,8 @@ import {
   voiceEventDurationTicks,
   type Duration,
   type Note,
-  type Score
+  type Score,
+  type TempoMarking
 } from '../../../score-core'
 
 const DEFAULT_VELOCITY = 0.16
@@ -33,71 +34,181 @@ export interface PlaybackEvent {
   velocityEnd: number
 }
 
+export interface PlaybackTempoEvent {
+  id: string
+  measureId: string
+  startBeat: number
+  bpm: number
+  quarterBpm: number
+  text?: string
+}
+
 export interface PlaybackTimeline {
   events: PlaybackEvent[]
+  tempoEvents: PlaybackTempoEvent[]
   totalBeats: number
 }
 
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
-  const measures = score.parts[0]?.staves[0]?.measures ?? []
+  const events: PlaybackEvent[] = []
+  let totalBeats = 0
+
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      const staffTimeline = createStaffPlaybackEvents(score, staff.measures)
+
+      events.push(...staffTimeline.events)
+      totalBeats = Math.max(totalBeats, staffTimeline.totalBeats)
+    }
+  }
+
+  return {
+    events: applyHairpinVelocity(
+      score,
+      events.sort((left, right) => left.startBeat - right.startBeat)
+    ),
+    tempoEvents: createPlaybackTempoEvents(score),
+    totalBeats
+  }
+}
+
+function createStaffPlaybackEvents(
+  score: Score,
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>
+): PlaybackTimeline {
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
   let expressionBeatOffset = 0
   let previousStartsTie = false
 
   for (const measure of measures) {
-    const voice = measure.voices[0]
+    for (const voice of measure.voices) {
+      for (const event of sortVoiceEvents(voice.events)) {
+        const notatedDurationBeats =
+          voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
+        const durationBeats =
+          notatedDurationBeats *
+          (event.fermata ? FERMATA_DURATION_MULTIPLIER : 1)
+        const playbackEvent = {
+          eventId: event.id,
+          measureId: measure.id,
+          startBeat:
+            scoreBeat +
+            event.position.tick / TICKS_PER_QUARTER +
+            expressionBeatOffset,
+          durationBeats,
+          frequency:
+            event.type === 'note'
+              ? pitchToFrequency(resolveNotePitch(measure, voice, event))
+              : undefined,
+          velocityStart: resolveMeasureVelocity(score, measure.id),
+          velocityEnd: resolveMeasureVelocity(score, measure.id)
+        }
+        const previous = events.at(-1)
 
-    for (const event of sortVoiceEvents(voice?.events ?? [])) {
-      const notatedDurationBeats =
-        voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
-      const durationBeats =
-        notatedDurationBeats * (event.fermata ? FERMATA_DURATION_MULTIPLIER : 1)
+        if (
+          event.type === 'note' &&
+          event.ties?.stop &&
+          previousStartsTie &&
+          previous &&
+          previous?.frequency === playbackEvent.frequency &&
+          previous.startBeat + previous.durationBeats === playbackEvent.startBeat
+        ) {
+          previous.durationBeats += playbackEvent.durationBeats
+          previous.velocityEnd = playbackEvent.velocityEnd
+        } else {
+          events.push(playbackEvent)
+        }
 
-      const playbackEvent = {
-        eventId: event.id,
-        measureId: measure.id,
-        startBeat:
-          scoreBeat + event.position.tick / TICKS_PER_QUARTER + expressionBeatOffset,
-        durationBeats,
-        frequency:
-          event.type === 'note' && voice
-            ? pitchToFrequency(resolveNotePitch(measure, voice, event))
-            : undefined,
-        velocityStart: resolveMeasureVelocity(score, measure.id),
-        velocityEnd: resolveMeasureVelocity(score, measure.id)
+        previousStartsTie = event.type === 'note' && Boolean(event.ties?.start)
+        expressionBeatOffset += durationBeats - notatedDurationBeats
       }
-      const previous = events.at(-1)
-
-      if (
-        event.type === 'note' &&
-        event.ties?.stop &&
-        previousStartsTie &&
-        previous &&
-        previous?.frequency === playbackEvent.frequency &&
-        previous.startBeat + previous.durationBeats === playbackEvent.startBeat
-      ) {
-        previous.durationBeats += playbackEvent.durationBeats
-        previous.velocityEnd = playbackEvent.velocityEnd
-      } else {
-        events.push(playbackEvent)
-      }
-
-      previousStartsTie = event.type === 'note' && Boolean(event.ties?.start)
-      expressionBeatOffset += durationBeats - notatedDurationBeats
     }
 
     scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
   return {
-    events: applyHairpinVelocity(score, events),
+    events,
+    tempoEvents: [],
     totalBeats: scoreBeat + expressionBeatOffset
   }
 }
 
+function createPlaybackTempoEvents(score: Score): PlaybackTempoEvent[] {
+  const measureStarts = createMeasureStartBeatMap(score)
+  const tempoEvents: PlaybackTempoEvent[] = []
+
+  for (const event of score.tempoEvents ?? []) {
+    const measureStart = measureStarts.get(event.measureId)
+
+    if (measureStart === undefined) {
+      continue
+    }
+
+    tempoEvents.push({
+      id: event.id,
+      measureId: event.measureId,
+      startBeat: measureStart + event.tick / TICKS_PER_QUARTER,
+      bpm: event.bpm,
+      quarterBpm: tempoMarkingToQuarterBpm(event),
+      text: event.text
+    })
+  }
+
+  return tempoEvents.sort((left, right) => left.startBeat - right.startBeat)
+}
+
+function createMeasureStartBeatMap(score: Score): Map<string, number> {
+  const measures = score.parts[0]?.staves[0]?.measures ?? []
+  const measureStarts = new Map<string, number>()
+  let scoreBeat = 0
+
+  for (const measure of measures) {
+    measureStarts.set(measure.id, scoreBeat)
+    scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+  }
+
+  return measureStarts
+}
+
 export function durationToBeats(duration: Duration): number {
   return durationToTicks(duration) / TICKS_PER_QUARTER
+}
+
+export function tempoMarkingToQuarterBpm(tempo: TempoMarking): number {
+  return tempo.bpm * tempoBeatUnitToQuarterBeats(tempo)
+}
+
+export function tempoBeatUnitToQuarterBeats(tempo: TempoMarking): number {
+  const base =
+    tempo.beatUnit === 'whole'
+      ? 4
+      : tempo.beatUnit === 'half'
+        ? 2
+        : tempo.beatUnit === 'eighth'
+          ? 0.5
+          : tempo.beatUnit === '16th'
+            ? 0.25
+            : tempo.beatUnit === '32nd'
+              ? 0.125
+              : tempo.beatUnit === '64th'
+                ? 0.0625
+                : 1
+
+  return base * dottedMultiplier(tempo.dots ?? 0)
+}
+
+function dottedMultiplier(dots: number): number {
+  let multiplier = 1
+  let addition = 0.5
+
+  for (let index = 0; index < dots; index += 1) {
+    multiplier += addition
+    addition /= 2
+  }
+
+  return multiplier
 }
 
 export function pitchToFrequency(pitch: Note['pitch']): number {

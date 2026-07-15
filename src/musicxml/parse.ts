@@ -25,6 +25,7 @@ import {
   type KeySignature,
   type Score,
   type TimeSignature,
+  type TremoloMark,
   type TupletGroup,
   type VoiceEvent
 } from '../score-core'
@@ -182,6 +183,7 @@ export function parseMusicXml(xml: string): Score {
       clef: { ...state.clef },
       keySignature: { ...state.keySignature },
       timeSignature: { ...state.timeSignature },
+      repeat: readRepeatMark(measureNode),
       voices: [
         createVoice({
           id: 'voice-1',
@@ -214,17 +216,21 @@ export function parseMusicXml(xml: string): Score {
     'Imported score'
   const composer = readComposer(root)
   const tempo = readTempoMarking(measureNodes)
+  const tempoEvents = readTempoEvents(measureNodes)
   const rehearsalMarks = readRehearsalMarks(measureNodes)
   const staffTexts = readStaffTexts(measureNodes)
   const dynamics = readDynamics(measureNodes)
   const hairpins = readHairpins(measureNodes, measures)
   const slurs = readSlurs(measureNodes, measures)
+  const octaveShifts = readOctaveShifts(measureNodes, measures)
 
   const score = createScore({
     id: 'musicxml-score',
     title,
     composer,
     tempo,
+    tempoEvents,
+    octaveShifts,
     rehearsalMarks,
     staffTexts,
     dynamics,
@@ -260,42 +266,90 @@ function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
     )
 
     for (const direction of directions) {
-      const directionTypes = readDirectionTypes(direction)
-      const metronomeDirectionType = directionTypes.find((directionType) =>
-        Boolean(readOptionalNode(directionType, 'metronome'))
-      )
-      const words = metronomeDirectionType
-        ? readOptionalString(metronomeDirectionType, 'words')
-        : undefined
-      const metronome = metronomeDirectionType
-        ? readOptionalNode(metronomeDirectionType, 'metronome')
-        : undefined
-      const sound = readOptionalNode(direction, 'sound')
-      const soundTempo = sound
-        ? readOptionalNumber(sound, '@_tempo')
-        : undefined
+      const tempo = readTempoFromDirection(direction)
 
-      const perMinute = metronome
-        ? readOptionalNumber(metronome, 'per-minute')
-        : undefined
-      const tempoValue = soundTempo ?? perMinute
-
-      if (tempoValue !== undefined) {
-        const bpm = normalizeTempo(tempoValue)
-        const beatUnit = metronome
-          ? readOptionalString(metronome, 'beat-unit')
-          : undefined
-        return {
-          bpm,
-          beatUnit: isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter',
-          dots: metronome ? toArray(metronome['beat-unit-dot']).length : 0,
-          text: words ?? tempoLabel(bpm, beatUnit)
-        }
+      if (tempo) {
+        return tempo
       }
     }
   }
 
   return undefined
+}
+
+function readTempoEvents(measureNodes: XmlNode[]): Score['tempoEvents'] {
+  let skippedGlobalTempo = false
+  const events = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const tempo = readTempoFromDirection(direction)
+
+      if (!tempo) {
+        return []
+      }
+
+      const tick = readOptionalInteger(direction, 'offset') ?? 0
+
+      if (!skippedGlobalTempo && measureIndex === 0 && tick === 0) {
+        skippedGlobalTempo = true
+        return []
+      }
+
+      return [
+        {
+          id: `${measureId}-tempo-${directionIndex + 1}`,
+          measureId,
+          tick,
+          ...tempo
+        }
+      ]
+    })
+  })
+
+  return events.length > 0 ? events : undefined
+}
+
+function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
+  const directionTypes = readDirectionTypes(direction)
+  const metronomeDirectionType = directionTypes.find((directionType) =>
+    Boolean(readOptionalNode(directionType, 'metronome'))
+  )
+  const words = metronomeDirectionType
+    ? readOptionalString(metronomeDirectionType, 'words')
+    : undefined
+  const metronome = metronomeDirectionType
+    ? readOptionalNode(metronomeDirectionType, 'metronome')
+    : undefined
+  const sound = readOptionalNode(direction, 'sound')
+  const soundTempo = sound
+    ? readOptionalNumber(sound, '@_tempo')
+    : undefined
+  const perMinute = metronome
+    ? readOptionalNumber(metronome, 'per-minute')
+    : undefined
+  const tempoValue = soundTempo ?? perMinute
+
+  if (tempoValue === undefined) {
+    return undefined
+  }
+
+  const bpm = normalizeTempo(tempoValue)
+  const beatUnit = metronome
+    ? readOptionalString(metronome, 'beat-unit')
+    : undefined
+
+  return {
+    bpm,
+    beatUnit: isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter',
+    dots: metronome ? toArray(metronome['beat-unit-dot']).length : 0,
+    text: words ?? tempoLabel(bpm, beatUnit)
+  }
 }
 
 function isTempoBeatUnit(value: string | undefined): value is DurationValue {
@@ -559,6 +613,129 @@ function readSlurs(
   return slurs.length > 0 ? slurs : undefined
 }
 
+function readRepeatMark(measureNode: XmlNode): Score['parts'][number]['staves'][number]['measures'][number]['repeat'] {
+  const barlines = toArray(measureNode.barline as XmlNode | XmlNode[] | undefined)
+  let start = false
+  let end = false
+  let times: number | undefined
+
+  for (const barline of barlines) {
+    const repeat = readOptionalNode(barline, 'repeat')
+
+    if (!repeat) {
+      continue
+    }
+
+    const direction = readOptionalString(repeat, '@_direction')
+
+    if (direction === 'forward') {
+      start = true
+    } else if (direction === 'backward') {
+      end = true
+      times = readOptionalInteger(repeat, '@_times') ?? times
+    }
+  }
+
+  return start || end
+    ? {
+        start: start || undefined,
+        end: end || undefined,
+        times
+      }
+    : undefined
+}
+
+function readOctaveShifts(
+  measureNodes: XmlNode[],
+  measures: Score['parts'][number]['staves'][number]['measures']
+): Score['octaveShifts'] {
+  const activeShifts = new Map<
+    string,
+    {
+      startEventId: string
+      type: NonNullable<Score['octaveShifts']>[number]['type']
+    }
+  >()
+  const shifts: NonNullable<Score['octaveShifts']> = []
+
+  measureNodes.forEach((measureNode, measureIndex) => {
+    const measure = measures[measureIndex]
+    const measureNoteIds =
+      measure?.voices[0]?.events
+        .filter((event) => event.type === 'note')
+        .map((event) => event.id) ?? []
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    directions.forEach((direction, directionIndex) => {
+      const octaveShiftNodes = readDirectionTypes(direction).flatMap((directionType) =>
+        toArray(
+          directionType['octave-shift'] as XmlNode | XmlNode[] | undefined
+        )
+      )
+
+      octaveShiftNodes.forEach((octaveShiftNode) => {
+        const markerType = readOptionalString(octaveShiftNode, '@_type')
+        const number = readOptionalString(octaveShiftNode, '@_number') ?? '1'
+        const size = readOptionalInteger(octaveShiftNode, '@_size') ?? 8
+
+        if (markerType === 'up' || markerType === 'down') {
+          const startEventId = measureNoteIds[0]
+
+          if (startEventId) {
+            activeShifts.set(number, {
+              startEventId,
+              type: toOctaveShiftType(markerType, size)
+            })
+          }
+          return
+        }
+
+        if (markerType !== 'stop') {
+          return
+        }
+
+        const activeShift = activeShifts.get(number)
+        const endEventId = measureNoteIds.at(-1)
+
+        if (!activeShift) {
+          throw new Error('MusicXML octave-shift stop에 대응하는 시작 표식이 없습니다.')
+        }
+
+        if (!endEventId) {
+          throw new Error('MusicXML octave-shift stop을 연결할 note가 없습니다.')
+        }
+
+        shifts.push({
+          id: `octave-shift-${shifts.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
+          startEventId: activeShift.startEventId,
+          endEventId,
+          type: activeShift.type
+        })
+        activeShifts.delete(number)
+      })
+    })
+  })
+
+  if (activeShifts.size > 0) {
+    throw new Error('MusicXML octave-shift의 종료 표식이 없습니다.')
+  }
+
+  return shifts.length > 0 ? shifts : undefined
+}
+
+function toOctaveShiftType(
+  direction: 'up' | 'down',
+  size: number
+): NonNullable<Score['octaveShifts']>[number]['type'] {
+  if (direction === 'down') {
+    return size === 15 ? '15mb' : '8vb'
+  }
+
+  return size === 15 ? '15ma' : '8va'
+}
+
 function readDirectionTypes(direction: XmlNode): XmlNode[] {
   return toArray(direction['direction-type'] as XmlNode | XmlNode[] | undefined)
     .filter(
@@ -646,8 +823,31 @@ function readVoiceEvent(
     ties: readTieFlags(node),
     articulations: readArticulations(node),
     fermata: readFermata(node),
-    breathMark: readBreathMark(node)
+    breathMark: readBreathMark(node),
+    tremolo: readTremolo(node)
   })
+}
+
+function readTremolo(node: XmlNode): TremoloMark | undefined {
+  const notations = readOptionalNode(node, 'notations')
+  const ornaments = notations ? readOptionalNode(notations, 'ornaments') : undefined
+  const tremolo = ornaments ? readOptionalNode(ornaments, 'tremolo') : undefined
+
+  if (!tremolo) {
+    return undefined
+  }
+
+  const type = readOptionalString(tremolo, '@_type') ?? 'single'
+  const marks = Number(readOptionalString(tremolo, '#text') ?? tremolo['#text'])
+
+  if (type !== 'single' || ![1, 2, 3].includes(marks)) {
+    throw new Error(`지원하지 않는 tremolo 표시입니다: ${type} ${marks}`)
+  }
+
+  return {
+    type: 'single',
+    marks: marks as 1 | 2 | 3
+  }
 }
 
 function readBreathMark(node: XmlNode): BreathMark | undefined {
@@ -851,10 +1051,6 @@ function readClef(node: XmlNode): Clef {
 
   if (!['G', 'F', 'C', 'percussion'].includes(sign)) {
     throw new Error(`지원하지 않는 clef sign입니다: ${sign}`)
-  }
-
-  if (sign !== 'G') {
-    throw new Error('MVP 가져오기는 높은음자리표(G clef)만 지원합니다.')
   }
 
   return {

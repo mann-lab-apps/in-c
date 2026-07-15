@@ -17,7 +17,8 @@ import {
   createPlaybackTimeline,
   durationToBeats,
   findPlaybackEvent,
-  pitchToFrequency
+  pitchToFrequency,
+  tempoMarkingToQuarterBpm
 } from './timeline'
 
 describe('playback timeline', () => {
@@ -36,6 +37,22 @@ describe('playback timeline', () => {
         }
       })
     ).toBeCloseTo(2 / 3)
+  })
+
+  it('converts tempo beat units to quarter-note playback BPM', () => {
+    expect(
+      tempoMarkingToQuarterBpm({
+        bpm: 120,
+        beatUnit: 'eighth'
+      })
+    ).toBe(60)
+    expect(
+      tempoMarkingToQuarterBpm({
+        bpm: 72,
+        beatUnit: 'quarter',
+        dots: 1
+      })
+    ).toBe(108)
   })
 
   it('maps equal-tempered pitches to frequencies', () => {
@@ -69,6 +86,124 @@ describe('playback timeline', () => {
       durationBeats: 2,
       frequency: undefined
     })
+  })
+
+  it('maps positioned tempo events onto the playback timeline', () => {
+    const score = createScore({
+      tempoEvents: [
+        {
+          id: 'tempo-change',
+          measureId: 'measure-2',
+          tick: TICKS_PER_QUARTER * 2,
+          bpm: 72,
+          beatUnit: 'quarter',
+          dots: 1,
+          text: 'rit.'
+        }
+      ],
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.tempoEvents).toEqual([
+      {
+        id: 'tempo-change',
+        measureId: 'measure-2',
+        startBeat: 6,
+        bpm: 72,
+        quarterBpm: 108,
+        text: 'rit.'
+      }
+    ])
+  })
+
+  it('merges simultaneous playback events from multiple parts', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'violin',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'violin-note',
+                          pitch: { step: 'C', octave: 5 }
+                        }),
+                        createRest({
+                          id: 'violin-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'cello-note',
+                          pitch: { step: 'C', octave: 3 }
+                        }),
+                        createRest({
+                          id: 'cello-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.events.map((event) => event.eventId)).toEqual([
+      'violin-note',
+      'cello-note',
+      'violin-rest',
+      'cello-rest'
+    ])
+    expect(timeline.events.slice(0, 2).map((event) => event.startBeat)).toEqual([
+      0,
+      0
+    ])
+    expect(timeline.totalBeats).toBe(4)
   })
 
   it('finds the event under the playhead including rests', () => {

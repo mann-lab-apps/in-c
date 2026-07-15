@@ -61,12 +61,14 @@
 - [ ] `npm run build`
 - [ ] `npm run verify:mvp`
 - [ ] `npm run verify:e2e`
+- [ ] `npm run verify:notation-snapshots`
 - [ ] `npm run verify:visual-regression`
 - [ ] 릴리즈 QA 시나리오의 visual regression 또는 bounds 검증이 통과했다.
   - 기본 확인: `npm run verify:mvp`의 `releaseScenarioBounds` 결과에서 clipping,
     system right overflow, horizontal viewport overflow가 없어야 한다.
   - 경량 fixture 확인: `npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts`
     에서 `src/musicxml/fixtures/release-qa.musicxml` parse와 bounds 검증이 통과해야 한다.
+  - Electron snapshot 확인: 실패 시 임시 폴더의 PNG artifact와 metric diff JSON을 확인한다.
 - [ ] `npm run package:dir`
 - [ ] `npm run verify:package`
 - [ ] `npm run site:build`

@@ -1,6 +1,7 @@
 # Brand Asset Inventory
 
 작성일: 2026-07-14
+업데이트: 2026-07-15
 
 ## Current Assets
 
@@ -19,6 +20,10 @@ No separate production wordmark file is required for the current alpha. The text
 wordmark `in C` remains the canonical public label. A vector wordmark can be added
 after the app/web naming decision stabilizes.
 
+For #53 alpha closure, this text wordmark decision is intentional: the product
+surfaces use the same `in C` label, and no separate logo file is required before a
+signed release.
+
 ## Export Rules
 
 - Source-like editable assets stay in `build/` or `site/assets/`.
@@ -36,4 +41,3 @@ Before a signed release, check these sizes manually:
 - 32px: dock/taskbar recognition
 - 128px: app launcher recognition
 - 512px+: store/social preview contexts
-

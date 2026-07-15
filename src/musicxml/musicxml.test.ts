@@ -261,6 +261,43 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports positioned tempo events', () => {
+    const score = createScore({
+      title: 'Tempo Map Sketch',
+      tempo: {
+        bpm: 96,
+        beatUnit: 'quarter',
+        text: 'Allegro'
+      },
+      tempoEvents: [
+        {
+          id: 'tempo-rit',
+          measureId: 'measure-1',
+          tick: TICKS_PER_QUARTER * 2,
+          bpm: 72,
+          beatUnit: 'quarter',
+          dots: 1,
+          text: 'rit.'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain(`<offset>${TICKS_PER_QUARTER * 2}</offset>`)
+    expect(roundTrip.tempoEvents).toEqual([
+      {
+        id: 'measure-1-tempo-2',
+        measureId: 'measure-1',
+        tick: TICKS_PER_QUARTER * 2,
+        bpm: 72,
+        beatUnit: 'quarter',
+        dots: 1,
+        text: 'rit.'
+      }
+    ])
+  })
+
   it('exports and re-imports rehearsal marks', () => {
     const score = createScore({
       title: 'Marked Sketch',
@@ -544,6 +581,181 @@ describe('MusicXML MVP', () => {
     expect(events[1]).toMatchObject({
       type: 'rest',
       breathMark: 'caesura'
+    })
+  })
+
+  it('exports and re-imports single-note tremolo markings', () => {
+    const score = createScore({
+      title: 'Tremolo Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-tremolo',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 4 },
+                          tremolo: {
+                            type: 'single',
+                            marks: 3
+                          }
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const event = roundTrip.parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(exported).toContain('<tremolo type="single">3</tremolo>')
+    expect(event).toMatchObject({
+      type: 'note',
+      tremolo: {
+        type: 'single',
+        marks: 3
+      }
+    })
+  })
+
+  it('exports and re-imports octave shift spans', () => {
+    const score = createScore({
+      title: 'Octave Shift Sketch',
+      octaveShifts: [
+        {
+          id: 'octave-8va',
+          startEventId: 'note-start',
+          endEventId: 'note-end',
+          type: '8va'
+        }
+      ],
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'note-start',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 5 }
+                        }),
+                        createNote({
+                          id: 'note-end',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 5 }
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<octave-shift type="up" size="8"/>')
+    expect(exported).toContain('<octave-shift type="stop" size="8"/>')
+    expect(roundTrip.octaveShifts).toEqual([
+      {
+        id: 'octave-shift-1-1-2',
+        startEventId: 'event-1',
+        endEventId: 'event-2',
+        type: '8va'
+      }
+    ])
+  })
+
+  it('exports and re-imports repeat barlines', () => {
+    const score = createScore({
+      title: 'Repeat Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  repeat: {
+                    start: true,
+                    end: true,
+                    times: 3
+                  }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const repeat = roundTrip.parts[0].staves[0].measures[0].repeat
+
+    expect(exported).toContain('<repeat direction="forward"/>')
+    expect(exported).toContain('<repeat direction="backward" times="3"/>')
+    expect(repeat).toEqual({
+      start: true,
+      end: true,
+      times: 3
+    })
+  })
+
+  it('exports and re-imports supported clef changes', () => {
+    const score = createScore({
+      title: 'Clef Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  clef: {
+                    sign: 'F',
+                    line: 4
+                  }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<sign>F</sign>')
+    expect(exported).toContain('<line>4</line>')
+    expect(roundTrip.parts[0].staves[0].measures[0].clef).toEqual({
+      sign: 'F',
+      line: 4
     })
   })
 

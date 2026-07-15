@@ -20,6 +20,7 @@ import {
   sortVoiceEvents,
   type Measure,
   type Score,
+  type TempoMarking,
   type Voice as ScoreVoice,
   type VoiceEvent
 } from '../../../score-core'
@@ -131,7 +132,7 @@ export function NotationPreview({
     }
 
     if (svg && score.tempo) {
-      drawTempoMarking(svg, score.tempo.text ?? `♩ = ${score.tempo.bpm}`)
+      drawTempoMarking(svg, formatTempoMarking(score.tempo))
     }
 
     const rehearsalMarksByMeasureId = new Map(
@@ -213,6 +214,10 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+
+      if (svg && measure.repeat) {
+        drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
+      }
 
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
 
@@ -398,6 +403,15 @@ export function NotationPreview({
             )
           }
 
+          if (svg && event?.type === 'note' && event.tremolo) {
+            drawTremoloMark(
+              svg,
+              note.getAbsoluteX(),
+              placement.y,
+              event.tremolo.marks
+            )
+          }
+
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
@@ -500,6 +514,27 @@ export function NotationPreview({
           boundsBySystemIndex
         )
       }
+
+      for (const octaveShift of score.octaveShifts ?? []) {
+        const start = pointsByEventId.get(octaveShift.startEventId)
+        const end = pointsByEventId.get(octaveShift.endEventId)
+        const startSystem = systemsByEventId.get(octaveShift.startEventId)
+        const endSystem = systemsByEventId.get(octaveShift.endEventId)
+
+        if (!start || !end || startSystem === undefined || endSystem === undefined) {
+          continue
+        }
+
+        drawOctaveShiftSegments(
+          svg,
+          start,
+          end,
+          octaveShift.type,
+          startSystem,
+          endSystem,
+          boundsBySystemIndex
+        )
+      }
     }
 
     const overlayGroup =
@@ -573,6 +608,95 @@ function drawTempoMarking(svg: SVGSVGElement, label: string): void {
   text.setAttribute('y', '36')
   text.textContent = label
   svg.append(text)
+}
+
+function formatTempoMarking(tempo: TempoMarking): string {
+  if (tempo.text) {
+    return tempo.text
+  }
+
+  const beatUnit = tempo.beatUnit ?? 'quarter'
+  const dots = '.'.repeat(tempo.dots ?? 0)
+  const symbol =
+    beatUnit === 'whole'
+      ? '𝅝'
+      : beatUnit === 'half'
+        ? '𝅗𝅥'
+        : beatUnit === 'eighth'
+          ? '♪'
+          : beatUnit === '16th'
+            ? '𝅘𝅥𝅯'
+            : beatUnit === '32nd'
+              ? '𝅘𝅥𝅰'
+              : beatUnit === '64th'
+                ? '𝅘𝅥𝅱'
+                : '♩'
+
+  return `${symbol}${dots} = ${tempo.bpm}`
+}
+
+function drawRepeatMark(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  width: number,
+  repeat: NonNullable<Measure['repeat']>
+): void {
+  if (repeat.start) {
+    drawRepeatBarline(svg, x + 8, y, 'start')
+  }
+
+  if (repeat.end) {
+    drawRepeatBarline(svg, x + width - 8, y, 'end', repeat.times)
+  }
+}
+
+function drawRepeatBarline(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  type: 'start' | 'end',
+  times?: number
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const thick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const thin = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const dots = [0, 1].map((index) =>
+    document.createElementNS('http://www.w3.org/2000/svg', 'circle')
+  )
+  const thickX = type === 'start' ? x : x - 4
+  const thinX = type === 'start' ? x + 4 : x
+
+  group.classList.add('notation-repeat-mark')
+  thick.setAttribute('x1', String(thickX))
+  thick.setAttribute('x2', String(thickX))
+  thick.setAttribute('y1', String(staffY))
+  thick.setAttribute('y2', String(staffY + 40))
+  thick.setAttribute('stroke-width', '3')
+  thin.setAttribute('x1', String(thinX))
+  thin.setAttribute('x2', String(thinX))
+  thin.setAttribute('y1', String(staffY))
+  thin.setAttribute('y2', String(staffY + 40))
+  thin.setAttribute('stroke-width', '1')
+
+  dots.forEach((dot, index) => {
+    dot.setAttribute('cx', String(type === 'start' ? x + 12 : x - 12))
+    dot.setAttribute('cy', String(staffY + 15 + index * 10))
+    dot.setAttribute('r', '2')
+  })
+
+  group.append(thick, thin, ...dots)
+
+  if (times && times > 2) {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+    text.setAttribute('x', String(x - 20))
+    text.setAttribute('y', String(staffY - 8))
+    text.textContent = `x${times}`
+    group.append(text)
+  }
+
+  svg.append(group)
 }
 
 function drawRehearsalMark(
@@ -704,6 +828,77 @@ function drawHairpinSegment(
   svg.append(group)
 }
 
+function drawOctaveShiftSegments(
+  svg: SVGSVGElement,
+  start: CursorPoint,
+  end: CursorPoint,
+  type: string,
+  startSystem: number,
+  endSystem: number,
+  boundsBySystemIndex: Map<number, SystemBounds>
+): void {
+  const firstSystem = Math.min(startSystem, endSystem)
+  const lastSystem = Math.max(startSystem, endSystem)
+
+  for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
+    const bounds = boundsBySystemIndex.get(systemIndex)
+
+    if (!bounds) {
+      continue
+    }
+
+    const isFirst = systemIndex === startSystem
+    const isLast = systemIndex === endSystem
+    const x1 = isFirst ? start.x + 8 : bounds.x1 + 22
+    const x2 = isLast ? Math.max(x1 + 34, end.x + 26) : bounds.x2 - 18
+    const y = bounds.y + (type.endsWith('vb') ? 92 : -30)
+
+    drawOctaveShiftSegment(svg, x1, x2, y, type, isFirst, isLast)
+  }
+}
+
+function drawOctaveShiftSegment(
+  svg: SVGSVGElement,
+  x1: number,
+  x2: number,
+  y: number,
+  label: string,
+  isFirst: boolean,
+  isLast: boolean
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+  group.classList.add('notation-octave-shift')
+  line.setAttribute('x1', String(x1))
+  line.setAttribute('x2', String(x2))
+  line.setAttribute('y1', String(y))
+  line.setAttribute('y2', String(y))
+  line.setAttribute('stroke-dasharray', '5 4')
+  group.append(line)
+
+  if (isFirst) {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+    text.setAttribute('x', String(x1 - 2))
+    text.setAttribute('y', String(y - 4))
+    text.textContent = label
+    group.append(text)
+  }
+
+  if (isLast) {
+    const end = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    end.setAttribute('x1', String(x2))
+    end.setAttribute('x2', String(x2))
+    end.setAttribute('y1', String(y))
+    end.setAttribute('y2', String(y + (label.endsWith('vb') ? -10 : 10)))
+    group.append(end)
+  }
+
+  svg.append(group)
+}
+
 function drawSlurSegments(
   svg: SVGSVGElement,
   start: CursorPoint,
@@ -814,6 +1009,31 @@ function drawBreathMark(
   text.setAttribute('y', String(staffY - (hasFermata ? 2 : 16)))
   text.textContent = breathMark === 'caesura' ? '//' : ','
   svg.append(text)
+}
+
+function drawTremoloMark(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  marks: number
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+
+  group.classList.add('notation-tremolo-mark')
+
+  for (let index = 0; index < marks; index += 1) {
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+    const y = staffY + 16 + index * 5
+
+    line.setAttribute('x1', String(x + 7))
+    line.setAttribute('x2', String(x + 22))
+    line.setAttribute('y1', String(y + 8))
+    line.setAttribute('y2', String(y))
+    line.setAttribute('stroke-width', '2')
+    group.append(line)
+  }
+
+  svg.append(group)
 }
 
 function drawTie(

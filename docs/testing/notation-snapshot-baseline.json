@@ -1,0 +1,148 @@
+{
+  "960": {
+    "dynamicMarks": [
+      {
+        "box": {
+          "height": 23,
+          "width": 31.8,
+          "x": 111.6,
+          "y": 154.5
+        },
+        "id": "measure-1",
+        "index": 0
+      }
+    ],
+    "eventCount": 33,
+    "fermatas": [
+      {
+        "box": {
+          "height": 25,
+          "width": 14.8,
+          "x": 110.2,
+          "y": 53
+        },
+        "id": "𝄐",
+        "index": 0
+      }
+    ],
+    "hairpins": [
+      {
+        "box": {
+          "height": 20,
+          "width": 104.3,
+          "x": 123.6,
+          "y": 167
+        },
+        "id": "",
+        "index": 0
+      }
+    ],
+    "rehearsalMarks": [
+      {
+        "box": {
+          "height": 60,
+          "width": 24,
+          "x": 34,
+          "y": 54
+        },
+        "id": "A",
+        "index": 0
+      }
+    ],
+    "slurs": [
+      {
+        "box": {
+          "height": 13,
+          "width": 98.3,
+          "x": 119.6,
+          "y": 72
+        },
+        "id": "",
+        "index": 0
+      }
+    ],
+    "svg": {
+      "height": 750,
+      "width": 560
+    },
+    "tempo": "♩ = 75",
+    "viewportWidth": 960,
+    "screenshot": {
+      "height": 1944,
+      "width": 1920
+    }
+  },
+  "1400": {
+    "dynamicMarks": [
+      {
+        "box": {
+          "height": 23,
+          "width": 31.8,
+          "x": 111.6,
+          "y": 154.5
+        },
+        "id": "measure-1",
+        "index": 0
+      }
+    ],
+    "eventCount": 33,
+    "fermatas": [
+      {
+        "box": {
+          "height": 25,
+          "width": 14.8,
+          "x": 110.2,
+          "y": 53
+        },
+        "id": "𝄐",
+        "index": 0
+      }
+    ],
+    "hairpins": [
+      {
+        "box": {
+          "height": 20,
+          "width": 56.5,
+          "x": 123.6,
+          "y": 167
+        },
+        "id": "",
+        "index": 0
+      }
+    ],
+    "rehearsalMarks": [
+      {
+        "box": {
+          "height": 60,
+          "width": 24,
+          "x": 34,
+          "y": 54
+        },
+        "id": "A",
+        "index": 0
+      }
+    ],
+    "slurs": [
+      {
+        "box": {
+          "height": 13,
+          "width": 50.5,
+          "x": 119.6,
+          "y": 72
+        },
+        "id": "",
+        "index": 0
+      }
+    ],
+    "svg": {
+      "height": 416,
+      "width": 756
+    },
+    "tempo": "♩ = 75",
+    "viewportWidth": 1400,
+    "screenshot": {
+      "height": 1944,
+      "width": 2800
+    }
+  }
+}

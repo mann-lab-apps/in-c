@@ -63,6 +63,7 @@ export function createNote(input: {
   articulations?: Note['articulations']
   fermata?: boolean
   breathMark?: Note['breathMark']
+  tremolo?: Note['tremolo']
 }): Note {
   return {
     type: 'note',
@@ -73,7 +74,8 @@ export function createNote(input: {
     ties: input.ties,
     articulations: input.articulations,
     fermata: input.fermata,
-    breathMark: input.breathMark
+    breathMark: input.breathMark,
+    tremolo: input.tremolo
   }
 }
 
@@ -126,6 +128,7 @@ export function createMeasure(input?: {
   timeSignature?: TimeSignature
   keySignature?: KeySignature
   clef?: Clef
+  repeat?: Measure['repeat']
   voices?: Voice[]
   timing?: Measure['timing']
 }): Measure {
@@ -139,6 +142,7 @@ export function createMeasure(input?: {
     timeSignature: input?.timeSignature ?? commonTime,
     keySignature: input?.keySignature ?? cMajor,
     clef: input?.clef ?? trebleClef,
+    repeat: input?.repeat,
     voices:
       input?.voices ??
       [
@@ -179,6 +183,8 @@ export function createScore(input?: {
   title?: string
   composer?: string
   tempo?: Score['tempo']
+  tempoEvents?: Score['tempoEvents']
+  octaveShifts?: Score['octaveShifts']
   rehearsalMarks?: Score['rehearsalMarks']
   staffTexts?: Score['staffTexts']
   dynamics?: Score['dynamics']
@@ -192,6 +198,8 @@ export function createScore(input?: {
     title: input?.title ?? 'Untitled score',
     composer: input?.composer,
     tempo: input?.tempo,
+    tempoEvents: input?.tempoEvents,
+    octaveShifts: input?.octaveShifts,
     rehearsalMarks: input?.rehearsalMarks,
     staffTexts: input?.staffTexts,
     dynamics: input?.dynamics,

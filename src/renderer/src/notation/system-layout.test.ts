@@ -255,6 +255,43 @@ describe('system layout', () => {
     expect(bothExtremes.height).toBeGreaterThan(highOnly.height)
   })
 
+  it('uses all voices when reserving vertical space', () => {
+    const singleVoice = createSystemLayout(
+      [measureWithPitch('C', 4)],
+      900
+    )
+    const twoVoice = createSystemLayout(
+      [
+        createMeasure({
+          voices: [
+            createVoice({
+              id: 'voice-1',
+              events: [
+                createNote({
+                  id: 'middle-note',
+                  pitch: { step: 'C', octave: 4 }
+                })
+              ]
+            }),
+            createVoice({
+              id: 'voice-2',
+              events: [
+                createNote({
+                  id: 'high-second-voice',
+                  pitch: { step: 'G', octave: 7 }
+                })
+              ]
+            })
+          ]
+        })
+      ],
+      900
+    )
+
+    expect(twoVoice.placements[0].y).toBeGreaterThan(singleVoice.placements[0].y)
+    expect(twoVoice.height).toBeGreaterThan(singleVoice.height)
+  })
+
   it('reserves enough first-system top margin for fermata and rehearsal marks', () => {
     const layout = createSystemLayout([measureWithPitch('C', 4)], 900)
     const firstPlacement = layout.placements[0]
