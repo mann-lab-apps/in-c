@@ -145,11 +145,19 @@ export function NotationPreview({
       (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
     )
     const harmoniesByMeasureId = new Map<string, NonNullable<Score['harmonies']>>()
+    const tempoEventsByMeasureId = new Map<string, NonNullable<Score['tempoEvents']>>()
 
     for (const harmony of score.harmonies ?? []) {
       harmoniesByMeasureId.set(harmony.measureId, [
         ...(harmoniesByMeasureId.get(harmony.measureId) ?? []),
         harmony
+      ])
+    }
+
+    for (const tempoEvent of score.tempoEvents ?? []) {
+      tempoEventsByMeasureId.set(tempoEvent.measureId, [
+        ...(tempoEventsByMeasureId.get(tempoEvent.measureId) ?? []),
+        tempoEvent
       ])
     }
 
@@ -468,6 +476,17 @@ export function NotationPreview({
       }
 
       if (svg) {
+        for (const tempoEvent of tempoEventsByMeasureId.get(measure.id) ?? []) {
+          drawPositionedTempoMarking(
+            svg,
+            placement.x +
+              18 +
+              (tempoEvent.tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36),
+            placement.y,
+            formatTempoMarking(tempoEvent)
+          )
+        }
+
         for (const harmony of harmoniesByMeasureId.get(measure.id) ?? []) {
           drawHarmonyMark(
             svg,
@@ -639,6 +658,21 @@ function drawTempoMarking(svg: SVGSVGElement, label: string): void {
   text.classList.add('notation-tempo-marking')
   text.setAttribute('x', '32')
   text.setAttribute('y', '36')
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawPositionedTempoMarking(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  label: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-tempo-marking', 'notation-tempo-marking--positioned')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(staffY - 42))
   text.textContent = label
   svg.append(text)
 }
@@ -1138,7 +1172,9 @@ function drawLyrics(
     text.classList.add('notation-lyric')
     text.setAttribute('x', String(x + 4))
     text.setAttribute('y', String(staffY + 116 + index * 16))
-    text.textContent = `${lyric.text}${lyric.extend ? '_' : ''}`
+    text.textContent = `${lyric.text}${
+      lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
+    }${lyric.extend ? '_' : ''}`
     svg.append(text)
   })
 }

@@ -273,6 +273,65 @@ describe('score-core', () => {
     ).toThrow('batch must contain at least one command')
   })
 
+  it('updates positioned tempo events with undo', () => {
+    const score = createScore()
+    const updated = applyScoreCommand(score, {
+      type: 'score-tempo-events.update',
+      tempoEvents: [
+        {
+          id: 'tempo-1',
+          measureId: 'measure-1',
+          tick: 13_440,
+          bpm: 88,
+          beatUnit: 'quarter',
+          text: 'Meno mosso'
+        }
+      ]
+    })
+
+    expect(updated.score.tempoEvents).toHaveLength(1)
+    expect(updated.undo).toEqual({
+      type: 'score-tempo-events.update',
+      tempoEvents: undefined
+    })
+    expect(applyScoreCommand(updated.score, updated.undo).score).toEqual(score)
+  })
+
+  it('updates octave shift spans with undo', () => {
+    const score = withEvents([
+      createNote({
+        id: 'start',
+        pitch: { step: 'C', octave: 5 }
+      }),
+      createNote({
+        id: 'end',
+        position: createTimePosition(13_440),
+        pitch: { step: 'D', octave: 5 }
+      })
+    ])
+    const updated = applyScoreCommand(score, {
+      type: 'score-octave-shifts.update',
+      octaveShifts: [
+        {
+          id: 'octave-1',
+          startEventId: 'start',
+          endEventId: 'end',
+          type: '8va'
+        }
+      ]
+    })
+
+    expect(updated.score.octaveShifts).toEqual([
+      {
+        id: 'octave-1',
+        startEventId: 'start',
+        endEventId: 'end',
+        type: '8va'
+      }
+    ])
+    expect(applyScoreCommand(updated.score, updated.undo).score).toEqual(score)
+  })
+
   it('does not remove the final measure from a staff', () => {
     const score = createScore()
 

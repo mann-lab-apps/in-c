@@ -44,12 +44,19 @@ import {
   type Duration,
   type DurationValue,
   type BreathMark,
+  type Clef,
   type HairpinType,
+  type HarmonyMark,
+  type Measure,
+  type Note,
+  type OctaveShiftType,
+  type Ornament,
   type Pitch,
   type PitchStep,
   type Score,
   type ScoreCommand,
   type Articulation,
+  type TempoEvent,
   type TempoMarking
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
@@ -223,6 +230,30 @@ const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
+const clefPresets = [
+  { id: 'treble', label: '높은음자리표', value: { sign: 'G', line: 2 } },
+  { id: 'bass', label: '낮은음자리표', value: { sign: 'F', line: 4 } },
+  { id: 'alto', label: '가온음자리표', value: { sign: 'C', line: 3 } },
+  { id: 'tenor', label: '테너음자리표', value: { sign: 'C', line: 4 } }
+] as const satisfies ReadonlyArray<{ id: string; label: string; value: Clef }>
+const tempoBeatUnitOptions = [
+  ['whole', '온음표'],
+  ['half', '2분음표'],
+  ['quarter', '4분음표'],
+  ['eighth', '8분음표'],
+  ['16th', '16분음표']
+] as const satisfies ReadonlyArray<readonly [DurationValue, string]>
+const octaveShiftOptions = [
+  ['8va', '8va'],
+  ['8vb', '8vb'],
+  ['15ma', '15ma'],
+  ['15mb', '15mb']
+] as const satisfies ReadonlyArray<readonly [OctaveShiftType, string]>
+const ornamentOptions = [
+  ['trill', 'tr'],
+  ['mordent', 'mord.'],
+  ['turn', 'turn']
+] as const satisfies ReadonlyArray<readonly [Ornament, string]>
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -232,6 +263,7 @@ export const App = () => {
   const [mode, setMode] = useState<EditorMode>('select')
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
+  const [activeLyricVerse, setActiveLyricVerse] = useState(1)
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
@@ -693,6 +725,45 @@ export const App = () => {
       executeCommand({
         type: 'score-tempo.update',
         tempo: createUpdatedTempoMarking(score.tempo, tempo)
+      })
+    },
+    [executeCommand, score.tempo, scoreTempo]
+  )
+
+  const changeScoreTempoBeatUnit = useCallback(
+    (beatUnit: DurationValue) => {
+      executeCommand({
+        type: 'score-tempo.update',
+        tempo: {
+          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
+          beatUnit
+        }
+      })
+    },
+    [executeCommand, score.tempo, scoreTempo]
+  )
+
+  const changeScoreTempoDots = useCallback(
+    (dots: number) => {
+      executeCommand({
+        type: 'score-tempo.update',
+        tempo: {
+          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
+          dots: Math.max(0, Math.min(2, Math.round(dots)))
+        }
+      })
+    },
+    [executeCommand, score.tempo, scoreTempo]
+  )
+
+  const changeScoreTempoText = useCallback(
+    (text: string) => {
+      executeCommand({
+        type: 'score-tempo.update',
+        tempo: {
+          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
+          text: text.trim() || undefined
+        }
       })
     },
     [executeCommand, score.tempo, scoreTempo]
@@ -1482,6 +1553,110 @@ export const App = () => {
     [activeMeasureId, executeCommand, score.dynamics]
   )
 
+  const updateActiveMeasure = useCallback(
+    (update: (measure: Measure) => Measure) => {
+      if (!measureLocation) {
+        return false
+      }
+
+      const part = score.parts.find(
+        (candidate) => candidate.id === measureLocation.address.partId
+      )
+      const staff = part?.staves.find(
+        (candidate) => candidate.id === measureLocation.address.staffId
+      )
+
+      if (!staff) {
+        return false
+      }
+
+      return executeCommand({
+        type: 'staff-measures.replace',
+        target: {
+          partId: measureLocation.address.partId,
+          staffId: measureLocation.address.staffId
+        },
+        measures: staff.measures.map((measure) =>
+          measure.id === measureLocation.measure.id ? update(measure) : measure
+        )
+      })
+    },
+    [executeCommand, measureLocation, score.parts]
+  )
+
+  const changeClef = useCallback(
+    (clefId: string) => {
+      const preset = clefPresets.find((candidate) => candidate.id === clefId)
+
+      if (!preset) {
+        return
+      }
+
+      if (
+        updateActiveMeasure((measure) => ({
+          ...measure,
+          clef: preset.value
+        }))
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message: '선택한 마디의 음자리표를 바꿨습니다.'
+        })
+      }
+    },
+    [updateActiveMeasure]
+  )
+
+  const updateActiveRepeat = useCallback(
+    (repeat: Measure['repeat']) => {
+      if (
+        updateActiveMeasure((measure) => ({
+          ...measure,
+          repeat
+        }))
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message: repeat ? '도돌이표를 갱신했습니다.' : '도돌이표를 해제했습니다.'
+        })
+      }
+    },
+    [updateActiveMeasure]
+  )
+
+  const toggleRepeatStart = useCallback(() => {
+    const current = measureLocation?.measure.repeat
+    updateActiveRepeat({
+      ...current,
+      start: current?.start ? undefined : true
+    })
+  }, [measureLocation?.measure.repeat, updateActiveRepeat])
+
+  const toggleRepeatEnd = useCallback(() => {
+    const current = measureLocation?.measure.repeat
+    updateActiveRepeat({
+      ...current,
+      end: current?.end ? undefined : true,
+      times: current?.end ? undefined : current?.times ?? 2
+    })
+  }, [measureLocation?.measure.repeat, updateActiveRepeat])
+
+  const changeRepeatTimes = useCallback(
+    (times: number) => {
+      const current = measureLocation?.measure.repeat
+      const repeatTimes = Number.isNaN(times)
+        ? current?.times ?? 2
+        : Math.max(2, Math.min(8, Math.round(times)))
+
+      updateActiveRepeat({
+        ...current,
+        end: true,
+        times: repeatTimes
+      })
+    },
+    [measureLocation?.measure.repeat, updateActiveRepeat]
+  )
+
   const toggleArticulation = useCallback(
     (articulation: Articulation) => {
       if (!eventLocation || eventLocation.event.type !== 'note') {
@@ -1511,6 +1686,277 @@ export const App = () => {
       })
     },
     [eventLocation, executeCommand]
+  )
+
+  const replaceSelectedNote = useCallback(
+    (
+      update: (note: Note) => Note,
+      message: string
+    ) => {
+      if (!eventLocation || eventLocation.event.type !== 'note') {
+        setFileStatus({
+          tone: 'error',
+          message: '음표를 선택해 주세요.'
+        })
+        return false
+      }
+
+      if (
+        executeCommand({
+          type: 'voice-event.replace',
+          target: eventLocation.address,
+          eventId: eventLocation.event.id,
+          event: update(eventLocation.event)
+        })
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message
+        })
+        return true
+      }
+
+      return false
+    },
+    [eventLocation, executeCommand]
+  )
+
+  const addChordTone = useCallback(
+    (stepsAbove: 2 | 4) => {
+      replaceSelectedNote((note) => {
+        const pitches = normalizeChordPitches(note)
+        const pitch = transposeChordPitch(note.pitch, stepsAbove)
+
+        if (pitches.some((candidate) => samePitch(candidate, pitch))) {
+          return note
+        }
+
+        return {
+          ...note,
+          pitches: [...pitches, pitch].sort(comparePitch)
+        }
+      }, '화음 구성음을 추가했습니다.')
+    },
+    [replaceSelectedNote]
+  )
+
+  const removeChordTone = useCallback(
+    (pitchLabel: string) => {
+      replaceSelectedNote((note) => {
+        const pitches = normalizeChordPitches(note)
+        const nextPitches = pitches.filter(
+          (pitch) => pitchToLabel(pitch) !== pitchLabel
+        )
+        const [primaryPitch] = nextPitches.length > 0 ? nextPitches : [note.pitch]
+
+        return {
+          ...note,
+          pitch: primaryPitch,
+          pitches: nextPitches.length > 1 ? nextPitches : undefined
+        }
+      }, '화음 구성음을 제거했습니다.')
+    },
+    [replaceSelectedNote]
+  )
+
+  const toggleTremoloMarks = useCallback(
+    (marks: 0 | 1 | 2 | 3) => {
+      replaceSelectedNote(
+        (note) => ({
+          ...note,
+          tremolo: marks === 0 ? undefined : { type: 'single', marks }
+        }),
+        marks === 0 ? '트레몰로를 해제했습니다.' : '트레몰로를 추가했습니다.'
+      )
+    },
+    [replaceSelectedNote]
+  )
+
+  const toggleOrnament = useCallback(
+    (ornament: Ornament) => {
+      replaceSelectedNote((note) => {
+        const ornaments = new Set(note.ornaments ?? [])
+
+        if (ornaments.has(ornament)) {
+          ornaments.delete(ornament)
+        } else {
+          ornaments.add(ornament)
+        }
+
+        const nextOrnaments = Array.from(ornaments)
+
+        return {
+          ...note,
+          ornaments: nextOrnaments.length > 0 ? nextOrnaments : undefined
+        }
+      }, '장식음을 갱신했습니다.')
+    },
+    [replaceSelectedNote]
+  )
+
+  const toggleGraceNote = useCallback(() => {
+    replaceSelectedNote((note) => {
+      const graceNotes = note.graceNotes ?? []
+
+      return {
+        ...note,
+        graceNotes:
+          graceNotes.length > 0
+            ? undefined
+            : [
+                {
+                  pitch: transposeChordPitch(note.pitch, -1),
+                  slash: true
+                }
+              ]
+      }
+    }, eventLocation?.event.type === 'note' && eventLocation.event.graceNotes?.length
+      ? '꾸밈음을 제거했습니다.'
+      : '꾸밈음을 추가했습니다.')
+  }, [eventLocation, replaceSelectedNote])
+
+  const updateLyric = useCallback(
+    (
+      text: string,
+      options?: {
+        syllabic?: 'single' | 'begin' | 'middle' | 'end'
+        extend?: boolean
+        moveNext?: boolean
+      }
+    ) => {
+      const trimmedText = text.trim()
+
+      replaceSelectedNote((note) => {
+        const otherLyrics = (note.lyrics ?? []).filter(
+          (lyric) => (lyric.number ?? 1) !== activeLyricVerse
+        )
+        const lyrics =
+          trimmedText.length > 0
+            ? [
+                ...otherLyrics,
+                {
+                  number: activeLyricVerse,
+                  syllabic: options?.syllabic ?? 'single',
+                  text: trimmedText,
+                  extend: options?.extend
+                }
+              ]
+            : otherLyrics
+
+        return {
+          ...note,
+          lyrics: lyrics.length > 0 ? lyrics : undefined
+        }
+      }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
+
+      if (options?.moveNext && eventLocation) {
+        const eventId = getAdjacentEventId(score, eventLocation.event.id, 1)
+
+        if (eventId) {
+          setSelection({
+            type: 'event',
+            eventId
+          })
+        }
+      }
+    },
+    [activeLyricVerse, eventLocation, replaceSelectedNote, score]
+  )
+
+  const updateHarmonyText = useCallback(
+    (value: string) => {
+      const text = value.trim()
+      const targetMeasureId = eventLocation?.measure.id ?? activeMeasureId
+      const targetTick =
+        eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+
+      if (!targetMeasureId) {
+        return
+      }
+
+      const currentHarmonies = score.harmonies ?? []
+      const existingHarmony = currentHarmonies.find(
+        (harmony) =>
+          harmony.measureId === targetMeasureId && harmony.tick === targetTick
+      )
+      const otherHarmonies = currentHarmonies.filter(
+        (harmony) => harmony.id !== existingHarmony?.id
+      )
+      const parsedHarmony = text.length > 0 ? parseHarmonyText(text) : undefined
+
+      if (text.length > 0 && !parsedHarmony) {
+        setFileStatus({
+          tone: 'error',
+          message: '지원하는 코드 심벌 형식으로 입력해 주세요. 예: C, Cm, C7, C/G'
+        })
+        return
+      }
+
+      const harmonies =
+        parsedHarmony
+          ? [
+              ...otherHarmonies,
+              {
+                id: existingHarmony?.id ?? `harmony-${crypto.randomUUID()}`,
+                measureId: targetMeasureId,
+                tick: targetTick,
+                ...parsedHarmony
+              }
+            ]
+          : otherHarmonies
+
+      executeCommand({
+        type: 'score-harmonies.update',
+        harmonies: harmonies.length > 0 ? harmonies : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: parsedHarmony ? '코드 심벌을 갱신했습니다.' : '코드 심벌을 삭제했습니다.'
+      })
+    },
+    [activeMeasureId, eventLocation, executeCommand, noteInputState?.tick, score.harmonies]
+  )
+
+  const updateTempoEvent = useCallback(
+    (tempo: TempoEvent | undefined) => {
+      const targetMeasureId = eventLocation?.measure.id ?? activeMeasureId
+      const targetTick =
+        eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+
+      if (!targetMeasureId) {
+        return
+      }
+
+      const currentTempoEvents = score.tempoEvents ?? []
+      const existingTempoEvent = currentTempoEvents.find(
+        (event) =>
+          event.measureId === targetMeasureId && event.tick === targetTick
+      )
+      const otherTempoEvents = currentTempoEvents.filter(
+        (event) => event.id !== existingTempoEvent?.id
+      )
+      const tempoEvents = tempo
+        ? [
+            ...otherTempoEvents,
+            {
+              ...tempo,
+              id: existingTempoEvent?.id ?? `tempo-${crypto.randomUUID()}`,
+              measureId: targetMeasureId,
+              tick: targetTick
+            }
+          ]
+        : otherTempoEvents
+
+      executeCommand({
+        type: 'score-tempo-events.update',
+        tempoEvents: tempoEvents.length > 0 ? tempoEvents : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: tempo ? '위치별 빠르기를 갱신했습니다.' : '위치별 빠르기를 삭제했습니다.'
+      })
+    },
+    [activeMeasureId, eventLocation, executeCommand, noteInputState?.tick, score.tempoEvents]
   )
 
   const toggleFermata = useCallback(() => {
@@ -1668,6 +2114,71 @@ export const App = () => {
       message: matchingSlur ? '슬러를 해제했습니다.' : '슬러를 추가했습니다.'
     })
   }, [executeCommand, score, selection])
+
+  const toggleOctaveShift = useCallback(
+    (type: OctaveShiftType) => {
+      if (selection.type !== 'range' || selection.eventIds.length < 2) {
+        setFileStatus({
+          tone: 'error',
+          message: '옥타브 표시를 넣을 음표 범위를 선택해 주세요.'
+        })
+        return
+      }
+
+      const startEventId = selection.eventIds[0]
+      const endEventId = selection.eventIds[selection.eventIds.length - 1]
+      const startLocation = locateEvent(score, startEventId)
+      const endLocation = locateEvent(score, endEventId)
+
+      if (
+        !startLocation ||
+        !endLocation ||
+        startLocation.event.type !== 'note' ||
+        endLocation.event.type !== 'note'
+      ) {
+        setFileStatus({
+          tone: 'error',
+          message: '옥타브 표시는 음표에서 시작하고 음표에서 끝나야 합니다.'
+        })
+        return
+      }
+
+      const currentOctaveShifts = score.octaveShifts ?? []
+      const matchingShift = currentOctaveShifts.find(
+        (shift) =>
+          shift.startEventId === startEventId &&
+          shift.endEventId === endEventId &&
+          shift.type === type
+      )
+      const octaveShifts = matchingShift
+        ? currentOctaveShifts.filter((shift) => shift.id !== matchingShift.id)
+        : [
+            ...currentOctaveShifts.filter(
+              (shift) =>
+                !(
+                  shift.startEventId === startEventId &&
+                  shift.endEventId === endEventId
+                )
+            ),
+            {
+              id: `octave-${crypto.randomUUID()}`,
+              startEventId,
+              endEventId,
+              type
+            }
+          ]
+
+      executeCommand({
+        type: 'score-octave-shifts.update',
+        octaveShifts: octaveShifts.length > 0 ? octaveShifts : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: matchingShift ? '옥타브 표시를 해제했습니다.' : '옥타브 표시를 추가했습니다.'
+      })
+    },
+    [executeCommand, score, selection]
+  )
 
   const deleteSelection = useCallback(() => {
     if (selection.type === 'measure') {
@@ -2204,6 +2715,33 @@ export const App = () => {
   const pageBreakLabel = activeMeasureHasPageBreak
     ? '페이지 나누기 해제'
     : '페이지 나누기 추가'
+  const activeClefId =
+    clefPresets.find(
+      (preset) =>
+        preset.value.sign === measureLocation?.measure.clef.sign &&
+        preset.value.line === measureLocation?.measure.clef.line
+    )?.id ?? 'treble'
+  const selectedNote =
+    eventLocation?.event.type === 'note' ? eventLocation.event : undefined
+  const selectedChordPitches = selectedNote
+    ? normalizeChordPitches(selectedNote)
+    : []
+  const selectedLyric = selectedNote?.lyrics?.find(
+    (lyric) => (lyric.number ?? 1) === activeLyricVerse
+  )
+  const activeTick = eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+  const activeHarmony = activeMeasureId
+    ? score.harmonies?.find(
+        (harmony) =>
+          harmony.measureId === activeMeasureId && harmony.tick === activeTick
+      )
+    : undefined
+  const activeTempoEvent = activeMeasureId
+    ? score.tempoEvents?.find(
+        (tempoEvent) =>
+          tempoEvent.measureId === activeMeasureId && tempoEvent.tick === activeTick
+      )
+    : undefined
 
   return (
     <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
@@ -2513,6 +3051,260 @@ export const App = () => {
                     ))}
                   </div>
                 </div>
+
+                {selectedNote ? (
+                  <>
+                    <div className="inspector-properties__row">
+                      <span>화음</span>
+                      <div className="inspector-properties__buttons">
+                        <button onClick={() => addChordTone(2)} type="button">
+                          3도 추가
+                        </button>
+                        <button onClick={() => addChordTone(4)} type="button">
+                          5도 추가
+                        </button>
+                      </div>
+                    </div>
+
+                    {selectedChordPitches.length > 1 ? (
+                      <div className="inspector-properties__row">
+                        <span>구성음</span>
+                        <div className="inspector-properties__buttons">
+                          {selectedChordPitches.slice(1).map((pitch) => {
+                            const label = pitchToLabel(pitch)
+
+                            return (
+                              <button
+                                aria-label={`${label} 구성음 제거`}
+                                key={label}
+                                onClick={() => removeChordTone(label)}
+                                type="button"
+                              >
+                                {label} 제거
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <label>
+                      <span>가사 절</span>
+                      <select
+                        aria-label="가사 절"
+                        onChange={(event) =>
+                          setActiveLyricVerse(Number.parseInt(event.target.value, 10))
+                        }
+                        value={activeLyricVerse}
+                      >
+                        <option value={1}>1절</option>
+                        <option value={2}>2절</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      <span>가사</span>
+                      <input
+                        aria-label="선택 음표 가사"
+                        defaultValue={selectedLyric?.text ?? ''}
+                        key={`${selectedNote.id}-${activeLyricVerse}-${
+                          selectedLyric?.text ?? ''
+                        }`}
+                        maxLength={48}
+                        onBlur={(event) =>
+                          updateLyric(event.currentTarget.value, {
+                            syllabic: selectedLyric?.syllabic ?? 'single',
+                            extend: selectedLyric?.extend
+                          })
+                        }
+                        onKeyDown={(event) => {
+                          if (event.nativeEvent.isComposing) {
+                            return
+                          }
+
+                          if (event.key === 'Enter') {
+                            event.currentTarget.blur()
+                          } else if (event.key === ' ') {
+                            event.preventDefault()
+                            updateLyric(event.currentTarget.value, {
+                              syllabic: 'single',
+                              moveNext: true
+                            })
+                          } else if (event.key === '-') {
+                            event.preventDefault()
+                            updateLyric(event.currentTarget.value, {
+                              syllabic: 'begin',
+                              moveNext: true
+                            })
+                          } else if (event.key === '_') {
+                            event.preventDefault()
+                            updateLyric(event.currentTarget.value, {
+                              syllabic: 'single',
+                              extend: true,
+                              moveNext: true
+                            })
+                          } else if (event.key === 'Escape') {
+                            event.currentTarget.value = selectedLyric?.text ?? ''
+                            event.currentTarget.blur()
+                          }
+                        }}
+                        placeholder="가사"
+                        type="text"
+                      />
+                    </label>
+
+                    <label>
+                      <span>가사 음절</span>
+                      <select
+                        aria-label="가사 음절"
+                        onChange={(event) =>
+                          updateLyric(selectedLyric?.text ?? '', {
+                            syllabic: event.target.value as NonNullable<
+                              typeof selectedLyric
+                            >['syllabic'],
+                            extend: selectedLyric?.extend
+                          })
+                        }
+                        value={selectedLyric?.syllabic ?? 'single'}
+                      >
+                        <option value="single">single</option>
+                        <option value="begin">begin</option>
+                        <option value="middle">middle</option>
+                        <option value="end">end</option>
+                      </select>
+                    </label>
+
+                    <label className="inspector-properties__checkbox">
+                      <input
+                        checked={Boolean(selectedLyric?.extend)}
+                        onChange={(event) =>
+                          updateLyric(selectedLyric?.text ?? '', {
+                            syllabic: selectedLyric?.syllabic ?? 'single',
+                            extend: event.target.checked
+                          })
+                        }
+                        type="checkbox"
+                      />
+                      <span>멜리스마</span>
+                    </label>
+
+                    <label>
+                      <span>코드 심벌</span>
+                      <input
+                        aria-label="코드 심벌"
+                        defaultValue={activeHarmony?.text ?? ''}
+                        key={`${activeMeasureId}-${activeTick}-${
+                          activeHarmony?.text ?? ''
+                        }-harmony`}
+                        maxLength={24}
+                        onBlur={(event) =>
+                          updateHarmonyText(event.currentTarget.value)
+                        }
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                            event.currentTarget.blur()
+                          } else if (event.key === 'Escape') {
+                            event.currentTarget.value = activeHarmony?.text ?? ''
+                            event.currentTarget.blur()
+                          }
+                        }}
+                        placeholder="Cmaj7/G"
+                        type="text"
+                      />
+                    </label>
+
+                    <div className="inspector-properties__row">
+                      <span>트레몰로</span>
+                      <div className="inspector-properties__buttons">
+                        {([0, 1, 2, 3] as const).map((marks) => (
+                          <button
+                            aria-pressed={
+                              (selectedNote.tremolo?.marks ?? 0) === marks
+                            }
+                            className={
+                              (selectedNote.tremolo?.marks ?? 0) === marks
+                                ? 'is-active'
+                                : undefined
+                            }
+                            key={marks}
+                            onClick={() => toggleTremoloMarks(marks)}
+                            type="button"
+                          >
+                            {marks === 0 ? '없음' : `${marks}줄`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="inspector-properties__row">
+                      <span>장식음</span>
+                      <div className="inspector-properties__buttons">
+                        {ornamentOptions.map(([value, label]) => (
+                          <button
+                            aria-pressed={selectedNote.ornaments?.includes(value)}
+                            className={
+                              selectedNote.ornaments?.includes(value)
+                                ? 'is-active'
+                                : undefined
+                            }
+                            key={value}
+                            onClick={() => toggleOrnament(value)}
+                            type="button"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                        <button
+                          aria-pressed={Boolean(selectedNote.graceNotes?.length)}
+                          className={
+                            selectedNote.graceNotes?.length ? 'is-active' : undefined
+                          }
+                          onClick={toggleGraceNote}
+                          type="button"
+                        >
+                          grace
+                        </button>
+                      </div>
+                    </div>
+
+                    <label>
+                      <span>위치별 빠르기</span>
+                      <input
+                        aria-label="위치별 빠르기 BPM"
+                        defaultValue={activeTempoEvent?.bpm ?? ''}
+                        key={`${activeMeasureId}-${activeTick}-${
+                          activeTempoEvent?.bpm ?? ''
+                        }-tempo-event`}
+                        max={MAX_TEMPO_BPM}
+                        min={MIN_TEMPO_BPM}
+                        onBlur={(event) => {
+                          const bpm = Number.parseInt(event.currentTarget.value, 10)
+
+                          if (Number.isNaN(bpm)) {
+                            updateTempoEvent(undefined)
+                          } else {
+                            updateTempoEvent({
+                              id: activeTempoEvent?.id ?? '',
+                              measureId: activeMeasureId ?? '',
+                              tick: activeTick,
+                              bpm: normalizeNumberInput(
+                                bpm,
+                                MIN_TEMPO_BPM,
+                                MAX_TEMPO_BPM,
+                                scoreTempo
+                              ),
+                              beatUnit: activeTempoEvent?.beatUnit ?? 'quarter',
+                              dots: activeTempoEvent?.dots ?? 0,
+                              text: activeTempoEvent?.text
+                            })
+                          }
+                        }}
+                        placeholder="BPM"
+                        type="number"
+                      />
+                    </label>
+                  </>
+                ) : null}
               </div>
             ) : (
               <p className="inspector-properties__empty">
@@ -2550,6 +3342,20 @@ export const App = () => {
               >
                 슬러 토글
               </button>
+              <div className="inspector-properties__row">
+                <span>옥타브</span>
+                <div className="inspector-properties__buttons">
+                  {octaveShiftOptions.map(([value, label]) => (
+                    <button
+                      key={value}
+                      onClick={() => toggleOctaveShift(value)}
+                      type="button"
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </section>
           ) : null}
 
@@ -2622,6 +3428,65 @@ export const App = () => {
                     </option>
                   ))}
                 </select>
+              </label>
+
+              <label>
+                <span>음자리표</span>
+                <select
+                  aria-label="음자리표"
+                  onChange={(event) => changeClef(event.target.value)}
+                  value={activeClefId}
+                >
+                  {clefPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="inspector-properties__row">
+                <span>도돌이표</span>
+                <div className="inspector-properties__buttons">
+                  <button
+                    aria-pressed={Boolean(measureLocation?.measure.repeat?.start)}
+                    className={
+                      measureLocation?.measure.repeat?.start
+                        ? 'is-active'
+                        : undefined
+                    }
+                    onClick={toggleRepeatStart}
+                    type="button"
+                  >
+                    시작
+                  </button>
+                  <button
+                    aria-pressed={Boolean(measureLocation?.measure.repeat?.end)}
+                    className={
+                      measureLocation?.measure.repeat?.end
+                        ? 'is-active'
+                        : undefined
+                    }
+                    onClick={toggleRepeatEnd}
+                    type="button"
+                  >
+                    끝
+                  </button>
+                </div>
+              </div>
+
+              <label>
+                <span>반복 횟수</span>
+                <input
+                  aria-label="반복 횟수"
+                  max={8}
+                  min={2}
+                  onChange={(event) =>
+                    changeRepeatTimes(Number.parseInt(event.target.value, 10))
+                  }
+                  type="number"
+                  value={measureLocation?.measure.repeat?.times ?? 2}
+                />
               </label>
             </section>
           ) : null}
@@ -3013,6 +3878,60 @@ export const App = () => {
               value={scoreTempo}
             />
             <output>{scoreTempo} BPM</output>
+          </label>
+
+          <label className="tempo-control tempo-control--compact">
+            <span>기준</span>
+            <select
+              aria-label="빠르기 기준 음가"
+              onChange={(event) =>
+                changeScoreTempoBeatUnit(event.target.value as DurationValue)
+              }
+              value={score.tempo?.beatUnit ?? 'quarter'}
+            >
+              {tempoBeatUnitOptions.map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <output>{score.tempo?.dots ? '.'.repeat(score.tempo.dots) : '—'}</output>
+          </label>
+
+          <label className="tempo-control tempo-control--compact">
+            <span>점</span>
+            <input
+              aria-label="빠르기 기준 점"
+              max={2}
+              min={0}
+              onChange={(event) =>
+                changeScoreTempoDots(Number.parseInt(event.target.value, 10))
+              }
+              type="number"
+              value={score.tempo?.dots ?? 0}
+            />
+            <output>{score.tempo?.dots ?? 0}</output>
+          </label>
+
+          <label className="tempo-control tempo-control--text">
+            <span>빠르기말</span>
+            <input
+              aria-label="빠르기말"
+              defaultValue={score.tempo?.text ?? ''}
+              key={score.tempo?.text ?? 'tempo-text'}
+              maxLength={32}
+              onBlur={(event) => changeScoreTempoText(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                  event.currentTarget.blur()
+                } else if (event.key === 'Escape') {
+                  event.currentTarget.value = score.tempo?.text ?? ''
+                  event.currentTarget.blur()
+                }
+              }}
+              placeholder="Allegro"
+              type="text"
+            />
           </label>
         </div>
 
@@ -3730,6 +4649,122 @@ function describeDurationEditFailure(
   }
 
   return '마디의 박자를 유지한 채로는 음가를 바꿀 수 없습니다.'
+}
+
+function normalizeChordPitches(note: Note): Pitch[] {
+  const pitches = note.pitches?.length ? note.pitches : [note.pitch]
+  const uniquePitches: Pitch[] = []
+
+  pitches.forEach((pitch) => {
+    if (!uniquePitches.some((candidate) => samePitch(candidate, pitch))) {
+      uniquePitches.push(pitch)
+    }
+  })
+
+  return uniquePitches.length > 0 ? uniquePitches : [note.pitch]
+}
+
+function transposeChordPitch(pitch: Pitch, diatonicSteps: number): Pitch {
+  const steps: PitchStep[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
+  const currentIndex = steps.indexOf(pitch.step)
+  const nextIndex = currentIndex + diatonicSteps
+  const octaveOffset = Math.floor(nextIndex / steps.length)
+  const step = steps[((nextIndex % steps.length) + steps.length) % steps.length]
+
+  return {
+    step,
+    octave: pitch.octave + octaveOffset,
+    alter: pitch.alter
+  }
+}
+
+function comparePitch(left: Pitch, right: Pitch): number {
+  const stepOrder: Record<PitchStep, number> = {
+    C: 0,
+    D: 1,
+    E: 2,
+    F: 3,
+    G: 4,
+    A: 5,
+    B: 6
+  }
+
+  return (
+    left.octave * 7 +
+    stepOrder[left.step] -
+    (right.octave * 7 + stepOrder[right.step])
+  )
+}
+
+function samePitch(left: Pitch, right: Pitch): boolean {
+  return (
+    left.step === right.step &&
+    left.octave === right.octave &&
+    (left.alter ?? 0) === (right.alter ?? 0)
+  )
+}
+
+function pitchToLabel(pitch: Pitch): string {
+  const accidental =
+    pitch.alter === -2
+      ? 'bb'
+      : pitch.alter === -1
+        ? 'b'
+        : pitch.alter === 1
+          ? '#'
+          : pitch.alter === 2
+            ? '##'
+            : ''
+
+  return `${pitch.step}${accidental}${pitch.octave}`
+}
+
+function parseHarmonyText(
+  text: string
+): Omit<HarmonyMark, 'id' | 'measureId' | 'tick'> | undefined {
+  const match = /^(?<root>[A-G])(?<rootAccidental>#|b)?(?<kind>maj7|dim|sus4|m7|m|7)?(?:\/(?<bass>[A-G])(?<bassAccidental>#|b)?)?$/.exec(text)
+
+  if (!match?.groups) {
+    return undefined
+  }
+
+  const kindMap: Record<string, string> = {
+    '': 'major',
+    '7': 'dominant',
+    m: 'minor',
+    m7: 'minor-seventh',
+    maj7: 'major-seventh',
+    dim: 'diminished',
+    sus4: 'suspended-fourth'
+  }
+  const kindText = match.groups.kind ?? ''
+
+  return {
+    text,
+    root: {
+      step: match.groups.root as PitchStep,
+      alter: accidentalTextToAlter(match.groups.rootAccidental)
+    },
+    kind: kindMap[kindText],
+    bass: match.groups.bass
+      ? {
+          step: match.groups.bass as PitchStep,
+          alter: accidentalTextToAlter(match.groups.bassAccidental)
+        }
+      : undefined
+  }
+}
+
+function accidentalTextToAlter(value: string | undefined): Pitch['alter'] {
+  if (value === '#') {
+    return 1
+  }
+
+  if (value === 'b') {
+    return -1
+  }
+
+  return undefined
 }
 
 function createUpdatedTempoMarking(

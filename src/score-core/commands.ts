@@ -17,6 +17,10 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreMetadata(score, command.title, command.composer)
     case 'score-tempo.update':
       return updateScoreTempo(score, command.tempo)
+    case 'score-tempo-events.update':
+      return updateScoreTempoEvents(score, command.tempoEvents)
+    case 'score-octave-shifts.update':
+      return updateScoreOctaveShifts(score, command.octaveShifts)
     case 'score-rehearsal-marks.update':
       return updateScoreRehearsalMarks(score, command.rehearsalMarks)
     case 'score-staff-texts.update':
@@ -65,6 +69,38 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return replaceStaffMeasures(score, command.target, command.measures)
     case 'score.batch':
       return applyCommandBatch(score, command.commands)
+  }
+}
+
+function updateScoreOctaveShifts(
+  score: Score,
+  octaveShifts: Score['octaveShifts']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      octaveShifts
+    },
+    undo: {
+      type: 'score-octave-shifts.update',
+      octaveShifts: score.octaveShifts
+    }
+  }
+}
+
+function updateScoreTempoEvents(
+  score: Score,
+  tempoEvents: Score['tempoEvents']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      tempoEvents
+    },
+    undo: {
+      type: 'score-tempo-events.update',
+      tempoEvents: score.tempoEvents
+    }
   }
 }
 

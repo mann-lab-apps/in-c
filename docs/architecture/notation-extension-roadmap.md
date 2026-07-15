@@ -24,6 +24,8 @@
   quarter-BPM playback 환산을 구현했다.
 - 2026-07-15 second slice: 새 악보와 tempo slider 변경이 `beatUnit`, `dots`, 가져온
   빠르기말을 덮어쓰지 않도록 보존 정책을 추가했다. 세부 tempo 입력 UI는 남아 있다.
+- 2026-07-15 completion slice: playback strip에서 tempo beat unit, dots,
+  tempo text를 직접 편집할 수 있게 했다.
 
 ### Tempo map later slice
 
@@ -32,6 +34,8 @@
   playback timeline에 `tempoEvents` metadata로 정렬한다.
 - 2026-07-15 second slice: beat/seconds 환산 helper와 Web Audio scheduler가
   `tempoEvents`의 quarter-BPM 변화를 사용한다. 편집 UI와 ritardando curve는 남아 있다.
+- 2026-07-15 completion slice: 선택 음표/tick 위치에 tempo event BPM을 입력/삭제하고
+  renderer가 위치별 tempo marking을 표시한다.
 - `rit.`처럼 BPM 없는 text-only event는 표시-only로 보존하고 playback에는 반영하지 않는다.
 
 ## Clef Editing
@@ -46,6 +50,8 @@
 - UI slice: selected measure inspector에서 clef preset을 바꾼다.
 - 2026-07-15 first slice: G/F/C/percussion clef import/export 제한을 풀고,
   renderer/system layout이 clef별 staff line mapping을 검증한다.
+- 2026-07-15 completion slice: 선택 마디 inspector에서 treble/bass/alto/tenor
+  clef를 직접 바꾸는 UI를 추가했다.
 
 ## Octave Lines
 
@@ -58,6 +64,8 @@
 - MusicXML은 `direction-type/octave-shift` start/stop으로 매핑한다.
 - 2026-07-15 first slice: score-level span 모델, renderer bracket, MusicXML round-trip을
   구현했다. playback pitch shift와 편집 UI는 남아 있다.
+- 2026-07-15 completion slice: range selection에서 8va/8vb/15ma/15mb를 토글하는
+  UI를 추가했다. playback pitch shift는 정책상 후속 선택 사항으로 둔다.
 
 ## Tremolo
 
@@ -72,6 +80,8 @@
   구현했다. 입력 UI와 반복 재생 해석은 남아 있다.
 - 2026-07-15 second slice: playback event에 tremolo metadata를 전달해 이후 반복
   해석을 붙일 수 있게 했다. 실제 oscillator 반복과 입력 UI는 남아 있다.
+- 2026-07-15 completion slice: 선택 음표 inspector에서 single-note tremolo slash
+  1-3개를 입력/해제할 수 있게 했다.
 
 ## Chord Notes
 
@@ -82,6 +92,9 @@
 - renderer는 VexFlow multi-key note로 표시하고 playback은 한 event에 여러 frequency를 싣는다.
 - 2026-07-15 first slice: 모델, MusicXML import/export, renderer, playback timeline
   fixture를 구현했다. 개별 chord tone 선택, tie per pitch, 입력 UI는 남아 있다.
+- 2026-07-15 completion slice: 선택 음표에 3도/5도 chord tone을 추가하고 구성음을
+  제거하는 inspector UI를 추가했다. 가까운 음정 배치와 중복 방지는 VexFlow 렌더링과
+  모델 validation 정책으로 처리한다.
 
 ## Harmony Symbols
 
@@ -91,6 +104,8 @@
 - MusicXML은 `harmony/root/kind/bass/offset`을 보존하고 renderer는 measure 상단 텍스트로 표시한다.
 - 2026-07-15 first slice: 모델, `score-harmonies.update` command, MusicXML
   round-trip, renderer fixture를 구현했다. chord symbol 입력 UI와 충돌 회피는 남아 있다.
+- 2026-07-15 completion slice: 선택 위치에 C, Cm, C7, Cmaj7, Cdim, Csus4, C/G
+  계열 harmony를 입력/삭제하는 inspector UI와 validation을 추가했다.
 
 ## Lyrics
 
@@ -100,6 +115,8 @@
 - MusicXML은 `lyric/syllabic/text/extend`를 보존하고 renderer는 staff 아래 lyric line에 표시한다.
 - 2026-07-15 first slice: 모델, MusicXML round-trip, renderer fixture를 구현했다.
   space/hyphen/melisma 입력 모드와 lyric undo 정책은 남아 있다.
+- 2026-07-15 completion slice: 선택 음표 lyric inspector가 1/2절, syllabic,
+  Space/hyphen/melisma 이동 입력을 지원하고 renderer가 hyphen/extender 표시를 보존한다.
 
 ## Grace Notes And Ornaments
 
@@ -110,6 +127,8 @@
 - renderer는 본음 앞의 작은 텍스트 cue와 ornament label로 표시한다.
 - 2026-07-15 first slice: 모델, MusicXML import/export, renderer fixture를 구현했다.
   VexFlow grace-note engraving, input/edit UI, grace playback policy는 남아 있다.
+- 2026-07-15 completion slice: 선택 음표에 grace note와 trill/mordent/turn을
+  입력/해제하는 inspector UI를 추가했다. 지원하지 않는 ornament는 import 단계에서 거부한다.
 
 ## Repeats And Endings
 
@@ -125,6 +144,8 @@
   MusicXML round-trip을 구현했다. playback repeat expansion은 남아 있다.
 - 2026-07-15 second slice: simple start/end repeat와 repeat count를 playback
   timeline에서 펼치는 테스트를 추가했다. first/second ending과 복잡한 nested repeat는 남아 있다.
+- 2026-07-15 completion slice: 선택 마디 inspector에서 start/end repeat와 repeat
+  count를 입력/해제할 수 있게 했다. first/second ending은 별도 확장으로 남긴다.
 
 ## Multiple Voices On One Staff
 

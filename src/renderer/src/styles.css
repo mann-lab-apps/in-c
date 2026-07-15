@@ -625,6 +625,7 @@ h2 {
 
 .playback-strip {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -643,6 +644,15 @@ h2 {
   font-size: 0.78rem;
 }
 
+.tempo-control--compact {
+  grid-template-columns: auto minmax(70px, 120px) 32px;
+}
+
+.tempo-control--text {
+  grid-template-columns: auto minmax(110px, 160px);
+}
+
+.tempo-control select,
 .tempo-control input {
   width: 100%;
   accent-color: #47616c;
@@ -653,6 +663,12 @@ h2 {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: right;
+}
+
+.inspector-properties__checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .editor-status {
@@ -810,6 +826,11 @@ h2 {
   fill: #111827;
   font-size: 16px;
   font-weight: 700;
+}
+
+.notation-tempo-marking--positioned {
+  font-size: 13px;
+  text-anchor: middle;
 }
 
 .notation-rehearsal-mark rect {

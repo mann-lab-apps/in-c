@@ -280,6 +280,14 @@ export type ScoreCommand =
       tempo?: TempoMarking
     }
   | {
+      type: 'score-tempo-events.update'
+      tempoEvents?: TempoEvent[]
+    }
+  | {
+      type: 'score-octave-shifts.update'
+      octaveShifts?: OctaveShift[]
+    }
+  | {
       type: 'score-rehearsal-marks.update'
       rehearsalMarks?: RehearsalMark[]
     }
