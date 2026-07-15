@@ -7,7 +7,8 @@
 | 항목 | 값 |
 | --- | --- |
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
-| evidence package commit | `7364290 Add quality evidence package` |
+| initial evidence package commit | `7364290 Add quality evidence package` |
+| quality follow-up 기준 commit | `f88383e Record quality evidence package commit` |
 | 기준 branch | `main` |
 
 ## Purpose
@@ -59,6 +60,18 @@
 | 현재 가능 | macOS 기준 `npm audit --audit-level=moderate`는 통과한다. |
 | 문서 근거 | [Windows Dev Audit](../security/windows-dev-audit.md), [Risk R-004](risk-register.md#r-004-windows-dev-server-advisory-remains-unverified) |
 
+## Advanced Notation Exclusions
+
+| 항목 | 내용 |
+| --- | --- |
+| 유형 | 의도적 미지원/후속 확장 |
+| 연결 이슈 | #321에서 사용자-facing 상태 문서와 feature map 동기화 |
+| 제한 | 최근 notation extension은 지원되지만, 일부 고급 해석은 현재 안정 지원 범위 밖이다. |
+| 사용자 영향 | 고급 사보 파일을 가져오거나 재생할 때 일부 표시는 보존되더라도 전문 engraving/playback까지 완전하다고 보장하지 않는다. |
+| 현재 제외 | repeat first/second endings, text-only tempo curve playback, octave-shift playback pitch transposition, actual repeated oscillator tremolo playback, two-note tremolo, mid-measure clef changes. |
+| 현재 가능 | repeat barline/count 입력, positioned tempo event BPM 입력/삭제와 playback 반영, octave-shift 표시/MusicXML 보존, single-note tremolo slash 입력/표시/MusicXML 보존. |
+| 문서 근거 | [Traceability Matrix](traceability-matrix.md#notation-editor), [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md) |
+
 ## Production Deployment Smoke Is Separate
 
 | 항목 | 내용 |
@@ -78,4 +91,3 @@
 | 제한 | 자동 E2E는 핵심 흐름을 검증하지만, 패키징된 앱에서 사람이 작은 악보를 완성하는 수동 QA를 대체하지 않는다. |
 | 사용자 영향 | release candidate 전 UX/문구/파일 저장 흐름 확인이 필요하다. |
 | 문서 근거 | [Manual Score Completion QA](../releases/manual-score-completion-qa.md) |
-

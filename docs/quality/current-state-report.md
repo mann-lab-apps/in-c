@@ -7,7 +7,8 @@
 | 항목 | 값 |
 | --- | --- |
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
-| evidence package commit | `7364290 Add quality evidence package` |
+| initial evidence package commit | `7364290 Add quality evidence package` |
+| quality follow-up 기준 commit | `f88383e Record quality evidence package commit` |
 | 기준 branch | `main` |
 | GitHub repository | `mann-lab-apps/in-c` |
 | 상태 판정 | 조건부 가능 |
@@ -17,9 +18,11 @@
 ## Executive Summary
 
 현재 `main`은 앱 핵심 편집기, MusicXML round-trip, notation renderer snapshot, 사이트
-검증, analytics/SEO 정적 검증을 문서화된 명령으로 확인할 수 있는 상태다. 열린 이슈는
-`#316`, `#94`, `#93`, `#8`, `#320`이며, 그중 `#316`, `#94`, `#93`, `#8`은 제품 제한
-또는 운영 리스크로 추적한다.
+검증, analytics/SEO 정적 검증을 문서화된 명령으로 확인할 수 있는 상태다. 현재 열린
+이슈는 `#322`, `#321`, `#316`, `#94`, `#93`, `#8`이며, 그중 `#316`, `#94`, `#93`,
+`#8`은 제품 제한 또는 운영 리스크로 추적한다. `#321`과 `#322`는 이 evidence package
+감사에서 분리된 문서/운영 정렬 후속 이슈다. `#320`은 닫혔고, 이 문서 세트의 원 작업
+이슈로만 추적한다.
 
 릴리즈 판단은 **조건부 가능**이다. 현재 앱/사이트 표면은 prerelease 또는 내부 QA 후보로
 제시할 수 있지만, Supabase 기반 백엔드 운영 전환, Windows 개발 환경 감사 경고 확인,
@@ -58,7 +61,11 @@
 | #94 | 여러 악기 파트와 합주보 스코어 구조 지원 | 여러 악기 파트 생성/편집/렌더링 완성 범위 미완료 | known limitation |
 | #93 | 같은 오선 내 다중성부 입력·렌더링 모델 구현 | 같은 staff의 독립 voice 편집 UX 미완료 | known limitation |
 | #8 | Windows 개발 환경에서 esbuild/Vite 감사 경고 확인 | Windows dev server advisory 영향 미확인 | Windows 개발 환경 확인 전 보류 |
-| #320 | 현재 상태 검사 QA 워크플로우 고도화 | 이 evidence package 작성 대상 | 이 문서 세트 완료 후 닫기 가능 |
+| #321 | 제품 상태 문서와 feature map을 최신 notation 지원 상태와 동기화 | 제품 상태 문서가 quality traceability보다 뒤처질 수 있음 | 문서 정렬 후속 |
+| #322 | CI와 quality evidence 검증 범위 정렬 | GitHub Actions 녹색 체크와 evidence package 전체 통과 범위가 다름 | 운영 검증 정렬 후속 |
+
+닫힌 이슈 `#320`은 이 evidence package의 원 작업 이슈다. 현재 open inventory에는 포함하지
+않으며, 후속 보완 결과만 #320 코멘트로 남긴다.
 
 ## Recent Closed Issue Context
 
@@ -85,4 +92,3 @@
 [Release Readiness Checklist](release-readiness-checklist.md)를 읽는다. 특정 판단의 근거가
 필요하면 [Verification Matrix](verification-matrix.md), [Traceability Matrix](traceability-matrix.md),
 [Evidence Log](evidence-log.md)를 따라간다.
-

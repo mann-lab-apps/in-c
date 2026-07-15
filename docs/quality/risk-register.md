@@ -7,7 +7,8 @@
 | 항목 | 값 |
 | --- | --- |
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
-| evidence package commit | `7364290 Add quality evidence package` |
+| initial evidence package commit | `7364290 Add quality evidence package` |
+| quality follow-up 기준 commit | `f88383e Record quality evidence package commit` |
 | 기준 branch | `main` |
 
 ## Scoring
@@ -95,4 +96,3 @@
 | 현재 완화책 | [Manual Score Completion QA](../releases/manual-score-completion-qa.md)를 release candidate 직전에 실행한다. |
 | 출시 영향 | RC 전 수동 확인이 없으면 UX regression을 놓칠 수 있다. |
 | 다음 행동 | release candidate마다 manual QA 기록용 이슈 또는 체크리스트를 만든다. |
-
