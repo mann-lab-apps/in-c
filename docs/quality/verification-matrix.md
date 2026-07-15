@@ -8,7 +8,7 @@
 | --- | --- |
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
-| quality follow-up 기준 commit | `f88383e Record quality evidence package commit` |
+| quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
 | 기준 branch | `main` |
 | evidence log | [Evidence Log](evidence-log.md) |
 
