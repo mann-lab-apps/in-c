@@ -7,7 +7,7 @@
 | 항목 | 값 |
 | --- | --- |
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
-| evidence package commit | `QUALITY_PACKAGE_COMMIT_PENDING` |
+| evidence package commit | `7364290 Add quality evidence package` |
 | 기준 branch | `main` |
 | GitHub repository | `mann-lab-apps/in-c` |
 | 상태 판정 | 조건부 가능 |
