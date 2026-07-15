@@ -9,7 +9,6 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
-| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 | GitHub repository | `mann-lab-apps/in-c` |
 | 상태 판정 | 조건부 가능 |

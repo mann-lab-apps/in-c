@@ -9,17 +9,16 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
-| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 
 ## Notation Editor
 
 | 기능/요구사항 | GitHub 이슈 | 검증 | 문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| 새 악보 생성, metadata, tempo 기본값 | MVP issue history; exact issue mapping 추적 보강 필요 | `npm run verify:e2e`, `npm run test:components` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/score-setup.feature) | 지원 |
-| 단성부 음표/쉼표 입력 | MVP issue history; exact issue mapping 추적 보강 필요 | `npm run verify:e2e`, `npm test` | [Agent Workflow](../product/agent-workflow.md), [Acceptance](../product/acceptance/note-input.feature) | 지원 |
-| 음가 변경, dots, range copy/paste/delete | MVP issue history; exact issue mapping 추적 보강 필요 | `npm run verify:e2e`, `npm test` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/rhythm-duration.feature), [Acceptance](../product/acceptance/range-selection.feature) | 지원 |
-| ties, tuplets, articulation, fermata, breath marks | MVP/extension issue history; exact issue mapping 추적 보강 필요 | `npm run verify:e2e`, `npm test` | [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md), [Acceptance](../product/acceptance/tuplets.feature) | 지원 |
+| 새 악보 생성, metadata, tempo 기본값 | #106, #44, #100 closed | `npm run verify:e2e`, `npm run test:components` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/score-setup.feature) | 지원 |
+| 단성부 음표/쉼표 입력 | #22, #40, #48, #70, #76 closed | `npm run verify:e2e`, `npm test` | [Agent Workflow](../product/agent-workflow.md), [Acceptance](../product/acceptance/note-input.feature) | 지원 |
+| 음가 변경, dots, range copy/paste/delete | #42, #25, #97, #146, #202, #204 closed | `npm run verify:e2e`, `npm test` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/rhythm-duration.feature), [Acceptance](../product/acceptance/range-selection.feature) | 지원 |
+| ties, tuplets, articulation, fermata, breath marks | #21, #91, #24, #89, #102, #221 closed | `npm run verify:e2e`, `npm test` | [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md), [Acceptance](../product/acceptance/tuplets.feature) | 지원 |
 | chord notes | #34 closed | `npm test`, `npm run verify:visual-regression` | [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md#chord-notes) | 지원 |
 | harmony symbols | #35 closed | `npm test`, `npm run test:components` | [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md#harmony-symbols) | 지원 |
 | lyrics | #36 closed | `npm test`, `npm run test:components` | [Notation Extension Roadmap](../architecture/notation-extension-roadmap.md#lyrics) | 지원 |
@@ -37,7 +36,7 @@
 
 | 기능/요구사항 | GitHub 이슈 | 검증 | 문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| MusicXML MVP parse/export | MVP issue history; exact issue mapping 추적 보강 필요 | `npm test` | [MusicXML MVP](../musicxml-mvp.md), [Acceptance](../product/acceptance/import-export.feature) | 지원 subset |
+| MusicXML MVP parse/export | #129, #186, #238, #240 closed | `npm test` | [MusicXML MVP](../musicxml-mvp.md), [Acceptance](../product/acceptance/import-export.feature) | 지원 subset |
 | Release QA MusicXML fixture | #237 closed | `npm run verify:visual-regression` | [Release QA Visual Regression](../testing/release-qa-visual-regression.md) | 지원 |
 | Snapshot baseline | #237 closed | `npm run verify:notation-snapshots` | [Notation Snapshot Baseline](../testing/notation-snapshot-baseline.json) | 지원 |
 | VexFlow renderer behavior | renderer architecture | `npm run verify:visual-regression` | [Renderer Choice](../architecture/renderer-choice.md) | 지원 |
@@ -46,11 +45,11 @@
 
 | 기능/요구사항 | GitHub 이슈 | 검증 | 문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| Static site build | site MVP issues; exact issue mapping 추적 보강 필요 | `npm run site:build` | [Site Docs](../site.md), [Acceptance](../product/acceptance/product-surfaces.feature) | 지원 |
-| Site content integrity | product surface/content issues; exact issue mapping 추적 보강 필요 | `npm run verify:site-content` | [Composition Pipeline](../product/compositions/collection-pipeline.md) | 지원 |
-| Analytics instrumentation guard | analytics documentation issues; exact issue mapping 추적 보강 필요 | `npm run verify:analytics` | [Analytics Events](../product/analytics-events.md), [Analytics Operations](../product/analytics-operations.md) | 지원 |
-| SEO metadata | SEO/site metadata issues; exact issue mapping 추적 보강 필요 | `npm run verify:site-seo` | [Site Docs](../site.md) | 지원 |
-| Production smoke | deployment/operations issues; exact issue mapping 추적 보강 필요 | `npm run verify:site-production` | [Production Playbook](../operations/production-playbook.md) | 미확인 in this package |
+| Static site build | #51, #152, #268, #269, #272, #273, #274, #275 closed | `npm run site:build` | [Site Docs](../site.md), [Acceptance](../product/acceptance/product-surfaces.feature) | 지원 |
+| Site content integrity | #268, #269, #272, #273, #274, #170, #172, #173, #174, #176, #177, #178 closed | `npm run verify:site-content` | [Composition Pipeline](../product/compositions/collection-pipeline.md) | 지원 |
+| Analytics instrumentation guard | #147, #306, #312, #313 closed | `npm run verify:analytics` | [Analytics Events](../product/analytics-events.md), [Analytics Operations](../product/analytics-operations.md) | 지원 |
+| SEO metadata | #151, #309 closed | `npm run verify:site-seo` | [Site Docs](../site.md) | 지원 |
+| Production smoke | #304, #307, #308, #319 closed | `npm run verify:site-production` | [Production Playbook](../operations/production-playbook.md) | 미확인 in this package |
 
 ## Backend And Operations
 
@@ -69,3 +68,10 @@
 - `부분 지원`은 모델/test 일부가 존재하지만 사용자-facing workflow 또는 edge case가 열린 이슈로 남은 상태다.
 - `보류`는 외부 승인, 운영 계정, OS 환경, 비용, DNS, production 변경이 필요한 상태다.
 - 새 실패는 기존 open issue가 정확히 맞으면 연결하고, 아니면 새 bug/release-blocker issue를 만든다.
+
+## Traceability Gaps
+
+| Gap | 상태 | 연결 |
+| --- | --- | --- |
+| Product status documents may lag behind this matrix | Open follow-up | #321 |
+| CI coverage does not equal the full local evidence run | Open follow-up | #322 |

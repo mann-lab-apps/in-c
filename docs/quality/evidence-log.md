@@ -9,7 +9,6 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
-| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 | 실행 환경 | macOS local workspace, Asia/Seoul |
 
@@ -68,6 +67,19 @@
 | 3 | `git diff --check` | Pass | whitespace error 없음 |
 | 4 | `docs/quality` markdown relative link target check | Pass | 상대 markdown link 대상 존재 확인 |
 | 5 | 앱/사이트 빌드 및 전체 테스트 | Not run | 문서 정합성 변경만 포함하므로 생략 |
+
+## 2026-07-15 Issue-Level Traceability Run
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `git status --short --branch` | Pass | `main...origin/main`; quality 문서 변경만 존재 |
+| 2 | `gh issue list --repo mann-lab-apps/in-c --state open --limit 100` | Pass | open issues: #322, #321, #316, #94, #93, #8 |
+| 3 | `gh issue list --repo mann-lab-apps/in-c --state closed --limit 100` | Pass | 최근 closed issue inventory 확인 |
+| 4 | targeted `gh issue view <number>` for traceability issue mappings | Pass | traceability matrix에 추가한 #21, #22, #24, #25, #40, #42, #44, #48, #51, #70, #76, #89, #91, #97, #100, #102, #106, #129, #146, #147, #151, #152, #170, #172, #173, #174, #176, #177, #178, #186, #202, #204, #221, #237, #238, #240, #268, #269, #272, #273, #274, #275, #304, #306, #307, #308, #309, #312, #313, #319 closed 확인 |
+| 5 | `gh issue view 320 --repo mann-lab-apps/in-c` | Pass | #320 closed 확인 |
+| 6 | `git diff --check` | Pass | whitespace error 없음 |
+| 7 | `docs/quality` markdown relative link target check | Pass | 상대 markdown link 대상 존재 확인 |
+| 8 | 앱/사이트 빌드 및 전체 테스트 | Not run | traceability/document-control 문서 변경만 포함하므로 생략 |
 
 ## Not Run In This Package
 
