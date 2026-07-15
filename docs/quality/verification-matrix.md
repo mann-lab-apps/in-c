@@ -9,6 +9,7 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
+| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 | evidence log | [Evidence Log](evidence-log.md) |
 
@@ -56,9 +57,9 @@
 
 | 영역 | 검증 | 종류 | Coverage | 현재 결과 | Evidence | 실패 시 연결 |
 | --- | --- | --- | --- | --- | --- | --- |
-| Markdown path sanity | `rg` path checks for quality docs | 자동/manual hybrid | Local evidence only | Pass | [2026-07-15 run](evidence-log.md#2026-07-15-run) | #320 follow-up |
-| Open issue inventory | `gh issue list --state open` | 자동/GitHub | GitHub state + local evidence | Pass | [Evidence Log](evidence-log.md#github-state) | #320 follow-up |
-| Risk linkage | open issues linked in risk/known limitation docs | Manual | Manual document review | Pass | [Risk Register](risk-register.md), [Known Limitations](known-limitations.md) | #320 follow-up |
+| Markdown path sanity | `rg` path checks for quality docs | 자동/manual hybrid | Local evidence only | Pass | [2026-07-15 run](evidence-log.md#2026-07-15-run) | 새 quality docs issue |
+| Open issue inventory | `gh issue list --state open` | 자동/GitHub | GitHub state + local evidence | Pass | [Evidence Log](evidence-log.md#github-state) | 새 quality docs issue 또는 #321/#322 |
+| Risk linkage | open issues linked in risk/known limitation docs | Manual | Manual document review | Pass | [Risk Register](risk-register.md), [Known Limitations](known-limitations.md) | 새 quality docs issue 또는 #321/#322 |
 
 ## Coverage Follow-up
 

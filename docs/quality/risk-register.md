@@ -9,6 +9,7 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
+| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 
 ## Scoring
@@ -96,3 +97,29 @@
 | 현재 완화책 | [Manual Score Completion QA](../releases/manual-score-completion-qa.md)를 release candidate 직전에 실행한다. |
 | 출시 영향 | RC 전 수동 확인이 없으면 UX regression을 놓칠 수 있다. |
 | 다음 행동 | release candidate마다 manual QA 기록용 이슈 또는 체크리스트를 만든다. |
+
+## R-007 Product Status Docs May Lag Behind Quality Traceability
+
+| 항목 | 내용 |
+| --- | --- |
+| 연결 이슈 | #321 |
+| 영향도 | Low |
+| 가능성 | Medium |
+| 상태 | Watch |
+| 설명 | `docs/product/system-status-panel.md`와 `docs/product/feature-map-data.js` 같은 제품 상태 문서가 quality traceability보다 뒤처질 수 있다. |
+| 현재 완화책 | current state와 known limitations에서는 #321을 후속 이슈로 연결하고, 릴리즈 판단 시 quality 문서를 우선 근거로 사용한다. |
+| 출시 영향 | 사용자-facing release notes 또는 status panel이 실제 지원 범위와 다르게 보일 수 있다. |
+| 다음 행동 | #321에서 제품 상태 문서와 feature map을 최신 notation 지원 범위와 동기화한다. |
+
+## R-008 CI Coverage Differs From Quality Evidence Run
+
+| 항목 | 내용 |
+| --- | --- |
+| 연결 이슈 | #322 |
+| 영향도 | Low |
+| 가능성 | Medium |
+| 상태 | Watch |
+| 설명 | GitHub Actions CI가 보장하는 명령과 local quality evidence run에 포함된 명령의 범위가 다르다. |
+| 현재 완화책 | [Verification Matrix](verification-matrix.md)에 CI, local evidence, manual, external coverage를 구분한다. |
+| 출시 영향 | GitHub Actions 녹색 체크만으로 evidence package 전체 통과를 의미한다고 오해할 수 있다. |
+| 다음 행동 | #322에서 CI에 올릴 항목과 local/manual로 유지할 항목을 정리한다. |

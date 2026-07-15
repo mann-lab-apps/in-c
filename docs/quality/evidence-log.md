@@ -9,6 +9,7 @@
 | 제품 상태 기준 commit | `f526ad7 Complete notation editing issue set` |
 | initial evidence package commit | `7364290 Add quality evidence package` |
 | quality follow-up 기준 commit | `6fb9698 Refine quality evidence follow-up` |
+| documentation record commit | `25db95f Record quality follow-up commit` |
 | 기준 branch | `main` |
 | 실행 환경 | macOS local workspace, Asia/Seoul |
 
@@ -57,6 +58,16 @@
 | 2 | `gh issue view 320 --repo mann-lab-apps/in-c` | Pass | #320 closed 확인 |
 | 3 | `git diff --check` | Pass | whitespace error 없음 |
 | 4 | `docs/quality` markdown relative link target check | Pass | 상대 markdown link 대상 존재 확인 |
+
+## 2026-07-15 Documentation Consistency Run
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `gh issue list --repo mann-lab-apps/in-c --state open --limit 100` | Pass | open issues: #322, #321, #316, #94, #93, #8 |
+| 2 | `gh issue view 320 --repo mann-lab-apps/in-c` | Pass | #320 closed 확인 |
+| 3 | `git diff --check` | Pass | whitespace error 없음 |
+| 4 | `docs/quality` markdown relative link target check | Pass | 상대 markdown link 대상 존재 확인 |
+| 5 | 앱/사이트 빌드 및 전체 테스트 | Not run | 문서 정합성 변경만 포함하므로 생략 |
 
 ## Not Run In This Package
 
