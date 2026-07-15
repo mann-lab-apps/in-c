@@ -21,8 +21,10 @@ import {
   type Duration,
   type DurationValue,
   type DynamicValue,
+  type GraceNote,
   type HairpinType,
   type KeySignature,
+  type Pitch,
   type Score,
   type TimeSignature,
   type TremoloMark,
@@ -122,17 +124,41 @@ export function parseMusicXml(xml: string): Score {
       throw new Error('MVP에서는 여러 성부 또는 backup/forward를 지원하지 않습니다.')
     }
 
-    const noteNodes = toArray(
-      measureNode.note as XmlNode | XmlNode[] | undefined
-    )
+    const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
     let positionTick = 0
-    const events = noteNodes.map((noteNode) => {
+    const events: VoiceEvent[] = []
+    const rhythmicNoteNodes: XmlNode[] = []
+    let pendingGraceNotes: GraceNote[] = []
+
+    for (const noteNode of noteNodes) {
+      if ('grace' in noteNode) {
+        pendingGraceNotes = [...pendingGraceNotes, readGraceNote(noteNode)]
+        continue
+      }
+
+      if ('chord' in noteNode) {
+        const previousEvent = events.at(-1)
+
+        if (!previousEvent || previousEvent.type !== 'note') {
+          throw new Error('MusicXML chord note에 대응하는 앞 음표가 없습니다.')
+        }
+
+        const pitch = readPitch(noteNode)
+        previousEvent.pitches = [...(previousEvent.pitches ?? [previousEvent.pitch]), pitch]
+        continue
+      }
+
       eventCounter += 1
       const event = readVoiceEvent(noteNode, eventCounter, positionTick)
       const xmlDurationTicks = readMusicXmlDurationTicks(
         noteNode,
         state.divisions
       )
+
+      if (event.type === 'note' && pendingGraceNotes.length > 0) {
+        event.graceNotes = pendingGraceNotes
+        pendingGraceNotes = []
+      }
 
       if (
         !(event.type === 'rest' && event.fullMeasure) &&
@@ -144,8 +170,13 @@ export function parseMusicXml(xml: string): Score {
       }
 
       positionTick += xmlDurationTicks
-      return event
-    })
+      events.push(event)
+      rhythmicNoteNodes.push(noteNode)
+    }
+
+    if (pendingGraceNotes.length > 0) {
+      throw new Error('MusicXML grace note를 연결할 실제 note가 없습니다.')
+    }
     const measureNumber =
       readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
     const measureId = `measure-${measureNumber}`
@@ -164,7 +195,7 @@ export function parseMusicXml(xml: string): Score {
             })
           ]
     const tuplets = readTupletGroups(
-      noteNodes,
+      rhythmicNoteNodes,
       normalizedEvents,
       measureId
     )
@@ -217,6 +248,7 @@ export function parseMusicXml(xml: string): Score {
   const composer = readComposer(root)
   const tempo = readTempoMarking(measureNodes)
   const tempoEvents = readTempoEvents(measureNodes)
+  const harmonies = readHarmonies(measureNodes)
   const rehearsalMarks = readRehearsalMarks(measureNodes)
   const staffTexts = readStaffTexts(measureNodes)
   const dynamics = readDynamics(measureNodes)
@@ -231,6 +263,7 @@ export function parseMusicXml(xml: string): Score {
     tempo,
     tempoEvents,
     octaveShifts,
+    harmonies,
     rehearsalMarks,
     staffTexts,
     dynamics,
@@ -434,6 +467,79 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
   })
 
   return texts.length > 0 ? texts : undefined
+}
+
+function readHarmonies(measureNodes: XmlNode[]): Score['harmonies'] {
+  const harmonies = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const harmonyNodes = toArray(
+      measureNode.harmony as XmlNode | XmlNode[] | undefined
+    )
+
+    return harmonyNodes.flatMap((harmonyNode, harmonyIndex) => {
+      const root = readHarmonyPitch(harmonyNode, 'root')
+      const bass = readHarmonyPitch(harmonyNode, 'bass')
+      const kindNode = readOptionalNode(harmonyNode, 'kind')
+      const kindText =
+        kindNode
+          ? readOptionalString(kindNode, '@_text') ??
+            readOptionalString(kindNode, '#text') ??
+            readOptionalString(harmonyNode, 'kind')
+          : readOptionalString(harmonyNode, 'kind')
+
+      if (!root && !kindText) {
+        return []
+      }
+
+      return [
+        {
+          id: `${measureId}-harmony-${harmonyIndex + 1}`,
+          measureId,
+          tick: readOptionalInteger(harmonyNode, 'offset') ?? 0,
+          text: kindText ?? root!.step,
+          root,
+          kind: kindNode ? readOptionalString(kindNode, '@_value') : undefined,
+          bass
+        }
+      ]
+    })
+  })
+
+  return harmonies.length > 0 ? harmonies : undefined
+}
+
+function readHarmonyPitch(
+  harmonyNode: XmlNode,
+  role: 'root' | 'bass'
+): NonNullable<NonNullable<Score['harmonies']>[number]['root']> | undefined {
+  const node = readOptionalNode(harmonyNode, role)
+
+  if (!node) {
+    return undefined
+  }
+
+  const stepValue = readOptionalString(node, `${role}-step`)?.toUpperCase()
+
+  if (!stepValue) {
+    return undefined
+  }
+
+  if (!isPitchStep(stepValue)) {
+    throw new Error(`지원하지 않는 harmony ${role} step입니다: ${stepValue}`)
+  }
+
+  const alter = readOptionalInteger(node, `${role}-alter`)
+
+  if (alter !== undefined && ![-2, -1, 0, 1, 2].includes(alter)) {
+    throw new Error(`지원하지 않는 harmony ${role} alter 값입니다: ${alter}`)
+  }
+
+  return {
+    step: stepValue,
+    alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
+  }
 }
 
 function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
@@ -759,14 +865,6 @@ function readVoiceEvent(
   eventIndex: number,
   positionTick: number
 ): VoiceEvent {
-  if ('chord' in node) {
-    throw new Error('MVP에서는 chord 음표를 지원하지 않습니다.')
-  }
-
-  if ('grace' in node) {
-    throw new Error('MVP에서는 grace note를 지원하지 않습니다.')
-  }
-
   const voice = readOptionalString(node, 'voice')
 
   if (voice && voice !== '1') {
@@ -795,6 +893,24 @@ function readVoiceEvent(
     })
   }
 
+  const pitch = readPitch(node)
+
+  return createNote({
+    id,
+    position: createTimePosition(positionTick),
+    pitch,
+    duration,
+    ties: readTieFlags(node),
+    articulations: readArticulations(node),
+    fermata: readFermata(node),
+    breathMark: readBreathMark(node),
+    tremolo: readTremolo(node),
+    lyrics: readLyrics(node),
+    ornaments: readOrnaments(node)
+  })
+}
+
+function readPitch(node: XmlNode): Pitch {
   const pitchNode = readNode(node, 'pitch')
   const step = readString(pitchNode, 'step').toUpperCase()
 
@@ -811,21 +927,20 @@ function readVoiceEvent(
     throw new Error(`지원하지 않는 alter 값입니다: ${alter}`)
   }
 
-  return createNote({
-    id,
-    position: createTimePosition(positionTick),
-    pitch: {
-      step,
-      octave: readInteger(pitchNode, 'octave'),
-      alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
-    },
-    duration,
-    ties: readTieFlags(node),
-    articulations: readArticulations(node),
-    fermata: readFermata(node),
-    breathMark: readBreathMark(node),
-    tremolo: readTremolo(node)
-  })
+  return {
+    step,
+    octave: readInteger(pitchNode, 'octave'),
+    alter: alter as -2 | -1 | 0 | 1 | 2 | undefined
+  }
+}
+
+function readGraceNote(node: XmlNode): GraceNote {
+  const grace = readOptionalNode(node, 'grace')
+
+  return {
+    pitch: readPitch(node),
+    slash: grace ? readOptionalString(grace, '@_slash') === 'yes' : undefined
+  }
 }
 
 function readTremolo(node: XmlNode): TremoloMark | undefined {
@@ -848,6 +963,53 @@ function readTremolo(node: XmlNode): TremoloMark | undefined {
     type: 'single',
     marks: marks as 1 | 2 | 3
   }
+}
+
+function readOrnaments(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['ornaments'] {
+  const notations = readOptionalNode(node, 'notations')
+  const ornaments = notations ? readOptionalNode(notations, 'ornaments') : undefined
+
+  if (!ornaments) {
+    return undefined
+  }
+
+  const values = (['trill', 'mordent', 'turn'] as const).filter(
+    (ornament) => ornament in ornaments
+  )
+
+  return values.length > 0 ? values : undefined
+}
+
+function readLyrics(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['lyrics'] {
+  const lyrics = toArray(node.lyric as XmlNode | XmlNode[] | undefined).flatMap(
+    (lyricNode) => {
+      const text = readOptionalString(lyricNode, 'text')
+
+      if (!text) {
+        return []
+      }
+
+      const syllabic = readOptionalString(lyricNode, 'syllabic')
+
+      if (
+        syllabic !== undefined &&
+        !['single', 'begin', 'middle', 'end'].includes(syllabic)
+      ) {
+        throw new Error(`지원하지 않는 lyric syllabic 값입니다: ${syllabic}`)
+      }
+
+      return [
+        {
+          number: readOptionalInteger(lyricNode, '@_number'),
+          syllabic: syllabic as 'single' | 'begin' | 'middle' | 'end' | undefined,
+          text,
+          extend: 'extend' in lyricNode ? true : undefined
+        }
+      ]
+    }
+  )
+
+  return lyrics.length > 0 ? lyrics : undefined
 }
 
 function readBreathMark(node: XmlNode): BreathMark | undefined {

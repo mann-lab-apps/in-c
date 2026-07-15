@@ -22,13 +22,16 @@
   `beat-unit-dot`, `per-minute`, `sound tempo`를 보존한다.
 - 2026-07-15 first slice: renderer 표시, MusicXML round-trip, dotted beat unit의
   quarter-BPM playback 환산을 구현했다.
+- 2026-07-15 second slice: 새 악보와 tempo slider 변경이 `beatUnit`, `dots`, 가져온
+  빠르기말을 덮어쓰지 않도록 보존 정책을 추가했다. 세부 tempo 입력 UI는 남아 있다.
 
 ### Tempo map later slice
 
 - `TempoEvent`는 measureId, tick, bpm, beatUnit, dots, text를 가진다.
 - 2026-07-15 first slice: MusicXML `offset` 기반 tick 위치를 보존하고,
   playback timeline에 `tempoEvents` metadata로 정렬한다.
-- 다음 구현은 재생 중 tempo event를 실제 scheduler 속도 변화로 반영하는 것이다.
+- 2026-07-15 second slice: beat/seconds 환산 helper와 Web Audio scheduler가
+  `tempoEvents`의 quarter-BPM 변화를 사용한다. 편집 UI와 ritardando curve는 남아 있다.
 - `rit.`처럼 BPM 없는 text-only event는 표시-only로 보존하고 playback에는 반영하지 않는다.
 
 ## Clef Editing
@@ -67,6 +70,46 @@
 - MusicXML은 `ornaments/tremolo`를 import/export한다.
 - 2026-07-15 first slice: note-level 모델, renderer slash 표시, MusicXML round-trip을
   구현했다. 입력 UI와 반복 재생 해석은 남아 있다.
+- 2026-07-15 second slice: playback event에 tremolo metadata를 전달해 이후 반복
+  해석을 붙일 수 있게 했다. 실제 oscillator 반복과 입력 UI는 남아 있다.
+
+## Chord Notes
+
+관련 이슈: #34
+
+- first slice는 같은 voice의 한 tick에 여러 pitch를 가진 `Note.pitches` 모델이다.
+- MusicXML은 첫 음표 뒤의 `<chord/>` note들을 같은 event의 `pitches`로 round-trip한다.
+- renderer는 VexFlow multi-key note로 표시하고 playback은 한 event에 여러 frequency를 싣는다.
+- 2026-07-15 first slice: 모델, MusicXML import/export, renderer, playback timeline
+  fixture를 구현했다. 개별 chord tone 선택, tie per pitch, 입력 UI는 남아 있다.
+
+## Harmony Symbols
+
+관련 이슈: #35
+
+- first slice는 score-level `HarmonyMark[]`이며 measureId/tick/text/root/kind/bass를 가진다.
+- MusicXML은 `harmony/root/kind/bass/offset`을 보존하고 renderer는 measure 상단 텍스트로 표시한다.
+- 2026-07-15 first slice: 모델, `score-harmonies.update` command, MusicXML
+  round-trip, renderer fixture를 구현했다. chord symbol 입력 UI와 충돌 회피는 남아 있다.
+
+## Lyrics
+
+관련 이슈: #36
+
+- first slice는 note-level `lyrics?: LyricSyllable[]`이다.
+- MusicXML은 `lyric/syllabic/text/extend`를 보존하고 renderer는 staff 아래 lyric line에 표시한다.
+- 2026-07-15 first slice: 모델, MusicXML round-trip, renderer fixture를 구현했다.
+  space/hyphen/melisma 입력 모드와 lyric undo 정책은 남아 있다.
+
+## Grace Notes And Ornaments
+
+관련 이슈: #101
+
+- first slice는 note-level `graceNotes`와 `ornaments` 보존이다.
+- MusicXML은 duration 없는 grace note와 `trill`, `mordent`, `turn` ornaments를 round-trip한다.
+- renderer는 본음 앞의 작은 텍스트 cue와 ornament label로 표시한다.
+- 2026-07-15 first slice: 모델, MusicXML import/export, renderer fixture를 구현했다.
+  VexFlow grace-note engraving, input/edit UI, grace playback policy는 남아 있다.
 
 ## Repeats And Endings
 
@@ -80,6 +123,8 @@
 - malformed repeat는 playback에 반영하지 않고 표시/검증 warning으로 처리한다.
 - 2026-07-15 first slice: measure-level start/end repeat 모델, renderer 표시,
   MusicXML round-trip을 구현했다. playback repeat expansion은 남아 있다.
+- 2026-07-15 second slice: simple start/end repeat와 repeat count를 playback
+  timeline에서 펼치는 테스트를 추가했다. first/second ending과 복잡한 nested repeat는 남아 있다.
 
 ## Multiple Voices On One Staff
 
@@ -93,6 +138,8 @@
 - 단성부 exact rhythm test는 유지하고, voice별 rhythm exact test를 추가한다.
 - 2026-07-15 first slice: renderer/system layout이 모든 voice를 vertical spacing에
   반영하는 회귀 테스트를 추가했다. MusicXML backup/forward와 편집 UX는 남아 있다.
+- 2026-07-15 second slice: playback event에 `voiceId`를 보존하고 same-staff
+  simultaneous voice fixture를 추가했다. collision layout과 voice switching UI는 남아 있다.
 
 ## Multiple Parts
 
@@ -105,6 +152,8 @@
 - renderer는 system마다 part staves를 vertical stack으로 배치하고 part name/abbreviation lane을 둔다.
 - 2026-07-15 first slice: playback timeline이 여러 part/staff event를 같은 beat
   timeline으로 병합한다. multi-part renderer와 MusicXML import/export는 남아 있다.
+- 2026-07-15 second slice: playback event에 `partId`, `staffId`, `voiceId`를
+  보존해 multi-part selection/playback tracing을 가능하게 했다. part add/remove command는 남아 있다.
 
 ## Acceptance Fixture Plan
 
@@ -117,5 +166,8 @@
 - `repeats.musicxml`: start/end repeat and repeated playback expectation.
 - `multi-voice.musicxml`: two voices on one staff with different rhythms.
 - `multi-part.musicxml`: two parts with simultaneous playback events.
+- `chords.musicxml`: same-voice triad with MusicXML `<chord/>` notes.
+- `harmony-lyrics-grace.musicxml`: harmony symbol, lyric syllables, grace note,
+  and ornament preservation.
 
 Fixtures should parse without data loss before UI editing is added.

@@ -49,7 +49,8 @@ import {
   type PitchStep,
   type Score,
   type ScoreCommand,
-  type Articulation
+  type Articulation,
+  type TempoMarking
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import {
@@ -691,13 +692,10 @@ export const App = () => {
 
       executeCommand({
         type: 'score-tempo.update',
-        tempo: {
-          bpm: tempo,
-          text: `♩ = ${tempo}`
-        }
+        tempo: createUpdatedTempoMarking(score.tempo, tempo)
       })
     },
-    [executeCommand, scoreTempo]
+    [executeCommand, score.tempo, scoreTempo]
   )
 
   const changeDuration = useCallback(
@@ -3732,6 +3730,26 @@ function describeDurationEditFailure(
   }
 
   return '마디의 박자를 유지한 채로는 음가를 바꿀 수 없습니다.'
+}
+
+function createUpdatedTempoMarking(
+  currentTempo: TempoMarking | undefined,
+  bpm: number
+): TempoMarking {
+  const currentText = currentTempo?.text
+  const shouldRefreshText =
+    currentText === undefined ||
+    /^([♩♪𝅗𝅥𝅝𝅘𝅥𝅯𝅘𝅥𝅰]|quarter|eighth|half|whole)\s*=\s*\d+$/u.test(
+      currentText
+    )
+
+  return {
+    ...currentTempo,
+    bpm,
+    beatUnit: currentTempo?.beatUnit ?? 'quarter',
+    dots: currentTempo?.dots ?? 0,
+    text: shouldRefreshText ? `♩ = ${bpm}` : currentText
+  }
 }
 
 function toFileName(title: string): string {

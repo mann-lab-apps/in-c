@@ -174,6 +174,8 @@ export function createNewScore(options: NewScoreOptions): Score {
     composer: options.composer?.trim() || undefined,
     tempo: {
       bpm: tempo,
+      beatUnit: 'quarter',
+      dots: 0,
       text: `♩ = ${tempo}`
     },
     parts: [

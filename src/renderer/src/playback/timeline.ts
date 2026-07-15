@@ -26,10 +26,15 @@ const FERMATA_DURATION_MULTIPLIER = 1.5
 
 export interface PlaybackEvent {
   eventId: string
+  partId: string
+  staffId: string
+  voiceId: string
   measureId: string
   startBeat: number
   durationBeats: number
   frequency?: number
+  frequencies?: number[]
+  tremolo?: Note['tremolo']
   velocityStart: number
   velocityEnd: number
 }
@@ -55,7 +60,12 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
 
   for (const part of score.parts) {
     for (const staff of part.staves) {
-      const staffTimeline = createStaffPlaybackEvents(score, staff.measures)
+      const staffTimeline = createStaffPlaybackEvents(
+        score,
+        part.id,
+        staff.id,
+        staff.measures
+      )
 
       events.push(...staffTimeline.events)
       totalBeats = Math.max(totalBeats, staffTimeline.totalBeats)
@@ -74,6 +84,8 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
 
 function createStaffPlaybackEvents(
   score: Score,
+  partId: string,
+  staffId: string,
   measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>
 ): PlaybackTimeline {
   const events: PlaybackEvent[] = []
@@ -89,8 +101,15 @@ function createStaffPlaybackEvents(
         const durationBeats =
           notatedDurationBeats *
           (event.fermata ? FERMATA_DURATION_MULTIPLIER : 1)
+        const frequencies =
+          event.type === 'note'
+            ? eventFrequencies(measure, voice, event)
+            : undefined
         const playbackEvent = {
           eventId: event.id,
+          partId,
+          staffId,
+          voiceId: voice.id,
           measureId: measure.id,
           startBeat:
             scoreBeat +
@@ -98,9 +117,9 @@ function createStaffPlaybackEvents(
             expressionBeatOffset,
           durationBeats,
           frequency:
-            event.type === 'note'
-              ? pitchToFrequency(resolveNotePitch(measure, voice, event))
-              : undefined,
+            frequencies && frequencies.length > 0 ? frequencies[0] : undefined,
+          frequencies,
+          tremolo: event.type === 'note' ? event.tremolo : undefined,
           velocityStart: resolveMeasureVelocity(score, measure.id),
           velocityEnd: resolveMeasureVelocity(score, measure.id)
         }
@@ -128,11 +147,89 @@ function createStaffPlaybackEvents(
     scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
+  const repeatedTimeline = applyRepeatPlayback(events, measures, scoreBeat)
+
   return {
-    events,
+    events: repeatedTimeline.events,
     tempoEvents: [],
-    totalBeats: scoreBeat + expressionBeatOffset
+    totalBeats: repeatedTimeline.totalBeats + expressionBeatOffset
   }
+}
+
+function applyRepeatPlayback(
+  events: PlaybackEvent[],
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  totalBeats: number
+): { events: PlaybackEvent[]; totalBeats: number } {
+  let repeatStartMeasureId: string | undefined = measures[0]?.id
+  const nextEvents = [...events]
+  let extraBeats = 0
+
+  for (const measure of measures) {
+    if (measure.repeat?.start) {
+      repeatStartMeasureId = measure.id
+    }
+
+    if (!measure.repeat?.end || !repeatStartMeasureId) {
+      continue
+    }
+
+    const startBeat = measureStartBeat(measures, repeatStartMeasureId)
+    const endBeat =
+      measureStartBeat(measures, measure.id) +
+      measureDurationTicks(measure) / TICKS_PER_QUARTER
+    const repeatCount = Math.max(2, measure.repeat.times ?? 2)
+    const sectionDuration = endBeat - startBeat
+    const sectionEvents = events.filter((event) =>
+      event.startBeat >= startBeat && event.startBeat < endBeat
+    )
+
+    for (let repeatIndex = 1; repeatIndex < repeatCount; repeatIndex += 1) {
+      nextEvents.push(
+        ...sectionEvents.map((event) => ({
+          ...event,
+          startBeat: event.startBeat + sectionDuration * repeatIndex
+        }))
+      )
+    }
+
+    extraBeats += sectionDuration * (repeatCount - 1)
+    repeatStartMeasureId = undefined
+  }
+
+  return {
+    events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
+    totalBeats: totalBeats + extraBeats
+  }
+}
+
+function measureStartBeat(
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  measureId: string
+): number {
+  let beat = 0
+
+  for (const measure of measures) {
+    if (measure.id === measureId) {
+      return beat
+    }
+
+    beat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+  }
+
+  return 0
+}
+
+function eventFrequencies(
+  measure: NonNullable<Score['parts'][number]['staves'][number]['measures']>[number],
+  voice: NonNullable<Score['parts'][number]['staves'][number]['measures']>[number]['voices'][number],
+  event: Note
+): number[] {
+  const pitches = event.pitches?.length
+    ? event.pitches
+    : [resolveNotePitch(measure, voice, event)]
+
+  return pitches.map((pitch) => pitchToFrequency(pitch))
 }
 
 function createPlaybackTempoEvents(score: Score): PlaybackTempoEvent[] {
@@ -178,6 +275,92 @@ export function durationToBeats(duration: Duration): number {
 
 export function tempoMarkingToQuarterBpm(tempo: TempoMarking): number {
   return tempo.bpm * tempoBeatUnitToQuarterBeats(tempo)
+}
+
+export function resolveQuarterBpmAtBeat(
+  timeline: Pick<PlaybackTimeline, 'tempoEvents'>,
+  beat: number,
+  fallbackBpm: number
+): number {
+  let quarterBpm = fallbackBpm
+
+  for (const event of timeline.tempoEvents) {
+    if (event.startBeat > beat) {
+      break
+    }
+
+    quarterBpm = event.quarterBpm
+  }
+
+  return quarterBpm
+}
+
+export function beatDeltaToSeconds(
+  timeline: Pick<PlaybackTimeline, 'tempoEvents'>,
+  fromBeat: number,
+  toBeat: number,
+  fallbackBpm: number
+): number {
+  if (toBeat <= fromBeat) {
+    return 0
+  }
+
+  let seconds = 0
+  let cursorBeat = fromBeat
+  let quarterBpm = resolveQuarterBpmAtBeat(timeline, fromBeat, fallbackBpm)
+
+  for (const event of timeline.tempoEvents) {
+    if (event.startBeat <= fromBeat) {
+      continue
+    }
+
+    if (event.startBeat >= toBeat) {
+      break
+    }
+
+    seconds += ((event.startBeat - cursorBeat) * 60) / quarterBpm
+    cursorBeat = event.startBeat
+    quarterBpm = event.quarterBpm
+  }
+
+  return seconds + ((toBeat - cursorBeat) * 60) / quarterBpm
+}
+
+export function elapsedSecondsToBeat(
+  timeline: Pick<PlaybackTimeline, 'tempoEvents' | 'totalBeats'>,
+  fromBeat: number,
+  elapsedSeconds: number,
+  fallbackBpm: number
+): number {
+  if (elapsedSeconds <= 0) {
+    return fromBeat
+  }
+
+  let remainingSeconds = elapsedSeconds
+  let cursorBeat = fromBeat
+  let quarterBpm = resolveQuarterBpmAtBeat(timeline, fromBeat, fallbackBpm)
+
+  for (const event of timeline.tempoEvents) {
+    if (event.startBeat <= fromBeat) {
+      continue
+    }
+
+    const secondsUntilEvent =
+      ((event.startBeat - cursorBeat) * 60) / quarterBpm
+
+    if (remainingSeconds < secondsUntilEvent) {
+      return cursorBeat + (remainingSeconds * quarterBpm) / 60
+    }
+
+    remainingSeconds -= secondsUntilEvent
+    cursorBeat = event.startBeat
+    quarterBpm = event.quarterBpm
+  }
+
+  return Math.min(
+    timeline.totalBeats,
+    cursorBeat + (remainingSeconds * quarterBpm) / 60
+  )
 }
 
 export function tempoBeatUnitToQuarterBeats(tempo: TempoMarking): number {

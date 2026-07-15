@@ -11,8 +11,8 @@ import {
   type Measure,
   type Pitch,
   type Score,
+  type VoiceEvent,
   type Voice,
-  type VoiceEvent
 } from '../score-core'
 import {
   clefToMusicXml,
@@ -80,6 +80,7 @@ export function serializeMusicXml(score: Score): string {
           const tupletBoundaries = createTupletBoundaries(voice)
           const directions = buildMeasureDirections(score, measure)
           const barlines = buildRepeatBarlines(measure)
+          const harmonies = buildMeasureHarmonies(score, measure)
 
           return {
             '@_number': measure.number,
@@ -94,8 +95,13 @@ export function serializeMusicXml(score: Score): string {
                   direction: directions
                 }
               : {}),
-            note: sortVoiceEvents(voice.events).map((event) =>
-              buildNote(
+            ...(harmonies.length > 0
+              ? {
+                  harmony: harmonies
+                }
+              : {}),
+            note: sortVoiceEvents(voice.events).flatMap((event) =>
+              buildNoteElements(
                 event,
                 measure,
                 voice,
@@ -115,6 +121,51 @@ export function serializeMusicXml(score: Score): string {
   }
 
   return builder.build(document)
+}
+
+function buildMeasureHarmonies(score: Score, measure: Measure) {
+  return (score.harmonies ?? [])
+    .filter((harmony) => harmony.measureId === measure.id)
+    .map((harmony) => ({
+      ...(harmony.root
+        ? {
+            root: {
+              'root-step': harmony.root.step,
+              ...(harmony.root.alter !== undefined
+                ? {
+                    'root-alter': harmony.root.alter
+                  }
+                : {})
+            }
+          }
+        : {}),
+      kind: {
+        '#text': harmony.text,
+        '@_text': harmony.text,
+        ...(harmony.kind
+          ? {
+              '@_value': harmony.kind
+            }
+          : {})
+      },
+      ...(harmony.bass
+        ? {
+            bass: {
+              'bass-step': harmony.bass.step,
+              ...(harmony.bass.alter !== undefined
+                ? {
+                    'bass-alter': harmony.bass.alter
+                  }
+                : {})
+            }
+          }
+        : {}),
+      ...(harmony.tick > 0
+        ? {
+            offset: harmony.tick
+          }
+        : {})
+    }))
 }
 
 function buildMeasureDirections(score: Score, measure: Measure) {
@@ -330,7 +381,7 @@ function buildAttributes(measure: Measure) {
   }
 }
 
-function buildNote(
+function buildNoteElements(
   event: VoiceEvent,
   measure: Measure,
   voice: Voice,
@@ -342,11 +393,70 @@ function buildNote(
     starts?: string[]
     stops?: string[]
   }
+): unknown[] {
+  if (event.type === 'note') {
+    const notePitches = event.pitches?.length
+      ? event.pitches
+      : [resolveNotePitch(measure, voice, event)]
+    const graceNotes = (event.graceNotes ?? []).map((graceNote) =>
+      buildGraceNote(graceNote)
+    )
+    const mainNote = buildNote(
+      event,
+      measure,
+      voice,
+      notePitches[0],
+      false,
+      tupletBoundary,
+      slurBoundary
+    )
+    const chordNotes = notePitches.slice(1).map((pitch) =>
+      buildNote(event, measure, voice, pitch, true)
+    )
+
+    return [...graceNotes, mainNote, ...chordNotes]
+  }
+
+  return [buildNote(event, measure, voice, undefined, false, tupletBoundary)]
+}
+
+function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number]) {
+  return {
+    grace: graceNote.slash
+      ? {
+          '@_slash': 'yes'
+        }
+      : '',
+    pitch: {
+      step: graceNote.pitch.step,
+      ...(graceNote.pitch.alter !== undefined
+        ? {
+            alter: graceNote.pitch.alter
+          }
+        : {}),
+      octave: graceNote.pitch.octave
+    },
+    type: 'eighth'
+  }
+}
+
+function buildNote(
+  event: VoiceEvent,
+  measure: Measure,
+  voice: Voice,
+  pitch: Pitch | undefined,
+  isChordTone: boolean,
+  tupletBoundary?: {
+    start?: boolean
+    stop?: boolean
+  },
+  slurBoundary?: {
+    starts?: string[]
+    stops?: string[]
+  }
 ) {
   const dots = Array.from({ length: event.duration.dots }, () => '')
   const isFullMeasureRest = event.type === 'rest' && event.fullMeasure
-  const pitch =
-    event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
   const displaysAccidental =
     event.type === 'note' &&
     !event.ties?.stop &&
@@ -380,21 +490,33 @@ function buildNote(
     ...(event.breathMark === 'caesura' ? ['caesura'] : [])
   ]
   const ornamentNotations =
-    event.type === 'note' && event.tremolo
+    event.type === 'note'
       ? {
-          tremolo: {
-            '@_type': 'single',
-            '#text': event.tremolo.marks
-          }
+          ...(event.tremolo
+            ? {
+                tremolo: {
+                  '@_type': 'single',
+                  '#text': event.tremolo.marks
+                }
+              }
+            : {}),
+          ...(event.ornaments ?? []).reduce<Record<string, string>>(
+            (values, ornament) => ({
+              ...values,
+              [ornament]: ''
+            }),
+            {}
+          )
         }
-      : undefined
+      : {}
+  const hasOrnaments = Object.keys(ornamentNotations).length > 0
   const hasFermata = Boolean(event.fermata)
   const hasNotations =
     tieTypes.length > 0 ||
     notationTuplets.length > 0 ||
     notationSlurs.length > 0 ||
     articulationNotations.length > 0 ||
-    Boolean(ornamentNotations) ||
+    hasOrnaments ||
     hasFermata
 
   return {
@@ -407,6 +529,11 @@ function buildNote(
             : ''
         }
       : {
+          ...(isChordTone
+            ? {
+                chord: ''
+              }
+            : {}),
           pitch: {
             step: pitch!.step,
             ...(pitch!.alter !== 0 ||
@@ -476,7 +603,7 @@ function buildNote(
                   )
                 }
               : {}),
-            ...(ornamentNotations
+            ...(hasOrnaments
               ? {
                   ornaments: ornamentNotations
                 }
@@ -492,6 +619,28 @@ function buildNote(
     ...(dots.length > 0
       ? {
           dot: dots
+        }
+      : {}),
+    ...(event.type === 'note' && event.lyrics?.length && !isChordTone
+      ? {
+          lyric: event.lyrics.map((lyric) => ({
+            ...(lyric.number !== undefined
+              ? {
+                  '@_number': lyric.number
+                }
+              : {}),
+            ...(lyric.syllabic
+              ? {
+                  syllabic: lyric.syllabic
+                }
+              : {}),
+            text: lyric.text,
+            ...(lyric.extend
+              ? {
+                  extend: ''
+                }
+              : {})
+          }))
         }
       : {})
   }

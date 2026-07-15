@@ -36,6 +36,13 @@ export interface Pitch {
   alter?: -2 | -1 | 0 | 1 | 2
 }
 
+export interface LyricSyllable {
+  number?: number
+  syllabic?: 'single' | 'begin' | 'middle' | 'end'
+  text: string
+  extend?: boolean
+}
+
 export type ClefSign = 'G' | 'F' | 'C' | 'percussion' | 'tab'
 
 export interface Clef {
@@ -64,11 +71,19 @@ export interface TremoloMark {
   marks: 1 | 2 | 3
 }
 
+export type Ornament = 'trill' | 'mordent' | 'turn'
+
+export interface GraceNote {
+  pitch: Pitch
+  slash?: boolean
+}
+
 export interface Note {
   type: 'note'
   id: VoiceEventId
   position: TimePosition
   pitch: Pitch
+  pitches?: Pitch[]
   duration: Duration
   ties?: {
     start?: boolean
@@ -78,6 +93,9 @@ export interface Note {
   fermata?: boolean
   breathMark?: BreathMark
   tremolo?: TremoloMark
+  lyrics?: LyricSyllable[]
+  graceNotes?: GraceNote[]
+  ornaments?: Ornament[]
 }
 
 export interface Rest {
@@ -165,6 +183,22 @@ export interface RepeatMark {
   times?: number
 }
 
+export interface HarmonyMark {
+  id: string
+  measureId: MeasureId
+  tick: Tick
+  text: string
+  root?: {
+    step: PitchStep
+    alter?: -2 | -1 | 0 | 1 | 2
+  }
+  kind?: string
+  bass?: {
+    step: PitchStep
+    alter?: -2 | -1 | 0 | 1 | 2
+  }
+}
+
 export interface RehearsalMark {
   id: string
   measureId: MeasureId
@@ -208,6 +242,7 @@ export interface Score {
   tempo?: TempoMarking
   tempoEvents?: TempoEvent[]
   octaveShifts?: OctaveShift[]
+  harmonies?: HarmonyMark[]
   rehearsalMarks?: RehearsalMark[]
   staffTexts?: StaffText[]
   dynamics?: DynamicMark[]
@@ -263,6 +298,10 @@ export type ScoreCommand =
   | {
       type: 'score-slurs.update'
       slurs?: Slur[]
+    }
+  | {
+      type: 'score-harmonies.update'
+      harmonies?: HarmonyMark[]
     }
   | {
       type: 'score-layout.update'

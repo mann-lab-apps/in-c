@@ -832,6 +832,15 @@ h2 {
   font-weight: 600;
 }
 
+.notation-harmony-mark {
+  fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  font-weight: 700;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
 .notation-dynamic-mark {
   fill: #111827;
   font-family: Georgia, 'Times New Roman', serif;
@@ -894,6 +903,29 @@ h2 {
   font-size: 20px;
   font-weight: 700;
   text-anchor: middle;
+}
+
+.notation-grace-notes,
+.notation-lyric,
+.notation-ornament {
+  fill: #111827;
+  pointer-events: none;
+  text-anchor: middle;
+}
+
+.notation-grace-notes {
+  font-size: 10px;
+  font-style: italic;
+}
+
+.notation-lyric {
+  font-size: 13px;
+}
+
+.notation-ornament {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 15px;
+  font-weight: 700;
 }
 
 .notation-state-overlays {

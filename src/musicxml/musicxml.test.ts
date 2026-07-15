@@ -1483,4 +1483,205 @@ describe('MusicXML MVP', () => {
       }
     ])
   })
+
+  it('exports and re-imports single-voice chord notes', () => {
+    const score = createScore({
+      title: 'Chord Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'c-major',
+                          pitch: { step: 'C', octave: 4 },
+                          pitches: [
+                            { step: 'C', octave: 4 },
+                            { step: 'E', octave: 4 },
+                            { step: 'G', octave: 4 }
+                          ]
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const event =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(exported.match(/<chord\/>/g)).toHaveLength(2)
+    expect(event).toMatchObject({
+      type: 'note',
+      pitches: [
+        { step: 'C', octave: 4 },
+        { step: 'E', octave: 4 },
+        { step: 'G', octave: 4 }
+      ]
+    })
+  })
+
+  it('exports and re-imports harmony symbols', () => {
+    const score = createScore({
+      title: 'Harmony Sketch',
+      harmonies: [
+        {
+          id: 'cmaj7',
+          measureId: 'measure-1',
+          tick: TICKS_PER_QUARTER,
+          text: 'Cmaj7/G',
+          root: { step: 'C' },
+          kind: 'major-seventh',
+          bass: { step: 'G' }
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<harmony>')
+    expect(exported).toContain('<root-step>C</root-step>')
+    expect(exported).toContain('<bass-step>G</bass-step>')
+    expect(roundTrip.harmonies).toEqual([
+      {
+        id: 'measure-1-harmony-1',
+        measureId: 'measure-1',
+        tick: TICKS_PER_QUARTER,
+        text: 'Cmaj7/G',
+        root: { step: 'C' },
+        kind: 'major-seventh',
+        bass: { step: 'G' }
+      }
+    ])
+  })
+
+  it('exports and re-imports lyrics on notes', () => {
+    const score = createScore({
+      title: 'Lyric Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'sung-note',
+                          pitch: { step: 'C', octave: 4 },
+                          lyrics: [
+                            {
+                              number: 1,
+                              syllabic: 'begin',
+                              text: '사랑'
+                            },
+                            {
+                              number: 2,
+                              syllabic: 'single',
+                              text: 'love',
+                              extend: true
+                            }
+                          ]
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const event =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(exported).toContain('<lyric number="1">')
+    expect(exported).toContain('<text>사랑</text>')
+    expect(event).toMatchObject({
+      type: 'note',
+      lyrics: [
+        { number: 1, syllabic: 'begin', text: '사랑' },
+        { number: 2, syllabic: 'single', text: 'love', extend: true }
+      ]
+    })
+  })
+
+  it('exports and re-imports grace notes and ornaments', () => {
+    const score = createScore({
+      title: 'Ornament Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'ornamented-note',
+                          pitch: { step: 'D', octave: 4 },
+                          graceNotes: [
+                            {
+                              pitch: { step: 'C', octave: 4 },
+                              slash: true
+                            }
+                          ],
+                          ornaments: ['trill', 'turn']
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const event =
+      parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(exported).toContain('<grace slash="yes"/>')
+    expect(exported).toContain('<trill/>')
+    expect(exported).toContain('<turn/>')
+    expect(event).toMatchObject({
+      type: 'note',
+      graceNotes: [
+        {
+          pitch: { step: 'C', octave: 4 },
+          slash: true
+        }
+      ],
+      ornaments: ['trill', 'turn']
+    })
+  })
 })

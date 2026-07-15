@@ -27,6 +27,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreHairpins(score, command.hairpins)
     case 'score-slurs.update':
       return updateScoreSlurs(score, command.slurs)
+    case 'score-harmonies.update':
+      return updateScoreHarmonies(score, command.harmonies)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
     case 'voice-event.insert':
@@ -75,6 +77,22 @@ function updateScoreSlurs(score: Score, slurs: Score['slurs']): CommandResult {
     undo: {
       type: 'score-slurs.update',
       slurs: score.slurs
+    }
+  }
+}
+
+function updateScoreHarmonies(
+  score: Score,
+  harmonies: Score['harmonies']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      harmonies
+    },
+    undo: {
+      type: 'score-harmonies.update',
+      harmonies: score.harmonies
     }
   }
 }

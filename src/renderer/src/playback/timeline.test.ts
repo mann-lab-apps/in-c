@@ -14,10 +14,13 @@ import {
 } from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
 import {
+  beatDeltaToSeconds,
   createPlaybackTimeline,
   durationToBeats,
+  elapsedSecondsToBeat,
   findPlaybackEvent,
   pitchToFrequency,
+  resolveQuarterBpmAtBeat,
   tempoMarkingToQuarterBpm
 } from './timeline'
 
@@ -134,6 +137,139 @@ describe('playback timeline', () => {
     ])
   })
 
+  it('uses tempo events when converting playback beats and seconds', () => {
+    const timeline = {
+      totalBeats: 8,
+      tempoEvents: [
+        {
+          id: 'slower',
+          measureId: 'measure-1',
+          startBeat: 2,
+          bpm: 60,
+          quarterBpm: 60,
+          text: 'Meno mosso'
+        }
+      ]
+    }
+
+    expect(resolveQuarterBpmAtBeat(timeline, 1.5, 120)).toBe(120)
+    expect(resolveQuarterBpmAtBeat(timeline, 2, 120)).toBe(60)
+    expect(beatDeltaToSeconds(timeline, 0, 4, 120)).toBeCloseTo(3)
+    expect(elapsedSecondsToBeat(timeline, 0, 1.5, 120)).toBeCloseTo(2.5)
+  })
+
+  it('keeps chord tones in one simultaneous playback event', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'c-major',
+                          pitch: { step: 'C', octave: 4 },
+                          pitches: [
+                            { step: 'C', octave: 4 },
+                            { step: 'E', octave: 4 },
+                            { step: 'G', octave: 4 }
+                          ]
+                        }),
+                        createRest({
+                          id: 'rest-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const [event] = createPlaybackTimeline(score).events
+
+    expect(event.eventId).toBe('c-major')
+    expect(event.frequencies).toHaveLength(3)
+    expect(event.frequencies?.[0]).toBeCloseTo(261.626, 3)
+    expect(event.frequencies?.[1]).toBeCloseTo(329.628, 3)
+    expect(event.frequencies?.[2]).toBeCloseTo(391.995, 3)
+  })
+
+  it('expands simple repeat barlines into playback order', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  repeat: {
+                    start: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'repeat-note',
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'repeat-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2,
+                  repeat: {
+                    end: true,
+                    times: 3
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'repeat-end-note',
+                          pitch: { step: 'D', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'repeat-end-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.totalBeats).toBe(24)
+    expect(
+      timeline.events
+        .filter((event) => event.frequency !== undefined)
+        .map((event) => event.startBeat)
+    ).toEqual([0, 4, 8, 12, 16, 20])
+  })
+
   it('merges simultaneous playback events from multiple parts', () => {
     const score = createScore({
       parts: [
@@ -199,11 +335,120 @@ describe('playback timeline', () => {
       'violin-rest',
       'cello-rest'
     ])
+    expect(timeline.events[0]).toMatchObject({
+      partId: 'violin',
+      staffId: 'staff-1',
+      voiceId: 'voice-1'
+    })
+    expect(timeline.events[1]).toMatchObject({
+      partId: 'cello',
+      staffId: 'staff-1',
+      voiceId: 'voice-1'
+    })
     expect(timeline.events.slice(0, 2).map((event) => event.startBeat)).toEqual([
       0,
       0
     ])
     expect(timeline.totalBeats).toBe(4)
+  })
+
+  it('keeps simultaneous voices addressable on one staff', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              id: 'staff-top',
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'upper-c',
+                          pitch: { step: 'C', octave: 5 }
+                        }),
+                        createRest({
+                          id: 'upper-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    }),
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createNote({
+                          id: 'lower-c',
+                          pitch: { step: 'C', octave: 3 }
+                        }),
+                        createRest({
+                          id: 'lower-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.events.slice(0, 2).map((event) => event.voiceId)).toEqual([
+      'voice-1',
+      'voice-2'
+    ])
+    expect(timeline.events.slice(0, 2).map((event) => event.startBeat)).toEqual([
+      0,
+      0
+    ])
+  })
+
+  it('carries single-note tremolo marks into playback events', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'tremolo-note',
+                          pitch: { step: 'C', octave: 4 },
+                          tremolo: {
+                            type: 'single',
+                            marks: 3
+                          }
+                        }),
+                        createRest({
+                          id: 'tremolo-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(createPlaybackTimeline(score).events[0].tremolo).toEqual({
+      type: 'single',
+      marks: 3
+    })
   })
 
   it('finds the event under the playhead including rests', () => {

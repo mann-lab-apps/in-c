@@ -144,6 +144,14 @@ export function NotationPreview({
     const dynamicsByMeasureId = new Map(
       (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
     )
+    const harmoniesByMeasureId = new Map<string, NonNullable<Score['harmonies']>>()
+
+    for (const harmony of score.harmonies ?? []) {
+      harmoniesByMeasureId.set(harmony.measureId, [
+        ...(harmoniesByMeasureId.get(harmony.measureId) ?? []),
+        harmony
+      ])
+    }
 
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
@@ -412,6 +420,18 @@ export function NotationPreview({
             )
           }
 
+          if (svg && event?.type === 'note' && event.ornaments?.length) {
+            drawOrnaments(svg, note.getAbsoluteX(), placement.y, event.ornaments)
+          }
+
+          if (svg && event?.type === 'note' && event.graceNotes?.length) {
+            drawGraceNotes(svg, note.getAbsoluteX(), placement.y, event.graceNotes)
+          }
+
+          if (svg && event?.type === 'note' && event.lyrics?.length) {
+            drawLyrics(svg, note.getAbsoluteX(), placement.y, event.lyrics)
+          }
+
           if (
             measure.id === inputCursor?.measureId &&
             events[noteIndex]?.position.tick === inputCursor.tick
@@ -445,6 +465,19 @@ export function NotationPreview({
           dynamic.value,
           measure.id
         )
+      }
+
+      if (svg) {
+        for (const harmony of harmoniesByMeasureId.get(measure.id) ?? []) {
+          drawHarmonyMark(
+            svg,
+            placement.x +
+              18 +
+              (harmony.tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36),
+            placement.y,
+            harmony.text
+          )
+        }
       }
     })
 
@@ -734,6 +767,21 @@ function drawStaffText(
   text.classList.add('notation-staff-text')
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawHarmonyMark(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  label: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-harmony-mark')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(staffY - 42))
   text.textContent = label
   svg.append(text)
 }
@@ -1036,6 +1084,65 @@ function drawTremoloMark(
   svg.append(group)
 }
 
+function drawOrnaments(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  ornaments: string[]
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-ornament')
+  text.setAttribute('x', String(x + 4))
+  text.setAttribute('y', String(staffY - 34))
+  text.textContent = ornaments.map(ornamentLabel).join(' ')
+  svg.append(text)
+}
+
+function ornamentLabel(ornament: string): string {
+  if (ornament === 'trill') {
+    return 'tr'
+  }
+
+  if (ornament === 'mordent') {
+    return '𝆝'
+  }
+
+  return '𝆗'
+}
+
+function drawGraceNotes(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  graceNotes: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-grace-notes')
+  text.setAttribute('x', String(x - 22))
+  text.setAttribute('y', String(staffY + 2))
+  text.textContent = graceNotes.map((note) => note.pitch.step.toLowerCase()).join('')
+  svg.append(text)
+}
+
+function drawLyrics(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+): void {
+  lyrics.forEach((lyric, index) => {
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+    text.classList.add('notation-lyric')
+    text.setAttribute('x', String(x + 4))
+    text.setAttribute('y', String(staffY + 116 + index * 16))
+    text.textContent = `${lyric.text}${lyric.extend ? '_' : ''}`
+    svg.append(text)
+  })
+}
+
 function drawTie(
   context: ReturnType<Renderer['getContext']>,
   firstNote: StaveNote | null,
@@ -1099,9 +1206,15 @@ function createStaveNote(
   const isRest = event.type === 'rest'
   const pitch =
     event.type === 'note' ? resolveNotePitch(measure, voice, event) : undefined
+  const keys =
+    event.type === 'note' && event.pitches?.length
+      ? event.pitches.map(toVexFlowKey)
+      : isRest
+        ? ['b/4']
+        : [toVexFlowKey(pitch!)]
   const note = new StaveNote({
     clef,
-    keys: isRest ? ['b/4'] : [toVexFlowKey(pitch!)],
+    keys,
     duration: toVexFlowDuration(event.duration, isRest),
     autoStem: true
   })

@@ -58,24 +58,32 @@ export function createNote(input: {
   id: string
   position?: TimePosition
   pitch: Pitch
+  pitches?: Pitch[]
   duration?: Duration
   ties?: Note['ties']
   articulations?: Note['articulations']
   fermata?: boolean
   breathMark?: Note['breathMark']
   tremolo?: Note['tremolo']
+  lyrics?: Note['lyrics']
+  graceNotes?: Note['graceNotes']
+  ornaments?: Note['ornaments']
 }): Note {
   return {
     type: 'note',
     id: input.id,
     position: input.position ?? createTimePosition(0),
     pitch: input.pitch,
+    pitches: input.pitches,
     duration: input.duration ?? createDuration('quarter'),
     ties: input.ties,
     articulations: input.articulations,
     fermata: input.fermata,
     breathMark: input.breathMark,
-    tremolo: input.tremolo
+    tremolo: input.tremolo,
+    lyrics: input.lyrics,
+    graceNotes: input.graceNotes,
+    ornaments: input.ornaments
   }
 }
 
@@ -185,6 +193,7 @@ export function createScore(input?: {
   tempo?: Score['tempo']
   tempoEvents?: Score['tempoEvents']
   octaveShifts?: Score['octaveShifts']
+  harmonies?: Score['harmonies']
   rehearsalMarks?: Score['rehearsalMarks']
   staffTexts?: Score['staffTexts']
   dynamics?: Score['dynamics']
@@ -200,6 +209,7 @@ export function createScore(input?: {
     tempo: input?.tempo,
     tempoEvents: input?.tempoEvents,
     octaveShifts: input?.octaveShifts,
+    harmonies: input?.harmonies,
     rehearsalMarks: input?.rehearsalMarks,
     staffTexts: input?.staffTexts,
     dynamics: input?.dynamics,

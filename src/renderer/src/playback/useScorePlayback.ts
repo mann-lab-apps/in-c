@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { Score } from '../../../score-core'
 import {
+  beatDeltaToSeconds,
   createPlaybackTimeline,
+  elapsedSecondsToBeat,
   findPlaybackEvent,
   tempoMarkingToQuarterBpm,
+  type PlaybackTimeline,
   type PlaybackEvent
 } from './timeline'
 
@@ -77,21 +80,25 @@ export function useScorePlayback(score: Score) {
     const elapsedSeconds = context.currentTime - startContextTimeRef.current
     return Math.max(
       startBeatRef.current,
-      startBeatRef.current + elapsedSeconds * (tempoRef.current / 60)
+      elapsedSecondsToBeat(
+        timelineRef.current,
+        startBeatRef.current,
+        elapsedSeconds,
+        tempoRef.current
+      )
     )
   }, [])
 
   const scheduleAudio = useCallback(
     (
       context: AudioContext,
-      events: PlaybackEvent[],
+      timeline: PlaybackTimeline,
       fromBeat: number,
       bpm: number
     ) => {
-      const secondsPerBeat = 60 / bpm
       const now = context.currentTime + 0.03
 
-      sourcesRef.current = events.flatMap((event) => {
+      sourcesRef.current = timeline.events.flatMap((event: PlaybackEvent) => {
         if (
           event.frequency === undefined ||
           event.startBeat + event.durationBeats <= fromBeat
@@ -99,30 +106,41 @@ export function useScorePlayback(score: Score) {
           return []
         }
 
-        const oscillator = context.createOscillator()
-        const gain = context.createGain()
         const eventStartBeat = Math.max(event.startBeat, fromBeat)
-        const startTime = now + (eventStartBeat - fromBeat) * secondsPerBeat
+        const startTime =
+          now + beatDeltaToSeconds(timeline, fromBeat, eventStartBeat, bpm)
         const endTime =
-          startTime +
-          (event.startBeat + event.durationBeats - eventStartBeat) *
-            secondsPerBeat
+          now +
+          beatDeltaToSeconds(
+            timeline,
+            fromBeat,
+            event.startBeat + event.durationBeats,
+            bpm
+          )
         const startVelocity = resolveEventVelocityAtBeat(event, eventStartBeat)
         const endVelocity = event.velocityEnd
         const sustainStart = Math.min(startTime + 0.015, endTime)
         const releaseStart = Math.max(sustainStart, endTime - 0.04)
+        const frequencies = event.frequencies ?? [event.frequency]
 
-        oscillator.type = 'triangle'
-        oscillator.frequency.setValueAtTime(event.frequency, startTime)
-        gain.gain.setValueAtTime(0.0001, startTime)
-        gain.gain.exponentialRampToValueAtTime(startVelocity, sustainStart)
-        gain.gain.linearRampToValueAtTime(endVelocity, releaseStart)
-        gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
-        oscillator.connect(gain)
-        gain.connect(context.destination)
-        oscillator.start(startTime)
-        oscillator.stop(endTime + 0.01)
-        return [oscillator]
+        return frequencies.map((frequency) => {
+          const oscillator = context.createOscillator()
+          const gain = context.createGain()
+          const voiceVelocity = startVelocity / Math.sqrt(frequencies.length)
+          const voiceEndVelocity = endVelocity / Math.sqrt(frequencies.length)
+
+          oscillator.type = 'triangle'
+          oscillator.frequency.setValueAtTime(frequency, startTime)
+          gain.gain.setValueAtTime(0.0001, startTime)
+          gain.gain.exponentialRampToValueAtTime(voiceVelocity, sustainStart)
+          gain.gain.linearRampToValueAtTime(voiceEndVelocity, releaseStart)
+          gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
+          oscillator.connect(gain)
+          gain.connect(context.destination)
+          oscillator.start(startTime)
+          oscillator.stop(endTime + 0.01)
+          return oscillator
+        })
       })
     },
     []
@@ -177,7 +195,7 @@ export function useScorePlayback(score: Score) {
       startContextTimeRef.current = context.currentTime + 0.03
       scheduleAudio(
         context,
-        timelineRef.current.events,
+        timelineRef.current,
         startBeatRef.current,
         bpm
       )
