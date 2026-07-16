@@ -164,6 +164,12 @@ Columns, Classes와 연결하는 것이다. 단순 프로필보다 흩어진 활
 - 5-10명 규모의 관찰 테스트 또는 피드백 인터뷰 진행 [확인 필요]
 - 어떤 글이 질문을 만들고, 어떤 악보가 다운로드되는지 기록
 
+베타 모집 범위와 첫 30명 성공 기준은
+[`beta-recruiting-scope.md`](beta-recruiting-scope.md)와
+[`beta-success-metrics.md`](beta-success-metrics.md)에 둔다. 첫 악보 관찰 테스트는
+[`../research/first-score-usability-script.md`](../research/first-score-usability-script.md)를
+따른다.
+
 ## 2026년 8월 이후 목표
 
 제품:
@@ -190,6 +196,12 @@ Columns, Classes와 연결하는 것이다. 단순 프로필보다 흩어진 활
 - 전문가 그룹의 반복 홍보와 정보교류 비용을 줄일 수 있는지 검증 [확인 필요]
 - 무료 Chromatics를 생태계 유입 도구로 유지하면서 주변 수익 모델 검토
 - 초기 사용자 지표와 정성 피드백을 기반으로 사업화 가설 업데이트
+
+Concert Preview 파일럿은
+[`promotion/concert-preview-proposal.md`](promotion/concert-preview-proposal.md), Classes
+파트너 기준은 [`classes/partner-pilot.md`](classes/partner-pilot.md), Creator intake는
+[`creators/intake-questionnaire.md`](creators/intake-questionnaire.md)를 기준으로
+검토한다.
 
 ## 7월 이후로 미루는 범위
 
