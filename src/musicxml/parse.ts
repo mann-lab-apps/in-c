@@ -381,7 +381,12 @@ function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
     bpm,
     beatUnit: isTempoBeatUnit(beatUnit) ? beatUnit : 'quarter',
     dots: metronome ? toArray(metronome['beat-unit-dot']).length : 0,
-    text: words ?? tempoLabel(bpm, beatUnit)
+    text: words ?? tempoLabel(bpm, beatUnit),
+    ...(readOptionalString(direction, '@_print-object') === 'no'
+      ? {
+          transparent: true
+        }
+      : {})
   }
 }
 

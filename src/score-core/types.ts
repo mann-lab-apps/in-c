@@ -160,6 +160,7 @@ export interface TempoMarking {
   beatUnit?: DurationValue
   dots?: number
   text?: string
+  transparent?: boolean
 }
 
 export interface TempoEvent extends TempoMarking {

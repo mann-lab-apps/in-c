@@ -132,7 +132,7 @@ export function NotationPreview({
     }
 
     if (svg && score.tempo) {
-      drawTempoMarking(svg, formatTempoMarking(score.tempo))
+      drawTempoMarking(svg, score.tempo)
     }
 
     const rehearsalMarksByMeasureId = new Map(
@@ -483,7 +483,7 @@ export function NotationPreview({
               18 +
               (tempoEvent.tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36),
             placement.y,
-            formatTempoMarking(tempoEvent)
+            tempoEvent
           )
         }
 
@@ -652,13 +652,16 @@ export function NotationPreview({
   return <div className="notation-preview" ref={containerRef} />
 }
 
-function drawTempoMarking(svg: SVGSVGElement, label: string): void {
+function drawTempoMarking(svg: SVGSVGElement, tempo: TempoMarking): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-tempo-marking')
+  if (tempo.transparent) {
+    text.classList.add('notation-tempo-marking--transparent')
+  }
   text.setAttribute('x', '32')
   text.setAttribute('y', '36')
-  text.textContent = label
+  text.textContent = formatTempoMarking(tempo)
   svg.append(text)
 }
 
@@ -666,14 +669,17 @@ function drawPositionedTempoMarking(
   svg: SVGSVGElement,
   x: number,
   staffY: number,
-  label: string
+  tempo: TempoMarking
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-tempo-marking', 'notation-tempo-marking--positioned')
+  if (tempo.transparent) {
+    text.classList.add('notation-tempo-marking--transparent')
+  }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(staffY - 42))
-  text.textContent = label
+  text.textContent = formatTempoMarking(tempo)
   svg.append(text)
 }
 

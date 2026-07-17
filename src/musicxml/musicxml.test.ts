@@ -261,6 +261,29 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports transparent tempo markings', () => {
+    const score = createScore({
+      title: 'Transparent Tempo Sketch',
+      tempo: {
+        bpm: 120,
+        beatUnit: 'quarter',
+        text: '♩ = 120',
+        transparent: true
+      }
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('print-object="no"')
+    expect(roundTrip.tempo).toEqual({
+      bpm: 120,
+      beatUnit: 'quarter',
+      dots: 0,
+      text: '♩ = 120',
+      transparent: true
+    })
+  })
+
   it('exports and re-imports positioned tempo events', () => {
     const score = createScore({
       title: 'Tempo Map Sketch',

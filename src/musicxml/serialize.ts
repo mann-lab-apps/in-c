@@ -227,6 +227,11 @@ function buildTempoDirection(
 
   return {
     '@_placement': 'above',
+    ...(tempo.transparent
+      ? {
+          '@_print-object': 'no'
+        }
+      : {}),
     'direction-type': {
       ...(tempo.text
         ? {

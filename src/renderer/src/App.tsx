@@ -95,10 +95,8 @@ import { buildKeySignatureCommand } from './editor/key-signature'
 import {
   createNewScore,
   keySignaturePresets,
-  partPresets,
   resolveKeySignaturePreset,
   resolveKeySignaturePresetId,
-  resolvePartPreset,
   resolveTimeSignaturePreset,
   resolveTimeSignaturePresetId,
   timeSignaturePresets
@@ -168,11 +166,6 @@ const tripletPreset = {
   shortcut: string
 }
 
-const modeStatus: Record<EditorMode, string> = {
-  select: '선택 모드 · A-G로 선택한 음표나 쉼표를 바꿉니다',
-  note: '음표 입력 · A-G로 음표를 입력합니다',
-  rest: '쉼표 입력 · R로 쉼표를 입력합니다'
-}
 const eventTypeLabels = {
   note: '음표',
   rest: '쉼표'
@@ -196,10 +189,19 @@ interface MetadataEdit {
   value: string
 }
 
+const toolbarCategories = [
+  { id: 'file', label: '파일' },
+  { id: 'note', label: '음표' },
+  { id: 'lyrics', label: '가사' },
+  { id: 'measure', label: '마디' },
+  { id: 'playback', label: '재생' }
+] as const
+
+type ToolbarCategory = (typeof toolbarCategories)[number]['id']
+
 interface NewScoreDraft {
   title: string
   composer: string
-  partPresetId: string
   keySignatureId: string
   timeSignatureId: string
   measureCount: number
@@ -269,6 +271,8 @@ export const App = () => {
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
   const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
+  const [toolbarCategory, setToolbarCategory] =
+    useState<ToolbarCategory>('note')
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -654,18 +658,9 @@ export const App = () => {
   )
 
   const openNewScoreWizard = useCallback(() => {
-    if (
-      undoStack.length > 0 &&
-      !window.confirm(
-        '현재 악보의 변경사항이 사라집니다. 새 악보를 만들까요?'
-      )
-    ) {
-      return
-    }
-
     setMetadataEdit(undefined)
     setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
-  }, [playback.tempo, undoStack.length])
+  }, [playback.tempo])
 
   const cancelNewScoreWizard = useCallback(() => {
     setNewScoreDraft(undefined)
@@ -676,7 +671,6 @@ export const App = () => {
       return
     }
 
-    const part = resolvePartPreset(newScoreDraft.partPresetId)
     const keySignature = resolveKeySignaturePreset(
       newScoreDraft.keySignatureId
     ).value
@@ -686,8 +680,8 @@ export const App = () => {
     const nextScore = createNewScore({
       title: newScoreDraft.title,
       composer: newScoreDraft.composer,
-      partName: part.label,
-      partAbbreviation: part.abbreviation,
+      partName: '멜로디',
+      partAbbreviation: 'Mel.',
       keySignature,
       timeSignature,
       measureCount: newScoreDraft.measureCount,
@@ -734,10 +728,9 @@ export const App = () => {
     (beatUnit: DurationValue) => {
       executeCommand({
         type: 'score-tempo.update',
-        tempo: {
-          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
+        tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
           beatUnit
-        }
+        })
       })
     },
     [executeCommand, score.tempo, scoreTempo]
@@ -747,10 +740,9 @@ export const App = () => {
     (dots: number) => {
       executeCommand({
         type: 'score-tempo.update',
-        tempo: {
-          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
+        tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
           dots: Math.max(0, Math.min(2, Math.round(dots)))
-        }
+        })
       })
     },
     [executeCommand, score.tempo, scoreTempo]
@@ -758,12 +750,34 @@ export const App = () => {
 
   const changeScoreTempoText = useCallback(
     (text: string) => {
+      const tempo = parseTempoMarkingText(text)
+
+      if (!tempo) {
+        setFileStatus({
+          tone: 'error',
+          message: '빠르기말은 ♩ = 120 또는 ♪ = 120 형식으로 입력해 주세요.'
+        })
+        return
+      }
+
       executeCommand({
         type: 'score-tempo.update',
-        tempo: {
-          ...createUpdatedTempoMarking(score.tempo, scoreTempo),
-          text: text.trim() || undefined
-        }
+        tempo: createUpdatedTempoMarking(score.tempo, tempo.bpm, {
+          beatUnit: tempo.beatUnit,
+          dots: tempo.dots
+        })
+      })
+    },
+    [executeCommand, score.tempo]
+  )
+
+  const changeScoreTempoTransparency = useCallback(
+    (transparent: boolean) => {
+      executeCommand({
+        type: 'score-tempo.update',
+        tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
+          transparent
+        })
       })
     },
     [executeCommand, score.tempo, scoreTempo]
@@ -2335,10 +2349,6 @@ export const App = () => {
     })
   }, [])
 
-  const openExampleScore = useCallback(() => {
-    openScore(createSingleVoiceMvpScore(), '예제 악보를 열었습니다.')
-  }, [openScore])
-
   const importMusicXml = useCallback(async () => {
     try {
       const file = await window.inC.musicXml.open()
@@ -2763,7 +2773,7 @@ export const App = () => {
               >
                 <FilePlus2 aria-hidden="true" size={24} />
                 <span>새 악보 만들기</span>
-                <small>파트, 조표, 박자표, 마디 수를 정하고 시작합니다.</small>
+                <small>조표, 박자표, 마디 수를 정하고 시작합니다.</small>
               </button>
 
               <button
@@ -2774,16 +2784,6 @@ export const App = () => {
                 <FileUp aria-hidden="true" size={24} />
                 <span>MusicXML 가져오기</span>
                 <small>다른 사보 도구에서 만든 악보를 불러옵니다.</small>
-              </button>
-
-              <button
-                className="start-action"
-                onClick={openExampleScore}
-                type="button"
-              >
-                <FileMusic aria-hidden="true" size={24} />
-                <span>예제 악보 열기</span>
-                <small>단성부 입력, 빔, 셋잇단음표가 포함된 샘플을 엽니다.</small>
               </button>
 
               <button
@@ -2863,65 +2863,25 @@ export const App = () => {
         </section>
       ) : (
         <>
-      <aside className="sidebar" aria-label="악보 탐색">
-        <div>
-          <p className="eyebrow">in-C</p>
-          <h1>{score.title}</h1>
-        </div>
-
-        <nav className="panel-list" aria-label="패널 열기">
-          <button className="panel-list__item panel-list__item--active" type="button">
-            악보
+      <nav className="toolbar-tabs" aria-label="편집 도구 카테고리">
+        {toolbarCategories.map((category) => (
+          <button
+            aria-pressed={toolbarCategory === category.id}
+            className={toolbarCategory === category.id ? 'is-active' : undefined}
+            key={category.id}
+            onClick={() => setToolbarCategory(category.id)}
+            type="button"
+          >
+            {category.label}
           </button>
-          <button className="panel-list__item" type="button">
-            파트
-          </button>
-          <button className="panel-list__item" type="button">
-            믹서
-          </button>
-        </nav>
+        ))}
+      </nav>
 
-        <section className="inspector" aria-label="선택 정보">
-          <h2>선택 정보</h2>
-          <dl>
-            <div>
-              <dt>종류</dt>
-              <dd>
-                {selection.type === 'range'
-                  ? '범위'
-                  : eventLocation
-                  ? eventTypeLabels[eventLocation.event.type]
-                  : measureLocation
-                    ? '마디'
-                    : '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>ID</dt>
-              <dd>
-                {selection.type === 'range'
-                  ? `${selection.eventIds.length}개 선택`
-                  : eventLocation?.event.id ?? '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>마디</dt>
-              <dd>
-                {eventLocation?.measureNumber ??
-                  measureLocation?.measureNumber ??
-                  '—'}
-              </dd>
-            </div>
-            <div>
-              <dt>성부</dt>
-              <dd>
-                {eventLocation?.address.voiceId ??
-                  measureLocation?.address.voiceId ??
-                  '—'}
-              </dd>
-            </div>
-          </dl>
-
+      <section
+        className="selection-toolbar"
+        aria-label="음표 편집"
+        hidden={toolbarCategory !== 'note'}
+      >
           <section className="inspector-properties" aria-label="선택 속성">
             <h3>속성</h3>
             {eventLocation ? (
@@ -3089,106 +3049,6 @@ export const App = () => {
                     ) : null}
 
                     <label>
-                      <span>가사 절</span>
-                      <select
-                        aria-label="가사 절"
-                        onChange={(event) =>
-                          setActiveLyricVerse(Number.parseInt(event.target.value, 10))
-                        }
-                        value={activeLyricVerse}
-                      >
-                        <option value={1}>1절</option>
-                        <option value={2}>2절</option>
-                      </select>
-                    </label>
-
-                    <label>
-                      <span>가사</span>
-                      <input
-                        aria-label="선택 음표 가사"
-                        defaultValue={selectedLyric?.text ?? ''}
-                        key={`${selectedNote.id}-${activeLyricVerse}-${
-                          selectedLyric?.text ?? ''
-                        }`}
-                        maxLength={48}
-                        onBlur={(event) =>
-                          updateLyric(event.currentTarget.value, {
-                            syllabic: selectedLyric?.syllabic ?? 'single',
-                            extend: selectedLyric?.extend
-                          })
-                        }
-                        onKeyDown={(event) => {
-                          if (event.nativeEvent.isComposing) {
-                            return
-                          }
-
-                          if (event.key === 'Enter') {
-                            event.currentTarget.blur()
-                          } else if (event.key === ' ') {
-                            event.preventDefault()
-                            updateLyric(event.currentTarget.value, {
-                              syllabic: 'single',
-                              moveNext: true
-                            })
-                          } else if (event.key === '-') {
-                            event.preventDefault()
-                            updateLyric(event.currentTarget.value, {
-                              syllabic: 'begin',
-                              moveNext: true
-                            })
-                          } else if (event.key === '_') {
-                            event.preventDefault()
-                            updateLyric(event.currentTarget.value, {
-                              syllabic: 'single',
-                              extend: true,
-                              moveNext: true
-                            })
-                          } else if (event.key === 'Escape') {
-                            event.currentTarget.value = selectedLyric?.text ?? ''
-                            event.currentTarget.blur()
-                          }
-                        }}
-                        placeholder="가사"
-                        type="text"
-                      />
-                    </label>
-
-                    <label>
-                      <span>가사 음절</span>
-                      <select
-                        aria-label="가사 음절"
-                        onChange={(event) =>
-                          updateLyric(selectedLyric?.text ?? '', {
-                            syllabic: event.target.value as NonNullable<
-                              typeof selectedLyric
-                            >['syllabic'],
-                            extend: selectedLyric?.extend
-                          })
-                        }
-                        value={selectedLyric?.syllabic ?? 'single'}
-                      >
-                        <option value="single">single</option>
-                        <option value="begin">begin</option>
-                        <option value="middle">middle</option>
-                        <option value="end">end</option>
-                      </select>
-                    </label>
-
-                    <label className="inspector-properties__checkbox">
-                      <input
-                        checked={Boolean(selectedLyric?.extend)}
-                        onChange={(event) =>
-                          updateLyric(selectedLyric?.text ?? '', {
-                            syllabic: selectedLyric?.syllabic ?? 'single',
-                            extend: event.target.checked
-                          })
-                        }
-                        type="checkbox"
-                      />
-                      <span>멜리스마</span>
-                    </label>
-
-                    <label>
                       <span>코드 심벌</span>
                       <input
                         aria-label="코드 심벌"
@@ -3267,42 +3127,6 @@ export const App = () => {
                       </div>
                     </div>
 
-                    <label>
-                      <span>위치별 빠르기</span>
-                      <input
-                        aria-label="위치별 빠르기 BPM"
-                        defaultValue={activeTempoEvent?.bpm ?? ''}
-                        key={`${activeMeasureId}-${activeTick}-${
-                          activeTempoEvent?.bpm ?? ''
-                        }-tempo-event`}
-                        max={MAX_TEMPO_BPM}
-                        min={MIN_TEMPO_BPM}
-                        onBlur={(event) => {
-                          const bpm = Number.parseInt(event.currentTarget.value, 10)
-
-                          if (Number.isNaN(bpm)) {
-                            updateTempoEvent(undefined)
-                          } else {
-                            updateTempoEvent({
-                              id: activeTempoEvent?.id ?? '',
-                              measureId: activeMeasureId ?? '',
-                              tick: activeTick,
-                              bpm: normalizeNumberInput(
-                                bpm,
-                                MIN_TEMPO_BPM,
-                                MAX_TEMPO_BPM,
-                                scoreTempo
-                              ),
-                              beatUnit: activeTempoEvent?.beatUnit ?? 'quarter',
-                              dots: activeTempoEvent?.dots ?? 0,
-                              text: activeTempoEvent?.text
-                            })
-                          }
-                        }}
-                        placeholder="BPM"
-                        type="number"
-                      />
-                    </label>
                   </>
                 ) : null}
               </div>
@@ -3359,9 +3183,169 @@ export const App = () => {
             </section>
           ) : null}
 
+      </section>
+
+      <section
+        className="selection-toolbar"
+        aria-label="가사 편집"
+        hidden={toolbarCategory !== 'lyrics'}
+      >
+        <section className="inspector-properties" aria-label="가사 속성">
+          <h3>가사</h3>
+          {selectedNote ? (
+            <div className="inspector-properties__grid">
+              <label>
+                <span>가사 절</span>
+                <select
+                  aria-label="가사 절"
+                  onChange={(event) =>
+                    setActiveLyricVerse(Number.parseInt(event.target.value, 10))
+                  }
+                  value={activeLyricVerse}
+                >
+                  <option value={1}>1절</option>
+                  <option value={2}>2절</option>
+                </select>
+              </label>
+
+              <label>
+                <span>가사</span>
+                <input
+                  aria-label="선택 음표 가사"
+                  defaultValue={selectedLyric?.text ?? ''}
+                  key={`${selectedNote.id}-${activeLyricVerse}-${
+                    selectedLyric?.text ?? ''
+                  }`}
+                  maxLength={48}
+                  onBlur={(event) =>
+                    updateLyric(event.currentTarget.value, {
+                      syllabic: selectedLyric?.syllabic ?? 'single',
+                      extend: selectedLyric?.extend
+                    })
+                  }
+                  onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing) {
+                      return
+                    }
+
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      updateLyric(event.currentTarget.value, {
+                        syllabic: selectedLyric?.syllabic ?? 'single',
+                        extend: selectedLyric?.extend,
+                        moveNext: true
+                      })
+                    } else if (event.key === '-') {
+                      event.preventDefault()
+                      updateLyric(event.currentTarget.value, {
+                        syllabic: 'begin',
+                        moveNext: true
+                      })
+                    } else if (event.key === '_') {
+                      event.preventDefault()
+                      updateLyric(event.currentTarget.value, {
+                        syllabic: 'single',
+                        extend: true,
+                        moveNext: true
+                      })
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value = selectedLyric?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="가사"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>가사 음절</span>
+                <select
+                  aria-label="가사 음절"
+                  onChange={(event) =>
+                    updateLyric(selectedLyric?.text ?? '', {
+                      syllabic: event.target.value as NonNullable<
+                        typeof selectedLyric
+                      >['syllabic'],
+                      extend: selectedLyric?.extend
+                    })
+                  }
+                  value={selectedLyric?.syllabic ?? 'single'}
+                >
+                  <option value="single">single</option>
+                  <option value="begin">begin</option>
+                  <option value="middle">middle</option>
+                  <option value="end">end</option>
+                </select>
+              </label>
+
+              <label className="inspector-properties__checkbox">
+                <input
+                  checked={Boolean(selectedLyric?.extend)}
+                  onChange={(event) =>
+                    updateLyric(selectedLyric?.text ?? '', {
+                      syllabic: selectedLyric?.syllabic ?? 'single',
+                      extend: event.target.checked
+                    })
+                  }
+                  type="checkbox"
+                />
+                <span>멜리스마</span>
+              </label>
+            </div>
+          ) : (
+            <p className="inspector-properties__empty">
+              음표를 선택하면 가사 입력 항목이 표시됩니다.
+            </p>
+          )}
+        </section>
+      </section>
+
+      <section
+        className="selection-toolbar"
+        aria-label="마디 편집"
+        hidden={toolbarCategory !== 'measure'}
+      >
           {activeMeasureId ? (
             <section className="inspector-properties" aria-label="마디 텍스트">
               <h3>마디 표시</h3>
+              <label>
+                <span>위치별 빠르기</span>
+                <input
+                  aria-label="위치별 빠르기 BPM"
+                  defaultValue={activeTempoEvent?.bpm ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${
+                    activeTempoEvent?.bpm ?? ''
+                  }-tempo-event`}
+                  max={MAX_TEMPO_BPM}
+                  min={MIN_TEMPO_BPM}
+                  onBlur={(event) => {
+                    const bpm = Number.parseInt(event.currentTarget.value, 10)
+
+                    if (Number.isNaN(bpm)) {
+                      updateTempoEvent(undefined)
+                    } else {
+                      updateTempoEvent({
+                        id: activeTempoEvent?.id ?? '',
+                        measureId: activeMeasureId ?? '',
+                        tick: activeTick,
+                        bpm: normalizeNumberInput(
+                          bpm,
+                          MIN_TEMPO_BPM,
+                          MAX_TEMPO_BPM,
+                          scoreTempo
+                        ),
+                        beatUnit: activeTempoEvent?.beatUnit ?? 'quarter',
+                        dots: activeTempoEvent?.dots ?? 0,
+                        text: activeTempoEvent?.text
+                      })
+                    }
+                  }}
+                  placeholder="BPM"
+                  type="number"
+                />
+              </label>
+
               <label>
                 <span>{koreanMusicTerms.rehearsalMark}</span>
                 <input
@@ -3490,13 +3474,115 @@ export const App = () => {
               </label>
             </section>
           ) : null}
-        </section>
-      </aside>
+      </section>
 
       <section className="workspace" aria-label="악보 편집기">
         <header className="toolbar">
           <div className="toolbar__group">
-            <div className="file-actions" aria-label="파일 작업">
+            <div
+              className="playback-settings"
+              aria-label="재생 설정"
+              hidden={toolbarCategory !== 'playback'}
+            >
+              <label className="tempo-control">
+                <span>{koreanMusicTerms.tempo}</span>
+                <input
+                  aria-label={koreanMusicTerms.tempo}
+                  max="240"
+                  min="40"
+                  onChange={(event) =>
+                    changeScoreTempo(Number.parseInt(event.target.value, 10))
+                  }
+                  step="1"
+                  type="range"
+                  value={scoreTempo}
+                />
+                <output>{scoreTempo} BPM</output>
+              </label>
+
+              <label className="tempo-control tempo-control--compact">
+                <span>기준</span>
+                <select
+                  aria-label="빠르기 기준 음가"
+                  onChange={(event) =>
+                    changeScoreTempoBeatUnit(event.target.value as DurationValue)
+                  }
+                  value={score.tempo?.beatUnit ?? 'quarter'}
+                >
+                  {tempoBeatUnitOptions.map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+                <output>
+                  {score.tempo?.dots ? '.'.repeat(score.tempo.dots) : '—'}
+                </output>
+              </label>
+
+              <label className="tempo-control tempo-control--compact">
+                <span>점</span>
+                <input
+                  aria-label="빠르기 기준 점"
+                  max={2}
+                  min={0}
+                  onChange={(event) =>
+                    changeScoreTempoDots(Number.parseInt(event.target.value, 10))
+                  }
+                  type="number"
+                  value={score.tempo?.dots ?? 0}
+                />
+                <output>{score.tempo?.dots ?? 0}</output>
+              </label>
+
+              <label className="tempo-control tempo-control--text">
+                <span>빠르기말</span>
+                <input
+                  aria-label="빠르기말"
+                  defaultValue={formatTempoMarkingText(
+                    createUpdatedTempoMarking(score.tempo, scoreTempo)
+                  )}
+                  key={
+                    score.tempo?.text ??
+                    `${score.tempo?.beatUnit ?? 'quarter'}-${
+                      score.tempo?.dots ?? 0
+                    }-${scoreTempo}`
+                  }
+                  maxLength={32}
+                  onBlur={(event) =>
+                    changeScoreTempoText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value = score.tempo?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="♩ = 120"
+                  type="text"
+                />
+              </label>
+
+              <label className="tempo-control tempo-control--checkbox">
+                <input
+                  aria-label="빠르기말 투명"
+                  checked={Boolean(score.tempo?.transparent)}
+                  onChange={(event) =>
+                    changeScoreTempoTransparency(event.target.checked)
+                  }
+                  type="checkbox"
+                />
+                <span>투명</span>
+              </label>
+            </div>
+
+            <div
+              className="file-actions"
+              aria-label="파일 작업"
+              hidden={toolbarCategory !== 'file'}
+            >
               <button
                 aria-label="새 악보 만들기"
                 onClick={openNewScoreWizard}
@@ -3538,6 +3624,7 @@ export const App = () => {
               aria-label="실행 취소"
               className="icon-button"
               disabled={undoStack.length === 0}
+              hidden={toolbarCategory !== 'file'}
               onClick={undo}
               title="실행 취소"
               type="button"
@@ -3549,6 +3636,7 @@ export const App = () => {
               aria-label="다시 실행"
               className="icon-button"
               disabled={redoStack.length === 0}
+              hidden={toolbarCategory !== 'file'}
               onClick={redo}
               title="다시 실행"
               type="button"
@@ -3560,6 +3648,7 @@ export const App = () => {
               aria-label="선택 범위 복사"
               className="icon-button"
               disabled={!canCopySelection}
+              hidden={toolbarCategory !== 'file'}
               onClick={copySelection}
               title="선택 범위 복사"
               type="button"
@@ -3571,6 +3660,7 @@ export const App = () => {
               aria-label="선택 범위에 붙여넣기"
               className="icon-button"
               disabled={!canPasteSelection}
+              hidden={toolbarCategory !== 'file'}
               onClick={pasteSelection}
               title="선택 범위에 붙여넣기"
               type="button"
@@ -3582,6 +3672,7 @@ export const App = () => {
               aria-label={clearSelectionLabel}
               className="icon-button"
               disabled={!canClearSelection}
+              hidden={toolbarCategory !== 'file'}
               onClick={clearSelection}
               title={clearSelectionLabel}
               type="button"
@@ -3593,6 +3684,7 @@ export const App = () => {
               aria-label="마디 추가"
               className="icon-button"
               disabled={!activeMeasureId}
+              hidden={toolbarCategory !== 'measure'}
               onClick={addMeasure}
               title="마디 추가"
               type="button"
@@ -3604,6 +3696,7 @@ export const App = () => {
               aria-label="마디 삭제"
               className="icon-button"
               disabled={!activeMeasureId}
+              hidden={toolbarCategory !== 'measure'}
               onClick={removeMeasure}
               title="마디 삭제"
               type="button"
@@ -3616,6 +3709,7 @@ export const App = () => {
               aria-pressed={activeMeasureHasSystemBreak}
               className="icon-button"
               disabled={!canToggleSystemBreak}
+              hidden={toolbarCategory !== 'measure'}
               onClick={toggleSystemBreak}
               title={systemBreakLabel}
               type="button"
@@ -3628,6 +3722,7 @@ export const App = () => {
               aria-pressed={activeMeasureHasPageBreak}
               className="icon-button"
               disabled={!canTogglePageBreak}
+              hidden={toolbarCategory !== 'measure'}
               onClick={togglePageBreak}
               title={pageBreakLabel}
               type="button"
@@ -3635,7 +3730,11 @@ export const App = () => {
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
-            <div className="accidental-control" aria-label="임시표">
+            <div
+              className="accidental-control"
+              aria-label="임시표"
+              hidden={toolbarCategory !== 'note'}
+            >
               {([
                 [-1, '♭', '플랫'],
                 [0, '♮', '제자리표'],
@@ -3660,7 +3759,10 @@ export const App = () => {
               ))}
             </div>
 
-            <label className="key-signature-control">
+            <label
+              className="key-signature-control"
+              hidden={toolbarCategory !== 'measure'}
+            >
               <span>조표</span>
               <select
                 aria-label="조표"
@@ -3676,7 +3778,10 @@ export const App = () => {
               </select>
             </label>
 
-            <label className="time-signature-control">
+            <label
+              className="time-signature-control"
+              hidden={toolbarCategory !== 'measure'}
+            >
               <span>박자표</span>
               <select
                 aria-label="박자표"
@@ -3696,6 +3801,7 @@ export const App = () => {
               aria-label="음높이 한 칸 내리기"
               className="icon-button"
               disabled={!canEditPitch}
+              hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('diatonic', -1)}
               title="음높이 한 칸 내리기"
               type="button"
@@ -3707,6 +3813,7 @@ export const App = () => {
               aria-label="음높이 한 칸 올리기"
               className="icon-button"
               disabled={!canEditPitch}
+              hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('diatonic', 1)}
               title="음높이 한 칸 올리기"
               type="button"
@@ -3718,6 +3825,7 @@ export const App = () => {
               aria-label="한 옥타브 내리기"
               className="icon-button"
               disabled={!canEditPitch}
+              hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('octave', -1)}
               title="한 옥타브 내리기"
               type="button"
@@ -3729,6 +3837,7 @@ export const App = () => {
               aria-label="한 옥타브 올리기"
               className="icon-button"
               disabled={!canEditPitch}
+              hidden={toolbarCategory !== 'note'}
               onClick={() => movePitch('octave', 1)}
               title="한 옥타브 올리기"
               type="button"
@@ -3738,7 +3847,11 @@ export const App = () => {
 
           </div>
 
-          <div className="duration-strip" aria-label="음가">
+          <div
+            className="duration-strip"
+            aria-label="음가"
+            hidden={toolbarCategory !== 'note'}
+          >
             <Clock3 aria-hidden="true" size={17} />
             {durations.map((duration) => {
               const shortcut = durationShortcuts[duration]
@@ -3863,86 +3976,14 @@ export const App = () => {
               <Square aria-hidden="true" size={17} />
             </button>
           </div>
-
-          <label className="tempo-control">
-            <span>{koreanMusicTerms.tempo}</span>
-            <input
-              aria-label={koreanMusicTerms.tempo}
-              max="240"
-              min="40"
-              onChange={(event) =>
-                changeScoreTempo(Number.parseInt(event.target.value, 10))
-              }
-              step="1"
-              type="range"
-              value={scoreTempo}
-            />
-            <output>{scoreTempo} BPM</output>
-          </label>
-
-          <label className="tempo-control tempo-control--compact">
-            <span>기준</span>
-            <select
-              aria-label="빠르기 기준 음가"
-              onChange={(event) =>
-                changeScoreTempoBeatUnit(event.target.value as DurationValue)
-              }
-              value={score.tempo?.beatUnit ?? 'quarter'}
-            >
-              {tempoBeatUnitOptions.map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
-            <output>{score.tempo?.dots ? '.'.repeat(score.tempo.dots) : '—'}</output>
-          </label>
-
-          <label className="tempo-control tempo-control--compact">
-            <span>점</span>
-            <input
-              aria-label="빠르기 기준 점"
-              max={2}
-              min={0}
-              onChange={(event) =>
-                changeScoreTempoDots(Number.parseInt(event.target.value, 10))
-              }
-              type="number"
-              value={score.tempo?.dots ?? 0}
-            />
-            <output>{score.tempo?.dots ?? 0}</output>
-          </label>
-
-          <label className="tempo-control tempo-control--text">
-            <span>빠르기말</span>
-            <input
-              aria-label="빠르기말"
-              defaultValue={score.tempo?.text ?? ''}
-              key={score.tempo?.text ?? 'tempo-text'}
-              maxLength={32}
-              onBlur={(event) => changeScoreTempoText(event.currentTarget.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                  event.currentTarget.blur()
-                } else if (event.key === 'Escape') {
-                  event.currentTarget.value = score.tempo?.text ?? ''
-                  event.currentTarget.blur()
-                }
-              }}
-              placeholder="Allegro"
-              type="text"
-            />
-          </label>
         </div>
 
         <div className="editor-status" aria-live="polite">
-          <span>
-            {noteInputState
-              ? noteInputState.tupletInput
-                ? '셋잇단음표 입력 · A-G로 음표, R로 쉼표, Esc로 취소'
-                : '입력 커서 · A-G로 음표, R로 쉼표를 추가합니다'
-              : modeStatus[mode]}
-          </span>
+          {noteInputState ? (
+            <span>
+              {noteInputState.tupletInput ? '셋잇단음표 입력' : '입력 중'}
+            </span>
+          ) : null}
           <span>{durationLabels[durationValue]}</span>
           {noteInputState?.tupletInput ? (
             <span className="tuplet-progress">
@@ -4113,25 +4154,6 @@ export const App = () => {
               </label>
 
               <label>
-                <span>파트</span>
-                <select
-                  onChange={(event) =>
-                    setNewScoreDraft({
-                      ...newScoreDraft,
-                      partPresetId: event.target.value
-                    })
-                  }
-                  value={newScoreDraft.partPresetId}
-                >
-                  {partPresets.map((part) => (
-                    <option key={part.id} value={part.id}>
-                      {part.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
                 <span>조표</span>
                 <select
                   onChange={(event) =>
@@ -4192,23 +4214,32 @@ export const App = () => {
 
               <label>
                 <span>{koreanMusicTerms.tempo}</span>
-                <input
-                  max="240"
-                  min="40"
-                  onChange={(event) =>
-                    setNewScoreDraft({
-                      ...newScoreDraft,
-                      tempo: normalizeNumberInput(
-                        event.target.valueAsNumber,
-                        40,
-                        240,
-                        newScoreDraft.tempo
-                      )
-                    })
-                  }
-                  type="number"
-                  value={newScoreDraft.tempo}
-                />
+                <span className="input-with-unit">
+                  <input
+                    aria-describedby="new-score-tempo-unit"
+                    max="240"
+                    min="40"
+                    onChange={(event) =>
+                      setNewScoreDraft({
+                        ...newScoreDraft,
+                        tempo: normalizeNumberInput(
+                          event.target.valueAsNumber,
+                          40,
+                          240,
+                          newScoreDraft.tempo
+                        )
+                      })
+                    }
+                    type="number"
+                    value={newScoreDraft.tempo}
+                  />
+                  <span
+                    className="input-with-unit__suffix"
+                    id="new-score-tempo-unit"
+                  >
+                    bpm
+                  </span>
+                </span>
               </label>
             </div>
 
@@ -4335,7 +4366,6 @@ function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
   return {
     title: '제목 없는 악보',
     composer: 'in-C',
-    partPresetId: 'piano',
     keySignatureId: 'c-major',
     timeSignatureId: '4-4',
     measureCount: 8,
@@ -4769,22 +4799,100 @@ function accidentalTextToAlter(value: string | undefined): Pitch['alter'] {
 
 function createUpdatedTempoMarking(
   currentTempo: TempoMarking | undefined,
-  bpm: number
+  bpm: number,
+  overrides: Partial<Pick<TempoMarking, 'beatUnit' | 'dots' | 'transparent'>> = {}
 ): TempoMarking {
-  const currentText = currentTempo?.text
-  const shouldRefreshText =
-    currentText === undefined ||
-    /^([♩♪𝅗𝅥𝅝𝅘𝅥𝅯𝅘𝅥𝅰]|quarter|eighth|half|whole)\s*=\s*\d+$/u.test(
-      currentText
-    )
-
-  return {
+  const tempo = {
     ...currentTempo,
     bpm,
-    beatUnit: currentTempo?.beatUnit ?? 'quarter',
-    dots: currentTempo?.dots ?? 0,
-    text: shouldRefreshText ? `♩ = ${bpm}` : currentText
+    beatUnit: overrides.beatUnit ?? currentTempo?.beatUnit ?? 'quarter',
+    dots: overrides.dots ?? currentTempo?.dots ?? 0,
+    transparent: overrides.transparent ?? currentTempo?.transparent
   }
+
+  return {
+    ...tempo,
+    text: formatTempoMarkingText(tempo)
+  }
+}
+
+function formatTempoMarkingText(
+  tempo: Pick<TempoMarking, 'bpm' | 'beatUnit' | 'dots'>
+): string {
+  const symbol = tempoBeatUnitSymbol(tempo.beatUnit ?? 'quarter')
+  const dots = '.'.repeat(tempo.dots ?? 0)
+
+  return `${symbol}${dots} = ${tempo.bpm}`
+}
+
+function parseTempoMarkingText(
+  text: string
+): Pick<TempoMarking, 'bpm' | 'beatUnit' | 'dots'> | undefined {
+  const match =
+    /^(?<unit>𝅝|𝅗𝅥|♩|♪|𝅘𝅥𝅯|𝅘𝅥𝅰|𝅘𝅥𝅱|whole|half|quarter|eighth|16th|32nd|64th)\s*(?<dots>\.{0,2})\s*=\s*(?<bpm>\d{1,3})$/u.exec(
+      text.trim()
+    )
+  const groups = match?.groups
+  const bpm = groups?.bpm ? Number.parseInt(groups.bpm, 10) : undefined
+
+  if (
+    !groups ||
+    bpm === undefined ||
+    bpm < MIN_TEMPO_BPM ||
+    bpm > MAX_TEMPO_BPM
+  ) {
+    return undefined
+  }
+
+  return {
+    bpm,
+    beatUnit: tempoBeatUnitFromText(groups.unit),
+    dots: groups.dots.length
+  }
+}
+
+function tempoBeatUnitSymbol(beatUnit: DurationValue): string {
+  return beatUnit === 'whole'
+    ? '𝅝'
+    : beatUnit === 'half'
+      ? '𝅗𝅥'
+      : beatUnit === 'eighth'
+        ? '♪'
+        : beatUnit === '16th'
+          ? '𝅘𝅥𝅯'
+          : beatUnit === '32nd'
+            ? '𝅘𝅥𝅰'
+            : beatUnit === '64th'
+              ? '𝅘𝅥𝅱'
+              : '♩'
+}
+
+function tempoBeatUnitFromText(text: string): DurationValue {
+  if (text === '𝅝' || text === 'whole') {
+    return 'whole'
+  }
+
+  if (text === '𝅗𝅥' || text === 'half') {
+    return 'half'
+  }
+
+  if (text === '♪' || text === 'eighth') {
+    return 'eighth'
+  }
+
+  if (text === '𝅘𝅥𝅯' || text === '16th') {
+    return '16th'
+  }
+
+  if (text === '𝅘𝅥𝅰' || text === '32nd') {
+    return '32nd'
+  }
+
+  if (text === '𝅘𝅥𝅱' || text === '64th') {
+    return '64th'
+  }
+
+  return 'quarter'
 }
 
 function toFileName(title: string): string {

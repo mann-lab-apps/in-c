@@ -506,7 +506,7 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/project-file.md"]
           },
           {
-            name: "최근 파일과 예제 악보 진입점",
+            name: "최근 파일 진입점",
             status: "지원",
             acceptance: ["docs/product/acceptance/start-and-recovery.feature"],
             docs: ["docs/architecture/project-file.md"]

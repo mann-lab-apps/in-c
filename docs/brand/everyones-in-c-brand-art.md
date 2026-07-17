@@ -4,7 +4,7 @@
 
 Everyone's In C는 in C의 핵심 제품군이 아니라, 2026년 8월 이후에 검토할 수 있는
 브랜드 아트 실험 후보다. 현재 7월 우선순위는 Chromatics 편집기, Compositions,
-Works, Columns, Concerts, Creators, Classes의 MVP 연결성을 높이는 것이다.
+Columns, Community, 공연 배너 슬롯의 MVP 연결성을 높이는 것이다.
 
 ## 실험 의도
 
@@ -39,15 +39,15 @@ Works, Columns, Concerts, Creators, Classes의 MVP 연결성을 높이는 것이
 
 3. Monthly community score
    - 매월 하나의 주제를 정해 작은 패턴을 모은다.
-   - 선정된 패턴은 Columns 또는 Works의 예시로 소개한다.
+   - 선정된 패턴은 Columns 또는 Compositions의 예시로 소개한다.
    - 실시간 합주가 아니라 비동기 큐레이션으로 운영한다.
 
 ## 7월 제품군과의 연결
 
 - Compositions: 사용자가 패턴을 MusicXML로 내려받아 Chromatics에서 열어본다.
 - Columns: "패턴 하나를 듣는 법", "반복과 변주의 차이" 같은 짧은 글로 연결한다.
-- Classes: 입문 클래스의 실습 과제로 연결할 수 있다.
-- Creators: 운영자 또는 참여자의 공개 프로필 범위를 별도 permission model과 맞춘다.
+- Community: 입문 클래스의 실습 후보와 참여 흐름으로 연결할 수 있다.
+- 관련 인물: 운영자 또는 참여자의 공개 프로필 범위는 커뮤니티 고도화 때 별도 permission model과 맞춘다.
 
 ## 제외 범위
 
@@ -67,5 +67,5 @@ Works, Columns, Concerts, Creators, Classes의 MVP 연결성을 높이는 것이
 
 ## 다음 재검토 시점
 
-2026년 8월 이후, Compositions와 Classes의 실제 사용 흐름이 생긴 뒤 재검토한다.
+2026년 8월 이후, Compositions와 Community의 실제 사용 흐름이 생긴 뒤 재검토한다.
 그 전에는 아이디어 backlog로 유지한다.

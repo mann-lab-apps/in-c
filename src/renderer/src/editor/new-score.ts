@@ -22,72 +22,72 @@ export interface NewScoreOptions {
 export const keySignaturePresets = [
   {
     id: 'c-major',
-    label: '다장조',
+    label: '다장조 (조표 없음)',
     value: { fifths: 0, mode: 'major' }
   },
   {
     id: 'a-minor',
-    label: '가단조',
+    label: '가단조 (조표 없음)',
     value: { fifths: 0, mode: 'minor' }
   },
   {
     id: 'g-major',
-    label: '사장조',
+    label: '사장조 (♯ 1개)',
     value: { fifths: 1, mode: 'major' }
   },
   {
     id: 'e-minor',
-    label: '마단조',
+    label: '마단조 (♯ 1개)',
     value: { fifths: 1, mode: 'minor' }
   },
   {
     id: 'd-major',
-    label: '라장조',
+    label: '라장조 (♯ 2개)',
     value: { fifths: 2, mode: 'major' }
   },
   {
     id: 'b-minor',
-    label: '나단조',
+    label: '나단조 (♯ 2개)',
     value: { fifths: 2, mode: 'minor' }
   },
   {
     id: 'a-major',
-    label: '가장조',
+    label: '가장조 (♯ 3개)',
     value: { fifths: 3, mode: 'major' }
   },
   {
     id: 'f-sharp-minor',
-    label: '올림바단조',
+    label: '올림바단조 (♯ 3개)',
     value: { fifths: 3, mode: 'minor' }
   },
   {
     id: 'f-major',
-    label: '바장조',
+    label: '바장조 (♭ 1개)',
     value: { fifths: -1, mode: 'major' }
   },
   {
     id: 'd-minor',
-    label: '라단조',
+    label: '라단조 (♭ 1개)',
     value: { fifths: -1, mode: 'minor' }
   },
   {
     id: 'bb-major',
-    label: '내림나장조',
+    label: '내림나장조 (♭ 2개)',
     value: { fifths: -2, mode: 'major' }
   },
   {
     id: 'g-minor',
-    label: '사단조',
+    label: '사단조 (♭ 2개)',
     value: { fifths: -2, mode: 'minor' }
   },
   {
     id: 'eb-major',
-    label: '내림마장조',
+    label: '내림마장조 (♭ 3개)',
     value: { fifths: -3, mode: 'major' }
   },
   {
     id: 'c-minor',
-    label: '다단조',
+    label: '다단조 (♭ 3개)',
     value: { fifths: -3, mode: 'minor' }
   }
 ] satisfies Array<{
