@@ -1,10 +1,13 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
 import { columns } from './columns-data.js'
-import { works } from './product-data.js'
+import { concerts, creators, works } from './product-data.js'
 
 const catalogUrl = new URL('./compositions-catalog.json', import.meta.url)
 const columnsBySlug = new Map(columns.map((column) => [column.slug, column]))
 const worksById = new Map(works.map((work) => [work.id, work]))
+const worksBySlug = new Map(works.map((work) => [work.slug, work]))
+const creatorsById = new Map(creators.map((creator) => [creator.id, creator]))
+const concertsById = new Map(concerts.map((concert) => [concert.id, concert]))
 
 const statusLabels = {
   available: '공개됨',
@@ -12,7 +15,9 @@ const statusLabels = {
 }
 
 let allCompositions = []
-let selectedSlug = new URLSearchParams(window.location.search).get('score')
+const initialParams = new URLSearchParams(window.location.search)
+let selectedSlug = initialParams.get('score')
+let selectedWorkSlug = initialParams.get('work')
 let activeTag = ''
 let query = ''
 let difficulty = ''
@@ -44,6 +49,57 @@ const formatColumnLinks = (items) =>
             )}">${escapeHtml(label)}</a>`
           }
         )
+        .join('')
+    : '<span>연결 전</span>'
+
+const formatCreatorLinks = (items) =>
+  items.length > 0
+    ? items
+        .map((item) => {
+          const creator = creatorsById.get(item)
+
+          return `<span>${escapeHtml(creator?.displayName ?? item)}</span>`
+        })
+        .join('')
+    : '<span>연결 전</span>'
+
+const formatConcertLinks = (items) =>
+  items.length > 0
+    ? items
+        .map((item) => {
+          const concert = concertsById.get(item)
+
+          if (!concert) {
+            return `<span>${escapeHtml(item)}</span>`
+          }
+
+          return `<a href="./index.html#promotion" data-track-event="promotion_click" data-track-location="composition_detail" data-track-content-type="promotion_banner" data-track-content-slug="${escapeHtml(
+            concert.slug
+          )}">${escapeHtml(concert.title)}</a>`
+        })
+        .join('')
+    : '<span>연결 전</span>'
+
+const formatScoreLinks = (items) =>
+  items.length > 0
+    ? items
+        .map((item) => {
+          const composition = allCompositions.find(
+            (candidate) => candidate.slug === item && candidate.status === 'available'
+          )
+
+          if (!composition) {
+            return `<span>${escapeHtml(item)}</span>`
+          }
+
+          return `<a href="./compositions.html?score=${encodeURIComponent(
+            composition.slug
+          )}" data-composition-select="${escapeHtml(
+            composition.slug
+          )}" data-track-event="composition_select" data-track-content-type="composition" data-track-content-slug="${escapeHtml(
+            composition.slug
+          )}">${escapeHtml(composition.title)}</a>`
+        })
         .join('')
     : '<span>연결 전</span>'
 
@@ -102,7 +158,9 @@ const createWorkLink = (workId) => {
     return '<span>연결 전</span>'
   }
 
-  return `<a href="./works.html?work=${encodeURIComponent(
+  return `<a href="./compositions.html?work=${encodeURIComponent(
+    work.slug
+  )}" data-work-select="${escapeHtml(
     work.slug
   )}" data-track-event="work_link" data-track-content-type="work" data-track-content-slug="${escapeHtml(
     work.slug
@@ -170,7 +228,7 @@ const renderCompositionDetail = (composition) => {
       </div>
       <p class="composition-action-note">브라우저가 MusicXML을 내려받으면 Chromatics 앱에서 파일을 열어 주세요. PDF가 필요하면 Chromatics에서 변환합니다.</p>
       <section class="composition-note" aria-labelledby="work-title">
-        <h3 id="work-title">작품 허브</h3>
+        <h3 id="work-title">작품 정보</h3>
         <div class="tag-list">${createWorkLink(composition.workId)}</div>
       </section>
       <section class="composition-note" aria-labelledby="copyright-title">
@@ -191,6 +249,60 @@ const renderCompositionDetail = (composition) => {
     difficulty: composition.difficulty,
     key: composition.key,
     meter: composition.meter
+  })
+}
+
+const renderWorkDetail = (work) => {
+  const detail = document.querySelector('[data-composition-detail]')
+
+  if (!detail || !work) {
+    return
+  }
+
+  document.title = `${work.title} | in C Compositions`
+
+  detail.innerHTML = `
+    <article class="composition-detail-card">
+      <div>
+        <p class="eyebrow">작품</p>
+        <h2>${escapeHtml(work.title)}</h2>
+        <p>${escapeHtml(work.summary)}</p>
+      </div>
+      <dl class="composition-facts">
+        <div><dt>원어/출처명</dt><dd>${escapeHtml(work.originalTitle)}</dd></div>
+        <div><dt>시대</dt><dd>${escapeHtml(work.era)}</dd></div>
+        <div><dt>장르</dt><dd>${escapeHtml(work.genre)}</dd></div>
+        <div><dt>조성</dt><dd>${escapeHtml(work.key)}</dd></div>
+        <div><dt>박자</dt><dd>${escapeHtml(work.meter)}</dd></div>
+        <div><dt>권리 상태</dt><dd>${escapeHtml(work.copyrightStatus)}</dd></div>
+      </dl>
+      <section class="composition-note" aria-labelledby="work-listening-title">
+        <h3 id="work-listening-title">오늘 들을 지점</h3>
+        <p>${escapeHtml(work.listeningPoint)}</p>
+      </section>
+      <section class="composition-note" aria-labelledby="work-scores-title">
+        <h3 id="work-scores-title">악보</h3>
+        <div class="tag-list">${formatScoreLinks(work.scores)}</div>
+      </section>
+      <section class="composition-note" aria-labelledby="work-columns-title">
+        <h3 id="work-columns-title">관련 Columns</h3>
+        <div class="tag-list">${formatColumnLinks(work.columns)}</div>
+      </section>
+      <section class="composition-note" aria-labelledby="work-creators-title">
+        <h3 id="work-creators-title">관련 인물</h3>
+        <div class="tag-list">${formatCreatorLinks(work.creators)}</div>
+      </section>
+      <section class="composition-note" aria-labelledby="work-promotion-title">
+        <h3 id="work-promotion-title">공연 배너 후보</h3>
+        <div class="tag-list">${formatConcertLinks(work.concerts)}</div>
+      </section>
+    </article>
+  `
+
+  trackEvent('work_view', {
+    content_type: 'work',
+    content_slug: work.slug,
+    content_title: work.title
   })
 }
 
@@ -252,10 +364,12 @@ const selectComposition = (slug, { pushState = false } = {}) => {
   }
 
   selectedSlug = composition.slug
+  selectedWorkSlug = ''
 
   if (pushState) {
     const nextUrl = new URL(window.location.href)
     nextUrl.searchParams.set('score', composition.slug)
+    nextUrl.searchParams.delete('work')
     window.history.pushState({ score: composition.slug }, '', nextUrl)
   }
 
@@ -263,9 +377,36 @@ const selectComposition = (slug, { pushState = false } = {}) => {
   renderCompositionDetail(composition)
 }
 
+const selectWork = (slug, { pushState = false } = {}) => {
+  const work = worksBySlug.get(slug) ?? works[0]
+
+  if (!work) {
+    return
+  }
+
+  selectedWorkSlug = work.slug
+  selectedSlug = ''
+
+  if (pushState) {
+    const nextUrl = new URL(window.location.href)
+    nextUrl.searchParams.set('work', work.slug)
+    nextUrl.searchParams.delete('score')
+    window.history.pushState({ work: work.slug }, '', nextUrl)
+  }
+
+  renderCompositionList(getFilteredCompositions())
+  renderWorkDetail(work)
+}
+
 const render = () => {
   renderFilters()
   const filtered = getFilteredCompositions()
+
+  if (selectedWorkSlug) {
+    renderCompositionList(filtered)
+    selectWork(selectedWorkSlug)
+    return
+  }
 
   if (!filtered.some((composition) => composition.slug === selectedSlug)) {
     selectedSlug = filtered[0]?.slug ?? getPublishedCompositions()[0]?.slug
@@ -302,6 +443,14 @@ const bindFilters = () => {
       return
     }
 
+    const workLink = event.target.closest('[data-work-select]')
+
+    if (workLink) {
+      event.preventDefault()
+      selectWork(workLink.dataset.workSelect, { pushState: true })
+      return
+    }
+
     const selectLink = event.target.closest('[data-composition-select]')
 
     if (!selectLink) {
@@ -326,7 +475,15 @@ const init = async () => {
 }
 
 window.addEventListener('popstate', () => {
-  selectedSlug = new URLSearchParams(window.location.search).get('score')
+  const params = new URLSearchParams(window.location.search)
+  selectedSlug = params.get('score')
+  selectedWorkSlug = params.get('work')
+
+  if (selectedWorkSlug) {
+    selectWork(selectedWorkSlug)
+    return
+  }
+
   selectComposition(selectedSlug)
 })
 

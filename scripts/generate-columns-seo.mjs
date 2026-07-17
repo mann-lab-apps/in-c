@@ -132,12 +132,8 @@ const renderArticle = (column) => {
       <nav aria-label="주요 링크">
         <a aria-current="page" href="../columns.html">Columns</a>
         <a href="../compositions.html">Compositions</a>
-        <a href="../works.html">Works</a>
-        <a href="../concerts.html">Concerts</a>
-        <a href="../creators.html">Creators</a>
-        <a href="../classes.html">Classes</a>
-        <a href="../index.html#download">Chromatics 앱</a>
-        <a href="https://github.com/mann-lab-apps/in-c">GitHub</a>
+        <a href="../community.html">Community</a>
+        <a href="../index.html#download">앱 다운로드</a>
       </nav>
     </header>
 
@@ -188,11 +184,8 @@ ${renderMarkdown(column.body)}
       <p>© 2026 mann-lab-apps. Columns는 in C가 만드는 클래식 읽기 지도입니다.</p>
       <div>
         <a href="../columns.html">Columns</a>
-        <a href="../works.html">Works</a>
-        <a href="../concerts.html">Concerts</a>
-        <a href="../creators.html">Creators</a>
-        <a href="../classes.html">Classes</a>
-        <a href="../index.html#download">Chromatics 앱</a>
+        <a href="../community.html">Community</a>
+        <a href="../index.html#download">앱 다운로드</a>
         <a href="../privacy.html">고지</a>
       </div>
     </footer>
@@ -214,10 +207,7 @@ const sitemapUrls = [
   `${baseUrl}/index.html`,
   `${baseUrl}/columns.html`,
   `${baseUrl}/compositions.html`,
-  `${baseUrl}/works.html`,
-  `${baseUrl}/concerts.html`,
-  `${baseUrl}/creators.html`,
-  `${baseUrl}/classes.html`,
+  `${baseUrl}/community.html`,
   `${baseUrl}/privacy.html`,
   ...publicColumns.map((column) => `${baseUrl}/columns/${column.slug}.html`)
 ]

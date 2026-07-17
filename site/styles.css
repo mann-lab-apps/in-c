@@ -267,26 +267,45 @@ dd {
 }
 
 .feature-grid,
-.download-grid {
+.download-grid,
+.promotion-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
 }
 
 .feature-grid article,
-.download-card {
+.download-card,
+.promotion-card {
   min-width: 0;
   border: 1px solid #d5cbbd;
   border-radius: 8px;
   background: rgba(255, 253, 248, 0.82);
 }
 
-.feature-grid article {
+.feature-grid article,
+.promotion-card {
   padding: 24px;
 }
 
-.feature-grid p {
+.feature-grid p,
+.promotion-card p {
   margin-bottom: 0;
+}
+
+.promotion-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.promotion-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.promotion-card .button {
+  align-self: flex-start;
+  margin-top: auto;
 }
 
 .section--download {
@@ -1214,6 +1233,7 @@ dd {
   .composition-grid,
   .composition-facts,
   .composition-filters,
+  .promotion-grid,
   .product-layout {
     grid-template-columns: 1fr;
   }

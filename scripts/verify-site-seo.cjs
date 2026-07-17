@@ -93,10 +93,7 @@ function getPages() {
     { filePath: 'index.html', publicPath: 'index.html' },
     { filePath: 'columns.html', publicPath: 'columns.html' },
     { filePath: 'compositions.html', publicPath: 'compositions.html' },
-    { filePath: 'works.html', publicPath: 'works.html' },
-    { filePath: 'concerts.html', publicPath: 'concerts.html' },
-    { filePath: 'creators.html', publicPath: 'creators.html' },
-    { filePath: 'classes.html', publicPath: 'classes.html' },
+    { filePath: 'community.html', publicPath: 'community.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 

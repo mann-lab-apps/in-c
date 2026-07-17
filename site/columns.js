@@ -131,7 +131,7 @@ const createChipList = (items) =>
             return `<li>${escapeHtml(item)}</li>`
           }
 
-          return `<li><a href="./works.html?work=${encodeURIComponent(
+          return `<li><a href="./compositions.html?work=${encodeURIComponent(
             work.slug
           )}" data-track-event="work_link" data-track-content-type="work" data-track-content-slug="${escapeHtml(
             work.slug

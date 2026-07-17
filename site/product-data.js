@@ -224,7 +224,7 @@ export const creators = [
     displayName: 'Traditional Melody',
     roles: ['source tradition', 'public domain repertoire'],
     summary:
-      '작곡가 개인보다 공동체와 전승이 만든 선율을 묶어 소개하는 초기 Creator 프로필입니다.',
+      '작곡가 개인보다 공동체와 전승이 만든 선율을 묶어 소개하는 초기 관련 인물 메타데이터입니다.',
     works: [
       'work:amazing-grace',
       'work:arirang',
@@ -345,7 +345,7 @@ export const classes = [
     outline: [
       '안 들리는 지점을 숨기지 않고 질문으로 바꿉니다.',
       '한 줄 선율에서 반복, 쉼, 긴 음을 찾습니다.',
-      'Columns와 Works를 오가며 다음 감상 경로를 고릅니다.'
+      'Columns와 Compositions를 오가며 다음 감상 경로를 고릅니다.'
     ]
   }
 ]

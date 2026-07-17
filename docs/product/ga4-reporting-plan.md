@@ -15,7 +15,7 @@
 - 7일 활성 사용자가 100명 이상이다.
 - 특정 날짜의 사용자 수가 직전 7일 평균의 3배 이상이고, 원인을 매번 수동으로
   확인해야 한다.
-- Columns, Compositions, Works, Concerts, Creators, Classes 간 이동 흐름을 주간으로
+- Columns, Compositions, Community, 공연 배너 간 이동 흐름을 주간으로
   비교해야 한다.
 - GitHub Releases 다운로드 수와 GA4 `download_*` 이벤트를 정기적으로 대조해야 한다.
 - 사용자 유입 채널이나 랜딩 페이지를 외부 보고서에 반복 제출해야 한다.
@@ -48,9 +48,8 @@
 - `open_in_chromatics`
 - `composition_download`
 - `work_view`
-- `concert_view`
-- `creator_view`
-- `class_view`
+- `promotion_click`
+- `community_view`
 - `feedback_submit`
 
 ## Spreadsheet 구조

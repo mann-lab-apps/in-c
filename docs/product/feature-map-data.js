@@ -587,7 +587,7 @@ window.FEATURE_MAP = [
             docs: ["docs/product/relationship-model.md"]
           },
           {
-            name: "Concerts 공연 프리뷰",
+            name: "공연 배너 슬롯",
             status: "실험",
             acceptance: ["docs/product/acceptance/product-surfaces.feature"],
             docs: [
@@ -596,28 +596,13 @@ window.FEATURE_MAP = [
             ]
           },
           {
-            name: "Creators 프로필",
+            name: "Community 최소 대화·학습 흐름",
             status: "실험",
             acceptance: ["docs/product/acceptance/product-surfaces.feature"],
             docs: [
-              "docs/research/classical-market-research.md",
+              "docs/brand/brand-foundation.md",
               "docs/product/relationship-model.md"
             ]
-          },
-          {
-            name: "Classes 감상 강좌",
-            status: "실험",
-            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
-            docs: [
-              "docs/research/classical-market-research.md",
-              "docs/product/relationship-model.md"
-            ]
-          },
-          {
-            name: "Communities 최소 대화 흐름",
-            status: "미지원",
-            acceptance: ["docs/product/acceptance/product-surfaces.feature"],
-            docs: ["docs/brand/brand-foundation.md"]
           },
           {
             name: "Open in Chromatics",

@@ -15,7 +15,7 @@ Concert Preview는 공연을 대신 홍보해주는 광고 상품이 아니라, 
 | 공연 주최자 | 같은 공연 설명을 여러 채널에 다시 쓰는 부담을 줄인다 | 작품별 짧은 프리뷰 문단 |
 | 연주자/Creator | 공연과 작품, 프로필, Columns를 한 맥락으로 연결한다 | Creator 연결 카드 |
 | 관객 | 공연 전에 무엇을 들어볼지 한 가지 질문을 가진다 | 듣기 질문 2-3개 |
-| in C | Concerts와 Works 관계 구조의 실제 수요를 확인한다 | 피드백과 클릭 경로 |
+| in C | 공연 배너와 Compositions 작품 관계 구조의 실제 수요를 확인한다 | 피드백과 클릭 경로 |
 
 ## 필요한 입력 정보
 
@@ -30,7 +30,7 @@ Concert Preview는 공연을 대신 홍보해주는 광고 상품이 아니라, 
 
 ## 무료 파일럿 범위
 
-- 공연 1건당 Works/Concerts에 연결 가능한 정적 프리뷰 초안을 만든다.
+- 공연 1건당 홈 배너와 Compositions 작품 상세에 연결 가능한 정적 프리뷰 초안을 만든다.
 - 작품별로 `듣기 질문`, `공연 전 확인할 맥락`, `공연 후 말해볼 질문`을 작성한다.
 - 신청, 결제, 예약, 티켓 판매 기능은 제공하지 않는다.
 - 외부 예매 링크가 없으면 "정보형 프리뷰"로 표시하고 구매 행동을 유도하지 않는다.
@@ -40,12 +40,12 @@ Concert Preview는 공연을 대신 홍보해주는 광고 상품이 아니라, 
 | 질문 | 확인 방법 |
 | --- | --- |
 | 주최자가 반복 홍보 시간을 줄였다고 느끼는가 | [`concert-promotion-time-savings.md`](../../research/concert-promotion-time-savings.md) 인터뷰 질문 |
-| 관객이 공연 전에 들어볼 질문을 얻는가 | Concerts 상세 피드백 또는 인터뷰 |
-| Works/Creators와 연결했을 때 탐색이 늘어나는가 | `concert_view`, `concert_link`, `work_link` 보조 확인 |
+| 관객이 공연 전에 들어볼 질문을 얻는가 | 배너 클릭 또는 인터뷰 |
+| Compositions/관련 인물과 연결했을 때 탐색이 늘어나는가 | `promotion_click` 보조 확인 |
 
 ## GitHub 이슈 연결
 
 - #375 공연 주최자용 Concert Preview 제안서 초안 작성
 - #272 Concerts 공연 프리뷰 MVP 구현
-- #327 Works·Concerts·Creators·Classes의 후보 데이터와 실제 상태 구분 강화
+- #327 Compositions·공연 배너·관련 인물·Community 후보 데이터와 실제 상태 구분 강화
 - #332 투자·지원·파트너용 현재 상태 one-pager 작성

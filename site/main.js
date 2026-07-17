@@ -77,7 +77,7 @@ const createDownloadCard = (download, manifest, detectedPlatform) => {
   const isAvailable = download.available && download.url
   const action = isAvailable
     ? `<a class="button button--primary" data-track-event="download_platform" data-track-platform="${download.id}" data-track-file="${download.fileName}" href="${download.url}">다운로드</a>`
-    : `<a class="button button--secondary" data-track-event="release_link" data-track-location="download_card" href="${manifest.releaseUrl}">릴리즈 확인</a>`
+    : '<span class="button button--secondary" aria-disabled="true">릴리즈 대기</span>'
   const status = isAvailable ? '다운로드 가능' : '아직 게시 전'
 
   card.innerHTML = `
@@ -124,16 +124,21 @@ const renderDownloads = (manifest) => {
     ) ?? manifest.downloads.find((download) => download.available)
 
   if (primaryDownload) {
-    primaryDownload.href = preferred?.url ?? manifest.releaseUrl
-    primaryDownload.textContent = preferred
-      ? `${preferred.label} 다운로드`
-      : 'GitHub Releases 확인'
-    primaryDownload.dataset.trackEvent = preferred
-      ? 'download_primary'
-      : 'release_link'
-    primaryDownload.dataset.trackPlatform = preferred?.id ?? ''
-    primaryDownload.dataset.trackFile = preferred?.fileName ?? ''
-    primaryDownload.dataset.trackLocation = 'hero'
+    if (preferred) {
+      primaryDownload.href = preferred.url
+      primaryDownload.textContent = `${preferred.label} 다운로드`
+      primaryDownload.dataset.trackEvent = 'download_primary'
+      primaryDownload.dataset.trackPlatform = preferred.id
+      primaryDownload.dataset.trackFile = preferred.fileName
+      primaryDownload.dataset.trackLocation = 'hero'
+    } else {
+      primaryDownload.href = '#download'
+      primaryDownload.textContent = '릴리즈 대기'
+      delete primaryDownload.dataset.trackEvent
+      delete primaryDownload.dataset.trackPlatform
+      delete primaryDownload.dataset.trackFile
+      delete primaryDownload.dataset.trackLocation
+    }
   }
 
   if (releaseState) {

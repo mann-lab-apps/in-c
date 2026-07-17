@@ -9,17 +9,17 @@ Feature: Product surfaces
     Then the visitor can move between the score, the listening question, and the related writing
     And unsupported community actions are not presented as available
 
-  Scenario: Concerts preview planned state
-    Given a concert preview is not fully implemented
-    When the feature map lists Concerts
+  Scenario: Promotion banner planned state
+    Given a concert promotion banner is not fully implemented
+    When the feature map lists the promotion banner slot
     Then the status is not "지원"
-    And the linked documentation explains preview cards, listening questions, and Creator links
+    And the linked documentation explains banner slots, listening questions, and related people metadata
 
-  Scenario: Creator and Classes planned state
-    Given Creator profiles and Classes are still planned surfaces
-    When the feature map lists Creators and Classes
-    Then each item links to the relationship model
-    And the documentation keeps public profile and private contact data separate
+  Scenario: Community planned state
+    Given creator profiles and classes are not separate public tabs
+    When the feature map lists Community
+    Then it links to the relationship model
+    And the documentation keeps public profile, private contact data, and class applications out of the public MVP
 
   Scenario: Open in Chromatics from a composition
     Given a public-domain or cleared composition has a MusicXML source

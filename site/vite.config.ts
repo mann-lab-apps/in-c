@@ -39,10 +39,7 @@ export default defineConfig({
         legacyInC: resolve(__dirname, 'in-c/index.html'),
         columns: resolve(__dirname, 'columns.html'),
         compositions: resolve(__dirname, 'compositions.html'),
-        works: resolve(__dirname, 'works.html'),
-        concerts: resolve(__dirname, 'concerts.html'),
-        creators: resolve(__dirname, 'creators.html'),
-        classes: resolve(__dirname, 'classes.html'),
+        community: resolve(__dirname, 'community.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }
