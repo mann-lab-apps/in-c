@@ -33,6 +33,7 @@
     "package:linux": "npm run clean:release && npm run build && electron-builder --linux AppImage --x64 --publish never",
     "verify:package": "node scripts/verify-packaged-app.cjs",
     "verify:artifacts": "node scripts/verify-release-artifacts.cjs",
+    "verify:macos-signing-env": "node scripts/verify-macos-signing-env.cjs",
     "verify:release-tag": "node scripts/verify-release-tag.cjs",
     "site:dev": "vite site --host 127.0.0.1",
     "site:build": "vite build site --outDir ../out/site --emptyOutDir --base ./",
@@ -81,7 +82,10 @@
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.music",
+      "gatekeeperAssess": false,
+      "hardenedRuntime": true,
       "icon": "build/icon.icns",
+      "notarize": true,
       "target": [
         {
           "target": "dmg",
