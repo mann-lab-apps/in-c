@@ -17,11 +17,11 @@
       "platform": "macOS",
       "label": "macOS",
       "architecture": "Universal",
-      "format": "ZIP",
+      "format": "DMG",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.5-mac-universal.zip",
+      "fileName": "in-C-0.1.0-alpha.5-mac-universal.dmg",
       "size": "224.9 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/in-C-0.1.0-alpha.5-mac-universal.zip"
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/in-C-0.1.0-alpha.5-mac-universal.dmg"
     },
     {
       "id": "windows",
