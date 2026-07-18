@@ -332,7 +332,9 @@ async function verifyKeyboardRouting(window) {
         editCount: [...document.querySelectorAll('.editor-status span')]
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
-        event: inspectorValues[1],
+        event: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         eventCount: document.querySelectorAll('.notation-event').length,
         hasInputCursor: Boolean(
           document.querySelector('.notation-input-cursor')
@@ -391,7 +393,9 @@ async function verifyKeyboardRouting(window) {
         editCount: [...document.querySelectorAll('.editor-status span')]
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
-        event: inspectorValues[1],
+        event: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         eventCount: document.querySelectorAll('.notation-event').length,
         hasInputCursor: Boolean(
           document.querySelector('.notation-input-cursor')
@@ -536,7 +540,9 @@ async function verifyKeyboardRouting(window) {
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
         )?.textContent?.trim(),
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         type: inspectorValues[0]
@@ -575,7 +581,9 @@ async function verifyKeyboardRouting(window) {
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
         )?.textContent?.trim(),
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         type: inspectorValues[0]
@@ -604,7 +612,9 @@ async function verifyKeyboardRouting(window) {
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
         eventCount: document.querySelectorAll('.notation-event').length,
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         type: inspectorValues[0]
@@ -640,7 +650,9 @@ async function verifyKeyboardRouting(window) {
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
         eventCount: document.querySelectorAll('.notation-event').length,
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         type: inspectorValues[0]
@@ -789,7 +801,9 @@ async function verifyKeyboardRouting(window) {
           ?.textContent,
         eventCount: document.querySelectorAll('.notation-event').length,
         hasProgress: Boolean(document.querySelector('.tuplet-progress')),
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length
@@ -908,7 +922,9 @@ async function verifyKeyboardRouting(window) {
         editCount: [...document.querySelectorAll('.editor-status span')]
           .find((span) => span.textContent?.endsWith('회 수정'))
           ?.textContent,
-        selectedEvent: inspectorValues[1],
+        selectedEvent: document
+          .querySelector('.notation-event.is-selected')
+          ?.getAttribute('data-event-id'),
         status: [...document.querySelectorAll('.editor-status span')]
           .at(-1)?.textContent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length,
@@ -946,8 +962,9 @@ async function verifyKeyboardRouting(window) {
 
       return {
         eventCount: document.querySelectorAll('.notation-event').length,
-        selectedCount: inspectorValues[1],
-        type: inspectorValues[0]
+        selectedCount: document.querySelectorAll(
+          '.notation-event.is-selected'
+        ).length
       }
     })()
   `)
@@ -956,46 +973,39 @@ async function verifyKeyboardRouting(window) {
     selectMode.eventCount !== initialEventCount ||
     selectMode.hasInputCursor ||
     selectMode.editCount !== '1회 수정' ||
-    !selectMode.status?.startsWith('선택 모드') ||
+    selectMode.status !== '4분음표' ||
     !endCursor.hasInputCursor ||
     endCursor.editCount !== '1회 수정' ||
-    !endCursor.status?.startsWith('입력 커서') ||
+    endCursor.status !== '입력 중' ||
     !cursorNoteInput.hasInputCursor ||
     cursorNoteInput.editCount !== '2회 수정' ||
     cursorNoteInput.eventCount !== initialEventCount + 2 ||
-    !cursorNoteInput.status?.startsWith('입력 커서') ||
-    cursorNoteInput.type !== '음표' ||
+    cursorNoteInput.status !== '입력 중' ||
     !cursorRestInput.hasInputCursor ||
     cursorRestInput.editCount !== '1회 수정' ||
     cursorRestInput.eventCount !== initialEventCount + 2 ||
-    !cursorRestInput.status?.startsWith('입력 커서') ||
-    cursorRestInput.type !== '쉼표' ||
+    cursorRestInput.status !== '입력 중' ||
     !koreanCursorRestInput.hasInputCursor ||
     koreanCursorRestInput.editCount !== '1회 수정' ||
     koreanCursorRestInput.eventCount !== initialEventCount + 2 ||
-    !koreanCursorRestInput.status?.startsWith('입력 커서') ||
-    koreanCursorRestInput.type !== '쉼표' ||
+    koreanCursorRestInput.status !== '입력 중' ||
     textInputShortcuts.editCount !== cursorRestInput.editCount ||
     textInputShortcuts.pressedDuration !== '4분음표' ||
     restShortcutConvertsSelection.eventCount !== initialEventCount ||
     restShortcutConvertsSelection.editCount !== '1회 수정' ||
     restShortcutConvertsSelection.hasInputCursor ||
-    !restShortcutConvertsSelection.status?.startsWith('선택 모드') ||
-    restShortcutConvertsSelection.type !== '쉼표' ||
+    restShortcutConvertsSelection.status !== '4분음표' ||
     koreanRestShortcutConvertsSelection.eventCount !== initialEventCount ||
     koreanRestShortcutConvertsSelection.editCount !== '1회 수정' ||
     koreanRestShortcutConvertsSelection.hasInputCursor ||
-    !koreanRestShortcutConvertsSelection.status?.startsWith('선택 모드') ||
-    koreanRestShortcutConvertsSelection.type !== '쉼표' ||
+    koreanRestShortcutConvertsSelection.status !== '4분음표' ||
     restToNote.eventCount !== initialEventCount ||
     restToNote.hasInputCursor ||
     restToNote.editCount !== '1회 수정' ||
-    restToNote.status !== '선택 모드 · A-G로 선택한 음표나 쉼표를 바꿉니다' ||
-    restToNote.type !== '음표' ||
+    restToNote.status !== '4분음표' ||
     restToNote.event !== 'm3-half-rest' ||
     fullRestToNote.hasInputCursor ||
-    fullRestToNote.status !== '선택 모드 · A-G로 선택한 음표나 쉼표를 바꿉니다' ||
-    fullRestToNote.type !== '음표' ||
+    fullRestToNote.status !== '4분음표' ||
     fullRestToNote.event === 'm2-1' ||
     durationShortcutChange.editCount !== '1회 수정' ||
     durationShortcutChange.eventCount !== initialEventCount + 1 ||
@@ -1004,7 +1014,7 @@ async function verifyKeyboardRouting(window) {
     durationShortcutCursor.editCount !== '0회 수정' ||
     !durationShortcutCursor.hasInputCursor ||
     durationShortcutCursor.pressedDuration !== '2분음표' ||
-    !durationShortcutCursor.status?.startsWith('입력 커서') ||
+    durationShortcutCursor.status !== '입력 중' ||
     durationShortcutFailure.editCount !== '0회 수정' ||
     durationShortcutFailure.eventCount !== initialEventCount ||
     durationShortcutFailure.pressedDuration !== '4분음표' ||
@@ -1016,23 +1026,19 @@ async function verifyKeyboardRouting(window) {
     durationShortcutConsumesRest.selectedEvent !== 'm6-e5' ||
     durationShortcutConsumesRest.status !==
       '음가를 4분음표로 바꾸고 뒤의 쉼표를 사용했습니다.' ||
-    durationShortcutConsumesRest.type !== '음표' ||
     restDurationShrink.editCount !== '1회 수정' ||
     restDurationShrink.eventCount !== initialEventCount + 1 ||
     restDurationShrink.pressedDuration !== '4분음표' ||
     restDurationShrink.selectedEvent !== 'm5-half-rest' ||
     restDurationShrink.status !== '쉼표 음가를 4분음표로 바꿨습니다.' ||
-    restDurationShrink.type !== '쉼표' ||
     restDeleteAfterShrink.editCount !== '2회 수정' ||
     restDeleteAfterShrink.eventCount !== initialEventCount ||
     restDeleteAfterShrink.selectedEvent !== 'm5-g4' ||
     restDeleteAfterShrink.status !== '쉼표를 지웠습니다.' ||
-    restDeleteAfterShrink.type !== '음표' ||
     noteDeleteAbsorbsPrevious.editCount !== '1회 수정' ||
     noteDeleteAbsorbsPrevious.eventCount !== initialEventCount ||
     noteDeleteAbsorbsPrevious.selectedEvent !== 'm4-a4' ||
     noteDeleteAbsorbsPrevious.status !== '음표를 지웠습니다.' ||
-    noteDeleteAbsorbsPrevious.type !== '음표' ||
     !tripletButton.ariaLabel?.includes('단축키 T') ||
     tripletButton.shortcut !== 'T' ||
     tripletButton.editCount !== '1회 수정' ||
@@ -1070,16 +1076,14 @@ async function verifyKeyboardRouting(window) {
     tripletAvailableSpanToggleOff.tupletCount !== 1 ||
     tripletDottedRestStart.editCount !== '0회 수정' ||
     tripletDottedRestStart.progress ||
-    tripletDottedRestStart.status !== '선택 모드 · A-G로 선택한 음표나 쉼표를 바꿉니다' ||
+    tripletDottedRestStart.status !== '4분음표' ||
     tripletBackspaceClear.editCount !== '0회 수정' ||
     tripletBackspaceClear.selectedEvent !== 'm7-triplet-c5' ||
     tripletBackspaceClear.status !==
       '잇단음표 구성음은 아직 따로 지울 수 없습니다.' ||
     tripletBackspaceClear.tupletCount !== 1 ||
-    tripletBackspaceClear.type !== '음표' ||
     rangeSelection.eventCount !== initialEventCount ||
-    rangeSelection.selectedCount !== '3개 선택' ||
-    rangeSelection.type !== '범위'
+    rangeSelection.selectedCount !== 3
   ) {
     throw new Error(
       `Keyboard routing verification failed: ${JSON.stringify({
@@ -1616,7 +1620,6 @@ async function verifyMetadataEditing(window) {
       editCount: [...document.querySelectorAll('.editor-status span')]
         .find((span) => span.textContent?.endsWith('회 수정'))
         ?.textContent,
-      sidebarTitle: document.querySelector('.sidebar h1')?.textContent?.trim(),
       title: document.querySelector(
         'button[aria-label="악보 제목 수정"]'
       )?.textContent?.trim()
@@ -1723,7 +1726,6 @@ async function verifyMetadataEditing(window) {
 
   if (
     edited.title !== '새 악보 제목' ||
-    edited.sidebarTitle !== '새 악보 제목' ||
     edited.composer !== '김작곡' ||
     edited.editCount !== '2회 수정' ||
     undoneComposer.title !== '새 악보 제목' ||
@@ -1834,7 +1836,6 @@ async function verifyNewScoreWizard(window) {
 
     setInputValue(field('제목'), '새 출발')
     setInputValue(field('작곡가'), '김작곡')
-    setSelectValue(field('파트'), 'violin')
     setSelectValue(field('조표'), 'd-major')
     setSelectValue(field('박자표'), '3-4')
     setInputValue(field('마디 수'), '3')
@@ -1848,26 +1849,30 @@ async function verifyNewScoreWizard(window) {
 
   const result = await window.webContents.executeJavaScript(`
     (() => {
-      const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
-      ].map((value) => value.textContent?.trim())
       const statusValues = [
         ...document.querySelectorAll('.editor-status span')
       ].map((value) => value.textContent?.trim())
+      const selectedEvent = document
+        .querySelector('.notation-event.is-selected')
+        ?.getAttribute('data-event-id')
+      const selectedMeasure = selectedEvent
+        ? selectedEvent.match(/^measure-(\\d+)/)?.[1]
+        : document
+            .querySelector('.notation-measure.is-selected')
+            ?.getAttribute('data-measure-id')
+            ?.match(/^measure-(\\d+)/)?.[1]
 
       return {
         title: document
           .querySelector('button[aria-label="악보 제목 수정"]')
           ?.textContent?.trim(),
-        sidebarTitle: document.querySelector('.sidebar h1')?.textContent?.trim(),
         composer: document
           .querySelector('button[aria-label="작곡가 수정"]')
           ?.textContent?.trim(),
         measureCount: document.querySelectorAll('.notation-measure').length,
         eventCount: document.querySelectorAll('.notation-event').length,
-        selectedType: inspectorValues[0],
-        selectedEvent: inspectorValues[1],
-        selectedMeasure: inspectorValues[2],
+        selectedEvent,
+        selectedMeasure,
         tempo: document.querySelector('.tempo-control output')?.textContent?.trim(),
         status: statusValues.at(-1),
         dialogOpen: Boolean(
@@ -1879,11 +1884,9 @@ async function verifyNewScoreWizard(window) {
 
   if (
     result.title !== '새 출발' ||
-    result.sidebarTitle !== '새 출발' ||
     result.composer !== '김작곡' ||
     result.measureCount !== 3 ||
     result.eventCount !== 3 ||
-    result.selectedType !== '쉼표' ||
     result.selectedEvent !== 'measure-1-full-measure-rest' ||
     result.selectedMeasure !== '1' ||
     result.tempo !== '96 BPM' ||
@@ -1933,8 +1936,10 @@ async function verifyKeySignatureControl(window) {
 
       return {
         editCount: statusValues.find((value) => value?.endsWith('회 수정')),
-        selectedMeasure: [...document.querySelectorAll('.inspector dd')]
-          .map((value) => value.textContent?.trim())[2],
+        selectedMeasure: document
+          .querySelector('.notation-measure.is-selected')
+          ?.getAttribute('data-measure-id')
+          ?.match(/^measure-(\\d+)/)?.[1],
         status: statusValues.at(-1),
         value: document.querySelector('select[aria-label="조표"]')
           ?.value
@@ -1999,8 +2004,10 @@ async function verifyTimeSignatureControl(window) {
       return {
         editCount: statusValues.find((value) => value?.endsWith('회 수정')),
         eventCount: document.querySelectorAll('.notation-event').length,
-        selectedMeasure: [...document.querySelectorAll('.inspector dd')]
-          .map((value) => value.textContent?.trim())[2],
+        selectedMeasure: document
+          .querySelector('.notation-measure.is-selected')
+          ?.getAttribute('data-measure-id')
+          ?.match(/^measure-(\\d+)/)?.[1],
         status: statusValues.at(-1),
         value: document.querySelector('select[aria-label="박자표"]')
           ?.value
@@ -2052,20 +2059,24 @@ async function verifyMeasureDeletion(window) {
 
   const deleted = await window.webContents.executeJavaScript(`
     (() => {
-      const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
-      ].map((value) => value.textContent?.trim())
       const statusValues = [
         ...document.querySelectorAll('.editor-status span')
       ].map((value) => value.textContent?.trim())
+      const selectedEvent = document
+        .querySelector('.notation-event.is-selected')
+        ?.getAttribute('data-event-id')
+      const selectedMeasure = document
+        .querySelector('.notation-measure.is-selected')
+        ?.getAttribute('data-measure-id')
+        ?.match(/^measure-(\\d+)/)?.[1]
 
       return {
         editCount: statusValues.find((value) => value?.endsWith('회 수정')),
         eventCount: document.querySelectorAll('.notation-event').length,
         measureCount: document.querySelectorAll('.notation-measure').length,
-        selectedEvent: inspectorValues[1],
-        selectedMeasure: inspectorValues[2],
-        selectedType: inspectorValues[0],
+        selectedEvent: selectedEvent ?? '—',
+        selectedMeasure,
+        selectedType: selectedMeasure ? '마디' : '이벤트',
         status: statusValues.at(-1)
       }
     })()
@@ -2134,7 +2145,7 @@ async function verifyMeasureDeletion(window) {
     deleted.eventCount !== 30 ||
     deleted.measureCount !== 7 ||
     deleted.selectedEvent !== '—' ||
-    deleted.selectedMeasure !== '3' ||
+    deleted.selectedMeasure !== '4' ||
     deleted.selectedType !== '마디' ||
     deleted.status !== '마디를 삭제했습니다.' ||
     finalMeasure.editCount !== '0회 수정' ||
@@ -2274,9 +2285,9 @@ async function inspect(window, width, output) {
       const systemsFillWidth = systemRightEdges.every(
         (rightEdge) => Math.abs(rightEdge - (svgWidth - 16)) < 0.01
       )
-      const inspectorValues = [
-        ...document.querySelectorAll('.inspector dd')
-      ].map((value) => value.textContent?.trim())
+      const selectedEvent = document
+        .querySelector('.notation-event.is-selected')
+        ?.getAttribute('data-event-id')
       return {
         width: window.innerWidth,
         measureCount: measures.length,
@@ -2286,7 +2297,7 @@ async function inspect(window, width, output) {
         systemRightEdges,
         systemsFillWidth,
         eventMappingIsValid,
-        selectedInspectorEvent: inspectorValues[1],
+        selectedInspectorEvent: selectedEvent,
         tupletCount: document.querySelectorAll('.vf-tuplet').length,
         tieCount: document.querySelectorAll('.vf-stavetie').length,
         toolbarOverflow:

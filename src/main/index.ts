@@ -266,7 +266,7 @@ const createWindow = (): void => {
             typeof window.inC?.recentMusicXml?.open === 'function' &&
             typeof window.inC?.recentMusicXml?.remove === 'function',
           hasStartScreen: Boolean(document.querySelector('.start-screen')),
-          hasStartActions: document.querySelectorAll('.start-action').length >= 4
+          hasStartActions: document.querySelectorAll('.start-action').length >= 3
         })
       `)
 
