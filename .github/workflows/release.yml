@@ -9,7 +9,6 @@ on:
       - "package.json"
       - "package-lock.json"
       - "scripts/verify-packaged-app.cjs"
-      - "scripts/verify-macos-signing-env.cjs"
       - "scripts/verify-release-artifacts.cjs"
       - "scripts/verify-release-tag.cjs"
       - "src/main/**"
@@ -50,6 +49,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
 
     steps:
@@ -65,32 +65,8 @@ jobs:
       - run: npm ci
       - if: github.event_name != 'pull_request'
         run: npm run verify:release-tag
-      - if: matrix.platform == 'macOS' && github.event_name != 'pull_request'
-        run: npm run verify:macos-signing-env
-        env:
-          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
-          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_KEYCHAIN: ${{ secrets.APPLE_KEYCHAIN }}
-          APPLE_KEYCHAIN_PROFILE: ${{ secrets.APPLE_KEYCHAIN_PROFILE }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CSC_KEY_PASSWORD }}
-          CSC_LINK: ${{ secrets.MACOS_CSC_LINK }}
       - run: npm test
       - run: ${{ matrix.command }}
-        env:
-          APPLE_API_ISSUER: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_ISSUER || '' }}
-          APPLE_API_KEY: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_KEY || '' }}
-          APPLE_API_KEY_ID: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_API_KEY_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          APPLE_ID: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_ID || '' }}
-          APPLE_KEYCHAIN: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_KEYCHAIN || '' }}
-          APPLE_KEYCHAIN_PROFILE: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_KEYCHAIN_PROFILE || '' }}
-          APPLE_TEAM_ID: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.APPLE_TEAM_ID || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.MACOS_CSC_KEY_PASSWORD || '' }}
-          CSC_LINK: ${{ matrix.platform == 'macOS' && github.event_name != 'pull_request' && secrets.MACOS_CSC_LINK || '' }}
       - run: npm run verify:artifacts
 
       - name: Verify packaged app

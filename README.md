@@ -107,9 +107,8 @@ npm run verify:package
 ```
 
 네이티브 installer와 GitHub prerelease 절차는
-[`docs/distribution.md`](docs/distribution.md)에 정리되어 있습니다. macOS 태그
-릴리즈는 Developer ID 서명과 notarization secret이 없으면 실패합니다. Windows
-artifact는 code signing 인증서를 설정하기 전까지 unsigned 상태입니다.
+[`docs/distribution.md`](docs/distribution.md)에 정리되어 있습니다. macOS와
+Windows 서명 인증서를 설정하기 전까지 release artifact는 unsigned 상태입니다.
 
 ## 웹사이트
 

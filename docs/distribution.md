@@ -6,9 +6,10 @@
 - Windows: x64 NSIS installer와 portable EXE
 - Linux: x64 AppImage
 
-macOS 태그 릴리즈는 Developer ID 서명과 notarization 환경 변수가 없으면
-패키징 전에 실패한다. Windows code signing 인증서는 아직 설정하지 않았으므로
-Windows SmartScreen 경고가 표시될 수 있다.
+첫 공개 버전은 prerelease이며 코드 서명과 macOS 공증을 적용하지 않는다.
+따라서 macOS Gatekeeper와 Windows SmartScreen이 경고를 표시할 수 있다.
+정식 배포 전에 Developer ID와 Windows code signing 인증서를 GitHub Actions
+secret으로 추가하고 이 문서를 갱신한다.
 
 ## 로컬 패키징
 
@@ -30,42 +31,6 @@ npm run package:linux
 산출물은 `release/`에 생성된다. 파일 이름은 제품명, 버전, 운영체제와
 아키텍처를 포함한다.
 
-로컬 macOS 패키징은 Developer ID 인증서와 notarization 환경 변수가 있는 경우에만
-서명 및 공증된다. 릴리즈용 환경을 미리 확인하려면 다음 명령을 실행한다.
-
-```bash
-npm run verify:macos-signing-env
-```
-
-## macOS 서명과 공증
-
-GitHub Actions에서 macOS 릴리즈를 만들려면 Developer ID Application 인증서와
-notarization credential을 repository secret으로 등록한다.
-
-필수 서명 secret:
-
-- `MACOS_CSC_LINK`: Developer ID Application 인증서 `.p12` 파일 또는 base64 값
-- `MACOS_CSC_KEY_PASSWORD`: `.p12` 인증서 비밀번호
-
-notarization은 다음 세 조합 중 하나를 완성해야 한다. App Store Connect API key
-방식을 권장한다.
-
-- `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`
-- `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
-- `APPLE_KEYCHAIN`, `APPLE_KEYCHAIN_PROFILE`
-
-태그 또는 workflow dispatch 릴리즈에서는 `npm run verify:macos-signing-env`가 먼저
-실행된다. secret이 없으면 unsigned macOS artifact를 게시하지 않고 Release workflow가
-실패한다.
-
-게시된 macOS artifact를 설치한 뒤에는 다음 명령으로 서명과 공증을 확인한다.
-
-```bash
-codesign --verify --deep --strict --verbose=2 /Applications/in-C.app
-spctl --assess --type execute --verbose /Applications/in-C.app
-xcrun stapler validate /Applications/in-C.app
-```
-
 ## GitHub Release
 
 배포 전에 [`docs/releases/checklist-template.md`](releases/checklist-template.md)를
@@ -83,8 +48,7 @@ git push origin main v0.1.0-alpha.2
 ```
 
 macOS, Windows와 Linux job은 각각 네이티브 패키지를 만들고 packaged app
-smoke test를 실행한다. macOS job은 태그 릴리즈에서 서명 및 notarization secret도
-검증한다. 세 job이 모두 성공해야 prerelease가 생성된다.
+smoke test를 실행한다. 세 job이 모두 성공해야 prerelease가 생성된다.
 Release에는 설치 파일과 `SHA256SUMS.txt`가 함께 게시된다.
 
 Release workflow는 `v*` 태그를 만든 뒤에야 native artifact를 검증할 수 있다.
@@ -114,9 +78,8 @@ prerelease를 만든다.
 
 ### macOS
 
-macOS 릴리즈는 Developer ID 서명과 notarization을 요구한다. Gatekeeper 경고가
-나타나면 release workflow의 macOS package log에서 signing, notarization, stapling
-단계를 확인한다.
+미서명 prerelease는 Finder에서 Control-click 후 `Open`을 선택해야 할 수
+있다. 정식 배포에서는 Developer ID 서명과 notarization을 적용한다.
 
 ### Windows
 
