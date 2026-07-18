@@ -9,11 +9,11 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.4',
-  releaseTag: 'v0.1.0-alpha.4',
+  version: '0.1.0-alpha.5',
+  releaseTag: 'v0.1.0-alpha.5',
   releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.4',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/SHA256SUMS.txt',
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.5',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/SHA256SUMS.txt',
   downloads: [
     {
       id: 'macos',
@@ -22,9 +22,9 @@ const fallbackManifest = {
       architecture: 'Universal',
       format: 'DMG',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.4-mac-universal.dmg',
+      fileName: 'in-C-0.1.0-alpha.5-mac-universal.dmg',
       size: '224.9 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-mac-universal.dmg'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/in-C-0.1.0-alpha.5-mac-universal.dmg'
     },
     {
       id: 'windows',
@@ -33,9 +33,9 @@ const fallbackManifest = {
       architecture: 'x64',
       format: 'NSIS installer',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.4-windows-x64-setup.exe',
+      fileName: 'in-C-0.1.0-alpha.5-windows-x64-setup.exe',
       size: '111.0 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-windows-x64-setup.exe'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/in-C-0.1.0-alpha.5-windows-x64-setup.exe'
     },
     {
       id: 'linux',
@@ -44,9 +44,9 @@ const fallbackManifest = {
       architecture: 'x86_64',
       format: 'AppImage',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.4-linux-x86_64.AppImage',
+      fileName: 'in-C-0.1.0-alpha.5-linux-x86_64.AppImage',
       size: '138.1 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.4/in-C-0.1.0-alpha.4-linux-x86_64.AppImage'
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.5/in-C-0.1.0-alpha.5-linux-x86_64.AppImage'
     }
   ]
 }
