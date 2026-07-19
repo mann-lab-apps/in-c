@@ -7,7 +7,7 @@
 
 ## 기본 속성
 
-- GA4 measurement ID: `G-ZDBEX1JTKM`
+- GA4 measurement ID: `G-1BY2PWFWXR`
 - Web stream URL: `https://in-c.mannlab.app`
 - 로컬 코드 검증: `npm run verify:analytics`
 - 이벤트 사양: [`docs/product/analytics-events.md`](analytics-events.md)
