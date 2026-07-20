@@ -27,6 +27,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/augmentation-dots.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #445에서 첫 점과 두 번째 점 추가, 남은 시간이 부족한 경우의 거부 동작을 연결한다.",
+      "scenarios": [
+        {
+          "id": "augmentation-dots.add-first-dot",
+          "tag": "@scenario-augmentation-dots-add-first-dot",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "augmentation-dots.add-second-dot",
+          "tag": "@scenario-augmentation-dots-add-second-dot",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "augmentation-dots.reject-without-room",
+          "tag": "@scenario-augmentation-dots-reject-without-room",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
