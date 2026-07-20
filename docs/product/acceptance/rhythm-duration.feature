@@ -9,6 +9,7 @@ Feature: 선택 이벤트의 음가를 바꾸기
   Background:
     Given 앱이 편집 가능한 단성부 악보를 열어 둔다
 
+  @scenario-rhythm-duration-shorten-event
   Scenario Outline: 선택 이벤트를 더 짧은 음가로 바꾸면 남은 시간이 쉼표로 채워진다
     Given <time_signature> 악보의 <measure_number>번째 마디에 <original_duration> <event_type>가 선택되어 있다
     When 사용자가 음가 <new_duration>을 선택한다
@@ -21,6 +22,7 @@ Feature: 선택 이벤트의 음가를 바꾸기
       | "4/4"          | 1              | "quarter"         | "note"     | "eighth"     |
       | "4/4"          | 1              | "half"            | "rest"     | "quarter"    |
 
+  @scenario-rhythm-duration-lengthen-event
   Scenario Outline: 선택 이벤트를 더 긴 음가로 바꾸면 뒤 이벤트를 소비한다
     Given <time_signature> 악보의 <measure_number>번째 마디에 <first_duration> 음표가 선택되어 있다
     And 선택된 이벤트 바로 뒤에 <next_duration> 쉼표가 있다
@@ -34,6 +36,7 @@ Feature: 선택 이벤트의 음가를 바꾸기
       | "4/4"          | 1              | "quarter"      | "quarter"     | "half"       |
       | "4/4"          | 1              | "eighth"       | "eighth"      | "quarter"    |
 
+  @scenario-rhythm-duration-reject-growth
   Scenario: 뒤 이벤트를 소비할 수 없으면 음가 변경을 거부한다
     Given "4/4" 악보의 1번째 마디 마지막 위치에 "quarter" 음표가 선택되어 있다
     And 선택된 이벤트 뒤에 충분한 빈 시간이 없다
