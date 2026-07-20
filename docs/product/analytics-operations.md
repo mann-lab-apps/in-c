@@ -12,6 +12,7 @@
 - 로컬 코드 검증: `npm run verify:analytics`
 - 이벤트 사양: [`docs/product/analytics-events.md`](analytics-events.md)
 - 자동 리포트 검토 기준: [`docs/product/ga4-reporting-plan.md`](ga4-reporting-plan.md)
+- 주간 리뷰 기록: [`docs/product/ga4-weekly-review-template.md`](ga4-weekly-review-template.md)
 - 공개 고지: [`site/privacy.html`](../../site/privacy.html)
 
 ## 배포 후 15분 실시간 확인
