@@ -33,7 +33,7 @@ describe('tuplet feedback', () => {
     ).toContain('현재 마디를 넘어갑니다')
   })
 
-  it('explains that tied notes must be untied first', () => {
+  it('tuplets.reject-relation-breaking-edit explains that tied notes must be untied first', () => {
     const score = createScore({
       parts: [
         createPart({

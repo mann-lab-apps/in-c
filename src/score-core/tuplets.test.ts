@@ -75,7 +75,7 @@ describe('score-core tuplets', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('rejects an isolated duration edit that would break a tuplet group', () => {
+  it('tuplets.reject-relation-breaking-edit rejects an isolated duration edit that would break a tuplet group', () => {
     const score = createScore()
     const voice = tripletVoice()
     const installed = applyScoreCommand(score, {

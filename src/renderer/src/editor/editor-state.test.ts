@@ -323,7 +323,7 @@ describe('editor state', () => {
     ).toBeUndefined()
   })
 
-  it('turns only the selected tuplet span into a tuplet group', () => {
+  it('tuplets.group-selected-events turns only the selected tuplet span into a tuplet group', () => {
     const command = buildTupletGroupCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -425,7 +425,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('toggles an existing tuplet group back to regular durations', () => {
+  it('tuplets.remove-existing-group toggles an existing tuplet group back to regular durations', () => {
     const apply = buildTupletGroupCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -635,7 +635,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('does not create a tuplet group when the span crosses a measure boundary', () => {
+  it('tuplets.reject-relation-breaking-edit does not create a tuplet group when the span crosses a measure boundary', () => {
     expect(
       buildTupletGroupCommand(
         demoScore,
