@@ -69,6 +69,7 @@ production 확인은 배포 승인을 받은 뒤에만 진행한다.
 
 ## 관련 문서
 
+- 작은 화면 확인: [모바일 viewport 사이트 수동 QA](mobile-viewport-manual-qa.md)
 - 배포 후 전체 확인: [Production smoke evidence 기록 양식](production-smoke-evidence-template.md)
 - 출시 판정: [Release Readiness Checklist](release-readiness-checklist.md)
 - 운영 절차: [프로덕션 운영 플레이북](../operations/production-playbook.md)
