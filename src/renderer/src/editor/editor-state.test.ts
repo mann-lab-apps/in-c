@@ -227,7 +227,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('adds and removes augmentation dots through rhythm transactions', () => {
+  it('augmentation-dots.add-first-dot adds and removes augmentation dots through rhythm transactions', () => {
     const add = buildDotCommand(
       demoScore,
       { type: 'event', eventId: 'note-c5' },
@@ -259,6 +259,33 @@ describe('editor state', () => {
     expect(applyScoreCommand(added.score, added.undo).score).toEqual(demoScore)
   })
 
+  it('augmentation-dots.add-second-dot adds a second augmentation dot', () => {
+    const firstDot = buildDotCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-c5' },
+      1,
+      () => 'first-dot-rest'
+    )
+    const dotted = applyScoreCommand(demoScore, firstDot!)
+    const secondDot = buildDotCommand(
+      dotted.score,
+      { type: 'event', eventId: 'note-c5' },
+      1,
+      () => 'second-dot-rest'
+    )
+    const doubleDotted = applyScoreCommand(dotted.score, secondDot!)
+
+    expect(readEvent(doubleDotted.score, 'note-c5')).toMatchObject({
+      type: 'note',
+      duration: { value: 'eighth', dots: 2 }
+    })
+    expect(
+      validateMeasureRhythm(
+        doubleDotted.score.parts[0].staves[0].measures[0]
+      ).isExact
+    ).toBe(true)
+  })
+
   it('applies augmentation dots to rests with the same rhythm rules', () => {
     const shortenedNote = buildDurationCommand(
       demoScore,
@@ -286,7 +313,7 @@ describe('editor state', () => {
     ).toBe(true)
   })
 
-  it('rejects dot growth that would consume a note', () => {
+  it('augmentation-dots.reject-without-room rejects dot growth that would consume a note', () => {
     expect(
       buildDotCommand(
         demoScore,
