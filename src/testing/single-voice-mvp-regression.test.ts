@@ -107,7 +107,7 @@ describe('single-voice MVP regression', () => {
     })
   })
 
-  it('completes sequential input and restores compound edits with undo/redo', () => {
+  it('delete-event.clean-ties completes sequential input and restores compound edits with undo/redo', () => {
     let score = createScore()
     let state = createNoteInputState({
       target: inputTarget,
