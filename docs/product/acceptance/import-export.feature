@@ -5,6 +5,7 @@
 Feature: 악보를 가져오고 저장하기
   사용자는 작성한 악보를 MusicXML로 주고받고, 필요하면 PDF로 변환할 수 있어야 한다.
 
+  @scenario-import-export-import-valid-single-voice
   Scenario: MusicXML 파일을 가져온다
     Given 앱이 시작화면을 보여준다
     When 사용자가 MusicXML 가져오기를 선택한다
@@ -12,12 +13,14 @@ Feature: 악보를 가져오고 저장하기
     Then 앱은 MusicXML 내용을 악보로 연다
     And 가져온 악보의 제목, 박자표, 조표, 이벤트가 표시된다
 
+  @scenario-import-export-reject-time-movement
   Scenario: MusicXML 가져오기는 지원 범위 밖의 시간 이동을 조용히 해석하지 않는다
     Given MusicXML 문서에 backup 또는 forward가 포함되어 있다
     When 사용자가 MusicXML 가져오기를 선택한다
     Then 앱은 해당 파일을 가져오지 않는다
     And 사용자는 MVP에서 backup 또는 forward를 지원하지 않는다는 안내를 본다
 
+  @scenario-import-export-preserve-measure-attributes
   Scenario: MusicXML 가져오기는 마디별 attribute 변경을 시간축에 맞춰 보존한다
     Given 단일 part, 단일 staff, 단일 voice MusicXML에 마디별 박자표와 조표 변경이 있다
     When 사용자가 MusicXML 가져오기를 선택한다
@@ -25,6 +28,7 @@ Feature: 악보를 가져오고 저장하기
     And 각 이벤트의 position은 MusicXML duration 누적으로 정규화된다
     And 다시 MusicXML로 내보냈다가 가져와도 박자표, 조표, duration 의미가 유지된다
 
+  @scenario-import-export-round-trip-musical-meaning
   Scenario: 작성한 악보를 MusicXML로 저장한다
     Given 편집 가능한 단성부 악보가 열려 있다
     When 사용자가 저장을 실행한다

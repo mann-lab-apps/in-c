@@ -74,7 +74,7 @@ describe('MusicXML MVP', () => {
     }
   })
 
-  it('parses a single-part treble-clef fixture into score-core', () => {
+  it('import-export.import-valid-single-voice parses a single-part treble-clef fixture into score-core', () => {
     const score = parseMusicXml(fixture)
 
     expect(score).toMatchObject({
@@ -1228,7 +1228,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('preserves measure attribute changes while normalizing note order to the score timeline', () => {
+  it('import-export.preserve-measure-attributes preserves measure attribute changes while normalizing note order to the score timeline', () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list>
@@ -1333,7 +1333,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
+  it('import-export.reject-time-movement rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
     const backupXml = fixture.replace(
       '</measure>',
       '<backup><duration>1</duration></backup></measure>'
