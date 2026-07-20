@@ -14,6 +14,9 @@
 - QA 기록용 이슈 또는 체크리스트
 - 자동 bounds 검증과 같은 `src/musicxml/fixtures/release-qa.musicxml`
 
+악보 파일별 공개 여부와 검증 역할은
+[악보 예제·QA 자산 구분 기준](../testing/score-asset-inventory.md)을 따른다.
+
 ## 시나리오
 
 | 단계 | 행동 | 기대 결과 | 실패 시 기록 |
