@@ -174,7 +174,7 @@ describe('single-voice MVP regression', () => {
       .toEqual(shortened.score)
   })
 
-  it('preserves musical meaning across MusicXML export and import', () => {
+  it('import-export.round-trip-musical-meaning preserves musical meaning across MusicXML export and import', () => {
     const score = createSingleVoiceMvpScore()
     const roundTrip = parseMusicXml(serializeMusicXml(score))
 

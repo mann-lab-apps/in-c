@@ -164,6 +164,41 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/import-export.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #461에서 유효한 단성부 MusicXML 가져오기, 지원하지 않는 시간 이동 거부, 마디별 속성 보존, 저장 후 재가져오기를 기존 자동 테스트에 연결한다. PDF, 파일 작업 UI, 자동저장, @discussion 이미지 내보내기는 제외한다.",
+      "scenarios": [
+        {
+          "id": "import-export.import-valid-single-voice",
+          "tag": "@scenario-import-export-import-valid-single-voice",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.reject-time-movement",
+          "tag": "@scenario-import-export-reject-time-movement",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.preserve-measure-attributes",
+          "tag": "@scenario-import-export-preserve-measure-attributes",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-musical-meaning",
+          "tag": "@scenario-import-export-round-trip-musical-meaning",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
