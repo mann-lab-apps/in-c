@@ -119,6 +119,51 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/tuplets.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #459에서 셋잇단음표 생성, 입력, 해제와 실패 조건을 기존 자동 테스트에 연결한다. 진행 상태를 다루는 @discussion 시나리오는 제외한다.",
+      "scenarios": [
+        {
+          "id": "tuplets.group-selected-events",
+          "tag": "@scenario-tuplets-group-selected-events",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.input-at-cursor",
+          "tag": "@scenario-tuplets-input-at-cursor",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.remove-existing-group",
+          "tag": "@scenario-tuplets-remove-existing-group",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.reject-insufficient-time",
+          "tag": "@scenario-tuplets-reject-insufficient-time",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.reject-relation-breaking-edit",
+          "tag": "@scenario-tuplets-reject-relation-breaking-edit",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts",
+            "src/renderer/src/editor/note-input-state.test.ts",
+            "src/renderer/src/editor/tuplet-feedback.test.ts",
+            "src/score-core/tuplets.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
