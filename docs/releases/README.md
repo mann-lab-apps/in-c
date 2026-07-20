@@ -10,6 +10,8 @@
   현재 제한, 확인한 내용, 문제 제보 경로를 짧게 정리할 때 사용한다.
 - `snapshot-template.md`: 릴리즈 전 현황판 실험 초안. 현재 기본 운영으로 쓰지 않고,
   페어 전체 점검을 몇 차례 수행한 뒤 필요한 항목만 다시 승격한다.
+- `.github/ISSUE_TEMPLATE/release_candidate_manual_qa.md`: 릴리즈 후보별 OS, 앱 버전,
+  commit, 수동 QA 판정과 증거를 GitHub 이슈에 기록하는 원본.
 - `checklists/`: 완료된 체크리스트를 저장해야 할 때 사용하는 선택적 보관 위치.
   모든 prerelease 체크리스트를 반드시 저장하지는 않는다.
 
