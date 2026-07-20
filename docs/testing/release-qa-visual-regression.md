@@ -16,6 +16,8 @@ overflow, dynamics/staff placement 겹침 같은 시각 회귀를 확인한다.
 
 이 fixture는 사람이 직접 앱에서 열어보는 수동 QA와 자동 bounds 테스트가 공유하는
 기준 악보다.
+[악보 예제·QA 자산 구분 기준](score-asset-inventory.md)에서는 이 파일과 공개
+Compositions의 노출 목적 차이를 설명한다.
 
 ## 자동 검증
 
