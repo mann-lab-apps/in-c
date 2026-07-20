@@ -83,6 +83,42 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/delete-event.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #449에서 앞 이벤트로 길이 보존, 첫 이벤트 삭제 후 당김, 쉼표 삭제, 타이 관계 정리를 연결한다.",
+      "scenarios": [
+        {
+          "id": "delete-event.merge-into-previous",
+          "tag": "@scenario-delete-event-merge-into-previous",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.shift-leading-event",
+          "tag": "@scenario-delete-event-shift-leading-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.remove-rest",
+          "tag": "@scenario-delete-event-remove-rest",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.clean-ties",
+          "tag": "@scenario-delete-event-clean-ties",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts",
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
