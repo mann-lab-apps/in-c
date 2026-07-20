@@ -76,6 +76,9 @@ prerelease를 만든다.
 
 ## 설치 경고
 
+릴리즈 후보의 설치·실행·저장·열기 결과는
+[`패키지 앱 운영체제별 smoke matrix`](quality/package-app-smoke-matrix.md)에 기록한다.
+
 ### macOS
 
 미서명 prerelease는 Finder에서 Control-click 후 `Open`을 선택해야 할 수
