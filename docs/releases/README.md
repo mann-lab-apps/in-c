@@ -6,6 +6,8 @@
 
 - `checklist-template.md`: 매 릴리즈 전에 복사해서 사용하는 체크리스트 원본.
   제품, 배포, 테스트 방식이 바뀌면 이 파일을 업데이트한다.
+- `release-notes-template.md`: 사용자가 읽을 릴리즈 노트 원본. 새 기능, 달라진 점,
+  현재 제한, 확인한 내용, 문제 제보 경로를 짧게 정리할 때 사용한다.
 - `snapshot-template.md`: 릴리즈 전 현황판 실험 초안. 현재 기본 운영으로 쓰지 않고,
   페어 전체 점검을 몇 차례 수행한 뒤 필요한 항목만 다시 승격한다.
 - `checklists/`: 완료된 체크리스트를 저장해야 할 때 사용하는 선택적 보관 위치.
@@ -31,3 +33,8 @@ alpha 릴리즈 기록이 문서를 빠르게 복잡하게 만들 수 있기 때
 
 완료본을 저장할 때는 `checklists/v0.1.0-alpha.4.md`처럼 태그 이름을 파일명으로
 쓴다.
+
+사용자에게 공개할 변경점을 작성할 때는
+[`release-notes-template.md`](release-notes-template.md)를 복사한다. 내부 작업만 끝난
+항목은 새 기능처럼 쓰지 않고, 사용자가 실제로 달라진 점만 적는다. 현재 제한은
+[`Known Limitations`](../quality/known-limitations.md)와 맞는지 확인한다.
