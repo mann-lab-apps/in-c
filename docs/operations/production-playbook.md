@@ -112,6 +112,11 @@ revert commit으로 기록을 남긴다.
 
 ## 운영 메모 템플릿
 
+정식 배포 후 확인 결과는
+[`Production smoke evidence 기록 양식`](../quality/production-smoke-evidence-template.md)을
+복사해 날짜, commit, URL, 판정 근거를 남긴다. 아래 양식은 장애를 빠르게 기록할
+때 사용한다.
+
 ```markdown
 ## 확인 시각
 
