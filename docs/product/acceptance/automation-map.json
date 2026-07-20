@@ -55,6 +55,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/rhythm-duration.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #447에서 음가 줄이기, 음가 늘리기, 늘릴 수 없는 경우의 거부 동작을 연결한다.",
+      "scenarios": [
+        {
+          "id": "rhythm-duration.shorten-event",
+          "tag": "@scenario-rhythm-duration-shorten-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "rhythm-duration.lengthen-event",
+          "tag": "@scenario-rhythm-duration-lengthen-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "rhythm-duration.reject-growth",
+          "tag": "@scenario-rhythm-duration-reject-growth",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
