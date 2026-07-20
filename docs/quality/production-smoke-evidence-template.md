@@ -66,6 +66,7 @@
 
 ## 관련 문서
 
+- 브라우저별 확인: [브라우저 호환성 smoke 기준](browser-compatibility-smoke.md)
 - 운영 절차와 확인 URL: [프로덕션 운영 플레이북](../operations/production-playbook.md)
 - 누적 검증 결과: [Evidence Log](evidence-log.md)
 - 출시 판정 기준: [Release Readiness Checklist](release-readiness-checklist.md)
