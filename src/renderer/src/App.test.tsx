@@ -1,12 +1,24 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest'
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within
+} from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
+import { demoScore } from './notation/demo-score'
+
 vi.mock('./notation/NotationPreview', () => ({
-  NotationPreview: () => (
-    <div aria-label="악보 미리보기 테스트 더블" data-testid="notation-preview" />
+  NotationPreview: ({ score }: { score: typeof demoScore }) => (
+    <div aria-label="악보 미리보기 테스트 더블" data-testid="notation-preview">
+      {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
+    </div>
   )
 }))
 
@@ -65,7 +77,7 @@ describe('App component shell', () => {
     installPreloadStub()
   })
 
-  it('renders the start screen with Korean entry actions', async () => {
+  it('start-recovery.show-start-screen renders the start screen with Korean entry actions', async () => {
     const { App } = await import('./App')
     render(<App />)
 
@@ -75,6 +87,110 @@ describe('App component shell', () => {
     expect(screen.getByRole('button', { name: /새 악보 만들기/ })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /MusicXML 가져오기/ })).toBeInTheDocument()
     expect(screen.getByLabelText('최근 MusicXML 파일')).toBeInTheDocument()
+  })
+
+  it('start-recovery.no-autosave keeps primary start actions available without a recovery snapshot', async () => {
+    const { App } = await import('./App')
+    render(<App />)
+
+    expect(
+      screen.getByRole('button', { name: /새 악보 만들기/ })
+    ).toBeEnabled()
+    expect(
+      screen.getByRole('button', { name: /MusicXML 가져오기/ })
+    ).toBeEnabled()
+    expect(screen.getByRole('button', { name: /복구본 없음/ })).toBeDisabled()
+  })
+
+  it('start-recovery.open-autosave restores the saved score metadata and events', async () => {
+    const recoveredScore = {
+      ...demoScore,
+      title: '복구한 연습곡',
+      parts: demoScore.parts.map((part, partIndex) =>
+        partIndex === 0
+          ? {
+              ...part,
+              staves: part.staves.map((staff, staffIndex) =>
+                staffIndex === 0
+                  ? {
+                      ...staff,
+                      measures: staff.measures.map((measure, measureIndex) =>
+                        measureIndex === 0
+                          ? {
+                              ...measure,
+                              keySignature: { fifths: 1, mode: 'major' as const },
+                              timeSignature: { beats: 3, beatType: 4 }
+                            }
+                          : measure
+                      )
+                    }
+                  : staff
+              )
+            }
+          : part
+      )
+    }
+    vi.mocked(window.inC.autosave.read).mockResolvedValue({
+      score: recoveredScore,
+      metadata: {
+        title: recoveredScore.title,
+        updatedAt: '2026-07-21T00:00:00.000Z',
+        version: '1'
+      }
+    })
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    const recoveryButton = await screen.findByRole('button', {
+      name: /복구본 열기/
+    })
+    fireEvent.click(recoveryButton)
+
+    expect(screen.getByText('복구한 연습곡')).toBeInTheDocument()
+    expect(screen.getByLabelText('조표')).toHaveValue('g-major')
+    expect(screen.getByLabelText('박자표')).toHaveValue('3-4')
+    expect(screen.getByTestId('notation-preview')).toHaveTextContent('note-c4')
+  })
+
+  it('start-recovery.reopen-recent-musicxml opens the score and requests recent-order refresh', async () => {
+    const firstFile = {
+      filePath: '/scores/first.musicxml',
+      fileName: 'first.musicxml',
+      openedAt: '2026-07-20T00:00:00.000Z'
+    }
+    const selectedFile = {
+      filePath: '/scores/sketch.musicxml',
+      fileName: 'sketch.musicxml',
+      openedAt: '2026-07-19T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([
+      firstFile,
+      selectedFile
+    ])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...selectedFile,
+      contents: recentMusicXml
+    })
+    vi.mocked(window.inC.recentMusicXml.add).mockResolvedValue([
+      { ...selectedFile, openedAt: '2026-07-21T00:00:00.000Z' },
+      firstFile
+    ])
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /sketch\.musicxml/ })
+    )
+
+    expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(window.inC.recentMusicXml.add).toHaveBeenCalledWith({
+        filePath: selectedFile.filePath,
+        fileName: selectedFile.fileName
+      })
+    })
   })
 
   it('renders the editor toolbar in fixture mode', async () => {
