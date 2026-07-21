@@ -217,7 +217,7 @@
     {
       "feature": "docs/product/acceptance/import-export.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #461에서 유효한 단성부 MusicXML 가져오기, 지원하지 않는 시간 이동 거부, 마디별 속성 보존, 저장 후 재가져오기를 기존 자동 테스트에 연결한다. PDF, 파일 작업 UI, 자동저장, @discussion 이미지 내보내기는 제외한다.",
+      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 자동저장과 @discussion 이미지 내보내기는 제외한다.",
       "scenarios": [
         {
           "id": "import-export.import-valid-single-voice",
@@ -245,6 +245,20 @@
           "tag": "@scenario-import-export-round-trip-musical-meaning",
           "tests": [
             "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.save-pdf",
+          "tag": "@scenario-import-export-save-pdf",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "import-export.report-pdf-result",
+          "tag": "@scenario-import-export-report-pdf-result",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
           ]
         }
       ]
