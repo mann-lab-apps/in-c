@@ -355,6 +355,27 @@
       ]
     },
     {
+      "feature": "docs/product/acceptance/layout-rendering.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 기존 자동 테스트에 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치는 제외한다.",
+      "scenarios": [
+        {
+          "id": "layout.manual-system-break",
+          "tag": "@scenario-layout-manual-system-break",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.manual-page-break",
+          "tag": "@scenario-layout-manual-page-break",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        }
+      ]
+    },
+    {
       "feature": "docs/product/acceptance/distribution-download.feature",
       "strategy": "vitest-scenario-id",
       "notes": "이슈 #475에서 운영체제별 배포 파일, prerelease·미서명 안내, 기본 다운로드 분석 이벤트를 기존 자동 검증에 연결한다. 제품 내용과 배포 설정은 변경하지 않는다.",

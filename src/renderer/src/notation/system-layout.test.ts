@@ -71,8 +71,9 @@ describe('system layout', () => {
     }
   })
 
-  it('starts a new system before measures with manual system breaks', () => {
-    const layout = createSystemLayout(createMeasures(6), 900, {
+  it('layout.manual-system-break adds a manual break and returns to automatic layout when removed', () => {
+    const measures = createMeasures(6)
+    const layout = createSystemLayout(measures, 900, {
       layout: {
         systemBreakBeforeMeasureIds: ['measure-3', 'measure-6']
       }
@@ -92,6 +93,13 @@ describe('system layout', () => {
       measure: expect.objectContaining({ id: 'measure-6' }),
       x: 16
     })
+
+    const automaticLayout = createSystemLayout(measures, 900)
+
+    expect(
+      automaticLayout.placements.map((placement) => placement.systemIndex)
+    ).toEqual([0, 0, 0, 0, 1, 1])
+    expect(automaticLayout.placements[2].isSystemStart).toBe(false)
   })
 
   it('ignores manual system breaks before the first measure', () => {
@@ -108,8 +116,9 @@ describe('system layout', () => {
     })
   })
 
-  it('starts a new system before measures with manual page breaks', () => {
-    const layout = createSystemLayout(createMeasures(6), 900, {
+  it('layout.manual-page-break adds a page break as a system boundary and returns to automatic layout when removed', () => {
+    const measures = createMeasures(6)
+    const layout = createSystemLayout(measures, 900, {
       layout: {
         pageBreakBeforeMeasureIds: ['measure-4']
       }
@@ -124,6 +133,13 @@ describe('system layout', () => {
       measure: expect.objectContaining({ id: 'measure-4' }),
       x: 16
     })
+
+    const automaticLayout = createSystemLayout(measures, 900)
+
+    expect(
+      automaticLayout.placements.map((placement) => placement.systemIndex)
+    ).toEqual([0, 0, 0, 0, 1, 1])
+    expect(automaticLayout.placements[3].isSystemStart).toBe(false)
   })
 
   it('allocates more width to rhythmically dense measures', () => {
