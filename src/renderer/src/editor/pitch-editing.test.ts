@@ -10,7 +10,7 @@ import {
 } from './pitch-editing'
 
 describe('pitch editing commands', () => {
-  it('changes only the selected note pitch step without entering a new note', () => {
+  it('[note-input.edit-selected-pitch] changes only the selected note pitch step without entering a new note', () => {
     const selection = { type: 'event' as const, eventId: 'note-b4' }
     const command = buildPitchStepCommand(demoScore, selection, 'C')
     const result = applyScoreCommand(demoScore, command!)

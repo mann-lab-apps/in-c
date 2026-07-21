@@ -119,6 +119,27 @@ describe('editor state', () => {
     })
   })
 
+  it('[note-input.convert-selected-note-to-rest] converts a selected note to a rest without moving or resizing it', () => {
+    const original = readEvent(demoScore, 'note-g4')
+    const restCommand = buildRestEntryCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      original!.duration,
+      () => 'unused'
+    )
+    const restResult = applyScoreCommand(demoScore, restCommand!)
+
+    expect(readEvent(restResult.score, 'note-g4')).toMatchObject({
+      type: 'rest',
+      position: original!.position,
+      duration: original!.duration
+    })
+    expect(
+      restResult.score.parts[0].staves.flatMap((staff) => staff.measures)
+        .every((measure) => validateMeasureRhythm(measure).isExact)
+    ).toBe(true)
+  })
+
   it('changes duration and converts a selected note to a rest', () => {
     const durationCommand = buildDurationCommand(
       demoScore,
