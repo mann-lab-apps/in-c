@@ -678,7 +678,7 @@ describe('editor state', () => {
     )
   })
 
-  it('deletes a same-measure range as one undoable rhythm edit', () => {
+  it('range-editing.delete-same-measure deletes a same-measure range as one undoable rhythm edit', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', TICKS_PER_QUARTER, 'quarter'),
@@ -722,7 +722,7 @@ describe('editor state', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('rejects range deletion across measure boundaries', () => {
+  it('range-editing.reject-cross-measure-delete rejects range deletion across measure boundaries', () => {
     const selection = createRangeSelection(demoScore, 'note-f-sharp-4', 'note-g4')
 
     expect(selection).toMatchObject({
@@ -731,7 +731,7 @@ describe('editor state', () => {
     expect(buildDeleteCommand(demoScore, selection!)).toBeUndefined()
   })
 
-  it('copies and pastes a same-length simple range', () => {
+  it('range-editing.copy-paste-same-length copies and pastes a same-length simple range', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', TICKS_PER_QUARTER, 'quarter'),
@@ -913,7 +913,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('rejects range paste when the target range has a different duration', () => {
+  it('range-editing.reject-different-length-paste rejects range paste when the target range has a different duration', () => {
     const score = scoreWith([
       note('note-1', 0, 'eighth'),
       note('note-2', TICKS_PER_QUARTER / 2, 'eighth'),
@@ -933,7 +933,7 @@ describe('editor state', () => {
     )).toBeUndefined()
   })
 
-  it('converts selected notes in a range to rests as one edit', () => {
+  it('range-editing.convert-notes-to-rests converts selected notes in a range to rests as one edit', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', TICKS_PER_QUARTER, 'quarter'),
@@ -982,7 +982,7 @@ describe('editor state', () => {
     expect(buildRangeRestCommand(score, selection!)).toBeUndefined()
   })
 
-  it('rejects range rest conversion when selected notes are tied', () => {
+  it('range-editing.reject-unsafe-rest-conversion rejects range rest conversion when selected notes are tied', () => {
     const score = scoreWith([
       createNote({
         id: 'note-1',
