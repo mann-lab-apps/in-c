@@ -541,7 +541,7 @@ describe('playback timeline', () => {
     expect(events[2].frequency).toBeCloseTo(349.228, 3)
   })
 
-  it('merges tied notes into one sustained playback event', () => {
+  it('playback.tie-and-triplet-duration merges tied notes into one sustained playback event', () => {
     const score = createScore({
       parts: [
         createPart({
@@ -585,7 +585,7 @@ describe('playback timeline', () => {
     })
   })
 
-  it('places triplet events on proportional playback beats', () => {
+  it('playback.tie-and-triplet-duration places triplet events on proportional playback beats', () => {
     const duration = {
       ...createDuration('eighth'),
       tuplet: {
@@ -692,59 +692,67 @@ describe('playback timeline', () => {
     expect(event.velocityEnd).toBeCloseTo(0.09)
   })
 
-  it('ramps playback velocity across hairpins', () => {
-    const score = createScore({
-      hairpins: [
-        {
-          id: 'crescendo-1',
-          startEventId: 'note-start',
-          endEventId: 'note-end',
-          type: 'crescendo'
-        }
-      ],
-      parts: [
-        createPart({
-          staves: [
-            createStaff({
-              measures: [
-                createMeasure({
-                  voices: [
-                    createVoice({
-                      events: [
-                        createNote({
-                          id: 'note-start',
-                          position: createTimePosition(0),
-                          pitch: { step: 'C', octave: 4 }
-                        }),
-                        createNote({
-                          id: 'note-end',
-                          position: createTimePosition(TICKS_PER_QUARTER),
-                          pitch: { step: 'D', octave: 4 }
-                        }),
-                        createRest({
-                          id: 'rest-fill',
-                          position: createTimePosition(TICKS_PER_QUARTER * 2),
-                          duration: createDuration('half')
-                        })
-                      ]
-                    })
-                  ]
-                })
-              ]
-            })
-          ]
-        })
-      ]
-    })
-    const [start, end, rest] = createPlaybackTimeline(score).events
+  it.each([
+    { type: 'crescendo' as const, endVelocity: 0.24 },
+    { type: 'diminuendo' as const, endVelocity: 0.08 }
+  ])(
+    'playback.hairpin-velocity ramps playback velocity across $type hairpins',
+    ({ type, endVelocity }) => {
+      const score = createScore({
+        hairpins: [
+          {
+            id: 'hairpin-1',
+            startEventId: 'note-start',
+            endEventId: 'note-end',
+            type
+          }
+        ],
+        parts: [
+          createPart({
+            staves: [
+              createStaff({
+                measures: [
+                  createMeasure({
+                    voices: [
+                      createVoice({
+                        events: [
+                          createNote({
+                            id: 'note-start',
+                            position: createTimePosition(0),
+                            pitch: { step: 'C', octave: 4 }
+                          }),
+                          createNote({
+                            id: 'note-end',
+                            position: createTimePosition(TICKS_PER_QUARTER),
+                            pitch: { step: 'D', octave: 4 }
+                          }),
+                          createRest({
+                            id: 'rest-fill',
+                            position: createTimePosition(TICKS_PER_QUARTER * 2),
+                            duration: createDuration('half')
+                          })
+                        ]
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+      const [start, end, rest] = createPlaybackTimeline(score).events
 
-    expect(start.velocityStart).toBeCloseTo(0.16)
-    expect(start.velocityEnd).toBeGreaterThan(start.velocityStart)
-    expect(end.velocityEnd).toBeCloseTo(0.24)
-    expect(rest.velocityStart).toBeCloseTo(0.16)
-  })
+      expect(start.velocityStart).toBeCloseTo(0.16)
+      expect(Math.sign(start.velocityEnd - start.velocityStart)).toBe(
+        type === 'crescendo' ? 1 : -1
+      )
+      expect(end.velocityEnd).toBeCloseTo(endVelocity)
+      expect(rest.velocityStart).toBeCloseTo(0.16)
+    }
+  )
 
-  it('extends playback time after fermatas', () => {
+  it('playback.fermata-delay extends playback time after fermatas', () => {
     const score = createScore({
       parts: [
         createPart({
