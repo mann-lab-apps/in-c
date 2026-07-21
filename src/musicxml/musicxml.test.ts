@@ -498,7 +498,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports fermatas on notes and rests', () => {
+  it('layout.fermata exports and re-imports fermatas on notes and rests', () => {
     const score = createScore({
       title: 'Fermata Sketch',
       parts: [
@@ -552,7 +552,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports breath marks and caesuras', () => {
+  it('layout.breath-marks exports and re-imports breath marks and caesuras', () => {
     const score = createScore({
       title: 'Breath Sketch',
       parts: [

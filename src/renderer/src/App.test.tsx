@@ -41,6 +41,26 @@ vi.mock('./notation/NotationPreview', () => ({
           {dynamic.value}
         </span>
       ))}
+      {score.parts.flatMap((part) =>
+        part.staves.flatMap((staff) =>
+          staff.measures.flatMap((measure) =>
+            measure.voices.flatMap((voice) =>
+              voice.events.flatMap((event) => [
+                event.fermata ? (
+                  <span data-event-id={event.id} key={`${event.id}-fermata`}>
+                    페르마타 표시
+                  </span>
+                ) : null,
+                event.breathMark ? (
+                  <span data-event-id={event.id} key={`${event.id}-breath-mark`}>
+                    {event.breathMark === 'caesura' ? '중지표 표시' : '숨표 표시'}
+                  </span>
+                ) : null
+              ])
+            )
+          )
+        )
+      )}
     </div>
   )
 }))
@@ -429,6 +449,58 @@ describe('App component shell', () => {
     const dynamic = within(screen.getByTestId('notation-preview')).getByText('mf')
     expect(dynamic).toHaveAttribute('data-measure-id', 'measure-1')
     expect(dynamic).not.toHaveAttribute('data-measure-id', 'measure-2')
+  })
+
+  it('layout.fermata toggles the selected event mark in data and preview', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const fermataButton = screen.getByRole('button', { name: '페르마타' })
+    const preview = screen.getByTestId('notation-preview')
+
+    expect(fermataButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).getByText('페르마타 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+
+    fireEvent.click(fermataButton)
+    expect(fermataButton).toHaveAttribute('aria-pressed', 'false')
+    expect(within(preview).queryByText('페르마타 표시')).not.toBeInTheDocument()
+
+    fireEvent.click(fermataButton)
+    expect(fermataButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).getByText('페르마타 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+  })
+
+  it('layout.breath-marks replaces a breath mark with a caesura on the selected event', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const breathButton = screen.getByRole('button', { name: '숨표' })
+    const caesuraButton = screen.getByRole('button', { name: '중지표' })
+
+    fireEvent.click(breathButton)
+    expect(breathButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).getByText('숨표 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+
+    fireEvent.click(caesuraButton)
+    expect(breathButton).toHaveAttribute('aria-pressed', 'false')
+    expect(caesuraButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).queryByText('숨표 표시')).not.toBeInTheDocument()
+    expect(within(preview).getByText('중지표 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
   })
 
   it('runs notation extension controls through the editor command flow', async () => {
