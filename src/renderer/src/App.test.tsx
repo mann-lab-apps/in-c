@@ -18,6 +18,11 @@ vi.mock('./notation/NotationPreview', () => ({
   NotationPreview: ({ score }: { score: typeof demoScore }) => (
     <div aria-label="악보 미리보기 테스트 더블" data-testid="notation-preview">
       {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
+      {(score.rehearsalMarks ?? []).map((mark) => (
+        <span data-measure-id={mark.measureId} key={mark.id}>
+          {mark.text}
+        </span>
+      ))}
     </div>
   )
 }))
@@ -281,6 +286,30 @@ describe('App component shell', () => {
     expect(screen.getByText('정지')).toBeInTheDocument()
     expect(screen.queryByText(/A-G로 선택한/)).not.toBeInTheDocument()
     expect(screen.getByTestId('notation-preview')).toBeInTheDocument()
+  })
+
+  it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    const rehearsalMarkInput = screen.getByLabelText('연습표')
+    const preview = screen.getByTestId('notation-preview')
+
+    fireEvent.change(rehearsalMarkInput, { target: { value: '' } })
+    fireEvent.blur(rehearsalMarkInput)
+    expect(within(preview).queryByText('A')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('연습표'), {
+      target: { value: 'A' }
+    })
+    fireEvent.blur(screen.getByLabelText('연습표'))
+
+    expect(within(preview).getByText('A')).toHaveAttribute(
+      'data-measure-id',
+      'measure-1'
+    )
   })
 
   it('runs notation extension controls through the editor command flow', async () => {

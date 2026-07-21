@@ -357,7 +357,7 @@
     {
       "feature": "docs/product/acceptance/layout-rendering.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 기존 자동 테스트에 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치는 제외한다.",
+      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치와 다른 기호는 제외한다.",
       "scenarios": [
         {
           "id": "layout.manual-system-break",
@@ -371,6 +371,14 @@
           "tag": "@scenario-layout-manual-page-break",
           "tests": [
             "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.rehearsal-mark",
+          "tag": "@scenario-layout-rehearsal-mark",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
           ]
         }
       ]
