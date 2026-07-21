@@ -488,6 +488,21 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/layout-rendering.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #494에서 선택한 마디의 mf 표시와 MusicXML 저장 후 같은 마디 유지 동작을 기존 자동 테스트에 연결한다. 헤어핀과 재생 음량 변화는 제외한다.",
+      "scenarios": [
+        {
+          "id": "layout.dynamics",
+          "tag": "@scenario-layout-dynamics",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }

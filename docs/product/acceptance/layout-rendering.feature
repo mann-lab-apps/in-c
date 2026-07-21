@@ -86,6 +86,7 @@ Feature: 악보를 읽기 좋게 배치하기
     And 텍스트 입력 중에는 음표 입력 단축키가 실행되지 않는다
     And MusicXML로 내보냈다가 다시 가져와도 스태프 텍스트가 유지된다
 
+  @scenario-layout-dynamics
   Scenario: 선택한 마디에 다이내믹을 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
