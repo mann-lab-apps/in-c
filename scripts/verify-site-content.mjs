@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
+import { runInNewContext } from 'node:vm'
 
 const repoRoot = resolve(import.meta.dirname, '..')
 const siteRoot = resolve(repoRoot, 'site')
@@ -18,6 +19,16 @@ const loadDataModule = async (path) => {
 }
 const columnsModule = await loadDataModule(resolve(siteRoot, 'columns-data.js'))
 const productModule = await loadDataModule(resolve(siteRoot, 'product-data.js'))
+const featureMapContext = { window: {} }
+runInNewContext(
+  readFileSync(resolve(repoRoot, 'docs/product/feature-map-data.js'), 'utf8'),
+  featureMapContext
+)
+const featureMap = featureMapContext.window.FEATURE_MAP
+const relationshipModelPath = resolve(
+  repoRoot,
+  'docs/product/relationship-model.md'
+)
 
 function assert(condition, message) {
   if (!condition) {
@@ -131,6 +142,7 @@ function verifyCompositions() {
       composition.assets?.chromatics,
       `${composition.slug} missing Chromatics asset`
     )
+    // ATDD: product-surfaces.open-in-chromatics
     assert(
       composition.assets.musicxml === composition.assets.chromatics,
       `${composition.slug} Chromatics asset should use the MusicXML source`
@@ -178,6 +190,14 @@ function verifyProductRelations() {
     }
   }
 
+  // ATDD: product-surfaces.work-context
+  assert(
+    productModule.works.some(
+      (work) => (work.scores?.length ?? 0) > 0 && (work.columns?.length ?? 0) > 0
+    ),
+    'at least one work must connect a score and Columns'
+  )
+
   for (const creator of productModule.creators) {
     for (const workId of creator.works ?? []) {
       assert(workIds.has(workId), `${creator.id} references ${workId}`)
@@ -188,10 +208,49 @@ function verifyProductRelations() {
   }
 }
 
+function verifyProductSurfaceStates() {
+  const featureItems = featureMap.flatMap((group) =>
+    group.sections.flatMap((section) => section.items)
+  )
+  const findItem = (name) => featureItems.find((item) => item.name === name)
+  const relationshipModel = readFileSync(relationshipModelPath, 'utf8')
+
+  // ATDD: product-surfaces.promotion-state
+  const promotion = findItem('공연 배너 슬롯')
+  assert(promotion, 'feature map missing promotion banner slot')
+  assert(promotion.status !== '지원', 'promotion banner must not be supported')
+  assert(
+    promotion.docs?.includes('docs/product/relationship-model.md'),
+    'promotion banner must link to the relationship model'
+  )
+  for (const phrase of ['공연 배너', '감상', '관련 인물']) {
+    assert(
+      relationshipModel.includes(phrase),
+      `relationship model missing promotion guidance: ${phrase}`
+    )
+  }
+
+  // ATDD: product-surfaces.community-state
+  const community = findItem('Community 최소 대화·학습 흐름')
+  assert(community, 'feature map missing Community flow')
+  assert(community.status !== '지원', 'Community must not be supported')
+  assert(
+    community.docs?.includes('docs/product/relationship-model.md'),
+    'Community must link to the relationship model'
+  )
+  for (const phrase of ['독립 공개 프로필', '비공개 연락처', '신청이나 결제']) {
+    assert(
+      relationshipModel.includes(phrase),
+      `relationship model missing Community boundary: ${phrase}`
+    )
+  }
+}
+
 try {
   verifyDownloadManifest()
   verifyCompositions()
   verifyProductRelations()
+  verifyProductSurfaceStates()
   console.log('Verified site content manifests, Compositions assets, and product relations.')
 } catch (error) {
   console.error(error.message)

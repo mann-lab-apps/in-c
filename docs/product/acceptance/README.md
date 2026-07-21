@@ -86,3 +86,4 @@
 - `distribution-download.feature`: 배포 페이지와 운영체제별 다운로드 흐름을 확인한다.
 - `columns.feature`: Columns에서 클래식 이해 마인드맵을 따라 칼럼을 읽는 흐름을 확인한다.
 - `compositions.feature`: Compositions에서 공개 단선율 악보를 찾고 내려받는 흐름을 확인한다.
+- `product-surfaces.feature`: 작품, 공연 배너, Community, Chromatics의 현재 상태와 경계를 확인한다.
