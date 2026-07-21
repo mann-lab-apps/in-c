@@ -98,6 +98,8 @@ Search Console 연결, Explore funnel 구성 절차는
   직접 식별자나 자유 입력 원문을 넣지 않는다.
 - `site/analytics.js`의 `allowedEventParams`에 없는 파라미터는 전송하지 않는다.
 - 피드백은 자유 텍스트가 아니라 미리 정의한 선택지 값만 보낸다.
+- 피드백의 허용 값, 접근 범위와 향후 보관·삭제 기준은
+  [피드백 데이터 계약](feedback-data-contract.md)을 따른다.
 - 운영 판단은 GA 숫자만으로 확정하지 않고, 실제 사용자 인터뷰나 직접 피드백과
   함께 본다.
 
