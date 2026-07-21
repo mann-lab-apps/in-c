@@ -248,6 +248,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/score-setup.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #463에서 새 악보 생성, 박자표·조표 변경, 마디를 넘치는 박자표 변경 거부를 기존 자동 테스트에 연결한다. 제목·작곡가 입력 안내와 마디 선택 안내는 제외한다.",
+      "scenarios": [
+        {
+          "id": "score-setup.create-with-selected-settings",
+          "tag": "@scenario-score-setup-create-with-selected-settings",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.change-time-and-key-signatures",
+          "tag": "@scenario-score-setup-change-time-and-key-signatures",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.reject-overflowing-time-signature",
+          "tag": "@scenario-score-setup-reject-overflowing-time-signature",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
