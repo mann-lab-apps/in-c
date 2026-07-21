@@ -355,6 +355,34 @@
       ]
     },
     {
+      "feature": "docs/product/acceptance/distribution-download.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #475에서 운영체제별 배포 파일, prerelease·미서명 안내, 기본 다운로드 분석 이벤트를 기존 자동 검증에 연결한다. 제품 내용과 배포 설정은 변경하지 않는다.",
+      "scenarios": [
+        {
+          "id": "distribution-download.platform-files",
+          "tag": "@scenario-distribution-download-platform-files",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "distribution-download.prerelease-signing-notice",
+          "tag": "@scenario-distribution-download-prerelease-signing-notice",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "distribution-download.analytics-events",
+          "tag": "@scenario-distribution-download-analytics-events",
+          "tests": [
+            "scripts/verify-analytics.cjs"
+          ]
+        }
+      ]
+    },
+    {
       "feature": "docs/product/acceptance/start-and-recovery.feature",
       "strategy": "vitest-scenario-id",
       "notes": "이슈 #471에서 시작화면 표시, 유효한 자동저장 복구본 열기, 복구본이 없는 시작, 최근 MusicXML 다시 열기를 기존 자동 테스트에 연결한다. 사라지거나 손상된 파일 처리와 자동저장 안정성은 제외한다.",
