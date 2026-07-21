@@ -278,6 +278,55 @@
       ]
     },
     {
+      "feature": "docs/product/acceptance/note-input.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #469에서 음가 선택 후 입력, 선택 음표 수정, 쉼표 변환, 연속 입력 위치 이동, 한글 입력 상태의 물리 키 동작을 기존 자동 테스트에 연결한다. Inspector와 아티큘레이션 시나리오는 제외한다.",
+      "scenarios": [
+        {
+          "id": "note-input.enter-selected-duration",
+          "tag": "@scenario-note-input-enter-selected-duration",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.edit-selected-pitch",
+          "tag": "@scenario-note-input-edit-selected-pitch",
+          "tests": [
+            "src/renderer/src/editor/pitch-editing.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.convert-selected-note-to-rest",
+          "tag": "@scenario-note-input-convert-selected-note-to-rest",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.advance-cursor",
+          "tag": "@scenario-note-input-advance-cursor",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.korean-note-and-rest-keys",
+          "tag": "@scenario-note-input-korean-note-and-rest-keys",
+          "tests": [
+            "src/renderer/src/editor/keyboard-input.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.korean-editing-keys",
+          "tag": "@scenario-note-input-korean-editing-keys",
+          "tests": [
+            "src/renderer/src/editor/keyboard-input.test.ts"
+          ]
+        }
+      ]
+    },
+    {
       "feature": "docs/product/acceptance/playback.feature",
       "strategy": "vitest-scenario-id",
       "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 재생 제어와 @discussion 시나리오는 제외한다.",
