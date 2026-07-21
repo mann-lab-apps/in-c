@@ -437,6 +437,41 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/product-surfaces.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #481에서 작품과 악보·Columns 관계, 공연 배너·Community의 실험 상태, Open in Chromatics의 MusicXML 원본 연결을 기존 자동 검증에 연결한다. 제품과 사이트 동작은 변경하지 않는다.",
+      "scenarios": [
+        {
+          "id": "product-surfaces.work-context",
+          "tag": "@scenario-product-surfaces-work-context",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.promotion-state",
+          "tag": "@scenario-product-surfaces-promotion-state",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.community-state",
+          "tag": "@scenario-product-surfaces-community-state",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.open-in-chromatics",
+          "tag": "@scenario-product-surfaces-open-in-chromatics",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        }
+      ]
     }
   ]
 }
