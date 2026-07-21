@@ -295,6 +295,70 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
   }, 15000)
 
+  it('import-export.save-pdf sends the score title and keeps PDF separate from MusicXML', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.pdf.save).mockResolvedValue({
+      fileName: 'release-test.pdf'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    const fileActions = screen.getByLabelText('파일 작업')
+    const pdfButton = within(fileActions).getByRole('button', {
+      name: 'PDF 변환'
+    })
+    const musicXmlButton = within(fileActions).getByRole('button', {
+      name: 'MusicXML로 저장'
+    })
+
+    expect(pdfButton).not.toBe(musicXmlButton)
+    fireEvent.click(pdfButton)
+
+    await waitFor(() => {
+      expect(window.inC.pdf.save).toHaveBeenCalledWith({
+        suggestedName: 'release-test.pdf'
+      })
+    })
+    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
+  })
+
+  it('import-export.report-pdf-result shows success and failure but not cancellation', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const { unmount } = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    vi.mocked(window.inC.pdf.save).mockResolvedValue({
+      fileName: 'review.pdf'
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+    expect(
+      await screen.findByText('review.pdf로 PDF를 만들었습니다.')
+    ).toBeInTheDocument()
+
+    unmount()
+    installPreloadStub()
+    vi.mocked(window.inC.pdf.save).mockResolvedValue(null)
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
+    expect(screen.queryByText(/PDF를 만들었습니다/)).not.toBeInTheDocument()
+
+    cleanup()
+    installPreloadStub()
+    vi.mocked(window.inC.pdf.save).mockRejectedValue(
+      new Error('PDF 저장에 실패했습니다.')
+    )
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+    expect(
+      await screen.findByText('PDF 저장에 실패했습니다.')
+    ).toBeInTheDocument()
+  })
+
   it('shows status terms and the notation preview mount point', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')

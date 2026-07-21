@@ -42,11 +42,22 @@ Feature: 악보를 가져오고 저장하기
     And 저장 행동은 MusicXML 파일 형식을 안내한다
     And 앱 내부 자동저장 또는 복구 행동과도 구분되어 보인다
 
+  @scenario-import-export-save-pdf
   Scenario: 악보를 PDF로 변환한다
     Given 편집 가능한 단성부 악보가 열려 있다
     When 사용자가 PDF 변환을 실행한다
-    Then 앱은 현재 악보의 PDF 파일을 생성한다
+    Then 앱은 현재 악보 제목을 바탕으로 한 PDF 파일 저장을 요청한다
     And PDF 변환은 MusicXML 저장과 별도 행동으로 보인다
+
+  @scenario-import-export-report-pdf-result
+  Scenario: PDF 변환 결과를 확인한다
+    Given 편집 가능한 단성부 악보가 열려 있다
+    When PDF 저장이 성공한다
+    Then 사용자는 생성된 파일명을 포함한 완료 안내를 본다
+    When 사용자가 PDF 저장을 취소한다
+    Then 성공 안내는 표시되지 않는다
+    When PDF 저장이 실패한다
+    Then 사용자는 실패 이유를 알 수 있는 오류 안내를 본다
 
   @discussion
   Scenario: 악보를 이미지로 내보낸다
