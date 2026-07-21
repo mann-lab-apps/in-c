@@ -39,6 +39,11 @@ Compositions와 Community 페이지는 `site/product-data.js`를 공유한다. S
 [`docs/operations/static-content-source-of-truth.md`](operations/static-content-source-of-truth.md)를
 따른다.
 
+향후 Supabase 읽기 기능을 붙일 때 네트워크 실패, 정상 빈 결과, 공개 범위,
+오래된 정적 데이터 안내는
+[`docs/product/static-supabase-fallback-policy.md`](product/static-supabase-fallback-policy.md)를
+따른다.
+
 첫 화면은 Chromatics 단독 다운로드 페이지처럼 보이지 않게 in C의 읽기와 악보
 탐색 흐름을 먼저 설명한다. Chromatics는 in C의 악보 창작/편집 표면으로 표시하고,
 Columns와 Compositions 동선이 첫 화면 CTA에서 바로 보이게 한다.
