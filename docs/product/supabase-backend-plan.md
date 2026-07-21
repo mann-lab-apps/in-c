@@ -119,6 +119,9 @@ create table public.feedback_events (
 3. 네트워크 실패 시 정적 데이터 fallback을 유지한다.
 4. 관리자 쓰기 화면은 별도 인증/RLS 검증 후 추가한다.
 
+네트워크 실패, 정상 빈 결과, 공개 범위, 오래된 데이터 안내는
+[정적 사이트와 Supabase fallback 기준](static-supabase-fallback-policy.md)을 따른다.
+
 ## 완료 판단
 
 프로젝트 생성 전 단계에서는 이 문서, `supabase/.env.example`,
