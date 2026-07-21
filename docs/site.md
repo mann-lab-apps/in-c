@@ -35,6 +35,10 @@ Compositions와 Community 페이지는 `site/product-data.js`를 공유한다. S
 연동 전까지는 이 파일과 `site/compositions-catalog.json`, `site/columns-data.js`가
 공개 콘텐츠의 source of truth다.
 
+파일별 책임, ID와 slug 규칙, 새 콘텐츠 추가 순서는
+[`docs/operations/static-content-source-of-truth.md`](operations/static-content-source-of-truth.md)를
+따른다.
+
 첫 화면은 Chromatics 단독 다운로드 페이지처럼 보이지 않게 in C의 읽기와 악보
 탐색 흐름을 먼저 설명한다. Chromatics는 in C의 악보 창작/편집 표면으로 표시하고,
 Columns와 Compositions 동선이 첫 화면 CTA에서 바로 보이게 한다.
