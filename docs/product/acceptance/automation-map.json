@@ -353,6 +353,41 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/start-and-recovery.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #471에서 시작화면 표시, 유효한 자동저장 복구본 열기, 복구본이 없는 시작, 최근 MusicXML 다시 열기를 기존 자동 테스트에 연결한다. 사라지거나 손상된 파일 처리와 자동저장 안정성은 제외한다.",
+      "scenarios": [
+        {
+          "id": "start-recovery.show-start-screen",
+          "tag": "@scenario-start-recovery-show-start-screen",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.open-autosave",
+          "tag": "@scenario-start-recovery-open-autosave",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.no-autosave",
+          "tag": "@scenario-start-recovery-no-autosave",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.reopen-recent-musicxml",
+          "tag": "@scenario-start-recovery-reopen-recent-musicxml",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        }
+      ]
     }
   ]
 }
