@@ -49,6 +49,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 악보가 재생 중인 위치를 표시한다
     Then 재생 커서는 선택 이벤트와 입력 커서와 다른 시각 표현으로 표시된다
 
+  @scenario-layout-manual-system-break
   Scenario: 선택한 마디 앞에 수동 system break를 지정한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 첫 마디가 아닌 마디가 선택되어 있다
@@ -58,6 +59,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 같은 마디에서 시스템 나누기를 다시 실행한다
     Then 수동 system break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
 
+  @scenario-layout-manual-page-break
   Scenario: 선택한 마디 앞에 수동 page break를 지정한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 첫 마디가 아닌 마디가 선택되어 있다
