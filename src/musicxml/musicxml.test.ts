@@ -321,7 +321,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports rehearsal marks', () => {
+  it('layout.rehearsal-mark exports and re-imports rehearsal marks', () => {
     const score = createScore({
       title: 'Marked Sketch',
       rehearsalMarks: [

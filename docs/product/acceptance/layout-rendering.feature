@@ -69,6 +69,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 같은 마디에서 페이지 나누기를 다시 실행한다
     Then 수동 page break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
 
+  @scenario-layout-rehearsal-mark
   Scenario: 선택한 마디에 리허설 마크를 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
