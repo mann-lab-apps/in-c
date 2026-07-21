@@ -111,6 +111,7 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 음표 위에는 악센트 표시가 함께 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 아티큘레이션이 유지된다
 
+  @scenario-layout-fermata
   Scenario: 선택한 음표나 쉼표에 페르마타를 입력한다
     Given 음표 또는 쉼표가 선택된 단성부 악보가 열려 있다
     When 사용자가 페르마타를 켠다
@@ -119,13 +120,14 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 이벤트에서 페르마타가 제거된다
     And MusicXML로 내보냈다가 다시 가져와도 페르마타가 유지된다
 
-  Scenario: 선택한 음표나 쉼표에 숨표와 caesura를 입력한다
+  @scenario-layout-breath-marks
+  Scenario: 선택한 음표나 쉼표에 숨표와 중지표를 입력한다
     Given 음표 또는 쉼표가 선택된 단성부 악보가 열려 있다
     When 사용자가 숨표를 켠다
     Then 선택한 이벤트 위에는 숨표가 표시된다
-    When 사용자가 caesura를 켠다
-    Then 선택한 이벤트 위에는 caesura 표시가 표시된다
-    And MusicXML로 내보냈다가 다시 가져와도 숨표와 caesura가 유지된다
+    When 사용자가 중지표를 켠다
+    Then 선택한 이벤트 위에는 중지표가 표시된다
+    And MusicXML로 내보냈다가 다시 가져와도 숨표와 중지표가 유지된다
 
   Scenario: 선택한 음표 범위에 슬러를 입력한다
     Given 여러 음표가 범위로 선택되어 있다

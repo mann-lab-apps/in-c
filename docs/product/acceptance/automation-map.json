@@ -506,11 +506,27 @@
     {
       "feature": "docs/product/acceptance/layout-rendering.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #494에서 선택한 마디의 mf 표시와 MusicXML 저장 후 같은 마디 유지 동작을 기존 자동 테스트에 연결한다. 헤어핀과 재생 음량 변화는 제외한다.",
+      "notes": "이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 기존 자동 테스트에 연결한다. 헤어핀과 재생 해석은 제외한다.",
       "scenarios": [
         {
           "id": "layout.dynamics",
           "tag": "@scenario-layout-dynamics",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.fermata",
+          "tag": "@scenario-layout-fermata",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.breath-marks",
+          "tag": "@scenario-layout-breath-marks",
           "tests": [
             "src/renderer/src/App.test.tsx",
             "src/musicxml/musicxml.test.ts"
