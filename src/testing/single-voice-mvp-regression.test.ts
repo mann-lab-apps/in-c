@@ -212,7 +212,7 @@ describe('single-voice MVP regression', () => {
     })
   })
 
-  it('creates an input-ready score from new score settings', () => {
+  it('score-setup.create-with-selected-settings creates an input-ready score from new score settings', () => {
     const score = createNewScore({
       title: '현악 연습곡',
       composer: '김작곡',
@@ -285,7 +285,7 @@ describe('single-voice MVP regression', () => {
     }
   )
 
-  it('changes key signature from the selected measure while preserving pitches', () => {
+  it('score-setup.change-time-and-key-signatures changes key signature from the selected measure while preserving pitches', () => {
     const score = createSingleVoiceMvpScore()
     const command = buildKeySignatureCommand(
       score,
@@ -332,7 +332,7 @@ describe('single-voice MVP regression', () => {
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
-  it('changes time signature for the selected measure and refits rests', () => {
+  it('score-setup.change-time-and-key-signatures changes time signature for the selected measure and refits rests', () => {
     const score = createScore({
       parts: [
         createPart({
@@ -500,7 +500,7 @@ describe('single-voice MVP regression', () => {
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
-  it('rejects time signatures that cannot contain existing notes', () => {
+  it('score-setup.reject-overflowing-time-signature rejects time signatures that cannot contain existing notes', () => {
     const score = createScore({
       parts: [
         createPart({
