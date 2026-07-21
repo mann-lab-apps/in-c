@@ -369,7 +369,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports dynamic markings', () => {
+  it('layout.dynamics exports and re-imports dynamic markings in the same measure', () => {
     const score = createScore({
       title: 'Dynamic Sketch',
       dynamics: [

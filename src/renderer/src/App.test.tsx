@@ -36,6 +36,11 @@ vi.mock('./notation/NotationPreview', () => ({
           {text.text}
         </span>
       ))}
+      {(score.dynamics ?? []).map((dynamic) => (
+        <span data-measure-id={dynamic.measureId} key={dynamic.id}>
+          {dynamic.value}
+        </span>
+      ))}
     </div>
   )
 }))
@@ -345,6 +350,21 @@ describe('App component shell', () => {
       'data-measure-id',
       'measure-1'
     )
+  })
+
+  it('layout.dynamics adds mf to the selected measure preview', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    fireEvent.change(screen.getByLabelText('셈여림'), {
+      target: { value: 'mf' }
+    })
+
+    const dynamic = within(screen.getByTestId('notation-preview')).getByText('mf')
+    expect(dynamic).toHaveAttribute('data-measure-id', 'measure-1')
+    expect(dynamic).not.toHaveAttribute('data-measure-id', 'measure-2')
   })
 
   it('runs notation extension controls through the editor command flow', async () => {
