@@ -168,6 +168,21 @@ function verifyPrivacyGuard(source) {
   }
 }
 
+// ATDD: distribution-download.analytics-events
+function verifyDownloadEvents(source) {
+  const analyticsSource = read('site/analytics.js')
+
+  if (!analyticsSource.includes('send_page_view: true')) {
+    throw new Error('analytics must keep the default page view enabled')
+  }
+
+  for (const event of ['download_primary', 'download_platform']) {
+    if (!source.includes(event)) {
+      throw new Error(`site source missing download event: ${event}`)
+    }
+  }
+}
+
 function verifyOperationsDocs(markdown) {
   for (const event of requiredKeyEvents) {
     if (!markdown.includes(`\`${event}\``)) {
@@ -238,6 +253,7 @@ function main() {
   )
 
   verifyPrivacyGuard(source)
+  verifyDownloadEvents(source)
   verifyOperationsDocs(operationsDocs)
   verifyWeeklyReviewTemplate()
 

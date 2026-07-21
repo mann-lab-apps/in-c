@@ -8,6 +8,7 @@ const outSiteRoot = resolve(repoRoot, 'out/site')
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
 const siteManifestPath = resolve(siteRoot, 'download-manifest.json')
 const builtManifestPath = resolve(outSiteRoot, 'download-manifest.json')
+const siteMainPath = resolve(siteRoot, 'main.js')
 const catalogPath = resolve(siteRoot, 'compositions-catalog.json')
 const publicRoot = resolve(siteRoot, 'public')
 const loadDataModule = async (path) => {
@@ -30,6 +31,7 @@ function publicAssetPath(url) {
 }
 
 function verifyDownloadManifest() {
+  // ATDD: distribution-download.platform-files
   assert(existsSync(siteManifestPath), 'site/download-manifest.json is missing')
   assert(
     existsSync(builtManifestPath),
@@ -54,6 +56,8 @@ function verifyDownloadManifest() {
     'checksumsUrl must include releaseTag'
   )
 
+  const requiredPlatforms = new Set(['macOS', 'Windows', 'Linux'])
+
   for (const download of source.downloads ?? []) {
     assert(download.id, 'download entry missing id')
     assert(download.label, `download ${download.id} missing label`)
@@ -75,6 +79,33 @@ function verifyDownloadManifest() {
     assert(
       download.fileName.includes(source.version),
       `${download.id} fileName must include manifest version`
+    )
+    requiredPlatforms.delete(download.platform)
+  }
+
+  assert(
+    requiredPlatforms.size === 0,
+    `download manifest missing platform(s): ${[...requiredPlatforms].join(', ')}`
+  )
+
+  // ATDD: distribution-download.prerelease-signing-notice
+  const siteMain = readFileSync(siteMainPath, 'utf8')
+  assert(
+    /(?:alpha|beta|rc)/i.test(source.version),
+    'download manifest version must identify the current prerelease'
+  )
+  assert(
+    siteMain.includes('releaseVersion.textContent = manifest.releaseTag'),
+    'download page must render the prerelease release tag'
+  )
+  assert(
+    siteMain.includes('manifest.signing?.[download.platform]'),
+    'download page must render the signing notice for each platform'
+  )
+  for (const platform of ['macOS', 'Windows']) {
+    assert(
+      source.signing?.[platform]?.includes('미서명'),
+      `download manifest must show the unsigned ${platform} notice`
     )
   }
 }
