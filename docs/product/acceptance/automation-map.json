@@ -166,6 +166,55 @@
       ]
     },
     {
+      "feature": "docs/product/acceptance/range-selection.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #457에서 같은 마디 범위 삭제, 여러 마디 삭제 거부, 같은 길이 복사·붙여넣기, 다른 길이 붙여넣기 거부, 쉼표 변환과 안전하지 않은 변환 거부를 기존 자동 테스트에 연결한다. 키보드·드래그 선택은 제외한다.",
+      "scenarios": [
+        {
+          "id": "range-editing.delete-same-measure",
+          "tag": "@scenario-range-editing-delete-same-measure",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-cross-measure-delete",
+          "tag": "@scenario-range-editing-reject-cross-measure-delete",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.copy-paste-same-length",
+          "tag": "@scenario-range-editing-copy-paste-same-length",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-different-length-paste",
+          "tag": "@scenario-range-editing-reject-different-length-paste",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.convert-notes-to-rests",
+          "tag": "@scenario-range-editing-convert-notes-to-rests",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-unsafe-rest-conversion",
+          "tag": "@scenario-range-editing-reject-unsafe-rest-conversion",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        }
+      ]
+    },
+    {
       "feature": "docs/product/acceptance/import-export.feature",
       "strategy": "vitest-scenario-id",
       "notes": "이슈 #461에서 유효한 단성부 MusicXML 가져오기, 지원하지 않는 시간 이동 거부, 마디별 속성 보존, 저장 후 재가져오기를 기존 자동 테스트에 연결한다. PDF, 파일 작업 UI, 자동저장, @discussion 이미지 내보내기는 제외한다.",

@@ -19,6 +19,7 @@ Feature: 범위를 선택해 편집하기
     Then 드래그 영역 안의 연속 이벤트가 범위 선택된다
     And 선택 범위의 시작과 끝을 시각적으로 알 수 있다
 
+  @scenario-range-editing-delete-same-measure
   Scenario: 범위 선택 상태에서 삭제한다
     Given 같은 마디 안의 연속된 이벤트 범위가 선택되어 있다
     When 사용자가 Backspace를 누른다
@@ -27,12 +28,14 @@ Feature: 범위를 선택해 편집하기
     And 각 마디의 전체 박자 길이는 변하지 않는다
     And 사용자는 Undo 한 번으로 범위 삭제 전 상태로 돌아갈 수 있다
 
+  @scenario-range-editing-reject-cross-measure-delete
   Scenario: 여러 마디에 걸친 범위는 아직 삭제하지 않는다
     Given 여러 마디에 걸친 이벤트 범위가 선택되어 있다
     When 사용자가 Backspace를 누른다
     Then 악보는 변경되지 않는다
     And 사용자는 같은 마디의 연속 범위만 지울 수 있다는 안내를 본다
 
+  @scenario-range-editing-copy-paste-same-length
   Scenario: 범위 선택 상태에서 복사하거나 붙여넣는다
     Given 같은 마디 안의 단순 이벤트 범위가 선택되어 있다
     When 사용자가 Cmd 또는 Ctrl+C를 누른다
@@ -42,12 +45,14 @@ Feature: 범위를 선택해 편집하기
     And 각 마디의 전체 박자 길이는 변하지 않는다
     And 사용자는 Undo 한 번으로 붙여넣기 전 상태로 돌아갈 수 있다
 
+  @scenario-range-editing-reject-different-length-paste
   Scenario: 안전하지 않은 범위 붙여넣기는 거부한다
     Given 사용자가 단순 범위를 복사했다
     When 사용자가 다른 길이의 범위나 타이와 셋잇단음표가 포함된 범위에 붙여넣는다
     Then 악보는 변경되지 않는다
     And 사용자는 같은 길이의 단순 범위에만 붙여넣을 수 있다는 안내를 본다
 
+  @scenario-range-editing-convert-notes-to-rests
   Scenario: 범위 선택 상태에서 음표를 쉼표로 일괄 변환한다
     Given 같은 마디 안의 단순 이벤트 범위가 선택되어 있다
     And 선택 범위에 하나 이상의 음표가 포함되어 있다
@@ -57,6 +62,7 @@ Feature: 범위를 선택해 편집하기
     And 각 마디의 전체 박자 길이는 변하지 않는다
     And 사용자는 Undo 한 번으로 일괄 변환 전 상태로 돌아갈 수 있다
 
+  @scenario-range-editing-reject-unsafe-rest-conversion
   Scenario: 안전하지 않은 범위 일괄 변환은 거부한다
     Given 타이 또는 셋잇단음표가 포함된 범위가 선택되어 있다
     When 사용자가 R을 누른다
