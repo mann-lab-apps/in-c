@@ -345,7 +345,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports staff text words', () => {
+  it('layout.staff-text exports and re-imports staff text words', () => {
     const score = createScore({
       title: 'Text Sketch',
       staffTexts: [

@@ -16,11 +16,24 @@ import { demoScore } from './notation/demo-score'
 
 vi.mock('./notation/NotationPreview', () => ({
   NotationPreview: ({ score }: { score: typeof demoScore }) => (
-    <div aria-label="악보 미리보기 테스트 더블" data-testid="notation-preview">
+    <div
+      aria-label="악보 미리보기 테스트 더블"
+      data-event-count={score.parts[0]?.staves[0]?.measures.reduce(
+        (count, measure) =>
+          count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
+        0
+      )}
+      data-testid="notation-preview"
+    >
       {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
       {(score.rehearsalMarks ?? []).map((mark) => (
         <span data-measure-id={mark.measureId} key={mark.id}>
           {mark.text}
+        </span>
+      ))}
+      {(score.staffTexts ?? []).map((text) => (
+        <span data-measure-id={text.measureId} key={text.id}>
+          {text.text}
         </span>
       ))}
     </div>
@@ -307,6 +320,28 @@ describe('App component shell', () => {
     fireEvent.blur(screen.getByLabelText('연습표'))
 
     expect(within(preview).getByText('A')).toHaveAttribute(
+      'data-measure-id',
+      'measure-1'
+    )
+  })
+
+  it('layout.staff-text adds dolce without triggering a note shortcut', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    const staffTextInput = screen.getByLabelText('보표 글자')
+    const preview = screen.getByTestId('notation-preview')
+    const initialEventCount = preview.getAttribute('data-event-count')
+
+    fireEvent.keyDown(staffTextInput, { key: 'c' })
+    expect(preview).toHaveAttribute('data-event-count', initialEventCount)
+
+    fireEvent.change(staffTextInput, { target: { value: 'dolce' } })
+    fireEvent.blur(staffTextInput)
+
+    expect(within(preview).getByText('dolce')).toHaveAttribute(
       'data-measure-id',
       'measure-1'
     )

@@ -77,6 +77,7 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 마디 위에는 박스 형태의 "A" 마크가 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 리허설 마크가 유지된다
 
+  @scenario-layout-staff-text
   Scenario: 선택한 마디에 스태프 텍스트를 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
