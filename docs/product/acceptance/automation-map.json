@@ -294,7 +294,7 @@
     {
       "feature": "docs/product/acceptance/note-input.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #469에서 음가 선택 후 입력, 선택 음표 수정, 쉼표 변환, 연속 입력 위치 이동, 한글 입력 상태의 물리 키 동작을 기존 자동 테스트에 연결한다. Inspector와 아티큘레이션 시나리오는 제외한다.",
+      "notes": "이슈 #469에서 핵심 음표 입력과 편집을 연결하고, 이슈 #504에서 Inspector의 음가·점·샤프·쉼표 변환을 연결한다. 아티큘레이션 시나리오는 제외한다.",
       "scenarios": [
         {
           "id": "note-input.enter-selected-duration",
@@ -315,6 +315,15 @@
           "tag": "@scenario-note-input-convert-selected-note-to-rest",
           "tests": [
             "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.edit-selected-event-in-inspector",
+          "tag": "@scenario-note-input-edit-selected-event-in-inspector",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/editor/editor-state.test.ts",
+            "src/renderer/src/editor/pitch-editing.test.ts"
           ]
         },
         {

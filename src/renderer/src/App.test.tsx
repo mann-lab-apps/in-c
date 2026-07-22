@@ -477,6 +477,35 @@ describe('App component shell', () => {
     )
   })
 
+  it('note-input.edit-selected-event-in-inspector edits duration, dots, accidental, and event type', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const inspector = screen.getByRole('region', { name: '음표 편집' })
+    const duration = within(inspector).getByLabelText('선택 이벤트 음가')
+
+    fireEvent.change(duration, { target: { value: 'eighth' } })
+    expect(duration).toHaveValue('eighth')
+
+    fireEvent.click(within(inspector).getByRole('button', { name: '+' }))
+    expect(within(inspector).getByText('1')).toBeInTheDocument()
+
+    const sharp = within(inspector).getByRole('button', { name: '샤프' })
+    fireEvent.click(sharp)
+    expect(sharp).toHaveAttribute('aria-pressed', 'true')
+
+    const convertToRest = within(inspector).getByRole('button', {
+      name: '쉼표로 변환'
+    })
+    fireEvent.click(convertToRest)
+    expect(convertToRest).toBeDisabled()
+    expect(duration).toHaveValue('eighth')
+
+    fireEvent.keyDown(window, { code: 'KeyZ', key: 'z', metaKey: true })
+    expect(convertToRest).toBeEnabled()
+  })
+
   it('layout.breath-marks replaces a breath mark with a caesura on the selected event', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
