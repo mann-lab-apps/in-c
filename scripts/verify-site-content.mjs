@@ -29,6 +29,26 @@ const relationshipModelPath = resolve(
   repoRoot,
   'docs/product/relationship-model.md'
 )
+const compositionDifficulties = new Set(['초급', '중급', '고급'])
+const compositionTags = new Set([
+  'american-folk-song',
+  'beethoven',
+  'beginner',
+  'children-song',
+  'classical',
+  'english-ballad',
+  'english-melody',
+  'french-melody',
+  'hymn',
+  'japanese-folk-song',
+  'korean-folk-song',
+  'public-domain',
+  'round',
+  'shaker-song',
+  'single-voice',
+  'traditional',
+  'welsh-folk-song'
+])
 
 function assert(condition, message) {
   if (!condition) {
@@ -132,6 +152,31 @@ function verifyCompositions() {
     }
 
     assert(composition.slug, 'available composition missing slug')
+    assert(
+      compositionDifficulties.has(composition.difficulty),
+      `${composition.slug} has unsupported difficulty: ${composition.difficulty}`
+    )
+    assert(
+      Array.isArray(composition.tags) && composition.tags.length > 0,
+      `${composition.slug} must have tags`
+    )
+    assert(
+      new Set(composition.tags).size === composition.tags.length,
+      `${composition.slug} has duplicate tags`
+    )
+    for (const tag of composition.tags) {
+      assert(tag.length > 0, `${composition.slug} has an empty tag`)
+      assert(
+        compositionTags.has(tag),
+        `${composition.slug} has unsupported tag: ${tag}`
+      )
+    }
+    for (const requiredTag of ['public-domain', 'single-voice']) {
+      assert(
+        composition.tags.includes(requiredTag),
+        `${composition.slug} missing required tag: ${requiredTag}`
+      )
+    }
     assert(composition.workId, `${composition.slug} missing workId`)
     assert(works.has(composition.workId), `${composition.slug} workId not found`)
     assert(

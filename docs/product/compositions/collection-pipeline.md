@@ -56,6 +56,36 @@ fallback 흐름:
 }
 ```
 
+## Difficulty And Tag Taxonomy
+
+공개 카탈로그의 `difficulty`는 사용자가 악보를 처음 열기 전에 필요한 입력 부담을
+가늠하는 값이다. 연주 숙련도나 작품의 예술적 난이도를 평가하지 않는다.
+
+| 값 | 판정 기준 |
+| --- | --- |
+| `초급` | 단선율이며, 기본 음표·쉼표와 단순한 박자 안에서 바로 읽고 작게 편집할 수 있다. |
+| `중급` | 단선율이지만 임시표, 당김음, 잦은 음가 변화처럼 초급보다 주의할 요소가 반복된다. |
+| `고급` | 지원 범위 안에서 복합 리듬이나 잦은 기호 변화가 있어 충분한 읽기 경험이 필요하다. |
+
+판정이 애매하면 더 어려운 단계로 올리지 않는다. Chromatics에서 실제로 열어 보고,
+표기와 입력 부담을 사람이 확인한 뒤 정한다. 현재 공개 항목은 모두 `초급`이다.
+
+`tags`는 아래 허용 목록만 사용한다. 값은 소문자 영문과 하이픈으로 쓰고, 한 악보
+안에서 중복하지 않는다.
+
+| 분류 | 허용 태그 |
+| --- | --- |
+| 권리·형태 | `public-domain`, `single-voice` |
+| 학습 | `beginner` |
+| 전승·장르 | `traditional`, `classical`, `hymn`, `children-song`, `round` |
+| 지역·출처 | `american-folk-song`, `english-ballad`, `english-melody`, `french-melody`, `japanese-folk-song`, `korean-folk-song`, `shaker-song`, `welsh-folk-song` |
+| 작곡가 | `beethoven` |
+
+새 태그는 같은 뜻의 기존 태그로 표현할 수 없을 때만 추가한다. 추가할 때 이 목록과
+`scripts/verify-site-content.mjs`의 허용 목록을 같은 변경에서 함께 수정한다. 공개
+항목에는 `public-domain`과 `single-voice`를 반드시 포함한다. 입문용으로 별도 선별한
+경우에만 `beginner`를 덧붙인다.
+
 장기적으로 작품 페이지는 다음 정보를 연결해야 한다.
 
 - 작품명과 원어명
