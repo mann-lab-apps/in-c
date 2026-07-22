@@ -140,7 +140,8 @@ describe('editor state', () => {
     ).toBe(true)
   })
 
-  it('changes duration and converts a selected note to a rest', () => {
+  it('note-input.edit-selected-event-in-inspector changes duration and converts a selected note to a same-position rest', () => {
+    const original = readEvent(demoScore, 'note-g4')
     const durationCommand = buildDurationCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -158,6 +159,7 @@ describe('editor state', () => {
 
     expect(readEvent(restResult.score, 'note-g4')).toMatchObject({
       type: 'rest',
+      position: original!.position,
       duration: {
         value: '16th'
       }
@@ -168,6 +170,10 @@ describe('editor state', () => {
         tick: 3_360
       }
     })
+    expect(
+      restResult.score.parts[0].staves.flatMap((staff) => staff.measures)
+        .every((measure) => validateMeasureRhythm(measure).isExact)
+    ).toBe(true)
   })
 
   it('turns a full-measure rest into an ordinary duration and fills the remainder', () => {
@@ -248,7 +254,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('augmentation-dots.add-first-dot adds and removes augmentation dots through rhythm transactions', () => {
+  it('augmentation-dots.add-first-dot note-input.edit-selected-event-in-inspector adds and removes augmentation dots through rhythm transactions', () => {
     const add = buildDotCommand(
       demoScore,
       { type: 'event', eventId: 'note-c5' },

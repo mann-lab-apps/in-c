@@ -39,6 +39,7 @@ Feature: 음표와 쉼표를 입력하기
     And 선택된 이벤트의 시작 위치는 변하지 않는다
     And 마디의 전체 박자 길이는 변하지 않는다
 
+  @scenario-note-input-edit-selected-event-in-inspector
   Scenario: Inspector에서 선택 이벤트 속성을 수정한다
     Given "quarter" "C4" 음표가 선택되어 있다
     When 사용자가 Inspector에서 음가를 "eighth"로 바꾼다
