@@ -542,6 +542,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/lyrics.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #512에서 선택 음표의 가사 입력, 입력 중 음표 단축키 차단, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 가사 편집 기능과 표시 문구 변경은 제외한다.",
+      "scenarios": [
+        {
+          "id": "lyrics.edit-selected-note",
+          "tag": "@scenario-lyrics-edit-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "lyrics.block-note-shortcuts",
+          "tag": "@scenario-lyrics-block-note-shortcuts",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "lyrics.musicxml-round-trip",
+          "tag": "@scenario-lyrics-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }

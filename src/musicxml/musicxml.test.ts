@@ -1592,7 +1592,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports lyrics on notes', () => {
+  it('lyrics.musicxml-round-trip exports and re-imports lyrics on notes', () => {
     const score = createScore({
       title: 'Lyric Sketch',
       parts: [

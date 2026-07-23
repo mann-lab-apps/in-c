@@ -236,7 +236,7 @@ describe('App component shell', () => {
     })
   })
 
-  it('renders the editor toolbar in fixture mode', async () => {
+  it('lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -264,11 +264,15 @@ describe('App component shell', () => {
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
     expect(screen.getByLabelText('가사 절')).toBeVisible()
     const lyricInput = screen.getByLabelText('선택 음표 가사')
+    const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
+    const initialEventCount = preview.getAttribute('data-event-count')
     expect(lyricInput).toBeVisible()
     expect(screen.getByLabelText('가사 음절')).toBeVisible()
     expect(screen.getByText('멜리스마')).toBeVisible()
     expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
+    expect(fireEvent.keyDown(lyricInput, { key: 'q' })).toBe(true)
     expect(fireEvent.keyDown(lyricInput, { key: ' ' })).toBe(true)
+    expect(preview).toHaveAttribute('data-event-count', initialEventCount)
     fireEvent.change(lyricInput, { target: { value: 'hello world' } })
     expect(fireEvent.keyDown(lyricInput, { key: 'Enter' })).toBe(false)
     expect(screen.getByText('가사를 갱신했습니다.')).toBeInTheDocument()
