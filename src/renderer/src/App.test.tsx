@@ -55,6 +55,11 @@ vi.mock('./notation/NotationPreview', () => ({
                   <span data-event-id={event.id} key={`${event.id}-breath-mark`}>
                     {event.breathMark === 'caesura' ? '중지표 표시' : '숨표 표시'}
                   </span>
+                ) : null,
+                event.type === 'note' && event.tremolo ? (
+                  <span data-event-id={event.id} key={`${event.id}-tremolo`}>
+                    트레몰로 {event.tremolo.marks}줄 표시
+                  </span>
                 ) : null
               ])
             )
@@ -531,6 +536,24 @@ describe('App component shell', () => {
     expect(caesuraButton).toHaveAttribute('aria-pressed', 'true')
     expect(within(preview).queryByText('숨표 표시')).not.toBeInTheDocument()
     expect(within(preview).getByText('중지표 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+  })
+
+  it('tremolo.apply-selected-note stores and displays three marks on the selected note', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const threeMarksButton = screen.getByRole('button', { name: '3줄' })
+
+    fireEvent.click(threeMarksButton)
+
+    expect(threeMarksButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('트레몰로를 추가했습니다.')).toBeInTheDocument()
+    expect(within(preview).getByText('트레몰로 3줄 표시')).toHaveAttribute(
       'data-event-id',
       'm1-c4'
     )
