@@ -751,7 +751,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports supported clef changes', () => {
+  it('clef.musicxml-round-trip exports and re-imports supported clef changes', () => {
     const score = createScore({
       title: 'Clef Sketch',
       parts: [
