@@ -410,7 +410,7 @@ describe('playback timeline', () => {
     ])
   })
 
-  it('carries single-note tremolo marks into playback events', () => {
+  it('tremolo.playback-data carries single-note tremolo marks into playback events', () => {
     const score = createScore({
       parts: [
         createPart({

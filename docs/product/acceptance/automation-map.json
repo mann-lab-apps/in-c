@@ -570,6 +570,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/tremolo.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #514에서 선택 음표의 트레몰로 입력·표시, MusicXML 왕복, 재생 데이터 유지를 기존 자동 테스트에 연결한다. 새로운 트레몰로 기능과 제품 동작 변경은 제외한다.",
+      "scenarios": [
+        {
+          "id": "tremolo.apply-selected-note",
+          "tag": "@scenario-tremolo-apply-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "tremolo.musicxml-round-trip",
+          "tag": "@scenario-tremolo-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "tremolo.playback-data",
+          "tag": "@scenario-tremolo-playback-data",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }

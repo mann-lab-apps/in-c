@@ -607,7 +607,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports single-note tremolo markings', () => {
+  it('tremolo.musicxml-round-trip exports and re-imports single-note tremolo markings', () => {
     const score = createScore({
       title: 'Tremolo Sketch',
       parts: [
