@@ -15,7 +15,13 @@ import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?
 import { demoScore } from './notation/demo-score'
 
 vi.mock('./notation/NotationPreview', () => ({
-  NotationPreview: ({ score }: { score: typeof demoScore }) => (
+  NotationPreview: ({
+    score,
+    onSelectMeasure
+  }: {
+    score: typeof demoScore
+    onSelectMeasure: (measureId: string) => void
+  }) => (
     <div
       aria-label="악보 미리보기 테스트 더블"
       data-event-count={score.parts[0]?.staves[0]?.measures.reduce(
@@ -23,9 +29,20 @@ vi.mock('./notation/NotationPreview', () => ({
           count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
         0
       )}
+      data-measure-clefs={score.parts[0]?.staves[0]?.measures
+        .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
+        .join(',')}
       data-testid="notation-preview"
     >
       {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
+      {score.parts[0]?.staves[0]?.measures.map((measure) => (
+        <button
+          aria-label={`${measure.number}마디 선택`}
+          key={`${measure.id}-select`}
+          onClick={() => onSelectMeasure(measure.id)}
+          type="button"
+        />
+      ))}
       {(score.rehearsalMarks ?? []).map((mark) => (
         <span data-measure-id={mark.measureId} key={mark.id}>
           {mark.text}
@@ -323,6 +340,37 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('선택 음표 가사')).not.toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
   }, 15000)
+
+  it('clef.change-selected-measure changes only the selected measure clef and reports the result', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    const clefSelect = screen.getByLabelText('음자리표')
+    const preview = screen.getByTestId('notation-preview')
+    const initialClefs = preview.getAttribute('data-measure-clefs')?.split(',')
+
+    expect(initialClefs?.length).toBeGreaterThan(1)
+    expect(clefSelect).toHaveValue('treble')
+    fireEvent.change(clefSelect, { target: { value: 'bass' } })
+
+    await waitFor(() => {
+      const changedClefs = screen
+        .getByTestId('notation-preview')
+        .getAttribute('data-measure-clefs')
+        ?.split(',')
+      const changedIndexes = changedClefs
+        ?.map((clef, index) => (clef === initialClefs?.[index] ? -1 : index))
+        .filter((index) => index >= 0)
+      expect(changedIndexes).toHaveLength(1)
+      expect(changedClefs?.[changedIndexes?.[0] ?? -1]).toBe('F4')
+    })
+    expect(
+      screen.getByText('선택한 마디의 음자리표를 바꿨습니다.')
+    ).toBeInTheDocument()
+  })
 
   it('import-export.save-pdf sends the score title and keeps PDF separate from MusicXML', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')

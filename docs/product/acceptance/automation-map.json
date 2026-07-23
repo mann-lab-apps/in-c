@@ -598,6 +598,34 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/clef-change.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #516에서 선택 마디의 음자리표 변경, 음높이의 오선 위치 변화, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 음자리표 기능과 제품 동작 변경은 제외한다.",
+      "scenarios": [
+        {
+          "id": "clef.change-selected-measure",
+          "tag": "@scenario-clef-change-selected-measure",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "clef.staff-position",
+          "tag": "@scenario-clef-staff-position",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "clef.musicxml-round-trip",
+          "tag": "@scenario-clef-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }

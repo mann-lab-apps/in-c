@@ -363,7 +363,7 @@ describe('system layout', () => {
     }
   })
 
-  it('maps pitches to VexFlow-compatible staff lines for supported clefs', () => {
+  it('clef.staff-position maps pitches to VexFlow-compatible staff lines for supported clefs', () => {
     expect(
       pitchStaffLine(
         { step: 'C', octave: 4 },
