@@ -131,18 +131,6 @@ const getFilteredCompositions = () => {
   })
 }
 
-const createDownloadAction = (label, url, type, composition, fileType) => {
-  if (!url) {
-    return `<button class="button button--secondary" type="button" disabled>${label} 준비 중</button>`
-  }
-
-  return `<a class="button ${
-    type === 'primary' ? 'button--primary' : 'button--secondary'
-  }" href="${url}" data-track-event="composition_download" data-track-content-type="composition" data-track-content-slug="${
-    composition.slug
-  }" data-track-file="${fileType}">${label}</a>`
-}
-
 const createChromaticsAction = (url, composition) => {
   if (!url) {
     return '<button class="button button--primary" type="button" disabled>Chromatics 열기 준비 중</button>'
@@ -224,9 +212,9 @@ const renderCompositionDetail = (composition) => {
       </dl>
       <div class="composition-actions" aria-label="악보 열기와 다운로드">
         ${createChromaticsAction(composition.assets.chromatics, composition)}
-        ${createDownloadAction('MusicXML 다운로드', composition.assets.musicxml, 'secondary', composition, 'musicxml')}
+        <button class="button button--secondary" type="button" disabled>악보 다운로드 준비 중</button>
       </div>
-      <p class="composition-action-note">브라우저가 MusicXML을 내려받으면 Chromatics 앱에서 파일을 열어 주세요. PDF가 필요하면 Chromatics에서 변환합니다.</p>
+      <p class="composition-action-note">현재는 Chromatics에서 열어보는 흐름을 먼저 준비하고 있습니다.</p>
       <section class="composition-note" aria-labelledby="work-title">
         <h3 id="work-title">작품 정보</h3>
         <div class="tag-list">${createWorkLink(composition.workId)}</div>

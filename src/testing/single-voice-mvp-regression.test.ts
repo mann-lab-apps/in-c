@@ -250,6 +250,41 @@ describe('single-voice MVP regression', () => {
   })
 
   it.each([
+    [
+      '6/8',
+      { beats: 6, beatType: 8 },
+      { beatUnit: 'quarter', dots: 1, text: '♩. = 120' }
+    ],
+    [
+      '9/8',
+      { beats: 9, beatType: 8 },
+      { beatUnit: 'quarter', dots: 1, text: '♩. = 120' }
+    ],
+    [
+      '3/4',
+      { beats: 3, beatType: 4 },
+      { beatUnit: 'quarter', dots: 0, text: '♩ = 120' }
+    ]
+  ] as const)(
+    'score-setup.create-with-selected-settings uses a meter-aware tempo beat for %s',
+    (_label, timeSignature, tempo) => {
+      const score = createNewScore({
+        title: 'Tempo Beat',
+        composer: 'in-C',
+        partName: 'Piano',
+        keySignature: { fifths: 0, mode: 'major' },
+        timeSignature,
+        measureCount: 1
+      })
+
+      expect(score.tempo).toMatchObject({
+        bpm: 120,
+        ...tempo
+      })
+    }
+  )
+
+  it.each([
     ['2/4', { beats: 2, beatType: 4 }, { value: 'half', dots: 0 }],
     ['3/4', { beats: 3, beatType: 4 }, { value: 'half', dots: 1 }],
     ['6/8', { beats: 6, beatType: 8 }, { value: 'half', dots: 1 }]

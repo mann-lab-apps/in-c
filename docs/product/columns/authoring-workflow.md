@@ -52,10 +52,9 @@ Columns는 단순한 블로그가 아니라 in C의 현재 최우선 제품 영�
 3. 공개 전에는 `status: 'private'`로 둔다.
 4. 제목, 요약, 카테고리, 태그, 게시일, 읽는 시간, 관련 항목을 채운다.
 5. 본문은 `body` 문자열에 Markdown subset으로 작성한다.
-6. 마인드맵에 노출할 경우 `columnMap`의 적절한 그룹에 slug를 연결한다.
-7. 공개 준비가 끝나면 `status: 'public'`으로 바꾼다.
-8. `node scripts/generate-columns-seo.mjs`를 실행한다.
-9. `npm run site:build`로 정적 상세 페이지와 sitemap 산출물을 확인한다.
+6. 공개 준비가 끝나면 `status: 'public'`으로 바꾼다.
+7. `node scripts/generate-columns-seo.mjs`를 실행한다.
+8. `npm run site:build`로 정적 상세 페이지와 sitemap 산출물을 확인한다.
 
 ## 수정 절차
 
@@ -65,7 +64,7 @@ Columns는 단순한 블로그가 아니라 in C의 현재 최우선 제품 영�
 갱신한다.
 
 정적 HTML만 직접 수정하지 않는다. 직접 수정하면 다음 생성 시 덮어써지고,
-목록/마인드맵/SEO 데이터와 불일치할 수 있다.
+목록/SEO 데이터와 불일치할 수 있다.
 
 ## 데이터 구조
 
@@ -75,7 +74,7 @@ Columns는 단순한 블로그가 아니라 in C의 현재 최우선 제품 영�
 - `status`: `public` 또는 `private`
 - `title`: 검색 결과와 상세 페이지 제목
 - `summary`: description, Open Graph, Twitter card 요약
-- `category`: 마인드맵과 목록 분류
+- `category`: 목록 분류
 - `tags`: 검색/탐색 보조 태그
 - `publishedAt`: 게시일
 - `readingMinutes`: 읽는 시간

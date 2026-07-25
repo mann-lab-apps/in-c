@@ -13,7 +13,7 @@ export const works = [
     copyrightStatus: 'public-domain melody',
     listeningPoint: '첫 두 마디의 상승과 하강이 뒤 문장에서도 어떻게 돌아오는지 들어봅니다.',
     scores: ['amazing-grace'],
-    columns: ['open-a-simple-score', 'melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:first-listening-night']
   },
@@ -31,7 +31,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '긴 음이 문장을 멈추는 지점과 다시 움직이게 만드는 지점을 찾습니다.',
     scores: ['arirang'],
-    columns: ['melody-before-theory', 'listen-with-one-question'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -49,7 +49,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '큰 도약보다 작은 움직임이 분위기를 만드는 방식을 들어봅니다.',
     scores: ['sakura-sakura'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: []
   },
@@ -67,7 +67,7 @@ export const works = [
     copyrightStatus: 'public-domain traditional melody',
     listeningPoint: '같은 리듬형이 문장마다 어떻게 방향을 바꾸는지 들어봅니다.',
     scores: ['the-ash-grove'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -85,7 +85,7 @@ export const works = [
     copyrightStatus: 'public-domain traditional melody',
     listeningPoint: '긴 음 뒤에 이어지는 움직임이 선율의 폭을 어떻게 만드는지 들어봅니다.',
     scores: ['shenandoah'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -103,7 +103,7 @@ export const works = [
     copyrightStatus: 'public-domain theme',
     listeningPoint: '같은 음으로 시작해 한 음씩 움직이는 선율이 어떻게 함께 부를 수 있는 문장이 되는지 들어봅니다.',
     scores: ['ode-to-joy'],
-    columns: ['melody-before-theory', 'listen-with-one-question'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:ludwig-van-beethoven'],
     concerts: ['concert:first-listening-night']
   },
@@ -121,7 +121,7 @@ export const works = [
     copyrightStatus: 'public-domain melody',
     listeningPoint: '두 마디 단위로 같은 리듬이 어떻게 다른 음역으로 이동하는지 따라갑니다.',
     scores: ['ah-vous-dirai-je-maman'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -139,7 +139,7 @@ export const works = [
     copyrightStatus: 'public-domain melody',
     listeningPoint: '도약 뒤에 이어지는 짧은 움직임이 선율을 안정시키는 방식을 들어봅니다.',
     scores: ['simple-gifts'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:joseph-brackett'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -157,7 +157,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '좁은 움직임과 긴 머무름이 이야기하듯 이어지는 지점을 들어봅니다.',
     scores: ['scarborough-fair'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -175,7 +175,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '상행 후 다시 내려오는 곡선이 매 마디의 호흡을 어떻게 만드는지 들어봅니다.',
     scores: ['greensleeves'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -193,7 +193,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '같은 문장이 두 번 반복된 뒤 음역이 올라가는 구조를 따라갑니다.',
     scores: ['frere-jacques'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   },
@@ -211,7 +211,7 @@ export const works = [
     copyrightStatus: 'traditional melody',
     listeningPoint: '긴 음에 도착하기 전의 짧은 움직임이 선율의 흥을 어떻게 만드는지 들어봅니다.',
     scores: ['doraji-taryeong'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     creators: ['creator:traditional-melody'],
     concerts: ['concert:folk-melody-preview']
   }
@@ -238,7 +238,7 @@ export const creators = [
       'work:doraji-taryeong'
     ],
     concerts: ['concert:first-listening-night', 'concert:folk-melody-preview'],
-    columns: ['melody-before-theory', 'open-a-simple-score'],
+    columns: ['starting-to-listen-classical'],
     classes: ['class:first-melody-listening']
   },
   {
@@ -250,7 +250,7 @@ export const creators = [
       '고전주의와 낭만주의의 경계에서 익숙한 선율과 큰 형식의 감각을 함께 남긴 작곡가입니다.',
     works: ['work:ode-to-joy'],
     concerts: ['concert:first-listening-night'],
-    columns: ['listen-with-one-question', 'melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     classes: ['class:first-melody-listening']
   },
   {
@@ -262,7 +262,7 @@ export const creators = [
       'Simple Gifts로 널리 알려진 19세기 Shaker 선율을 남긴 작곡가입니다.',
     works: ['work:simple-gifts'],
     concerts: ['concert:folk-melody-preview'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     classes: ['class:first-melody-listening']
   },
   {
@@ -274,7 +274,7 @@ export const creators = [
       'Columns, 공연 프리뷰, 감상 질문을 엮어 처음 듣는 사용자의 입구를 설계하는 운영 프로필입니다.',
     works: ['work:amazing-grace', 'work:arirang'],
     concerts: ['concert:first-listening-night'],
-    columns: ['why-classical-feels-hard', 'listen-with-one-question'],
+    columns: ['starting-to-listen-classical'],
     classes: ['class:first-melody-listening']
   }
 ]
@@ -292,7 +292,7 @@ export const concerts = [
     listeningPoint: '오늘은 멜로디가 다시 시작되는 순간만 찾아봅니다.',
     works: ['work:amazing-grace', 'work:arirang'],
     creators: ['creator:in-c-editorial'],
-    columns: ['listen-with-one-question', 'open-a-simple-score'],
+    columns: ['starting-to-listen-classical'],
     externalUrl: null
   },
   {
@@ -318,7 +318,7 @@ export const concerts = [
       'work:doraji-taryeong'
     ],
     creators: ['creator:traditional-melody', 'creator:joseph-brackett'],
-    columns: ['melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     externalUrl: null
   }
 ]
@@ -341,7 +341,7 @@ export const classes = [
       'work:frere-jacques'
     ],
     creators: ['creator:in-c-editorial', 'creator:ludwig-van-beethoven'],
-    columns: ['why-classical-feels-hard', 'melody-before-theory'],
+    columns: ['starting-to-listen-classical'],
     outline: [
       '안 들리는 지점을 숨기지 않고 질문으로 바꿉니다.',
       '한 줄 선율에서 반복, 쉼, 긴 음을 찾습니다.',

@@ -493,14 +493,6 @@ h2 {
   gap: 4px;
 }
 
-.playback-settings {
-  display: flex;
-  flex: 1 1 100%;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px 18px;
-}
-
 .file-actions button {
   display: inline-flex;
   align-items: center;
@@ -577,6 +569,18 @@ h2 {
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   background: #fbfaf6;
+}
+
+.dot-control__label {
+  display: inline-grid;
+  min-height: 34px;
+  padding: 0 10px;
+  border-right: 1px solid #d8d2c5;
+  color: #59646a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  place-items: center;
+  white-space: nowrap;
 }
 
 .dot-control button {
@@ -663,34 +667,16 @@ h2 {
   background: #ece8df;
 }
 
-.tempo-control {
-  display: grid;
-  grid-template-columns: auto minmax(120px, 220px) 70px;
+.tempo-mark-preview {
+  display: inline-flex;
+  min-height: 34px;
   align-items: center;
-  gap: 8px;
-  color: #59646a;
-  font-size: 0.78rem;
-}
-
-.tempo-control--compact {
-  grid-template-columns: auto minmax(70px, 120px) 32px;
-}
-
-.tempo-control--text {
-  grid-template-columns: auto minmax(110px, 160px);
-}
-
-.tempo-control select,
-.tempo-control input {
-  width: 100%;
-  accent-color: #47616c;
-}
-
-.tempo-control output {
-  color: #202326;
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  text-align: right;
+  justify-content: flex-start;
+  padding: 0 10px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  background: #f8f5ee;
+  text-align: left;
 }
 
 .inspector-properties__checkbox {
@@ -975,6 +961,29 @@ h2 {
   font-size: 13px;
 }
 
+.notation-lyric-editor {
+  overflow: visible;
+}
+
+.notation-lyric-editor input {
+  width: 96px;
+  height: 30px;
+  padding: 3px 8px;
+  border: 1.5px solid #c89932;
+  border-radius: 6px;
+  color: #151719;
+  background: #fffdf8;
+  box-shadow: 0 2px 8px rgba(47, 43, 35, 0.12);
+  font: 700 15px/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  text-align: center;
+  outline: none;
+}
+
+.notation-lyric-editor input:focus {
+  border-color: #d98b00;
+  box-shadow: 0 0 0 3px rgba(217, 139, 0, 0.2);
+}
+
 .notation-ornament {
   font-family: Georgia, 'Times New Roman', serif;
   font-size: 15px;
@@ -982,13 +991,6 @@ h2 {
 }
 
 .notation-state-overlays {
-  pointer-events: none;
-}
-
-.notation-input-cursor {
-  stroke: #47616c;
-  stroke-linecap: round;
-  stroke-width: 3;
   pointer-events: none;
 }
 

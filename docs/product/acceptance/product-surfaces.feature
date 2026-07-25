@@ -18,10 +18,10 @@ Feature: 제품 표면의 현재 상태를 구분한다
 
   @scenario-product-surfaces-community-state
   Scenario: Community의 공개 범위를 확인한다
-    Given 독립 공개 프로필과 클래스 신청은 현재 공개 범위가 아니다
-    When 사용자가 피쳐맵의 Community 상태를 확인한다
+    Given Community 게시판의 CRUD 서버는 아직 연결되지 않았다
+    When 사용자가 Community 페이지와 피쳐맵의 Community 상태를 확인한다
     Then 상태는 "지원"이 아니며 관계 모델 문서로 연결된다
-    And 공개 프로필, 비공개 연락처, 클래스 신청은 현재 제공 기능으로 표시되지 않는다
+    And 글쓰기, 수정, 삭제, 댓글은 현재 제공 기능으로 표시되지 않는다
 
   @scenario-product-surfaces-open-in-chromatics
   Scenario: Compositions의 편집용 원본을 Chromatics에서 연다

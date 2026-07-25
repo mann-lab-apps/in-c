@@ -276,14 +276,18 @@ function verifyProductSurfaceStates() {
   }
 
   // ATDD: product-surfaces.community-state
-  const community = findItem('Community 최소 대화·학습 흐름')
+  const community = findItem('Community 게시판 CRUD')
   assert(community, 'feature map missing Community flow')
   assert(community.status !== '지원', 'Community must not be supported')
   assert(
     community.docs?.includes('docs/product/relationship-model.md'),
     'Community must link to the relationship model'
   )
-  for (const phrase of ['독립 공개 프로필', '비공개 연락처', '신청이나 결제']) {
+  assert(
+    community.docs?.includes('docs/product/community/api-server-boundary.md'),
+    'Community must link to the API server boundary'
+  )
+  for (const phrase of ['게시판', 'CRUD 서버', '글쓰기', '수정', '삭제']) {
     assert(
       relationshipModel.includes(phrase),
       `relationship model missing Community boundary: ${phrase}`

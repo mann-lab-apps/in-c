@@ -16,6 +16,12 @@ export type PlaybackStatus = 'stopped' | 'playing' | 'paused'
 const MIN_TEMPO = 40
 const MAX_TEMPO = 240
 const DEFAULT_TEMPO = 120
+const TREMOLO_BEAT_INTERVAL = {
+  1: 0.5,
+  2: 0.25,
+  3: 0.125
+} as const
+const TRILL_BEAT_INTERVAL = 0.125
 
 export function useScorePlayback(score: Score) {
   const timeline = useMemo(() => createPlaybackTimeline(score), [score])
@@ -123,24 +129,43 @@ export function useScorePlayback(score: Score) {
         const releaseStart = Math.max(sustainStart, endTime - 0.04)
         const frequencies = event.frequencies ?? [event.frequency]
 
-        return frequencies.map((frequency) => {
-          const oscillator = context.createOscillator()
-          const gain = context.createGain()
-          const voiceVelocity = startVelocity / Math.sqrt(frequencies.length)
-          const voiceEndVelocity = endVelocity / Math.sqrt(frequencies.length)
+        if (event.tremolo?.type === 'single') {
+          return scheduleTremoloEvent(
+            context,
+            timeline,
+            event,
+            frequencies,
+            fromBeat,
+            bpm,
+            now
+          )
+        }
 
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(frequency, startTime)
-          gain.gain.setValueAtTime(0.0001, startTime)
-          gain.gain.exponentialRampToValueAtTime(voiceVelocity, sustainStart)
-          gain.gain.linearRampToValueAtTime(voiceEndVelocity, releaseStart)
-          gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
-          oscillator.connect(gain)
-          gain.connect(context.destination)
-          oscillator.start(startTime)
-          oscillator.stop(endTime + 0.01)
-          return oscillator
-        })
+        if (event.ornaments?.includes('trill') && event.trillFrequency) {
+          return scheduleTrillEvent(
+            context,
+            timeline,
+            event,
+            event.frequency,
+            event.trillFrequency,
+            fromBeat,
+            bpm,
+            now
+          )
+        }
+
+        return frequencies.map((frequency) =>
+          scheduleTone(
+            context,
+            frequency,
+            startTime,
+            sustainStart,
+            releaseStart,
+            endTime,
+            startVelocity / Math.sqrt(frequencies.length),
+            endVelocity / Math.sqrt(frequencies.length)
+          )
+        )
       })
     },
     []
@@ -302,4 +327,176 @@ function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number 
   )
 
   return event.velocityStart + (event.velocityEnd - event.velocityStart) * ratio
+}
+
+function scheduleTremoloEvent(
+  context: AudioContext,
+  timeline: PlaybackTimeline,
+  event: PlaybackEvent,
+  frequencies: number[],
+  fromBeat: number,
+  bpm: number,
+  now: number
+): OscillatorNode[] {
+  const eventEndBeat = event.startBeat + event.durationBeats
+  const pulseBeats = createTremoloPulseBeats(
+    event.startBeat,
+    eventEndBeat,
+    fromBeat,
+    event.tremolo?.marks ?? 1
+  )
+
+  return pulseBeats.flatMap((pulseStartBeat) => {
+    const intervalBeats = TREMOLO_BEAT_INTERVAL[event.tremolo?.marks ?? 1]
+    const pulseEndBeat = Math.min(
+      pulseStartBeat + intervalBeats * 0.82,
+      eventEndBeat
+    )
+
+    if (pulseStartBeat >= eventEndBeat || pulseEndBeat <= pulseStartBeat) {
+      return []
+    }
+
+    const pulseStartTime =
+      now + beatDeltaToSeconds(timeline, fromBeat, pulseStartBeat, bpm)
+    const pulseEndTime =
+      now + beatDeltaToSeconds(timeline, fromBeat, pulseEndBeat, bpm)
+    const pulseSustainStart = Math.min(
+      pulseStartTime + 0.008,
+      pulseEndTime
+    )
+    const pulseReleaseStart = Math.max(
+      pulseSustainStart,
+      pulseEndTime - 0.012
+    )
+    const velocity =
+      resolveEventVelocityAtBeat(event, pulseStartBeat) /
+      Math.sqrt(frequencies.length)
+
+    return frequencies.map((frequency) =>
+      scheduleTone(
+        context,
+        frequency,
+        pulseStartTime,
+        pulseSustainStart,
+        pulseReleaseStart,
+        pulseEndTime,
+        velocity,
+        velocity
+      )
+    )
+  })
+}
+
+export function createTremoloPulseBeats(
+  startBeat: number,
+  endBeat: number,
+  fromBeat: number,
+  marks: 1 | 2 | 3
+): number[] {
+  const firstBeat = Math.max(startBeat, fromBeat)
+  const intervalBeats = TREMOLO_BEAT_INTERVAL[marks]
+  const pulseCount = Math.max(
+    1,
+    Math.ceil((endBeat - firstBeat) / intervalBeats)
+  )
+
+  return Array.from({ length: pulseCount }, (_, index) => firstBeat + index * intervalBeats)
+    .filter((beat) => beat < endBeat)
+}
+
+function scheduleTrillEvent(
+  context: AudioContext,
+  timeline: PlaybackTimeline,
+  event: PlaybackEvent,
+  baseFrequency: number,
+  trillFrequency: number,
+  fromBeat: number,
+  bpm: number,
+  now: number
+): OscillatorNode[] {
+  const eventEndBeat = event.startBeat + event.durationBeats
+  const pulseBeats = createTrillPulseBeats(event.startBeat, eventEndBeat, fromBeat)
+
+  return pulseBeats.flatMap((pulseStartBeat) => {
+    const pulseEndBeat = Math.min(
+      pulseStartBeat + TRILL_BEAT_INTERVAL * 0.88,
+      eventEndBeat
+    )
+
+    if (pulseStartBeat >= eventEndBeat || pulseEndBeat <= pulseStartBeat) {
+      return []
+    }
+
+    const pulseStartTime =
+      now + beatDeltaToSeconds(timeline, fromBeat, pulseStartBeat, bpm)
+    const pulseEndTime =
+      now + beatDeltaToSeconds(timeline, fromBeat, pulseEndBeat, bpm)
+    const pulseSustainStart = Math.min(pulseStartTime + 0.006, pulseEndTime)
+    const pulseReleaseStart = Math.max(
+      pulseSustainStart,
+      pulseEndTime - 0.01
+    )
+    const velocity = resolveEventVelocityAtBeat(event, pulseStartBeat)
+    const pulseIndex = Math.floor(
+      (pulseStartBeat - event.startBeat) / TRILL_BEAT_INTERVAL
+    )
+    const frequency = pulseIndex % 2 === 0 ? baseFrequency : trillFrequency
+
+    return [
+      scheduleTone(
+        context,
+        frequency,
+        pulseStartTime,
+        pulseSustainStart,
+        pulseReleaseStart,
+        pulseEndTime,
+        velocity,
+        velocity
+      )
+    ]
+  })
+}
+
+export function createTrillPulseBeats(
+  startBeat: number,
+  endBeat: number,
+  fromBeat: number
+): number[] {
+  const firstBeat = Math.max(startBeat, fromBeat)
+  const pulseCount = Math.max(
+    1,
+    Math.ceil((endBeat - firstBeat) / TRILL_BEAT_INTERVAL)
+  )
+
+  return Array.from(
+    { length: pulseCount },
+    (_, index) => firstBeat + index * TRILL_BEAT_INTERVAL
+  ).filter((beat) => beat < endBeat)
+}
+
+function scheduleTone(
+  context: AudioContext,
+  frequency: number,
+  startTime: number,
+  sustainStart: number,
+  releaseStart: number,
+  endTime: number,
+  startVelocity: number,
+  endVelocity: number
+): OscillatorNode {
+  const oscillator = context.createOscillator()
+  const gain = context.createGain()
+
+  oscillator.type = 'triangle'
+  oscillator.frequency.setValueAtTime(frequency, startTime)
+  gain.gain.setValueAtTime(0.0001, startTime)
+  gain.gain.exponentialRampToValueAtTime(startVelocity, sustainStart)
+  gain.gain.linearRampToValueAtTime(endVelocity, releaseStart)
+  gain.gain.exponentialRampToValueAtTime(0.0001, endTime)
+  oscillator.connect(gain)
+  gain.connect(context.destination)
+  oscillator.start(startTime)
+  oscillator.stop(endTime + 0.01)
+  return oscillator
 }
