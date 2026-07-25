@@ -23,7 +23,7 @@ describe('keyboard input routing', () => {
     ['KeyF', 'ㄹ', 'F'],
     ['KeyG', 'ㅎ', 'G']
   ])(
-    '[rest-to-note.korean-input] maps physical %s to %s regardless of the active layout',
+    '[rest-to-note.korean-input] [note-input.korean-note-and-rest-keys] maps physical %s to %s regardless of the active layout',
     (code, key, pitch) => {
     expect(resolvePitchShortcut(keyEvent({ code, key }))).toBe(pitch)
     }
@@ -39,7 +39,7 @@ describe('keyboard input routing', () => {
     ['Digit3', '#', 'quarter'],
     ['Digit4', '$', 'eighth'],
     ['Digit5', '%', '16th']
-  ])('maps physical %s to %s duration regardless of the logical key', (code, key, duration) => {
+  ])('[note-input.korean-editing-keys] maps physical %s to %s duration regardless of the logical key', (code, key, duration) => {
     expect(resolveDurationShortcut(keyEvent({ code, key }))).toBe(duration)
   })
 

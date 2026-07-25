@@ -5,6 +5,11 @@ const repoRoot = resolve(__dirname, '..')
 const siteRoot = resolve(repoRoot, 'site')
 const docsPath = resolve(repoRoot, 'docs/product/analytics-events.md')
 const operationsDocsPath = resolve(repoRoot, 'docs/product/analytics-operations.md')
+const reportingPlanPath = resolve(repoRoot, 'docs/product/ga4-reporting-plan.md')
+const weeklyReviewTemplatePath = resolve(
+  repoRoot,
+  'docs/product/ga4-weekly-review-template.md'
+)
 const configPath = resolve(siteRoot, 'analytics-config.json')
 const forbiddenParamNames = new Set([
   'address',
@@ -163,6 +168,21 @@ function verifyPrivacyGuard(source) {
   }
 }
 
+// ATDD: distribution-download.analytics-events
+function verifyDownloadEvents(source) {
+  const analyticsSource = read('site/analytics.js')
+
+  if (!analyticsSource.includes('send_page_view: true')) {
+    throw new Error('analytics must keep the default page view enabled')
+  }
+
+  for (const event of ['download_primary', 'download_platform']) {
+    if (!source.includes(event)) {
+      throw new Error(`site source missing download event: ${event}`)
+    }
+  }
+}
+
 function verifyOperationsDocs(markdown) {
   for (const event of requiredKeyEvents) {
     if (!markdown.includes(`\`${event}\``)) {
@@ -185,6 +205,38 @@ function verifyOperationsDocs(markdown) {
   }
 }
 
+function verifyWeeklyReviewTemplate() {
+  const templateLink = 'ga4-weekly-review-template.md'
+  const template = readFileSync(weeklyReviewTemplatePath, 'utf8')
+  const linkedDocs = [docsPath, operationsDocsPath, reportingPlanPath]
+  const requiredSections = ['지표', '이상 징후', '해석 보류', '다음 질문']
+  const requiredFields = ['검토 기간', '작성자', '데이터 상태']
+
+  for (const section of requiredSections) {
+    if (!template.includes(`## ${section}`)) {
+      throw new Error(`GA4 weekly review template missing section: ${section}`)
+    }
+  }
+
+  for (const field of requiredFields) {
+    if (!template.includes(field)) {
+      throw new Error(`GA4 weekly review template missing field: ${field}`)
+    }
+  }
+
+  if (!template.includes('표본') || !template.includes('개인정보')) {
+    throw new Error('GA4 weekly review template must warn about small samples and privacy')
+  }
+
+  for (const linkedDoc of linkedDocs) {
+    if (!readFileSync(linkedDoc, 'utf8').includes(templateLink)) {
+      throw new Error(
+        `${linkedDoc.replace(`${repoRoot}/`, '')} missing weekly review template link`
+      )
+    }
+  }
+}
+
 function main() {
   verifyConfig()
 
@@ -201,7 +253,9 @@ function main() {
   )
 
   verifyPrivacyGuard(source)
+  verifyDownloadEvents(source)
   verifyOperationsDocs(operationsDocs)
+  verifyWeeklyReviewTemplate()
 
   if (missingFromDocs.length > 0) {
     throw new Error(

@@ -102,6 +102,9 @@ revert commit으로 기록을 남긴다.
 
 ## GitHub issue 대응 기준
 
+릴리즈 보류 여부, `긴급`·`bug`·`enhancement` 라벨, 중복 이슈와 이미 알려진
+문제의 상세 기준은 [`릴리즈 이슈 분류 기준`](release-triage.md)을 따른다.
+
 - 장애: 프로덕션 사이트 404/5xx, 다운로드 파일 접근 실패, 배포 실패, analytics
   완전 누락처럼 사용자 흐름이 막히는 문제. `긴급` 라벨을 붙이고 재현 명령을 남긴다.
 - 버그: 특정 브라우저, 특정 페이지, 특정 파일에서 재현되는 문제. 스크린샷, URL,
@@ -111,6 +114,11 @@ revert commit으로 기록을 남긴다.
 - 개선: 제품 방향이나 콘텐츠 제안. 급한 운영 장애와 분리한다.
 
 ## 운영 메모 템플릿
+
+정식 배포 후 확인 결과는
+[`Production smoke evidence 기록 양식`](../quality/production-smoke-evidence-template.md)을
+복사해 날짜, commit, URL, 판정 근거를 남긴다. 아래 양식은 장애를 빠르게 기록할
+때 사용한다.
 
 ```markdown
 ## 확인 시각

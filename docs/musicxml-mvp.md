@@ -69,3 +69,7 @@ round-trip 후에도 조표와 pitch 의미가 유지되어야 한다.
 
 `src/musicxml/fixtures/single-part-treble.musicxml`은 단일 피아노 part,
 높은음자리표, 4/4, C major, 음표·임시표·쉼표를 포함한다.
+
+외부 사보 도구의 export 파일을 fixture 후보로 검토할 때는
+[MusicXML 외부 샘플 후보와 반입 기준](quality/musicxml-external-sample-candidates.md)에
+따라 출처, 라이선스, 예상 결과를 먼저 기록한다.

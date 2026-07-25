@@ -119,7 +119,29 @@ describe('editor state', () => {
     })
   })
 
-  it('changes duration and converts a selected note to a rest', () => {
+  it('[note-input.convert-selected-note-to-rest] converts a selected note to a rest without moving or resizing it', () => {
+    const original = readEvent(demoScore, 'note-g4')
+    const restCommand = buildRestEntryCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      original!.duration,
+      () => 'unused'
+    )
+    const restResult = applyScoreCommand(demoScore, restCommand!)
+
+    expect(readEvent(restResult.score, 'note-g4')).toMatchObject({
+      type: 'rest',
+      position: original!.position,
+      duration: original!.duration
+    })
+    expect(
+      restResult.score.parts[0].staves.flatMap((staff) => staff.measures)
+        .every((measure) => validateMeasureRhythm(measure).isExact)
+    ).toBe(true)
+  })
+
+  it('note-input.edit-selected-event-in-inspector changes duration and converts a selected note to a same-position rest', () => {
+    const original = readEvent(demoScore, 'note-g4')
     const durationCommand = buildDurationCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -137,6 +159,7 @@ describe('editor state', () => {
 
     expect(readEvent(restResult.score, 'note-g4')).toMatchObject({
       type: 'rest',
+      position: original!.position,
       duration: {
         value: '16th'
       }
@@ -147,6 +170,10 @@ describe('editor state', () => {
         tick: 3_360
       }
     })
+    expect(
+      restResult.score.parts[0].staves.flatMap((staff) => staff.measures)
+        .every((measure) => validateMeasureRhythm(measure).isExact)
+    ).toBe(true)
   })
 
   it('turns a full-measure rest into an ordinary duration and fills the remainder', () => {
@@ -227,7 +254,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('adds and removes augmentation dots through rhythm transactions', () => {
+  it('augmentation-dots.add-first-dot note-input.edit-selected-event-in-inspector adds and removes augmentation dots through rhythm transactions', () => {
     const add = buildDotCommand(
       demoScore,
       { type: 'event', eventId: 'note-c5' },
@@ -259,6 +286,33 @@ describe('editor state', () => {
     expect(applyScoreCommand(added.score, added.undo).score).toEqual(demoScore)
   })
 
+  it('augmentation-dots.add-second-dot adds a second augmentation dot', () => {
+    const firstDot = buildDotCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-c5' },
+      1,
+      () => 'first-dot-rest'
+    )
+    const dotted = applyScoreCommand(demoScore, firstDot!)
+    const secondDot = buildDotCommand(
+      dotted.score,
+      { type: 'event', eventId: 'note-c5' },
+      1,
+      () => 'second-dot-rest'
+    )
+    const doubleDotted = applyScoreCommand(dotted.score, secondDot!)
+
+    expect(readEvent(doubleDotted.score, 'note-c5')).toMatchObject({
+      type: 'note',
+      duration: { value: 'eighth', dots: 2 }
+    })
+    expect(
+      validateMeasureRhythm(
+        doubleDotted.score.parts[0].staves[0].measures[0]
+      ).isExact
+    ).toBe(true)
+  })
+
   it('applies augmentation dots to rests with the same rhythm rules', () => {
     const shortenedNote = buildDurationCommand(
       demoScore,
@@ -286,7 +340,7 @@ describe('editor state', () => {
     ).toBe(true)
   })
 
-  it('rejects dot growth that would consume a note', () => {
+  it('augmentation-dots.reject-without-room rejects dot growth that would consume a note', () => {
     expect(
       buildDotCommand(
         demoScore,
@@ -296,7 +350,7 @@ describe('editor state', () => {
     ).toBeUndefined()
   })
 
-  it('turns only the selected tuplet span into a tuplet group', () => {
+  it('tuplets.group-selected-events turns only the selected tuplet span into a tuplet group', () => {
     const command = buildTupletGroupCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -398,7 +452,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('toggles an existing tuplet group back to regular durations', () => {
+  it('tuplets.remove-existing-group toggles an existing tuplet group back to regular durations', () => {
     const apply = buildTupletGroupCommand(
       demoScore,
       { type: 'event', eventId: 'note-g4' },
@@ -608,7 +662,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('does not create a tuplet group when the span crosses a measure boundary', () => {
+  it('tuplets.reject-relation-breaking-edit does not create a tuplet group when the span crosses a measure boundary', () => {
     expect(
       buildTupletGroupCommand(
         demoScore,
@@ -651,7 +705,7 @@ describe('editor state', () => {
     )
   })
 
-  it('deletes a same-measure range as one undoable rhythm edit', () => {
+  it('range-editing.delete-same-measure deletes a same-measure range as one undoable rhythm edit', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', TICKS_PER_QUARTER, 'quarter'),
@@ -695,7 +749,7 @@ describe('editor state', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('rejects range deletion across measure boundaries', () => {
+  it('range-editing.reject-cross-measure-delete rejects range deletion across measure boundaries', () => {
     const selection = createRangeSelection(demoScore, 'note-f-sharp-4', 'note-g4')
 
     expect(selection).toMatchObject({
@@ -704,7 +758,7 @@ describe('editor state', () => {
     expect(buildDeleteCommand(demoScore, selection!)).toBeUndefined()
   })
 
-  it('copies and pastes a same-length simple range', () => {
+  it('range-editing.copy-paste-same-length copies and pastes a same-length simple range', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', TICKS_PER_QUARTER, 'quarter'),
@@ -886,7 +940,7 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
-  it('rejects range paste when the target range has a different duration', () => {
+  it('range-editing.reject-different-length-paste rejects range paste when the target range has a different duration', () => {
     const score = scoreWith([
       note('note-1', 0, 'eighth'),
       note('note-2', TICKS_PER_QUARTER / 2, 'eighth'),
@@ -906,7 +960,7 @@ describe('editor state', () => {
     )).toBeUndefined()
   })
 
-  it('converts selected notes in a range to rests as one edit', () => {
+  it('range-editing.convert-notes-to-rests converts selected notes in a range to rests as one edit', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', TICKS_PER_QUARTER, 'quarter'),
@@ -955,7 +1009,7 @@ describe('editor state', () => {
     expect(buildRangeRestCommand(score, selection!)).toBeUndefined()
   })
 
-  it('rejects range rest conversion when selected notes are tied', () => {
+  it('range-editing.reject-unsafe-rest-conversion rejects range rest conversion when selected notes are tied', () => {
     const score = scoreWith([
       createNote({
         id: 'note-1',

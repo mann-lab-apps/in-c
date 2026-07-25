@@ -6,6 +6,7 @@ Feature: 새 악보를 설정하기
   사용자는 앱을 처음 열었을 때 제목, 박자표, 조표가 분명한 단성부 악보를
   시작할 수 있어야 한다.
 
+  @scenario-score-setup-create-with-selected-settings
   Scenario Outline: 시작화면에서 새 악보를 만든다
     Given 앱이 시작화면을 보여준다
     When 사용자가 새 악보 만들기를 선택한다
@@ -32,6 +33,7 @@ Feature: 새 악보를 설정하기
     Then 악보 제목은 "Morning Phrase"로 표시된다
     And 악보 부제목은 "for flute"로 표시된다
 
+  @scenario-score-setup-change-time-and-key-signatures
   Scenario Outline: 생성 후 박자표나 조표를 변경한다
     Given <original_time> 박자표와 <original_key> 조표의 악보가 열려 있다
     When 사용자가 박자표를 <new_time>로 변경한다
@@ -46,6 +48,7 @@ Feature: 새 악보를 설정하기
       | original_time | original_key | new_time | new_key   |
       | "4/4"         | "C major"    | "3/4"    | "G major" |
 
+  @scenario-score-setup-reject-overflowing-time-signature
   Scenario: 박자표 변경으로 음표가 마디를 넘치면 변경하지 않는다
     Given 4/4 박자표의 악보에 온음표가 입력되어 있다
     When 사용자가 해당 마디의 박자표를 3/4로 변경한다

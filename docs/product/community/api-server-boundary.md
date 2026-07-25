@@ -9,6 +9,7 @@ Electron 앱, 웹 사이트, 향후 웹 편집기는 같은 API를 호출하되 
 ## 서버 책임
 
 - 사용자 계정, 세션, 프로필, 역할을 관리한다.
+- 게시판 게시물, 댓글, 공개 범위, 신고 상태를 저장한다.
 - 악보 게시물, 공개 범위, 라이선스, 신고 상태를 저장한다.
 - 연주회 홍보, 검수 상태, 결제 기록, 노출 기간을 저장한다.
 - 배너와 추천 콘텐츠처럼 여러 표면에서 공유되는 운영 콘텐츠를 제공한다.
@@ -38,12 +39,35 @@ MVP는 이메일 매직링크를 기본안으로 둔다. 비밀번호 저장 부
 | `role` | 기본 권한 역할 |
 | `createdAt` | 계정 생성 시각 |
 
+## 게시판 CRUD API
+
+Community는 학습 후보 목록이 아니라 게시판으로 다룬다. 웹 사이트는 공개 글
+목록과 상세를 읽고, 로그인 사용자는 글과 댓글을 생성·수정·삭제한다.
+
+초기 엔드포인트 후보는 다음과 같다.
+
+| 메서드 | 경로 | 설명 |
+| --- | --- | --- |
+| `GET` | `/community/posts` | 게시글 목록, 카테고리, 검색어, 페이지네이션 |
+| `POST` | `/community/posts` | 게시글 생성 |
+| `GET` | `/community/posts/:postId` | 게시글 상세와 댓글 목록 |
+| `PATCH` | `/community/posts/:postId` | 작성자 또는 관리자 게시글 수정 |
+| `DELETE` | `/community/posts/:postId` | 작성자 삭제 또는 관리자 블라인드 |
+| `POST` | `/community/posts/:postId/comments` | 댓글 생성 |
+| `PATCH` | `/community/comments/:commentId` | 댓글 수정 |
+| `DELETE` | `/community/comments/:commentId` | 댓글 삭제 또는 블라인드 |
+
+게시글 카테고리는 초기에는 `notice`, `question`, `feedback`, `general`로 둔다.
+익명 쓰기는 열지 않는다. 공개 조회는 로그인 없이 가능하지만 생성·수정·삭제는
+인증과 CSRF/세션 보호가 필요하다.
+
 ## 초기 데이터 모델
 
 - `User`: 계정, 이메일, 역할, 상태
 - `Profile`: 공개 이름, 소개, 링크, 소속
 - `ScorePost`: 악보 게시물, MusicXML/PDF 파일 참조, 라이선스
-- `CommunityPost`: 공지, 질문, 일반 게시물
+- `CommunityPost`: 공지, 질문, 피드백, 일반 게시물
+- `CommunityComment`: 게시글 댓글, 작성자, 삭제/블라인드 상태
 - `ConcertPromotion`: 공연 홍보 등록 정보와 노출 상태
 - `PaymentRecord`: 결제 제공자, 금액, 영수증, 환불 상태
 - `ModerationCase`: 신고, 검수, 블라인드, 반려 이력

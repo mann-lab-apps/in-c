@@ -55,8 +55,8 @@ describe('measure management', () => {
     })
     expect(validateMeasureRhythm(measures[2]).isExact).toBe(true)
     expect(edit!.selection).toEqual({
-      type: 'measure',
-      measureId: 'measure-new'
+      type: 'event',
+      eventId: 'event-new'
     })
     expect(edit!.inputState?.target.measureId).toBe('measure-new')
   })

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
+import { runInNewContext } from 'node:vm'
 
 const repoRoot = resolve(import.meta.dirname, '..')
 const siteRoot = resolve(repoRoot, 'site')
@@ -8,6 +9,7 @@ const outSiteRoot = resolve(repoRoot, 'out/site')
 const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'))
 const siteManifestPath = resolve(siteRoot, 'download-manifest.json')
 const builtManifestPath = resolve(outSiteRoot, 'download-manifest.json')
+const siteMainPath = resolve(siteRoot, 'main.js')
 const catalogPath = resolve(siteRoot, 'compositions-catalog.json')
 const publicRoot = resolve(siteRoot, 'public')
 const loadDataModule = async (path) => {
@@ -17,6 +19,36 @@ const loadDataModule = async (path) => {
 }
 const columnsModule = await loadDataModule(resolve(siteRoot, 'columns-data.js'))
 const productModule = await loadDataModule(resolve(siteRoot, 'product-data.js'))
+const featureMapContext = { window: {} }
+runInNewContext(
+  readFileSync(resolve(repoRoot, 'docs/product/feature-map-data.js'), 'utf8'),
+  featureMapContext
+)
+const featureMap = featureMapContext.window.FEATURE_MAP
+const relationshipModelPath = resolve(
+  repoRoot,
+  'docs/product/relationship-model.md'
+)
+const compositionDifficulties = new Set(['초급', '중급', '고급'])
+const compositionTags = new Set([
+  'american-folk-song',
+  'beethoven',
+  'beginner',
+  'children-song',
+  'classical',
+  'english-ballad',
+  'english-melody',
+  'french-melody',
+  'hymn',
+  'japanese-folk-song',
+  'korean-folk-song',
+  'public-domain',
+  'round',
+  'shaker-song',
+  'single-voice',
+  'traditional',
+  'welsh-folk-song'
+])
 
 function assert(condition, message) {
   if (!condition) {
@@ -30,6 +62,7 @@ function publicAssetPath(url) {
 }
 
 function verifyDownloadManifest() {
+  // ATDD: distribution-download.platform-files
   assert(existsSync(siteManifestPath), 'site/download-manifest.json is missing')
   assert(
     existsSync(builtManifestPath),
@@ -54,6 +87,8 @@ function verifyDownloadManifest() {
     'checksumsUrl must include releaseTag'
   )
 
+  const requiredPlatforms = new Set(['macOS', 'Windows', 'Linux'])
+
   for (const download of source.downloads ?? []) {
     assert(download.id, 'download entry missing id')
     assert(download.label, `download ${download.id} missing label`)
@@ -76,6 +111,33 @@ function verifyDownloadManifest() {
       download.fileName.includes(source.version),
       `${download.id} fileName must include manifest version`
     )
+    requiredPlatforms.delete(download.platform)
+  }
+
+  assert(
+    requiredPlatforms.size === 0,
+    `download manifest missing platform(s): ${[...requiredPlatforms].join(', ')}`
+  )
+
+  // ATDD: distribution-download.prerelease-signing-notice
+  const siteMain = readFileSync(siteMainPath, 'utf8')
+  assert(
+    /(?:alpha|beta|rc)/i.test(source.version),
+    'download manifest version must identify the current prerelease'
+  )
+  assert(
+    siteMain.includes('releaseVersion.textContent = manifest.releaseTag'),
+    'download page must render the prerelease release tag'
+  )
+  assert(
+    siteMain.includes('manifest.signing?.[download.platform]'),
+    'download page must render the signing notice for each platform'
+  )
+  for (const platform of ['macOS', 'Windows']) {
+    assert(
+      source.signing?.[platform]?.includes('미서명'),
+      `download manifest must show the unsigned ${platform} notice`
+    )
   }
 }
 
@@ -90,6 +152,31 @@ function verifyCompositions() {
     }
 
     assert(composition.slug, 'available composition missing slug')
+    assert(
+      compositionDifficulties.has(composition.difficulty),
+      `${composition.slug} has unsupported difficulty: ${composition.difficulty}`
+    )
+    assert(
+      Array.isArray(composition.tags) && composition.tags.length > 0,
+      `${composition.slug} must have tags`
+    )
+    assert(
+      new Set(composition.tags).size === composition.tags.length,
+      `${composition.slug} has duplicate tags`
+    )
+    for (const tag of composition.tags) {
+      assert(tag.length > 0, `${composition.slug} has an empty tag`)
+      assert(
+        compositionTags.has(tag),
+        `${composition.slug} has unsupported tag: ${tag}`
+      )
+    }
+    for (const requiredTag of ['public-domain', 'single-voice']) {
+      assert(
+        composition.tags.includes(requiredTag),
+        `${composition.slug} missing required tag: ${requiredTag}`
+      )
+    }
     assert(composition.workId, `${composition.slug} missing workId`)
     assert(works.has(composition.workId), `${composition.slug} workId not found`)
     assert(
@@ -100,6 +187,7 @@ function verifyCompositions() {
       composition.assets?.chromatics,
       `${composition.slug} missing Chromatics asset`
     )
+    // ATDD: product-surfaces.open-in-chromatics
     assert(
       composition.assets.musicxml === composition.assets.chromatics,
       `${composition.slug} Chromatics asset should use the MusicXML source`
@@ -147,6 +235,14 @@ function verifyProductRelations() {
     }
   }
 
+  // ATDD: product-surfaces.work-context
+  assert(
+    productModule.works.some(
+      (work) => (work.scores?.length ?? 0) > 0 && (work.columns?.length ?? 0) > 0
+    ),
+    'at least one work must connect a score and Columns'
+  )
+
   for (const creator of productModule.creators) {
     for (const workId of creator.works ?? []) {
       assert(workIds.has(workId), `${creator.id} references ${workId}`)
@@ -157,10 +253,53 @@ function verifyProductRelations() {
   }
 }
 
+function verifyProductSurfaceStates() {
+  const featureItems = featureMap.flatMap((group) =>
+    group.sections.flatMap((section) => section.items)
+  )
+  const findItem = (name) => featureItems.find((item) => item.name === name)
+  const relationshipModel = readFileSync(relationshipModelPath, 'utf8')
+
+  // ATDD: product-surfaces.promotion-state
+  const promotion = findItem('공연 배너 슬롯')
+  assert(promotion, 'feature map missing promotion banner slot')
+  assert(promotion.status !== '지원', 'promotion banner must not be supported')
+  assert(
+    promotion.docs?.includes('docs/product/relationship-model.md'),
+    'promotion banner must link to the relationship model'
+  )
+  for (const phrase of ['공연 배너', '감상', '관련 인물']) {
+    assert(
+      relationshipModel.includes(phrase),
+      `relationship model missing promotion guidance: ${phrase}`
+    )
+  }
+
+  // ATDD: product-surfaces.community-state
+  const community = findItem('Community 게시판 CRUD')
+  assert(community, 'feature map missing Community flow')
+  assert(community.status !== '지원', 'Community must not be supported')
+  assert(
+    community.docs?.includes('docs/product/relationship-model.md'),
+    'Community must link to the relationship model'
+  )
+  assert(
+    community.docs?.includes('docs/product/community/api-server-boundary.md'),
+    'Community must link to the API server boundary'
+  )
+  for (const phrase of ['게시판', 'CRUD 서버', '글쓰기', '수정', '삭제']) {
+    assert(
+      relationshipModel.includes(phrase),
+      `relationship model missing Community boundary: ${phrase}`
+    )
+  }
+}
+
 try {
   verifyDownloadManifest()
   verifyCompositions()
   verifyProductRelations()
+  verifyProductSurfaceStates()
   console.log('Verified site content manifests, Compositions assets, and product relations.')
 } catch (error) {
   console.error(error.message)

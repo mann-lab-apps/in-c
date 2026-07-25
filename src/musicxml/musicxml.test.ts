@@ -74,7 +74,7 @@ describe('MusicXML MVP', () => {
     }
   })
 
-  it('parses a single-part treble-clef fixture into score-core', () => {
+  it('import-export.import-valid-single-voice parses a single-part treble-clef fixture into score-core', () => {
     const score = parseMusicXml(fixture)
 
     expect(score).toMatchObject({
@@ -321,7 +321,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports rehearsal marks', () => {
+  it('layout.rehearsal-mark exports and re-imports rehearsal marks', () => {
     const score = createScore({
       title: 'Marked Sketch',
       rehearsalMarks: [
@@ -345,7 +345,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports staff text words', () => {
+  it('layout.staff-text exports and re-imports staff text words', () => {
     const score = createScore({
       title: 'Text Sketch',
       staffTexts: [
@@ -369,7 +369,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports dynamic markings', () => {
+  it('layout.dynamics exports and re-imports dynamic markings in the same measure', () => {
     const score = createScore({
       title: 'Dynamic Sketch',
       dynamics: [
@@ -498,7 +498,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports fermatas on notes and rests', () => {
+  it('layout.fermata exports and re-imports fermatas on notes and rests', () => {
     const score = createScore({
       title: 'Fermata Sketch',
       parts: [
@@ -552,7 +552,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports breath marks and caesuras', () => {
+  it('layout.breath-marks exports and re-imports breath marks and caesuras', () => {
     const score = createScore({
       title: 'Breath Sketch',
       parts: [
@@ -607,7 +607,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports single-note tremolo markings', () => {
+  it('tremolo.musicxml-round-trip exports and re-imports single-note tremolo markings', () => {
     const score = createScore({
       title: 'Tremolo Sketch',
       parts: [
@@ -751,7 +751,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports supported clef changes', () => {
+  it('clef.musicxml-round-trip exports and re-imports supported clef changes', () => {
     const score = createScore({
       title: 'Clef Sketch',
       parts: [
@@ -1228,7 +1228,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('preserves measure attribute changes while normalizing note order to the score timeline', () => {
+  it('import-export.preserve-measure-attributes preserves measure attribute changes while normalizing note order to the score timeline', () => {
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="4.0">
   <part-list>
@@ -1333,7 +1333,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
+  it('import-export.reject-time-movement rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
     const backupXml = fixture.replace(
       '</measure>',
       '<backup><duration>1</duration></backup></measure>'
@@ -1592,7 +1592,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports lyrics on notes', () => {
+  it('lyrics.musicxml-round-trip exports and re-imports lyrics on notes', () => {
     const score = createScore({
       title: 'Lyric Sketch',
       parts: [

@@ -33,7 +33,7 @@ const target = {
 
 describe('note input state', () => {
   it.each(['whole', 'half', 'quarter', 'eighth', '16th'] as const)(
-    'accepts %s duration for sequential input',
+    '[note-input.enter-selected-duration] accepts %s duration for sequential input',
     (value) => {
       const score = createScore()
       const state = createNoteInputState({
@@ -43,13 +43,23 @@ describe('note input state', () => {
         mode: 'note'
       })
 
+      const input = buildSequentialInput(score, state, 'C', idSequence())
+      const result = applyScoreCommand(score, input!.command)
+
+      expect(readEvents(result.score)[0]).toMatchObject({
+        type: 'note',
+        duration: { value },
+        pitch: { step: 'C' }
+      })
       expect(
-        buildSequentialInput(score, state, 'C', idSequence())
-      ).toBeDefined()
+        validateMeasureRhythm(
+          result.score.parts[0].staves[0].measures[0]
+        ).isExact
+      ).toBe(true)
     }
   )
 
-  it('advances by the selected duration after note and rest input', () => {
+  it('[note-input.advance-cursor] advances by the selected duration after note and rest input', () => {
     const score = createScore()
     const noteState = createNoteInputState({
       target,
@@ -341,7 +351,7 @@ describe('note input state', () => {
     })
   })
 
-  it('buffers and commits a mixed eighth-note triplet as one command', () => {
+  it('tuplets.input-at-cursor buffers and commits a mixed eighth-note triplet as one command', () => {
     const score = createScore()
     const tripletState = beginTupletInput(
       createNoteInputState({
@@ -550,7 +560,7 @@ describe('note input state', () => {
     ).toBe(true)
   })
 
-  it('requires rest space before committing tuplet input', () => {
+  it('tuplets.reject-insufficient-time requires rest space before committing tuplet input', () => {
     const score = scoreWithEvents([
       createNote({
         id: 'note-1',
@@ -637,7 +647,7 @@ describe('note input state', () => {
     })
   })
 
-  it('rejects nested, dotted, and measure-crossing tuplet input', () => {
+  it('tuplets.reject-relation-breaking-edit rejects nested, dotted, and measure-crossing tuplet input', () => {
     const base = createNoteInputState({
       target,
       tick: 0,

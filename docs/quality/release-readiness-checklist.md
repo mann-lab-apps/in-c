@@ -44,7 +44,7 @@ authoring, production smoke는 제한 또는 별도 검증 항목으로 남긴�
 | `npm run test:components` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | `npm run verify:e2e` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | `npm run verify:visual-regression` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
-| packaged app smoke | Not run | [Manual Score Completion QA](../releases/manual-score-completion-qa.md) |
+| packaged app smoke | Not run | [패키지 앱 운영체제별 smoke matrix](package-app-smoke-matrix.md) |
 | PDF save/open manual check | Not run in this package | [Manual Score Completion QA](../releases/manual-score-completion-qa.md) |
 
 ## Site Checklist
@@ -56,6 +56,8 @@ authoring, production smoke는 제한 또는 별도 검증 항목으로 남긴�
 | `npm run verify:analytics` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | `npm run verify:site-seo` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | production smoke | Not run | Run only after production URL/deployment approval |
+| Chrome·Safari·Firefox smoke | Not run | [브라우저 호환성 smoke 기준](browser-compatibility-smoke.md) |
+| 사이트 접근성 수동 QA | Not run | [사이트 접근성 수동 QA](site-accessibility-manual-qa.md) |
 
 ## Documentation Checklist
 

@@ -107,7 +107,7 @@ describe('single-voice MVP regression', () => {
     })
   })
 
-  it('completes sequential input and restores compound edits with undo/redo', () => {
+  it('delete-event.clean-ties completes sequential input and restores compound edits with undo/redo', () => {
     let score = createScore()
     let state = createNoteInputState({
       target: inputTarget,
@@ -174,7 +174,7 @@ describe('single-voice MVP regression', () => {
       .toEqual(shortened.score)
   })
 
-  it('preserves musical meaning across MusicXML export and import', () => {
+  it('import-export.round-trip-musical-meaning preserves musical meaning across MusicXML export and import', () => {
     const score = createSingleVoiceMvpScore()
     const roundTrip = parseMusicXml(serializeMusicXml(score))
 
@@ -212,7 +212,7 @@ describe('single-voice MVP regression', () => {
     })
   })
 
-  it('creates an input-ready score from new score settings', () => {
+  it('score-setup.create-with-selected-settings creates an input-ready score from new score settings', () => {
     const score = createNewScore({
       title: '현악 연습곡',
       composer: '김작곡',
@@ -250,6 +250,41 @@ describe('single-voice MVP regression', () => {
   })
 
   it.each([
+    [
+      '6/8',
+      { beats: 6, beatType: 8 },
+      { beatUnit: 'quarter', dots: 1, text: '♩. = 120' }
+    ],
+    [
+      '9/8',
+      { beats: 9, beatType: 8 },
+      { beatUnit: 'quarter', dots: 1, text: '♩. = 120' }
+    ],
+    [
+      '3/4',
+      { beats: 3, beatType: 4 },
+      { beatUnit: 'quarter', dots: 0, text: '♩ = 120' }
+    ]
+  ] as const)(
+    'score-setup.create-with-selected-settings uses a meter-aware tempo beat for %s',
+    (_label, timeSignature, tempo) => {
+      const score = createNewScore({
+        title: 'Tempo Beat',
+        composer: 'in-C',
+        partName: 'Piano',
+        keySignature: { fifths: 0, mode: 'major' },
+        timeSignature,
+        measureCount: 1
+      })
+
+      expect(score.tempo).toMatchObject({
+        bpm: 120,
+        ...tempo
+      })
+    }
+  )
+
+  it.each([
     ['2/4', { beats: 2, beatType: 4 }, { value: 'half', dots: 0 }],
     ['3/4', { beats: 3, beatType: 4 }, { value: 'half', dots: 1 }],
     ['6/8', { beats: 6, beatType: 8 }, { value: 'half', dots: 1 }]
@@ -285,7 +320,7 @@ describe('single-voice MVP regression', () => {
     }
   )
 
-  it('changes key signature from the selected measure while preserving pitches', () => {
+  it('score-setup.change-time-and-key-signatures changes key signature from the selected measure while preserving pitches', () => {
     const score = createSingleVoiceMvpScore()
     const command = buildKeySignatureCommand(
       score,
@@ -332,7 +367,7 @@ describe('single-voice MVP regression', () => {
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
-  it('changes time signature for the selected measure and refits rests', () => {
+  it('score-setup.change-time-and-key-signatures changes time signature for the selected measure and refits rests', () => {
     const score = createScore({
       parts: [
         createPart({
@@ -500,7 +535,7 @@ describe('single-voice MVP regression', () => {
     expect(applyScoreCommand(changed.score, changed.undo).score).toEqual(score)
   })
 
-  it('rejects time signatures that cannot contain existing notes', () => {
+  it('score-setup.reject-overflowing-time-signature rejects time signatures that cannot contain existing notes', () => {
     const score = createScore({
       parts: [
         createPart({

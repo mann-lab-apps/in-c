@@ -49,6 +49,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 악보가 재생 중인 위치를 표시한다
     Then 재생 커서는 선택 이벤트와 입력 커서와 다른 시각 표현으로 표시된다
 
+  @scenario-layout-manual-system-break
   Scenario: 선택한 마디 앞에 수동 system break를 지정한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 첫 마디가 아닌 마디가 선택되어 있다
@@ -58,6 +59,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 같은 마디에서 시스템 나누기를 다시 실행한다
     Then 수동 system break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
 
+  @scenario-layout-manual-page-break
   Scenario: 선택한 마디 앞에 수동 page break를 지정한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 첫 마디가 아닌 마디가 선택되어 있다
@@ -67,6 +69,7 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 같은 마디에서 페이지 나누기를 다시 실행한다
     Then 수동 page break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
 
+  @scenario-layout-rehearsal-mark
   Scenario: 선택한 마디에 리허설 마크를 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
@@ -74,6 +77,7 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 마디 위에는 박스 형태의 "A" 마크가 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 리허설 마크가 유지된다
 
+  @scenario-layout-staff-text
   Scenario: 선택한 마디에 스태프 텍스트를 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
@@ -82,6 +86,7 @@ Feature: 악보를 읽기 좋게 배치하기
     And 텍스트 입력 중에는 음표 입력 단축키가 실행되지 않는다
     And MusicXML로 내보냈다가 다시 가져와도 스태프 텍스트가 유지된다
 
+  @scenario-layout-dynamics
   Scenario: 선택한 마디에 다이내믹을 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
     And 마디가 선택되어 있다
@@ -106,6 +111,7 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 음표 위에는 악센트 표시가 함께 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 아티큘레이션이 유지된다
 
+  @scenario-layout-fermata
   Scenario: 선택한 음표나 쉼표에 페르마타를 입력한다
     Given 음표 또는 쉼표가 선택된 단성부 악보가 열려 있다
     When 사용자가 페르마타를 켠다
@@ -114,13 +120,14 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 이벤트에서 페르마타가 제거된다
     And MusicXML로 내보냈다가 다시 가져와도 페르마타가 유지된다
 
-  Scenario: 선택한 음표나 쉼표에 숨표와 caesura를 입력한다
+  @scenario-layout-breath-marks
+  Scenario: 선택한 음표나 쉼표에 숨표와 중지표를 입력한다
     Given 음표 또는 쉼표가 선택된 단성부 악보가 열려 있다
     When 사용자가 숨표를 켠다
     Then 선택한 이벤트 위에는 숨표가 표시된다
-    When 사용자가 caesura를 켠다
-    Then 선택한 이벤트 위에는 caesura 표시가 표시된다
-    And MusicXML로 내보냈다가 다시 가져와도 숨표와 caesura가 유지된다
+    When 사용자가 중지표를 켠다
+    Then 선택한 이벤트 위에는 중지표가 표시된다
+    And MusicXML로 내보냈다가 다시 가져와도 숨표와 중지표가 유지된다
 
   Scenario: 선택한 음표 범위에 슬러를 입력한다
     Given 여러 음표가 범위로 선택되어 있다

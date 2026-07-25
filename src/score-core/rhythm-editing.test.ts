@@ -68,7 +68,7 @@ describe('monophonic rhythm editing', () => {
     )
   })
 
-  it('deletes a leading note by shifting following events left', () => {
+  it('delete-event.shift-leading-event deletes a leading note by shifting following events left', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'half', 1)
@@ -90,7 +90,7 @@ describe('monophonic rhythm editing', () => {
     expect(undone.score).toEqual(score)
   })
 
-  it('deletes a selected note into a tied note chain', () => {
+  it('delete-event.merge-into-previous deletes a selected note into a tied note chain', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', quarter, 'quarter'),
@@ -212,7 +212,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('deletes a selected rest into a tied previous note chain', () => {
+  it('delete-event.remove-rest deletes a selected rest into a tied previous note chain', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'quarter'),
@@ -341,7 +341,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(tiedChain)
   })
 
-  it('deletes a leading tied start and clears the orphaned tie stop', () => {
+  it('delete-event.clean-ties deletes a leading tied start and clears the orphaned tie stop', () => {
     const tiedLeadingNote = scoreWith([
       {
         ...note('note-1', 0, 'quarter'),
@@ -486,7 +486,7 @@ describe('monophonic rhythm editing', () => {
     expect(command).toBeUndefined()
   })
 
-  it('shrinks an event and fills the released time with rests', () => {
+  it('rhythm-duration.shorten-event shrinks an event and fills the released time with rests', () => {
     const score = scoreWith([
       note('note-1', 0, 'half'),
       rest('rest-1', quarter * 2, 'half')
@@ -555,7 +555,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('grows an event by consuming following rests and splitting the last rest', () => {
+  it('rhythm-duration.lengthen-event grows an event by consuming following rests and splitting the last rest', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'half'),
@@ -621,7 +621,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('rejects growth that would consume a note or cross the measure boundary', () => {
+  it('rhythm-duration.reject-growth rejects growth that would consume a note or cross the measure boundary', () => {
     const blockedByNote = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', quarter, 'quarter'),

@@ -554,7 +554,7 @@ window.FEATURE_MAP = [
             docs: ["docs/site.md"]
           },
           {
-            name: "Columns 클래식 이해 지도",
+            name: "Columns 클래식 읽기",
             status: "지원",
             acceptance: ["docs/product/acceptance/columns.feature"],
             docs: ["docs/site.md", "docs/product/columns/authoring-workflow.md"]
@@ -596,12 +596,13 @@ window.FEATURE_MAP = [
             ]
           },
           {
-            name: "Community 최소 대화·학습 흐름",
+            name: "Community 게시판 CRUD",
             status: "실험",
             acceptance: ["docs/product/acceptance/product-surfaces.feature"],
             docs: [
               "docs/brand/brand-foundation.md",
-              "docs/product/relationship-model.md"
+              "docs/product/relationship-model.md",
+              "docs/product/community/api-server-boundary.md"
             ]
           },
           {

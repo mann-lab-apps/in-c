@@ -27,6 +27,606 @@
           ]
         }
       ]
+    },
+    {
+      "feature": "docs/product/acceptance/augmentation-dots.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #445에서 첫 점과 두 번째 점 추가, 남은 시간이 부족한 경우의 거부 동작을 연결한다.",
+      "scenarios": [
+        {
+          "id": "augmentation-dots.add-first-dot",
+          "tag": "@scenario-augmentation-dots-add-first-dot",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "augmentation-dots.add-second-dot",
+          "tag": "@scenario-augmentation-dots-add-second-dot",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "augmentation-dots.reject-without-room",
+          "tag": "@scenario-augmentation-dots-reject-without-room",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/rhythm-duration.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #447에서 음가 줄이기, 음가 늘리기, 늘릴 수 없는 경우의 거부 동작을 연결한다.",
+      "scenarios": [
+        {
+          "id": "rhythm-duration.shorten-event",
+          "tag": "@scenario-rhythm-duration-shorten-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "rhythm-duration.lengthen-event",
+          "tag": "@scenario-rhythm-duration-lengthen-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "rhythm-duration.reject-growth",
+          "tag": "@scenario-rhythm-duration-reject-growth",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/delete-event.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #449에서 앞 이벤트로 길이 보존, 첫 이벤트 삭제 후 당김, 쉼표 삭제, 타이 관계 정리를 연결한다.",
+      "scenarios": [
+        {
+          "id": "delete-event.merge-into-previous",
+          "tag": "@scenario-delete-event-merge-into-previous",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.shift-leading-event",
+          "tag": "@scenario-delete-event-shift-leading-event",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.remove-rest",
+          "tag": "@scenario-delete-event-remove-rest",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts"
+          ]
+        },
+        {
+          "id": "delete-event.clean-ties",
+          "tag": "@scenario-delete-event-clean-ties",
+          "tests": [
+            "src/score-core/rhythm-editing.test.ts",
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/tuplets.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #459에서 셋잇단음표 생성, 입력, 해제와 실패 조건을 기존 자동 테스트에 연결한다. 진행 상태를 다루는 @discussion 시나리오는 제외한다.",
+      "scenarios": [
+        {
+          "id": "tuplets.group-selected-events",
+          "tag": "@scenario-tuplets-group-selected-events",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.input-at-cursor",
+          "tag": "@scenario-tuplets-input-at-cursor",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.remove-existing-group",
+          "tag": "@scenario-tuplets-remove-existing-group",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.reject-insufficient-time",
+          "tag": "@scenario-tuplets-reject-insufficient-time",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.reject-relation-breaking-edit",
+          "tag": "@scenario-tuplets-reject-relation-breaking-edit",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts",
+            "src/renderer/src/editor/note-input-state.test.ts",
+            "src/renderer/src/editor/tuplet-feedback.test.ts",
+            "src/score-core/tuplets.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/range-selection.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #457에서 같은 마디 범위 삭제, 여러 마디 삭제 거부, 같은 길이 복사·붙여넣기, 다른 길이 붙여넣기 거부, 쉼표 변환과 안전하지 않은 변환 거부를 기존 자동 테스트에 연결한다. 키보드·드래그 선택은 제외한다.",
+      "scenarios": [
+        {
+          "id": "range-editing.delete-same-measure",
+          "tag": "@scenario-range-editing-delete-same-measure",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-cross-measure-delete",
+          "tag": "@scenario-range-editing-reject-cross-measure-delete",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.copy-paste-same-length",
+          "tag": "@scenario-range-editing-copy-paste-same-length",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-different-length-paste",
+          "tag": "@scenario-range-editing-reject-different-length-paste",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.convert-notes-to-rests",
+          "tag": "@scenario-range-editing-convert-notes-to-rests",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.reject-unsafe-rest-conversion",
+          "tag": "@scenario-range-editing-reject-unsafe-rest-conversion",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/import-export.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 자동저장과 @discussion 이미지 내보내기는 제외한다.",
+      "scenarios": [
+        {
+          "id": "import-export.import-valid-single-voice",
+          "tag": "@scenario-import-export-import-valid-single-voice",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.reject-time-movement",
+          "tag": "@scenario-import-export-reject-time-movement",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.preserve-measure-attributes",
+          "tag": "@scenario-import-export-preserve-measure-attributes",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-musical-meaning",
+          "tag": "@scenario-import-export-round-trip-musical-meaning",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.save-pdf",
+          "tag": "@scenario-import-export-save-pdf",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "import-export.report-pdf-result",
+          "tag": "@scenario-import-export-report-pdf-result",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/score-setup.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #463에서 새 악보 생성, 박자표·조표 변경, 마디를 넘치는 박자표 변경 거부를 기존 자동 테스트에 연결한다. 제목·작곡가 입력 안내와 마디 선택 안내는 제외한다.",
+      "scenarios": [
+        {
+          "id": "score-setup.create-with-selected-settings",
+          "tag": "@scenario-score-setup-create-with-selected-settings",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.change-time-and-key-signatures",
+          "tag": "@scenario-score-setup-change-time-and-key-signatures",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.reject-overflowing-time-signature",
+          "tag": "@scenario-score-setup-reject-overflowing-time-signature",
+          "tests": [
+            "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/note-input.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #469에서 핵심 음표 입력과 편집을 연결하고, 이슈 #504에서 Inspector의 음가·점·샤프·쉼표 변환을 연결한다. 아티큘레이션 시나리오는 제외한다.",
+      "scenarios": [
+        {
+          "id": "note-input.enter-selected-duration",
+          "tag": "@scenario-note-input-enter-selected-duration",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.edit-selected-pitch",
+          "tag": "@scenario-note-input-edit-selected-pitch",
+          "tests": [
+            "src/renderer/src/editor/pitch-editing.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.convert-selected-note-to-rest",
+          "tag": "@scenario-note-input-convert-selected-note-to-rest",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.edit-selected-event-in-inspector",
+          "tag": "@scenario-note-input-edit-selected-event-in-inspector",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/editor/editor-state.test.ts",
+            "src/renderer/src/editor/pitch-editing.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.advance-cursor",
+          "tag": "@scenario-note-input-advance-cursor",
+          "tests": [
+            "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.korean-note-and-rest-keys",
+          "tag": "@scenario-note-input-korean-note-and-rest-keys",
+          "tests": [
+            "src/renderer/src/editor/keyboard-input.test.ts"
+          ]
+        },
+        {
+          "id": "note-input.korean-editing-keys",
+          "tag": "@scenario-note-input-korean-editing-keys",
+          "tests": [
+            "src/renderer/src/editor/keyboard-input.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/playback.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 재생 제어와 @discussion 시나리오는 제외한다.",
+      "scenarios": [
+        {
+          "id": "playback.tie-and-triplet-duration",
+          "tag": "@scenario-playback-tie-and-triplet-duration",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts"
+          ]
+        },
+        {
+          "id": "playback.hairpin-velocity",
+          "tag": "@scenario-playback-hairpin-velocity",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts"
+          ]
+        },
+        {
+          "id": "playback.fermata-delay",
+          "tag": "@scenario-playback-fermata-delay",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/layout-rendering.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 이슈 #492에서 선택한 마디의 스태프 텍스트 입력·표시·입력 중 단축키 차단·MusicXML 유지를 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치와 다른 기호는 제외한다.",
+      "scenarios": [
+        {
+          "id": "layout.manual-system-break",
+          "tag": "@scenario-layout-manual-system-break",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.manual-page-break",
+          "tag": "@scenario-layout-manual-page-break",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.rehearsal-mark",
+          "tag": "@scenario-layout-rehearsal-mark",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.staff-text",
+          "tag": "@scenario-layout-staff-text",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/distribution-download.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #475에서 운영체제별 배포 파일, prerelease·미서명 안내, 기본 다운로드 분석 이벤트를 기존 자동 검증에 연결한다. 제품 내용과 배포 설정은 변경하지 않는다.",
+      "scenarios": [
+        {
+          "id": "distribution-download.platform-files",
+          "tag": "@scenario-distribution-download-platform-files",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "distribution-download.prerelease-signing-notice",
+          "tag": "@scenario-distribution-download-prerelease-signing-notice",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "distribution-download.analytics-events",
+          "tag": "@scenario-distribution-download-analytics-events",
+          "tests": [
+            "scripts/verify-analytics.cjs"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/start-and-recovery.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #471에서 시작화면 표시, 유효한 자동저장 복구본 열기, 복구본이 없는 시작, 최근 MusicXML 다시 열기를 기존 자동 테스트에 연결한다. 사라지거나 손상된 파일 처리와 자동저장 안정성은 제외한다.",
+      "scenarios": [
+        {
+          "id": "start-recovery.show-start-screen",
+          "tag": "@scenario-start-recovery-show-start-screen",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.open-autosave",
+          "tag": "@scenario-start-recovery-open-autosave",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.no-autosave",
+          "tag": "@scenario-start-recovery-no-autosave",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "start-recovery.reopen-recent-musicxml",
+          "tag": "@scenario-start-recovery-reopen-recent-musicxml",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/product-surfaces.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #481에서 작품과 악보·Columns 관계, 공연 배너·Community의 실험 상태, Open in Chromatics의 MusicXML 원본 연결을 기존 자동 검증에 연결한다. 제품과 사이트 동작은 변경하지 않는다.",
+      "scenarios": [
+        {
+          "id": "product-surfaces.work-context",
+          "tag": "@scenario-product-surfaces-work-context",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.promotion-state",
+          "tag": "@scenario-product-surfaces-promotion-state",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.community-state",
+          "tag": "@scenario-product-surfaces-community-state",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        },
+        {
+          "id": "product-surfaces.open-in-chromatics",
+          "tag": "@scenario-product-surfaces-open-in-chromatics",
+          "tests": [
+            "scripts/verify-site-content.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/layout-rendering.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 기존 자동 테스트에 연결한다. 헤어핀과 재생 해석은 제외한다.",
+      "scenarios": [
+        {
+          "id": "layout.dynamics",
+          "tag": "@scenario-layout-dynamics",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.fermata",
+          "tag": "@scenario-layout-fermata",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.breath-marks",
+          "tag": "@scenario-layout-breath-marks",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/lyrics.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #512에서 선택 음표의 가사 입력, 입력 중 음표 단축키 차단, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 가사 편집 기능과 표시 문구 변경은 제외한다.",
+      "scenarios": [
+        {
+          "id": "lyrics.edit-selected-note",
+          "tag": "@scenario-lyrics-edit-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "lyrics.block-note-shortcuts",
+          "tag": "@scenario-lyrics-block-note-shortcuts",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "lyrics.musicxml-round-trip",
+          "tag": "@scenario-lyrics-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/tremolo.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #514에서 선택 음표의 트레몰로 입력·표시, MusicXML 왕복, 재생 데이터 유지와 반복 발음 해석을 기존 자동 테스트에 연결한다.",
+      "scenarios": [
+        {
+          "id": "tremolo.apply-selected-note",
+          "tag": "@scenario-tremolo-apply-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "tremolo.musicxml-round-trip",
+          "tag": "@scenario-tremolo-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "tremolo.playback-data",
+          "tag": "@scenario-tremolo-playback-data",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts",
+            "src/renderer/src/playback/useScorePlayback.test.ts"
+          ]
+        }
+      ]
+    },
+    {
+      "feature": "docs/product/acceptance/clef-change.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #516에서 선택 마디의 음자리표 변경, 음높이의 오선 위치 변화, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 음자리표 기능과 제품 동작 변경은 제외한다.",
+      "scenarios": [
+        {
+          "id": "clef.change-selected-measure",
+          "tag": "@scenario-clef-change-selected-measure",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "clef.staff-position",
+          "tag": "@scenario-clef-staff-position",
+          "tests": [
+            "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "clef.musicxml-round-trip",
+          "tag": "@scenario-clef-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
     }
   ]
 }
