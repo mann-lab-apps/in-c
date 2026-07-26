@@ -326,6 +326,12 @@ describe('App component shell', () => {
     render(<App />)
 
     const workspace = screen.getByRole('region', { name: '악보 편집기' })
+    const promo = within(workspace).getByLabelText('Columns 추천')
+    expect(within(promo).getByText('출발')).toBeInTheDocument()
+    expect(within(promo).getByRole('link', { name: /읽기/ })).toHaveAttribute(
+      'href',
+      'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
+    )
     const toolbarTabs = screen.getByRole('navigation', {
       name: '편집 도구 카테고리'
     })

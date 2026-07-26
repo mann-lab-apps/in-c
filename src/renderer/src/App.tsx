@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   ChevronsDown,
   ChevronsUp,
   CircleMinus,
@@ -168,6 +169,9 @@ const tripletPreset = {
   normalNotes: number
   shortcut: string
 }
+
+const startingColumnUrl =
+  'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
 
 const eventTypeLabels = {
   note: '음표',
@@ -3969,6 +3973,18 @@ export const App = () => {
             </span>
           ) : null}
         </div>
+
+        <aside className="editor-promo" aria-label="Columns 추천">
+          <div>
+            <p>Columns</p>
+            <strong>출발</strong>
+            <span>클래식을 듣기 전, 첫 질문에서 시작합니다.</span>
+          </div>
+          <a href={startingColumnUrl} rel="noreferrer" target="_blank">
+            <BookOpen aria-hidden="true" size={16} />
+            <span>읽기</span>
+          </a>
+        </aside>
 
         <div className="score-page" aria-label="악보 페이지">
           <div className="score-title">
