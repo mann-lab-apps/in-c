@@ -983,7 +983,7 @@ export const App = () => {
         tripletPreset.normalNotes
       )
 
-      if (executeCommand(command)) {
+      if (command && executeCommand(command)) {
         setDurationValue(tripletPreset.durationValue)
         setFileStatus({
           tone: 'neutral',
@@ -991,17 +991,49 @@ export const App = () => {
             ? '선택한 셋잇단음표를 해제했습니다.'
             : '선택한 구간에 셋잇단음표를 적용했습니다.'
         })
-      } else {
-        setFileStatus({
-          tone: 'error',
-          message: describeTupletToggleFailure(
+        return
+      }
+
+      const canStartTupletInputFromRest =
+        eventLocation?.event.type === 'rest' &&
+        eventLocation.event.duration.dots === 0
+      const inputState = canStartTupletInputFromRest
+        ? createInputState(
             score,
             selection,
+            duration,
+            'note'
+          )
+        : undefined
+      const tupletState = inputState
+        ? beginTupletInput(
+            inputState,
+            `tuplet-${crypto.randomUUID()}`,
             tripletPreset.actualNotes,
             tripletPreset.normalNotes
           )
+        : undefined
+
+      if (tupletState) {
+        setDurationValue(tripletPreset.durationValue)
+        setNoteInputState(tupletState)
+        setFileStatus({
+          tone: 'neutral',
+          message:
+            '8분음표 셋잇단 입력을 시작했습니다. A-G와 R로 세 음표 또는 쉼표를 입력해 주세요.'
         })
+        return
       }
+
+      setFileStatus({
+        tone: 'error',
+        message: describeTupletToggleFailure(
+          score,
+          selection,
+          tripletPreset.actualNotes,
+          tripletPreset.normalNotes
+        )
+      })
       return
     }
 
