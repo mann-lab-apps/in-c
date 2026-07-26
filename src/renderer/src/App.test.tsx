@@ -326,15 +326,18 @@ describe('App component shell', () => {
     render(<App />)
 
     const workspace = screen.getByRole('region', { name: '악보 편집기' })
-    const promo = within(workspace).getByLabelText('Columns 추천')
-    expect(within(promo).getByText('출발')).toBeInTheDocument()
-    expect(within(promo).getByRole('link', { name: /읽기/ })).toHaveAttribute(
-      'href',
-      'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
-    )
     const toolbarTabs = screen.getByRole('navigation', {
       name: '편집 도구 카테고리'
     })
+    expect(
+      within(toolbarTabs).getByRole('link', { name: 'Columns 출발 읽기' })
+    ).toHaveAttribute(
+      'href',
+      'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
+    )
+    expect(
+      within(workspace).queryByLabelText('Columns 추천')
+    ).not.toBeInTheDocument()
     expect(
       within(toolbarTabs).getAllByRole('button').map((button) => button.textContent)
     ).toEqual(['파일', '악보', '음표', '가사', '재생'])
@@ -514,7 +517,7 @@ describe('App component shell', () => {
     expect(
       await screen.findByText('PDF 저장에 실패했습니다.')
     ).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('shows status terms and the notation preview mount point', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')

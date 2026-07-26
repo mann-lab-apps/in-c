@@ -2935,6 +2935,17 @@ export const App = () => {
             {category.label}
           </button>
         ))}
+        <a
+          aria-label="Columns 출발 읽기"
+          className="toolbar-tabs__promo"
+          href={startingColumnUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <BookOpen aria-hidden="true" size={15} />
+          <span>Columns</span>
+          <strong>출발</strong>
+        </a>
       </nav>
 
       <section
@@ -3973,18 +3984,6 @@ export const App = () => {
             </span>
           ) : null}
         </div>
-
-        <aside className="editor-promo" aria-label="Columns 추천">
-          <div>
-            <p>Columns</p>
-            <strong>출발</strong>
-            <span>클래식을 듣기 전, 첫 질문에서 시작합니다.</span>
-          </div>
-          <a href={startingColumnUrl} rel="noreferrer" target="_blank">
-            <BookOpen aria-hidden="true" size={16} />
-            <span>읽기</span>
-          </a>
-        </aside>
 
         <div className="score-page" aria-label="악보 페이지">
           <div className="score-title">
