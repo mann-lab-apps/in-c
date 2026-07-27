@@ -2,6 +2,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { runInNewContext } from 'node:vm'
 
+import { verifyFeatureMapPaths } from './verify-feature-map-paths.mjs'
+
 const repoRoot = resolve(import.meta.dirname, '..')
 const siteRoot = resolve(repoRoot, 'site')
 const outSiteRoot = resolve(repoRoot, 'out/site')
@@ -340,7 +342,10 @@ try {
   verifyProductRelations()
   verifyProductSurfaceStates()
   verifyLoginAuthSurface()
-  console.log('Verified site content manifests, Compositions assets, and product relations.')
+  verifyFeatureMapPaths(featureMap, repoRoot)
+  console.log(
+    'Verified site content manifests, Compositions assets, product relations, and feature map paths.'
+  )
 } catch (error) {
   console.error(error.message)
   process.exitCode = 1
