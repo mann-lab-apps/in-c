@@ -393,7 +393,7 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('exports and re-imports hairpin wedges', () => {
+  it('layout.hairpin-musicxml-round-trip exports and re-imports hairpin wedges', () => {
     const score = createScore({
       title: 'Hairpin Sketch',
       hairpins: [

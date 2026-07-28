@@ -94,14 +94,26 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 마디 아래에는 "mf" 다이내믹이 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 다이내믹이 유지된다
 
-  Scenario: 선택 범위에 헤어핀을 입력한다
-    Given 여러 음표가 범위로 선택되어 있다
-    When 사용자가 크레셴도 헤어핀을 추가한다
-    Then 선택 범위 아래에는 점점 벌어지는 헤어핀이 표시된다
-    When 사용자가 디미누엔도 헤어핀을 추가한다
-    Then 선택 범위 아래에는 점점 닫히는 헤어핀이 표시된다
-    And 헤어핀이 system 줄바꿈을 지나면 각 system에서 이어지는 segment로 표시된다
-    And MusicXML로 내보냈다가 다시 가져와도 wedge 정보가 유지된다
+  @scenario-layout-hairpin-toggle
+  Scenario: 선택 범위에 헤어핀을 입력하고 해제한다
+    Given 서로 다른 두 음표를 포함한 연속 범위가 선택되어 있다
+    When 사용자가 크레셴도 또는 디미누엔도 헤어핀을 추가한다
+    Then 첫 음표와 마지막 음표를 잇는 선택한 종류의 헤어핀이 추가된다
+    When 사용자가 같은 종류의 헤어핀을 다시 추가한다
+    Then 기존 헤어핀은 데이터와 화면에서 제거된다
+
+  @scenario-layout-hairpin-system-segments
+  Scenario: system 경계를 지나는 헤어핀을 이어서 표시한다
+    Given 헤어핀이 system 줄바꿈을 지나는 음표 범위에 있다
+    When 악보를 표시한다
+    Then 헤어핀은 각 system에서 이어지는 기호로 표시된다
+    And 크레셴도와 디미누엔도의 벌어지는 방향을 구분할 수 있다
+
+  @scenario-layout-hairpin-musicxml-round-trip
+  Scenario: MusicXML 저장 후에도 헤어핀 범위를 유지한다
+    Given 크레셴도와 디미누엔도 헤어핀이 있는 악보가 열려 있다
+    When MusicXML로 저장한 뒤 다시 가져온다
+    Then 각 헤어핀의 종류와 시작·끝 음표가 유지된다
 
   Scenario: 선택한 음표에 아티큘레이션을 입력한다
     Given 음표가 선택된 단성부 악보가 열려 있다
