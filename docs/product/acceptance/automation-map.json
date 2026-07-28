@@ -217,7 +217,7 @@
     {
       "feature": "docs/product/acceptance/import-export.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 이슈 #618에서 사용자가 실행하는 MusicXML 저장과 앱 내부 자동저장·복구의 구분을 연결한다. @discussion 이미지 내보내기는 제외한다.",
+      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 이슈 #591에서 못갖춘마디의 가져오기, 왕복, 잘못된 길이 거부를 연결한다. 이슈 #618에서 사용자가 실행하는 MusicXML 저장과 앱 내부 자동저장·복구의 구분을 연결한다. @discussion 이미지 내보내기는 제외한다.",
       "scenarios": [
         {
           "id": "import-export.import-valid-single-voice",
@@ -238,6 +238,29 @@
           "tag": "@scenario-import-export-preserve-measure-attributes",
           "tests": [
             "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.import-pickup-measure",
+          "tag": "@scenario-import-export-import-pickup-measure",
+          "tests": [
+            "src/musicxml/musicxml.test.ts",
+            "src/score-core/timing.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-pickup-measure",
+          "tag": "@scenario-import-export-round-trip-pickup-measure",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.reject-invalid-pickup-measure",
+          "tag": "@scenario-import-export-reject-invalid-pickup-measure",
+          "tests": [
+            "src/musicxml/musicxml.test.ts",
+            "src/score-core/timing.test.ts"
           ]
         },
         {

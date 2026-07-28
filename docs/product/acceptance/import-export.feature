@@ -28,6 +28,30 @@ Feature: 악보를 가져오고 저장하기
     And 각 이벤트의 position은 MusicXML duration 누적으로 정규화된다
     And 다시 MusicXML로 내보냈다가 가져와도 박자표, 조표, duration 의미가 유지된다
 
+  @scenario-import-export-import-pickup-measure
+  Scenario: MusicXML 못갖춘마디의 실제 길이를 가져온다
+    Given implicit="yes"이고 4분음표 한 개 길이인 첫 마디가 있다
+    When 사용자가 MusicXML 파일을 가져온다
+    Then 첫 마디는 4분음표 한 개 길이의 못갖춘마디로 해석된다
+    And 첫 음표의 위치와 음높이는 유지된다
+    And 못갖춘마디의 실제 길이를 기준으로 리듬이 정확하게 채워졌다고 판정한다
+
+  @scenario-import-export-round-trip-pickup-measure
+  Scenario: MusicXML로 다시 저장해도 못갖춘마디의 의미를 유지한다
+    Given 4분음표 한 개 길이의 못갖춘마디가 있는 악보가 열려 있다
+    When 사용자가 MusicXML로 저장한 뒤 그 파일을 다시 가져온다
+    Then 첫 마디의 implicit="yes" 의미가 유지된다
+    And 못갖춘마디의 길이와 첫 음표의 위치는 저장 전과 같다
+    And 첫 마디가 일반 박자표의 전체 길이로 늘어나지 않는다
+
+  @scenario-import-export-reject-invalid-pickup-measure
+  Scenario: 길이가 잘못된 MusicXML 못갖춘마디를 거부한다
+    Given implicit="yes"이지만 실제 길이가 0이거나 이벤트가 선언된 길이를 정확히 채우지 않는 첫 마디가 있다
+    When 사용자가 MusicXML 파일을 가져온다
+    Then 가져오기는 실패한다
+    And 잘못된 못갖춘마디가 일반 마디로 조용히 바뀌지 않는다
+    And 사용자는 못갖춘마디 길이가 올바르지 않다는 오류를 확인할 수 있다
+
   @scenario-import-export-round-trip-musical-meaning
   Scenario: 작성한 악보를 MusicXML로 저장한다
     Given 편집 가능한 단성부 악보가 열려 있다
