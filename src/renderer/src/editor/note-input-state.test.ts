@@ -306,7 +306,7 @@ describe('note input state', () => {
     })
   })
 
-  it('uses key signatures and same-measure accidental context', () => {
+  it('note-input.accidental-measure-context uses key signatures and same-measure accidental context', () => {
     const score = scoreWithEvents(quarterRests(0), 1)
     const firstState = createNoteInputState({
       target,
@@ -332,7 +332,7 @@ describe('note input state', () => {
     ])
   })
 
-  it('resets accidental context at the next measure', () => {
+  it('note-input.accidental-measure-context resets accidental context at the next measure', () => {
     const score = twoMeasureScore(1)
     const state = createNoteInputState({
       target,
