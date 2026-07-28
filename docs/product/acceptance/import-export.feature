@@ -35,6 +35,7 @@ Feature: 악보를 가져오고 저장하기
     Then 앱은 현재 악보의 MusicXML 파일을 생성한다
     And 생성된 MusicXML은 다시 가져왔을 때 음악 의미가 유지된다
 
+  @scenario-import-export-distinguish-musicxml-save-from-autosave
   Scenario: MusicXML 저장은 자동저장과 구분된다
     Given 편집 가능한 단성부 악보가 열려 있다
     When 사용자가 파일 작업 UI를 확인한다
