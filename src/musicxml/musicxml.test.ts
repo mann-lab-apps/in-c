@@ -1182,7 +1182,7 @@ describe('MusicXML MVP', () => {
     )
   })
 
-  it('exports only the accidentals that change written pitch context', () => {
+  it('note-input.accidental-musicxml-round-trip exports only accidentals that change written pitch context', () => {
     const score = createScore({
       parts: [
         createPart({

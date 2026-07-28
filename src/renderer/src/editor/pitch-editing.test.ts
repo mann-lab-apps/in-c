@@ -88,13 +88,15 @@ describe('pitch editing commands', () => {
     })
   })
 
-  it('note-input.edit-selected-event-in-inspector applies a sharp as an undoable score command', () => {
+  it('note-input.edit-selected-event-in-inspector note-input.apply-accidental applies a sharp without moving or resizing the note', () => {
     const selection = { type: 'event' as const, eventId: 'note-e4' }
     const command = buildAccidentalCommand(demoScore, selection, 1)
     const result = applyScoreCommand(demoScore, command!)
 
     expect(locateEvent(result.score, 'note-e4')?.event).toMatchObject({
       type: 'note',
+      position: locateEvent(demoScore, 'note-e4')?.event.position,
+      duration: locateEvent(demoScore, 'note-e4')?.event.duration,
       pitch: { step: 'E', octave: 4, alter: 1 }
     })
 

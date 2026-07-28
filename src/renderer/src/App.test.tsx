@@ -631,7 +631,7 @@ describe('App component shell', () => {
     )
   })
 
-  it('note-input.edit-selected-event-in-inspector edits duration, dots, accidental, and event type', async () => {
+  it('note-input.edit-selected-event-in-inspector note-input.apply-accidental edits duration, dots, accidental, and event type', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
