@@ -123,7 +123,7 @@
     {
       "feature": "docs/product/acceptance/tuplets.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #459에서 셋잇단음표 생성, 입력, 해제와 실패 조건을 기존 자동 테스트에 연결한다. 진행 상태를 다루는 @discussion 시나리오는 제외한다.",
+      "notes": "이슈 #459에서 셋잇단음표 생성, 입력, 해제와 실패 조건을 기존 자동 테스트에 연결한다. 이슈 #572에서 입력 시작부터 완료까지 진행 상태와 화면 읽기 도구 안내를 화면 테스트에 연결한다.",
       "scenarios": [
         {
           "id": "tuplets.group-selected-events",
@@ -137,6 +137,13 @@
           "tag": "@scenario-tuplets-input-at-cursor",
           "tests": [
             "src/renderer/src/editor/note-input-state.test.ts"
+          ]
+        },
+        {
+          "id": "tuplets.report-input-progress",
+          "tag": "@scenario-tuplets-report-input-progress",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
           ]
         },
         {
