@@ -217,7 +217,7 @@
     {
       "feature": "docs/product/acceptance/import-export.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 자동저장과 @discussion 이미지 내보내기는 제외한다.",
+      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 이슈 #618에서 사용자가 실행하는 MusicXML 저장과 앱 내부 자동저장·복구의 구분을 연결한다. @discussion 이미지 내보내기는 제외한다.",
       "scenarios": [
         {
           "id": "import-export.import-valid-single-voice",
@@ -245,6 +245,13 @@
           "tag": "@scenario-import-export-round-trip-musical-meaning",
           "tests": [
             "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.distinguish-musicxml-save-from-autosave",
+          "tag": "@scenario-import-export-distinguish-musicxml-save-from-autosave",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
           ]
         },
         {
