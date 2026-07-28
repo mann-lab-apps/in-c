@@ -33,6 +33,10 @@ import {
   toVexFlowKey,
   toVexFlowKeySignature
 } from './vexflow-adapter'
+import {
+  resolveHairpinOpenings,
+  resolveHairpinSegments
+} from './hairpin-rendering'
 import { resolveNotationEventTone } from './visual-state'
 
 interface NotationPreviewProps {
@@ -852,26 +856,22 @@ function drawHairpinSegments(
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>
 ): void {
-  const firstSystem = Math.min(startSystem, endSystem)
-  const lastSystem = Math.max(startSystem, endSystem)
-
-  for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
-    const bounds = boundsBySystemIndex.get(systemIndex)
-
-    if (!bounds) {
-      continue
-    }
-
-    const isFirst = systemIndex === startSystem
-    const isLast = systemIndex === endSystem
-    const x1 = isFirst ? start.x + 10 : bounds.x1 + 22
-    const x2 = isLast ? Math.max(x1 + 24, end.x + 22) : bounds.x2 - 18
-
-    if (x2 <= x1 + 8) {
-      continue
-    }
-
-    drawHairpinSegment(svg, x1, x2, bounds.y, type, isFirst, isLast)
+  for (const segment of resolveHairpinSegments(
+    start,
+    end,
+    startSystem,
+    endSystem,
+    boundsBySystemIndex
+  )) {
+    drawHairpinSegment(
+      svg,
+      segment.x1,
+      segment.x2,
+      segment.staffY,
+      type,
+      segment.isFirst,
+      segment.isLast
+    )
   }
 }
 
@@ -888,18 +888,9 @@ function drawHairpinSegment(
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const y = staffY + 82
-  const leftOpening =
-    type === 'diminuendo'
-      ? 10
-      : isFirst
-        ? 0
-        : 8
-  const rightOpening =
-    type === 'crescendo'
-      ? 10
-      : isLast
-        ? 0
-        : 8
+  const openings = resolveHairpinOpenings(type, isFirst, isLast)
+  const leftOpening = openings.left
+  const rightOpening = openings.right
 
   group.classList.add('notation-hairpin')
 
