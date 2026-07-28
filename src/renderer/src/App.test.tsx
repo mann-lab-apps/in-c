@@ -400,6 +400,42 @@ describe('App component shell', () => {
     expect(window.inC.musicXml.save).not.toHaveBeenCalled()
   })
 
+  it('import-export.distinguish-musicxml-save-from-autosave keeps file save separate from import and recovery', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    const editor = render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    const fileActions = screen.getByLabelText('파일 작업')
+    const importButton = within(fileActions).getByRole('button', {
+      name: 'MusicXML 가져오기'
+    })
+    const saveButton = within(fileActions).getByRole('button', {
+      name: 'MusicXML로 저장'
+    })
+
+    expect(importButton).not.toBe(saveButton)
+    expect(saveButton).toHaveAttribute(
+      'title',
+      '현재 악보를 MusicXML 파일로 저장'
+    )
+
+    editor.unmount()
+    window.history.replaceState({}, '', '/')
+    render(<App />)
+
+    const startActions = screen.getByLabelText('시작 작업')
+    const recoveryButton = within(startActions).getByRole('button', {
+      name: /복구본 없음/
+    })
+
+    expect(recoveryButton).not.toBe(importButton)
+    expect(recoveryButton).not.toBe(saveButton)
+    expect(recoveryButton).toHaveTextContent(
+      '자동저장된 작업이 있으면 여기에 표시됩니다.'
+    )
+  })
+
   it('import-export.report-pdf-result shows success and failure but not cancellation', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
