@@ -85,6 +85,7 @@
 - `lyrics.feature`: 선택한 음표에 가사를 입력하고 MusicXML로 유지한다.
 - `octave-shifts.feature`: 옥타브 표시를 범위에 적용하고 MusicXML로 유지한다.
 - `tremolo.feature`: 음표에 트레몰로를 적용하고 MusicXML로 유지한다.
+- `ornaments.feature`: 음표에 장식음을 추가·해제하고 MusicXML로 유지한다.
 - `playback.feature`: 재생, 일시정지, 정지, 템포, 타이/셋잇단 재생을 확인한다.
 - `import-export.feature`: MusicXML 가져오기, MusicXML 내보내기, PDF 변환을 확인한다.
 - `distribution-download.feature`: 배포 페이지와 운영체제별 다운로드 흐름을 확인한다.
