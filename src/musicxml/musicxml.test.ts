@@ -216,7 +216,7 @@ describe('MusicXML MVP', () => {
     expect(roundTrip).toEqual(score)
   })
 
-  it('exports and re-imports a global tempo marking', () => {
+  it('playback.global-tempo exports and re-imports a global tempo marking', () => {
     const score = createScore({
       title: 'Tempo Sketch',
       tempo: {

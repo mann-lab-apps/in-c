@@ -373,8 +373,17 @@
     {
       "feature": "docs/product/acceptance/playback.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 재생 제어와 @discussion 시나리오는 제외한다.",
+      "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 이슈 #617에서 전역 빠르기의 화면 표시, 재생 기준, MusicXML 보존을 연결한다. 재생 제어와 @discussion 시나리오는 제외한다.",
       "scenarios": [
+        {
+          "id": "playback.global-tempo",
+          "tag": "@scenario-playback-global-tempo",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/playback/timeline.test.ts",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
         {
           "id": "playback.tie-and-triplet-duration",
           "tag": "@scenario-playback-tie-and-triplet-duration",

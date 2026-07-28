@@ -29,6 +29,7 @@ vi.mock('./notation/NotationPreview', () => ({
           count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
         0
       )}
+      data-global-tempo={score.tempo?.bpm}
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
@@ -258,7 +259,7 @@ describe('App component shell', () => {
     })
   })
 
-  it('lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
+  it('playback.global-tempo lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -323,9 +324,10 @@ describe('App component shell', () => {
     expect(within(workspace).getByLabelText('빠르기 기준 음가')).toBeInTheDocument()
     const tempoTextInput = within(workspace).getByLabelText('빠르기말')
     expect(tempoTextInput).toHaveValue('♩ = 75')
-    fireEvent.change(tempoTextInput, { target: { value: '♪ = 90' } })
+    fireEvent.change(tempoTextInput, { target: { value: '♩ = 96' } })
     fireEvent.blur(tempoTextInput)
-    expect(within(workspace).getByLabelText('빠르기')).toHaveValue('90')
+    expect(within(workspace).getByLabelText('빠르기')).toHaveValue('96')
+    expect(preview).toHaveAttribute('data-global-tempo', '96')
     const transparentTempoToggle =
       within(workspace).getByLabelText('빠르기말 투명')
     expect(transparentTempoToggle).not.toBeChecked()
