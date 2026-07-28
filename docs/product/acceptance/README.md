@@ -81,6 +81,10 @@
 - `tuplets.feature`: 셋잇단음표를 입력하고 해제한다.
 - `range-selection.feature`: 연속 이벤트 범위를 선택하고 편집 대상으로 삼는다.
 - `layout-rendering.feature`: system 줄바꿈, 마디 폭, 빔, 덧줄, 선택 표시를 확인한다.
+- `clef-change.feature`: 선택한 마디의 음자리표를 바꾸고 MusicXML로 유지한다.
+- `lyrics.feature`: 선택한 음표에 가사를 입력하고 MusicXML로 유지한다.
+- `octave-shifts.feature`: 옥타브 표시를 범위에 적용하고 MusicXML로 유지한다.
+- `tremolo.feature`: 음표에 트레몰로를 적용하고 MusicXML로 유지한다.
 - `playback.feature`: 재생, 일시정지, 정지, 템포, 타이/셋잇단 재생을 확인한다.
 - `import-export.feature`: MusicXML 가져오기, MusicXML 내보내기, PDF 변환을 확인한다.
 - `distribution-download.feature`: 배포 페이지와 운영체제별 다운로드 흐름을 확인한다.
