@@ -12,6 +12,7 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
+import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
 import { demoScore } from './notation/demo-score'
 
 vi.mock('./notation/NotationPreview', () => ({
@@ -519,6 +520,58 @@ describe('App component shell', () => {
     expect(screen.getByText('정지')).toBeInTheDocument()
     expect(screen.queryByText(/A-G로 선택한/)).not.toBeInTheDocument()
     expect(screen.getByTestId('notation-preview')).toBeInTheDocument()
+  })
+
+  it('tuplets.report-input-progress reports 0/3 through completion in the live status', async () => {
+    const recentFile = {
+      filePath: '/scores/tuplet-input-progress.musicxml',
+      fileName: 'tuplet-input-progress.musicxml',
+      openedAt: '2026-07-28T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...recentFile,
+      contents: tupletInputProgressMusicXml
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /tuplet-input-progress\.musicxml/
+      })
+    )
+    const preview = await screen.findByTestId('notation-preview')
+    const previewButtons = within(preview).getAllByRole('button')
+    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /셋잇단음표 적용 또는 입력 준비/
+      })
+    )
+
+    const liveStatus = document.querySelector('.editor-status')
+    expect(liveStatus).toHaveAttribute('aria-live', 'polite')
+    expect(liveStatus).toHaveTextContent('셋잇단음표 입력')
+    expect(liveStatus).toHaveTextContent('셋잇단음표 0/3')
+
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
+    expect(liveStatus).toHaveTextContent('셋잇단음표 1/3')
+    expect(liveStatus).toHaveTextContent(
+      '셋잇단음표 1/3개 입력됨. 2개 더 입력해 주세요.'
+    )
+
+    fireEvent.keyDown(window, { code: 'KeyD', key: 'd' })
+    expect(liveStatus).toHaveTextContent('셋잇단음표 2/3')
+    expect(liveStatus).toHaveTextContent(
+      '셋잇단음표 2/3개 입력됨. 1개 더 입력해 주세요.'
+    )
+
+    fireEvent.keyDown(window, { code: 'KeyE', key: 'e' })
+    expect(liveStatus).toHaveTextContent('셋잇단음표 입력을 완료했습니다.')
+    expect(liveStatus).toHaveTextContent('입력 중')
+    expect(liveStatus).not.toHaveTextContent('셋잇단음표 2/3')
   })
 
   it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
