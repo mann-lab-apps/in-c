@@ -45,6 +45,7 @@ vi.mock('./notation/NotationPreview', () => ({
           count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
         0
       )}
+      data-global-tempo={score.tempo?.bpm}
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
@@ -320,7 +321,7 @@ describe('App component shell', () => {
     expect(screen.queryByText('입력 중')).not.toBeInTheDocument()
   })
 
-  it('lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
+  it('playback.global-tempo lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -388,6 +389,7 @@ describe('App component shell', () => {
     expect(tempoText).toHaveTextContent('♩ = 75')
     fireEvent.change(tempoInput, { target: { value: '90' } })
     expect(tempoText).toHaveTextContent('♩ = 90')
+    expect(preview).toHaveAttribute('data-global-tempo', '90')
     fireEvent.change(tempoBeatUnit, { target: { value: 'eighth:0' } })
     expect(tempoText).toHaveTextContent('♪ = 90')
     const tempoVisibilityToggle = screen.getByLabelText('악보에 빠르기말 표기')
