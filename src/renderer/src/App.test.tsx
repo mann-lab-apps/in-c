@@ -18,8 +18,9 @@ vi.mock('./notation/NotationPreview', () => ({
   NotationPreview: ({
     score,
     inlineLyricEditor,
+    onSelectEvent,
+    onSelectMeasure,
     selectedEventId,
-    onSelectMeasure
   }: {
     score: typeof demoScore
     inlineLyricEditor?: {
@@ -35,8 +36,9 @@ vi.mock('./notation/NotationPreview', () => ({
         }
       ) => void
     }
-    selectedEventId?: string
+    onSelectEvent: (eventId: string, extendRange?: boolean) => void
     onSelectMeasure: (measureId: string) => void
+    selectedEventId?: string
   }) => (
     <div
       aria-label="악보 미리보기 테스트 더블"
@@ -82,6 +84,27 @@ vi.mock('./notation/NotationPreview', () => ({
           onClick={() => onSelectMeasure(measure.id)}
           type="button"
         />
+      ))}
+      {score.parts.flatMap((part) =>
+        part.staves.flatMap((staff) =>
+          staff.measures.flatMap((measure) =>
+            measure.voices.flatMap((voice) =>
+              voice.events.map((event) => (
+                <button
+                  aria-label={`${event.id} 선택`}
+                  key={`${event.id}-select`}
+                  onClick={(clickEvent) => onSelectEvent(event.id, clickEvent.shiftKey)}
+                  type="button"
+                />
+              ))
+            )
+          )
+        )
+      )}
+      {(score.hairpins ?? []).map((hairpin) => (
+        <span data-hairpin-type={hairpin.type} key={hairpin.id}>
+          {hairpin.startEventId}–{hairpin.endEventId}
+        </span>
       ))}
       {(score.rehearsalMarks ?? []).map((mark) => (
         <span data-measure-id={mark.measureId} key={mark.id}>
@@ -627,6 +650,42 @@ describe('App component shell', () => {
     const dynamic = within(screen.getByTestId('notation-preview')).getByText('mf')
     expect(dynamic).toHaveAttribute('data-measure-id', 'measure-1')
     expect(dynamic).not.toHaveAttribute('data-measure-id', 'measure-2')
+  })
+
+  it('layout.hairpin-toggle adds, replaces, and removes a hairpin for the selected range', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }), {
+      shiftKey: true
+    })
+
+    const preview = screen.getByTestId('notation-preview')
+    const crescendoButton = screen.getByRole('button', {
+      name: '크레셴도 헤어핀'
+    })
+    const diminuendoButton = screen.getByRole('button', {
+      name: '디미누엔도 헤어핀'
+    })
+
+    expect(within(preview).getByText('m1-c4–m1-f-sharp-4')).toHaveAttribute(
+      'data-hairpin-type',
+      'crescendo'
+    )
+
+    fireEvent.click(crescendoButton)
+    expect(within(preview).queryByText('m1-c4–m1-f-sharp-4')).not.toBeInTheDocument()
+
+    fireEvent.click(diminuendoButton)
+    expect(within(preview).getByText('m1-c4–m1-f-sharp-4')).toHaveAttribute(
+      'data-hairpin-type',
+      'diminuendo'
+    )
+
+    fireEvent.click(diminuendoButton)
+    expect(within(preview).queryByText('m1-c4–m1-f-sharp-4')).not.toBeInTheDocument()
   })
 
   it('layout.fermata toggles the selected event mark in data and preview', async () => {

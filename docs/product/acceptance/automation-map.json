@@ -433,7 +433,7 @@
     {
       "feature": "docs/product/acceptance/layout-rendering.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 이슈 #492에서 선택한 마디의 스태프 텍스트 입력·표시·입력 중 단축키 차단·MusicXML 유지를 연결한다. 이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치, 헤어핀과 재생 해석은 제외한다.",
+      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 이슈 #492에서 선택한 마디의 스태프 텍스트 입력·표시·입력 중 단축키 차단·MusicXML 유지를 연결한다. 이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 연결한다. 이슈 #602에서 헤어핀 입력·해제, system 분할 표시, MusicXML 왕복을 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치와 헤어핀 재생 해석은 제외한다.",
       "scenarios": [
         {
           "id": "layout.manual-system-break",
@@ -470,6 +470,27 @@
           "tag": "@scenario-layout-dynamics",
           "tests": [
             "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.hairpin-toggle",
+          "tag": "@scenario-layout-hairpin-toggle",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "layout.hairpin-system-segments",
+          "tag": "@scenario-layout-hairpin-system-segments",
+          "tests": [
+            "src/renderer/src/notation/hairpin-rendering.test.ts"
+          ]
+        },
+        {
+          "id": "layout.hairpin-musicxml-round-trip",
+          "tag": "@scenario-layout-hairpin-musicxml-round-trip",
+          "tests": [
             "src/musicxml/musicxml.test.ts"
           ]
         },
