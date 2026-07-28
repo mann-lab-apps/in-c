@@ -59,7 +59,24 @@
 
 ## 후속 구현
 
+- #316 Supabase 구축에서 프로필 소유권, 공연 공개 상태, 관계 테이블을 먼저 확정
 - `ConcertPromotion` API schema 추가
 - 등록 폼 컴포넌트와 단계별 validation 구현
 - 검수 요청과 반려 사유 표시
 - 유료 홍보 결제 상태 연결
+
+## Supabase 연결 전 확인
+
+Concerts 프로토타입은 #680에서 정적 페이지로 시작한다. 비로그인 사용자에게만
+`내 공연 등록하기` CTA를 노출하고 로그인 페이지로 보내는 흐름은 #681에서 별도로
+처리한다. 실제 저장을 붙이기 전에는 다음 결정을 #316과 맞춘다.
+
+- 공연 등록을 시작하는 주체가 `creators`, 별도 `profiles`, 또는 둘의 조합 중
+  어디에 저장되는지 결정한다.
+- 공개 공연 정보와 운영자 연락처, 결제 정보, 검수 메모를 같은 테이블에 섞지 않는다.
+- 공연과 작품은 `concert_works`로 연결하고, 공연과 사람/단체는
+  `creator_concerts` 또는 `profile_concerts` 같은 역할 포함 관계로 연결한다.
+- `draft`, `submitted`, `approved`, `rejected`, `expired` 상태가 public read/RLS와
+  어떻게 대응되는지 정의한다.
+- Google, 네이버, 카카오 로그인은 Supabase provider 설정과 개인정보 고지 업데이트
+  전에는 실제 저장 플로우로 연결하지 않는다.

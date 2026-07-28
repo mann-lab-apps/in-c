@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Concerts | 공연 소개 | in C</title>
+    <meta
+      name="description"
+      content="in C Concerts는 공연을 작품, 감상 질문, 연주자 프로필과 함께 소개하기 위한 프로토타입 공간입니다."
+    />
+    <link rel="canonical" href="https://in-c.mannlab.app/concerts.html" />
+    <meta property="og:title" content="Concerts | 공연 소개 | in C" />
+    <meta
+      property="og:description"
+      content="공연을 작품과 감상 질문에 연결하고, 공연 등록과 프로필 흐름을 준비합니다."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://in-c.mannlab.app/concerts.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta property="og:image:alt" content="in C 앱 아이콘" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Concerts | 공연 소개 | in C" />
+    <meta
+      name="twitter:description"
+      content="공연을 작품과 감상 질문에 연결하고, 공연 등록과 프로필 흐름을 준비합니다."
+    />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta name="twitter:image:alt" content="in C 앱 아이콘" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body data-product-page="concerts">
+    <header class="site-header">
+      <a class="brand" href="./index.html#top" aria-label="in C home">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="주요 링크">
+        <a href="./columns.html">Columns</a>
+        <a href="./compositions.html">Compositions</a>
+        <a href="./concerts.html" aria-current="page">Concerts</a>
+        <a href="./community.html">Community</a>
+        <a href="./index.html#download">Chromatics</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <section class="concerts-topline" aria-label="공연 등록 시작">
+        <p>공연 등록은 로그인 흐름과 연결한 뒤 비로그인 사용자에게 먼저 엽니다.</p>
+        <span
+          class="disabled-tooltip"
+          data-tooltip="준비중입니다! 조금만 더 기다려주세요"
+          tabindex="0"
+          aria-label="내 공연 등록하기. 준비중입니다! 조금만 더 기다려주세요"
+        >
+          <span class="button button--primary" aria-disabled="true">내 공연 등록하기</span>
+        </span>
+      </section>
+
+      <section
+        id="concert-list"
+        class="section concerts-list-section"
+        aria-labelledby="concert-list-title"
+      >
+        <header class="concerts-section-head">
+          <div>
+            <p class="eyebrow">Upcoming</p>
+            <h2 id="concert-list-title">공연 목록</h2>
+            <p>
+              공개 공연 목록은 아직 준비 중입니다. 첫 프로토타입에서는 작품,
+              감상 질문, 연주자 맥락이 함께 보이는 공연 소개 표면을 먼저 확인합니다.
+            </p>
+          </div>
+        </header>
+
+        <div class="concert-empty-state" role="status" aria-live="polite">
+          <p class="eyebrow">Empty</p>
+          <h3>아직 공개된 공연이 없습니다</h3>
+          <p>
+            곧 공연명, 일정, 장소, 관련 작품, 듣기 전 질문을 함께 보여주는 목록으로
+            확장합니다.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>© 2026 mann-lab-apps. Concerts는 공연 소개 흐름을 준비 중입니다.</p>
+      <div>
+        <a href="./index.html">홈</a>
+        <a href="./columns.html">Columns</a>
+        <a href="./compositions.html">Compositions</a>
+        <a href="./community.html">Community</a>
+        <a href="./privacy.html">고지</a>
+      </div>
+    </footer>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
