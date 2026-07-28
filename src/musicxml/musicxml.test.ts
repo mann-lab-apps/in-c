@@ -1077,7 +1077,44 @@ describe('MusicXML MVP', () => {
     )
   })
 
-  it('preserves pickup measure duration across MusicXML round trips', () => {
+  it('import-export.import-pickup-measure parses an implicit first measure using its actual duration', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1" implicit="yes">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>G</step><octave>4</octave></pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`
+
+    const measure = parseMusicXml(xml).parts[0].staves[0].measures[0]
+
+    expect(measure.timing).toEqual({
+      type: 'pickup',
+      durationTicks: TICKS_PER_QUARTER
+    })
+    expect(measure.voices[0].events[0]).toMatchObject({
+      type: 'note',
+      position: { tick: 0 },
+      pitch: { step: 'G', octave: 4 }
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('import-export.round-trip-pickup-measure preserves pickup duration across MusicXML round trips', () => {
     const pickupScore = createScore({
       parts: [
         createPart({
@@ -1121,6 +1158,28 @@ describe('MusicXML MVP', () => {
       durationTicks: TICKS_PER_QUARTER
     })
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('import-export.reject-invalid-pickup-measure rejects an implicit measure with zero duration', () => {
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1" implicit="yes">
+      <attributes>
+        <divisions>1</divisions>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+    </measure>
+  </part>
+</score-partwise>`
+
+    expect(() => parseMusicXml(xml)).toThrow(
+      'MusicXML 못갖춘마디의 duration은 0보다 커야 합니다.'
+    )
   })
 
   it('exports only the accidentals that change written pitch context', () => {
