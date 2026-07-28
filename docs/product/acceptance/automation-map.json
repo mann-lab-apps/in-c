@@ -689,6 +689,41 @@
       ]
     },
     {
+      "feature": "docs/product/acceptance/ornaments.feature",
+      "strategy": "vitest-scenario-id",
+      "notes": "이슈 #570에서 장식음 추가·해제, 여러 장식음 함께 적용, MusicXML 왕복을 기존 자동 테스트에 연결한다.",
+      "scenarios": [
+        {
+          "id": "ornaments.add-selected-note",
+          "tag": "@scenario-ornaments-add-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "ornaments.remove-selected-note",
+          "tag": "@scenario-ornaments-remove-selected-note",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "ornaments.keep-multiple",
+          "tag": "@scenario-ornaments-keep-multiple",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "ornaments.musicxml-round-trip",
+          "tag": "@scenario-ornaments-musicxml-round-trip",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        }
+      ]
+    },
+    {
       "feature": "docs/product/acceptance/clef-change.feature",
       "strategy": "vitest-scenario-id",
       "notes": "이슈 #516에서 선택 마디의 음자리표 변경, 음높이의 오선 위치 변화, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 음자리표 기능과 제품 동작 변경은 제외한다.",
