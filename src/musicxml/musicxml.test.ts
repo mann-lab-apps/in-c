@@ -1710,7 +1710,7 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports grace notes and ornaments', () => {
+  it('ornaments.musicxml-round-trip preserves all ornament kinds', () => {
     const score = createScore({
       title: 'Ornament Sketch',
       parts: [
@@ -1731,7 +1731,7 @@ describe('MusicXML MVP', () => {
                               slash: true
                             }
                           ],
-                          ornaments: ['trill', 'turn']
+                          ornaments: ['trill', 'mordent', 'turn']
                         }),
                         createRest({
                           id: 'rest-fill',
@@ -1754,6 +1754,7 @@ describe('MusicXML MVP', () => {
 
     expect(exported).toContain('<grace slash="yes"/>')
     expect(exported).toContain('<trill/>')
+    expect(exported).toContain('<mordent/>')
     expect(exported).toContain('<turn/>')
     expect(event).toMatchObject({
       type: 'note',
@@ -1763,7 +1764,7 @@ describe('MusicXML MVP', () => {
           slash: true
         }
       ],
-      ornaments: ['trill', 'turn']
+      ornaments: ['trill', 'mordent', 'turn']
     })
   })
 })

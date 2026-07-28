@@ -140,6 +140,19 @@ vi.mock('./notation/NotationPreview', () => ({
                   <span data-event-id={event.id} key={`${event.id}-tremolo`}>
                     트레몰로 {event.tremolo.marks}줄 표시
                   </span>
+                ) : null,
+                event.type === 'note' && event.ornaments?.length ? (
+                  <span data-event-id={event.id} key={`${event.id}-ornaments`}>
+                    {event.ornaments
+                      .map((ornament) =>
+                        ornament === 'trill'
+                          ? 'tr'
+                          : ornament === 'mordent'
+                            ? 'mord.'
+                            : 'turn'
+                      )
+                      .join(' ')}
+                  </span>
                 ) : null
               ])
             )
@@ -794,6 +807,61 @@ describe('App component shell', () => {
     expect(threeMarksButton).toHaveAttribute('aria-pressed', 'true')
     expect(screen.getByText('트레몰로를 추가했습니다.')).toBeInTheDocument()
     expect(within(preview).getByText('트레몰로 3줄 표시')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+  })
+
+  it('ornaments.add-selected-note stores and displays tr on the selected note', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const trillButton = screen.getByRole('button', { name: 'tr' })
+
+    fireEvent.click(trillButton)
+
+    expect(trillButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).getByText('tr')).toHaveAttribute(
+      'data-event-id',
+      'm1-c4'
+    )
+  })
+
+  it('ornaments.remove-selected-note removes tr from the selected note', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const trillButton = screen.getByRole('button', { name: 'tr' })
+
+    fireEvent.click(trillButton)
+    fireEvent.click(trillButton)
+
+    expect(trillButton).not.toHaveAttribute('aria-pressed')
+    expect(within(preview).queryByText('tr')).not.toBeInTheDocument()
+  })
+
+  it('ornaments.keep-multiple keeps tr, mord. and turn together', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const trillButton = screen.getByRole('button', { name: 'tr' })
+    const mordentButton = screen.getByRole('button', { name: 'mord.' })
+    const turnButton = screen.getByRole('button', { name: 'turn' })
+
+    fireEvent.click(trillButton)
+    fireEvent.click(mordentButton)
+    fireEvent.click(turnButton)
+
+    expect(trillButton).toHaveAttribute('aria-pressed', 'true')
+    expect(mordentButton).toHaveAttribute('aria-pressed', 'true')
+    expect(turnButton).toHaveAttribute('aria-pressed', 'true')
+    expect(within(preview).getByText('tr mord. turn')).toHaveAttribute(
       'data-event-id',
       'm1-c4'
     )
