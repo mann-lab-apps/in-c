@@ -42,7 +42,13 @@ describe('playback timeline', () => {
     ).toBeCloseTo(2 / 3)
   })
 
-  it('converts tempo beat units to quarter-note playback BPM', () => {
+  it('playback.global-tempo converts tempo beat units to quarter-note playback BPM', () => {
+    expect(
+      tempoMarkingToQuarterBpm({
+        bpm: 96,
+        beatUnit: 'quarter'
+      })
+    ).toBe(96)
     expect(
       tempoMarkingToQuarterBpm({
         bpm: 120,

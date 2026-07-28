@@ -29,6 +29,7 @@ Feature: 작성한 악보를 재생으로 확인하기
     And 사용자가 재생을 누른다
     Then 악보는 90 BPM 기준으로 재생된다
 
+  @scenario-playback-global-tempo
   Scenario: 악보 전역 템포 마킹을 수정한다
     Given 단성부 악보가 열려 있다
     When 사용자가 템포를 96 BPM으로 변경한다
