@@ -119,7 +119,7 @@ describe('score-core timing', () => {
     expect(validateMeasureRhythm(overflow).status).toBe('overflow')
   })
 
-  it('uses the declared pickup duration for exact-fill validation', () => {
+  it('import-export.import-pickup-measure uses the declared pickup duration for exact-fill validation', () => {
     const measure = createMeasure({
       timing: {
         type: 'pickup',
@@ -140,6 +140,32 @@ describe('score-core timing', () => {
       status: 'exact',
       expectedTicks: quarter,
       isExact: true
+    })
+  })
+
+  it('import-export.reject-invalid-pickup-measure reports a gap against the declared pickup duration', () => {
+    const measure = createMeasure({
+      timing: {
+        type: 'pickup',
+        durationTicks: quarter * 2
+      },
+      voices: [
+        createVoice({
+          events: [
+            createRest({
+              id: 'short-pickup-rest',
+              position: createTimePosition(0),
+              duration: createDuration('quarter')
+            })
+          ]
+        })
+      ]
+    })
+
+    expect(validateMeasureRhythm(measure)).toMatchObject({
+      status: 'gap',
+      expectedTicks: quarter * 2,
+      isExact: false
     })
   })
 })
