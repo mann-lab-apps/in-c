@@ -122,6 +122,29 @@ create table public.feedback_events (
 네트워크 실패, 정상 빈 결과, 공개 범위, 오래된 데이터 안내는
 [정적 사이트와 Supabase fallback 기준](static-supabase-fallback-policy.md)을 따른다.
 
+## Concerts 프로토타입 handoff
+
+`site/concerts.html`의 첫 프로토타입은 #680에서 정적 페이지로 시작한다. 비로그인
+사용자에게만 공연 등록 CTA를 노출하고 로그인 페이지로 보내는 흐름은 #681에서
+별도로 처리한다. 실제 공연 등록과 프로필 생성은 #316의 Supabase 구축 범위에서
+다음 관계를 먼저 확인한 뒤 연결한다.
+
+- `auth.users` 또는 별도 `profiles` 테이블이 Creator/Organizer 공개 프로필의
+  소유권 기준이 된다.
+- `creators`는 작곡가 메타데이터와 사용자 공개 프로필을 함께 담을지, 사용자
+  프로필은 별도 `profiles`로 분리할지 결정한다.
+- `concerts`에는 공연 공개 정보만 둔다. 운영자 연락처, 결제, 비공개 검수 메모는
+  별도 테이블 또는 관리자 전용 영역으로 분리한다.
+- `creator_concerts` 또는 `profile_concerts` 관계로 공연 주최자, 연주자, 기획자
+  역할을 표현한다.
+- Concerts의 공개 목록은 `status = 'public'` 또는 검수 승인 상태만 anon read를
+  허용한다.
+- Google, 네이버, 카카오 소셜 시작 버튼은 provider redirect, 약관, 개인정보 고지,
+  RLS 테스트가 준비된 뒤 실제 인증으로 연결한다.
+
+Concerts 화면은 Supabase 연결 전까지 계정 생성, 연락처 수집, 공연 정보 저장이
+실제로 되는 것처럼 표현하지 않는다.
+
 ## 완료 판단
 
 프로젝트 생성 전 단계에서는 이 문서, `supabase/.env.example`,
