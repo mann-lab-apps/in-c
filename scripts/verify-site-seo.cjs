@@ -95,6 +95,7 @@ function getPages() {
     { filePath: 'compositions.html', publicPath: 'compositions.html' },
     { filePath: 'concerts.html', publicPath: 'concerts.html' },
     { filePath: 'community.html', publicPath: 'community.html' },
+    { filePath: 'login.html', publicPath: 'login.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 
