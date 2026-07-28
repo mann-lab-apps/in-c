@@ -52,6 +52,27 @@ Feature: 음표와 쉼표를 입력하기
     Then 선택된 이벤트는 같은 위치와 음가의 쉼표가 된다
     And 각 변경은 Undo로 되돌릴 수 있다
 
+  @scenario-note-input-apply-accidental
+  Scenario: 선택한 음표에 임시표를 적용한다
+    Given 임시표가 없는 "quarter" "C4" 음표가 선택되어 있다
+    When 사용자가 Inspector에서 샤프를 선택한다
+    Then 선택된 음표에는 샤프가 적용된다
+    And 선택된 음표의 시작 위치와 음가는 변하지 않는다
+
+  @scenario-note-input-accidental-measure-context
+  Scenario: 임시표 문맥을 같은 마디에만 적용한다
+    Given 한 마디에 제자리표가 붙은 F 음표와 뒤따르는 F 음표가 있다
+    When 사용자가 두 음표를 확인한다
+    Then 뒤의 F 음표는 같은 마디의 제자리표 문맥을 따른다
+    And 다음 마디의 F 음표는 조표의 샤프 문맥으로 돌아간다
+
+  @scenario-note-input-accidental-musicxml-round-trip
+  Scenario: MusicXML 저장과 다시 가져오기에서 임시표를 유지한다
+    Given 조표의 F 샤프와 제자리표 전환이 있는 악보가 열려 있다
+    When 사용자가 MusicXML로 저장하고 다시 가져온다
+    Then 각 음표의 적힌 음높이와 필요한 임시표가 유지된다
+    And 같은 임시표를 불필요하게 반복하지 않는다
+
   Scenario: 선택한 음표의 아티큘레이션을 토글한다
     Given "quarter" "C4" 음표가 선택되어 있다
     When 사용자가 Inspector에서 스타카토를 켠다
