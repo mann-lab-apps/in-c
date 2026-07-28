@@ -190,7 +190,7 @@ describe('note input state', () => {
     )
   })
 
-  it('splits note input across a measure boundary and ties the segments', () => {
+  it('[note-input.split-across-existing-measure] splits note input across a measure boundary and ties the segments', () => {
     const score = twoMeasureScore()
     const state = createNoteInputState({
       target,
@@ -207,14 +207,18 @@ describe('note input state', () => {
     expect(measures[0].voices[0].events[3]).toMatchObject({
       type: 'note',
       duration: { value: 'quarter' },
+      pitch: { step: 'C' },
       ties: { start: true }
     })
     expect(measures[1].voices[0].events[0]).toMatchObject({
       type: 'note',
       position: { tick: 0 },
       duration: { value: 'quarter' },
+      pitch: { step: 'C' },
       ties: { stop: true }
     })
+    expect(validateMeasureRhythm(measures[0]).isExact).toBe(true)
+    expect(validateMeasureRhythm(measures[1]).isExact).toBe(true)
     expect(input!.nextState).toMatchObject({
       target: { measureId: 'measure-2' },
       tick: quarter
@@ -236,8 +240,8 @@ describe('note input state', () => {
     ).toBeUndefined()
   })
 
-  it('creates an inherited measure for a tied overflow segment', () => {
-    const score = scoreWithEvents(quarterRests(0))
+  it('[note-input.split-into-inherited-measure] creates an inherited measure for a tied overflow segment', () => {
+    const score = scoreWithEvents(quarterRests(0), 2)
     const state = createNoteInputState({
       target,
       tick: quarter * 3,
@@ -249,14 +253,20 @@ describe('note input state', () => {
     const measures = result.score.parts[0].staves[0].measures
 
     expect(measures).toHaveLength(2)
+    expect(measures[1]).toMatchObject({
+      keySignature: measures[0].keySignature,
+      timeSignature: measures[0].timeSignature
+    })
     expect(measures[0].voices[0].events[3]).toMatchObject({
       type: 'note',
       duration: { value: 'quarter' },
+      pitch: { step: 'C' },
       ties: { start: true }
     })
     expect(measures[1].voices[0].events[0]).toMatchObject({
       type: 'note',
       duration: { value: 'half', dots: 1 },
+      pitch: { step: 'C' },
       ties: { stop: true }
     })
     expect(input!.nextState).toMatchObject({
@@ -265,6 +275,7 @@ describe('note input state', () => {
     })
     expect(validateMeasureRhythm(measures[0]).isExact).toBe(true)
     expect(validateMeasureRhythm(measures[1]).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
   it('chooses the nearest octave from the preceding note', () => {

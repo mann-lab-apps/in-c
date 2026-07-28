@@ -72,6 +72,30 @@ Feature: 음표와 쉼표를 입력하기
     And 사용자가 "R"을 입력한다
     Then 다음 입력 위치에 "quarter" 쉼표가 추가된다
 
+  @scenario-note-input-split-across-existing-measure
+  Scenario: 마디 경계를 넘는 음표를 다음 마디까지 나누어 입력한다
+    Given 4/4박자 마디의 마지막 4분음표 위치에 입력 커서가 있다
+    And 다음 마디가 있다
+    When 사용자가 2분음표 "C4"를 입력한다
+    Then 현재 마디와 다음 마디에 각각 4분음표 "C4"가 생긴다
+    And 두 음표는 타이로 연결된다
+    And 두 마디의 전체 박자 길이는 정확하다
+    And 입력 커서는 다음 마디의 분할된 음표 뒤로 이동한다
+    When 사용자가 실행 취소한다
+    Then 입력 전 악보와 마디 수가 복원된다
+
+  @scenario-note-input-split-into-inherited-measure
+  Scenario: 마지막 마디 경계를 넘는 음표를 새 마디까지 나누어 입력한다
+    Given 4/4박자 마지막 마디의 마지막 4분음표 위치에 입력 커서가 있다
+    When 사용자가 온음표 "C4"를 입력한다
+    Then 현재 마디에 4분음표가 생기고 새 마디에 점2분음표가 생긴다
+    And 새 마디는 이전 마디의 박자표와 조표를 이어받는다
+    And 두 음표는 타이로 연결된다
+    And 두 마디의 전체 박자 길이는 정확하다
+    And 입력 커서는 새 마디의 분할된 음표 뒤로 이동한다
+    When 사용자가 실행 취소한다
+    Then 입력 전 악보와 마디 수가 복원된다
+
   @korean-input @scenario-note-input-korean-note-and-rest-keys
   Scenario: 한글 입력 상태에서도 물리 키로 기본 입력을 수행한다
     Given 사용자의 키보드 입력기가 한글 상태이다
