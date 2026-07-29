@@ -25,9 +25,11 @@
 이슈로만 추적한다.
 
 릴리즈 판단은 **조건부 가능**이다. 현재 앱/사이트 표면은 prerelease 또는 내부 QA 후보로
-제시할 수 있지만, Supabase 기반 백엔드 운영 전환, Windows 개발 환경 감사 경고 확인,
+제시할 수 있지만, Supabase 기반 데이터 운영 전환, Windows 개발 환경 감사 경고 확인,
 다중성부/다중파트의 완성형 편집 UX는 출시 범위에서 제외하거나 known limitation으로
-명시해야 한다.
+명시해야 한다. 2026-07-29 현재 공개 사이트 로그인 페이지에는 Supabase Auth client와
+publishable key 기반 환경 변수 주입이 연결되었지만, OAuth provider 설정과 DB/RLS
+운영 검증은 아직 #316 범위로 남아 있다.
 
 핵심 검토 문서:
 
@@ -49,7 +51,7 @@
 | MusicXML import/export | MVP subset과 최근 notation extension round-trip 테스트 보유 | 조건부 가능 | [Traceability Matrix](traceability-matrix.md#musicxml-and-notation-rendering) |
 | Renderer visual regression | release QA fixture와 snapshot 검증 경로 보유 | 조건부 가능 | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | Static site | build/content/analytics/SEO 검증 명령 보유 | 조건부 가능 | [Verification Matrix](verification-matrix.md#site-verification) |
-| Backend/Supabase | 설계 문서만 존재, 실제 project/schema/env/RLS 미적용 | 보류 | [Risk Register R-001](risk-register.md#r-001-supabase-backend-is-not-operational), #316 |
+| Backend/Supabase | 공개 사이트 Auth client/env 주입은 적용됨. OAuth provider 설정, schema, RLS, 서버 데이터 운영은 미완료 | 부분 보류 | [Risk Register R-001](risk-register.md#r-001-supabase-backend-is-not-operational), #316 |
 | Production deployment | production smoke 검증 명령은 있으나 이번 package에서 실제 production 전환은 수행하지 않음 | 미확인 | [Release Readiness Checklist](release-readiness-checklist.md#deployment-and-rollback) |
 | Windows development environment | low severity esbuild/Vite advisory 영향 확인 필요 | 보류 | [Risk Register R-004](risk-register.md#r-004-windows-dev-server-advisory-remains-unverified), #8 |
 
@@ -57,7 +59,7 @@
 
 | 이슈 | 제목 | 영향 | 현재 판단 |
 | --- | --- | --- | --- |
-| #316 | Supabase 기반 백엔드 구축 | 서비스 backend, auth, RLS, env 운영 범위 미완료 | backend 포함 릴리즈 보류 |
+| #316 | Supabase 기반 백엔드 구축 | Auth client/env 기반은 적용됨. OAuth provider, 서비스 backend, RLS, 데이터 운영 범위 미완료 | backend 포함 릴리즈 보류 |
 | #94 | 여러 악기 파트와 합주보 스코어 구조 지원 | 여러 악기 파트 생성/편집/렌더링 완성 범위 미완료 | known limitation |
 | #93 | 같은 오선 내 다중성부 입력·렌더링 모델 구현 | 같은 staff의 독립 voice 편집 UX 미완료 | known limitation |
 | #8 | Windows 개발 환경에서 esbuild/Vite 감사 경고 확인 | Windows dev server advisory 영향 미확인 | Windows 개발 환경 확인 전 보류 |

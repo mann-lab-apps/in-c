@@ -88,7 +88,7 @@
 | `npm run verify:site-production` | 실제 production URL/배포 상태 확인은 external state에 의존한다. | 배포 승인 후 실행 |
 | packaged app install/open smoke | package artifact 생성과 OS별 설치 확인은 release candidate 단계의 manual QA다. | [Manual Score Completion QA](../releases/manual-score-completion-qa.md) |
 | Windows dev server advisory check | 현재 실행 환경은 macOS다. | #8에서 Windows 환경 확인 |
-| Supabase backend live verification | project/env/schema/RLS는 외부 운영 변경이다. | #316에서 사용자 승인 후 실행 |
+| Supabase backend live verification | Auth client와 publishable env 주입은 2026-07-29 main 배포에서 확인했지만, OAuth provider/schema/RLS는 외부 운영 변경이다. | #316에서 provider 설정 후 실행 |
 
 ## Evidence Retention Rules
 

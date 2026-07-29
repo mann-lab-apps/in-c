@@ -27,10 +27,10 @@
 | 영향도 | High |
 | 가능성 | High |
 | 상태 | Open |
-| 설명 | Supabase project 생성, schema 적용, env 등록, RLS/auth 확인이 외부 운영 변경으로 남아 있다. |
-| 현재 완화책 | backend 포함 기능을 출시 범위에서 제외하고 [Supabase Backend Plan](../product/supabase-backend-plan.md)을 설계 근거로 유지한다. |
+| 설명 | Supabase Auth client와 공개 사이트 build env는 연결되었지만, OAuth provider 설정, schema 적용, RLS 확인, 데이터 운영 검증은 외부 운영 변경으로 남아 있다. |
+| 현재 완화책 | provider 미설정 상태를 로그인 페이지에서 오류로 처리하고, backend 포함 기능은 출시 범위에서 제외하며 [Supabase Backend Plan](../product/supabase-backend-plan.md)을 설계 근거로 유지한다. |
 | 출시 영향 | backend/auth/community data flow를 포함한 릴리즈는 보류한다. |
-| 다음 행동 | 사용자 승인 후 Supabase project/schema/env/RLS를 실제 환경에서 검증한다. |
+| 다음 행동 | Supabase OAuth provider 설정 후 Google/Kakao/Naver 왕복 로그인, schema, RLS를 실제 환경에서 검증한다. |
 
 ## R-002 Multi-Voice Editing Is Not Complete
 
