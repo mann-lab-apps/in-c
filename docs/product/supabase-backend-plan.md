@@ -43,18 +43,22 @@
 
 ```text
 VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_SUPABASE_NAVER_PROVIDER_ID=custom:naver
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
-`VITE_` 값은 public client에서 읽을 수 있으므로 anon key만 둔다. service role key는
-GitHub Actions, server function, local admin script 같은 비공개 실행 환경에서만 쓴다.
+`VITE_` 값은 public client에서 읽을 수 있으므로 publishable key만 둔다.
+service role key는 GitHub Actions, server function, local admin script 같은
+비공개 실행 환경에서만 쓴다.
+정적 사이트는 `vite site`를 루트로 빌드하므로 로컬 preview에서는 `site/.env.local`에
+`VITE_` 값을 둔다.
 
 ## 로컬 준비물
 
 Supabase project 생성 전까지 저장소 안에서 관리하는 준비물은 다음이다.
 
-- `supabase/.env.example`: public anon key와 service role key의 환경 변수 이름.
+- `supabase/.env.example`: publishable key와 service role key의 환경 변수 이름.
 - `supabase/migrations/0001_initial_content_schema.sql`: 공개 콘텐츠, 관계 테이블,
   feedback_events, RLS policy 초안.
 
@@ -141,6 +145,10 @@ create table public.feedback_events (
   허용한다.
 - Google, 네이버, 카카오 소셜 시작 버튼은 provider redirect, 약관, 개인정보 고지,
   RLS 테스트가 준비된 뒤 실제 인증으로 연결한다.
+- Google과 Kakao는 Supabase 기본 OAuth provider인 `google`, `kakao`를 사용한다.
+  Naver는 Supabase 기본 provider 목록에 없으므로 Custom OAuth/OIDC provider로 만들고,
+  프론트엔드 provider id는 기본값 `custom:naver` 또는 `VITE_SUPABASE_NAVER_PROVIDER_ID`
+  값으로 지정한다.
 
 Concerts 화면은 Supabase 연결 전까지 계정 생성, 연락처 수집, 공연 정보 저장이
 실제로 되는 것처럼 표현하지 않는다.

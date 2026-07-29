@@ -29,6 +29,9 @@ const relationshipModelPath = resolve(
   repoRoot,
   'docs/product/relationship-model.md'
 )
+const loginPagePath = resolve(siteRoot, 'login.html')
+const loginScriptPath = resolve(siteRoot, 'login.js')
+const authScriptPath = resolve(siteRoot, 'auth.js')
 const compositionDifficulties = new Set(['초급', '중급', '고급'])
 const compositionTags = new Set([
   'american-folk-song',
@@ -295,11 +298,48 @@ function verifyProductSurfaceStates() {
   }
 }
 
+function verifyLoginAuthSurface() {
+  const loginHtml = readFileSync(loginPagePath, 'utf8')
+  const loginScript = readFileSync(loginScriptPath, 'utf8')
+  const authScript = readFileSync(authScriptPath, 'utf8')
+
+  for (const provider of ['google', 'naver', 'kakao']) {
+    assert(
+      loginHtml.includes(`data-auth-provider="${provider}"`),
+      `login page missing ${provider} auth button`
+    )
+  }
+
+  assert(
+    loginHtml.includes('data-auth-status') &&
+      loginHtml.includes('data-auth-session') &&
+      loginHtml.includes('data-auth-sign-out'),
+    'login page missing auth session controls'
+  )
+  assert(loginHtml.includes('./login.js'), 'login page must load login.js')
+  assert(
+    loginScript.includes('signInWithOAuth') &&
+      loginScript.includes('redirectTo') &&
+      loginScript.includes('getSession') &&
+      loginScript.includes('onAuthStateChange') &&
+      loginScript.includes('signOut'),
+    'login script must support OAuth session lifecycle'
+  )
+  assert(
+    authScript.includes('@supabase/supabase-js') &&
+      authScript.includes('VITE_SUPABASE_URL') &&
+      authScript.includes('VITE_SUPABASE_PUBLISHABLE_KEY') &&
+      authScript.includes('custom:naver'),
+    'auth script must use Supabase env config and Naver custom provider'
+  )
+}
+
 try {
   verifyDownloadManifest()
   verifyCompositions()
   verifyProductRelations()
   verifyProductSurfaceStates()
+  verifyLoginAuthSurface()
   console.log('Verified site content manifests, Compositions assets, and product relations.')
 } catch (error) {
   console.error(error.message)

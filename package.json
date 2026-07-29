@@ -44,6 +44,7 @@
     "test:components": "vitest run src/renderer/src/App.test.tsx"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.9",
     "fast-xml-parser": "^5.9.2",
     "lucide-react": "^1.21.0",
     "react": "^19.2.3",
