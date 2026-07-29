@@ -1,4 +1,5 @@
 import { bindTrackedLinks, configureAnalytics } from './analytics.js'
+import { initAuthNavigation } from './auth-nav.js'
 
 const manifestUrl = new URL('./download-manifest.json', import.meta.url)
 
@@ -164,6 +165,7 @@ const renderDownloads = (manifest) => {
 const init = async () => {
   bindTrackedLinks()
   configureAnalytics()
+  initAuthNavigation()
 
   try {
     const response = await fetch(manifestUrl)

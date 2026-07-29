@@ -4,8 +4,7 @@
 
 | Method | Path | 설명 |
 | --- | --- | --- |
-| `POST` | `/v1/auth/magic-link` | 이메일 매직링크 요청 |
-| `GET` | `/v1/auth/callback` | 매직링크 token 검증 |
+| `GET` | `/v1/auth/callback` | OAuth callback 검증 |
 | `POST` | `/v1/auth/sign-out` | 현재 세션 로그아웃 |
 | `GET` | `/v1/auth/me` | 현재 사용자 조회 |
 | `POST` | `/v1/auth/refresh` | refresh token으로 세션 갱신 |
@@ -38,17 +37,17 @@
 
 | Code | HTTP | 사용자 문구 |
 | --- | --- | --- |
-| `invalid_email` | 400 | 이메일 형식을 확인해 주세요. |
+| `provider_unavailable` | 400 | 아직 지원하지 않는 로그인 방식입니다. |
 | `rate_limited` | 429 | 잠시 후 다시 시도해 주세요. |
-| `link_expired` | 401 | 로그인 링크가 만료되었습니다. 새 링크를 받아 주세요. |
+| `auth_callback_failed` | 401 | 로그인을 완료하지 못했습니다. 다시 시도해 주세요. |
 | `unauthenticated` | 401 | 로그인이 필요합니다. |
 | `forbidden` | 403 | 이 작업을 할 권한이 없습니다. |
 | `session_revoked` | 401 | 이 기기에서 로그아웃되었습니다. |
 
 ## 테스트 전략
 
-- Unit: 이메일 정규화, token 만료, 에러 매핑
-- Integration: 매직링크 요청, callback, refresh, revoke
+- Unit: provider allowlist, token 만료, 에러 매핑
+- Integration: OAuth callback, refresh, revoke
 - E2E: 로그인 필요 CTA에서 인증 후 원래 화면 복귀
 - Security smoke: 만료 token, 재사용 token, revoke 이후 요청 실패
 

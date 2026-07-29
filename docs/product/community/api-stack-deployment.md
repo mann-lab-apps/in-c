@@ -22,7 +22,7 @@ TypeScript 중심이고 Electron, 사이트, 테스트 도구가 같은 언어 �
 - DB: PostgreSQL 계열 managed DB 후보
 - Migration: 명시적 migration 파일
 - File storage: MusicXML, PDF, 이미지용 object storage
-- Auth: 이메일 매직링크 + 세션/refresh token
+- Auth: Supabase Auth Google OAuth + 세션/refresh token
 - Payments: 단건 결제 webhook을 API 서버가 검증
 
 ## 로컬 개발

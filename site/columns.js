@@ -4,6 +4,7 @@ import {
   createReadCompletionTracker,
   trackEvent
 } from './analytics.js'
+import { initAuthNavigation } from './auth-nav.js'
 import { columns } from './columns-data.js'
 import { works } from './product-data.js'
 
@@ -425,4 +426,5 @@ window.addEventListener('popstate', () => {
 
 bindTrackedLinks()
 configureAnalytics()
+initAuthNavigation()
 selectColumn(getSelectedSlug())

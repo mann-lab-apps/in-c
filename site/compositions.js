@@ -1,4 +1,5 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
+import { initAuthNavigation } from './auth-nav.js'
 import { columns } from './columns-data.js'
 import { concerts, creators, works } from './product-data.js'
 
@@ -453,6 +454,7 @@ const bindFilters = () => {
 const init = async () => {
   bindTrackedLinks()
   configureAnalytics()
+  initAuthNavigation()
   bindFilters()
 
   const response = await fetch(catalogUrl)

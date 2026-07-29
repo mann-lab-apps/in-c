@@ -6,7 +6,7 @@
     <title>로그인 | in C</title>
     <meta
       name="description"
-      content="Google, 네이버, 카카오 계정으로 in C에 로그인하고 공연 등록과 커뮤니티 흐름을 준비합니다."
+      content="Google 계정으로 in C에 로그인하고 공연 등록과 커뮤니티 흐름을 준비합니다. 카카오와 네이버 로그인은 준비 중입니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/login.html" />
     <meta property="og:title" content="로그인 | in C" />
@@ -54,7 +54,7 @@
           <p class="eyebrow">Account</p>
           <h1 id="login-title">로그인</h1>
           <p>
-            Google, 네이버, 카카오 계정으로 시작합니다. 로그인 뒤 공연 등록과
+            Google 계정으로 시작합니다. 로그인 뒤 공연 등록과
             커뮤니티 활동을 같은 계정 흐름으로 이어갈 수 있게 준비합니다.
           </p>
         </div>
@@ -71,6 +71,7 @@
             <button
               class="social-login-button"
               data-auth-provider="google"
+              data-auth-provider-label="Google 로그인"
               type="button"
             >
               <span aria-hidden="true">G</span>
@@ -78,15 +79,7 @@
             </button>
             <button
               class="social-login-button"
-              data-auth-provider="naver"
-              type="button"
-            >
-              <span aria-hidden="true">N</span>
-              네이버로 계속하기
-            </button>
-            <button
-              class="social-login-button"
-              data-auth-provider="kakao"
+              data-auth-pending-provider="kakao"
               type="button"
             >
               <span aria-hidden="true">K</span>
@@ -106,7 +99,7 @@
           </div>
 
           <p class="login-panel__note">
-            네이버는 Supabase Custom OAuth/OIDC provider 설정 뒤 사용할 수 있습니다.
+            카카오는 이메일 제공 권한 확인 뒤 연결합니다. 네이버 로그인은 다음 단계에서 추가합니다.
           </p>
         </section>
       </section>

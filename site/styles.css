@@ -121,6 +121,15 @@ a:focus-visible {
   background: rgba(255, 253, 248, 0.72);
 }
 
+.site-header nav .nav-login-link[data-auth-state="signed-in"] {
+  color: #9b2f24;
+}
+
+.site-header nav .nav-login-link[aria-busy="true"] {
+  cursor: progress;
+  opacity: 0.64;
+}
+
 .site-header nav a[aria-current="page"] {
   color: var(--inc-color-accent);
 }
@@ -579,6 +588,10 @@ dd {
   opacity: 0.58;
 }
 
+.social-login-button[aria-busy="true"] {
+  cursor: progress;
+}
+
 .social-login-button span {
   display: inline-grid;
   place-items: center;
@@ -594,11 +607,7 @@ dd {
   background: #47616c;
 }
 
-.social-login-button[data-auth-provider="naver"] span {
-  background: #1f8f4d;
-}
-
-.social-login-button[data-auth-provider="kakao"] span {
+.social-login-button[data-auth-pending-provider="kakao"] span {
   color: #251f00;
   background: #f7d94c;
 }

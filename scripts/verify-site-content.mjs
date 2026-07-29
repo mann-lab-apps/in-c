@@ -34,6 +34,7 @@ const relationshipModelPath = resolve(
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authScriptPath = resolve(siteRoot, 'auth.js')
+const authNavScriptPath = resolve(siteRoot, 'auth-nav.js')
 const compositionDifficulties = new Set(['초급', '중급', '고급'])
 const compositionTags = new Set([
   'american-folk-song',
@@ -304,13 +305,21 @@ function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
   const authScript = readFileSync(authScriptPath, 'utf8')
+  const authNavScript = readFileSync(authNavScriptPath, 'utf8')
 
-  for (const provider of ['google', 'naver', 'kakao']) {
-    assert(
-      loginHtml.includes(`data-auth-provider="${provider}"`),
-      `login page missing ${provider} auth button`
-    )
-  }
+  assert(
+    loginHtml.includes('data-auth-provider="google"'),
+    'login page missing google auth button'
+  )
+  assert(
+    !loginHtml.includes('data-auth-provider="kakao"') &&
+      loginHtml.includes('data-auth-pending-provider="kakao"'),
+    'Kakao must remain visible as pending without starting OAuth'
+  )
+  assert(
+    !loginHtml.includes('data-auth-provider="naver"'),
+    'Naver auth button must remain hidden until Custom OAuth/OIDC is configured'
+  )
 
   assert(
     loginHtml.includes('data-auth-status') &&
@@ -324,15 +333,27 @@ function verifyLoginAuthSurface() {
       loginScript.includes('redirectTo') &&
       loginScript.includes('getSession') &&
       loginScript.includes('onAuthStateChange') &&
-      loginScript.includes('signOut'),
+      loginScript.includes('signOut') &&
+      loginScript.includes('auth_callback_error') &&
+      loginScript.includes('auth_social_pending'),
     'login script must support OAuth session lifecycle'
   )
   assert(
     authScript.includes('@supabase/supabase-js') &&
       authScript.includes('VITE_SUPABASE_URL') &&
       authScript.includes('VITE_SUPABASE_PUBLISHABLE_KEY') &&
-      authScript.includes('custom:naver'),
-    'auth script must use Supabase env config and Naver custom provider'
+      authScript.includes('flowType') &&
+      authScript.includes('pkce'),
+    'auth script must use Supabase env config and PKCE'
+  )
+  assert(
+    loginScript.includes('initAuthNavigation') &&
+      authNavScript.includes('.nav-login-link') &&
+      authNavScript.includes('getSession') &&
+      authNavScript.includes('onAuthStateChange') &&
+      authNavScript.includes('signOut') &&
+      authNavScript.includes('로그아웃'),
+    'auth navigation must render signed-in header sign out state'
   )
 }
 

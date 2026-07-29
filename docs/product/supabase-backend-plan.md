@@ -4,6 +4,8 @@
 
 이 문서는 #316의 구현 전 설계 기준이다. 실제 Supabase 프로젝트 생성, schema 적용,
 환경 변수 등록은 외부 운영 변경이므로 사용자 승인 후 진행한다.
+Supabase와 OAuth provider가 다른 운영 서비스와 어떻게 연결되는지는
+[`외부 서비스 인벤토리`](../operations/service-inventory.md)를 함께 본다.
 
 ## 목표
 
@@ -44,7 +46,6 @@
 ```text
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
-VITE_SUPABASE_NAVER_PROVIDER_ID=custom:naver
 SUPABASE_SERVICE_ROLE_KEY=
 ```
 
@@ -53,6 +54,26 @@ service role key는 GitHub Actions, server function, local admin script 같은
 비공개 실행 환경에서만 쓴다.
 정적 사이트는 `vite site`를 루트로 빌드하므로 로컬 preview에서는 `site/.env.local`에
 `VITE_` 값을 둔다.
+
+## 환경 분리
+
+현재는 환경 분리 설정이 완료된 상태가 아니다. 이 섹션은 운영 기준이며,
+상용 반영 전 별도 Supabase project를 생성하고 환경 변수와 migration을 각각
+적용해야 한다.
+
+로컬/dev와 상용은 Supabase project를 분리하는 것을 기본안으로 둔다. Auth provider,
+redirect URL, RLS policy, 테스트 계정, seed 데이터가 운영 사용자 데이터와 섞이면
+인증 테스트와 마이그레이션 검증의 위험이 커지기 때문이다.
+
+- `local`: Supabase CLI local stack 또는 별도 dev project를 사용한다.
+- `dev/staging`: 실제 OAuth provider redirect와 RLS를 검증하는 비상용 project를
+  사용한다.
+- `production`: 상용 사용자, 상용 redirect URL, 상용 key만 둔다.
+
+분리 작업이 완료되려면 각 project에 migration을 적용하고, 프론트엔드에는 환경별
+`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`만 주입해야 한다. service
+role key는 GitHub Actions, server function, admin script 같은 비공개 실행 환경에만
+둔다.
 
 ## 로컬 준비물
 
@@ -143,12 +164,14 @@ create table public.feedback_events (
   역할을 표현한다.
 - Concerts의 공개 목록은 `status = 'public'` 또는 검수 승인 상태만 anon read를
   허용한다.
-- Google, 네이버, 카카오 소셜 시작 버튼은 provider redirect, 약관, 개인정보 고지,
+- Google 소셜 시작 버튼은 provider redirect, 약관, 개인정보 고지,
   RLS 테스트가 준비된 뒤 실제 인증으로 연결한다.
-- Google과 Kakao는 Supabase 기본 OAuth provider인 `google`, `kakao`를 사용한다.
-  Naver는 Supabase 기본 provider 목록에 없으므로 Custom OAuth/OIDC provider로 만들고,
-  프론트엔드 provider id는 기본값 `custom:naver` 또는 `VITE_SUPABASE_NAVER_PROVIDER_ID`
-  값으로 지정한다.
+- Google은 Supabase 기본 OAuth provider인 `google`을 사용하고 브라우저
+  클라이언트는 publishable key와 PKCE flow로 세션을 복구한다.
+- Kakao는 Supabase 기본 provider가 `account_email`을 요청하므로 Kakao 권한 확보
+  또는 별도 구현 검토 뒤 후속 단계에서 추가한다. Naver는 Supabase 기본 provider보다
+  Custom OAuth/OIDC 설정 검증이 더 필요하므로 이번 인증 MVP에서는 노출하지 않고
+  후속 범위로 분리한다.
 
 Concerts 화면은 Supabase 연결 전까지 계정 생성, 연락처 수집, 공연 정보 저장이
 실제로 되는 것처럼 표현하지 않는다.

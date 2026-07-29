@@ -3,6 +3,7 @@ import {
   isSupabaseConfigured,
   supabase
 } from './auth.js'
+import { initAuthNavigation } from './auth-nav.js'
 import { configureAnalytics, trackEvent } from './analytics.js'
 
 const statusElement = document.querySelector('[data-auth-status]')
@@ -14,7 +15,19 @@ const userEmailElement = document.querySelector('[data-auth-user-email]')
 const providerButtons = [
   ...document.querySelectorAll('[data-auth-provider]')
 ]
-
+const pendingProviderButtons = [
+  ...document.querySelectorAll('[data-auth-pending-provider]')
+]
+const authCallbackParamNames = new Set([
+  'access_token',
+  'code',
+  'error',
+  'error_code',
+  'error_description',
+  'refresh_token',
+  'token_type',
+  'type'
+])
 const setStatus = (message, tone = 'neutral') => {
   if (!statusElement) {
     return
@@ -27,6 +40,7 @@ const setStatus = (message, tone = 'neutral') => {
 const setActionsDisabled = (isDisabled) => {
   for (const button of providerButtons) {
     button.disabled = isDisabled
+    button.setAttribute('aria-busy', String(isDisabled))
   }
 }
 
@@ -38,11 +52,72 @@ const getRedirectUrl = () => {
   return url.href
 }
 
+const getAuthCallbackParams = () => {
+  const params = new URLSearchParams(window.location.search)
+  const hash = window.location.hash.replace(/^#/, '')
+  const hashParams = hash.includes('=')
+    ? new URLSearchParams(hash)
+    : new URLSearchParams()
+
+  for (const [key, value] of hashParams) {
+    if (!params.has(key)) {
+      params.set(key, value)
+    }
+  }
+
+  return params
+}
+
+const clearAuthCallbackUrl = () => {
+  const url = new URL(window.location.href)
+  const hash = url.hash.replace(/^#/, '')
+  const hasStructuredHash = hash.includes('=')
+  const hashParams = hasStructuredHash
+    ? new URLSearchParams(hash)
+    : new URLSearchParams()
+  let changed = false
+
+  for (const name of authCallbackParamNames) {
+    if (url.searchParams.has(name)) {
+      url.searchParams.delete(name)
+      changed = true
+    }
+
+    if (hashParams.has(name)) {
+      hashParams.delete(name)
+      changed = true
+    }
+  }
+
+  if (hasStructuredHash) {
+    url.hash = hashParams.toString()
+  }
+
+  if (changed) {
+    window.history.replaceState({}, document.title, url.href)
+  }
+}
+
 const getDisplayName = (user) =>
   user?.user_metadata?.full_name ??
   user?.user_metadata?.name ??
+  user?.user_metadata?.nickname ??
+  user?.user_metadata?.preferred_username ??
   user?.email ??
   '로그인됨'
+
+const getProviderLabel = (user) => {
+  const provider =
+    user?.app_metadata?.provider ?? user?.identities?.[0]?.provider
+
+  return {
+    google: 'Google',
+    kakao: '카카오'
+  }[provider] ?? '간편로그인'
+}
+
+const getAccountDescription = (user) =>
+  user?.email ?? `${getProviderLabel(user)} 계정으로 로그인되었습니다.`
 
 const renderSession = (session) => {
   const user = session?.user
@@ -60,18 +135,22 @@ const renderSession = (session) => {
   }
 
   if (userEmailElement) {
-    userEmailElement.textContent = user?.email ?? '이메일 정보를 확인할 수 없습니다.'
+    userEmailElement.textContent = user ? getAccountDescription(user) : ''
   }
 
   if (user) {
     setStatus('로그인되어 있습니다.')
   } else {
     setStatus('원하는 계정으로 로그인하세요.')
+    setActionsDisabled(false)
   }
 }
 
 const signInWithProvider = async (providerKey) => {
   const provider = authProviderIds[providerKey]
+  const providerLabel =
+    providerButtons.find((button) => button.dataset.authProvider === providerKey)
+      ?.dataset.authProviderLabel ?? '간편로그인'
 
   if (!supabase || !provider) {
     setStatus('로그인 설정을 확인할 수 없습니다.', 'error')
@@ -79,7 +158,7 @@ const signInWithProvider = async (providerKey) => {
   }
 
   setActionsDisabled(true)
-  setStatus('로그인 화면으로 이동합니다.')
+  setStatus(`${providerLabel} 화면으로 이동합니다.`)
   trackEvent('auth_social_start', {
     platform: providerKey
   })
@@ -102,6 +181,7 @@ const signInWithProvider = async (providerKey) => {
 
 const init = async () => {
   configureAnalytics()
+  initAuthNavigation()
 
   if (!isSupabaseConfigured || !supabase) {
     setActionsDisabled(true)
@@ -115,6 +195,19 @@ const init = async () => {
   for (const button of providerButtons) {
     button.addEventListener('click', () => {
       signInWithProvider(button.dataset.authProvider)
+    })
+  }
+
+  for (const button of pendingProviderButtons) {
+    button.addEventListener('click', () => {
+      const provider = button.dataset.authPendingProvider
+      trackEvent('auth_social_pending', {
+        platform: provider
+      })
+      setStatus(
+        '카카오 로그인은 이메일 제공 권한 확인 뒤 연결합니다. 지금은 Google 로그인을 사용해 주세요.',
+        'error'
+      )
     })
   }
 
@@ -133,16 +226,26 @@ const init = async () => {
   })
 
   const { data, error } = await supabase.auth.getSession()
+  const callbackParams = getAuthCallbackParams()
+  const callbackError =
+    callbackParams.get('error_description') ?? callbackParams.get('error')
 
-  if (error) {
-    setStatus(error.message, 'error')
-    trackEvent('auth_session_error')
+  if (error || callbackError) {
+    setActionsDisabled(false)
+    setStatus(error?.message ?? callbackError, 'error')
+    trackEvent(error ? 'auth_session_error' : 'auth_callback_error')
+    clearAuthCallbackUrl()
     return
   }
 
   renderSession(data.session)
+  clearAuthCallbackUrl()
 
-  supabase.auth.onAuthStateChange((_event, session) => {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_IN') {
+      trackEvent('auth_signed_in')
+    }
+
     renderSession(session)
   })
 }

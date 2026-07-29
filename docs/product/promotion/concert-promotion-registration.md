@@ -78,5 +78,6 @@ Concerts 프로토타입은 #680에서 정적 페이지로 시작한다. 비로�
   `creator_concerts` 또는 `profile_concerts` 같은 역할 포함 관계로 연결한다.
 - `draft`, `submitted`, `approved`, `rejected`, `expired` 상태가 public read/RLS와
   어떻게 대응되는지 정의한다.
-- Google, 네이버, 카카오 로그인은 Supabase provider 설정과 개인정보 고지 업데이트
-  전에는 실제 저장 플로우로 연결하지 않는다.
+- Google 로그인은 Supabase provider 설정과 개인정보 고지 업데이트 전에는 실제
+  저장 플로우로 연결하지 않는다. Kakao 로그인은 `account_email` 권한 확보 또는
+  별도 구현 검토 뒤, Naver 로그인은 Custom OAuth/OIDC 검증 뒤 후속 범위로 분리한다.
