@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   ChevronsDown,
   ChevronsUp,
   CircleMinus,
@@ -57,7 +58,8 @@ import {
   type ScoreCommand,
   type Articulation,
   type TempoEvent,
-  type TempoMarking
+  type TempoMarking,
+  type TimeSignature
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import {
@@ -94,7 +96,9 @@ import {
 import { buildKeySignatureCommand } from './editor/key-signature'
 import {
   createNewScore,
+  formatTempoMarkingText,
   keySignaturePresets,
+  resolveDefaultTempoBeatForTimeSignature,
   resolveKeySignaturePreset,
   resolveKeySignaturePresetId,
   resolveTimeSignaturePreset,
@@ -166,6 +170,9 @@ const tripletPreset = {
   shortcut: string
 }
 
+const startingColumnUrl =
+  'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
+
 const eventTypeLabels = {
   note: '음표',
   rest: '쉼표'
@@ -191,13 +198,15 @@ interface MetadataEdit {
 
 const toolbarCategories = [
   { id: 'file', label: '파일' },
+  { id: 'measure', label: '악보' },
   { id: 'note', label: '음표' },
   { id: 'lyrics', label: '가사' },
-  { id: 'measure', label: '마디' },
   { id: 'playback', label: '재생' }
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
+type TempoBeatDots = 0 | 1 | 2
+type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
 
 interface NewScoreDraft {
   title: string
@@ -239,12 +248,19 @@ const clefPresets = [
   { id: 'tenor', label: '테너음자리표', value: { sign: 'C', line: 4 } }
 ] as const satisfies ReadonlyArray<{ id: string; label: string; value: Clef }>
 const tempoBeatUnitOptions = [
-  ['whole', '온음표'],
-  ['half', '2분음표'],
-  ['quarter', '4분음표'],
-  ['eighth', '8분음표'],
-  ['16th', '16분음표']
-] as const satisfies ReadonlyArray<readonly [DurationValue, string]>
+  'whole',
+  'half',
+  'quarter',
+  'eighth',
+  '16th'
+].flatMap((beatUnit) =>
+  ([0, 1, 2] as const).map((dots) => ({
+    beatUnit: beatUnit as DurationValue,
+    dots,
+    label: formatTempoBeatOptionLabel(beatUnit as DurationValue, dots),
+    value: tempoBeatSelectorValue(beatUnit as DurationValue, dots)
+  }))
+)
 const octaveShiftOptions = [
   ['8va', '8va'],
   ['8vb', '8vb'],
@@ -360,6 +376,9 @@ export const App = () => {
   const activeTimeSignatureId = activeTimeSignature
     ? resolveTimeSignaturePresetId(activeTimeSignature)
     : timeSignaturePresets[2].id
+  const activeTempoDefaultBeat = resolveDefaultTempoBeatForTimeSignature(
+    activeTimeSignature ?? timeSignaturePresets[2].value
+  )
   const addDotCommand =
     noteInputState || selection.type !== 'event'
       ? undefined
@@ -718,57 +737,30 @@ export const App = () => {
 
       executeCommand({
         type: 'score-tempo.update',
-        tempo: createUpdatedTempoMarking(score.tempo, tempo)
+        tempo: createUpdatedTempoMarking(
+          score.tempo,
+          tempo,
+          {},
+          activeTempoDefaultBeat
+        )
       })
     },
-    [executeCommand, score.tempo, scoreTempo]
+    [activeTempoDefaultBeat, executeCommand, score.tempo, scoreTempo]
   )
 
-  const changeScoreTempoBeatUnit = useCallback(
-    (beatUnit: DurationValue) => {
+  const changeScoreTempoBeat = useCallback(
+    (value: string) => {
+      const option = resolveTempoBeatOption(value)
+
       executeCommand({
         type: 'score-tempo.update',
         tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
-          beatUnit
+          beatUnit: option.beatUnit,
+          dots: option.dots
         })
       })
     },
     [executeCommand, score.tempo, scoreTempo]
-  )
-
-  const changeScoreTempoDots = useCallback(
-    (dots: number) => {
-      executeCommand({
-        type: 'score-tempo.update',
-        tempo: createUpdatedTempoMarking(score.tempo, scoreTempo, {
-          dots: Math.max(0, Math.min(2, Math.round(dots)))
-        })
-      })
-    },
-    [executeCommand, score.tempo, scoreTempo]
-  )
-
-  const changeScoreTempoText = useCallback(
-    (text: string) => {
-      const tempo = parseTempoMarkingText(text)
-
-      if (!tempo) {
-        setFileStatus({
-          tone: 'error',
-          message: '빠르기말은 ♩ = 120 또는 ♪ = 120 형식으로 입력해 주세요.'
-        })
-        return
-      }
-
-      executeCommand({
-        type: 'score-tempo.update',
-        tempo: createUpdatedTempoMarking(score.tempo, tempo.bpm, {
-          beatUnit: tempo.beatUnit,
-          dots: tempo.dots
-        })
-      })
-    },
-    [executeCommand, score.tempo]
   )
 
   const changeScoreTempoTransparency = useCallback(
@@ -793,11 +785,10 @@ export const App = () => {
         setDurationValue(value)
         setNoteInputState({
           ...noteInputState,
-          duration: createDuration(value, noteInputState.duration.dots)
+          duration: createDuration(value)
         })
       } else if (selection.type === 'event') {
-        const dots = eventLocation?.event.duration.dots ?? 0
-        const duration = createDuration(value, dots)
+        const duration = createDuration(value)
         const command = buildDurationCommand(score, selection, duration)
 
         if (executeCommand(command)) {
@@ -887,7 +878,36 @@ export const App = () => {
   const changeTimeSignature = useCallback(
     (presetId: string) => {
       const timeSignature = resolveTimeSignaturePreset(presetId).value
-      const command = buildTimeSignatureCommand(score, selection, timeSignature)
+      const timeSignatureCommand = buildTimeSignatureCommand(
+        score,
+        selection,
+        timeSignature
+      )
+      const nextTempoBeat = resolveDefaultTempoBeatForTimeSignature(timeSignature)
+      const tempoCommand =
+        shouldFollowTimeSignatureTempoBeat(
+          score.tempo,
+          scoreTempo,
+          activeTimeSignature ?? timeSignaturePresets[2].value
+        ) &&
+        ((score.tempo?.beatUnit ?? 'quarter') !== nextTempoBeat.beatUnit ||
+          (score.tempo?.dots ?? 0) !== nextTempoBeat.dots)
+          ? {
+              type: 'score-tempo.update' as const,
+              tempo: createUpdatedTempoMarking(
+                score.tempo,
+                scoreTempo,
+                nextTempoBeat
+              )
+            }
+          : undefined
+      const command =
+        timeSignatureCommand && tempoCommand
+          ? {
+              type: 'score.batch' as const,
+              commands: [timeSignatureCommand, tempoCommand]
+            }
+          : timeSignatureCommand
 
       if (executeCommand(command)) {
         setMode('select')
@@ -903,7 +923,7 @@ export const App = () => {
         })
       }
     },
-    [executeCommand, score, selection]
+    [activeTimeSignature, executeCommand, score, scoreTempo, selection]
   )
 
   const movePitch = useCallback(
@@ -967,7 +987,7 @@ export const App = () => {
         tripletPreset.normalNotes
       )
 
-      if (executeCommand(command)) {
+      if (command && executeCommand(command)) {
         setDurationValue(tripletPreset.durationValue)
         setFileStatus({
           tone: 'neutral',
@@ -975,17 +995,49 @@ export const App = () => {
             ? '선택한 셋잇단음표를 해제했습니다.'
             : '선택한 구간에 셋잇단음표를 적용했습니다.'
         })
-      } else {
-        setFileStatus({
-          tone: 'error',
-          message: describeTupletToggleFailure(
+        return
+      }
+
+      const canStartTupletInputFromRest =
+        eventLocation?.event.type === 'rest' &&
+        eventLocation.event.duration.dots === 0
+      const inputState = canStartTupletInputFromRest
+        ? createInputState(
             score,
             selection,
+            duration,
+            'note'
+          )
+        : undefined
+      const tupletState = inputState
+        ? beginTupletInput(
+            inputState,
+            `tuplet-${crypto.randomUUID()}`,
             tripletPreset.actualNotes,
             tripletPreset.normalNotes
           )
+        : undefined
+
+      if (tupletState) {
+        setDurationValue(tripletPreset.durationValue)
+        setNoteInputState(tupletState)
+        setFileStatus({
+          tone: 'neutral',
+          message:
+            '8분음표 셋잇단 입력을 시작했습니다. A-G와 R로 세 음표 또는 쉼표를 입력해 주세요.'
         })
+        return
       }
+
+      setFileStatus({
+        tone: 'error',
+        message: describeTupletToggleFailure(
+          score,
+          selection,
+          tripletPreset.actualNotes,
+          tripletPreset.normalNotes
+        )
+      })
       return
     }
 
@@ -2257,19 +2309,27 @@ export const App = () => {
       }
 
       if (direction === 1 && !extendRange) {
-        const inputState = createInputStateAfterEvent(
-          score,
-          currentEventId,
-          createDuration(durationValue),
-          'note'
-        )
+        const location = locateEvent(score, currentEventId)
+        const edit = location
+          ? buildInsertMeasureAfter(
+              score,
+              location.address.measureId,
+              createInputId
+            )
+          : undefined
 
-        if (inputState) {
-          setNoteInputState(inputState)
+        if (edit && executeCommand(edit.command)) {
+          setMode('select')
+          setNoteInputState(undefined)
+          setSelection(edit.selection)
+          setFileStatus({
+            tone: 'neutral',
+            message: '새 온쉼표 마디를 추가했습니다.'
+          })
         }
       }
     },
-    [durationValue, noteInputState, score, selection]
+    [executeCommand, noteInputState, score, selection]
   )
 
   const selectEvent = useCallback(
@@ -2875,6 +2935,17 @@ export const App = () => {
             {category.label}
           </button>
         ))}
+        <a
+          aria-label="Columns 출발 읽기"
+          className="toolbar-tabs__promo"
+          href={startingColumnUrl}
+          rel="noreferrer"
+          target="_blank"
+        >
+          <BookOpen aria-hidden="true" size={15} />
+          <span>Columns</span>
+          <strong>출발</strong>
+        </a>
       </nav>
 
       <section
@@ -2886,25 +2957,6 @@ export const App = () => {
             <h3>속성</h3>
             {eventLocation ? (
               <div className="inspector-properties__grid">
-                <label>
-                  <span>음가</span>
-                  <select
-                    aria-label="선택 이벤트 음가"
-                    onChange={(event) =>
-                      changeDuration(event.target.value as DurationValue)
-                    }
-                    value={eventLocation.event.duration.value}
-                  >
-                    {(['whole', 'half', 'quarter', 'eighth', '16th'] as const).map(
-                      (value) => (
-                        <option key={value} value={value}>
-                          {durationLabels[value]}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </label>
-
                 <div className="inspector-properties__row">
                   <span>점</span>
                   <div className="inspector-properties__buttons">
@@ -3209,56 +3261,6 @@ export const App = () => {
               </label>
 
               <label>
-                <span>가사</span>
-                <input
-                  aria-label="선택 음표 가사"
-                  defaultValue={selectedLyric?.text ?? ''}
-                  key={`${selectedNote.id}-${activeLyricVerse}-${
-                    selectedLyric?.text ?? ''
-                  }`}
-                  maxLength={48}
-                  onBlur={(event) =>
-                    updateLyric(event.currentTarget.value, {
-                      syllabic: selectedLyric?.syllabic ?? 'single',
-                      extend: selectedLyric?.extend
-                    })
-                  }
-                  onKeyDown={(event) => {
-                    if (event.nativeEvent.isComposing) {
-                      return
-                    }
-
-                    if (event.key === 'Enter') {
-                      event.preventDefault()
-                      updateLyric(event.currentTarget.value, {
-                        syllabic: selectedLyric?.syllabic ?? 'single',
-                        extend: selectedLyric?.extend,
-                        moveNext: true
-                      })
-                    } else if (event.key === '-') {
-                      event.preventDefault()
-                      updateLyric(event.currentTarget.value, {
-                        syllabic: 'begin',
-                        moveNext: true
-                      })
-                    } else if (event.key === '_') {
-                      event.preventDefault()
-                      updateLyric(event.currentTarget.value, {
-                        syllabic: 'single',
-                        extend: true,
-                        moveNext: true
-                      })
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value = selectedLyric?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="가사"
-                  type="text"
-                />
-              </label>
-
-              <label>
                 <span>가사 음절</span>
                 <select
                   aria-label="가사 음절"
@@ -3303,12 +3305,75 @@ export const App = () => {
 
       <section
         className="selection-toolbar"
-        aria-label="마디 편집"
+        aria-label="악보 편집"
         hidden={toolbarCategory !== 'measure'}
       >
-          {activeMeasureId ? (
-            <section className="inspector-properties" aria-label="마디 텍스트">
-              <h3>마디 표시</h3>
+        <section className="inspector-properties" aria-label="빠르기">
+          <h3>빠르기</h3>
+          <div className="inspector-properties__grid">
+            <label>
+              <span>{koreanMusicTerms.tempo}</span>
+              <input
+                aria-label={koreanMusicTerms.tempo}
+                max="240"
+                min="40"
+                onChange={(event) =>
+                  changeScoreTempo(Number.parseInt(event.target.value, 10))
+                }
+                step="1"
+                type="range"
+                value={scoreTempo}
+              />
+              <output>{scoreTempo} BPM</output>
+            </label>
+
+            <label>
+              <span>기준 음가</span>
+              <select
+                aria-label="빠르기 기준 음가"
+                onChange={(event) => changeScoreTempoBeat(event.target.value)}
+                value={tempoBeatSelectorValue(
+                  score.tempo?.beatUnit ?? activeTempoDefaultBeat.beatUnit,
+                  normalizeTempoBeatDots(
+                    score.tempo?.dots ?? activeTempoDefaultBeat.dots
+                  )
+                )}
+              >
+                {tempoBeatUnitOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>빠르기말</span>
+              <output
+                aria-label="빠르기말"
+                className="tempo-mark-preview"
+              >
+                {formatTempoMarkingText({
+                  bpm: scoreTempo,
+                  beatUnit: score.tempo?.beatUnit ?? 'quarter',
+                  dots: score.tempo?.dots ?? 0
+                })}
+              </output>
+            </label>
+
+            <label className="inspector-properties__checkbox">
+              <input
+                aria-label="악보에 빠르기말 표기"
+                checked={!score.tempo?.transparent}
+                onChange={(event) =>
+                  changeScoreTempoTransparency(!event.target.checked)
+                }
+                type="checkbox"
+              />
+              <span>악보에 표기</span>
+            </label>
+
+            {activeMeasureId ? (
               <label>
                 <span>위치별 빠르기</span>
                 <input
@@ -3335,8 +3400,10 @@ export const App = () => {
                           MAX_TEMPO_BPM,
                           scoreTempo
                         ),
-                        beatUnit: activeTempoEvent?.beatUnit ?? 'quarter',
-                        dots: activeTempoEvent?.dots ?? 0,
+                        beatUnit:
+                          activeTempoEvent?.beatUnit ??
+                          activeTempoDefaultBeat.beatUnit,
+                        dots: activeTempoEvent?.dots ?? activeTempoDefaultBeat.dots,
                         text: activeTempoEvent?.text
                       })
                     }
@@ -3345,7 +3412,13 @@ export const App = () => {
                   type="number"
                 />
               </label>
+            ) : null}
+          </div>
+        </section>
 
+          {activeMeasureId ? (
+            <section className="inspector-properties" aria-label="마디 텍스트">
+              <h3>마디 표시</h3>
               <label>
                 <span>{koreanMusicTerms.rehearsalMark}</span>
                 <input
@@ -3479,105 +3552,6 @@ export const App = () => {
       <section className="workspace" aria-label="악보 편집기">
         <header className="toolbar">
           <div className="toolbar__group">
-            <div
-              className="playback-settings"
-              aria-label="재생 설정"
-              hidden={toolbarCategory !== 'playback'}
-            >
-              <label className="tempo-control">
-                <span>{koreanMusicTerms.tempo}</span>
-                <input
-                  aria-label={koreanMusicTerms.tempo}
-                  max="240"
-                  min="40"
-                  onChange={(event) =>
-                    changeScoreTempo(Number.parseInt(event.target.value, 10))
-                  }
-                  step="1"
-                  type="range"
-                  value={scoreTempo}
-                />
-                <output>{scoreTempo} BPM</output>
-              </label>
-
-              <label className="tempo-control tempo-control--compact">
-                <span>기준</span>
-                <select
-                  aria-label="빠르기 기준 음가"
-                  onChange={(event) =>
-                    changeScoreTempoBeatUnit(event.target.value as DurationValue)
-                  }
-                  value={score.tempo?.beatUnit ?? 'quarter'}
-                >
-                  {tempoBeatUnitOptions.map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-                <output>
-                  {score.tempo?.dots ? '.'.repeat(score.tempo.dots) : '—'}
-                </output>
-              </label>
-
-              <label className="tempo-control tempo-control--compact">
-                <span>점</span>
-                <input
-                  aria-label="빠르기 기준 점"
-                  max={2}
-                  min={0}
-                  onChange={(event) =>
-                    changeScoreTempoDots(Number.parseInt(event.target.value, 10))
-                  }
-                  type="number"
-                  value={score.tempo?.dots ?? 0}
-                />
-                <output>{score.tempo?.dots ?? 0}</output>
-              </label>
-
-              <label className="tempo-control tempo-control--text">
-                <span>빠르기말</span>
-                <input
-                  aria-label="빠르기말"
-                  defaultValue={formatTempoMarkingText(
-                    createUpdatedTempoMarking(score.tempo, scoreTempo)
-                  )}
-                  key={
-                    score.tempo?.text ??
-                    `${score.tempo?.beatUnit ?? 'quarter'}-${
-                      score.tempo?.dots ?? 0
-                    }-${scoreTempo}`
-                  }
-                  maxLength={32}
-                  onBlur={(event) =>
-                    changeScoreTempoText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value = score.tempo?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="♩ = 120"
-                  type="text"
-                />
-              </label>
-
-              <label className="tempo-control tempo-control--checkbox">
-                <input
-                  aria-label="빠르기말 투명"
-                  checked={Boolean(score.tempo?.transparent)}
-                  onChange={(event) =>
-                    changeScoreTempoTransparency(event.target.checked)
-                  }
-                  type="checkbox"
-                />
-                <span>투명</span>
-              </label>
-            </div>
-
             <div
               className="file-actions"
               aria-label="파일 작업"
@@ -3878,6 +3852,7 @@ export const App = () => {
             })}
 
             <div className="dot-control" aria-label="점음표">
+              <span className="dot-control__label">점음표</span>
               <button
                 aria-label="점 줄이기"
                 disabled={isTupletInput || !canRemoveDot}
@@ -4079,11 +4054,14 @@ export const App = () => {
           </div>
 
           <NotationPreview
-            inputCursor={
-              noteInputState
+            inlineLyricEditor={
+              toolbarCategory === 'lyrics' && selectedNote
                 ? {
-                    measureId: noteInputState.target.measureId,
-                    tick: noteInputState.tick
+                    eventId: selectedNote.id,
+                    value: selectedLyric?.text ?? '',
+                    syllabic: selectedLyric?.syllabic ?? 'single',
+                    extend: selectedLyric?.extend,
+                    onCommit: updateLyric
                   }
                 : undefined
             }
@@ -4521,28 +4499,6 @@ function createInputState(
     : undefined
 }
 
-function createInputStateAfterEvent(
-  score: Score,
-  eventId: string,
-  duration: Duration,
-  mode: 'note' | 'rest'
-): NoteInputState | undefined {
-  const location = locateEvent(score, eventId)
-
-  if (!location) {
-    return undefined
-  }
-
-  return createNoteInputState({
-    target: location.address,
-    tick:
-      location.event.position.tick +
-      voiceEventDurationTicks(location.event, location.measure),
-    duration,
-    mode
-  })
-}
-
 function getEventIdBeforeInputCursor(
   score: Score,
   inputState: NoteInputState
@@ -4797,16 +4753,53 @@ function accidentalTextToAlter(value: string | undefined): Pitch['alter'] {
   return undefined
 }
 
+function tempoBeatSelectorValue(
+  beatUnit: DurationValue,
+  dots: TempoBeatDots
+): TempoBeatSelectorValue {
+  return `${beatUnit}:${dots}` as TempoBeatSelectorValue
+}
+
+function normalizeTempoBeatDots(dots: number): TempoBeatDots {
+  if (dots >= 2) {
+    return 2
+  }
+
+  return dots >= 1 ? 1 : 0
+}
+
+function resolveTempoBeatOption(value: string) {
+  return (
+    tempoBeatUnitOptions.find((option) => option.value === value) ??
+    tempoBeatUnitOptions.find((option) => option.value === 'quarter:0') ??
+    tempoBeatUnitOptions[0]
+  )
+}
+
+function formatTempoBeatOptionLabel(
+  beatUnit: DurationValue,
+  dots: TempoBeatDots
+): string {
+  const label = durationLabels[beatUnit]
+
+  return dots === 0 ? label : dots === 1 ? `점${label}` : `겹점${label}`
+}
+
 function createUpdatedTempoMarking(
   currentTempo: TempoMarking | undefined,
   bpm: number,
-  overrides: Partial<Pick<TempoMarking, 'beatUnit' | 'dots' | 'transparent'>> = {}
+  overrides: Partial<Pick<TempoMarking, 'beatUnit' | 'dots' | 'transparent'>> = {},
+  fallbackBeat: Required<Pick<TempoMarking, 'beatUnit' | 'dots'>> = {
+    beatUnit: 'quarter',
+    dots: 0
+  }
 ): TempoMarking {
   const tempo = {
     ...currentTempo,
     bpm,
-    beatUnit: overrides.beatUnit ?? currentTempo?.beatUnit ?? 'quarter',
-    dots: overrides.dots ?? currentTempo?.dots ?? 0,
+    beatUnit:
+      overrides.beatUnit ?? currentTempo?.beatUnit ?? fallbackBeat.beatUnit,
+    dots: overrides.dots ?? currentTempo?.dots ?? fallbackBeat.dots,
     transparent: overrides.transparent ?? currentTempo?.transparent
   }
 
@@ -4816,83 +4809,26 @@ function createUpdatedTempoMarking(
   }
 }
 
-function formatTempoMarkingText(
-  tempo: Pick<TempoMarking, 'bpm' | 'beatUnit' | 'dots'>
-): string {
-  const symbol = tempoBeatUnitSymbol(tempo.beatUnit ?? 'quarter')
-  const dots = '.'.repeat(tempo.dots ?? 0)
-
-  return `${symbol}${dots} = ${tempo.bpm}`
-}
-
-function parseTempoMarkingText(
-  text: string
-): Pick<TempoMarking, 'bpm' | 'beatUnit' | 'dots'> | undefined {
-  const match =
-    /^(?<unit>𝅝|𝅗𝅥|♩|♪|𝅘𝅥𝅯|𝅘𝅥𝅰|𝅘𝅥𝅱|whole|half|quarter|eighth|16th|32nd|64th)\s*(?<dots>\.{0,2})\s*=\s*(?<bpm>\d{1,3})$/u.exec(
-      text.trim()
-    )
-  const groups = match?.groups
-  const bpm = groups?.bpm ? Number.parseInt(groups.bpm, 10) : undefined
-
-  if (
-    !groups ||
-    bpm === undefined ||
-    bpm < MIN_TEMPO_BPM ||
-    bpm > MAX_TEMPO_BPM
-  ) {
-    return undefined
+function shouldFollowTimeSignatureTempoBeat(
+  tempo: TempoMarking | undefined,
+  bpm: number,
+  timeSignature: TimeSignature
+): boolean {
+  if (!tempo) {
+    return true
   }
 
-  return {
+  const defaultBeat = resolveDefaultTempoBeatForTimeSignature(timeSignature)
+  const defaultText = formatTempoMarkingText({
     bpm,
-    beatUnit: tempoBeatUnitFromText(groups.unit),
-    dots: groups.dots.length
-  }
-}
+    ...defaultBeat
+  })
 
-function tempoBeatUnitSymbol(beatUnit: DurationValue): string {
-  return beatUnit === 'whole'
-    ? '𝅝'
-    : beatUnit === 'half'
-      ? '𝅗𝅥'
-      : beatUnit === 'eighth'
-        ? '♪'
-        : beatUnit === '16th'
-          ? '𝅘𝅥𝅯'
-          : beatUnit === '32nd'
-            ? '𝅘𝅥𝅰'
-            : beatUnit === '64th'
-              ? '𝅘𝅥𝅱'
-              : '♩'
-}
-
-function tempoBeatUnitFromText(text: string): DurationValue {
-  if (text === '𝅝' || text === 'whole') {
-    return 'whole'
-  }
-
-  if (text === '𝅗𝅥' || text === 'half') {
-    return 'half'
-  }
-
-  if (text === '♪' || text === 'eighth') {
-    return 'eighth'
-  }
-
-  if (text === '𝅘𝅥𝅯' || text === '16th') {
-    return '16th'
-  }
-
-  if (text === '𝅘𝅥𝅰' || text === '32nd') {
-    return '32nd'
-  }
-
-  if (text === '𝅘𝅥𝅱' || text === '64th') {
-    return '64th'
-  }
-
-  return 'quarter'
+  return (
+    (tempo.beatUnit ?? 'quarter') === defaultBeat.beatUnit &&
+    (tempo.dots ?? 0) === defaultBeat.dots &&
+    (!tempo.text || tempo.text === defaultText)
+  )
 }
 
 function toFileName(title: string): string {

@@ -59,8 +59,8 @@ export function buildInsertMeasureAfter(
       index: location.measureIndex + 1
     },
     selection: {
-      type: 'measure',
-      measureId: newMeasure.id
+      type: 'event',
+      eventId: firstEvent.id
     },
     inputState: inputState
       ? {

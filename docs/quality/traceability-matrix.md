@@ -49,13 +49,14 @@
 | Site content integrity | #268, #269, #272, #273, #274, #170, #172, #173, #174, #176, #177, #178 closed | `npm run verify:site-content` | [Composition Pipeline](../product/compositions/collection-pipeline.md) | 지원 |
 | Analytics instrumentation guard | #147, #306, #312, #313 closed | `npm run verify:analytics` | [Analytics Events](../product/analytics-events.md), [Analytics Operations](../product/analytics-operations.md) | 지원 |
 | SEO metadata | #151, #309 closed | `npm run verify:site-seo` | [Site Docs](../site.md) | 지원 |
+| Concerts navigation and login entry | #680, #682 closed; #681 open | `npm run site:build`, `npm run verify:site-content` | [Supabase Backend Plan](../product/supabase-backend-plan.md), [Login Account UX](../product/auth/login-account-ux.md) | 부분 지원, auth 상태별 Concerts CTA는 후속 |
 | Production smoke | #304, #307, #308, #319 closed | `npm run verify:site-production` | [Production Playbook](../operations/production-playbook.md) | 미확인 in this package |
 
 ## Backend And Operations
 
 | 기능/요구사항 | GitHub 이슈 | 검증 | 문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- |
-| Supabase schema/auth/RLS/env | #316 open | Not run; external setup required | [Supabase Backend Plan](../product/supabase-backend-plan.md) | 보류 |
+| Supabase schema/auth/RLS/env | #316 open | Auth client/env verified; provider/schema/RLS not run | [Supabase Backend Plan](../product/supabase-backend-plan.md) | 부분 보류 |
 | Hosting/backend strategy | #319 closed, #316 open | Manual review | [Hosting And Backend Strategy](../operations/hosting-and-backend-strategy.md) | 전략 문서 있음, backend 미운영 |
 | Quality evidence package | #320 closed | Manual plus automated commands | [Saturday Release Routine](../releases/saturday-release-routine.md), [Release Readiness Checklist](release-readiness-checklist.md) | 이 package로 고도화, follow-up은 #321/#322로 분리 |
 | Windows advisory | #8 open | Windows manual run required | [Windows Dev Audit](../security/windows-dev-audit.md) | 보류 |

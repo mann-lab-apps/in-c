@@ -33,7 +33,7 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | `work_view` | Compositions 안의 작품 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Compositions 작품 상세 조회 | 공개 작품 메타만 전송 |
 | `work_link` | 작품 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | Compositions 작품 관계 탐색 | 공개 작품 slug와 링크만 전송 |
 | `promotion_click` | 홈 공연 배너 또는 작품 상세의 배너 후보 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text`, `location` | 배너 후보 CTA 탐색 | 공개 배너 slug와 정적 링크만 전송 |
-| `community_view` | Community 안의 학습 후보 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Community 상세 조회 | 공개 학습 후보 메타만 전송 |
+| `community_view` | Community 게시글 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `category` | Community 게시글 조회 | 공개 게시글 메타만 전송 |
 | `download_primary` | 랜딩 첫 화면 기본 다운로드 클릭 | `platform`, `file_name`, `location`, `link_url`, `link_text` | Events by `platform`, landing CTA review | 추정 플랫폼과 공개 릴리즈 URL만 전송 |
 | `download_platform` | 운영체제별 다운로드 카드 클릭 | `platform`, `file_name`, `link_url`, `link_text` | Events by `platform`/`file_name` | 사용자가 누른 공개 파일 정보만 전송 |
 | `checksum_link` | 체크섬 링크 클릭 | `location`, `link_url`, `link_text` | Events by `location` | 공개 체크섬 링크만 전송 |

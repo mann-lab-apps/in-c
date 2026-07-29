@@ -6,13 +6,13 @@
     <title>로그인 | in C</title>
     <meta
       name="description"
-      content="in C 로그인은 이메일 매직링크 기반 계정 흐름을 준비 중인 정적 안내 페이지입니다."
+      content="Google, 네이버, 카카오 계정으로 in C에 로그인하고 공연 등록과 커뮤니티 흐름을 준비합니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/login.html" />
     <meta property="og:title" content="로그인 | in C" />
     <meta
       property="og:description"
-      content="계정 생성과 공연 등록 흐름을 Supabase Auth 연결 이후 제공합니다."
+      content="Supabase Auth 기반 간편로그인으로 계정 생성과 공연 등록 흐름을 준비합니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/login.html" />
@@ -24,7 +24,7 @@
     <meta name="twitter:title" content="로그인 | in C" />
     <meta
       name="twitter:description"
-      content="계정 생성과 공연 등록 흐름을 Supabase Auth 연결 이후 제공합니다."
+      content="Supabase Auth 기반 간편로그인으로 계정 생성과 공연 등록 흐름을 준비합니다."
     />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
@@ -43,7 +43,7 @@
         <a href="./compositions.html">Compositions</a>
         <a href="./concerts.html">Concerts</a>
         <a href="./community.html">Community</a>
-        <a href="./index.html#download">Chromatics 앱</a>
+        <a href="./index.html#download">Chromatics</a>
         <a class="nav-login-link" aria-current="page" href="./login.html">로그인</a>
       </nav>
     </header>
@@ -52,36 +52,63 @@
       <section class="login-shell" aria-labelledby="login-title">
         <div class="login-copy">
           <p class="eyebrow">Account</p>
-          <h1 id="login-title">로그인 준비 중</h1>
+          <h1 id="login-title">로그인</h1>
           <p>
-            지금은 공개 콘텐츠를 먼저 둘러볼 수 있고, 계정 생성과 공연 등록은
-            Supabase Auth 연결 뒤 열립니다.
+            Google, 네이버, 카카오 계정으로 시작합니다. 로그인 뒤 공연 등록과
+            커뮤니티 활동을 같은 계정 흐름으로 이어갈 수 있게 준비합니다.
           </p>
         </div>
 
-        <form class="login-panel" aria-label="로그인 준비 상태">
-          <label>
-            <span>이메일</span>
-            <input
-              type="email"
-              name="email"
-              autocomplete="email"
-              placeholder="you@example.com"
-              disabled
-            />
-          </label>
-          <span
-            class="disabled-tooltip"
-            data-tooltip="준비중입니다! 조금만 더 기다려주세요"
-            tabindex="0"
-            aria-label="매직링크 받기. 준비중입니다! 조금만 더 기다려주세요"
-          >
-            <span class="button button--primary" aria-disabled="true">매직링크 받기</span>
-          </span>
-          <p>
-            현재 화면에서는 이메일을 저장하거나 계정을 만들지 않습니다.
+        <section class="login-panel" aria-label="간편로그인">
+          <div class="login-panel__head">
+            <h2>간편로그인</h2>
+            <p data-auth-status role="status" aria-live="polite">
+              로그인 상태를 확인하고 있습니다.
+            </p>
+          </div>
+
+          <div class="social-login-list" data-auth-actions>
+            <button
+              class="social-login-button"
+              data-auth-provider="google"
+              type="button"
+            >
+              <span aria-hidden="true">G</span>
+              Google로 계속하기
+            </button>
+            <button
+              class="social-login-button"
+              data-auth-provider="naver"
+              type="button"
+            >
+              <span aria-hidden="true">N</span>
+              네이버로 계속하기
+            </button>
+            <button
+              class="social-login-button"
+              data-auth-provider="kakao"
+              type="button"
+            >
+              <span aria-hidden="true">K</span>
+              카카오로 계속하기
+            </button>
+          </div>
+
+          <div class="auth-session" data-auth-session hidden>
+            <div>
+              <p class="eyebrow">Signed in</p>
+              <h2 data-auth-user-name>로그인됨</h2>
+              <p data-auth-user-email></p>
+            </div>
+            <button class="button button--secondary" data-auth-sign-out type="button">
+              로그아웃
+            </button>
+          </div>
+
+          <p class="login-panel__note">
+            네이버는 Supabase Custom OAuth/OIDC provider 설정 뒤 사용할 수 있습니다.
           </p>
-        </form>
+        </section>
       </section>
     </main>
 
@@ -93,5 +120,6 @@
         <a href="./privacy.html">고지</a>
       </div>
     </footer>
+    <script type="module" src="./login.js"></script>
   </body>
 </html>

@@ -457,6 +457,48 @@ describe('playback timeline', () => {
     })
   })
 
+  it('carries trill ornaments and key-aware upper neighbor frequencies into playback events', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  keySignature: { fifths: 1 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'trill-note',
+                          pitch: { step: 'E', octave: 4 },
+                          ornaments: ['trill']
+                        }),
+                        createRest({
+                          id: 'trill-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const [event] = createPlaybackTimeline(score).events
+
+    expect(event).toMatchObject({
+      eventId: 'trill-note',
+      ornaments: ['trill']
+    })
+    expect(event.frequency).toBeCloseTo(329.628, 3)
+    expect(event.trillFrequency).toBeCloseTo(369.994, 3)
+  })
+
   it('finds the event under the playhead including rests', () => {
     const timeline = createPlaybackTimeline(demoScore)
 

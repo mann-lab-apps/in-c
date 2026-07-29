@@ -41,10 +41,7 @@ import { resolveNotationEventTone } from './visual-state'
 
 interface NotationPreviewProps {
   score: Score
-  inputCursor?: {
-    measureId: string
-    tick: number
-  }
+  inlineLyricEditor?: InlineLyricEditor
   selectedEventId?: string
   selectedEventIds?: string[]
   selectedMeasureId?: string
@@ -52,6 +49,21 @@ interface NotationPreviewProps {
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
   onSelectMeasure: (measureId: string) => void
+}
+
+interface InlineLyricEditor {
+  eventId: string
+  value: string
+  syllabic: 'single' | 'begin' | 'middle' | 'end'
+  extend?: boolean
+  onCommit: (
+    text: string,
+    options?: {
+      syllabic?: 'single' | 'begin' | 'middle' | 'end'
+      extend?: boolean
+      moveNext?: boolean
+    }
+  ) => void
 }
 
 const MIN_RENDER_WIDTH = 560
@@ -71,7 +83,7 @@ interface SystemBounds {
 
 export function NotationPreview({
   score,
-  inputCursor,
+  inlineLyricEditor,
   selectedEventId,
   selectedEventIds = [],
   selectedMeasureId,
@@ -115,7 +127,6 @@ export function NotationPreview({
     renderer.resize(renderWidth, layout.height)
     const context = renderer.getContext()
     const svg = container.querySelector('svg')
-    let inputPoint: CursorPoint | undefined
     let playbackPoint: CursorPoint | undefined
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
@@ -426,8 +437,8 @@ export function NotationPreview({
           if (svg && event?.type === 'note' && event.tremolo) {
             drawTremoloMark(
               svg,
-              note.getAbsoluteX(),
               placement.y,
+              note,
               event.tremolo.marks
             )
           }
@@ -444,27 +455,15 @@ export function NotationPreview({
             drawLyrics(svg, note.getAbsoluteX(), placement.y, event.lyrics)
           }
 
-          if (
-            measure.id === inputCursor?.measureId &&
-            events[noteIndex]?.position.tick === inputCursor.tick
-          ) {
-            inputPoint = {
-              x: note.getAbsoluteX(),
-              y: placement.y
-            }
+          if (svg && eventId === inlineLyricEditor?.eventId) {
+            drawInlineLyricEditor(
+              svg,
+              note.getAbsoluteX(),
+              placement.y,
+              inlineLyricEditor
+            )
           }
         })
-
-        if (
-          !inputPoint &&
-          measure.id === inputCursor?.measureId &&
-          inputCursor.tick === measureDurationTicks(measure)
-        ) {
-          inputPoint = {
-            x: placement.x + placement.width,
-            y: placement.y
-          }
-        }
       })
 
       const dynamic = dynamicsByMeasureId.get(measure.id)
@@ -594,32 +593,14 @@ export function NotationPreview({
     }
 
     const overlayGroup =
-      svg && (inputPoint || playbackPoint)
+      svg && playbackPoint
         ? document.createElementNS('http://www.w3.org/2000/svg', 'g')
         : undefined
 
     if (overlayGroup) {
       overlayGroup.classList.add('notation-state-overlays')
-      overlayGroup.setAttribute(
-        'aria-label',
-        '입력 커서와 재생 커서 상태 표시'
-      )
+      overlayGroup.setAttribute('aria-label', '재생 커서 상태 표시')
       svg?.append(overlayGroup)
-    }
-
-    if (overlayGroup && inputPoint) {
-      const cursor = document.createElementNS(
-        'http://www.w3.org/2000/svg',
-        'line'
-      )
-
-      cursor.classList.add('notation-input-cursor')
-      cursor.setAttribute('aria-label', '다음 입력 위치')
-      cursor.setAttribute('x1', String(inputPoint.x - 7))
-      cursor.setAttribute('x2', String(inputPoint.x - 7))
-      cursor.setAttribute('y1', String(inputPoint.y - 4))
-      cursor.setAttribute('y2', String(inputPoint.y + 98))
-      overlayGroup.append(cursor)
     }
 
     if (overlayGroup && playbackPoint) {
@@ -646,7 +627,7 @@ export function NotationPreview({
     onSelectMeasure,
     renderWidth,
     score,
-    inputCursor,
+    inlineLyricEditor,
     playbackEventId,
     selectedEventId,
     selectedEventIds,
@@ -1092,27 +1073,53 @@ function drawBreathMark(
 
 function drawTremoloMark(
   svg: SVGSVGElement,
-  x: number,
   staffY: number,
+  note: StaveNote,
   marks: number
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const stemGeometry = resolveStemGeometry(note, staffY)
+  const centerY = (stemGeometry.topY + stemGeometry.baseY) / 2
+  const firstY = centerY - ((marks - 1) * 5) / 2
 
   group.classList.add('notation-tremolo-mark')
 
   for (let index = 0; index < marks; index += 1) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-    const y = staffY + 16 + index * 5
+    const y = firstY + index * 5
 
-    line.setAttribute('x1', String(x + 7))
-    line.setAttribute('x2', String(x + 22))
-    line.setAttribute('y1', String(y + 8))
-    line.setAttribute('y2', String(y))
+    line.setAttribute('x1', String(stemGeometry.x - 8))
+    line.setAttribute('x2', String(stemGeometry.x + 8))
+    line.setAttribute('y1', String(y + 4))
+    line.setAttribute('y2', String(y - 4))
     line.setAttribute('stroke-width', '2')
     group.append(line)
   }
 
   svg.append(group)
+}
+
+function resolveStemGeometry(
+  note: StaveNote,
+  staffY: number
+): { x: number; topY: number; baseY: number } {
+  try {
+    const extents = note.getStemExtents()
+
+    return {
+      x: note.getStemX(),
+      topY: extents.topY,
+      baseY: extents.baseY
+    }
+  } catch {
+    const x = note.getAbsoluteX() + 12
+
+    return {
+      x,
+      topY: staffY - 20,
+      baseY: staffY + 20
+    }
+  }
 }
 
 function drawOrnaments(
@@ -1173,6 +1180,71 @@ function drawLyrics(
       lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
     }${lyric.extend ? '_' : ''}`
     svg.append(text)
+  })
+}
+
+function drawInlineLyricEditor(
+  svg: SVGSVGElement,
+  x: number,
+  staffY: number,
+  editor: InlineLyricEditor
+): void {
+  const container = document.createElementNS(
+    'http://www.w3.org/2000/svg',
+    'foreignObject'
+  )
+  const input = document.createElementNS(
+    'http://www.w3.org/1999/xhtml',
+    'input'
+  ) as HTMLInputElement
+  const commit = (
+    options?: Parameters<InlineLyricEditor['onCommit']>[1]
+  ) => {
+    editor.onCommit(input.value, {
+      syllabic: editor.syllabic,
+      extend: editor.extend,
+      ...options
+    })
+  }
+
+  container.classList.add('notation-lyric-editor')
+  container.setAttribute('x', String(x - 26))
+  container.setAttribute('y', String(staffY + 98))
+  container.setAttribute('width', '108')
+  container.setAttribute('height', '42')
+
+  input.setAttribute('aria-label', '선택 음표 가사')
+  input.maxLength = 48
+  input.placeholder = '가사'
+  input.type = 'text'
+  input.value = editor.value
+  input.addEventListener('blur', () => commit())
+  input.addEventListener('keydown', (event) => {
+    if (event.isComposing) {
+      return
+    }
+
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      commit({ moveNext: true })
+    } else if (event.key === '-') {
+      event.preventDefault()
+      commit({ syllabic: 'begin', moveNext: true })
+    } else if (event.key === '_') {
+      event.preventDefault()
+      commit({ syllabic: 'single', extend: true, moveNext: true })
+    } else if (event.key === 'Escape') {
+      event.preventDefault()
+      input.value = editor.value
+      input.blur()
+    }
+  })
+
+  container.append(input)
+  svg.append(container)
+  window.requestAnimationFrame(() => {
+    input.focus()
+    input.select()
   })
 }
 

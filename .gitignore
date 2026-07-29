@@ -16,3 +16,5 @@ external-references/
 *.log
 *.tmp
 *.musicxml.tmp
+.env.local
+.env.*.local

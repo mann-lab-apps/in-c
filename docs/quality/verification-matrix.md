@@ -50,7 +50,7 @@
 | --- | --- | --- | --- | --- | --- | --- |
 | npm audit moderate+ | `npm audit --audit-level=moderate` | 자동 | Local evidence only | Pass; one low severity esbuild Windows advisory remains | [2026-07-15 run](evidence-log.md#2026-07-15-run) | #8 or security issue |
 | Windows advisory impact | Windows `npm run dev`, `npm run build`, audit | Manual/OS-specific | External OS required | Blocked on Windows environment | [Risk R-004](risk-register.md#r-004-windows-dev-server-advisory-remains-unverified) | #8 |
-| Secret handling | Supabase/env not configured in repo | Manual | External account/env required | Not applicable for current static/editor package | [Risk R-001](risk-register.md#r-001-supabase-backend-is-not-operational) | #316 |
+| Secret handling | Supabase publishable env in Actions Variables; local `.env.local` ignored | Manual | Public Vite env only, no service role in repo | Pass for Auth client setup; provider/schema/RLS remain external | [Risk R-001](risk-register.md#r-001-supabase-backend-is-not-operational) | #316 |
 
 ## Documentation And Issue Verification
 
@@ -72,7 +72,7 @@ coverage 정렬은 #322에서 추적한다.
 - packaged app install/open on each OS
 - Windows dev server advisory impact
 - production deployment URL smoke test after an actual deployment
-- Supabase project/RLS/env behavior after user-approved external setup
+- Supabase OAuth provider/schema/RLS behavior after user-approved external setup
 - human review of release notes and known limitations wording
 
 수동 항목은 통과로 추정하지 않는다. 실행 전까지 `Not run`, `Blocked`, 또는 `Manual`로 유지한다.

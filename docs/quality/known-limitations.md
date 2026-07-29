@@ -23,8 +23,8 @@
 | --- | --- |
 | 유형 | 미완성 기능 |
 | 연결 이슈 | #316 |
-| 제한 | Supabase project, schema, RLS/auth, env가 실제 운영 환경에 적용되지 않았다. |
-| 사용자 영향 | 계정, 커뮤니티 데이터, 서버 CRUD가 필요한 기능은 현재 제품 범위 밖이다. |
+| 제한 | 공개 사이트 Auth client와 publishable env 주입은 적용되었지만, OAuth provider 설정, schema, RLS, 서버 데이터 운영은 아직 완료되지 않았다. |
+| 사용자 영향 | provider 설정 전에는 소셜 로그인 버튼이 성공하지 않으며, 커뮤니티 데이터와 서버 CRUD가 필요한 기능은 현재 제품 범위 밖이다. |
 | 문서 근거 | [Supabase Backend Plan](../product/supabase-backend-plan.md), [Risk R-001](risk-register.md#r-001-supabase-backend-is-not-operational) |
 
 ## Multi-Voice Editing Is Not Complete

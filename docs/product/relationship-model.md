@@ -16,7 +16,7 @@ Columns, Compositions, 공연 배너, Community, Chromatics가 기능 모음으�
 | 작곡가 | `person:wolfgang-amadeus-mozart` | Creator와 구분하되 같은 person namespace 사용 가능 |
 | Creator | `creator:kim-example` | 공개 프로필 slug 기준 |
 | 공연 | `concert:2026-07-suwon-recital` | 날짜와 지역/공연 slug 조합 |
-| Column | `column:listen-with-one-question` | 기존 column slug 사용 |
+| Column | `column:starting-to-listen-classical` | 기존 column slug 사용 |
 | Class | `class:intro-listening-2026-07` | 주제와 기간 조합 |
 | 악보/파일 | `score:amazing-grace-melody` | Compositions catalog slug와 연결 |
 
@@ -64,12 +64,14 @@ Columns, Compositions, 공연 배너, Community, Chromatics가 기능 모음으�
 - Compositions의 `Open in Chromatics`는 `score:*`를 열고 다시 작품 페이지로 돌아올 수
   있어야 한다.
 - 공연 배너는 공연만 보여주지 않고 포함 작품과 관련 인물 메타데이터를 함께 연결한다.
-- Community 학습 후보는 관련 인물과 작품을 연결해 감상 흐름이 Columns/공연 배너로 이어지게 한다.
+- Community는 게시판으로 두고 감상 질문, 악보 사용 경험, Chromatics 피드백을 모은다.
+- Community 게시판은 CRUD 서버가 붙기 전까지 글쓰기, 수정, 삭제를 지원하지 않는다.
 
 ## 현재 공개 범위
 
 - Creator의 독립 공개 프로필과 비공개 연락처는 현재 공개 MVP에 포함하지 않는다.
-- Community의 클래스는 학습 후보 정보이며 신청이나 결제 기능으로 표시하지 않는다.
+- Community의 글쓰기, 댓글, 수정, 삭제는 현재 공개 MVP에 포함하지 않는다.
+- Community 게시판의 생성·수정·삭제는 `in-C API`의 인증된 CRUD 서버가 담당한다.
 
 ## 적용 대상
 

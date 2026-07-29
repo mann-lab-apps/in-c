@@ -31,6 +31,9 @@ const relationshipModelPath = resolve(
   repoRoot,
   'docs/product/relationship-model.md'
 )
+const loginPagePath = resolve(siteRoot, 'login.html')
+const loginScriptPath = resolve(siteRoot, 'login.js')
+const authScriptPath = resolve(siteRoot, 'auth.js')
 const compositionDifficulties = new Set(['초급', '중급', '고급'])
 const compositionTags = new Set([
   'american-folk-song',
@@ -278,14 +281,18 @@ function verifyProductSurfaceStates() {
   }
 
   // ATDD: product-surfaces.community-state
-  const community = findItem('Community 최소 대화·학습 흐름')
+  const community = findItem('Community 게시판 CRUD')
   assert(community, 'feature map missing Community flow')
   assert(community.status !== '지원', 'Community must not be supported')
   assert(
     community.docs?.includes('docs/product/relationship-model.md'),
     'Community must link to the relationship model'
   )
-  for (const phrase of ['독립 공개 프로필', '비공개 연락처', '신청이나 결제']) {
+  assert(
+    community.docs?.includes('docs/product/community/api-server-boundary.md'),
+    'Community must link to the API server boundary'
+  )
+  for (const phrase of ['게시판', 'CRUD 서버', '글쓰기', '수정', '삭제']) {
     assert(
       relationshipModel.includes(phrase),
       `relationship model missing Community boundary: ${phrase}`
@@ -293,11 +300,48 @@ function verifyProductSurfaceStates() {
   }
 }
 
+function verifyLoginAuthSurface() {
+  const loginHtml = readFileSync(loginPagePath, 'utf8')
+  const loginScript = readFileSync(loginScriptPath, 'utf8')
+  const authScript = readFileSync(authScriptPath, 'utf8')
+
+  for (const provider of ['google', 'naver', 'kakao']) {
+    assert(
+      loginHtml.includes(`data-auth-provider="${provider}"`),
+      `login page missing ${provider} auth button`
+    )
+  }
+
+  assert(
+    loginHtml.includes('data-auth-status') &&
+      loginHtml.includes('data-auth-session') &&
+      loginHtml.includes('data-auth-sign-out'),
+    'login page missing auth session controls'
+  )
+  assert(loginHtml.includes('./login.js'), 'login page must load login.js')
+  assert(
+    loginScript.includes('signInWithOAuth') &&
+      loginScript.includes('redirectTo') &&
+      loginScript.includes('getSession') &&
+      loginScript.includes('onAuthStateChange') &&
+      loginScript.includes('signOut'),
+    'login script must support OAuth session lifecycle'
+  )
+  assert(
+    authScript.includes('@supabase/supabase-js') &&
+      authScript.includes('VITE_SUPABASE_URL') &&
+      authScript.includes('VITE_SUPABASE_PUBLISHABLE_KEY') &&
+      authScript.includes('custom:naver'),
+    'auth script must use Supabase env config and Naver custom provider'
+  )
+}
+
 try {
   verifyDownloadManifest()
   verifyCompositions()
   verifyProductRelations()
   verifyProductSurfaceStates()
+  verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(
     'Verified site content manifests, Compositions assets, product relations, and feature map paths.'

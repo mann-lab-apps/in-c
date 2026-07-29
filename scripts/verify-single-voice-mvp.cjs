@@ -974,23 +974,23 @@ async function verifyKeyboardRouting(window) {
     selectMode.hasInputCursor ||
     selectMode.editCount !== '1회 수정' ||
     selectMode.status !== '4분음표' ||
-    !endCursor.hasInputCursor ||
-    endCursor.editCount !== '1회 수정' ||
-    endCursor.status !== '입력 중' ||
-    !cursorNoteInput.hasInputCursor ||
-    cursorNoteInput.editCount !== '2회 수정' ||
-    cursorNoteInput.eventCount !== initialEventCount + 2 ||
-    cursorNoteInput.status !== '입력 중' ||
-    !cursorRestInput.hasInputCursor ||
+    endCursor.hasInputCursor ||
+    endCursor.editCount !== '2회 수정' ||
+    endCursor.status !== '4분음표' ||
+    cursorNoteInput.hasInputCursor ||
+    cursorNoteInput.editCount !== '3회 수정' ||
+    cursorNoteInput.eventCount !== initialEventCount + 1 ||
+    cursorNoteInput.status !== '4분음표' ||
+    cursorRestInput.hasInputCursor ||
     cursorRestInput.editCount !== '1회 수정' ||
-    cursorRestInput.eventCount !== initialEventCount + 2 ||
-    cursorRestInput.status !== '입력 중' ||
-    !koreanCursorRestInput.hasInputCursor ||
+    cursorRestInput.eventCount !== initialEventCount + 1 ||
+    cursorRestInput.status !== '4분음표' ||
+    koreanCursorRestInput.hasInputCursor ||
     koreanCursorRestInput.editCount !== '1회 수정' ||
-    koreanCursorRestInput.eventCount !== initialEventCount + 2 ||
-    koreanCursorRestInput.status !== '입력 중' ||
+    koreanCursorRestInput.eventCount !== initialEventCount + 1 ||
+    koreanCursorRestInput.status !== '4분음표' ||
     textInputShortcuts.editCount !== cursorRestInput.editCount ||
-    textInputShortcuts.pressedDuration !== '4분음표' ||
+    textInputShortcuts.pressedDuration !== '온음표' ||
     restShortcutConvertsSelection.eventCount !== initialEventCount ||
     restShortcutConvertsSelection.editCount !== '1회 수정' ||
     restShortcutConvertsSelection.hasInputCursor ||
@@ -1011,10 +1011,10 @@ async function verifyKeyboardRouting(window) {
     durationShortcutChange.eventCount !== initialEventCount + 1 ||
     durationShortcutChange.pressedDuration !== '8분음표' ||
     durationShortcutChange.statusMessage !== '음가를 8분음표로 바꿨습니다.' ||
-    durationShortcutCursor.editCount !== '0회 수정' ||
-    !durationShortcutCursor.hasInputCursor ||
+    durationShortcutCursor.editCount !== '2회 수정' ||
+    durationShortcutCursor.hasInputCursor ||
     durationShortcutCursor.pressedDuration !== '2분음표' ||
-    durationShortcutCursor.status !== '입력 중' ||
+    durationShortcutCursor.status !== '2분음표' ||
     durationShortcutFailure.editCount !== '0회 수정' ||
     durationShortcutFailure.eventCount !== initialEventCount ||
     durationShortcutFailure.pressedDuration !== '4분음표' ||
@@ -1051,10 +1051,10 @@ async function verifyKeyboardRouting(window) {
     tripletButtonToggleOff.hasProgress ||
     tripletButtonToggleOff.tupletCount !== 1 ||
     tripletButtonToggleOff.status !== '선택한 셋잇단음표를 해제했습니다.' ||
-    tripletShortcutStart.editCount !== '0회 수정' ||
+    tripletShortcutStart.editCount !== '1회 수정' ||
     !tripletShortcutStart.status?.startsWith('셋잇단음표 입력') ||
     tripletShortcutStart.progress !== '셋잇단음표 0/3' ||
-    !tripletShortcutStart.tick?.startsWith('M8 · ') ||
+    !tripletShortcutStart.tick?.startsWith('M9 · ') ||
     tripletShortcutPreview.previewEventCount < 3 ||
     tripletShortcutPreview.progress !== '셋잇단음표 2/3' ||
     tripletShortcutPreview.status !== '셋잇단음표 2/3개 입력됨. 1개 더 입력해 주세요.' ||
@@ -1873,7 +1873,9 @@ async function verifyNewScoreWizard(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         selectedEvent,
         selectedMeasure,
-        tempo: document.querySelector('.tempo-control output')?.textContent?.trim(),
+        tempo: document
+          .querySelector('section[aria-label="빠르기"] output')
+          ?.textContent?.trim(),
         status: statusValues.at(-1),
         dialogOpen: Boolean(
           document.querySelector('form[aria-label="새 악보 만들기"]')

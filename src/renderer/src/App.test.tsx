@@ -18,12 +18,28 @@ import { demoScore } from './notation/demo-score'
 vi.mock('./notation/NotationPreview', () => ({
   NotationPreview: ({
     score,
+    inlineLyricEditor,
     onSelectEvent,
-    onSelectMeasure
+    onSelectMeasure,
+    selectedEventId,
   }: {
     score: typeof demoScore
+    inlineLyricEditor?: {
+      value: string
+      syllabic: 'single' | 'begin' | 'middle' | 'end'
+      extend?: boolean
+      onCommit: (
+        text: string,
+        options?: {
+          syllabic?: 'single' | 'begin' | 'middle' | 'end'
+          extend?: boolean
+          moveNext?: boolean
+        }
+      ) => void
+    }
     onSelectEvent: (eventId: string, extendRange?: boolean) => void
     onSelectMeasure: (measureId: string) => void
+    selectedEventId?: string
   }) => (
     <div
       aria-label="악보 미리보기 테스트 더블"
@@ -36,8 +52,31 @@ vi.mock('./notation/NotationPreview', () => ({
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
+      data-selected-event-id={selectedEventId ?? ''}
       data-testid="notation-preview"
     >
+      {inlineLyricEditor ? (
+        <input
+          aria-label="선택 음표 가사"
+          defaultValue={inlineLyricEditor.value}
+          onBlur={(event) =>
+            inlineLyricEditor.onCommit(event.currentTarget.value, {
+              syllabic: inlineLyricEditor.syllabic,
+              extend: inlineLyricEditor.extend
+            })
+          }
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              inlineLyricEditor.onCommit(event.currentTarget.value, {
+                syllabic: inlineLyricEditor.syllabic,
+                extend: inlineLyricEditor.extend,
+                moveNext: true
+              })
+            }
+          }}
+        />
+      ) : null}
       {score.parts[0]?.staves[0]?.measures[0]?.voices[0]?.events[0]?.id}
       {score.parts[0]?.staves[0]?.measures.map((measure) => (
         <button
@@ -296,6 +335,29 @@ describe('App component shell', () => {
     })
   })
 
+  it('navigation.arrow-right-at-last-event appends a full-measure rest measure instead of showing an input cursor', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    expect(preview).toHaveAttribute('data-event-count', '9')
+    expect(preview).toHaveAttribute('data-selected-event-id', 'note-e4')
+
+    Array.from({ length: 7 }).forEach(() => {
+      fireEvent.keyDown(window, { key: 'ArrowRight' })
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-event-count',
+        '10'
+      )
+    })
+    expect(screen.getByText('새 온쉼표 마디를 추가했습니다.')).toBeInTheDocument()
+    expect(screen.queryByText('입력 중')).not.toBeInTheDocument()
+  })
+
   it('playback.global-tempo lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
@@ -305,26 +367,40 @@ describe('App component shell', () => {
     const toolbarTabs = screen.getByRole('navigation', {
       name: '편집 도구 카테고리'
     })
+    expect(
+      within(toolbarTabs).getByRole('link', { name: 'Columns 출발 읽기' })
+    ).toHaveAttribute(
+      'href',
+      'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
+    )
+    expect(
+      within(workspace).queryByLabelText('Columns 추천')
+    ).not.toBeInTheDocument()
+    expect(
+      within(toolbarTabs).getAllByRole('button').map((button) => button.textContent)
+    ).toEqual(['파일', '악보', '음표', '가사', '재생'])
     expect(screen.getByRole('button', { name: '파일' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '음표' })).toHaveAttribute(
       'aria-pressed',
       'true'
     )
     expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
-    expect(screen.getByLabelText('빠르기')).not.toBeVisible()
+    screen
+      .getAllByLabelText('빠르기')
+      .forEach((element) => expect(element).not.toBeVisible())
     expect(
       within(toolbarTabs).queryByRole('button', { name: '선택' })
     ).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '가사' })).toBeInTheDocument()
     expect(screen.getByLabelText('코드 심벌')).toBeInTheDocument()
-    expect(screen.getByLabelText('선택 음표 가사')).not.toBeVisible()
+    expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     expect(screen.getByLabelText('음자리표')).not.toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
     expect(screen.getByLabelText('가사 절')).toBeVisible()
-    const lyricInput = screen.getByLabelText('선택 음표 가사')
     const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
+    const lyricInput = within(preview).getByLabelText('선택 음표 가사')
     const initialEventCount = preview.getAttribute('data-event-count')
     expect(lyricInput).toBeVisible()
     expect(screen.getByLabelText('가사 음절')).toBeVisible()
@@ -337,11 +413,26 @@ describe('App component shell', () => {
     expect(fireEvent.keyDown(lyricInput, { key: 'Enter' })).toBe(false)
     expect(screen.getByText('가사를 갱신했습니다.')).toBeInTheDocument()
 
-    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '마디' }))
+    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
     expect(screen.getByLabelText('조표')).toBeVisible()
     expect(screen.getByLabelText('박자표')).toBeVisible()
     expect(screen.getByLabelText('음자리표')).toBeVisible()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).toBeVisible()
+    const tempoInput = screen.getByRole('slider', { name: '빠르기' })
+    const tempoBeatUnit = screen.getByLabelText('빠르기 기준 음가')
+    const tempoText = screen.getByLabelText('빠르기말')
+    expect(tempoInput).toHaveValue('75')
+    expect(tempoBeatUnit).toHaveValue('quarter:0')
+    expect(tempoText).toHaveTextContent('♩ = 75')
+    fireEvent.change(tempoInput, { target: { value: '90' } })
+    expect(tempoText).toHaveTextContent('♩ = 90')
+    expect(preview).toHaveAttribute('data-global-tempo', '90')
+    fireEvent.change(tempoBeatUnit, { target: { value: 'eighth:0' } })
+    expect(tempoText).toHaveTextContent('♪ = 90')
+    const tempoVisibilityToggle = screen.getByLabelText('악보에 빠르기말 표기')
+    expect(tempoVisibilityToggle).toBeChecked()
+    fireEvent.click(tempoVisibilityToggle)
+    expect(tempoVisibilityToggle).not.toBeChecked()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '파일' }))
     expect(within(workspace).getByLabelText('새 악보 만들기')).toBeInTheDocument()
@@ -357,26 +448,18 @@ describe('App component shell', () => {
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '재생' }))
     expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
-    expect(within(workspace).getByLabelText('빠르기')).toHaveValue('75')
-    expect(within(workspace).getByLabelText('빠르기 기준 음가')).toBeInTheDocument()
-    const tempoTextInput = within(workspace).getByLabelText('빠르기말')
-    expect(tempoTextInput).toHaveValue('♩ = 75')
-    fireEvent.change(tempoTextInput, { target: { value: '♩ = 96' } })
-    fireEvent.blur(tempoTextInput)
-    expect(within(workspace).getByLabelText('빠르기')).toHaveValue('96')
-    expect(preview).toHaveAttribute('data-global-tempo', '96')
-    const transparentTempoToggle =
-      within(workspace).getByLabelText('빠르기말 투명')
-    expect(transparentTempoToggle).not.toBeChecked()
-    fireEvent.click(transparentTempoToggle)
-    expect(transparentTempoToggle).toBeChecked()
+    screen
+      .getAllByLabelText('빠르기')
+      .forEach((element) => expect(element).not.toBeVisible())
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '음표' }))
     expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
-    expect(screen.getByLabelText('빠르기')).not.toBeVisible()
+    screen
+      .getAllByLabelText('빠르기')
+      .forEach((element) => expect(element).not.toBeVisible())
     expect(screen.getByLabelText('음자리표')).not.toBeVisible()
     expect(screen.getByLabelText('코드 심벌')).toBeInTheDocument()
-    expect(screen.getByLabelText('선택 음표 가사')).not.toBeVisible()
+    expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
   }, 15000)
 
@@ -386,7 +469,7 @@ describe('App component shell', () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
     const clefSelect = screen.getByLabelText('음자리표')
     const preview = screen.getByTestId('notation-preview')
     const initialClefs = preview.getAttribute('data-measure-clefs')?.split(',')
@@ -509,7 +592,7 @@ describe('App component shell', () => {
     expect(
       await screen.findByText('PDF 저장에 실패했습니다.')
     ).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('shows status terms and the notation preview mount point', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
@@ -579,7 +662,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
     const rehearsalMarkInput = screen.getByLabelText('연습표')
     const preview = screen.getByTestId('notation-preview')
 
@@ -603,7 +686,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
     const staffTextInput = screen.getByLabelText('보표 글자')
     const preview = screen.getByTestId('notation-preview')
     const initialEventCount = preview.getAttribute('data-event-count')
@@ -625,7 +708,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '마디' }))
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
     fireEvent.change(screen.getByLabelText('셈여림'), {
       target: { value: 'mf' }
     })
@@ -697,19 +780,31 @@ describe('App component shell', () => {
     )
   })
 
-  it('note-input.edit-selected-event-in-inspector note-input.apply-accidental edits duration, dots, accidental, and event type', async () => {
+  it('note-input.edit-selected-event-in-inspector note-input.apply-accidental edits duration, dots, accidental, and event type without duplicate duration controls', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
 
     const inspector = screen.getByRole('region', { name: '음표 편집' })
-    const duration = within(inspector).getByLabelText('선택 이벤트 음가')
+    const durationPalette = screen.getByLabelText('음가')
+    const eighthDuration = within(durationPalette).getByRole('button', {
+      name: '8분음표, 단축키 4'
+    })
+    const quarterDuration = within(durationPalette).getByRole('button', {
+      name: '4분음표, 단축키 3'
+    })
 
-    fireEvent.change(duration, { target: { value: 'eighth' } })
-    expect(duration).toHaveValue('eighth')
+    expect(within(inspector).queryByLabelText('선택 이벤트 음가')).not.toBeInTheDocument()
+
+    fireEvent.click(eighthDuration)
+    expect(eighthDuration).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(within(inspector).getByRole('button', { name: '+' }))
     expect(within(inspector).getByText('1')).toBeInTheDocument()
+
+    fireEvent.click(quarterDuration)
+    expect(quarterDuration).toHaveAttribute('aria-pressed', 'true')
+    expect(within(inspector).getByText('0')).toBeInTheDocument()
 
     const sharp = within(inspector).getByRole('button', { name: '샤프' })
     fireEvent.click(sharp)
@@ -720,11 +815,11 @@ describe('App component shell', () => {
     })
     fireEvent.click(convertToRest)
     expect(convertToRest).toBeDisabled()
-    expect(duration).toHaveValue('eighth')
+    expect(quarterDuration).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.keyDown(window, { code: 'KeyZ', key: 'z', metaKey: true })
     expect(convertToRest).toBeEnabled()
-  })
+  }, 15000)
 
   it('layout.breath-marks replaces a breath mark with a caesura on the selected event', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')

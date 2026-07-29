@@ -30,7 +30,33 @@ const slugifyAnchor = (text) =>
     .replace(/[^a-z0-9가-힣]+/g, '-')
     .replace(/^-|-$/g, '')
 
-const renderMarkdown = (markdown) => {
+const normalizeAssetSrc = (src, assetPrefix) => {
+  if (/^(?:https?:)?\/\//.test(src) || src.startsWith('/') || src.startsWith('.')) {
+    return src
+  }
+
+  return `${assetPrefix}${src}`
+}
+
+const renderFigureMarkdown = (line, assetPrefix) => {
+  const match = /^!\[(?<alt>.*?)\]\((?<src>\S+)(?:\s+"(?<caption>.*?)")?\)$/.exec(
+    line
+  )
+
+  if (!match?.groups) {
+    return undefined
+  }
+
+  const { alt, src } = match.groups
+  const safeAlt = escapeHtml(alt)
+  const safeSrc = escapeHtml(normalizeAssetSrc(src, assetPrefix))
+
+  return `<figure class="column-figure">
+  <img src="${safeSrc}" alt="${safeAlt}" loading="lazy" />
+</figure>`
+}
+
+const renderMarkdown = (markdown, { assetPrefix = '../' } = {}) => {
   const lines = markdown.trim().split('\n')
   const html = []
   let listItems = []
@@ -45,6 +71,14 @@ const renderMarkdown = (markdown) => {
     const line = rawLine.trim()
     if (!line) {
       flushList()
+      continue
+    }
+
+    const figure = renderFigureMarkdown(line, assetPrefix)
+
+    if (figure) {
+      flushList()
+      html.push(figure)
       continue
     }
 
@@ -123,7 +157,7 @@ const renderArticle = (column) => {
     <link rel="icon" href="../assets/icon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../styles.css" />
   </head>
-  <body>
+  <body class="columns-page">
     <header class="site-header">
       <a class="brand" href="../index.html" aria-label="in C home">
         <img src="../assets/icon.svg" width="36" height="36" alt="" />
@@ -133,7 +167,7 @@ const renderArticle = (column) => {
         <a aria-current="page" href="../columns.html">Columns</a>
         <a href="../compositions.html">Compositions</a>
         <a href="../community.html">Community</a>
-        <a href="../index.html#download">앱 다운로드</a>
+        <a href="../index.html#download">Chromatics</a>
       </nav>
     </header>
 
@@ -143,11 +177,7 @@ const renderArticle = (column) => {
           <p class="eyebrow">Columns · ${escapeHtml(column.category)}</p>
           <h1>${escapeHtml(column.title)}</h1>
           <p class="column-article__summary">${escapeHtml(column.summary)}</p>
-          <dl class="column-meta">
-            <div><dt>상태</dt><dd>공개</dd></div>
-            <div><dt>읽는 시간</dt><dd>${column.readingMinutes}분</dd></div>
-            <div><dt>게시일</dt><dd>${column.publishedAt}</dd></div>
-          </dl>
+          <p class="column-published">게시일 ${escapeHtml(column.publishedAt)}</p>
           <ul class="tag-list" aria-label="태그">
             ${renderChipList(column.tags)}
           </ul>
@@ -180,15 +210,6 @@ ${renderMarkdown(column.body)}
       </article>
     </main>
 
-    <footer class="site-footer">
-      <p>© 2026 mann-lab-apps. Columns는 in C가 만드는 클래식 읽기 지도입니다.</p>
-      <div>
-        <a href="../columns.html">Columns</a>
-        <a href="../community.html">Community</a>
-        <a href="../index.html#download">앱 다운로드</a>
-        <a href="../privacy.html">고지</a>
-      </div>
-    </footer>
     <script type="module" src="../main.js"></script>
   </body>
 </html>

@@ -3,8 +3,10 @@ import {
   durationToTicks,
   measureDurationTicks,
   pitchToMidi,
+  effectiveAlterAt,
   resolveNotePitch,
   sortVoiceEvents,
+  transposeDiatonic,
   voiceEventDurationTicks,
   type Duration,
   type Note,
@@ -35,6 +37,8 @@ export interface PlaybackEvent {
   frequency?: number
   frequencies?: number[]
   tremolo?: Note['tremolo']
+  ornaments?: Note['ornaments']
+  trillFrequency?: number
   velocityStart: number
   velocityEnd: number
 }
@@ -120,6 +124,11 @@ function createStaffPlaybackEvents(
             frequencies && frequencies.length > 0 ? frequencies[0] : undefined,
           frequencies,
           tremolo: event.type === 'note' ? event.tremolo : undefined,
+          ornaments: event.type === 'note' ? event.ornaments : undefined,
+          trillFrequency:
+            event.type === 'note'
+              ? eventTrillFrequency(measure, voice, event)
+              : undefined,
           velocityStart: resolveMeasureVelocity(score, measure.id),
           velocityEnd: resolveMeasureVelocity(score, measure.id)
         }
@@ -230,6 +239,33 @@ function eventFrequencies(
     : [resolveNotePitch(measure, voice, event)]
 
   return pitches.map((pitch) => pitchToFrequency(pitch))
+}
+
+function eventTrillFrequency(
+  measure: NonNullable<Score['parts'][number]['staves'][number]['measures']>[number],
+  voice: NonNullable<Score['parts'][number]['staves'][number]['measures']>[number]['voices'][number],
+  event: Note
+): number | undefined {
+  if (!event.ornaments?.includes('trill')) {
+    return undefined
+  }
+
+  const upperDiatonicPitch = transposeDiatonic(
+    resolveNotePitch(measure, voice, event),
+    1
+  )
+  const upperAlter = effectiveAlterAt({
+    measure,
+    voice,
+    step: upperDiatonicPitch.step,
+    octave: upperDiatonicPitch.octave,
+    tick: event.position.tick
+  })
+
+  return pitchToFrequency({
+    ...upperDiatonicPitch,
+    alter: upperAlter
+  })
 }
 
 function createPlaybackTempoEvents(score: Score): PlaybackTempoEvent[] {

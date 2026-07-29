@@ -5,6 +5,7 @@ import {
   createStaff,
   type KeySignature,
   type Score,
+  type TempoMarking,
   type TimeSignature
 } from '../../../score-core'
 
@@ -172,12 +173,7 @@ export function createNewScore(options: NewScoreOptions): Score {
     id: `score-${crypto.randomUUID()}`,
     title: options.title.trim() || '제목 없는 악보',
     composer: options.composer?.trim() || undefined,
-    tempo: {
-      bpm: tempo,
-      beatUnit: 'quarter',
-      dots: 0,
-      text: `♩ = ${tempo}`
-    },
+    tempo: createTempoMarkingForTimeSignature(tempo, options.timeSignature),
     parts: [
       createPart({
         id: 'part-1',
@@ -192,6 +188,111 @@ export function createNewScore(options: NewScoreOptions): Score {
       })
     ]
   })
+}
+
+export function createTempoMarkingForTimeSignature(
+  bpm: number,
+  timeSignature: TimeSignature,
+  overrides: Partial<Pick<TempoMarking, 'transparent'>> = {}
+): TempoMarking {
+  const beat = resolveDefaultTempoBeatForTimeSignature(timeSignature)
+  const tempo = {
+    bpm,
+    ...beat,
+    transparent: overrides.transparent
+  }
+
+  return {
+    ...tempo,
+    text: formatTempoMarkingText(tempo)
+  }
+}
+
+export function resolveDefaultTempoBeatForTimeSignature(
+  timeSignature: TimeSignature
+): Required<Pick<TempoMarking, 'beatUnit' | 'dots'>> {
+  if (isCompoundMeter(timeSignature)) {
+    const beatUnit = resolveCompoundTempoBeatUnit(timeSignature.beatType)
+
+    if (beatUnit) {
+      return {
+        beatUnit,
+        dots: 1
+      }
+    }
+  }
+
+  return {
+    beatUnit: resolveSimpleTempoBeatUnit(timeSignature.beatType) ?? 'quarter',
+    dots: 0
+  }
+}
+
+export function formatTempoMarkingText(
+  tempo: Pick<TempoMarking, 'bpm' | 'beatUnit' | 'dots'>
+): string {
+  const symbol = tempoBeatUnitSymbol(tempo.beatUnit ?? 'quarter')
+  const dots = '.'.repeat(tempo.dots ?? 0)
+
+  return `${symbol}${dots} = ${tempo.bpm}`
+}
+
+function isCompoundMeter(timeSignature: TimeSignature): boolean {
+  return timeSignature.beats > 3 && timeSignature.beats % 3 === 0
+}
+
+function resolveSimpleTempoBeatUnit(
+  beatType: TimeSignature['beatType']
+): TempoMarking['beatUnit'] {
+  return beatType === 1
+    ? 'whole'
+    : beatType === 2
+      ? 'half'
+      : beatType === 4
+        ? 'quarter'
+        : beatType === 8
+          ? 'eighth'
+          : beatType === 16
+            ? '16th'
+            : beatType === 32
+              ? '32nd'
+              : beatType === 64
+                ? '64th'
+                : undefined
+}
+
+function resolveCompoundTempoBeatUnit(
+  beatType: TimeSignature['beatType']
+): TempoMarking['beatUnit'] {
+  return beatType === 2
+    ? 'whole'
+    : beatType === 4
+      ? 'half'
+      : beatType === 8
+        ? 'quarter'
+        : beatType === 16
+          ? 'eighth'
+          : beatType === 32
+            ? '16th'
+            : beatType === 64
+              ? '32nd'
+              : undefined
+}
+
+function tempoBeatUnitSymbol(beatUnit: NonNullable<TempoMarking['beatUnit']>): string {
+  return beatUnit === 'whole'
+    ? '𝅝'
+    : beatUnit === 'half'
+      ? '𝅗𝅥'
+      : beatUnit === 'eighth'
+        ? '♪'
+        : beatUnit === '16th'
+          ? '𝅘𝅥𝅯'
+          : beatUnit === '32nd'
+            ? '𝅘𝅥𝅰'
+            : beatUnit === '64th'
+              ? '𝅘𝅥𝅱'
+              : '♩'
 }
 
 export function resolveKeySignaturePreset(
