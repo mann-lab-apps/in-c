@@ -293,7 +293,7 @@ function verifyProductSurfaceStates() {
     community.docs?.includes('docs/product/community/api-server-boundary.md'),
     'Community must link to the API server boundary'
   )
-  for (const phrase of ['게시판', 'CRUD 서버', '글쓰기', '수정', '삭제']) {
+  for (const phrase of ['게시판', 'Supabase Auth', '글쓰기', '작성자 수정/삭제', '댓글']) {
     assert(
       relationshipModel.includes(phrase),
       `relationship model missing Community boundary: ${phrase}`

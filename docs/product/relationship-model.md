@@ -65,13 +65,16 @@ Columns, Compositions, 공연 배너, Community, Chromatics가 기능 모음으�
   있어야 한다.
 - 공연 배너는 공연만 보여주지 않고 포함 작품과 관련 인물 메타데이터를 함께 연결한다.
 - Community는 게시판으로 두고 감상 질문, 악보 사용 경험, Chromatics 피드백을 모은다.
-- Community 게시판은 CRUD 서버가 붙기 전까지 글쓰기, 수정, 삭제를 지원하지 않는다.
+- Community 게시판 MVP는 Supabase Auth와 RLS를 기준으로 공개 목록/상세, 로그인
+  글쓰기, 작성자 수정/삭제, 댓글 작성/삭제를 실험 상태로 제공한다.
 
 ## 현재 공개 범위
 
 - Creator의 독립 공개 프로필과 비공개 연락처는 현재 공개 MVP에 포함하지 않는다.
-- Community의 글쓰기, 댓글, 수정, 삭제는 현재 공개 MVP에 포함하지 않는다.
-- Community 게시판의 생성·수정·삭제는 `in-C API`의 인증된 CRUD 서버가 담당한다.
+- Community CRUD는 Supabase 프로젝트, Google OAuth provider, RLS 적용이 확인된
+  환경에서만 동작한다.
+- 장기적으로 Community 게시판의 생성·수정·삭제는 `in-C API`의 인증된 CRUD 서버가
+  담당하되, 첫 MVP는 정적 사이트에서 Supabase client를 직접 호출한다.
 
 ## 적용 대상
 

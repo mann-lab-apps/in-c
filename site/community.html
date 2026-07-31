@@ -6,11 +6,11 @@
     <title>Community | in C</title>
     <meta
       name="description"
-      content="in C Community는 클래식과 관련한 이야기를 자유롭게 나누는 공간으로 준비 중입니다."
+      content="in C Community에서 감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/community.html" />
     <meta property="og:title" content="Community | in C" />
-    <meta property="og:description" content="클래식과 관련한 이야기를 자유롭게 나누는 공간으로 준비 중입니다." />
+    <meta property="og:description" content="감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/community.html" />
     <meta property="og:site_name" content="in C" />
@@ -19,7 +19,7 @@
     <meta property="og:image:alt" content="in C 앱 아이콘" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Community | in C" />
-    <meta name="twitter:description" content="클래식과 관련한 이야기를 자유롭게 나누는 공간으로 준비 중입니다." />
+    <meta name="twitter:description" content="감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다." />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
@@ -45,9 +45,9 @@
       <section class="hero hero--compact" aria-labelledby="community-title">
         <div class="hero__content">
           <p class="eyebrow">Community</p>
-          <h1 id="community-title">커뮤니티 준비 중</h1>
+          <h1 id="community-title">Community</h1>
           <p class="hero__lead">
-            클래식과 관련한 이야기를 자유롭게 나누는 공간입니다.
+            감상 질문, 악보 사용 경험, Chromatics 피드백을 함께 모읍니다.
           </p>
         </div>
       </section>
@@ -56,21 +56,55 @@
         <header class="community-board__header">
           <div>
             <p class="eyebrow">Board</p>
-            <h2 id="community-board-title">게시판 준비 중</h2>
+            <h2 id="community-board-title">게시판</h2>
             <p>
-              자유롭게 클래식 이야기를 나눌 수 있도록 준비하고 있습니다.
+              공개 글은 누구나 읽고, 로그인한 사용자는 글과 댓글을 남길 수 있습니다.
             </p>
           </div>
+          <div class="community-board__actions">
+            <a class="button button--primary" hidden href="./community-write.html" data-community-write-link>글쓰기</a>
+            <a class="button button--secondary" href="./login.html" data-community-login-link>로그인</a>
+          </div>
         </header>
+
+        <div class="community-board__toolbar" aria-label="게시글 분류">
+          <button class="is-active" data-community-category="" type="button">전체</button>
+          <button data-community-category="question" type="button">질문</button>
+          <button data-community-category="feedback" type="button">피드백</button>
+          <button data-community-category="general" type="button">일반</button>
+          <button data-community-category="notice" type="button">공지</button>
+        </div>
+
+        <p class="community-status" data-community-status role="status" aria-live="polite">
+          게시글을 불러오는 중입니다.
+        </p>
+
+        <div class="community-board__layout">
+          <section class="community-panel" aria-labelledby="community-list-title">
+            <div class="community-section-head">
+              <p class="eyebrow">Posts</p>
+              <h3 id="community-list-title">목록</h3>
+            </div>
+            <ul class="community-post-list" data-community-posts></ul>
+          </section>
+
+          <section class="community-panel community-panel--detail" aria-labelledby="community-detail-title" data-community-detail hidden>
+            <div class="community-section-head">
+              <p class="eyebrow">Detail</p>
+              <h3 id="community-detail-title">상세</h3>
+            </div>
+            <div data-community-detail-body></div>
+          </section>
+        </div>
       </section>
     </main>
     <footer class="site-footer">
-      <p>© 2026 mann-lab-apps. Community는 준비 중입니다.</p>
+      <p>© 2026 mann-lab-apps. Community는 Supabase 기반 MVP로 운영합니다.</p>
       <div>
         <a href="./columns.html">Columns</a>
         <a href="./concerts.html">Concerts</a>
       </div>
     </footer>
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="./community.js"></script>
   </body>
 </html>

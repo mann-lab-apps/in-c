@@ -1345,6 +1345,13 @@ dd {
   line-height: 1.65;
 }
 
+.community-board__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: end;
+}
+
 .concerts-topline {
   display: flex;
   align-items: center;
@@ -1406,6 +1413,94 @@ dd {
   background: #e7eceb;
 }
 
+.community-status {
+  margin: 0;
+  color: #4e5a5f;
+  font-weight: 800;
+  line-height: 1.55;
+}
+
+.community-status[data-tone="error"] {
+  color: #8a2d24;
+}
+
+.community-board__layout {
+  display: grid;
+  gap: 18px;
+  align-items: start;
+}
+
+.community-panel {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 22px;
+  border: 1px solid #d5cbbd;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.84);
+}
+
+.community-panel--detail {
+  grid-column: 1;
+}
+
+.community-write-page-panel {
+  max-width: 860px;
+}
+
+.community-section-head h3,
+.community-form h3 {
+  margin: 0;
+  font-size: clamp(1.35rem, 3vw, 2.2rem);
+}
+
+.community-form {
+  display: grid;
+  gap: 14px;
+}
+
+.community-form label,
+.community-comment-form label {
+  display: grid;
+  gap: 7px;
+  color: #283035;
+  font-weight: 900;
+}
+
+.community-form input,
+.community-form select,
+.community-form textarea,
+.community-comment-form textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #c7c0b3;
+  border-radius: 8px;
+  background: #fffdf8;
+  color: #1f272c;
+  font: inherit;
+}
+
+.community-form input,
+.community-form select {
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.community-form textarea,
+.community-comment-form textarea {
+  resize: vertical;
+  padding: 12px;
+  line-height: 1.55;
+}
+
+.community-form__actions,
+.community-post-actions,
+.community-comment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .community-post-list {
   display: grid;
   gap: 12px;
@@ -1426,6 +1521,15 @@ dd {
 .community-post-card h3 {
   margin: 0;
   font-size: clamp(1.28rem, 3vw, 2rem);
+}
+
+.community-post-card h3 a {
+  color: inherit;
+}
+
+.community-post-card.is-selected {
+  border-color: #47616c;
+  box-shadow: inset 0 0 0 1px rgba(71, 97, 108, 0.3);
 }
 
 .community-post-card dl {
@@ -1451,6 +1555,66 @@ dd {
 
 .community-post-card dd {
   margin: 0;
+}
+
+.community-detail-article {
+  display: grid;
+  gap: 16px;
+}
+
+.community-detail-article h2 {
+  margin: 0;
+  font-size: clamp(1.7rem, 4vw, 3.2rem);
+}
+
+.community-detail-article__body,
+.community-comment p {
+  color: #3d474b;
+  line-height: 1.7;
+  white-space: pre-wrap;
+}
+
+.community-comments {
+  display: grid;
+  gap: 14px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(126, 116, 96, 0.28);
+}
+
+.community-comments h3 {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.8rem);
+}
+
+.community-comment-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.community-comment {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid #ddd3c5;
+  border-radius: 8px;
+  background: #fbfaf6;
+}
+
+.community-comment__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #667276;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.community-comment-form {
+  display: grid;
+  gap: 10px;
 }
 
 .concert-empty-state {
@@ -1488,6 +1652,7 @@ dd {
   }
 
   .community-board__header,
+  .community-board__layout,
   .concerts-section-head {
     grid-template-columns: 1fr;
   }
