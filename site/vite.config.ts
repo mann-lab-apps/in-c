@@ -41,6 +41,7 @@ export default defineConfig({
         compositions: resolve(__dirname, 'compositions.html'),
         concerts: resolve(__dirname, 'concerts.html'),
         community: resolve(__dirname, 'community.html'),
+        communityWrite: resolve(__dirname, 'community-write.html'),
         login: resolve(__dirname, 'login.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages

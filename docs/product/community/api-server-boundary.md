@@ -29,6 +29,12 @@ MVP는 Supabase Auth 기반 Google 소셜 로그인을 기본안으로 둔다. �
 때문이다. Kakao는 `account_email` 권한 확보 또는 별도 구현 검토 뒤, Naver는
 Custom OAuth/OIDC 설정 검증 뒤 후속 후보로 남긴다.
 
+정적 사이트의 첫 Community MVP는 별도 Node API 서버가 준비되기 전까지 Supabase
+client가 RLS 정책이 걸린 `profiles`, `community_posts`, `community_comments`
+테이블을 직접 호출한다. 이 직접 호출은 공개 목록/상세와 로그인 사용자 CRUD의
+세로 조각을 검증하기 위한 단계이며, 결제, 관리자 검수, 운영 감사 로그가 필요한
+흐름은 여전히 `in-C API` 경계로 넘긴다.
+
 필수 계정 필드는 다음과 같다.
 
 | 필드 | 설명 |
@@ -85,5 +91,6 @@ Community는 학습 후보 목록이 아니라 게시판으로 다룬다. 웹 �
 - API 서버 scaffold와 배포 환경 구성
 - 인증 API와 세션 저장소 구현
 - 역할/권한 policy middleware 구현
-- 커뮤니티 게시물과 연주회 홍보 CRUD 구현
+- Community 직접 Supabase CRUD를 API 서버 controller로 이관
+- 연주회 홍보 CRUD 구현
 - 관리자 검수 화면과 운영 로그 구현
