@@ -11,12 +11,12 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.6',
-  releaseTag: 'v0.1.0-alpha.6',
-  releaseDate: '2026-07-25',
+  version: '0.1.0-alpha.7',
+  releaseTag: 'v0.1.0-alpha.7',
+  releaseDate: '2026-08-01',
   releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.6',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.6/SHA256SUMS.txt',
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.7',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.7/SHA256SUMS.txt',
   downloads: [
     {
       id: 'macos',
@@ -25,9 +25,9 @@ const fallbackManifest = {
       architecture: 'Universal',
       format: 'DMG',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.6-mac-universal.dmg',
-      size: '224.9 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.6/in-C-0.1.0-alpha.6-mac-universal.dmg'
+      fileName: 'in-C-0.1.0-alpha.7-mac-universal.dmg',
+      size: '226.4 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.7/in-C-0.1.0-alpha.7-mac-universal.dmg'
     },
     {
       id: 'windows',
@@ -36,9 +36,9 @@ const fallbackManifest = {
       architecture: 'x64',
       format: 'NSIS installer',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.6-windows-x64-setup.exe',
-      size: '111.0 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.6/in-C-0.1.0-alpha.6-windows-x64-setup.exe'
+      fileName: 'in-C-0.1.0-alpha.7-windows-x64-setup.exe',
+      size: '112.1 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.7/in-C-0.1.0-alpha.7-windows-x64-setup.exe'
     },
     {
       id: 'linux',
@@ -47,9 +47,9 @@ const fallbackManifest = {
       architecture: 'x86_64',
       format: 'AppImage',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.6-linux-x86_64.AppImage',
-      size: '138.1 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.6/in-C-0.1.0-alpha.6-linux-x86_64.AppImage'
+      fileName: 'in-C-0.1.0-alpha.7-linux-x86_64.AppImage',
+      size: '139.6 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.7/in-C-0.1.0-alpha.7-linux-x86_64.AppImage'
     }
   ]
 }

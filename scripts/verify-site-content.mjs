@@ -259,6 +259,30 @@ function verifyProductRelations() {
   }
 }
 
+function verifyColumnAssets() {
+  const imagePattern = /!\[[^\]]*]\((?<src>[^)\s]+)(?:\s+"[^"]*")?\)/g
+
+  for (const column of columnsModule.columns) {
+    for (const match of column.body.matchAll(imagePattern)) {
+      const src = match.groups?.src
+
+      if (
+        !src ||
+        /^(?:https?:)?\/\//.test(src) ||
+        src.startsWith('/') ||
+        src.startsWith('.')
+      ) {
+        continue
+      }
+
+      assert(
+        existsSync(resolve(publicRoot, src)),
+        `${column.slug} references missing public column asset: ${src}`
+      )
+    }
+  }
+}
+
 function verifyProductSurfaceStates() {
   const featureItems = featureMap.flatMap((group) =>
     group.sections.flatMap((section) => section.items)
@@ -360,6 +384,7 @@ function verifyLoginAuthSurface() {
 try {
   verifyDownloadManifest()
   verifyCompositions()
+  verifyColumnAssets()
   verifyProductRelations()
   verifyProductSurfaceStates()
   verifyLoginAuthSurface()
