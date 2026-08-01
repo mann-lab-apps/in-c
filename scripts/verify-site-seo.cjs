@@ -92,10 +92,10 @@ function getPages() {
   const pages = [
     { filePath: 'index.html', publicPath: 'index.html' },
     { filePath: 'columns.html', publicPath: 'columns.html' },
-    { filePath: 'compositions.html', publicPath: 'compositions.html' },
     { filePath: 'concerts.html', publicPath: 'concerts.html' },
     { filePath: 'community.html', publicPath: 'community.html' },
     { filePath: 'community-write.html', publicPath: 'community-write.html' },
+    { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
     { filePath: 'login.html', publicPath: 'login.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]

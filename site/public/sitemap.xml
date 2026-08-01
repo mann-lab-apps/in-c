@@ -7,13 +7,13 @@
     <loc>https://in-c.mannlab.app/columns.html</loc>
   </url>
   <url>
-    <loc>https://in-c.mannlab.app/compositions.html</loc>
-  </url>
-  <url>
     <loc>https://in-c.mannlab.app/concerts.html</loc>
   </url>
   <url>
     <loc>https://in-c.mannlab.app/community.html</loc>
+  </url>
+  <url>
+    <loc>https://in-c.mannlab.app/chromatics.html</loc>
   </url>
   <url>
     <loc>https://in-c.mannlab.app/community-write.html</loc>
@@ -26,5 +26,8 @@
   </url>
   <url>
     <loc>https://in-c.mannlab.app/columns/starting-to-listen-classical.html</loc>
+  </url>
+  <url>
+    <loc>https://in-c.mannlab.app/columns/genre-appeal.html</loc>
   </url>
 </urlset>

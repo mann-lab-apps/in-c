@@ -165,9 +165,8 @@ const renderArticle = (column) => {
       </a>
       <nav aria-label="주요 링크">
         <a aria-current="page" href="../columns.html">Columns</a>
-        <a href="../compositions.html">Compositions</a>
         <a href="../community.html">Community</a>
-        <a href="../index.html#download">Chromatics</a>
+        <a href="../chromatics.html">Chromatics</a>
       </nav>
     </header>
 
@@ -227,8 +226,11 @@ for (const column of publicColumns) {
 const sitemapUrls = [
   `${baseUrl}/index.html`,
   `${baseUrl}/columns.html`,
-  `${baseUrl}/compositions.html`,
+  `${baseUrl}/concerts.html`,
   `${baseUrl}/community.html`,
+  `${baseUrl}/chromatics.html`,
+  `${baseUrl}/community-write.html`,
+  `${baseUrl}/login.html`,
   `${baseUrl}/privacy.html`,
   ...publicColumns.map((column) => `${baseUrl}/columns/${column.slug}.html`)
 ]

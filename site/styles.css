@@ -49,11 +49,11 @@ body::before {
 }
 
 body.columns-page {
-  background: #fff;
+  background: var(--inc-color-background);
 }
 
 body.columns-page::before {
-  background: #fff;
+  background: var(--inc-color-background);
 }
 
 a {
@@ -470,34 +470,15 @@ dd {
 
 .login-shell {
   display: grid;
-  grid-template-columns: minmax(280px, 0.82fr) minmax(320px, 0.48fr);
-  gap: clamp(22px, 5vw, 64px);
-  align-items: center;
+  place-items: center;
   min-height: calc(100vh - 72px);
   padding: clamp(54px, 8vw, 104px) clamp(20px, 5vw, 72px);
-}
-
-.login-copy {
-  max-width: 760px;
-}
-
-.login-copy h1 {
-  margin-bottom: 22px;
-  font-size: clamp(3.2rem, 8vw, 6.8rem);
-  line-height: 0.96;
-}
-
-.login-copy p:not(.eyebrow) {
-  max-width: 680px;
-  color: #3d474b;
-  font-size: clamp(1.08rem, 1.8vw, 1.34rem);
-  line-height: 1.62;
-  word-break: keep-all;
 }
 
 .login-panel {
   display: grid;
   gap: 16px;
+  width: min(100%, 420px);
   min-width: 0;
   padding: clamp(20px, 3vw, 28px);
   border: 1px solid #d5cbbd;
@@ -510,7 +491,7 @@ dd {
   gap: 8px;
 }
 
-.login-panel__head h2,
+.login-panel__head h1,
 .auth-session h2 {
   margin: 0;
   font-size: clamp(1.45rem, 3vw, 2.15rem);
@@ -1033,139 +1014,30 @@ dd {
   font-size: clamp(3.4rem, 9vw, 7rem);
 }
 
-.composition-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+.hero--chromatics {
+  grid-template-columns: minmax(0, 0.82fr) minmax(520px, 1.18fr);
 }
 
-.composition-filters {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(150px, 0.28fr);
-  gap: 12px;
-  margin: 22px 0 12px;
+.hero--chromatics h1 {
+  font-size: 6.8rem;
 }
 
-.composition-filters label {
-  display: grid;
-  gap: 7px;
-  color: #5b656a;
-  font-size: 0.84rem;
-  font-weight: 800;
+@media (max-width: 980px) {
+  .hero--chromatics {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
-.composition-filters input,
-.composition-filters select {
-  width: 100%;
-  min-height: 42px;
-  border: 1px solid #d5cbbd;
-  border-radius: 7px;
-  background: #fffdf8;
-  color: #1a2023;
-  font: inherit;
-  font-size: 0.98rem;
+@media (max-width: 680px) {
+  .hero--chromatics h1 {
+    font-size: 4rem;
+  }
 }
 
-.composition-filters input {
-  padding: 0 12px;
-}
-
-.composition-filters select {
-  padding: 0 10px;
-}
-
-.composition-tags {
+.tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 18px;
-}
-
-.composition-tags button {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid #d7cec2;
-  border-radius: 999px;
-  background: #fbf6ec;
-  color: #405057;
-  cursor: pointer;
-  font: inherit;
-  font-size: 0.86rem;
-  font-weight: 800;
-}
-
-.composition-tags button.is-active {
-  border-color: #b43d2f;
-  background: #fff2e7;
-  color: #9b2f24;
-}
-
-.composition-card,
-.composition-detail-card {
-  min-width: 0;
-  border: 1px solid #d5cbbd;
-  border-radius: 8px;
-  background: rgba(255, 253, 248, 0.82);
-}
-
-.composition-card,
-.composition-detail-card {
-  display: grid;
-  gap: 18px;
-  padding: 22px;
-}
-
-.composition-card.is-active {
-  border-color: #b43d2f;
-  box-shadow: 0 14px 30px rgba(180, 61, 47, 0.12);
-}
-
-.composition-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.composition-card__head span {
-  flex: 0 0 auto;
-  padding: 5px 8px;
-  border-radius: 999px;
-  color: #47616c;
-  background: #e8eee9;
-  font-size: 0.76rem;
-  font-weight: 800;
-}
-
-.composition-card__head p,
-.composition-note p {
-  color: #4e5a5f;
-  line-height: 1.65;
-}
-
-.composition-card__facts,
-.composition-facts {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.composition-facts {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.tag-list,
-.composition-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.composition-action-note {
-  margin: -6px 0 0;
-  color: #5d6a6f;
-  font-size: 0.9rem;
-  line-height: 1.55;
 }
 
 .tag-list span,
@@ -1259,15 +1131,6 @@ dd {
 .disabled-tooltip:focus-visible::after {
   opacity: 1;
   transform: translate(-50%, 0);
-}
-
-.composition-note {
-  padding-top: 18px;
-  border-top: 1px solid #d5cbbd;
-}
-
-.composition-note p {
-  margin-bottom: 0;
 }
 
 .product-layout {
@@ -1639,9 +1502,6 @@ dd {
 }
 
 @media (max-width: 980px) {
-  .composition-grid,
-  .composition-facts,
-  .composition-filters,
   .promotion-grid,
   .product-layout {
     grid-template-columns: 1fr;

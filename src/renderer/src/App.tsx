@@ -2571,6 +2571,13 @@ export const App = () => {
         return
       }
 
+      if (toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note') {
+        document
+          .querySelector<HTMLInputElement>('.notation-lyric-editor input')
+          ?.focus()
+        return
+      }
+
       const usesCommandKey = event.metaKey || event.ctrlKey
 
       if (usesCommandKey && !event.altKey && event.code === 'KeyC') {
@@ -2734,6 +2741,7 @@ export const App = () => {
     redo,
     toggleTie,
     toggleTuplet,
+    toolbarCategory,
     undo
   ])
 
@@ -3550,7 +3558,7 @@ export const App = () => {
       </section>
 
       <section className="workspace" aria-label="악보 편집기">
-        <header className="toolbar">
+        <header className="toolbar" hidden={toolbarCategory === 'playback'}>
           <div className="toolbar__group">
             <div
               className="file-actions"
@@ -3918,7 +3926,7 @@ export const App = () => {
 
         </header>
 
-        <div className="playback-strip">
+        <div className="playback-strip" hidden={toolbarCategory !== 'playback'}>
           <div className="transport-controls" aria-label="재생 컨트롤">
             <button
               aria-label="재생"

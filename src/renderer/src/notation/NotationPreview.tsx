@@ -1220,6 +1220,8 @@ function drawInlineLyricEditor(
   input.value = editor.value
   input.addEventListener('blur', () => commit())
   input.addEventListener('keydown', (event) => {
+    event.stopPropagation()
+
     if (event.isComposing) {
       return
     }
@@ -1242,10 +1244,13 @@ function drawInlineLyricEditor(
 
   container.append(input)
   svg.append(container)
-  window.requestAnimationFrame(() => {
+  const focusInput = () => {
     input.focus()
     input.select()
-  })
+  }
+
+  focusInput()
+  window.requestAnimationFrame(focusInput)
 }
 
 function drawTie(

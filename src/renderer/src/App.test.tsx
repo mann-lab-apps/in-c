@@ -384,7 +384,9 @@ describe('App component shell', () => {
       'aria-pressed',
       'true'
     )
-    expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
+    expect(
+      within(workspace).queryByRole('button', { name: '재생' })
+    ).not.toBeInTheDocument()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
@@ -412,6 +414,13 @@ describe('App component shell', () => {
     fireEvent.change(lyricInput, { target: { value: 'hello world' } })
     expect(fireEvent.keyDown(lyricInput, { key: 'Enter' })).toBe(false)
     expect(screen.getByText('가사를 갱신했습니다.')).toBeInTheDocument()
+    const eventCountAfterLyricAdvance =
+      screen.getByTestId('notation-preview').getAttribute('data-event-count')
+    fireEvent.keyDown(window, { code: 'KeyA', key: 'a' })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-count',
+      eventCountAfterLyricAdvance
+    )
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
     expect(screen.getByLabelText('조표')).toBeVisible()
@@ -447,13 +456,15 @@ describe('App component shell', () => {
     fireEvent.click(within(newScoreDialog).getByRole('button', { name: '취소' }))
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '재생' }))
-    expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
+    expect(within(workspace).getByRole('button', { name: '재생' })).toBeVisible()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '음표' }))
-    expect(within(workspace).getByLabelText('재생')).toBeInTheDocument()
+    expect(
+      within(workspace).queryByRole('button', { name: '재생' })
+    ).not.toBeInTheDocument()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())

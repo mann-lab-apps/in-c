@@ -4,6 +4,7 @@ import {
   supabase
 } from './auth.js'
 import { initAuthNavigation } from './auth-nav.js'
+import { createDisabledTooltip } from './tooltip.js'
 
 const categoryLabels = {
   notice: '공지',
@@ -16,8 +17,7 @@ const postsElement = document.querySelector('[data-community-posts]')
 const detailElement = document.querySelector('[data-community-detail]')
 const detailBodyElement = document.querySelector('[data-community-detail-body]')
 const statusElement = document.querySelector('[data-community-status]')
-const writeLink = document.querySelector('[data-community-write-link]')
-const loginLink = document.querySelector('[data-community-login-link]')
+const writeActionElement = document.querySelector('[data-community-write-action]')
 const categoryButtons = [
   ...document.querySelectorAll('[data-community-category]')
 ]
@@ -91,14 +91,30 @@ const setSelectedPost = (postId, { replace = false } = {}) => {
 
 const renderAuthState = () => {
   const isSignedIn = Boolean(currentSession?.user)
+  const canWrite = isSignedIn && isSupabaseConfigured && supabase
 
-  if (loginLink) {
-    loginLink.hidden = isSignedIn
+  if (!writeActionElement) {
+    return
   }
 
-  if (writeLink) {
-    writeLink.hidden = !isSignedIn || !isSupabaseConfigured || !supabase
+  writeActionElement.replaceChildren()
+
+  if (canWrite) {
+    const link = document.createElement('a')
+    link.className = 'button button--primary'
+    link.href = './community-write.html'
+    link.textContent = '글쓰기'
+    writeActionElement.append(link)
+    return
   }
+
+  writeActionElement.append(
+    createDisabledTooltip({
+      buttonClass: 'button button--primary',
+      label: '글쓰기',
+      tooltip: '글을 쓰려면 로그인하세요.'
+    })
+  )
 }
 
 const ensureProfile = async () => {

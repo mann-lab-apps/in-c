@@ -141,9 +141,8 @@ async function assertCertificate() {
 addCheck('production pages return HTTP 200', async () => {
   const paths = [
     '/',
-    '/#download',
     '/columns.html',
-    '/compositions.html',
+    '/chromatics.html',
     '/privacy.html',
     '/sitemap.xml',
     '/robots.txt'
@@ -185,7 +184,7 @@ addCheck('robots and sitemap use the production domain', async () => {
   assertIncludes(robots.text, `Sitemap: ${expectedOrigin}/sitemap.xml`, 'robots.txt')
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/index.html</loc>`, 'sitemap.xml')
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/columns.html</loc>`, 'sitemap.xml')
-  assertIncludes(sitemap.text, `<loc>${expectedOrigin}/compositions.html</loc>`, 'sitemap.xml')
+  assertIncludes(sitemap.text, `<loc>${expectedOrigin}/chromatics.html</loc>`, 'sitemap.xml')
   assertIncludes(sitemap.text, `<loc>${expectedOrigin}/privacy.html</loc>`, 'sitemap.xml')
 })
 

@@ -38,10 +38,10 @@ export default defineConfig({
         index: resolve(__dirname, 'index.html'),
         legacyInC: resolve(__dirname, 'in-c/index.html'),
         columns: resolve(__dirname, 'columns.html'),
-        compositions: resolve(__dirname, 'compositions.html'),
         concerts: resolve(__dirname, 'concerts.html'),
         community: resolve(__dirname, 'community.html'),
         communityWrite: resolve(__dirname, 'community-write.html'),
+        chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
