@@ -21,7 +21,7 @@ Feature: 제품 표면의 현재 상태를 구분한다
     Given Community 게시판은 Supabase 기반 실험 MVP로 연결되어 있다
     When 사용자가 Community 페이지와 피쳐맵의 Community 상태를 확인한다
     Then 상태는 "지원"이 아니며 관계 모델 문서로 연결된다
-    And 공개 목록/상세, 로그인 글쓰기, 작성자 수정/삭제, 댓글 범위를 확인할 수 있다
+    And 공개 목록/상세, 로그인 글쓰기, 작성자 수정/삭제, 댓글 작성/수정/삭제 범위를 확인할 수 있다
 
   @scenario-product-surfaces-open-in-chromatics
   Scenario: Compositions의 편집용 원본을 Chromatics에서 연다

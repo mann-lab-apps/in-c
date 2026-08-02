@@ -31,6 +31,16 @@ const relationshipModelPath = resolve(
   repoRoot,
   'docs/product/relationship-model.md'
 )
+const communityPagePath = resolve(siteRoot, 'community.html')
+const communityScriptPath = resolve(siteRoot, 'community.js')
+const communityPostPagePath = resolve(siteRoot, 'community-post.html')
+const communityPostScriptPath = resolve(siteRoot, 'community-post.js')
+const communityWritePagePath = resolve(siteRoot, 'community-write.html')
+const communityWriteScriptPath = resolve(siteRoot, 'community-write.js')
+const communityMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0002_community_board_schema.sql'
+)
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authScriptPath = resolve(siteRoot, 'auth.js')
@@ -321,6 +331,62 @@ function verifyProductSurfaceStates() {
     assert(
       relationshipModel.includes(phrase),
       `relationship model missing Community boundary: ${phrase}`
+    )
+  }
+
+  const communityPage = readFileSync(communityPagePath, 'utf8')
+  const communityScript = readFileSync(communityScriptPath, 'utf8')
+  const communityPostPage = readFileSync(communityPostPagePath, 'utf8')
+  const communityPostScript = readFileSync(communityPostScriptPath, 'utf8')
+  const communityWritePage = readFileSync(communityWritePagePath, 'utf8')
+  const communityWriteScript = readFileSync(communityWriteScriptPath, 'utf8')
+  const communityMigration = readFileSync(communityMigrationPath, 'utf8')
+
+  assert(
+    communityPage.includes('data-community-posts') &&
+      communityPage.includes('data-community-write-action') &&
+      !communityPage.includes('data-community-detail'),
+    'Community page must be list-only with a write entry'
+  )
+  assert(
+    communityPostPage.includes('data-community-post-detail') &&
+      communityPostPage.includes('data-community-post-detail-body') &&
+      communityScript.includes('community-post.html?post='),
+    'Community post page missing detail surface or post URL contract'
+  )
+  assert(
+    communityWritePage.includes('data-community-post-form') &&
+      communityWriteScript.includes('.insert(payload)') &&
+      communityWriteScript.includes('.update(payload)') &&
+      communityWriteScript.includes('community-post.html?post='),
+    'Community write page must support post create and update'
+  )
+  for (const phrase of [
+    "from('community_posts')",
+    '.delete()',
+    'data-community-post-delete',
+    'data-community-comment-form',
+    "from('community_comments')",
+    'data-community-comment-edit',
+    'data-community-comment-delete',
+    'community_comment_create',
+    'community_comment_update',
+    'community_comment_delete'
+  ]) {
+    assert(
+      communityPostScript.includes(phrase),
+      `Community post script missing CRUD hook: ${phrase}`
+    )
+  }
+  for (const phrase of [
+    'owners can update own community posts',
+    'owners can delete own community posts',
+    'owners can update own community comments',
+    'owners can delete own community comments'
+  ]) {
+    assert(
+      communityMigration.includes(phrase),
+      `Community migration missing RLS policy: ${phrase}`
     )
   }
 }

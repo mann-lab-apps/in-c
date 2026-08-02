@@ -228,6 +228,7 @@ const sitemapUrls = [
   `${baseUrl}/columns.html`,
   `${baseUrl}/concerts.html`,
   `${baseUrl}/community.html`,
+  `${baseUrl}/community-post.html`,
   `${baseUrl}/chromatics.html`,
   `${baseUrl}/community-write.html`,
   `${baseUrl}/login.html`,

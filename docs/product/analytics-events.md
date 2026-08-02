@@ -33,7 +33,21 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | `work_view` | Compositions 안의 작품 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Compositions 작품 상세 조회 | 공개 작품 메타만 전송 |
 | `work_link` | 작품 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | Compositions 작품 관계 탐색 | 공개 작품 slug와 링크만 전송 |
 | `promotion_click` | 홈 공연 배너 또는 작품 상세의 배너 후보 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text`, `location` | 배너 후보 CTA 탐색 | 공개 배너 slug와 정적 링크만 전송 |
-| `community_view` | Community 게시글 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `category` | Community 게시글 조회 | 공개 게시글 메타만 전송 |
+| `community_view` | Community 게시글 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Community 게시글 조회 | 공개 게시글 메타만 전송 |
+| `community_create` | Community 게시글 작성 완료 | `content_type`, `content_slug`, `content_title` | 게시글 작성 전환 | 공개 게시글 메타만 전송 |
+| `community_update` | Community 게시글 수정 완료 | `content_type`, `content_slug`, `content_title` | 게시글 수정 완료 | 공개 게시글 메타만 전송 |
+| `community_delete` | Community 게시글 삭제 완료 | `content_type`, `content_slug`, `content_title` | 게시글 삭제 완료 | 공개 게시글 메타만 전송 |
+| `community_comment_create` | Community 댓글 작성 완료 | `content_type`, `content_slug`, `content_title` | 댓글 작성 전환 | 댓글 원문과 사용자 식별자는 전송하지 않음 |
+| `community_comment_update` | Community 댓글 수정 완료 | `content_type`, `content_slug`, `content_title` | 댓글 수정 완료 | 댓글 원문과 사용자 식별자는 전송하지 않음 |
+| `community_comment_delete` | Community 댓글 삭제 완료 | `content_type`, `content_slug` | 댓글 삭제 완료 | 댓글 원문과 사용자 식별자는 전송하지 않음 |
+| `auth_social_start` | 소셜 로그인 시작 | `platform` | 로그인 provider 선택 | provider 키만 전송 |
+| `auth_social_error` | 소셜 로그인 시작 실패 | `platform` | 로그인 시작 실패율 | provider 키만 전송 |
+| `auth_social_pending` | 준비 중인 소셜 provider 클릭 | `platform` | provider 추가 수요 | provider 키만 전송 |
+| `auth_sign_out` | 로그인 페이지 로그아웃 완료 | 없음 | 로그아웃 사용 여부 | 사용자 식별자 전송 없음 |
+| `auth_sign_out_error` | 로그인 페이지 로그아웃 실패 | 없음 | 로그아웃 오류 발생 여부 | 사용자 식별자 전송 없음 |
+| `auth_signed_in` | Supabase Auth signed-in 이벤트 수신 | 없음 | 로그인 완료 여부 | 사용자 식별자 전송 없음 |
+| `auth_session_error` | 로그인 페이지 세션 확인 실패 | 없음 | 세션 복구 오류 | 오류 원문과 사용자 식별자 전송 없음 |
+| `auth_callback_error` | OAuth callback 오류 수신 | 없음 | OAuth callback 오류 | 오류 원문과 사용자 식별자 전송 없음 |
 | `download_primary` | 랜딩 첫 화면 기본 다운로드 클릭 | `platform`, `file_name`, `location`, `link_url`, `link_text` | Events by `platform`, landing CTA review | 추정 플랫폼과 공개 릴리즈 URL만 전송 |
 | `download_platform` | 운영체제별 다운로드 카드 클릭 | `platform`, `file_name`, `link_url`, `link_text` | Events by `platform`/`file_name` | 사용자가 누른 공개 파일 정보만 전송 |
 | `checksum_link` | 체크섬 링크 클릭 | `location`, `link_url`, `link_text` | Events by `location` | 공개 체크섬 링크만 전송 |
