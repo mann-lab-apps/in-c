@@ -94,6 +94,7 @@ function getPages() {
     { filePath: 'columns.html', publicPath: 'columns.html' },
     { filePath: 'concerts.html', publicPath: 'concerts.html' },
     { filePath: 'community.html', publicPath: 'community.html' },
+    { filePath: 'community-post.html', publicPath: 'community-post.html' },
     { filePath: 'community-write.html', publicPath: 'community-write.html' },
     { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
     { filePath: 'login.html', publicPath: 'login.html' },

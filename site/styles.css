@@ -1186,6 +1186,12 @@ dd {
   gap: 18px;
 }
 
+.community-board--list {
+  max-width: 980px;
+  margin: 0 auto;
+  padding-top: clamp(32px, 6vw, 72px);
+}
+
 .community-board__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -1202,17 +1208,45 @@ dd {
   font-size: clamp(2rem, 5vw, 4rem);
 }
 
-.community-board__header p:not(.eyebrow),
-.community-post-card p {
+.community-board__header p:not(.eyebrow) {
   color: #4e5a5f;
   line-height: 1.65;
 }
 
+.community-list-header {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid #283035;
+}
+
+.community-list-header h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  line-height: 1.1;
+}
+
+.community-list-header p {
+  margin: 0;
+  color: #4e5a5f;
+  font-size: 1rem;
+  line-height: 1.55;
+}
+
 .community-board__actions {
+  position: fixed;
+  right: max(18px, env(safe-area-inset-right));
+  bottom: max(18px, env(safe-area-inset-bottom));
+  z-index: 8;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   justify-content: end;
+}
+
+.community-board__actions .button {
+  min-width: 88px;
+  box-shadow: 0 14px 32px rgba(36, 48, 52, 0.22);
 }
 
 .concerts-topline {
@@ -1254,28 +1288,6 @@ dd {
   line-height: 1.65;
 }
 
-.community-board__toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.community-board__toolbar button {
-  padding: 9px 14px;
-  border: 1px solid #c7c0b3;
-  border-radius: 999px;
-  background: #fbfaf6;
-  color: #283035;
-  cursor: default;
-  font: inherit;
-  font-weight: 800;
-}
-
-.community-board__toolbar .is-active {
-  border-color: #47616c;
-  background: #e7eceb;
-}
-
 .community-status {
   margin: 0;
   color: #4e5a5f;
@@ -1285,12 +1297,6 @@ dd {
 
 .community-status[data-tone="error"] {
   color: #8a2d24;
-}
-
-.community-board__layout {
-  display: grid;
-  gap: 18px;
-  align-items: start;
 }
 
 .community-panel {
@@ -1309,12 +1315,6 @@ dd {
 
 .community-write-page-panel {
   max-width: 860px;
-}
-
-.community-section-head h3,
-.community-form h3 {
-  margin: 0;
-  font-size: clamp(1.35rem, 3vw, 2.2rem);
 }
 
 .community-form {
@@ -1364,73 +1364,147 @@ dd {
   gap: 8px;
 }
 
-.community-post-list {
+.community-post-list-shell {
   display: grid;
-  gap: 12px;
+  border-bottom: 1px solid rgba(126, 116, 96, 0.34);
+}
+
+.community-post-list-head,
+.community-post-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 150px) minmax(110px, 150px);
+  gap: 18px;
+  align-items: center;
+}
+
+.community-post-list-head {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(126, 116, 96, 0.34);
+  color: #667276;
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.community-post-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.community-post-card {
-  display: grid;
-  gap: 12px;
-  padding: 22px;
-  border: 1px solid #d5cbbd;
-  border-radius: 8px;
-  background: rgba(255, 253, 248, 0.84);
+.community-post-row {
+  min-height: 58px;
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(126, 116, 96, 0.2);
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    padding-inline 140ms ease;
 }
 
-.community-post-card h3 {
-  margin: 0;
-  font-size: clamp(1.28rem, 3vw, 2rem);
+.community-post-row:last-child {
+  border-bottom: 0;
 }
 
-.community-post-card h3 a {
-  color: inherit;
+.community-post-row:hover,
+.community-post-row:focus-within {
+  padding-inline: 10px;
+  background: rgba(240, 235, 227, 0.42);
 }
 
-.community-post-card.is-selected {
-  border-color: #47616c;
-  box-shadow: inset 0 0 0 1px rgba(71, 97, 108, 0.3);
-}
-
-.community-post-card dl {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0;
-}
-
-.community-post-card dl div {
-  display: inline-flex;
-  gap: 6px;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: #f0ebe3;
-  color: #3d474b;
-  font-size: 0.84rem;
-}
-
-.community-post-card dt {
+.community-post-row__title {
+  min-width: 0;
+  color: #111416;
+  font-size: clamp(1.08rem, 2.5vw, 1.24rem);
   font-weight: 900;
+  line-height: 1.35;
+  text-decoration: none;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
 }
 
-.community-post-card dd {
+.community-post-row:hover .community-post-row__title,
+.community-post-row:focus-within .community-post-row__title {
+  text-decoration: underline;
+}
+
+.community-post-row__author,
+.community-post-row__date {
+  min-width: 0;
+  color: #4e5a5f;
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+.community-post-empty {
+  padding: 28px 0;
+  color: #4e5a5f;
+  font-weight: 800;
+}
+
+.community-post-empty p {
   margin: 0;
+}
+
+.community-post-page {
+  padding-top: clamp(32px, 6vw, 72px);
+}
+
+.community-post-surface {
+  max-width: 920px;
+  margin: 0 auto;
 }
 
 .community-detail-article {
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
-.community-detail-article h2 {
+.community-detail-nav {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.community-detail-nav a {
+  color: #4e5a5f;
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.community-detail-article__header {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(126, 116, 96, 0.28);
+}
+
+.community-detail-article h1 {
   margin: 0;
-  font-size: clamp(1.7rem, 4vw, 3.2rem);
+  font-size: clamp(2.4rem, 6vw, 4.8rem);
+  line-height: 1.08;
 }
 
-.community-detail-article__body,
+.community-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  color: #667276;
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.community-detail-article__body {
+  min-height: 180px;
+  padding: 8px 0 24px;
+  border-bottom: 1px solid rgba(126, 116, 96, 0.28);
+  color: #283035;
+  font-size: clamp(1.08rem, 2vw, 1.22rem);
+  line-height: 1.85;
+  white-space: pre-wrap;
+}
+
 .community-comment p {
   color: #3d474b;
   line-height: 1.7;
@@ -1440,13 +1514,7 @@ dd {
 .community-comments {
   display: grid;
   gap: 14px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(126, 116, 96, 0.28);
-}
-
-.community-comments h3 {
-  margin: 0;
-  font-size: clamp(1.25rem, 3vw, 1.8rem);
+  padding-top: 6px;
 }
 
 .community-comment-list {
@@ -1511,9 +1579,27 @@ dd {
     grid-template-columns: 1fr;
   }
 
-  .community-board__header,
-  .community-board__layout,
+  .community-detail-article__header,
   .concerts-section-head {
+    grid-template-columns: 1fr;
+  }
+
+  .community-post-list-head {
+    display: none;
+  }
+
+  .community-post-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    align-items: start;
+  }
+
+  .community-post-row__author,
+  .community-post-row__date {
+    font-size: 0.88rem;
+  }
+
+  .community-board__header {
     grid-template-columns: 1fr;
   }
 }

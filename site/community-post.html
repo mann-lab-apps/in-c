@@ -3,23 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Community | in C</title>
+    <title>게시글 | Community | in C</title>
     <meta
       name="description"
-      content="in C Community에서 감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다."
+      content="in C Community 게시글과 댓글을 확인합니다."
     />
-    <link rel="canonical" href="https://in-c.mannlab.app/community.html" />
-    <meta property="og:title" content="Community | in C" />
-    <meta property="og:description" content="감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다." />
+    <link rel="canonical" href="https://in-c.mannlab.app/community-post.html" />
+    <meta property="og:title" content="게시글 | Community | in C" />
+    <meta property="og:description" content="in C Community 게시글과 댓글을 확인합니다." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://in-c.mannlab.app/community.html" />
+    <meta property="og:url" content="https://in-c.mannlab.app/community-post.html" />
     <meta property="og:site_name" content="in C" />
     <meta property="og:locale" content="ko_KR" />
     <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta property="og:image:alt" content="in C 앱 아이콘" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Community | in C" />
-    <meta name="twitter:description" content="감상 질문, 악보 사용 경험, Chromatics 피드백을 게시판으로 나눕니다." />
+    <meta name="twitter:title" content="게시글 | Community | in C" />
+    <meta name="twitter:description" content="in C Community 게시글과 댓글을 확인합니다." />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
     <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
@@ -41,33 +41,23 @@
       </nav>
     </header>
     <main>
-      <section class="section community-board community-board--list" aria-labelledby="community-title">
-        <header class="community-list-header">
-          <h1 id="community-title">Community</h1>
-          <p>질문과 피드백을 남기는 게시판입니다.</p>
-        </header>
+      <section class="section community-post-page" aria-label="Community 게시글 상세">
+        <p class="community-status" data-community-post-status role="status" aria-live="polite">
+          게시글을 불러오는 중입니다.
+        </p>
 
-        <p class="community-status" data-community-status role="status" aria-live="polite" hidden></p>
-
-        <div class="community-post-list-shell">
-          <div class="community-post-list-head" aria-hidden="true">
-            <span>제목</span>
-            <span>작성자</span>
-            <span>작성일</span>
-          </div>
-            <ul class="community-post-list" data-community-posts></ul>
-        </div>
-
-        <div class="community-board__actions" data-community-write-action></div>
+        <section class="community-post-surface" data-community-post-detail hidden>
+          <div data-community-post-detail-body></div>
+        </section>
       </section>
     </main>
     <footer class="site-footer">
       <p>© 2026 mann-lab-apps. Community는 Supabase 기반 MVP로 운영합니다.</p>
       <div>
-        <a href="./columns.html">Columns</a>
-        <a href="./concerts.html">Concerts</a>
+        <a href="./community.html">Community</a>
+        <a href="./privacy.html">Privacy</a>
       </div>
     </footer>
-    <script type="module" src="./community.js"></script>
+    <script type="module" src="./community-post.js"></script>
   </body>
 </html>

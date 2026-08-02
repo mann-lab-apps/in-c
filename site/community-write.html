@@ -51,37 +51,11 @@
         </div>
       </section>
 
-      <section class="section community-board" aria-labelledby="community-form-title">
-        <header class="community-board__header">
-          <div>
-            <p class="eyebrow">Write</p>
-            <h2 id="community-form-title" data-community-form-title>새 글 작성</h2>
-            <p data-community-form-description>
-              작성 후 게시판 상세 화면으로 이동합니다.
-            </p>
-          </div>
-          <a class="button button--secondary" href="./community.html">목록</a>
-        </header>
-
-        <p class="community-status" data-community-write-status role="status" aria-live="polite">
-          로그인 상태를 확인하는 중입니다.
-        </p>
-
-        <section class="community-panel community-write-page-panel" data-community-write-auth hidden>
-          <p>글을 작성하려면 로그인이 필요합니다.</p>
-          <a class="button button--primary" href="./login.html">로그인</a>
-        </section>
+      <section class="section community-board" aria-label="Community 글쓰기">
+        <p class="community-status" data-community-write-status role="status" aria-live="polite" hidden></p>
 
         <section class="community-panel community-write-page-panel" data-community-write-panel hidden>
           <form class="community-form" data-community-post-form>
-            <label>
-              <span>분류</span>
-              <select name="category" required>
-                <option value="question">질문</option>
-                <option value="feedback">피드백</option>
-                <option value="general">일반</option>
-              </select>
-            </label>
             <label>
               <span>제목</span>
               <input maxlength="120" minlength="2" name="title" required type="text" />
@@ -92,7 +66,7 @@
             </label>
             <div class="community-form__actions">
               <button class="button button--primary" type="submit" data-community-submit>게시</button>
-              <a class="button button--secondary" href="./community.html">취소</a>
+              <a class="button button--secondary" href="./community.html" data-community-cancel>취소</a>
             </div>
           </form>
         </section>

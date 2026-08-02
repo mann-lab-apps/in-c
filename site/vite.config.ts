@@ -40,6 +40,7 @@ export default defineConfig({
         columns: resolve(__dirname, 'columns.html'),
         concerts: resolve(__dirname, 'concerts.html'),
         community: resolve(__dirname, 'community.html'),
+        communityPost: resolve(__dirname, 'community-post.html'),
         communityWrite: resolve(__dirname, 'community-write.html'),
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
