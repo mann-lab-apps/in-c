@@ -1,5 +1,6 @@
 import { bindTrackedLinks, configureAnalytics } from './analytics.js'
 import { initAuthNavigation } from './auth-nav.js'
+import { initGlobalBanner } from './global-banner.js'
 import { initDisabledTooltips } from './tooltip.js'
 
 const manifestUrl = new URL('./download-manifest.json', import.meta.url)
@@ -164,6 +165,7 @@ const renderDownloads = (manifest) => {
 }
 
 const init = async () => {
+  initGlobalBanner()
   bindTrackedLinks()
   configureAnalytics()
   initAuthNavigation()
