@@ -5,6 +5,7 @@ import {
 } from './auth.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { configureAnalytics, trackEvent } from './analytics.js'
+import { initGlobalBanner } from './global-banner.js'
 
 const statusElement = document.querySelector('[data-auth-status]')
 const actionsElement = document.querySelector('[data-auth-actions]')
@@ -180,6 +181,7 @@ const signInWithProvider = async (providerKey) => {
 }
 
 const init = async () => {
+  initGlobalBanner()
   configureAnalytics()
   initAuthNavigation()
 

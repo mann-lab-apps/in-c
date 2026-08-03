@@ -6,6 +6,7 @@ import {
 } from './analytics.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { columns } from './columns-data.js'
+import { initGlobalBanner } from './global-banner.js'
 
 const publishedColumns = columns.filter((column) => column.status === 'public')
 const articleBySlug = new Map(publishedColumns.map((column) => [column.slug, column]))
@@ -403,6 +404,7 @@ window.addEventListener('popstate', () => {
   selectColumn(getSelectedSlug())
 })
 
+initGlobalBanner()
 bindTrackedLinks()
 configureAnalytics()
 initAuthNavigation()

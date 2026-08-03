@@ -4,6 +4,7 @@ import {
   supabase
 } from './auth.js'
 import { initAuthNavigation } from './auth-nav.js'
+import { initGlobalBanner } from './global-banner.js'
 
 const statusElement = document.querySelector('[data-community-write-status]')
 const writePanel = document.querySelector('[data-community-write-panel]')
@@ -187,6 +188,7 @@ const savePost = async (event) => {
 }
 
 const init = async () => {
+  initGlobalBanner()
   configureAnalytics()
   initAuthNavigation()
   renderMode()

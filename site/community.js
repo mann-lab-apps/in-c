@@ -4,6 +4,7 @@ import {
   supabase
 } from './auth.js'
 import { initAuthNavigation } from './auth-nav.js'
+import { initGlobalBanner } from './global-banner.js'
 import { createDisabledTooltip } from './tooltip.js'
 
 const postsElement = document.querySelector('[data-community-posts]')
@@ -175,6 +176,7 @@ const bindEvents = () => {
 }
 
 const init = async () => {
+  initGlobalBanner()
   configureAnalytics()
   initAuthNavigation()
   bindEvents()
