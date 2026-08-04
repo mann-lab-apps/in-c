@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 400" role="img" aria-label="Concert poster">
+  <defs>
+    <linearGradient id="paper" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff0fb"/>
+      <stop offset="0.6" stop-color="#eee5ec"/>
+      <stop offset="1" stop-color="#d7c8d1"/>
+    </linearGradient>
+    <radialGradient id="shade" cx="50%" cy="45%" r="70%">
+      <stop offset="0.68" stop-color="#000" stop-opacity="0"/>
+      <stop offset="0.92" stop-color="#251a22" stop-opacity="0.15"/>
+      <stop offset="1" stop-color="#251a22" stop-opacity="0.27"/>
+    </radialGradient>
+  </defs>
+  <rect width="300" height="400" rx="26" fill="url(#paper)"/>
+  <g fill="#3f4852">
+    <rect x="42" y="147" width="216" height="7" rx="4"/>
+    <rect x="42" y="175" width="216" height="7" rx="4"/>
+    <rect x="42" y="203" width="216" height="7" rx="4"/>
+    <rect x="42" y="231" width="216" height="7" rx="4"/>
+    <rect x="42" y="259" width="216" height="7" rx="4"/>
+  </g>
+  <g fill="#85405d">
+    <ellipse cx="117" cy="260" rx="51" ry="41" transform="rotate(-14 117 260)"/>
+    <rect x="158" y="97" width="36" height="162"/>
+    <path d="M194 97c50 4 80 27 94 62-37-22-62-29-94-26z"/>
+    <circle cx="233" cy="300" r="18" opacity="0.75"/>
+  </g>
+  <rect width="300" height="400" rx="26" fill="url(#shade)"/>
+</svg>

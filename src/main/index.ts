@@ -13,6 +13,9 @@ const listRecentMusicXmlChannel = 'recent-musicxml:list'
 const addRecentMusicXmlChannel = 'recent-musicxml:add'
 const openRecentMusicXmlChannel = 'recent-musicxml:open'
 const removeRecentMusicXmlChannel = 'recent-musicxml:remove'
+const getConcertPostersChannel = 'promotions:get-concert-posters'
+const productionConcertPostersApiUrl =
+  'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
 
 interface AutosaveSnapshot {
@@ -220,6 +223,36 @@ ipcMain.handle(
   ) => removeRecentMusicXmlFile(input.filePath)
 )
 
+ipcMain.handle(getConcertPostersChannel, async () => {
+  const apiUrls = getConcertPostersApiUrls()
+
+  for (const apiUrl of apiUrls) {
+    try {
+      const response = await fetch(apiUrl, { cache: 'no-store' })
+
+      if (!response.ok) {
+        continue
+      }
+
+      const payload = (await response.json()) as unknown
+
+      if (payload !== null && typeof payload === 'object') {
+        return {
+          ...payload,
+          sourceUrl: response.url || apiUrl
+        }
+      }
+    } catch {
+      // Try the next configured endpoint.
+    }
+  }
+
+  return {
+    posters: [],
+    sourceUrl: apiUrls[0] ?? productionConcertPostersApiUrl
+  }
+})
+
 const createWindow = (): void => {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -265,6 +298,8 @@ const createWindow = (): void => {
             typeof window.inC?.recentMusicXml?.add === 'function' &&
             typeof window.inC?.recentMusicXml?.open === 'function' &&
             typeof window.inC?.recentMusicXml?.remove === 'function',
+          hasPromotionsBridge:
+            typeof window.inC?.promotions?.getConcertPosters === 'function',
           hasStartScreen: Boolean(document.querySelector('.start-screen')),
           hasStartActions: document.querySelectorAll('.start-action').length >= 3
         })
@@ -276,6 +311,7 @@ const createWindow = (): void => {
         !result.hasPdfBridge ||
         !result.hasAutosaveBridge ||
         !result.hasRecentBridge ||
+        !result.hasPromotionsBridge ||
         !result.hasStartScreen ||
         !result.hasStartActions
       ) {
@@ -329,6 +365,22 @@ function autosavePath(): string {
 
 function recentMusicXmlPath(): string {
   return join(app.getPath('userData'), 'recent-musicxml.json')
+}
+
+function getConcertPostersApiUrls(): string[] {
+  const configuredUrl = process.env.IN_C_CONCERT_POSTERS_API_URL
+  const primaryUrl =
+    configuredUrl ??
+    (app.isPackaged
+      ? productionConcertPostersApiUrl
+      : 'http://127.0.0.1:4175/api/concert-posters.json')
+  const urls = [primaryUrl]
+
+  if (primaryUrl !== productionConcertPostersApiUrl) {
+    urls.push(productionConcertPostersApiUrl)
+  }
+
+  return urls
 }
 
 async function readRecentMusicXmlFiles(): Promise<RecentMusicXmlFile[]> {

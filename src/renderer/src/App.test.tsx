@@ -193,6 +193,9 @@ const installPreloadStub = () => {
     pdf: {
       save: vi.fn().mockResolvedValue(undefined)
     },
+    promotions: {
+      getConcertPosters: vi.fn().mockResolvedValue({ posters: [] })
+    },
     recentMusicXml: {
       add: vi.fn().mockResolvedValue([]),
       list: vi.fn().mockResolvedValue([]),
@@ -368,11 +371,8 @@ describe('App component shell', () => {
       name: '편집 도구 카테고리'
     })
     expect(
-      within(toolbarTabs).getByRole('link', { name: 'Columns 출발 읽기' })
-    ).toHaveAttribute(
-      'href',
-      'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
-    )
+      within(toolbarTabs).queryByRole('link', { name: 'Columns 출발 읽기' })
+    ).not.toBeInTheDocument()
     expect(
       within(workspace).queryByLabelText('Columns 추천')
     ).not.toBeInTheDocument()
@@ -473,6 +473,49 @@ describe('App component shell', () => {
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
   }, 15000)
+
+  it('promotion.concert-posters renders toolbar posters from the preload API response', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    vi.mocked(window.inC.promotions.getConcertPosters).mockResolvedValue({
+      posters: [
+        {
+          id: 'concert:test-poster',
+          title: '테스트 공연 포스터',
+          meta: '2026년 8월 테스트 · 온라인',
+          description: '서버 API에서 내려온 공연 포스터입니다.',
+          imageUrl: '../assets/posters/test.svg',
+          imageAlt: '테스트 공연 포스터 이미지',
+          targetUrl: '../concerts.html',
+          theme: 'blue'
+        }
+      ],
+      sourceUrl: 'https://in-c.mannlab.app/api/concert-posters.json'
+    })
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    const promoGroup = await screen.findByRole('group', {
+      name: '공연 포스터 보기'
+    })
+    const posterButtons = within(promoGroup).getAllByRole('button', {
+      name: '테스트 공연 포스터 포스터 크게 보기'
+    })
+
+    expect(posterButtons).toHaveLength(30)
+    fireEvent.click(posterButtons[0])
+
+    expect(
+      screen.getByRole('dialog', { name: '공연 포스터' })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('heading', { name: '테스트 공연 포스터' })
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '공연 보기' })).toHaveAttribute(
+      'href',
+      'https://in-c.mannlab.app/concerts.html'
+    )
+  })
 
   it('clef.change-selected-measure changes only the selected measure clef and reports the result', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')

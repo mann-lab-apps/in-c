@@ -139,10 +139,40 @@ a:focus-visible {
   display: block;
   height: clamp(84px, 9.4vw, 132px);
   overflow: hidden;
-  padding: 0;
-  border-bottom: 1px solid rgba(17, 20, 22, 0.36);
-  background: #111416;
+  padding: clamp(5px, 0.55vw, 8px) 0;
+  background:
+    linear-gradient(180deg, #101416, #161a1c 52%, #101416),
+    #111416;
+  box-shadow: 0 6px 14px rgba(47, 41, 32, 0.1);
   color: #fffdf8;
+}
+
+.global-ad-banner::before,
+.global-ad-banner::after {
+  position: absolute;
+  z-index: 2;
+  content: "";
+  pointer-events: none;
+}
+
+.global-ad-banner::before {
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 8px;
+  background: linear-gradient(180deg, rgba(17, 20, 22, 0.18), transparent);
+}
+
+.global-ad-banner::after {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 10px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(17, 20, 22, 0.12)
+  );
 }
 
 .global-ad-banner__rail {
@@ -155,40 +185,65 @@ a:focus-visible {
   display: flex;
   height: 100%;
   width: max-content;
+  gap: clamp(8px, 0.9vw, 14px);
   margin: 0;
-  padding: 0;
+  padding: 0 clamp(8px, 1vw, 16px);
   list-style: none;
   animation: global-ad-marquee 34s linear infinite;
 }
 
 .global-ad-banner:hover .global-ad-banner__posters,
-.global-ad-banner:focus-within .global-ad-banner__posters {
+.global-ad-banner.is-detail-open .global-ad-banner__posters {
   animation-play-state: paused;
 }
 
 .global-ad-banner__poster {
+  position: relative;
   flex: 0 0 clamp(64px, 7vw, 99px);
   aspect-ratio: 3 / 4;
+  padding: 0;
+}
+
+.global-ad-banner__poster::before {
+  position: absolute;
+  inset: 7px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  content: "";
+  filter: blur(7px);
 }
 
 .global-ad-banner__poster-button {
+  position: relative;
+  z-index: 1;
   display: block;
   width: 100%;
   height: 100%;
   padding: 0;
   border: 0;
-  border-radius: 0;
-  background: #15191b;
+  border-radius: 9px;
+  background: transparent;
   box-shadow: none;
   cursor: zoom-in;
+  overflow: hidden;
+}
+
+.global-ad-banner__poster-button::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(17, 20, 22, 0.14), transparent 15%, transparent 85%, rgba(17, 20, 22, 0.14)),
+    linear-gradient(90deg, rgba(17, 20, 22, 0.12), transparent 14%, transparent 86%, rgba(17, 20, 22, 0.12)),
+    linear-gradient(180deg, rgba(255, 253, 248, 0.06), transparent 28%);
+  content: "";
+  pointer-events: none;
 }
 
 .global-ad-banner__poster-button:hover,
 .global-ad-banner__poster-button:focus-visible {
   position: relative;
   z-index: 1;
-  outline: 3px solid #fffdf8;
-  outline-offset: -3px;
   transform: scale(1.03);
 }
 
@@ -196,7 +251,15 @@ a:focus-visible {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 0;
+  border-radius: inherit;
+  mask-image: radial-gradient(
+    ellipse at center,
+    #000 0%,
+    #000 76%,
+    rgba(0, 0, 0, 0.84) 88%,
+    rgba(0, 0, 0, 0.42) 96%,
+    transparent 100%
+  );
   object-fit: cover;
 }
 

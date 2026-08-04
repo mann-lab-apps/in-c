@@ -10,6 +10,7 @@ const listRecentMusicXmlChannel = 'recent-musicxml:list'
 const addRecentMusicXmlChannel = 'recent-musicxml:add'
 const openRecentMusicXmlChannel = 'recent-musicxml:open'
 const removeRecentMusicXmlChannel = 'recent-musicxml:remove'
+const getConcertPostersChannel = 'promotions:get-concert-posters'
 
 interface RecentMusicXmlFile {
   filePath: string
@@ -81,6 +82,10 @@ const api = {
         removeRecentMusicXmlChannel,
         input
       ) as Promise<RecentMusicXmlFile[]>
+  },
+  promotions: {
+    getConcertPosters: () =>
+      ipcRenderer.invoke(getConcertPostersChannel) as Promise<unknown>
   }
 }
 
