@@ -1,6 +1,7 @@
 import { concerts } from './product-data.js'
 
 const POSTER_SEQUENCE_LENGTH = 18
+const POSTER_API_FILE = 'api/concert-posters.json'
 
 const getRootRelativeHref = (fileName) => {
   const isNestedColumnPage = window.location.pathname.includes('/columns/')
@@ -15,8 +16,63 @@ const escapeHtml = (value) =>
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;')
 
-const getPosterEntries = () => {
-  const fallbackImageSrc = getRootRelativeHref('social-preview.png')
+const isRecord = (value) => value !== null && typeof value === 'object'
+
+const resolveUrl = (value, baseUrl) => {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return null
+  }
+
+  try {
+    return new URL(value, baseUrl).href
+  } catch {
+    return value
+  }
+}
+
+const repeatPosterEntries = (entries) =>
+  Array.from(
+    { length: POSTER_SEQUENCE_LENGTH },
+    (_, index) => entries[index % entries.length]
+  )
+
+const normalizeApiPoster = (poster, sourceUrl, fallbackImageSrc) => {
+  if (!isRecord(poster) || typeof poster.title !== 'string') {
+    return null
+  }
+
+  const cta = isRecord(poster.cta) ? poster.cta : {}
+  const image = isRecord(poster.image) ? poster.image : {}
+  const imageSrc =
+    resolveUrl(poster.imageUrl, sourceUrl) ??
+    resolveUrl(image.url, sourceUrl) ??
+    fallbackImageSrc
+  const href =
+    resolveUrl(poster.targetUrl, sourceUrl) ??
+    resolveUrl(cta.targetUrl, sourceUrl) ??
+    getRootRelativeHref('concerts.html')
+
+  return {
+    title: poster.title,
+    meta: typeof poster.meta === 'string' ? poster.meta : '',
+    description:
+      typeof poster.description === 'string'
+        ? poster.description
+        : typeof poster.body === 'string'
+          ? poster.body
+          : '',
+    imageSrc,
+    imageAlt:
+      typeof poster.imageAlt === 'string'
+        ? poster.imageAlt
+        : typeof image.alt === 'string'
+          ? image.alt
+          : `${poster.title} 공연 포스터`,
+    href
+  }
+}
+
+const getFallbackPosterEntries = (fallbackImageSrc) => {
   const entries = concerts.map((concert) => ({
     title: concert.title,
     meta: [concert.dateLabel, concert.venue].filter(Boolean).join(' · '),
@@ -27,10 +83,7 @@ const getPosterEntries = () => {
   }))
 
   return entries.length > 0
-    ? Array.from(
-        { length: POSTER_SEQUENCE_LENGTH },
-        (_, index) => entries[index % entries.length]
-      )
+    ? repeatPosterEntries(entries)
     : [
         {
           title: 'in C Concerts',
@@ -41,6 +94,31 @@ const getPosterEntries = () => {
           href: getRootRelativeHref('concerts.html')
         }
       ]
+}
+
+const getPosterEntries = async () => {
+  const fallbackImageSrc = getRootRelativeHref('social-preview.png')
+  const apiUrl = getRootRelativeHref(POSTER_API_FILE)
+
+  try {
+    const response = await fetch(apiUrl, { cache: 'no-cache' })
+
+    if (response.ok) {
+      const payload = await response.json()
+      const rawPosters = Array.isArray(payload?.posters) ? payload.posters : []
+      const posters = rawPosters
+        .map((poster) => normalizeApiPoster(poster, response.url, fallbackImageSrc))
+        .filter(Boolean)
+
+      if (posters.length > 0) {
+        return repeatPosterEntries(posters)
+      }
+    }
+  } catch {
+    // Static content fallback keeps the banner available if the API file is absent.
+  }
+
+  return getFallbackPosterEntries(fallbackImageSrc)
 }
 
 const createPoster = (poster, index) => {
@@ -66,7 +144,12 @@ const createPoster = (poster, index) => {
   return item
 }
 
-export const initGlobalBanner = () => {
+export const initGlobalBanner = async () => {
+  if (document.querySelector('[data-global-ad-banner]')) {
+    return
+  }
+
+  const posters = await getPosterEntries()
   const header = document.querySelector('.site-header')
   const main = document.querySelector('main')
 
@@ -79,7 +162,6 @@ export const initGlobalBanner = () => {
   banner.dataset.globalAdBanner = ''
   banner.setAttribute('aria-label', '공연 포스터')
 
-  const posters = getPosterEntries()
   const posterItems = [...posters, ...posters].map((poster, index) =>
     createPoster(poster, index % posters.length)
   )
@@ -98,6 +180,8 @@ export const initGlobalBanner = () => {
   document.body.append(dialog)
 
   const closeModal = () => {
+    banner.classList.remove('is-detail-open')
+
     if (typeof dialog.close === 'function' && dialog.open) {
       dialog.close()
       return
@@ -107,6 +191,7 @@ export const initGlobalBanner = () => {
   }
 
   const openModal = (poster) => {
+    banner.classList.add('is-detail-open')
     dialog.innerHTML = `
       <button class="global-ad-modal__close" type="button" aria-label="확대 포스터 닫기">
         닫기
@@ -139,6 +224,10 @@ export const initGlobalBanner = () => {
 
     dialog.setAttribute('open', '')
   }
+
+  dialog.addEventListener('close', () => {
+    banner.classList.remove('is-detail-open')
+  })
 
   banner.addEventListener('click', (event) => {
     if (!(event.target instanceof Element)) {

@@ -10,7 +10,6 @@ import { createRoot } from 'react-dom/client'
 import {
   ArrowDown,
   ArrowUp,
-  BookOpen,
   ChevronsDown,
   ChevronsUp,
   CircleMinus,
@@ -170,8 +169,99 @@ const tripletPreset = {
   shortcut: string
 }
 
-const startingColumnUrl =
-  'https://in-c.mannlab.app/columns/starting-to-listen-classical.html'
+const concertsUrl = 'https://in-c.mannlab.app/concerts.html'
+const promoPosterThemes = ['red', 'green', 'gold', 'blue', 'plum'] as const
+
+type PromoPosterTheme = (typeof promoPosterThemes)[number]
+
+interface PromoConcert {
+  id: string
+  title: string
+  theme: PromoPosterTheme
+  meta: string
+  description: string
+  imageUrl?: string
+  imageAlt: string
+  targetUrl: string
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === 'object'
+
+const isPromoPosterTheme = (value: unknown): value is PromoPosterTheme =>
+  typeof value === 'string' &&
+  promoPosterThemes.includes(value as PromoPosterTheme)
+
+const resolveRemoteUrl = (value: unknown, sourceUrl: string): string | undefined => {
+  if (typeof value !== 'string' || value.trim() === '') {
+    return undefined
+  }
+
+  try {
+    return new URL(value, sourceUrl).href
+  } catch {
+    return value
+  }
+}
+
+const normalizePromoConcert = (
+  value: unknown,
+  sourceUrl: string,
+  index: number
+): PromoConcert | undefined => {
+  if (!isRecord(value) || typeof value.title !== 'string') {
+    return undefined
+  }
+
+  const cta = isRecord(value.cta) ? value.cta : {}
+  const image = isRecord(value.image) ? value.image : {}
+  const imageUrl =
+    resolveRemoteUrl(value.imageUrl, sourceUrl) ??
+    resolveRemoteUrl(image.url, sourceUrl)
+  const title = value.title
+
+  return {
+    id:
+      typeof value.id === 'string' && value.id.trim() !== ''
+        ? value.id
+        : `concert-poster-${index}`,
+    title,
+    theme: isPromoPosterTheme(value.theme)
+      ? value.theme
+      : promoPosterThemes[index % promoPosterThemes.length],
+    meta: typeof value.meta === 'string' ? value.meta : '',
+    description:
+      typeof value.description === 'string'
+        ? value.description
+        : typeof value.body === 'string'
+          ? value.body
+          : '',
+    imageUrl,
+    imageAlt:
+      typeof value.imageAlt === 'string'
+        ? value.imageAlt
+        : typeof image.alt === 'string'
+          ? image.alt
+          : `${title} 공연 포스터`,
+    targetUrl:
+      resolveRemoteUrl(value.targetUrl, sourceUrl) ??
+      resolveRemoteUrl(cta.targetUrl, sourceUrl) ??
+      concertsUrl
+  }
+}
+
+const parsePromoConcerts = (payload: unknown): PromoConcert[] => {
+  const sourceUrl =
+    isRecord(payload) && typeof payload.sourceUrl === 'string'
+      ? payload.sourceUrl
+      : concertsUrl
+  const rawPosters =
+    isRecord(payload) && Array.isArray(payload.posters) ? payload.posters : []
+
+  return rawPosters
+    .map((poster, index) => normalizePromoConcert(poster, sourceUrl, index))
+    .filter((poster): poster is PromoConcert => Boolean(poster))
+}
 
 const eventTypeLabels = {
   note: '음표',
@@ -287,6 +377,11 @@ export const App = () => {
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
   const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
+  const [toolbarPromoConcerts, setToolbarPromoConcerts] = useState<
+    PromoConcert[]
+  >([])
+  const [selectedPromoConcert, setSelectedPromoConcert] =
+    useState<PromoConcert>()
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
   const [startScreenVisible, setStartScreenVisible] = useState(
@@ -306,6 +401,42 @@ export const App = () => {
   const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score)
   const scoreTempo = score.tempo?.bpm ?? DEFAULT_TEMPO_BPM
+  const toolbarPosterSequence = useMemo(
+    () =>
+      toolbarPromoConcerts.length > 0
+        ? Array.from(
+            { length: Math.max(30, toolbarPromoConcerts.length * 2) },
+            (_, index) =>
+              toolbarPromoConcerts[index % toolbarPromoConcerts.length]
+          )
+        : [],
+    [toolbarPromoConcerts]
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    const loadPromoConcerts = async () => {
+      try {
+        const payload = await window.inC.promotions.getConcertPosters()
+        const posters = parsePromoConcerts(payload)
+
+        if (!cancelled) {
+          setToolbarPromoConcerts(posters)
+        }
+      } catch {
+        if (!cancelled) {
+          setToolbarPromoConcerts([])
+        }
+      }
+    }
+
+    void loadPromoConcerts()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const eventLocation = useMemo(
     () => {
@@ -2943,17 +3074,42 @@ export const App = () => {
             {category.label}
           </button>
         ))}
-        <a
-          aria-label="Columns 출발 읽기"
-          className="toolbar-tabs__promo"
-          href={startingColumnUrl}
-          rel="noreferrer"
-          target="_blank"
-        >
-          <BookOpen aria-hidden="true" size={15} />
-          <span>Columns</span>
-          <strong>출발</strong>
-        </a>
+        {toolbarPosterSequence.length > 0 ? (
+          <div
+            aria-label="공연 포스터 보기"
+            className={`toolbar-tabs__promo${
+              selectedPromoConcert ? ' is-detail-open' : ''
+            }`}
+            role="group"
+          >
+            <span className="toolbar-tabs__promo-rail">
+              {toolbarPosterSequence.map((concert, slot) => (
+                <button
+                  aria-label={`${concert.title} 포스터 크게 보기`}
+                  className={`toolbar-tabs__promo-poster toolbar-tabs__promo-poster--${concert.theme}`}
+                  key={`${concert.id}-${slot}`}
+                  onClick={() => setSelectedPromoConcert(concert)}
+                  type="button"
+                >
+                  {concert.imageUrl ? (
+                    <img
+                      alt=""
+                      className="toolbar-tabs__promo-image"
+                      decoding="async"
+                      loading="lazy"
+                      src={concert.imageUrl}
+                    />
+                  ) : (
+                    <>
+                      <span className="toolbar-tabs__promo-staff" />
+                      <span className="toolbar-tabs__promo-note" />
+                    </>
+                  )}
+                </button>
+              ))}
+            </span>
+          </div>
+        ) : null}
       </nav>
 
       <section
@@ -4093,6 +4249,61 @@ export const App = () => {
       </section>
         </>
       )}
+
+      {selectedPromoConcert ? (
+        <div
+          className="modal-backdrop"
+          onClick={() => setSelectedPromoConcert(undefined)}
+          role="presentation"
+        >
+          <section
+            aria-label="공연 포스터"
+            className="promo-dialog"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+          >
+            <button
+              className="promo-dialog__close"
+              onClick={() => setSelectedPromoConcert(undefined)}
+              type="button"
+            >
+              닫기
+            </button>
+            <div
+              className={`promo-dialog__poster promo-dialog__poster--${selectedPromoConcert.theme}`}
+              aria-hidden="true"
+            >
+              {selectedPromoConcert.imageUrl ? (
+                <img
+                  alt={selectedPromoConcert.imageAlt}
+                  className="promo-dialog__poster-image"
+                  decoding="async"
+                  src={selectedPromoConcert.imageUrl}
+                />
+              ) : (
+                <>
+                  <span className="promo-dialog__staff" />
+                  <span className="promo-dialog__note" />
+                </>
+              )}
+            </div>
+            <div className="promo-dialog__copy">
+              <p className="promo-dialog__eyebrow">Concert Poster</p>
+              <h2>{selectedPromoConcert.title}</h2>
+              <p className="promo-dialog__meta">{selectedPromoConcert.meta}</p>
+              <p>{selectedPromoConcert.description}</p>
+              <a
+                className="primary-action"
+                href={selectedPromoConcert.targetUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                공연 보기
+              </a>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {newScoreDraft ? (
         <div className="modal-backdrop" role="presentation">

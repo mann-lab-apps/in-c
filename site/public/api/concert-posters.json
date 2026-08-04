@@ -1,0 +1,54 @@
+{
+  "posters": [
+    {
+      "id": "concert:first-listening-night",
+      "title": "처음 듣는 선율의 밤",
+      "meta": "2026년 7월 프리뷰 후보 · 온라인 프리뷰",
+      "description": "Amazing Grace와 아리랑처럼 익숙한 선율에서 반복, 쉼, 긴 음을 하나씩 붙잡아 보는 공연 프리뷰입니다.",
+      "imageUrl": "../assets/posters/first-listening-night.svg",
+      "imageAlt": "처음 듣는 선율의 밤 공연 포스터",
+      "targetUrl": "../concerts.html",
+      "theme": "red"
+    },
+    {
+      "id": "concert:folk-melody-preview",
+      "title": "민요 한 줄 미리듣기",
+      "meta": "2026년 7월 프리뷰 후보 · 온라인 프리뷰",
+      "description": "전통 선율을 악보 한 줄과 함께 보고, 공연 전에 들을 지점을 하나만 정하는 프리뷰입니다.",
+      "imageUrl": "../assets/posters/folk-melody-preview.svg",
+      "imageAlt": "민요 한 줄 미리듣기 공연 포스터",
+      "targetUrl": "../concerts.html",
+      "theme": "green"
+    },
+    {
+      "id": "concert:small-score-salon",
+      "title": "작은 악보 살롱",
+      "meta": "2026년 8월 테스트 등록 · 서울",
+      "description": "짧은 단선율 악보를 함께 읽고, 연주 전에 귀에 남는 리듬과 쉼을 표시해 보는 모임입니다.",
+      "imageUrl": "../assets/posters/small-score-salon.svg",
+      "imageAlt": "작은 악보 살롱 공연 포스터",
+      "targetUrl": "../concerts.html",
+      "theme": "gold"
+    },
+    {
+      "id": "concert:evening-classic-note",
+      "title": "저녁의 클래식 노트",
+      "meta": "2026년 8월 테스트 등록 · 온라인",
+      "description": "하루 끝에 들을 한 작품을 고르고, 처음 듣는 사람도 남길 수 있는 질문을 곁들입니다.",
+      "imageUrl": "../assets/posters/evening-classic-note.svg",
+      "imageAlt": "저녁의 클래식 노트 공연 포스터",
+      "targetUrl": "../concerts.html",
+      "theme": "blue"
+    },
+    {
+      "id": "concert:one-page-recital",
+      "title": "한 페이지 리사이틀",
+      "meta": "2026년 9월 테스트 등록 · 부산",
+      "description": "긴 프로그램 대신 한 페이지 악보와 하나의 듣기 질문으로 공연을 소개하는 실험입니다.",
+      "imageUrl": "../assets/posters/one-page-recital.svg",
+      "imageAlt": "한 페이지 리사이틀 공연 포스터",
+      "targetUrl": "../concerts.html",
+      "theme": "plum"
+    }
+  ]
+}
