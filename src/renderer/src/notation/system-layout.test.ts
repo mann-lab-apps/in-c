@@ -23,34 +23,34 @@ describe('system layout', () => {
   it('wraps measures instead of shrinking below the minimum width', () => {
     const layout = createSystemLayout(createMeasures(8), 900)
 
-    expect(layout.measuresPerSystem).toBe(4)
+    expect(layout.measuresPerSystem).toBe(7)
     expect(layout.systemCount).toBe(2)
     expect(layout.placements[0]).toMatchObject({
       isSystemStart: true,
       systemIndex: 0,
       x: 16
     })
-    expect(layout.placements[4]).toMatchObject({
+    expect(layout.placements[7]).toMatchObject({
       isSystemStart: true,
       systemIndex: 1,
       x: 16
     })
-    expect(layout.placements[0].width).toBeGreaterThanOrEqual(180)
+    expect(layout.placements[0].width).toBeGreaterThanOrEqual(112)
   })
 
   it('uses fewer measures per system at the minimum render width', () => {
     const layout = createSystemLayout(createMeasures(6), 560)
 
-    expect(layout.measuresPerSystem).toBe(2)
-    expect(layout.systemCount).toBe(3)
+    expect(layout.measuresPerSystem).toBe(4)
+    expect(layout.systemCount).toBe(2)
     expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
-      0, 0, 1, 1, 2, 2
+      0, 0, 0, 0, 1, 1
     ])
   })
 
   it('stretches the last system to the full available width', () => {
-    const layout = createSystemLayout(createMeasures(5), 900)
-    const lastPlacement = layout.placements[4]
+    const layout = createSystemLayout(createMeasures(8), 900)
+    const lastPlacement = layout.placements[7]
 
     expect(lastPlacement.x).toBe(16)
     expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(884)
@@ -98,7 +98,7 @@ describe('system layout', () => {
 
     expect(
       automaticLayout.placements.map((placement) => placement.systemIndex)
-    ).toEqual([0, 0, 0, 0, 1, 1])
+    ).toEqual([0, 0, 0, 0, 0, 0])
     expect(automaticLayout.placements[2].isSystemStart).toBe(false)
   })
 
@@ -138,7 +138,7 @@ describe('system layout', () => {
 
     expect(
       automaticLayout.placements.map((placement) => placement.systemIndex)
-    ).toEqual([0, 0, 0, 0, 1, 1])
+    ).toEqual([0, 0, 0, 0, 0, 0])
     expect(automaticLayout.placements[3].isSystemStart).toBe(false)
   })
 
@@ -367,7 +367,7 @@ describe('system layout', () => {
     const renderWidth = 320
     const layout = createSystemLayout(createMeasures(6), renderWidth)
 
-    expect(layout.measuresPerSystem).toBe(1)
+    expect(layout.measuresPerSystem).toBe(2)
 
     for (const placement of layout.placements) {
       expect(placement.x).toBeGreaterThanOrEqual(16)
