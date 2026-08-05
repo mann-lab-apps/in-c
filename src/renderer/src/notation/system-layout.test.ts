@@ -178,6 +178,42 @@ describe('system layout', () => {
     ).toBeCloseTo(884)
   })
 
+  it('wraps dense measures before their preferred widths would overflow a system', () => {
+    const measures = Array.from({ length: 4 }, (_, measureIndex) =>
+      createMeasure({
+        id: `dense-${measureIndex + 1}`,
+        number: measureIndex + 1,
+        voices: [
+          createVoice({
+            events: Array.from({ length: 8 }, (_, eventIndex) =>
+              createNote({
+                id: `dense-${measureIndex + 1}-${eventIndex + 1}`,
+                position: createTimePosition(
+                  eventIndex * (TICKS_PER_QUARTER / 2)
+                ),
+                pitch: {
+                  step: 'C',
+                  octave: 4
+                },
+                duration: createDuration('eighth')
+              })
+            )
+          })
+        ]
+      })
+    )
+    const layout = createSystemLayout(measures, 900)
+
+    expect(layout.systemCount).toBeGreaterThan(1)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 1, 1
+    ])
+    layout.placements.forEach((placement) => {
+      expect(placement.width).toBeGreaterThan(300)
+      expect(placement.x + placement.width).toBeLessThanOrEqual(884)
+    })
+  })
+
   it('increases the SVG height as systems are added', () => {
     expect(createSystemLayout(createMeasures(2), 900).height).toBe(226)
     expect(createSystemLayout(createMeasures(8), 900).height).toBeGreaterThan(

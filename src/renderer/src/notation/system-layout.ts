@@ -75,6 +75,7 @@ export function createSystemLayout(
   const systemMeasuresList = createSystemMeasureGroups(
     measures,
     measuresPerSystem,
+    availableWidth,
     options.layout
   )
   const systemCount = systemMeasuresList.length
@@ -117,6 +118,7 @@ export function createSystemLayout(
 function createSystemMeasureGroups(
   measures: Measure[],
   measuresPerSystem: number,
+  availableWidth: number,
   layout: ScoreLayout | undefined
 ): Measure[][] {
   const manualBreaks = new Set([
@@ -127,10 +129,15 @@ function createSystemMeasureGroups(
   let currentSystem: Measure[] = []
 
   for (const measure of measures) {
+    const wouldExceedSystemWidth =
+      currentSystem.length > 0 &&
+      systemMinimumWidth([...currentSystem, measure]) > availableWidth
+
     if (
       currentSystem.length > 0 &&
       (manualBreaks.has(measure.id) ||
-        currentSystem.length >= measuresPerSystem)
+        currentSystem.length >= measuresPerSystem ||
+        wouldExceedSystemWidth)
     ) {
       systems.push(currentSystem)
       currentSystem = []
@@ -214,20 +221,34 @@ function distributeSystemWidths(
     return []
   }
 
-  const baseWidth = Math.min(
-    MIN_MEASURE_WIDTH,
-    availableWidth / measures.length
-  )
-  const remainingWidth = Math.max(
-    0,
-    availableWidth - baseWidth * measures.length
-  )
+  const minimumWidths = measures.map(measureMinimumWidth)
+  const totalMinimumWidth = minimumWidths.reduce((sum, width) => sum + width, 0)
+  const scale = totalMinimumWidth > availableWidth
+    ? availableWidth / totalMinimumWidth
+    : 1
+  const baseWidths = minimumWidths.map((width) => width * scale)
+  const baseWidthTotal = baseWidths.reduce((sum, width) => sum + width, 0)
+  const remainingWidth = Math.max(0, availableWidth - baseWidthTotal)
   const weights = measures.map(measureSpacingWeight)
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
 
   return weights.map(
-    (weight) => baseWidth + remainingWidth * (weight / totalWeight)
+    (weight, index) =>
+      baseWidths[index] + remainingWidth * (weight / totalWeight)
   )
+}
+
+function systemMinimumWidth(measures: Measure[]): number {
+  return measures.reduce((sum, measure) => sum + measureMinimumWidth(measure), 0)
+}
+
+function measureMinimumWidth(measure: Measure): number {
+  const rhythmWeight = measureSpacingWeight(measure)
+  const voiceCount = Math.max(1, measure.voices.length)
+  const voiceWidth = Math.max(0, voiceCount - 1) * 80
+  const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * 18
+
+  return MIN_MEASURE_WIDTH + voiceWidth + denseRhythmWidth
 }
 
 function measureSpacingWeight(measure: Measure): number {
