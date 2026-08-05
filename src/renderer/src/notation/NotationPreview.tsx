@@ -26,7 +26,10 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
-import { createSystemLayout } from './system-layout'
+import {
+  SYSTEM_START_NOTE_PADDING,
+  createSystemLayout
+} from './system-layout'
 import {
   toVexFlowAccidental,
   toVexFlowClef,
@@ -223,33 +226,38 @@ export function NotationPreview({
         svg.append(selectionTarget)
       }
 
-      if (
+      const showsClef =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameClef(previousMeasure, measure)
-      ) {
-        stave.addClef(clef)
-      }
-
-      if (
+      const showsKeySignature =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameKeySignature(previousMeasure, measure)
-      ) {
-        stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
-      }
-
-      if (
+      const showsTimeSignature =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameTimeSignature(previousMeasure, measure)
-      ) {
+
+      if (showsClef) {
+        stave.addClef(clef)
+      }
+
+      if (showsKeySignature) {
+        stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
+      }
+
+      if (showsTimeSignature) {
         stave.addTimeSignature(
           `${measure.timeSignature.beats}/${measure.timeSignature.beatType}`
         )
       }
 
       stave.setContext(context).draw()
+
+      if (showsClef || showsKeySignature || showsTimeSignature) {
+        stave.setNoteStartX(stave.getNoteStartX() + SYSTEM_START_NOTE_PADDING)
+      }
 
       if (svg && measure.repeat) {
         drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)

@@ -178,6 +178,14 @@ describe('system layout', () => {
     ).toBeCloseTo(884)
   })
 
+  it('reserves extra width for notation symbols at system starts', () => {
+    const layout = createSystemLayout(createMeasures(2), 900)
+
+    expect(layout.placements[0].width).toBeGreaterThan(
+      layout.placements[1].width
+    )
+  })
+
   it('wraps dense measures before their preferred widths would overflow a system', () => {
     const measures = Array.from({ length: 4 }, (_, measureIndex) =>
       createMeasure({
