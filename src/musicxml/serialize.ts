@@ -10,6 +10,7 @@ import {
   voiceEventDurationTicks,
   type Measure,
   type Pitch,
+  type RhythmFeelMarking,
   type Score,
   type VoiceEvent,
   type Voice,
@@ -25,6 +26,10 @@ const builder = new XMLBuilder({
   ignoreAttributes: false,
   suppressEmptyNode: true
 })
+const defaultRhythmFeelText = {
+  eighth: '♫ = ³♩ ♪',
+  '16th': '♬ = ³♪ 𝅘𝅥𝅯'
+} as const satisfies Record<RhythmFeelMarking['unit'], string>
 
 export function serializeMusicXml(score: Score): string {
   if (score.parts.length !== 1 || score.parts[0].staves.length !== 1) {
@@ -203,6 +208,9 @@ function buildMeasureDirections(score: Score, measure: Measure) {
     ...(measure.number === 1 && score.tempo
       ? [buildTempoDirection(score.tempo)]
       : []),
+    ...(measure.number === 1 && score.rhythmFeel
+      ? [buildRhythmFeelDirection(score.rhythmFeel)]
+      : []),
     ...tempoEventDirections,
     ...octaveShiftDirections,
     ...(score.rehearsalMarks ?? [])
@@ -216,6 +224,15 @@ function buildMeasureDirections(score: Score, measure: Measure) {
       .map((dynamic) => buildDynamicDirection(dynamic.value)),
     ...hairpinDirections
   ]
+}
+
+function buildRhythmFeelDirection(rhythmFeel: RhythmFeelMarking) {
+  return {
+    '@_placement': 'above',
+    'direction-type': {
+      words: rhythmFeel.text ?? defaultRhythmFeelText[rhythmFeel.unit]
+    }
+  }
 }
 
 function buildTempoDirection(

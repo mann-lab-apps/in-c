@@ -16,6 +16,7 @@ import {
   collectTiePairs,
   measureDurationTicks,
   resolveNotePitch,
+  type RhythmFeelMarking,
   shouldDisplayAccidental,
   sortVoiceEvents,
   type Measure,
@@ -148,6 +149,10 @@ export function NotationPreview({
 
     if (svg && score.tempo) {
       drawTempoMarking(svg, score.tempo)
+    }
+
+    if (svg && score.rhythmFeel) {
+      drawRhythmFeelMarking(svg, score.rhythmFeel, Boolean(score.tempo))
     }
 
     const rehearsalMarksByMeasureId = new Map(
@@ -668,6 +673,27 @@ function drawPositionedTempoMarking(
   svg.append(text)
 }
 
+function drawRhythmFeelMarking(
+  svg: SVGSVGElement,
+  rhythmFeel: RhythmFeelMarking,
+  hasTempo: boolean
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const x = hasTempo ? 126 : 32
+
+  group.classList.add('notation-rhythm-feel-marking')
+  group.setAttribute('transform', `translate(${x} 36)`)
+  if (rhythmFeel.text) {
+    appendRhythmFeelText(group, formatRhythmFeelMarkingText(rhythmFeel), 0, 0)
+  } else {
+    appendRhythmFeelText(group, rhythmFeel.unit === '16th' ? '♬' : '♫', 0, 0)
+    appendRhythmFeelText(group, '=', 31, 0)
+    appendRhythmFeelTripletNotes(group, 50, 0, rhythmFeel.unit)
+    appendRhythmFeelTriplet(group, 50, -26, 43)
+  }
+  svg.append(group)
+}
+
 function formatTempoMarking(tempo: TempoMarking): string {
   if (tempo.text) {
     return tempo.text
@@ -691,6 +717,65 @@ function formatTempoMarking(tempo: TempoMarking): string {
                 : '♩'
 
   return `${symbol}${dots} = ${tempo.bpm}`
+}
+
+function formatRhythmFeelMarkingText(
+  rhythmFeel: RhythmFeelMarking
+): string {
+  if (rhythmFeel.text) {
+    return rhythmFeel.text
+  }
+
+  return rhythmFeel.unit === '16th' ? '♬ = ³♪ 𝅘𝅥𝅯' : '♫ = ³♩ ♪'
+}
+
+function appendRhythmFeelText(
+  parent: SVGElement,
+  content: string,
+  x: number,
+  y: number,
+  className = 'notation-rhythm-feel-marking__text'
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add(className)
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = content
+  parent.append(text)
+}
+
+function appendRhythmFeelTriplet(
+  parent: SVGElement,
+  x: number,
+  y: number,
+  width: number
+): void {
+  const bracket = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+
+  bracket.classList.add('notation-rhythm-feel-marking__triplet-bracket')
+  bracket.setAttribute(
+    'd',
+    `M ${x} ${y + 8} L ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + 8}`
+  )
+  parent.append(bracket)
+  appendRhythmFeelText(
+    parent,
+    '3',
+    x + width / 2 - 3.5,
+    y - 2,
+    'notation-rhythm-feel-marking__triplet-number'
+  )
+}
+
+function appendRhythmFeelTripletNotes(
+  parent: SVGElement,
+  x: number,
+  y: number,
+  unit: RhythmFeelMarking['unit']
+): void {
+  appendRhythmFeelText(parent, unit === '16th' ? '♪' : '♩', x, y)
+  appendRhythmFeelText(parent, unit === '16th' ? '𝅘𝅥𝅯' : '♪', x + 26, y)
 }
 
 function drawRepeatMark(

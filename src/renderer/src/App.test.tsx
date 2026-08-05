@@ -49,6 +49,7 @@ vi.mock('./notation/NotationPreview', () => ({
         0
       )}
       data-global-tempo={score.tempo?.bpm}
+      data-rhythm-feel={score.rhythmFeel?.unit ?? ''}
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
@@ -247,6 +248,25 @@ describe('App component shell', () => {
     expect(screen.getByRole('button', { name: /복구본 없음/ })).toBeDisabled()
   })
 
+  it('start-recovery.new-score starts from blank measures instead of demo notes', async () => {
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole(
+        'button',
+        { name: '만들기' }
+      )
+    )
+
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-count',
+      '8'
+    )
+    expect(screen.getByTestId('notation-preview')).not.toHaveTextContent('note-c4')
+  })
+
   it('start-recovery.open-autosave restores the saved score metadata and events', async () => {
     const recoveredScore = {
       ...demoScore,
@@ -430,6 +450,7 @@ describe('App component shell', () => {
     const tempoInput = screen.getByRole('slider', { name: '빠르기' })
     const tempoBeatUnit = screen.getByLabelText('빠르기 기준 음가')
     const tempoText = screen.getByLabelText('빠르기말')
+    const rhythmFeelSelect = screen.getByLabelText('리듬 해석 표기')
     expect(tempoInput).toHaveValue('75')
     expect(tempoBeatUnit).toHaveValue('quarter:0')
     expect(tempoText).toHaveTextContent('♩ = 75')
@@ -438,6 +459,10 @@ describe('App component shell', () => {
     expect(preview).toHaveAttribute('data-global-tempo', '90')
     fireEvent.change(tempoBeatUnit, { target: { value: 'eighth:0' } })
     expect(tempoText).toHaveTextContent('♪ = 90')
+    expect(rhythmFeelSelect).toHaveValue('none')
+    fireEvent.change(rhythmFeelSelect, { target: { value: 'eighth' } })
+    expect(rhythmFeelSelect).toHaveValue('eighth')
+    expect(preview).toHaveAttribute('data-rhythm-feel', 'eighth')
     const tempoVisibilityToggle = screen.getByLabelText('악보에 빠르기말 표기')
     expect(tempoVisibilityToggle).toBeChecked()
     fireEvent.click(tempoVisibilityToggle)

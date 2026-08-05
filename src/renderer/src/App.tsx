@@ -53,6 +53,7 @@ import {
   type Ornament,
   type Pitch,
   type PitchStep,
+  type RhythmFeelMarking,
   type Score,
   type ScoreCommand,
   type Articulation,
@@ -351,6 +352,14 @@ const tempoBeatUnitOptions = [
     value: tempoBeatSelectorValue(beatUnit as DurationValue, dots)
   }))
 )
+const rhythmFeelOptions = [
+  { label: '없음', value: 'none' },
+  { label: '8분 셋잇단 느낌', value: 'eighth' },
+  { label: '16분 셋잇단 느낌', value: '16th' }
+] as const satisfies ReadonlyArray<{
+  label: string
+  value: 'none' | RhythmFeelMarking['unit']
+}>
 const octaveShiftOptions = [
   ['8va', '8va'],
   ['8vb', '8vb'],
@@ -904,6 +913,24 @@ export const App = () => {
       })
     },
     [executeCommand, score.tempo, scoreTempo]
+  )
+
+  const changeScoreRhythmFeel = useCallback(
+    (value: string) => {
+      const rhythmFeel = resolveRhythmFeelOption(value)
+
+      executeCommand({
+        type: 'score-rhythm-feel.update',
+        rhythmFeel
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: rhythmFeel
+          ? '리듬 해석 표기를 갱신했습니다.'
+          : '리듬 해석 표기를 삭제했습니다.'
+      })
+    },
+    [executeCommand]
   )
 
   const changeDuration = useCallback(
@@ -3537,6 +3564,21 @@ export const App = () => {
               <span>악보에 표기</span>
             </label>
 
+            <label>
+              <span>리듬 해석</span>
+              <select
+                aria-label="리듬 해석 표기"
+                onChange={(event) => changeScoreRhythmFeel(event.target.value)}
+                value={score.rhythmFeel?.unit ?? 'none'}
+              >
+                {rhythmFeelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             {activeMeasureId ? (
               <label>
                 <span>위치별 빠르기</span>
@@ -4589,8 +4631,19 @@ function createInitialScore(): Score {
       return createSingleVoiceMvpScore()
     case 'release-test':
       return createReleaseTestScore()
-    default:
+    case 'demo':
       return demoScore
+    default:
+      return createNewScore({
+        title: '제목 없는 악보',
+        composer: 'in-C',
+        partName: '멜로디',
+        partAbbreviation: 'Mel.',
+        keySignature: resolveKeySignaturePreset('c-major').value,
+        timeSignature: resolveTimeSignaturePreset('4-4').value,
+        measureCount: 8,
+        tempo: DEFAULT_TEMPO_BPM
+      })
   }
 }
 
@@ -5026,6 +5079,12 @@ function createUpdatedTempoMarking(
     ...tempo,
     text: formatTempoMarkingText(tempo)
   }
+}
+
+function resolveRhythmFeelOption(
+  value: string
+): RhythmFeelMarking | undefined {
+  return value === 'eighth' || value === '16th' ? { unit: value } : undefined
 }
 
 function shouldFollowTimeSignatureTempoBeat(
