@@ -39,6 +39,7 @@ import {
   durationToTicks,
   MAX_AUGMENTATION_DOTS,
   measureDurationTicks,
+  resolveNotePitch,
   sortVoiceEvents,
   voiceEventDurationTicks,
   type Duration,
@@ -4750,7 +4751,17 @@ function createInputState(
           target: location.address,
           tick: location.event.position.tick,
           duration,
-          mode
+          mode,
+          lastPitch:
+            location.event.type === 'note'
+              ? resolveNotePitch(
+                  location.measure,
+                  (location.measure.voices.find(
+                    (voice) => voice.id === location.address.voiceId
+                  ) ?? location.measure.voices[0])!,
+                  location.event
+                )
+              : undefined
         })
       : undefined
   }

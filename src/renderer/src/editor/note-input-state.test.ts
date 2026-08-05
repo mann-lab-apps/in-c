@@ -306,6 +306,83 @@ describe('note input state', () => {
     })
   })
 
+  it('chooses the nearest octave from the last input pitch before the cursor fallback', () => {
+    const score = scoreWithEvents([
+      createNote({
+        id: 'note-c4',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 }
+      }),
+      ...quarterRests(1)
+    ])
+    const state = createNoteInputState({
+      target,
+      tick: quarter,
+      duration: createDuration('quarter'),
+      mode: 'note',
+      lastPitch: { step: 'B', octave: 4, alter: 0 }
+    })
+    const input = buildSequentialInput(score, state, 'C', idSequence())
+    const result = applyScoreCommand(score, input!.command)
+
+    expect(readEvents(result.score)[1]).toMatchObject({
+      type: 'note',
+      pitch: {
+        step: 'C',
+        octave: 5,
+        alter: 0
+      }
+    })
+    expect(input!.nextState.lastPitch).toMatchObject({
+      step: 'C',
+      octave: 5,
+      alter: 0
+    })
+  })
+
+  it('preserves the last input pitch through rest entry', () => {
+    const score = scoreWithEvents([
+      createNote({
+        id: 'note-c4',
+        position: createTimePosition(0),
+        pitch: { step: 'C', octave: 4 }
+      }),
+      ...quarterRests(1)
+    ])
+    const restInput = buildSequentialInput(
+      score,
+      createNoteInputState({
+        target,
+        tick: quarter,
+        duration: createDuration('quarter'),
+        mode: 'rest',
+        lastPitch: { step: 'B', octave: 4, alter: 0 }
+      }),
+      undefined,
+      idSequence()
+    )!
+    const restResult = applyScoreCommand(score, restInput.command)
+    const noteInput = buildSequentialInput(
+      restResult.score,
+      {
+        ...restInput.nextState,
+        mode: 'note'
+      },
+      'C',
+      idSequence()
+    )!
+    const noteResult = applyScoreCommand(restResult.score, noteInput.command)
+
+    expect(readEvents(noteResult.score)[2]).toMatchObject({
+      type: 'note',
+      pitch: {
+        step: 'C',
+        octave: 5,
+        alter: 0
+      }
+    })
+  })
+
   it('note-input.accidental-measure-context uses key signatures and same-measure accidental context', () => {
     const score = scoreWithEvents(quarterRests(0), 1)
     const firstState = createNoteInputState({
@@ -569,6 +646,38 @@ describe('note input state', () => {
         preview.parts[0].staves[0].measures[0]
       ).isExact
     ).toBe(true)
+  })
+
+  it('previews tuplet members from the last input pitch reference', () => {
+    const score = createScore()
+    const tripletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note',
+        lastPitch: { step: 'B', octave: 4, alter: 0 }
+      }),
+      'tuplet-preview-last-pitch'
+    )!
+    const first = buildSequentialInput(
+      score,
+      tripletState,
+      'C',
+      idSequence()
+    )!
+    const preview = createTupletInputPreviewScore(score, first.nextState)
+    const previewVoice = preview.parts[0].staves[0].measures[0].voices[0]
+
+    expect(previewVoice.events[0]).toMatchObject({
+      id: 'preview-tuplet-preview-last-pitch-1',
+      type: 'note',
+      pitch: {
+        step: 'C',
+        octave: 5,
+        alter: 0
+      }
+    })
   })
 
   it('tuplets.reject-insufficient-time requires rest space before committing tuplet input', () => {
