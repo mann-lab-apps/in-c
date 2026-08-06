@@ -27,8 +27,8 @@ import {
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
 import {
-  SYSTEM_START_NOTE_PADDING,
-  createSystemLayout
+  createSystemLayout,
+  leadingNotationPadding
 } from './system-layout'
 import {
   toVexFlowAccidental,
@@ -261,7 +261,14 @@ export function NotationPreview({
       stave.setContext(context).draw()
 
       if (showsClef || showsKeySignature || showsTimeSignature) {
-        stave.setNoteStartX(stave.getNoteStartX() + SYSTEM_START_NOTE_PADDING)
+        stave.setNoteStartX(
+          stave.getNoteStartX() +
+            leadingNotationPadding(measure, {
+              showsClef,
+              showsKeySignature,
+              showsTimeSignature
+            })
+        )
       }
 
       selectionTarget?.setAttribute(

@@ -12,7 +12,11 @@ import {
   createVoice
 } from '../../../score-core'
 import { parseMusicXml } from '../../../musicxml'
-import { createSystemLayout, pitchStaffLine } from './system-layout'
+import {
+  createSystemLayout,
+  leadingNotationPadding,
+  pitchStaffLine
+} from './system-layout'
 
 const releaseQaFixture = readFileSync(
   resolve('src/musicxml/fixtures/release-qa.musicxml'),
@@ -30,7 +34,7 @@ describe('system layout', () => {
       systemIndex: 0,
       x: 8
     })
-    expect(layout.placements[7]).toMatchObject({
+    expect(layout.placements[8]).toMatchObject({
       isSystemStart: true,
       systemIndex: 1,
       x: 8
@@ -44,13 +48,13 @@ describe('system layout', () => {
     expect(layout.measuresPerSystem).toBe(5)
     expect(layout.systemCount).toBe(2)
     expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
-      0, 0, 0, 0, 1, 1
+      0, 0, 0, 0, 0, 1
     ])
   })
 
   it('stretches the last system to the full available width', () => {
-    const layout = createSystemLayout(createMeasures(8), 900)
-    const lastPlacement = layout.placements[7]
+    const layout = createSystemLayout(createMeasures(9), 900)
+    const lastPlacement = layout.placements[8]
 
     expect(lastPlacement.x).toBe(8)
     expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(892)
@@ -186,6 +190,27 @@ describe('system layout', () => {
     )
   })
 
+  it('scales leading notation padding with the visible key signature', () => {
+    const cMajor = createMeasure({
+      keySignature: { fifths: 0, mode: 'major' }
+    })
+    const dMajor = createMeasure({
+      keySignature: { fifths: 2, mode: 'major' }
+    })
+    const cSharpMajor = createMeasure({
+      keySignature: { fifths: 7, mode: 'major' }
+    })
+    const leadingNotation = {
+      showsClef: true,
+      showsKeySignature: true,
+      showsTimeSignature: true
+    }
+
+    expect(leadingNotationPadding(cMajor, leadingNotation)).toBe(24)
+    expect(leadingNotationPadding(dMajor, leadingNotation)).toBe(32)
+    expect(leadingNotationPadding(cSharpMajor, leadingNotation)).toBe(52)
+  })
+
   it('wraps dense measures before their preferred widths would overflow a system', () => {
     const measures = Array.from({ length: 4 }, (_, measureIndex) =>
       createMeasure({
@@ -273,7 +298,7 @@ describe('system layout', () => {
 
   it('increases the SVG height as systems are added', () => {
     expect(createSystemLayout(createMeasures(2), 900).height).toBe(226)
-    expect(createSystemLayout(createMeasures(8), 900).height).toBeGreaterThan(
+    expect(createSystemLayout(createMeasures(9), 900).height).toBeGreaterThan(
       226
     )
   })

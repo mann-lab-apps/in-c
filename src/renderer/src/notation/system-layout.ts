@@ -31,7 +31,11 @@ const HORIZONTAL_PADDING = 8
 const MAX_MEASURES_PER_SYSTEM = 8
 const MIN_SPARSE_MEASURE_WIDTH = 104
 const MIN_MEASURE_WIDTH = 132
-export const SYSTEM_START_NOTE_PADDING = 64
+const LEADING_NOTATION_BASE_PADDING = 12
+const CLEF_PADDING = 4
+const KEY_SIGNATURE_ACCIDENTAL_PADDING = 4
+const TIME_SIGNATURE_PADDING = 8
+const MAX_LEADING_NOTATION_PADDING = 52
 const EVENT_CROWDING_WIDTH = 10
 const DENSE_RHYTHM_WIDTH = 8
 const MIN_RENDER_HEIGHT = 190
@@ -317,7 +321,7 @@ function distributeSystemWidths(
   }
 
   const minimumWidths = measures.map((measure, index) =>
-    measureMinimumWidth(measure, index === 0)
+    measureMinimumWidth(measure, measures[index - 1], index === 0)
   )
   const totalMinimumWidth = minimumWidths.reduce((sum, width) => sum + width, 0)
   const scale = totalMinimumWidth > availableWidth
@@ -337,12 +341,17 @@ function distributeSystemWidths(
 
 function systemMinimumWidth(measures: Measure[]): number {
   return measures.reduce(
-    (sum, measure, index) => sum + measureMinimumWidth(measure, index === 0),
+    (sum, measure, index) =>
+      sum + measureMinimumWidth(measure, measures[index - 1], index === 0),
     0
   )
 }
 
-function measureMinimumWidth(measure: Measure, isSystemStart: boolean): number {
+function measureMinimumWidth(
+  measure: Measure,
+  previousMeasure: Measure | undefined,
+  isSystemStart: boolean
+): number {
   const rhythmWeight = measureSpacingWeight(measure)
   const voiceCount = Math.max(1, measure.voices.length)
   const maxEventCount = Math.max(
@@ -353,7 +362,14 @@ function measureMinimumWidth(measure: Measure, isSystemStart: boolean): number {
   const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
-  const leadingModifierWidth = isSystemStart ? SYSTEM_START_NOTE_PADDING : 0
+  const leadingModifierWidth = leadingNotationPadding(measure, {
+    showsClef:
+      isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
+    showsKeySignature:
+      isSystemStart || !previousMeasure || !sameKeySignature(previousMeasure, measure),
+    showsTimeSignature:
+      isSystemStart || !previousMeasure || !sameTimeSignature(previousMeasure, measure)
+  })
 
   return (
     baseWidth +
@@ -361,6 +377,55 @@ function measureMinimumWidth(measure: Measure, isSystemStart: boolean): number {
     eventCrowdingWidth +
     voiceWidth +
     denseRhythmWidth
+  )
+}
+
+export function leadingNotationPadding(
+  measure: Measure,
+  leadingNotation: {
+    showsClef: boolean
+    showsKeySignature: boolean
+    showsTimeSignature: boolean
+  }
+): number {
+  if (
+    !leadingNotation.showsClef &&
+    !leadingNotation.showsKeySignature &&
+    !leadingNotation.showsTimeSignature
+  ) {
+    return 0
+  }
+
+  const keyAccidentalCount = leadingNotation.showsKeySignature
+    ? Math.min(7, Math.abs(measure.keySignature.fifths))
+    : 0
+  const padding =
+    LEADING_NOTATION_BASE_PADDING +
+    (leadingNotation.showsClef ? CLEF_PADDING : 0) +
+    keyAccidentalCount * KEY_SIGNATURE_ACCIDENTAL_PADDING +
+    (leadingNotation.showsTimeSignature ? TIME_SIGNATURE_PADDING : 0)
+
+  return Math.min(MAX_LEADING_NOTATION_PADDING, padding)
+}
+
+function sameClef(previous: Measure, current: Measure): boolean {
+  return (
+    previous.clef.sign === current.clef.sign &&
+    previous.clef.line === current.clef.line
+  )
+}
+
+function sameKeySignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.keySignature.fifths === current.keySignature.fifths &&
+    previous.keySignature.mode === current.keySignature.mode
+  )
+}
+
+function sameTimeSignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.timeSignature.beats === current.timeSignature.beats &&
+    previous.timeSignature.beatType === current.timeSignature.beatType
   )
 }
 
