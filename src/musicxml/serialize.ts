@@ -280,7 +280,7 @@ function buildOctaveShiftDirection(
   type: NonNullable<Score['octaveShifts']>[number]['type'],
   markerType: 'start' | 'stop'
 ) {
-  const isDown = type.endsWith('vb')
+  const isDown = type === '8vb' || type === '15mb'
 
   return {
     '@_placement': isDown ? 'below' : 'above',
