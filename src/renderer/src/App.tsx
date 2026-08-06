@@ -1119,7 +1119,7 @@ export const App = () => {
       tone: 'error',
       message:
         eventLocation?.event.type === 'note'
-          ? '타이는 같은 음높이의 바로 다음 음표와 연결할 수 있습니다.'
+          ? '타이는 인접한 같은 음높이의 음표와 연결할 수 있습니다.'
           : '타이를 추가하거나 해제할 음표를 선택해 주세요.'
     })
   }, [eventLocation, executeCommand, tieCommand, tieSelected])
