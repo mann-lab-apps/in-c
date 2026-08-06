@@ -1877,10 +1877,10 @@ async function verifyNewScoreWizard(window) {
           ? renderedSvgWidth / svgWidth
           : 1
       const noteStartX = Number(
-        selectedMeasureElement?.getAttribute('data-note-start-x')
+        selectedMeasureElement?.getAttribute('data-full-measure-rest-start-x')
       )
       const noteEndX = Number(
-        selectedMeasureElement?.getAttribute('data-note-end-x')
+        selectedMeasureElement?.getAttribute('data-full-measure-rest-end-x')
       )
       const fullRestCenterDelta =
         restBox &&

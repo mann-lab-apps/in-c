@@ -259,10 +259,11 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+      const defaultNoteStartX = stave.getNoteStartX()
 
       if (showsClef || showsKeySignature || showsTimeSignature) {
         stave.setNoteStartX(
-          stave.getNoteStartX() +
+          defaultNoteStartX +
             leadingNotationPadding(measure, {
               showsClef,
               showsKeySignature,
@@ -271,6 +272,14 @@ export function NotationPreview({
         )
       }
 
+      selectionTarget?.setAttribute(
+        'data-full-measure-rest-start-x',
+        String(defaultNoteStartX)
+      )
+      selectionTarget?.setAttribute(
+        'data-full-measure-rest-end-x',
+        String(stave.getNoteEndX())
+      )
       selectionTarget?.setAttribute(
         'data-note-start-x',
         String(stave.getNoteStartX())
@@ -444,8 +453,8 @@ export function NotationPreview({
           const centeredRestShift =
             event?.type === 'rest' && event.fullMeasure
               ? centerFullMeasureRest(svgElement, {
-                  x: stave.getNoteStartX(),
-                  width: stave.getNoteEndX() - stave.getNoteStartX()
+                  x: defaultNoteStartX,
+                  width: stave.getNoteEndX() - defaultNoteStartX
                 })
               : 0
           const eventX = note.getAbsoluteX() + centeredRestShift
