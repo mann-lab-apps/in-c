@@ -39,6 +39,7 @@ import {
   durationToTicks,
   MAX_AUGMENTATION_DOTS,
   measureDurationTicks,
+  resolveNotePitch,
   sortVoiceEvents,
   voiceEventDurationTicks,
   type Duration,
@@ -53,6 +54,7 @@ import {
   type Ornament,
   type Pitch,
   type PitchStep,
+  type RhythmFeelMarking,
   type Score,
   type ScoreCommand,
   type Articulation,
@@ -351,6 +353,14 @@ const tempoBeatUnitOptions = [
     value: tempoBeatSelectorValue(beatUnit as DurationValue, dots)
   }))
 )
+const rhythmFeelOptions = [
+  { label: '없음', value: 'none' },
+  { label: '8분 셋잇단 느낌', value: 'eighth' },
+  { label: '16분 셋잇단 느낌', value: '16th' }
+] as const satisfies ReadonlyArray<{
+  label: string
+  value: 'none' | RhythmFeelMarking['unit']
+}>
 const octaveShiftOptions = [
   ['8va', '8va'],
   ['8vb', '8vb'],
@@ -906,6 +916,24 @@ export const App = () => {
     [executeCommand, score.tempo, scoreTempo]
   )
 
+  const changeScoreRhythmFeel = useCallback(
+    (value: string) => {
+      const rhythmFeel = resolveRhythmFeelOption(value)
+
+      executeCommand({
+        type: 'score-rhythm-feel.update',
+        rhythmFeel
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: rhythmFeel
+          ? '리듬 해석 표기를 갱신했습니다.'
+          : '리듬 해석 표기를 삭제했습니다.'
+      })
+    },
+    [executeCommand]
+  )
+
   const changeDuration = useCallback(
     (value: DurationValue) => {
       if (noteInputState?.tupletInput) {
@@ -1091,7 +1119,7 @@ export const App = () => {
       tone: 'error',
       message:
         eventLocation?.event.type === 'note'
-          ? '타이는 같은 음높이의 바로 다음 음표와 연결할 수 있습니다.'
+          ? '타이는 인접한 같은 음높이의 음표와 연결할 수 있습니다.'
           : '타이를 추가하거나 해제할 음표를 선택해 주세요.'
     })
   }, [eventLocation, executeCommand, tieCommand, tieSelected])
@@ -3537,6 +3565,21 @@ export const App = () => {
               <span>악보에 표기</span>
             </label>
 
+            <label>
+              <span>리듬 해석</span>
+              <select
+                aria-label="리듬 해석 표기"
+                onChange={(event) => changeScoreRhythmFeel(event.target.value)}
+                value={score.rhythmFeel?.unit ?? 'none'}
+              >
+                {rhythmFeelOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
             {activeMeasureId ? (
               <label>
                 <span>위치별 빠르기</span>
@@ -4589,8 +4632,19 @@ function createInitialScore(): Score {
       return createSingleVoiceMvpScore()
     case 'release-test':
       return createReleaseTestScore()
-    default:
+    case 'demo':
       return demoScore
+    default:
+      return createNewScore({
+        title: '제목 없는 악보',
+        composer: 'in-C',
+        partName: '멜로디',
+        partAbbreviation: 'Mel.',
+        keySignature: resolveKeySignaturePreset('c-major').value,
+        timeSignature: resolveTimeSignaturePreset('4-4').value,
+        measureCount: 8,
+        tempo: DEFAULT_TEMPO_BPM
+      })
   }
 }
 
@@ -4697,7 +4751,17 @@ function createInputState(
           target: location.address,
           tick: location.event.position.tick,
           duration,
-          mode
+          mode,
+          lastPitch:
+            location.event.type === 'note'
+              ? resolveNotePitch(
+                  location.measure,
+                  (location.measure.voices.find(
+                    (voice) => voice.id === location.address.voiceId
+                  ) ?? location.measure.voices[0])!,
+                  location.event
+                )
+              : undefined
         })
       : undefined
   }
@@ -5026,6 +5090,12 @@ function createUpdatedTempoMarking(
     ...tempo,
     text: formatTempoMarkingText(tempo)
   }
+}
+
+function resolveRhythmFeelOption(
+  value: string
+): RhythmFeelMarking | undefined {
+  return value === 'eighth' || value === '16th' ? { unit: value } : undefined
 }
 
 function shouldFollowTimeSignatureTempoBeat(

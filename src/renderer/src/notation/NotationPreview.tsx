@@ -16,6 +16,7 @@ import {
   collectTiePairs,
   measureDurationTicks,
   resolveNotePitch,
+  type RhythmFeelMarking,
   shouldDisplayAccidental,
   sortVoiceEvents,
   type Measure,
@@ -25,7 +26,10 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
-import { createSystemLayout } from './system-layout'
+import {
+  createSystemLayout,
+  leadingNotationPadding
+} from './system-layout'
 import {
   toVexFlowAccidental,
   toVexFlowClef,
@@ -69,6 +73,10 @@ interface InlineLyricEditor {
 const MIN_RENDER_WIDTH = 560
 const STABLE_BEAM_MAX_SLOPE = 0.12
 const STABLE_BEAM_SLOPE_COST = 220
+const REHEARSAL_MARK_Y_OFFSET = -62
+const STAFF_TEXT_Y_OFFSET = -24
+const DYNAMIC_MARK_Y_OFFSET = 122
+const HAIRPIN_Y_OFFSET = 126
 
 interface CursorPoint {
   x: number
@@ -150,6 +158,10 @@ export function NotationPreview({
       drawTempoMarking(svg, score.tempo)
     }
 
+    if (svg && score.rhythmFeel) {
+      drawRhythmFeelMarking(svg, score.rhythmFeel, Boolean(score.tempo))
+    }
+
     const rehearsalMarksByMeasureId = new Map(
       (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
     )
@@ -198,9 +210,10 @@ export function NotationPreview({
         placement.width
       )
       const clef = toVexFlowClef(measure.clef)
+      let selectionTarget: SVGRectElement | undefined
 
       if (svg) {
-        const selectionTarget = document.createElementNS(
+        selectionTarget = document.createElementNS(
           'http://www.w3.org/2000/svg',
           'rect'
         )
@@ -218,33 +231,63 @@ export function NotationPreview({
         svg.append(selectionTarget)
       }
 
-      if (
+      const showsClef =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameClef(previousMeasure, measure)
-      ) {
-        stave.addClef(clef)
-      }
-
-      if (
+      const showsKeySignature =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameKeySignature(previousMeasure, measure)
-      ) {
-        stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
-      }
-
-      if (
+      const showsTimeSignature =
         placement.isSystemStart ||
         !previousMeasure ||
         !sameTimeSignature(previousMeasure, measure)
-      ) {
+
+      if (showsClef) {
+        stave.addClef(clef)
+      }
+
+      if (showsKeySignature) {
+        stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
+      }
+
+      if (showsTimeSignature) {
         stave.addTimeSignature(
           `${measure.timeSignature.beats}/${measure.timeSignature.beatType}`
         )
       }
 
       stave.setContext(context).draw()
+      const defaultNoteStartX = stave.getNoteStartX()
+
+      if (showsClef || showsKeySignature || showsTimeSignature) {
+        stave.setNoteStartX(
+          defaultNoteStartX +
+            leadingNotationPadding(measure, {
+              showsClef,
+              showsKeySignature,
+              showsTimeSignature
+            })
+        )
+      }
+
+      selectionTarget?.setAttribute(
+        'data-full-measure-rest-start-x',
+        String(defaultNoteStartX)
+      )
+      selectionTarget?.setAttribute(
+        'data-full-measure-rest-end-x',
+        String(stave.getNoteEndX())
+      )
+      selectionTarget?.setAttribute(
+        'data-note-start-x',
+        String(stave.getNoteStartX())
+      )
+      selectionTarget?.setAttribute(
+        'data-note-end-x',
+        String(stave.getNoteEndX())
+      )
 
       if (svg && measure.repeat) {
         drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
@@ -253,13 +296,23 @@ export function NotationPreview({
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
 
       if (svg && rehearsalMark) {
-        drawRehearsalMark(svg, placement.x + 18, placement.y - 28, rehearsalMark.text)
+        drawRehearsalMark(
+          svg,
+          placement.x + 14,
+          placement.y + REHEARSAL_MARK_Y_OFFSET,
+          rehearsalMark.text
+        )
       }
 
       const staffText = staffTextsByMeasureId.get(measure.id)
 
       if (svg && staffText) {
-        drawStaffText(svg, placement.x + 18, placement.y - 8, staffText.text)
+        drawStaffText(
+          svg,
+          placement.x + 14,
+          placement.y + STAFF_TEXT_Y_OFFSET,
+          staffText.text
+        )
       }
 
       const voices = measure.voices.map((voice) => {
@@ -344,6 +397,7 @@ export function NotationPreview({
         tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
 
         notes.forEach((note, noteIndex) => {
+          const event = events[noteIndex]
           const eventId = note.getAttribute('data-event-id') as string
           const svgElement = note.getSVGElement()
 
@@ -396,38 +450,45 @@ export function NotationPreview({
             })
           }
 
+          const centeredRestShift =
+            event?.type === 'rest' && event.fullMeasure
+              ? centerFullMeasureRest(svgElement, {
+                  x: defaultNoteStartX,
+                  width: stave.getNoteEndX() - defaultNoteStartX
+                })
+              : 0
+          const eventX = note.getAbsoluteX() + centeredRestShift
+
           if (eventId === playbackEventId) {
             playbackPoint = {
-              x: note.getAbsoluteX(),
+              x: eventX,
               y: placement.y
             }
           }
 
           pointsByEventId.set(eventId, {
-            x: note.getAbsoluteX(),
+            x: eventX,
             y: placement.y
           })
-          firstEventX = Math.min(firstEventX ?? note.getAbsoluteX(), note.getAbsoluteX())
-
-          const event = events[noteIndex]
+          firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
           if (svg && event?.type === 'note' && event.articulations?.length) {
             drawArticulations(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               event.articulations
             )
           }
 
           if (svg && event?.fermata) {
-            drawFermata(svg, note.getAbsoluteX(), placement.y)
+            drawFermata(svg, eventX, placement.y)
           }
 
           if (svg && event?.breathMark) {
             drawBreathMark(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               event.breathMark,
               Boolean(event.fermata)
@@ -444,21 +505,21 @@ export function NotationPreview({
           }
 
           if (svg && event?.type === 'note' && event.ornaments?.length) {
-            drawOrnaments(svg, note.getAbsoluteX(), placement.y, event.ornaments)
+            drawOrnaments(svg, eventX, placement.y, event.ornaments)
           }
 
           if (svg && event?.type === 'note' && event.graceNotes?.length) {
-            drawGraceNotes(svg, note.getAbsoluteX(), placement.y, event.graceNotes)
+            drawGraceNotes(svg, eventX, placement.y, event.graceNotes)
           }
 
           if (svg && event?.type === 'note' && event.lyrics?.length) {
-            drawLyrics(svg, note.getAbsoluteX(), placement.y, event.lyrics)
+            drawLyrics(svg, eventX, placement.y, event.lyrics)
           }
 
           if (svg && eventId === inlineLyricEditor?.eventId) {
             drawInlineLyricEditor(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               inlineLyricEditor
             )
@@ -472,7 +533,7 @@ export function NotationPreview({
         drawDynamicMark(
           svg,
           (firstEventX ?? placement.x + 88) - 2,
-          placement.y + 78,
+          placement.y + DYNAMIC_MARK_Y_OFFSET,
           dynamic.value,
           measure.id
         )
@@ -668,6 +729,27 @@ function drawPositionedTempoMarking(
   svg.append(text)
 }
 
+function drawRhythmFeelMarking(
+  svg: SVGSVGElement,
+  rhythmFeel: RhythmFeelMarking,
+  hasTempo: boolean
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const x = hasTempo ? 126 : 32
+
+  group.classList.add('notation-rhythm-feel-marking')
+  group.setAttribute('transform', `translate(${x} 36)`)
+  if (rhythmFeel.text) {
+    appendRhythmFeelText(group, formatRhythmFeelMarkingText(rhythmFeel), 0, 0)
+  } else {
+    appendRhythmFeelText(group, rhythmFeel.unit === '16th' ? '♬' : '♫', 0, 0)
+    appendRhythmFeelText(group, '=', 31, 0)
+    appendRhythmFeelTripletNotes(group, 50, 0, rhythmFeel.unit)
+    appendRhythmFeelTriplet(group, 50, -26, 43)
+  }
+  svg.append(group)
+}
+
 function formatTempoMarking(tempo: TempoMarking): string {
   if (tempo.text) {
     return tempo.text
@@ -691,6 +773,65 @@ function formatTempoMarking(tempo: TempoMarking): string {
                 : '♩'
 
   return `${symbol}${dots} = ${tempo.bpm}`
+}
+
+function formatRhythmFeelMarkingText(
+  rhythmFeel: RhythmFeelMarking
+): string {
+  if (rhythmFeel.text) {
+    return rhythmFeel.text
+  }
+
+  return rhythmFeel.unit === '16th' ? '♬ = ³♪ 𝅘𝅥𝅯' : '♫ = ³♩ ♪'
+}
+
+function appendRhythmFeelText(
+  parent: SVGElement,
+  content: string,
+  x: number,
+  y: number,
+  className = 'notation-rhythm-feel-marking__text'
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add(className)
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = content
+  parent.append(text)
+}
+
+function appendRhythmFeelTriplet(
+  parent: SVGElement,
+  x: number,
+  y: number,
+  width: number
+): void {
+  const bracket = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+
+  bracket.classList.add('notation-rhythm-feel-marking__triplet-bracket')
+  bracket.setAttribute(
+    'd',
+    `M ${x} ${y + 8} L ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + 8}`
+  )
+  parent.append(bracket)
+  appendRhythmFeelText(
+    parent,
+    '3',
+    x + width / 2 - 3.5,
+    y - 2,
+    'notation-rhythm-feel-marking__triplet-number'
+  )
+}
+
+function appendRhythmFeelTripletNotes(
+  parent: SVGElement,
+  x: number,
+  y: number,
+  unit: RhythmFeelMarking['unit']
+): void {
+  appendRhythmFeelText(parent, unit === '16th' ? '♪' : '♩', x, y)
+  appendRhythmFeelText(parent, unit === '16th' ? '𝅘𝅥𝅯' : '♪', x + 26, y)
 }
 
 function drawRepeatMark(
@@ -828,6 +969,28 @@ function drawDynamicMark(
   svg.append(text)
 }
 
+function centerFullMeasureRest(
+  element: SVGElement,
+  placement: { width: number; x: number }
+): number {
+  const box = (element as SVGGraphicsElement).getBBox()
+  const targetCenterX = placement.x + placement.width / 2
+  const currentCenterX = box.x + box.width / 2
+  const shiftX = targetCenterX - currentCenterX
+
+  if (Math.abs(shiftX) < 0.5) {
+    return 0
+  }
+
+  const transform = element.getAttribute('transform')
+  element.setAttribute(
+    'transform',
+    transform ? `${transform} translate(${shiftX} 0)` : `translate(${shiftX} 0)`
+  )
+
+  return shiftX
+}
+
 function drawHairpinSegments(
   svg: SVGSVGElement,
   start: CursorPoint,
@@ -868,7 +1031,7 @@ function drawHairpinSegment(
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const y = staffY + 82
+  const y = staffY + HAIRPIN_Y_OFFSET
   const openings = resolveHairpinOpenings(type, isFirst, isLast)
   const leftOpening = openings.left
   const rightOpening = openings.right
@@ -1326,6 +1489,7 @@ function createStaveNote(
     clef,
     keys,
     duration: toVexFlowDuration(event.duration, isRest),
+    alignCenter: event.type === 'rest' && Boolean(event.fullMeasure),
     autoStem: true
   })
 

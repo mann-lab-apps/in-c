@@ -38,6 +38,20 @@ describe('score-core ties', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('creates a tie to the previous note when the selected note is the tie stop', () => {
+    const score = tiedFixture(false)
+    const command = buildTieCommand(score, 'note-2', true)
+    const result = applyScoreCommand(score, command!)
+
+    expect(collectTiePairs(result.score)).toEqual([
+      {
+        fromEventId: 'note-1',
+        toEventId: 'note-2'
+      }
+    ])
+    expect(validateTieRelations(result.score)).toEqual([])
+  })
+
   it('removes a tie when the selected note is the tie stop', () => {
     const score = tiedFixture(true)
     const command = buildTieCommand(score, 'note-2', false)
@@ -60,6 +74,21 @@ describe('score-core ties', () => {
       }
     ])
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('creates a tie to the previous measure when selecting the later note', () => {
+    const score = crossMeasureFixture()
+    const command = buildTieCommand(score, 'measure-2-note', true)
+    const result = applyScoreCommand(score, command!)
+
+    expect(command?.type).toBe('score.batch')
+    expect(collectTiePairs(result.score)).toEqual([
+      {
+        fromEventId: 'measure-1-note',
+        toEventId: 'measure-2-note'
+      }
+    ])
+    expect(validateTieRelations(result.score)).toEqual([])
   })
 
   it('rejects different pitches and non-adjacent notes', () => {

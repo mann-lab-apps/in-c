@@ -169,6 +169,13 @@ export interface TempoEvent extends TempoMarking {
   tick: Tick
 }
 
+export type RhythmFeelUnit = 'eighth' | '16th'
+
+export interface RhythmFeelMarking {
+  unit: RhythmFeelUnit
+  text?: string
+}
+
 export type OctaveShiftType = '8va' | '8vb' | '15ma' | '15mb'
 
 export interface OctaveShift {
@@ -242,6 +249,7 @@ export interface Score {
   composer?: string
   tempo?: TempoMarking
   tempoEvents?: TempoEvent[]
+  rhythmFeel?: RhythmFeelMarking
   octaveShifts?: OctaveShift[]
   harmonies?: HarmonyMark[]
   rehearsalMarks?: RehearsalMark[]
@@ -283,6 +291,10 @@ export type ScoreCommand =
   | {
       type: 'score-tempo-events.update'
       tempoEvents?: TempoEvent[]
+    }
+  | {
+      type: 'score-rhythm-feel.update'
+      rhythmFeel?: RhythmFeelMarking
     }
   | {
       type: 'score-octave-shifts.update'

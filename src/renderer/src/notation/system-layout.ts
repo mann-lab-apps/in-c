@@ -27,9 +27,17 @@ export interface SystemLayoutOptions {
   layout?: ScoreLayout
 }
 
-const HORIZONTAL_PADDING = 16
-const MAX_MEASURES_PER_SYSTEM = 4
-const MIN_MEASURE_WIDTH = 180
+const HORIZONTAL_PADDING = 8
+const MAX_MEASURES_PER_SYSTEM = 8
+const MIN_SPARSE_MEASURE_WIDTH = 104
+const MIN_MEASURE_WIDTH = 132
+const LEADING_NOTATION_BASE_PADDING = 12
+const CLEF_PADDING = 4
+const KEY_SIGNATURE_ACCIDENTAL_PADDING = 4
+const TIME_SIGNATURE_PADDING = 8
+const MAX_LEADING_NOTATION_PADDING = 52
+const EVENT_CROWDING_WIDTH = 10
+const DENSE_RHYTHM_WIDTH = 8
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 72
@@ -46,6 +54,12 @@ interface SystemVerticalSpace {
 interface SystemPitchExtremes {
   highestLine: number
   lowestLine: number
+}
+
+interface SystemBreakPlan {
+  cost: number
+  groups: Measure[][]
+  systemCount: number
 }
 
 export function createSystemLayout(
@@ -65,7 +79,7 @@ export function createSystemLayout(
   const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2)
   const widthCapacity = Math.max(
     1,
-    Math.floor(availableWidth / MIN_MEASURE_WIDTH)
+    Math.floor(availableWidth / MIN_SPARSE_MEASURE_WIDTH)
   )
   const measuresPerSystem = Math.min(
     MAX_MEASURES_PER_SYSTEM,
@@ -75,6 +89,7 @@ export function createSystemLayout(
   const systemMeasuresList = createSystemMeasureGroups(
     measures,
     measuresPerSystem,
+    availableWidth,
     options.layout
   )
   const systemCount = systemMeasuresList.length
@@ -117,6 +132,7 @@ export function createSystemLayout(
 function createSystemMeasureGroups(
   measures: Measure[],
   measuresPerSystem: number,
+  availableWidth: number,
   layout: ScoreLayout | undefined
 ): Measure[][] {
   const manualBreaks = new Set([
@@ -124,26 +140,116 @@ function createSystemMeasureGroups(
     ...(layout?.pageBreakBeforeMeasureIds ?? [])
   ])
   const systems: Measure[][] = []
-  let currentSystem: Measure[] = []
+  let segment: Measure[] = []
 
   for (const measure of measures) {
-    if (
-      currentSystem.length > 0 &&
-      (manualBreaks.has(measure.id) ||
-        currentSystem.length >= measuresPerSystem)
-    ) {
-      systems.push(currentSystem)
-      currentSystem = []
+    if (segment.length > 0 && manualBreaks.has(measure.id)) {
+      systems.push(
+        ...optimizeSystemMeasureGroups(
+          segment,
+          measuresPerSystem,
+          availableWidth
+        )
+      )
+      segment = []
     }
 
-    currentSystem.push(measure)
+    segment.push(measure)
   }
 
-  if (currentSystem.length > 0) {
-    systems.push(currentSystem)
+  if (segment.length > 0) {
+    systems.push(
+      ...optimizeSystemMeasureGroups(
+        segment,
+        measuresPerSystem,
+        availableWidth
+      )
+    )
   }
 
   return systems
+}
+
+function optimizeSystemMeasureGroups(
+  measures: Measure[],
+  measuresPerSystem: number,
+  availableWidth: number
+): Measure[][] {
+  const plans: Array<SystemBreakPlan | undefined> = Array.from(
+    { length: measures.length + 1 },
+    () => undefined
+  )
+  plans[measures.length] = {
+    cost: 0,
+    groups: [],
+    systemCount: 0
+  }
+
+  for (let index = measures.length - 1; index >= 0; index -= 1) {
+    let bestPlan: SystemBreakPlan | undefined
+    const maxEnd = Math.min(measures.length, index + measuresPerSystem)
+
+    for (let end = index + 1; end <= maxEnd; end += 1) {
+      const group = measures.slice(index, end)
+
+      if (!canFitSystemGroup(group, availableWidth)) {
+        continue
+      }
+
+      const nextPlan = plans[end]
+
+      if (!nextPlan) {
+        continue
+      }
+
+      const systemCount = 1 + nextPlan.systemCount
+      const cost = systemBadness(group, availableWidth) + nextPlan.cost
+      const candidate = {
+        cost,
+        groups: [group, ...nextPlan.groups],
+        systemCount
+      }
+
+      if (!bestPlan || compareSystemBreakPlans(candidate, bestPlan) < 0) {
+        bestPlan = candidate
+      }
+    }
+
+    plans[index] = bestPlan
+  }
+
+  return plans[0]?.groups ?? measures.map((measure) => [measure])
+}
+
+function canFitSystemGroup(
+  measures: Measure[],
+  availableWidth: number
+): boolean {
+  return measures.length === 1 || systemMinimumWidth(measures) <= availableWidth
+}
+
+function systemBadness(measures: Measure[], availableWidth: number): number {
+  const leftover = Math.max(0, availableWidth - systemMinimumWidth(measures))
+
+  return leftover ** 2
+}
+
+function compareSystemBreakPlans(
+  left: SystemBreakPlan,
+  right: SystemBreakPlan
+): number {
+  if (left.systemCount !== right.systemCount) {
+    return left.systemCount - right.systemCount
+  }
+
+  const leftFirstSystemMeasureCount = left.groups[0]?.length ?? 0
+  const rightFirstSystemMeasureCount = right.groups[0]?.length ?? 0
+
+  if (leftFirstSystemMeasureCount !== rightFirstSystemMeasureCount) {
+    return rightFirstSystemMeasureCount - leftFirstSystemMeasureCount
+  }
+
+  return left.cost - right.cost
 }
 
 function systemVerticalSpace(measures: Measure[]): SystemVerticalSpace {
@@ -214,19 +320,129 @@ function distributeSystemWidths(
     return []
   }
 
-  const baseWidth = Math.min(
-    MIN_MEASURE_WIDTH,
-    availableWidth / measures.length
+  const minimumWidths = measures.map((measure, index) =>
+    measureMinimumWidth(measure, measures[index - 1], index === 0)
   )
-  const remainingWidth = Math.max(
-    0,
-    availableWidth - baseWidth * measures.length
-  )
+  const totalMinimumWidth = minimumWidths.reduce((sum, width) => sum + width, 0)
+  const scale = totalMinimumWidth > availableWidth
+    ? availableWidth / totalMinimumWidth
+    : 1
+  const baseWidths = minimumWidths.map((width) => width * scale)
+  const baseWidthTotal = baseWidths.reduce((sum, width) => sum + width, 0)
+  const remainingWidth = Math.max(0, availableWidth - baseWidthTotal)
   const weights = measures.map(measureSpacingWeight)
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0)
 
   return weights.map(
-    (weight) => baseWidth + remainingWidth * (weight / totalWeight)
+    (weight, index) =>
+      baseWidths[index] + remainingWidth * (weight / totalWeight)
+  )
+}
+
+function systemMinimumWidth(measures: Measure[]): number {
+  return measures.reduce(
+    (sum, measure, index) =>
+      sum + measureMinimumWidth(measure, measures[index - 1], index === 0),
+    0
+  )
+}
+
+function measureMinimumWidth(
+  measure: Measure,
+  previousMeasure: Measure | undefined,
+  isSystemStart: boolean
+): number {
+  const rhythmWeight = measureSpacingWeight(measure)
+  const voiceCount = Math.max(1, measure.voices.length)
+  const maxEventCount = Math.max(
+    0,
+    ...measure.voices.map((voice) => voice.events.length)
+  )
+  const baseWidth = sparseMeasureWidth(measure, rhythmWeight)
+  const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
+  const voiceWidth = Math.max(0, voiceCount - 1) * 80
+  const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
+  const leadingModifierWidth = leadingNotationPadding(measure, {
+    showsClef:
+      isSystemStart || !previousMeasure || !sameClef(previousMeasure, measure),
+    showsKeySignature:
+      isSystemStart || !previousMeasure || !sameKeySignature(previousMeasure, measure),
+    showsTimeSignature:
+      isSystemStart || !previousMeasure || !sameTimeSignature(previousMeasure, measure)
+  })
+
+  return (
+    baseWidth +
+    leadingModifierWidth +
+    eventCrowdingWidth +
+    voiceWidth +
+    denseRhythmWidth
+  )
+}
+
+export function leadingNotationPadding(
+  measure: Measure,
+  leadingNotation: {
+    showsClef: boolean
+    showsKeySignature: boolean
+    showsTimeSignature: boolean
+  }
+): number {
+  if (
+    !leadingNotation.showsClef &&
+    !leadingNotation.showsKeySignature &&
+    !leadingNotation.showsTimeSignature
+  ) {
+    return 0
+  }
+
+  const keyAccidentalCount = leadingNotation.showsKeySignature
+    ? Math.min(7, Math.abs(measure.keySignature.fifths))
+    : 0
+  const padding =
+    LEADING_NOTATION_BASE_PADDING +
+    (leadingNotation.showsClef ? CLEF_PADDING : 0) +
+    keyAccidentalCount * KEY_SIGNATURE_ACCIDENTAL_PADDING +
+    (leadingNotation.showsTimeSignature ? TIME_SIGNATURE_PADDING : 0)
+
+  return Math.min(MAX_LEADING_NOTATION_PADDING, padding)
+}
+
+function sameClef(previous: Measure, current: Measure): boolean {
+  return (
+    previous.clef.sign === current.clef.sign &&
+    previous.clef.line === current.clef.line
+  )
+}
+
+function sameKeySignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.keySignature.fifths === current.keySignature.fifths &&
+    previous.keySignature.mode === current.keySignature.mode
+  )
+}
+
+function sameTimeSignature(previous: Measure, current: Measure): boolean {
+  return (
+    previous.timeSignature.beats === current.timeSignature.beats &&
+    previous.timeSignature.beatType === current.timeSignature.beatType
+  )
+}
+
+function sparseMeasureWidth(measure: Measure, rhythmWeight: number): number {
+  const events = measure.voices[0]?.events ?? []
+  const isFullRestOnly =
+    events.length === 1 &&
+    events[0].type === 'rest' &&
+    Boolean(events[0].fullMeasure)
+
+  if (isFullRestOnly) {
+    return MIN_SPARSE_MEASURE_WIDTH
+  }
+
+  return Math.min(
+    MIN_MEASURE_WIDTH,
+    MIN_SPARSE_MEASURE_WIDTH + Math.max(0, rhythmWeight - 1) * 14
   )
 }
 

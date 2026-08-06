@@ -153,11 +153,31 @@ function resolveTieCreationEndpoints(
   events: EventLocation[],
   eventId: string
 ): { from: EventLocation; to: EventLocation } | undefined {
-  const fromIndex = events.findIndex((location) => location.event.id === eventId)
-  const from = events[fromIndex]
-  const to = events[fromIndex + 1]
+  const selectedIndex = events.findIndex(
+    (location) => location.event.id === eventId
+  )
+  const selected = events[selectedIndex]
 
-  return from && to ? { from, to } : undefined
+  if (!selected) {
+    return undefined
+  }
+
+  const previous = events[selectedIndex - 1]
+  const next = events[selectedIndex + 1]
+
+  if (previous && isAdjacentEqualPitch(previous, selected)) {
+    return {
+      from: previous,
+      to: selected
+    }
+  }
+
+  return next && isAdjacentEqualPitch(selected, next)
+    ? {
+        from: selected,
+        to: next
+      }
+    : undefined
 }
 
 function resolveTieRemovalEndpoints(

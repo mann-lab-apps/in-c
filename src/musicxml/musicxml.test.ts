@@ -321,6 +321,43 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('exports and re-imports rhythm feel markings separately from staff text', () => {
+    const score = createScore({
+      title: 'Rhythm Feel Sketch',
+      rhythmFeel: {
+        unit: 'eighth'
+      }
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<words>♫ = ³♩ ♪</words>')
+    expect(roundTrip.rhythmFeel).toEqual({
+      unit: 'eighth'
+    })
+    expect(roundTrip.staffTexts).toBeUndefined()
+  })
+
+  it('imports legacy swing words as rhythm feel markings', () => {
+    const score = createScore({
+      title: 'Legacy Swing Sketch',
+      staffTexts: [
+        {
+          id: 'legacy-swing-text',
+          measureId: 'measure-1',
+          text: 'Swing: ♪♪ = triplet ♩♪'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(roundTrip.rhythmFeel).toEqual({
+      unit: 'eighth'
+    })
+    expect(roundTrip.staffTexts).toBeUndefined()
+  })
+
   it('layout.rehearsal-mark exports and re-imports rehearsal marks', () => {
     const score = createScore({
       title: 'Marked Sketch',

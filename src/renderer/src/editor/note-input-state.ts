@@ -33,6 +33,7 @@ export interface NoteInputState {
   duration: Duration
   mode: NoteInputMode
   accidental?: Pitch['alter']
+  lastPitch?: Pitch
   tupletInput?: {
     id: string
     actualNotes: number
@@ -58,6 +59,7 @@ export function createNoteInputState(input: {
   duration: Duration
   mode: NoteInputMode
   accidental?: Pitch['alter']
+  lastPitch?: Pitch
   tupletInput?: NoteInputState['tupletInput']
 }): NoteInputState {
   return {
@@ -66,6 +68,7 @@ export function createNoteInputState(input: {
     duration: input.duration,
     mode: input.mode,
     accidental: input.accidental,
+    lastPitch: input.lastPitch,
     tupletInput: input.tupletInput
   }
 }
@@ -175,6 +178,7 @@ export function createTupletInputPreviewScore(
     workingEvents
   )
   const eventIds: string[] = []
+  let lastPitch = state.lastPitch
 
   for (let index = 0; index < tupletInput.actualNotes; index += 1) {
     const member = tupletInput.members[index]
@@ -196,7 +200,8 @@ export function createTupletInputPreviewScore(
               currentLocation,
               member.step,
               position.tick,
-              member.accidental
+              member.accidental,
+              lastPitch
             )
           })
         : createRest({
@@ -206,6 +211,9 @@ export function createTupletInputPreviewScore(
           })
 
     eventIds.push(eventId)
+    lastPitch = previewEvent.type === 'note'
+      ? previewEvent.pitch
+      : lastPitch
     workingEvents = sortVoiceEvents([...workingEvents, previewEvent])
     workingScore = replaceWorkingVoiceEvents(
       workingScore,
@@ -278,24 +286,28 @@ export function buildSequentialInput(
       : undefined
   }
 
-  const replacement =
-    state.mode === 'rest'
-      ? createRest({
-          id: event.id,
-          position: event.position,
-          duration: state.duration
-        })
-      : createNote({
-          id: event.id,
-          position: event.position,
-          duration: state.duration,
-          pitch: createInputPitch(
-            location,
-            step!,
-            state.tick,
-            state.accidental
-          )
-        })
+  const pitch =
+    state.mode === 'note'
+      ? createInputPitch(
+          location,
+          step!,
+          state.tick,
+          state.accidental,
+          state.lastPitch
+        )
+      : undefined
+  const replacement = pitch
+    ? createNote({
+        id: event.id,
+        position: event.position,
+        duration: state.duration,
+        pitch
+      })
+    : createRest({
+        id: event.id,
+        position: event.position,
+        duration: state.duration
+      })
   const editCommand = buildRhythmEditCommand(score, {
     target: state.target,
     eventId: event.id,
@@ -314,6 +326,7 @@ export function buildSequentialInput(
       nextState: {
         ...state,
         accidental: undefined,
+        lastPitch: pitch ?? state.lastPitch,
         tick: nextTick
       }
     }
@@ -336,6 +349,7 @@ export function buildSequentialInput(
       nextState: {
         ...state,
         accidental: undefined,
+        lastPitch: pitch ?? state.lastPitch,
         target: {
           ...state.target,
           measureId: nextMeasure.id,
@@ -384,6 +398,7 @@ export function buildSequentialInput(
     nextState: {
       ...state,
       accidental: undefined,
+      lastPitch: pitch ?? state.lastPitch,
       target: {
         ...state.target,
         measureId: newMeasure.id
@@ -498,6 +513,7 @@ function buildTupletSequentialInput(
   )
   let tick = state.tick
   const eventIds: string[] = []
+  let lastPitch = state.lastPitch
 
   members.forEach((stagedMember, memberIndex) => {
     const currentLocation = locateInputVoice(workingScore, state.target)
@@ -507,24 +523,29 @@ function buildTupletSequentialInput(
     }
 
     const eventId = memberIndex === 0 ? event.id : createId('event')
-    const replacement =
-      stagedMember.mode === 'rest'
-        ? createRest({
-            id: eventId,
-            position: createTimePosition(tick),
-            duration: state.duration
-          })
-        : createNote({
-            id: eventId,
-            position: createTimePosition(tick),
-            duration: state.duration,
-            pitch: createInputPitch(
-              currentLocation,
-              stagedMember.step!,
-              tick,
-              stagedMember.accidental
-            )
-          })
+    const pitch =
+      stagedMember.mode === 'note'
+        ? createInputPitch(
+            currentLocation,
+            stagedMember.step!,
+            tick,
+            stagedMember.accidental,
+            lastPitch
+          )
+        : undefined
+    const replacement = pitch
+      ? createNote({
+          id: eventId,
+          position: createTimePosition(tick),
+          duration: state.duration,
+          pitch
+        })
+      : createRest({
+          id: eventId,
+          position: createTimePosition(tick),
+          duration: state.duration
+        })
+    lastPitch = pitch ?? lastPitch
     workingEvents = sortVoiceEvents([...workingEvents, replacement])
     workingScore = replaceWorkingVoiceEvents(
       workingScore,
@@ -575,6 +596,7 @@ function buildTupletSequentialInput(
         ...state,
         accidental: undefined,
         duration: nextDuration,
+        lastPitch,
         tupletInput: undefined,
         tick: groupEndTick
       }
@@ -599,6 +621,7 @@ function buildTupletSequentialInput(
         ...state,
         accidental: undefined,
         duration: nextDuration,
+        lastPitch,
         tupletInput: undefined,
         target: {
           ...state.target,
@@ -631,6 +654,7 @@ function buildTupletSequentialInput(
       ...state,
       accidental: undefined,
       duration: nextDuration,
+      lastPitch,
       tupletInput: undefined,
       target: {
         ...state.target,
@@ -810,7 +834,8 @@ function buildTiedSequentialInput(
     initialLocation,
     step,
     state.tick,
-    state.accidental
+    state.accidental,
+    state.lastPitch
   )
   const commands: ScoreCommand[] = []
   let workingScore = score
@@ -958,6 +983,7 @@ function buildTiedSequentialInput(
     nextState: {
       ...state,
       accidental: undefined,
+      lastPitch: pitch,
       target: {
         ...state.target,
         measureId,
@@ -1030,9 +1056,10 @@ function createInputPitch(
   location: NonNullable<ReturnType<typeof locateInputVoice>>,
   step: PitchStep,
   tick: Tick,
-  accidental?: Pitch['alter']
+  accidental?: Pitch['alter'],
+  referencePitch?: Pitch
 ): Pitch {
-  const reference = findPreviousPitch(location, tick)
+  const reference = referencePitch ?? findPreviousPitch(location, tick)
   const octave = nearestPitch({
     step,
     alter: 0,

@@ -7,17 +7,16 @@ import {
   transposeChromatic,
   transposeDiatonic,
   transposeOctave,
-  type Measure,
   type Note,
   type Pitch,
   type PitchStep,
   type Score,
-  type ScoreCommand,
-  type Voice
+  type ScoreCommand
 } from '../../../score-core'
 import {
   locateEvent,
   resolveReplacementDuration,
+  type EventLocation,
   type EditorSelection
 } from './editor-state'
 
@@ -46,11 +45,7 @@ export function buildPitchStepCommand(
     return undefined
   }
 
-  const reference = findReferencePitch(
-    location.measure,
-    voice,
-    location.event.id
-  )
+  const reference = findReferencePitch(score, location)
   const pitch = nearestPitch({
     step,
     alter: 0,
@@ -94,12 +89,25 @@ export function buildPitchStepCommand(
 }
 
 function findReferencePitch(
-  measure: Measure,
-  voice: Voice,
-  eventId: string
+  score: Score,
+  location: EventLocation
 ): Pitch | undefined {
+  const staff = score.parts
+    .find((part) => part.id === location.address.partId)
+    ?.staves.find((candidate) => candidate.id === location.address.staffId)
+  const measureIndex = staff?.measures.findIndex(
+    (candidate) => candidate.id === location.address.measureId
+  ) ?? -1
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+
+  if (!staff || measureIndex < 0 || !voice) {
+    return undefined
+  }
+
   const events = sortVoiceEvents(voice.events)
-  const eventIndex = events.findIndex((event) => event.id === eventId)
+  const eventIndex = events.findIndex((event) => event.id === location.event.id)
 
   if (eventIndex === -1) {
     return undefined
@@ -109,14 +117,49 @@ function findReferencePitch(
     .slice(0, eventIndex)
     .reverse()
     .find((event): event is Note => event.type === 'note')
+
+  if (previousNote) {
+    return resolveNotePitch(location.measure, voice, previousNote)
+  }
+
+  for (let index = measureIndex - 1; index >= 0; index -= 1) {
+    const candidateMeasure = staff.measures[index]
+    const candidateVoice =
+      candidateMeasure.voices.find(
+        (candidate) => candidate.id === location.address.voiceId
+      ) ?? candidateMeasure.voices[0]
+    const note = sortVoiceEvents(candidateVoice?.events ?? [])
+      .filter((event): event is Note => event.type === 'note')
+      .at(-1)
+
+    if (note && candidateVoice) {
+      return resolveNotePitch(candidateMeasure, candidateVoice, note)
+    }
+  }
+
   const nextNote = events
     .slice(eventIndex + 1)
     .find((event): event is Note => event.type === 'note')
-  const referenceNote = previousNote ?? nextNote
 
-  return referenceNote
-    ? resolveNotePitch(measure, voice, referenceNote)
-    : undefined
+  if (nextNote) {
+    return resolveNotePitch(location.measure, voice, nextNote)
+  }
+
+  for (let index = measureIndex + 1; index < staff.measures.length; index += 1) {
+    const candidateMeasure = staff.measures[index]
+    const candidateVoice =
+      candidateMeasure.voices.find(
+        (candidate) => candidate.id === location.address.voiceId
+      ) ?? candidateMeasure.voices[0]
+    const note = sortVoiceEvents(candidateVoice?.events ?? [])
+      .find((event): event is Note => event.type === 'note')
+
+    if (note && candidateVoice) {
+      return resolveNotePitch(candidateMeasure, candidateVoice, note)
+    }
+  }
+
+  return undefined
 }
 
 export function buildPitchMovementCommand(

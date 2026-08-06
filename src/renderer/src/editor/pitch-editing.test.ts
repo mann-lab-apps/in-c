@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
-import { applyScoreCommand } from '../../../score-core'
+import {
+  TICKS_PER_QUARTER,
+  applyScoreCommand,
+  createFullMeasureRest,
+  createMeasure,
+  createNote,
+  createPart,
+  createRest,
+  createScore,
+  createStaff,
+  createTimePosition,
+  createVoice
+} from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
 import { locateEvent } from './editor-state'
 import {
@@ -43,6 +55,74 @@ describe('pitch editing commands', () => {
       pitch: { step: 'A', octave: 4, alter: 0 }
     })
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
+  })
+
+  it('converts a rest using the previous measure note as the pitch reference', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'part-1',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createRest({
+                          id: 'rest-1',
+                          position: createTimePosition(0)
+                        }),
+                        createRest({
+                          id: 'rest-2',
+                          position: createTimePosition(TICKS_PER_QUARTER)
+                        }),
+                        createRest({
+                          id: 'rest-3',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2)
+                        }),
+                        createNote({
+                          id: 'note-b4',
+                          position: createTimePosition(TICKS_PER_QUARTER * 3),
+                          pitch: { step: 'B', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createFullMeasureRest({ id: 'rest-start' })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const command = buildPitchStepCommand(
+      score,
+      { type: 'event', eventId: 'rest-start' },
+      'C'
+    )
+    const result = applyScoreCommand(score, command!)
+
+    expect(locateEvent(result.score, 'rest-start')?.event).toMatchObject({
+      type: 'note',
+      pitch: { step: 'C', octave: 5, alter: 0 }
+    })
   })
 
   it('moves selected notes diatonically across octave boundaries', () => {

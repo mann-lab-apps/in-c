@@ -12,7 +12,11 @@ import {
   createVoice
 } from '../../../score-core'
 import { parseMusicXml } from '../../../musicxml'
-import { createSystemLayout, pitchStaffLine } from './system-layout'
+import {
+  createSystemLayout,
+  leadingNotationPadding,
+  pitchStaffLine
+} from './system-layout'
 
 const releaseQaFixture = readFileSync(
   resolve('src/musicxml/fixtures/release-qa.musicxml'),
@@ -21,39 +25,39 @@ const releaseQaFixture = readFileSync(
 
 describe('system layout', () => {
   it('wraps measures instead of shrinking below the minimum width', () => {
-    const layout = createSystemLayout(createMeasures(8), 900)
+    const layout = createSystemLayout(createMeasures(9), 900)
 
-    expect(layout.measuresPerSystem).toBe(4)
+    expect(layout.measuresPerSystem).toBe(8)
     expect(layout.systemCount).toBe(2)
     expect(layout.placements[0]).toMatchObject({
       isSystemStart: true,
       systemIndex: 0,
-      x: 16
+      x: 8
     })
-    expect(layout.placements[4]).toMatchObject({
+    expect(layout.placements[8]).toMatchObject({
       isSystemStart: true,
       systemIndex: 1,
-      x: 16
+      x: 8
     })
-    expect(layout.placements[0].width).toBeGreaterThanOrEqual(180)
+    expect(layout.placements[0].width).toBeGreaterThanOrEqual(104)
   })
 
   it('uses fewer measures per system at the minimum render width', () => {
     const layout = createSystemLayout(createMeasures(6), 560)
 
-    expect(layout.measuresPerSystem).toBe(2)
-    expect(layout.systemCount).toBe(3)
+    expect(layout.measuresPerSystem).toBe(5)
+    expect(layout.systemCount).toBe(2)
     expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
-      0, 0, 1, 1, 2, 2
+      0, 0, 0, 0, 0, 1
     ])
   })
 
   it('stretches the last system to the full available width', () => {
-    const layout = createSystemLayout(createMeasures(5), 900)
-    const lastPlacement = layout.placements[4]
+    const layout = createSystemLayout(createMeasures(9), 900)
+    const lastPlacement = layout.placements[8]
 
-    expect(lastPlacement.x).toBe(16)
-    expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(884)
+    expect(lastPlacement.x).toBe(8)
+    expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(892)
     expect(lastPlacement.width).toBeGreaterThan(layout.placements[0].width)
   })
 
@@ -66,8 +70,8 @@ describe('system layout', () => {
       )
       const lastPlacement = systemPlacements.at(-1)!
 
-      expect(systemPlacements[0].x).toBe(16)
-      expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(884)
+      expect(systemPlacements[0].x).toBe(8)
+      expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(892)
     }
   })
 
@@ -86,19 +90,19 @@ describe('system layout', () => {
     expect(layout.placements[2]).toMatchObject({
       isSystemStart: true,
       measure: expect.objectContaining({ id: 'measure-3' }),
-      x: 16
+      x: 8
     })
     expect(layout.placements[5]).toMatchObject({
       isSystemStart: true,
       measure: expect.objectContaining({ id: 'measure-6' }),
-      x: 16
+      x: 8
     })
 
     const automaticLayout = createSystemLayout(measures, 900)
 
     expect(
       automaticLayout.placements.map((placement) => placement.systemIndex)
-    ).toEqual([0, 0, 0, 0, 1, 1])
+    ).toEqual([0, 0, 0, 0, 0, 0])
     expect(automaticLayout.placements[2].isSystemStart).toBe(false)
   })
 
@@ -131,14 +135,14 @@ describe('system layout', () => {
     expect(layout.placements[3]).toMatchObject({
       isSystemStart: true,
       measure: expect.objectContaining({ id: 'measure-4' }),
-      x: 16
+      x: 8
     })
 
     const automaticLayout = createSystemLayout(measures, 900)
 
     expect(
       automaticLayout.placements.map((placement) => placement.systemIndex)
-    ).toEqual([0, 0, 0, 0, 1, 1])
+    ).toEqual([0, 0, 0, 0, 0, 0])
     expect(automaticLayout.placements[3].isSystemStart).toBe(false)
   })
 
@@ -175,12 +179,126 @@ describe('system layout', () => {
     )
     expect(
       layout.placements[1].x + layout.placements[1].width
-    ).toBeCloseTo(884)
+    ).toBeCloseTo(892)
+  })
+
+  it('reserves extra width for notation symbols at system starts', () => {
+    const layout = createSystemLayout(createMeasures(2), 900)
+
+    expect(layout.placements[0].width).toBeGreaterThan(
+      layout.placements[1].width
+    )
+  })
+
+  it('scales leading notation padding with the visible key signature', () => {
+    const cMajor = createMeasure({
+      keySignature: { fifths: 0, mode: 'major' }
+    })
+    const dMajor = createMeasure({
+      keySignature: { fifths: 2, mode: 'major' }
+    })
+    const cSharpMajor = createMeasure({
+      keySignature: { fifths: 7, mode: 'major' }
+    })
+    const leadingNotation = {
+      showsClef: true,
+      showsKeySignature: true,
+      showsTimeSignature: true
+    }
+
+    expect(leadingNotationPadding(cMajor, leadingNotation)).toBe(24)
+    expect(leadingNotationPadding(dMajor, leadingNotation)).toBe(32)
+    expect(leadingNotationPadding(cSharpMajor, leadingNotation)).toBe(52)
+  })
+
+  it('wraps dense measures before their preferred widths would overflow a system', () => {
+    const measures = Array.from({ length: 4 }, (_, measureIndex) =>
+      createMeasure({
+        id: `dense-${measureIndex + 1}`,
+        number: measureIndex + 1,
+        voices: [
+          createVoice({
+            events: Array.from({ length: 8 }, (_, eventIndex) =>
+              createNote({
+                id: `dense-${measureIndex + 1}-${eventIndex + 1}`,
+                position: createTimePosition(
+                  eventIndex * (TICKS_PER_QUARTER / 2)
+                ),
+                pitch: {
+                  step: 'C',
+                  octave: 4
+                },
+                duration: createDuration('eighth')
+              })
+            )
+          })
+        ]
+      })
+    )
+    const layout = createSystemLayout(measures, 900)
+
+    expect(layout.systemCount).toBeGreaterThan(1)
+    expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
+      0, 0, 0, 1
+    ])
+    layout.placements.forEach((placement) => {
+      expect(placement.width).toBeGreaterThan(220)
+      expect(placement.x + placement.width).toBeLessThanOrEqual(892)
+    })
+  })
+
+  it('reserves more horizontal room for crowded note groups', () => {
+    const calm = createMeasure({
+      id: 'calm',
+      number: 1,
+      voices: [
+        createVoice({
+          events: Array.from({ length: 3 }, (_, index) =>
+            createNote({
+              id: `calm-${index}`,
+              position: createTimePosition(index * TICKS_PER_QUARTER),
+              pitch: {
+                step: 'C',
+                octave: 4
+              },
+              duration: createDuration('quarter')
+            })
+          )
+        })
+      ]
+    })
+    const crowded = createMeasure({
+      id: 'crowded',
+      number: 2,
+      voices: [
+        createVoice({
+          events: Array.from({ length: 7 }, (_, index) =>
+            createNote({
+              id: `crowded-${index}`,
+              position: createTimePosition(
+                index * (TICKS_PER_QUARTER / 2)
+              ),
+              pitch: {
+                step: 'C',
+                octave: 4
+              },
+              duration: createDuration('eighth')
+            })
+          )
+        })
+      ]
+    })
+    const layout = createSystemLayout([calm, crowded], 900)
+
+    expect(layout.placements[1].width).toBeGreaterThan(
+      layout.placements[0].width
+    )
+    expect(layout.placements[1].width).toBeGreaterThanOrEqual(500)
   })
 
   it('increases the SVG height as systems are added', () => {
     expect(createSystemLayout(createMeasures(2), 900).height).toBe(226)
-    expect(createSystemLayout(createMeasures(8), 900).height).toBeGreaterThan(
+    expect(createSystemLayout(createMeasures(9), 900).height).toBeGreaterThan(
       226
     )
   })
@@ -323,12 +441,12 @@ describe('system layout', () => {
     const renderWidth = 320
     const layout = createSystemLayout(createMeasures(6), renderWidth)
 
-    expect(layout.measuresPerSystem).toBe(1)
+    expect(layout.measuresPerSystem).toBe(2)
 
     for (const placement of layout.placements) {
-      expect(placement.x).toBeGreaterThanOrEqual(16)
+      expect(placement.x).toBeGreaterThanOrEqual(8)
       expect(placement.x + placement.width).toBeLessThanOrEqual(
-        renderWidth - 16
+        renderWidth - 8
       )
     }
   })
@@ -341,9 +459,9 @@ describe('system layout', () => {
       const layout = createSystemLayout(measures, renderWidth)
 
       for (const placement of layout.placements) {
-        expect(placement.x).toBeGreaterThanOrEqual(16)
+        expect(placement.x).toBeGreaterThanOrEqual(8)
         expect(placement.x + placement.width).toBeLessThanOrEqual(
-          renderWidth - 16
+          renderWidth - 8 + 0.001
         )
       }
 

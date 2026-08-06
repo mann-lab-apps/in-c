@@ -248,6 +248,7 @@ export function parseMusicXml(xml: string): Score {
   const composer = readComposer(root)
   const tempo = readTempoMarking(measureNodes)
   const tempoEvents = readTempoEvents(measureNodes)
+  const rhythmFeel = readRhythmFeelMarking(measureNodes)
   const harmonies = readHarmonies(measureNodes)
   const rehearsalMarks = readRehearsalMarks(measureNodes)
   const staffTexts = readStaffTexts(measureNodes)
@@ -262,6 +263,7 @@ export function parseMusicXml(xml: string): Score {
     composer,
     tempo,
     tempoEvents,
+    rhythmFeel,
     octaveShifts,
     harmonies,
     rehearsalMarks,
@@ -390,6 +392,72 @@ function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
   }
 }
 
+const defaultRhythmFeelText = {
+  eighth: '♫ = ³♩ ♪',
+  '16th': '♬ = ³♪ 𝅘𝅥𝅯'
+} as const satisfies Record<NonNullable<Score['rhythmFeel']>['unit'], string>
+
+function readRhythmFeelMarking(measureNodes: XmlNode[]): Score['rhythmFeel'] {
+  for (const measureNode of measureNodes) {
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    for (const direction of directions) {
+      for (const directionType of readDirectionTypes(direction)) {
+        const words = readOptionalString(directionType, 'words')
+        const rhythmFeel = words ? parseRhythmFeelText(words) : undefined
+
+        if (rhythmFeel) {
+          return rhythmFeel
+        }
+      }
+    }
+  }
+
+  return undefined
+}
+
+function parseRhythmFeelText(text: string): Score['rhythmFeel'] {
+  const normalized = text.trim()
+  const lower = normalized.toLowerCase()
+  const unit = normalized.includes('♬') ||
+    normalized.includes('𝅘𝅥𝅯') ||
+    lower.includes('16th')
+    ? '16th'
+    : normalized.includes('♫') ||
+        normalized.includes('♪♪') ||
+        normalized.includes('♩♪') ||
+        lower.startsWith('swing') ||
+        lower.startsWith('triplet feel') ||
+        lower.startsWith('shuffle')
+      ? 'eighth'
+      : undefined
+
+  if (!unit) {
+    return undefined
+  }
+
+  return isDefaultRhythmFeelText(normalized, lower, unit)
+    ? { unit }
+    : { unit, text: normalized }
+}
+
+function isDefaultRhythmFeelText(
+  normalized: string,
+  lower: string,
+  unit: NonNullable<Score['rhythmFeel']>['unit']
+): boolean {
+  return (
+    normalized === defaultRhythmFeelText[unit] ||
+    lower === 'swing' ||
+    lower === 'swing 16ths' ||
+    lower.startsWith('swing:') ||
+    lower === 'triplet feel' ||
+    lower === '16th triplet feel'
+  )
+}
+
 function isTempoBeatUnit(value: string | undefined): value is DurationValue {
   return value === 'whole' ||
     value === 'half' ||
@@ -456,7 +524,7 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
 
         const words = readOptionalString(directionType, 'words')
 
-        if (!words) {
+        if (!words || parseRhythmFeelText(words)) {
           return []
         }
 

@@ -19,6 +19,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreTempo(score, command.tempo)
     case 'score-tempo-events.update':
       return updateScoreTempoEvents(score, command.tempoEvents)
+    case 'score-rhythm-feel.update':
+      return updateScoreRhythmFeel(score, command.rhythmFeel)
     case 'score-octave-shifts.update':
       return updateScoreOctaveShifts(score, command.octaveShifts)
     case 'score-rehearsal-marks.update':
@@ -100,6 +102,22 @@ function updateScoreTempoEvents(
     undo: {
       type: 'score-tempo-events.update',
       tempoEvents: score.tempoEvents
+    }
+  }
+}
+
+function updateScoreRhythmFeel(
+  score: Score,
+  rhythmFeel: Score['rhythmFeel']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      rhythmFeel
+    },
+    undo: {
+      type: 'score-rhythm-feel.update',
+      rhythmFeel: score.rhythmFeel
     }
   }
 }

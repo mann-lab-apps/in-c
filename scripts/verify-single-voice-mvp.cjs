@@ -1364,7 +1364,7 @@ async function readReleaseScenarioBounds(window, width) {
             systemIndex
           }
         })
-        .filter(({ rightEdge }) => rightEdge > svgWidth - 15.25)
+        .filter(({ rightEdge }) => rightEdge > svgWidth - 7.5)
       const horizontalViewportOverflow = horizontalCandidates
         .map(({ element, id, index, selector }) => {
           const box = element.getBoundingClientRect()
@@ -1861,6 +1861,39 @@ async function verifyNewScoreWizard(window) {
             .querySelector('.notation-measure.is-selected')
             ?.getAttribute('data-measure-id')
             ?.match(/^measure-(\\d+)/)?.[1]
+      const selectedRest = document.querySelector(
+        '.notation-event[data-event-id="measure-1-full-measure-rest"]'
+      )
+      const selectedMeasureElement = document.querySelector(
+        '.notation-measure[data-measure-id="measure-1"]'
+      )
+      const svg = document.querySelector('.notation-preview svg')
+      const svgBox = svg?.getBoundingClientRect()
+      const restBox = selectedRest?.getBoundingClientRect()
+      const svgWidth = Number(svg?.getAttribute('width'))
+      const renderedSvgWidth = svgBox?.width ?? 0
+      const svgScale =
+        Number.isFinite(svgWidth) && svgWidth > 0
+          ? renderedSvgWidth / svgWidth
+          : 1
+      const noteStartX = Number(
+        selectedMeasureElement?.getAttribute('data-full-measure-rest-start-x')
+      )
+      const noteEndX = Number(
+        selectedMeasureElement?.getAttribute('data-full-measure-rest-end-x')
+      )
+      const fullRestCenterDelta =
+        restBox &&
+        svgBox &&
+        Number.isFinite(noteStartX) &&
+        Number.isFinite(noteEndX)
+          ? Math.abs(
+              restBox.x -
+                svgBox.x +
+                restBox.width / 2 -
+                ((noteStartX + noteEndX) / 2) * svgScale
+            )
+          : undefined
 
       return {
         title: document
@@ -1876,6 +1909,7 @@ async function verifyNewScoreWizard(window) {
         tempo: document
           .querySelector('section[aria-label="빠르기"] output')
           ?.textContent?.trim(),
+        fullRestCenterDelta,
         status: statusValues.at(-1),
         dialogOpen: Boolean(
           document.querySelector('form[aria-label="새 악보 만들기"]')
@@ -1892,6 +1926,8 @@ async function verifyNewScoreWizard(window) {
     result.selectedEvent !== 'measure-1-full-measure-rest' ||
     result.selectedMeasure !== '1' ||
     result.tempo !== '96 BPM' ||
+    typeof result.fullRestCenterDelta !== 'number' ||
+    result.fullRestCenterDelta > 12 ||
     result.status !== '새 악보를 만들었습니다.' ||
     result.dialogOpen
   ) {
@@ -2285,7 +2321,7 @@ async function inspect(window, width, output) {
       })
       const svgWidth = Number(svg?.getAttribute('width'))
       const systemsFillWidth = systemRightEdges.every(
-        (rightEdge) => Math.abs(rightEdge - (svgWidth - 16)) < 0.01
+        (rightEdge) => Math.abs(rightEdge - (svgWidth - 8)) < 0.01
       )
       const selectedEvent = document
         .querySelector('.notation-event.is-selected')
