@@ -29,10 +29,11 @@ export interface SystemLayoutOptions {
 
 const HORIZONTAL_PADDING = 8
 const MAX_MEASURES_PER_SYSTEM = 8
-const MIN_SPARSE_MEASURE_WIDTH = 112
-const MIN_MEASURE_WIDTH = 150
+const MIN_SPARSE_MEASURE_WIDTH = 104
+const MIN_MEASURE_WIDTH = 132
 export const SYSTEM_START_NOTE_PADDING = 64
-const EVENT_CROWDING_WIDTH = 22
+const EVENT_CROWDING_WIDTH = 10
+const DENSE_RHYTHM_WIDTH = 8
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 72
@@ -351,7 +352,7 @@ function measureMinimumWidth(measure: Measure, isSystemStart: boolean): number {
   const baseWidth = sparseMeasureWidth(measure, rhythmWeight)
   const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
-  const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * 18
+  const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
   const leadingModifierWidth = isSystemStart ? SYSTEM_START_NOTE_PADDING : 0
 
   return (

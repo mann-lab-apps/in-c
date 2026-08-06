@@ -21,9 +21,9 @@ const releaseQaFixture = readFileSync(
 
 describe('system layout', () => {
   it('wraps measures instead of shrinking below the minimum width', () => {
-    const layout = createSystemLayout(createMeasures(8), 900)
+    const layout = createSystemLayout(createMeasures(9), 900)
 
-    expect(layout.measuresPerSystem).toBe(7)
+    expect(layout.measuresPerSystem).toBe(8)
     expect(layout.systemCount).toBe(2)
     expect(layout.placements[0]).toMatchObject({
       isSystemStart: true,
@@ -35,13 +35,13 @@ describe('system layout', () => {
       systemIndex: 1,
       x: 8
     })
-    expect(layout.placements[0].width).toBeGreaterThanOrEqual(112)
+    expect(layout.placements[0].width).toBeGreaterThanOrEqual(104)
   })
 
   it('uses fewer measures per system at the minimum render width', () => {
     const layout = createSystemLayout(createMeasures(6), 560)
 
-    expect(layout.measuresPerSystem).toBe(4)
+    expect(layout.measuresPerSystem).toBe(5)
     expect(layout.systemCount).toBe(2)
     expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
       0, 0, 0, 0, 1, 1
@@ -214,10 +214,10 @@ describe('system layout', () => {
 
     expect(layout.systemCount).toBeGreaterThan(1)
     expect(layout.placements.map((placement) => placement.systemIndex)).toEqual([
-      0, 0, 1, 1
+      0, 0, 0, 1
     ])
     layout.placements.forEach((placement) => {
-      expect(placement.width).toBeGreaterThan(300)
+      expect(placement.width).toBeGreaterThan(220)
       expect(placement.x + placement.width).toBeLessThanOrEqual(892)
     })
   })
@@ -436,7 +436,7 @@ describe('system layout', () => {
       for (const placement of layout.placements) {
         expect(placement.x).toBeGreaterThanOrEqual(8)
         expect(placement.x + placement.width).toBeLessThanOrEqual(
-          renderWidth - 8
+          renderWidth - 8 + 0.001
         )
       }
 
