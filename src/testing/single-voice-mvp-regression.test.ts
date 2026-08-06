@@ -653,7 +653,7 @@ describe('single-voice MVP regression', () => {
     const minimum = createSystemLayout(measures, 560)
 
     expect(desktop.systemCount).toBe(2)
-    expect(minimum.systemCount).toBe(4)
+    expect(minimum.systemCount).toBe(5)
 
     for (const layout of [desktop, minimum]) {
       const placementByMeasure = new Map(
@@ -678,9 +678,9 @@ describe('single-voice MVP regression', () => {
         )
         const last = placements.at(-1)!
 
-        expect(placements[0].x).toBe(16)
+        expect(placements[0].x).toBe(8)
         expect(last.x + last.width).toBeCloseTo(
-          layout === desktop ? 1184 : 544
+          layout === desktop ? 1192 : 552
         )
       }
     }

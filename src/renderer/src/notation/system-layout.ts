@@ -27,11 +27,12 @@ export interface SystemLayoutOptions {
   layout?: ScoreLayout
 }
 
-const HORIZONTAL_PADDING = 16
+const HORIZONTAL_PADDING = 8
 const MAX_MEASURES_PER_SYSTEM = 8
 const MIN_SPARSE_MEASURE_WIDTH = 112
 const MIN_MEASURE_WIDTH = 150
-export const SYSTEM_START_NOTE_PADDING = 48
+export const SYSTEM_START_NOTE_PADDING = 64
+const EVENT_CROWDING_WIDTH = 22
 const MIN_RENDER_HEIGHT = 190
 const SYSTEM_HEIGHT = 154
 const SYSTEM_TOP = 72
@@ -343,12 +344,23 @@ function systemMinimumWidth(measures: Measure[]): number {
 function measureMinimumWidth(measure: Measure, isSystemStart: boolean): number {
   const rhythmWeight = measureSpacingWeight(measure)
   const voiceCount = Math.max(1, measure.voices.length)
+  const maxEventCount = Math.max(
+    0,
+    ...measure.voices.map((voice) => voice.events.length)
+  )
   const baseWidth = sparseMeasureWidth(measure, rhythmWeight)
+  const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * 18
   const leadingModifierWidth = isSystemStart ? SYSTEM_START_NOTE_PADDING : 0
 
-  return baseWidth + leadingModifierWidth + voiceWidth + denseRhythmWidth
+  return (
+    baseWidth +
+    leadingModifierWidth +
+    eventCrowdingWidth +
+    voiceWidth +
+    denseRhythmWidth
+  )
 }
 
 function sparseMeasureWidth(measure: Measure, rhythmWeight: number): number {

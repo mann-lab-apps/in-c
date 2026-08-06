@@ -73,6 +73,10 @@ interface InlineLyricEditor {
 const MIN_RENDER_WIDTH = 560
 const STABLE_BEAM_MAX_SLOPE = 0.12
 const STABLE_BEAM_SLOPE_COST = 220
+const REHEARSAL_MARK_Y_OFFSET = -62
+const STAFF_TEXT_Y_OFFSET = -24
+const DYNAMIC_MARK_Y_OFFSET = 122
+const HAIRPIN_Y_OFFSET = 126
 
 interface CursorPoint {
   x: number
@@ -206,9 +210,10 @@ export function NotationPreview({
         placement.width
       )
       const clef = toVexFlowClef(measure.clef)
+      let selectionTarget: SVGRectElement | undefined
 
       if (svg) {
-        const selectionTarget = document.createElementNS(
+        selectionTarget = document.createElementNS(
           'http://www.w3.org/2000/svg',
           'rect'
         )
@@ -259,6 +264,15 @@ export function NotationPreview({
         stave.setNoteStartX(stave.getNoteStartX() + SYSTEM_START_NOTE_PADDING)
       }
 
+      selectionTarget?.setAttribute(
+        'data-note-start-x',
+        String(stave.getNoteStartX())
+      )
+      selectionTarget?.setAttribute(
+        'data-note-end-x',
+        String(stave.getNoteEndX())
+      )
+
       if (svg && measure.repeat) {
         drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
       }
@@ -266,13 +280,23 @@ export function NotationPreview({
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
 
       if (svg && rehearsalMark) {
-        drawRehearsalMark(svg, placement.x + 18, placement.y - 28, rehearsalMark.text)
+        drawRehearsalMark(
+          svg,
+          placement.x + 14,
+          placement.y + REHEARSAL_MARK_Y_OFFSET,
+          rehearsalMark.text
+        )
       }
 
       const staffText = staffTextsByMeasureId.get(measure.id)
 
       if (svg && staffText) {
-        drawStaffText(svg, placement.x + 18, placement.y - 8, staffText.text)
+        drawStaffText(
+          svg,
+          placement.x + 14,
+          placement.y + STAFF_TEXT_Y_OFFSET,
+          staffText.text
+        )
       }
 
       const voices = measure.voices.map((voice) => {
@@ -357,6 +381,7 @@ export function NotationPreview({
         tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
 
         notes.forEach((note, noteIndex) => {
+          const event = events[noteIndex]
           const eventId = note.getAttribute('data-event-id') as string
           const svgElement = note.getSVGElement()
 
@@ -409,38 +434,45 @@ export function NotationPreview({
             })
           }
 
+          const centeredRestShift =
+            event?.type === 'rest' && event.fullMeasure
+              ? centerFullMeasureRest(svgElement, {
+                  x: stave.getNoteStartX(),
+                  width: stave.getNoteEndX() - stave.getNoteStartX()
+                })
+              : 0
+          const eventX = note.getAbsoluteX() + centeredRestShift
+
           if (eventId === playbackEventId) {
             playbackPoint = {
-              x: note.getAbsoluteX(),
+              x: eventX,
               y: placement.y
             }
           }
 
           pointsByEventId.set(eventId, {
-            x: note.getAbsoluteX(),
+            x: eventX,
             y: placement.y
           })
-          firstEventX = Math.min(firstEventX ?? note.getAbsoluteX(), note.getAbsoluteX())
-
-          const event = events[noteIndex]
+          firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
           if (svg && event?.type === 'note' && event.articulations?.length) {
             drawArticulations(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               event.articulations
             )
           }
 
           if (svg && event?.fermata) {
-            drawFermata(svg, note.getAbsoluteX(), placement.y)
+            drawFermata(svg, eventX, placement.y)
           }
 
           if (svg && event?.breathMark) {
             drawBreathMark(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               event.breathMark,
               Boolean(event.fermata)
@@ -457,21 +489,21 @@ export function NotationPreview({
           }
 
           if (svg && event?.type === 'note' && event.ornaments?.length) {
-            drawOrnaments(svg, note.getAbsoluteX(), placement.y, event.ornaments)
+            drawOrnaments(svg, eventX, placement.y, event.ornaments)
           }
 
           if (svg && event?.type === 'note' && event.graceNotes?.length) {
-            drawGraceNotes(svg, note.getAbsoluteX(), placement.y, event.graceNotes)
+            drawGraceNotes(svg, eventX, placement.y, event.graceNotes)
           }
 
           if (svg && event?.type === 'note' && event.lyrics?.length) {
-            drawLyrics(svg, note.getAbsoluteX(), placement.y, event.lyrics)
+            drawLyrics(svg, eventX, placement.y, event.lyrics)
           }
 
           if (svg && eventId === inlineLyricEditor?.eventId) {
             drawInlineLyricEditor(
               svg,
-              note.getAbsoluteX(),
+              eventX,
               placement.y,
               inlineLyricEditor
             )
@@ -485,7 +517,7 @@ export function NotationPreview({
         drawDynamicMark(
           svg,
           (firstEventX ?? placement.x + 88) - 2,
-          placement.y + 78,
+          placement.y + DYNAMIC_MARK_Y_OFFSET,
           dynamic.value,
           measure.id
         )
@@ -921,6 +953,28 @@ function drawDynamicMark(
   svg.append(text)
 }
 
+function centerFullMeasureRest(
+  element: SVGElement,
+  placement: { width: number; x: number }
+): number {
+  const box = (element as SVGGraphicsElement).getBBox()
+  const targetCenterX = placement.x + placement.width / 2
+  const currentCenterX = box.x + box.width / 2
+  const shiftX = targetCenterX - currentCenterX
+
+  if (Math.abs(shiftX) < 0.5) {
+    return 0
+  }
+
+  const transform = element.getAttribute('transform')
+  element.setAttribute(
+    'transform',
+    transform ? `${transform} translate(${shiftX} 0)` : `translate(${shiftX} 0)`
+  )
+
+  return shiftX
+}
+
 function drawHairpinSegments(
   svg: SVGSVGElement,
   start: CursorPoint,
@@ -961,7 +1015,7 @@ function drawHairpinSegment(
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const y = staffY + 82
+  const y = staffY + HAIRPIN_Y_OFFSET
   const openings = resolveHairpinOpenings(type, isFirst, isLast)
   const leftOpening = openings.left
   const rightOpening = openings.right
@@ -1419,6 +1473,7 @@ function createStaveNote(
     clef,
     keys,
     duration: toVexFlowDuration(event.duration, isRest),
+    alignCenter: event.type === 'rest' && Boolean(event.fullMeasure),
     autoStem: true
   })
 
