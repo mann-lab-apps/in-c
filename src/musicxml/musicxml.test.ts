@@ -657,65 +657,75 @@ describe('MusicXML MVP', () => {
     })
   })
 
-  it('exports and re-imports octave shift spans', () => {
-    const score = createScore({
-      title: 'Octave Shift Sketch',
-      octaveShifts: [
-        {
-          id: 'octave-8va',
-          startEventId: 'note-start',
-          endEventId: 'note-end',
-          type: '8va'
-        }
-      ],
-      parts: [
-        createPart({
-          staves: [
-            createStaff({
-              measures: [
-                createMeasure({
-                  voices: [
-                    createVoice({
-                      events: [
-                        createNote({
-                          id: 'note-start',
-                          position: createTimePosition(0),
-                          pitch: { step: 'C', octave: 5 }
-                        }),
-                        createNote({
-                          id: 'note-end',
-                          position: createTimePosition(TICKS_PER_QUARTER),
-                          pitch: { step: 'D', octave: 5 }
-                        }),
-                        createRest({
-                          id: 'rest-fill',
-                          position: createTimePosition(TICKS_PER_QUARTER * 2),
-                          duration: createDuration('half')
-                        })
-                      ]
-                    })
-                  ]
-                })
-              ]
-            })
-          ]
-        })
-      ]
-    })
-    const exported = serializeMusicXml(score)
-    const roundTrip = parseMusicXml(exported)
+  it.each([
+    ['8va', 'up', 8],
+    ['8vb', 'down', 8],
+    ['15ma', 'up', 15],
+    ['15mb', 'down', 15]
+  ] as const)(
+    'exports and re-imports %s octave shift spans',
+    (type, direction, size) => {
+      const score = createScore({
+        title: 'Octave Shift Sketch',
+        octaveShifts: [
+          {
+            id: 'octave-8va',
+            startEventId: 'note-start',
+            endEventId: 'note-end',
+            type
+          }
+        ],
+        parts: [
+          createPart({
+            staves: [
+              createStaff({
+                measures: [
+                  createMeasure({
+                    voices: [
+                      createVoice({
+                        events: [
+                          createNote({
+                            id: 'note-start',
+                            position: createTimePosition(0),
+                            pitch: { step: 'C', octave: 5 }
+                          }),
+                          createNote({
+                            id: 'note-end',
+                            position: createTimePosition(TICKS_PER_QUARTER),
+                            pitch: { step: 'D', octave: 5 }
+                          }),
+                          createRest({
+                            id: 'rest-fill',
+                            position: createTimePosition(TICKS_PER_QUARTER * 2),
+                            duration: createDuration('half')
+                          })
+                        ]
+                      })
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+      const exported = serializeMusicXml(score)
+      const roundTrip = parseMusicXml(exported)
 
-    expect(exported).toContain('<octave-shift type="up" size="8"/>')
-    expect(exported).toContain('<octave-shift type="stop" size="8"/>')
-    expect(roundTrip.octaveShifts).toEqual([
-      {
-        id: 'octave-shift-1-1-2',
-        startEventId: 'event-1',
-        endEventId: 'event-2',
-        type: '8va'
-      }
-    ])
-  })
+      expect(exported).toContain(
+        `<octave-shift type="${direction}" size="${size}"/>`
+      )
+      expect(exported).toContain(`<octave-shift type="stop" size="${size}"/>`)
+      expect(roundTrip.octaveShifts).toEqual([
+        {
+          id: 'octave-shift-1-1-2',
+          startEventId: 'event-1',
+          endEventId: 'event-2',
+          type
+        }
+      ])
+    }
+  )
 
   it('exports and re-imports repeat barlines', () => {
     const score = createScore({
