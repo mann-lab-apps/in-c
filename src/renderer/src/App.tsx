@@ -2741,11 +2741,21 @@ export const App = () => {
         throw new Error('MusicXML 저장 경로를 확인하지 못했습니다.')
       }
 
-      await window.inC.autosave.clear()
-      setAutosaveRevision(0)
       currentMusicXmlFileRef.current = {
         filePath: result.filePath,
         fileName: result.fileName
+      }
+
+      try {
+        await window.inC.autosave.clear()
+        setAutosaveRevision(0)
+      } catch (autosaveError) {
+        setFileStatus({
+          tone: 'error',
+          message: `악보는 저장했지만 자동저장 복구본을 정리하지 못했습니다. ${getErrorMessage(
+            autosaveError
+          )}`
+        })
       }
 
       try {
@@ -5223,9 +5233,10 @@ function shouldFollowTimeSignatureTempoBeat(
 
 function toFileName(title: string): string {
   const normalized = title
+    .normalize('NFKC')
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
     .replace(/^-|-$/g, '')
 
   return normalized || 'untitled-score'

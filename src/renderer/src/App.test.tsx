@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
 import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
+import { parseMusicXml } from '../../musicxml'
 import { demoScore } from './notation/demo-score'
 
 vi.mock('./notation/NotationPreview', () => ({
@@ -748,6 +749,41 @@ describe('App component shell', () => {
     ).not.toHaveProperty('filePath')
   })
 
+  it('import-export.new-score-save suggests a Korean title filename and valid MusicXML', async () => {
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/제목-없는-악보.musicxml',
+      fileName: '제목-없는-악보.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole(
+        'button',
+        { name: '만들기' }
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          suggestedName: '제목-없는-악보.musicxml'
+        })
+      )
+    })
+    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
+      .contents
+    const savedScore = parseMusicXml(contents!)
+
+    expect(savedScore.title).toBe('제목 없는 악보')
+    expect(
+      savedScore.parts[0].staves[0].measures[0].voices[0].events
+    ).toHaveLength(1)
+  })
+
   it('import-export.second-save-after-save-as reuses the first saved file path', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     vi.mocked(window.inC.musicXml.save).mockResolvedValue({
@@ -780,6 +816,43 @@ describe('App component shell', () => {
         filePath: '/scores/release-test.musicxml',
         suggestedName: 'release-test.musicxml',
         contents: expect.stringContaining('<score-partwise')
+      })
+    )
+  })
+
+  it('import-export.remembers-the-saved-path-even-if-autosave-cleanup-fails', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/release-test.musicxml',
+      fileName: 'release-test.musicxml'
+    })
+    vi.mocked(window.inC.autosave.clear).mockRejectedValueOnce(
+      new Error('autosave cleanup failed')
+    )
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(1)
+    })
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2)
+    })
+    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        filePath: '/scores/release-test.musicxml'
       })
     )
   })
