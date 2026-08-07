@@ -539,7 +539,9 @@ export const App = () => {
     : Boolean(removeDotCommand)
   const isTupletInput = Boolean(noteInputState?.tupletInput)
   const tupletMemberCount =
-    noteInputState?.tupletInput?.members.length ?? 0
+    noteInputState?.tupletInput
+      ? countTupletInputSlots(noteInputState.tupletInput)
+      : 0
   const tupletProgress = noteInputState?.tupletInput
     ? `${tupletMemberCount}/${noteInputState.tupletInput.actualNotes}`
     : undefined
@@ -942,6 +944,17 @@ export const App = () => {
   const changeDuration = useCallback(
     (value: DurationValue) => {
       if (noteInputState?.tupletInput) {
+        setDurationValue(value)
+        setNoteInputState({
+          ...noteInputState,
+          duration: {
+            ...createDuration(value),
+            tuplet: {
+              actualNotes: noteInputState.tupletInput.actualNotes,
+              normalNotes: noteInputState.tupletInput.normalNotes
+            }
+          }
+        })
         return
       }
 
@@ -4102,7 +4115,6 @@ export const App = () => {
                   className={
                     activeDurationValue === duration ? 'is-active' : undefined
                   }
-                  disabled={isTupletInput}
                   key={duration}
                   onClick={() => changeDuration(duration)}
                   title={label}
@@ -4856,12 +4868,23 @@ function describeTupletProgress(state: NoteInputState): string {
     return '셋잇단음표 입력 상태가 아닙니다.'
   }
 
-  const entered = tupletInput.members.length
+  const entered = countTupletInputSlots(tupletInput)
   const remaining = tupletInput.actualNotes - entered
 
   return remaining > 0
     ? `셋잇단음표 ${entered}/${tupletInput.actualNotes}개 입력됨. ${remaining}개 더 입력해 주세요.`
     : '셋잇단음표 입력을 완료했습니다.'
+}
+
+function countTupletInputSlots(
+  tupletInput: NonNullable<NoteInputState['tupletInput']>
+): number {
+  const baseDurationTicks = durationToTicks(tupletInput.baseDuration)
+
+  return tupletInput.members.reduce((sum, member) => {
+    const { tuplet: _tuplet, ...duration } = member.duration
+    return sum + durationToTicks(duration) / baseDurationTicks
+  }, 0)
 }
 
 function describeDurationEditSuccess(

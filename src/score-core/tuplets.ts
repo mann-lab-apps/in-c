@@ -13,7 +13,7 @@ export function validateVoiceTuplets(voice: Voice): string[] {
       !Number.isInteger(group.normalNotes) ||
       group.actualNotes <= 0 ||
       group.normalNotes <= 0 ||
-      group.eventIds.length !== group.actualNotes
+      group.eventIds.length === 0
     ) {
       errors.push(`Invalid tuplet ratio or member count: ${group.id}`)
       continue
@@ -27,6 +27,8 @@ export function validateVoiceTuplets(voice: Voice): string[] {
     }
 
     let expectedTick = members[0]!.position.tick
+    let baseDurationTicks = 0
+    let shortestBaseDurationTicks = Number.POSITIVE_INFINITY
 
     for (const event of members) {
       const ratio = event!.duration.tuplet
@@ -43,6 +45,21 @@ export function validateVoiceTuplets(voice: Voice): string[] {
 
       claimedEventIds.add(event!.id)
       expectedTick += durationToTicks(event!.duration)
+      const eventBaseDurationTicks = durationToTicks({
+        ...event!.duration,
+        tuplet: undefined
+      })
+      baseDurationTicks += eventBaseDurationTicks
+      shortestBaseDurationTicks = Math.min(
+        shortestBaseDurationTicks,
+        eventBaseDurationTicks
+      )
+    }
+
+    if (
+      baseDurationTicks !== shortestBaseDurationTicks * group.actualNotes
+    ) {
+      errors.push(`Invalid tuplet member sequence: ${group.id}`)
     }
   }
 
