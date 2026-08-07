@@ -442,7 +442,10 @@ describe('App component shell', () => {
       within(workspace).queryByLabelText('Columns 추천')
     ).not.toBeInTheDocument()
     expect(
-      within(toolbarTabs).getAllByRole('button').map((button) => button.textContent)
+      within(toolbarTabs)
+        .getAllByRole('button')
+        .filter((button) => button.hasAttribute('aria-pressed'))
+        .map((button) => button.textContent)
     ).toEqual(['파일', '악보', '음표', '가사', '재생'])
     expect(screen.getByRole('button', { name: '파일' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '음표' })).toHaveAttribute(
@@ -585,6 +588,26 @@ describe('App component shell', () => {
       'href',
       'https://in-c.mannlab.app/concerts.html'
     )
+  })
+
+  it('promotion.concert-posters keeps the toolbar banner visible when the API is empty', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    vi.mocked(window.inC.promotions.getConcertPosters).mockResolvedValue({
+      posters: []
+    })
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    const promoGroup = await screen.findByRole('group', {
+      name: '공연 포스터 보기'
+    })
+
+    expect(
+      within(promoGroup).getAllByRole('button', {
+        name: /포스터 크게 보기/
+      })
+    ).toHaveLength(30)
   })
 
   it('clef.change-selected-measure changes only the selected measure clef and reports the result', async () => {

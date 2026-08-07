@@ -187,6 +187,27 @@ interface PromoConcert {
   targetUrl: string
 }
 
+const fallbackPromoConcerts: PromoConcert[] = [
+  {
+    id: 'concert:fallback-first-listening-night',
+    title: '첫 감상 모임',
+    theme: 'blue',
+    meta: '공연 포스터 준비 중',
+    description: '공연 포스터 배너 슬롯을 유지하기 위한 기본 안내입니다.',
+    imageAlt: '첫 감상 모임 공연 포스터',
+    targetUrl: concertsUrl
+  },
+  {
+    id: 'concert:fallback-folk-melody-preview',
+    title: '민요 선율 프리뷰',
+    theme: 'green',
+    meta: '공연 프리뷰',
+    description: '작품과 공연을 연결하는 Chromatics 배너 후보입니다.',
+    imageAlt: '민요 선율 프리뷰 공연 포스터',
+    targetUrl: concertsUrl
+  }
+]
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === 'object'
 
@@ -260,9 +281,11 @@ const parsePromoConcerts = (payload: unknown): PromoConcert[] => {
   const rawPosters =
     isRecord(payload) && Array.isArray(payload.posters) ? payload.posters : []
 
-  return rawPosters
+  const posters = rawPosters
     .map((poster, index) => normalizePromoConcert(poster, sourceUrl, index))
     .filter((poster): poster is PromoConcert => Boolean(poster))
+
+  return posters.length > 0 ? posters : fallbackPromoConcerts
 }
 
 const eventTypeLabels = {
