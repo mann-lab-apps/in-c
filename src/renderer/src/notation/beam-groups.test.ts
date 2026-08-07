@@ -281,6 +281,58 @@ describe('beam groups', () => {
       }
     ])
   })
+
+  it('does not beam a mixed eighth-plus-quarter triplet as if the quarter were short', () => {
+    const tripletEighth = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const tripletQuarter = {
+      ...createDuration('quarter'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const measure = createMeasure({
+      voices: [
+        createVoice({
+          events: [
+            createNote({
+              id: 'triplet-eighth',
+              position: createTimePosition(0),
+              pitch: { step: 'C', octave: 4 },
+              duration: tripletEighth
+            }),
+            createNote({
+              id: 'triplet-quarter',
+              position: createTimePosition(quarter / 3),
+              pitch: { step: 'D', octave: 4 },
+              duration: tripletQuarter
+            }),
+            createRest({
+              id: 'remainder',
+              position: createTimePosition(quarter),
+              duration: createDuration('half', 1)
+            })
+          ],
+          tuplets: [
+            {
+              id: 'tuplet-1',
+              eventIds: ['triplet-eighth', 'triplet-quarter'],
+              actualNotes: 3,
+              normalNotes: 2
+            }
+          ]
+        })
+      ]
+    })
+
+    expect(createBeamGroups(measure, measure.voices[0])).toEqual([])
+  })
 })
 
 function measureWith(

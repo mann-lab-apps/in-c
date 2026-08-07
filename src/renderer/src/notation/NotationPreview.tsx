@@ -14,8 +14,10 @@ import {
 
 import {
   collectTiePairs,
+  durationToTicks,
   measureDurationTicks,
   resolveNotePitch,
+  TICKS_PER_QUARTER,
   type RhythmFeelMarking,
   shouldDisplayAccidental,
   sortVoiceEvents,
@@ -368,7 +370,11 @@ export function NotationPreview({
           return new VexTuplet(groupNotes, {
             numNotes: group.actualNotes,
             notesOccupied: group.normalNotes,
-            bracketed: groupEvents.some((event) => event?.type === 'rest'),
+            bracketed: groupEvents.some(
+              (event) =>
+                event?.type === 'rest' ||
+                (event && !isNotationBeamable(event))
+            ),
             ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
           })
         })
@@ -1443,6 +1449,17 @@ function createStableBeam(notes: StaveNote[]): Beam {
   beam.renderOptions.slopeCost = STABLE_BEAM_SLOPE_COST
 
   return beam
+}
+
+function isNotationBeamable(event: VoiceEvent): boolean {
+  if (event.type !== 'note') {
+    return false
+  }
+
+  return durationToTicks({
+    ...event.duration,
+    tuplet: undefined
+  }) < TICKS_PER_QUARTER
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {

@@ -38,9 +38,13 @@ export function createBeamGroups(
     const endTick = startTick + voiceEventDurationTicks(event, measure)
     const currentBeatGroup = Math.floor(startTick / groupTicks)
     const groupEndTick = (currentBeatGroup + 1) * groupTicks
+    const notationDuration = {
+      ...event.duration,
+      tuplet: undefined
+    }
     const isBeamable =
       event.type === 'note' &&
-      durationToTicks(event.duration) < TICKS_PER_QUARTER &&
+      durationToTicks(notationDuration) < TICKS_PER_QUARTER &&
       endTick <= groupEndTick
     const isContinuous =
       candidateEndTick === undefined || candidateEndTick === startTick
