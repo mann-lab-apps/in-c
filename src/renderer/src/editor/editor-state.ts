@@ -505,6 +505,18 @@ export function buildDurationCommand(
     return undefined
   }
 
+  if (location.event.duration.tuplet && !duration.tuplet) {
+    const command = buildTupletMemberDurationCommand(
+      location,
+      duration,
+      createId
+    )
+
+    if (command) {
+      return command
+    }
+  }
+
   return buildRhythmEditCommand(score, {
     target: location.address,
     eventId: location.event.id,
@@ -519,6 +531,142 @@ export function buildDurationCommand(
       duration
     }
   })
+}
+
+function buildTupletMemberDurationCommand(
+  location: EventLocation,
+  duration: Duration,
+  createId: () => string
+): ScoreCommand | undefined {
+  const ratio = location.event.duration.tuplet
+
+  if (!ratio || duration.dots > 0) {
+    return undefined
+  }
+
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+  const group = voice?.tuplets?.find((candidate) =>
+    candidate.eventIds.includes(location.event.id)
+  )
+
+  if (!voice || !group) {
+    return undefined
+  }
+
+  const events = sortVoiceEvents(voice.events)
+  const members = group.eventIds
+    .map((eventId) => events.find((event) => event.id === eventId))
+    .filter((event): event is VoiceEvent => Boolean(event))
+  const selectedIndex = members.findIndex(
+    (member) => member.id === location.event.id
+  )
+
+  if (selectedIndex === -1 || members.length !== group.eventIds.length) {
+    return undefined
+  }
+
+  const nextDuration: Duration = {
+    ...duration,
+    tuplet: ratio
+  }
+  const currentBaseTicks = durationToTicks({
+    ...location.event.duration,
+    tuplet: undefined
+  })
+  const nextBaseTicks = durationToTicks(duration)
+  let baseTicksToConsume = nextBaseTicks - currentBaseTicks
+
+  if (baseTicksToConsume <= 0) {
+    return undefined
+  }
+
+  const consumedEventIds = new Set<string>()
+
+  for (let index = selectedIndex + 1; index < members.length; index += 1) {
+    const member = members[index]
+    const memberBaseTicks = durationToTicks({
+      ...member.duration,
+      tuplet: undefined
+    })
+
+    if (member.type !== 'rest' || memberBaseTicks > baseTicksToConsume) {
+      return undefined
+    }
+
+    consumedEventIds.add(member.id)
+    baseTicksToConsume -= memberBaseTicks
+
+    if (baseTicksToConsume === 0) {
+      if (index !== members.length - 1) {
+        return undefined
+      }
+
+      break
+    }
+  }
+
+  if (baseTicksToConsume !== 0 || consumedEventIds.size === 0) {
+    return undefined
+  }
+
+  const memberIdSet = new Set(group.eventIds)
+  const nextMembers = members.filter(
+    (member) => !consumedEventIds.has(member.id)
+  )
+  let tick = members[0].position.tick
+  const rewrittenMembers = nextMembers.map((member) => {
+    const rewrittenDuration =
+      member.id === location.event.id ? nextDuration : member.duration
+    const rewritten = {
+      ...member,
+      ...(member.type === 'rest' ? { fullMeasure: undefined } : {}),
+      position: createTimePosition(tick),
+      duration: rewrittenDuration
+    } satisfies VoiceEvent
+
+    tick += durationToTicks(rewrittenDuration)
+    return rewritten
+  })
+  const nextTuplets = (voice.tuplets ?? []).map((candidate) =>
+    candidate.id === group.id
+      ? {
+          ...candidate,
+          eventIds: rewrittenMembers.map((member) => member.id)
+        }
+      : candidate
+  )
+  const nextEvents = [
+    ...events.filter((event) => !memberIdSet.has(event.id)),
+    ...rewrittenMembers
+  ]
+  const nextVoice = {
+    ...voice,
+    events: sortVoiceEvents(nextEvents),
+    tuplets: nextTuplets
+  }
+  const nextMeasure = {
+    ...location.measure,
+    voices: location.measure.voices.map((candidate) =>
+      candidate.id === voice.id ? nextVoice : candidate
+    )
+  }
+
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets(nextVoice).length > 0
+  ) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-content.replace',
+    target: location.address,
+    events: nextVoice.events,
+    tuplets: nextVoice.tuplets,
+    editedEventId: location.event.id
+  }
 }
 
 export function buildDotCommand(

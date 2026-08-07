@@ -497,6 +497,60 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
+  it('tuplets.edit-member-duration absorbs trailing tuplet rests for an eighth-plus-quarter group', () => {
+    const apply = buildTupletGroupCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      () => 'tuplet-remainder'
+    )
+    const applied = applyScoreCommand(demoScore, apply!)
+    const changeDuration = buildDurationCommand(
+      applied.score,
+      { type: 'event', eventId: 'note-a4' },
+      createDuration('quarter')
+    )
+    const changed = applyScoreCommand(applied.score, changeDuration!)
+    const measure = changed.score.parts[0].staves[0].measures[1]
+    const voice = measure.voices[0]
+
+    expect(changeDuration).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'note-a4'
+    })
+    expect(voice.events.slice(0, 3)).toMatchObject([
+      {
+        id: 'note-g4',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 0 }
+      },
+      {
+        id: 'note-a4',
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 4_480 }
+      },
+      {
+        id: 'note-b4',
+        duration: { value: 'eighth' },
+        position: { tick: 13_440 }
+      }
+    ])
+    expect(voice.events.some((event) => event.id === 'tuplet-remainder')).toBe(
+      false
+    )
+    expect(voice.tuplets?.[0]).toMatchObject({
+      eventIds: ['note-g4', 'note-a4'],
+      actualNotes: 3,
+      normalNotes: 2
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
   it('creates a tuplet group when the tuplet span fits without 3 pre-existing events', () => {
     const quarter = TICKS_PER_QUARTER
     const score = createScore({

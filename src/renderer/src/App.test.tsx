@@ -48,6 +48,21 @@ vi.mock('./notation/NotationPreview', () => ({
           count + measure.voices.reduce((sum, voice) => sum + voice.events.length, 0),
         0
       )}
+      data-event-durations={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) =>
+              [
+                event.id,
+                event.duration.value,
+                event.duration.tuplet
+                  ? `${event.duration.tuplet.actualNotes}:${event.duration.tuplet.normalNotes}`
+                  : 'regular'
+              ].join(':')
+            )
+          )
+        )
+        .join(',')}
       data-global-tempo={score.tempo?.bpm}
       data-rhythm-feel={score.rhythmFeel?.unit ?? ''}
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
@@ -910,6 +925,38 @@ describe('App component shell', () => {
         '셋잇단음표 입력을 완료했습니다.'
       )
     })
+  })
+
+  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter with Digit3', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'note-g4 선택' }))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /셋잇단음표 적용 또는 입력 준비/
+      })
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'note-a4 선택' }))
+    fireEvent.keyDown(window, {
+      code: 'Digit3',
+      key: '3'
+    })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-event-durations',
+        expect.stringContaining('note-a4:quarter:3:2')
+      )
+    })
+    expect(screen.getByTestId('notation-preview')).not.toHaveAttribute(
+      'data-event-durations',
+      expect.stringContaining('tuplet-remainder')
+    )
+    expect(
+      screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
+    ).not.toBeInTheDocument()
   })
 
   it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
