@@ -43,6 +43,7 @@ import {
   resolveHairpinOpenings,
   resolveHairpinSegments
 } from './hairpin-rendering'
+import { resolveMixedTupletOnsetShifts } from './tuplet-spacing'
 import { resolveNotationEventTone } from './visual-state'
 
 interface NotationPreviewProps {
@@ -385,7 +386,14 @@ export function NotationPreview({
 
         vexVoice.setMode(Voice.Mode.SOFT)
         vexVoice.addTickables(notes)
-        return { beams, events, notes, tuplets, vexVoice }
+        return {
+          beams,
+          events,
+          notes,
+          scoreTuplets: voice.tuplets,
+          tuplets,
+          vexVoice
+        }
       })
 
       new Formatter()
@@ -394,6 +402,28 @@ export function NotationPreview({
           voices.map(({ vexVoice }) => vexVoice),
           stave
         )
+
+      voices.forEach(({ events, notes, scoreTuplets }) => {
+        const notesByVoiceEventId = new Map(
+          notes.map((note, index) => [events[index].id, note])
+        )
+        const eventXs = new Map(
+          notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
+        )
+        const onsetShifts = resolveMixedTupletOnsetShifts(
+          events,
+          scoreTuplets,
+          eventXs
+        )
+
+        onsetShifts.forEach((shift, eventId) => {
+          const note = notesByVoiceEventId.get(eventId)
+
+          if (note) {
+            note.setXShift(note.getXShift() + shift)
+          }
+        })
+      })
 
       let firstEventX: number | undefined
 
@@ -463,7 +493,7 @@ export function NotationPreview({
                   width: stave.getNoteEndX() - defaultNoteStartX
                 })
               : 0
-          const eventX = note.getAbsoluteX() + centeredRestShift
+          const eventX = getVisibleNoteX(note) + centeredRestShift
 
           if (eventId === playbackEventId) {
             playbackPoint = {
@@ -1460,6 +1490,10 @@ function isNotationBeamable(event: VoiceEvent): boolean {
     ...event.duration,
     tuplet: undefined
   }) < TICKS_PER_QUARTER
+}
+
+function getVisibleNoteX(note: StaveNote): number {
+  return note.getAbsoluteX() + note.getXShift()
 }
 
 function sameClef(previous: Measure, current: Measure): boolean {
