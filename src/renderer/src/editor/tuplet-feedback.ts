@@ -110,7 +110,7 @@ function describeUntupletFailure(
     .map((eventId) => events.find((event) => event.id === eventId))
     .filter((event): event is VoiceEvent => Boolean(event))
 
-  if (members.length !== group.actualNotes) {
+  if (members.length !== group.eventIds.length || members.length === 0) {
     return '셋잇단음표 그룹 구성음이 완전하지 않아 해제할 수 없습니다.'
   }
 
@@ -125,16 +125,29 @@ function describeUntupletFailure(
   const firstMember = members[0]
   const tupletDuration = firstMember.duration
 
-  if (!tupletDuration.tuplet || tupletDuration.dots > 0) {
+  if (
+    !tupletDuration.tuplet ||
+    members.some(
+      (event) =>
+        event.duration.dots > 0 ||
+        event.duration.tuplet?.actualNotes !== group.actualNotes ||
+        event.duration.tuplet.normalNotes !== group.normalNotes
+    )
+  ) {
     return '셋잇단음표 그룹의 음가 정보가 일관되지 않아 해제할 수 없습니다.'
   }
 
-  const baseDuration: Duration = {
-    ...tupletDuration,
-    tuplet: undefined
-  }
+  const baseDurationTicks = members.reduce(
+    (sum, event) =>
+      sum +
+      durationToTicks({
+        ...event.duration,
+        tuplet: undefined
+      }),
+    0
+  )
   const expandedEndTick =
-    firstMember.position.tick + durationToTicks(baseDuration) * group.actualNotes
+    firstMember.position.tick + baseDurationTicks
 
   if (expandedEndTick > measureDurationTicks(measure)) {
     return '일반 음가로 해제하면 마디를 넘어가므로 해제할 수 없습니다.'

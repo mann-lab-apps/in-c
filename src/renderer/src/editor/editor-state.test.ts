@@ -551,6 +551,169 @@ describe('editor state', () => {
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
   })
 
+  it('tuplets.edit-member-duration restores tuplet rests when shrinking a mixed group member', () => {
+    const apply = buildTupletGroupCommand(
+      demoScore,
+      { type: 'event', eventId: 'note-g4' },
+      () => 'tuplet-remainder'
+    )
+    const applied = applyScoreCommand(demoScore, apply!)
+    const growDuration = buildDurationCommand(
+      applied.score,
+      { type: 'event', eventId: 'note-a4' },
+      createDuration('quarter')
+    )
+    const grown = applyScoreCommand(applied.score, growDuration!)
+    const shrinkDuration = buildDurationCommand(
+      grown.score,
+      { type: 'event', eventId: 'note-a4' },
+      createDuration('eighth'),
+      idSequence('restored-triplet-rest')
+    )
+    const shrunk = applyScoreCommand(grown.score, shrinkDuration!)
+    const measure = shrunk.score.parts[0].staves[0].measures[1]
+    const voice = measure.voices[0]
+
+    expect(shrinkDuration).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'note-a4'
+    })
+    expect(voice.events.slice(0, 4)).toMatchObject([
+      {
+        id: 'note-g4',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 0 }
+      },
+      {
+        id: 'note-a4',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 4_480 }
+      },
+      {
+        id: 'restored-triplet-rest-1',
+        type: 'rest',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        },
+        position: { tick: 8_960 }
+      },
+      {
+        id: 'note-b4',
+        duration: { value: 'eighth' },
+        position: { tick: 13_440 }
+      }
+    ])
+    expect(voice.tuplets?.[0]).toMatchObject({
+      eventIds: ['note-g4', 'note-a4', 'restored-triplet-rest-1'],
+      actualNotes: 3,
+      normalNotes: 2
+    })
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('tuplets.remove-existing-group toggles a mixed group back when right rest space exists', () => {
+    const quarter = TICKS_PER_QUARTER
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'triplet-eighth',
+                          position: createTimePosition(0),
+                          duration: {
+                            ...createDuration('eighth'),
+                            tuplet: { actualNotes: 3, normalNotes: 2 }
+                          },
+                          pitch: { step: 'C', octave: 4 }
+                        }),
+                        createNote({
+                          id: 'triplet-quarter',
+                          position: createTimePosition(quarter / 3),
+                          duration: {
+                            ...createDuration('quarter'),
+                            tuplet: { actualNotes: 3, normalNotes: 2 }
+                          },
+                          pitch: { step: 'D', octave: 4 }
+                        }),
+                        createRest({
+                          id: 'right-rest',
+                          position: createTimePosition(quarter),
+                          duration: createDuration('half', 1)
+                        })
+                      ],
+                      tuplets: [
+                        {
+                          id: 'tuplet-1',
+                          eventIds: ['triplet-eighth', 'triplet-quarter'],
+                          actualNotes: 3,
+                          normalNotes: 2
+                        }
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const remove = buildTupletGroupCommand(
+      score,
+      { type: 'event', eventId: 'triplet-quarter' },
+      idSequence('split-right-rest')
+    )
+    const removed = applyScoreCommand(score, remove!)
+    const measure = removed.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+
+    expect(remove).toMatchObject({
+      type: 'voice-content.replace',
+      editedEventId: 'triplet-eighth'
+    })
+    expect(voice.tuplets).toEqual([])
+    expect(voice.events).toMatchObject([
+      {
+        id: 'triplet-eighth',
+        duration: { value: 'eighth', tuplet: undefined },
+        position: { tick: 0 }
+      },
+      {
+        id: 'triplet-quarter',
+        duration: { value: 'quarter', tuplet: undefined },
+        position: { tick: quarter / 2 }
+      },
+      {
+        id: 'right-rest',
+        type: 'rest',
+        duration: { value: 'half' },
+        position: { tick: quarter * 1.5 }
+      },
+      {
+        id: 'split-right-rest-1',
+        type: 'rest',
+        duration: { value: 'eighth' },
+        position: { tick: quarter * 3.5 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
   it('creates a tuplet group when the tuplet span fits without 3 pre-existing events', () => {
     const quarter = TICKS_PER_QUARTER
     const score = createScore({

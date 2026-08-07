@@ -576,6 +576,20 @@ function buildTupletMemberDurationCommand(
     tuplet: undefined
   })
   const nextBaseTicks = durationToTicks(duration)
+
+  if (nextBaseTicks < currentBaseTicks) {
+    return buildShrunkenTupletMemberDurationCommand(
+      location,
+      voice,
+      group,
+      events,
+      members,
+      selectedIndex,
+      duration,
+      createId
+    )
+  }
+
   let baseTicksToConsume = nextBaseTicks - currentBaseTicks
 
   if (baseTicksToConsume <= 0) {
@@ -644,6 +658,120 @@ function buildTupletMemberDurationCommand(
   const nextVoice = {
     ...voice,
     events: sortVoiceEvents(nextEvents),
+    tuplets: nextTuplets
+  }
+  const nextMeasure = {
+    ...location.measure,
+    voices: location.measure.voices.map((candidate) =>
+      candidate.id === voice.id ? nextVoice : candidate
+    )
+  }
+
+  if (
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets(nextVoice).length > 0
+  ) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-content.replace',
+    target: location.address,
+    events: nextVoice.events,
+    tuplets: nextVoice.tuplets,
+    editedEventId: location.event.id
+  }
+}
+
+function buildShrunkenTupletMemberDurationCommand(
+  location: EventLocation,
+  voice: NonNullable<Measure['voices'][number]>,
+  group: NonNullable<Measure['voices'][number]['tuplets']>[number],
+  events: VoiceEvent[],
+  members: VoiceEvent[],
+  selectedIndex: number,
+  duration: Duration,
+  createId: () => string
+): ScoreCommand | undefined {
+  const ratio = location.event.duration.tuplet
+
+  if (!ratio) {
+    return undefined
+  }
+
+  const memberBaseTicks = members.map((member) =>
+    durationToTicks({
+      ...member.duration,
+      tuplet: undefined
+    })
+  )
+  const slotBaseTicks = Math.min(...memberBaseTicks)
+  const nextBaseTicks = durationToTicks(duration)
+
+  if (nextBaseTicks !== slotBaseTicks) {
+    return undefined
+  }
+
+  const selectedMember = members[selectedIndex]
+  const currentBaseTicks = memberBaseTicks[selectedIndex]
+  const releasedBaseTicks = currentBaseTicks - nextBaseTicks
+  const restDurations = decomposeDurationTicks(releasedBaseTicks)
+
+  if (!selectedMember || !restDurations?.length) {
+    return undefined
+  }
+
+  const nextDuration: Duration = {
+    ...duration,
+    tuplet: ratio
+  }
+  const insertedRests: VoiceEvent[] = []
+  let tick = selectedMember.position.tick + durationToTicks(nextDuration)
+
+  restDurations.forEach((restDuration) => {
+    const tupletRestDuration: Duration = {
+      ...restDuration,
+      tuplet: ratio
+    }
+
+    insertedRests.push(
+      createRest({
+        id: createId(),
+        position: createTimePosition(tick),
+        duration: tupletRestDuration
+      })
+    )
+    tick += durationToTicks(tupletRestDuration)
+  })
+
+  const memberIdSet = new Set(group.eventIds)
+  const rewrittenMembers = members.flatMap((member) => {
+    if (member.id !== selectedMember.id) {
+      return [member]
+    }
+
+    const rewritten = {
+      ...member,
+      ...(member.type === 'rest' ? { fullMeasure: undefined } : {}),
+      duration: nextDuration
+    } satisfies VoiceEvent
+
+    return [rewritten, ...insertedRests]
+  })
+  const nextTuplets = (voice.tuplets ?? []).map((candidate) =>
+    candidate.id === group.id
+      ? {
+          ...candidate,
+          eventIds: rewrittenMembers.map((member) => member.id)
+        }
+      : candidate
+  )
+  const nextVoice = {
+    ...voice,
+    events: sortVoiceEvents([
+      ...events.filter((event) => !memberIdSet.has(event.id)),
+      ...rewrittenMembers
+    ]),
     tuplets: nextTuplets
   }
   const nextMeasure = {
@@ -1231,36 +1359,45 @@ function buildUntupletGroupCommand(
     .map((eventId) => events.find((event) => event.id === eventId))
     .filter((event): event is VoiceEvent => Boolean(event))
 
-  if (members.length !== group.actualNotes) {
+  if (members.length !== group.eventIds.length || members.length === 0) {
     return undefined
   }
 
   const firstMember = members[0]
-  const tupletDuration = firstMember.duration
+  const firstTupletDuration = firstMember.duration
 
-  if (!tupletDuration.tuplet || tupletDuration.dots > 0) {
+  if (!firstTupletDuration.tuplet || firstTupletDuration.dots > 0) {
     return undefined
   }
 
-  const baseDuration: Duration = {
-    ...tupletDuration,
+  const baseDurations = members.map((member) => ({
+    ...member.duration,
     tuplet: undefined
-  }
-  const tupletTicks = durationToTicks(tupletDuration)
-  const regularTicks = durationToTicks(baseDuration)
+  }))
+  const memberTicks = members.map((member) => durationToTicks(member.duration))
+  const regularTicks = baseDurations.map((duration) =>
+    durationToTicks(duration)
+  )
   const startTick = firstMember.position.tick
-  const currentEndTick = startTick + tupletTicks * group.actualNotes
-  const expandedEndTick = startTick + regularTicks * group.actualNotes
+  const currentEndTick =
+    startTick + memberTicks.reduce((sum, ticks) => sum + ticks, 0)
+  const expandedEndTick =
+    startTick + regularTicks.reduce((sum, ticks) => sum + ticks, 0)
+  let expectedTick = startTick
 
   if (
     members.some(
-      (event, index) =>
-        event.position.tick !== startTick + tupletTicks * index ||
-        event.duration.value !== tupletDuration.value ||
-        event.duration.dots !== tupletDuration.dots ||
-        event.duration.tuplet?.actualNotes !== group.actualNotes ||
-        event.duration.tuplet.normalNotes !== group.normalNotes ||
-        (event.type === 'note' && (event.ties?.start || event.ties?.stop))
+      (event, index) => {
+        const isInvalid =
+          event.position.tick !== expectedTick ||
+          event.duration.dots > 0 ||
+          event.duration.tuplet?.actualNotes !== group.actualNotes ||
+          event.duration.tuplet.normalNotes !== group.normalNotes ||
+          (event.type === 'note' && (event.ties?.start || event.ties?.stop))
+
+        expectedTick += memberTicks[index]
+        return isInvalid
+      }
     )
   ) {
     return undefined
@@ -1281,19 +1418,10 @@ function buildUntupletGroupCommand(
     )
 
     if (consumed) {
-      const converted = members.map((event, index) =>
-        event.type === 'rest'
-          ? createRest({
-              id: event.id,
-              position: createTimePosition(startTick + regularTicks * index),
-              duration: baseDuration
-            })
-          : createNote({
-              id: event.id,
-              position: createTimePosition(startTick + regularTicks * index),
-              duration: baseDuration,
-              pitch: event.pitch
-            })
+      const converted = createUntupledMembers(
+        members,
+        baseDurations,
+        startTick
       )
 
       return {
@@ -1321,8 +1449,8 @@ function buildUntupletGroupCommand(
     events,
     group,
     members,
-    baseDuration,
     regularTicks,
+    baseDurations,
     startTick,
     currentEndTick
   )
@@ -1334,8 +1462,8 @@ function buildCompactUntupletGroupCommand(
   events: VoiceEvent[],
   group: NonNullable<Measure['voices'][number]['tuplets']>[number],
   members: VoiceEvent[],
-  baseDuration: Duration,
-  regularTicks: number,
+  regularTicks: number[],
+  baseDurations: Duration[],
   startTick: number,
   endTick: number
 ): ScoreCommand | undefined {
@@ -1343,8 +1471,12 @@ function buildCompactUntupletGroupCommand(
   const converted: VoiceEvent[] = []
   let tick = startTick
 
-  for (const event of members) {
-    if (tick + regularTicks > endTick) {
+  for (let index = 0; index < members.length; index += 1) {
+    const event = members[index]
+    const baseDuration = baseDurations[index]
+    const baseTicks = regularTicks[index]
+
+    if (tick + baseTicks > endTick) {
       if (event.type === 'note') {
         return undefined
       }
@@ -1366,7 +1498,7 @@ function buildCompactUntupletGroupCommand(
             pitch: event.pitch
           })
     )
-    tick += regularTicks
+    tick += baseTicks
   }
 
   return {
@@ -1388,6 +1520,34 @@ function buildCompactUntupletGroupCommand(
     tuplets: (voice.tuplets ?? []).filter((candidate) => candidate.id !== group.id),
     editedEventId: members[0]?.id
   }
+}
+
+function createUntupledMembers(
+  members: VoiceEvent[],
+  baseDurations: Duration[],
+  startTick: number
+): VoiceEvent[] {
+  let tick = startTick
+
+  return members.map((event, index) => {
+    const duration = baseDurations[index]
+    const converted =
+      event.type === 'rest'
+        ? createRest({
+            id: event.id,
+            position: createTimePosition(tick),
+            duration
+          })
+        : createNote({
+            id: event.id,
+            position: createTimePosition(tick),
+            duration,
+            pitch: event.pitch
+          })
+
+    tick += durationToTicks(duration)
+    return converted
+  })
 }
 
 function consumeRestSpan(

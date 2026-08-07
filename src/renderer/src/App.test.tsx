@@ -957,6 +957,23 @@ describe('App component shell', () => {
     expect(
       screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
     ).not.toBeInTheDocument()
+
+    fireEvent.keyDown(window, {
+      code: 'Digit4',
+      key: '4'
+    })
+
+    await waitFor(() => {
+      const durations = screen
+        .getByTestId('notation-preview')
+        .getAttribute('data-event-durations')
+
+      expect(durations).toContain('note-a4:eighth:3:2')
+      expect(durations).toMatch(/event-[^,]+:eighth:3:2/)
+    })
+    expect(
+      screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
+    ).not.toBeInTheDocument()
   })
 
   it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
