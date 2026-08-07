@@ -407,6 +407,9 @@ export const App = () => {
   const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
     RecentMusicXmlFile[]
   >([])
+  const currentMusicXmlFileRef = useRef<
+    Pick<RecentMusicXmlFile, 'filePath' | 'fileName'> | undefined
+  >(undefined)
   const [missingRecentFilePath, setMissingRecentFilePath] = useState<string>()
   const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score)
@@ -675,6 +678,7 @@ export const App = () => {
     setNewScoreDraft(undefined)
     setSelection(createInitialSelection(recoverySnapshot.score))
     setRecoverySnapshot(undefined)
+    currentMusicXmlFileRef.current = undefined
     setStartScreenVisible(false)
     setFileStatus({
       tone: 'neutral',
@@ -860,6 +864,7 @@ export const App = () => {
     setDurationValue('quarter')
     setSelection(createInitialSelection(nextScore))
     setRecoverySnapshot(undefined)
+    currentMusicXmlFileRef.current = undefined
     setStartScreenVisible(false)
     setFileStatus({
       tone: 'neutral',
@@ -2580,6 +2585,10 @@ export const App = () => {
 
       setMissingRecentFilePath(undefined)
       openScore(importedScore, `${file.fileName}을 가져왔습니다.`)
+      currentMusicXmlFileRef.current = {
+        filePath: file.filePath,
+        fileName: file.fileName
+      }
 
       try {
         const recentFiles = await window.inC.recentMusicXml.add({
@@ -2614,6 +2623,10 @@ export const App = () => {
 
         setMissingRecentFilePath(undefined)
         openScore(importedScore, `${openedFile.fileName}을 다시 열었습니다.`)
+        currentMusicXmlFileRef.current = {
+          filePath: openedFile.filePath,
+          fileName: openedFile.fileName
+        }
 
         try {
           const recentFiles = await window.inC.recentMusicXml.add({
@@ -2675,7 +2688,11 @@ export const App = () => {
   const saveMusicXml = useCallback(async () => {
     try {
       const contents = serializeMusicXml(score)
+      const currentMusicXmlFile = currentMusicXmlFileRef.current
       const result = await window.inC.musicXml.save({
+        ...(currentMusicXmlFile
+          ? { filePath: currentMusicXmlFile.filePath }
+          : {}),
         suggestedName: `${toFileName(score.title)}.musicxml`,
         contents
       })
@@ -2684,8 +2701,34 @@ export const App = () => {
         return
       }
 
+      if (!result.filePath) {
+        throw new Error('MusicXML 저장 경로를 확인하지 못했습니다.')
+      }
+
       await window.inC.autosave.clear()
       setAutosaveRevision(0)
+      currentMusicXmlFileRef.current = {
+        filePath: result.filePath,
+        fileName: result.fileName
+      }
+
+      try {
+        const recentFiles = await window.inC.recentMusicXml.add({
+          filePath: result.filePath,
+          fileName: result.fileName
+        })
+
+        setRecentMusicXmlFiles(recentFiles)
+      } catch (recentError) {
+        setFileStatus({
+          tone: 'error',
+          message: `악보는 저장했지만 최근 파일 목록을 갱신하지 못했습니다. ${getErrorMessage(
+            recentError
+          )}`
+        })
+        return
+      }
+
       setFileStatus({
         tone: 'neutral',
         message: `${result.fileName}을 MusicXML로 내보냈습니다.`
@@ -2722,11 +2765,24 @@ export const App = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      const usesCommandKey = event.metaKey || event.ctrlKey
+
+      if (event.isComposing || event.key === 'Process') {
+        return
+      }
+
       if (
-        isTextEditingTarget(event.target) ||
-        event.isComposing ||
-        event.key === 'Process'
+        usesCommandKey &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.code === 'KeyS'
       ) {
+        event.preventDefault()
+        void saveMusicXml()
+        return
+      }
+
+      if (isTextEditingTarget(event.target)) {
         return
       }
 
@@ -2736,8 +2792,6 @@ export const App = () => {
           ?.focus()
         return
       }
-
-      const usesCommandKey = event.metaKey || event.ctrlKey
 
       if (usesCommandKey && !event.altKey && event.code === 'KeyC') {
         event.preventDefault()
@@ -2898,6 +2952,7 @@ export const App = () => {
     playback.status,
     pasteSelection,
     redo,
+    saveMusicXml,
     toggleTie,
     toggleTuplet,
     toolbarCategory,

@@ -358,6 +358,51 @@ describe('App component shell', () => {
     })
   })
 
+  it('import-export.save-existing-musicxml overwrites the opened recent file path', async () => {
+    const selectedFile = {
+      filePath: '/scores/sketch.musicxml',
+      fileName: 'sketch.musicxml',
+      openedAt: '2026-07-19T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([selectedFile])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...selectedFile,
+      contents: recentMusicXml
+    })
+    vi.mocked(window.inC.recentMusicXml.add).mockResolvedValue([selectedFile])
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: selectedFile.filePath,
+      fileName: selectedFile.fileName
+    })
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /sketch\.musicxml/ })
+    )
+    expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filePath: selectedFile.filePath,
+          suggestedName: 'musicxml-sketch.musicxml',
+          contents: expect.stringContaining('<score-partwise')
+        })
+      )
+    })
+    expect(window.inC.recentMusicXml.add).toHaveBeenLastCalledWith({
+      filePath: selectedFile.filePath,
+      fileName: selectedFile.fileName
+    })
+    expect(
+      await screen.findByText('sketch.musicxml을 MusicXML로 내보냈습니다.')
+    ).toBeInTheDocument()
+  })
+
   it('navigation.arrow-right-at-last-event appends a full-measure rest measure instead of showing an input cursor', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
@@ -634,6 +679,70 @@ describe('App component shell', () => {
     expect(recoveryButton).not.toBe(saveButton)
     expect(recoveryButton).toHaveTextContent(
       '자동저장된 작업이 있으면 여기에 표시됩니다.'
+    )
+  })
+
+  it('import-export.keyboard-save uses Ctrl+S without a current file path', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/release-test.musicxml',
+      fileName: 'release-test.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      ctrlKey: true,
+      key: 's'
+    })
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          suggestedName: 'release-test.musicxml',
+          contents: expect.stringContaining('<score-partwise')
+        })
+      )
+    })
+    expect(
+      vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
+    ).not.toHaveProperty('filePath')
+  })
+
+  it('import-export.second-save-after-save-as reuses the first saved file path', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/release-test.musicxml',
+      fileName: 'release-test.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+    await screen.findByText(
+      'release-test.musicxml을 MusicXML로 내보냈습니다.'
+    )
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledTimes(2)
+    })
+    expect(vi.mocked(window.inC.musicXml.save).mock.calls[1]?.[0]).toEqual(
+      expect.objectContaining({
+        filePath: '/scores/release-test.musicxml',
+        suggestedName: 'release-test.musicxml',
+        contents: expect.stringContaining('<score-partwise')
+      })
     )
   })
 

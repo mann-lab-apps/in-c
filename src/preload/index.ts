@@ -32,8 +32,13 @@ const api = {
         fileName: string
         contents: string
       } | null>,
-    save: (input: { suggestedName: string; contents: string }) =>
+    save: (input: {
+      filePath?: string
+      suggestedName: string
+      contents: string
+    }) =>
       ipcRenderer.invoke(saveMusicXmlChannel, input) as Promise<{
+        filePath: string
         fileName: string
       } | null>
   },

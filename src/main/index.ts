@@ -63,10 +63,19 @@ ipcMain.handle(
   async (
     _event,
     input: {
+      filePath?: string
       suggestedName: string
       contents: string
     }
   ) => {
+    if (input.filePath) {
+      await writeFile(input.filePath, input.contents, 'utf8')
+      return {
+        filePath: input.filePath,
+        fileName: basename(input.filePath)
+      }
+    }
+
     const result = await dialog.showSaveDialog({
       title: 'MusicXML로 저장',
       defaultPath: input.suggestedName,
@@ -84,6 +93,7 @@ ipcMain.handle(
 
     await writeFile(result.filePath, input.contents, 'utf8')
     return {
+      filePath: result.filePath,
       fileName: basename(result.filePath)
     }
   }
