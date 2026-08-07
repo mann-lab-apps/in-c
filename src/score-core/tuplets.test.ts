@@ -43,7 +43,7 @@ describe('score-core tuplets', () => {
           }
         ]
       })
-    ).toContain('Invalid tuplet ratio or member count: tuplet-1')
+    ).toContain('Invalid tuplet member sequence: tuplet-1')
 
     expect(
       validateVoiceTuplets({
@@ -51,6 +51,47 @@ describe('score-core tuplets', () => {
         tuplets: []
       })
     ).toContain('Tuplet duration has no complete group: triplet-1')
+  })
+
+  it('accepts a triplet group written as an eighth plus a quarter member', () => {
+    const tripletQuarter = {
+      ...createDuration('quarter'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const voice = createVoice({
+      events: [
+        createNote({
+          id: 'triplet-1',
+          position: createTimePosition(0),
+          pitch: { step: 'C', octave: 4 },
+          duration: tripletEighth
+        }),
+        createNote({
+          id: 'triplet-2',
+          position: createTimePosition(quarter / 3),
+          pitch: { step: 'D', octave: 4 },
+          duration: tripletQuarter
+        }),
+        createRest({
+          id: 'remainder',
+          position: createTimePosition(quarter),
+          duration: createDuration('half', 1)
+        })
+      ],
+      tuplets: [
+        {
+          id: 'tuplet-1',
+          eventIds: ['triplet-1', 'triplet-2'],
+          actualNotes: 3,
+          normalNotes: 2
+        }
+      ]
+    })
+
+    expect(validateVoiceTuplets(voice)).toEqual([])
   })
 
   it('replaces tuplet events and relations as one undoable command', () => {

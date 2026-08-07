@@ -1511,8 +1511,15 @@ describe('MusicXML MVP', () => {
   })
 
   it('preserves mixed triplet groups across MusicXML round trips', () => {
-    const tripletDuration = {
+    const tripletEighthDuration = {
       ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const tripletQuarterDuration = {
+      ...createDuration('quarter'),
       tuplet: {
         actualNotes: 3,
         normalNotes: 2
@@ -1532,22 +1539,15 @@ describe('MusicXML MVP', () => {
                           id: 'triplet-note-1',
                           position: createTimePosition(0),
                           pitch: { step: 'C', octave: 4 },
-                          duration: tripletDuration
-                        }),
-                        createRest({
-                          id: 'triplet-rest',
-                          position: createTimePosition(
-                            TICKS_PER_QUARTER / 3
-                          ),
-                          duration: tripletDuration
+                          duration: tripletEighthDuration
                         }),
                         createNote({
                           id: 'triplet-note-2',
                           position: createTimePosition(
-                            (TICKS_PER_QUARTER * 2) / 3
+                            TICKS_PER_QUARTER / 3
                           ),
                           pitch: { step: 'E', octave: 4 },
-                          duration: tripletDuration
+                          duration: tripletQuarterDuration
                         }),
                         createRest({
                           id: 'remainder',
@@ -1560,7 +1560,6 @@ describe('MusicXML MVP', () => {
                           id: 'triplet-1',
                           eventIds: [
                             'triplet-note-1',
-                            'triplet-rest',
                             'triplet-note-2'
                           ],
                           actualNotes: 3,
@@ -1580,25 +1579,21 @@ describe('MusicXML MVP', () => {
     const voice =
       parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0]
 
-    expect(exported.match(/<time-modification>/g)).toHaveLength(3)
+    expect(exported.match(/<time-modification>/g)).toHaveLength(2)
     expect(exported).toContain('<tuplet type="start"/>')
     expect(exported).toContain('<tuplet type="stop"/>')
-    expect(voice.events.slice(0, 3)).toMatchObject([
+    expect(voice.events.slice(0, 2)).toMatchObject([
       {
         type: 'note',
         duration: {
-          tuplet: { actualNotes: 3, normalNotes: 2 }
-        }
-      },
-      {
-        type: 'rest',
-        duration: {
+          value: 'eighth',
           tuplet: { actualNotes: 3, normalNotes: 2 }
         }
       },
       {
         type: 'note',
         duration: {
+          value: 'quarter',
           tuplet: { actualNotes: 3, normalNotes: 2 }
         }
       }
@@ -1606,7 +1601,7 @@ describe('MusicXML MVP', () => {
     expect(voice.tuplets).toEqual([
       {
         id: 'measure-1-tuplet-1',
-        eventIds: ['event-1', 'event-2', 'event-3'],
+        eventIds: ['event-1', 'event-2'],
         actualNotes: 3,
         normalNotes: 2
       }

@@ -1216,7 +1216,7 @@ function readTupletGroups(
     }
 
     if (types.has('stop')) {
-      if (!active || active.eventIds.length !== active.actualNotes) {
+      if (!active || active.eventIds.length === 0) {
         throw new Error('MusicXML tuplet 그룹이 완전하지 않습니다.')
       }
 

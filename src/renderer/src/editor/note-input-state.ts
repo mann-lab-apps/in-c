@@ -40,9 +40,11 @@ export interface NoteInputState {
     normalNotes: number
     members: Array<{
       mode: NoteInputMode
+      duration: Duration
       step?: PitchStep
       accidental?: Pitch['alter']
     }>
+    baseDuration: Duration
   }
 }
 
@@ -101,6 +103,7 @@ export function beginTupletInput(
       id,
       actualNotes,
       normalNotes,
+      baseDuration: stripTupletRatio(state.duration),
       members: []
     }
   }
@@ -114,6 +117,42 @@ export function cancelTupletInput(state: NoteInputState): NoteInputState {
     duration,
     tupletInput: undefined
   }
+}
+
+function stripTupletRatio(duration: Duration): Duration {
+  const { tuplet: _tuplet, ...baseDuration } = duration
+  return baseDuration
+}
+
+function tupledDuration(
+  duration: Duration,
+  tupletInput: NonNullable<NoteInputState['tupletInput']>
+): Duration {
+  return {
+    ...stripTupletRatio(duration),
+    tuplet: {
+      actualNotes: tupletInput.actualNotes,
+      normalNotes: tupletInput.normalNotes
+    }
+  }
+}
+
+function unmodifiedDurationTicks(duration: Duration): number {
+  return durationToTicks(stripTupletRatio(duration))
+}
+
+function tupletInputTargetBaseTicks(
+  tupletInput: NonNullable<NoteInputState['tupletInput']>
+): number {
+  return unmodifiedDurationTicks(tupletInput.baseDuration) *
+    tupletInput.actualNotes
+}
+
+function tupletInputEffectiveTicks(
+  tupletInput: NonNullable<NoteInputState['tupletInput']>
+): number {
+  return durationToTicks(tupledDuration(tupletInput.baseDuration, tupletInput)) *
+    tupletInput.actualNotes
 }
 
 export function createTupletInputPreviewScore(
@@ -135,8 +174,8 @@ export function createTupletInputPreviewScore(
   const event = location.voice.events.find(
     (candidate) => candidate.position.tick === state.tick
   )
-  const memberTicks = durationToTicks(state.duration)
-  const groupEndTick = state.tick + memberTicks * tupletInput.actualNotes
+  const groupEffectiveTicks = tupletInputEffectiveTicks(tupletInput)
+  const groupEndTick = state.tick + groupEffectiveTicks
 
   if (
     !event ||
@@ -146,9 +185,7 @@ export function createTupletInputPreviewScore(
     return score
   }
 
-  const groupDuration = decomposeDurationTicks(
-    memberTicks * tupletInput.actualNotes
-  )
+  const groupDuration = decomposeDurationTicks(groupEffectiveTicks)
 
   if (!groupDuration || groupDuration.length !== 1) {
     return score
@@ -179,11 +216,25 @@ export function createTupletInputPreviewScore(
   )
   const eventIds: string[] = []
   let lastPitch = state.lastPitch
+  let tick = state.tick
+  let baseTicks = 0
+  const previewMembers = [...tupletInput.members]
+  const fallbackDuration = tupledDuration(
+    tupletInput.baseDuration,
+    tupletInput
+  )
 
-  for (let index = 0; index < tupletInput.actualNotes; index += 1) {
-    const member = tupletInput.members[index]
-    const position = createTimePosition(state.tick + memberTicks * index)
-    const eventId = `preview-${tupletInput.id}-${index + 1}`
+  while (baseTicks < tupletInputTargetBaseTicks(tupletInput)) {
+    const member = previewMembers.shift()
+    const duration = member?.duration ?? fallbackDuration
+    const nextBaseTicks = baseTicks + unmodifiedDurationTicks(duration)
+
+    if (nextBaseTicks > tupletInputTargetBaseTicks(tupletInput)) {
+      break
+    }
+
+    const position = createTimePosition(tick)
+    const eventId = `preview-${tupletInput.id}-${eventIds.length + 1}`
     const currentLocation = locateInputVoice(workingScore, state.target)
 
     if (!currentLocation) {
@@ -195,7 +246,7 @@ export function createTupletInputPreviewScore(
         ? createNote({
             id: eventId,
             position,
-            duration: state.duration,
+            duration,
             pitch: createInputPitch(
               currentLocation,
               member.step,
@@ -207,7 +258,7 @@ export function createTupletInputPreviewScore(
         : createRest({
             id: eventId,
             position,
-            duration: state.duration
+            duration
           })
 
     eventIds.push(eventId)
@@ -220,6 +271,8 @@ export function createTupletInputPreviewScore(
       state.target,
       workingEvents
     )
+    tick += durationToTicks(duration)
+    baseTicks = nextBaseTicks
   }
 
   return replaceWorkingVoiceContent(score, state.target, {
@@ -422,6 +475,7 @@ function buildTupletSequentialInput(
 
   const member = {
     mode: state.mode,
+    duration: state.duration,
     step,
     accidental: state.accidental
   }
@@ -446,8 +500,8 @@ function buildTupletSequentialInput(
     )
   }
 
-  const memberTicks = durationToTicks(state.duration)
-  const groupEndTick = state.tick + memberTicks * tupletInput.actualNotes
+  const groupEffectiveTicks = tupletInputEffectiveTicks(tupletInput)
+  const groupEndTick = state.tick + groupEffectiveTicks
 
   if (
     !event ||
@@ -457,7 +511,17 @@ function buildTupletSequentialInput(
     return undefined
   }
 
-  if (members.length < tupletInput.actualNotes) {
+  const enteredBaseTicks = members.reduce(
+    (sum, stagedMember) => sum + unmodifiedDurationTicks(stagedMember.duration),
+    0
+  )
+  const targetBaseTicks = tupletInputTargetBaseTicks(tupletInput)
+
+  if (enteredBaseTicks > targetBaseTicks) {
+    return undefined
+  }
+
+  if (enteredBaseTicks < targetBaseTicks) {
     return {
       command: {
         type: 'score.batch',
@@ -476,13 +540,7 @@ function buildTupletSequentialInput(
     }
   }
 
-  if (members.length > tupletInput.actualNotes) {
-    return undefined
-  }
-
-  const groupDuration = decomposeDurationTicks(
-    memberTicks * tupletInput.actualNotes
-  )
+  const groupDuration = decomposeDurationTicks(groupEffectiveTicks)
 
   if (!groupDuration || groupDuration.length !== 1) {
     return undefined
@@ -537,13 +595,13 @@ function buildTupletSequentialInput(
       ? createNote({
           id: eventId,
           position: createTimePosition(tick),
-          duration: state.duration,
+          duration: stagedMember.duration,
           pitch
         })
       : createRest({
           id: eventId,
           position: createTimePosition(tick),
-          duration: state.duration
+          duration: stagedMember.duration
         })
     lastPitch = pitch ?? lastPitch
     workingEvents = sortVoiceEvents([...workingEvents, replacement])
@@ -553,14 +611,14 @@ function buildTupletSequentialInput(
       workingEvents
     )
     eventIds.push(eventId)
-    tick += memberTicks
+    tick += durationToTicks(stagedMember.duration)
   })
 
   const finalLocation = locateInputVoice(workingScore, state.target)
 
   if (
     !finalLocation ||
-    eventIds.length !== tupletInput.actualNotes
+    eventIds.length === 0
   ) {
     return undefined
   }

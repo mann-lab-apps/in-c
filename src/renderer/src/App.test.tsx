@@ -845,6 +845,50 @@ describe('App component shell', () => {
     expect(liveStatus).not.toHaveTextContent('셋잇단음표 2/3')
   })
 
+  it('tuplets.input-mixed-duration completes an eighth-plus-quarter triplet from the toolbar', async () => {
+    const recentFile = {
+      filePath: '/scores/tuplet-input-progress.musicxml',
+      fileName: 'tuplet-input-progress.musicxml',
+      openedAt: '2026-07-28T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...recentFile,
+      contents: tupletInputProgressMusicXml
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /tuplet-input-progress\.musicxml/
+      })
+    )
+    const preview = await screen.findByTestId('notation-preview')
+    const previewButtons = within(preview).getAllByRole('button')
+    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /셋잇단음표 적용 또는 입력 준비/
+      })
+    )
+
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
+    const quarterButton = screen.getByRole('button', {
+      name: /4분음표/
+    })
+    expect(quarterButton).not.toBeDisabled()
+    fireEvent.click(quarterButton)
+    fireEvent.keyDown(window, { code: 'KeyD', key: 'd' })
+
+    await waitFor(() => {
+      expect(document.querySelector('.editor-status')).toHaveTextContent(
+        '셋잇단음표 입력을 완료했습니다.'
+      )
+    })
+  })
+
   it('layout.rehearsal-mark adds A to the selected measure preview', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')

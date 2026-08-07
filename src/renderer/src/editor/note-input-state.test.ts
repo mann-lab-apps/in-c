@@ -13,7 +13,8 @@ import {
   createTimePosition,
   createVoice,
   type VoiceEvent,
-  validateMeasureRhythm
+  validateMeasureRhythm,
+  validateVoiceTuplets
 } from '../../../score-core'
 import {
   beginTupletInput,
@@ -762,6 +763,71 @@ describe('note input state', () => {
       normalNotes: 4
     })
     expect(fifth.nextState).toMatchObject({
+      tick: quarter,
+      tupletInput: undefined
+    })
+  })
+
+  it('tuplets.input-mixed-duration completes an eighth triplet as eighth plus quarter', () => {
+    const score = scoreWithEighthRests()
+    const tripletState = beginTupletInput(
+      createNoteInputState({
+        target,
+        tick: 0,
+        duration: createDuration('eighth'),
+        mode: 'note'
+      }),
+      'tuplet-mixed'
+    )!
+    const ids = idSequence()
+    const first = buildSequentialInput(score, tripletState, 'C', ids)!
+    const second = buildSequentialInput(
+      score,
+      {
+        ...first.nextState,
+        duration: {
+          ...createDuration('quarter'),
+          tuplet: {
+            actualNotes: 3,
+            normalNotes: 2
+          }
+        }
+      },
+      'D',
+      ids
+    )!
+    const result = applyScoreCommand(score, second.command)
+    const voice = result.score.parts[0].staves[0].measures[0].voices[0]
+
+    expect(first.pending).toBe(true)
+    expect(second.pending).toBeUndefined()
+    expect(voice.events.slice(0, 2)).toMatchObject([
+      {
+        id: 'eighth-rest-1',
+        duration: {
+          value: 'eighth',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      },
+      {
+        id: 'event-1',
+        position: { tick: quarter / 3 },
+        duration: {
+          value: 'quarter',
+          tuplet: { actualNotes: 3, normalNotes: 2 }
+        }
+      }
+    ])
+    expect(voice.tuplets).toEqual([
+      {
+        id: 'tuplet-mixed',
+        eventIds: ['eighth-rest-1', 'event-1'],
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    ])
+    expect(validateVoiceTuplets(voice)).toEqual([])
+    expect(second.nextState).toMatchObject({
       tick: quarter,
       tupletInput: undefined
     })
