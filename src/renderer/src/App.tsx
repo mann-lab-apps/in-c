@@ -122,6 +122,7 @@ import { describeTupletToggleFailure } from './editor/tuplet-feedback'
 import {
   isRedoShortcut,
   isRestShortcut,
+  isSlurShortcut,
   isTextEditingTarget,
   isTieShortcut,
   isTupletShortcut,
@@ -2916,6 +2917,12 @@ export const App = () => {
         return
       }
 
+      if (isSlurShortcut(event)) {
+        event.preventDefault()
+        toggleSlur()
+        return
+      }
+
       if (isRestShortcut(event)) {
         event.preventDefault()
         if (noteInputState) {
@@ -3009,6 +3016,7 @@ export const App = () => {
     pasteSelection,
     redo,
     saveMusicXml,
+    toggleSlur,
     toggleTie,
     toggleTuplet,
     toolbarCategory,
@@ -3515,11 +3523,14 @@ export const App = () => {
                 </div>
               </div>
               <button
+                aria-label="슬러 추가 또는 해제, 단축키 S"
                 className="inspector-properties__command"
                 onClick={toggleSlur}
+                title="슬러 추가 또는 해제 (S)"
                 type="button"
               >
-                슬러 토글
+                슬러
+                <span className="shortcut-badge">S</span>
               </button>
               <div className="inspector-properties__row">
                 <span>옥타브</span>

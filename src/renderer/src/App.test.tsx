@@ -135,6 +135,11 @@ vi.mock('./notation/NotationPreview', () => ({
           {hairpin.startEventId}–{hairpin.endEventId}
         </span>
       ))}
+      {(score.slurs ?? []).map((slur) => (
+        <span data-slur="true" key={slur.id}>
+          slur:{slur.startEventId}–{slur.endEventId}
+        </span>
+      ))}
       {(score.rehearsalMarks ?? []).map((mark) => (
         <span data-measure-id={mark.measureId} key={mark.id}>
           {mark.text}
@@ -1235,6 +1240,31 @@ describe('App component shell', () => {
 
     fireEvent.click(diminuendoButton)
     expect(within(preview).queryByText('m1-c4–m1-f-sharp-4')).not.toBeInTheDocument()
+  })
+
+  it('layout.slur-toggle adds and removes a slur with the range command and shortcut', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: 'm1-f-sharp-4 선택' }), {
+      shiftKey: true
+    })
+
+    const preview = screen.getByTestId('notation-preview')
+    const slurLabel = 'slur:m1-c4–m1-f-sharp-4'
+    const slurButton = screen.getByRole('button', {
+      name: '슬러 추가 또는 해제, 단축키 S'
+    })
+
+    expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
+
+    fireEvent.click(slurButton)
+    expect(within(preview).queryByText(slurLabel)).not.toBeInTheDocument()
+
+    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
+    expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
   })
 
   it('layout.fermata toggles the selected event mark in data and preview', async () => {

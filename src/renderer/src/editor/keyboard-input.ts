@@ -137,6 +137,17 @@ export function isTieShortcut(event: PitchShortcutEvent): boolean {
   )
 }
 
+export function isSlurShortcut(event: PitchShortcutEvent): boolean {
+  return (
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.isComposing &&
+    event.key !== 'Process' &&
+    event.code === 'KeyS'
+  )
+}
+
 export function isUndoShortcut(event: PitchShortcutEvent): boolean {
   return (
     (event.metaKey || event.ctrlKey) &&

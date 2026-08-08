@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isRedoShortcut,
   isRestShortcut,
+  isSlurShortcut,
   isTieShortcut,
   isTextEditingTarget,
   isTupletShortcut,
@@ -48,10 +49,11 @@ describe('keyboard input routing', () => {
     expect(resolveDotShortcut(keyEvent({ code: 'Comma', key: ',' }))).toBe(-1)
   })
 
-  it('maps physical command keys for rest, tuplet, tie, undo, and redo', () => {
+  it('maps physical command keys for rest, tuplet, tie, slur, undo, and redo', () => {
     expect(isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ' }))).toBe(true)
     expect(isTupletShortcut(keyEvent({ code: 'KeyT', key: 'ㅅ' }))).toBe(true)
     expect(isTieShortcut(keyEvent({ code: 'KeyL', key: 'ㅣ' }))).toBe(true)
+    expect(isSlurShortcut(keyEvent({ code: 'KeyS', key: 'ㄴ' }))).toBe(true)
     expect(
       isUndoShortcut(keyEvent({ code: 'KeyZ', key: 'ㅋ', metaKey: true }))
     ).toBe(true)
@@ -87,6 +89,9 @@ describe('keyboard input routing', () => {
     ).toBeUndefined()
     expect(
       isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ', isComposing: true }))
+    ).toBe(false)
+    expect(
+      isSlurShortcut(keyEvent({ code: 'KeyS', key: 's', metaKey: true }))
     ).toBe(false)
   })
 
