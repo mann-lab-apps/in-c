@@ -163,7 +163,7 @@ const tripletPreset = {
   durationValue: 'eighth',
   label: '셋잇단음표',
   normalNotes: 2,
-  shortcut: 'T'
+  shortcut: '9'
 } satisfies {
   actualNotes: number
   durationValue: DurationValue
@@ -3038,7 +3038,7 @@ export const App = () => {
         case 't':
         case 'T':
           event.preventDefault()
-          toggleTuplet()
+          toggleTie()
           break
         case 'Delete':
         case 'Backspace':
@@ -4296,12 +4296,12 @@ export const App = () => {
             </div>
 
             <button
-              aria-label={tieSelected ? '타이 해제, 단축키 L' : '타이 추가, 단축키 L'}
+              aria-label={tieSelected ? '타이 해제, 단축키 T' : '타이 추가, 단축키 T'}
               aria-pressed={tieSelected}
               className={`tie-button${tieSelected ? ' is-active' : ''}`}
               disabled={!tieCommand}
               onClick={toggleTie}
-              title={tieSelected ? '타이 해제 (L)' : '타이 추가 (L)'}
+              title={tieSelected ? '타이 해제 (T)' : '타이 추가 (T)'}
               type="button"
             >
               {tieSelected ? (
@@ -4310,7 +4310,7 @@ export const App = () => {
                 <Link2 aria-hidden="true" size={17} />
               )}
               <span>타이</span>
-              <span className="shortcut-badge">L</span>
+              <span className="shortcut-badge">T</span>
             </button>
 
             <button

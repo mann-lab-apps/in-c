@@ -51,8 +51,9 @@ describe('keyboard input routing', () => {
 
   it('maps physical command keys for rest, tuplet, tie, slur, undo, and redo', () => {
     expect(isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ' }))).toBe(true)
-    expect(isTupletShortcut(keyEvent({ code: 'KeyT', key: 'ㅅ' }))).toBe(true)
-    expect(isTieShortcut(keyEvent({ code: 'KeyL', key: 'ㅣ' }))).toBe(true)
+    expect(isTupletShortcut(keyEvent({ code: 'Digit9', key: '9' }))).toBe(true)
+    expect(isTupletShortcut(keyEvent({ code: 'Numpad9', key: '9' }))).toBe(true)
+    expect(isTieShortcut(keyEvent({ code: 'KeyT', key: 'ㅅ' }))).toBe(true)
     expect(isSlurShortcut(keyEvent({ code: 'KeyS', key: 'ㄴ' }))).toBe(true)
     expect(
       isUndoShortcut(keyEvent({ code: 'KeyZ', key: 'ㅋ', metaKey: true }))
@@ -93,6 +94,8 @@ describe('keyboard input routing', () => {
     expect(
       isSlurShortcut(keyEvent({ code: 'KeyS', key: 's', metaKey: true }))
     ).toBe(false)
+    expect(isTupletShortcut(keyEvent({ code: 'KeyT', key: 't' }))).toBe(false)
+    expect(isTieShortcut(keyEvent({ code: 'KeyL', key: 'l' }))).toBe(false)
   })
 
   it('separates sequential input from selected slot editing by mode', () => {

@@ -122,7 +122,7 @@ export function isTupletShortcut(event: PitchShortcutEvent): boolean {
     !event.metaKey &&
     !event.isComposing &&
     event.key !== 'Process' &&
-    event.code === 'KeyT'
+    (event.code === 'Digit9' || event.code === 'Numpad9' || event.key === '9')
   )
 }
 
@@ -133,7 +133,7 @@ export function isTieShortcut(event: PitchShortcutEvent): boolean {
     !event.metaKey &&
     !event.isComposing &&
     event.key !== 'Process' &&
-    event.code === 'KeyL'
+    (event.code === 'KeyT' || event.key === 't' || event.key === 'T')
   )
 }
 
