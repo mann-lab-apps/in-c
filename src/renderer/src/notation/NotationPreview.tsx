@@ -84,6 +84,8 @@ const HAIRPIN_Y_OFFSET = 126
 interface CursorPoint {
   x: number
   y: number
+  noteHeadTopY?: number
+  noteHeadBottomY?: number
 }
 
 interface SystemBounds {
@@ -504,7 +506,8 @@ export function NotationPreview({
 
           pointsByEventId.set(eventId, {
             x: eventX,
-            y: placement.y
+            y: placement.y,
+            ...resolveSlurAnchorMetrics(note)
           })
           firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
@@ -1169,6 +1172,7 @@ function drawSlurSegments(
 ): void {
   const firstSystem = Math.min(startSystem, endSystem)
   const lastSystem = Math.max(startSystem, endSystem)
+  const side = resolveSlurSide()
 
   for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
     const bounds = boundsBySystemIndex.get(systemIndex)
@@ -1179,14 +1183,24 @@ function drawSlurSegments(
 
     const isFirst = systemIndex === startSystem
     const isLast = systemIndex === endSystem
-    const x1 = isFirst ? start.x + 6 : bounds.x1 + 22
-    const x2 = isLast ? Math.max(x1 + 28, end.x + 12) : bounds.x2 - 18
+    const x1 = isFirst
+      ? start.x + resolveSlurEndpointXInset(side, 'start')
+      : bounds.x1 + 22
+    const x2 = isLast
+      ? Math.max(x1 + 28, end.x + resolveSlurEndpointXInset(side, 'end'))
+      : bounds.x2 - 18
+    const y1 = isFirst
+      ? resolveSlurEndpointY(start, side)
+      : resolveSlurContinuationY(bounds, side)
+    const y2 = isLast
+      ? resolveSlurEndpointY(end, side)
+      : resolveSlurContinuationY(bounds, side)
 
     if (x2 <= x1 + 8) {
       continue
     }
 
-    drawSlurSegment(svg, x1, x2, bounds.y, slurIndex, isFirst, isLast)
+    drawSlurSegment(svg, x1, x2, y1, y2, side, slurIndex, isFirst, isLast)
   }
 }
 
@@ -1194,25 +1208,77 @@ function drawSlurSegment(
   svg: SVGSVGElement,
   x1: number,
   x2: number,
-  staffY: number,
+  y1: number,
+  y2: number,
+  side: 'above' | 'below',
   slurIndex: number,
   isFirst: boolean,
   isLast: boolean
 ): void {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
-  const offset = (slurIndex % 3) * 8
-  const y = staffY - 10 - offset
+  const offset = (slurIndex % 3) * 6
+  const span = Math.abs(x2 - x1)
+  const curveDepth = Math.min(22, Math.max(10, span * 0.09)) + offset
   const controlX = (x1 + x2) / 2
-  const controlY = y - 26 - offset
+  const controlY =
+    side === 'above'
+      ? Math.min(y1, y2) - curveDepth
+      : Math.max(y1, y2) + curveDepth
   const startX = isFirst ? x1 : x1 - 8
   const endX = isLast ? x2 : x2 + 8
 
   path.classList.add('notation-slur')
   path.setAttribute(
     'd',
-    `M ${startX} ${y} Q ${controlX} ${controlY} ${endX} ${y}`
+    `M ${startX} ${y1} Q ${controlX} ${controlY} ${endX} ${y2}`
   )
   svg.append(path)
+}
+
+function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
+  try {
+    const bounds = note.getNoteHeadBounds()
+
+    return {
+      noteHeadTopY: bounds.yTop,
+      noteHeadBottomY: bounds.yBottom
+    }
+  } catch {
+    return {}
+  }
+}
+
+function resolveSlurSide(): 'above' | 'below' {
+  return 'above'
+}
+
+function resolveSlurEndpointXInset(
+  side: 'above' | 'below',
+  endpoint: 'start' | 'end'
+): number {
+  if (side === 'above') {
+    return endpoint === 'start' ? 7 : -2
+  }
+
+  return endpoint === 'start' ? 4 : 4
+}
+
+function resolveSlurEndpointY(
+  point: CursorPoint,
+  side: 'above' | 'below'
+): number {
+  if (side === 'above') {
+    return (point.noteHeadTopY ?? point.y) - 8
+  }
+
+  return (point.noteHeadBottomY ?? point.y + 40) + 8
+}
+
+function resolveSlurContinuationY(
+  bounds: SystemBounds,
+  side: 'above' | 'below'
+): number {
+  return side === 'above' ? bounds.y - 12 : bounds.y + 56
 }
 
 function drawArticulations(
