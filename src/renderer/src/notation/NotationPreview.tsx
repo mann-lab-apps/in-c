@@ -203,6 +203,7 @@ export function NotationPreview({
           systemBounds?.x2 ?? placement.x + placement.width,
           placement.x + placement.width
         ),
+        noteStartX: systemBounds?.noteStartX,
         y: placement.y
       })
       const previousPlacement = layout.placements[placementIndex - 1]
