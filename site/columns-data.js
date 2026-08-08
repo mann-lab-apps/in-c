@@ -60,7 +60,7 @@ export const columns = [
 `
   },
   {
-    slug: 'concert-familiarity',
+    slug: 'repetition-power',
     status: 'public',
     title: '반복의 힘',
     summary:
@@ -78,13 +78,13 @@ export const columns = [
 
 저는 이와 같은 효과를 위해 연주회에 갈 일정이 생기면, 2주 전쯤부터 그날 들을 곡들을 플레이리스트에 올려놓고 듣는 편입니다. 이동하거나 책을 읽거나 산책하면서 듣다 보면, 연주회에 참석할 때쯤에는 멜로디 정도는 흥얼거릴 수 있는 수준이 됩니다.
 
-![산책하며 이어폰으로 음악을 듣는 사람의 흑백 스케치](assets/columns/concert-familiarity/walking-listening-sketch.png)
+![산책하며 이어폰으로 음악을 듣는 사람의 흑백 스케치](assets/columns/repetition-power/walking-listening-sketch.png)
 
 그렇지 않고 참석한 연주회에서는 계속 난감해집니다. 연주회 전체뿐만 아니라, 지금 듣는 곡이 언제 끝나는지조차 감을 잡지 못할 때가 많습니다. 새로움이 계속 이어지는 만큼 더 쉽게 피로해집니다.
 
 형식을 모르는 곡이거나 변형이 심한 곡이라면, 어디까지가 작곡가가 의도한 부분인지 알 길이 없어집니다. 대부분의 현대음악에서는 어디가 틀렸는지조차 파악하기 어려워 더 난감해집니다.
 
-![선율이 얽히며 난해하게 흘러가는 악보 선의 흑백 스케치](assets/columns/concert-familiarity/opaque-music-sketch.png)
+![선율이 얽히며 난해하게 흘러가는 악보 선의 흑백 스케치](assets/columns/repetition-power/opaque-music-sketch.png)
 
 출근하려고 탄 버스가 언제 어떤 길로 가는지 모른다면 긴장의 연속인 것과 비슷합니다.
 `
