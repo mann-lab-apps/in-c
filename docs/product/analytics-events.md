@@ -25,14 +25,7 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | --- | --- | --- | --- | --- |
 | `column_view` | Columns에서 칼럼이 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `category`, `reading_minutes` | Realtime, Events, Explore by `content_slug` | 공개 콘텐츠 메타만 전송 |
 | `column_read_complete` | 칼럼 본문 끝에 도달했을 때 | `content_type`, `content_slug`, `content_title`, `category`, `reading_minutes` | Explore funnel: `column_view` → `column_read_complete` | 공개 콘텐츠 메타만 전송 |
-| `column_link` | Compositions 상세에서 관련 Columns 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | Events by `content_slug`, outbound/internal link review | 정적 링크 텍스트와 URL만 전송 |
-| `composition_view` | Compositions 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title`, `difficulty`, `key`, `meter` | Events, Explore by `difficulty`/`key` | 공개 악보 메타만 전송 |
-| `composition_select` | Compositions 목록에서 상세 보기 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | Explore: list click → detail view | 공개 악보 slug와 정적 링크만 전송 |
-| `composition_download` | MusicXML fallback 다운로드 클릭 | `content_type`, `content_slug`, `file_name`, `link_url`, `link_text` | Events by `file_name`, funnel from `composition_view` | 공개 파일명과 다운로드 URL만 전송 |
-| `open_in_chromatics` | Compositions 상세에서 Chromatics 열기 클릭 | `content_type`, `content_slug`, `file_name`, `link_url`, `link_text` | Explore: `composition_view` → `open_in_chromatics` | 공개 악보 slug와 정적 열기 URL만 전송 |
-| `work_view` | Compositions 안의 작품 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Compositions 작품 상세 조회 | 공개 작품 메타만 전송 |
-| `work_link` | 작품 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text` | Compositions 작품 관계 탐색 | 공개 작품 slug와 링크만 전송 |
-| `promotion_click` | 홈 공연 배너 또는 작품 상세의 배너 후보 링크 클릭 | `content_type`, `content_slug`, `link_url`, `link_text`, `location` | 배너 후보 CTA 탐색 | 공개 배너 slug와 정적 링크만 전송 |
+| `global_ad_banner_click` | 전역 공연 배너 모달의 CTA 클릭 | `location`, `link_url`, `link_text` | 전역 배너 CTA 탐색 | 공개 공연 링크와 클릭 위치만 전송 |
 | `community_view` | Community 게시글 상세가 렌더링될 때 | `content_type`, `content_slug`, `content_title` | Community 게시글 조회 | 공개 게시글 메타만 전송 |
 | `community_create` | Community 게시글 작성 완료 | `content_type`, `content_slug`, `content_title` | 게시글 작성 전환 | 공개 게시글 메타만 전송 |
 | `community_update` | Community 게시글 수정 완료 | `content_type`, `content_slug`, `content_title` | 게시글 수정 완료 | 공개 게시글 메타만 전송 |
@@ -60,6 +53,14 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | Event Candidate | Reason |
 | --- | --- |
 | `column_search` | 검색 UI가 아직 없다. 검색 기능을 추가할 때 검색어를 원문 그대로 저장할지, 정규화할지 먼저 결정한다. |
+| `column_link` | Compositions 상세와 Columns 연결 UI를 다시 노출할 때 추가한다. |
+| `composition_view` | Compositions 상세 페이지를 다시 노출할 때 추가한다. |
+| `composition_select` | Compositions 목록/상세 탐색 UI를 다시 노출할 때 추가한다. |
+| `composition_download` | Compositions MusicXML 다운로드 UI를 다시 노출할 때 추가한다. |
+| `open_in_chromatics` | Compositions에서 Chromatics 열기 흐름을 다시 노출할 때 추가한다. |
+| `work_view` | Compositions 안의 작품 상세 UI를 다시 노출할 때 추가한다. |
+| `work_link` | 작품 관계 링크를 다시 노출할 때 추가한다. |
+| `promotion_click` | 홈/작품 상세의 정적 배너 후보 CTA를 다시 노출할 때 추가한다. |
 | `score_preview` | 웹 악보 미리보기 UX가 반복되면 추가한다. 미리보기와 다운로드 사이 전환을 보기 위한 이벤트다. |
 | `performance_link` | 외부 공연 페이지 이동 기능을 만들 때 `performance_id` 또는 외부 URL 정책을 정한다. |
 | `session_duration` | GA4의 engagement 이벤트와 중복된다. 별도 체류 시간 계산은 Columns 품질 판단에 부족함이 확인된 뒤 추가한다. |

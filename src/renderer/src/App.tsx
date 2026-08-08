@@ -2723,7 +2723,17 @@ export const App = () => {
 
   const saveMusicXml = useCallback(async () => {
     try {
+      if (noteInputState?.tupletInput) {
+        setFileStatus({
+          tone: 'error',
+          message:
+            '셋잇단음표 입력을 완료하거나 취소한 뒤 MusicXML로 저장해 주세요.'
+        })
+        return
+      }
+
       const contents = serializeMusicXml(score)
+      assertMusicXmlSaveSafe(score, contents)
       const currentMusicXmlFile = currentMusicXmlFileRef.current
       const result = await window.inC.musicXml.save({
         ...(currentMusicXmlFile
@@ -2785,7 +2795,7 @@ export const App = () => {
         message: getErrorMessage(error)
       })
     }
-  }, [score])
+  }, [noteInputState?.tupletInput, score])
 
   const savePdf = useCallback(async () => {
     try {
@@ -5229,6 +5239,274 @@ function shouldFollowTimeSignatureTempoBeat(
     (tempo.dots ?? 0) === defaultBeat.dots &&
     (!tempo.text || tempo.text === defaultText)
   )
+}
+
+function assertMusicXmlSaveSafe(score: Score, contents: string): void {
+  if (scoreContainsPreviewArtifacts(score)) {
+    throw new Error(
+      '미리보기 전용 이벤트가 악보 데이터에 섞여 있어 MusicXML 저장을 중단했습니다.'
+    )
+  }
+
+  const roundTripScore = parseMusicXml(contents)
+  const originalSignature = createSaveSignature(score)
+  const roundTripSignature = createSaveSignature(roundTripScore)
+
+  if (originalSignature !== roundTripSignature) {
+    throw new Error(
+      'MusicXML 저장 검증에 실패했습니다. 저장하면 악보 내용이 달라질 수 있어 파일을 쓰지 않았습니다.'
+    )
+  }
+}
+
+function scoreContainsPreviewArtifacts(score: Score): boolean {
+  return score.parts.some((part) =>
+    part.staves.some((staff) =>
+      staff.measures.some((measure) =>
+        measure.voices.some(
+          (voice) =>
+            voice.events.some((event) => event.id.startsWith('preview-')) ||
+            (voice.tuplets ?? []).some(
+              (group) =>
+                group.id.startsWith('preview-') ||
+                group.eventIds.some((eventId) =>
+                  eventId.startsWith('preview-')
+                )
+            )
+        )
+      )
+    )
+  )
+}
+
+function createSaveSignature(score: Score): string {
+  const eventReferences = createEventReferenceMap(score)
+  const measureReferences = createMeasureReferenceMap(score)
+
+  return JSON.stringify({
+    title: score.title,
+    composer: score.composer ?? '',
+    tempo: normalizeTempoForSaveSignature(score.tempo),
+    rhythmFeel: normalizeRhythmFeelForSaveSignature(score.rhythmFeel),
+    parts: score.parts.map((part) => ({
+      name: part.name,
+      abbreviation: part.abbreviation ?? '',
+      staves: part.staves.map((staff) => ({
+        measures: staff.measures.map((measure) => ({
+          number: measure.number,
+          timing: measure.timing,
+          timeSignature: measure.timeSignature,
+          keySignature: measure.keySignature,
+          clef: measure.clef,
+          repeat: measure.repeat ?? null,
+          voices: measure.voices.map((voice) =>
+            createVoiceSaveSignature(measure, voice)
+          )
+        }))
+      }))
+    })),
+    harmonies: (score.harmonies ?? []).map((harmony) => ({
+      measure: measureReferences.get(harmony.measureId),
+      tick: harmony.tick,
+      text: harmony.text,
+      kind: harmony.kind ?? null,
+      root: harmony.root ? normalizeHarmonyPitch(harmony.root) : null,
+      bass: harmony.bass ? normalizeHarmonyPitch(harmony.bass) : null
+    })),
+    rehearsalMarks: (score.rehearsalMarks ?? []).map((mark) => ({
+      measure: measureReferences.get(mark.measureId),
+      text: mark.text
+    })),
+    staffTexts: (score.staffTexts ?? []).map((text) => ({
+      measure: measureReferences.get(text.measureId),
+      text: text.text
+    })),
+    dynamics: (score.dynamics ?? []).map((dynamic) => ({
+      measure: measureReferences.get(dynamic.measureId),
+      value: dynamic.value
+    })),
+    hairpins: (score.hairpins ?? []).map((hairpin) => ({
+      type: hairpin.type,
+      start: eventReferences.get(hairpin.startEventId),
+      end: eventReferences.get(hairpin.endEventId)
+    })),
+    slurs: (score.slurs ?? []).map((slur) => ({
+      number: slur.number ?? 1,
+      start: eventReferences.get(slur.startEventId),
+      end: eventReferences.get(slur.endEventId)
+    })),
+    octaveShifts: (score.octaveShifts ?? []).map((octaveShift) => ({
+      type: octaveShift.type,
+      start: eventReferences.get(octaveShift.startEventId),
+      end: eventReferences.get(octaveShift.endEventId)
+    }))
+  })
+}
+
+function normalizeTempoForSaveSignature(
+  tempo: Score['tempo']
+) {
+  if (!tempo) {
+    return null
+  }
+
+  return {
+    bpm: tempo.bpm,
+    beatUnit: tempo.beatUnit ?? 'quarter',
+    dots: tempo.dots ?? 0,
+    text: tempo.text ?? null,
+    transparent: Boolean(tempo.transparent)
+  }
+}
+
+function normalizeRhythmFeelForSaveSignature(
+  rhythmFeel: Score['rhythmFeel']
+) {
+  if (!rhythmFeel) {
+    return null
+  }
+
+  return {
+    unit: rhythmFeel.unit,
+    text: rhythmFeel.text ?? null
+  }
+}
+
+function createMeasureReferenceMap(score: Score): Map<string, string> {
+  const references = new Map<string, string>()
+
+  score.parts.forEach((part, partIndex) => {
+    part.staves.forEach((staff, staffIndex) => {
+      staff.measures.forEach((measure, measureIndex) => {
+        references.set(
+          measure.id,
+          [partIndex, staffIndex, measureIndex].join(':')
+        )
+      })
+    })
+  })
+
+  return references
+}
+
+function createEventReferenceMap(score: Score): Map<string, string> {
+  const references = new Map<string, string>()
+
+  score.parts.forEach((part, partIndex) => {
+    part.staves.forEach((staff, staffIndex) => {
+      staff.measures.forEach((measure, measureIndex) => {
+        measure.voices.forEach((voice, voiceIndex) => {
+          sortVoiceEvents(voice.events).forEach((event, eventIndex) => {
+            references.set(
+              event.id,
+              [partIndex, staffIndex, measureIndex, voiceIndex, eventIndex].join(
+                ':'
+              )
+            )
+          })
+        })
+      })
+    })
+  })
+
+  return references
+}
+
+function createVoiceSaveSignature(
+  measure: Measure,
+  voice: Measure['voices'][number]
+) {
+  const events = sortVoiceEvents(voice.events)
+  const eventIndexes = new Map(
+    events.map((event, index) => [event.id, index])
+  )
+
+  return {
+    events: events.map((event) =>
+      createEventSaveSignature(measure, voice, event)
+    ),
+    tuplets: (voice.tuplets ?? []).map((group) => ({
+      actualNotes: group.actualNotes,
+      normalNotes: group.normalNotes,
+      eventIndexes: group.eventIds.map((eventId) => eventIndexes.get(eventId))
+    }))
+  }
+}
+
+function createEventSaveSignature(
+  measure: Measure,
+  voice: Measure['voices'][number],
+  event: Measure['voices'][number]['events'][number]
+) {
+  return {
+    type: event.type,
+    tick: event.position.tick,
+    duration: normalizeDurationForSaveSignature(event.duration),
+    ...(event.type === 'rest'
+      ? {
+          fullMeasure: Boolean(event.fullMeasure)
+        }
+      : {
+          pitches: resolveEventPitches(measure, voice, event),
+          ties:
+            event.ties?.start || event.ties?.stop
+              ? {
+                  start: Boolean(event.ties.start),
+                  stop: Boolean(event.ties.stop)
+                }
+              : null,
+          articulations: event.articulations ?? [],
+          graceNotes: (event.graceNotes ?? []).map((graceNote) => ({
+            pitch: normalizePitch(graceNote.pitch),
+            slash: Boolean(graceNote.slash)
+          })),
+          lyrics: event.lyrics ?? [],
+          ornaments: event.ornaments ?? [],
+          tremolo: event.tremolo ?? null
+        }),
+    fermata: Boolean(event.fermata),
+    breathMark: event.breathMark ?? null
+  }
+}
+
+function normalizeDurationForSaveSignature(duration: Duration): Duration {
+  return {
+    value: duration.value,
+    dots: duration.dots,
+    ...(duration.tuplet
+      ? {
+          tuplet: {
+            actualNotes: duration.tuplet.actualNotes,
+            normalNotes: duration.tuplet.normalNotes
+          }
+        }
+      : {})
+  }
+}
+
+function resolveEventPitches(
+  measure: Measure,
+  voice: Measure['voices'][number],
+  event: Note
+): Pitch[] {
+  return event.pitches?.length
+    ? event.pitches.map(normalizePitch)
+    : [normalizePitch(resolveNotePitch(measure, voice, event))]
+}
+
+function normalizePitch(pitch: Pitch): Pitch {
+  return {
+    step: pitch.step,
+    octave: pitch.octave,
+    alter: pitch.alter ?? 0
+  }
+}
+
+function normalizeHarmonyPitch(pitch: NonNullable<HarmonyMark['root']>) {
+  return {
+    step: pitch.step,
+    alter: pitch.alter ?? 0
+  }
 }
 
 function toFileName(title: string): string {

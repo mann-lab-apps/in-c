@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
@@ -69,7 +69,7 @@ ipcMain.handle(
     }
   ) => {
     if (input.filePath) {
-      await writeFile(input.filePath, input.contents, 'utf8')
+      await writeMusicXmlFile(input.filePath, input.contents)
       return {
         filePath: input.filePath,
         fileName: basename(input.filePath)
@@ -91,7 +91,7 @@ ipcMain.handle(
       return null
     }
 
-    await writeFile(result.filePath, input.contents, 'utf8')
+    await writeMusicXmlFile(result.filePath, input.contents)
     return {
       filePath: result.filePath,
       fileName: basename(result.filePath)
@@ -375,6 +375,44 @@ function autosavePath(): string {
 
 function recentMusicXmlPath(): string {
   return join(app.getPath('userData'), 'recent-musicxml.json')
+}
+
+function musicXmlBackupDirectory(): string {
+  return join(app.getPath('userData'), 'musicxml-backups')
+}
+
+async function writeMusicXmlFile(
+  filePath: string,
+  contents: string
+): Promise<void> {
+  await backupExistingMusicXmlFile(filePath)
+  await writeFile(filePath, contents, 'utf8')
+}
+
+async function backupExistingMusicXmlFile(
+  filePath: string
+): Promise<string | undefined> {
+  try {
+    await mkdir(musicXmlBackupDirectory(), { recursive: true })
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const backupPath = join(
+      musicXmlBackupDirectory(),
+      `${timestamp}-${sanitizeBackupFileName(basename(filePath))}`
+    )
+
+    await copyFile(filePath, backupPath)
+    return backupPath
+  } catch (error) {
+    if (isMissingFileError(error)) {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+function sanitizeBackupFileName(fileName: string): string {
+  return fileName.replace(/[<>:"/\\|?*\x00-\x1F]+/g, '-')
 }
 
 function getConcertPostersApiUrls(): string[] {

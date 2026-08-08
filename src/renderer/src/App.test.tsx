@@ -64,6 +64,17 @@ vi.mock('./notation/NotationPreview', () => ({
           )
         )
         .join(',')}
+      data-event-pitches={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) =>
+              event.type === 'note'
+                ? `${event.id}:${event.pitch.step}${event.pitch.alter ?? ''}${event.pitch.octave}`
+                : `${event.id}:rest`
+            )
+          )
+        )
+        .join(',')}
       data-global-tempo={score.tempo?.bpm}
       data-rhythm-feel={score.rhythmFeel?.unit ?? ''}
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
@@ -749,6 +760,49 @@ describe('App component shell', () => {
     ).not.toHaveProperty('filePath')
   })
 
+  it('import-export.blocks-save-while-tuplet-input-preview-is-active', async () => {
+    const recentFile = {
+      filePath: '/scores/tuplet-input-progress.musicxml',
+      fileName: 'tuplet-input-progress.musicxml',
+      openedAt: '2026-07-28T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([recentFile])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...recentFile,
+      contents: tupletInputProgressMusicXml
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /tuplet-input-progress\.musicxml/
+      })
+    )
+    const preview = await screen.findByTestId('notation-preview')
+    const previewButtons = within(preview).getAllByRole('button')
+    fireEvent.click(previewButtons.at(-1) as HTMLButtonElement)
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: /셋잇단음표 적용 또는 입력 준비/
+      })
+    )
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
+    expect(preview.getAttribute('data-event-durations')).toContain('preview-')
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+
+    expect(window.inC.musicXml.save).not.toHaveBeenCalled()
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '셋잇단음표 입력을 완료하거나 취소한 뒤 MusicXML로 저장해 주세요.'
+    )
+  })
+
   it('import-export.new-score-save suggests a Korean title filename and valid MusicXML', async () => {
     vi.mocked(window.inC.musicXml.save).mockResolvedValue({
       filePath: '/scores/제목-없는-악보.musicxml',
@@ -782,6 +836,43 @@ describe('App component shell', () => {
     expect(
       savedScore.parts[0].staves[0].measures[0].voices[0].events
     ).toHaveLength(1)
+  })
+
+  it('import-export.saved-musicxml-preserves-note-pitches-after-reopen', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/release-test.musicxml',
+      fileName: 'release-test.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    const beforePitches = screen
+      .getByTestId('notation-preview')
+      .getAttribute('data-event-pitches')
+      ?.split(',')
+      .map((value) => value.replace(/^[^:]+:/, ''))
+
+    fireEvent.keyDown(window, {
+      code: 'KeyS',
+      metaKey: true,
+      key: 's'
+    })
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalled()
+    })
+    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
+      .contents
+    const savedScore = parseMusicXml(contents!)
+    const savedPitches = savedScore.parts[0].staves[0].measures
+      .flatMap((measure) => measure.voices[0].events)
+      .map((event) =>
+        event.type === 'note'
+          ? `${event.pitch.step}${event.pitch.alter ?? ''}${event.pitch.octave}`
+          : 'rest'
+      )
+
+    expect(savedPitches).toEqual(beforePitches)
   })
 
   it('import-export.second-save-after-save-as reuses the first saved file path', async () => {
