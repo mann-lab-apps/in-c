@@ -407,6 +407,8 @@ export const App = () => {
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [activeLyricVerse, setActiveLyricVerse] = useState(1)
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
+  const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
+    useState<string>()
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
@@ -598,6 +600,7 @@ export const App = () => {
         }
       ])
       setRedoStack([])
+      setPendingSlurAnchorEventId(undefined)
       return true
     },
     [noteInputState, score, selection]
@@ -702,6 +705,7 @@ export const App = () => {
     setNoteInputState(undefined)
     setMetadataEdit(undefined)
     setNewScoreDraft(undefined)
+    setPendingSlurAnchorEventId(undefined)
     setSelection(createInitialSelection(recoverySnapshot.score))
     setRecoverySnapshot(undefined)
     currentMusicXmlFileRef.current = undefined
@@ -756,6 +760,7 @@ export const App = () => {
       }
     ])
     setNoteInputState(entry.inputState)
+    setPendingSlurAnchorEventId(undefined)
     setSelection(entry.selection)
   }, [noteInputState, score, selection, undoStack])
 
@@ -779,6 +784,7 @@ export const App = () => {
       }
     ])
     setNoteInputState(entry.inputState)
+    setPendingSlurAnchorEventId(undefined)
     setSelection(entry.selection)
   }, [noteInputState, redoStack, score, selection])
 
@@ -887,6 +893,7 @@ export const App = () => {
     setNoteInputState(undefined)
     setMetadataEdit(undefined)
     setNewScoreDraft(undefined)
+    setPendingSlurAnchorEventId(undefined)
     setDurationValue('quarter')
     setSelection(createInitialSelection(nextScore))
     setRecoverySnapshot(undefined)
@@ -2330,6 +2337,103 @@ export const App = () => {
   )
 
   const toggleSlur = useCallback(() => {
+    const toggleSlurBetween = (startEventId: string, endEventId: string) => {
+      const startLocation = locateEvent(score, startEventId)
+      const endLocation = locateEvent(score, endEventId)
+
+      if (
+        !startLocation ||
+        !endLocation ||
+        startLocation.event.type !== 'note' ||
+        endLocation.event.type !== 'note'
+      ) {
+        setFileStatus({
+          tone: 'error',
+          message: '슬러는 음표에서 시작하고 음표에서 끝나야 합니다.'
+        })
+        return false
+      }
+
+      const currentSlurs = score.slurs ?? []
+      const matchingSlur = currentSlurs.find(
+        (slur) =>
+          slur.startEventId === startEventId && slur.endEventId === endEventId
+      )
+      const slurs = matchingSlur
+        ? currentSlurs.filter((slur) => slur.id !== matchingSlur.id)
+        : [
+            ...currentSlurs,
+            {
+              id: `slur-${crypto.randomUUID()}`,
+              startEventId,
+              endEventId
+            }
+          ]
+
+      executeCommand({
+        type: 'score-slurs.update',
+        slurs: slurs.length > 0 ? slurs : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: matchingSlur ? '슬러를 해제했습니다.' : '슬러를 추가했습니다.'
+      })
+      return true
+    }
+
+    if (selection.type === 'event') {
+      const currentLocation = locateEvent(score, selection.eventId)
+
+      if (!currentLocation || currentLocation.event.type !== 'note') {
+        setFileStatus({
+          tone: 'error',
+          message: '슬러는 음표에서 시작해야 합니다.'
+        })
+        return
+      }
+
+      if (!pendingSlurAnchorEventId) {
+        setPendingSlurAnchorEventId(selection.eventId)
+        setFileStatus({
+          tone: 'neutral',
+          message: '슬러 시작점을 선택했습니다. ←/→로 끝 음표를 고르고 S로 확정하세요.'
+        })
+        return
+      }
+
+      if (pendingSlurAnchorEventId === selection.eventId) {
+        setFileStatus({
+          tone: 'neutral',
+          message: '끝 음표로 이동한 뒤 S로 슬러를 확정하세요.'
+        })
+        return
+      }
+
+      const rangeSelection = createRangeSelection(
+        score,
+        pendingSlurAnchorEventId,
+        selection.eventId
+      )
+
+      if (!rangeSelection || rangeSelection.type !== 'range') {
+        setPendingSlurAnchorEventId(undefined)
+        setFileStatus({
+          tone: 'error',
+          message: '같은 성부의 음표 범위에만 슬러를 넣을 수 있습니다.'
+        })
+        return
+      }
+
+      const startEventId = rangeSelection.eventIds[0]
+      const endEventId = rangeSelection.eventIds[rangeSelection.eventIds.length - 1]
+
+      if (toggleSlurBetween(startEventId, endEventId)) {
+        setSelection(rangeSelection)
+      }
+      setPendingSlurAnchorEventId(undefined)
+      return
+    }
+
     if (selection.type !== 'range' || selection.eventIds.length < 2) {
       setFileStatus({
         tone: 'error',
@@ -2340,47 +2444,10 @@ export const App = () => {
 
     const startEventId = selection.eventIds[0]
     const endEventId = selection.eventIds[selection.eventIds.length - 1]
-    const startLocation = locateEvent(score, startEventId)
-    const endLocation = locateEvent(score, endEventId)
 
-    if (
-      !startLocation ||
-      !endLocation ||
-      startLocation.event.type !== 'note' ||
-      endLocation.event.type !== 'note'
-    ) {
-      setFileStatus({
-        tone: 'error',
-        message: '슬러는 음표에서 시작하고 음표에서 끝나야 합니다.'
-      })
-      return
-    }
-
-    const currentSlurs = score.slurs ?? []
-    const matchingSlur = currentSlurs.find(
-      (slur) =>
-        slur.startEventId === startEventId && slur.endEventId === endEventId
-    )
-    const slurs = matchingSlur
-      ? currentSlurs.filter((slur) => slur.id !== matchingSlur.id)
-      : [
-          ...currentSlurs,
-          {
-            id: `slur-${crypto.randomUUID()}`,
-            startEventId,
-            endEventId
-          }
-        ]
-
-    executeCommand({
-      type: 'score-slurs.update',
-      slurs: slurs.length > 0 ? slurs : undefined
-    })
-    setFileStatus({
-      tone: 'neutral',
-      message: matchingSlur ? '슬러를 해제했습니다.' : '슬러를 추가했습니다.'
-    })
-  }, [executeCommand, score, selection])
+    setPendingSlurAnchorEventId(undefined)
+    toggleSlurBetween(startEventId, endEventId)
+  }, [executeCommand, pendingSlurAnchorEventId, score, selection])
 
   const toggleOctaveShift = useCallback(
     (type: OctaveShiftType) => {
@@ -2501,6 +2568,22 @@ export const App = () => {
             }
           )
         } else {
+          if (pendingSlurAnchorEventId) {
+            const rangeSelection = createRangeSelection(
+              score,
+              pendingSlurAnchorEventId,
+              eventId
+            )
+
+            setSelection(
+              rangeSelection ?? {
+                type: 'event',
+                eventId
+              }
+            )
+            return
+          }
+
           setSelection({
             type: 'event',
             eventId
@@ -2530,7 +2613,7 @@ export const App = () => {
         }
       }
     },
-    [executeCommand, noteInputState, score, selection]
+    [executeCommand, noteInputState, pendingSlurAnchorEventId, score, selection]
   )
 
   const selectEvent = useCallback(
@@ -2591,6 +2674,7 @@ export const App = () => {
     setRedoStack([])
     setMode('select')
     setNoteInputState(undefined)
+    setPendingSlurAnchorEventId(undefined)
     setRecoverySnapshot(undefined)
     setStartScreenVisible(false)
     setSelection(
@@ -2987,9 +3071,15 @@ export const App = () => {
               tone: 'neutral',
               message: '셋잇단음표 입력을 취소했습니다.'
             })
+          } else if (pendingSlurAnchorEventId) {
+            setFileStatus({
+              tone: 'neutral',
+              message: '슬러 입력을 취소했습니다.'
+            })
           }
           setMode('select')
           setNoteInputState(undefined)
+          setPendingSlurAnchorEventId(undefined)
           break
       }
     }
@@ -3014,6 +3104,7 @@ export const App = () => {
     playback.play,
     playback.status,
     pasteSelection,
+    pendingSlurAnchorEventId,
     redo,
     saveMusicXml,
     toggleSlur,
@@ -4398,6 +4489,7 @@ export const App = () => {
             onSelectMeasure={(measureId) => {
               setMode('select')
               setNoteInputState(undefined)
+              setPendingSlurAnchorEventId(undefined)
               setSelection({
                 type: 'measure',
                 measureId

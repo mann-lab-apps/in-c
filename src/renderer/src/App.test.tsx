@@ -1267,6 +1267,32 @@ describe('App component shell', () => {
     expect(within(preview).getByText(slurLabel)).toHaveAttribute('data-slur', 'true')
   })
 
+  it('layout.slur-keyboard-input starts a slur range and confirms it with S', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
+
+    expect(
+      screen.getByText(
+        '슬러 시작점을 선택했습니다. ←/→로 끝 음표를 고르고 S로 확정하세요.'
+      )
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'm1-e4'
+    )
+
+    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
+    expect(
+      within(screen.getByTestId('notation-preview')).getByText('slur:m1-d4–m1-e4')
+    ).toHaveAttribute('data-slur', 'true')
+  })
+
   it('layout.fermata toggles the selected event mark in data and preview', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
