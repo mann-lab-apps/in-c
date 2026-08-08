@@ -91,6 +91,7 @@ interface CursorPoint {
 interface SystemBounds {
   x1: number
   x2: number
+  noteStartX?: number
   y: number
 }
 
@@ -289,6 +290,17 @@ export function NotationPreview({
         'data-note-start-x',
         String(stave.getNoteStartX())
       )
+
+      if (placement.isSystemStart) {
+        const bounds = boundsBySystemIndex.get(placement.systemIndex)
+
+        if (bounds) {
+          boundsBySystemIndex.set(placement.systemIndex, {
+            ...bounds,
+            noteStartX: stave.getNoteStartX()
+          })
+        }
+      }
       selectionTarget?.setAttribute(
         'data-note-end-x',
         String(stave.getNoteEndX())
@@ -1185,16 +1197,15 @@ function drawSlurSegments(
     const isLast = systemIndex === endSystem
     const x1 = isFirst
       ? start.x + resolveSlurEndpointXInset(side, 'start')
-      : bounds.x1 + 22
+      : resolveSlurContinuationStartX(bounds)
     const x2 = isLast
       ? Math.max(x1 + 28, end.x + resolveSlurEndpointXInset(side, 'end'))
       : bounds.x2 - 18
-    const y1 = isFirst
-      ? resolveSlurEndpointY(start, side)
-      : resolveSlurContinuationY(bounds, side)
-    const y2 = isLast
-      ? resolveSlurEndpointY(end, side)
-      : resolveSlurContinuationY(bounds, side)
+    const startY = resolveSlurEndpointY(start, side)
+    const endY = resolveSlurEndpointY(end, side)
+    const continuationY = resolveSlurContinuationY(bounds, side)
+    const y1 = isFirst ? startY : isLast ? endY : continuationY
+    const y2 = isLast ? endY : isFirst ? startY : continuationY
 
     if (x2 <= x1 + 8) {
       continue
@@ -1261,6 +1272,10 @@ function resolveSlurEndpointXInset(
   }
 
   return endpoint === 'start' ? 4 : 4
+}
+
+function resolveSlurContinuationStartX(bounds: SystemBounds): number {
+  return Math.max(bounds.x1 + 22, (bounds.noteStartX ?? bounds.x1 + 36) - 14)
 }
 
 function resolveSlurEndpointY(

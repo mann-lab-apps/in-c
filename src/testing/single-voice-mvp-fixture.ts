@@ -224,6 +224,12 @@ export function createReleaseTestScore(): Score {
       id: 'release-slur',
       startEventId: 'm1-c4',
       endEventId: 'm1-f-sharp-4'
+    },
+    {
+      id: 'release-cross-system-slur',
+      number: 2,
+      startEventId: 'm4-a4',
+      endEventId: 'm5-g4'
     }
   ]
 
