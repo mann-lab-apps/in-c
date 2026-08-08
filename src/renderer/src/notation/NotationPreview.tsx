@@ -86,6 +86,8 @@ interface CursorPoint {
   y: number
   noteHeadTopY?: number
   noteHeadBottomY?: number
+  noteHeadBeginX?: number
+  noteHeadEndX?: number
 }
 
 interface SystemBounds {
@@ -1197,11 +1199,11 @@ function drawSlurSegments(
     const isFirst = systemIndex === startSystem
     const isLast = systemIndex === endSystem
     const x1 = isFirst
-      ? start.x + resolveSlurEndpointXInset(side, 'start')
+      ? resolveSlurEndpointX(start, side, 'start')
       : resolveSlurContinuationStartX(bounds)
     const x2 = isLast
-      ? Math.max(x1 + 28, end.x + resolveSlurEndpointXInset(side, 'end'))
-      : bounds.x2 - 18
+      ? Math.max(x1 + 28, resolveSlurEndpointX(end, side, 'end'))
+      : resolveSlurContinuationEndX(bounds, x1)
     const startY = resolveSlurEndpointY(start, side)
     const endY = resolveSlurEndpointY(end, side)
     const continuationY = resolveSlurContinuationY(bounds, side)
@@ -1253,7 +1255,9 @@ function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
 
     return {
       noteHeadTopY: bounds.yTop,
-      noteHeadBottomY: bounds.yBottom
+      noteHeadBottomY: bounds.yBottom,
+      noteHeadBeginX: note.getNoteHeadBeginX(),
+      noteHeadEndX: note.getNoteHeadEndX()
     }
   } catch {
     return {}
@@ -1264,19 +1268,28 @@ function resolveSlurSide(): 'above' | 'below' {
   return 'above'
 }
 
-function resolveSlurEndpointXInset(
+function resolveSlurEndpointX(
+  point: CursorPoint,
   side: 'above' | 'below',
   endpoint: 'start' | 'end'
 ): number {
   if (side === 'above') {
-    return endpoint === 'start' ? 7 : -2
+    return endpoint === 'start'
+      ? (point.noteHeadEndX ?? point.x + 10) - 2
+      : (point.noteHeadBeginX ?? point.x) + 8
   }
 
-  return endpoint === 'start' ? 4 : 4
+  return endpoint === 'start'
+    ? (point.noteHeadEndX ?? point.x + 10) - 3
+    : (point.noteHeadBeginX ?? point.x) + 7
 }
 
 function resolveSlurContinuationStartX(bounds: SystemBounds): number {
   return Math.max(bounds.x1 + 22, (bounds.noteStartX ?? bounds.x1 + 36) - 14)
+}
+
+function resolveSlurContinuationEndX(bounds: SystemBounds, x1: number): number {
+  return Math.max(bounds.x2 - 8, x1 + 18)
 }
 
 function resolveSlurEndpointY(
