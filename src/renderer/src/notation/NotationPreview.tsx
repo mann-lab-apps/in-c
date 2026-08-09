@@ -165,7 +165,7 @@ export function NotationPreview({
       dragAnchorEventId = undefined
     }
 
-    const openMeasureContextMenuAtPointer = (event: MouseEvent) => {
+    const openMeasureContextMenuAtPointer = (event: MouseEvent): boolean => {
       let target: (typeof measureContextTargets)[number] | undefined
 
       for (let index = measureContextTargets.length - 1; index >= 0; index -= 1) {
@@ -185,7 +185,7 @@ export function NotationPreview({
       }
 
       if (!target) {
-        return
+        return false
       }
 
       event.preventDefault()
@@ -194,6 +194,15 @@ export function NotationPreview({
         x: event.clientX,
         y: event.clientY
       })
+      return true
+    }
+
+    const openMeasureContextMenuFromSecondaryMouse = (event: MouseEvent) => {
+      if (event.button !== 2) {
+        return
+      }
+
+      openMeasureContextMenuAtPointer(event)
     }
 
     window.addEventListener('mouseup', clearDragAnchor)
@@ -202,6 +211,7 @@ export function NotationPreview({
       svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
       svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
       svg.addEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
+      svg.addEventListener('mouseup', openMeasureContextMenuFromSecondaryMouse, true)
     }
 
     if (svg && score.tempo) {
@@ -794,6 +804,11 @@ export function NotationPreview({
     return () => {
       window.removeEventListener('mouseup', clearDragAnchor)
       svg?.removeEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
+      svg?.removeEventListener(
+        'mouseup',
+        openMeasureContextMenuFromSecondaryMouse,
+        true
+      )
     }
   }, [
     onSelectEvent,
