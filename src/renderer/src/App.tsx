@@ -5433,17 +5433,60 @@ function createSaveSignature(score: Score): string {
       start: eventReferences.get(hairpin.startEventId),
       end: eventReferences.get(hairpin.endEventId)
     })),
-    slurs: (score.slurs ?? []).map((slur) => ({
-      number: slur.number ?? 1,
-      start: eventReferences.get(slur.startEventId),
-      end: eventReferences.get(slur.endEventId)
-    })),
+    slurs: createSlurSaveSignature(score, eventReferences),
     octaveShifts: (score.octaveShifts ?? []).map((octaveShift) => ({
       type: octaveShift.type,
       start: eventReferences.get(octaveShift.startEventId),
       end: eventReferences.get(octaveShift.endEventId)
     }))
   })
+}
+
+function createSlurSaveSignature(
+  score: Score,
+  eventReferences: Map<string, string>
+) {
+  return (score.slurs ?? [])
+    .map((slur, index) => ({
+      number: slur.number ?? index + 1,
+      start: eventReferences.get(slur.startEventId),
+      end: eventReferences.get(slur.endEventId)
+    }))
+    .sort(compareRangeSignatures)
+}
+
+function compareRangeSignatures(
+  first: { number: number; start?: string; end?: string },
+  second: { number: number; start?: string; end?: string }
+): number {
+  return (
+    compareEventReference(first.start, second.start) ||
+    compareEventReference(first.end, second.end) ||
+    first.number - second.number
+  )
+}
+
+function compareEventReference(
+  first: string | undefined,
+  second: string | undefined
+): number {
+  const firstParts = parseEventReference(first)
+  const secondParts = parseEventReference(second)
+  const length = Math.max(firstParts.length, secondParts.length)
+
+  for (let index = 0; index < length; index += 1) {
+    const diff = (firstParts[index] ?? -1) - (secondParts[index] ?? -1)
+
+    if (diff !== 0) {
+      return diff
+    }
+  }
+
+  return 0
+}
+
+function parseEventReference(reference: string | undefined): number[] {
+  return reference?.split(':').map((part) => Number(part)) ?? []
 }
 
 function normalizeTempoForSaveSignature(

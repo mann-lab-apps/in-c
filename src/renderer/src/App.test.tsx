@@ -1293,6 +1293,44 @@ describe('App component shell', () => {
     ).toHaveAttribute('data-slur', 'true')
   })
 
+  it('import-export.save-multiple-auto-numbered-slurs keeps MusicXML validation stable', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({
+      filePath: '/scores/release-test.musicxml',
+      fileName: 'release-test.musicxml'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
+    fireEvent.keyDown(window, { key: 'ArrowRight' })
+    fireEvent.keyDown(window, { code: 'KeyS', key: 'ㄴ' })
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          suggestedName: 'release-test.musicxml',
+          contents: expect.stringContaining('<score-partwise')
+        })
+      )
+    })
+    const contents = vi.mocked(window.inC.musicXml.save).mock.calls[0]?.[0]
+      .contents
+    const savedScore = parseMusicXml(contents!)
+
+    expect(savedScore.slurs?.map((slur) => slur.number).sort()).toEqual([
+      1,
+      2,
+      3
+    ])
+    expect(
+      await screen.findByText('release-test.musicxml을 MusicXML로 내보냈습니다.')
+    ).toBeInTheDocument()
+  })
+
   it('layout.fermata toggles the selected event mark in data and preview', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
