@@ -86,6 +86,9 @@ const STAFF_TEXT_Y_OFFSET = -24
 const DYNAMIC_MARK_Y_OFFSET = 122
 const HAIRPIN_Y_OFFSET = 126
 const MEASURE_STAFF_VERTICAL_PADDING = 18
+const LYRIC_EDITOR_WIDTH = 148
+const LYRIC_EDITOR_HEIGHT = 34
+const LYRIC_EDITOR_BASELINE_OFFSET = 22
 
 interface CursorPoint {
   x: number
@@ -1659,10 +1662,12 @@ function drawInlineLyricEditor(
   }
 
   container.classList.add('notation-lyric-editor')
-  container.setAttribute('x', String(x - 78))
-  container.setAttribute('y', String(staffY + 98 + (editor.number - 1) * 16))
-  container.setAttribute('width', '212')
-  container.setAttribute('height', '42')
+  const lyricAnchorX = x + 4
+  const lyricLineY = staffY + 116 + (editor.number - 1) * 16
+  container.setAttribute('x', String(lyricAnchorX - LYRIC_EDITOR_WIDTH / 2))
+  container.setAttribute('y', String(lyricLineY - LYRIC_EDITOR_BASELINE_OFFSET))
+  container.setAttribute('width', String(LYRIC_EDITOR_WIDTH))
+  container.setAttribute('height', String(LYRIC_EDITOR_HEIGHT))
 
   input.setAttribute('aria-label', '선택 음표 가사')
   input.maxLength = 48
