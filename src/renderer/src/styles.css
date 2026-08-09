@@ -1017,6 +1017,45 @@ h2 {
   stroke: #b43d2f;
 }
 
+.measure-context-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+}
+
+.measure-context-menu {
+  position: fixed;
+  display: grid;
+  width: 176px;
+  padding: 6px;
+  border: 1px solid #c7c0b3;
+  border-radius: 8px;
+  background: #fbfaf6;
+  box-shadow: 0 16px 40px rgba(34, 30, 24, 0.18);
+  gap: 2px;
+}
+
+.measure-context-menu button {
+  min-height: 36px;
+  justify-content: flex-start;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #283035;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.measure-context-menu button:hover:not(:disabled),
+.measure-context-menu button:focus-visible {
+  background: #efe9dd;
+}
+
+.measure-context-menu__danger {
+  color: #a9362a !important;
+}
+
 .notation-event {
   cursor: pointer;
 }

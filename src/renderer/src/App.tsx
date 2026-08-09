@@ -91,6 +91,7 @@ import {
 } from './editor/editor-state'
 import {
   buildInsertMeasureAfter,
+  buildInsertMeasureBefore,
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
@@ -348,6 +349,14 @@ interface RecentMusicXmlFile {
   openedAt: string
 }
 
+type MeasureContextAction = 'insert-before' | 'insert-after' | 'remove'
+
+interface MeasureContextMenuState {
+  measureId: string
+  x: number
+  y: number
+}
+
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
   composer: 80
@@ -356,6 +365,8 @@ const metadataMaxLength: Record<MetadataField, number> = {
 const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
+const MEASURE_CONTEXT_MENU_WIDTH = 176
+const MEASURE_CONTEXT_MENU_HEIGHT = 136
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
 const clefPresets = [
   { id: 'treble', label: '높은음자리표', value: { sign: 'G', line: 2 } },
@@ -409,6 +420,8 @@ export const App = () => {
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
   const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
     useState<string>()
+  const [measureContextMenu, setMeasureContextMenu] =
+    useState<MeasureContextMenuState>()
   const [undoStack, setUndoStack] = useState<EditorHistoryEntry[]>([])
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
@@ -1585,14 +1598,15 @@ export const App = () => {
     })
   }, [noteInputState, rangeClipboard, score, selection])
 
-  const addMeasure = useCallback(() => {
-    if (!activeMeasureId) {
-      return
-    }
-
-    const edit = buildInsertMeasureAfter(
+  const insertMeasure = useCallback((
+    measureId: string,
+    placement: 'before' | 'after'
+  ) => {
+    const editBuilder =
+      placement === 'before' ? buildInsertMeasureBefore : buildInsertMeasureAfter
+    const edit = editBuilder(
       score,
-      activeMeasureId,
+      measureId,
       createInputId,
       noteInputState
     )
@@ -1600,8 +1614,52 @@ export const App = () => {
     if (edit && executeCommand(edit.command)) {
       setSelection(edit.selection)
       setNoteInputState(edit.inputState)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message:
+          placement === 'before'
+            ? '선택한 마디 앞에 새 마디를 추가했습니다.'
+            : '선택한 마디 뒤에 새 마디를 추가했습니다.'
+      })
+      return true
     }
-  }, [activeMeasureId, executeCommand, noteInputState, score])
+
+    return false
+  }, [executeCommand, noteInputState, score])
+
+  const addMeasure = useCallback(() => {
+    if (!activeMeasureId) {
+      return
+    }
+
+    insertMeasure(activeMeasureId, 'after')
+  }, [activeMeasureId, insertMeasure])
+
+  const removeMeasureById = useCallback((measureId: string) => {
+    if (measureCount <= 1) {
+      setFileStatus({
+        tone: 'error',
+        message: '마지막 남은 마디는 삭제할 수 없습니다.'
+      })
+      return
+    }
+
+    const edit = buildRemoveMeasure(score, measureId, noteInputState)
+
+    if (edit && executeCommand(edit.command)) {
+      setSelection(edit.selection)
+      setNoteInputState(edit.inputState)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message: '마디를 삭제했습니다.'
+      })
+      return true
+    }
+
+    return false
+  }, [executeCommand, measureCount, noteInputState, score])
 
   const removeMeasure = useCallback(() => {
     if (!activeMeasureId) {
@@ -1612,26 +1670,53 @@ export const App = () => {
       return
     }
 
-    if (measureCount <= 1) {
-      setFileStatus({
-        tone: 'error',
-        message: '마지막 남은 마디는 삭제할 수 없습니다.'
-      })
+    removeMeasureById(activeMeasureId)
+  }, [activeMeasureId, removeMeasureById])
+
+  const openMeasureContextMenu = useCallback((
+    measureId: string,
+    position: { x: number; y: number }
+  ) => {
+    setMode('select')
+    setNoteInputState(undefined)
+    setPendingSlurAnchorEventId(undefined)
+    setSelection({
+      type: 'measure',
+      measureId
+    })
+    setMeasureContextMenu({
+      measureId,
+      x: Math.max(
+        8,
+        Math.min(position.x, window.innerWidth - MEASURE_CONTEXT_MENU_WIDTH - 8)
+      ),
+      y: Math.max(
+        8,
+        Math.min(position.y, window.innerHeight - MEASURE_CONTEXT_MENU_HEIGHT - 8)
+      )
+    })
+  }, [])
+
+  const closeMeasureContextMenu = useCallback(() => {
+    setMeasureContextMenu(undefined)
+  }, [])
+
+  const applyMeasureContextAction = useCallback((action: MeasureContextAction) => {
+    if (!measureContextMenu) {
       return
     }
 
-    const edit = buildRemoveMeasure(score, activeMeasureId, noteInputState)
+    const { measureId } = measureContextMenu
+    setMeasureContextMenu(undefined)
 
-    if (edit && executeCommand(edit.command)) {
-      setSelection(edit.selection)
-      setNoteInputState(edit.inputState)
-      setMode('select')
-      setFileStatus({
-        tone: 'neutral',
-        message: '마디를 삭제했습니다.'
-      })
+    if (action === 'insert-before') {
+      insertMeasure(measureId, 'before')
+    } else if (action === 'insert-after') {
+      insertMeasure(measureId, 'after')
+    } else {
+      removeMeasureById(measureId)
     }
-  }, [activeMeasureId, executeCommand, measureCount, noteInputState, score])
+  }, [insertMeasure, measureContextMenu, removeMeasureById])
 
   const toggleSystemBreak = useCallback(() => {
     if (!activeMeasureId || activeMeasureIndex <= 0) {
@@ -2620,6 +2705,7 @@ export const App = () => {
     (eventId: string, extendRange = false) => {
       setMode('select')
       setNoteInputState(undefined)
+      setMeasureContextMenu(undefined)
 
       if (extendRange) {
         const anchorEventId =
@@ -2658,11 +2744,23 @@ export const App = () => {
       if (rangeSelection) {
         setMode('select')
         setNoteInputState(undefined)
+        setMeasureContextMenu(undefined)
         setSelection(rangeSelection)
       }
     },
     [score]
   )
+
+  const selectMeasure = useCallback((measureId: string) => {
+    setMode('select')
+    setNoteInputState(undefined)
+    setPendingSlurAnchorEventId(undefined)
+    setMeasureContextMenu(undefined)
+    setSelection({
+      type: 'measure',
+      measureId
+    })
+  }, [])
 
   const openScore = useCallback((nextScore: Score, message: string) => {
     const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
@@ -3066,6 +3164,9 @@ export const App = () => {
           )
           break
         case 'Escape':
+          if (measureContextMenu) {
+            setMeasureContextMenu(undefined)
+          }
           if (noteInputState?.tupletInput) {
             setFileStatus({
               tone: 'neutral',
@@ -3100,6 +3201,7 @@ export const App = () => {
     moveSelection,
     mode,
     eventLocation,
+    measureContextMenu,
     playback.pause,
     playback.play,
     playback.status,
@@ -4486,15 +4588,8 @@ export const App = () => {
             }
             onSelectEvent={selectEvent}
             onSelectEventRange={selectEventRange}
-            onSelectMeasure={(measureId) => {
-              setMode('select')
-              setNoteInputState(undefined)
-              setPendingSlurAnchorEventId(undefined)
-              setSelection({
-                type: 'measure',
-                measureId
-              })
-            }}
+            onSelectMeasure={selectMeasure}
+            onOpenMeasureContextMenu={openMeasureContextMenu}
             score={previewScore}
             playbackEventId={playback.activeEventId}
             selectedEventId={selectedEventId}
@@ -4505,6 +4600,50 @@ export const App = () => {
       </section>
         </>
       )}
+
+      {measureContextMenu ? (
+        <div
+          className="measure-context-layer"
+          onClick={closeMeasureContextMenu}
+          onContextMenu={(event) => event.preventDefault()}
+          role="presentation"
+        >
+          <div
+            aria-label="마디 작업"
+            className="measure-context-menu"
+            onClick={(event) => event.stopPropagation()}
+            role="menu"
+            style={{
+              left: measureContextMenu.x,
+              top: measureContextMenu.y
+            }}
+          >
+            <button
+              onClick={() => applyMeasureContextAction('insert-before')}
+              role="menuitem"
+              type="button"
+            >
+              앞에 마디 추가
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('insert-after')}
+              role="menuitem"
+              type="button"
+            >
+              뒤에 마디 추가
+            </button>
+            <button
+              className="measure-context-menu__danger"
+              disabled={measureCount <= 1}
+              onClick={() => applyMeasureContextAction('remove')}
+              role="menuitem"
+              type="button"
+            >
+              마디 제거
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {selectedPromoConcert ? (
         <div
