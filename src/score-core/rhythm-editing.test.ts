@@ -68,7 +68,7 @@ describe('monophonic rhythm editing', () => {
     )
   })
 
-  it('delete-event.shift-leading-event deletes a leading note by shifting following events left', () => {
+  it('delete-event.shift-leading-event replaces a leading note with the following rest span', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'half', 1)
@@ -78,7 +78,7 @@ describe('monophonic rhythm editing', () => {
 
     expect(readEvents(result.score)).toMatchObject([
       {
-        id: 'rest-1',
+        id: 'note-1',
         type: 'rest',
         position: { tick: 0 },
         fullMeasure: true
@@ -90,7 +90,7 @@ describe('monophonic rhythm editing', () => {
     expect(undone.score).toEqual(score)
   })
 
-  it('delete-event.merge-into-previous deletes a selected note into a tied note chain', () => {
+  it('delete-event.merge-into-previous replaces a selected note with a following rest span', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       note('note-2', quarter, 'quarter'),
@@ -105,21 +105,13 @@ describe('monophonic rhythm editing', () => {
         type: 'note',
         position: { tick: 0 },
         duration: { value: 'quarter' },
-        ties: { start: true }
+        ties: undefined
       },
       {
         id: 'note-2',
-        type: 'note',
-        position: { tick: quarter },
-        pitch: { step: 'C', octave: 4 },
-        duration: { value: 'quarter' },
-        ties: { stop: true }
-      },
-      {
-        id: 'rest-1',
         type: 'rest',
-        position: { tick: quarter * 2 },
-        duration: { value: 'half' }
+        position: { tick: quarter },
+        duration: { value: 'half', dots: 1 }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -127,7 +119,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('deletes a rest into a tied note chain', () => {
+  it('deletes a rest by merging it with the following rest span', () => {
     const score = scoreWith([
       note('note-1', 0, 'eighth'),
       rest('rest-1', quarter / 2, 'half'),
@@ -142,21 +134,13 @@ describe('monophonic rhythm editing', () => {
         type: 'note',
         position: { tick: 0 },
         duration: { value: 'eighth' },
-        ties: { start: true }
+        ties: undefined
       },
       {
         id: 'rest-1',
-        type: 'note',
-        position: { tick: quarter / 2 },
-        duration: { value: 'half' },
-        pitch: { step: 'C', octave: 4 },
-        ties: { stop: true }
-      },
-      {
-        id: 'tail-rest',
         type: 'rest',
-        position: { tick: quarter * 2.5 },
-        duration: { value: 'quarter', dots: 1 }
+        position: { tick: quarter / 2 },
+        duration: { value: 'half', dots: 2 }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -164,7 +148,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('deletes a selected note by adding its duration to the previous rest', () => {
+  it('deletes a selected note by merging adjacent rests around the cleared span', () => {
     const score = scoreWith([
       rest('rest-1', 0, 'quarter'),
       note('note-1', quarter, 'quarter'),
@@ -185,7 +169,7 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('deletes a selected rest by adding its duration to the previous rest', () => {
+  it('deletes a selected rest by merging it with the previous rest span', () => {
     const score = scoreWith([
       rest('rest-1', 0, 'quarter'),
       rest('rest-2', quarter, 'quarter'),
@@ -212,44 +196,18 @@ describe('monophonic rhythm editing', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('delete-event.remove-rest deletes a selected rest into a tied previous note chain', () => {
+  it('delete-event.remove-rest rejects deleting a rest without a following rest', () => {
     const score = scoreWith([
       note('note-1', 0, 'quarter'),
       rest('rest-1', quarter, 'quarter'),
       note('note-2', quarter * 2, 'half')
     ])
     const command = buildRhythmDeleteCommand(score, target, 'rest-1')
-    const result = applyScoreCommand(score, command!)
 
-    expect(readEvents(result.score)).toMatchObject([
-      {
-        id: 'note-1',
-        type: 'note',
-        position: { tick: 0 },
-        duration: { value: 'quarter' },
-        ties: { start: true }
-      },
-      {
-        id: 'rest-1',
-        type: 'note',
-        position: { tick: quarter },
-        pitch: { step: 'C', octave: 4 },
-        duration: { value: 'quarter' },
-        ties: { stop: true }
-      },
-      {
-        id: 'note-2',
-        type: 'note',
-        position: { tick: quarter * 2 },
-        duration: { value: 'half' }
-      }
-    ])
-    expect(validateFirstMeasure(result.score).isExact).toBe(true)
-    expect(validateTieRelations(result.score)).toEqual([])
-    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+    expect(command).toBeUndefined()
   })
 
-  it('deletes a shorter rest into the previous rest span', () => {
+  it('deletes a shorter rest into the following rest span', () => {
     const score = scoreWith([
       rest('rest-1', 0, 'quarter'),
       rest('rest-2', quarter, 'quarter'),
@@ -266,36 +224,26 @@ describe('monophonic rhythm editing', () => {
         position: { tick: 0 },
         duration: { value: 'half' }
       },
-      { id: 'rest-1-trailing-rest-1', position: { tick: quarter * 2 } },
+      {
+        id: 'rest-2-trailing-rest-1',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'eighth' }
+      },
       { id: 'note-1', position: { tick: quarter * 2.5 } }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
-  it('deletes a leading rest by shifting following events left', () => {
+  it('rejects deleting a leading rest with no following rest span', () => {
     const isolatedRest = scoreWith([
       rest('rest-1', 0, 'quarter'),
       note('note-1', quarter, 'half', 1)
     ])
     const command = buildRhythmDeleteCommand(isolatedRest, target, 'rest-1')
-    const result = applyScoreCommand(isolatedRest, command!)
 
-    expect(readEvents(result.score)).toMatchObject([
-      {
-        id: 'note-1',
-        type: 'note',
-        position: { tick: 0 },
-        duration: { value: 'half', dots: 1 }
-      },
-      {
-        id: 'rest-1',
-        type: 'rest',
-        position: { tick: quarter * 3 },
-        duration: { value: 'quarter' }
-      }
-    ])
-    expect(validateFirstMeasure(result.score).isExact).toBe(true)
+    expect(command).toBeUndefined()
   })
 
   it('deletes a rest into an existing tied note chain', () => {
@@ -323,17 +271,13 @@ describe('monophonic rhythm editing', () => {
       {
         id: 'note-2',
         type: 'note',
-        ties: { stop: true, start: true }
-      },
-      {
-        id: 'rest-1',
-        type: 'note',
-        pitch: { step: 'C', octave: 4 },
         ties: { stop: true }
       },
       {
-        id: 'rest-2',
-        type: 'rest'
+        id: 'rest-1',
+        type: 'rest',
+        position: { tick: quarter * 2 },
+        duration: { value: 'half' }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -358,16 +302,22 @@ describe('monophonic rhythm editing', () => {
 
     expect(readEvents(result.score)).toMatchObject([
       {
+        id: 'note-1',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'quarter' }
+      },
+      {
         id: 'note-2',
         type: 'note',
-        position: { tick: 0 },
+        position: { tick: quarter },
         ties: undefined
       },
       {
         id: 'rest-1',
         type: 'rest',
-        position: { tick: quarter },
-        duration: { value: 'half', dots: 1 }
+        position: { tick: quarter * 2 },
+        duration: { value: 'half' }
       }
     ])
     expect(validateFirstMeasure(result.score).isExact).toBe(true)
@@ -438,7 +388,7 @@ describe('monophonic rhythm editing', () => {
       ties: undefined
     })
     expect(secondMeasureEvents[0]).toMatchObject({
-      id: 'rest-2',
+      id: 'tie-stop',
       type: 'rest',
       position: { tick: 0 },
       fullMeasure: true

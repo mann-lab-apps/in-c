@@ -10,30 +10,30 @@ Feature: 선택 이벤트를 삭제하기
     Given 앱이 편집 가능한 단성부 악보를 열어 둔다
 
   @scenario-delete-event-merge-into-previous
-  Scenario: 첫 이벤트가 아닌 이벤트를 삭제하면 앞 이벤트에 길이가 가산된다
+  Scenario: 첫 이벤트가 아닌 음표를 삭제하면 삭제 위치부터 뒤 쉼표로 정리된다
     Given "4/4" 악보의 1번째 마디에 "quarter" 음표, "quarter" 음표, "half" 쉼표가 있다
     And 두 번째 "quarter" 음표가 선택되어 있다
     When 사용자가 Backspace를 누른다
-    Then 첫 번째 음표의 음가는 "half"가 된다
-    And 선택되었던 두 번째 음표는 제거된다
+    Then 첫 번째 음표의 음가는 "quarter" 그대로 유지된다
+    And 선택되었던 두 번째 음표 위치부터 마디 끝까지 쉼표로 정리된다
     And 1번째 마디의 전체 박자 길이는 변하지 않는다
 
   @scenario-delete-event-shift-leading-event
-  Scenario: 첫 이벤트를 삭제하면 뒤 이벤트가 앞으로 당겨진다
+  Scenario: 첫 이벤트를 삭제해도 뒤 이벤트를 앞으로 당기지 않는다
     Given "4/4" 악보의 1번째 마디에 "quarter" 음표, "quarter" 쉼표, "half" 쉼표가 있다
     And 첫 번째 "quarter" 음표가 선택되어 있다
     When 사용자가 Backspace를 누른다
-    Then 뒤 이벤트들은 삭제된 길이만큼 앞으로 당겨진다
-    And 마디 끝에는 삭제된 길이를 보존하는 쉼표가 생긴다
+    Then 첫 번째 음표 위치부터 뒤따르는 쉼표 구간이 쉼표로 병합된다
+    And 뒤 이벤트들은 삭제 전 시작 위치를 유지한다
     And 1번째 마디의 전체 박자 길이는 변하지 않는다
 
   @scenario-delete-event-remove-rest
-  Scenario: 쉼표를 삭제해도 새 쉼표가 추가로 늘어나지 않는다
-    Given "4/4" 악보의 1번째 마디에 "quarter" 음표, "quarter" 쉼표, "half" 쉼표가 있다
+  Scenario: 쉼표를 삭제하면 뒤따르는 쉼표 구간과 병합된다
+    Given "4/4" 악보의 1번째 마디에 "quarter" 음표, "quarter" 쉼표, "quarter" 쉼표, "quarter" 음표가 있다
     And "quarter" 쉼표가 선택되어 있다
     When 사용자가 Backspace를 누른다
-    Then 선택되었던 쉼표는 제거된다
-    And 삭제된 길이는 앞 이벤트에 가산된다
+    Then 선택되었던 쉼표와 뒤따르는 쉼표는 하나의 쉼표 구간으로 정리된다
+    And 앞 이벤트의 음가는 변하지 않는다
     And 1번째 마디의 전체 박자 길이는 변하지 않는다
 
   @tie @scenario-delete-event-clean-ties

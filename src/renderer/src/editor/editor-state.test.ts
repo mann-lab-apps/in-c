@@ -909,14 +909,12 @@ describe('editor state', () => {
           id: 'note-c4',
           type: 'note',
           duration: expect.objectContaining({ value: 'quarter' }),
-          ties: expect.objectContaining({ start: true })
+          ties: undefined
         }),
         expect.objectContaining({
           id: 'note-d4',
-          type: 'note',
-          pitch: expect.objectContaining({ step: 'C', octave: 4 }),
-          duration: expect.objectContaining({ value: 'quarter' }),
-          ties: expect.objectContaining({ stop: true })
+          type: 'rest',
+          duration: expect.objectContaining({ value: 'quarter' })
         })
       ])
     )
@@ -939,7 +937,7 @@ describe('editor state', () => {
       eventIds: ['rest-1', 'rest-2']
     })
     expect(command).toMatchObject({
-      type: 'score.batch'
+      type: 'voice-events.replace'
     })
     expect(measure.voices[0].events).toHaveLength(3)
     expect(measure.voices[0].events).toMatchObject([
@@ -947,14 +945,13 @@ describe('editor state', () => {
         id: 'note-1',
         type: 'note',
         duration: { value: 'quarter' },
-        ties: { start: true }
+        ties: undefined
       },
       {
         id: 'rest-1',
-        type: 'note',
+        type: 'rest',
         position: { tick: TICKS_PER_QUARTER },
-        duration: { value: 'half' },
-        ties: { stop: true }
+        duration: { value: 'half' }
       },
       {
         id: 'note-2',

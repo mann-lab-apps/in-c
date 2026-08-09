@@ -156,13 +156,11 @@ describe('single-voice MVP regression', () => {
     expect(locateEvent(deleted.score, 'm4-f-natural-2')?.event).toMatchObject({
       type: 'note',
       duration: { value: 'quarter' },
-      ties: { start: true }
+      ties: undefined
     })
     expect(locateEvent(deleted.score, 'm4-g4')?.event).toMatchObject({
-      type: 'note',
-      pitch: { step: 'F', octave: 4, alter: 0 },
-      duration: { value: 'quarter' },
-      ties: { stop: true }
+      type: 'rest',
+      duration: { value: 'quarter' }
     })
     expect(validateTieRelations(deleted.score)).toEqual([])
 
