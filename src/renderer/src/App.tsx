@@ -2211,7 +2211,7 @@ export const App = () => {
       }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
 
       if (options?.moveNext && eventLocation) {
-        const eventId = getAdjacentEventId(score, eventLocation.event.id, 1)
+        const eventId = getAdjacentNoteEventId(score, eventLocation.event.id, 1)
 
         if (eventId) {
           setSelection({
@@ -2703,6 +2703,28 @@ export const App = () => {
     [executeCommand, noteInputState, pendingSlurAnchorEventId, score, selection]
   )
 
+  const moveToNextLyricNote = useCallback(() => {
+    const currentEventId = getSelectionFocusEventId(selection)
+
+    if (!currentEventId) {
+      return
+    }
+
+    const eventId = getAdjacentNoteEventId(score, currentEventId, 1)
+
+    if (eventId) {
+      setMode('select')
+      setNoteInputState(undefined)
+      setSelection({
+        type: 'event',
+        eventId
+      })
+      return
+    }
+
+    moveSelection(1)
+  }, [moveSelection, score, selection])
+
   const selectEvent = useCallback(
     (eventId: string, extendRange = false) => {
       setMode('select')
@@ -3027,6 +3049,12 @@ export const App = () => {
         return
       }
 
+      if (toolbarCategory === 'lyrics' && event.key === 'Enter') {
+        event.preventDefault()
+        moveToNextLyricNote()
+        return
+      }
+
       if (toolbarCategory === 'lyrics' && eventLocation?.event.type === 'note') {
         document
           .querySelector<HTMLInputElement>('.notation-lyric-editor input')
@@ -3201,6 +3229,7 @@ export const App = () => {
     enterRest,
     movePitch,
     moveSelection,
+    moveToNextLyricNote,
     mode,
     eventLocation,
     measureContextMenu,
@@ -5764,6 +5793,26 @@ function sortLyricsByNumber(lyrics: LyricSyllable[]): LyricSyllable[] {
   return [...lyrics].sort(
     (left, right) => (left.number ?? 1) - (right.number ?? 1)
   )
+}
+
+function getAdjacentNoteEventId(
+  score: Score,
+  eventId: string,
+  direction: -1 | 1
+): string | undefined {
+  let nextEventId = getAdjacentEventId(score, eventId, direction)
+
+  while (nextEventId) {
+    const location = locateEvent(score, nextEventId)
+
+    if (location?.event.type === 'note') {
+      return nextEventId
+    }
+
+    nextEventId = getAdjacentEventId(score, nextEventId, direction)
+  }
+
+  return undefined
 }
 
 function normalizeDurationForSaveSignature(duration: Duration): Duration {

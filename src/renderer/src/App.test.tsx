@@ -628,6 +628,15 @@ describe('App component shell', () => {
       eventCountAfterLyricAdvance
     )
 
+    fireEvent.click(screen.getByRole('button', { name: 'm3-half-rest 선택' }))
+    expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
+    fireEvent.keyDown(window, { key: 'Enter' })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'm4-f-natural-1'
+    )
+    expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
+
     fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
     fireEvent.change(screen.getByLabelText('가사 절'), {
       target: { value: '4' }
