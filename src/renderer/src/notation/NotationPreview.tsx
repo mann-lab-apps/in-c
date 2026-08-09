@@ -84,8 +84,7 @@ const REHEARSAL_MARK_Y_OFFSET = -62
 const STAFF_TEXT_Y_OFFSET = -24
 const DYNAMIC_MARK_Y_OFFSET = 122
 const HAIRPIN_Y_OFFSET = 126
-const MEASURE_STAFF_TARGET_Y_OFFSET = -6
-const MEASURE_STAFF_TARGET_HEIGHT = 72
+const MEASURE_STAFF_VERTICAL_PADDING = 18
 
 interface CursorPoint {
   x: number
@@ -291,16 +290,6 @@ export function NotationPreview({
       )
       const clef = toVexFlowClef(measure.clef)
       let selectionTarget: SVGRectElement | undefined
-      const measureStaffTarget = {
-        measureId: measure.id,
-        x1: placement.x,
-        x2: placement.x + placement.width,
-        y1: placement.y + MEASURE_STAFF_TARGET_Y_OFFSET,
-        y2:
-          placement.y +
-          MEASURE_STAFF_TARGET_Y_OFFSET +
-          MEASURE_STAFF_TARGET_HEIGHT
-      } satisfies MeasureContextTarget
 
       if (svg) {
         selectionTarget = document.createElementNS(
@@ -312,16 +301,8 @@ export function NotationPreview({
         selectionTarget.classList.toggle('is-selected', measure.id === selectedMeasureId)
         selectionTarget.setAttribute('data-measure-id', measure.id)
         selectionTarget.setAttribute('data-system-index', String(placement.systemIndex))
-        selectionTarget.setAttribute('x', String(measureStaffTarget.x1))
-        selectionTarget.setAttribute('y', String(measureStaffTarget.y1))
-        selectionTarget.setAttribute(
-          'width',
-          String(measureStaffTarget.x2 - measureStaffTarget.x1)
-        )
-        selectionTarget.setAttribute(
-          'height',
-          String(measureStaffTarget.y2 - measureStaffTarget.y1)
-        )
+        selectionTarget.setAttribute('x', String(placement.x))
+        selectionTarget.setAttribute('width', String(placement.width))
         selectionTarget.setAttribute('rx', '4')
         selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
         selectionTarget.addEventListener('contextmenu', (event) => {
@@ -332,7 +313,6 @@ export function NotationPreview({
             y: event.clientY
           })
         })
-        measureContextTargets.push(measureStaffTarget)
         svg.append(selectionTarget)
       }
 
@@ -364,6 +344,20 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+      const measureStaffTarget = resolveMeasureStaffTarget(
+        measure.id,
+        placement.x,
+        placement.width,
+        stave
+      )
+
+      selectionTarget?.setAttribute('y', String(measureStaffTarget.y1))
+      selectionTarget?.setAttribute(
+        'height',
+        String(measureStaffTarget.y2 - measureStaffTarget.y1)
+      )
+      measureContextTargets.push(measureStaffTarget)
+
       const defaultNoteStartX = stave.getNoteStartX()
 
       if (showsClef || showsKeySignature || showsTimeSignature) {
@@ -885,6 +879,24 @@ function resolveSvgPointer(
   return {
     x: svgPoint.x,
     y: svgPoint.y
+  }
+}
+
+function resolveMeasureStaffTarget(
+  measureId: string,
+  x: number,
+  width: number,
+  stave: Stave
+): MeasureContextTarget {
+  const topLineY = stave.getYForLine(0)
+  const bottomLineY = stave.getYForLine(4)
+
+  return {
+    measureId,
+    x1: x,
+    x2: x + width,
+    y1: topLineY - MEASURE_STAFF_VERTICAL_PADDING,
+    y2: bottomLineY + MEASURE_STAFF_VERTICAL_PADDING
   }
 }
 
