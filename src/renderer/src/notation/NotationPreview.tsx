@@ -416,7 +416,10 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (measure.volta?.start) {
+      if (
+        measure.volta?.start &&
+        hasLaterVoltaEnd(measures, placementIndex, measure.volta.number)
+      ) {
         activeVolta = {
           number: measure.volta.number
         }
@@ -1825,6 +1828,20 @@ function sortLyricsForDisplay(
   return [...lyrics].sort(
     (left, right) => (left.number ?? 1) - (right.number ?? 1)
   )
+}
+
+function hasLaterVoltaEnd(
+  measures: Measure[],
+  startIndex: number,
+  number: 1 | 2
+): boolean {
+  for (let index = startIndex + 1; index < measures.length; index += 1) {
+    if (measures[index].volta?.number === number && measures[index].volta?.end) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function stopLyricEditorEvent(event: Event): void {

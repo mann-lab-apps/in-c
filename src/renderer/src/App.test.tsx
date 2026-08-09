@@ -620,6 +620,20 @@ describe('App component shell', () => {
       clientX: 160,
       clientY: 180
     })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '2번 볼타' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-marks',
+      expect.stringContaining('3:::2:S')
+    )
+    expect(
+      screen.getByText('2번 볼타 괄호를 갱신했습니다.')
+    ).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '3마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
     fireEvent.click(
       within(screen.getByRole('menu', { name: '마디 작업' })).getByRole(
         'menuitem',

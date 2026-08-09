@@ -1731,48 +1731,9 @@ export const App = () => {
             continue
           }
 
-          const existingIndices = staff.measures
-            .map((measure, index) =>
-              measure.volta?.number === number ? index : -1
-            )
-            .filter((index) => index >= 0)
-          const selectedHasSameVolta =
-            staff.measures[selectedIndex].volta?.number === number
-
-          if (selectedHasSameVolta && existingIndices.length > 0) {
-            executeCommand({
-              type: 'staff-measures.replace',
-              target: {
-                partId: part.id,
-                staffId: staff.id
-              },
-              measures: staff.measures.map((measure) =>
-                measure.volta?.number === number
-                  ? {
-                      ...measure,
-                      volta: undefined
-                    }
-                  : measure
-              )
-            })
-            setFileStatus({
-              tone: 'neutral',
-              message: `${number}번 볼타 괄호를 해제했습니다.`
-            })
-            return
-          }
-
-          const autoEndIndex =
-            number === 1
-              ? findNextRepeatEndMeasureIndex(staff.measures, selectedIndex)
-              : undefined
-          const rangeStart = Math.min(
-            selectedIndex,
-            existingIndices[0] ?? selectedIndex
-          )
-          const rangeEnd = Math.max(
-            autoEndIndex ?? selectedIndex,
-            existingIndices.at(-1) ?? selectedIndex
+          const endIndex = findNextRepeatEndMeasureIndex(
+            staff.measures,
+            selectedIndex
           )
 
           executeCommand({
@@ -1789,24 +1750,19 @@ export const App = () => {
                 }
               }
 
-              if (index < rangeStart || index > rangeEnd) {
+              if (index !== selectedIndex && index !== endIndex) {
                 return measure
               }
 
-              if (
-                rangeStart !== rangeEnd &&
-                index !== rangeStart &&
-                index !== rangeEnd
-              ) {
-                return measure
-              }
+              const isRangeEnd =
+                endIndex !== undefined && index === endIndex
 
               return {
                 ...measure,
                 volta: {
                   number,
-                  start: index === rangeStart || undefined,
-                  end: index === rangeEnd || undefined
+                  start: index === selectedIndex || undefined,
+                  end: isRangeEnd || undefined
                 }
               }
             })

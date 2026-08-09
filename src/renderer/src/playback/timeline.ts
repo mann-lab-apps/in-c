@@ -260,9 +260,13 @@ function createMeasureVoltaNumberMap(
   const voltaNumbers = new Map<string, 1 | 2>()
   let activeVoltaNumber: 1 | 2 | undefined
 
-  for (const measure of measures) {
+  for (let index = 0; index < measures.length; index += 1) {
+    const measure = measures[index]
+
     if (measure.volta?.start) {
-      activeVoltaNumber = measure.volta.number
+      activeVoltaNumber = hasLaterVoltaEnd(measures, index, measure.volta.number)
+        ? measure.volta.number
+        : undefined
     }
 
     const voltaNumber = measure.volta?.number ?? activeVoltaNumber
@@ -277,6 +281,20 @@ function createMeasureVoltaNumberMap(
   }
 
   return voltaNumbers
+}
+
+function hasLaterVoltaEnd(
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  startIndex: number,
+  number: 1 | 2
+): boolean {
+  for (let index = startIndex + 1; index < measures.length; index += 1) {
+    if (measures[index].volta?.number === number && measures[index].volta?.end) {
+      return true
+    }
+  }
+
+  return false
 }
 
 function createStaffMeasureStartBeatMap(
