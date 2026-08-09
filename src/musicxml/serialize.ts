@@ -645,7 +645,7 @@ function buildNote(
       : {}),
     ...(event.type === 'note' && event.lyrics?.length && !isChordTone
       ? {
-          lyric: event.lyrics.map((lyric) => ({
+          lyric: sortLyricsByNumber(event.lyrics).map((lyric) => ({
             ...(lyric.number !== undefined
               ? {
                   '@_number': lyric.number
@@ -732,6 +732,14 @@ function toMusicXmlAccidental(
     case 2:
       return 'double-sharp'
   }
+}
+
+function sortLyricsByNumber(
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+): NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']> {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
 }
 
 function validateMeasure(measure: Measure): void {

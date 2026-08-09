@@ -48,6 +48,7 @@ import {
   type Clef,
   type HairpinType,
   type HarmonyMark,
+  type LyricSyllable,
   type Measure,
   type Note,
   type OctaveShiftType,
@@ -407,6 +408,7 @@ const ornamentOptions = [
   ['mordent', 'mord.'],
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
+const lyricVerseOptions = [1, 2, 3, 4] as const
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -2191,7 +2193,7 @@ export const App = () => {
         )
         const lyrics =
           trimmedText.length > 0
-            ? [
+            ? sortLyricsByNumber([
                 ...otherLyrics,
                 {
                   number: activeLyricVerse,
@@ -2199,7 +2201,7 @@ export const App = () => {
                   text: trimmedText,
                   extend: options?.extend
                 }
-              ]
+              ])
             : otherLyrics
 
         return {
@@ -3762,8 +3764,11 @@ export const App = () => {
                   }
                   value={activeLyricVerse}
                 >
-                  <option value={1}>1절</option>
-                  <option value={2}>2절</option>
+                  {lyricVerseOptions.map((verse) => (
+                    <option key={verse} value={verse}>
+                      {verse}절
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -4579,6 +4584,7 @@ export const App = () => {
               toolbarCategory === 'lyrics' && selectedNote
                 ? {
                     eventId: selectedNote.id,
+                    number: activeLyricVerse,
                     value: selectedLyric?.text ?? '',
                     syllabic: selectedLyric?.syllabic ?? 'single',
                     extend: selectedLyric?.extend,
@@ -5745,13 +5751,19 @@ function createEventSaveSignature(
             pitch: normalizePitch(graceNote.pitch),
             slash: Boolean(graceNote.slash)
           })),
-          lyrics: event.lyrics ?? [],
+          lyrics: event.lyrics ? sortLyricsByNumber(event.lyrics) : [],
           ornaments: event.ornaments ?? [],
           tremolo: event.tremolo ?? null
         }),
     fermata: Boolean(event.fermata),
     breathMark: event.breathMark ?? null
   }
+}
+
+function sortLyricsByNumber(lyrics: LyricSyllable[]): LyricSyllable[] {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
 }
 
 function normalizeDurationForSaveSignature(duration: Duration): Duration {

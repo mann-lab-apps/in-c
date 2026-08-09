@@ -27,6 +27,7 @@ vi.mock('./notation/NotationPreview', () => ({
   }: {
     score: typeof demoScore
     inlineLyricEditor?: {
+      number: number
       value: string
       syllabic: 'single' | 'begin' | 'middle' | 'end'
       extend?: boolean
@@ -85,6 +86,20 @@ vi.mock('./notation/NotationPreview', () => ({
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
+      data-lyrics={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.flatMap((event) =>
+              event.type === 'note'
+                ? (event.lyrics ?? []).map(
+                    (lyric) =>
+                      `${event.id}:${lyric.number ?? 1}:${lyric.syllabic ?? ''}:${lyric.text}`
+                  )
+                : []
+            )
+          )
+        )
+        .join('|')}
       data-measure-count={score.parts[0]?.staves[0]?.measures.length ?? 0}
       data-selected-event-id={selectedEventId ?? ''}
       data-testid="notation-preview"
@@ -592,9 +607,15 @@ describe('App component shell', () => {
     expect(lyricInput).toBeVisible()
     expect(screen.getByLabelText('가사 음절')).toBeVisible()
     expect(screen.getByText('멜리스마')).toBeVisible()
+    expect(
+      within(screen.getByLabelText('가사 절')).getAllByRole('option').map(
+        (option) => option.textContent
+      )
+    ).toEqual(['1절', '2절', '3절', '4절'])
     expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
     expect(fireEvent.keyDown(lyricInput, { key: 'q' })).toBe(true)
     expect(fireEvent.keyDown(lyricInput, { key: ' ' })).toBe(true)
+    expect(fireEvent.keyDown(lyricInput, { key: '-' })).toBe(true)
     expect(preview).toHaveAttribute('data-event-count', initialEventCount)
     fireEvent.change(lyricInput, { target: { value: 'hello world' } })
     expect(fireEvent.keyDown(lyricInput, { key: 'Enter' })).toBe(false)
@@ -605,6 +626,18 @@ describe('App component shell', () => {
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-event-count',
       eventCountAfterLyricAdvance
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    fireEvent.change(screen.getByLabelText('가사 절'), {
+      target: { value: '4' }
+    })
+    const fourthVerseInput = within(preview).getByLabelText('선택 음표 가사')
+    fireEvent.change(fourthVerseInput, { target: { value: '한-글 두음절' } })
+    fireEvent.blur(fourthVerseInput)
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-lyrics',
+      expect.stringContaining('m1-c4:4:single:한-글 두음절')
     )
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))

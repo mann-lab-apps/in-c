@@ -1719,6 +1719,11 @@ describe('MusicXML MVP', () => {
                               syllabic: 'single',
                               text: 'love',
                               extend: true
+                            },
+                            {
+                              number: 4,
+                              syllabic: 'single',
+                              text: '한-글 두음절'
                             }
                           ]
                         }),
@@ -1742,13 +1747,54 @@ describe('MusicXML MVP', () => {
       parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events[0]
 
     expect(exported).toContain('<lyric number="1">')
+    expect(exported).toContain('<lyric number="4">')
+    expect(exported).toContain('<text>한-글 두음절</text>')
     expect(exported).toContain('<text>사랑</text>')
     expect(event).toMatchObject({
       type: 'note',
       lyrics: [
         { number: 1, syllabic: 'begin', text: '사랑' },
-        { number: 2, syllabic: 'single', text: 'love', extend: true }
+        { number: 2, syllabic: 'single', text: 'love', extend: true },
+        { number: 4, syllabic: 'single', text: '한-글 두음절' }
       ]
+    })
+  })
+
+  it('lyrics.musicxml-import accepts multiple text nodes in one lyric', () => {
+    const score = parseMusicXml(`<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list>
+    <score-part id="P1">
+      <part-name>Music</part-name>
+    </score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>${TICKS_PER_QUARTER}</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>${TICKS_PER_QUARTER * 4}</duration>
+        <type>whole</type>
+        <lyric number="3">
+          <syllabic>single</syllabic>
+          <text>한</text>
+          <elision/>
+          <text>음절</text>
+        </lyric>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`)
+    const event = score.parts[0].staves[0].measures[0].voices[0].events[0]
+
+    expect(event).toMatchObject({
+      type: 'note',
+      lyrics: [{ number: 3, syllabic: 'single', text: '한 음절' }]
     })
   })
 

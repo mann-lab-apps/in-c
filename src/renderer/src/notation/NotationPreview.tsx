@@ -64,6 +64,7 @@ interface NotationPreviewProps {
 
 interface InlineLyricEditor {
   eventId: string
+  number: number
   value: string
   syllabic: 'single' | 'begin' | 'middle' | 'end'
   extend?: boolean
@@ -1617,12 +1618,13 @@ function drawLyrics(
   staffY: number,
   lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
 ): void {
-  lyrics.forEach((lyric, index) => {
+  sortLyricsForDisplay(lyrics).forEach((lyric, index) => {
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    const lineIndex = Math.max(0, (lyric.number ?? index + 1) - 1)
 
     text.classList.add('notation-lyric')
     text.setAttribute('x', String(x + 4))
-    text.setAttribute('y', String(staffY + 116 + index * 16))
+    text.setAttribute('y', String(staffY + 116 + lineIndex * 16))
     text.textContent = `${lyric.text}${
       lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
     }${lyric.extend ? '_' : ''}`
@@ -1644,6 +1646,8 @@ function drawInlineLyricEditor(
     'http://www.w3.org/1999/xhtml',
     'input'
   ) as HTMLInputElement
+  let isComposing = false
+  let commitAfterComposition = false
   const commit = (
     options?: Parameters<InlineLyricEditor['onCommit']>[1]
   ) => {
@@ -1655,9 +1659,9 @@ function drawInlineLyricEditor(
   }
 
   container.classList.add('notation-lyric-editor')
-  container.setAttribute('x', String(x - 26))
-  container.setAttribute('y', String(staffY + 98))
-  container.setAttribute('width', '108')
+  container.setAttribute('x', String(x - 78))
+  container.setAttribute('y', String(staffY + 98 + (editor.number - 1) * 16))
+  container.setAttribute('width', '212')
   container.setAttribute('height', '42')
 
   input.setAttribute('aria-label', '선택 음표 가사')
@@ -1665,20 +1669,35 @@ function drawInlineLyricEditor(
   input.placeholder = '가사'
   input.type = 'text'
   input.value = editor.value
-  input.addEventListener('blur', () => commit())
+  input.addEventListener('compositionstart', () => {
+    isComposing = true
+  })
+  input.addEventListener('compositionend', () => {
+    isComposing = false
+
+    if (commitAfterComposition) {
+      commitAfterComposition = false
+      commit()
+    }
+  })
+  input.addEventListener('blur', () => {
+    if (isComposing) {
+      commitAfterComposition = true
+      return
+    }
+
+    commit()
+  })
   input.addEventListener('keydown', (event) => {
     event.stopPropagation()
 
-    if (event.isComposing) {
+    if (event.isComposing || isComposing || event.key === 'Process') {
       return
     }
 
     if (event.key === 'Enter') {
       event.preventDefault()
       commit({ moveNext: true })
-    } else if (event.key === '-') {
-      event.preventDefault()
-      commit({ syllabic: 'begin', moveNext: true })
     } else if (event.key === '_') {
       event.preventDefault()
       commit({ syllabic: 'single', extend: true, moveNext: true })
@@ -1693,11 +1712,17 @@ function drawInlineLyricEditor(
   svg.append(container)
   const focusInput = () => {
     input.focus()
-    input.select()
   }
 
   focusInput()
-  window.requestAnimationFrame(focusInput)
+}
+
+function sortLyricsForDisplay(
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+): NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']> {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
 }
 
 function drawTie(
