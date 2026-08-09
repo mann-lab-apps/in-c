@@ -2186,29 +2186,45 @@ export const App = () => {
       }
     ) => {
       const trimmedText = text.trim()
+      const existingLyric =
+        eventLocation?.event.type === 'note'
+          ? eventLocation.event.lyrics?.find(
+              (lyric) => (lyric.number ?? 1) === activeLyricVerse
+            )
+          : undefined
+      const nextSyllabic = options?.syllabic ?? 'single'
+      const nextExtend = options?.extend || undefined
+      const lyricChanged =
+        trimmedText.length > 0
+          ? existingLyric?.text !== trimmedText ||
+            (existingLyric.syllabic ?? 'single') !== nextSyllabic ||
+            (existingLyric.extend || undefined) !== nextExtend
+          : Boolean(existingLyric)
 
-      replaceSelectedNote((note) => {
-        const otherLyrics = (note.lyrics ?? []).filter(
-          (lyric) => (lyric.number ?? 1) !== activeLyricVerse
-        )
-        const lyrics =
-          trimmedText.length > 0
-            ? sortLyricsByNumber([
-                ...otherLyrics,
-                {
-                  number: activeLyricVerse,
-                  syllabic: options?.syllabic ?? 'single',
-                  text: trimmedText,
-                  extend: options?.extend
-                }
-              ])
-            : otherLyrics
+      if (lyricChanged) {
+        replaceSelectedNote((note) => {
+          const otherLyrics = (note.lyrics ?? []).filter(
+            (lyric) => (lyric.number ?? 1) !== activeLyricVerse
+          )
+          const lyrics =
+            trimmedText.length > 0
+              ? sortLyricsByNumber([
+                  ...otherLyrics,
+                  {
+                    number: activeLyricVerse,
+                    syllabic: nextSyllabic,
+                    text: trimmedText,
+                    extend: nextExtend
+                  }
+                ])
+              : otherLyrics
 
-        return {
-          ...note,
-          lyrics: lyrics.length > 0 ? lyrics : undefined
-        }
-      }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
+          return {
+            ...note,
+            lyrics: lyrics.length > 0 ? lyrics : undefined
+          }
+        }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
+      }
 
       if (options?.moveNext && eventLocation) {
         const eventId = getAdjacentNoteEventId(score, eventLocation.event.id, 1)

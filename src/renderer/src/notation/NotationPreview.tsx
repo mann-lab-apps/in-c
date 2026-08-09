@@ -1674,10 +1674,14 @@ function drawInlineLyricEditor(
   input.placeholder = '가사'
   input.type = 'text'
   input.value = editor.value
-  input.addEventListener('compositionstart', () => {
+  input.addEventListener('beforeinput', stopLyricEditorEvent)
+  input.addEventListener('input', stopLyricEditorEvent)
+  input.addEventListener('compositionstart', (event) => {
+    stopLyricEditorEvent(event)
     isComposing = true
   })
-  input.addEventListener('compositionend', () => {
+  input.addEventListener('compositionend', (event) => {
+    stopLyricEditorEvent(event)
     isComposing = false
 
     if (commitAfterComposition) {
@@ -1694,7 +1698,7 @@ function drawInlineLyricEditor(
     commit()
   })
   input.addEventListener('keydown', (event) => {
-    event.stopPropagation()
+    stopLyricEditorEvent(event)
 
     if (event.isComposing || isComposing || event.key === 'Process') {
       return
@@ -1728,6 +1732,11 @@ function sortLyricsForDisplay(
   return [...lyrics].sort(
     (left, right) => (left.number ?? 1) - (right.number ?? 1)
   )
+}
+
+function stopLyricEditorEvent(event: Event): void {
+  event.stopPropagation()
+  event.stopImmediatePropagation()
 }
 
 function drawTie(

@@ -648,6 +648,12 @@ describe('App component shell', () => {
       'data-lyrics',
       expect.stringContaining('m1-c4:4:single:한-글 두음절')
     )
+    const editCountAfterLyricCommit = document.querySelector('.editor-status')
+      ?.textContent
+    fireEvent.blur(fourthVerseInput)
+    expect(document.querySelector('.editor-status')?.textContent).toBe(
+      editCountAfterLyricCommit
+    )
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
     expect(screen.getByLabelText('조표')).toBeVisible()
