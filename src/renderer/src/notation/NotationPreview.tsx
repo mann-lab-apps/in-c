@@ -406,12 +406,38 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (svg && measure.repeat) {
-        drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
-      }
+      if (svg && (measure.repeat || measure.volta)) {
+        const staffTopY = stave.getYForLine(0)
+        const staffBottomY = stave.getYForLine(4)
+        const notationStartX = Math.max(
+          placement.x + 8,
+          stave.getNoteStartX() - 12
+        )
+        const notationEndX = Math.min(
+          placement.x + placement.width - 8,
+          stave.getNoteEndX() + 8
+        )
 
-      if (svg && measure.volta) {
-        drawVoltaMark(svg, placement.x, placement.y, placement.width, measure.volta)
+        if (measure.repeat) {
+          drawRepeatMark(
+            svg,
+            notationStartX,
+            notationEndX,
+            staffTopY,
+            staffBottomY,
+            measure.repeat
+          )
+        }
+
+        if (measure.volta) {
+          drawVoltaMark(
+            svg,
+            notationStartX,
+            notationEndX,
+            staffTopY,
+            measure.volta
+          )
+        }
       }
 
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
@@ -1061,31 +1087,32 @@ function appendRhythmFeelTripletNotes(
 
 function drawRepeatMark(
   svg: SVGSVGElement,
-  x: number,
-  y: number,
-  width: number,
+  startX: number,
+  endX: number,
+  staffTopY: number,
+  staffBottomY: number,
   repeat: NonNullable<Measure['repeat']>
 ): void {
   if (repeat.start) {
-    drawRepeatBarline(svg, x + 8, y, 'start')
+    drawRepeatBarline(svg, startX, staffTopY, staffBottomY, 'start')
   }
 
   if (repeat.end) {
-    drawRepeatBarline(svg, x + width - 8, y, 'end', repeat.times)
+    drawRepeatBarline(svg, endX, staffTopY, staffBottomY, 'end', repeat.times)
   }
 }
 
 function drawVoltaMark(
   svg: SVGSVGElement,
-  x: number,
-  y: number,
-  width: number,
+  startX: number,
+  endX: number,
+  staffTopY: number,
   volta: NonNullable<Measure['volta']>
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  const bracketY = y - 22
-  const leftX = x + 10
-  const rightX = x + width - 10
+  const bracketY = staffTopY - 22
+  const leftX = startX
+  const rightX = endX
   const horizontal = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -1126,7 +1153,8 @@ function drawVoltaMark(
 function drawRepeatBarline(
   svg: SVGSVGElement,
   x: number,
-  staffY: number,
+  staffTopY: number,
+  staffBottomY: number,
   type: 'start' | 'end',
   times?: number
 ): void {
@@ -1142,18 +1170,18 @@ function drawRepeatBarline(
   group.classList.add('notation-repeat-mark')
   thick.setAttribute('x1', String(thickX))
   thick.setAttribute('x2', String(thickX))
-  thick.setAttribute('y1', String(staffY))
-  thick.setAttribute('y2', String(staffY + 40))
+  thick.setAttribute('y1', String(staffTopY))
+  thick.setAttribute('y2', String(staffBottomY))
   thick.setAttribute('stroke-width', '3')
   thin.setAttribute('x1', String(thinX))
   thin.setAttribute('x2', String(thinX))
-  thin.setAttribute('y1', String(staffY))
-  thin.setAttribute('y2', String(staffY + 40))
+  thin.setAttribute('y1', String(staffTopY))
+  thin.setAttribute('y2', String(staffBottomY))
   thin.setAttribute('stroke-width', '1')
 
   dots.forEach((dot, index) => {
     dot.setAttribute('cx', String(type === 'start' ? x + 12 : x - 12))
-    dot.setAttribute('cy', String(staffY + 15 + index * 10))
+    dot.setAttribute('cy', String(staffTopY + 15 + index * 10))
     dot.setAttribute('r', '2')
   })
 
@@ -1163,7 +1191,7 @@ function drawRepeatBarline(
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
     text.setAttribute('x', String(x - 20))
-    text.setAttribute('y', String(staffY - 8))
+    text.setAttribute('y', String(staffTopY - 8))
     text.textContent = `x${times}`
     group.append(text)
   }

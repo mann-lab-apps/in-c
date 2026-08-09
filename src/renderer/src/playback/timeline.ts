@@ -170,63 +170,72 @@ function applyRepeatPlayback(
   measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
   totalBeats: number
 ): { events: PlaybackEvent[]; totalBeats: number } {
-  let repeatStartMeasureId: string | undefined = measures[0]?.id
-  const nextEvents = [...events]
-  let extraBeats = 0
+  const measureStartBeats = createStaffMeasureStartBeatMap(measures)
+  const nextEvents: PlaybackEvent[] = []
+  let repeatStartIndex = 0
+  let outputBeat = 0
 
-  for (const measure of measures) {
+  const appendMeasure = (measure: (typeof measures)[number]) => {
+    const sourceBeat = measureStartBeats.get(measure.id) ?? 0
+    const beatOffset = outputBeat - sourceBeat
+
+    nextEvents.push(
+      ...events
+        .filter((event) => event.measureId === measure.id)
+        .map((event) => ({
+          ...event,
+          startBeat: event.startBeat + beatOffset
+        }))
+    )
+    outputBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+  }
+
+  for (let measureIndex = 0; measureIndex < measures.length; measureIndex += 1) {
+    const measure = measures[measureIndex]
+
     if (measure.repeat?.start) {
-      repeatStartMeasureId = measure.id
+      repeatStartIndex = measureIndex
     }
 
-    if (!measure.repeat?.end || !repeatStartMeasureId) {
+    appendMeasure(measure)
+
+    if (!measure.repeat?.end) {
       continue
     }
 
-    const startBeat = measureStartBeat(measures, repeatStartMeasureId)
-    const endBeat =
-      measureStartBeat(measures, measure.id) +
-      measureDurationTicks(measure) / TICKS_PER_QUARTER
     const repeatCount = Math.max(2, measure.repeat.times ?? 2)
-    const sectionDuration = endBeat - startBeat
-    const sectionEvents = events.filter((event) =>
-      event.startBeat >= startBeat && event.startBeat < endBeat
-    )
 
     for (let repeatIndex = 1; repeatIndex < repeatCount; repeatIndex += 1) {
-      nextEvents.push(
-        ...sectionEvents.map((event) => ({
-          ...event,
-          startBeat: event.startBeat + sectionDuration * repeatIndex
-        }))
-      )
+      for (
+        let repeatedMeasureIndex = repeatStartIndex;
+        repeatedMeasureIndex <= measureIndex;
+        repeatedMeasureIndex += 1
+      ) {
+        appendMeasure(measures[repeatedMeasureIndex])
+      }
     }
 
-    extraBeats += sectionDuration * (repeatCount - 1)
-    repeatStartMeasureId = undefined
+    repeatStartIndex = measureIndex + 1
   }
 
   return {
     events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
-    totalBeats: totalBeats + extraBeats
+    totalBeats: outputBeat || totalBeats
   }
 }
 
-function measureStartBeat(
+function createStaffMeasureStartBeatMap(
   measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
-  measureId: string
-): number {
+): Map<string, number> {
+  const startBeats = new Map<string, number>()
   let beat = 0
 
   for (const measure of measures) {
-    if (measure.id === measureId) {
-      return beat
-    }
-
+    startBeats.set(measure.id, beat)
     beat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
-  return 0
+  return startBeats
 }
 
 function eventFrequencies(
