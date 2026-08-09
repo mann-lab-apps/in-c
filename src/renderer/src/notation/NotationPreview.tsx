@@ -84,6 +84,8 @@ const REHEARSAL_MARK_Y_OFFSET = -62
 const STAFF_TEXT_Y_OFFSET = -24
 const DYNAMIC_MARK_Y_OFFSET = 122
 const HAIRPIN_Y_OFFSET = 126
+const MEASURE_STAFF_TARGET_Y_OFFSET = -6
+const MEASURE_STAFF_TARGET_HEIGHT = 72
 
 interface CursorPoint {
   x: number
@@ -100,6 +102,14 @@ interface SystemBounds {
   x2: number
   noteStartX?: number
   y: number
+}
+
+interface MeasureContextTarget {
+  measureId: string
+  x1: number
+  x2: number
+  y1: number
+  y2: number
 }
 
 export function NotationPreview({
@@ -148,17 +158,14 @@ export function NotationPreview({
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(renderWidth, layout.height)
     const context = renderer.getContext()
-    const svg = container.querySelector('svg')
+    const svg = container.querySelector<SVGSVGElement>('svg')
     let playbackPoint: CursorPoint | undefined
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
     const pointsByEventId = new Map<string, CursorPoint>()
     const boundsBySystemIndex = new Map<number, SystemBounds>()
     const selectedEventIdSet = new Set(selectedEventIds)
-    const measureContextTargets: Array<{
-      measureId: string
-      element: SVGGraphicsElement
-    }> = []
+    const measureContextTargets: MeasureContextTarget[] = []
     let dragAnchorEventId: string | undefined
 
     const clearDragAnchor = () => {
@@ -166,18 +173,22 @@ export function NotationPreview({
     }
 
     const openMeasureContextMenuAtPointer = (event: MouseEvent): boolean => {
-      let target: (typeof measureContextTargets)[number] | undefined
+      const pointer = resolveSvgPointer(svg, event)
+
+      if (!pointer) {
+        return false
+      }
+
+      let target: MeasureContextTarget | undefined
 
       for (let index = measureContextTargets.length - 1; index >= 0; index -= 1) {
         const candidate = measureContextTargets[index]
-        const { element } = candidate
-        const bounds = element.getBoundingClientRect()
 
         if (
-          event.clientX >= bounds.left &&
-          event.clientX <= bounds.right &&
-          event.clientY >= bounds.top &&
-          event.clientY <= bounds.bottom
+          pointer.x >= candidate.x1 &&
+          pointer.x <= candidate.x2 &&
+          pointer.y >= candidate.y1 &&
+          pointer.y <= candidate.y2
         ) {
           target = candidate
           break
@@ -272,6 +283,16 @@ export function NotationPreview({
       )
       const clef = toVexFlowClef(measure.clef)
       let selectionTarget: SVGRectElement | undefined
+      const measureStaffTarget = {
+        measureId: measure.id,
+        x1: placement.x,
+        x2: placement.x + placement.width,
+        y1: placement.y + MEASURE_STAFF_TARGET_Y_OFFSET,
+        y2:
+          placement.y +
+          MEASURE_STAFF_TARGET_Y_OFFSET +
+          MEASURE_STAFF_TARGET_HEIGHT
+      } satisfies MeasureContextTarget
 
       if (svg) {
         selectionTarget = document.createElementNS(
@@ -283,10 +304,16 @@ export function NotationPreview({
         selectionTarget.classList.toggle('is-selected', measure.id === selectedMeasureId)
         selectionTarget.setAttribute('data-measure-id', measure.id)
         selectionTarget.setAttribute('data-system-index', String(placement.systemIndex))
-        selectionTarget.setAttribute('x', String(placement.x))
-        selectionTarget.setAttribute('y', String(placement.y - 10))
-        selectionTarget.setAttribute('width', String(placement.width))
-        selectionTarget.setAttribute('height', '112')
+        selectionTarget.setAttribute('x', String(measureStaffTarget.x1))
+        selectionTarget.setAttribute('y', String(measureStaffTarget.y1))
+        selectionTarget.setAttribute(
+          'width',
+          String(measureStaffTarget.x2 - measureStaffTarget.x1)
+        )
+        selectionTarget.setAttribute(
+          'height',
+          String(measureStaffTarget.y2 - measureStaffTarget.y1)
+        )
         selectionTarget.setAttribute('rx', '4')
         selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
         selectionTarget.addEventListener('contextmenu', (event) => {
@@ -297,10 +324,7 @@ export function NotationPreview({
             y: event.clientY
           })
         })
-        measureContextTargets.push({
-          measureId: measure.id,
-          element: selectionTarget
-        })
+        measureContextTargets.push(measureStaffTarget)
         svg.append(selectionTarget)
       }
 
@@ -825,6 +849,31 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function resolveSvgPointer(
+  svg: SVGSVGElement | null,
+  event: MouseEvent
+): { x: number; y: number } | undefined {
+  if (!svg) {
+    return undefined
+  }
+
+  const transform = svg.getScreenCTM()
+
+  if (!transform) {
+    return undefined
+  }
+
+  const point = svg.createSVGPoint()
+  point.x = event.clientX
+  point.y = event.clientY
+
+  const svgPoint = point.matrixTransform(transform.inverse())
+  return {
+    x: svgPoint.x,
+    y: svgPoint.y
+  }
 }
 
 function drawTempoMarking(svg: SVGSVGElement, tempo: TempoMarking): void {
