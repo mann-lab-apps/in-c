@@ -104,6 +104,20 @@ vi.mock('./notation/NotationPreview', () => ({
         )
         .join('|')}
       data-measure-count={score.parts[0]?.staves[0]?.measures.length ?? 0}
+      data-measure-marks={score.parts[0]?.staves[0]?.measures
+        .map((measure) =>
+          [
+            measure.number,
+            `${measure.repeat?.start ? 'S' : ''}${measure.repeat?.end ? 'E' : ''}`,
+            measure.repeat?.times ?? '',
+            measure.volta
+              ? `${measure.volta.number}:${measure.volta.start ? 'S' : ''}${
+                  measure.volta.end ? 'E' : ''
+                }`
+              : ''
+          ].join(':')
+        )
+        .join('|')}
       data-selected-event-id={selectedEventId ?? ''}
       data-testid="notation-preview"
     >
@@ -536,9 +550,57 @@ describe('App component shell', () => {
       within(menu).getByRole('menuitem', { name: '뒤에 마디 추가' })
     ).toBeInTheDocument()
     expect(
+      within(menu).getByRole('menuitem', { name: '도돌이표 시작' })
+    ).toBeInTheDocument()
+    expect(
+      within(menu).getByRole('menuitem', { name: '도돌이표 끝' })
+    ).toBeInTheDocument()
+    expect(
+      within(menu).getByRole('menuitem', { name: '1번 볼타' })
+    ).toBeInTheDocument()
+    expect(
+      within(menu).getByRole('menuitem', { name: '2번 볼타' })
+    ).toBeInTheDocument()
+    expect(
       within(menu).getByRole('menuitem', { name: '마디 제거' })
     ).toBeInTheDocument()
 
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '도돌이표 시작' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-marks',
+      expect.stringContaining('2:S::')
+    )
+    expect(screen.getByText('도돌이표 시작을 갱신했습니다.')).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '도돌이표 끝' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-marks',
+      expect.stringContaining('2:SE:2:')
+    )
+    expect(screen.getByText('도돌이표 끝을 갱신했습니다.')).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '1번 볼타' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-marks',
+      expect.stringContaining('2:SE:2:1:SE')
+    )
+    expect(screen.getByText('1번 볼타 괄호를 갱신했습니다.')).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
     fireEvent.click(within(menu).getByRole('menuitem', { name: '뒤에 마디 추가' }))
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(

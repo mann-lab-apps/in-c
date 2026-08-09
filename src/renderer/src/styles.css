@@ -1162,6 +1162,7 @@ h2 {
 
 .notation-octave-shift,
 .notation-repeat-mark,
+.notation-volta-mark,
 .notation-tremolo-mark {
   fill: #111827;
   pointer-events: none;
@@ -1170,7 +1171,8 @@ h2 {
 }
 
 .notation-octave-shift text,
-.notation-repeat-mark text {
+.notation-repeat-mark text,
+.notation-volta-mark text {
   fill: #111827;
   font-size: 12px;
   font-weight: 700;

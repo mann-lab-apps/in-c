@@ -798,6 +798,40 @@ describe('MusicXML MVP', () => {
     })
   })
 
+  it('exports and re-imports volta endings', () => {
+    const score = createScore({
+      title: 'Volta Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  volta: {
+                    number: 1,
+                    start: true,
+                    end: true
+                  }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const volta = roundTrip.parts[0].staves[0].measures[0].volta
+
+    expect(exported).toContain('<ending number="1" type="start"/>')
+    expect(exported).toContain('<ending number="1" type="stop"/>')
+    expect(volta).toEqual({
+      number: 1,
+      start: true,
+      end: true
+    })
+  })
+
   it('clef.musicxml-round-trip exports and re-imports supported clef changes', () => {
     const score = createScore({
       title: 'Clef Sketch',

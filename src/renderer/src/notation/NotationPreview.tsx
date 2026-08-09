@@ -410,6 +410,10 @@ export function NotationPreview({
         drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
       }
 
+      if (svg && measure.volta) {
+        drawVoltaMark(svg, placement.x, placement.y, placement.width, measure.volta)
+      }
+
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
 
       if (svg && rehearsalMark) {
@@ -1069,6 +1073,54 @@ function drawRepeatMark(
   if (repeat.end) {
     drawRepeatBarline(svg, x + width - 8, y, 'end', repeat.times)
   }
+}
+
+function drawVoltaMark(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  width: number,
+  volta: NonNullable<Measure['volta']>
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const bracketY = y - 22
+  const leftX = x + 10
+  const rightX = x + width - 10
+  const horizontal = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  group.classList.add('notation-volta-mark')
+  horizontal.setAttribute('x1', String(leftX))
+  horizontal.setAttribute('x2', String(rightX))
+  horizontal.setAttribute('y1', String(bracketY))
+  horizontal.setAttribute('y2', String(bracketY))
+
+  if (volta.start) {
+    const leftHook = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    leftHook.setAttribute('x1', String(leftX))
+    leftHook.setAttribute('x2', String(leftX))
+    leftHook.setAttribute('y1', String(bracketY))
+    leftHook.setAttribute('y2', String(bracketY + 12))
+    group.append(leftHook)
+  }
+
+  if (volta.end) {
+    const rightHook = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    rightHook.setAttribute('x1', String(rightX))
+    rightHook.setAttribute('x2', String(rightX))
+    rightHook.setAttribute('y1', String(bracketY))
+    rightHook.setAttribute('y2', String(bracketY + 12))
+    group.append(rightHook)
+  }
+
+  label.setAttribute('x', String(leftX + 8))
+  label.setAttribute('y', String(bracketY - 4))
+  label.textContent = `${volta.number}.`
+
+  group.append(horizontal, label)
+  svg.append(group)
 }
 
 function drawRepeatBarline(

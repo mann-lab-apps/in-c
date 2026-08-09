@@ -350,7 +350,14 @@ interface RecentMusicXmlFile {
   openedAt: string
 }
 
-type MeasureContextAction = 'insert-before' | 'insert-after' | 'remove'
+type MeasureContextAction =
+  | 'insert-before'
+  | 'insert-after'
+  | 'remove'
+  | 'toggle-repeat-start'
+  | 'toggle-repeat-end'
+  | 'toggle-volta-1'
+  | 'toggle-volta-2'
 
 interface MeasureContextMenuState {
   measureId: string
@@ -367,7 +374,7 @@ const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const MEASURE_CONTEXT_MENU_WIDTH = 176
-const MEASURE_CONTEXT_MENU_HEIGHT = 136
+const MEASURE_CONTEXT_MENU_HEIGHT = 288
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
 const clefPresets = [
   { id: 'treble', label: '높은음자리표', value: { sign: 'G', line: 2 } },
@@ -1675,6 +1682,43 @@ export const App = () => {
     removeMeasureById(activeMeasureId)
   }, [activeMeasureId, removeMeasureById])
 
+  const updateMeasureById = useCallback(
+    (
+      measureId: string,
+      update: (measure: Measure) => Measure,
+      message: string
+    ) => {
+      for (const part of score.parts) {
+        for (const staff of part.staves) {
+          if (!staff.measures.some((measure) => measure.id === measureId)) {
+            continue
+          }
+
+          if (
+            executeCommand({
+              type: 'staff-measures.replace',
+              target: {
+                partId: part.id,
+                staffId: staff.id
+              },
+              measures: staff.measures.map((measure) =>
+                measure.id === measureId ? update(measure) : measure
+              )
+            })
+          ) {
+            setFileStatus({
+              tone: 'neutral',
+              message
+            })
+          }
+
+          return
+        }
+      }
+    },
+    [executeCommand, score.parts]
+  )
+
   const openMeasureContextMenu = useCallback((
     measureId: string,
     position: { x: number; y: number }
@@ -1715,10 +1759,55 @@ export const App = () => {
       insertMeasure(measureId, 'before')
     } else if (action === 'insert-after') {
       insertMeasure(measureId, 'after')
-    } else {
+    } else if (action === 'remove') {
       removeMeasureById(measureId)
+    } else if (action === 'toggle-repeat-start') {
+      updateMeasureById(
+        measureId,
+        (measure) => ({
+          ...measure,
+          repeat: normalizeRepeatMark({
+            ...measure.repeat,
+            start: measure.repeat?.start ? undefined : true
+          })
+        }),
+        '도돌이표 시작을 갱신했습니다.'
+      )
+    } else if (action === 'toggle-repeat-end') {
+      updateMeasureById(
+        measureId,
+        (measure) => ({
+          ...measure,
+          repeat: normalizeRepeatMark({
+            ...measure.repeat,
+            end: measure.repeat?.end ? undefined : true,
+            times: measure.repeat?.end ? undefined : measure.repeat?.times ?? 2
+          })
+        }),
+        '도돌이표 끝을 갱신했습니다.'
+      )
+    } else {
+      const number = action === 'toggle-volta-1' ? 1 : 2
+
+      updateMeasureById(
+        measureId,
+        (measure) => ({
+          ...measure,
+          volta:
+            measure.volta?.number === number &&
+            measure.volta.start &&
+            measure.volta.end
+              ? undefined
+              : {
+                  number,
+                  start: true,
+                  end: true
+                }
+        }),
+        `${number}번 볼타 괄호를 갱신했습니다.`
+      )
     }
-  }, [insertMeasure, measureContextMenu, removeMeasureById])
+  }, [insertMeasure, measureContextMenu, removeMeasureById, updateMeasureById])
 
   const toggleSystemBreak = useCallback(() => {
     if (!activeMeasureId || activeMeasureIndex <= 0) {
@@ -4743,6 +4832,34 @@ export const App = () => {
               뒤에 마디 추가
             </button>
             <button
+              onClick={() => applyMeasureContextAction('toggle-repeat-start')}
+              role="menuitem"
+              type="button"
+            >
+              도돌이표 시작
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-repeat-end')}
+              role="menuitem"
+              type="button"
+            >
+              도돌이표 끝
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-volta-1')}
+              role="menuitem"
+              type="button"
+            >
+              1번 볼타
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-volta-2')}
+              role="menuitem"
+              type="button"
+            >
+              2번 볼타
+            </button>
+            <button
               className="measure-context-menu__danger"
               disabled={measureCount <= 1}
               onClick={() => applyMeasureContextAction('remove')}
@@ -5631,6 +5748,18 @@ function scoreContainsPreviewArtifacts(score: Score): boolean {
   )
 }
 
+function normalizeRepeatMark(repeat: Measure['repeat']): Measure['repeat'] {
+  if (!repeat?.start && !repeat?.end) {
+    return undefined
+  }
+
+  return {
+    start: repeat.start,
+    end: repeat.end,
+    times: repeat.end ? repeat.times : undefined
+  }
+}
+
 function createSaveSignature(score: Score): string {
   const eventReferences = createEventReferenceMap(score)
   const measureReferences = createMeasureReferenceMap(score)
@@ -5651,6 +5780,7 @@ function createSaveSignature(score: Score): string {
           keySignature: measure.keySignature,
           clef: measure.clef,
           repeat: measure.repeat ?? null,
+          volta: measure.volta ?? null,
           voices: measure.voices.map((voice) =>
             createVoiceSaveSignature(measure, voice)
           )

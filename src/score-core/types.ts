@@ -131,6 +131,7 @@ export interface Measure {
   keySignature: KeySignature
   clef: Clef
   repeat?: RepeatMark
+  volta?: VoltaMark
   voices: Voice[]
 }
 
@@ -189,6 +190,12 @@ export interface RepeatMark {
   start?: boolean
   end?: boolean
   times?: number
+}
+
+export interface VoltaMark {
+  number: 1 | 2
+  start?: boolean
+  end?: boolean
 }
 
 export interface HarmonyMark {
