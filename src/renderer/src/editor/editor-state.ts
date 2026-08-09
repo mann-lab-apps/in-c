@@ -1051,67 +1051,82 @@ function buildRangeDeleteCommand(
   score: Score,
   selection: Extract<EditorSelection, { type: 'range' }>
 ): ScoreCommand | undefined {
-  const locations = selection.eventIds.map((eventId) =>
-    locateEvent(score, eventId)
-  )
+  const range = locateSameMeasureRange(score, selection)
 
-  if (locations.some((location) => !location)) {
+  if (!range || !isSimpleRange(range.events) || range.voice.tuplets?.length) {
     return undefined
   }
 
-  const first = locations[0]
+  const events = sortVoiceEvents(range.voice.events)
+  const firstEvent = range.events[0]
+  const lastEvent = range.events[range.events.length - 1]
+  const firstIndex = events.findIndex((event) => event.id === firstEvent.id)
+  const lastIndex = events.findIndex((event) => event.id === lastEvent.id)
+
+  if (firstIndex === -1 || lastIndex === -1) {
+    return undefined
+  }
+
+  const removeIds = new Set(range.events.map((event) => event.id))
+  let endTick = eventEndTick(lastEvent)
+
+  for (const event of events.slice(lastIndex + 1)) {
+    if (
+      event.type !== 'rest' ||
+      event.duration.tuplet ||
+      event.position.tick !== endTick
+    ) {
+      break
+    }
+
+    removeIds.add(event.id)
+    endTick = eventEndTick(event)
+  }
+
+  let generatedRestIndex = 0
+  const restEvents = createRestsForSpan(
+    firstEvent.position.tick,
+    endTick,
+    () => `${firstEvent.id}-delete-rest-${++generatedRestIndex}`,
+    firstEvent.id
+  )
+
+  if (restEvents.length === 0) {
+    return undefined
+  }
+
+  const nextEvents = sortVoiceEvents([
+    ...events.filter((event) => !removeIds.has(event.id)),
+    ...restEvents
+  ])
+  const nextMeasure = {
+    ...range.measure,
+    voices: range.measure.voices.map((voice) =>
+      voice.id === range.address.voiceId
+        ? {
+            ...voice,
+            events: nextEvents
+          }
+        : voice
+    )
+  }
 
   if (
-    !first ||
-    !locations.every(
-      (location) =>
-        location &&
-        sameVoiceAddress(first.address, location.address) &&
-        first.address.measureId === location.address.measureId
-    )
+    !validateMeasureRhythm(nextMeasure).isExact ||
+    validateVoiceTuplets({
+      ...range.voice,
+      events: nextEvents
+    }).length > 0
   ) {
     return undefined
   }
 
-  let nextScore = score
-  const commands: ScoreCommand[] = []
-
-  for (const eventId of [...selection.eventIds].reverse()) {
-    const location = locateEvent(nextScore, eventId)
-
-    if (!location || !sameVoiceAddress(first.address, location.address)) {
-      return undefined
-    }
-
-    const command = buildRhythmDeleteCommand(
-      nextScore,
-      location.address,
-      location.event.id
-    )
-
-    if (!command) {
-      return undefined
-    }
-
-    try {
-      nextScore = applyScoreCommand(nextScore, command).score
-    } catch {
-      return undefined
-    }
-
-    commands.push(command)
+  return {
+    type: 'voice-events.replace',
+    target: range.address,
+    events: nextEvents,
+    editedEventId: restEvents[0].id
   }
-
-  if (commands.length === 0) {
-    return undefined
-  }
-
-  return commands.length === 1
-    ? commands[0]
-    : {
-        type: 'score.batch',
-        commands
-      }
 }
 
 export function getAdjacentEventId(

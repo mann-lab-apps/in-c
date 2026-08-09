@@ -56,6 +56,10 @@ interface NotationPreviewProps {
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
   onSelectMeasure: (measureId: string) => void
+  onOpenMeasureContextMenu: (
+    measureId: string,
+    position: { x: number; y: number }
+  ) => void
 }
 
 interface InlineLyricEditor {
@@ -80,6 +84,7 @@ const REHEARSAL_MARK_Y_OFFSET = -62
 const STAFF_TEXT_Y_OFFSET = -24
 const DYNAMIC_MARK_Y_OFFSET = 122
 const HAIRPIN_Y_OFFSET = 126
+const MEASURE_STAFF_VERTICAL_PADDING = 18
 
 interface CursorPoint {
   x: number
@@ -98,6 +103,14 @@ interface SystemBounds {
   y: number
 }
 
+interface MeasureContextTarget {
+  measureId: string
+  x1: number
+  x2: number
+  y1: number
+  y2: number
+}
+
 export function NotationPreview({
   score,
   inlineLyricEditor,
@@ -107,7 +120,8 @@ export function NotationPreview({
   playbackEventId,
   onSelectEvent,
   onSelectEventRange,
-  onSelectMeasure
+  onSelectMeasure,
+  onOpenMeasureContextMenu
 }: NotationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [renderWidth, setRenderWidth] = useState(MIN_RENDER_WIDTH)
@@ -143,20 +157,75 @@ export function NotationPreview({
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(renderWidth, layout.height)
     const context = renderer.getContext()
-    const svg = container.querySelector('svg')
+    const svg = container.querySelector<SVGSVGElement>('svg')
     let playbackPoint: CursorPoint | undefined
     const notesByEventId = new Map<string, StaveNote>()
     const systemsByEventId = new Map<string, number>()
     const pointsByEventId = new Map<string, CursorPoint>()
     const boundsBySystemIndex = new Map<number, SystemBounds>()
     const selectedEventIdSet = new Set(selectedEventIds)
+    const measureContextTargets: MeasureContextTarget[] = []
     let dragAnchorEventId: string | undefined
 
     const clearDragAnchor = () => {
       dragAnchorEventId = undefined
     }
 
+    const openMeasureContextMenuAtPointer = (event: MouseEvent): boolean => {
+      if (isNotationEventContextTarget(event.target)) {
+        return false
+      }
+
+      const pointer = resolveSvgPointer(svg, event)
+
+      if (!pointer) {
+        return false
+      }
+
+      let target: MeasureContextTarget | undefined
+
+      for (let index = measureContextTargets.length - 1; index >= 0; index -= 1) {
+        const candidate = measureContextTargets[index]
+
+        if (
+          pointer.x >= candidate.x1 &&
+          pointer.x <= candidate.x2 &&
+          pointer.y >= candidate.y1 &&
+          pointer.y <= candidate.y2
+        ) {
+          target = candidate
+          break
+        }
+      }
+
+      if (!target) {
+        return false
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      onOpenMeasureContextMenu(target.measureId, {
+        x: event.clientX,
+        y: event.clientY
+      })
+      return true
+    }
+
+    const openMeasureContextMenuFromSecondaryMouse = (event: MouseEvent) => {
+      if (event.button !== 2) {
+        return
+      }
+
+      openMeasureContextMenuAtPointer(event)
+    }
+
     window.addEventListener('mouseup', clearDragAnchor)
+    container.addEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
+    container.addEventListener(
+      'mouseup',
+      openMeasureContextMenuFromSecondaryMouse,
+      true
+    )
 
     if (svg) {
       svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
@@ -233,11 +302,17 @@ export function NotationPreview({
         selectionTarget.setAttribute('data-measure-id', measure.id)
         selectionTarget.setAttribute('data-system-index', String(placement.systemIndex))
         selectionTarget.setAttribute('x', String(placement.x))
-        selectionTarget.setAttribute('y', String(placement.y - 10))
         selectionTarget.setAttribute('width', String(placement.width))
-        selectionTarget.setAttribute('height', '112')
         selectionTarget.setAttribute('rx', '4')
         selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
+        selectionTarget.addEventListener('contextmenu', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onOpenMeasureContextMenu(measure.id, {
+            x: event.clientX,
+            y: event.clientY
+          })
+        })
         svg.append(selectionTarget)
       }
 
@@ -269,6 +344,20 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+      const measureStaffTarget = resolveMeasureStaffTarget(
+        measure.id,
+        placement.x,
+        placement.width,
+        stave
+      )
+
+      selectionTarget?.setAttribute('y', String(measureStaffTarget.y1))
+      selectionTarget?.setAttribute(
+        'height',
+        String(measureStaffTarget.y2 - measureStaffTarget.y1)
+      )
+      measureContextTargets.push(measureStaffTarget)
+
       const defaultNoteStartX = stave.getNoteStartX()
 
       if (showsClef || showsKeySignature || showsTimeSignature) {
@@ -489,6 +578,10 @@ export function NotationPreview({
               onSelectEvent(eventId, event.shiftKey)
             })
             svgElement.addEventListener('mousedown', (event) => {
+              if (event.button !== 0) {
+                return
+              }
+
               event.preventDefault()
               event.stopPropagation()
               dragAnchorEventId = eventId
@@ -736,11 +829,22 @@ export function NotationPreview({
 
     return () => {
       window.removeEventListener('mouseup', clearDragAnchor)
+      container.removeEventListener(
+        'contextmenu',
+        openMeasureContextMenuAtPointer,
+        true
+      )
+      container.removeEventListener(
+        'mouseup',
+        openMeasureContextMenuFromSecondaryMouse,
+        true
+      )
     }
   }, [
     onSelectEvent,
     onSelectEventRange,
     onSelectMeasure,
+    onOpenMeasureContextMenu,
     renderWidth,
     score,
     inlineLyricEditor,
@@ -751,6 +855,53 @@ export function NotationPreview({
   ])
 
   return <div className="notation-preview" ref={containerRef} />
+}
+
+function resolveSvgPointer(
+  svg: SVGSVGElement | null,
+  event: MouseEvent
+): { x: number; y: number } | undefined {
+  if (!svg) {
+    return undefined
+  }
+
+  const transform = svg.getScreenCTM()
+
+  if (!transform) {
+    return undefined
+  }
+
+  const point = svg.createSVGPoint()
+  point.x = event.clientX
+  point.y = event.clientY
+
+  const svgPoint = point.matrixTransform(transform.inverse())
+  return {
+    x: svgPoint.x,
+    y: svgPoint.y
+  }
+}
+
+function resolveMeasureStaffTarget(
+  measureId: string,
+  x: number,
+  width: number,
+  stave: Stave
+): MeasureContextTarget {
+  const topLineY = stave.getYForLine(0)
+  const bottomLineY = stave.getYForLine(4)
+
+  return {
+    measureId,
+    x1: x,
+    x2: x + width,
+    y1: topLineY - MEASURE_STAFF_VERTICAL_PADDING,
+    y2: bottomLineY + MEASURE_STAFF_VERTICAL_PADDING
+  }
+}
+
+function isNotationEventContextTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest('.notation-event'))
 }
 
 function drawTempoMarking(svg: SVGSVGElement, tempo: TempoMarking): void {

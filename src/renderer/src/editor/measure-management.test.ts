@@ -12,6 +12,7 @@ import {
 } from '../../../score-core'
 import {
   buildInsertMeasureAfter,
+  buildInsertMeasureBefore,
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './measure-management'
@@ -54,6 +55,37 @@ describe('measure management', () => {
       timeSignature: measures[1].timeSignature
     })
     expect(validateMeasureRhythm(measures[2]).isExact).toBe(true)
+    expect(edit!.selection).toEqual({
+      type: 'event',
+      eventId: 'event-new'
+    })
+    expect(edit!.inputState?.target.measureId).toBe('measure-new')
+  })
+
+  it('adds an inherited empty measure before the active measure', () => {
+    const score = createThreeMeasureScore()
+    const edit = buildInsertMeasureBefore(
+      score,
+      'measure-2',
+      idSequence(),
+      inputState
+    )
+    const result = applyScoreCommand(score, edit!.command)
+    const measures = result.score.parts[0].staves[0].measures
+
+    expect(measures.map((measure) => measure.id)).toEqual([
+      'measure-1',
+      'measure-new',
+      'measure-2',
+      'measure-3'
+    ])
+    expect(measures.map((measure) => measure.number)).toEqual([1, 2, 3, 4])
+    expect(measures[1]).toMatchObject({
+      clef: measures[2].clef,
+      keySignature: measures[2].keySignature,
+      timeSignature: measures[2].timeSignature
+    })
+    expect(validateMeasureRhythm(measures[1]).isExact).toBe(true)
     expect(edit!.selection).toEqual({
       type: 'event',
       eventId: 'event-new'

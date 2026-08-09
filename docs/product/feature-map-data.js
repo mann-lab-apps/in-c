@@ -179,13 +179,13 @@ window.FEATURE_MAP = [
             docs: ["docs/architecture/rhythm-editing-transactions.md"]
           },
           {
-            name: "Backspace 삭제와 앞 이벤트 병합",
+            name: "Backspace 삭제와 쉼표 병합",
             status: "지원",
             acceptance: ["docs/product/acceptance/delete-event.feature"],
             docs: ["docs/architecture/delete-rest-policy.md"]
           },
           {
-            name: "첫 이벤트 삭제와 뒤 이벤트 당김",
+            name: "삭제 위치 쉼표 채움",
             status: "지원",
             acceptance: ["docs/product/acceptance/delete-event.feature"],
             docs: ["docs/architecture/delete-rest-policy.md"]

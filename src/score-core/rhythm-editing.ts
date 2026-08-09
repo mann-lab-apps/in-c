@@ -12,7 +12,6 @@ import type {
   Duration,
   DurationValue,
   Measure,
-  Note,
   Score,
   ScoreCommand,
   Staff,
@@ -247,23 +246,12 @@ export function buildRhythmDeleteCommand(
     return undefined
   }
 
-  const durationTicks = voiceEventDurationTicks(event, location.measure)
-  const nextEvents =
-    event.position.tick === 0
-      ? deleteLeadingEvent({
-          events,
-          eventIndex,
-          event,
-          measure: location.measure,
-          durationTicks
-        })
-      : deleteEventIntoPreviousEvent({
-          events,
-          eventIndex,
-          event,
-          measure: location.measure,
-          durationTicks
-        })
+  const nextEvents = replaceDeletedEventWithFollowingRestSpan({
+    events,
+    eventIndex,
+    event,
+    measure: location.measure
+  })
 
   if (!nextEvents) {
     return undefined
@@ -294,135 +282,52 @@ export function buildRhythmDeleteCommand(
   return buildTieNormalizedReplaceCommand(score, target, nextEvents)
 }
 
-function deleteLeadingEvent(input: {
+function replaceDeletedEventWithFollowingRestSpan(input: {
   events: VoiceEvent[]
   eventIndex: number
   event: VoiceEvent
   measure: Measure
-  durationTicks: number
-}): VoiceEvent[] {
-  const measureEndTick = measureDurationTicks(input.measure)
+}): VoiceEvent[] | undefined {
   const createId = inputIdFromEvent(input.event.id)
-  const shiftedAfter = shiftEvents(
-    input.events.slice(input.eventIndex + 1),
-    -input.durationTicks
-  )
-  const trailingRests = createRestsForSpan({
+  const deletedStartTick = input.event.position.tick
+  let deletedEndTick = eventEndTick(input.event, input.measure)
+  let consumedFollowingRestCount = 0
+  const after = input.events.slice(input.eventIndex + 1)
+
+  for (const event of after) {
+    if (
+      event.type !== 'rest' ||
+      event.duration.tuplet ||
+      event.position.tick !== deletedEndTick
+    ) {
+      break
+    }
+
+    deletedEndTick = eventEndTick(event, input.measure)
+    consumedFollowingRestCount += 1
+  }
+
+  const replacementRests = createRestsForSpan({
     measure: input.measure,
-    startTick: measureEndTick - input.durationTicks,
-    endTick: measureEndTick,
+    startTick: deletedStartTick,
+    endTick: deletedEndTick,
     firstId: input.event.id,
     createId
   })
 
-  return compactAdjacentRests(
-    sortVoiceEvents([...shiftedAfter, ...trailingRests]),
-    input.measure,
-    createId
-  )
-}
-
-function deleteEventIntoPreviousEvent(input: {
-  events: VoiceEvent[]
-  eventIndex: number
-  event: VoiceEvent
-  measure: Measure
-  durationTicks: number
-}): VoiceEvent[] | undefined {
-  const previousEvent = input.events[input.eventIndex - 1]
-
-  if (previousEvent.type === 'note') {
-    if (previousEvent.duration.tuplet) {
-      return undefined
-    }
-
-    const tiedEvents = createTiedAbsorptionEvents({
-      previousEvent,
-      absorbedEvent: input.event,
-      measure: input.measure,
-      createId: inputIdFromEvent(input.event.id)
-    })
-
-    return tiedEvents
-      ? sortVoiceEvents([
-          ...input.events.slice(0, input.eventIndex - 1),
-          ...tiedEvents,
-          ...input.events.slice(input.eventIndex + 1)
-        ])
-      : undefined
-  }
-
-  const createId = inputIdFromEvent(previousEvent.id)
-  const mergedRests = createRestsForSpan({
-    measure: input.measure,
-    startTick: previousEvent.position.tick,
-    endTick: eventEndTick(input.event, input.measure),
-    firstId: previousEvent.id,
-    createId
-  })
-
-  if (mergedRests.length === 0) {
+  if (replacementRests.length === 0) {
     return undefined
   }
 
   return compactAdjacentRests(
     sortVoiceEvents([
-      ...input.events.slice(0, input.eventIndex - 1),
-      ...mergedRests,
-      ...input.events.slice(input.eventIndex + 1)
+      ...input.events.slice(0, input.eventIndex),
+      ...replacementRests,
+      ...after.slice(consumedFollowingRestCount)
     ]),
     input.measure,
     createId
   )
-}
-
-function createTiedAbsorptionEvents(input: {
-  previousEvent: Note
-  absorbedEvent: VoiceEvent
-  measure: Measure
-  createId: () => string
-}): Note[] | undefined {
-  const durations = decomposeDurationTicks(
-    voiceEventDurationTicks(input.absorbedEvent, input.measure)
-  )
-
-  if (!durations || durations.length === 0) {
-    return undefined
-  }
-
-  const notes: Note[] = [
-    {
-      ...input.previousEvent,
-      ties: {
-        ...input.previousEvent.ties,
-        start: true
-      }
-    }
-  ]
-  let tick = input.absorbedEvent.position.tick
-  const continuesExistingTie =
-    input.absorbedEvent.type === 'note' &&
-    Boolean(input.absorbedEvent.ties?.start)
-
-  durations.forEach((duration, index) => {
-    const hasNext = index < durations.length - 1
-
-    notes.push(
-      createNote({
-        id: index === 0 ? input.absorbedEvent.id : input.createId(),
-        position: { tick },
-        pitch: input.previousEvent.pitch,
-        duration,
-        ties: {
-          stop: true,
-          start: hasNext || (continuesExistingTie && !hasNext) || undefined
-        }
-      })
-    )
-    tick += durationToTicks(duration)
-  })
-
-  return notes
 }
 
 function buildTieNormalizedReplaceCommand(
