@@ -21,6 +21,7 @@ vi.mock('./notation/NotationPreview', () => ({
     score,
     inlineLyricEditor,
     onSelectEvent,
+    onSelectLyric,
     onOpenMeasureContextMenu,
     onSelectMeasure,
     selectedEventId,
@@ -42,6 +43,7 @@ vi.mock('./notation/NotationPreview', () => ({
       onMoveVerse: (direction: 1 | -1) => void
     }
     onSelectEvent: (eventId: string, extendRange?: boolean) => void
+    onSelectLyric: (eventId: string, verse: number) => void
     onOpenMeasureContextMenu: (
       measureId: string,
       position: { x: number; y: number }
@@ -156,14 +158,30 @@ vi.mock('./notation/NotationPreview', () => ({
         part.staves.flatMap((staff) =>
           staff.measures.flatMap((measure) =>
             measure.voices.flatMap((voice) =>
-              voice.events.map((event) => (
+              voice.events.flatMap((event) => [
                 <button
                   aria-label={`${event.id} 선택`}
                   key={`${event.id}-select`}
-                  onClick={(clickEvent) => onSelectEvent(event.id, clickEvent.shiftKey)}
+                  onClick={(clickEvent) =>
+                    onSelectEvent(event.id, clickEvent.shiftKey)
+                  }
                   type="button"
-                />
-              ))
+                />,
+                ...(event.type === 'note'
+                  ? (event.lyrics ?? []).map((lyric) => (
+                      <button
+                        aria-label={`${event.id} ${
+                          lyric.number ?? 1
+                        }절 가사 선택`}
+                        key={`${event.id}-${lyric.number ?? 1}-lyric-select`}
+                        onClick={() =>
+                          onSelectLyric(event.id, lyric.number ?? 1)
+                        }
+                        type="button"
+                      />
+                    ))
+                  : [])
+              ])
             )
           )
         )
@@ -654,7 +672,9 @@ describe('App component shell', () => {
     )
 
     fireEvent.click(screen.getByRole('button', { name: 'm3-half-rest 선택' }))
+    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
     expect(screen.queryByLabelText('선택 음표 가사')).not.toBeInTheDocument()
+    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
     fireEvent.keyDown(window, { key: 'Enter' })
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-selected-event-id',
@@ -663,6 +683,8 @@ describe('App component shell', () => {
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
 
     fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
+    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
     fireEvent.change(screen.getByLabelText('가사 절'), {
       target: { value: '4' }
     })
@@ -679,6 +701,15 @@ describe('App component shell', () => {
     expect(document.querySelector('.editor-status')?.textContent).toBe(
       editCountAfterLyricCommit
     )
+    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'm1-c4 4절 가사 선택' })
+    )
+    expect(screen.getByRole('region', { name: '가사 편집' })).toBeVisible()
+    expect(screen.getByLabelText('가사 절')).toHaveValue('4')
+    expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
+    fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
+    expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
     expect(screen.getByLabelText('조표')).toBeVisible()

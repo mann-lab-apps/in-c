@@ -1222,7 +1222,9 @@ h2 {
 }
 
 .notation-lyric {
+  cursor: pointer;
   font-size: 13px;
+  pointer-events: auto;
 }
 
 .notation-lyric-editor {

@@ -2771,6 +2771,7 @@ export const App = () => {
       setMode('select')
       setNoteInputState(undefined)
       setMeasureContextMenu(undefined)
+      setToolbarCategory('note')
 
       if (extendRange) {
         const anchorEventId =
@@ -2797,6 +2798,24 @@ export const App = () => {
     },
     [score, selection]
   )
+
+  const selectLyric = useCallback((eventId: string, verse: number) => {
+    const activeVerse = lyricVerseOptions.includes(
+      verse as (typeof lyricVerseOptions)[number]
+    )
+      ? verse
+      : 1
+
+    setMode('select')
+    setNoteInputState(undefined)
+    setMeasureContextMenu(undefined)
+    setActiveLyricVerse(activeVerse)
+    setToolbarCategory('lyrics')
+    setSelection({
+      type: 'event',
+      eventId
+    })
+  }, [])
 
   const selectEventRange = useCallback(
     (anchorEventId: string, focusEventId: string) => {
@@ -4678,6 +4697,7 @@ export const App = () => {
             }
             onSelectEvent={selectEvent}
             onSelectEventRange={selectEventRange}
+            onSelectLyric={selectLyric}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
             score={previewScore}

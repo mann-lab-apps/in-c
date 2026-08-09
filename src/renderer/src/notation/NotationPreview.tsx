@@ -55,6 +55,7 @@ interface NotationPreviewProps {
   playbackEventId?: string
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
+  onSelectLyric: (eventId: string, verse: number) => void
   onSelectMeasure: (measureId: string) => void
   onOpenMeasureContextMenu: (
     measureId: string,
@@ -125,6 +126,7 @@ export function NotationPreview({
   playbackEventId,
   onSelectEvent,
   onSelectEventRange,
+  onSelectLyric,
   onSelectMeasure,
   onOpenMeasureContextMenu
 }: NotationPreviewProps) {
@@ -666,7 +668,14 @@ export function NotationPreview({
           }
 
           if (svg && event?.type === 'note' && event.lyrics?.length) {
-            drawLyrics(svg, eventX, placement.y, event.lyrics)
+            drawLyrics(
+              svg,
+              eventId,
+              eventX,
+              placement.y,
+              event.lyrics,
+              onSelectLyric
+            )
           }
 
           if (svg && eventId === inlineLyricEditor?.eventId) {
@@ -848,6 +857,7 @@ export function NotationPreview({
   }, [
     onSelectEvent,
     onSelectEventRange,
+    onSelectLyric,
     onSelectMeasure,
     onOpenMeasureContextMenu,
     renderWidth,
@@ -1618,20 +1628,41 @@ function drawGraceNotes(
 
 function drawLyrics(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
-  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>,
+  onSelectLyric: (eventId: string, verse: number) => void
 ): void {
   sortLyricsForDisplay(lyrics).forEach((lyric, index) => {
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
     const lineIndex = Math.max(0, (lyric.number ?? index + 1) - 1)
+    const verse = lyric.number ?? index + 1
 
     text.classList.add('notation-lyric')
+    text.setAttribute('data-event-id', eventId)
+    text.setAttribute('data-lyric-number', String(verse))
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
     text.setAttribute('x', String(x + 4))
     text.setAttribute('y', String(staffY + 116 + lineIndex * 16))
     text.textContent = `${lyric.text}${
       lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
     }${lyric.extend ? '_' : ''}`
+    text.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectLyric(eventId, verse)
+    })
+    text.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectLyric(eventId, verse)
+    })
     svg.append(text)
   })
 }
