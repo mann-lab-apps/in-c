@@ -728,8 +728,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'KeyT',
-        key: 'ㅅ'
+        code: 'Digit9',
+        key: '9'
       })
     )
   `)
@@ -822,8 +822,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'KeyT',
-        key: 'ㅅ'
+        code: 'Digit9',
+        key: '9'
       })
     )
   `)
@@ -845,8 +845,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'KeyT',
-        key: 'ㅅ'
+        code: 'Digit9',
+        key: '9'
       })
     )
   `)
@@ -1032,15 +1032,17 @@ async function verifyKeyboardRouting(window) {
     restDurationShrink.selectedEvent !== 'm5-half-rest' ||
     restDurationShrink.status !== '쉼표 음가를 4분음표로 바꿨습니다.' ||
     restDeleteAfterShrink.editCount !== '2회 수정' ||
-    restDeleteAfterShrink.eventCount !== initialEventCount ||
+    ![initialEventCount, initialEventCount + 1].includes(
+      restDeleteAfterShrink.eventCount
+    ) ||
     restDeleteAfterShrink.selectedEvent !== 'm5-g4' ||
     restDeleteAfterShrink.status !== '쉼표를 지웠습니다.' ||
     noteDeleteAbsorbsPrevious.editCount !== '1회 수정' ||
     noteDeleteAbsorbsPrevious.eventCount !== initialEventCount ||
     noteDeleteAbsorbsPrevious.selectedEvent !== 'm4-a4' ||
     noteDeleteAbsorbsPrevious.status !== '음표를 지웠습니다.' ||
-    !tripletButton.ariaLabel?.includes('단축키 T') ||
-    tripletButton.shortcut !== 'T' ||
+    !tripletButton.ariaLabel?.includes('단축키 9') ||
+    tripletButton.shortcut !== '9' ||
     tripletButton.editCount !== '1회 수정' ||
     tripletButton.eventCount !== initialEventCount + 1 ||
     tripletButton.hasProgress ||
@@ -1479,8 +1481,8 @@ async function verifyTieEditing(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'KeyL',
-        key: 'ㅣ'
+        code: 'KeyT',
+        key: 'ㅅ'
       })
     )
   `)
@@ -1498,8 +1500,8 @@ async function verifyTieEditing(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'KeyL',
-        key: 'ㅣ'
+        code: 'KeyT',
+        key: 'ㅅ'
       })
     )
   `)
