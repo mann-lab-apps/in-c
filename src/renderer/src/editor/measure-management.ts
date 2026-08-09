@@ -21,15 +21,36 @@ export function buildInsertMeasureAfter(
   createId: (kind: 'event' | 'measure') => string,
   inputState?: NoteInputState
 ): MeasureEditResult | undefined {
+  return buildInsertMeasure(score, measureId, 'after', createId, inputState)
+}
+
+export function buildInsertMeasureBefore(
+  score: Score,
+  measureId: string,
+  createId: (kind: 'event' | 'measure') => string,
+  inputState?: NoteInputState
+): MeasureEditResult | undefined {
+  return buildInsertMeasure(score, measureId, 'before', createId, inputState)
+}
+
+function buildInsertMeasure(
+  score: Score,
+  measureId: string,
+  placement: 'before' | 'after',
+  createId: (kind: 'event' | 'measure') => string,
+  inputState?: NoteInputState
+): MeasureEditResult | undefined {
   const location = locateMeasureForEdit(score, measureId)
 
   if (!location) {
     return undefined
   }
 
+  const insertionIndex =
+    placement === 'before' ? location.measureIndex : location.measureIndex + 1
   const newMeasure = createMeasure({
     id: createId('measure'),
-    number: location.measureIndex + 2,
+    number: insertionIndex + 1,
     clef: { ...location.measure.clef },
     keySignature: { ...location.measure.keySignature },
     timeSignature: { ...location.measure.timeSignature },
@@ -56,7 +77,7 @@ export function buildInsertMeasureAfter(
       type: 'staff-measure.insert',
       target: location.staffAddress,
       measure: newMeasure,
-      index: location.measureIndex + 1
+      index: insertionIndex
     },
     selection: {
       type: 'event',

@@ -21,6 +21,7 @@ vi.mock('./notation/NotationPreview', () => ({
     score,
     inlineLyricEditor,
     onSelectEvent,
+    onOpenMeasureContextMenu,
     onSelectMeasure,
     selectedEventId,
   }: {
@@ -39,6 +40,10 @@ vi.mock('./notation/NotationPreview', () => ({
       ) => void
     }
     onSelectEvent: (eventId: string, extendRange?: boolean) => void
+    onOpenMeasureContextMenu: (
+      measureId: string,
+      position: { x: number; y: number }
+    ) => void
     onSelectMeasure: (measureId: string) => void
     selectedEventId?: string
   }) => (
@@ -80,6 +85,7 @@ vi.mock('./notation/NotationPreview', () => ({
       data-measure-clefs={score.parts[0]?.staves[0]?.measures
         .map((measure) => `${measure.clef.sign}${measure.clef.line}`)
         .join(',')}
+      data-measure-count={score.parts[0]?.staves[0]?.measures.length ?? 0}
       data-selected-event-id={selectedEventId ?? ''}
       data-testid="notation-preview"
     >
@@ -111,6 +117,13 @@ vi.mock('./notation/NotationPreview', () => ({
           aria-label={`${measure.number}마디 선택`}
           key={`${measure.id}-select`}
           onClick={() => onSelectMeasure(measure.id)}
+          onContextMenu={(event) => {
+            event.preventDefault()
+            onOpenMeasureContextMenu(measure.id, {
+              x: event.clientX,
+              y: event.clientY
+            })
+          }}
           type="button"
         />
       ))}
@@ -456,6 +469,78 @@ describe('App component shell', () => {
     })
     expect(screen.getByText('새 온쉼표 마디를 추가했습니다.')).toBeInTheDocument()
     expect(screen.queryByText('입력 중')).not.toBeInTheDocument()
+  })
+
+  it('measure.context-menu inserts measures before and after, then removes the target measure', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const initialMeasureCount = Number(
+      screen.getByTestId('notation-preview').getAttribute('data-measure-count')
+    )
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+
+    let menu = screen.getByRole('menu', { name: '마디 작업' })
+    expect(
+      within(menu).getByRole('menuitem', { name: '앞에 마디 추가' })
+    ).toBeInTheDocument()
+    expect(
+      within(menu).getByRole('menuitem', { name: '뒤에 마디 추가' })
+    ).toBeInTheDocument()
+    expect(
+      within(menu).getByRole('menuitem', { name: '마디 제거' })
+    ).toBeInTheDocument()
+
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '뒤에 마디 추가' }))
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-measure-count',
+        String(initialMeasureCount + 1)
+      )
+    })
+    expect(
+      screen.getByText('선택한 마디 뒤에 새 마디를 추가했습니다.')
+    ).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '3마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+    fireEvent.click(
+      within(screen.getByRole('menu', { name: '마디 작업' })).getByRole(
+        'menuitem',
+        { name: '마디 제거' }
+      )
+    )
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-measure-count',
+        String(initialMeasureCount)
+      )
+    })
+    expect(screen.getByText('마디를 삭제했습니다.')).toBeInTheDocument()
+
+    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+      clientX: 160,
+      clientY: 180
+    })
+    menu = screen.getByRole('menu', { name: '마디 작업' })
+    fireEvent.click(within(menu).getByRole('menuitem', { name: '앞에 마디 추가' }))
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-measure-count',
+        String(initialMeasureCount + 1)
+      )
+    })
+    expect(
+      screen.getByText('선택한 마디 앞에 새 마디를 추가했습니다.')
+    ).toBeInTheDocument()
   })
 
   it('playback.global-tempo lyrics.edit-selected-note lyrics.block-note-shortcuts edits lyrics without triggering note input in fixture mode', async () => {

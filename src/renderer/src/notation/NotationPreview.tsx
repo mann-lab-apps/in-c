@@ -56,6 +56,10 @@ interface NotationPreviewProps {
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
   onSelectMeasure: (measureId: string) => void
+  onOpenMeasureContextMenu: (
+    measureId: string,
+    position: { x: number; y: number }
+  ) => void
 }
 
 interface InlineLyricEditor {
@@ -107,7 +111,8 @@ export function NotationPreview({
   playbackEventId,
   onSelectEvent,
   onSelectEventRange,
-  onSelectMeasure
+  onSelectMeasure,
+  onOpenMeasureContextMenu
 }: NotationPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [renderWidth, setRenderWidth] = useState(MIN_RENDER_WIDTH)
@@ -150,10 +155,45 @@ export function NotationPreview({
     const pointsByEventId = new Map<string, CursorPoint>()
     const boundsBySystemIndex = new Map<number, SystemBounds>()
     const selectedEventIdSet = new Set(selectedEventIds)
+    const measureContextTargets: Array<{
+      measureId: string
+      element: SVGGraphicsElement
+    }> = []
     let dragAnchorEventId: string | undefined
 
     const clearDragAnchor = () => {
       dragAnchorEventId = undefined
+    }
+
+    const openMeasureContextMenuAtPointer = (event: MouseEvent) => {
+      let target: (typeof measureContextTargets)[number] | undefined
+
+      for (let index = measureContextTargets.length - 1; index >= 0; index -= 1) {
+        const candidate = measureContextTargets[index]
+        const { element } = candidate
+        const bounds = element.getBoundingClientRect()
+
+        if (
+          event.clientX >= bounds.left &&
+          event.clientX <= bounds.right &&
+          event.clientY >= bounds.top &&
+          event.clientY <= bounds.bottom
+        ) {
+          target = candidate
+          break
+        }
+      }
+
+      if (!target) {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      onOpenMeasureContextMenu(target.measureId, {
+        x: event.clientX,
+        y: event.clientY
+      })
     }
 
     window.addEventListener('mouseup', clearDragAnchor)
@@ -161,6 +201,7 @@ export function NotationPreview({
     if (svg) {
       svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
       svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
+      svg.addEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
     }
 
     if (svg && score.tempo) {
@@ -238,6 +279,18 @@ export function NotationPreview({
         selectionTarget.setAttribute('height', '112')
         selectionTarget.setAttribute('rx', '4')
         selectionTarget.addEventListener('click', () => onSelectMeasure(measure.id))
+        selectionTarget.addEventListener('contextmenu', (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          onOpenMeasureContextMenu(measure.id, {
+            x: event.clientX,
+            y: event.clientY
+          })
+        })
+        measureContextTargets.push({
+          measureId: measure.id,
+          element: selectionTarget
+        })
         svg.append(selectionTarget)
       }
 
@@ -489,6 +542,10 @@ export function NotationPreview({
               onSelectEvent(eventId, event.shiftKey)
             })
             svgElement.addEventListener('mousedown', (event) => {
+              if (event.button !== 0) {
+                return
+              }
+
               event.preventDefault()
               event.stopPropagation()
               dragAnchorEventId = eventId
@@ -736,11 +793,13 @@ export function NotationPreview({
 
     return () => {
       window.removeEventListener('mouseup', clearDragAnchor)
+      svg?.removeEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
     }
   }, [
     onSelectEvent,
     onSelectEventRange,
     onSelectMeasure,
+    onOpenMeasureContextMenu,
     renderWidth,
     score,
     inlineLyricEditor,
