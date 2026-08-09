@@ -76,6 +76,7 @@ interface InlineLyricEditor {
       moveNext?: boolean
     }
   ) => void
+  onMoveVerse: (direction: 1 | -1) => void
 }
 
 const MIN_RENDER_WIDTH = 560
@@ -1704,7 +1705,11 @@ function drawInlineLyricEditor(
       return
     }
 
-    if (event.key === 'Enter') {
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      commit()
+      editor.onMoveVerse(event.key === 'ArrowDown' ? 1 : -1)
+    } else if (event.key === 'Enter') {
       event.preventDefault()
       commit({ moveNext: true })
     } else if (event.key === '_') {

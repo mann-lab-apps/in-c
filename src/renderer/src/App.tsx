@@ -2741,6 +2741,31 @@ export const App = () => {
     moveSelection(1)
   }, [moveSelection, score, selection])
 
+  const moveActiveLyricVerse = useCallback(
+    (direction: 1 | -1) => {
+      const currentIndex = lyricVerseOptions.indexOf(
+        activeLyricVerse as (typeof lyricVerseOptions)[number]
+      )
+      const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0
+      const nextIndex = Math.min(
+        lyricVerseOptions.length - 1,
+        Math.max(0, safeCurrentIndex + direction)
+      )
+      const nextVerse = lyricVerseOptions[nextIndex]
+
+      if (nextVerse === activeLyricVerse) {
+        return
+      }
+
+      setActiveLyricVerse(nextVerse)
+      setFileStatus({
+        tone: 'neutral',
+        message: `${nextVerse}절 가사 입력으로 전환했습니다.`
+      })
+    },
+    [activeLyricVerse]
+  )
+
   const selectEvent = useCallback(
     (eventId: string, extendRange = false) => {
       setMode('select')
@@ -3065,6 +3090,18 @@ export const App = () => {
         return
       }
 
+      if (
+        toolbarCategory === 'lyrics' &&
+        !event.altKey &&
+        !event.shiftKey &&
+        !usesCommandKey &&
+        (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+      ) {
+        event.preventDefault()
+        moveActiveLyricVerse(event.key === 'ArrowDown' ? 1 : -1)
+        return
+      }
+
       if (toolbarCategory === 'lyrics' && event.key === 'Enter') {
         event.preventDefault()
         moveToNextLyricNote()
@@ -3243,6 +3280,7 @@ export const App = () => {
     deleteSelection,
     enterNote,
     enterRest,
+    moveActiveLyricVerse,
     movePitch,
     moveSelection,
     moveToNextLyricNote,
@@ -4633,7 +4671,8 @@ export const App = () => {
                     value: selectedLyric?.text ?? '',
                     syllabic: selectedLyric?.syllabic ?? 'single',
                     extend: selectedLyric?.extend,
-                    onCommit: updateLyric
+                    onCommit: updateLyric,
+                    onMoveVerse: moveActiveLyricVerse
                   }
                 : undefined
             }

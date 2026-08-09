@@ -39,6 +39,7 @@ vi.mock('./notation/NotationPreview', () => ({
           moveNext?: boolean
         }
       ) => void
+      onMoveVerse: (direction: 1 | -1) => void
     }
     onSelectEvent: (eventId: string, extendRange?: boolean) => void
     onOpenMeasureContextMenu: (
@@ -115,7 +116,16 @@ vi.mock('./notation/NotationPreview', () => ({
             })
           }
           onKeyDown={(event) => {
-            if (event.key === 'Enter') {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+              event.preventDefault()
+              inlineLyricEditor.onCommit(event.currentTarget.value, {
+                syllabic: inlineLyricEditor.syllabic,
+                extend: inlineLyricEditor.extend
+              })
+              inlineLyricEditor.onMoveVerse(
+                event.key === 'ArrowDown' ? 1 : -1
+              )
+            } else if (event.key === 'Enter') {
               event.preventDefault()
               inlineLyricEditor.onCommit(event.currentTarget.value, {
                 syllabic: inlineLyricEditor.syllabic,
@@ -613,12 +623,27 @@ describe('App component shell', () => {
       )
     ).toEqual(['1절', '2절', '3절', '4절'])
     expect(screen.getByLabelText('코드 심벌')).not.toBeVisible()
-    expect(fireEvent.keyDown(lyricInput, { key: 'q' })).toBe(true)
-    expect(fireEvent.keyDown(lyricInput, { key: ' ' })).toBe(true)
-    expect(fireEvent.keyDown(lyricInput, { key: '-' })).toBe(true)
+    fireEvent.keyDown(lyricInput, { key: 'ArrowDown' })
+    expect(screen.getByLabelText('가사 절')).toHaveValue('2')
+    expect(
+      screen.getByText('2절 가사 입력으로 전환했습니다.')
+    ).toBeInTheDocument()
+    fireEvent.keyDown(
+      within(screen.getByTestId('notation-preview')).getByLabelText(
+        '선택 음표 가사'
+      ),
+      { key: 'ArrowUp' }
+    )
+    expect(screen.getByLabelText('가사 절')).toHaveValue('1')
+    const firstVerseInput = within(
+      screen.getByTestId('notation-preview')
+    ).getByLabelText('선택 음표 가사')
+    expect(fireEvent.keyDown(firstVerseInput, { key: 'q' })).toBe(true)
+    expect(fireEvent.keyDown(firstVerseInput, { key: ' ' })).toBe(true)
+    expect(fireEvent.keyDown(firstVerseInput, { key: '-' })).toBe(true)
     expect(preview).toHaveAttribute('data-event-count', initialEventCount)
-    fireEvent.change(lyricInput, { target: { value: 'hello world' } })
-    expect(fireEvent.keyDown(lyricInput, { key: 'Enter' })).toBe(false)
+    fireEvent.change(firstVerseInput, { target: { value: 'hello world' } })
+    expect(fireEvent.keyDown(firstVerseInput, { key: 'Enter' })).toBe(false)
     expect(screen.getByText('가사를 갱신했습니다.')).toBeInTheDocument()
     const eventCountAfterLyricAdvance =
       screen.getByTestId('notation-preview').getAttribute('data-event-count')
