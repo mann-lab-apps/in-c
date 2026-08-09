@@ -171,11 +171,22 @@ function applyRepeatPlayback(
   totalBeats: number
 ): { events: PlaybackEvent[]; totalBeats: number } {
   const measureStartBeats = createStaffMeasureStartBeatMap(measures)
+  const voltaNumberByMeasureId = createMeasureVoltaNumberMap(measures)
   const nextEvents: PlaybackEvent[] = []
   let repeatStartIndex = 0
   let outputBeat = 0
+  let repeatPass = 1
 
-  const appendMeasure = (measure: (typeof measures)[number]) => {
+  const appendMeasure = (measure: (typeof measures)[number], pass: number) => {
+    if (
+      shouldSkipVoltaMeasure(
+        voltaNumberByMeasureId.get(measure.id),
+        pass
+      )
+    ) {
+      return
+    }
+
     const sourceBeat = measureStartBeats.get(measure.id) ?? 0
     const beatOffset = outputBeat - sourceBeat
 
@@ -195,9 +206,10 @@ function applyRepeatPlayback(
 
     if (measure.repeat?.start) {
       repeatStartIndex = measureIndex
+      repeatPass = 1
     }
 
-    appendMeasure(measure)
+    appendMeasure(measure, repeatPass)
 
     if (!measure.repeat?.end) {
       continue
@@ -206,22 +218,65 @@ function applyRepeatPlayback(
     const repeatCount = Math.max(2, measure.repeat.times ?? 2)
 
     for (let repeatIndex = 1; repeatIndex < repeatCount; repeatIndex += 1) {
+      const repeatedPass = repeatIndex + 1
+
       for (
         let repeatedMeasureIndex = repeatStartIndex;
         repeatedMeasureIndex <= measureIndex;
         repeatedMeasureIndex += 1
       ) {
-        appendMeasure(measures[repeatedMeasureIndex])
+        appendMeasure(measures[repeatedMeasureIndex], repeatedPass)
       }
     }
 
     repeatStartIndex = measureIndex + 1
+    repeatPass = repeatCount
   }
 
   return {
     events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
     totalBeats: outputBeat || totalBeats
   }
+}
+
+function shouldSkipVoltaMeasure(
+  voltaNumber: 1 | 2 | undefined,
+  repeatPass: number
+): boolean {
+  if (!voltaNumber) {
+    return false
+  }
+
+  if (voltaNumber === 1) {
+    return repeatPass !== 1
+  }
+
+  return repeatPass === 1
+}
+
+function createMeasureVoltaNumberMap(
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+): Map<string, 1 | 2> {
+  const voltaNumbers = new Map<string, 1 | 2>()
+  let activeVoltaNumber: 1 | 2 | undefined
+
+  for (const measure of measures) {
+    if (measure.volta?.start) {
+      activeVoltaNumber = measure.volta.number
+    }
+
+    const voltaNumber = measure.volta?.number ?? activeVoltaNumber
+
+    if (voltaNumber) {
+      voltaNumbers.set(measure.id, voltaNumber)
+    }
+
+    if (measure.volta?.end) {
+      activeVoltaNumber = undefined
+    }
+  }
+
+  return voltaNumbers
 }
 
 function createStaffMeasureStartBeatMap(

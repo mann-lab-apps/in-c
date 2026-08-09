@@ -584,7 +584,7 @@ describe('App component shell', () => {
     )
     expect(screen.getByText('도돌이표 끝을 갱신했습니다.')).toBeInTheDocument()
 
-    fireEvent.contextMenu(screen.getByRole('button', { name: '2마디 선택' }), {
+    fireEvent.contextMenu(screen.getByRole('button', { name: '1마디 선택' }), {
       clientX: 160,
       clientY: 180
     })
@@ -592,7 +592,11 @@ describe('App component shell', () => {
     fireEvent.click(within(menu).getByRole('menuitem', { name: '1번 볼타' }))
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-measure-marks',
-      expect.stringContaining('2:SE:2:1:SE')
+      expect.stringContaining('1:::1:S')
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-marks',
+      expect.stringContaining('2:SE:2:1:E')
     )
     expect(screen.getByText('1번 볼타 괄호를 갱신했습니다.')).toBeInTheDocument()
 

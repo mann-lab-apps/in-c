@@ -174,6 +174,7 @@ export function NotationPreview({
     const selectedEventIdSet = new Set(selectedEventIds)
     const measureContextTargets: MeasureContextTarget[] = []
     let dragAnchorEventId: string | undefined
+    let activeVolta: { number: 1 | 2 } | undefined
 
     const clearDragAnchor = () => {
       dragAnchorEventId = undefined
@@ -415,24 +416,44 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (svg && measure.volta) {
+      if (measure.volta?.start) {
+        activeVolta = {
+          number: measure.volta.number
+        }
+      }
+
+      const displayVolta =
+        measure.volta || activeVolta
+          ? {
+              number: (measure.volta ?? activeVolta)?.number ?? 1,
+              start: measure.volta?.start,
+              end: measure.volta?.end
+            }
+          : undefined
+
+      if (svg && displayVolta) {
         const staffTopY = stave.getYForLine(0)
-        const notationStartX = Math.max(
-          placement.x + 8,
-          stave.getNoteStartX() - 12
-        )
-        const notationEndX = Math.min(
-          placement.x + placement.width - 8,
-          stave.getNoteEndX() + 8
-        )
+        const notationStartX = displayVolta.start
+          ? Math.max(placement.x + 8, stave.getNoteStartX() - 12)
+          : placement.x
+        const notationEndX = displayVolta.end
+          ? Math.min(
+              placement.x + placement.width - 8,
+              stave.getNoteEndX() + 8
+            )
+          : placement.x + placement.width
 
         drawVoltaMark(
           svg,
           notationStartX,
           notationEndX,
           staffTopY,
-          measure.volta
+          displayVolta
         )
+      }
+
+      if (measure.volta?.end) {
+        activeVolta = undefined
       }
 
       if (svg && measure.repeat?.end && measure.repeat.times && measure.repeat.times > 2) {
@@ -1129,11 +1150,14 @@ function drawVoltaMark(
     group.append(rightHook)
   }
 
-  label.setAttribute('x', String(leftX + 8))
-  label.setAttribute('y', String(bracketY - 4))
-  label.textContent = `${volta.number}.`
+  if (volta.start) {
+    label.setAttribute('x', String(leftX + 8))
+    label.setAttribute('y', String(bracketY - 4))
+    label.textContent = `${volta.number}.`
+    group.append(label)
+  }
 
-  group.append(horizontal, label)
+  group.append(horizontal)
   svg.append(group)
 }
 

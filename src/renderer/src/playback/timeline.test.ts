@@ -356,6 +356,108 @@ describe('playback timeline', () => {
     ])
   })
 
+  it('skips alternate volta endings on matching repeat passes', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  number: 1,
+                  repeat: {
+                    start: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'repeat-start-note',
+                          pitch: { step: 'C', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'repeat-body-note',
+                          pitch: { step: 'D', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-3',
+                  number: 3,
+                  repeat: {
+                    end: true
+                  },
+                  volta: {
+                    number: 1,
+                    start: true,
+                    end: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'first-ending-note',
+                          pitch: { step: 'E', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-4',
+                  number: 4,
+                  volta: {
+                    number: 2,
+                    start: true,
+                    end: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'second-ending-note',
+                          pitch: { step: 'F', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(
+      timeline.events
+        .filter((event) => event.frequency !== undefined)
+        .map((event) => `${event.eventId}:${event.startBeat}`)
+    ).toEqual([
+      'repeat-start-note:0',
+      'repeat-body-note:4',
+      'first-ending-note:8',
+      'repeat-start-note:12',
+      'repeat-body-note:16',
+      'second-ending-note:20'
+    ])
+    expect(timeline.totalBeats).toBe(24)
+  })
+
   it('merges simultaneous playback events from multiple parts', () => {
     const score = createScore({
       parts: [

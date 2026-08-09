@@ -1719,6 +1719,109 @@ export const App = () => {
     [executeCommand, score.parts]
   )
 
+  const applyVoltaRange = useCallback(
+    (measureId: string, number: 1 | 2) => {
+      for (const part of score.parts) {
+        for (const staff of part.staves) {
+          const selectedIndex = staff.measures.findIndex(
+            (measure) => measure.id === measureId
+          )
+
+          if (selectedIndex < 0) {
+            continue
+          }
+
+          const existingIndices = staff.measures
+            .map((measure, index) =>
+              measure.volta?.number === number ? index : -1
+            )
+            .filter((index) => index >= 0)
+          const selectedHasSameVolta =
+            staff.measures[selectedIndex].volta?.number === number
+
+          if (selectedHasSameVolta && existingIndices.length > 0) {
+            executeCommand({
+              type: 'staff-measures.replace',
+              target: {
+                partId: part.id,
+                staffId: staff.id
+              },
+              measures: staff.measures.map((measure) =>
+                measure.volta?.number === number
+                  ? {
+                      ...measure,
+                      volta: undefined
+                    }
+                  : measure
+              )
+            })
+            setFileStatus({
+              tone: 'neutral',
+              message: `${number}번 볼타 괄호를 해제했습니다.`
+            })
+            return
+          }
+
+          const autoEndIndex =
+            number === 1
+              ? findNextRepeatEndMeasureIndex(staff.measures, selectedIndex)
+              : undefined
+          const rangeStart = Math.min(
+            selectedIndex,
+            existingIndices[0] ?? selectedIndex
+          )
+          const rangeEnd = Math.max(
+            autoEndIndex ?? selectedIndex,
+            existingIndices.at(-1) ?? selectedIndex
+          )
+
+          executeCommand({
+            type: 'staff-measures.replace',
+            target: {
+              partId: part.id,
+              staffId: staff.id
+            },
+            measures: staff.measures.map((measure, index) => {
+              if (measure.volta?.number === number) {
+                return {
+                  ...measure,
+                  volta: undefined
+                }
+              }
+
+              if (index < rangeStart || index > rangeEnd) {
+                return measure
+              }
+
+              if (
+                rangeStart !== rangeEnd &&
+                index !== rangeStart &&
+                index !== rangeEnd
+              ) {
+                return measure
+              }
+
+              return {
+                ...measure,
+                volta: {
+                  number,
+                  start: index === rangeStart || undefined,
+                  end: index === rangeEnd || undefined
+                }
+              }
+            })
+          })
+          setFileStatus({
+            tone: 'neutral',
+            message: `${number}번 볼타 괄호를 갱신했습니다.`
+          })
+          return
+        }
+      }
+    },
+    [executeCommand, score.parts]
+  )
+
   const openMeasureContextMenu = useCallback((
     measureId: string,
     position: { x: number; y: number }
@@ -1789,25 +1892,15 @@ export const App = () => {
     } else {
       const number = action === 'toggle-volta-1' ? 1 : 2
 
-      updateMeasureById(
-        measureId,
-        (measure) => ({
-          ...measure,
-          volta:
-            measure.volta?.number === number &&
-            measure.volta.start &&
-            measure.volta.end
-              ? undefined
-              : {
-                  number,
-                  start: true,
-                  end: true
-                }
-        }),
-        `${number}번 볼타 괄호를 갱신했습니다.`
-      )
+      applyVoltaRange(measureId, number)
     }
-  }, [insertMeasure, measureContextMenu, removeMeasureById, updateMeasureById])
+  }, [
+    applyVoltaRange,
+    insertMeasure,
+    measureContextMenu,
+    removeMeasureById,
+    updateMeasureById
+  ])
 
   const toggleSystemBreak = useCallback(() => {
     if (!activeMeasureId || activeMeasureIndex <= 0) {
@@ -5758,6 +5851,19 @@ function normalizeRepeatMark(repeat: Measure['repeat']): Measure['repeat'] {
     end: repeat.end,
     times: repeat.end ? repeat.times : undefined
   }
+}
+
+function findNextRepeatEndMeasureIndex(
+  measures: Measure[],
+  startIndex: number
+): number | undefined {
+  for (let index = startIndex; index < measures.length; index += 1) {
+    if (measures[index].repeat?.end) {
+      return index
+    }
+  }
+
+  return undefined
 }
 
 function createSaveSignature(score: Score): string {
