@@ -173,6 +173,10 @@ export function NotationPreview({
     }
 
     const openMeasureContextMenuAtPointer = (event: MouseEvent): boolean => {
+      if (isNotationEventContextTarget(event.target)) {
+        return false
+      }
+
       const pointer = resolveSvgPointer(svg, event)
 
       if (!pointer) {
@@ -217,12 +221,16 @@ export function NotationPreview({
     }
 
     window.addEventListener('mouseup', clearDragAnchor)
+    container.addEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
+    container.addEventListener(
+      'mouseup',
+      openMeasureContextMenuFromSecondaryMouse,
+      true
+    )
 
     if (svg) {
       svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
       svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
-      svg.addEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
-      svg.addEventListener('mouseup', openMeasureContextMenuFromSecondaryMouse, true)
     }
 
     if (svg && score.tempo) {
@@ -827,8 +835,12 @@ export function NotationPreview({
 
     return () => {
       window.removeEventListener('mouseup', clearDragAnchor)
-      svg?.removeEventListener('contextmenu', openMeasureContextMenuAtPointer, true)
-      svg?.removeEventListener(
+      container.removeEventListener(
+        'contextmenu',
+        openMeasureContextMenuAtPointer,
+        true
+      )
+      container.removeEventListener(
         'mouseup',
         openMeasureContextMenuFromSecondaryMouse,
         true
@@ -874,6 +886,10 @@ function resolveSvgPointer(
     x: svgPoint.x,
     y: svgPoint.y
   }
+}
+
+function isNotationEventContextTarget(target: EventTarget | null): boolean {
+  return target instanceof Element && Boolean(target.closest('.notation-event'))
 }
 
 function drawTempoMarking(svg: SVGSVGElement, tempo: TempoMarking): void {
