@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Accidental,
+  BarlineType,
   Beam,
   Dot,
   Formatter,
@@ -298,6 +299,14 @@ export function NotationPreview({
       const clef = toVexFlowClef(measure.clef)
       let selectionTarget: SVGRectElement | undefined
 
+      if (measure.repeat?.start) {
+        stave.setBegBarType(BarlineType.REPEAT_BEGIN)
+      }
+
+      if (measure.repeat?.end) {
+        stave.setEndBarType(BarlineType.REPEAT_END)
+      }
+
       if (svg) {
         selectionTarget = document.createElementNS(
           'http://www.w3.org/2000/svg',
@@ -406,9 +415,8 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (svg && (measure.repeat || measure.volta)) {
+      if (svg && measure.volta) {
         const staffTopY = stave.getYForLine(0)
-        const staffBottomY = stave.getYForLine(4)
         const notationStartX = Math.max(
           placement.x + 8,
           stave.getNoteStartX() - 12
@@ -418,26 +426,22 @@ export function NotationPreview({
           stave.getNoteEndX() + 8
         )
 
-        if (measure.repeat) {
-          drawRepeatMark(
-            svg,
-            notationStartX,
-            notationEndX,
-            staffTopY,
-            staffBottomY,
-            measure.repeat
-          )
-        }
+        drawVoltaMark(
+          svg,
+          notationStartX,
+          notationEndX,
+          staffTopY,
+          measure.volta
+        )
+      }
 
-        if (measure.volta) {
-          drawVoltaMark(
-            svg,
-            notationStartX,
-            notationEndX,
-            staffTopY,
-            measure.volta
-          )
-        }
+      if (svg && measure.repeat?.end && measure.repeat.times && measure.repeat.times > 2) {
+        drawRepeatTimes(
+          svg,
+          placement.x + placement.width - 26,
+          stave.getYForLine(0) - 8,
+          measure.repeat.times
+        )
       }
 
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
@@ -1085,23 +1089,6 @@ function appendRhythmFeelTripletNotes(
   appendRhythmFeelText(parent, unit === '16th' ? '𝅘𝅥𝅯' : '♪', x + 26, y)
 }
 
-function drawRepeatMark(
-  svg: SVGSVGElement,
-  startX: number,
-  endX: number,
-  staffTopY: number,
-  staffBottomY: number,
-  repeat: NonNullable<Measure['repeat']>
-): void {
-  if (repeat.start) {
-    drawRepeatBarline(svg, startX, staffTopY, staffBottomY, 'start')
-  }
-
-  if (repeat.end) {
-    drawRepeatBarline(svg, endX, staffTopY, staffBottomY, 'end', repeat.times)
-  }
-}
-
 function drawVoltaMark(
   svg: SVGSVGElement,
   startX: number,
@@ -1150,53 +1137,19 @@ function drawVoltaMark(
   svg.append(group)
 }
 
-function drawRepeatBarline(
+function drawRepeatTimes(
   svg: SVGSVGElement,
   x: number,
-  staffTopY: number,
-  staffBottomY: number,
-  type: 'start' | 'end',
-  times?: number
+  y: number,
+  times: number
 ): void {
-  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  const thick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const thin = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const dots = [0, 1].map((index) =>
-    document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  )
-  const thickX = type === 'start' ? x : x - 4
-  const thinX = type === 'start' ? x + 4 : x
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
-  group.classList.add('notation-repeat-mark')
-  thick.setAttribute('x1', String(thickX))
-  thick.setAttribute('x2', String(thickX))
-  thick.setAttribute('y1', String(staffTopY))
-  thick.setAttribute('y2', String(staffBottomY))
-  thick.setAttribute('stroke-width', '3')
-  thin.setAttribute('x1', String(thinX))
-  thin.setAttribute('x2', String(thinX))
-  thin.setAttribute('y1', String(staffTopY))
-  thin.setAttribute('y2', String(staffBottomY))
-  thin.setAttribute('stroke-width', '1')
-
-  dots.forEach((dot, index) => {
-    dot.setAttribute('cx', String(type === 'start' ? x + 12 : x - 12))
-    dot.setAttribute('cy', String(staffTopY + 15 + index * 10))
-    dot.setAttribute('r', '2')
-  })
-
-  group.append(thick, thin, ...dots)
-
-  if (times && times > 2) {
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-
-    text.setAttribute('x', String(x - 20))
-    text.setAttribute('y', String(staffTopY - 8))
-    text.textContent = `x${times}`
-    group.append(text)
-  }
-
-  svg.append(group)
+  text.classList.add('notation-repeat-times')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = `x${times}`
+  svg.append(text)
 }
 
 function drawRehearsalMark(
