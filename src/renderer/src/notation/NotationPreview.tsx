@@ -88,6 +88,7 @@ interface CursorPoint {
   noteHeadBottomY?: number
   noteHeadBeginX?: number
   noteHeadEndX?: number
+  stemDirection?: number
 }
 
 interface SystemBounds {
@@ -1187,7 +1188,7 @@ function drawSlurSegments(
 ): void {
   const firstSystem = Math.min(startSystem, endSystem)
   const lastSystem = Math.max(startSystem, endSystem)
-  const side = resolveSlurSide()
+  const side = resolveSlurSide(start)
 
   for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
     const bounds = boundsBySystemIndex.get(systemIndex)
@@ -1257,15 +1258,16 @@ function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
       noteHeadTopY: bounds.yTop,
       noteHeadBottomY: bounds.yBottom,
       noteHeadBeginX: note.getNoteHeadBeginX(),
-      noteHeadEndX: note.getNoteHeadEndX()
+      noteHeadEndX: note.getNoteHeadEndX(),
+      stemDirection: note.getStemDirection()
     }
   } catch {
     return {}
   }
 }
 
-function resolveSlurSide(): 'above' | 'below' {
-  return 'above'
+function resolveSlurSide(start: CursorPoint): 'above' | 'below' {
+  return (start.stemDirection ?? -1) > 0 ? 'below' : 'above'
 }
 
 function resolveSlurEndpointX(
