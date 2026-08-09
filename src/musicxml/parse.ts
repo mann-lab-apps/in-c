@@ -215,6 +215,7 @@ export function parseMusicXml(xml: string): Score {
       keySignature: { ...state.keySignature },
       timeSignature: { ...state.timeSignature },
       repeat: readRepeatMark(measureNode),
+      volta: readVoltaMark(measureNode),
       voices: [
         createVoice({
           id: 'voice-1',
@@ -824,6 +825,50 @@ function readRepeatMark(measureNode: XmlNode): Score['parts'][number]['staves'][
     : undefined
 }
 
+function readVoltaMark(measureNode: XmlNode): Score['parts'][number]['staves'][number]['measures'][number]['volta'] {
+  const barlines = toArray(measureNode.barline as XmlNode | XmlNode[] | undefined)
+  let number: 1 | 2 | undefined
+  let start = false
+  let end = false
+
+  for (const barline of barlines) {
+    const ending = readOptionalNode(barline, 'ending')
+
+    if (!ending) {
+      continue
+    }
+
+    const endingNumber = normalizeVoltaNumber(
+      readOptionalInteger(ending, '@_number')
+    )
+    const type = readOptionalString(ending, '@_type')
+
+    number = endingNumber ?? number
+
+    if (type === 'start') {
+      start = true
+    } else if (type === 'stop' || type === 'discontinue') {
+      end = true
+    }
+  }
+
+  return number && (start || end)
+    ? {
+        number,
+        start: start || undefined,
+        end: end || undefined
+      }
+    : undefined
+}
+
+function normalizeVoltaNumber(number: number | undefined): 1 | 2 | undefined {
+  if (number === 1 || number === 2) {
+    return number
+  }
+
+  return undefined
+}
+
 function readOctaveShifts(
   measureNodes: XmlNode[],
   measures: Score['parts'][number]['staves'][number]['measures']
@@ -1056,7 +1101,7 @@ function readOrnaments(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['or
 function readLyrics(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['lyrics'] {
   const lyrics = toArray(node.lyric as XmlNode | XmlNode[] | undefined).flatMap(
     (lyricNode) => {
-      const text = readOptionalString(lyricNode, 'text')
+      const text = readLyricText(lyricNode)
 
       if (!text) {
         return []
@@ -1083,6 +1128,33 @@ function readLyrics(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['lyric
   )
 
   return lyrics.length > 0 ? lyrics : undefined
+}
+
+function readLyricText(lyricNode: XmlNode): string | undefined {
+  const text = lyricNode.text
+  const textParts = toArray(text as XmlNode | XmlNode[] | string | number | undefined)
+    .map((textNode) => readTextNode(textNode))
+    .filter((value): value is string => Boolean(value))
+
+  if (textParts.length > 0) {
+    return textParts.join(' ')
+  }
+
+  return readOptionalString(lyricNode, 'text')
+}
+
+function readTextNode(node: XmlNode | string | number): string | undefined {
+  if (typeof node === 'string' || typeof node === 'number') {
+    const text = String(node).trim()
+    return text.length > 0 ? text : undefined
+  }
+
+  if ('#text' in node) {
+    const text = String(node['#text']).trim()
+    return text.length > 0 ? text : undefined
+  }
+
+  return undefined
 }
 
 function readBreathMark(node: XmlNode): BreathMark | undefined {

@@ -170,63 +170,145 @@ function applyRepeatPlayback(
   measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
   totalBeats: number
 ): { events: PlaybackEvent[]; totalBeats: number } {
-  let repeatStartMeasureId: string | undefined = measures[0]?.id
-  const nextEvents = [...events]
-  let extraBeats = 0
+  const measureStartBeats = createStaffMeasureStartBeatMap(measures)
+  const voltaNumberByMeasureId = createMeasureVoltaNumberMap(measures)
+  const nextEvents: PlaybackEvent[] = []
+  let repeatStartIndex = 0
+  let outputBeat = 0
+  let repeatPass = 1
 
-  for (const measure of measures) {
-    if (measure.repeat?.start) {
-      repeatStartMeasureId = measure.id
+  const appendMeasure = (measure: (typeof measures)[number], pass: number) => {
+    if (
+      shouldSkipVoltaMeasure(
+        voltaNumberByMeasureId.get(measure.id),
+        pass
+      )
+    ) {
+      return
     }
 
-    if (!measure.repeat?.end || !repeatStartMeasureId) {
+    const sourceBeat = measureStartBeats.get(measure.id) ?? 0
+    const beatOffset = outputBeat - sourceBeat
+
+    nextEvents.push(
+      ...events
+        .filter((event) => event.measureId === measure.id)
+        .map((event) => ({
+          ...event,
+          startBeat: event.startBeat + beatOffset
+        }))
+    )
+    outputBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+  }
+
+  for (let measureIndex = 0; measureIndex < measures.length; measureIndex += 1) {
+    const measure = measures[measureIndex]
+
+    if (measure.repeat?.start) {
+      repeatStartIndex = measureIndex
+      repeatPass = 1
+    }
+
+    appendMeasure(measure, repeatPass)
+
+    if (!measure.repeat?.end) {
       continue
     }
 
-    const startBeat = measureStartBeat(measures, repeatStartMeasureId)
-    const endBeat =
-      measureStartBeat(measures, measure.id) +
-      measureDurationTicks(measure) / TICKS_PER_QUARTER
     const repeatCount = Math.max(2, measure.repeat.times ?? 2)
-    const sectionDuration = endBeat - startBeat
-    const sectionEvents = events.filter((event) =>
-      event.startBeat >= startBeat && event.startBeat < endBeat
-    )
 
     for (let repeatIndex = 1; repeatIndex < repeatCount; repeatIndex += 1) {
-      nextEvents.push(
-        ...sectionEvents.map((event) => ({
-          ...event,
-          startBeat: event.startBeat + sectionDuration * repeatIndex
-        }))
-      )
+      const repeatedPass = repeatIndex + 1
+
+      for (
+        let repeatedMeasureIndex = repeatStartIndex;
+        repeatedMeasureIndex <= measureIndex;
+        repeatedMeasureIndex += 1
+      ) {
+        appendMeasure(measures[repeatedMeasureIndex], repeatedPass)
+      }
     }
 
-    extraBeats += sectionDuration * (repeatCount - 1)
-    repeatStartMeasureId = undefined
+    repeatStartIndex = measureIndex + 1
+    repeatPass = repeatCount
   }
 
   return {
     events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
-    totalBeats: totalBeats + extraBeats
+    totalBeats: outputBeat || totalBeats
   }
 }
 
-function measureStartBeat(
+function shouldSkipVoltaMeasure(
+  voltaNumber: 1 | 2 | undefined,
+  repeatPass: number
+): boolean {
+  if (!voltaNumber) {
+    return false
+  }
+
+  if (voltaNumber === 1) {
+    return repeatPass !== 1
+  }
+
+  return repeatPass === 1
+}
+
+function createMeasureVoltaNumberMap(
   measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
-  measureId: string
-): number {
+): Map<string, 1 | 2> {
+  const voltaNumbers = new Map<string, 1 | 2>()
+  let activeVoltaNumber: 1 | 2 | undefined
+
+  for (let index = 0; index < measures.length; index += 1) {
+    const measure = measures[index]
+
+    if (measure.volta?.start) {
+      activeVoltaNumber = hasLaterVoltaEnd(measures, index, measure.volta.number)
+        ? measure.volta.number
+        : undefined
+    }
+
+    const voltaNumber = measure.volta?.number ?? activeVoltaNumber
+
+    if (voltaNumber) {
+      voltaNumbers.set(measure.id, voltaNumber)
+    }
+
+    if (measure.volta?.end) {
+      activeVoltaNumber = undefined
+    }
+  }
+
+  return voltaNumbers
+}
+
+function hasLaterVoltaEnd(
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  startIndex: number,
+  number: 1 | 2
+): boolean {
+  for (let index = startIndex + 1; index < measures.length; index += 1) {
+    if (measures[index].volta?.number === number && measures[index].volta?.end) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function createStaffMeasureStartBeatMap(
+  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+): Map<string, number> {
+  const startBeats = new Map<string, number>()
   let beat = 0
 
   for (const measure of measures) {
-    if (measure.id === measureId) {
-      return beat
-    }
-
+    startBeats.set(measure.id, beat)
     beat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
-  return 0
+  return startBeats
 }
 
 function eventFrequencies(

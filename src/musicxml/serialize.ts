@@ -84,7 +84,7 @@ export function serializeMusicXml(score: Score): string {
           const voice = measure.voices[0]
           const tupletBoundaries = createTupletBoundaries(voice)
           const directions = buildMeasureDirections(score, measure)
-          const barlines = buildRepeatBarlines(measure)
+          const barlines = buildMeasureBarlines(measure)
           const harmonies = buildMeasureHarmonies(score, measure)
 
           return {
@@ -337,30 +337,54 @@ function buildHairpinDirection(type: string) {
   }
 }
 
-function buildRepeatBarlines(measure: Measure) {
+function buildMeasureBarlines(measure: Measure) {
   return [
-    ...(measure.repeat?.start
+    ...(measure.repeat?.start || measure.volta?.start
       ? [
           {
             '@_location': 'left',
-            repeat: {
-              '@_direction': 'forward'
-            }
+            ...(measure.volta?.start
+              ? {
+                  ending: {
+                    '@_number': measure.volta.number,
+                    '@_type': 'start'
+                  }
+                }
+              : {}),
+            ...(measure.repeat?.start
+              ? {
+                  repeat: {
+                    '@_direction': 'forward'
+                  }
+                }
+              : {})
           }
         ]
       : []),
-    ...(measure.repeat?.end
+    ...(measure.repeat?.end || measure.volta?.end
       ? [
           {
             '@_location': 'right',
-            repeat: {
-              '@_direction': 'backward',
-              ...(measure.repeat.times
-                ? {
-                    '@_times': measure.repeat.times
+            ...(measure.volta?.end
+              ? {
+                  ending: {
+                    '@_number': measure.volta.number,
+                    '@_type': 'stop'
                   }
-                : {})
-            }
+                }
+              : {}),
+            ...(measure.repeat?.end
+              ? {
+                  repeat: {
+                    '@_direction': 'backward',
+                    ...(measure.repeat.times
+                      ? {
+                          '@_times': measure.repeat.times
+                        }
+                      : {})
+                  }
+                }
+              : {})
           }
         ]
       : [])
@@ -645,7 +669,7 @@ function buildNote(
       : {}),
     ...(event.type === 'note' && event.lyrics?.length && !isChordTone
       ? {
-          lyric: event.lyrics.map((lyric) => ({
+          lyric: sortLyricsByNumber(event.lyrics).map((lyric) => ({
             ...(lyric.number !== undefined
               ? {
                   '@_number': lyric.number
@@ -732,6 +756,14 @@ function toMusicXmlAccidental(
     case 2:
       return 'double-sharp'
   }
+}
+
+function sortLyricsByNumber(
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+): NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']> {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
 }
 
 function validateMeasure(measure: Measure): void {

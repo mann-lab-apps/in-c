@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Accidental,
+  BarlineType,
   Beam,
   Dot,
   Formatter,
@@ -55,6 +56,7 @@ interface NotationPreviewProps {
   playbackEventId?: string
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
+  onSelectLyric: (eventId: string, verse: number) => void
   onSelectMeasure: (measureId: string) => void
   onOpenMeasureContextMenu: (
     measureId: string,
@@ -64,6 +66,7 @@ interface NotationPreviewProps {
 
 interface InlineLyricEditor {
   eventId: string
+  number: number
   value: string
   syllabic: 'single' | 'begin' | 'middle' | 'end'
   extend?: boolean
@@ -75,6 +78,7 @@ interface InlineLyricEditor {
       moveNext?: boolean
     }
   ) => void
+  onMoveVerse: (direction: 1 | -1) => void
 }
 
 const MIN_RENDER_WIDTH = 560
@@ -85,6 +89,9 @@ const STAFF_TEXT_Y_OFFSET = -24
 const DYNAMIC_MARK_Y_OFFSET = 122
 const HAIRPIN_Y_OFFSET = 126
 const MEASURE_STAFF_VERTICAL_PADDING = 18
+const LYRIC_EDITOR_WIDTH = 148
+const LYRIC_EDITOR_HEIGHT = 34
+const LYRIC_EDITOR_BASELINE_OFFSET = 22
 
 interface CursorPoint {
   x: number
@@ -120,6 +127,7 @@ export function NotationPreview({
   playbackEventId,
   onSelectEvent,
   onSelectEventRange,
+  onSelectLyric,
   onSelectMeasure,
   onOpenMeasureContextMenu
 }: NotationPreviewProps) {
@@ -166,6 +174,7 @@ export function NotationPreview({
     const selectedEventIdSet = new Set(selectedEventIds)
     const measureContextTargets: MeasureContextTarget[] = []
     let dragAnchorEventId: string | undefined
+    let activeVolta: { number: 1 | 2 } | undefined
 
     const clearDragAnchor = () => {
       dragAnchorEventId = undefined
@@ -291,6 +300,14 @@ export function NotationPreview({
       const clef = toVexFlowClef(measure.clef)
       let selectionTarget: SVGRectElement | undefined
 
+      if (measure.repeat?.start) {
+        stave.setBegBarType(BarlineType.REPEAT_BEGIN)
+      }
+
+      if (measure.repeat?.end) {
+        stave.setEndBarType(BarlineType.REPEAT_END)
+      }
+
       if (svg) {
         selectionTarget = document.createElementNS(
           'http://www.w3.org/2000/svg',
@@ -399,8 +416,56 @@ export function NotationPreview({
         String(stave.getNoteEndX())
       )
 
-      if (svg && measure.repeat) {
-        drawRepeatMark(svg, placement.x, placement.y, placement.width, measure.repeat)
+      if (
+        measure.volta?.start &&
+        hasLaterVoltaEnd(measures, placementIndex, measure.volta.number)
+      ) {
+        activeVolta = {
+          number: measure.volta.number
+        }
+      }
+
+      const displayVolta =
+        measure.volta || activeVolta
+          ? {
+              number: (measure.volta ?? activeVolta)?.number ?? 1,
+              start: measure.volta?.start,
+              end: measure.volta?.end
+            }
+          : undefined
+
+      if (svg && displayVolta) {
+        const staffTopY = stave.getYForLine(0)
+        const notationStartX = displayVolta.start
+          ? Math.max(placement.x + 8, stave.getNoteStartX() - 12)
+          : placement.x
+        const notationEndX = displayVolta.end
+          ? Math.min(
+              placement.x + placement.width - 8,
+              stave.getNoteEndX() + 8
+            )
+          : placement.x + placement.width
+
+        drawVoltaMark(
+          svg,
+          notationStartX,
+          notationEndX,
+          staffTopY,
+          displayVolta
+        )
+      }
+
+      if (measure.volta?.end) {
+        activeVolta = undefined
+      }
+
+      if (svg && measure.repeat?.end && measure.repeat.times && measure.repeat.times > 2) {
+        drawRepeatTimes(
+          svg,
+          placement.x + placement.width - 26,
+          stave.getYForLine(0) - 8,
+          measure.repeat.times
+        )
       }
 
       const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
@@ -661,7 +726,14 @@ export function NotationPreview({
           }
 
           if (svg && event?.type === 'note' && event.lyrics?.length) {
-            drawLyrics(svg, eventX, placement.y, event.lyrics)
+            drawLyrics(
+              svg,
+              eventId,
+              eventX,
+              placement.y,
+              event.lyrics,
+              onSelectLyric
+            )
           }
 
           if (svg && eventId === inlineLyricEditor?.eventId) {
@@ -843,6 +915,7 @@ export function NotationPreview({
   }, [
     onSelectEvent,
     onSelectEventRange,
+    onSelectLyric,
     onSelectMeasure,
     onOpenMeasureContextMenu,
     renderWidth,
@@ -1040,68 +1113,70 @@ function appendRhythmFeelTripletNotes(
   appendRhythmFeelText(parent, unit === '16th' ? '𝅘𝅥𝅯' : '♪', x + 26, y)
 }
 
-function drawRepeatMark(
+function drawVoltaMark(
+  svg: SVGSVGElement,
+  startX: number,
+  endX: number,
+  staffTopY: number,
+  volta: NonNullable<Measure['volta']>
+): void {
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  const bracketY = staffTopY - 22
+  const leftX = startX
+  const rightX = endX
+  const horizontal = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+  const label = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  group.classList.add('notation-volta-mark')
+  horizontal.setAttribute('x1', String(leftX))
+  horizontal.setAttribute('x2', String(rightX))
+  horizontal.setAttribute('y1', String(bracketY))
+  horizontal.setAttribute('y2', String(bracketY))
+
+  if (volta.start) {
+    const leftHook = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    leftHook.setAttribute('x1', String(leftX))
+    leftHook.setAttribute('x2', String(leftX))
+    leftHook.setAttribute('y1', String(bracketY))
+    leftHook.setAttribute('y2', String(bracketY + 12))
+    group.append(leftHook)
+  }
+
+  if (volta.end) {
+    const rightHook = document.createElementNS('http://www.w3.org/2000/svg', 'line')
+
+    rightHook.setAttribute('x1', String(rightX))
+    rightHook.setAttribute('x2', String(rightX))
+    rightHook.setAttribute('y1', String(bracketY))
+    rightHook.setAttribute('y2', String(bracketY + 12))
+    group.append(rightHook)
+  }
+
+  if (volta.start) {
+    label.setAttribute('x', String(leftX + 8))
+    label.setAttribute('y', String(bracketY - 4))
+    label.textContent = `${volta.number}.`
+    group.append(label)
+  }
+
+  group.append(horizontal)
+  svg.append(group)
+}
+
+function drawRepeatTimes(
   svg: SVGSVGElement,
   x: number,
   y: number,
-  width: number,
-  repeat: NonNullable<Measure['repeat']>
+  times: number
 ): void {
-  if (repeat.start) {
-    drawRepeatBarline(svg, x + 8, y, 'start')
-  }
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
-  if (repeat.end) {
-    drawRepeatBarline(svg, x + width - 8, y, 'end', repeat.times)
-  }
-}
-
-function drawRepeatBarline(
-  svg: SVGSVGElement,
-  x: number,
-  staffY: number,
-  type: 'start' | 'end',
-  times?: number
-): void {
-  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
-  const thick = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const thin = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const dots = [0, 1].map((index) =>
-    document.createElementNS('http://www.w3.org/2000/svg', 'circle')
-  )
-  const thickX = type === 'start' ? x : x - 4
-  const thinX = type === 'start' ? x + 4 : x
-
-  group.classList.add('notation-repeat-mark')
-  thick.setAttribute('x1', String(thickX))
-  thick.setAttribute('x2', String(thickX))
-  thick.setAttribute('y1', String(staffY))
-  thick.setAttribute('y2', String(staffY + 40))
-  thick.setAttribute('stroke-width', '3')
-  thin.setAttribute('x1', String(thinX))
-  thin.setAttribute('x2', String(thinX))
-  thin.setAttribute('y1', String(staffY))
-  thin.setAttribute('y2', String(staffY + 40))
-  thin.setAttribute('stroke-width', '1')
-
-  dots.forEach((dot, index) => {
-    dot.setAttribute('cx', String(type === 'start' ? x + 12 : x - 12))
-    dot.setAttribute('cy', String(staffY + 15 + index * 10))
-    dot.setAttribute('r', '2')
-  })
-
-  group.append(thick, thin, ...dots)
-
-  if (times && times > 2) {
-    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
-
-    text.setAttribute('x', String(x - 20))
-    text.setAttribute('y', String(staffY - 8))
-    text.textContent = `x${times}`
-    group.append(text)
-  }
-
-  svg.append(group)
+  text.classList.add('notation-repeat-times')
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = `x${times}`
+  svg.append(text)
 }
 
 function drawRehearsalMark(
@@ -1613,19 +1688,41 @@ function drawGraceNotes(
 
 function drawLyrics(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
-  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>,
+  onSelectLyric: (eventId: string, verse: number) => void
 ): void {
-  lyrics.forEach((lyric, index) => {
+  sortLyricsForDisplay(lyrics).forEach((lyric, index) => {
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+    const lineIndex = Math.max(0, (lyric.number ?? index + 1) - 1)
+    const verse = lyric.number ?? index + 1
 
     text.classList.add('notation-lyric')
+    text.setAttribute('data-event-id', eventId)
+    text.setAttribute('data-lyric-number', String(verse))
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
     text.setAttribute('x', String(x + 4))
-    text.setAttribute('y', String(staffY + 116 + index * 16))
+    text.setAttribute('y', String(staffY + 116 + lineIndex * 16))
     text.textContent = `${lyric.text}${
       lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
     }${lyric.extend ? '_' : ''}`
+    text.addEventListener('click', (event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectLyric(eventId, verse)
+    })
+    text.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return
+      }
+
+      event.preventDefault()
+      event.stopPropagation()
+      onSelectLyric(eventId, verse)
+    })
     svg.append(text)
   })
 }
@@ -1644,6 +1741,8 @@ function drawInlineLyricEditor(
     'http://www.w3.org/1999/xhtml',
     'input'
   ) as HTMLInputElement
+  let isComposing = false
+  let commitAfterComposition = false
   const commit = (
     options?: Parameters<InlineLyricEditor['onCommit']>[1]
   ) => {
@@ -1655,30 +1754,55 @@ function drawInlineLyricEditor(
   }
 
   container.classList.add('notation-lyric-editor')
-  container.setAttribute('x', String(x - 26))
-  container.setAttribute('y', String(staffY + 98))
-  container.setAttribute('width', '108')
-  container.setAttribute('height', '42')
+  const lyricAnchorX = x + 4
+  const lyricLineY = staffY + 116 + (editor.number - 1) * 16
+  container.setAttribute('x', String(lyricAnchorX - LYRIC_EDITOR_WIDTH / 2))
+  container.setAttribute('y', String(lyricLineY - LYRIC_EDITOR_BASELINE_OFFSET))
+  container.setAttribute('width', String(LYRIC_EDITOR_WIDTH))
+  container.setAttribute('height', String(LYRIC_EDITOR_HEIGHT))
 
   input.setAttribute('aria-label', '선택 음표 가사')
   input.maxLength = 48
   input.placeholder = '가사'
   input.type = 'text'
   input.value = editor.value
-  input.addEventListener('blur', () => commit())
-  input.addEventListener('keydown', (event) => {
-    event.stopPropagation()
+  input.addEventListener('beforeinput', stopLyricEditorEvent)
+  input.addEventListener('input', stopLyricEditorEvent)
+  input.addEventListener('compositionstart', (event) => {
+    stopLyricEditorEvent(event)
+    isComposing = true
+  })
+  input.addEventListener('compositionend', (event) => {
+    stopLyricEditorEvent(event)
+    isComposing = false
 
-    if (event.isComposing) {
+    if (commitAfterComposition) {
+      commitAfterComposition = false
+      commit()
+    }
+  })
+  input.addEventListener('blur', () => {
+    if (isComposing) {
+      commitAfterComposition = true
       return
     }
 
-    if (event.key === 'Enter') {
+    commit()
+  })
+  input.addEventListener('keydown', (event) => {
+    stopLyricEditorEvent(event)
+
+    if (event.isComposing || isComposing || event.key === 'Process') {
+      return
+    }
+
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault()
+      commit()
+      editor.onMoveVerse(event.key === 'ArrowDown' ? 1 : -1)
+    } else if (event.key === 'Enter') {
       event.preventDefault()
       commit({ moveNext: true })
-    } else if (event.key === '-') {
-      event.preventDefault()
-      commit({ syllabic: 'begin', moveNext: true })
     } else if (event.key === '_') {
       event.preventDefault()
       commit({ syllabic: 'single', extend: true, moveNext: true })
@@ -1693,11 +1817,36 @@ function drawInlineLyricEditor(
   svg.append(container)
   const focusInput = () => {
     input.focus()
-    input.select()
   }
 
   focusInput()
-  window.requestAnimationFrame(focusInput)
+}
+
+function sortLyricsForDisplay(
+  lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>
+): NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']> {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
+}
+
+function hasLaterVoltaEnd(
+  measures: Measure[],
+  startIndex: number,
+  number: 1 | 2
+): boolean {
+  for (let index = startIndex + 1; index < measures.length; index += 1) {
+    if (measures[index].volta?.number === number && measures[index].volta?.end) {
+      return true
+    }
+  }
+
+  return false
+}
+
+function stopLyricEditorEvent(event: Event): void {
+  event.stopPropagation()
+  event.stopImmediatePropagation()
 }
 
 function drawTie(

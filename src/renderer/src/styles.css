@@ -1161,7 +1161,8 @@ h2 {
 }
 
 .notation-octave-shift,
-.notation-repeat-mark,
+.notation-repeat-times,
+.notation-volta-mark,
 .notation-tremolo-mark {
   fill: #111827;
   pointer-events: none;
@@ -1170,7 +1171,8 @@ h2 {
 }
 
 .notation-octave-shift text,
-.notation-repeat-mark text {
+.notation-repeat-times,
+.notation-volta-mark text {
   fill: #111827;
   font-size: 12px;
   font-weight: 700;
@@ -1222,7 +1224,9 @@ h2 {
 }
 
 .notation-lyric {
+  cursor: pointer;
   font-size: 13px;
+  pointer-events: auto;
 }
 
 .notation-lyric-editor {
@@ -1230,13 +1234,15 @@ h2 {
 }
 
 .notation-lyric-editor input {
-  width: 96px;
+  box-sizing: border-box;
+  width: 100%;
   height: 30px;
   padding: 3px 8px;
   border: 1.5px solid #c89932;
   border-radius: 6px;
   color: #151719;
   background: #fffdf8;
+  background-clip: padding-box;
   box-shadow: 0 2px 8px rgba(47, 43, 35, 0.12);
   font: 700 15px/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-align: center;

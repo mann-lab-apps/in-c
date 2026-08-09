@@ -137,6 +137,7 @@ export function createMeasure(input?: {
   keySignature?: KeySignature
   clef?: Clef
   repeat?: Measure['repeat']
+  volta?: Measure['volta']
   voices?: Voice[]
   timing?: Measure['timing']
 }): Measure {
@@ -151,6 +152,7 @@ export function createMeasure(input?: {
     keySignature: input?.keySignature ?? cMajor,
     clef: input?.clef ?? trebleClef,
     repeat: input?.repeat,
+    volta: input?.volta,
     voices:
       input?.voices ??
       [
