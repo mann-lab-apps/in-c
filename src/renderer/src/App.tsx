@@ -144,6 +144,10 @@ import {
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
+import {
+  resolvePrintLayoutPlan,
+  type PrintPageTarget
+} from './notation/print-layout'
 import { useScorePlayback } from './playback/useScorePlayback'
 
 const durations: DurationValue[] = [
@@ -322,9 +326,23 @@ const toolbarCategories = [
   { id: 'playback', label: '재생' }
 ] as const
 
+const pdfTargetPageOptions: Array<{
+  label: string
+  value: PdfTargetPagesValue
+}> = [
+  { label: '자동', value: 'auto' },
+  { label: '1쪽', value: '1' },
+  { label: '2쪽', value: '2' },
+  { label: '3쪽', value: '3' },
+  { label: '4쪽', value: '4' },
+  { label: '5쪽', value: '5' },
+  { label: '6쪽', value: '6' }
+]
+
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
+type PdfTargetPagesValue = 'auto' | '1' | '2' | '3' | '4' | '5' | '6'
 
 interface NewScoreDraft {
   title: string
@@ -442,6 +460,9 @@ export const App = () => {
     useState<PromoConcert>()
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
+  const [pdfExporting, setPdfExporting] = useState(false)
+  const [pdfTargetPages, setPdfTargetPages] =
+    useState<PdfTargetPagesValue>('auto')
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -3204,6 +3225,9 @@ export const App = () => {
 
   const savePdf = useCallback(async () => {
     try {
+      setPdfExporting(true)
+      await waitForNextPaint()
+
       const result = await window.inC.pdf.save({
         suggestedName: `${toFileName(score.title)}.pdf`
       })
@@ -3221,6 +3245,8 @@ export const App = () => {
         tone: 'error',
         message: getErrorMessage(error)
       })
+    } finally {
+      setPdfExporting(false)
     }
   }, [score.title])
 
@@ -3472,6 +3498,10 @@ export const App = () => {
         : score,
     [noteInputState, score]
   )
+  const printLayoutPlan = useMemo(
+    () => resolvePrintLayoutPlan(score, parsePdfTargetPages(pdfTargetPages)),
+    [pdfTargetPages, score]
+  )
   const canEditPitch = eventLocation?.event.type === 'note'
   const selectedNoteArticulations =
     eventLocation?.event.type === 'note'
@@ -3535,7 +3565,16 @@ export const App = () => {
     : undefined
 
   return (
-    <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
+    <main
+      className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}${
+        pdfExporting ? ' app-shell--pdf-export' : ''
+      }`}
+    >
+      {pdfExporting ? (
+        <style>
+          {`@page { size: A4; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
+        </style>
+      ) : null}
       {startScreenVisible ? (
         <section className="start-screen" aria-labelledby="start-screen-title">
           <div className="start-screen__content">
@@ -4359,6 +4398,22 @@ export const App = () => {
                 <FileDown aria-hidden="true" size={17} />
                 <span>PDF 변환</span>
               </button>
+              <label className="pdf-page-target-control">
+                <span>PDF 장수</span>
+                <select
+                  aria-label="PDF 목표 장수"
+                  onChange={(event) =>
+                    setPdfTargetPages(event.target.value as PdfTargetPagesValue)
+                  }
+                  value={pdfTargetPages}
+                >
+                  {pdfTargetPageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <button
@@ -4821,7 +4876,7 @@ export const App = () => {
 
           <NotationPreview
             inlineLyricEditor={
-              toolbarCategory === 'lyrics' && selectedNote
+              !pdfExporting && toolbarCategory === 'lyrics' && selectedNote
                 ? {
                     eventId: selectedNote.id,
                     number: activeLyricVerse,
@@ -4838,11 +4893,13 @@ export const App = () => {
             onSelectLyric={selectLyric}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
-            score={previewScore}
-            playbackEventId={playback.activeEventId}
-            selectedEventId={selectedEventId}
-            selectedEventIds={selectedEventIds}
-            selectedMeasureId={selectedMeasureId}
+            score={pdfExporting ? score : previewScore}
+            playbackEventId={pdfExporting ? undefined : playback.activeEventId}
+            printLayout={pdfExporting}
+            printLayoutPlan={pdfExporting ? printLayoutPlan : undefined}
+            selectedEventId={pdfExporting ? undefined : selectedEventId}
+            selectedEventIds={pdfExporting ? [] : selectedEventIds}
+            selectedMeasureId={pdfExporting ? undefined : selectedMeasureId}
           />
         </div>
       </section>
@@ -6131,6 +6188,22 @@ function toFileName(title: string): string {
     .replace(/^-|-$/g, '')
 
   return normalized || 'untitled-score'
+}
+
+function parsePdfTargetPages(value: PdfTargetPagesValue): PrintPageTarget {
+  return value === 'auto' ? value : Number.parseInt(value, 10)
+}
+
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    const scheduleFrame =
+      typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame.bind(window)
+        : (callback: FrameRequestCallback) =>
+            window.setTimeout(() => callback(performance.now()), 0)
+
+    scheduleFrame(() => scheduleFrame(() => resolve()))
+  })
 }
 
 function getErrorMessage(error: unknown): string {

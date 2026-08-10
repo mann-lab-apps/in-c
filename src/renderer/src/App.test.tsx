@@ -25,6 +25,11 @@ vi.mock('./notation/NotationPreview', () => ({
     onOpenMeasureContextMenu,
     onSelectMeasure,
     selectedEventId,
+    selectedEventIds,
+    selectedMeasureId,
+    playbackEventId,
+    printLayout,
+    printLayoutPlan,
   }: {
     score: typeof demoScore
     inlineLyricEditor?: {
@@ -50,6 +55,16 @@ vi.mock('./notation/NotationPreview', () => ({
     ) => void
     onSelectMeasure: (measureId: string) => void
     selectedEventId?: string
+    selectedEventIds?: string[]
+    selectedMeasureId?: string
+    playbackEventId?: string
+    printLayout?: boolean
+    printLayoutPlan?: {
+      id: string
+      pageCount: number
+      pageMarginMm: number
+      renderWidth: number
+    }
   }) => (
     <div
       aria-label="악보 미리보기 테스트 더블"
@@ -119,6 +134,14 @@ vi.mock('./notation/NotationPreview', () => ({
         )
         .join('|')}
       data-selected-event-id={selectedEventId ?? ''}
+      data-selected-event-ids={(selectedEventIds ?? []).join(',')}
+      data-selected-measure-id={selectedMeasureId ?? ''}
+      data-playback-event-id={playbackEventId ?? ''}
+      data-print-layout={printLayout ? 'true' : 'false'}
+      data-print-layout-id={printLayoutPlan?.id ?? ''}
+      data-print-layout-margin={printLayoutPlan?.pageMarginMm ?? ''}
+      data-print-layout-pages={printLayoutPlan?.pageCount ?? ''}
+      data-print-layout-width={printLayoutPlan?.renderWidth ?? ''}
       data-testid="notation-preview"
     >
       {inlineLyricEditor ? (
@@ -958,8 +981,10 @@ describe('App component shell', () => {
     const musicXmlButton = within(fileActions).getByRole('button', {
       name: 'MusicXML로 저장'
     })
+    const pageTarget = within(fileActions).getByLabelText('PDF 목표 장수')
 
     expect(pdfButton).not.toBe(musicXmlButton)
+    expect(pageTarget).toHaveValue('auto')
     fireEvent.click(pdfButton)
 
     await waitFor(() => {
@@ -968,6 +993,107 @@ describe('App component shell', () => {
       })
     })
     expect(window.inC.musicXml.save).not.toHaveBeenCalled()
+  })
+
+  it('import-export.save-pdf hides editor selection state while printing', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
+    vi.mocked(window.inC.pdf.save).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishPdfSave = resolve
+        })
+    )
+    const { App } = await import('./App')
+    render(<App />)
+
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'note-e4'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+
+    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      ''
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-ids',
+      ''
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-measure-id',
+      ''
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-playback-event-id',
+      ''
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout',
+      'true'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout-id',
+      'balanced'
+    )
+
+    finishPdfSave?.({ fileName: 'demo.pdf' })
+    expect(await screen.findByText('demo.pdf로 PDF를 만들었습니다.')).toBeInTheDocument()
+    await waitFor(() =>
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-selected-event-id',
+        'note-e4'
+      )
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout',
+      'false'
+    )
+  })
+
+  it('import-export.save-pdf selects a tighter print layout for a target page count', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    let finishPdfSave: ((value: { fileName: string }) => void) | undefined
+    vi.mocked(window.inC.pdf.save).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finishPdfSave = resolve
+        })
+    )
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    const addMeasureButton = screen.getByRole('button', { name: '마디 추가' })
+
+    for (let index = 0; index < 80; index += 1) {
+      fireEvent.click(addMeasureButton)
+    }
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('PDF 목표 장수'), {
+      target: { value: '1' }
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
+
+    await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout-id',
+      'tight'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout-margin',
+      '5'
+    )
+
+    finishPdfSave?.({ fileName: 'one-page.pdf' })
+    expect(
+      await screen.findByText('one-page.pdf로 PDF를 만들었습니다.')
+    ).toBeInTheDocument()
   })
 
   it('import-export.distinguish-musicxml-save-from-autosave keeps file save separate from import and recovery', async () => {

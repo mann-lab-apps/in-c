@@ -44,6 +44,7 @@ import {
   resolveHairpinOpenings,
   resolveHairpinSegments
 } from './hairpin-rendering'
+import type { PrintLayoutPlan } from './print-layout'
 import { resolveMixedTupletOnsetShifts } from './tuplet-spacing'
 import { resolveNotationEventTone } from './visual-state'
 
@@ -54,6 +55,8 @@ interface NotationPreviewProps {
   selectedEventIds?: string[]
   selectedMeasureId?: string
   playbackEventId?: string
+  printLayout?: boolean
+  printLayoutPlan?: PrintLayoutPlan
   onSelectEvent: (eventId: string, extendRange?: boolean) => void
   onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
   onSelectLyric: (eventId: string, verse: number) => void
@@ -125,6 +128,8 @@ export function NotationPreview({
   selectedEventIds = [],
   selectedMeasureId,
   playbackEventId,
+  printLayout = false,
+  printLayoutPlan,
   onSelectEvent,
   onSelectEventRange,
   onSelectLyric,
@@ -159,11 +164,16 @@ export function NotationPreview({
     container.replaceChildren()
 
     const measures = score.parts[0]?.staves[0]?.measures ?? []
-    const layout = createSystemLayout(measures, renderWidth, {
-      layout: score.layout
+    const effectiveRenderWidth = printLayoutPlan?.renderWidth ?? renderWidth
+    const layout = createSystemLayout(measures, effectiveRenderWidth, {
+      compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
+      layout: score.layout,
+      pageHeight: printLayoutPlan?.pageHeight,
+      systemHeight: printLayoutPlan?.systemHeight,
+      systemTop: printLayoutPlan?.systemTop
     })
     const renderer = new Renderer(container, Renderer.Backends.SVG)
-    renderer.resize(renderWidth, layout.height)
+    renderer.resize(effectiveRenderWidth, layout.height)
     const context = renderer.getContext()
     const svg = container.querySelector<SVGSVGElement>('svg')
     let playbackPoint: CursorPoint | undefined
@@ -237,7 +247,7 @@ export function NotationPreview({
     )
 
     if (svg) {
-      svg.setAttribute('viewBox', `0 0 ${renderWidth} ${layout.height}`)
+      svg.setAttribute('viewBox', `0 0 ${effectiveRenderWidth} ${layout.height}`)
       svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
     }
 
@@ -922,6 +932,8 @@ export function NotationPreview({
     score,
     inlineLyricEditor,
     playbackEventId,
+    printLayout,
+    printLayoutPlan,
     selectedEventId,
     selectedEventIds,
     selectedMeasureId

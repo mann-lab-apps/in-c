@@ -130,7 +130,7 @@ ipcMain.handle(
 
     const pdfData = await senderWindow.webContents.printToPDF({
       preferCSSPageSize: true,
-      printBackground: true
+      printBackground: false
     })
 
     await writeFile(result.filePath, pdfData)
