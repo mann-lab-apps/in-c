@@ -48,6 +48,7 @@ import {
   type Clef,
   type HairpinType,
   type HarmonyMark,
+  type LyricSyllable,
   type Measure,
   type Note,
   type OctaveShiftType,
@@ -143,6 +144,10 @@ import {
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
+import {
+  resolvePrintLayoutPlan,
+  type PrintPageTarget
+} from './notation/print-layout'
 import { useScorePlayback } from './playback/useScorePlayback'
 
 const durations: DurationValue[] = [
@@ -321,9 +326,23 @@ const toolbarCategories = [
   { id: 'playback', label: '재생' }
 ] as const
 
+const pdfTargetPageOptions: Array<{
+  label: string
+  value: PdfTargetPagesValue
+}> = [
+  { label: '자동', value: 'auto' },
+  { label: '1쪽', value: '1' },
+  { label: '2쪽', value: '2' },
+  { label: '3쪽', value: '3' },
+  { label: '4쪽', value: '4' },
+  { label: '5쪽', value: '5' },
+  { label: '6쪽', value: '6' }
+]
+
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
+type PdfTargetPagesValue = 'auto' | '1' | '2' | '3' | '4' | '5' | '6'
 
 interface NewScoreDraft {
   title: string
@@ -349,7 +368,14 @@ interface RecentMusicXmlFile {
   openedAt: string
 }
 
-type MeasureContextAction = 'insert-before' | 'insert-after' | 'remove'
+type MeasureContextAction =
+  | 'insert-before'
+  | 'insert-after'
+  | 'remove'
+  | 'toggle-repeat-start'
+  | 'toggle-repeat-end'
+  | 'toggle-volta-1'
+  | 'toggle-volta-2'
 
 interface MeasureContextMenuState {
   measureId: string
@@ -366,7 +392,7 @@ const DEFAULT_TEMPO_BPM = 120
 const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const MEASURE_CONTEXT_MENU_WIDTH = 176
-const MEASURE_CONTEXT_MENU_HEIGHT = 136
+const MEASURE_CONTEXT_MENU_HEIGHT = 288
 const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
 const clefPresets = [
   { id: 'treble', label: '높은음자리표', value: { sign: 'G', line: 2 } },
@@ -407,6 +433,7 @@ const ornamentOptions = [
   ['mordent', 'mord.'],
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
+const lyricVerseOptions = [1, 2, 3, 4] as const
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -433,6 +460,9 @@ export const App = () => {
     useState<PromoConcert>()
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
+  const [pdfExporting, setPdfExporting] = useState(false)
+  const [pdfTargetPages, setPdfTargetPages] =
+    useState<PdfTargetPagesValue>('auto')
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -1673,6 +1703,102 @@ export const App = () => {
     removeMeasureById(activeMeasureId)
   }, [activeMeasureId, removeMeasureById])
 
+  const updateMeasureById = useCallback(
+    (
+      measureId: string,
+      update: (measure: Measure) => Measure,
+      message: string
+    ) => {
+      for (const part of score.parts) {
+        for (const staff of part.staves) {
+          if (!staff.measures.some((measure) => measure.id === measureId)) {
+            continue
+          }
+
+          if (
+            executeCommand({
+              type: 'staff-measures.replace',
+              target: {
+                partId: part.id,
+                staffId: staff.id
+              },
+              measures: staff.measures.map((measure) =>
+                measure.id === measureId ? update(measure) : measure
+              )
+            })
+          ) {
+            setFileStatus({
+              tone: 'neutral',
+              message
+            })
+          }
+
+          return
+        }
+      }
+    },
+    [executeCommand, score.parts]
+  )
+
+  const applyVoltaRange = useCallback(
+    (measureId: string, number: 1 | 2) => {
+      for (const part of score.parts) {
+        for (const staff of part.staves) {
+          const selectedIndex = staff.measures.findIndex(
+            (measure) => measure.id === measureId
+          )
+
+          if (selectedIndex < 0) {
+            continue
+          }
+
+          const endIndex = findNextRepeatEndMeasureIndex(
+            staff.measures,
+            selectedIndex
+          )
+
+          executeCommand({
+            type: 'staff-measures.replace',
+            target: {
+              partId: part.id,
+              staffId: staff.id
+            },
+            measures: staff.measures.map((measure, index) => {
+              if (measure.volta?.number === number) {
+                return {
+                  ...measure,
+                  volta: undefined
+                }
+              }
+
+              if (index !== selectedIndex && index !== endIndex) {
+                return measure
+              }
+
+              const isRangeEnd =
+                endIndex !== undefined && index === endIndex
+
+              return {
+                ...measure,
+                volta: {
+                  number,
+                  start: index === selectedIndex || undefined,
+                  end: isRangeEnd || undefined
+                }
+              }
+            })
+          })
+          setFileStatus({
+            tone: 'neutral',
+            message: `${number}번 볼타 괄호를 갱신했습니다.`
+          })
+          return
+        }
+      }
+    },
+    [executeCommand, score.parts]
+  )
+
   const openMeasureContextMenu = useCallback((
     measureId: string,
     position: { x: number; y: number }
@@ -1713,10 +1839,45 @@ export const App = () => {
       insertMeasure(measureId, 'before')
     } else if (action === 'insert-after') {
       insertMeasure(measureId, 'after')
-    } else {
+    } else if (action === 'remove') {
       removeMeasureById(measureId)
+    } else if (action === 'toggle-repeat-start') {
+      updateMeasureById(
+        measureId,
+        (measure) => ({
+          ...measure,
+          repeat: normalizeRepeatMark({
+            ...measure.repeat,
+            start: measure.repeat?.start ? undefined : true
+          })
+        }),
+        '도돌이표 시작을 갱신했습니다.'
+      )
+    } else if (action === 'toggle-repeat-end') {
+      updateMeasureById(
+        measureId,
+        (measure) => ({
+          ...measure,
+          repeat: normalizeRepeatMark({
+            ...measure.repeat,
+            end: measure.repeat?.end ? undefined : true,
+            times: measure.repeat?.end ? undefined : measure.repeat?.times ?? 2
+          })
+        }),
+        '도돌이표 끝을 갱신했습니다.'
+      )
+    } else {
+      const number = action === 'toggle-volta-1' ? 1 : 2
+
+      applyVoltaRange(measureId, number)
     }
-  }, [insertMeasure, measureContextMenu, removeMeasureById])
+  }, [
+    applyVoltaRange,
+    insertMeasure,
+    measureContextMenu,
+    removeMeasureById,
+    updateMeasureById
+  ])
 
   const toggleSystemBreak = useCallback(() => {
     if (!activeMeasureId || activeMeasureIndex <= 0) {
@@ -2184,32 +2345,48 @@ export const App = () => {
       }
     ) => {
       const trimmedText = text.trim()
+      const existingLyric =
+        eventLocation?.event.type === 'note'
+          ? eventLocation.event.lyrics?.find(
+              (lyric) => (lyric.number ?? 1) === activeLyricVerse
+            )
+          : undefined
+      const nextSyllabic = options?.syllabic ?? 'single'
+      const nextExtend = options?.extend || undefined
+      const lyricChanged =
+        trimmedText.length > 0
+          ? existingLyric?.text !== trimmedText ||
+            (existingLyric.syllabic ?? 'single') !== nextSyllabic ||
+            (existingLyric.extend || undefined) !== nextExtend
+          : Boolean(existingLyric)
 
-      replaceSelectedNote((note) => {
-        const otherLyrics = (note.lyrics ?? []).filter(
-          (lyric) => (lyric.number ?? 1) !== activeLyricVerse
-        )
-        const lyrics =
-          trimmedText.length > 0
-            ? [
-                ...otherLyrics,
-                {
-                  number: activeLyricVerse,
-                  syllabic: options?.syllabic ?? 'single',
-                  text: trimmedText,
-                  extend: options?.extend
-                }
-              ]
-            : otherLyrics
+      if (lyricChanged) {
+        replaceSelectedNote((note) => {
+          const otherLyrics = (note.lyrics ?? []).filter(
+            (lyric) => (lyric.number ?? 1) !== activeLyricVerse
+          )
+          const lyrics =
+            trimmedText.length > 0
+              ? sortLyricsByNumber([
+                  ...otherLyrics,
+                  {
+                    number: activeLyricVerse,
+                    syllabic: nextSyllabic,
+                    text: trimmedText,
+                    extend: nextExtend
+                  }
+                ])
+              : otherLyrics
 
-        return {
-          ...note,
-          lyrics: lyrics.length > 0 ? lyrics : undefined
-        }
-      }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
+          return {
+            ...note,
+            lyrics: lyrics.length > 0 ? lyrics : undefined
+          }
+        }, trimmedText ? '가사를 갱신했습니다.' : '가사를 삭제했습니다.')
+      }
 
       if (options?.moveNext && eventLocation) {
-        const eventId = getAdjacentEventId(score, eventLocation.event.id, 1)
+        const eventId = getAdjacentNoteEventId(score, eventLocation.event.id, 1)
 
         if (eventId) {
           setSelection({
@@ -2701,11 +2878,59 @@ export const App = () => {
     [executeCommand, noteInputState, pendingSlurAnchorEventId, score, selection]
   )
 
+  const moveToNextLyricNote = useCallback(() => {
+    const currentEventId = getSelectionFocusEventId(selection)
+
+    if (!currentEventId) {
+      return
+    }
+
+    const eventId = getAdjacentNoteEventId(score, currentEventId, 1)
+
+    if (eventId) {
+      setMode('select')
+      setNoteInputState(undefined)
+      setSelection({
+        type: 'event',
+        eventId
+      })
+      return
+    }
+
+    moveSelection(1)
+  }, [moveSelection, score, selection])
+
+  const moveActiveLyricVerse = useCallback(
+    (direction: 1 | -1) => {
+      const currentIndex = lyricVerseOptions.indexOf(
+        activeLyricVerse as (typeof lyricVerseOptions)[number]
+      )
+      const safeCurrentIndex = currentIndex >= 0 ? currentIndex : 0
+      const nextIndex = Math.min(
+        lyricVerseOptions.length - 1,
+        Math.max(0, safeCurrentIndex + direction)
+      )
+      const nextVerse = lyricVerseOptions[nextIndex]
+
+      if (nextVerse === activeLyricVerse) {
+        return
+      }
+
+      setActiveLyricVerse(nextVerse)
+      setFileStatus({
+        tone: 'neutral',
+        message: `${nextVerse}절 가사 입력으로 전환했습니다.`
+      })
+    },
+    [activeLyricVerse]
+  )
+
   const selectEvent = useCallback(
     (eventId: string, extendRange = false) => {
       setMode('select')
       setNoteInputState(undefined)
       setMeasureContextMenu(undefined)
+      setToolbarCategory('note')
 
       if (extendRange) {
         const anchorEventId =
@@ -2732,6 +2957,24 @@ export const App = () => {
     },
     [score, selection]
   )
+
+  const selectLyric = useCallback((eventId: string, verse: number) => {
+    const activeVerse = lyricVerseOptions.includes(
+      verse as (typeof lyricVerseOptions)[number]
+    )
+      ? verse
+      : 1
+
+    setMode('select')
+    setNoteInputState(undefined)
+    setMeasureContextMenu(undefined)
+    setActiveLyricVerse(activeVerse)
+    setToolbarCategory('lyrics')
+    setSelection({
+      type: 'event',
+      eventId
+    })
+  }, [])
 
   const selectEventRange = useCallback(
     (anchorEventId: string, focusEventId: string) => {
@@ -2982,6 +3225,9 @@ export const App = () => {
 
   const savePdf = useCallback(async () => {
     try {
+      setPdfExporting(true)
+      await waitForNextPaint()
+
       const result = await window.inC.pdf.save({
         suggestedName: `${toFileName(score.title)}.pdf`
       })
@@ -2999,6 +3245,8 @@ export const App = () => {
         tone: 'error',
         message: getErrorMessage(error)
       })
+    } finally {
+      setPdfExporting(false)
     }
   }, [score.title])
 
@@ -3022,6 +3270,24 @@ export const App = () => {
       }
 
       if (isTextEditingTarget(event.target)) {
+        return
+      }
+
+      if (
+        toolbarCategory === 'lyrics' &&
+        !event.altKey &&
+        !event.shiftKey &&
+        !usesCommandKey &&
+        (event.key === 'ArrowUp' || event.key === 'ArrowDown')
+      ) {
+        event.preventDefault()
+        moveActiveLyricVerse(event.key === 'ArrowDown' ? 1 : -1)
+        return
+      }
+
+      if (toolbarCategory === 'lyrics' && event.key === 'Enter') {
+        event.preventDefault()
+        moveToNextLyricNote()
         return
       }
 
@@ -3197,8 +3463,10 @@ export const App = () => {
     deleteSelection,
     enterNote,
     enterRest,
+    moveActiveLyricVerse,
     movePitch,
     moveSelection,
+    moveToNextLyricNote,
     mode,
     eventLocation,
     measureContextMenu,
@@ -3229,6 +3497,10 @@ export const App = () => {
         ? createTupletInputPreviewScore(score, noteInputState)
         : score,
     [noteInputState, score]
+  )
+  const printLayoutPlan = useMemo(
+    () => resolvePrintLayoutPlan(score, parsePdfTargetPages(pdfTargetPages)),
+    [pdfTargetPages, score]
   )
   const canEditPitch = eventLocation?.event.type === 'note'
   const selectedNoteArticulations =
@@ -3293,7 +3565,16 @@ export const App = () => {
     : undefined
 
   return (
-    <main className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}`}>
+    <main
+      className={`app-shell${startScreenVisible ? ' app-shell--start' : ''}${
+        pdfExporting ? ' app-shell--pdf-export' : ''
+      }`}
+    >
+      {pdfExporting ? (
+        <style>
+          {`@page { size: A4; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
+        </style>
+      ) : null}
       {startScreenVisible ? (
         <section className="start-screen" aria-labelledby="start-screen-title">
           <div className="start-screen__content">
@@ -3762,8 +4043,11 @@ export const App = () => {
                   }
                   value={activeLyricVerse}
                 >
-                  <option value={1}>1절</option>
-                  <option value={2}>2절</option>
+                  {lyricVerseOptions.map((verse) => (
+                    <option key={verse} value={verse}>
+                      {verse}절
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -4114,6 +4398,22 @@ export const App = () => {
                 <FileDown aria-hidden="true" size={17} />
                 <span>PDF 변환</span>
               </button>
+              <label className="pdf-page-target-control">
+                <span>PDF 장수</span>
+                <select
+                  aria-label="PDF 목표 장수"
+                  onChange={(event) =>
+                    setPdfTargetPages(event.target.value as PdfTargetPagesValue)
+                  }
+                  value={pdfTargetPages}
+                >
+                  {pdfTargetPageOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <button
@@ -4576,25 +4876,30 @@ export const App = () => {
 
           <NotationPreview
             inlineLyricEditor={
-              toolbarCategory === 'lyrics' && selectedNote
+              !pdfExporting && toolbarCategory === 'lyrics' && selectedNote
                 ? {
                     eventId: selectedNote.id,
+                    number: activeLyricVerse,
                     value: selectedLyric?.text ?? '',
                     syllabic: selectedLyric?.syllabic ?? 'single',
                     extend: selectedLyric?.extend,
-                    onCommit: updateLyric
+                    onCommit: updateLyric,
+                    onMoveVerse: moveActiveLyricVerse
                   }
                 : undefined
             }
             onSelectEvent={selectEvent}
             onSelectEventRange={selectEventRange}
+            onSelectLyric={selectLyric}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
-            score={previewScore}
-            playbackEventId={playback.activeEventId}
-            selectedEventId={selectedEventId}
-            selectedEventIds={selectedEventIds}
-            selectedMeasureId={selectedMeasureId}
+            score={pdfExporting ? score : previewScore}
+            playbackEventId={pdfExporting ? undefined : playback.activeEventId}
+            printLayout={pdfExporting}
+            printLayoutPlan={pdfExporting ? printLayoutPlan : undefined}
+            selectedEventId={pdfExporting ? undefined : selectedEventId}
+            selectedEventIds={pdfExporting ? [] : selectedEventIds}
+            selectedMeasureId={pdfExporting ? undefined : selectedMeasureId}
           />
         </div>
       </section>
@@ -4631,6 +4936,34 @@ export const App = () => {
               type="button"
             >
               뒤에 마디 추가
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-repeat-start')}
+              role="menuitem"
+              type="button"
+            >
+              도돌이표 시작
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-repeat-end')}
+              role="menuitem"
+              type="button"
+            >
+              도돌이표 끝
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-volta-1')}
+              role="menuitem"
+              type="button"
+            >
+              1번 볼타
+            </button>
+            <button
+              onClick={() => applyMeasureContextAction('toggle-volta-2')}
+              role="menuitem"
+              type="button"
+            >
+              2번 볼타
             </button>
             <button
               className="measure-context-menu__danger"
@@ -5521,6 +5854,31 @@ function scoreContainsPreviewArtifacts(score: Score): boolean {
   )
 }
 
+function normalizeRepeatMark(repeat: Measure['repeat']): Measure['repeat'] {
+  if (!repeat?.start && !repeat?.end) {
+    return undefined
+  }
+
+  return {
+    start: repeat.start,
+    end: repeat.end,
+    times: repeat.end ? repeat.times : undefined
+  }
+}
+
+function findNextRepeatEndMeasureIndex(
+  measures: Measure[],
+  startIndex: number
+): number | undefined {
+  for (let index = startIndex; index < measures.length; index += 1) {
+    if (measures[index].repeat?.end) {
+      return index
+    }
+  }
+
+  return undefined
+}
+
 function createSaveSignature(score: Score): string {
   const eventReferences = createEventReferenceMap(score)
   const measureReferences = createMeasureReferenceMap(score)
@@ -5541,6 +5899,7 @@ function createSaveSignature(score: Score): string {
           keySignature: measure.keySignature,
           clef: measure.clef,
           repeat: measure.repeat ?? null,
+          volta: measure.volta ?? null,
           voices: measure.voices.map((voice) =>
             createVoiceSaveSignature(measure, voice)
           )
@@ -5745,13 +6104,39 @@ function createEventSaveSignature(
             pitch: normalizePitch(graceNote.pitch),
             slash: Boolean(graceNote.slash)
           })),
-          lyrics: event.lyrics ?? [],
+          lyrics: event.lyrics ? sortLyricsByNumber(event.lyrics) : [],
           ornaments: event.ornaments ?? [],
           tremolo: event.tremolo ?? null
         }),
     fermata: Boolean(event.fermata),
     breathMark: event.breathMark ?? null
   }
+}
+
+function sortLyricsByNumber(lyrics: LyricSyllable[]): LyricSyllable[] {
+  return [...lyrics].sort(
+    (left, right) => (left.number ?? 1) - (right.number ?? 1)
+  )
+}
+
+function getAdjacentNoteEventId(
+  score: Score,
+  eventId: string,
+  direction: -1 | 1
+): string | undefined {
+  let nextEventId = getAdjacentEventId(score, eventId, direction)
+
+  while (nextEventId) {
+    const location = locateEvent(score, nextEventId)
+
+    if (location?.event.type === 'note') {
+      return nextEventId
+    }
+
+    nextEventId = getAdjacentEventId(score, nextEventId, direction)
+  }
+
+  return undefined
 }
 
 function normalizeDurationForSaveSignature(duration: Duration): Duration {
@@ -5803,6 +6188,22 @@ function toFileName(title: string): string {
     .replace(/^-|-$/g, '')
 
   return normalized || 'untitled-score'
+}
+
+function parsePdfTargetPages(value: PdfTargetPagesValue): PrintPageTarget {
+  return value === 'auto' ? value : Number.parseInt(value, 10)
+}
+
+function waitForNextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    const scheduleFrame =
+      typeof window.requestAnimationFrame === 'function'
+        ? window.requestAnimationFrame.bind(window)
+        : (callback: FrameRequestCallback) =>
+            window.setTimeout(() => callback(performance.now()), 0)
+
+    scheduleFrame(() => scheduleFrame(() => resolve()))
+  })
 }
 
 function getErrorMessage(error: unknown): string {

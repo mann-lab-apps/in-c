@@ -708,6 +708,25 @@ h2 {
   background: #fbfaf6;
 }
 
+.pdf-page-target-control {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding-left: 6px;
+  color: #4a555c;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.pdf-page-target-control select {
+  min-height: 34px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  color: #202326;
+  background: #fbfaf6;
+}
+
 .accidental-control,
 .dot-control,
 .key-signature-control,
@@ -1161,7 +1180,8 @@ h2 {
 }
 
 .notation-octave-shift,
-.notation-repeat-mark,
+.notation-repeat-times,
+.notation-volta-mark,
 .notation-tremolo-mark {
   fill: #111827;
   pointer-events: none;
@@ -1170,7 +1190,8 @@ h2 {
 }
 
 .notation-octave-shift text,
-.notation-repeat-mark text {
+.notation-repeat-times,
+.notation-volta-mark text {
   fill: #111827;
   font-size: 12px;
   font-weight: 700;
@@ -1222,7 +1243,9 @@ h2 {
 }
 
 .notation-lyric {
+  cursor: pointer;
   font-size: 13px;
+  pointer-events: auto;
 }
 
 .notation-lyric-editor {
@@ -1230,13 +1253,15 @@ h2 {
 }
 
 .notation-lyric-editor input {
-  width: 96px;
+  box-sizing: border-box;
+  width: 100%;
   height: 30px;
   padding: 3px 8px;
   border: 1.5px solid #c89932;
   border-radius: 6px;
   color: #151719;
   background: #fffdf8;
+  background-clip: padding-box;
   box-shadow: 0 2px 8px rgba(47, 43, 35, 0.12);
   font: 700 15px/1.2 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   text-align: center;
@@ -1657,16 +1682,20 @@ h2 {
 
 @page {
   size: A4;
-  margin: 12mm;
+  margin: 8mm;
+  background: #ffffff;
 }
 
 @media print {
+  html,
   :root,
+  #root,
   body {
-    background: #ffffff;
+    background: #ffffff !important;
   }
 
   body {
+    width: 100%;
     min-height: 0;
   }
 
@@ -1674,7 +1703,7 @@ h2 {
   .workspace {
     display: block;
     min-height: 0;
-    background: #ffffff;
+    background: #ffffff !important;
   }
 
   .toolbar-tabs,
@@ -1690,20 +1719,84 @@ h2 {
   }
 
   .score-page {
+    position: relative;
     width: 100%;
     min-height: 0;
     margin: 0;
     padding: 0;
-    background: #ffffff;
+    background: #ffffff !important;
     box-shadow: none;
+  }
+
+  .score-title {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    width: 100%;
+    gap: 2px;
+    margin: 0;
+    pointer-events: none;
   }
 
   .metadata-display,
   .metadata-input {
+    min-height: 0;
     border-color: transparent;
+    background: transparent !important;
+  }
+
+  .metadata-display--title,
+  .metadata-input--title {
+    font-size: 11pt;
+    line-height: 1.2;
+  }
+
+  .metadata-display--composer,
+  .metadata-input--composer {
+    font-size: 7pt;
+    line-height: 1.2;
   }
 
   .notation-preview {
     overflow: visible;
+  }
+
+  .notation-preview svg {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .notation-measure,
+  .notation-measure:hover,
+  .notation-measure.is-selected {
+    fill: transparent;
+    stroke: transparent;
+  }
+
+  .notation-event,
+  .notation-measure {
+    cursor: default;
+  }
+
+  .notation-event.is-selected,
+  .notation-event.is-playback,
+  .notation-event.is-selected path,
+  .notation-event.is-selected rect,
+  .notation-event.is-selected circle,
+  .notation-event.is-selected ellipse,
+  .notation-event.is-selected line,
+  .notation-event.is-selected polygon,
+  .notation-event.is-selected polyline,
+  .notation-event.is-playback path,
+  .notation-event.is-playback rect,
+  .notation-event.is-playback circle,
+  .notation-event.is-playback ellipse,
+  .notation-event.is-playback line,
+  .notation-event.is-playback polygon,
+  .notation-event.is-playback polyline {
+    color: #000000 !important;
+    fill: #000000 !important;
+    stroke: #000000 !important;
   }
 }

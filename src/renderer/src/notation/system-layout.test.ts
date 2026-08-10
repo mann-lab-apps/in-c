@@ -52,7 +52,7 @@ describe('system layout', () => {
     ])
   })
 
-  it('stretches the last system to the full available width', () => {
+  it('stretches the final carryover system to the full available width', () => {
     const layout = createSystemLayout(createMeasures(9), 900)
     const lastPlacement = layout.placements[8]
 
@@ -73,6 +73,34 @@ describe('system layout', () => {
       expect(systemPlacements[0].x).toBe(8)
       expect(lastPlacement.x + lastPlacement.width).toBeCloseTo(892)
     }
+  })
+
+  it('keeps systems inside configured PDF page boundaries', () => {
+    const layout = createSystemLayout(createMeasures(6), 320, {
+      pageHeight: 300
+    })
+    const firstSystemPlacements = layout.placements.filter(
+      (placement) => placement.systemIndex === 0
+    )
+    const secondSystemPlacements = layout.placements.filter(
+      (placement) => placement.systemIndex === 1
+    )
+
+    expect(firstSystemPlacements[0].y + 154).toBeLessThanOrEqual(300)
+    expect(secondSystemPlacements[0].y).toBeGreaterThanOrEqual(300)
+    expect(secondSystemPlacements[0].y + 154).toBeLessThanOrEqual(600)
+  })
+
+  it('uses tighter sparse measure spacing for PDF export layouts', () => {
+    const layout = createSystemLayout(createMeasures(7), 760, {
+      compactSpacing: true
+    })
+
+    expect(layout.systemCount).toBe(1)
+    expect(layout.placements).toHaveLength(7)
+    expect(layout.placements.at(-1)!.x + layout.placements.at(-1)!.width).toBeCloseTo(
+      752
+    )
   })
 
   it('layout.manual-system-break adds a manual break and returns to automatic layout when removed', () => {

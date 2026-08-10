@@ -24,12 +24,17 @@ export interface SystemLayout {
 }
 
 export interface SystemLayoutOptions {
+  compactSpacing?: boolean
   layout?: ScoreLayout
+  pageHeight?: number
+  systemHeight?: number
+  systemTop?: number
 }
 
 const HORIZONTAL_PADDING = 8
 const MAX_MEASURES_PER_SYSTEM = 8
 const MIN_SPARSE_MEASURE_WIDTH = 104
+const COMPACT_SPARSE_MEASURE_WIDTH = 94
 const MIN_MEASURE_WIDTH = 132
 const LEADING_NOTATION_BASE_PADDING = 12
 const CLEF_PADDING = 4
@@ -62,6 +67,15 @@ interface SystemBreakPlan {
   systemCount: number
 }
 
+interface LayoutSpacing {
+  minSparseMeasureWidth: number
+}
+
+interface LayoutMetrics {
+  systemHeight: number
+  systemTop: number
+}
+
 export function createSystemLayout(
   measures: Measure[],
   renderWidth: number,
@@ -77,9 +91,18 @@ export function createSystemLayout(
   }
 
   const availableWidth = Math.max(1, renderWidth - HORIZONTAL_PADDING * 2)
+  const spacing = {
+    minSparseMeasureWidth: options.compactSpacing
+      ? COMPACT_SPARSE_MEASURE_WIDTH
+      : MIN_SPARSE_MEASURE_WIDTH
+  }
+  const metrics = {
+    systemHeight: options.systemHeight ?? SYSTEM_HEIGHT,
+    systemTop: options.systemTop ?? SYSTEM_TOP
+  }
   const widthCapacity = Math.max(
     1,
-    Math.floor(availableWidth / MIN_SPARSE_MEASURE_WIDTH)
+    Math.floor(availableWidth / spacing.minSparseMeasureWidth)
   )
   const measuresPerSystem = Math.min(
     MAX_MEASURES_PER_SYSTEM,
@@ -90,18 +113,29 @@ export function createSystemLayout(
     measures,
     measuresPerSystem,
     availableWidth,
-    options.layout
+    options.layout,
+    spacing
   )
   const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
-  let verticalCursor = SYSTEM_TOP
+  let verticalCursor = metrics.systemTop
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
     const systemMeasures = systemMeasuresList[systemIndex]
-    const widths = distributeSystemWidths(systemMeasures, availableWidth)
-    let x = HORIZONTAL_PADDING
     const verticalSpace = systemVerticalSpace(systemMeasures)
-    const y = verticalCursor + verticalSpace.above
+    const y = alignSystemToPage(
+      verticalCursor + verticalSpace.above,
+      verticalSpace.below,
+      options.pageHeight,
+      metrics
+    )
+    const widths = distributeSystemWidths(
+      systemMeasures,
+      availableWidth,
+      true,
+      spacing
+    )
+    let x = HORIZONTAL_PADDING
 
     systemMeasures.forEach((measure, columnIndex) => {
       const width = widths[columnIndex]
@@ -118,7 +152,7 @@ export function createSystemLayout(
       placements.push(placement)
     })
 
-    verticalCursor = y + SYSTEM_HEIGHT + verticalSpace.below
+    verticalCursor = y + metrics.systemHeight + verticalSpace.below
   }
 
   return {
@@ -129,11 +163,33 @@ export function createSystemLayout(
   }
 }
 
+function alignSystemToPage(
+  y: number,
+  below: number,
+  pageHeight: number | undefined,
+  metrics: Pick<LayoutMetrics, 'systemHeight' | 'systemTop'>
+): number {
+  if (!pageHeight) {
+    return y
+  }
+
+  const pageTop = Math.floor(y / pageHeight) * pageHeight
+  const pageBottom = pageTop + pageHeight
+  const systemBottom = y + metrics.systemHeight + below
+
+  if (systemBottom <= pageBottom) {
+    return y
+  }
+
+  return pageBottom + metrics.systemTop
+}
+
 function createSystemMeasureGroups(
   measures: Measure[],
   measuresPerSystem: number,
   availableWidth: number,
-  layout: ScoreLayout | undefined
+  layout: ScoreLayout | undefined,
+  spacing: LayoutSpacing
 ): Measure[][] {
   const manualBreaks = new Set([
     ...(layout?.systemBreakBeforeMeasureIds ?? []),
@@ -148,7 +204,8 @@ function createSystemMeasureGroups(
         ...optimizeSystemMeasureGroups(
           segment,
           measuresPerSystem,
-          availableWidth
+          availableWidth,
+          spacing
         )
       )
       segment = []
@@ -162,7 +219,8 @@ function createSystemMeasureGroups(
       ...optimizeSystemMeasureGroups(
         segment,
         measuresPerSystem,
-        availableWidth
+        availableWidth,
+        spacing
       )
     )
   }
@@ -173,7 +231,8 @@ function createSystemMeasureGroups(
 function optimizeSystemMeasureGroups(
   measures: Measure[],
   measuresPerSystem: number,
-  availableWidth: number
+  availableWidth: number,
+  spacing: LayoutSpacing
 ): Measure[][] {
   const plans: Array<SystemBreakPlan | undefined> = Array.from(
     { length: measures.length + 1 },
@@ -192,7 +251,7 @@ function optimizeSystemMeasureGroups(
     for (let end = index + 1; end <= maxEnd; end += 1) {
       const group = measures.slice(index, end)
 
-      if (!canFitSystemGroup(group, availableWidth)) {
+      if (!canFitSystemGroup(group, availableWidth, spacing)) {
         continue
       }
 
@@ -203,7 +262,7 @@ function optimizeSystemMeasureGroups(
       }
 
       const systemCount = 1 + nextPlan.systemCount
-      const cost = systemBadness(group, availableWidth) + nextPlan.cost
+      const cost = systemBadness(group, availableWidth, spacing) + nextPlan.cost
       const candidate = {
         cost,
         groups: [group, ...nextPlan.groups],
@@ -223,13 +282,24 @@ function optimizeSystemMeasureGroups(
 
 function canFitSystemGroup(
   measures: Measure[],
-  availableWidth: number
+  availableWidth: number,
+  spacing: LayoutSpacing
 ): boolean {
-  return measures.length === 1 || systemMinimumWidth(measures) <= availableWidth
+  return (
+    measures.length === 1 ||
+    systemMinimumWidth(measures, spacing) <= availableWidth
+  )
 }
 
-function systemBadness(measures: Measure[], availableWidth: number): number {
-  const leftover = Math.max(0, availableWidth - systemMinimumWidth(measures))
+function systemBadness(
+  measures: Measure[],
+  availableWidth: number,
+  spacing: LayoutSpacing
+): number {
+  const leftover = Math.max(
+    0,
+    availableWidth - systemMinimumWidth(measures, spacing)
+  )
 
   return leftover ** 2
 }
@@ -314,20 +384,27 @@ function clefLineShift(clef: Clef): number {
 
 function distributeSystemWidths(
   measures: Measure[],
-  availableWidth: number
+  availableWidth: number,
+  justifySystem: boolean,
+  spacing: LayoutSpacing
 ): number[] {
   if (measures.length === 0) {
     return []
   }
 
   const minimumWidths = measures.map((measure, index) =>
-    measureMinimumWidth(measure, measures[index - 1], index === 0)
+    measureMinimumWidth(measure, measures[index - 1], index === 0, spacing)
   )
   const totalMinimumWidth = minimumWidths.reduce((sum, width) => sum + width, 0)
   const scale = totalMinimumWidth > availableWidth
     ? availableWidth / totalMinimumWidth
     : 1
   const baseWidths = minimumWidths.map((width) => width * scale)
+
+  if (!justifySystem || totalMinimumWidth >= availableWidth) {
+    return baseWidths
+  }
+
   const baseWidthTotal = baseWidths.reduce((sum, width) => sum + width, 0)
   const remainingWidth = Math.max(0, availableWidth - baseWidthTotal)
   const weights = measures.map(measureSpacingWeight)
@@ -339,10 +416,13 @@ function distributeSystemWidths(
   )
 }
 
-function systemMinimumWidth(measures: Measure[]): number {
+function systemMinimumWidth(
+  measures: Measure[],
+  spacing: LayoutSpacing
+): number {
   return measures.reduce(
     (sum, measure, index) =>
-      sum + measureMinimumWidth(measure, measures[index - 1], index === 0),
+      sum + measureMinimumWidth(measure, measures[index - 1], index === 0, spacing),
     0
   )
 }
@@ -350,7 +430,8 @@ function systemMinimumWidth(measures: Measure[]): number {
 function measureMinimumWidth(
   measure: Measure,
   previousMeasure: Measure | undefined,
-  isSystemStart: boolean
+  isSystemStart: boolean,
+  spacing: LayoutSpacing
 ): number {
   const rhythmWeight = measureSpacingWeight(measure)
   const voiceCount = Math.max(1, measure.voices.length)
@@ -358,7 +439,7 @@ function measureMinimumWidth(
     0,
     ...measure.voices.map((voice) => voice.events.length)
   )
-  const baseWidth = sparseMeasureWidth(measure, rhythmWeight)
+  const baseWidth = sparseMeasureWidth(measure, rhythmWeight, spacing)
   const eventCrowdingWidth = Math.max(0, maxEventCount - 3) * EVENT_CROWDING_WIDTH
   const voiceWidth = Math.max(0, voiceCount - 1) * 80
   const denseRhythmWidth = Math.max(0, rhythmWeight - 4) * DENSE_RHYTHM_WIDTH
@@ -429,7 +510,11 @@ function sameTimeSignature(previous: Measure, current: Measure): boolean {
   )
 }
 
-function sparseMeasureWidth(measure: Measure, rhythmWeight: number): number {
+function sparseMeasureWidth(
+  measure: Measure,
+  rhythmWeight: number,
+  spacing: LayoutSpacing
+): number {
   const events = measure.voices[0]?.events ?? []
   const isFullRestOnly =
     events.length === 1 &&
@@ -437,12 +522,12 @@ function sparseMeasureWidth(measure: Measure, rhythmWeight: number): number {
     Boolean(events[0].fullMeasure)
 
   if (isFullRestOnly) {
-    return MIN_SPARSE_MEASURE_WIDTH
+    return spacing.minSparseMeasureWidth
   }
 
   return Math.min(
     MIN_MEASURE_WIDTH,
-    MIN_SPARSE_MEASURE_WIDTH + Math.max(0, rhythmWeight - 1) * 14
+    spacing.minSparseMeasureWidth + Math.max(0, rhythmWeight - 1) * 14
   )
 }
 
