@@ -144,10 +144,7 @@ import {
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
-import {
-  resolvePrintLayoutPlan,
-  type PrintPageTarget
-} from './notation/print-layout'
+import { resolvePrintLayoutPlan } from './notation/print-layout'
 import { useScorePlayback } from './playback/useScorePlayback'
 
 const durations: DurationValue[] = [
@@ -326,23 +323,10 @@ const toolbarCategories = [
   { id: 'playback', label: '재생' }
 ] as const
 
-const pdfTargetPageOptions: Array<{
-  label: string
-  value: PdfTargetPagesValue
-}> = [
-  { label: '자동', value: 'auto' },
-  { label: '1쪽', value: '1' },
-  { label: '2쪽', value: '2' },
-  { label: '3쪽', value: '3' },
-  { label: '4쪽', value: '4' },
-  { label: '5쪽', value: '5' },
-  { label: '6쪽', value: '6' }
-]
-
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
-type PdfTargetPagesValue = 'auto' | '1' | '2' | '3' | '4' | '5' | '6'
+type PdfTargetPagesValue = string
 
 interface NewScoreDraft {
   title: string
@@ -462,7 +446,7 @@ export const App = () => {
     useState<ToolbarCategory>('note')
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
-    useState<PdfTargetPagesValue>('auto')
+    useState<PdfTargetPagesValue>('2')
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -3224,6 +3208,14 @@ export const App = () => {
   }, [noteInputState?.tupletInput, score])
 
   const savePdf = useCallback(async () => {
+    if (!parsePdfTargetPages(pdfTargetPages)) {
+      setFileStatus({
+        tone: 'error',
+        message: 'PDF 장수는 1 이상이어야 합니다.'
+      })
+      return
+    }
+
     try {
       setPdfExporting(true)
       await waitForNextPaint()
@@ -3248,7 +3240,7 @@ export const App = () => {
     } finally {
       setPdfExporting(false)
     }
-  }, [score.title])
+  }, [pdfTargetPages, score.title])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -3498,9 +3490,14 @@ export const App = () => {
         : score,
     [noteInputState, score]
   )
+  const pdfTargetPageCount = parsePdfTargetPages(pdfTargetPages)
+  const pdfTargetPagesInvalid = !pdfTargetPageCount
+  const pdfTargetPagesTooltip = pdfTargetPagesInvalid
+    ? 'PDF 장수는 1 이상이어야 합니다.'
+    : 'PDF 변환'
   const printLayoutPlan = useMemo(
-    () => resolvePrintLayoutPlan(score, parsePdfTargetPages(pdfTargetPages)),
-    [pdfTargetPages, score]
+    () => resolvePrintLayoutPlan(score, pdfTargetPageCount ?? 1),
+    [pdfTargetPageCount, score]
   )
   const canEditPitch = eventLocation?.event.type === 'note'
   const selectedNoteArticulations =
@@ -4389,30 +4386,42 @@ export const App = () => {
                 <FileMusic aria-hidden="true" size={17} />
                 <span>저장</span>
               </button>
-              <button
-                aria-label="PDF 변환"
-                onClick={savePdf}
-                title="PDF 변환"
-                type="button"
-              >
-                <FileDown aria-hidden="true" size={17} />
-                <span>PDF 변환</span>
-              </button>
+              <span className="pdf-save-button-wrapper" title={pdfTargetPagesTooltip}>
+                <button
+                  aria-describedby={
+                    pdfTargetPagesInvalid ? 'pdf-target-pages-error' : undefined
+                  }
+                  aria-label="PDF 변환"
+                  disabled={pdfTargetPagesInvalid}
+                  onClick={savePdf}
+                  title={pdfTargetPagesTooltip}
+                  type="button"
+                >
+                  <FileDown aria-hidden="true" size={17} />
+                  <span>PDF 변환</span>
+                </button>
+              </span>
               <label className="pdf-page-target-control">
                 <span>PDF 장수</span>
-                <select
+                <input
                   aria-label="PDF 목표 장수"
-                  onChange={(event) =>
-                    setPdfTargetPages(event.target.value as PdfTargetPagesValue)
+                  aria-describedby={
+                    pdfTargetPagesInvalid ? 'pdf-target-pages-error' : undefined
                   }
+                  inputMode="numeric"
+                  min={1}
+                  onChange={(event) => setPdfTargetPages(event.target.value)}
+                  pattern="[0-9]*"
+                  step={1}
+                  title="PDF 장수는 1 이상이어야 합니다."
+                  type="number"
                   value={pdfTargetPages}
-                >
-                  {pdfTargetPageOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                />
+                {pdfTargetPagesInvalid ? (
+                  <span className="sr-only" id="pdf-target-pages-error">
+                    PDF 장수는 1 이상이어야 합니다.
+                  </span>
+                ) : null}
               </label>
             </div>
 
@@ -6190,8 +6199,10 @@ function toFileName(title: string): string {
   return normalized || 'untitled-score'
 }
 
-function parsePdfTargetPages(value: PdfTargetPagesValue): PrintPageTarget {
-  return value === 'auto' ? value : Number.parseInt(value, 10)
+function parsePdfTargetPages(value: PdfTargetPagesValue): number | undefined {
+  const pageCount = Number(value)
+
+  return Number.isInteger(pageCount) && pageCount >= 1 ? pageCount : undefined
 }
 
 function waitForNextPaint(): Promise<void> {

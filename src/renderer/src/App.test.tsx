@@ -60,10 +60,14 @@ vi.mock('./notation/NotationPreview', () => ({
     playbackEventId?: string
     printLayout?: boolean
     printLayoutPlan?: {
+      estimatedPageCount: number
       id: string
+      overflowedTarget: boolean
       pageCount: number
       pageMarginMm: number
       renderWidth: number
+      scale: number
+      targetPages?: number
     }
   }) => (
     <div
@@ -140,7 +144,10 @@ vi.mock('./notation/NotationPreview', () => ({
       data-print-layout={printLayout ? 'true' : 'false'}
       data-print-layout-id={printLayoutPlan?.id ?? ''}
       data-print-layout-margin={printLayoutPlan?.pageMarginMm ?? ''}
+      data-print-layout-overflowed={printLayoutPlan?.overflowedTarget ? 'true' : 'false'}
       data-print-layout-pages={printLayoutPlan?.pageCount ?? ''}
+      data-print-layout-scale={printLayoutPlan?.scale ?? ''}
+      data-print-layout-target={printLayoutPlan?.targetPages ?? ''}
       data-print-layout-width={printLayoutPlan?.renderWidth ?? ''}
       data-testid="notation-preview"
     >
@@ -984,7 +991,9 @@ describe('App component shell', () => {
     const pageTarget = within(fileActions).getByLabelText('PDF 목표 장수')
 
     expect(pdfButton).not.toBe(musicXmlButton)
-    expect(pageTarget).toHaveValue('auto')
+    expect(pageTarget).toHaveValue(2)
+    expect(pageTarget).toHaveAttribute('min', '1')
+    expect(pageTarget).toHaveAttribute('step', '1')
     fireEvent.click(pdfButton)
 
     await waitFor(() => {
@@ -1038,7 +1047,7 @@ describe('App component shell', () => {
     )
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
       'data-print-layout-id',
-      'balanced'
+      'comfortable'
     )
 
     finishPdfSave?.({ fileName: 'demo.pdf' })
@@ -1055,7 +1064,7 @@ describe('App component shell', () => {
     )
   })
 
-  it('import-export.save-pdf selects a tighter print layout for a target page count', async () => {
+  it('import-export.save-pdf applies a strict target page count when possible', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     let finishPdfSave: ((value: { fileName: string }) => void) | undefined
     vi.mocked(window.inC.pdf.save).mockImplementation(
@@ -1076,24 +1085,50 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '파일' }))
     fireEvent.change(screen.getByLabelText('PDF 목표 장수'), {
-      target: { value: '1' }
+      target: { value: '2' }
     })
     fireEvent.click(screen.getByRole('button', { name: 'PDF 변환' }))
 
     await waitFor(() => expect(window.inC.pdf.save).toHaveBeenCalled())
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-id',
-      'tight'
+      'data-print-layout-target',
+      '2'
     )
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-      'data-print-layout-margin',
-      '5'
+      'data-print-layout-overflowed',
+      'false'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-print-layout-pages',
+      '2'
     )
 
-    finishPdfSave?.({ fileName: 'one-page.pdf' })
+    finishPdfSave?.({ fileName: 'two-page.pdf' })
     expect(
-      await screen.findByText('one-page.pdf로 PDF를 만들었습니다.')
+      await screen.findByText('two-page.pdf로 PDF를 만들었습니다.')
     ).toBeInTheDocument()
+  })
+
+  it('import-export.save-pdf disables PDF export when the target page count is zero', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    const pageTarget = screen.getByLabelText('PDF 목표 장수')
+    const pdfButton = screen.getByRole('button', { name: 'PDF 변환' })
+
+    fireEvent.change(pageTarget, { target: { value: '0' } })
+
+    expect(pageTarget).toHaveAccessibleDescription(
+      'PDF 장수는 1 이상이어야 합니다.'
+    )
+    expect(pdfButton).toBeDisabled()
+    expect(pdfButton).toHaveAccessibleDescription(
+      'PDF 장수는 1 이상이어야 합니다.'
+    )
+    fireEvent.click(pdfButton)
+    expect(window.inC.pdf.save).not.toHaveBeenCalled()
   })
 
   it('import-export.distinguish-musicxml-save-from-autosave keeps file save separate from import and recovery', async () => {

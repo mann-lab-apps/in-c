@@ -708,6 +708,10 @@ h2 {
   background: #fbfaf6;
 }
 
+.pdf-save-button-wrapper {
+  display: inline-flex;
+}
+
 .pdf-page-target-control {
   display: inline-flex;
   min-height: 34px;
@@ -719,12 +723,26 @@ h2 {
   font-weight: 700;
 }
 
-.pdf-page-target-control select {
+.pdf-page-target-control input {
+  width: 62px;
   min-height: 34px;
+  padding: 0 8px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   color: #202326;
   background: #fbfaf6;
+  font: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .accidental-control,
