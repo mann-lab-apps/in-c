@@ -165,9 +165,12 @@ export function NotationPreview({
 
     const measures = score.parts[0]?.staves[0]?.measures ?? []
     const effectiveRenderWidth = printLayoutPlan?.renderWidth ?? renderWidth
+    const printScale = printLayoutPlan?.scale ?? 1
+    const lyricScale = Math.max(0.82, printScale)
     const layout = createSystemLayout(measures, effectiveRenderWidth, {
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
       layout: score.layout,
+      lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
       systemHeight: printLayoutPlan?.systemHeight,
       systemTop: printLayoutPlan?.systemTop
@@ -249,6 +252,7 @@ export function NotationPreview({
     if (svg) {
       svg.setAttribute('viewBox', `0 0 ${effectiveRenderWidth} ${layout.height}`)
       svg.setAttribute('preserveAspectRatio', 'xMinYMin meet')
+      svg.setAttribute('data-print-scale', String(printScale))
     }
 
     if (svg && score.tempo) {
@@ -742,6 +746,7 @@ export function NotationPreview({
               eventX,
               placement.y,
               event.lyrics,
+              lyricScale,
               onSelectLyric
             )
           }
@@ -1704,6 +1709,7 @@ function drawLyrics(
   x: number,
   staffY: number,
   lyrics: NonNullable<Extract<VoiceEvent, { type: 'note' }>['lyrics']>,
+  lyricScale: number,
   onSelectLyric: (eventId: string, verse: number) => void
 ): void {
   sortLyricsForDisplay(lyrics).forEach((lyric, index) => {
@@ -1717,7 +1723,11 @@ function drawLyrics(
     text.setAttribute('role', 'button')
     text.setAttribute('tabindex', '0')
     text.setAttribute('x', String(x + 4))
-    text.setAttribute('y', String(staffY + 116 + lineIndex * 16))
+    text.setAttribute(
+      'y',
+      String(staffY + 116 * lyricScale + lineIndex * 16 * lyricScale)
+    )
+    text.setAttribute('font-size', String(13 * lyricScale))
     text.textContent = `${lyric.text}${
       lyric.syllabic === 'begin' || lyric.syllabic === 'middle' ? '-' : ''
     }${lyric.extend ? '_' : ''}`

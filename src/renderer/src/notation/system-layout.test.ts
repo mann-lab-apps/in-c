@@ -91,6 +91,22 @@ describe('system layout', () => {
     expect(secondSystemPlacements[0].y + 154).toBeLessThanOrEqual(600)
   })
 
+  it('keeps lyric descenders inside configured PDF page boundaries', () => {
+    const layout = createSystemLayout(createLyricMeasures(3), 320, {
+      pageHeight: 245,
+      systemHeight: 132
+    })
+    const firstSystemPlacements = layout.placements.filter(
+      (placement) => placement.systemIndex === 0
+    )
+    const secondSystemPlacements = layout.placements.filter(
+      (placement) => placement.systemIndex === 1
+    )
+
+    expect(firstSystemPlacements[0].y + 153).toBeLessThanOrEqual(245)
+    expect(secondSystemPlacements[0].y).toBeGreaterThanOrEqual(245)
+  })
+
   it('uses tighter sparse measure spacing for PDF export layouts', () => {
     const layout = createSystemLayout(createMeasures(7), 760, {
       compactSpacing: true
@@ -554,6 +570,30 @@ function createMeasures(count: number) {
     createMeasure({
       id: `measure-${index + 1}`,
       number: index + 1
+    })
+  )
+}
+
+function createLyricMeasures(count: number) {
+  return Array.from({ length: count }, (_, index) =>
+    createMeasure({
+      id: `lyric-measure-${index + 1}`,
+      number: index + 1,
+      voices: [
+        createVoice({
+          events: [
+            createNote({
+              id: `lyric-note-${index + 1}`,
+              lyrics: [
+                { number: 1, syllabic: 'single', text: '가' },
+                { number: 2, syllabic: 'single', text: '나' }
+              ],
+              pitch: { step: 'C', octave: 4 },
+              position: createTimePosition(0)
+            })
+          ]
+        })
+      ]
     })
   )
 }

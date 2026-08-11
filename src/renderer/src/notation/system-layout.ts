@@ -26,6 +26,7 @@ export interface SystemLayout {
 export interface SystemLayoutOptions {
   compactSpacing?: boolean
   layout?: ScoreLayout
+  lyricScale?: number
   pageHeight?: number
   systemHeight?: number
   systemTop?: number
@@ -50,6 +51,10 @@ const STAFF_LINE_SPACING = 10
 const MAX_LINE_WITHOUT_EXTRA_SPACE = 8
 const MIN_LINE_WITHOUT_EXTRA_SPACE = -6
 const STEM_SPACE_LINES = 4.8
+const LYRIC_BASELINE_OFFSET = 116
+const LYRIC_LINE_GAP = 16
+const LYRIC_FONT_SIZE = 13
+const LYRIC_BOTTOM_PADDING = 8
 
 interface SystemVerticalSpace {
   below: number
@@ -122,7 +127,11 @@ export function createSystemLayout(
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
     const systemMeasures = systemMeasuresList[systemIndex]
-    const verticalSpace = systemVerticalSpace(systemMeasures)
+    const verticalSpace = systemVerticalSpace(
+      systemMeasures,
+      options.lyricScale ?? 1,
+      metrics
+    )
     const y = alignSystemToPage(
       verticalCursor + verticalSpace.above,
       verticalSpace.below,
@@ -322,19 +331,58 @@ function compareSystemBreakPlans(
   return left.cost - right.cost
 }
 
-function systemVerticalSpace(measures: Measure[]): SystemVerticalSpace {
+function systemVerticalSpace(
+  measures: Measure[],
+  lyricScale: number,
+  metrics: Pick<LayoutMetrics, 'systemHeight'>
+): SystemVerticalSpace {
   const { highestLine, lowestLine } = systemPitchExtremes(measures)
+  const noteBelow = Math.max(
+    0,
+    MIN_LINE_WITHOUT_EXTRA_SPACE - (lowestLine - STEM_SPACE_LINES)
+  ) * STAFF_LINE_SPACING
+  const lyricBelow = Math.max(
+    0,
+    systemLyricBottom(measures, lyricScale) - metrics.systemHeight
+  )
 
   return {
     above: Math.max(
       0,
       highestLine + STEM_SPACE_LINES - MAX_LINE_WITHOUT_EXTRA_SPACE
     ) * STAFF_LINE_SPACING,
-    below: Math.max(
-      0,
-      MIN_LINE_WITHOUT_EXTRA_SPACE - (lowestLine - STEM_SPACE_LINES)
-    ) * STAFF_LINE_SPACING
+    below: Math.max(noteBelow, lyricBelow)
   }
+}
+
+function systemLyricBottom(measures: Measure[], lyricScale: number): number {
+  const maxLyricLine = measures.reduce(
+    (maxLine, measure) =>
+      Math.max(
+        maxLine,
+        ...measure.voices.flatMap((voice) =>
+          voice.events.flatMap((event) =>
+            event.type === 'note'
+              ? (event.lyrics ?? []).map((lyric, index) =>
+                  Math.max(1, lyric.number ?? index + 1)
+                )
+              : []
+          )
+        )
+      ),
+    0
+  )
+
+  if (maxLyricLine === 0) {
+    return 0
+  }
+
+  return (
+    LYRIC_BASELINE_OFFSET * lyricScale +
+    (maxLyricLine - 1) * LYRIC_LINE_GAP * lyricScale +
+    LYRIC_FONT_SIZE * lyricScale +
+    LYRIC_BOTTOM_PADDING
+  )
 }
 
 function systemPitchExtremes(measures: Measure[]): SystemPitchExtremes {

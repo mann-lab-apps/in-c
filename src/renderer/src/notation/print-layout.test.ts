@@ -22,11 +22,13 @@ describe('print layout planning', () => {
 
     expect(resolvePrintLayoutPlan(score, 'auto')).toMatchObject({
       id: 'balanced',
-      pageMarginMm: 8
+      overflowedTarget: false,
+      pageMarginMm: 8,
+      scale: 1
     })
   })
 
-  it('uses the tightest readable candidate when the target page count is strict', () => {
+  it('forces a strict target page count by scaling beyond the tightest candidate', () => {
     const score = createScore({
       parts: [
         {
@@ -35,21 +37,53 @@ describe('print layout planning', () => {
           staves: [
             {
               id: 'staff-1',
-              measures: createMeasures(80)
+              measures: createMeasures(140)
             }
           ]
         }
       ]
     })
+    const plan = resolvePrintLayoutPlan(score, 2)
 
-    expect(resolvePrintLayoutPlan(score, 1)).toMatchObject({
-      id: 'tight',
-      pageMarginMm: 5,
-      renderWidth: 820
+    expect(plan).toMatchObject({
+      id: 'forced',
+      overflowedTarget: false,
+      pageCount: 2,
+      targetPages: 2
     })
+    expect(plan.scale).toBeLessThan(1)
+    expect(plan.renderWidth).toBeGreaterThan(820)
+    expect(plan.pageHeight).toBeGreaterThan(1192)
+    expect(plan.systemTop).toBeGreaterThanOrEqual(72)
   })
 
-  it('treats near-page-boundary layouts conservatively for explicit targets', () => {
+  it('marks targets as overflowed when the readability floor cannot satisfy them', () => {
+    const score = createScore({
+      parts: [
+        {
+          id: 'part-1',
+          name: 'Part',
+          staves: [
+            {
+              id: 'staff-1',
+              measures: createMeasures(360)
+            }
+          ]
+        }
+      ]
+    })
+    const plan = resolvePrintLayoutPlan(score, 1)
+
+    expect(plan).toMatchObject({
+      id: 'forced',
+      overflowedTarget: true,
+      targetPages: 1
+    })
+    expect(plan.pageCount).toBeGreaterThan(1)
+    expect(plan.scale).toBe(0.72)
+  })
+
+  it('keeps near-page-boundary explicit targets within the requested maximum', () => {
     const score = createScore({
       parts: [
         {
@@ -64,8 +98,11 @@ describe('print layout planning', () => {
         }
       ]
     })
+    const plan = resolvePrintLayoutPlan(score, 2)
 
-    expect(resolvePrintLayoutPlan(score, 2).id).not.toBe('balanced')
+    expect(plan.pageCount).toBeLessThanOrEqual(2)
+    expect(plan.targetPages).toBe(2)
+    expect(plan.overflowedTarget).toBe(false)
   })
 })
 
