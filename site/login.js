@@ -3,6 +3,10 @@ import {
   isSupabaseConfigured,
   supabase
 } from './auth.js'
+import {
+  clearStoredRedirectTarget,
+  getRequestedAuthRedirectTarget
+} from './auth-redirect.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { configureAnalytics, trackEvent } from './analytics.js'
 import { initGlobalBanner } from './global-banner.js'
@@ -49,6 +53,7 @@ const getRedirectUrl = () => {
   const url = new URL(window.location.href)
   url.pathname = url.pathname.replace(/[^/]*$/, 'login.html')
   url.search = ''
+  url.searchParams.set('redirectTo', getRequestedAuthRedirectTarget())
   url.hash = ''
   return url.href
 }
@@ -67,6 +72,16 @@ const getAuthCallbackParams = () => {
   }
 
   return params
+}
+
+const hasAuthCallbackParams = (params) => {
+  for (const name of authCallbackParamNames) {
+    if (params.has(name)) {
+      return true
+    }
+  }
+
+  return false
 }
 
 const clearAuthCallbackUrl = () => {
@@ -145,6 +160,24 @@ const renderSession = (session) => {
     setStatus('원하는 계정으로 로그인하세요.')
     setActionsDisabled(false)
   }
+}
+
+const redirectSignedInUser = (session, { allowDefault = false } = {}) => {
+  if (!session?.user) {
+    return false
+  }
+
+  const target = getRequestedAuthRedirectTarget({
+    fallback: allowDefault ? undefined : ''
+  })
+
+  if (!target) {
+    return false
+  }
+
+  clearStoredRedirectTarget()
+  window.location.replace(target)
+  return true
 }
 
 const signInWithProvider = async (providerKey) => {
@@ -229,6 +262,7 @@ const init = async () => {
 
   const { data, error } = await supabase.auth.getSession()
   const callbackParams = getAuthCallbackParams()
+  const isAuthCallback = hasAuthCallbackParams(callbackParams)
   const callbackError =
     callbackParams.get('error_description') ?? callbackParams.get('error')
 
@@ -243,9 +277,17 @@ const init = async () => {
   renderSession(data.session)
   clearAuthCallbackUrl()
 
+  if (redirectSignedInUser(data.session, { allowDefault: isAuthCallback })) {
+    return
+  }
+
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_IN') {
       trackEvent('auth_signed_in')
+
+      if (redirectSignedInUser(session, { allowDefault: true })) {
+        return
+      }
     }
 
     renderSession(session)
