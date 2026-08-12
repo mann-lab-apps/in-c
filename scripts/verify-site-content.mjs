@@ -43,6 +43,7 @@ const communityMigrationPath = resolve(
 )
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
+const authRedirectScriptPath = resolve(siteRoot, 'auth-redirect.js')
 const authScriptPath = resolve(siteRoot, 'auth.js')
 const authNavScriptPath = resolve(siteRoot, 'auth-nav.js')
 const compositionDifficulties = new Set(['초급', '중급', '고급'])
@@ -394,8 +395,11 @@ function verifyProductSurfaceStates() {
 function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
+  const authRedirectScript = readFileSync(authRedirectScriptPath, 'utf8')
   const authScript = readFileSync(authScriptPath, 'utf8')
   const authNavScript = readFileSync(authNavScriptPath, 'utf8')
+  const communityWriteScript = readFileSync(communityWriteScriptPath, 'utf8')
+  const communityPostScript = readFileSync(communityPostScriptPath, 'utf8')
 
   assert(
     loginHtml.includes('data-auth-provider="google"'),
@@ -425,8 +429,23 @@ function verifyLoginAuthSurface() {
       loginScript.includes('onAuthStateChange') &&
       loginScript.includes('signOut') &&
       loginScript.includes('auth_callback_error') &&
-      loginScript.includes('auth_social_pending'),
+      loginScript.includes('auth_social_pending') &&
+      loginScript.includes('redirectSignedInUser'),
     'login script must support OAuth session lifecycle'
+  )
+  assert(
+    loginScript.includes('getRequestedAuthRedirectTarget') &&
+      authRedirectScript.includes('redirectTo') &&
+      authRedirectScript.includes('sessionStorage') &&
+      authRedirectScript.includes('targetUrl.origin !== window.location.origin') &&
+      authRedirectScript.includes('isLoginPath'),
+    'login redirect flow must preserve safe internal destinations'
+  )
+  assert(
+    communityWriteScript.includes('createLoginUrlWithRedirect') &&
+      communityPostScript.includes('createLoginUrlWithRedirect') &&
+      communityPostScript.includes('로그인하고 댓글 남기기'),
+    'Community auth entry points must preserve their login redirect target'
   )
   assert(
     authScript.includes('@supabase/supabase-js') &&

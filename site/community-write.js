@@ -3,6 +3,7 @@ import {
   isSupabaseConfigured,
   supabase
 } from './auth.js'
+import { createLoginUrlWithRedirect } from './auth-redirect.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { initGlobalBanner } from './global-banner.js'
 
@@ -104,6 +105,10 @@ const renderAuthState = () => {
   }
 
   setFormDisabled(!isSignedIn)
+}
+
+const redirectToLogin = () => {
+  window.location.replace(createLoginUrlWithRedirect())
 }
 
 const loadPostForEdit = async () => {
@@ -208,12 +213,12 @@ const init = async () => {
     renderAuthState()
 
     if (!session?.user) {
-      window.location.replace('./login.html')
+      redirectToLogin()
     }
   })
 
   if (!currentSession?.user) {
-    window.location.replace('./login.html')
+    redirectToLogin()
     return
   }
 

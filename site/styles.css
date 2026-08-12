@@ -1768,6 +1768,23 @@ dd {
   padding-top: 6px;
 }
 
+.community-comment-login {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #ddd3c5;
+  border-radius: 8px;
+  background: #fffdf8;
+}
+
+.community-comment-login p {
+  margin: 0;
+  color: #3d474b;
+  line-height: 1.6;
+}
+
 .community-comment-list {
   display: grid;
   gap: 10px;
@@ -1852,5 +1869,10 @@ dd {
 
   .community-board__header {
     grid-template-columns: 1fr;
+  }
+
+  .community-comment-login {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

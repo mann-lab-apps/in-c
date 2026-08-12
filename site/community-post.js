@@ -3,6 +3,7 @@ import {
   isSupabaseConfigured,
   supabase
 } from './auth.js'
+import { createLoginUrlWithRedirect } from './auth-redirect.js'
 import { initAuthNavigation } from './auth-nav.js'
 import { initGlobalBanner } from './global-banner.js'
 
@@ -92,7 +93,14 @@ const renderPostMeta = (post) => `
 
 const renderCommentForm = () => {
   if (!currentSession?.user) {
-    return ''
+    return `
+      <div class="community-comment-login">
+        <p>로그인하면 이 대화에 댓글을 남길 수 있어요.</p>
+        <a class="button button--primary" href="${escapeHtml(createLoginUrlWithRedirect())}">
+          로그인하고 댓글 남기기
+        </a>
+      </div>
+    `
   }
 
   const editingComment = comments.find(
