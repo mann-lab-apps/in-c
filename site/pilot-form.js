@@ -39,7 +39,7 @@ const setStatus = (message, tone = 'neutral') => {
 }
 
 const formatSubmission = (data) => [
-  '[in C 공연홍보 무료 파일럿 신청]',
+  '[in C 공연홍보 신청]',
   '',
   `신청자: ${data.applicantName}`,
   `전화: ${data.contactPhone || '-'}`,
@@ -165,7 +165,7 @@ const downloadResult = () => {
   const safeTitle = getValue('concertTitle')
     .replace(/[^\p{Letter}\p{Number}]+/gu, '-')
     .replace(/^-|-$/g, '')
-    .slice(0, 60) || 'concert-promotion-pilot'
+    .slice(0, 60) || 'concert-promotion'
 
   link.href = url
   link.download = `${safeTitle}-pilot.txt`

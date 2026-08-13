@@ -401,7 +401,7 @@ function verifyPilotIntakeSurface() {
   const pilotConcerts = readJson(pilotConcertsPath)
 
   for (const phrase of [
-    '공연 홍보 파일럿 신청',
+    '공연 홍보 신청',
     'data-pilot-form',
     'name="applicantName"',
     'name="contactPhone"',
@@ -429,7 +429,9 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('지금 가장 어려운 홍보 문제') &&
       !indexPage.includes('value="textOnly"') &&
       !indexPage.includes('name="concertDateTime"') &&
-      !indexPage.includes('name="contact"'),
+      !indexPage.includes('name="contact"') &&
+      !indexPage.includes('Concert Promotion Pilot') &&
+      !indexPage.includes('무료 파일럿'),
     'pilot intake page must keep abstract audience/budget questions out of the first form'
   )
   for (const phrase of [
