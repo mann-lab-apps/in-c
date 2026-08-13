@@ -18,6 +18,7 @@ const allowedEventParams = new Set([
   'location',
   'meter',
   'platform',
+  'poster_status',
   'reading_minutes'
 ])
 

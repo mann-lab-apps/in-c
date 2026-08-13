@@ -41,6 +41,9 @@ const communityMigrationPath = resolve(
   repoRoot,
   'supabase/migrations/0002_community_board_schema.sql'
 )
+const indexPagePath = resolve(siteRoot, 'index.html')
+const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
+const pilotConcertDataPath = resolve(siteRoot, 'pilot-concert-data.js')
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authRedirectScriptPath = resolve(siteRoot, 'auth-redirect.js')
@@ -392,6 +395,47 @@ function verifyProductSurfaceStates() {
   }
 }
 
+function verifyPilotIntakeSurface() {
+  const indexPage = readFileSync(indexPagePath, 'utf8')
+  const pilotFormScript = readFileSync(pilotFormScriptPath, 'utf8')
+  const pilotConcertData = readFileSync(pilotConcertDataPath, 'utf8')
+
+  for (const phrase of [
+    '공연 홍보 파일럿 신청',
+    'data-pilot-form',
+    'name="applicantName"',
+    'name="contact"',
+    'name="concertTitle"',
+    'name="posterStatus"',
+    'value="needsDesign"',
+    '추가 요청사항/비고',
+    'data-pilot-result'
+  ]) {
+    assert(indexPage.includes(phrase), `pilot intake page missing: ${phrase}`)
+  }
+
+  assert(
+    !indexPage.includes('name="promotionBudget"') &&
+      !indexPage.includes('가장 오면 좋겠는 관객') &&
+      !indexPage.includes('지금 가장 어려운 홍보 문제'),
+    'pilot intake page must keep abstract audience/budget questions out of the first form'
+  )
+  assert(
+    pilotFormScript.includes('formatSubmission') &&
+      pilotFormScript.includes('navigator.clipboard.writeText') &&
+      pilotFormScript.includes('URL.createObjectURL') &&
+      pilotFormScript.includes('promotion_pilot_form_submit'),
+    'pilot form script must generate copyable/downloadable submission drafts'
+  )
+  assert(
+    pilotConcertData.includes("서울시향 베토벤 '합창'") &&
+      pilotConcertData.includes('2026-08-16') &&
+      pilotConcertData.includes('세종문화회관 대극장') &&
+      pilotConcertData.includes('세종문화회관 공연 페이지'),
+    'pilot concert data must preserve the 0th sample concert'
+  )
+}
+
 function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
@@ -472,6 +516,7 @@ try {
   verifyColumnAssets()
   verifyProductRelations()
   verifyProductSurfaceStates()
+  verifyPilotIntakeSurface()
   verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(
