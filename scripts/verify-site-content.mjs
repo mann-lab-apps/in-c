@@ -404,9 +404,18 @@ function verifyPilotIntakeSurface() {
     '공연 홍보 파일럿 신청',
     'data-pilot-form',
     'name="applicantName"',
-    'name="contact"',
+    'name="contactPhone"',
+    'name="contactEmail"',
+    'name="contactInstagram"',
     'name="concertTitle"',
+    'name="concertDate"',
+    'type="date"',
+    'name="concertTime"',
+    'type="time"',
+    'name="venue"',
+    'name="region"',
     'name="posterStatus"',
+    'name="posterFile"',
     'value="needsDesign"',
     '추가 요청사항/비고',
     'data-pilot-result'
@@ -417,7 +426,10 @@ function verifyPilotIntakeSurface() {
   assert(
     !indexPage.includes('name="promotionBudget"') &&
       !indexPage.includes('가장 오면 좋겠는 관객') &&
-      !indexPage.includes('지금 가장 어려운 홍보 문제'),
+      !indexPage.includes('지금 가장 어려운 홍보 문제') &&
+      !indexPage.includes('value="textOnly"') &&
+      !indexPage.includes('name="concertDateTime"') &&
+      !indexPage.includes('name="contact"'),
     'pilot intake page must keep abstract audience/budget questions out of the first form'
   )
   for (const phrase of [
@@ -438,6 +450,9 @@ function verifyPilotIntakeSurface() {
   )
   assert(
     pilotFormScript.includes('formatSubmission') &&
+      pilotFormScript.includes('formatConcertDateTime') &&
+      pilotFormScript.includes('validateContact') &&
+      pilotFormScript.includes('syncPosterUpload') &&
       pilotFormScript.includes('navigator.clipboard.writeText') &&
       pilotFormScript.includes('URL.createObjectURL') &&
       pilotFormScript.includes('promotion_pilot_form_submit'),

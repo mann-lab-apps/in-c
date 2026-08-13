@@ -706,10 +706,40 @@ dd {
   background: #fffdf8;
 }
 
+.pilot-file-input {
+  margin: -2px 0 4px 30px;
+  padding: 12px;
+  border: 1px dashed #cfc6b9;
+  border-radius: 8px;
+  background: rgba(244, 240, 231, 0.58);
+}
+
+.pilot-file-input label {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.pilot-file-input input {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
+}
+
 .pilot-options input {
   width: 18px;
   min-height: 18px;
   margin-top: 2px;
+}
+
+.pilot-options .pilot-file-input input {
+  width: 100%;
+  min-height: 46px;
+  margin: 0;
 }
 
 .pilot-form__note,
