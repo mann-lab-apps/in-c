@@ -1,9 +1,6 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
-import { pilotConcert } from './pilot-concert-data.js'
 
 const form = document.querySelector('[data-pilot-form]')
-const sampleElement = document.querySelector('[data-sample-concert]')
-const sampleFillButton = document.querySelector('[data-fill-sample]')
 const resultPanel = document.querySelector('[data-pilot-result]')
 const resultBody = document.querySelector('[data-pilot-result-body]')
 const copyButton = document.querySelector('[data-copy-result]')
@@ -30,65 +27,6 @@ const setStatus = (message, tone = 'neutral') => {
   statusElement.hidden = !message
   statusElement.textContent = message
   statusElement.dataset.tone = tone
-}
-
-const renderSampleConcert = () => {
-  if (!sampleElement) {
-    return
-  }
-
-  sampleElement.innerHTML = `
-    <div class="pilot-sample__head">
-      <p class="eyebrow">0번 샘플</p>
-      <h2>${pilotConcert.shortTitle}</h2>
-    </div>
-    <dl class="pilot-sample__facts">
-      <div><dt>일시</dt><dd>${pilotConcert.date} ${pilotConcert.time}</dd></div>
-      <div><dt>장소</dt><dd>${pilotConcert.venue}</dd></div>
-      <div><dt>프로그램</dt><dd>${pilotConcert.program}</dd></div>
-      <div><dt>가격</dt><dd>${pilotConcert.price}</dd></div>
-    </dl>
-    <p>${pilotConcert.samplePositioning}</p>
-    <p>${pilotConcert.sampleNote}</p>
-    <a class="text-link" href="${pilotConcert.ticketUrl}" target="_blank" rel="noreferrer">
-      공식 공연 정보
-    </a>
-  `
-}
-
-const fillSampleConcert = () => {
-  const values = {
-    applicantName: '김재만',
-    contact: '',
-    concertTitle: pilotConcert.title,
-    concertDateTime: `${pilotConcert.date} ${pilotConcert.time}`,
-    venue: `${pilotConcert.venue} / ${pilotConcert.region}`,
-    ticketUrl: pilotConcert.ticketUrl,
-    presenter: '서울시립교향악단',
-    oneLineIntro: pilotConcert.samplePositioning,
-    program: pilotConcert.program,
-    ticketPrice: pilotConcert.price,
-    assetUrl: pilotConcert.ticketUrl,
-    existingChannels: '',
-    preferredStartDate: '',
-    notes:
-      '내부 0번 샘플 캠페인입니다. 공식 홍보가 아니라 개인 추천 톤으로 카피와 채널 반응을 테스트합니다.'
-  }
-
-  for (const [name, value] of Object.entries(values)) {
-    const field = getField(name)
-
-    if (field) {
-      field.value = value
-    }
-  }
-
-  const posterReady = form?.querySelector('[name="posterStatus"][value="ready"]')
-  if (posterReady instanceof HTMLInputElement) {
-    posterReady.checked = true
-  }
-
-  setStatus('샘플 공연 정보를 채웠습니다.')
 }
 
 const formatSubmission = (data) => [
@@ -189,7 +127,6 @@ const downloadResult = () => {
 
 const bindEvents = () => {
   form?.addEventListener('submit', submitForm)
-  sampleFillButton?.addEventListener('click', fillSampleConcert)
   copyButton?.addEventListener('click', copyResult)
   downloadButton?.addEventListener('click', downloadResult)
 }
@@ -197,7 +134,6 @@ const bindEvents = () => {
 const init = () => {
   configureAnalytics()
   bindTrackedLinks()
-  renderSampleConcert()
   bindEvents()
 }
 
