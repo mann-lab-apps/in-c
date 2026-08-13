@@ -402,7 +402,7 @@ function verifyPilotIntakeSurface() {
   const pilotConcerts = readJson(pilotConcertsPath)
 
   for (const phrase of [
-    '공연 홍보 신청',
+    '클래식 연주회 홍보 신청',
     'data-pilot-form',
     'name="applicantName"',
     'name="contactPhone"',
@@ -435,7 +435,13 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('무료 파일럿') &&
       !indexPage.includes('data-pilot-result') &&
       !indexPage.includes('신청서 초안') &&
-      !indexPage.includes('텍스트 저장'),
+      !indexPage.includes('텍스트 저장') &&
+      !indexPage.includes('공연 홍보 신청') &&
+      !indexPage.includes('공연 정보 입력') &&
+      !indexPage.includes('공연명') &&
+      !indexPage.includes('공연 날짜') &&
+      !indexPage.includes('공연 시간') &&
+      !indexPage.includes('공연 장소'),
     'pilot intake page must keep abstract audience/budget questions out of the first form'
   )
   for (const phrase of [
