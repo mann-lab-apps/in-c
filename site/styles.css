@@ -545,22 +545,20 @@ dd {
   word-break: keep-all;
 }
 
-.pilot-form__actions,
-.pilot-result__actions {
+.pilot-form__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.pilot-form-section,
-.pilot-result {
+.pilot-form-section {
   border: 1px solid #d5cbbd;
   border-radius: 8px;
   background: rgba(255, 253, 248, 0.9);
 }
 
 .pilot-form-section h2,
-.pilot-result h2 {
+.pilot-form-section h2 {
   margin-bottom: 0;
   font-size: clamp(1.75rem, 4vw, 3rem);
   line-height: 1.04;
@@ -571,8 +569,7 @@ dd {
   font-weight: 800;
 }
 
-.pilot-form-section,
-.pilot-result {
+.pilot-form-section {
   display: grid;
   gap: 20px;
   padding: clamp(20px, 4vw, 34px);
@@ -715,26 +712,6 @@ dd {
 .pilot-status[data-tone="error"] {
   color: var(--inc-color-error);
   font-weight: 800;
-}
-
-.pilot-result__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.pilot-result pre {
-  max-height: 520px;
-  overflow: auto;
-  margin: 0;
-  padding: 16px;
-  border: 1px solid #ddd3c5;
-  border-radius: 8px;
-  color: #1f2528;
-  background: #fbfaf6;
-  font: 0.92rem/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  white-space: pre-wrap;
 }
 
 .section__header {
@@ -2076,11 +2053,6 @@ dd {
 }
 
 @media (max-width: 980px) {
-  .pilot-result__head {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
   .promotion-grid,
   .product-layout {
     grid-template-columns: 1fr;
@@ -2133,8 +2105,7 @@ dd {
     grid-template-columns: 1fr;
   }
 
-  .pilot-form__actions .button,
-  .pilot-result__actions .button {
+  .pilot-form__actions .button {
     width: 100%;
   }
 }

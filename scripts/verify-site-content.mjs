@@ -42,6 +42,7 @@ const communityMigrationPath = resolve(
   'supabase/migrations/0002_community_board_schema.sql'
 )
 const indexPagePath = resolve(siteRoot, 'index.html')
+const privacyPagePath = resolve(siteRoot, 'privacy.html')
 const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
 const pilotConcertsPath = resolve(repoRoot, 'data/promotion/pilot-concerts.json')
 const loginPagePath = resolve(siteRoot, 'login.html')
@@ -418,7 +419,7 @@ function verifyPilotIntakeSurface() {
     'name="posterFile"',
     'value="needsDesign"',
     '추가 요청사항/비고',
-    'data-pilot-result'
+    'data-pilot-status'
   ]) {
     assert(indexPage.includes(phrase), `pilot intake page missing: ${phrase}`)
   }
@@ -431,7 +432,10 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('name="concertDateTime"') &&
       !indexPage.includes('name="contact"') &&
       !indexPage.includes('Concert Promotion Pilot') &&
-      !indexPage.includes('무료 파일럿'),
+      !indexPage.includes('무료 파일럿') &&
+      !indexPage.includes('data-pilot-result') &&
+      !indexPage.includes('신청서 초안') &&
+      !indexPage.includes('텍스트 저장'),
     'pilot intake page must keep abstract audience/budget questions out of the first form'
   )
   for (const phrase of [
@@ -451,14 +455,12 @@ function verifyPilotIntakeSurface() {
     'pilot concert sample data must not be stored under the public site directory'
   )
   assert(
-    pilotFormScript.includes('formatSubmission') &&
-      pilotFormScript.includes('formatConcertDateTime') &&
-      pilotFormScript.includes('validateContact') &&
+    pilotFormScript.includes('validateContact') &&
       pilotFormScript.includes('syncPosterUpload') &&
-      pilotFormScript.includes('navigator.clipboard.writeText') &&
-      pilotFormScript.includes('URL.createObjectURL') &&
-      pilotFormScript.includes('promotion_pilot_form_submit'),
-    'pilot form script must generate copyable/downloadable submission drafts'
+      pilotFormScript.includes('promotion_pilot_form_submit') &&
+      !pilotFormScript.includes('navigator.clipboard.writeText') &&
+      !pilotFormScript.includes('URL.createObjectURL'),
+    'pilot form script must validate inputs without rendering public submission drafts'
   )
   assert(
     pilotConcerts.concerts.some(
@@ -470,6 +472,23 @@ function verifyPilotIntakeSurface() {
         concert.venue === '세종문화회관 대극장'
     ),
     'internal pilot concert JSON must preserve the 0th sample concert'
+  )
+}
+
+function verifyPrivacyNoticeSurface() {
+  const privacyPage = readFileSync(privacyPagePath, 'utf8')
+
+  assert(
+    privacyPage.includes('개인정보·문의·운영 고지') &&
+      privacyPage.includes('Google Analytics 사용') &&
+      privacyPage.includes('피드백과 문의'),
+    'privacy notice page must keep core notice content'
+  )
+  assert(
+    !privacyPage.includes('class="site-header"') &&
+      !privacyPage.includes('./main.js') &&
+      !privacyPage.includes('data-global-ad-banner'),
+    'privacy notice page must not render global navigation or ad banner'
   )
 }
 
@@ -554,6 +573,7 @@ try {
   verifyProductRelations()
   verifyProductSurfaceStates()
   verifyPilotIntakeSurface()
+  verifyPrivacyNoticeSurface()
   verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(

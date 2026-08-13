@@ -1,22 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
   <rect width="1024" height="1024" rx="192" fill="#f7f3ea"/>
   <path
-    d="M272 668h308"
+    d="M222 286h580M222 354h580M222 422h580M222 490h580M222 558h580"
     fill="none"
     stroke="#15191b"
     stroke-linecap="round"
-    stroke-width="42"
+    stroke-width="28"
+  />
+  <path
+    d="M274 698h340"
+    fill="none"
+    stroke="#15191b"
+    stroke-linecap="round"
+    stroke-width="34"
   />
   <ellipse
-    cx="430"
-    cy="668"
+    cx="444"
+    cy="698"
     fill="#15191b"
     rx="132"
     ry="98"
-    transform="rotate(-18 430 668)"
+    transform="rotate(-18 444 698)"
   />
   <path
-    d="M546 644V246h58v398c0 118-94 212-216 212-94 0-172-58-172-136 0-18 4-36 12-52 14 63 81 110 160 110 90 0 158-58 158-134Z"
+    d="M574 674V242h58v432c0 116-96 210-218 210-94 0-172-58-172-136 0-18 4-36 12-52 14 63 81 110 160 110 90 0 160-58 160-132Z"
     fill="#15191b"
   />
 </svg>
