@@ -557,7 +557,6 @@ dd {
   background: rgba(255, 253, 248, 0.9);
 }
 
-.pilot-form-section h2,
 .pilot-form-section h2 {
   margin-bottom: 0;
   font-size: clamp(1.75rem, 4vw, 3rem);
@@ -617,6 +616,7 @@ dd {
 }
 
 .pilot-form input,
+.pilot-form select,
 .pilot-form textarea {
   width: 100%;
   min-width: 0;
@@ -632,6 +632,11 @@ dd {
   padding: 0 12px;
 }
 
+.pilot-form select {
+  min-height: 46px;
+  padding: 0 38px 0 12px;
+}
+
 .pilot-form textarea {
   resize: vertical;
   padding: 12px;
@@ -639,6 +644,7 @@ dd {
 }
 
 .pilot-form input:focus,
+.pilot-form select:focus,
 .pilot-form textarea:focus {
   outline: 3px solid rgba(71, 97, 108, 0.28);
   border-color: #78909a;
@@ -700,6 +706,17 @@ dd {
   width: 100%;
   min-height: 46px;
   margin: 0;
+}
+
+.pilot-form__check {
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+}
+
+.pilot-form__check input {
+  width: 18px;
+  min-height: 18px;
+  margin-top: 4px;
 }
 
 .pilot-form__note,

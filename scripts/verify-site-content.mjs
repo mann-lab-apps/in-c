@@ -402,23 +402,18 @@ function verifyPilotIntakeSurface() {
   const pilotConcerts = readJson(pilotConcertsPath)
 
   for (const phrase of [
-    '클래식 연주회 홍보 신청',
+    '클래식 연주회 홍보 관심 등록',
     'data-pilot-form',
     'name="applicantName"',
+    'name="role"',
     'name="contactPhone"',
     'name="contactEmail"',
     'name="contactInstagram"',
-    'name="concertTitle"',
-    'name="concertDate"',
-    'type="date"',
-    'name="concertTime"',
-    'type="time"',
-    'name="venue"',
-    'name="region"',
-    'name="posterStatus"',
-    'name="posterFile"',
-    'value="needsDesign"',
-    '추가 요청사항/비고',
+    'name="upcomingRecital"',
+    'name="helpNeeded"',
+    'name="notes"',
+    'name="privacyAcknowledgement"',
+    '관심 등록 메일 작성',
     'data-pilot-status'
   ]) {
     assert(indexPage.includes(phrase), `pilot intake page missing: ${phrase}`)
@@ -426,6 +421,14 @@ function verifyPilotIntakeSurface() {
 
   assert(
     !indexPage.includes('name="promotionBudget"') &&
+      !indexPage.includes('name="concertTitle"') &&
+      !indexPage.includes('name="concertDate"') &&
+      !indexPage.includes('name="concertTime"') &&
+      !indexPage.includes('name="venue"') &&
+      !indexPage.includes('name="region"') &&
+      !indexPage.includes('name="ticketUrl"') &&
+      !indexPage.includes('name="posterStatus"') &&
+      !indexPage.includes('name="posterFile"') &&
       !indexPage.includes('가장 오면 좋겠는 관객') &&
       !indexPage.includes('지금 가장 어려운 홍보 문제') &&
       !indexPage.includes('value="textOnly"') &&
@@ -441,8 +444,10 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('공연명') &&
       !indexPage.includes('공연 날짜') &&
       !indexPage.includes('공연 시간') &&
-      !indexPage.includes('공연 장소'),
-    'pilot intake page must keep abstract audience/budget questions out of the first form'
+      !indexPage.includes('공연 장소') &&
+      !indexPage.includes('클래식 연주회 홍보 신청') &&
+      !indexPage.includes('연주회 정보 입력'),
+    'interest registration page must avoid detailed recital intake fields and old campaign copy'
   )
   for (const phrase of [
     '서울시향',
@@ -462,11 +467,14 @@ function verifyPilotIntakeSurface() {
   )
   assert(
     pilotFormScript.includes('validateContact') &&
-      pilotFormScript.includes('syncPosterUpload') &&
-      pilotFormScript.includes('promotion_pilot_form_submit') &&
+      pilotFormScript.includes('formatInterestEmail') &&
+      pilotFormScript.includes('openMailDraft') &&
+      pilotFormScript.includes('mailto:') &&
+      pilotFormScript.includes('promotion_interest_mailto_open') &&
       !pilotFormScript.includes('navigator.clipboard.writeText') &&
-      !pilotFormScript.includes('URL.createObjectURL'),
-    'pilot form script must validate inputs without rendering public submission drafts'
+      !pilotFormScript.includes('URL.createObjectURL') &&
+      !pilotFormScript.includes('syncPosterUpload'),
+    'interest registration script must validate inputs and compose a mail draft without server storage'
   )
   assert(
     pilotConcerts.concerts.some(
@@ -487,7 +495,9 @@ function verifyPrivacyNoticeSurface() {
   assert(
     privacyPage.includes('개인정보·문의·운영 고지') &&
       privacyPage.includes('Google Analytics 사용') &&
-      privacyPage.includes('피드백과 문의'),
+      privacyPage.includes('피드백과 문의') &&
+      privacyPage.includes('클래식 연주회 홍보 관심 등록') &&
+      privacyPage.includes('서버 저장 없이'),
     'privacy notice page must keep core notice content'
   )
   assert(

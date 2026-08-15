@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>in C | 클래식 연주회 홍보 신청</title>
+    <title>in C | 클래식 연주회 홍보 관심 등록</title>
     <meta
       name="description"
-      content="in C에 클래식 연주회 정보를 보내면 관객 타깃과 홍보 채널을 검토해 직접 연락드립니다."
+      content="클래식 연주자와 기획자를 위한 연주회 홍보 방향 정리. 관객 타깃, 홍보 문구, 채널 선택이 고민이라면 관심을 남겨주세요."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/index.html" />
-    <meta property="og:title" content="in C | 클래식 연주회 홍보 신청" />
+    <meta property="og:title" content="in C | 클래식 연주회 홍보 관심 등록" />
     <meta
       property="og:description"
-      content="클래식 연주회 정보를 보내주시면 관객 타깃과 홍보 채널을 검토해 진행 가능 여부와 1차 홍보 방향을 직접 정리합니다."
+      content="연주회 홍보가 막막한 연주자와 기획자를 위해 관객 타깃, 홍보 문구, 채널 방향을 함께 정리하는 실험을 준비하고 있습니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/index.html" />
@@ -21,10 +21,10 @@
     <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta property="og:image:alt" content="in C 앱 아이콘" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="in C | 클래식 연주회 홍보 신청" />
+    <meta name="twitter:title" content="in C | 클래식 연주회 홍보 관심 등록" />
     <meta
       name="twitter:description"
-      content="클래식 연주회 정보를 보내주시면 관객 타깃과 홍보 채널을 검토해 직접 연락드립니다."
+      content="관객 타깃, 홍보 문구, 채널 선택이 고민인 클래식 연주자와 기획자를 위한 관심 등록 페이지입니다."
     />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
@@ -39,7 +39,7 @@
         <span>in C</span>
       </a>
       <nav aria-label="페이지 링크">
-        <a href="#pilot-form">신청</a>
+        <a href="#pilot-form">관심 등록</a>
         <a href="./privacy.html">고지</a>
       </nav>
     </header>
@@ -47,22 +47,22 @@
     <main id="top" class="pilot-main">
       <section class="pilot-intro" aria-labelledby="pilot-title">
         <div class="pilot-intro__copy">
-          <p class="eyebrow">Classical Concert Promotion</p>
-          <h1 id="pilot-title">클래식 연주회 홍보 신청</h1>
+          <p class="eyebrow">Classical Concert Growth</p>
+          <h1 id="pilot-title">클래식 연주회 홍보 관심 등록</h1>
           <p class="pilot-intro__lead">
-            클래식 연주회 정보를 보내주시면 in C가 관객 타깃과 홍보 채널을 검토해
-            진행 가능 여부와 1차 홍보 방향을 직접 정리해드립니다.
+            연주회 홍보가 막막한 연주자와 기획자를 위해 관객 타깃, 홍보 문구,
+            채널 방향을 함께 정리하는 실험을 준비하고 있습니다.
           </p>
         </div>
       </section>
 
       <section id="pilot-form" class="pilot-form-section" aria-labelledby="form-title">
         <header class="pilot-form-section__head">
-          <p class="eyebrow">Apply</p>
-          <h2 id="form-title">연주회 정보 입력</h2>
+          <p class="eyebrow">Interest</p>
+          <h2 id="form-title">관심 등록</h2>
           <p>
-            첫 버전은 저장이나 자동 전송 없이 입력 항목만 정리합니다.
-            실제 접수 경로는 별도로 안내합니다.
+            지금은 서버에 저장하지 않고 메일 앱 초안으로만 내용을 만듭니다.
+            수신 경로가 확정되면 같은 형식으로 접수 흐름을 정리합니다.
           </p>
         </header>
 
@@ -72,6 +72,16 @@
             <label>
               <span>신청자 이름</span>
               <input autocomplete="name" maxlength="80" name="applicantName" required type="text" />
+            </label>
+            <label>
+              <span>역할</span>
+              <select name="role" required>
+                <option value="">선택해 주세요</option>
+                <option value="performer">연주자</option>
+                <option value="planner">기획자</option>
+                <option value="ensemble">단체/앙상블</option>
+                <option value="other">기타</option>
+              </select>
             </label>
             <label>
               <span>전화</span>
@@ -101,97 +111,62 @@
           </fieldset>
 
           <fieldset>
-            <legend>연주회 정보</legend>
-            <label>
-              <span>연주회명</span>
-              <input maxlength="160" name="concertTitle" required type="text" />
-            </label>
-            <label>
-              <span>연주회 날짜</span>
-              <input name="concertDate" required type="date" />
-            </label>
-            <label>
-              <span>연주회 시간</span>
-              <input name="concertTime" required type="time" />
-            </label>
-            <label>
-              <span>연주회 장소</span>
-              <input maxlength="160" name="venue" required type="text" />
-            </label>
-            <label>
-              <span>지역</span>
-              <input maxlength="80" name="region" placeholder="예: 서울 광화문" type="text" />
-            </label>
-            <label>
-              <span>예매 또는 상세 링크</span>
-              <input name="ticketUrl" required type="url" />
-            </label>
-            <label>
-              <span>주최/주관/출연자 표기</span>
-              <input maxlength="180" name="presenter" required type="text" />
-            </label>
-            <label class="pilot-form__wide">
-              <span>연주회 소개 한 줄</span>
-              <textarea maxlength="280" name="oneLineIntro" required rows="3"></textarea>
-            </label>
-          </fieldset>
-
-          <fieldset>
-            <legend>포스터 디자인 상태</legend>
-            <div class="pilot-options">
+            <legend>현재 상황</legend>
+            <div class="pilot-options" role="radiogroup" aria-label="연주회 준비 상태">
               <label>
-                <input name="posterStatus" required type="radio" value="ready" />
-                <span>포스터 디자인을 이미 맡겼고 홍보 이미지가 있어요.</span>
+                <input name="upcomingRecital" required type="radio" value="scheduled" />
+                <span>날짜가 잡힌 클래식 연주회가 있어요.</span>
               </label>
-              <div class="pilot-file-input" data-poster-upload hidden>
-                <label>
-                  <span>연주회 이미지 파일</span>
-                  <input accept="image/*,.pdf" name="posterFile" type="file" />
-                </label>
-              </div>
               <label>
-                <input name="posterStatus" required type="radio" value="needsDesign" />
-                <span>포스터 디자인이 아직 없어서 의뢰가 필요해요.</span>
+                <input name="upcomingRecital" required type="radio" value="planning" />
+                <span>연주회를 준비 중이고 홍보 방향을 미리 잡고 싶어요.</span>
+              </label>
+              <label>
+                <input name="upcomingRecital" required type="radio" value="notYet" />
+                <span>아직 정해진 연주회는 없지만 관심이 있어요.</span>
               </label>
             </div>
-            <p class="pilot-form__note">
-              디자인이 필요한 경우 홍보는 무료로 진행하되 디자인비는 별도로 안내합니다.
-              인쇄는 기본 범위가 아니며 필요한 경우 비고에 적어주세요.
-            </p>
-          </fieldset>
 
-          <fieldset>
-            <legend>선택 입력</legend>
+            <div class="pilot-options" aria-label="필요한 도움">
+              <label>
+                <input name="helpNeeded" type="checkbox" value="audienceTarget" />
+                <span>어떤 관객에게 말해야 할지 정리하고 싶어요.</span>
+              </label>
+              <label>
+                <input name="helpNeeded" type="checkbox" value="copywriting" />
+                <span>연주회 소개 문구와 콘텐츠 방향이 필요해요.</span>
+              </label>
+              <label>
+                <input name="helpNeeded" type="checkbox" value="channels" />
+                <span>어디에 어떻게 알려야 할지 모르겠어요.</span>
+              </label>
+              <label>
+                <input name="helpNeeded" type="checkbox" value="report" />
+                <span>홍보 후 반응을 숫자와 메모로 확인하고 싶어요.</span>
+              </label>
+              <label>
+                <input name="helpNeeded" type="checkbox" value="design" />
+                <span>홍보 이미지나 포스터 디자인도 함께 고민하고 싶어요.</span>
+              </label>
+              <label>
+                <input name="helpNeeded" type="checkbox" value="notSure" />
+                <span>무엇이 필요한지부터 같이 정리하고 싶어요.</span>
+              </label>
+            </div>
             <label class="pilot-form__wide">
-              <span>프로그램/곡 목록</span>
-              <textarea maxlength="1200" name="program" rows="4"></textarea>
-            </label>
-            <label>
-              <span>티켓 가격</span>
-              <input maxlength="120" name="ticketPrice" type="text" />
-            </label>
-            <label>
-              <span>사용 가능한 자료 링크</span>
-              <input name="assetUrl" placeholder="드라이브, 인스타, 홈페이지 등" type="url" />
-            </label>
-            <label>
-              <span>기존 홍보 채널</span>
-              <input maxlength="220" name="existingChannels" type="text" />
-            </label>
-            <label>
-              <span>홍보 시작 희망일</span>
-              <input maxlength="80" name="preferredStartDate" type="text" />
-            </label>
-            <label class="pilot-form__wide">
-              <span>추가 요청사항/비고</span>
+              <span>비고</span>
               <textarea maxlength="1600" name="notes" rows="5"></textarea>
+            </label>
+            <label class="pilot-form__wide pilot-form__check">
+              <input name="privacyAcknowledgement" required type="checkbox" />
+              <span>입력 내용이 서버에 자동 저장되지 않고 메일 앱 초안으로 만들어지는 것을 확인했습니다.</span>
             </label>
           </fieldset>
 
           <p class="pilot-status" data-pilot-status hidden role="status" aria-live="polite"></p>
 
           <div class="pilot-form__actions">
-            <button class="button button--primary" type="submit">입력 내용 확인</button>
+            <button class="button button--primary" type="submit">관심 등록 메일 작성</button>
             <button class="button button--secondary" type="reset">초기화</button>
           </div>
         </form>

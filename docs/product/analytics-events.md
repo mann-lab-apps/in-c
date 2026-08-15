@@ -41,6 +41,7 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | `auth_signed_in` | Supabase Auth signed-in 이벤트 수신 | 없음 | 로그인 완료 여부 | 사용자 식별자 전송 없음 |
 | `auth_session_error` | 로그인 페이지 세션 확인 실패 | 없음 | 세션 복구 오류 | 오류 원문과 사용자 식별자 전송 없음 |
 | `auth_callback_error` | OAuth callback 오류 수신 | 없음 | OAuth callback 오류 | 오류 원문과 사용자 식별자 전송 없음 |
+| `promotion_interest_mailto_open` | 클래식 연주회 홍보 관심 등록 폼이 메일 앱 초안을 열 때 | `role`, `recital_status`, `help_count` | 관심 등록 시도와 역할/상황 분포 | 이름, 연락처, 비고 원문은 전송하지 않음 |
 | `download_primary` | 랜딩 첫 화면 기본 다운로드 클릭 | `platform`, `file_name`, `location`, `link_url`, `link_text` | Events by `platform`, landing CTA review | 추정 플랫폼과 공개 릴리즈 URL만 전송 |
 | `download_platform` | 운영체제별 다운로드 카드 클릭 | `platform`, `file_name`, `link_url`, `link_text` | Events by `platform`/`file_name` | 사용자가 누른 공개 파일 정보만 전송 |
 | `checksum_link` | 체크섬 링크 클릭 | `location`, `link_url`, `link_text` | Events by `location` | 공개 체크섬 링크만 전송 |

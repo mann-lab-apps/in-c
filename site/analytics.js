@@ -12,6 +12,7 @@ const allowedEventParams = new Set([
   'content_type',
   'difficulty',
   'file_name',
+  'help_count',
   'key',
   'link_text',
   'link_url',
@@ -19,7 +20,9 @@ const allowedEventParams = new Set([
   'meter',
   'platform',
   'poster_status',
-  'reading_minutes'
+  'recital_status',
+  'reading_minutes',
+  'role'
 ])
 
 const isGa4MeasurementId = (measurementId) =>
