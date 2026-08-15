@@ -1,5 +1,5 @@
-const notifyTo = Deno.env.get('PROMOTION_INTEREST_NOTIFY_TO') ?? 'daga42@naver.com'
-const notifyFrom = Deno.env.get('PROMOTION_INTEREST_NOTIFY_FROM')
+const notifyTo = Deno.env.get('PROMOTION_INTEREST_NOTIFY_TO') ?? 'daga4242@gmail.com'
+const notifyFrom = Deno.env.get('PROMOTION_INTEREST_NOTIFY_FROM') ?? 'in C <daga42@naver.com>'
 const resendApiKey = Deno.env.get('RESEND_API_KEY')
 const webhookSecret = Deno.env.get('PROMOTION_INTEREST_WEBHOOK_SECRET')
 
@@ -41,7 +41,6 @@ const getRecord = async (request: Request) => {
 const requireConfig = () => {
   const missing = [
     !resendApiKey ? 'RESEND_API_KEY' : '',
-    !notifyFrom ? 'PROMOTION_INTEREST_NOTIFY_FROM' : '',
     !webhookSecret ? 'PROMOTION_INTEREST_WEBHOOK_SECRET' : ''
   ].filter(Boolean)
 

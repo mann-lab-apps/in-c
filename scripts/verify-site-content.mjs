@@ -607,6 +607,7 @@ function verifyPromotionAdminSurface() {
 
   for (const phrase of [
     'daga42@naver.com',
+    'daga4242@gmail.com',
     'RESEND_API_KEY',
     'PROMOTION_INTEREST_NOTIFY_FROM',
     'PROMOTION_INTEREST_WEBHOOK_SECRET',

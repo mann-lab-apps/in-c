@@ -26,34 +26,35 @@
 `notify-promotion-interest`를 배포하고, Supabase Database Webhook에서
 `promotion_interest_registrations` insert 이벤트를 이 함수로 보낸다.
 
-기본 수신 주소:
+기본 발신/수신 주소:
 
 ```text
-daga42@naver.com
+From: in C <daga42@naver.com>
+To: daga4242@gmail.com
 ```
 
 필수 secret:
 
 ```text
 RESEND_API_KEY=
-PROMOTION_INTEREST_NOTIFY_FROM=
+PROMOTION_INTEREST_NOTIFY_FROM='in C <daga42@naver.com>'
 PROMOTION_INTEREST_WEBHOOK_SECRET=
-PROMOTION_INTEREST_NOTIFY_TO=daga42@naver.com
+PROMOTION_INTEREST_NOTIFY_TO=daga4242@gmail.com
 ```
 
 `PROMOTION_INTEREST_NOTIFY_FROM`은 실제 발송 서비스에서 인증된 발신 주소여야 한다.
-받는 주소와 같은 `daga42@naver.com`을 발신자로 쓰려면 Naver SMTP 또는
-발송 서비스의 sender 인증이 필요하다. 인증 없이 임의로 Naver 주소를 From에 넣으면
-스팸 또는 스푸핑으로 차단될 수 있다.
+`daga42@naver.com`을 발신자로 쓰려면 Naver SMTP 또는 발송 서비스의 sender 인증이
+필요하다. 인증 없이 임의로 Naver 주소를 From에 넣으면 스팸 또는 스푸핑으로
+차단될 수 있다.
 
 Supabase CLI 예시:
 
 ```bash
 supabase secrets set \
   RESEND_API_KEY=... \
-  PROMOTION_INTEREST_NOTIFY_FROM='in C <verified-sender@example.com>' \
+  PROMOTION_INTEREST_NOTIFY_FROM='in C <daga42@naver.com>' \
   PROMOTION_INTEREST_WEBHOOK_SECRET='긴-랜덤-문자열' \
-  PROMOTION_INTEREST_NOTIFY_TO='daga42@naver.com'
+  PROMOTION_INTEREST_NOTIFY_TO='daga4242@gmail.com'
 
 supabase functions deploy notify-promotion-interest --no-verify-jwt
 ```
