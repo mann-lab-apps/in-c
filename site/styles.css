@@ -762,11 +762,8 @@ body.inc-sketch-theme::before {
 }
 
 .inc-sketch-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
-  gap: 28px;
-  align-items: start;
-  max-width: none;
+  display: block;
+  max-width: 840px;
 }
 
 .inc-sketch-marker-title::after {
@@ -780,8 +777,7 @@ body.inc-sketch-theme::before {
   content: "";
 }
 
-.inc-sketch-surface,
-.inc-sketch-panel {
+.inc-sketch-surface {
   position: relative;
   border: 1.5px solid rgba(40, 39, 36, 0.48);
   border-radius: 8px;
@@ -789,8 +785,7 @@ body.inc-sketch-theme::before {
   box-shadow: 6px 7px 0 rgba(230, 220, 200, 0.74);
 }
 
-.inc-sketch-surface::after,
-.inc-sketch-panel::after {
+.inc-sketch-surface::after {
   position: absolute;
   inset: -3px;
   z-index: 0;
@@ -801,8 +796,7 @@ body.inc-sketch-theme::before {
   transform: translate(1px, 1px) rotate(-0.05deg);
 }
 
-.inc-sketch-surface > *,
-.inc-sketch-panel > * {
+.inc-sketch-surface > * {
   position: relative;
   z-index: 1;
 }
@@ -843,120 +837,6 @@ body.inc-sketch-theme::before {
       rgba(232, 240, 220, 0.9) 100%
     ),
     var(--inc-sketch-tile);
-}
-
-.pilot-intro__board {
-  display: grid;
-  gap: 16px;
-  padding: 20px;
-}
-
-.pilot-intro__board-label {
-  margin: 0;
-  color: var(--inc-sketch-muted);
-  font-size: 0.8rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.pilot-intro__sketch-board {
-  position: relative;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: center;
-  min-height: 104px;
-  padding: 12px;
-  border: 1.5px solid rgba(40, 39, 36, 0.34);
-  border-radius: 8px;
-  background: var(--inc-sketch-hatch-paper);
-}
-
-.pilot-intro__sketch-board::after {
-  position: absolute;
-  inset: -4px;
-  background: var(--sketch-rough-rect) center / 100% 100% no-repeat;
-  content: "";
-  opacity: 0.42;
-  pointer-events: none;
-  transform: translate(1px, -1px) rotate(-0.08deg);
-}
-
-.inc-sketch-shape {
-  position: relative;
-  display: block;
-  aspect-ratio: 1;
-  min-width: 0;
-  border: 1.5px solid rgba(40, 39, 36, 0.32);
-  background:
-    var(--sketch-hachure-blue) center / 110% 112% no-repeat,
-    var(--inc-sketch-hatch-paper);
-}
-
-.inc-sketch-shape::after {
-  position: absolute;
-  inset: -4px;
-  background: var(--sketch-rough-rect) center / 100% 100% no-repeat;
-  content: "";
-  opacity: 0.4;
-  pointer-events: none;
-  transform: translate(1px, -1px) rotate(-0.12deg);
-}
-
-.inc-sketch-shape--diamond {
-  transform: rotate(45deg) scale(0.78);
-}
-
-.inc-sketch-shape--circle,
-.inc-sketch-shape--circle::after {
-  border-radius: 50%;
-}
-
-.inc-sketch-shape--circle {
-  background:
-    var(--sketch-hachure-green) center / 112% 112% no-repeat,
-    var(--inc-sketch-hatch-paper);
-}
-
-.inc-sketch-shape--circle::after {
-  inset: -3px;
-  background-image: var(--sketch-rough-circle);
-  opacity: 0.34;
-  transform: translate(0, 0) rotate(0.08deg);
-}
-
-.inc-sketch-shape--rect {
-  aspect-ratio: 1.35;
-  background:
-    var(--sketch-hachure-red) center / 112% 112% no-repeat,
-    var(--inc-sketch-hatch-paper);
-}
-
-.pilot-intro__board dl {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-}
-
-.pilot-intro__board dl div {
-  display: grid;
-  grid-template-columns: 86px minmax(0, 1fr);
-  gap: 10px;
-  padding-top: 10px;
-  border-top: 1px solid rgba(40, 39, 36, 0.18);
-}
-
-.pilot-intro__board dt {
-  color: var(--inc-sketch-muted);
-  font-size: 0.78rem;
-  font-weight: 900;
-}
-
-.pilot-intro__board dd {
-  margin: 0;
-  color: var(--inc-sketch-ink);
-  font-weight: 800;
-  line-height: 1.4;
 }
 
 .theme-lab-page {
@@ -3266,14 +3146,6 @@ body.inc-sketch-theme::before {
 }
 
 @media (max-width: 920px) {
-  .inc-sketch-hero {
-    grid-template-columns: 1fr;
-  }
-
-  .pilot-intro__board {
-    max-width: 520px;
-  }
-
   .theme-lab-hero h1 {
     font-size: 3.15rem;
   }
@@ -3326,14 +3198,6 @@ body.inc-sketch-theme::before {
   .theme-lab-nav a {
     flex: 1 1 130px;
     text-align: center;
-  }
-
-  .pilot-intro__board {
-    padding: 16px;
-  }
-
-  .pilot-intro__sketch-board {
-    min-height: 88px;
   }
 
   .theme-demo__intro h2 {

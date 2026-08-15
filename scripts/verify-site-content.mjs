@@ -472,8 +472,10 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('공연 장소') &&
       !indexPage.includes('클래식 연주회 홍보 신청') &&
       !indexPage.includes('연주회 정보 입력') &&
+      !indexPage.includes('Working Note') &&
+      !indexPage.includes('pilot-intro__board') &&
       !indexPage.includes('메일 앱'),
-    'interest registration page must avoid detailed recital intake fields and old campaign copy'
+    'interest registration page must avoid detailed recital intake fields, old campaign copy, and decorative sketch boards'
   )
   for (const phrase of [
     '서울시향',
