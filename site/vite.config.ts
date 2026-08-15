@@ -43,6 +43,7 @@ export default defineConfig({
         communityPost: resolve(__dirname, 'community-post.html'),
         communityWrite: resolve(__dirname, 'community-write.html'),
         promotionAdmin: resolve(__dirname, 'promotion-admin.html'),
+        themeLab: resolve(__dirname, 'theme-lab.html'),
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
         privacy: resolve(__dirname, 'privacy.html'),

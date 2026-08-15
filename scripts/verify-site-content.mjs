@@ -55,6 +55,8 @@ const promotionInterestAdminMigrationPath = resolve(
 )
 const promotionAdminPagePath = resolve(siteRoot, 'promotion-admin.html')
 const promotionAdminScriptPath = resolve(siteRoot, 'promotion-admin.js')
+const themeLabPagePath = resolve(siteRoot, 'theme-lab.html')
+const themeLabScriptPath = resolve(siteRoot, 'theme-lab.js')
 const promotionInterestNotificationFunctionPath = resolve(
   repoRoot,
   'supabase/functions/notify-promotion-interest/index.ts'
@@ -422,6 +424,10 @@ function verifyPilotIntakeSurface() {
 
   for (const phrase of [
     '클래식 연주회 홍보 관심 등록',
+    'inc-sketch-theme',
+    'inc-sketch-hero',
+    'inc-sketch-surface',
+    'inc-sketch-button',
     'data-pilot-form',
     'name="applicantName"',
     'name="role"',
@@ -622,6 +628,64 @@ function verifyPromotionAdminSurface() {
   }
 }
 
+function verifyDesignThemeLab() {
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const themeLabPage = readFileSync(themeLabPagePath, 'utf8')
+  const themeLabScript = readFileSync(themeLabScriptPath, 'utf8')
+  const styles = readFileSync(resolve(siteRoot, 'styles.css'), 'utf8')
+
+  for (const phrase of ['themeLab', 'theme-lab.html']) {
+    assert(viteConfig.includes(phrase), `theme lab Vite input missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    '디자인 테마 랩',
+    'noindex,nofollow',
+    'data-theme-lab',
+    'data-theme-nav',
+    'data-theme-stack',
+    './theme-lab.js'
+  ]) {
+    assert(themeLabPage.includes(phrase), `theme lab page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'landingModel',
+    'themes',
+    'renderThemeDemo',
+    'renderInterestForm',
+    'renderWorkspaceMock',
+    'Excalidraw / Sketch',
+    'Mann Lab Games',
+    'rough outline',
+    'hachure',
+    'theme-preview-sketch-board',
+    'theme-preview-sketch-shape--diamond',
+    'Rehearsal Notebook',
+    'Quiet Editorial',
+    'Modern Arts Platform',
+    'Small SaaS / Utility',
+    'Card Catalog / Archive',
+    'data-theme-demo'
+  ]) {
+    assert(themeLabScript.includes(phrase), `theme lab script missing: ${phrase}`)
+  }
+
+  for (const themeClass of [
+    '.theme-demo--sketch',
+    '--sketch-rough-rect',
+    '--sketch-hachure-blue',
+    '.theme-preview-sketch-board',
+    '.theme-demo--notebook',
+    '.theme-demo--editorial',
+    '.theme-demo--arts',
+    '.theme-demo--utility',
+    '.theme-demo--archive'
+  ]) {
+    assert(styles.includes(themeClass), `theme lab CSS missing: ${themeClass}`)
+  }
+}
+
 function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
@@ -705,6 +769,7 @@ try {
   verifyPilotIntakeSurface()
   verifyPrivacyNoticeSurface()
   verifyPromotionAdminSurface()
+  verifyDesignThemeLab()
   verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(

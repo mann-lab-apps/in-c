@@ -32,8 +32,8 @@
     <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
-  <body class="pilot-page">
-    <header class="site-header pilot-header">
+  <body class="pilot-page inc-sketch-theme">
+    <header class="site-header pilot-header inc-sketch-header">
       <a class="brand" href="#top" aria-label="in C home">
         <img src="./assets/icon.svg" width="36" height="36" alt="" />
         <span>in C</span>
@@ -45,18 +45,42 @@
     </header>
 
     <main id="top" class="pilot-main">
-      <section class="pilot-intro" aria-labelledby="pilot-title">
+      <section class="pilot-intro inc-sketch-hero" aria-labelledby="pilot-title">
         <div class="pilot-intro__copy">
           <p class="eyebrow">Classical Concert Growth</p>
-          <h1 id="pilot-title">클래식 연주회 홍보 관심 등록</h1>
+          <h1 id="pilot-title" class="inc-sketch-marker-title">
+            클래식 연주회 홍보 관심 등록
+          </h1>
           <p class="pilot-intro__lead">
             연주회 홍보가 막막한 연주자와 기획자를 위해 관객 타깃, 홍보 문구,
             채널 방향을 함께 정리하는 실험을 준비하고 있습니다.
           </p>
         </div>
+        <aside class="pilot-intro__board inc-sketch-panel" aria-label="in C가 정리하는 홍보 메모">
+          <p class="pilot-intro__board-label">Working Note</p>
+          <div class="pilot-intro__sketch-board" aria-hidden="true">
+            <span class="inc-sketch-shape inc-sketch-shape--diamond"></span>
+            <span class="inc-sketch-shape inc-sketch-shape--circle"></span>
+            <span class="inc-sketch-shape inc-sketch-shape--rect"></span>
+          </div>
+          <dl>
+            <div>
+              <dt>Target</dt>
+              <dd>누구에게 말할지</dd>
+            </div>
+            <div>
+              <dt>Copy</dt>
+              <dd>어떤 말로 닿을지</dd>
+            </div>
+            <div>
+              <dt>Channel</dt>
+              <dd>어디에서 만날지</dd>
+            </div>
+          </dl>
+        </aside>
       </section>
 
-      <section id="pilot-form" class="pilot-form-section" aria-labelledby="form-title">
+      <section id="pilot-form" class="pilot-form-section inc-sketch-surface" aria-labelledby="form-title">
         <header class="pilot-form-section__head">
           <p class="eyebrow">Interest</p>
           <h2 id="form-title">관심 등록</h2>
@@ -67,7 +91,7 @@
         </header>
 
         <form class="pilot-form" data-pilot-form>
-          <fieldset>
+          <fieldset class="inc-sketch-field">
             <legend>신청자</legend>
             <label>
               <span>신청자 이름</span>
@@ -110,7 +134,7 @@
             <p class="pilot-form__note">전화, 이메일, 인스타 ID 중 하나 이상 입력해 주세요.</p>
           </fieldset>
 
-          <fieldset>
+          <fieldset class="inc-sketch-field">
             <legend>현재 상황</legend>
             <div class="pilot-options" role="radiogroup" aria-label="연주회 준비 상태">
               <label>
@@ -166,8 +190,8 @@
           <p class="pilot-status" data-pilot-status hidden role="status" aria-live="polite"></p>
 
           <div class="pilot-form__actions">
-            <button class="button button--primary" data-pilot-submit type="submit">관심 등록하기</button>
-            <button class="button button--secondary" type="reset">초기화</button>
+            <button class="button button--primary inc-sketch-button inc-sketch-button--primary" data-pilot-submit type="submit">관심 등록하기</button>
+            <button class="button button--secondary inc-sketch-button inc-sketch-button--secondary" type="reset">초기화</button>
           </div>
         </form>
       </section>
