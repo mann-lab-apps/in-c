@@ -1,34 +1,18 @@
 import { bindTrackedLinks, configureAnalytics, trackEvent } from './analytics.js'
+import {
+  isSupabaseConfigured,
+  supabase
+} from './auth.js'
 
 const form = document.querySelector('[data-pilot-form]')
 const statusElement = document.querySelector('[data-pilot-status]')
-const interestRecipient = ''
-
-const roleLabels = {
-  performer: '연주자',
-  planner: '기획자',
-  ensemble: '단체/앙상블',
-  other: '기타'
-}
-
-const recitalStatusLabels = {
-  scheduled: '날짜가 잡힌 클래식 연주회가 있음',
-  planning: '연주회를 준비 중이며 홍보 방향을 미리 잡고 싶음',
-  notYet: '아직 정해진 연주회는 없지만 관심 있음'
-}
-
-const helpLabels = {
-  audienceTarget: '관객 타깃 정리',
-  copywriting: '연주회 소개 문구와 콘텐츠 방향',
-  channels: '홍보 채널 선택',
-  report: '홍보 후 반응 리포트',
-  design: '홍보 이미지/포스터 디자인',
-  notSure: '필요한 것부터 함께 정리'
-}
+const submitButton = document.querySelector('[data-pilot-submit]')
 
 const getField = (name) => form?.elements.namedItem(name)
 
 const getValue = (name) => String(getField(name)?.value ?? '').trim()
+
+const getNullableValue = (name) => getValue(name) || null
 
 const getCheckedValues = (name) =>
   form
@@ -47,6 +31,20 @@ const setStatus = (message, tone = 'neutral') => {
   statusElement.dataset.tone = tone
 }
 
+const setFormDisabled = (isDisabled) => {
+  if (!form) {
+    return
+  }
+
+  for (const field of form.elements) {
+    field.disabled = isDisabled
+  }
+
+  if (submitButton) {
+    submitButton.textContent = isDisabled ? '등록 중' : '관심 등록하기'
+  }
+}
+
 const validateContact = () => {
   const phoneField = getField('contactPhone')
   const hasContact = ['contactPhone', 'contactEmail', 'contactInstagram'].some(
@@ -60,38 +58,43 @@ const validateContact = () => {
   return hasContact
 }
 
-const formatInterestEmail = () => {
-  const helpNeeded = getCheckedValues('helpNeeded')
-  const lines = [
-    'in C 클래식 연주회 홍보 관심 등록',
-    '',
-    `이름: ${getValue('applicantName')}`,
-    `역할: ${roleLabels[getValue('role')] ?? getValue('role')}`,
-    `전화: ${getValue('contactPhone') || '-'}`,
-    `이메일: ${getValue('contactEmail') || '-'}`,
-    `인스타 ID: ${getValue('contactInstagram') || '-'}`,
-    '',
-    `현재 상황: ${recitalStatusLabels[getValue('upcomingRecital')] ?? getValue('upcomingRecital')}`,
-    `필요한 도움: ${helpNeeded.length > 0 ? helpNeeded.map((value) => helpLabels[value] ?? value).join(', ') : '-'}`,
-    '',
-    `비고: ${getValue('notes') || '-'}`
-  ]
+const getReadableErrorMessage = (error) => {
+  const message = error?.message ?? ''
 
-  return lines.join('\n')
+  if (/schema cache|promotion_interest_registrations/i.test(message)) {
+    return '관심 등록 저장 환경을 연결하는 중입니다. 잠시 후 다시 시도해 주세요.'
+  }
+
+  return '관심 등록을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'
 }
 
-const openMailDraft = () => {
-  const subject = '[in C] 클래식 연주회 홍보 관심 등록'
-  const body = formatInterestEmail()
-  const params = new URLSearchParams({
-    subject,
-    body
-  })
+const createInterestPayload = () => ({
+  applicant_name: getValue('applicantName'),
+  role: getValue('role'),
+  contact_phone: getNullableValue('contactPhone'),
+  contact_email: getNullableValue('contactEmail'),
+  contact_instagram: getNullableValue('contactInstagram'),
+  upcoming_recital: getValue('upcomingRecital'),
+  help_needed: getCheckedValues('helpNeeded'),
+  notes: getValue('notes'),
+  source_path: window.location.pathname || '/index.html'
+})
 
-  window.location.href = `mailto:${interestRecipient}?${params.toString()}`
+const saveInterestRegistration = async (payload) => {
+  if (!isSupabaseConfigured || !supabase) {
+    throw new Error('promotion_interest_registrations is not configured')
+  }
+
+  const { error } = await supabase
+    .from('promotion_interest_registrations')
+    .insert(payload)
+
+  if (error) {
+    throw error
+  }
 }
 
-const submitForm = (event) => {
+const submitForm = async (event) => {
   event.preventDefault()
   validateContact()
 
@@ -99,14 +102,25 @@ const submitForm = (event) => {
     return
   }
 
-  const helpNeeded = getCheckedValues('helpNeeded')
-  setStatus('메일 앱 초안을 열고 있습니다. 열리지 않으면 수신 경로가 정해진 뒤 다시 안내합니다.')
-  trackEvent('promotion_interest_mailto_open', {
-    role: getValue('role'),
-    recital_status: getValue('upcomingRecital'),
-    help_count: String(helpNeeded.length)
-  })
-  openMailDraft()
+  const payload = createInterestPayload()
+  setFormDisabled(true)
+  setStatus('관심 등록을 저장하는 중입니다.')
+
+  try {
+    await saveInterestRegistration(payload)
+    trackEvent('promotion_interest_submit', {
+      role: payload.role,
+      recital_status: payload.upcoming_recital,
+      help_count: String(payload.help_needed.length)
+    })
+    form.reset()
+    setStatus('관심 등록이 접수되었습니다. 남겨주신 연락처로 직접 연락드릴게요.')
+  } catch (error) {
+    setStatus(getReadableErrorMessage(error), 'error')
+  } finally {
+    setFormDisabled(false)
+    validateContact()
+  }
 }
 
 const bindEvents = () => {

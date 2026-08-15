@@ -45,6 +45,10 @@ const indexPagePath = resolve(siteRoot, 'index.html')
 const privacyPagePath = resolve(siteRoot, 'privacy.html')
 const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
 const pilotConcertsPath = resolve(repoRoot, 'data/promotion/pilot-concerts.json')
+const promotionInterestMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0003_promotion_interest_registrations.sql'
+)
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authRedirectScriptPath = resolve(siteRoot, 'auth-redirect.js')
@@ -400,6 +404,7 @@ function verifyPilotIntakeSurface() {
   const indexPage = readFileSync(indexPagePath, 'utf8')
   const pilotFormScript = readFileSync(pilotFormScriptPath, 'utf8')
   const pilotConcerts = readJson(pilotConcertsPath)
+  const promotionInterestMigration = readFileSync(promotionInterestMigrationPath, 'utf8')
 
   for (const phrase of [
     '클래식 연주회 홍보 관심 등록',
@@ -413,7 +418,7 @@ function verifyPilotIntakeSurface() {
     'name="helpNeeded"',
     'name="notes"',
     'name="privacyAcknowledgement"',
-    '관심 등록 메일 작성',
+    '관심 등록하기',
     'data-pilot-status'
   ]) {
     assert(indexPage.includes(phrase), `pilot intake page missing: ${phrase}`)
@@ -446,7 +451,8 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('공연 시간') &&
       !indexPage.includes('공연 장소') &&
       !indexPage.includes('클래식 연주회 홍보 신청') &&
-      !indexPage.includes('연주회 정보 입력'),
+      !indexPage.includes('연주회 정보 입력') &&
+      !indexPage.includes('메일 앱'),
     'interest registration page must avoid detailed recital intake fields and old campaign copy'
   )
   for (const phrase of [
@@ -467,14 +473,33 @@ function verifyPilotIntakeSurface() {
   )
   assert(
     pilotFormScript.includes('validateContact') &&
-      pilotFormScript.includes('formatInterestEmail') &&
-      pilotFormScript.includes('openMailDraft') &&
-      pilotFormScript.includes('mailto:') &&
-      pilotFormScript.includes('promotion_interest_mailto_open') &&
+      pilotFormScript.includes("from('promotion_interest_registrations')") &&
+      pilotFormScript.includes('.insert(payload)') &&
+      pilotFormScript.includes('promotion_interest_submit') &&
+      pilotFormScript.includes('isSupabaseConfigured') &&
       !pilotFormScript.includes('navigator.clipboard.writeText') &&
       !pilotFormScript.includes('URL.createObjectURL') &&
-      !pilotFormScript.includes('syncPosterUpload'),
-    'interest registration script must validate inputs and compose a mail draft without server storage'
+      !pilotFormScript.includes('syncPosterUpload') &&
+      !pilotFormScript.includes('mailto:'),
+    'interest registration script must validate inputs and submit to Supabase without mailto'
+  )
+  for (const phrase of [
+    'create table if not exists public.promotion_interest_registrations',
+    'alter table public.promotion_interest_registrations enable row level security',
+    'grant insert on public.promotion_interest_registrations to anon, authenticated',
+    'for insert',
+    'contact_phone',
+    'contact_email',
+    'contact_instagram'
+  ]) {
+    assert(
+      promotionInterestMigration.includes(phrase),
+      `promotion interest migration missing: ${phrase}`
+    )
+  }
+  assert(
+    !promotionInterestMigration.includes('grant select on public.promotion_interest_registrations'),
+    'promotion interest migration must not grant public select access'
   )
   assert(
     pilotConcerts.concerts.some(
@@ -497,7 +522,7 @@ function verifyPrivacyNoticeSurface() {
       privacyPage.includes('Google Analytics 사용') &&
       privacyPage.includes('피드백과 문의') &&
       privacyPage.includes('클래식 연주회 홍보 관심 등록') &&
-      privacyPage.includes('서버 저장 없이'),
+      privacyPage.includes('공개 사이트에서 조회할 수 없고'),
     'privacy notice page must keep core notice content'
   )
   assert(

@@ -61,8 +61,8 @@
           <p class="eyebrow">Interest</p>
           <h2 id="form-title">관심 등록</h2>
           <p>
-            지금은 서버에 저장하지 않고 메일 앱 초안으로만 내용을 만듭니다.
-            수신 경로가 확정되면 같은 형식으로 접수 흐름을 정리합니다.
+            제출하면 in C가 직접 확인하고 남겨주신 연락처로 다음 안내를 드립니다.
+            연주회 세부 정보는 후속 대화에서 필요한 만큼만 정리합니다.
           </p>
         </header>
 
@@ -159,14 +159,14 @@
             </label>
             <label class="pilot-form__wide pilot-form__check">
               <input name="privacyAcknowledgement" required type="checkbox" />
-              <span>입력 내용이 서버에 자동 저장되지 않고 메일 앱 초안으로 만들어지는 것을 확인했습니다.</span>
+              <span>입력 내용을 관심 확인과 후속 연락 목적으로 저장하는 데 동의합니다.</span>
             </label>
           </fieldset>
 
           <p class="pilot-status" data-pilot-status hidden role="status" aria-live="polite"></p>
 
           <div class="pilot-form__actions">
-            <button class="button button--primary" type="submit">관심 등록 메일 작성</button>
+            <button class="button button--primary" data-pilot-submit type="submit">관심 등록하기</button>
             <button class="button button--secondary" type="reset">초기화</button>
           </div>
         </form>
