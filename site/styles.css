@@ -921,6 +921,98 @@ dd {
   margin-top: 4px;
 }
 
+.admin-board {
+  display: grid;
+  gap: 18px;
+}
+
+.admin-board__head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.admin-board__head h1 {
+  margin-bottom: 0;
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+  line-height: 1;
+}
+
+.admin-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-summary span {
+  padding: 8px 10px;
+  border: 1px solid #d5cbbd;
+  border-radius: 999px;
+  color: #33434a;
+  background: #fffdf8;
+  font-weight: 800;
+}
+
+.admin-table-shell {
+  overflow-x: auto;
+  border: 1px solid #d5cbbd;
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.9);
+}
+
+.admin-empty {
+  margin: 0;
+  padding: 22px;
+  color: #58666b;
+  font-weight: 800;
+}
+
+.admin-table {
+  width: 100%;
+  min-width: 980px;
+  border-collapse: collapse;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 14px;
+  border-bottom: 1px solid #ded4c7;
+  color: #253135;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-table th {
+  color: #4b5960;
+  background: rgba(244, 240, 231, 0.72);
+  font-size: 0.86rem;
+  text-transform: uppercase;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-table strong,
+.admin-table span {
+  display: block;
+}
+
+.admin-table__note {
+  max-width: 320px;
+  margin: 8px 0 0;
+  color: #5d686d;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.admin-table__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .login-shell {
   display: grid;
   place-items: center;

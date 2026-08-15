@@ -49,6 +49,20 @@ const promotionInterestMigrationPath = resolve(
   repoRoot,
   'supabase/migrations/0003_promotion_interest_registrations.sql'
 )
+const promotionInterestAdminMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0004_promotion_interest_admin_review.sql'
+)
+const promotionAdminPagePath = resolve(siteRoot, 'promotion-admin.html')
+const promotionAdminScriptPath = resolve(siteRoot, 'promotion-admin.js')
+const promotionInterestNotificationFunctionPath = resolve(
+  repoRoot,
+  'supabase/functions/notify-promotion-interest/index.ts'
+)
+const promotionInterestNotificationDocPath = resolve(
+  repoRoot,
+  'docs/product/promotion/interest-notification.md'
+)
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authRedirectScriptPath = resolve(siteRoot, 'auth-redirect.js')
@@ -533,6 +547,80 @@ function verifyPrivacyNoticeSurface() {
   )
 }
 
+function verifyPromotionAdminSurface() {
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const adminPage = readFileSync(promotionAdminPagePath, 'utf8')
+  const adminScript = readFileSync(promotionAdminScriptPath, 'utf8')
+  const adminMigration = readFileSync(promotionInterestAdminMigrationPath, 'utf8')
+  const notificationFunction = readFileSync(
+    promotionInterestNotificationFunctionPath,
+    'utf8'
+  )
+  const notificationDoc = readFileSync(promotionInterestNotificationDocPath, 'utf8')
+
+  for (const phrase of [
+    'promotionAdmin',
+    'promotion-admin.html'
+  ]) {
+    assert(viteConfig.includes(phrase), `promotion admin Vite input missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    '관심 등록 확인',
+    'noindex,nofollow',
+    'data-admin-status',
+    'data-admin-summary',
+    'data-admin-table',
+    'data-admin-refresh',
+    './promotion-admin.js'
+  ]) {
+    assert(adminPage.includes(phrase), `promotion admin page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    "from('promotion_interest_registrations')",
+    '.select(createRegistrationSelect())',
+    '.update({',
+    'review_status',
+    'reviewed_at',
+    'reviewer_user_id',
+    'createLoginUrlWithRedirect',
+    '관리자 권한이 필요합니다'
+  ]) {
+    assert(adminScript.includes(phrase), `promotion admin script missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'add column if not exists review_status',
+    'grant select on public.promotion_interest_registrations to authenticated',
+    'grant update (review_status, reviewed_at, reviewer_user_id)',
+    'admins can read promotion interest registrations',
+    'profiles.role = \'admin\'',
+    'profiles.status = \'active\''
+  ]) {
+    assert(adminMigration.includes(phrase), `promotion admin migration missing: ${phrase}`)
+  }
+  assert(
+    !adminMigration.includes('grant select on public.promotion_interest_registrations to anon'),
+    'promotion admin migration must not grant anonymous select access'
+  )
+
+  for (const phrase of [
+    'daga42@naver.com',
+    'RESEND_API_KEY',
+    'PROMOTION_INTEREST_NOTIFY_FROM',
+    'PROMOTION_INTEREST_WEBHOOK_SECRET',
+    'x-in-c-webhook-secret',
+    'https://api.resend.com/emails',
+    'https://in-c.mannlab.app/promotion-admin.html'
+  ]) {
+    assert(
+      notificationFunction.includes(phrase) || notificationDoc.includes(phrase),
+      `promotion notification setup missing: ${phrase}`
+    )
+  }
+}
+
 function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
@@ -615,6 +703,7 @@ try {
   verifyProductSurfaceStates()
   verifyPilotIntakeSurface()
   verifyPrivacyNoticeSurface()
+  verifyPromotionAdminSurface()
   verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(
