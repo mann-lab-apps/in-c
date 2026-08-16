@@ -44,6 +44,10 @@ const communityMigrationPath = resolve(
 const indexPagePath = resolve(siteRoot, 'index.html')
 const privacyPagePath = resolve(siteRoot, 'privacy.html')
 const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
+const utilityAppPagePath = resolve(siteRoot, 'utility-apps.html')
+const utilityAppFormScriptPath = resolve(siteRoot, 'utility-app-form.js')
+const metronomePagePath = resolve(siteRoot, 'metronome.html')
+const metronomeScriptPath = resolve(siteRoot, 'metronome.js')
 const pilotConcertsPath = resolve(repoRoot, 'data/promotion/pilot-concerts.json')
 const promotionInterestMigrationPath = resolve(
   repoRoot,
@@ -52,6 +56,10 @@ const promotionInterestMigrationPath = resolve(
 const promotionInterestAdminMigrationPath = resolve(
   repoRoot,
   'supabase/migrations/0004_promotion_interest_admin_review.sql'
+)
+const utilityAppRequestsMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0005_utility_app_requests.sql'
 )
 const promotionAdminPagePath = resolve(siteRoot, 'promotion-admin.html')
 const promotionAdminScriptPath = resolve(siteRoot, 'promotion-admin.js')
@@ -536,6 +544,162 @@ function verifyPilotIntakeSurface() {
   )
 }
 
+function verifyUtilityAppRequestSurface() {
+  const indexPage = readFileSync(indexPagePath, 'utf8')
+  const utilityAppPage = readFileSync(utilityAppPagePath, 'utf8')
+  const utilityAppFormScript = readFileSync(utilityAppFormScriptPath, 'utf8')
+  const utilityAppRequestsMigration = readFileSync(utilityAppRequestsMigrationPath, 'utf8')
+  const privacyPage = readFileSync(privacyPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const analyticsScript = readFileSync(resolve(siteRoot, 'analytics.js'), 'utf8')
+
+  assert(
+    indexPage.includes('./utility-apps.html') &&
+      utilityAppPage.includes('./index.html') &&
+      utilityAppPage.includes('./metronome.html') &&
+      viteConfig.includes('utilityApps') &&
+      viteConfig.includes('utility-apps.html'),
+    'promotion and utility app landing pages must be public but cross-linked as separate experiments'
+  )
+
+  for (const phrase of [
+    '무료 음악 도구 제안',
+    '음악가를 위한 작은 도구를 무료로 만들어봅니다',
+    '앱 제작 대행이 아니라, 공개 도구 실험입니다',
+    'data-utility-app-form',
+    'name="applicantName"',
+    'name="role"',
+    'name="contactPhone"',
+    'name="contactEmail"',
+    'name="contactInstagram"',
+    'name="activityContext"',
+    'name="problemFrequency"',
+    'name="problemDescription"',
+    'name="currentWorkaround"',
+    'name="desiredTool"',
+    'name="expectedUsers"',
+    'name="publicToolAcknowledgement"',
+    'name="privacyAcknowledgement"',
+    '도구 제안하기',
+    './utility-app-form.js'
+  ]) {
+    assert(utilityAppPage.includes(phrase), `utility app request page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'validateContact',
+    "from('utility_app_requests')",
+    '.insert(payload)',
+    'utility_app_request_submit',
+    'isSupabaseConfigured',
+    '!supabase'
+  ]) {
+    assert(
+      utilityAppFormScript.includes(phrase),
+      `utility app request script missing: ${phrase}`
+    )
+  }
+
+  for (const phrase of [
+    'create table if not exists public.utility_app_requests',
+    'alter table public.utility_app_requests enable row level security',
+    'grant insert on public.utility_app_requests to anon, authenticated',
+    'for insert',
+    'activity_context',
+    'problem_frequency',
+    'problem_description',
+    'expected_users',
+    'admins can read utility app requests'
+  ]) {
+    assert(
+      utilityAppRequestsMigration.includes(phrase),
+      `utility app request migration missing: ${phrase}`
+    )
+  }
+
+  for (const phrase of ['무료 음악 도구 제안 폼', '공개 웹도구 선정 검토']) {
+    assert(privacyPage.includes(phrase), `privacy notice missing utility app copy: ${phrase}`)
+  }
+
+  for (const phrase of ['activity_context', 'frequency']) {
+    assert(analyticsScript.includes(phrase), `analytics allowlist missing: ${phrase}`)
+  }
+}
+
+function verifyMetronomeSurface() {
+  const metronomePage = readFileSync(metronomePagePath, 'utf8')
+  const metronomeScript = readFileSync(metronomeScriptPath, 'utf8')
+  const utilityAppPage = readFileSync(utilityAppPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const sitemap = readFileSync(resolve(siteRoot, 'public/sitemap.xml'), 'utf8')
+  const analyticsScript = readFileSync(resolve(siteRoot, 'analytics.js'), 'utf8')
+
+  assert(
+    viteConfig.includes('metronome') &&
+      viteConfig.includes('metronome.html') &&
+      sitemap.includes('https://in-c.mannlab.app/metronome.html') &&
+      utilityAppPage.includes('무료 메트로놈 열기'),
+    'metronome page must be built, indexed, and linked from the utility app landing'
+  )
+
+  for (const phrase of [
+    'in C Click',
+    '무료 메트로놈',
+    '연습을 바로 시작하세요',
+    'data-bpm-output',
+    'data-bpm-input',
+    'data-bpm-slider',
+    'data-start-stop',
+    'data-tap-tempo',
+    'name="meter"',
+    'value="2"',
+    'value="3"',
+    'value="4"',
+    'value="6"',
+    'data-accent-toggle',
+    'data-pulse',
+    'data-beat-label',
+    'Space 시작/정지',
+    './metronome.js',
+    './utility-apps.html'
+  ]) {
+    assert(metronomePage.includes(phrase), `metronome page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'AudioContext',
+    'scheduleAheadSeconds',
+    'lookaheadMs',
+    'localStorage',
+    'in-c-click-preferences',
+    'metronome_start',
+    'metronome_tap_tempo',
+    'ArrowUp',
+    'ArrowDown',
+    'Space',
+    'tapTempo'
+  ]) {
+    assert(metronomeScript.includes(phrase), `metronome script missing: ${phrase}`)
+  }
+
+  for (const forbidden of [
+    'navigator.mediaDevices',
+    'getUserMedia',
+    "from('",
+    'supabase',
+    '정확도 최고',
+    '프로용',
+    '완벽한 리듬 엔진'
+  ]) {
+    assert(
+      !metronomePage.includes(forbidden) && !metronomeScript.includes(forbidden),
+      `metronome MVP must avoid excluded scope/copy: ${forbidden}`
+    )
+  }
+
+  assert(analyticsScript.includes('meter'), 'analytics allowlist missing metronome meter param')
+}
+
 function verifyPrivacyNoticeSurface() {
   const privacyPage = readFileSync(privacyPagePath, 'utf8')
 
@@ -769,6 +933,8 @@ try {
   verifyProductRelations()
   verifyProductSurfaceStates()
   verifyPilotIntakeSurface()
+  verifyUtilityAppRequestSurface()
+  verifyMetronomeSurface()
   verifyPrivacyNoticeSurface()
   verifyPromotionAdminSurface()
   verifyDesignThemeLab()

@@ -46,6 +46,8 @@ export default defineConfig({
         themeLab: resolve(__dirname, 'theme-lab.html'),
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
+        utilityApps: resolve(__dirname, 'utility-apps.html'),
+        metronome: resolve(__dirname, 'metronome.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }

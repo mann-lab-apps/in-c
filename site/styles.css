@@ -731,6 +731,52 @@ dd {
   font-weight: 800;
 }
 
+.utility-principles {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.utility-principles article {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid rgba(40, 39, 36, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.72);
+}
+
+.utility-principles h3 {
+  margin-bottom: 8px;
+}
+
+.utility-principles p {
+  margin: 0;
+  color: var(--inc-sketch-muted);
+  line-height: 1.58;
+  word-break: keep-all;
+}
+
+.utility-live-tool {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px;
+  border: 1px solid rgba(40, 39, 36, 0.26);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.78);
+}
+
+.utility-live-tool h3 {
+  margin-bottom: 6px;
+}
+
+.utility-live-tool p:not(.eyebrow) {
+  margin: 0;
+  color: var(--inc-color-text-soft);
+  line-height: 1.58;
+}
+
 .inc-sketch-theme {
   --inc-sketch-paper: #faf7ef;
   --inc-sketch-tile: #fffdf7;
@@ -837,6 +883,235 @@ body.inc-sketch-theme::before {
       rgba(232, 240, 220, 0.9) 100%
     ),
     var(--inc-sketch-tile);
+}
+
+.metronome-main {
+  width: min(980px, calc(100% - 40px));
+}
+
+.metronome-intro {
+  max-width: 760px;
+}
+
+.metronome-intro h1 {
+  font-size: clamp(4.3rem, 13vw, 8.4rem);
+  letter-spacing: 0;
+}
+
+.metronome-shell {
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(320px, 1.08fr);
+  gap: clamp(18px, 4vw, 34px);
+  padding: clamp(18px, 4vw, 32px);
+}
+
+.metronome-display {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 440px;
+  padding: clamp(18px, 4vw, 30px);
+  border: 1px solid rgba(40, 39, 36, 0.32);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.72), rgba(250, 247, 239, 0.8)),
+    var(--inc-sketch-tile);
+  text-align: center;
+}
+
+.metronome-display h2 {
+  max-width: 360px;
+  margin-bottom: 18px;
+  font-size: clamp(1.8rem, 5vw, 3.1rem);
+  line-height: 1.02;
+  word-break: keep-all;
+}
+
+.metronome-bpm-readout {
+  display: grid;
+  gap: 2px;
+  margin: 6px 0 20px;
+}
+
+.metronome-bpm-readout output {
+  color: var(--inc-sketch-ink);
+  font-size: clamp(5rem, 18vw, 9.4rem);
+  font-weight: 900;
+  line-height: 0.86;
+}
+
+.metronome-bpm-readout span {
+  color: var(--inc-sketch-muted);
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.metronome-pulse {
+  display: grid;
+  place-items: center;
+  width: clamp(110px, 24vw, 156px);
+  aspect-ratio: 1;
+  margin: 4px 0 14px;
+  border: 1px solid rgba(40, 39, 36, 0.4);
+  border-radius: 50%;
+  background: var(--inc-sketch-tile);
+  box-shadow: inset 0 0 0 1px rgba(40, 39, 36, 0.12);
+}
+
+.metronome-pulse span {
+  display: block;
+  width: 42%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(40, 39, 36, 0.36);
+  border-radius: 50%;
+  background: rgba(232, 240, 220, 0.88);
+  transform: scale(0.76);
+  transition:
+    background 90ms ease,
+    transform 90ms ease;
+}
+
+.metronome-pulse.is-pulsing span {
+  transform: scale(1);
+}
+
+.metronome-pulse.is-accent span {
+  background: rgba(244, 178, 79, 0.86);
+}
+
+.metronome-beat {
+  margin: 0;
+  color: var(--inc-sketch-muted);
+  font-size: 1.2rem;
+  font-weight: 900;
+}
+
+.metronome-controls {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+
+.metronome-panel {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid rgba(40, 39, 36, 0.28);
+  border-radius: 8px;
+}
+
+.metronome-panel legend {
+  padding: 0 8px;
+  color: var(--inc-sketch-ink);
+  font-weight: 900;
+}
+
+.metronome-stepper {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 56px;
+  gap: 10px;
+  align-items: end;
+}
+
+.metronome-stepper button,
+.metronome-actions button,
+.metronome-panel > button {
+  min-height: 54px;
+}
+
+.metronome-stepper label,
+.metronome-range {
+  display: grid;
+  gap: 8px;
+  color: var(--inc-sketch-muted);
+  font-weight: 900;
+}
+
+.metronome-stepper input,
+.metronome-range input {
+  width: 100%;
+}
+
+.metronome-stepper input {
+  min-height: 54px;
+  padding: 0 14px;
+  border: 1px solid rgba(40, 39, 36, 0.34);
+  border-radius: 8px;
+  color: var(--inc-sketch-ink);
+  background: var(--inc-sketch-tile);
+  font: inherit;
+  font-size: 1.4rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.metronome-range input {
+  accent-color: var(--inc-color-accent);
+}
+
+.metronome-meter-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.metronome-meter-grid label,
+.metronome-toggle {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 12px;
+  border: 1px solid rgba(40, 39, 36, 0.24);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.76);
+  color: var(--inc-sketch-ink);
+  font-weight: 900;
+}
+
+.metronome-meter-grid input,
+.metronome-toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.metronome-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.metronome-actions button {
+  width: 100%;
+  font-size: 1.18rem;
+}
+
+.metronome-shortcuts {
+  margin: 0;
+  color: var(--inc-sketch-muted);
+  font-size: 0.94rem;
+  line-height: 1.5;
+  text-align: center;
+  word-break: keep-all;
+}
+
+.metronome-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: clamp(16px, 3vw, 22px);
+}
+
+.metronome-banner p:not(.eyebrow) {
+  margin: 0;
+  color: var(--inc-sketch-ink);
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1.55;
 }
 
 .theme-lab-page {
@@ -3175,6 +3450,32 @@ body.inc-sketch-theme::before {
 
   .pilot-form fieldset {
     grid-template-columns: 1fr;
+  }
+
+  .utility-principles {
+    grid-template-columns: 1fr;
+  }
+
+  .utility-live-tool,
+  .metronome-banner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .metronome-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .metronome-display {
+    min-height: 360px;
+  }
+
+  .metronome-meter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .metronome-shortcuts {
+    text-align: left;
   }
 
   .pilot-form__actions .button {

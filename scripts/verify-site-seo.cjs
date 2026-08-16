@@ -98,6 +98,8 @@ function getPages() {
     { filePath: 'community-write.html', publicPath: 'community-write.html' },
     { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
     { filePath: 'login.html', publicPath: 'login.html' },
+    { filePath: 'utility-apps.html', publicPath: 'utility-apps.html' },
+    { filePath: 'metronome.html', publicPath: 'metronome.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 
