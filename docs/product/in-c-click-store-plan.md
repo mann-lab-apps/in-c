@@ -12,6 +12,10 @@
 [`docs/research/app-portfolio-distribution-research-notes.md`](../research/app-portfolio-distribution-research-notes.md)에
 정리한다.
 
+스토어 제출 전 기술·정책 체크리스트는
+[`docs/product/in-c-click-release-checklist.md`](./in-c-click-release-checklist.md)를
+기준으로 한다.
+
 기존 `site/metronome.html`과 `site/metronome.js`는 기능 범위와 카피를 확인하기
 위한 웹 프로토타입으로 유지한다. 스토어 출시 기준 구현은 `apps/in_c_click/`의
 Flutter 앱이다.
@@ -163,6 +167,13 @@ MVP 앱은 권한을 요구하지 않는다.
 - 앱 내 피드백 폼
 - 백그라운드 재생 검토
 - 네이티브 오디오 엔진 검토
+
+## 배포 준비 상태
+
+- Android release signing은 `android/key.properties`와 업로드 keystore가 있을 때만
+  동작하도록 설정한다. 실제 비밀 파일은 git에 커밋하지 않는다.
+- iOS는 `PrivacyInfo.xcprivacy`를 Runner target 리소스에 포함한다.
+- 앱 자체는 개인정보를 수집하지 않으며, 기능 제안 웹 폼은 사이트 개인정보 고지를 따른다.
 
 ## in C 포트폴리오 연결 방식
 
