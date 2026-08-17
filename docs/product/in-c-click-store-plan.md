@@ -97,7 +97,7 @@ MVP 앱 자체는 개인정보를 수집하지 않는다.
 
 앱 상단의 `기능 제안` 배너를 통해 웹 페이지로 이동한 뒤 사용자가 직접 제안 폼을
 제출하는 경우, 해당 웹 폼의 개인정보 고지와 저장 정책을 따른다. App Store와
-Play Store의 Privacy Policy URL은 `https://in-c.mannlab.app/in-c-click-privacy.html`을
+Play Store의 Privacy Policy URL은 `https://in-c.mannlab.app/privacy.html`을
 사용한다.
 
 ## 권한 사용 여부

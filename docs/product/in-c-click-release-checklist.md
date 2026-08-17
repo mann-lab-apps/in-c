@@ -99,7 +99,7 @@ apps/in_c_click/build/app/outputs/bundle/release/app-release.aab
 - 카테고리: Music & Audio 또는 Tools 중 선택
 - Data safety: 앱 자체는 개인정보를 수집하지 않음
 - 권한: 앱 본체 release manifest 기준 민감 권한 없음
-- Privacy Policy URL: `https://in-c.mannlab.app/in-c-click-privacy.html`
+- Privacy Policy URL: `https://in-c.mannlab.app/privacy.html`
 - App signing: Google Play App Signing 사용, upload key로 AAB 서명
 
 ## iOS 준비
@@ -126,7 +126,7 @@ apps/in_c_click/build/app/outputs/bundle/release/app-release.aab
 - SKU 후보: `in-c-click-ios`
 - 앱 이름: `in C - Click`
 - 카테고리: Music 또는 Utilities 중 선택
-- Privacy Policy URL: `https://in-c.mannlab.app/in-c-click-privacy.html`
+- Privacy Policy URL: `https://in-c.mannlab.app/privacy.html`
 
 ### 2. Privacy
 
