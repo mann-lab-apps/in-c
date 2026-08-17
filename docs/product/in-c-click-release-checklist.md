@@ -20,6 +20,8 @@
 - 상단 기능 제안 링크: `https://in-c.mannlab.app/utility-apps.html?source=in-c-click`
 - iOS privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy`
 - Android release signing 설정 템플릿: `android/key.properties.example`
+- iOS 기본 화면 원본 스크린샷:
+  `apps/in_c_click/store-assets/ios/screenshots/raw/iphone-16-pro-main.png`
 
 ## 배포 전 결정
 
@@ -49,6 +51,8 @@
 1차 내부 테스트 이후 판단한다.
 
 ## Android 준비
+
+현재 Android 배포는 보류한다. 아래 항목은 Play Store 진행을 재개할 때 사용한다.
 
 ### 1. 업로드 키 생성
 
@@ -99,6 +103,22 @@ apps/in_c_click/build/app/outputs/bundle/release/app-release.aab
 - App signing: Google Play App Signing 사용, upload key로 AAB 서명
 
 ## iOS 준비
+
+2026-08-17 로컬 확인 결과, `flutter build ipa --release`는 코드 서명 단계에서
+중단됐다.
+
+확인된 blocker:
+
+- Team `ZRA4DHHKQ4`에 등록된 테스트 기기가 없음
+- `com.mannlab.inc.click`에 맞는 iOS Development provisioning profile 없음
+
+다음 중 하나를 먼저 처리한다.
+
+- 실제 iPhone을 연결해 Xcode가 development profile을 만들게 한다.
+- Apple Developer > Certificates, Identifiers & Profiles에서 테스트 기기 UDID를
+  등록한다.
+- App Store Connect/TestFlight로 바로 갈 경우 Bundle ID와 App Store distribution
+  profile을 준비한다.
 
 ### 1. App Store Connect 앱 생성
 
