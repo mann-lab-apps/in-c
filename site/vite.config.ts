@@ -46,6 +46,7 @@ export default defineConfig({
         themeLab: resolve(__dirname, 'theme-lab.html'),
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
+        inCClickPrivacy: resolve(__dirname, 'in-c-click-privacy.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }
