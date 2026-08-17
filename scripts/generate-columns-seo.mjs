@@ -232,6 +232,8 @@ const sitemapUrls = [
   `${baseUrl}/chromatics.html`,
   `${baseUrl}/community-write.html`,
   `${baseUrl}/login.html`,
+  `${baseUrl}/in-c-click-privacy.html`,
+  `${baseUrl}/support.html`,
   `${baseUrl}/privacy.html`,
   ...publicColumns.map((column) => `${baseUrl}/columns/${column.slug}.html`)
 ]

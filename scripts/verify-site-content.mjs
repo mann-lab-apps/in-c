@@ -540,11 +540,13 @@ function verifyPrivacyNoticeSurface() {
   const privacyPage = readFileSync(privacyPagePath, 'utf8')
 
   assert(
-    privacyPage.includes('개인정보·문의·운영 고지') &&
+    privacyPage.includes('in C 개인정보 처리방침') &&
       privacyPage.includes('Google Analytics 사용') &&
       privacyPage.includes('피드백과 문의') &&
       privacyPage.includes('클래식 연주회 홍보 관심 등록') &&
-      privacyPage.includes('공개 사이트에서 조회할 수 없고'),
+      privacyPage.includes('공개 사이트에서 조회할 수 없고') &&
+      privacyPage.includes('in C - Click 모바일 앱') &&
+      privacyPage.includes('daga42@naver.com'),
     'privacy notice page must keep core notice content'
   )
   assert(
