@@ -49,6 +49,7 @@ export default defineConfig({
         utilityApps: resolve(__dirname, 'utility-apps.html'),
         metronome: resolve(__dirname, 'metronome.html'),
         inCClickPrivacy: resolve(__dirname, 'in-c-click-privacy.html'),
+        support: resolve(__dirname, 'support.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }

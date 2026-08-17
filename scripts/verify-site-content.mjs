@@ -44,6 +44,7 @@ const communityMigrationPath = resolve(
 const indexPagePath = resolve(siteRoot, 'index.html')
 const privacyPagePath = resolve(siteRoot, 'privacy.html')
 const inCClickPrivacyPagePath = resolve(siteRoot, 'in-c-click-privacy.html')
+const supportPagePath = resolve(siteRoot, 'support.html')
 const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
 const utilityAppPagePath = resolve(siteRoot, 'utility-apps.html')
 const utilityAppFormScriptPath = resolve(siteRoot, 'utility-app-form.js')
@@ -705,6 +706,7 @@ function verifyMetronomeSurface() {
 function verifyPrivacyNoticeSurface() {
   const privacyPage = readFileSync(privacyPagePath, 'utf8')
   const inCClickPrivacyPage = readFileSync(inCClickPrivacyPagePath, 'utf8')
+  const supportPage = readFileSync(supportPagePath, 'utf8')
   const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
   const sitemap = readFileSync(resolve(siteRoot, 'public/sitemap.xml'), 'utf8')
 
@@ -721,7 +723,9 @@ function verifyPrivacyNoticeSurface() {
 
   assert(
     viteConfig.includes('inCClickPrivacy') &&
-      sitemap.includes('https://in-c.mannlab.app/in-c-click-privacy.html'),
+      sitemap.includes('https://in-c.mannlab.app/in-c-click-privacy.html') &&
+      viteConfig.includes('support') &&
+      sitemap.includes('https://in-c.mannlab.app/support.html'),
     'in C Click privacy policy must be built and indexed'
   )
 
@@ -740,13 +744,20 @@ function verifyPrivacyNoticeSurface() {
     )
   }
 
+  for (const phrase of ['in C 지원', '문의와 버그 제보', 'daga42@naver.com']) {
+    assert(supportPage.includes(phrase), `support page missing: ${phrase}`)
+  }
+
   assert(
     !privacyPage.includes('class="site-header"') &&
       !privacyPage.includes('./main.js') &&
       !privacyPage.includes('data-global-ad-banner') &&
       !inCClickPrivacyPage.includes('class="site-header"') &&
       !inCClickPrivacyPage.includes('./main.js') &&
-      !inCClickPrivacyPage.includes('data-global-ad-banner'),
+      !inCClickPrivacyPage.includes('data-global-ad-banner') &&
+      !supportPage.includes('class="site-header"') &&
+      !supportPage.includes('./main.js') &&
+      !supportPage.includes('data-global-ad-banner'),
     'privacy notice page must not render global navigation or ad banner'
   )
 }
