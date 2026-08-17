@@ -47,6 +47,7 @@ export default defineConfig({
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
         inCClickPrivacy: resolve(__dirname, 'in-c-click-privacy.html'),
+        support: resolve(__dirname, 'support.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }

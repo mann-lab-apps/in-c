@@ -99,6 +99,7 @@ function getPages() {
     { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
     { filePath: 'login.html', publicPath: 'login.html' },
     { filePath: 'in-c-click-privacy.html', publicPath: 'in-c-click-privacy.html' },
+    { filePath: 'support.html', publicPath: 'support.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 
