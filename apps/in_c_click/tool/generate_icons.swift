@@ -64,10 +64,11 @@ func renderIcon(size: Int, to url: URL) throws {
     context.setFillColor(rgb(0xfffffefa))
     context.fill(CGRect(x: 0, y: 0, width: 1024, height: 1024))
 
-    drawSoftHatch(context)
-    drawStaff(context)
-    drawQuarterNote(context)
-    drawClickMark(context)
+    context.translateBy(x: 0, y: 1024)
+    context.scaleBy(x: 1, y: -1)
+
+    drawPaperGrain(context)
+    drawImaginedCMetronome(context)
 
     guard let image = context.makeImage(),
           let destination = CGImageDestinationCreateWithURL(
@@ -85,71 +86,209 @@ func renderIcon(size: Int, to url: URL) throws {
     }
 }
 
-func drawSoftHatch(_ context: CGContext) {
+func drawPaperGrain(_ context: CGContext) {
     context.saveGState()
-    context.setStrokeColor(rgb(0x3385cbff))
-    context.setLineWidth(9)
+    context.setStrokeColor(rgb(0x1fd8cfbf))
+    context.setLineWidth(3)
     context.setLineCap(.round)
-    let clip = CGMutablePath()
-    clip.addEllipse(in: CGRect(x: 620, y: 224, width: 214, height: 214))
-    context.addPath(clip)
+    let lines: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
+        (102, 164, 860, 154),
+        (126, 836, 892, 846),
+        (84, 894, 782, 882),
+    ]
+    for line in lines {
+        roughLine(context, from: CGPoint(x: line.0, y: line.1), to: CGPoint(x: line.2, y: line.3), offset: CGPoint(x: 2, y: 2))
+    }
+    context.restoreGState()
+}
+
+func drawImaginedCMetronome(_ context: CGContext) {
+    context.saveGState()
+    context.translateBy(x: 512, y: 520)
+    context.scaleBy(x: 1.14, y: 1.14)
+    context.translateBy(x: -512, y: -520)
+
+    let body = metronomeBodyPath(offset: .zero)
+
+    context.saveGState()
+    context.addPath(metronomeBodyPath(offset: CGPoint(x: 20, y: 22)))
+    context.setFillColor(rgb(0x20d8cfbf))
+    context.fillPath()
+    context.restoreGState()
+
+    context.saveGState()
+    context.addPath(body)
     context.clip()
+    drawPlausibleBodyFill(context)
+    context.restoreGState()
 
-    var x: CGFloat = 560
-    while x < 900 {
-        context.move(to: CGPoint(x: x, y: 454))
-        context.addLine(to: CGPoint(x: x + 150, y: 210))
-        context.strokePath()
-        x += 52
+    drawOpenMetronomeOutline(context, offset: CGPoint(x: -8, y: 7), color: rgb(0x8a282724), lineWidth: 6)
+    drawOpenMetronomeOutline(context, offset: .zero, color: rgb(0xff282724), lineWidth: 14)
+    drawPlausibleTempoScale(context)
+    drawPlausiblePendulum(context)
+    context.restoreGState()
+}
+
+func drawPlausibleBodyFill(_ context: CGContext) {
+    context.setFillColor(rgb(0xfffffdf7))
+    context.fill(CGRect(x: 0, y: 0, width: 1024, height: 1024))
+
+    context.setStrokeColor(rgb(0x2f85cbff))
+    context.setLineWidth(7)
+    context.setLineCap(.round)
+
+    let hatchLines: [(CGFloat, CGFloat, CGFloat, CGFloat)] = [
+        (334, 690, 500, 424),
+        (414, 724, 620, 392),
+        (504, 724, 710, 394),
+        (600, 686, 756, 432),
+    ]
+
+    for line in hatchLines {
+        roughLine(
+            context,
+            from: CGPoint(x: line.0, y: line.1),
+            to: CGPoint(x: line.2, y: line.3),
+            offset: CGPoint(x: 4, y: -3)
+        )
+    }
+}
+
+func drawOpenMetronomeOutline(_ context: CGContext, offset: CGPoint, color: CGColor, lineWidth: CGFloat) {
+    context.saveGState()
+    context.setStrokeColor(color)
+    context.setLineWidth(lineWidth)
+    context.setLineCap(.round)
+    context.setLineJoin(.round)
+
+    let path = CGMutablePath()
+    path.move(to: CGPoint(x: 620 + offset.x, y: 286 + offset.y))
+    path.addLine(to: CGPoint(x: 558 + offset.x, y: 222 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 466 + offset.x, y: 222 + offset.y),
+        control: CGPoint(x: 512 + offset.x, y: 204 + offset.y)
+    )
+    path.addLine(to: CGPoint(x: 258 + offset.x, y: 794 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 300 + offset.x, y: 836 + offset.y),
+        control: CGPoint(x: 252 + offset.x, y: 824 + offset.y)
+    )
+    path.addLine(to: CGPoint(x: 724 + offset.x, y: 836 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 750 + offset.x, y: 802 + offset.y),
+        control: CGPoint(x: 762 + offset.x, y: 826 + offset.y)
+    )
+    context.addPath(path)
+    context.strokePath()
+
+    roughLine(
+        context,
+        from: CGPoint(x: 714 + offset.x, y: 336 + offset.y),
+        to: CGPoint(x: 762 + offset.x, y: 468 + offset.y),
+        offset: CGPoint(x: 2, y: 2)
+    )
+    roughLine(
+        context,
+        from: CGPoint(x: 762 + offset.x, y: 610 + offset.y),
+        to: CGPoint(x: 718 + offset.x, y: 742 + offset.y),
+        offset: CGPoint(x: 2, y: 2)
+    )
+    context.restoreGState()
+}
+
+func drawPlausibleTempoScale(_ context: CGContext) {
+    context.saveGState()
+    context.setStrokeColor(rgb(0xff282724))
+    context.setLineWidth(8)
+    context.setLineCap(.round)
+
+    let marks: [(CGFloat, CGFloat, CGFloat)] = [
+        (400, 394, 48),
+        (382, 456, 62),
+        (368, 522, 68),
+        (370, 588, 58),
+        (386, 650, 46),
+    ]
+
+    for (x, y, width) in marks {
+        roughLine(
+            context,
+            from: CGPoint(x: x, y: y),
+            to: CGPoint(x: x + width, y: y),
+            offset: CGPoint(x: 2, y: 2)
+        )
     }
     context.restoreGState()
 }
 
-func drawStaff(_ context: CGContext) {
-    context.setStrokeColor(rgb(0xff282724))
-    context.setLineWidth(12)
-    context.setLineCap(.round)
-
-    for index in 0..<5 {
-        let y = CGFloat(328 + index * 50)
-        roughLine(context, from: CGPoint(x: 174, y: y), to: CGPoint(x: 820, y: y))
-    }
-}
-
-func drawQuarterNote(_ context: CGContext) {
-    context.setFillColor(rgb(0xff111111))
+func drawPlausiblePendulum(_ context: CGContext) {
+    context.saveGState()
     context.setStrokeColor(rgb(0xff111111))
-    context.setLineWidth(26)
+    context.setFillColor(rgb(0xff111111))
+    context.setLineWidth(17)
     context.setLineCap(.round)
+
+    roughLine(
+        context,
+        from: CGPoint(x: 520, y: 756),
+        to: CGPoint(x: 608, y: 300),
+        offset: CGPoint(x: 3, y: 4)
+    )
 
     context.saveGState()
-    context.translateBy(x: 390, y: 636)
-    context.rotate(by: -0.28)
-    context.fillEllipse(in: CGRect(x: -142, y: -82, width: 284, height: 164))
+    context.translateBy(x: 566, y: 506)
+    context.rotate(by: -0.18)
+    roundedRect(context, rect: CGRect(x: -47, y: -30, width: 94, height: 60), radius: 16)
+    context.fillPath()
     context.restoreGState()
 
-    context.setLineWidth(38)
-    roughLine(context, from: CGPoint(x: 520, y: 624), to: CGPoint(x: 520, y: 238))
-    context.setLineWidth(26)
-    roughLine(context, from: CGPoint(x: 520, y: 244), to: CGPoint(x: 690, y: 244))
+    context.fillEllipse(in: CGRect(x: 503, y: 738, width: 34, height: 34))
+    context.restoreGState()
 }
 
-func drawClickMark(_ context: CGContext) {
-    context.setStrokeColor(rgb(0xffb43d2f))
-    context.setFillColor(rgb(0xffb43d2f))
-    context.setLineWidth(16)
-    context.strokeEllipse(in: CGRect(x: 656, y: 360, width: 150, height: 150))
-    context.setLineWidth(8)
-    context.strokeEllipse(in: CGRect(x: 682, y: 386, width: 98, height: 98))
-    context.fillEllipse(in: CGRect(x: 720, y: 424, width: 22, height: 22))
+func metronomeBodyPath(offset: CGPoint) -> CGMutablePath {
+    let path = CGMutablePath()
+    path.move(to: CGPoint(x: 466 + offset.x, y: 222 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 558 + offset.x, y: 222 + offset.y),
+        control: CGPoint(x: 512 + offset.x, y: 204 + offset.y)
+    )
+    path.addLine(to: CGPoint(x: 766 + offset.x, y: 794 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 724 + offset.x, y: 836 + offset.y),
+        control: CGPoint(x: 772 + offset.x, y: 822 + offset.y)
+    )
+    path.addLine(to: CGPoint(x: 300 + offset.x, y: 836 + offset.y))
+    path.addQuadCurve(
+        to: CGPoint(x: 258 + offset.x, y: 794 + offset.y),
+        control: CGPoint(x: 252 + offset.x, y: 824 + offset.y)
+    )
+    path.addLine(to: CGPoint(x: 466 + offset.x, y: 222 + offset.y))
+    path.closeSubpath()
+    return path
 }
 
-func roughLine(_ context: CGContext, from start: CGPoint, to end: CGPoint) {
+func roundedRect(_ context: CGContext, rect: CGRect, radius: CGFloat) {
+    let path = CGMutablePath()
+    path.move(to: CGPoint(x: rect.minX + radius, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.maxX - radius, y: rect.minY))
+    path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.minY + radius), control: CGPoint(x: rect.maxX, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY - radius))
+    path.addQuadCurve(to: CGPoint(x: rect.maxX - radius, y: rect.maxY), control: CGPoint(x: rect.maxX, y: rect.maxY))
+    path.addLine(to: CGPoint(x: rect.minX + radius, y: rect.maxY))
+    path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.maxY - radius), control: CGPoint(x: rect.minX, y: rect.maxY))
+    path.addLine(to: CGPoint(x: rect.minX, y: rect.minY + radius))
+    path.addQuadCurve(to: CGPoint(x: rect.minX + radius, y: rect.minY), control: CGPoint(x: rect.minX, y: rect.minY))
+    path.closeSubpath()
+    context.addPath(path)
+}
+
+func roughLine(_ context: CGContext, from start: CGPoint, to end: CGPoint, offset: CGPoint = CGPoint(x: 4, y: 5)) {
     context.move(to: start)
     context.addLine(to: end)
     context.strokePath()
-    context.move(to: CGPoint(x: start.x + 4, y: start.y + 6))
-    context.addLine(to: CGPoint(x: end.x - 5, y: end.y + 3))
+    context.move(to: CGPoint(x: start.x + offset.x, y: start.y + offset.y))
+    context.addLine(to: CGPoint(x: end.x - offset.x, y: end.y + offset.y * 0.5))
     context.strokePath()
 }
 
