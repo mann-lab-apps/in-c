@@ -80,7 +80,7 @@ const createRequestPayload = () => ({
   current_workaround: getValue('currentWorkaround'),
   desired_tool: getValue('desiredTool'),
   expected_users: getCheckedValues('expectedUsers'),
-  source_path: window.location.pathname || '/utility-apps.html'
+  source_path: `${window.location.pathname || '/utility-apps.html'}${window.location.search || ''}`
 })
 
 const saveUtilityAppRequest = async (payload) => {

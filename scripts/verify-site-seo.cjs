@@ -100,6 +100,7 @@ function getPages() {
     { filePath: 'login.html', publicPath: 'login.html' },
     { filePath: 'utility-apps.html', publicPath: 'utility-apps.html' },
     { filePath: 'metronome.html', publicPath: 'metronome.html' },
+    { filePath: 'in-c-click-privacy.html', publicPath: 'in-c-click-privacy.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 

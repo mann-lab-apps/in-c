@@ -17,7 +17,7 @@
 - 로컬 설정 저장: BPM, 박자, 첫 박 강조
 - 앱 내 개인정보 입력 없음
 - 앱 내 계정/결제/광고/마이크/파일/위치/알림 권한 없음
-- 상단 기능 제안 링크: `https://in-c.mannlab.app/utility-apps.html?source=in-c-click`
+- 상단 기능 제안 링크: `https://in-c.mannlab.app/utility-apps.html?source=in-c-click#utility-app-form`
 - iOS privacy manifest: `ios/Runner/PrivacyInfo.xcprivacy`
 - Android release signing 설정 템플릿: `android/key.properties.example`
 - iOS 기본 화면 원본 스크린샷:
@@ -99,7 +99,7 @@ apps/in_c_click/build/app/outputs/bundle/release/app-release.aab
 - 카테고리: Music & Audio 또는 Tools 중 선택
 - Data safety: 앱 자체는 개인정보를 수집하지 않음
 - 권한: 앱 본체 release manifest 기준 민감 권한 없음
-- Privacy Policy URL: `https://in-c.mannlab.app/privacy.html`
+- Privacy Policy URL: `https://in-c.mannlab.app/in-c-click-privacy.html`
 - App signing: Google Play App Signing 사용, upload key로 AAB 서명
 
 ## iOS 준비
@@ -126,7 +126,7 @@ apps/in_c_click/build/app/outputs/bundle/release/app-release.aab
 - SKU 후보: `in-c-click-ios`
 - 앱 이름: `in C - Click`
 - 카테고리: Music 또는 Utilities 중 선택
-- Privacy Policy URL: `https://in-c.mannlab.app/privacy.html`
+- Privacy Policy URL: `https://in-c.mannlab.app/in-c-click-privacy.html`
 
 ### 2. Privacy
 

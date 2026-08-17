@@ -43,6 +43,7 @@ const communityMigrationPath = resolve(
 )
 const indexPagePath = resolve(siteRoot, 'index.html')
 const privacyPagePath = resolve(siteRoot, 'privacy.html')
+const inCClickPrivacyPagePath = resolve(siteRoot, 'in-c-click-privacy.html')
 const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
 const utilityAppPagePath = resolve(siteRoot, 'utility-apps.html')
 const utilityAppFormScriptPath = resolve(siteRoot, 'utility-app-form.js')
@@ -592,7 +593,8 @@ function verifyUtilityAppRequestSurface() {
     '.insert(payload)',
     'utility_app_request_submit',
     'isSupabaseConfigured',
-    '!supabase'
+    '!supabase',
+    'window.location.search'
   ]) {
     assert(
       utilityAppFormScript.includes(phrase),
@@ -702,19 +704,48 @@ function verifyMetronomeSurface() {
 
 function verifyPrivacyNoticeSurface() {
   const privacyPage = readFileSync(privacyPagePath, 'utf8')
+  const inCClickPrivacyPage = readFileSync(inCClickPrivacyPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const sitemap = readFileSync(resolve(siteRoot, 'public/sitemap.xml'), 'utf8')
 
   assert(
     privacyPage.includes('개인정보·문의·운영 고지') &&
       privacyPage.includes('Google Analytics 사용') &&
       privacyPage.includes('피드백과 문의') &&
       privacyPage.includes('클래식 연주회 홍보 관심 등록') &&
-      privacyPage.includes('공개 사이트에서 조회할 수 없고'),
+      privacyPage.includes('공개 사이트에서 조회할 수 없고') &&
+      privacyPage.includes('./in-c-click-privacy.html'),
     'privacy notice page must keep core notice content'
   )
+
+  assert(
+    viteConfig.includes('inCClickPrivacy') &&
+      sitemap.includes('https://in-c.mannlab.app/in-c-click-privacy.html'),
+    'in C Click privacy policy must be built and indexed'
+  )
+
+  for (const phrase of [
+    'in C - Click 개인정보 처리방침',
+    '앱 내부에서 개인정보를 수집하지 않습니다',
+    'BPM, 박자, 첫 박 강조 여부',
+    '기능 제안 웹 폼',
+    'Supabase',
+    'Google Analytics 4',
+    'daga42@naver.com'
+  ]) {
+    assert(
+      inCClickPrivacyPage.includes(phrase),
+      `in C Click privacy policy missing: ${phrase}`
+    )
+  }
+
   assert(
     !privacyPage.includes('class="site-header"') &&
       !privacyPage.includes('./main.js') &&
-      !privacyPage.includes('data-global-ad-banner'),
+      !privacyPage.includes('data-global-ad-banner') &&
+      !inCClickPrivacyPage.includes('class="site-header"') &&
+      !inCClickPrivacyPage.includes('./main.js') &&
+      !inCClickPrivacyPage.includes('data-global-ad-banner'),
     'privacy notice page must not render global navigation or ad banner'
   )
 }
