@@ -235,24 +235,26 @@ Problem -> Audience -> Distribution -> Payment
 새 아이디어는 바로 만들지 않고 다음 질문을 먼저 통과한다.
 
 1. 이게 사실이라는 기존 증거가 이미 있는가?
-2. 사람들이 실제로 그렇게 행동하는 것을 관찰할 수 있는가?
-3. 제품 없이 이 가설만 따로 검증할 수 있는가?
-4. 수동으로 흉내 낼 수 있는가?
-5. 어떤 결과가 나오면 이 가설을 버릴 것인가?
+2. 업계 강자나 기존 제품이 이미 충분히 해결한 문제인가?
+3. 사람들이 실제로 그렇게 행동하는 것을 관찰할 수 있는가?
+4. 제품 없이 이 가설만 따로 검증할 수 있는가?
+5. 수동으로 흉내 낼 수 있는가?
+6. 어떤 결과가 나오면 이 가설을 버릴 것인가?
 
 지향 순서:
 
 ```text
-가설 -> 기존 증거 확인 -> 실제 행동 관찰 -> 제품 없는 검증 -> 수동 concierge -> 그래도 모르겠으면 Build
+가설 -> 기존 증거 확인 -> 강자/대체재 확인 -> 실제 행동 관찰 -> 제품 없는 검증 -> 수동 concierge -> 그래도 모르겠으면 Build
 ```
 
 ## 다음 액션 후보
 
 1. 기존 공개조사/학술자료를 `이미 검증 / 부분 검증 / 직접 검증 필요`로 분류한다.
-2. 디시인사이드 등 공개 커뮤니티에서 latent demand와 missed discovery를 작게 관찰한다.
-3. 메트로놈, YouTube, Columns, Chromatics 실제 audience 데이터를 축적한다.
-4. 실제 공연 하나를 수동으로 relevant audience에 노출한다.
-5. 결과 리포트 후 다음 공연의 유료 제안 또는 깃발 결제를 검증한다.
+2. 업계 강자와 기존 제품이 이미 해결한 문제를 먼저 제외한다.
+3. 디시인사이드 등 공개 커뮤니티에서 latent demand와 missed discovery를 작게 관찰한다.
+4. 메트로놈, YouTube, Columns, Chromatics 실제 audience 데이터를 축적한다.
+5. 실제 공연 하나를 수동으로 relevant audience에 노출한다.
+6. 결과 리포트 후 다음 공연의 유료 제안 또는 깃발 결제를 검증한다.
 
 ## 관련 문서
 
@@ -260,6 +262,7 @@ Problem -> Audience -> Distribution -> Payment
 - [Q3 공연홍보 Concierge MVP](promotion/q3-concierge-mvp.md)
 - [공연홍보 캠페인 기록과 결과 리포트 템플릿](promotion/campaign-record-report-template.md)
 - [Distribution Gap 선행증거와 직접 검증 항목](../research/distribution-gap-evidence.md)
+- [업계 강자와 선행 시도 리서치](../research/incumbent-products-and-research.md)
 - [Concert Promotion Market Research](../research/concert-promotion-market.md)
 - [음악 유틸앱 실험 방향성](util-app-experiment-plan.md)
 - [in C 식 클래식 애자일](classical-agile.md)
