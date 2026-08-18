@@ -378,6 +378,7 @@ Columns와 Chromatics도 당장 검증 대상이 아니다. 첫 공연홍보 사
 
 ## 관련 문서와 이슈
 
+- [다음 검증 계획](next-validation-plan.md)
 - [Concert Preview 제안서 초안](concert-preview-proposal.md)
 - [연주회 홍보 등록 UX와 데이터 모델](concert-promotion-registration.md)
 - [공연 홍보 시장 조사](../../research/concert-promotion-market.md)
