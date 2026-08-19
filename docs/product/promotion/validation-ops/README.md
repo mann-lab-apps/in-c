@@ -19,6 +19,7 @@
 | `supplier-interviews.csv` | 공급자 5명 인터뷰 요약 |
 | `demand-interviews.csv` | 수요자 10명 인터뷰 요약 |
 | `channel-audit.csv` | 공개 공연/레슨/구인 정보 30건의 대체재 노출 관찰 |
+| `channel-audit-observations.md` | 공개 채널 관찰 결과 해석 메모 |
 | `opportunity-inventory.csv` | 공연 3개, 레슨 3개, 구인 3개 공급 정보 목록 |
 | `matching-participants.csv` | 수동 매칭 대상 15명의 관심 조건 |
 | `dispatch-log.csv` | 2주 동안 보낸 정보와 반응 기록 |
