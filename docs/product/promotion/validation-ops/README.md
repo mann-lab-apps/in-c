@@ -28,6 +28,7 @@
 | `fieldwork-scripts.md` | 섭외 메시지, 인터뷰 진행, 후속 질문 스크립트 |
 | `coding-guide.md` | CSV에 넣는 선택값과 집계 기준 |
 | `scorecard.csv` | 성공/실패 신호를 숫자로 옮기는 집계표 |
+| `current-validation-snapshot.md` | 현재까지 증명된 것과 사람 데이터가 필요한 항목 |
 | `final-judgement.md` | 1차 판단과 버릴 영역/남길 영역 정리 |
 
 ## 기록 원칙
