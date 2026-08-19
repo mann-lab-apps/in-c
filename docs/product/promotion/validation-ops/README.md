@@ -30,6 +30,7 @@
 | `scorecard.csv` | 성공/실패 신호를 숫자로 옮기는 집계표 |
 | `current-validation-snapshot.md` | 현재까지 증명된 것과 사람 데이터가 필요한 항목 |
 | `substitute-positioning.md` | 대체재 대비 버릴 영역과 남길 검증 영역 |
+| `decision-matrix.md` | 인터뷰/수동 매칭 결과를 최종 판단으로 연결하는 기준 |
 | `final-judgement.md` | 1차 판단과 버릴 영역/남길 영역 정리 |
 
 ## 기록 원칙
@@ -55,7 +56,8 @@
 9. 2주 동안 정말 맞는 정보만 보내고 `dispatch-log.csv`에 반응을 남긴다.
 10. `coding-guide.md` 기준으로 선택값을 정리한다.
 11. `scorecard.csv`에 성공/실패 신호를 집계한다.
-12. `final-judgement.md`에서 네 가지 결론 중 하나를 고른다.
+12. `decision-matrix.md` 기준으로 행동 증거와 의견 증거를 분리한다.
+13. `final-judgement.md`에서 네 가지 결론 중 하나를 고른다.
 
 ## 집계 방식
 

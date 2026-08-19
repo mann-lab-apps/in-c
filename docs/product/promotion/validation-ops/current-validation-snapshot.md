@@ -106,6 +106,7 @@
 - `opportunity-inventory.csv`
 - `scorecard.csv`
 - `substitute-positioning.md`
+- `decision-matrix.md`
 - `recruiting-tracker.csv`
 - `matching-participants.csv`
 - `dispatch-log.csv`
