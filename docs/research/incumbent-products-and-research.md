@@ -20,11 +20,13 @@
 - KOPIS는 공연 정보와 통계의 공적 원천이다.
 - 대형 티켓 플랫폼은 예매, 결제, 좌석, 검색, 랭킹을 장악한다.
 - Club Balcony, Bachtrack, Operabase는 클래식 전문 발견과 신뢰를 다룬다.
+- Obri는 국내 클래식 음악인 구인구직, 연주회, 오디션/콩쿠르, 커뮤니티, 포트폴리오를
+  한곳에 모으려는 직접적인 선행 시도다.
 - Eventbrite Boost, Meta, 당근, 네이버, 카카오는 간편 홍보와 지역/관심 타게팅을 제공한다.
 - Tessitura, Spektrix, The Audience Agency, MHM은 기관 관객 데이터와 세그먼트를 다룬다.
 
 따라서 in C가 정면으로 만들면 안 되는 것은 `일반 티켓팅`, `대형 공연 검색`,
-`기관용 CRM`, `범용 광고관리자`다.
+`기관용 CRM`, `범용 광고관리자`, `단순 음악인 구인구직 게시판`이다.
 
 남는 빈칸은 다음에 가깝다.
 
@@ -74,6 +76,7 @@
 | 클래식 전문 멤버십/기획 | Club Balcony/Credia 등 | 클래식 애호가 대상 정보, 예매 혜택, 멤버십, 기획공연 | 충성도 높은 회원, 브랜드 신뢰, 기획 역량 | 고관여 클래식 팬 대상 모델의 국내 선행 사례다. 소규모 공연 self-serve distribution과는 다르다. |
 | 클래식 전문 발견/미디어 | Bachtrack | 클래식/오페라/무용 공연 검색, 리뷰, 프리뷰, 광고/스폰서십 | 구조화된 listing, 편집 품질, SEO, 글로벌 독자 | `공연 발견 + 전문 편집 + 광고 BM`이 성립할 수 있다는 강한 선행 사례다. 다만 self-posting이 아니라 편집 운영이 핵심이다. |
 | 공연예술 전문 DB/산업 | Operabase | 공연/아티스트/단체 DB, 캐스팅, visibility report, ticket link | 글로벌 공연 데이터, 전문가 네트워크, 프로필/가시성 지표 | `visibility report`와 `search appearance`는 in C 깃발 리포트의 직접 참고 대상이다. |
+| 국내 음악인 기회 플랫폼 | Obri | 클래식 음악인 구인구직, 레슨/반주/종교음악 공고, 연주회, 오디션/콩쿠르, 커뮤니티, 포트폴리오 | 클래식 음악인 전용 카테고리, 악기/지역 필터, 공고 등록, 무료 이용, 조회수 일부 표시 | 구인/레슨/프로필 영역은 이미 강한 선행 시도가 있다. in C가 남길 영역은 공연/레슨/구인 통합 그 자체가 아니라 `핏 맞는 알림`, `relevant reach`, `수요자 반응 데이터`, `공급자 zero-decision distribution`이 실제로 더 나은지다. |
 | 기관용 CRM/티켓팅 | Tessitura, Spektrix | 티켓팅, CRM, 멤버십, 기부, 세그먼트, 캠페인 자동화 | 기존 관객 데이터, 기관 업무흐름, 리포팅 | 대형 기관의 retained audience 운영 문제를 푼다. in C가 초기부터 갈 곳은 아니다. |
 | 관객 세그먼트/리서치 | The Audience Agency, Audience Spectrum, MHM Culture Segments | 관객 조사, 세그먼트, 지역 시장/잠재시장 분석 | 설문/티켓 데이터, 문화소비 세그먼트 체계 | in C의 타게팅은 나이/지역만이 아니라 문화자본, 정보소비, 동기 기반으로 진화해야 한다. |
 | 범용 이벤트 플랫폼 | Eventbrite | 이벤트 생성, 티켓팅, 이메일, 소셜 광고, 마켓플레이스 노출 | 이벤트 공급자 네트워크, 구매자 트래픽, 마케팅 툴 | `등록 즉시 홍보 도구`의 좋은 레퍼런스다. 단 한국 클래식 long-tail과 직접 같지는 않다. |
@@ -90,12 +93,14 @@
 - Operabase: 공연, 아티스트, 단체, 작품, 티켓 링크 검색.
 - KOPIS/PlayDB/대형 예매처: 국내 공연 정보 검색과 랭킹.
 - Club Balcony: 클래식 애호가 대상 공연 정보와 예매 혜택.
+- Obri: 클래식 음악인 대상 연주회 일정과 티켓 링크 연결을 제공.
 
 시사점:
 
 - `공연 정보가 흩어져 있다`는 문제는 이미 여러 층에서 풀고 있다.
 - in C가 단순 공연 목록 앱이면 강자와 충돌한다.
-- 남는 질문은 `학생/소규모/무료/자체발권 공연까지 relevant audience에게 닿는가`다.
+- 남는 질문은 `학생/소규모/무료/자체발권 공연까지 relevant audience에게 닿는가`,
+  그리고 `수요자가 검색하지 않아도 핏 맞는 정보만 받을 때 유용한가`다.
 
 직접 확인할 것:
 
@@ -147,7 +152,30 @@
 - 예: 피아노 전공/취미 피아노/근처 문화생활 관심자.
 - 같은 공연을 세 그룹에 보여주고 클릭, 저장, 공유, 문의 차이를 본다.
 
-### 4. 클래식 앱과 audience engagement
+### 4. 음악인 구인구직, 레슨, 프로필
+
+이미 시도한 제품:
+
+- Obri: 피아노 레슨, 결혼식 연주, 교회 반주, 대타 연주 등 클래식 음악 공고를 악기와
+  지역 기준으로 제공하고, 공고 등록과 포트폴리오 생성까지 무료로 제공한다고 설명한다.
+- Obri 공고 페이지 일부는 특정 공고의 조회수와 로그인 후 연락처 확인 흐름을 보여준다.
+
+시사점:
+
+- `음악인 구인구직 게시판이 없다`는 문제정의는 이미 약하다.
+- `레슨/반주/종교음악/대타 공고를 한곳에 모은다`도 Obri가 상당 부분 시도하고 있다.
+- in C가 이 영역을 남기려면, 단순 공고 목록보다 `내 조건에 맞을 때 알려주는 것`,
+  `공연/레슨/구인이 같은 관심 그래프에서 흐르는 것`, `공급자가 결과를 이해하고 다음에도
+  올리는 것`이 실제로 더 강하다는 증거가 필요하다.
+
+직접 확인할 것:
+
+- 공급자 인터뷰에서 Obri를 알고 있는지, 사용했는지, 안 썼다면 왜 안 썼는지 묻는다.
+- 구인/레슨 영역은 Obri로 충분하다는 답이 반복되면 in C MVP 범위에서 낮춘다.
+- 반대로 Obri가 있어도 `맞는 사람에게 직접 닿는 느낌`, `푸시`, `결과 리포트`,
+  `공연/레슨/구인 통합 맥락`이 부족하다는 답이 반복될 때만 계속 본다.
+
+### 5. 클래식 앱과 audience engagement
 
 선행 연구:
 
@@ -173,6 +201,7 @@
 - Bachtrack처럼 대규모 편집 미디어를 처음부터 운영하기.
 - Tessitura/Spektrix 같은 기관용 CRM 만들기.
 - Meta/네이버/당근보다 더 좋은 범용 광고관리자 만들기.
+- Obri와 같은 단순 음악인 구인구직/프로필 게시판 만들기.
 
 ## in C가 파고들 수 있는 빈칸
 
@@ -182,6 +211,8 @@
 4. 공연 정보가 아니라 작품/사람/지역/관심 맥락이 붙은 노출
 5. 대형 예매처에 올라가기 전 또는 올라간 뒤에도 발견되지 않는 long-tail 공연
 6. 음악가가 홍보 판단을 덜고 작품/교육/연주 준비에 집중하는 경험
+7. Obri 같은 공고 플랫폼과 달리, 수요자가 검색하지 않아도 맞는 정보만 받는 허락 기반
+   알림 관계
 
 ## 다음 경쟁 리서치 설계
 
@@ -216,6 +247,7 @@
 - KOPIS 공연 검색/API
 - Bachtrack listing/business model
 - Operabase profile/visibility report
+- Obri 공고 등록/지원/포트폴리오/연주회/오디션 플로우
 
 각 플로우마다 기록한다.
 
@@ -242,6 +274,12 @@
 - 당근비즈니스 가이드, [피드광고 만들기](https://businessdaangn.gitbook.io/business.daangn/ads-lite/create/native).
 - 네이버, [광고 서비스 소개](https://www.navercorp.com/service/advertisement).
 - 카카오비즈니스 가이드, [메시지 만들기](https://kakaobusiness.gitbook.io/main/ad/moment/messagead/channelmessage/new).
+- Obri, [클래식 음악인을 위한 구인구직·연주자 섭외 플랫폼](https://obri.co.kr/).
+- Obri, [오브리 소개](https://obri.co.kr/about).
+- Obri, [서비스 가이드](https://obri.co.kr/guide).
+- Obri, [피아노 구인·구직](https://obri.co.kr/jobs/piano).
+- Obri, [오디션·콩쿠르·모집 정보](https://obri.co.kr/opportunities).
+- Obri, [종교 클래식 음악 공고](https://obri.co.kr/posts?category=RELIGION).
 - Tessitura, [About us](https://www.tessitura.com/about).
 - Spektrix, [CRM for arts organizations](https://www.spektrix.com/en-us/platform-crm/).
 - The Audience Agency, [Audience Spectrum Now Digs Deeper](https://theaudienceagency.org/en/news/audience-spectrum-now-digs-deeper), 2022-04-21.
