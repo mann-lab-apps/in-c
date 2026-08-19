@@ -21,6 +21,8 @@
 | `opportunity-inventory.csv` | 공연 3개, 레슨 3개, 구인 3개 공급 정보 목록 |
 | `matching-participants.csv` | 수동 매칭 대상 15명의 관심 조건 |
 | `dispatch-log.csv` | 2주 동안 보낸 정보와 반응 기록 |
+| `coding-guide.md` | CSV에 넣는 선택값과 집계 기준 |
+| `scorecard.csv` | 성공/실패 신호를 숫자로 옮기는 집계표 |
 | `final-judgement.md` | 1차 판단과 버릴 영역/남길 영역 정리 |
 
 ## 기록 원칙
@@ -40,7 +42,22 @@
 3. `opportunity-inventory.csv`에 공급 정보 9개를 모은다.
 4. `matching-participants.csv`에 수동 매칭 대상 15명의 조건을 기록한다.
 5. 2주 동안 정말 맞는 정보만 보내고 `dispatch-log.csv`에 반응을 남긴다.
-6. `final-judgement.md`에서 성공/실패 신호를 집계하고 네 가지 결론 중 하나를 고른다.
+6. `coding-guide.md` 기준으로 선택값을 정리한다.
+7. `scorecard.csv`에 성공/실패 신호를 집계한다.
+8. `final-judgement.md`에서 네 가지 결론 중 하나를 고른다.
+
+## 집계 방식
+
+CSV를 채운 뒤에는 `scorecard.csv`의 `actual`, `status`, `evidence_notes`를 채운다.
+`status`는 `pass`, `weak`, `fail`, `unknown` 중 하나로 둔다.
+
+- `pass`: 기준을 충족하고 근거가 명확하다.
+- `weak`: 방향은 맞지만 표본이나 행동 증거가 약하다.
+- `fail`: 기준을 충족하지 못했거나 반대 증거가 강하다.
+- `unknown`: 질문하지 않았거나 기록이 부족하다.
+
+최종 판단은 `pass` 개수만으로 자동 결정하지 않는다. 특히 `conditional`로 기록한 긍정은
+어떤 조건이 붙었는지 `final-judgement.md`에 반드시 옮긴다.
 
 ## 판정 요약
 
