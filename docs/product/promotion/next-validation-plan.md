@@ -251,6 +251,7 @@ audience 가설을 계속 본다. 단, 관심과 실제 관람은 다르므로 �
 
 - [Q3 공연홍보 Concierge MVP](q3-concierge-mvp.md)
 - [in C 서비스 구조 수동 검증 워크북](service-structure-validation-workbook.md)
+- [in C 서비스 구조 검증 운영 패킷](validation-ops/README.md)
 - [공연홍보 캠페인 기록과 결과 리포트 템플릿](campaign-record-report-template.md)
 - [Distribution Gap 선행증거와 직접 검증 항목](../../research/distribution-gap-evidence.md)
 - [업계 강자와 선행 시도 리서치](../../research/incumbent-products-and-research.md)

@@ -355,6 +355,7 @@
 
 ## 관련 문서
 
+- [in C 서비스 구조 검증 운영 패킷](validation-ops/README.md)
 - [다음 검증 계획](next-validation-plan.md)
 - [공연홍보 캠페인 기록과 결과 리포트 템플릿](campaign-record-report-template.md)
 - [Distribution Gap 선행증거와 직접 검증 항목](../../research/distribution-gap-evidence.md)
