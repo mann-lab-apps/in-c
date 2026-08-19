@@ -7,7 +7,7 @@ demand_push_useful,demand-interviews.csv,push_acceptance is yes or conditional,5
 demand_keep_receiving,demand-interviews.csv,keep_receiving_intent is yes or conditional,3,0,fail,Counts yes and conditional as positive
 channel_audit_count,channel-audit.csv,non-empty audit_code rows,30,30,pass,30 public channel audit row(s)
 channel_gap_observed,channel-audit.csv,observed_gap is yes or partial,10,23,pass,Counts yes and partial as observed substitute gaps
-opportunity_count,opportunity-inventory.csv,non-empty opportunity_code rows,9,0,fail,0 opportunity row(s)
+opportunity_count,opportunity-inventory.csv,non-empty opportunity_code rows,9,9,pass,9 opportunity row(s)
 matching_participant_count,matching-participants.csv,non-empty participant_code rows,15,0,fail,0 participant row(s)
 dispatch_count,dispatch-log.csv,non-empty date_sent rows,record,0,unknown,0 dispatched item(s)
 weak_action_count,dispatch-log.csv,clicked or saved or shared or inquired is yes,repeated,0,unknown,Repeated means at least two weak actions

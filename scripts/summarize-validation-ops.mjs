@@ -420,6 +420,14 @@ function judgementHint(metrics) {
   }
 
   if (
+    value('supplier_interview_count') !== 'pass' ||
+    value('demand_interview_count') !== 'pass' ||
+    value('dispatch_count') === 'unknown'
+  ) {
+    return 'Judgement hint: 사람 반응 데이터 부족'
+  }
+
+  if (
     value('supplier_register_intent') === 'pass' &&
     value('demand_push_useful') === 'pass' &&
     value('weak_action_count') === 'pass' &&
