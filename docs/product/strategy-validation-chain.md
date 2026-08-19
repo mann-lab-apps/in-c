@@ -261,6 +261,7 @@ Problem -> Audience -> Distribution -> Payment
 - [in C 제품 포지셔닝](positioning.md)
 - [Q3 공연홍보 Concierge MVP](promotion/q3-concierge-mvp.md)
 - [다음 검증 계획](promotion/next-validation-plan.md)
+- [in C 서비스 구조 수동 검증 워크북](promotion/service-structure-validation-workbook.md)
 - [공연홍보 캠페인 기록과 결과 리포트 템플릿](promotion/campaign-record-report-template.md)
 - [Distribution Gap 선행증거와 직접 검증 항목](../research/distribution-gap-evidence.md)
 - [업계 강자와 선행 시도 리서치](../research/incumbent-products-and-research.md)
