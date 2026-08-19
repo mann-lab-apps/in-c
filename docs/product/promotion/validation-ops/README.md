@@ -59,6 +59,22 @@ CSV를 채운 뒤에는 `scorecard.csv`의 `actual`, `status`, `evidence_notes`�
 최종 판단은 `pass` 개수만으로 자동 결정하지 않는다. 특히 `conditional`로 기록한 긍정은
 어떤 조건이 붙었는지 `final-judgement.md`에 반드시 옮긴다.
 
+CSV를 채운 뒤 아래 명령으로 scorecard 초안을 생성할 수 있다.
+
+```bash
+npm run validation:ops
+```
+
+`scorecard.csv`까지 갱신하려면 아래처럼 실행한다.
+
+```bash
+npm run validation:ops -- --write-scorecard
+```
+
+`cross_type_interest_graph`는 스크립트가 약한 행동이 발생한 공급 정보 유형을 기준으로
+보조 판정한다. 실제로 같은 관심 기준으로 묶였는지는 `final-judgement.md`에서 사람이
+다시 확인한다.
+
 ## 판정 요약
 
 `final-judgement.md`의 결론은 아래 중 하나로만 둔다.
