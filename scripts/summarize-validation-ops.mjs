@@ -9,6 +9,7 @@ const defaultOpsDir = resolve(
 )
 
 const positive = new Set(['yes', 'conditional'])
+const positiveGap = new Set(['yes', 'partial'])
 const paidRanges = new Set([
   '10000_30000',
   '30000_50000',
@@ -94,11 +95,18 @@ export function csvRecords(text) {
 }
 
 export function summarizeValidationOpsFromTables(tables) {
-  const suppliers = rowsWithCode(tables.suppliers, 'supplier_code')
-  const demand = rowsWithCode(tables.demand, 'demand_code')
-  const opportunities = rowsWithCode(tables.opportunities, 'opportunity_code')
-  const participants = rowsWithCode(tables.participants, 'participant_code')
-  const dispatches = rowsWithDispatch(tables.dispatches)
+  const suppliers = rowsWithCode(tables.suppliers ?? [], 'supplier_code')
+  const demand = rowsWithCode(tables.demand ?? [], 'demand_code')
+  const channelAudits = rowsWithCode(tables.channelAudits ?? [], 'audit_code')
+  const opportunities = rowsWithCode(
+    tables.opportunities ?? [],
+    'opportunity_code'
+  )
+  const participants = rowsWithCode(
+    tables.participants ?? [],
+    'participant_code'
+  )
+  const dispatches = rowsWithDispatch(tables.dispatches ?? [])
   const opportunityTypes = new Map(
     opportunities.map((row) => [row.opportunity_code, row.type])
   )
@@ -176,6 +184,24 @@ export function summarizeValidationOpsFromTables(tables) {
         positive.has(normalize(row.keep_receiving_intent))
       ),
       evidenceNotes: 'Counts yes and conditional as positive'
+    }),
+    numericMetric({
+      metric: 'channel_audit_count',
+      sourceFile: 'channel-audit.csv',
+      countRule: 'non-empty audit_code rows',
+      threshold: '30',
+      actual: channelAudits.length,
+      evidenceNotes: `${channelAudits.length} public channel audit row(s)`
+    }),
+    numericMetric({
+      metric: 'channel_gap_observed',
+      sourceFile: 'channel-audit.csv',
+      countRule: 'observed_gap is yes or partial',
+      threshold: '10',
+      actual: countWhere(channelAudits, (row) =>
+        positiveGap.has(normalize(row.observed_gap))
+      ),
+      evidenceNotes: 'Counts yes and partial as observed substitute gaps'
     }),
     numericMetric({
       metric: 'opportunity_count',
@@ -442,6 +468,7 @@ function readValidationOpsTables(dir) {
   return {
     suppliers: read('supplier-interviews.csv'),
     demand: read('demand-interviews.csv'),
+    channelAudits: read('channel-audit.csv'),
     opportunities: read('opportunity-inventory.csv'),
     participants: read('matching-participants.csv'),
     dispatches: read('dispatch-log.csv')

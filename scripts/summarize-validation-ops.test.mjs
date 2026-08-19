@@ -52,6 +52,10 @@ describe('validation ops summarizer', () => {
           keep_receiving_intent: 'yes'
         }
       ],
+      channelAudits: [
+        { audit_code: 'A-001', observed_gap: 'yes' },
+        { audit_code: 'A-002', observed_gap: 'partial' }
+      ],
       opportunities: [
         { opportunity_code: 'O-001', type: 'concert' },
         { opportunity_code: 'O-002', type: 'lesson' }
@@ -88,6 +92,8 @@ describe('validation ops summarizer', () => {
     expect(byMetric.supplier_register_intent.status).toBe('pass')
     expect(byMetric.supplier_paid_intent.actual).toBe('1')
     expect(byMetric.supplier_paid_intent.status).toBe('pass')
+    expect(byMetric.channel_gap_observed.actual).toBe('2')
+    expect(byMetric.channel_gap_observed.status).toBe('weak')
     expect(byMetric.weak_action_count.actual).toBe('2')
     expect(byMetric.weak_action_count.status).toBe('pass')
     expect(byMetric.cross_type_interest_graph.actual).toBe('yes')

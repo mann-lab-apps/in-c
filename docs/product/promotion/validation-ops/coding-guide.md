@@ -96,6 +96,54 @@
 - `major`
 - `professional`
 
+## 채널 관찰 값
+
+`channel-audit.csv`는 공개적으로 확인 가능한 표본만 기록한다. 계정 주인의 비공개 지표,
+닫힌 카톡방, 비공개 커뮤니티 원문은 기록하지 않는다.
+
+채널별 `*_found`:
+
+- `yes`: 해당 채널에서 확인됨
+- `no`: 검색했지만 확인되지 않음
+- `unknown`: 확인하지 못함
+- `not_applicable`: 해당 유형에 맞지 않음
+
+`scale`:
+
+- `student`
+- `small`
+- `mid`
+- `large`
+- `unknown`
+
+`self_service_path_found`:
+
+- `yes`: 공급자가 직접 등록/수정/홍보할 수 있는 경로가 명확함
+- `conditional`: 가능해 보이나 승인, 기관 관계, 비용, 절차가 필요함
+- `no`: 공급자 직접 등록/성과 확인 경로를 찾기 어려움
+- `unknown`: 확인하지 못함
+
+`result_metrics_available`:
+
+- `yes`: 노출, 클릭, 저장, 공유, 문의 같은 결과 지표를 공급자가 확인할 수 있음
+- `conditional`: 일부 채널 안에서는 보이나 공연/레슨/구인 성과로 해석하기 어려움
+- `no`: 공개 정보상 확인 어려움
+- `unknown`: 확인하지 못함
+
+`small_supplier_fit`:
+
+- `yes`: 학생/소규모 공급자가 현실적으로 쓸 수 있어 보임
+- `conditional`: 가능하지만 비용, 설정, 신뢰, 절차 부담이 있음
+- `no`: 대형 기관/기획사에 더 맞아 보임
+- `unknown`: 확인하지 못함
+
+`observed_gap`:
+
+- `yes`: 대체재가 있어도 relevant audience, self-serve, 측정, 소규모 적합성 중 빈칸이 관찰됨
+- `partial`: 일부 빈칸이 있으나 대체재가 상당 부분 해결함
+- `no`: 기존 대체재로 충분해 보임
+- `unknown`: 판단 보류
+
 ## 발송 로그 값
 
 `opened_or_replied`, `clicked`, `saved`, `shared`, `inquired`, `continue_request`:
@@ -122,6 +170,7 @@
   `over_100000`
 - 수요자 알림 유용성: `push_acceptance`가 `yes` 또는 `conditional`
 - 지속 수신 허용: `keep_receiving_intent`가 `yes` 또는 `conditional`
+- 대체재 빈칸 관찰: `observed_gap`이 `yes` 또는 `partial`
 - 약한 행동: `clicked`, `saved`, `shared`, `inquired` 중 하나가 `yes`
 - 강한 부정: `negative_reaction`이 `too_many`, `bad_fit`, `privacy`, `annoying`
 
