@@ -21,6 +21,7 @@
 | `opportunity-inventory.csv` | 공연 3개, 레슨 3개, 구인 3개 공급 정보 목록 |
 | `matching-participants.csv` | 수동 매칭 대상 15명의 관심 조건 |
 | `dispatch-log.csv` | 2주 동안 보낸 정보와 반응 기록 |
+| `fieldwork-scripts.md` | 섭외 메시지, 인터뷰 진행, 후속 질문 스크립트 |
 | `coding-guide.md` | CSV에 넣는 선택값과 집계 기준 |
 | `scorecard.csv` | 성공/실패 신호를 숫자로 옮기는 집계표 |
 | `final-judgement.md` | 1차 판단과 버릴 영역/남길 영역 정리 |
@@ -41,10 +42,11 @@
 2. `demand-interviews.csv`에 수요자 10명 인터뷰를 기록한다.
 3. `opportunity-inventory.csv`에 공급 정보 9개를 모은다.
 4. `matching-participants.csv`에 수동 매칭 대상 15명의 조건을 기록한다.
-5. 2주 동안 정말 맞는 정보만 보내고 `dispatch-log.csv`에 반응을 남긴다.
-6. `coding-guide.md` 기준으로 선택값을 정리한다.
-7. `scorecard.csv`에 성공/실패 신호를 집계한다.
-8. `final-judgement.md`에서 네 가지 결론 중 하나를 고른다.
+5. 섭외와 인터뷰 문구가 필요하면 `fieldwork-scripts.md`를 사용한다.
+6. 2주 동안 정말 맞는 정보만 보내고 `dispatch-log.csv`에 반응을 남긴다.
+7. `coding-guide.md` 기준으로 선택값을 정리한다.
+8. `scorecard.csv`에 성공/실패 신호를 집계한다.
+9. `final-judgement.md`에서 네 가지 결론 중 하나를 고른다.
 
 ## 집계 방식
 
