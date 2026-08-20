@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>in C Click | 무료 메트로놈</title>
+    <meta
+      name="description"
+      content="브라우저에서 바로 쓰는 무료 메트로놈입니다. BPM, 박자, 첫 박 강조, Tap tempo를 로그인 없이 가볍게 조정하세요."
+    />
+    <link rel="canonical" href="https://in-c.mannlab.app/metronome.html" />
+    <meta property="og:title" content="in C Click | 무료 메트로놈" />
+    <meta
+      property="og:description"
+      content="연습을 바로 시작할 수 있는 무료 웹 메트로놈. BPM, 박자, 첫 박 강조, Tap tempo를 브라우저에서 조정하세요."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://in-c.mannlab.app/metronome.html" />
+    <meta property="og:site_name" content="in C" />
+    <meta property="og:locale" content="ko_KR" />
+    <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta property="og:image:alt" content="in C 앱 아이콘" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="in C Click | 무료 메트로놈" />
+    <meta
+      name="twitter:description"
+      content="브라우저에서 바로 쓰는 무료 메트로놈입니다. 로그인 없이 박자 연습을 시작하세요."
+    />
+    <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
+    <meta name="twitter:image:alt" content="in C 앱 아이콘" />
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml" />
+    <link rel="sitemap" type="application/xml" href="./sitemap.xml" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body class="pilot-page metronome-page inc-sketch-theme">
+    <header class="site-header pilot-header inc-sketch-header">
+      <a class="brand" href="./index.html" aria-label="in C home">
+        <img src="./assets/icon.svg" width="36" height="36" alt="" />
+        <span>in C</span>
+      </a>
+      <nav aria-label="페이지 링크">
+        <a aria-current="page" href="./metronome.html">무료 메트로놈</a>
+        <a href="./utility-apps.html">무료 도구 제안</a>
+        <a href="./index.html">연주회 홍보</a>
+      </nav>
+    </header>
+
+    <main id="top" class="pilot-main metronome-main">
+      <section class="pilot-intro metronome-intro inc-sketch-hero" aria-labelledby="metronome-title">
+        <div class="pilot-intro__copy">
+          <p class="eyebrow">in C Tools</p>
+          <h1 id="metronome-title" class="inc-sketch-marker-title">in C Click</h1>
+          <p class="pilot-intro__lead">
+            연습을 바로 시작할 수 있는 무료 메트로놈입니다. BPM과 박자를 정하고,
+            첫 박을 가볍게 강조해 지금 필요한 클릭만 켜세요.
+          </p>
+        </div>
+      </section>
+
+      <section class="metronome-shell inc-sketch-surface" aria-labelledby="click-title">
+        <div class="metronome-display" aria-live="polite">
+          <p class="eyebrow">무료 메트로놈</p>
+          <h2 id="click-title">연습을 바로 시작하세요</h2>
+          <div class="metronome-bpm-readout" aria-label="현재 BPM">
+            <output data-bpm-output for="bpm-input bpm-slider">96</output>
+            <span>BPM</span>
+          </div>
+          <div class="metronome-pulse" data-pulse aria-hidden="true">
+            <span></span>
+          </div>
+          <p class="metronome-beat" data-beat-label>1 / 4</p>
+        </div>
+
+        <form class="metronome-controls" data-metronome-form>
+          <fieldset class="metronome-panel inc-sketch-field">
+            <legend>템포</legend>
+            <div class="metronome-stepper">
+              <button class="button inc-sketch-button" data-bpm-step="-1" type="button" aria-label="BPM 1 낮추기">-</button>
+              <label>
+                <span>BPM 직접 입력</span>
+                <input
+                  id="bpm-input"
+                  data-bpm-input
+                  inputmode="numeric"
+                  max="240"
+                  min="30"
+                  name="bpm"
+                  step="1"
+                  type="number"
+                  value="96"
+                />
+              </label>
+              <button class="button inc-sketch-button" data-bpm-step="1" type="button" aria-label="BPM 1 높이기">+</button>
+            </div>
+            <label class="metronome-range">
+              <span>빠르기</span>
+              <input id="bpm-slider" data-bpm-slider max="240" min="30" name="bpmRange" step="1" type="range" value="96" />
+            </label>
+            <button class="button button--secondary inc-sketch-button inc-sketch-button--secondary" data-tap-tempo type="button">
+              Tap tempo
+            </button>
+          </fieldset>
+
+          <fieldset class="metronome-panel inc-sketch-field">
+            <legend>박자</legend>
+            <div class="metronome-meter-grid" role="radiogroup" aria-label="박자 선택">
+              <label>
+                <input name="meter" type="radio" value="2" />
+                <span>2/4</span>
+              </label>
+              <label>
+                <input name="meter" type="radio" value="3" />
+                <span>3/4</span>
+              </label>
+              <label>
+                <input checked name="meter" type="radio" value="4" />
+                <span>4/4</span>
+              </label>
+              <label>
+                <input name="meter" type="radio" value="6" />
+                <span>6/8</span>
+              </label>
+            </div>
+            <label class="metronome-toggle">
+              <input checked data-accent-toggle name="accentFirstBeat" type="checkbox" />
+              <span>첫 박 accent</span>
+            </label>
+          </fieldset>
+
+          <div class="metronome-actions">
+            <button class="button button--primary inc-sketch-button inc-sketch-button--primary" data-start-stop type="button">
+              시작
+            </button>
+            <p class="metronome-shortcuts">
+              Space 시작/정지 · T Tap tempo · ↑↓ BPM 조정
+            </p>
+          </div>
+        </form>
+      </section>
+
+      <aside class="metronome-banner inc-sketch-surface" aria-label="in C 무료 도구 안내">
+        <div>
+          <p class="eyebrow">Small Tools</p>
+          <p>
+            in C는 음악가를 위한 작은 무료 도구를 만들고 있습니다.
+          </p>
+        </div>
+        <a class="button button--secondary inc-sketch-button inc-sketch-button--secondary" href="./utility-apps.html" data-track-event="metronome_utility_link" data-track-location="metronome_banner">
+          다른 도구 제안하기
+        </a>
+      </aside>
+    </main>
+
+    <footer class="site-footer pilot-footer">
+      <p>© 2026 mann-lab-apps.</p>
+    </footer>
+
+    <script type="module" src="./metronome.js"></script>
+  </body>
+</html>
