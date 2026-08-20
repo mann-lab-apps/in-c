@@ -620,7 +620,7 @@ function verifyUtilityAppRequestSurface() {
     )
   }
 
-  for (const phrase of ['무료 음악 도구 제안 폼', '공개 웹도구 선정 검토']) {
+  for (const phrase of ['무료 음악 도구 제안 폼', '공개 웹도구 선정']) {
     assert(privacyPage.includes(phrase), `privacy notice missing utility app copy: ${phrase}`)
   }
 

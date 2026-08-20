@@ -1,0 +1,16 @@
+metric,source_file,count_rule,threshold,actual,status,evidence_notes
+supplier_interview_count,supplier-interviews.csv,non-empty supplier_code rows,5,0,fail,0 supplier interview row(s)
+supplier_register_intent,supplier-interviews.csv,would_register_again is yes or conditional,3,0,fail,Counts yes and conditional as positive
+supplier_paid_intent,supplier-interviews.csv,wtp_range is 10000_30000 or higher,1,0,fail,"Excludes 0, under_10000, unknown, and blank"
+demand_interview_count,demand-interviews.csv,non-empty demand_code rows,10,0,fail,0 demand interview row(s)
+demand_push_useful,demand-interviews.csv,push_acceptance is yes or conditional,5,0,fail,Counts yes and conditional as positive
+demand_keep_receiving,demand-interviews.csv,keep_receiving_intent is yes or conditional,3,0,fail,Counts yes and conditional as positive
+channel_audit_count,channel-audit.csv,non-empty audit_code rows,30,30,pass,30 public channel audit row(s)
+channel_gap_observed,channel-audit.csv,observed_gap is yes or partial,10,23,pass,Counts yes and partial as observed substitute gaps
+opportunity_count,opportunity-inventory.csv,non-empty opportunity_code rows,9,9,pass,9 opportunity row(s)
+matching_participant_count,matching-participants.csv,non-empty participant_code rows,15,0,fail,0 participant row(s)
+dispatch_count,dispatch-log.csv,non-empty date_sent rows,record,0,unknown,0 dispatched item(s)
+weak_action_count,dispatch-log.csv,clicked or saved or shared or inquired is yes,repeated,0,unknown,Repeated means at least two weak actions
+continue_request_count,dispatch-log.csv,continue_request is yes,record,0,unknown,0 continue request(s)
+strong_negative_count,dispatch-log.csv,negative_reaction is too_many bad_fit privacy or annoying,low,0,unknown,"Low means zero preferred, one or two requires review"
+cross_type_interest_graph,dispatch-log.csv,at least two opportunity types matched by same criteria,yes,,unknown,Manual review needed for same-criteria matching

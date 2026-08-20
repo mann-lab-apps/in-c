@@ -67,7 +67,7 @@ Track B에서 성공한 도구는 Track A의 owned distribution channel이 된�
 
 - 상단 배너: “Click에 필요한 기능이 있나요?”
 - 상단 CTA: “기능 제안”
-- 연결: `https://in-c.mannlab.app/utility-apps.html?source=in-c-click`
+- 연결: `https://in-c.mannlab.app/utility-apps.html?source=in-c-click#utility-app-form`
 - 하단 제안 배너는 두지 않는다.
 
 앱을 공연 홍보 서비스처럼 보이게 만들지 않는다. 반대로 앱이 in C와 완전히 끊어진
