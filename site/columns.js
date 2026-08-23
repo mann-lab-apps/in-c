@@ -240,7 +240,6 @@ const renderArticle = (column) => {
     ? articleBody
     : `
       <header class="column-article__header">
-        <p class="eyebrow">${escapeHtml(column.category)}</p>
         <h1>${escapeHtml(column.title)}</h1>
         <p class="column-article__summary">${escapeHtml(column.summary)}</p>
         <p class="column-published">게시일 ${escapeHtml(column.publishedAt)}</p>

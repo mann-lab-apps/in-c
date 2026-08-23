@@ -42,6 +42,7 @@ const communityMigrationPath = resolve(
   'supabase/migrations/0002_community_board_schema.sql'
 )
 const indexPagePath = resolve(siteRoot, 'index.html')
+const columnDetailPagePath = resolve(siteRoot, 'columns/choral-symphony-hiphop.html')
 const privacyPagePath = resolve(siteRoot, 'privacy.html')
 const inCClickPrivacyPagePath = resolve(siteRoot, 'in-c-click-privacy.html')
 const supportPagePath = resolve(siteRoot, 'support.html')
@@ -426,33 +427,120 @@ function verifyProductSurfaceStates() {
   }
 }
 
-function verifyPilotIntakeSurface() {
+function verifyPersonalBlogHomeSurface() {
   const indexPage = readFileSync(indexPagePath, 'utf8')
+  const columnDetailPage = readFileSync(columnDetailPagePath, 'utf8')
+  const columnsScript = readFileSync(resolve(siteRoot, 'columns.js'), 'utf8')
+  const siteShellScript = readFileSync(resolve(siteRoot, 'site-shell.js'), 'utf8')
+  const siteMain = readFileSync(siteMainPath, 'utf8')
   const pilotFormScript = readFileSync(pilotFormScriptPath, 'utf8')
   const pilotConcerts = readJson(pilotConcertsPath)
   const promotionInterestMigration = readFileSync(promotionInterestMigrationPath, 'utf8')
 
   for (const phrase of [
-    '클래식 연주회 홍보 관심 등록',
+    'in C | 클래식 감상 글',
+    '클래식 감상 글',
+    '합창교향곡이 힙합인 이유',
+    '반복의 힘',
+    '장르의 매력',
+    '출발',
+    'data-site-header',
+    'data-site-footer',
+    './main.js',
+    './columns/choral-symphony-hiphop.html',
+    'opentutorials-home',
     'inc-sketch-theme',
-    'inc-sketch-hero',
-    'inc-sketch-surface',
-    'inc-sketch-button',
+    'ot-recent-list'
+  ]) {
+    assert(indexPage.includes(phrase), `personal blog home missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'initSiteShell',
+    'site-shell-header',
+    'site-shell-footer',
+    'site-shell-contact__icon',
+    'data-site-contact-email',
+    'data-copy-contact',
+    'data-copy-contact-status',
+    'navigator.clipboard.writeText',
+    'daga4242@gmail.com',
+    'privacy.html'
+  ]) {
+    assert(siteShellScript.includes(phrase), `site shell component missing: ${phrase}`)
+  }
+
+  assert(
+    siteMain.includes("from './site-shell.js'") &&
+      siteMain.includes('shouldShowGlobalBanner') &&
+      siteMain.includes("classList.contains('columns-page')"),
+    'main script must initialize shared shell and suppress the poster banner on article pages'
+  )
+
+  for (const phrase of [
+    'data-site-header data-site-root="../"',
+    'data-site-footer data-site-root="../"',
+    '../main.js'
+  ]) {
+    assert(columnDetailPage.includes(phrase), `column detail shell missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'promotion_interest_submit',
+    '연주 홍보 신청이 접수되었습니다.'
+  ]) {
+    assert(
+      pilotFormScript.includes(phrase),
+      `promotion form script missing storage hook: ${phrase}`
+    )
+  }
+
+  for (const phrase of [
+    'Module 6',
+    'Course 3',
+    '감상지도',
+    'Listening Map',
+    'in C YouTube',
+    '채널 준비 중',
     'data-pilot-form',
     'name="applicantName"',
-    'name="role"',
-    'name="contactPhone"',
-    'name="contactEmail"',
-    'name="contactInstagram"',
     'name="upcomingRecital"',
-    'name="helpNeeded"',
-    'name="notes"',
-    'name="privacyAcknowledgement"',
-    '관심 등록하기',
-    'data-pilot-status'
+    './columns.html',
+    './pilot-form.js',
+    '연주 홍보 신청하기',
+    '전체보기',
+    '<h1 id="site-title">in C</h1>',
+    '<h2 id="posts-title">글 목록</h2>',
+    'Columns ·',
+    '<p class="eyebrow">${escapeHtml(column.category)}</p>',
+    '<h2 id="contact-title">Contact</h2>',
+    'Contact:',
+    'href="#contact"',
+    'data-promotion-anchor',
+    'ot-anchor-alias',
+    'mailto:daga4242@gmail.com',
+    '만마에의 클래식 블로그',
+    '만마에의 클래식 노트',
+    'Mannmae Note',
+    '오늘의 노트',
+    '운영: 만마에',
+    '만마에가 천천히',
+    '만마에 블로그와 공연 목록',
+    '공연 제보 남기기',
+    '혜화 무료 클래식 파일럿'
   ]) {
-    assert(indexPage.includes(phrase), `pilot intake page missing: ${phrase}`)
+    assert(!indexPage.includes(phrase), `personal blog home must not include old pilot intake copy: ${phrase}`)
   }
+
+  assert(
+    !columnDetailPage.includes('data-global-ad-banner') &&
+      !columnDetailPage.includes('<nav aria-label="주요 링크">') &&
+      !columnDetailPage.includes('Community</a>') &&
+      !columnDetailPage.includes('Chromatics</a>') &&
+      !columnDetailPage.includes('Columns ·') &&
+      !columnsScript.includes('<p class="eyebrow">${escapeHtml(column.category)}</p>'),
+    'column detail pages must use the shared shell and avoid the old article navigation, banner, or category eyebrow'
+  )
 
   assert(
     !indexPage.includes('name="promotionBudget"') &&
@@ -476,16 +564,12 @@ function verifyPilotIntakeSurface() {
       !indexPage.includes('텍스트 저장') &&
       !indexPage.includes('공연 홍보 신청') &&
       !indexPage.includes('공연 정보 입력') &&
-      !indexPage.includes('공연명') &&
-      !indexPage.includes('공연 날짜') &&
-      !indexPage.includes('공연 시간') &&
-      !indexPage.includes('공연 장소') &&
       !indexPage.includes('클래식 연주회 홍보 신청') &&
       !indexPage.includes('연주회 정보 입력') &&
       !indexPage.includes('Working Note') &&
       !indexPage.includes('pilot-intro__board') &&
       !indexPage.includes('메일 앱'),
-    'interest registration page must avoid detailed recital intake fields, old campaign copy, and decorative sketch boards'
+    'personal blog home must avoid detailed recital intake fields, old campaign copy, and decorative sketch boards'
   )
   for (const phrase of [
     '서울시향',
@@ -496,7 +580,7 @@ function verifyPilotIntakeSurface() {
   ]) {
     assert(
       !indexPage.includes(phrase) && !pilotFormScript.includes(phrase),
-      `pilot sample data must remain internal-only, but public site includes: ${phrase}`
+      `pilot sample data must remain internal-only, but public home or script includes: ${phrase}`
     )
   }
   assert(
@@ -556,12 +640,12 @@ function verifyUtilityAppRequestSurface() {
   const analyticsScript = readFileSync(resolve(siteRoot, 'analytics.js'), 'utf8')
 
   assert(
-    indexPage.includes('./utility-apps.html') &&
+    !indexPage.includes('./utility-apps.html') &&
       utilityAppPage.includes('./index.html') &&
       utilityAppPage.includes('./metronome.html') &&
       viteConfig.includes('utilityApps') &&
       viteConfig.includes('utility-apps.html'),
-    'promotion and utility app landing pages must be public but cross-linked as separate experiments'
+    'utility app experiment must remain public, but the Hyehwa pilot home must not cross-link it as a primary action'
   )
 
   for (const phrase of [
@@ -714,7 +798,7 @@ function verifyPrivacyNoticeSurface() {
     privacyPage.includes('in C 개인정보 처리방침') &&
       privacyPage.includes('Google Analytics 사용') &&
       privacyPage.includes('피드백과 문의') &&
-      privacyPage.includes('클래식 연주회 홍보 관심 등록') &&
+      privacyPage.includes('혜화 무료 클래식 파일럿 공연 제보') &&
       privacyPage.includes('공개 사이트에서 조회할 수 없고') &&
       privacyPage.includes('in C - Click 모바일 앱') &&
       privacyPage.includes('daga42@naver.com'),
@@ -781,7 +865,7 @@ function verifyPromotionAdminSurface() {
   }
 
   for (const phrase of [
-    '관심 등록 확인',
+    '혜화 파일럿 제보 확인',
     'noindex,nofollow',
     'data-admin-status',
     'data-admin-summary',
@@ -975,7 +1059,7 @@ try {
   verifyColumnAssets()
   verifyProductRelations()
   verifyProductSurfaceStates()
-  verifyPilotIntakeSurface()
+  verifyPersonalBlogHomeSurface()
   verifyUtilityAppRequestSurface()
   verifyMetronomeSurface()
   verifyPrivacyNoticeSurface()

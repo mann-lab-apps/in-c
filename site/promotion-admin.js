@@ -16,24 +16,24 @@ let registrations = []
 
 const roleLabels = {
   performer: '연주자',
-  planner: '기획자',
-  ensemble: '단체/앙상블',
-  other: '기타'
+  planner: '주최·기획자',
+  ensemble: '학과·단체·앙상블',
+  other: '제보자/기타'
 }
 
 const recitalStatusLabels = {
-  scheduled: '날짜가 잡힌 연주회 있음',
-  planning: '연주회 준비 중',
-  notYet: '아직 정해진 연주회 없음'
+  scheduled: '확정된 혜화 무료 공연 있음',
+  planning: '정기 무료·공개 공연 준비',
+  notYet: '공급 방식 논의 가능'
 }
 
 const helpLabels = {
-  audienceTarget: '관객 타깃',
-  copywriting: '소개 문구/콘텐츠',
-  channels: '홍보 채널',
-  report: '반응 리포트',
-  design: '이미지/포스터 디자인',
-  notSure: '필요한 것 정리'
+  audienceTarget: '일정/장소 확인',
+  copywriting: '포스터/소개문 허락',
+  channels: 'Instagram 전달 가능',
+  report: '관객 결과 확인 희망',
+  design: '이후 공연 제공 가능',
+  notSure: '조건 확인 필요'
 }
 
 const reviewStatusLabels = {
@@ -131,7 +131,7 @@ const renderRegistrations = () => {
   tableElement.hidden = false
 
   if (registrations.length === 0) {
-    tableElement.innerHTML = '<p class="admin-empty">아직 관심 등록이 없습니다.</p>'
+    tableElement.innerHTML = '<p class="admin-empty">아직 공연 제보가 없습니다.</p>'
     return
   }
 
@@ -143,7 +143,7 @@ const renderRegistrations = () => {
           <th>신청자</th>
           <th>상황</th>
           <th>연락처</th>
-          <th>필요한 도움</th>
+          <th>확인 항목</th>
           <th>상태</th>
           <th>처리</th>
         </tr>
@@ -208,12 +208,12 @@ const renderRegistrationRow = (item) => {
 
 const fetchRegistrations = async () => {
   if (!isSupabaseConfigured || !supabase) {
-    setStatus('Supabase 환경 변수가 설정되어야 관심 등록을 확인할 수 있습니다.', 'error')
+    setStatus('Supabase 환경 변수가 설정되어야 공연 제보를 확인할 수 있습니다.', 'error')
     return
   }
 
   setLoading(true)
-  setStatus('관심 등록을 불러오는 중입니다.')
+  setStatus('공연 제보를 불러오는 중입니다.')
 
   const { data, error } = await supabase
     .from('promotion_interest_registrations')
@@ -289,7 +289,7 @@ const init = async () => {
   bindEvents()
 
   if (!isSupabaseConfigured || !supabase) {
-    setStatus('Supabase 환경 변수가 설정되어야 관심 등록을 확인할 수 있습니다.', 'error')
+    setStatus('Supabase 환경 변수가 설정되어야 공연 제보를 확인할 수 있습니다.', 'error')
     return
   }
 

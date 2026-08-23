@@ -41,7 +41,7 @@ const setFormDisabled = (isDisabled) => {
   }
 
   if (submitButton) {
-    submitButton.textContent = isDisabled ? '등록 중' : '관심 등록하기'
+    submitButton.textContent = isDisabled ? '저장 중' : '연주 홍보 신청하기'
   }
 }
 
@@ -62,10 +62,10 @@ const getReadableErrorMessage = (error) => {
   const message = error?.message ?? ''
 
   if (/schema cache|promotion_interest_registrations/i.test(message)) {
-    return '관심 등록 저장 환경을 연결하는 중입니다. 잠시 후 다시 시도해 주세요.'
+    return '연주 홍보 신청 저장 환경을 연결하는 중입니다. 잠시 후 다시 시도해 주세요.'
   }
 
-  return '관심 등록을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'
+  return '연주 홍보 신청을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'
 }
 
 const createInterestPayload = () => ({
@@ -104,7 +104,7 @@ const submitForm = async (event) => {
 
   const payload = createInterestPayload()
   setFormDisabled(true)
-  setStatus('관심 등록을 저장하는 중입니다.')
+  setStatus('연주 홍보 신청을 저장하는 중입니다.')
 
   try {
     await saveInterestRegistration(payload)
@@ -114,7 +114,7 @@ const submitForm = async (event) => {
       help_count: String(payload.help_needed.length)
     })
     form.reset()
-    setStatus('관심 등록이 접수되었습니다. 남겨주신 연락처로 직접 연락드릴게요.')
+    setStatus('연주 홍보 신청이 접수되었습니다. 남겨주신 연락처로 직접 연락드릴게요.')
   } catch (error) {
     setStatus(getReadableErrorMessage(error), 'error')
   } finally {

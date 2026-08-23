@@ -158,22 +158,11 @@ const renderArticle = (column) => {
     <link rel="stylesheet" href="../styles.css" />
   </head>
   <body class="columns-page">
-    <header class="site-header">
-      <a class="brand" href="../index.html" aria-label="in C home">
-        <img src="../assets/icon.svg" width="36" height="36" alt="" />
-        <span>in C</span>
-      </a>
-      <nav aria-label="주요 링크">
-        <a aria-current="page" href="../columns.html">Columns</a>
-        <a href="../community.html">Community</a>
-        <a href="../chromatics.html">Chromatics</a>
-      </nav>
-    </header>
+    <div data-site-header data-site-root="../"></div>
 
     <main class="column-page">
       <article class="column-document">
         <header class="column-document__header">
-          <p class="eyebrow">Columns · ${escapeHtml(column.category)}</p>
           <h1>${escapeHtml(column.title)}</h1>
           <p class="column-article__summary">${escapeHtml(column.summary)}</p>
           <p class="column-published">게시일 ${escapeHtml(column.publishedAt)}</p>
@@ -209,6 +198,7 @@ ${renderMarkdown(column.body)}
       </article>
     </main>
 
+    <div data-site-footer data-site-root="../"></div>
     <script type="module" src="../main.js"></script>
   </body>
 </html>

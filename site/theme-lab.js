@@ -1,23 +1,23 @@
 const landingModel = {
-  eyebrow: 'Classical Concert Growth',
-  title: '클래식 연주회 홍보 관심 등록',
+  eyebrow: 'Hyehwa Field Pilot',
+  title: '혜화 무료 클래식 파일럿',
   lead:
-    '연주회 홍보가 막막한 연주자와 기획자를 위해 관객 타깃, 홍보 문구, 채널 방향을 함께 정리하는 실험을 준비하고 있습니다.',
-  formTitle: '관심 등록',
+    '혜화 생활권의 무료·일반공개 클래식 공연을 직접 모아, 공연을 몰랐던 관객에게 전달하고 실제 관람이 일어나는지 검증합니다.',
+  formTitle: '무료 공연 제보·협의',
   formDescription:
-    '제출하면 in C가 직접 확인하고 남겨주신 연락처로 다음 안내를 드립니다. 연주회 세부 정보는 후속 대화에서 필요한 만큼만 정리합니다.',
-  roles: ['연주자', '기획자', '단체/앙상블', '기타'],
+    '혜화 주변에서 일반인이 무료로 볼 수 있는 클래식 공연이 있다면 알려주세요. in C가 직접 확인하고 사용 허락과 관객 안내 방식을 함께 정리합니다.',
+  roles: ['연주자', '주최·기획자', '학과·단체·앙상블', '제보자/기타'],
   states: [
-    '날짜가 잡힌 클래식 연주회가 있어요.',
-    '연주회를 준비 중이고 홍보 방향을 미리 잡고 싶어요.',
-    '아직 정해진 연주회는 없지만 관심이 있어요.'
+    '혜화 생활권 무료 공연 일정이 확정되어 있어요.',
+    '정기적으로 무료·공개 공연을 준비하고 있어요.',
+    '당장 일정은 없지만 공급 방식은 논의할 수 있어요.'
   ],
   helpNeeded: [
-    '어떤 관객에게 말해야 할지 정리하고 싶어요.',
-    '연주회 소개 문구와 콘텐츠 방향이 필요해요.',
-    '어디에 어떻게 알려야 할지 모르겠어요.',
-    '홍보 후 반응을 숫자와 메모로 확인하고 싶어요.',
-    '무엇이 필요한지부터 같이 정리하고 싶어요.'
+    '공연명·일시·장소를 확인할 수 있어요.',
+    '포스터나 소개문 사용 허락을 논의할 수 있어요.',
+    'Instagram 게시물 링크나 태그 기반 전달이 가능해요.',
+    '일반인 관객이 더 오는지 결과를 알고 싶어요.',
+    '조건이 맞는지 먼저 확인하고 싶어요.'
   ]
 }
 
@@ -96,15 +96,15 @@ function renderInterestForm(theme) {
   return `
     <section class="theme-preview-form" aria-labelledby="${theme.id}-form-title">
       <header class="theme-preview-form__head">
-        <p class="eyebrow">Interest</p>
+        <p class="eyebrow">Supply</p>
         <h3 id="${theme.id}-form-title">${escapeHtml(landingModel.formTitle)}</h3>
         <p>${escapeHtml(landingModel.formDescription)}</p>
       </header>
-      <form aria-label="${escapeHtml(theme.label)} 관심 등록 미리보기">
+      <form aria-label="${escapeHtml(theme.label)} 공연 제보 미리보기">
         <fieldset disabled>
-          <legend>신청자</legend>
+          <legend>연락 주체</legend>
           <label>
-            <span>신청자 이름</span>
+            <span>이름 또는 단체명</span>
             <input placeholder="김인씨" type="text" />
           </label>
           <label>
@@ -129,7 +129,7 @@ function renderInterestForm(theme) {
           <p class="theme-preview-note">전화, 이메일, 인스타 ID 중 하나 이상 입력해 주세요.</p>
         </fieldset>
         <fieldset disabled>
-          <legend>현재 상황</legend>
+          <legend>공급 상태</legend>
           <div class="theme-preview-options">
             ${renderOptionList(landingModel.states, 'radio')}
           </div>
@@ -137,12 +137,12 @@ function renderInterestForm(theme) {
             ${renderOptionList(landingModel.helpNeeded, 'checkbox')}
           </div>
           <label class="theme-preview-wide">
-            <span>비고</span>
-            <textarea rows="4" placeholder="지금 고민되는 홍보 상황을 자유롭게 적어주세요."></textarea>
+            <span>공연 정보 또는 비고</span>
+            <textarea rows="4" placeholder="공연명, 날짜, 장소, 인스타 링크, 무료/공개 여부를 적어주세요."></textarea>
           </label>
         </fieldset>
         <div class="theme-preview-actions">
-          <button type="button">관심 등록하기</button>
+          <button type="button">공연 제보 남기기</button>
           <button type="button">초기화</button>
         </div>
       </form>
