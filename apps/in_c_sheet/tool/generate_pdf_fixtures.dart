@@ -16,7 +16,7 @@ void main() async {
   _writePdf(
     File('${output.path}/short-score.pdf'),
     _buildDocument(
-      title: 'in C Sheet Short Score Fixture',
+      title: 'Clef Short Score Fixture',
       pageCount: 3,
       includeWatermarkLink: false,
       complexScanLikeDrawing: false,
@@ -25,7 +25,7 @@ void main() async {
   _writePdf(
     File('${output.path}/long-scan-like-score.pdf'),
     _buildDocument(
-      title: 'in C Sheet Long Scan-like Fixture',
+      title: 'Clef Long Scan-like Fixture',
       pageCount: 90,
       includeWatermarkLink: false,
       complexScanLikeDrawing: true,
@@ -34,7 +34,7 @@ void main() async {
   _writePdf(
     File('${output.path}/link-annotation-score.pdf'),
     _buildDocument(
-      title: 'in C Sheet Link Annotation Fixture',
+      title: 'Clef Link Annotation Fixture',
       pageCount: 3,
       includeWatermarkLink: true,
       complexScanLikeDrawing: false,

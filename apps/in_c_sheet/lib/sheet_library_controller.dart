@@ -1,7 +1,19 @@
+import 'dart:io';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
+import 'sheet_annotation.dart';
+import 'sheet_annotated_pdf_exporter.dart';
+import 'sheet_auto_scroll.dart';
+import 'sheet_library_backup.dart';
 import 'sheet_library_store.dart';
+import 'sheet_library_view_settings.dart';
+import 'sheet_metronome.dart';
+import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_score.dart';
+import 'sheet_setlist.dart';
+import 'sheet_tuner.dart';
 
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
@@ -9,30 +21,49 @@ class SheetLibraryController extends ChangeNotifier {
   final SheetLibraryStore store;
 
   List<SheetScore> _scores = const <SheetScore>[];
+  List<SheetSetlist> _setlists = const <SheetSetlist>[];
+  SheetMetronomeSettings _metronomeSettings =
+      SheetMetronomeSettings.defaultSettings;
+  SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
+  SheetLibraryViewSettings _libraryViewSettings =
+      SheetLibraryViewSettings.defaultSettings;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
   String? _errorMessage;
 
   List<SheetScore> get scores => _scores;
+  List<SheetSetlist> get setlists => _setlists;
+  SheetMetronomeSettings get metronomeSettings => _metronomeSettings;
+  SheetTunerSettings get tunerSettings => _tunerSettings;
+  SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
   String get query => _query;
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get errorMessage => _errorMessage;
 
   List<SheetScore> get filteredScores {
-    return _scores
-        .where((score) => score.matches(_query))
-        .toList(growable: false);
+    return _libraryViewSettings.apply(_scores, query: _query);
+  }
+
+  List<String> get allTags {
+    final tags = _scores.expand((score) => score.tags).toSet().toList();
+    tags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return List<String>.unmodifiable(tags);
   }
 
   Future<void> load() async {
     _setLoading(true);
     try {
       _scores = await store.loadScores();
+      _setlists = await store.loadSetlists();
+      _metronomeSettings = await store.loadMetronomeSettings();
+      _tunerSettings = await store.loadTunerSettings();
+      _libraryViewSettings = await store.loadLibraryViewSettings();
+      await _removeMissingSetlistScores();
       _errorMessage = null;
     } catch (error) {
-      _errorMessage = '라이브러리를 불러오지 못했습니다.';
+      _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
     } finally {
       _setLoading(false);
     }
@@ -57,12 +88,78 @@ class SheetLibraryController extends ChangeNotifier {
       await store.saveScores(_scores);
       return score;
     } catch (error) {
-      _errorMessage = 'PDF를 가져오지 못했습니다.';
+      _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, 다른 앱에서 접근 가능한 위치인지 확인해주세요.';
       return null;
     } finally {
       _isImporting = false;
       notifyListeners();
     }
+  }
+
+  Future<SheetScore?> importImagesAsPdf() async {
+    if (_isImporting) {
+      return null;
+    }
+
+    _isImporting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final score = await store.importImagesAsPdf();
+      if (score == null) {
+        return null;
+      }
+
+      _scores = <SheetScore>[score, ..._scores];
+      await store.saveScores(_scores);
+      return score;
+    } catch (error) {
+      _errorMessage = '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지 확인해주세요.';
+      return null;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  Future<List<SheetScore>> importSharedPdfFiles(
+    List<SheetSharedImportFile> files,
+  ) async {
+    if (_isImporting || files.isEmpty) {
+      return const <SheetScore>[];
+    }
+
+    _isImporting = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final imported = <SheetScore>[];
+      for (final sharedFile in files) {
+        final score = await store.importPdfFile(
+          File(sharedFile.path),
+          fileName: sharedFile.name,
+        );
+        imported.add(score);
+      }
+      if (imported.isEmpty) {
+        return const <SheetScore>[];
+      }
+      _scores = <SheetScore>[...imported.reversed, ..._scores];
+      await store.saveScores(_scores);
+      return List<SheetScore>.unmodifiable(imported);
+    } catch (error) {
+      _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 저장한 뒤 다시 열어보세요.';
+      return const <SheetScore>[];
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
+  List<SheetScoreShareCandidate> shareCandidates(SheetScore score) {
+    return store.shareCandidates(score);
   }
 
   Future<void> markOpened(SheetScore score) async {
@@ -89,13 +186,473 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> toggleBookmark(SheetScore score, int pageNumber) async {
+    if (pageNumber < 1) {
+      return;
+    }
+
+    final existing = score.bookmarks
+        .where((bookmark) => bookmark.pageNumber != pageNumber)
+        .toList();
+    final isRemoving = existing.length != score.bookmarks.length;
+    final nextBookmarks = isRemoving
+        ? existing
+        : <SheetBookmark>[
+            ...score.bookmarks,
+            SheetBookmark(
+              pageNumber: pageNumber,
+              label: '$pageNumber쪽',
+              createdAt: DateTime.now(),
+            ),
+          ];
+    nextBookmarks.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
+
+    await _replace(
+      score.copyWith(
+        bookmarks: List<SheetBookmark>.unmodifiable(nextBookmarks),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> renameBookmark(
+    SheetScore score,
+    SheetBookmark bookmark,
+    String label,
+  ) async {
+    final nextBookmarks = score.bookmarks
+        .map(
+          (candidate) => candidate.pageNumber == bookmark.pageNumber
+              ? candidate.copyWith(
+                  label: _normalizeBookmarkLabel(label, bookmark.pageNumber),
+                )
+              : candidate,
+        )
+        .toList(growable: false);
+
+    await _replace(
+      score.copyWith(
+        bookmarks: List<SheetBookmark>.unmodifiable(nextBookmarks),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> deleteBookmark(SheetScore score, SheetBookmark bookmark) async {
+    await _replace(
+      score.copyWith(
+        bookmarks: List<SheetBookmark>.unmodifiable(
+          score.bookmarks
+              .where((candidate) => candidate.pageNumber != bookmark.pageNumber)
+              .toList(growable: false),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  bool isBookmarked(SheetScore score, int pageNumber) {
+    return score.bookmarks.any((bookmark) => bookmark.pageNumber == pageNumber);
+  }
+
+  Future<void> updateScoreMetadata(
+    SheetScore score, {
+    required String title,
+    required String composer,
+    required String tags,
+    required String note,
+  }) async {
+    await _replace(
+      score.copyWith(
+        title: _normalizeScoreTitle(title, score.title),
+        composer: composer.trim(),
+        tags: _normalizeTags(tags),
+        note: note.trim(),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> updateViewerSettings(
+    SheetScore score,
+    SheetViewerSettings viewerSettings,
+  ) async {
+    await _replace(
+      score.copyWith(viewerSettings: viewerSettings, updatedAt: DateTime.now()),
+    );
+  }
+
+  Future<void> updatePageCrop(SheetScore score, SheetCropSettings crop) async {
+    await _replace(
+      score.copyWith(
+        pageSettings: score.pageSettings.copyWith(crop: crop),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> updateAutoScrollSettings(
+    SheetScore score,
+    SheetAutoScrollSettings settings,
+  ) async {
+    await _replace(
+      score.copyWith(autoScrollSettings: settings, updatedAt: DateTime.now()),
+    );
+  }
+
+  Future<void> updateMetronomeSettings(SheetMetronomeSettings settings) async {
+    _metronomeSettings = settings;
+    await store.saveMetronomeSettings(settings);
+    notifyListeners();
+  }
+
+  Future<void> updateTunerSettings(SheetTunerSettings settings) async {
+    _tunerSettings = settings;
+    await store.saveTunerSettings(settings);
+    notifyListeners();
+  }
+
+  Future<SheetPdfLinkSanitizationResult> createPdfLinkDisabledCopy(
+    SheetScore score,
+  ) async {
+    final result = await store.createPdfLinkDisabledCopy(score);
+    if (!result.didWrite || result.outputPath == null) {
+      return result;
+    }
+
+    await _replace(
+      score.copyWith(
+        filePath: result.outputPath,
+        pdfLinkSanitization: SheetPdfLinkSanitization(
+          sanitizedFromPath: score.filePath,
+          removedUrlLinkCount: result.removedUrlLinkCount,
+          createdAt: DateTime.now(),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return result;
+  }
+
+  Future<SheetAnnotatedPdfExportResult> createAnnotatedPdfCopy(
+    SheetScore score,
+  ) {
+    return store.createAnnotatedPdfCopy(score);
+  }
+
+  Future<bool> hidePage(
+    SheetScore score, {
+    required int pageNumber,
+    required int pageCount,
+  }) async {
+    final nextPageSettings = score.pageSettings.hidePage(pageNumber, pageCount);
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<void> unhidePage(SheetScore score, int pageNumber) async {
+    final nextPageSettings = score.pageSettings.unhidePage(pageNumber);
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return;
+    }
+
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+  }
+
+  Future<int> rotatePageClockwise(SheetScore score, int pageNumber) async {
+    final nextPageSettings = score.pageSettings.rotatePageClockwise(pageNumber);
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return nextPageSettings.pageRotations[pageNumber] ?? 0;
+  }
+
+  Future<void> addAnnotationStroke(
+    SheetScore score,
+    SheetAnnotationStroke stroke,
+  ) async {
+    await _replace(
+      score.copyWith(
+        annotationLayer: score.annotationLayer.addStroke(stroke),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<bool> eraseAnnotationAt(
+    SheetScore score, {
+    required int pageNumber,
+    required SheetAnnotationPoint point,
+    required double tolerance,
+  }) async {
+    final nextLayer = score.annotationLayer.eraseAt(
+      pageNumber: pageNumber,
+      point: point,
+      tolerance: tolerance,
+    );
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(annotationLayer: nextLayer, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<bool> undoLastAnnotationStroke(
+    SheetScore score,
+    int pageNumber,
+  ) async {
+    final nextLayer = score.annotationLayer.undoLastStroke(pageNumber);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(annotationLayer: nextLayer, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<void> addTextAnnotation(
+    SheetScore score,
+    SheetTextAnnotation text,
+  ) async {
+    await _replace(
+      score.copyWith(
+        annotationLayer: score.annotationLayer.addText(text),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<bool> updateTextAnnotation(
+    SheetScore score,
+    SheetTextAnnotation text,
+  ) async {
+    final nextLayer = score.annotationLayer.updateText(text);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(annotationLayer: nextLayer, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<bool> removeTextAnnotation(SheetScore score, String textId) async {
+    final nextLayer = score.annotationLayer.removeText(textId);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(annotationLayer: nextLayer, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<bool> undoLastAnnotation(SheetScore score, int pageNumber) async {
+    final nextLayer = score.annotationLayer.undoLastAnnotation(pageNumber);
+    if (identical(nextLayer, score.annotationLayer)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(annotationLayer: nextLayer, updatedAt: DateTime.now()),
+    );
+    return true;
+  }
+
+  Future<SheetSetlist> createSetlist(String title) async {
+    final now = DateTime.now();
+    final setlist = SheetSetlist(
+      id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
+      title: _normalizeSetlistTitle(title),
+      scoreIds: const <String>[],
+      createdAt: now,
+      updatedAt: now,
+    );
+    _setlists = <SheetSetlist>[setlist, ..._setlists];
+    await store.saveSetlists(_setlists);
+    notifyListeners();
+    return setlist;
+  }
+
+  Future<void> renameSetlist(SheetSetlist setlist, String title) async {
+    await _replaceSetlist(
+      setlist.copyWith(
+        title: _normalizeSetlistTitle(title),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
+  Future<void> deleteSetlist(SheetSetlist setlist) async {
+    _setlists = _setlists
+        .where((candidate) => candidate.id != setlist.id)
+        .toList(growable: false);
+    await store.saveSetlists(_setlists);
+    notifyListeners();
+  }
+
+  Future<void> addScoreToSetlist(SheetSetlist setlist, SheetScore score) async {
+    await _replaceSetlist(setlist.appendScore(score.id, DateTime.now()));
+  }
+
+  Future<void> removeScoreFromSetlist(
+    SheetSetlist setlist,
+    SheetScore score,
+  ) async {
+    await _replaceSetlist(setlist.removeScore(score.id, DateTime.now()));
+  }
+
+  Future<void> moveScoreInSetlist(
+    SheetSetlist setlist,
+    int fromIndex,
+    int toIndex,
+  ) async {
+    await _replaceSetlist(
+      setlist.moveScore(fromIndex, toIndex, DateTime.now()),
+    );
+  }
+
   void updateQuery(String value) {
     _query = value;
     notifyListeners();
   }
 
+  Future<void> updateLibrarySortMode(SheetLibrarySortMode sortMode) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(sortMode: sortMode),
+    );
+  }
+
+  Future<void> updateFavoriteFilter(bool favoriteOnly) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(favoriteOnly: favoriteOnly),
+    );
+  }
+
+  Future<void> updateTagFilter(String tagQuery) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(tagQuery: tagQuery),
+    );
+  }
+
+  Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
+    return store.exportMetadataBackup();
+  }
+
+  Future<SheetLibraryBackupExportResult> exportFullBackup() {
+    return store.exportFullBackup();
+  }
+
+  Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {
+    final result = await store.importMetadataBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
+  Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
+    final result = await store.importFullBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
   SheetScore scoreById(String id) {
     return _scores.firstWhere((score) => score.id == id);
+  }
+
+  SheetSetlist setlistById(String id) {
+    return _setlists.firstWhere((setlist) => setlist.id == id);
+  }
+
+  List<SheetScore> scoresForSetlist(SheetSetlist setlist) {
+    return setlist.scoreIds
+        .map(scoreByIdOrNull)
+        .whereType<SheetScore>()
+        .toList(growable: false);
+  }
+
+  List<SheetScore> scoresAvailableForSetlist(SheetSetlist setlist) {
+    final usedIds = setlist.scoreIds.toSet();
+    return _scores
+        .where((score) => !usedIds.contains(score.id))
+        .toList(growable: false);
+  }
+
+  SheetScore? scoreByIdOrNull(String id) {
+    for (final score in _scores) {
+      if (score.id == id) {
+        return score;
+      }
+    }
+    return null;
+  }
+
+  SheetScore? adjacentSetlistScore({
+    required String setlistId,
+    required String scoreId,
+    required int delta,
+  }) {
+    final setlist = setlistById(setlistId);
+    final scores = scoresForSetlist(setlist);
+    final index = scores.indexWhere((score) => score.id == scoreId);
+    if (index == -1) {
+      return null;
+    }
+
+    final target = index + delta;
+    if (target < 0 || target >= scores.length) {
+      return null;
+    }
+    return scores[target];
+  }
+
+  SheetSetlistPlaybackContext? setlistPlaybackContext({
+    required String setlistId,
+    required String scoreId,
+  }) {
+    final setlist = setlistByIdOrNull(setlistId);
+    if (setlist == null) {
+      return null;
+    }
+
+    final scores = scoresForSetlist(setlist);
+    final index = scores.indexWhere((score) => score.id == scoreId);
+    if (index == -1) {
+      return null;
+    }
+
+    return SheetSetlistPlaybackContext(
+      title: setlist.title,
+      currentIndex: index,
+      totalCount: scores.length,
+    );
+  }
+
+  SheetSetlist? setlistByIdOrNull(String id) {
+    for (final setlist in _setlists) {
+      if (setlist.id == id) {
+        return setlist;
+      }
+    }
+    return null;
   }
 
   Future<void> _replace(SheetScore updated) async {
@@ -106,8 +663,114 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _replaceSetlist(SheetSetlist updated) async {
+    _setlists = _setlists
+        .map((setlist) => setlist.id == updated.id ? updated : setlist)
+        .toList(growable: false);
+    await store.saveSetlists(_setlists);
+    notifyListeners();
+  }
+
+  Future<void> _updateLibraryViewSettings(
+    SheetLibraryViewSettings settings,
+  ) async {
+    _libraryViewSettings = settings;
+    await store.saveLibraryViewSettings(settings);
+    notifyListeners();
+  }
+
+  Future<void> _removeMissingSetlistScores() async {
+    final validScoreIds = _scores.map((score) => score.id).toSet();
+    var changed = false;
+    final cleaned = _setlists
+        .map((setlist) {
+          final next = setlist.removeMissingScores(validScoreIds);
+          changed = changed || next.scoreIds.length != setlist.scoreIds.length;
+          return next;
+        })
+        .toList(growable: false);
+
+    if (changed) {
+      _setlists = cleaned;
+      await store.saveSetlists(_setlists);
+    }
+  }
+
+  String _normalizeSetlistTitle(String title) {
+    final normalized = title.trim();
+    return normalized.isEmpty ? '새 세트리스트' : normalized;
+  }
+
+  String _normalizeBookmarkLabel(String label, int pageNumber) {
+    final normalized = label.trim();
+    return normalized.isEmpty ? '$pageNumber쪽' : normalized;
+  }
+
+  String _normalizeScoreTitle(String title, String fallback) {
+    final normalized = title.trim();
+    if (normalized.isNotEmpty) {
+      return normalized;
+    }
+    return fallback.trim().isEmpty ? 'Untitled score' : fallback.trim();
+  }
+
+  List<String> _normalizeTags(String tags) {
+    final seen = <String>{};
+    return tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .where((tag) => tag.isNotEmpty)
+        .where((tag) => seen.add(tag.toLowerCase()))
+        .toList(growable: false);
+  }
+
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners();
   }
+}
+
+class SheetSharedImportFile {
+  const SheetSharedImportFile({required this.path, required this.name});
+
+  factory SheetSharedImportFile.fromPlatformMap(Map<Object?, Object?> value) {
+    return SheetSharedImportFile(
+      path: value['path']?.toString() ?? '',
+      name: value['name']?.toString() ?? '',
+    );
+  }
+
+  final String path;
+  final String name;
+
+  bool get isValid => path.isNotEmpty && name.toLowerCase().endsWith('.pdf');
+}
+
+List<SheetSharedImportFile> normalizeSharedImportPayload(Object? value) {
+  final rawFiles = value is List ? value : const <Object?>[];
+  final seenPaths = <String>{};
+  return rawFiles.whereType<Map<Object?, Object?>>().fold(
+    <SheetSharedImportFile>[],
+    (files, rawFile) {
+      final file = SheetSharedImportFile.fromPlatformMap(rawFile);
+      if (file.isValid && seenPaths.add(file.path)) {
+        files.add(file);
+      }
+      return files;
+    },
+  );
+}
+
+class SheetSetlistPlaybackContext {
+  const SheetSetlistPlaybackContext({
+    required this.title,
+    required this.currentIndex,
+    required this.totalCount,
+  });
+
+  final String title;
+  final int currentIndex;
+  final int totalCount;
+
+  String get positionLabel => '${currentIndex + 1}/$totalCount';
 }

@@ -45,8 +45,10 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 
 ### 북마크
 
-- 페이지 북마크 추가, 이름 변경, 삭제.
+- 페이지 북마크 추가/해제.
 - 북마크 목록에서 페이지 이동.
+- 북마크 이름 변경.
+- 북마크 목록에서 삭제.
 
 ### 주석/필기
 
@@ -117,6 +119,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - MusicXML 사보 편집.
 - ChordPro, 텍스트 코드 transpose.
 - PDF annotation embed/export.
+- 앱 내 카메라 PDF 스캔. 1차는 외부 스캔 앱/사진 앱/파일 앱에서 만든 자료를 잘 가져와
+  악보로 관리하는 데 집중한다.
 - 팀 동기화와 다중 기기 페이지 제어.
 - MIDI action mapping.
 - 고급 오디오 플레이어, A-B loop, tempo/pitch shift.
@@ -158,25 +162,74 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 앱 이름과 in C 포트폴리오 안에서의 위치.
 - 실제 사용자 샘플 PDF 확보 방식.
 
-## 1차 구현 상태
+## 현재 구현 상태
 
-2026-08-20 기준으로 `apps/in_c_sheet` Android Flutter 앱 scaffold를 추가했다.
+제품명은 `Clef`다. 2026-08-23 기준으로 `apps/in_c_sheet` Android Flutter 앱 scaffold와 MobileSheets식
+기본 사용 흐름 일부를 구현했다.
 
 - PDF 파일 선택.
 - 앱 내부 문서 저장소에 PDF 사본 저장.
 - 로컬 라이브러리 record 저장.
 - 라이브러리 목록, 검색, 즐겨찾기 표시.
+- 라이브러리 정렬/필터 1차: 최근 열기, 제목, 작곡가, 가져온 날짜 정렬, 즐겨찾기/태그 필터.
+- 악보 제목, 작곡가, 태그, 메모 편집.
 - `pdfrx` 기반 PDF viewer.
 - 이전/다음 페이지 이동.
 - 현재 페이지/전체 페이지 표시.
 - 마지막 페이지 저장.
 - PDF URL link annotation 탭 비활성화.
 - PDF link annotation 영역 표시 토글.
+- PDF URL link annotation 제거 사본 생성 1차.
+- 현재 페이지 북마크 추가/해제.
+- 북마크 목록에서 페이지 이동, 이름 변경, 삭제.
+- 세트리스트 생성/이름 변경/삭제.
+- 세트리스트 악보 검색 추가/제거/순서 이동.
+- 세트리스트 목록/상세에서 첫 곡 열기.
+- 세트리스트 viewer context에서 이전/다음 곡 이동.
+- viewer에서 세트리스트 이름과 현재 곡 순서 표시.
+- 보기 모드 1차: 1페이지식 가로 배치, 2페이지 태블릿 spread, 세로 스크롤.
+- 곡별 보기 설정 저장: 보기 모드, 반 페이지 넘김, 표시 효과.
+- 모바일 viewer UX 1차: 좁은 화면 AppBar overflow menu, 좁은 화면 세로 스크롤 기본값,
+  1페이지 모드 페이지 간격 보정, 일반 모드 하단 페이지 컨트롤 자동 숨김.
+- 반 페이지 넘김 1차: visible viewport 기반 반 페이지 이동, 페이지 경계에서 이전/다음
+  페이지 이동, 2페이지 보기와 동시 사용 제한.
+- 페이지 정리 metadata 1차: 현재 페이지 숨김/해제, 숨김 페이지 navigation skip, page별
+  회전 metadata 저장, global crop metadata와 화면 mask.
+- 주석/필기 1차: 펜/형광펜 stroke, 텍스트 주석, 지우개 stroke 삭제, 색상/두께 선택,
+  텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo, 앱 metadata 저장, `pdfrx` page overlay
+  기반 좌표 정합성 보강.
+- 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 OFF tick sound toggle.
+- 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector, median
+  smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
+  cents meter, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
+  visual tuner fallback.
+- 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space 기반 이전/다음 페이지 넘김.
+- 공연 모드 1차: 관리 action 숨김, 큰 페이지 컨트롤 유지.
+- 자동 스크롤 1차: 곡별 duration/start/end 저장, 세로 스크롤 기반 일정 속도 진행,
+  수동 페이지 이동/키 입력 시 정지.
+- 로컬 백업/복원 1차: PDF 파일을 제외한 앱 metadata JSON export/import, PDF 파일을 포함한
+  전체 백업/복원 ZIP.
+- 공유/import/export 1차: Android 외부 PDF 수신, iOS document open URL 수신, 현재 PDF 공유,
+  필기 포함 PDF 공유 사본 생성, 한글 텍스트 주석 PDF export 안전 fallback,
+  JPG/PNG 이미지를 PDF 악보로 묶기.
+- 표시 효과 1차: 일반, 어두운 배경, 색상 반전.
+- 베타 전달 polish: 앱 내 테스트 정보/version 표시, 빈 라이브러리 CTA, viewer 오류 배너,
+  구체적인 import/share/export 실패 안내.
 
-URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막는다. PDF visible
-watermark 제거와 annotation 삭제/재저장은 범위에서 제외한다.
+URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막고, 사용자가 명시적으로
+선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. PDF visible watermark 제거는
+범위에서 제외한다.
 
-세트리스트, 북마크, 주석/필기, 튜너, 메트로놈, PDF link annotation 제거 사본 생성,
-Bluetooth 페달은 이후 단계로 남겨둔다. 구현 메모는
+iOS scaffold는 2026-08-21 smoke test 보조 타깃으로 추가했다. iPhone 16 Pro / iOS 18.4
+Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인했지만, 제품 검증의
+우선순위는 Android 태블릿이다.
+
+Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
+튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 cue/pause/BPM sync,
+Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
+실제 crop-to-fit/export, 페이지 순서 변경/복제,
+실제 페이지 회전 렌더링/PDF 재저장, 한글 텍스트 PDF font embedding, ChordPro/text,
+HEIC 이미지 변환, iOS Share Extension,
+클라우드 동기화/자동 백업, 계정/서버 저장은 이후 단계로 남겨둔다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
 정리한다.

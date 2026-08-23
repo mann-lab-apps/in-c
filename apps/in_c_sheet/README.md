@@ -1,6 +1,6 @@
-# in C - Sheet
+# Clef
 
-`in C - Sheet` is an Android-first sheet music viewer prototype.
+`Clef` is an Android-first sheet music viewer and practice tool prototype.
 
 The first MVP focuses on the MobileSheets-style foundation:
 

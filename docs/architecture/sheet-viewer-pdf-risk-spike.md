@@ -79,8 +79,9 @@ test-fixtures/pdfs/link-annotation-score.pdf: 3 pages
 
 - link annotation 영역 표시: 가능.
 - link tap override/disable: 가능. `onLinkTap`에서 외부 URL을 열지 않고 앱 내부 상태로만 처리하면 된다.
-- link annotation 제거 사본 생성: `pdfrx` viewer layer만으로는 부족하다. 별도 PDF writer 또는
-  `pdfrx_engine`의 문서 조작 API 가능 범위를 추가 조사해야 한다.
+- link annotation 제거 사본 생성: `pdfrx` viewer layer만으로는 부족하다. 2026-08-22
+  후속 구현에서는 Apache-2.0 pure Dart package인 `pdf_document` 3.7.0을 사용해 `/URI`
+  link annotation만 제거하는 앱 내부 사본 생성을 구현했다.
 
 ## Link Annotation 1차 구현
 
@@ -122,6 +123,67 @@ git diff --check
 - 2026-08-20 구현 직후 `adb devices` 결과 연결된 기기가 없어 에뮬레이터 수동 확인은
   수행하지 못했다.
 
+## Link Annotation 제거 사본 생성 1차
+
+2026-08-22 기준으로 `apps/in_c_sheet`에 원본 보존형 URL link annotation 제거 사본 생성을
+추가했다.
+
+선택한 라이브러리:
+
+- `pdf_document` 3.7.0.
+- Apache-2.0 license.
+- Pure Dart package이며 기존 PDF 열기, page tree/annotation 읽기, `PdfEditor` incremental
+  save를 제공한다.
+- `PdfLinkAnnotation`과 `PdfUriAction`을 통해 `/Link` annotation 중 외부 URL action만 식별할
+  수 있다.
+- `PdfEditor.removeAnnotations(pageIndex, annotations)`로 해당 annotation만 제거한 새 bytes를
+  생성한다.
+
+비교 메모:
+
+- `pdfrx`는 viewer/link handling에는 충분하지만 PDF 객체 재저장은 담당하지 않는다.
+- `syncfusion_flutter_pdf`도 기존 PDF annotation 제거 API가 명확하지만 상용 또는 Community
+  license 조건 검토가 필요하다.
+- `pdf` package는 PDF 생성에는 강하지만 기존 PDF annotation object 수정 용도는 맞지 않는다.
+- Android native `PdfRenderer`는 렌더링 API라 기존 PDF annotation writer가 아니다.
+
+구현 정책:
+
+- 제거 대상은 `/URI` action이 있는 URL link annotation이다.
+- 내부 `/GoTo` destination link는 제거하지 않는다.
+- 알 수 없는 link action은 제거하지 않는다.
+- 원본 PDF 파일은 수정하지 않는다.
+- 사용자가 viewer 메뉴에서 명시적으로 선택한 경우에만 앱 내부 `scores/` 폴더에
+  `<기존 이름>-links-disabled.pdf` 기반 사본을 만든다.
+- MVP 1차 UI는 현재 라이브러리 항목의 `score.id`, 북마크, 세트리스트 참조, 필기 metadata를
+  유지하고 `filePath`만 정리된 사본으로 교체한다.
+- `SheetScore.pdfLinkSanitization`에는 이전 파일 경로, 제거한 URL link 개수, 생성 시각을
+  저장한다.
+
+fixture 검증:
+
+- `link-annotation-score.pdf`에서 URL link annotation을 탐지한다.
+- 정리 사본 생성 후 URL link annotation count가 0이 되는지 확인한다.
+- page count가 유지되는지 확인한다.
+- 원본 파일 bytes가 변경되지 않는지 확인한다.
+- `short-score.pdf`처럼 URL link가 없는 PDF에서는 사본을 쓰지 않고 안전하게 종료한다.
+
+남은 리스크:
+
+- 암호화/DRM PDF는 우회하지 않는다.
+- malformed PDF나 object stream이 복잡한 실제 CamScanner PDF는 Android 태블릿에서 추가 검증이
+  필요하다.
+- incremental save 특성상 과거 revision bytes에는 원본 annotation 객체가 남을 수 있다.
+  viewer와 일반 PDF reader에서 활성 link로 노출되는 page `/Annots`에서는 제거되지만, 파일
+  forensic 수준의 완전 삭제가 필요한 요구는 별도 compact/rewrite 검토가 필요하다.
+- visible watermark 이미지/텍스트 제거는 계속 범위 밖이다.
+
+참고:
+
+- https://pub.dev/packages/pdf_document
+- https://pub.dev/packages/syncfusion_flutter_pdf
+- https://help.syncfusion.com/document-processing/pdf/pdf-library/flutter/working-with-annotations
+
 ## 에뮬레이터 확인
 
 사용한 AVD:
@@ -134,16 +196,16 @@ git diff --check
 
 - `flutter build apk --debug` 통과.
 - `flutter run -d emulator-5554`로 앱 실행.
-- `com.mannlab.inc.in_c_sheet/.MainActivity` 포커스 확인.
-- `/sdcard/Download/in-c-sheet-fixtures/`에 fixture 3종 복사 완료.
+- `com.mannlab.clef/.MainActivity` 포커스 확인.
+- `/sdcard/Download/clef-fixtures/`에 fixture 3종 복사 완료.
 - file picker가 `application/pdf` custom type으로 열리는 로그 확인.
 
 제한:
 
 - 에뮬레이터/ADB 연결이 중간에 끊기며 자동 UI 조작으로 PDF 선택까지 완료하지 못했다.
 - 2026-08-20 재확인 시 `adb devices`는 `emulator-5554 device`를 반환했지만,
-  `/sdcard/Download/in-c-sheet-fixtures` 조회는 `Transport endpoint is not connected`,
-  `pm path com.mannlab.inc.in_c_sheet`는 `Can't find service: package`로 실패했다.
+  `/sdcard/Download/clef-fixtures` 조회는 `Transport endpoint is not connected`,
+  `pm path com.mannlab.clef`는 `Can't find service: package`로 실패했다.
 - 따라서 앱 내부 import/open의 최종 수동 검증은 내일 실기기 태블릿에서 이어서 확인한다.
 - 에뮬레이터 로그의 frame skip은 첫 부팅, 설치, JIT/profile install 구간과 겹쳐 절대 성능
   판단에는 사용하지 않는다.
