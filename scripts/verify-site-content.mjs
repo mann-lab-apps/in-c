@@ -433,6 +433,7 @@ function verifyPersonalBlogHomeSurface() {
   const columnsScript = readFileSync(resolve(siteRoot, 'columns.js'), 'utf8')
   const siteShellScript = readFileSync(resolve(siteRoot, 'site-shell.js'), 'utf8')
   const siteMain = readFileSync(siteMainPath, 'utf8')
+  const publicPublisherPagePath = resolve(siteRoot, 'publisher.html')
   const pilotFormScript = readFileSync(pilotFormScriptPath, 'utf8')
   const pilotConcerts = readJson(pilotConcertsPath)
   const promotionInterestMigration = readFileSync(promotionInterestMigrationPath, 'utf8')
@@ -464,6 +465,7 @@ function verifyPersonalBlogHomeSurface() {
     'data-copy-contact',
     'data-copy-contact-status',
     'navigator.clipboard.writeText',
+    "import iconUrl from './assets/icon.svg'",
     'daga4242@gmail.com',
     'privacy.html'
   ]) {
@@ -540,6 +542,10 @@ function verifyPersonalBlogHomeSurface() {
       !columnDetailPage.includes('Columns ·') &&
       !columnsScript.includes('<p class="eyebrow">${escapeHtml(column.category)}</p>'),
     'column detail pages must use the shared shell and avoid the old article navigation, banner, or category eyebrow'
+  )
+  assert(
+    !existsSync(publicPublisherPagePath),
+    'publisher UI must remain outside the public site build surface'
   )
 
   assert(

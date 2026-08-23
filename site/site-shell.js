@@ -1,3 +1,5 @@
+import iconUrl from './assets/icon.svg'
+
 const CONTACT_EMAIL = 'daga4242@gmail.com'
 
 const normalizeRoot = (root) => {
@@ -11,7 +13,7 @@ const normalizeRoot = (root) => {
 const renderHeader = (root) => `
   <header class="site-header site-shell-header">
     <a class="brand" href="${root}index.html" aria-label="in C 홈">
-      <img src="${root}assets/icon.svg" width="36" height="36" alt="" />
+      <img src="${iconUrl}" width="36" height="36" alt="" />
       <span>in C</span>
     </a>
   </header>
