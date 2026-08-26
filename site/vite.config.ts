@@ -42,8 +42,14 @@ export default defineConfig({
         community: resolve(__dirname, 'community.html'),
         communityPost: resolve(__dirname, 'community-post.html'),
         communityWrite: resolve(__dirname, 'community-write.html'),
+        promotionAdmin: resolve(__dirname, 'promotion-admin.html'),
+        themeLab: resolve(__dirname, 'theme-lab.html'),
         chromatics: resolve(__dirname, 'chromatics.html'),
         login: resolve(__dirname, 'login.html'),
+        utilityApps: resolve(__dirname, 'utility-apps.html'),
+        metronome: resolve(__dirname, 'metronome.html'),
+        inCClickPrivacy: resolve(__dirname, 'in-c-click-privacy.html'),
+        support: resolve(__dirname, 'support.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         ...columnPages
       }

@@ -98,6 +98,10 @@ function getPages() {
     { filePath: 'community-write.html', publicPath: 'community-write.html' },
     { filePath: 'chromatics.html', publicPath: 'chromatics.html' },
     { filePath: 'login.html', publicPath: 'login.html' },
+    { filePath: 'utility-apps.html', publicPath: 'utility-apps.html' },
+    { filePath: 'metronome.html', publicPath: 'metronome.html' },
+    { filePath: 'in-c-click-privacy.html', publicPath: 'in-c-click-privacy.html' },
+    { filePath: 'support.html', publicPath: 'support.html' },
     { filePath: 'privacy.html', publicPath: 'privacy.html' }
   ]
 

@@ -22,6 +22,11 @@ Columns, Compositions, 공연 배너, Community, Chromatics가 기능 모음으�
 
 ## 핵심 관계
 
+제품 관계 모델의 가장 작은 경험 단위는 `작품 -> 사람`이다. 공연, Columns,
+Community, Chromatics는 모두 이 관계를 만들거나 깊게 하는 보조 표면으로 본다.
+구체적인 proof of value 실험은
+[`작품 × 한 사람 Proof of Value`](./work-to-person-proof-of-value.md)를 기준으로 한다.
+
 | 관계 | 의미 | 예시 |
 | --- | --- | --- |
 | `work.composers[]` | 작품과 작곡가 | 작품 -> Mozart |

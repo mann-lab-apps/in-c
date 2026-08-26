@@ -9,6 +9,9 @@ in C의 Concerts, Creators, Columns 수익 가설을 검증하기 위해 클래�
 정보교류가 오프라인 관계망, 단체 채팅방, 개인 SNS, 예매처 상세페이지에 분산되어
 반복 수작업이 되는지를 확인한다.
 
+2026-08-18 기준 선행 통계와 연구 근거, 직접 검증이 남은 항목은
+[`distribution-gap-evidence.md`](distribution-gap-evidence.md)에 별도로 정리한다.
+
 ## 핵심 질문
 
 - 클래식 공연 1건은 보통 어떤 홍보 채널을 사용하는가?

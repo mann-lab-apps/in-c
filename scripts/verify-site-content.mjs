@@ -41,6 +41,41 @@ const communityMigrationPath = resolve(
   repoRoot,
   'supabase/migrations/0002_community_board_schema.sql'
 )
+const indexPagePath = resolve(siteRoot, 'index.html')
+const columnDetailPagePath = resolve(siteRoot, 'columns/choral-symphony-hiphop.html')
+const privacyPagePath = resolve(siteRoot, 'privacy.html')
+const inCClickPrivacyPagePath = resolve(siteRoot, 'in-c-click-privacy.html')
+const supportPagePath = resolve(siteRoot, 'support.html')
+const pilotFormScriptPath = resolve(siteRoot, 'pilot-form.js')
+const utilityAppPagePath = resolve(siteRoot, 'utility-apps.html')
+const utilityAppFormScriptPath = resolve(siteRoot, 'utility-app-form.js')
+const metronomePagePath = resolve(siteRoot, 'metronome.html')
+const metronomeScriptPath = resolve(siteRoot, 'metronome.js')
+const pilotConcertsPath = resolve(repoRoot, 'data/promotion/pilot-concerts.json')
+const promotionInterestMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0003_promotion_interest_registrations.sql'
+)
+const promotionInterestAdminMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0004_promotion_interest_admin_review.sql'
+)
+const utilityAppRequestsMigrationPath = resolve(
+  repoRoot,
+  'supabase/migrations/0005_utility_app_requests.sql'
+)
+const promotionAdminPagePath = resolve(siteRoot, 'promotion-admin.html')
+const promotionAdminScriptPath = resolve(siteRoot, 'promotion-admin.js')
+const themeLabPagePath = resolve(siteRoot, 'theme-lab.html')
+const themeLabScriptPath = resolve(siteRoot, 'theme-lab.js')
+const promotionInterestNotificationFunctionPath = resolve(
+  repoRoot,
+  'supabase/functions/notify-promotion-interest/index.ts'
+)
+const promotionInterestNotificationDocPath = resolve(
+  repoRoot,
+  'docs/product/promotion/interest-notification.md'
+)
 const loginPagePath = resolve(siteRoot, 'login.html')
 const loginScriptPath = resolve(siteRoot, 'login.js')
 const authRedirectScriptPath = resolve(siteRoot, 'auth-redirect.js')
@@ -392,6 +427,564 @@ function verifyProductSurfaceStates() {
   }
 }
 
+function verifyPersonalBlogHomeSurface() {
+  const indexPage = readFileSync(indexPagePath, 'utf8')
+  const columnDetailPage = readFileSync(columnDetailPagePath, 'utf8')
+  const columnsScript = readFileSync(resolve(siteRoot, 'columns.js'), 'utf8')
+  const siteShellScript = readFileSync(resolve(siteRoot, 'site-shell.js'), 'utf8')
+  const siteMain = readFileSync(siteMainPath, 'utf8')
+  const publicPublisherPagePath = resolve(siteRoot, 'publisher.html')
+  const pilotFormScript = readFileSync(pilotFormScriptPath, 'utf8')
+  const pilotConcerts = readJson(pilotConcertsPath)
+  const promotionInterestMigration = readFileSync(promotionInterestMigrationPath, 'utf8')
+
+  for (const phrase of [
+    'in C | 클래식 감상 글',
+    '클래식 감상 글',
+    '합창교향곡이 힙합인 이유',
+    '반복의 힘',
+    '장르의 매력',
+    '출발',
+    'data-site-header',
+    'data-site-footer',
+    './main.js',
+    './columns/choral-symphony-hiphop.html',
+    'opentutorials-home',
+    'inc-sketch-theme',
+    'ot-recent-list'
+  ]) {
+    assert(indexPage.includes(phrase), `personal blog home missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'initSiteShell',
+    'site-shell-header',
+    'site-shell-footer',
+    'site-shell-contact__icon',
+    'data-site-contact-email',
+    'data-copy-contact',
+    'data-copy-contact-status',
+    'navigator.clipboard.writeText',
+    "import iconUrl from './assets/icon.svg'",
+    'daga4242@gmail.com',
+    'privacy.html'
+  ]) {
+    assert(siteShellScript.includes(phrase), `site shell component missing: ${phrase}`)
+  }
+
+  assert(
+    siteMain.includes("from './site-shell.js'") &&
+      siteMain.includes('shouldShowGlobalBanner') &&
+      siteMain.includes("classList.contains('columns-page')"),
+    'main script must initialize shared shell and suppress the poster banner on article pages'
+  )
+
+  for (const phrase of [
+    'data-site-header data-site-root="../"',
+    'data-site-footer data-site-root="../"',
+    '../main.js'
+  ]) {
+    assert(columnDetailPage.includes(phrase), `column detail shell missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'promotion_interest_submit',
+    '연주 홍보 신청이 접수되었습니다.'
+  ]) {
+    assert(
+      pilotFormScript.includes(phrase),
+      `promotion form script missing storage hook: ${phrase}`
+    )
+  }
+
+  for (const phrase of [
+    'Module 6',
+    'Course 3',
+    '감상지도',
+    'Listening Map',
+    'in C YouTube',
+    '채널 준비 중',
+    'data-pilot-form',
+    'name="applicantName"',
+    'name="upcomingRecital"',
+    './columns.html',
+    './pilot-form.js',
+    '연주 홍보 신청하기',
+    '전체보기',
+    '<h1 id="site-title">in C</h1>',
+    '<h2 id="posts-title">글 목록</h2>',
+    'Columns ·',
+    '<p class="eyebrow">${escapeHtml(column.category)}</p>',
+    '<h2 id="contact-title">Contact</h2>',
+    'Contact:',
+    'href="#contact"',
+    'data-promotion-anchor',
+    'ot-anchor-alias',
+    'mailto:daga4242@gmail.com',
+    '만마에의 클래식 블로그',
+    '만마에의 클래식 노트',
+    'Mannmae Note',
+    '오늘의 노트',
+    '운영: 만마에',
+    '만마에가 천천히',
+    '만마에 블로그와 공연 목록',
+    '공연 제보 남기기',
+    '혜화 무료 클래식 파일럿'
+  ]) {
+    assert(!indexPage.includes(phrase), `personal blog home must not include old pilot intake copy: ${phrase}`)
+  }
+
+  assert(
+    !columnDetailPage.includes('data-global-ad-banner') &&
+      !columnDetailPage.includes('<nav aria-label="주요 링크">') &&
+      !columnDetailPage.includes('Community</a>') &&
+      !columnDetailPage.includes('Chromatics</a>') &&
+      !columnDetailPage.includes('Columns ·') &&
+      !columnsScript.includes('<p class="eyebrow">${escapeHtml(column.category)}</p>'),
+    'column detail pages must use the shared shell and avoid the old article navigation, banner, or category eyebrow'
+  )
+  assert(
+    !existsSync(publicPublisherPagePath),
+    'publisher UI must remain outside the public site build surface'
+  )
+
+  assert(
+    !indexPage.includes('name="promotionBudget"') &&
+      !indexPage.includes('name="concertTitle"') &&
+      !indexPage.includes('name="concertDate"') &&
+      !indexPage.includes('name="concertTime"') &&
+      !indexPage.includes('name="venue"') &&
+      !indexPage.includes('name="region"') &&
+      !indexPage.includes('name="ticketUrl"') &&
+      !indexPage.includes('name="posterStatus"') &&
+      !indexPage.includes('name="posterFile"') &&
+      !indexPage.includes('가장 오면 좋겠는 관객') &&
+      !indexPage.includes('지금 가장 어려운 홍보 문제') &&
+      !indexPage.includes('value="textOnly"') &&
+      !indexPage.includes('name="concertDateTime"') &&
+      !indexPage.includes('name="contact"') &&
+      !indexPage.includes('Concert Promotion Pilot') &&
+      !indexPage.includes('무료 파일럿') &&
+      !indexPage.includes('data-pilot-result') &&
+      !indexPage.includes('신청서 초안') &&
+      !indexPage.includes('텍스트 저장') &&
+      !indexPage.includes('공연 홍보 신청') &&
+      !indexPage.includes('공연 정보 입력') &&
+      !indexPage.includes('클래식 연주회 홍보 신청') &&
+      !indexPage.includes('연주회 정보 입력') &&
+      !indexPage.includes('Working Note') &&
+      !indexPage.includes('pilot-intro__board') &&
+      !indexPage.includes('메일 앱'),
+    'personal blog home must avoid detailed recital intake fields, old campaign copy, and decorative sketch boards'
+  )
+  for (const phrase of [
+    '서울시향',
+    '0번 샘플',
+    'data-sample-concert',
+    'data-fill-sample',
+    'sample-concert'
+  ]) {
+    assert(
+      !indexPage.includes(phrase) && !pilotFormScript.includes(phrase),
+      `pilot sample data must remain internal-only, but public home or script includes: ${phrase}`
+    )
+  }
+  assert(
+    !existsSync(resolve(siteRoot, 'pilot-concert-data.js')),
+    'pilot concert sample data must not be stored under the public site directory'
+  )
+  assert(
+    pilotFormScript.includes('validateContact') &&
+      pilotFormScript.includes("from('promotion_interest_registrations')") &&
+      pilotFormScript.includes('.insert(payload)') &&
+      pilotFormScript.includes('promotion_interest_submit') &&
+      pilotFormScript.includes('isSupabaseConfigured') &&
+      !pilotFormScript.includes('navigator.clipboard.writeText') &&
+      !pilotFormScript.includes('URL.createObjectURL') &&
+      !pilotFormScript.includes('syncPosterUpload') &&
+      !pilotFormScript.includes('mailto:'),
+    'interest registration script must validate inputs and submit to Supabase without mailto'
+  )
+  for (const phrase of [
+    'create table if not exists public.promotion_interest_registrations',
+    'alter table public.promotion_interest_registrations enable row level security',
+    'grant insert on public.promotion_interest_registrations to anon, authenticated',
+    'for insert',
+    'contact_phone',
+    'contact_email',
+    'contact_instagram'
+  ]) {
+    assert(
+      promotionInterestMigration.includes(phrase),
+      `promotion interest migration missing: ${phrase}`
+    )
+  }
+  assert(
+    !promotionInterestMigration.includes('grant select on public.promotion_interest_registrations'),
+    'promotion interest migration must not grant public select access'
+  )
+  assert(
+    pilotConcerts.concerts.some(
+      (concert) =>
+        concert.id === 'spo-beethoven-choral-2026-08-16' &&
+        concert.visibility === 'internal_only' &&
+        concert.title.includes('서울시향') &&
+        concert.date === '2026-08-16' &&
+        concert.venue === '세종문화회관 대극장'
+    ),
+    'internal pilot concert JSON must preserve the 0th sample concert'
+  )
+}
+
+function verifyUtilityAppRequestSurface() {
+  const indexPage = readFileSync(indexPagePath, 'utf8')
+  const utilityAppPage = readFileSync(utilityAppPagePath, 'utf8')
+  const utilityAppFormScript = readFileSync(utilityAppFormScriptPath, 'utf8')
+  const utilityAppRequestsMigration = readFileSync(utilityAppRequestsMigrationPath, 'utf8')
+  const privacyPage = readFileSync(privacyPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const analyticsScript = readFileSync(resolve(siteRoot, 'analytics.js'), 'utf8')
+
+  assert(
+    !indexPage.includes('./utility-apps.html') &&
+      utilityAppPage.includes('./index.html') &&
+      utilityAppPage.includes('./metronome.html') &&
+      viteConfig.includes('utilityApps') &&
+      viteConfig.includes('utility-apps.html'),
+    'utility app experiment must remain public, but the Hyehwa pilot home must not cross-link it as a primary action'
+  )
+
+  for (const phrase of [
+    '무료 음악 도구 제안',
+    '음악가를 위한 작은 도구를 무료로 만들어봅니다',
+    '앱 제작 대행이 아니라, 공개 도구 실험입니다',
+    'data-utility-app-form',
+    'name="applicantName"',
+    'name="role"',
+    'name="contactPhone"',
+    'name="contactEmail"',
+    'name="contactInstagram"',
+    'name="activityContext"',
+    'name="problemFrequency"',
+    'name="problemDescription"',
+    'name="currentWorkaround"',
+    'name="desiredTool"',
+    'name="expectedUsers"',
+    'name="publicToolAcknowledgement"',
+    'name="privacyAcknowledgement"',
+    '도구 제안하기',
+    './utility-app-form.js'
+  ]) {
+    assert(utilityAppPage.includes(phrase), `utility app request page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'validateContact',
+    "from('utility_app_requests')",
+    '.insert(payload)',
+    'utility_app_request_submit',
+    'isSupabaseConfigured',
+    '!supabase',
+    'window.location.search'
+  ]) {
+    assert(
+      utilityAppFormScript.includes(phrase),
+      `utility app request script missing: ${phrase}`
+    )
+  }
+
+  for (const phrase of [
+    'create table if not exists public.utility_app_requests',
+    'alter table public.utility_app_requests enable row level security',
+    'grant insert on public.utility_app_requests to anon, authenticated',
+    'for insert',
+    'activity_context',
+    'problem_frequency',
+    'problem_description',
+    'expected_users',
+    'admins can read utility app requests'
+  ]) {
+    assert(
+      utilityAppRequestsMigration.includes(phrase),
+      `utility app request migration missing: ${phrase}`
+    )
+  }
+
+  for (const phrase of ['무료 음악 도구 제안 폼', '공개 웹도구 선정']) {
+    assert(privacyPage.includes(phrase), `privacy notice missing utility app copy: ${phrase}`)
+  }
+
+  for (const phrase of ['activity_context', 'frequency']) {
+    assert(analyticsScript.includes(phrase), `analytics allowlist missing: ${phrase}`)
+  }
+}
+
+function verifyMetronomeSurface() {
+  const metronomePage = readFileSync(metronomePagePath, 'utf8')
+  const metronomeScript = readFileSync(metronomeScriptPath, 'utf8')
+  const utilityAppPage = readFileSync(utilityAppPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const sitemap = readFileSync(resolve(siteRoot, 'public/sitemap.xml'), 'utf8')
+  const analyticsScript = readFileSync(resolve(siteRoot, 'analytics.js'), 'utf8')
+
+  assert(
+    viteConfig.includes('metronome') &&
+      viteConfig.includes('metronome.html') &&
+      sitemap.includes('https://in-c.mannlab.app/metronome.html') &&
+      utilityAppPage.includes('무료 메트로놈 열기'),
+    'metronome page must be built, indexed, and linked from the utility app landing'
+  )
+
+  for (const phrase of [
+    'in C Click',
+    '무료 메트로놈',
+    '연습을 바로 시작하세요',
+    'data-bpm-output',
+    'data-bpm-input',
+    'data-bpm-slider',
+    'data-start-stop',
+    'data-tap-tempo',
+    'name="meter"',
+    'value="2"',
+    'value="3"',
+    'value="4"',
+    'value="6"',
+    'data-accent-toggle',
+    'data-pulse',
+    'data-beat-label',
+    'Space 시작/정지',
+    './metronome.js',
+    './utility-apps.html'
+  ]) {
+    assert(metronomePage.includes(phrase), `metronome page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'AudioContext',
+    'scheduleAheadSeconds',
+    'lookaheadMs',
+    'localStorage',
+    'in-c-click-preferences',
+    'metronome_start',
+    'metronome_tap_tempo',
+    'ArrowUp',
+    'ArrowDown',
+    'Space',
+    'tapTempo'
+  ]) {
+    assert(metronomeScript.includes(phrase), `metronome script missing: ${phrase}`)
+  }
+
+  for (const forbidden of [
+    'navigator.mediaDevices',
+    'getUserMedia',
+    "from('",
+    'supabase',
+    '정확도 최고',
+    '프로용',
+    '완벽한 리듬 엔진'
+  ]) {
+    assert(
+      !metronomePage.includes(forbidden) && !metronomeScript.includes(forbidden),
+      `metronome MVP must avoid excluded scope/copy: ${forbidden}`
+    )
+  }
+
+  assert(analyticsScript.includes('meter'), 'analytics allowlist missing metronome meter param')
+}
+
+function verifyPrivacyNoticeSurface() {
+  const privacyPage = readFileSync(privacyPagePath, 'utf8')
+  const inCClickPrivacyPage = readFileSync(inCClickPrivacyPagePath, 'utf8')
+  const supportPage = readFileSync(supportPagePath, 'utf8')
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const sitemap = readFileSync(resolve(siteRoot, 'public/sitemap.xml'), 'utf8')
+
+  assert(
+    privacyPage.includes('in C 개인정보 처리방침') &&
+      privacyPage.includes('Google Analytics 사용') &&
+      privacyPage.includes('피드백과 문의') &&
+      privacyPage.includes('혜화 무료 클래식 파일럿 공연 제보') &&
+      privacyPage.includes('공개 사이트에서 조회할 수 없고') &&
+      privacyPage.includes('in C - Click 모바일 앱') &&
+      privacyPage.includes('daga42@naver.com'),
+    'privacy notice page must keep core notice content'
+  )
+
+  assert(
+    viteConfig.includes('inCClickPrivacy') &&
+      sitemap.includes('https://in-c.mannlab.app/in-c-click-privacy.html') &&
+      viteConfig.includes('support') &&
+      sitemap.includes('https://in-c.mannlab.app/support.html'),
+    'in C Click privacy policy must be built and indexed'
+  )
+
+  for (const phrase of [
+    'in C - Click 개인정보 처리방침',
+    '앱 내부에서 개인정보를 수집하지 않습니다',
+    'BPM, 박자, 첫 박 강조 여부',
+    '기능 제안 웹 폼',
+    'Supabase',
+    'Google Analytics 4',
+    'daga42@naver.com'
+  ]) {
+    assert(
+      inCClickPrivacyPage.includes(phrase),
+      `in C Click privacy policy missing: ${phrase}`
+    )
+  }
+
+  for (const phrase of ['in C 지원', '문의와 버그 제보', 'daga42@naver.com']) {
+    assert(supportPage.includes(phrase), `support page missing: ${phrase}`)
+  }
+
+  assert(
+    !privacyPage.includes('class="site-header"') &&
+      !privacyPage.includes('./main.js') &&
+      !privacyPage.includes('data-global-ad-banner') &&
+      !inCClickPrivacyPage.includes('class="site-header"') &&
+      !inCClickPrivacyPage.includes('./main.js') &&
+      !inCClickPrivacyPage.includes('data-global-ad-banner') &&
+      !supportPage.includes('class="site-header"') &&
+      !supportPage.includes('./main.js') &&
+      !supportPage.includes('data-global-ad-banner'),
+    'privacy notice page must not render global navigation or ad banner'
+  )
+}
+
+function verifyPromotionAdminSurface() {
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const adminPage = readFileSync(promotionAdminPagePath, 'utf8')
+  const adminScript = readFileSync(promotionAdminScriptPath, 'utf8')
+  const adminMigration = readFileSync(promotionInterestAdminMigrationPath, 'utf8')
+  const notificationFunction = readFileSync(
+    promotionInterestNotificationFunctionPath,
+    'utf8'
+  )
+  const notificationDoc = readFileSync(promotionInterestNotificationDocPath, 'utf8')
+
+  for (const phrase of [
+    'promotionAdmin',
+    'promotion-admin.html'
+  ]) {
+    assert(viteConfig.includes(phrase), `promotion admin Vite input missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    '혜화 파일럿 제보 확인',
+    'noindex,nofollow',
+    'data-admin-status',
+    'data-admin-summary',
+    'data-admin-table',
+    'data-admin-refresh',
+    './promotion-admin.js'
+  ]) {
+    assert(adminPage.includes(phrase), `promotion admin page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    "from('promotion_interest_registrations')",
+    '.select(createRegistrationSelect())',
+    '.update({',
+    'review_status',
+    'reviewed_at',
+    'reviewer_user_id',
+    'createLoginUrlWithRedirect',
+    '관리자 권한이 필요합니다'
+  ]) {
+    assert(adminScript.includes(phrase), `promotion admin script missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'add column if not exists review_status',
+    'grant select on public.promotion_interest_registrations to authenticated',
+    'grant update (review_status, reviewed_at, reviewer_user_id)',
+    'admins can read promotion interest registrations',
+    'profiles.role = \'admin\'',
+    'profiles.status = \'active\''
+  ]) {
+    assert(adminMigration.includes(phrase), `promotion admin migration missing: ${phrase}`)
+  }
+  assert(
+    !adminMigration.includes('grant select on public.promotion_interest_registrations to anon'),
+    'promotion admin migration must not grant anonymous select access'
+  )
+
+  for (const phrase of [
+    'daga42@naver.com',
+    'daga4242@gmail.com',
+    'RESEND_API_KEY',
+    'PROMOTION_INTEREST_NOTIFY_FROM',
+    'PROMOTION_INTEREST_WEBHOOK_SECRET',
+    'x-in-c-webhook-secret',
+    'https://api.resend.com/emails',
+    'https://in-c.mannlab.app/promotion-admin.html'
+  ]) {
+    assert(
+      notificationFunction.includes(phrase) || notificationDoc.includes(phrase),
+      `promotion notification setup missing: ${phrase}`
+    )
+  }
+}
+
+function verifyDesignThemeLab() {
+  const viteConfig = readFileSync(resolve(siteRoot, 'vite.config.ts'), 'utf8')
+  const themeLabPage = readFileSync(themeLabPagePath, 'utf8')
+  const themeLabScript = readFileSync(themeLabScriptPath, 'utf8')
+  const styles = readFileSync(resolve(siteRoot, 'styles.css'), 'utf8')
+
+  for (const phrase of ['themeLab', 'theme-lab.html']) {
+    assert(viteConfig.includes(phrase), `theme lab Vite input missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    '디자인 테마 랩',
+    'noindex,nofollow',
+    'data-theme-lab',
+    'data-theme-nav',
+    'data-theme-stack',
+    './theme-lab.js'
+  ]) {
+    assert(themeLabPage.includes(phrase), `theme lab page missing: ${phrase}`)
+  }
+
+  for (const phrase of [
+    'landingModel',
+    'themes',
+    'renderThemeDemo',
+    'renderInterestForm',
+    'renderWorkspaceMock',
+    'Excalidraw / Sketch',
+    'Mann Lab Games',
+    'rough outline',
+    'hachure',
+    'theme-preview-sketch-board',
+    'theme-preview-sketch-shape--diamond',
+    'Rehearsal Notebook',
+    'Quiet Editorial',
+    'Modern Arts Platform',
+    'Small SaaS / Utility',
+    'Card Catalog / Archive',
+    'data-theme-demo'
+  ]) {
+    assert(themeLabScript.includes(phrase), `theme lab script missing: ${phrase}`)
+  }
+
+  for (const themeClass of [
+    '.theme-demo--sketch',
+    '--sketch-rough-rect',
+    '--sketch-hachure-blue',
+    '.theme-preview-sketch-board',
+    '.theme-demo--notebook',
+    '.theme-demo--editorial',
+    '.theme-demo--arts',
+    '.theme-demo--utility',
+    '.theme-demo--archive'
+  ]) {
+    assert(styles.includes(themeClass), `theme lab CSS missing: ${themeClass}`)
+  }
+}
+
 function verifyLoginAuthSurface() {
   const loginHtml = readFileSync(loginPagePath, 'utf8')
   const loginScript = readFileSync(loginScriptPath, 'utf8')
@@ -472,6 +1065,12 @@ try {
   verifyColumnAssets()
   verifyProductRelations()
   verifyProductSurfaceStates()
+  verifyPersonalBlogHomeSurface()
+  verifyUtilityAppRequestSurface()
+  verifyMetronomeSurface()
+  verifyPrivacyNoticeSurface()
+  verifyPromotionAdminSurface()
+  verifyDesignThemeLab()
   verifyLoginAuthSurface()
   verifyFeatureMapPaths(featureMap, repoRoot)
   console.log(

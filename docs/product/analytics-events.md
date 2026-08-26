@@ -41,6 +41,13 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | `auth_signed_in` | Supabase Auth signed-in 이벤트 수신 | 없음 | 로그인 완료 여부 | 사용자 식별자 전송 없음 |
 | `auth_session_error` | 로그인 페이지 세션 확인 실패 | 없음 | 세션 복구 오류 | 오류 원문과 사용자 식별자 전송 없음 |
 | `auth_callback_error` | OAuth callback 오류 수신 | 없음 | OAuth callback 오류 | 오류 원문과 사용자 식별자 전송 없음 |
+| `promotion_interest_submit` | 클래식 연주회 홍보 관심 등록이 저장될 때 | `role`, `recital_status`, `help_count` | 관심 등록과 역할/상황 분포 | 이름, 연락처, 비고 원문은 전송하지 않음 |
+| `utility_app_request_submit` | 무료 음악 도구 제안이 저장될 때 | `role`, `category`, `frequency`, `help_count` | 어떤 반복 문제가 도구 후보로 들어오는가 | 이름, 연락처, 자유 입력 원문은 전송하지 않음 |
+| `utility_metronome_link` | 무료 도구 제안 페이지에서 in C Click 링크 클릭 | `location`, `link_url`, `link_text` | 도구 제안 페이지에서 실제 공개 도구로 이동하는가 | 공개 링크와 클릭 위치만 전송 |
+| `metronome_start` | in C Click 시작 버튼 또는 Space로 재생 시작 | `category`, `meter` | 무료 메트로놈이 실제 사용되는가 | BPM과 개인 연습 내용은 전송하지 않음 |
+| `metronome_stop` | in C Click 정지 버튼 또는 Space로 재생 정지 | `category`, `meter` | 시작 후 조작이 이어지는가 | BPM과 개인 연습 내용은 전송하지 않음 |
+| `metronome_tap_tempo` | in C Click Tap tempo 클릭 또는 T 입력 | `category` | Tap tempo가 필요한 사용자가 있는가 | 탭 간격 원문은 전송하지 않음 |
+| `metronome_utility_link` | in C Click 하단에서 무료 도구 제안 링크 클릭 | `location`, `link_url`, `link_text` | 도구 사용자가 추가 제안으로 이어지는가 | 공개 링크와 클릭 위치만 전송 |
 | `download_primary` | 랜딩 첫 화면 기본 다운로드 클릭 | `platform`, `file_name`, `location`, `link_url`, `link_text` | Events by `platform`, landing CTA review | 추정 플랫폼과 공개 릴리즈 URL만 전송 |
 | `download_platform` | 운영체제별 다운로드 카드 클릭 | `platform`, `file_name`, `link_url`, `link_text` | Events by `platform`/`file_name` | 사용자가 누른 공개 파일 정보만 전송 |
 | `checksum_link` | 체크섬 링크 클릭 | `location`, `link_url`, `link_text` | Events by `location` | 공개 체크섬 링크만 전송 |

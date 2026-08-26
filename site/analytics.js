@@ -6,19 +6,25 @@ let analyticsState = 'pending'
 const allowedEventParams = new Set([
   'answer',
   'app_name',
+  'activity_context',
   'category',
   'content_slug',
   'content_title',
   'content_type',
   'difficulty',
   'file_name',
+  'frequency',
+  'help_count',
   'key',
   'link_text',
   'link_url',
   'location',
   'meter',
   'platform',
-  'reading_minutes'
+  'poster_status',
+  'recital_status',
+  'reading_minutes',
+  'role'
 ])
 
 const isGa4MeasurementId = (measurementId) =>

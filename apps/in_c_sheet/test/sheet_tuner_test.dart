@@ -1,0 +1,358 @@
+import 'dart:math' as math;
+import 'dart:typed_data';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_tuner.dart';
+
+void main() {
+  test('detects A4 from 440Hz with zero cents', () {
+    final reading = SheetTunerPitch.detect(frequency: 440);
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A4');
+    expect(reading.centsOffset, closeTo(0, 0.01));
+  });
+
+  test('detects A sharp 4 near 466.16Hz', () {
+    final reading = SheetTunerPitch.detect(frequency: 466.16);
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A#4');
+    expect(reading.centsOffset, closeTo(0, 0.1));
+  });
+
+  test('detects C4 near 261.63Hz', () {
+    final reading = SheetTunerPitch.detect(frequency: 261.63);
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'C4');
+    expect(reading.centsOffset, closeTo(0, 0.1));
+  });
+
+  test('displays Bb trumpet written pitch from concert pitch', () {
+    final concertBb = SheetTunerPitch.detect(frequency: 466.16);
+    final concertC = SheetTunerPitch.detect(frequency: 261.63);
+    final concertF = SheetTunerPitch.detect(frequency: 349.23);
+
+    final writtenC = SheetTunerPitch.displayPitch(
+      reading: concertBb!,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+    );
+    final writtenD = SheetTunerPitch.displayPitch(
+      reading: concertC!,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+    );
+    final writtenG = SheetTunerPitch.displayPitch(
+      reading: concertF!,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+    );
+
+    expect(writtenC.primaryLabel, 'C5');
+    expect(writtenC.concertNote.label, 'A#4');
+    expect(writtenD.primaryLabel, 'D4');
+    expect(writtenG.primaryLabel, 'G4');
+    expect(writtenC.centsOffset, closeTo(concertBb.centsOffset, 0.001));
+  });
+
+  test('keeps concert display mode unchanged', () {
+    final reading = SheetTunerPitch.detect(frequency: 440);
+
+    final displayed = SheetTunerPitch.displayPitch(
+      reading: reading!,
+      displayMode: SheetTunerDisplayMode.concert,
+    );
+
+    expect(displayed.primaryLabel, 'A4');
+    expect(displayed.concertNote.label, 'A4');
+  });
+
+  test('calculates positive and negative cents offsets', () {
+    final sharp = SheetTunerPitch.detect(frequency: 445);
+    final flat = SheetTunerPitch.detect(frequency: 435);
+
+    expect(sharp!.note.label, 'A4');
+    expect(sharp.centsOffset, greaterThan(0));
+    expect(flat!.note.label, 'A4');
+    expect(flat.centsOffset, lessThan(0));
+  });
+
+  test('returns null for invalid frequency', () {
+    expect(SheetTunerPitch.detect(frequency: 0), isNull);
+    expect(SheetTunerPitch.detect(frequency: double.nan), isNull);
+  });
+
+  test('clamps and persists tuner settings', () {
+    final low = SheetTunerSettings.fromJson(<String, Object?>{
+      'referencePitchA4': 300,
+    });
+    final high = SheetTunerSettings.fromJson(<String, Object?>{
+      'referencePitchA4': 500,
+    });
+    const settings = SheetTunerSettings(
+      referencePitchA4: 442,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+      detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+    );
+
+    final decoded = SheetTunerCodec.decode(SheetTunerCodec.encode(settings));
+
+    expect(low.referencePitchA4, 415);
+    expect(high.referencePitchA4, 466);
+    expect(decoded.referencePitchA4, 442);
+    expect(decoded.displayMode, SheetTunerDisplayMode.bbTrumpet);
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.bbTrumpet);
+  });
+
+  test('decodes legacy tuner settings with concert/profile fallback', () {
+    final decoded = SheetTunerSettings.fromJson(<String, Object?>{
+      'referencePitchA4': 441,
+    });
+
+    expect(decoded.referencePitchA4, 441);
+    expect(decoded.displayMode, SheetTunerDisplayMode.concert);
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.chromatic);
+  });
+
+  test('detection profiles filter practical frequency ranges', () {
+    expect(SheetTunerDetectionProfile.chromatic.acceptsFrequency(110), isTrue);
+    expect(SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(110), isFalse);
+    expect(
+      SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(466.16),
+      isTrue,
+    );
+  });
+
+  test('display mode and detection profile stay independent', () {
+    const settings = SheetTunerSettings(
+      referencePitchA4: 440,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+    );
+
+    final decoded = SheetTunerSettings.fromJson(settings.toJson());
+
+    expect(decoded.displayMode, SheetTunerDisplayMode.bbTrumpet);
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.chromatic);
+  });
+
+  test('decodes little-endian PCM16 samples', () {
+    final bytes = Uint8List.fromList(<int>[0x00, 0x40, 0x00, 0xc0]);
+
+    final samples = SheetTunerPcm16.decodeLittleEndian(bytes);
+
+    expect(samples.first, closeTo(0.5, 0.0001));
+    expect(samples.last, closeTo(-0.5, 0.0001));
+  });
+
+  test('detects A4 from synthetic PCM window', () {
+    final reading = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 440),
+      sampleRate: 44100,
+    );
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A4');
+    expect(reading.frequency, closeTo(440, 1.5));
+  });
+
+  test('trumpet profile rejects low rumble outside practical range', () {
+    final lowReading = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 110),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+    );
+    final trumpetReading = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 466.16),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+    );
+
+    expect(lowReading, isNull);
+    expect(trumpetReading, isNotNull);
+    expect(trumpetReading!.note.label, 'A#4');
+  });
+
+  test('detects small detuned offsets around A4', () {
+    final sharp = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: _frequencyAtCents(440, 10)),
+      sampleRate: 44100,
+    );
+    final flat = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: _frequencyAtCents(440, -10)),
+      sampleRate: 44100,
+    );
+
+    expect(sharp, isNotNull);
+    expect(sharp!.note.label, 'A4');
+    expect(sharp.centsOffset, closeTo(10, 2));
+    expect(flat, isNotNull);
+    expect(flat!.note.label, 'A4');
+    expect(flat.centsOffset, closeTo(-10, 2));
+  });
+
+  test('detects C4 from rolling PCM chunks', () {
+    final detector = SheetTunerPitchDetector(sampleRate: 44100);
+    final bytes = _sinePcm16(frequency: 261.63);
+    SheetTunerReading? reading;
+    for (var offset = 0; offset < bytes.length; offset += 512) {
+      final end = math.min(bytes.length, offset + 512);
+      reading = detector.addPcm16Chunk(bytes.sublist(offset, end));
+    }
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'C4');
+    expect(reading.frequency, closeTo(261.63, 1.5));
+  });
+
+  test('returns null for silence and short buffers', () {
+    final silence = List<double>.filled(4096, 0);
+
+    expect(
+      SheetTunerPitchDetector.detectSamples(silence, sampleRate: 44100),
+      isNull,
+    );
+    expect(
+      SheetTunerPitchDetector.detectSamples(const <double>[
+        0.1,
+        -0.1,
+      ], sampleRate: 44100),
+      isNull,
+    );
+  });
+
+  test('keeps a stable reading for mildly noisy signal', () {
+    final random = math.Random(7);
+    final samples = _sineSamples(frequency: 440)
+        .map((sample) => sample + ((random.nextDouble() - 0.5) * 0.04))
+        .toList(growable: false);
+
+    final reading = SheetTunerPitchDetector.detectSamples(
+      samples,
+      sampleRate: 44100,
+      minConfidence: 0.5,
+    );
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A4');
+    expect(reading.frequency, closeTo(440, 2.5));
+  });
+
+  test('stabilizer smooths frequency jitter with median reading', () {
+    final stabilizer = SheetTunerReadingStabilizer(maxHistory: 5);
+
+    for (final frequency in <double>[438, 441, 440, 439, 442]) {
+      stabilizer.add(SheetTunerPitch.detect(frequency: frequency));
+    }
+    final reading = stabilizer.add(SheetTunerPitch.detect(frequency: 470));
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A4');
+    expect(reading.frequency, closeTo(441, 0.01));
+  });
+
+  test('stabilizer debounces brief no-signal gaps', () {
+    final stabilizer = SheetTunerReadingStabilizer(noSignalDebounceFrames: 3);
+    final stable = stabilizer.add(SheetTunerPitch.detect(frequency: 440));
+
+    expect(stabilizer.add(null), same(stable));
+    expect(stabilizer.add(null), same(stable));
+    expect(stabilizer.add(null), isNull);
+  });
+
+  test('stabilizer ignores low-confidence readings', () {
+    final stabilizer = SheetTunerReadingStabilizer(
+      noSignalDebounceFrames: 1,
+      minSignalLevel: 0.7,
+    );
+
+    final reading = stabilizer.add(
+      SheetTunerPitch.detect(frequency: 440, signalLevel: 0.4),
+    );
+
+    expect(reading, isNull);
+  });
+
+  test('stabilizer folds brief octave jumps near the last stable note', () {
+    final stabilizer = SheetTunerReadingStabilizer(
+      maxHistory: 3,
+      maxStableJumpCents: 300,
+    );
+
+    stabilizer.add(SheetTunerPitch.detect(frequency: 440));
+    stabilizer.add(SheetTunerPitch.detect(frequency: 441));
+    final reading = stabilizer.add(SheetTunerPitch.detect(frequency: 880));
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'A4');
+    expect(reading.frequency, closeTo(440, 1.5));
+  });
+
+  test('stabilizer does not fold normal large interval moves', () {
+    final stabilizer = SheetTunerReadingStabilizer(
+      maxHistory: 1,
+      maxStableJumpCents: 300,
+    );
+
+    stabilizer.add(SheetTunerPitch.detect(frequency: 440));
+    final reading = stabilizer.add(SheetTunerPitch.detect(frequency: 587.33));
+
+    expect(reading, isNotNull);
+    expect(reading!.note.label, 'D5');
+  });
+
+  test('stabilizer holds note near a boundary with hysteresis', () {
+    final stabilizer = SheetTunerReadingStabilizer(
+      maxHistory: 1,
+      noteHysteresisCents: 18,
+    );
+
+    stabilizer.add(SheetTunerPitch.detect(frequency: 440));
+    final held = stabilizer.add(
+      SheetTunerPitch.detect(frequency: _frequencyAtCents(440, 52)),
+    );
+    final switched = stabilizer.add(
+      SheetTunerPitch.detect(frequency: _frequencyAtCents(440, 76)),
+    );
+
+    expect(held, isNotNull);
+    expect(held!.note.label, 'A4');
+    expect(held.centsOffset, greaterThan(50));
+    expect(switched, isNotNull);
+    expect(switched!.note.label, 'A#4');
+  });
+}
+
+List<double> _sineSamples({
+  required double frequency,
+  int sampleRate = 44100,
+  int sampleCount = 4096,
+  double amplitude = 0.72,
+}) {
+  return List<double>.generate(sampleCount, (index) {
+    return math.sin(2 * math.pi * frequency * index / sampleRate) * amplitude;
+  }, growable: false);
+}
+
+Uint8List _sinePcm16({
+  required double frequency,
+  int sampleRate = 44100,
+  int sampleCount = 4096,
+  double amplitude = 0.72,
+}) {
+  final samples = _sineSamples(
+    frequency: frequency,
+    sampleRate: sampleRate,
+    sampleCount: sampleCount,
+    amplitude: amplitude,
+  );
+  final bytes = ByteData(sampleCount * 2);
+  for (var index = 0; index < samples.length; index += 1) {
+    final value = (samples[index].clamp(-1.0, 1.0) * 32767).round();
+    bytes.setInt16(index * 2, value, Endian.little);
+  }
+  return bytes.buffer.asUint8List();
+}
+
+double _frequencyAtCents(double baseFrequency, double cents) {
+  return baseFrequency * math.pow(2, cents / 1200).toDouble();
+}

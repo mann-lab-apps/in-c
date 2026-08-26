@@ -41,6 +41,7 @@
     "verify:site-content": "node scripts/verify-site-content.mjs",
     "verify:site-seo": "node scripts/verify-site-seo.cjs",
     "verify:site-production": "node scripts/verify-production-site.cjs",
+    "validation:ops": "node scripts/summarize-validation-ops.mjs",
     "test:components": "vitest run src/renderer/src/App.test.tsx"
   },
   "dependencies": {

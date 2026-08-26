@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>in C Publisher</title>
+    <style>
+      :root {
+        color: #111416;
+        background: #fff;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        background: #fff;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        min-height: 106px;
+        padding: 24px clamp(20px, 5vw, 72px);
+        border-bottom: 1px solid #dedede;
+      }
+
+      header img {
+        width: 48px;
+        height: 48px;
+      }
+
+      header strong {
+        font-size: 1.45rem;
+      }
+
+      main {
+        display: grid;
+        gap: 22px;
+        width: min(1280px, calc(100% - 40px));
+        margin: 0 auto;
+        padding: 36px 0 64px;
+      }
+
+      .title {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        padding-bottom: 18px;
+        border-bottom: 1px solid #dedede;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 5vw, 4.4rem);
+        line-height: 1;
+      }
+
+      .state {
+        color: #59666c;
+        font-weight: 800;
+      }
+
+      form {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr);
+        gap: 18px;
+        align-items: start;
+      }
+
+      section {
+        min-width: 0;
+        border: 1px solid #dedede;
+        border-radius: 6px;
+        background: #fff;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px;
+        border-bottom: 1px solid #dedede;
+      }
+
+      .editor,
+      .targets {
+        display: grid;
+      }
+
+      .editor-fields,
+      .target-fields {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        min-width: 0;
+        color: #59666c;
+        font-size: 0.9rem;
+        font-weight: 800;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid #d5d5d5;
+        border-radius: 4px;
+        color: #111416;
+        background: #fff;
+        font: inherit;
+        font-size: 1rem;
+      }
+
+      input,
+      select {
+        min-height: 44px;
+        padding: 9px 10px;
+      }
+
+      textarea {
+        resize: vertical;
+        padding: 10px;
+        line-height: 1.58;
+      }
+
+      input:focus,
+      select:focus,
+      textarea:focus,
+      button:focus {
+        outline: 3px solid rgba(71, 97, 108, 0.28);
+        outline-offset: 2px;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0 18px 18px;
+      }
+
+      button {
+        min-height: 42px;
+        padding: 8px 14px;
+        border: 1px solid #d0d0d0;
+        border-radius: 4px;
+        color: #172024;
+        background: #fff;
+        font: inherit;
+        font-weight: 900;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border-color: #111416;
+        color: #fff;
+        background: #111416;
+      }
+
+      .target-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .target-list label {
+        grid-template-columns: auto minmax(0, 1fr);
+        align-items: start;
+        gap: 10px;
+        padding: 12px;
+        border: 1px solid #dedede;
+        border-radius: 4px;
+      }
+
+      .target-list input {
+        width: 18px;
+        min-height: 18px;
+        margin-top: 2px;
+      }
+
+      .target-list span {
+        display: grid;
+        gap: 3px;
+      }
+
+      .target-list strong {
+        color: #111416;
+      }
+
+      .target-list small {
+        color: #7a7a7a;
+      }
+
+      pre {
+        overflow: auto;
+        min-height: 340px;
+        max-height: 620px;
+        margin: 0;
+        padding: 18px;
+        border-top: 1px solid #dedede;
+        color: #243136;
+        background: #f7f7f7;
+        font-size: 0.86rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      @media (max-width: 840px) {
+        form,
+        .row {
+          grid-template-columns: 1fr;
+        }
+
+        .title {
+          align-items: start;
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <img src="../site/assets/icon.svg" width="48" height="48" alt="" />
+      <strong>in C</strong>
+    </header>
+
+    <main>
+      <div class="title">
+        <h1>Publisher</h1>
+        <p class="state" data-draft-state>저장 전</p>
+      </div>
+
+      <form data-publish-form>
+        <section class="editor" aria-labelledby="editor-title">
+          <div class="panel-head">
+            <h2 id="editor-title">초안</h2>
+          </div>
+
+          <div class="editor-fields">
+            <label>
+              <span>제목</span>
+              <input
+                autocomplete="off"
+                data-publish-title
+                maxlength="120"
+                name="title"
+                required
+                type="text"
+              />
+            </label>
+
+            <div class="row">
+              <label>
+                <span>슬러그</span>
+                <input autocomplete="off" data-publish-slug maxlength="120" name="slug" type="text" />
+              </label>
+              <label>
+                <span>게시일</span>
+                <input data-publish-date name="publishedAt" required type="date" />
+              </label>
+            </div>
+
+            <label>
+              <span>요약</span>
+              <textarea data-publish-summary maxlength="220" name="summary" rows="3"></textarea>
+            </label>
+
+            <div class="row">
+              <label>
+                <span>분류</span>
+                <select data-publish-category name="category">
+                  <option>작품 듣기</option>
+                  <option>처음 듣기</option>
+                  <option>감상 기준</option>
+                  <option>연주회 준비</option>
+                </select>
+              </label>
+              <label>
+                <span>태그</span>
+                <input autocomplete="off" data-publish-tags name="tags" type="text" />
+              </label>
+            </div>
+
+            <label>
+              <span>본문</span>
+              <textarea data-publish-body name="body" required rows="17"></textarea>
+            </label>
+          </div>
+
+          <div class="actions">
+            <button class="primary" data-save-draft type="submit">초안 저장</button>
+            <button data-copy-package type="button">패키지 복사</button>
+            <button data-reset-draft type="button">초기화</button>
+          </div>
+        </section>
+
+        <section class="targets" aria-labelledby="targets-title">
+          <div class="panel-head">
+            <h2 id="targets-title">배포 대상</h2>
+            <span class="state" data-target-count>1개</span>
+          </div>
+
+          <div class="target-fields">
+            <div class="target-list">
+              <label>
+                <input checked data-publish-target name="targets" type="checkbox" value="in-c" />
+                <span><strong>in C</strong><small>canonical</small></span>
+              </label>
+              <label>
+                <input data-publish-target name="targets" type="checkbox" value="naver-blog" />
+                <span><strong>Naver Blog</strong><small>adapter needed</small></span>
+              </label>
+              <label>
+                <input data-publish-target name="targets" type="checkbox" value="brunch" />
+                <span><strong>Brunch</strong><small>adapter needed</small></span>
+              </label>
+              <label>
+                <input data-publish-target name="targets" type="checkbox" value="tistory" />
+                <span><strong>Tistory</strong><small>adapter needed</small></span>
+              </label>
+              <label>
+                <input data-publish-target name="targets" type="checkbox" value="medium" />
+                <span><strong>Medium</strong><small>adapter needed</small></span>
+              </label>
+              <label>
+                <input data-publish-target name="targets" type="checkbox" value="webhook" />
+                <span><strong>Webhook</strong><small>custom</small></span>
+              </label>
+            </div>
+          </div>
+
+          <pre data-publish-package>{}</pre>
+        </section>
+      </form>
+    </main>
+
+    <script src="./publisher.js"></script>
+  </body>
+</html>

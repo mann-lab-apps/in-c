@@ -8,6 +8,7 @@ build/*
 release/
 .vite/
 .DS_Store
+apps/*/ios/profiles/
 
 # Keep third-party source references outside this repository.
 references/
