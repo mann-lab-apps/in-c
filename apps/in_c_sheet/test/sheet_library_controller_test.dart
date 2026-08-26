@@ -55,6 +55,9 @@ void main() {
       composer: 'Goedicke',
       tags: 'trumpet, Lesson, trumpet',
       note: 'Check high register.',
+      collection: 'Etudes',
+      group: 'Lesson A',
+      rating: 5,
     );
 
     final updated = controller.scores.single;
@@ -62,8 +65,13 @@ void main() {
     expect(updated.composer, 'Goedicke');
     expect(updated.tags, <String>['trumpet', 'Lesson']);
     expect(updated.note, 'Check high register.');
+    expect(updated.collection, 'Etudes');
+    expect(updated.group, 'Lesson A');
+    expect(updated.rating, 5);
 
     controller.updateQuery('register');
+    expect(controller.filteredScores.single.id, updated.id);
+    controller.updateQuery('etudes');
     expect(controller.filteredScores.single.id, updated.id);
   });
 
@@ -165,6 +173,46 @@ void main() {
       (await store.loadTunerSettings()).detectionProfile,
       SheetTunerDetectionProfile.bbTrumpet,
     );
+  });
+
+  test('clears library query and filters for empty result recovery', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        id: 'score-a',
+        title: 'Arban',
+        composer: 'Arban',
+        tags: const <String>['trumpet'],
+        collection: 'Methods',
+        group: 'Warmup',
+        rating: 4,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    controller.updateQuery('bach');
+    await controller.updateFavoriteFilter(true);
+    await controller.updateTagFilter('lesson');
+    await controller.updateCollectionFilter('Methods');
+    await controller.updateGroupFilter('Warmup');
+    await controller.updateMinimumRatingFilter(3);
+
+    expect(controller.filteredScores, isEmpty);
+
+    await controller.clearLibrarySearchAndFilters();
+
+    expect(controller.query, isEmpty);
+    expect(controller.libraryViewSettings.favoriteOnly, isFalse);
+    expect(controller.libraryViewSettings.tagQuery, isEmpty);
+    expect(controller.libraryViewSettings.collectionQuery, isEmpty);
+    expect(controller.libraryViewSettings.groupQuery, isEmpty);
+    expect(controller.libraryViewSettings.minimumRating, 0);
+    expect(controller.filteredScores.single.title, 'Arban');
   });
 
   test('updates score auto scroll settings', () async {
@@ -306,6 +354,9 @@ void main() {
         title: 'Zeta',
         composer: 'Bach',
         tags: const <String>['lesson'],
+        collection: 'Etudes',
+        group: 'Lesson A',
+        rating: 3,
         isFavorite: true,
         importedAt: now,
         lastOpenedAt: now.add(const Duration(minutes: 3)),
@@ -316,6 +367,9 @@ void main() {
         title: 'Alpha',
         composer: 'Chopin',
         tags: const <String>['recital'],
+        collection: 'Recital',
+        group: 'Solo',
+        rating: 5,
         importedAt: now.add(const Duration(minutes: 1)),
       ),
     ]);
@@ -335,6 +389,25 @@ void main() {
     await controller.updateFavoriteFilter(false);
     await controller.updateTagFilter('recital');
     expect(controller.filteredScores.single.id, 'score-2');
+
+    await controller.updateTagFilter('');
+    await controller.updateCollectionFilter('Etudes');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateCollectionFilter('');
+    await controller.updateGroupFilter('Solo');
+    expect(controller.filteredScores.single.id, 'score-2');
+
+    await controller.updateGroupFilter('');
+    await controller.updateMinimumRatingFilter(4);
+    expect(controller.filteredScores.single.id, 'score-2');
+
+    await controller.updateMinimumRatingFilter(0);
+    await controller.updateLibrarySortMode(SheetLibrarySortMode.rating);
+    expect(controller.filteredScores.map((score) => score.id), <String>[
+      'score-2',
+      'score-1',
+    ]);
 
     controller.updateQuery('alpha');
     expect(controller.filteredScores.single.id, 'score-2');
@@ -401,6 +474,10 @@ SheetScore _score(
   DateTime? importedAt,
   DateTime? lastOpenedAt,
   List<SheetBookmark> bookmarks = const <SheetBookmark>[],
+  String collection = '',
+  String group = '',
+  int rating = 0,
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
 }) {
   return SheetScore(
     id: id,
@@ -409,6 +486,10 @@ SheetScore _score(
     tags: tags,
     note: '',
     filePath: '/tmp/$id.pdf',
+    collection: collection,
+    group: group,
+    rating: rating,
+    linkedFiles: linkedFiles,
     importedAt: importedAt ?? now,
     updatedAt: now,
     lastOpenedAt: lastOpenedAt,

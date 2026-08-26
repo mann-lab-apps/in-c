@@ -22,10 +22,10 @@
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그 필터 |
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 2차 구현: ordered score list, 생성/이름 변경/삭제, 검색 추가, 제거/순서 이동, 첫 곡 열기 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
-| 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 세트리스트와 모델 분리 |
+| 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | library switching |
-| 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | custom fields |
-| 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | metadata model |
+| 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 21차 부분 구현: collection/group/rating. custom fields는 후속 |
+| 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
 | 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 15차 구현: JPG/PNG를 PDF 악보로 변환 등록. 이미지 원본 viewer와 HEIC는 후속 |
 | 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 15차 구현: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶어 등록 |
@@ -34,9 +34,9 @@
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
-| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | score-file relation |
+| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 부분 구현: linkedFiles metadata/backup round-trip. 관리 UI는 후속 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V2 | 중간 | CSV import, page range |
-| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | SAF persistent permission |
+| 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | system picker 우선 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
@@ -111,7 +111,7 @@
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
-| 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 19차 구현: 앱 내 version/build, 주요 테스트 항목, 피드백 정보 안내 |
+| 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | action registry |
 
 ## MVP Coverage
@@ -152,8 +152,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 
 ## V1 후보
 
-- collection, 여러 라이브러리, 고급 메타데이터 필드, group/rating.
-- HEIC 이미지 변환, 이미지 원본 viewer, 한 곡에 여러 파일 연결, 기존 폴더 직접 참조.
+- 여러 라이브러리, custom metadata fields. Collection/group/rating은 21차 구현.
+- HEIC 이미지 변환, 이미지 원본 viewer, 한 곡에 여러 파일 연결 UI, 기존 폴더 직접 참조.
 - iOS Share Extension이 필요한 출처 앱 대응.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.

@@ -92,6 +92,9 @@ void main() {
         sortMode: SheetLibrarySortMode.title,
         favoriteOnly: true,
         tagQuery: 'lesson',
+        collectionQuery: 'Etudes',
+        groupQuery: 'Lesson A',
+        minimumRating: 4,
       ),
     );
 
@@ -110,6 +113,9 @@ void main() {
     expect(loadedLibraryViewSettings.sortMode, SheetLibrarySortMode.title);
     expect(loadedLibraryViewSettings.favoriteOnly, isTrue);
     expect(loadedLibraryViewSettings.tagQuery, 'lesson');
+    expect(loadedLibraryViewSettings.collectionQuery, 'Etudes');
+    expect(loadedLibraryViewSettings.groupQuery, 'Lesson A');
+    expect(loadedLibraryViewSettings.minimumRating, 4);
   });
 
   test('loads legacy in_c_sheet preference keys after Clef rename', () async {
@@ -162,6 +168,17 @@ void main() {
       tags: const <String>['lesson'],
       note: '',
       filePath: '/tmp/sonata.pdf',
+      collection: 'Etudes',
+      group: 'Lesson A',
+      rating: 4,
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/tmp/sonata-part.pdf',
+          type: 'pdf',
+          label: 'Trumpet part',
+          createdAt: now,
+        ),
+      ],
       importedAt: now,
       updatedAt: now,
       lastOpenedAt: null,
@@ -198,6 +215,10 @@ void main() {
 
     expect(backup.version, SheetLibraryBackup.currentVersion);
     expect(backup.scores.single.filePath, '/tmp/sonata.pdf');
+    expect(backup.scores.single.collection, 'Etudes');
+    expect(backup.scores.single.group, 'Lesson A');
+    expect(backup.scores.single.rating, 4);
+    expect(backup.scores.single.linkedFiles.single.label, 'Trumpet part');
     expect(backup.toJson()['scope'], 'metadata-only');
 
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -205,7 +226,12 @@ void main() {
     final result = await restoreStore.restoreMetadataBackupJson(backupJson);
 
     expect(result.didRestore, isTrue);
-    expect((await restoreStore.loadScores()).single.title, 'Sonata');
+    final restoredScore = (await restoreStore.loadScores()).single;
+    expect(restoredScore.title, 'Sonata');
+    expect(restoredScore.collection, 'Etudes');
+    expect(restoredScore.group, 'Lesson A');
+    expect(restoredScore.rating, 4);
+    expect(restoredScore.linkedFiles.single.path, '/tmp/sonata-part.pdf');
     expect((await restoreStore.loadSetlists()).single.title, 'Recital');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);

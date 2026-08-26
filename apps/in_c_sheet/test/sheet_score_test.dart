@@ -15,6 +15,17 @@ void main() {
       tags: const <String>['lesson', 'trumpet'],
       note: 'Use second scan.',
       filePath: '/tmp/sonata.pdf',
+      collection: 'Etudes',
+      group: 'Lesson A',
+      rating: 4,
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/tmp/sonata-part.pdf',
+          type: 'pdf',
+          label: 'Trumpet part',
+          createdAt: importedAt,
+        ),
+      ],
       importedAt: importedAt,
       updatedAt: updatedAt,
       lastOpenedAt: openedAt,
@@ -67,6 +78,12 @@ void main() {
     expect(decoded, hasLength(1));
     expect(decoded.single.title, 'Sonata');
     expect(decoded.single.tags, <String>['lesson', 'trumpet']);
+    expect(decoded.single.collection, 'Etudes');
+    expect(decoded.single.group, 'Lesson A');
+    expect(decoded.single.rating, 4);
+    expect(decoded.single.linkedFiles.single.path, '/tmp/sonata-part.pdf');
+    expect(decoded.single.linkedFiles.single.type, 'pdf');
+    expect(decoded.single.linkedFiles.single.label, 'Trumpet part');
     expect(decoded.single.lastPage, 4);
     expect(decoded.single.isFavorite, isTrue);
     expect(decoded.single.bookmarks.single.pageNumber, 4);
@@ -125,6 +142,10 @@ void main() {
     expect(decoded.single.pageSettings.pageRotations, isEmpty);
     expect(decoded.single.pageSettings.crop.hasCrop, isFalse);
     expect(decoded.single.annotationLayer.strokes, isEmpty);
+    expect(decoded.single.collection, isEmpty);
+    expect(decoded.single.group, isEmpty);
+    expect(decoded.single.rating, 0);
+    expect(decoded.single.linkedFiles, isEmpty);
     expect(decoded.single.pdfLinkSanitization.hasSanitizedCopy, isFalse);
     expect(
       decoded.single.autoScrollSettings.durationSeconds,
@@ -132,27 +153,50 @@ void main() {
     );
   });
 
-  test('matches query across title, composer, tags, and note', () {
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final score = SheetScore(
-      id: 'score-1',
-      title: 'Aria',
-      composer: 'Bach',
-      tags: const <String>['recital'],
-      note: 'Check breath marks.',
-      filePath: '/tmp/aria.pdf',
-      importedAt: now,
-      updatedAt: now,
-      lastOpenedAt: null,
-      lastPage: 1,
-      isFavorite: false,
-      bookmarks: const <SheetBookmark>[],
-    );
+  test(
+    'matches query across title, composer, tags, collection, group, and note',
+    () {
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final score = SheetScore(
+        id: 'score-1',
+        title: 'Aria',
+        composer: 'Bach',
+        tags: const <String>['recital'],
+        note: 'Check breath marks.',
+        filePath: '/tmp/aria.pdf',
+        collection: 'Baroque Book',
+        group: 'Lesson A',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      );
 
-    expect(score.matches('bach'), isTrue);
-    expect(score.matches('RECITAL'), isTrue);
-    expect(score.matches('breath'), isTrue);
-    expect(score.matches('mozart'), isFalse);
+      expect(score.matches('bach'), isTrue);
+      expect(score.matches('RECITAL'), isTrue);
+      expect(score.matches('baroque'), isTrue);
+      expect(score.matches('lesson a'), isTrue);
+      expect(score.matches('breath'), isTrue);
+      expect(score.matches('mozart'), isFalse);
+    },
+  );
+
+  test('normalizes rating and linked file labels', () {
+    final linkedFile = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/parts/trumpet-1.pdf',
+      'type': '',
+      'label': '',
+      'createdAt': '2026-08-20T10:00:00.000',
+    });
+
+    expect(SheetScore.normalizeRating(-1), 0);
+    expect(SheetScore.normalizeRating(3), 3);
+    expect(SheetScore.normalizeRating('9'), 5);
+    expect(SheetScore.normalizeRating('bad'), 0);
+    expect(linkedFile.type, 'pdf');
+    expect(linkedFile.label, 'trumpet-1.pdf');
   });
 
   test('sorts decoded bookmarks by page number', () {

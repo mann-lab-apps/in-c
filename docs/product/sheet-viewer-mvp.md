@@ -171,8 +171,10 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 앱 내부 문서 저장소에 PDF 사본 저장.
 - 로컬 라이브러리 record 저장.
 - 라이브러리 목록, 검색, 즐겨찾기 표시.
-- 라이브러리 정렬/필터 1차: 최근 열기, 제목, 작곡가, 가져온 날짜 정렬, 즐겨찾기/태그 필터.
-- 악보 제목, 작곡가, 태그, 메모 편집.
+- 라이브러리 정렬/필터 1차: 최근 열기, 제목, 작곡가, 별점, 가져온 날짜 정렬,
+  즐겨찾기/태그/컬렉션/그룹/최소 별점 필터.
+- 악보 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모 편집.
+- 연결 파일 metadata 1차: 한 곡에 여러 보조 파일을 묶기 위한 저장 모델과 백업 round-trip.
 - `pdfrx` 기반 PDF viewer.
 - 이전/다음 페이지 이동.
 - 현재 페이지/전체 페이지 표시.
@@ -213,8 +215,9 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
   필기 포함 PDF 공유 사본 생성, 한글 텍스트 주석 PDF export 안전 fallback,
   JPG/PNG 이미지를 PDF 악보로 묶기.
 - 표시 효과 1차: 일반, 어두운 배경, 색상 반전.
-- 베타 전달 polish: 앱 내 테스트 정보/version 표시, 빈 라이브러리 CTA, viewer 오류 배너,
-  구체적인 import/share/export 실패 안내.
+- 베타 전달 polish: 앱 내 테스트 정보/version 표시, 피드백 템플릿 복사, 빈 라이브러리 CTA,
+  검색/필터 빈 결과 초기화, viewer 오류 배너, 구체적인 import/share/export 실패 안내,
+  외부 테스터 체크리스트와 베타 피드백 요청 메시지.
 
 URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막고, 사용자가 명시적으로
 선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. PDF visible watermark 제거는
@@ -228,8 +231,8 @@ Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 cue/pause/BPM sync,
 Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
 실제 crop-to-fit/export, 페이지 순서 변경/복제,
-실제 페이지 회전 렌더링/PDF 재저장, 한글 텍스트 PDF font embedding, ChordPro/text,
-HEIC 이미지 변환, iOS Share Extension,
+실제 페이지 회전 렌더링/PDF 재저장, 한글 텍스트 PDF font embedding, 연결 파일 관리 UI,
+여러 라이브러리 전환, 기존 폴더 직접 참조, ChordPro/text, HEIC 이미지 변환, iOS Share Extension,
 클라우드 동기화/자동 백업, 계정/서버 저장은 이후 단계로 남겨둔다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
 정리한다.

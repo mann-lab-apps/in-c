@@ -19,8 +19,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - JPG/PNG 이미지를 페이지별 PDF 악보로 묶어 라이브러리에 등록.
 - 로컬 라이브러리 record 저장.
 - 제목, 작곡가, 태그, 메모, 파일 경로, 최근 열기, 마지막 페이지, 즐겨찾기,
-  북마크, 곡별 보기 설정, 페이지 정리 metadata 필드.
-- 제목, 작곡가, 태그, 메모 편집.
+  북마크, 컬렉션, 그룹, 별점, 연결 파일, 곡별 보기 설정, 페이지 정리 metadata 필드.
+- 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모 편집.
 - 라이브러리 목록, 검색, 최근 열기/즐겨찾기 표시, 정렬/필터.
 - 세트리스트 생성, 이름 변경, 삭제.
 - 세트리스트 악보 검색 추가, 제거, 위/아래 순서 이동.
@@ -65,7 +65,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `pdfrx`는 자체 캐시와 progressive loading을 제공하지만, 실제 50-100페이지 스캔 PDF에서
   Android 태블릿 메모리/지연을 계측해야 한다.
 - 앱 내부 사본 저장은 MVP에 안전하지만, MobileSheets처럼 기존 폴더를 직접 참조하는
-  고급 사용성은 V1에서 별도 설계가 필요하다.
+  고급 사용성은 V1에서 별도 설계가 필요하다. 2026-08-26 기준으로 collection/group/rating과
+  linked file metadata를 먼저 구현했고, 기존 폴더 직접 참조는 SAF/iOS Files 권한 spike로 분리했다.
 - PDF link annotation 제거 사본 생성은 `pdf_document`로 구현했다. 원본 PDF는 보존하고,
   현재 score의 filePath를 정리된 앱 내부 사본으로 교체한다. Incremental save 특성상 forensic
   수준의 원본 object 완전 삭제가 필요한 요구는 별도 compact/rewrite 검토가 필요하다.
@@ -149,10 +150,20 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 라이브러리 정렬/필터/백업 1차 구조
 
-- `SheetLibraryViewSettings`에 sortMode, favoriteOnly, tagQuery를 저장한다.
-- sortMode는 최근 열기, 제목, 작곡가, 가져온 날짜를 지원한다.
-- 필터는 즐겨찾기와 태그 exact match 1차로 제한한다.
-- 검색 query와 정렬/필터는 같은 `filteredScores` 경로에서 함께 적용한다.
+- `SheetScore`는 제목, 작곡가, 태그, 메모에 더해 collection, group, rating,
+  linkedFiles metadata를 저장한다.
+- collection은 세트리스트와 독립된 라이브러리 분류이고, group은 레슨/파트/연주회 같은
+  보조 분류로 둔다.
+- rating은 0-5 정수로 저장하고 decode/copy 시 clamp한다.
+- linkedFiles는 한 곡에 여러 보조 파일을 연결하기 위한 모델이다. 이번 범위에서는 저장/백업
+  round-trip만 고정했고, 파일 추가/삭제/열기 UI는 후속이다.
+- `SheetLibraryViewSettings`에 sortMode, favoriteOnly, tagQuery, collectionQuery,
+  groupQuery, minimumRating을 저장한다.
+- sortMode는 최근 열기, 제목, 작곡가, 별점, 가져온 날짜를 지원한다.
+- 필터는 즐겨찾기, 태그 exact match, collection exact match, group exact match, 최소 별점을
+  지원한다.
+- 검색 query와 정렬/필터는 같은 `filteredScores` 경로에서 함께 적용하며, 검색 대상은 제목,
+  작곡가, 태그, 컬렉션, 그룹, 메모다.
 - 라이브러리 화면의 검색창 아래 chip bar에서 현재 정렬/필터를 조정한다.
 - `SheetLibraryBackup`은 metadata-only JSON이다.
 - 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings가 포함된다.
@@ -167,6 +178,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 전체 백업 복원은 ZIP manifest의 score id별 file mapping을 앱 내부 documents `scores/` 폴더에
   새로 쓰고, score metadata의 filePath를 복원된 내부 경로로 다시 매핑한다. export 시 파일이
   이미 사라진 악보는 manifest에 missing으로 기록하고 metadata만 유지한다.
+- 기존 폴더 직접 참조는 아직 구현하지 않는다. Android에서는 Storage Access Framework의
+  persistent permission, iOS에서는 security-scoped resource와 Files provider 동작 차이를 따로
+  검증해야 한다. 자세한 V1 후속 설계는
+  [`docs/architecture/clef-v1-library-organization.md`](clef-v1-library-organization.md)에 둔다.
 
 ## PDF 링크 정리 1차 구조
 
@@ -386,9 +401,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - 라이브러리 AppBar의 `테스트 정보`에서 앱 이름, version/build, 주요 QA 항목, 피드백에 포함할
   정보를 확인할 수 있다.
+- `테스트 정보`는 Flutter 기본 `Clipboard`로 피드백 템플릿을 복사한다. 템플릿에는 앱
+  version/build, 기기/OS, PDF 종류/페이지 수, 재현 단계, 기대/실제 결과, 오류 문구가 포함된다.
 - version/build는 1차에서 `pubspec.yaml`의 `1.0.0+1`과 맞춘 compile-time constant로 표시한다.
   package metadata 자동 읽기는 후속으로 분리한다.
 - 빈 라이브러리 화면은 PDF/JPG/PNG 가져오기 진입점과 테스트 항목 진입점을 제공한다.
+- 검색어 또는 즐겨찾기/태그 필터 때문에 목록이 비면 `검색/필터 초기화` 액션을 제공한다.
 - 주요 실패 문구는 테스터가 그대로 전달할 수 있게 다음 행동을 포함한다.
   - PDF import 실패: PDF 파일 여부와 외부 앱 접근 위치 확인.
   - 공유 PDF 파일 없음: 다시 가져오기 또는 전체 백업 복원.
@@ -397,6 +415,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   - 필기 포함 PDF export 실패: 원본 PDF와 앱 안 필기는 유지됨.
 - 외부 테스터 체크리스트는 [`docs/qa/clef-tester-checklist.md`](../qa/clef-tester-checklist.md)에
   둔다.
+- 베타 피드백 요청 메시지는
+  [`docs/qa/clef-beta-feedback-message.md`](../qa/clef-beta-feedback-message.md)에 둔다.
+- 배포 설정 점검:
+  - Android applicationId/namespace는 `com.mannlab.clef`다.
+  - Android는 `RECORD_AUDIO`, PDF `VIEW`/`SEND`/`SEND_MULTIPLE` intent-filter를 선언한다.
+  - iOS Bundle ID는 `com.mannlab.inc.clef`, provisioning profile specifier는 `Clef`다.
+  - iOS는 `public.pdf`/`com.adobe.pdf` document type과 `NSMicrophoneUsageDescription`을 선언한다.
 
 ## iOS smoke test 범위
 
@@ -589,3 +614,14 @@ spike로 유지한다. 페이지 순서 변경/복제/반복 삽입은 원본 PD
 font embedding 제약 때문에 export 사본에서 제외하고 개수를 안내한다. 한글 텍스트 주석만 있는
 경우에는 원본 PDF 공유로 fallback한다. 메트로놈은 기본 OFF `tick 소리` toggle을 추가했으며,
 Flutter system click sound 기반이라 accent 음색 구분과 latency 보장은 후속 검증 항목이다.
+
+2026-08-26 테스터 전달 polish에서는 테스트 정보 화면에 피드백 템플릿 복사 버튼을 추가하고,
+검색/필터 때문에 라이브러리 결과가 비는 경우 초기화 액션을 제공했다. 외부 전달용 QA
+체크리스트를 필수/선택/known issues 중심으로 재정리하고, TestFlight/APK 피드백 요청 메시지
+초안을 별도 문서로 추가했다. Android/iOS bundle identity, microphone permission, PDF open/share
+설정은 문서 기준으로 재확인했다.
+
+2026-08-26 V1 라이브러리 조직화 보강에서는 collection/group/rating을 `SheetScore` metadata와
+편집 UI에 추가하고, 검색/필터/별점 정렬에 반영했다. 또한 `SheetLinkedFile` 모델을 추가해
+파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 연결 파일 관리 UI,
+여러 라이브러리 전환, custom metadata fields, 기존 폴더 직접 참조는 후속 V1 작업으로 남긴다.

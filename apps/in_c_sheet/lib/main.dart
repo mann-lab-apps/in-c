@@ -311,6 +311,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       composer: result.composer,
       tags: result.tags,
       note: result.note,
+      collection: result.collection,
+      group: result.group,
+      rating: result.rating,
     );
   }
 
@@ -374,6 +377,102 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     );
     if (selected != null) {
       await controller.updateTagFilter(selected);
+    }
+  }
+
+  Future<void> _selectCollectionFilter() async {
+    final collections = controller.allCollections;
+    final selected = await _selectMetadataFilter(
+      title: '컬렉션',
+      currentValue: controller.libraryViewSettings.collectionQuery,
+      values: collections,
+      icon: Icons.collections_bookmark_outlined,
+    );
+    if (selected != null) {
+      await controller.updateCollectionFilter(selected);
+    }
+  }
+
+  Future<void> _selectGroupFilter() async {
+    final groups = controller.allGroups;
+    final selected = await _selectMetadataFilter(
+      title: '그룹',
+      currentValue: controller.libraryViewSettings.groupQuery,
+      values: groups,
+      icon: Icons.folder_outlined,
+    );
+    if (selected != null) {
+      await controller.updateGroupFilter(selected);
+    }
+  }
+
+  Future<String?> _selectMetadataFilter({
+    required String title,
+    required String currentValue,
+    required List<String> values,
+    required IconData icon,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            ListTile(
+              leading: Icon(icon),
+              title: Text('$title 전체'),
+              trailing: currentValue.isEmpty ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(context).pop(''),
+            ),
+            for (final value in values)
+              ListTile(
+                leading: Icon(icon),
+                title: Text(value),
+                trailing: currentValue == value
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(context).pop(value),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _selectRatingFilter() async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            ListTile(
+              leading: const Icon(Icons.star_border),
+              title: const Text('별점 전체'),
+              trailing: controller.libraryViewSettings.minimumRating == 0
+                  ? const Icon(Icons.check)
+                  : null,
+              onTap: () => Navigator.of(context).pop(0),
+            ),
+            for (var rating = 5; rating >= 1; rating -= 1)
+              ListTile(
+                leading: const Icon(Icons.star_outline),
+                title: Text('$rating점 이상'),
+                trailing: controller.libraryViewSettings.minimumRating == rating
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(context).pop(rating),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (selected != null) {
+      await controller.updateMinimumRatingFilter(selected);
     }
   }
 
@@ -606,6 +705,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         onSortPressed: _selectSortMode,
                         onFavoriteChanged: controller.updateFavoriteFilter,
                         onTagPressed: _selectTagFilter,
+                        onCollectionPressed: _selectCollectionFilter,
+                        onGroupPressed: _selectGroupFilter,
+                        onRatingPressed: _selectRatingFilter,
                       ),
                       const SizedBox(height: 14),
                       if (controller.errorMessage != null)
@@ -618,7 +720,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                             : scores.isEmpty
                             ? _EmptyLibrary(
                                 hasQuery: controller.query.isNotEmpty,
+                                hasFilter:
+                                    controller.libraryViewSettings.hasAnyFilter,
                                 onImportPressed: _showImportOptions,
+                                onClearPressed:
+                                    controller.clearLibrarySearchAndFilters,
                                 onTesterInfoPressed: _showTesterInfo,
                               )
                             : _ScoreGrid(
@@ -642,18 +748,49 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 }
 
-class _SearchField extends StatelessWidget {
+class _SearchField extends StatefulWidget {
   const _SearchField({required this.query, required this.onChanged});
 
   final String query;
   final ValueChanged<String> onChanged;
 
   @override
+  State<_SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<_SearchField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.query);
+  }
+
+  @override
+  void didUpdateWidget(covariant _SearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.query != _controller.text) {
+      _controller.text = widget.query;
+      _controller.selection = TextSelection.collapsed(
+        offset: _controller.text.length,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextField(
-      onChanged: onChanged,
+      controller: _controller,
+      onChanged: widget.onChanged,
       decoration: InputDecoration(
-        hintText: '제목, 작곡가, 태그 검색',
+        hintText: '제목, 작곡가, 태그, 컬렉션, 그룹 검색',
         prefixIcon: const Icon(Icons.search),
         filled: true,
         fillColor: Colors.white,
@@ -685,12 +822,18 @@ class _LibraryViewBar extends StatelessWidget {
     required this.onSortPressed,
     required this.onFavoriteChanged,
     required this.onTagPressed,
+    required this.onCollectionPressed,
+    required this.onGroupPressed,
+    required this.onRatingPressed,
   });
 
   final SheetLibraryViewSettings settings;
   final VoidCallback onSortPressed;
   final ValueChanged<bool> onFavoriteChanged;
   final VoidCallback onTagPressed;
+  final VoidCallback onCollectionPressed;
+  final VoidCallback onGroupPressed;
+  final VoidCallback onRatingPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -717,6 +860,33 @@ class _LibraryViewBar extends StatelessWidget {
           ),
           onPressed: onTagPressed,
         ),
+        ActionChip(
+          avatar: const Icon(Icons.collections_bookmark_outlined, size: 18),
+          label: Text(
+            settings.collectionQuery.isEmpty
+                ? '컬렉션: 전체'
+                : '컬렉션: ${settings.collectionQuery}',
+          ),
+          onPressed: onCollectionPressed,
+        ),
+        ActionChip(
+          avatar: const Icon(Icons.folder_outlined, size: 18),
+          label: Text(
+            settings.groupQuery.isEmpty
+                ? '그룹: 전체'
+                : '그룹: ${settings.groupQuery}',
+          ),
+          onPressed: onGroupPressed,
+        ),
+        ActionChip(
+          avatar: const Icon(Icons.star_rate_outlined, size: 18),
+          label: Text(
+            settings.minimumRating == 0
+                ? '별점: 전체'
+                : '별점: ${settings.minimumRating}+',
+          ),
+          onPressed: onRatingPressed,
+        ),
       ],
     );
   }
@@ -727,6 +897,7 @@ String _librarySortLabel(SheetLibrarySortMode sortMode) {
     SheetLibrarySortMode.recent => '최근 열기',
     SheetLibrarySortMode.title => '제목',
     SheetLibrarySortMode.composer => '작곡가',
+    SheetLibrarySortMode.rating => '별점',
     SheetLibrarySortMode.imported => '가져온 날짜',
   };
 }
@@ -736,6 +907,7 @@ IconData _librarySortIcon(SheetLibrarySortMode sortMode) {
     SheetLibrarySortMode.recent => Icons.history,
     SheetLibrarySortMode.title => Icons.sort_by_alpha,
     SheetLibrarySortMode.composer => Icons.person_outline,
+    SheetLibrarySortMode.rating => Icons.star_rate_outlined,
     SheetLibrarySortMode.imported => Icons.file_download_outlined,
   };
 }
@@ -808,68 +980,110 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
   final composerController = TextEditingController(text: score.composer);
   final tagsController = TextEditingController(text: score.tags.join(', '));
   final noteController = TextEditingController(text: score.note);
+  final collectionController = TextEditingController(text: score.collection);
+  final groupController = TextEditingController(text: score.group);
+  var rating = score.rating;
   try {
     return await showDialog<_ScoreMetadataInput>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('악보 정보 편집'),
-        content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 420),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: titleController,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: '제목'),
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: composerController,
-                  decoration: const InputDecoration(labelText: '작곡가'),
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: tagsController,
-                  decoration: const InputDecoration(labelText: '태그'),
-                  textInputAction: TextInputAction.next,
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: noteController,
-                  decoration: const InputDecoration(labelText: '메모'),
-                  maxLines: 3,
-                ),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(
-              _ScoreMetadataInput(
-                title: titleController.text,
-                composer: composerController.text,
-                tags: tagsController.text,
-                note: noteController.text,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('악보 정보 편집'),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: titleController,
+                    autofocus: true,
+                    decoration: const InputDecoration(labelText: '제목'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: composerController,
+                    decoration: const InputDecoration(labelText: '작곡가'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: tagsController,
+                    decoration: const InputDecoration(labelText: '태그'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: collectionController,
+                    decoration: const InputDecoration(labelText: '컬렉션'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: groupController,
+                    decoration: const InputDecoration(labelText: '그룹'),
+                    textInputAction: TextInputAction.next,
+                  ),
+                  const SizedBox(height: 10),
+                  DropdownButtonFormField<int>(
+                    initialValue: rating,
+                    decoration: const InputDecoration(labelText: '별점'),
+                    items: const [
+                      DropdownMenuItem(value: 0, child: Text('별점 없음')),
+                      DropdownMenuItem(value: 1, child: Text('1점')),
+                      DropdownMenuItem(value: 2, child: Text('2점')),
+                      DropdownMenuItem(value: 3, child: Text('3점')),
+                      DropdownMenuItem(value: 4, child: Text('4점')),
+                      DropdownMenuItem(value: 5, child: Text('5점')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        setDialogState(() {
+                          rating = value;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: noteController,
+                    decoration: const InputDecoration(labelText: '메모'),
+                    maxLines: 3,
+                  ),
+                ],
               ),
             ),
-            child: const Text('저장'),
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(
+                _ScoreMetadataInput(
+                  title: titleController.text,
+                  composer: composerController.text,
+                  tags: tagsController.text,
+                  collection: collectionController.text,
+                  group: groupController.text,
+                  rating: rating,
+                  note: noteController.text,
+                ),
+              ),
+              child: const Text('저장'),
+            ),
+          ],
+        ),
       ),
     );
   } finally {
     titleController.dispose();
     composerController.dispose();
     tagsController.dispose();
+    collectionController.dispose();
+    groupController.dispose();
     noteController.dispose();
   }
 }
@@ -879,12 +1093,18 @@ class _ScoreMetadataInput {
     required this.title,
     required this.composer,
     required this.tags,
+    required this.collection,
+    required this.group,
+    required this.rating,
     required this.note,
   });
 
   final String title;
   final String composer;
   final String tags;
+  final String collection;
+  final String group;
+  final int rating;
   final String note;
 }
 
@@ -897,16 +1117,21 @@ String _formatShortDate(DateTime value) {
 class _EmptyLibrary extends StatelessWidget {
   const _EmptyLibrary({
     required this.hasQuery,
+    required this.hasFilter,
     required this.onImportPressed,
+    required this.onClearPressed,
     required this.onTesterInfoPressed,
   });
 
   final bool hasQuery;
+  final bool hasFilter;
   final VoidCallback onImportPressed;
+  final VoidCallback onClearPressed;
   final VoidCallback onTesterInfoPressed;
 
   @override
   Widget build(BuildContext context) {
+    final isFilteredEmpty = hasQuery || hasFilter;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
@@ -920,12 +1145,25 @@ class _EmptyLibrary extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              hasQuery ? '검색 결과가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
+              isFilteredEmpty ? '조건에 맞는 악보가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleMedium
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
-            if (!hasQuery) ...[
+            if (isFilteredEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 18),
+              OutlinedButton.icon(
+                onPressed: onClearPressed,
+                icon: const Icon(Icons.filter_alt_off_outlined),
+                label: const Text('검색/필터 초기화'),
+              ),
+            ] else ...[
               const SizedBox(height: 8),
               Text(
                 'PDF 또는 JPG/PNG 이미지를 가져와 Clef 라이브러리에 등록할 수 있습니다.',
@@ -974,6 +1212,22 @@ class _TesterInfoSheet extends StatelessWidget {
     '백업/복원',
   ];
 
+  static String feedbackTemplate(String appVersion) {
+    return '''
+Clef 피드백
+
+앱 버전/build: $appVersion
+기기/OS:
+PDF 종류/페이지 수:
+한 일:
+기대한 결과:
+실제 결과:
+표시된 오류 문구:
+재현 가능 여부:
+'''
+        .trim();
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1019,6 +1273,21 @@ class _TesterInfoSheet extends StatelessWidget {
           Text(
             '피드백에는 기기명, OS 버전, PDF 종류, 재현 단계를 같이 적어주세요.',
             style: theme.textTheme.bodySmall,
+          ),
+          const SizedBox(height: 14),
+          FilledButton.icon(
+            onPressed: () async {
+              await Clipboard.setData(
+                ClipboardData(text: feedbackTemplate(appVersion)),
+              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('피드백 템플릿을 복사했습니다.')),
+                );
+              }
+            },
+            icon: const Icon(Icons.content_copy),
+            label: const Text('피드백 템플릿 복사'),
           ),
         ],
       ),
@@ -1122,6 +1391,11 @@ class _ScoreTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tags = score.tags.isEmpty ? '태그 없음' : score.tags.join(', ');
+    final organization = <String>[
+      if (score.collection.isNotEmpty) score.collection,
+      if (score.group.isNotEmpty) score.group,
+      if (score.rating > 0) '${score.rating}점',
+    ].join(' · ');
     final lastOpened = score.lastOpenedAt == null
         ? '아직 열지 않음'
         : '최근 ${_formatShortDate(score.lastOpenedAt!)}';
@@ -1182,7 +1456,17 @@ class _ScoreTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 18),
+              if (organization.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  organization,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ],
+              const Spacer(),
               Text(
                 '$tags · $lastOpened · ${score.lastPage}쪽',
                 maxLines: 1,

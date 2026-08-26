@@ -52,6 +52,26 @@ class SheetLibraryController extends ChangeNotifier {
     return List<String>.unmodifiable(tags);
   }
 
+  List<String> get allCollections {
+    final collections = _scores
+        .map((score) => score.collection.trim())
+        .where((collection) => collection.isNotEmpty)
+        .toSet()
+        .toList();
+    collections.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return List<String>.unmodifiable(collections);
+  }
+
+  List<String> get allGroups {
+    final groups = _scores
+        .map((score) => score.group.trim())
+        .where((group) => group.isNotEmpty)
+        .toSet()
+        .toList();
+    groups.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return List<String>.unmodifiable(groups);
+  }
+
   Future<void> load() async {
     _setLoading(true);
     try {
@@ -261,6 +281,9 @@ class SheetLibraryController extends ChangeNotifier {
     required String composer,
     required String tags,
     required String note,
+    String? collection,
+    String? group,
+    int? rating,
   }) async {
     await _replace(
       score.copyWith(
@@ -268,6 +291,9 @@ class SheetLibraryController extends ChangeNotifier {
         composer: composer.trim(),
         tags: _normalizeTags(tags),
         note: note.trim(),
+        collection: _normalizeOptionalMetadata(collection ?? score.collection),
+        group: _normalizeOptionalMetadata(group ?? score.group),
+        rating: SheetScore.normalizeRating(rating ?? score.rating),
         updatedAt: DateTime.now(),
       ),
     );
@@ -550,6 +576,37 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateCollectionFilter(String collectionQuery) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(collectionQuery: collectionQuery),
+    );
+  }
+
+  Future<void> updateGroupFilter(String groupQuery) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(groupQuery: groupQuery),
+    );
+  }
+
+  Future<void> updateMinimumRatingFilter(int minimumRating) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(minimumRating: minimumRating),
+    );
+  }
+
+  Future<void> clearLibrarySearchAndFilters() async {
+    _query = '';
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(
+        favoriteOnly: false,
+        tagQuery: '',
+        collectionQuery: '',
+        groupQuery: '',
+        minimumRating: 0,
+      ),
+    );
+  }
+
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
     return store.exportMetadataBackup();
   }
@@ -722,6 +779,10 @@ class SheetLibraryController extends ChangeNotifier {
         .where((tag) => tag.isNotEmpty)
         .where((tag) => seen.add(tag.toLowerCase()))
         .toList(growable: false);
+  }
+
+  String _normalizeOptionalMetadata(String value) {
+    return value.trim();
   }
 
   void _setLoading(bool value) {

@@ -398,6 +398,66 @@ class SheetPdfLinkSanitization {
   }
 }
 
+class SheetLinkedFile {
+  const SheetLinkedFile({
+    required this.path,
+    required this.type,
+    required this.label,
+    required this.createdAt,
+  });
+
+  factory SheetLinkedFile.fromJson(Map<String, Object?> json) {
+    final path = json['path'] as String? ?? '';
+    final type = json['type'] as String? ?? 'pdf';
+    final label = json['label'] as String? ?? '';
+    final createdAt = json['createdAt'] is String
+        ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime(1970)
+        : DateTime(1970);
+    return SheetLinkedFile(
+      path: path,
+      type: type.trim().isEmpty ? 'pdf' : type.trim(),
+      label: label.trim().isEmpty ? _fallbackLabel(path) : label.trim(),
+      createdAt: createdAt,
+    );
+  }
+
+  final String path;
+  final String type;
+  final String label;
+  final DateTime createdAt;
+
+  SheetLinkedFile copyWith({
+    String? path,
+    String? type,
+    String? label,
+    DateTime? createdAt,
+  }) {
+    return SheetLinkedFile(
+      path: path ?? this.path,
+      type: type ?? this.type,
+      label: label ?? this.label,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'path': path,
+      'type': type,
+      'label': label,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  static String _fallbackLabel(String path) {
+    final normalized = path.trim();
+    if (normalized.isEmpty) {
+      return '연결 파일';
+    }
+    return normalized.split('/').last;
+  }
+}
+
 class SheetScore {
   const SheetScore({
     required this.id,
@@ -406,6 +466,10 @@ class SheetScore {
     required this.tags,
     required this.note,
     required this.filePath,
+    this.collection = '',
+    this.group = '',
+    this.rating = 0,
+    this.linkedFiles = const <SheetLinkedFile>[],
     required this.importedAt,
     required this.updatedAt,
     required this.lastOpenedAt,
@@ -429,6 +493,10 @@ class SheetScore {
           .toList(growable: false),
       note: json['note'] as String? ?? '',
       filePath: json['filePath'] as String,
+      collection: (json['collection'] as String? ?? '').trim(),
+      group: (json['group'] as String? ?? '').trim(),
+      rating: normalizeRating(json['rating']),
+      linkedFiles: _parseLinkedFiles(json['linkedFiles']),
       importedAt: DateTime.parse(json['importedAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       lastOpenedAt: _parseOptionalDate(json['lastOpenedAt']),
@@ -479,6 +547,10 @@ class SheetScore {
   final List<String> tags;
   final String note;
   final String filePath;
+  final String collection;
+  final String group;
+  final int rating;
+  final List<SheetLinkedFile> linkedFiles;
   final DateTime importedAt;
   final DateTime updatedAt;
   final DateTime? lastOpenedAt;
@@ -500,6 +572,8 @@ class SheetScore {
     return title.toLowerCase().contains(normalized) ||
         composer.toLowerCase().contains(normalized) ||
         tags.any((tag) => tag.toLowerCase().contains(normalized)) ||
+        collection.toLowerCase().contains(normalized) ||
+        group.toLowerCase().contains(normalized) ||
         note.toLowerCase().contains(normalized);
   }
 
@@ -509,6 +583,10 @@ class SheetScore {
     List<String>? tags,
     String? note,
     String? filePath,
+    String? collection,
+    String? group,
+    int? rating,
+    List<SheetLinkedFile>? linkedFiles,
     DateTime? updatedAt,
     DateTime? lastOpenedAt,
     int? lastPage,
@@ -527,6 +605,10 @@ class SheetScore {
       tags: tags ?? this.tags,
       note: note ?? this.note,
       filePath: filePath ?? this.filePath,
+      collection: collection ?? this.collection,
+      group: group ?? this.group,
+      rating: normalizeRating(rating ?? this.rating),
+      linkedFiles: linkedFiles ?? this.linkedFiles,
       importedAt: importedAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
@@ -549,6 +631,10 @@ class SheetScore {
       'tags': tags,
       'note': note,
       'filePath': filePath,
+      'collection': collection,
+      'group': group,
+      'rating': rating,
+      'linkedFiles': linkedFiles.map((file) => file.toJson()).toList(),
       'importedAt': importedAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'lastOpenedAt': lastOpenedAt?.toIso8601String(),
@@ -570,6 +656,20 @@ class SheetScore {
         .toList();
     bookmarks.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
     return List<SheetBookmark>.unmodifiable(bookmarks);
+  }
+
+  static List<SheetLinkedFile> _parseLinkedFiles(Object? value) {
+    final files = (value as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, Object?>>()
+        .map(SheetLinkedFile.fromJson)
+        .where((file) => file.path.trim().isNotEmpty)
+        .toList(growable: false);
+    return List<SheetLinkedFile>.unmodifiable(files);
+  }
+
+  static int normalizeRating(Object? value) {
+    final rating = value is int ? value : int.tryParse(value.toString());
+    return (rating ?? 0).clamp(0, 5).toInt();
   }
 
   static DateTime? _parseOptionalDate(Object? value) {
