@@ -176,10 +176,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _TesterInfoSheet(
-        appVersion: _clefAppVersion,
-        controller: controller,
-      ),
+      builder: (context) =>
+          _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
     );
   }
 
@@ -215,6 +213,88 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _importImagesAsPdf();
       case null:
         return;
+    }
+  }
+
+  Future<void> _showLibrarySwitcher() async {
+    final action = await showModalBottomSheet<_LibraryProfileAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _LibraryProfileSheet(
+        activeCollection: controller.libraryViewSettings.collectionQuery,
+        facets: controller.collectionFacets,
+      ),
+    );
+    if (!mounted || action == null) {
+      return;
+    }
+
+    switch (action.type) {
+      case _LibraryProfileActionType.all:
+        await controller.updateCollectionFilter('');
+      case _LibraryProfileActionType.select:
+        await controller.updateCollectionFilter(action.collection);
+      case _LibraryProfileActionType.create:
+        final name = await _showTextEntryDialog(
+          context: context,
+          title: '라이브러리 만들기',
+          label: '라이브러리 이름',
+          initialValue: '',
+        );
+        if (!mounted || name == null) {
+          return;
+        }
+        await controller.createCollectionLibrary(name);
+      case _LibraryProfileActionType.rename:
+        final name = await _showTextEntryDialog(
+          context: context,
+          title: '라이브러리 이름 변경',
+          label: '새 이름',
+          initialValue: action.collection,
+        );
+        if (!mounted || name == null) {
+          return;
+        }
+        final changed = await controller.renameCollectionLibrary(
+          from: action.collection,
+          to: name,
+        );
+        if (changed > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$changed개 악보의 라이브러리 이름을 변경했습니다.')),
+          );
+        }
+      case _LibraryProfileActionType.delete:
+        final didConfirm = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('라이브러리 비우기'),
+            content: Text(
+              '"${action.collection}" 라이브러리의 악보 파일은 삭제하지 않고, 악보의 컬렉션 값만 비웁니다.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('비우기'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted || didConfirm != true) {
+          return;
+        }
+        final changed = await controller.clearCollectionLibrary(
+          action.collection,
+        );
+        if (changed > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$changed개 악보를 전체 라이브러리로 이동했습니다.')),
+          );
+        }
     }
   }
 
@@ -374,6 +454,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       group: result.group,
       rating: result.rating,
       linkedFiles: result.linkedFiles,
+      customFields: result.customFields,
     );
   }
 
@@ -696,18 +777,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _isBulkSelecting
-              ? '${_bulkSelectedScoreIds.length}개 선택'
-              : 'Clef',
+          _isBulkSelecting ? '${_bulkSelectedScoreIds.length}개 선택' : 'Clef',
         ),
         actions: [
           IconButton(
             tooltip: _isBulkSelecting ? '선택 취소' : '여러 악보 선택',
             onPressed: _toggleBulkSelectionMode,
             icon: Icon(
-              _isBulkSelecting
-                  ? Icons.close
-                  : Icons.checklist_rtl_outlined,
+              _isBulkSelecting ? Icons.close : Icons.checklist_rtl_outlined,
             ),
           ),
           IconButton(
@@ -817,6 +894,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         onChanged: controller.updateQuery,
                       ),
                       const SizedBox(height: 10),
+                      _LibraryProfileBar(
+                        activeCollection:
+                            controller.libraryViewSettings.collectionQuery,
+                        visibleCount: scores.length,
+                        totalCount: controller.scores.length,
+                        onPressed: _showLibrarySwitcher,
+                      ),
+                      const SizedBox(height: 10),
                       _LibraryViewBar(
                         settings: controller.libraryViewSettings,
                         onSortPressed: _selectSortMode,
@@ -833,14 +918,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         ratingFacets: controller.ratingFacets,
                         selectedCollection:
                             controller.libraryViewSettings.collectionQuery,
-                        selectedGroup: controller.libraryViewSettings.groupQuery,
+                        selectedGroup:
+                            controller.libraryViewSettings.groupQuery,
                         selectedMinimumRating:
                             controller.libraryViewSettings.minimumRating,
-                        onCollectionSelected:
-                            controller.updateCollectionFilter,
+                        onCollectionSelected: controller.updateCollectionFilter,
                         onGroupSelected: controller.updateGroupFilter,
-                        onRatingSelected:
-                            controller.updateMinimumRatingFilter,
+                        onRatingSelected: controller.updateMinimumRatingFilter,
                       ),
                       const SizedBox(height: 14),
                       if (controller.errorMessage != null)
@@ -852,15 +936,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               controller.favoriteScores.isNotEmpty ||
                               controller.recentScores.isNotEmpty)) ...[
                         _QuickAccessBand(
-                          pinnedScores: controller.pinnedScores.take(8).toList(
-                            growable: false,
-                          ),
+                          pinnedScores: controller.pinnedScores
+                              .take(8)
+                              .toList(growable: false),
                           favoriteScores: controller.favoriteScores
                               .take(8)
                               .toList(growable: false),
-                          recentScores: controller.recentScores.take(8).toList(
-                            growable: false,
-                          ),
+                          recentScores: controller.recentScores
+                              .take(8)
+                              .toList(growable: false),
                           onOpen: _openScore,
                         ),
                         const SizedBox(height: 14),
@@ -945,7 +1029,7 @@ class _SearchFieldState extends State<_SearchField> {
       controller: _controller,
       onChanged: widget.onChanged,
       decoration: InputDecoration(
-        hintText: '제목, 작곡가, 태그, 컬렉션, 그룹 검색',
+        hintText: '제목, 작곡가, 태그, 컬렉션, 사용자 필드 검색',
         prefixIcon: const Icon(Icons.search),
         filled: true,
         fillColor: Colors.white,
@@ -967,8 +1051,143 @@ enum _LibraryBackupAction {
 
 enum _LibraryImportAction { pdf, images }
 
+enum _LibraryProfileActionType { all, select, create, rename, delete }
+
+class _LibraryProfileAction {
+  const _LibraryProfileAction(this.type, [this.collection = '']);
+
+  final _LibraryProfileActionType type;
+  final String collection;
+}
+
 List<SheetSharedImportFile> _parseSharedImportFiles(Object? value) {
   return normalizeSharedImportPayload(value);
+}
+
+class _LibraryProfileBar extends StatelessWidget {
+  const _LibraryProfileBar({
+    required this.activeCollection,
+    required this.visibleCount,
+    required this.totalCount,
+    required this.onPressed,
+  });
+
+  final String activeCollection;
+  final int visibleCount;
+  final int totalCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isScoped = activeCollection.trim().isNotEmpty;
+    final title = isScoped ? activeCollection.trim() : '전체 라이브러리';
+    final subtitle = isScoped
+        ? '$visibleCount곡 표시 · 전체 $totalCount곡'
+        : '$totalCount곡';
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: ListTile(
+        leading: Icon(
+          isScoped ? Icons.collections_bookmark : Icons.library_music_outlined,
+        ),
+        title: Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w900),
+        ),
+        subtitle: Text(subtitle),
+        trailing: const Icon(Icons.expand_more),
+        onTap: onPressed,
+      ),
+    );
+  }
+}
+
+class _LibraryProfileSheet extends StatelessWidget {
+  const _LibraryProfileSheet({
+    required this.activeCollection,
+    required this.facets,
+  });
+
+  final String activeCollection;
+  final List<SheetLibraryFacet> facets;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = activeCollection.trim();
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        children: [
+          ListTile(
+            leading: const Icon(Icons.library_music_outlined),
+            title: const Text('전체 라이브러리'),
+            subtitle: const Text('모든 악보 보기'),
+            trailing: active.isEmpty ? const Icon(Icons.check) : null,
+            onTap: () => Navigator.of(
+              context,
+            ).pop(const _LibraryProfileAction(_LibraryProfileActionType.all)),
+          ),
+          const Divider(),
+          for (final facet in facets)
+            ListTile(
+              leading: const Icon(Icons.collections_bookmark_outlined),
+              title: Text(
+                facet.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text('${facet.count}곡'),
+              trailing: Wrap(
+                spacing: 0,
+                children: [
+                  if (facet.value == active) const Icon(Icons.check),
+                  IconButton(
+                    tooltip: '이름 변경',
+                    onPressed: () => Navigator.of(context).pop(
+                      _LibraryProfileAction(
+                        _LibraryProfileActionType.rename,
+                        facet.value,
+                      ),
+                    ),
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
+                  IconButton(
+                    tooltip: '라이브러리 비우기',
+                    onPressed: () => Navigator.of(context).pop(
+                      _LibraryProfileAction(
+                        _LibraryProfileActionType.delete,
+                        facet.value,
+                      ),
+                    ),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ],
+              ),
+              onTap: () => Navigator.of(context).pop(
+                _LibraryProfileAction(
+                  _LibraryProfileActionType.select,
+                  facet.value,
+                ),
+              ),
+            ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.add),
+            title: const Text('새 라이브러리'),
+            subtitle: const Text('새로 가져오는 악보를 이 이름으로 묶기'),
+            onTap: () => Navigator.of(context).pop(
+              const _LibraryProfileAction(_LibraryProfileActionType.create),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _LibraryViewBar extends StatelessWidget {
@@ -1322,11 +1541,7 @@ String _cropPresetScopeLabel(String scope) {
 enum _LinkedFileActionType { open, updateRole, remove }
 
 class _LinkedFileAction {
-  const _LinkedFileAction({
-    required this.type,
-    required this.file,
-    this.role,
-  });
+  const _LinkedFileAction({required this.type, required this.file, this.role});
 
   final _LinkedFileActionType type;
   final SheetLinkedFile file;
@@ -1336,10 +1551,7 @@ class _LinkedFileAction {
 enum _RehearsalMarkActionType { add, jump, edit, remove }
 
 class _RehearsalMarkAction {
-  const _RehearsalMarkAction({
-    required this.type,
-    this.mark,
-  });
+  const _RehearsalMarkAction({required this.type, this.mark});
 
   final _RehearsalMarkActionType type;
   final SheetRehearsalMark? mark;
@@ -1348,10 +1560,7 @@ class _RehearsalMarkAction {
 enum _CropPresetActionType { add, apply, remove }
 
 class _CropPresetAction {
-  const _CropPresetAction({
-    required this.type,
-    this.preset,
-  });
+  const _CropPresetAction({required this.type, this.preset});
 
   final _CropPresetActionType type;
   final SheetCropPreset? preset;
@@ -1369,6 +1578,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
   final collectionController = TextEditingController(text: score.collection);
   final groupController = TextEditingController(text: score.group);
   var linkedFiles = score.linkedFiles.toList(growable: true);
+  var customFields = score.customFields.toList(growable: true);
   var rating = score.rating;
   try {
     return await showDialog<_ScoreMetadataInput>(
@@ -1483,6 +1693,44 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                       });
                     },
                   ),
+                  const SizedBox(height: 14),
+                  _CustomFieldsEditor(
+                    fields: customFields,
+                    onAdd: () async {
+                      final field = await _showCustomFieldDialog(
+                        context: context,
+                      );
+                      if (field == null) {
+                        return;
+                      }
+                      setDialogState(() {
+                        customFields.add(field);
+                        customFields = SheetScore.normalizeCustomFields(
+                          customFields,
+                        ).toList(growable: true);
+                      });
+                    },
+                    onEdit: (index) async {
+                      final field = await _showCustomFieldDialog(
+                        context: context,
+                        initialField: customFields[index],
+                      );
+                      if (field == null) {
+                        return;
+                      }
+                      setDialogState(() {
+                        customFields[index] = field;
+                        customFields = SheetScore.normalizeCustomFields(
+                          customFields,
+                        ).toList(growable: true);
+                      });
+                    },
+                    onRemove: (index) {
+                      setDialogState(() {
+                        customFields.removeAt(index);
+                      });
+                    },
+                  ),
                 ],
               ),
             ),
@@ -1503,6 +1751,7 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                   rating: rating,
                   note: noteController.text,
                   linkedFiles: List<SheetLinkedFile>.unmodifiable(linkedFiles),
+                  customFields: SheetScore.normalizeCustomFields(customFields),
                 ),
               ),
               child: const Text('저장'),
@@ -1518,6 +1767,69 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
     collectionController.dispose();
     groupController.dispose();
     noteController.dispose();
+  }
+}
+
+Future<SheetCustomMetadataField?> _showCustomFieldDialog({
+  required BuildContext context,
+  SheetCustomMetadataField? initialField,
+}) async {
+  final keyController = TextEditingController(text: initialField?.key ?? '');
+  final valueController = TextEditingController(
+    text: initialField?.value ?? '',
+  );
+  try {
+    return await showDialog<SheetCustomMetadataField>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(initialField == null ? '필드 추가' : '필드 수정'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: keyController,
+              autofocus: true,
+              decoration: const InputDecoration(labelText: '이름'),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: valueController,
+              decoration: const InputDecoration(labelText: '값'),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) {
+                Navigator.of(context).pop(
+                  SheetCustomMetadataField(
+                    key: keyController.text,
+                    value: valueController.text,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(context).pop(
+                SheetCustomMetadataField(
+                  key: keyController.text,
+                  value: valueController.text,
+                ),
+              );
+            },
+            child: const Text('저장'),
+          ),
+        ],
+      ),
+    );
+  } finally {
+    keyController.dispose();
+    valueController.dispose();
   }
 }
 
@@ -1560,10 +1872,7 @@ class _LinkedFilesEditor extends StatelessWidget {
             ),
           ),
           if (linkedFiles.isEmpty)
-            Text(
-              '연결된 파트보/참고 파일 없음',
-              style: theme.textTheme.bodySmall,
-            )
+            Text('연결된 파트보/참고 파일 없음', style: theme.textTheme.bodySmall)
           else
             for (var index = 0; index < linkedFiles.length; index += 1)
               ListTile(
@@ -1615,6 +1924,82 @@ class _LinkedFilesEditor extends StatelessWidget {
   }
 }
 
+class _CustomFieldsEditor extends StatelessWidget {
+  const _CustomFieldsEditor({
+    required this.fields,
+    required this.onAdd,
+    required this.onEdit,
+    required this.onRemove,
+  });
+
+  final List<SheetCustomMetadataField> fields;
+  final Future<void> Function() onAdd;
+  final ValueChanged<int> onEdit;
+  final ValueChanged<int> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '사용자 필드',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: onAdd,
+              icon: const Icon(Icons.add),
+              label: const Text('필드 추가'),
+            ),
+          ),
+          if (fields.isEmpty)
+            Text('추가 metadata 없음', style: theme.textTheme.bodySmall)
+          else
+            for (var index = 0; index < fields.length; index += 1)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.notes_outlined),
+                title: Text(
+                  fields[index].key,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  fields[index].value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: Wrap(
+                  spacing: 0,
+                  children: [
+                    IconButton(
+                      tooltip: '필드 수정',
+                      onPressed: () => onEdit(index),
+                      icon: const Icon(Icons.edit_outlined),
+                    ),
+                    IconButton(
+                      tooltip: '필드 삭제',
+                      onPressed: () => onRemove(index),
+                      icon: const Icon(Icons.delete_outline),
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ScoreMetadataInput {
   const _ScoreMetadataInput({
     required this.title,
@@ -1625,6 +2010,7 @@ class _ScoreMetadataInput {
     required this.rating,
     required this.note,
     required this.linkedFiles,
+    required this.customFields,
   });
 
   final String title;
@@ -1635,6 +2021,7 @@ class _ScoreMetadataInput {
   final int rating;
   final String note;
   final List<SheetLinkedFile> linkedFiles;
+  final List<SheetCustomMetadataField> customFields;
 }
 
 String _formatShortDate(DateTime value) {
@@ -1740,10 +2127,7 @@ class _EmptyLibrary extends StatelessWidget {
 }
 
 class _TesterInfoSheet extends StatelessWidget {
-  const _TesterInfoSheet({
-    required this.appVersion,
-    required this.controller,
-  });
+  const _TesterInfoSheet({required this.appVersion, required this.controller});
 
   final String appVersion;
   final SheetLibraryController controller;
@@ -1783,8 +2167,9 @@ ${_debugSummary()}
     final setlists = controller.setlists;
     final favoriteCount = scores.where((score) => score.isFavorite).length;
     final pinnedCount = scores.where((score) => score.isPinned).length;
-    final externalAnnotationCount =
-        scores.where((score) => score.annotationStorage.isExternal).length;
+    final externalAnnotationCount = scores
+        .where((score) => score.annotationStorage.isExternal)
+        .length;
     final customPedalCount = scores
         .where(
           (score) =>
@@ -1818,7 +2203,8 @@ annotations=strokes:$strokeCount texts:$textCount redo:$redoCount points:$pointC
 externalAnnotationScores=$externalAnnotationCount
 customPedalScores=$customPedalCount
 pageMetadataScores=$pageMetadataCount
-'''.trim();
+'''
+        .trim();
   }
 
   static bool _scoreHasPageMetadata(SheetScore score) {
@@ -1840,8 +2226,9 @@ pageMetadataScores=$pageMetadataCount
     final favoriteCount = scores.where((score) => score.isFavorite).length;
     final pinnedCount = scores.where((score) => score.isPinned).length;
     final annotationSummary = _annotationSummaryLabel(scores);
-    final externalAnnotationCount =
-        scores.where((score) => score.annotationStorage.isExternal).length;
+    final externalAnnotationCount = scores
+        .where((score) => score.annotationStorage.isExternal)
+        .length;
     final customPedalCount = scores
         .where(
           (score) =>
@@ -1877,10 +2264,7 @@ pageMetadataScores=$pageMetadataCount
           _InfoRow(label: '세트리스트', value: '${setlists.length}개'),
           _InfoRow(label: '즐겨찾기/고정', value: '$favoriteCount/$pinnedCount'),
           _InfoRow(label: '필기 요약', value: annotationSummary),
-          _InfoRow(
-            label: '외부 필기 저장소',
-            value: '$externalAnnotationCount개 악보',
-          ),
+          _InfoRow(label: '외부 필기 저장소', value: '$externalAnnotationCount개 악보'),
           _InfoRow(label: 'Custom pedal', value: '$customPedalCount개 악보'),
           _InfoRow(label: 'Page metadata', value: '$pageMetadataCount개 악보'),
           const SizedBox(height: 18),
@@ -1906,9 +2290,7 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: () async {
-              await Clipboard.setData(
-                ClipboardData(text: feedbackTemplate()),
-              );
+              await Clipboard.setData(ClipboardData(text: feedbackTemplate()));
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('피드백 템플릿을 복사했습니다.')),
@@ -2003,7 +2385,8 @@ $viewerSummary
 
 Recent input:
 $log
-'''.trim();
+'''
+        .trim();
   }
 
   @override
@@ -2103,11 +2486,7 @@ class _QuickAccessBand extends StatelessWidget {
         icon: Icons.star,
         scores: favoriteScores,
       ),
-      _QuickAccessGroup(
-        label: '최근',
-        icon: Icons.history,
-        scores: recentScores,
-      ),
+      _QuickAccessGroup(label: '최근', icon: Icons.history, scores: recentScores),
     ].where((group) => group.scores.isNotEmpty).toList(growable: false);
     if (groups.isEmpty) {
       return const SizedBox.shrink();
@@ -2220,7 +2599,9 @@ class _QuickAccessScoreChip extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  score.composer.isEmpty ? '${score.lastPage}쪽' : score.composer,
+                  score.composer.isEmpty
+                      ? '${score.lastPage}쪽'
+                      : score.composer,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
@@ -2315,9 +2696,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
           children: [
             Text(
               '일괄 편집',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -2341,7 +2721,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
             ),
             const SizedBox(height: 10),
             DropdownButtonFormField<int?>(
-              value: _rating,
+              initialValue: _rating,
               decoration: const InputDecoration(labelText: '별점 변경'),
               items: const [
                 DropdownMenuItem<int?>(value: null, child: Text('변경 없음')),
@@ -2947,9 +3327,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${duplicate.title}"을 만들었습니다.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('"${duplicate.title}"을 만들었습니다.')));
   }
 
   Future<void> _addScore() async {
@@ -3101,8 +3480,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                     subtitle: Text(
                       currentSetlist.rehearsalMode
                           ? '${currentSetlist.scoreStartPages[score.id] ?? score.lastPage}'
-                              '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
-                              '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
+                                '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
+                                '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
                           : '${score.lastPage}쪽부터 열기 · 총 ${_formatDuration(currentSetlist.totalEstimatedSeconds)}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -3215,10 +3594,7 @@ class _ScorePickerSheet extends StatelessWidget {
 }
 
 class _SetlistRehearsalSheet extends StatefulWidget {
-  const _SetlistRehearsalSheet({
-    required this.setlist,
-    required this.scores,
-  });
+  const _SetlistRehearsalSheet({required this.setlist, required this.scores});
 
   final SheetSetlist setlist;
   final List<SheetScore> scores;
@@ -3278,9 +3654,8 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
           children: [
             Text(
               '세트리스트 리허설',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
@@ -3367,9 +3742,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
       if (note.isNotEmpty) {
         notes[score.id] = note;
       }
-      final duration = int.tryParse(
-        _durationControllers[score.id]?.text ?? '',
-      );
+      final duration = int.tryParse(_durationControllers[score.id]?.text ?? '');
       if (duration != null && duration > 0) {
         durations[score.id] = duration.clamp(1, 24 * 60 * 60).toInt();
       }
@@ -3509,8 +3882,7 @@ extension _SheetPedalMappingSettings on _SheetPedalMapping {
 _SheetPedalMapping _pedalMappingFromSettings(SheetViewerSettings settings) {
   return switch (settings.pedalMapping) {
     SheetViewerSettings.reversedPedalMapping => _SheetPedalMapping.reversed,
-    SheetViewerSettings.setlistPedalMapping =>
-      _SheetPedalMapping.setlistEdges,
+    SheetViewerSettings.setlistPedalMapping => _SheetPedalMapping.setlistEdges,
     SheetViewerSettings.reversedSetlistPedalMapping =>
       _SheetPedalMapping.reversedSetlistEdges,
     SheetViewerSettings.customPedalMappingType => _SheetPedalMapping.custom,
@@ -3574,10 +3946,8 @@ enum _SheetPageTurnAnimation {
 extension _SheetPageTurnAnimationSettings on _SheetPageTurnAnimation {
   String get settingValue {
     return switch (this) {
-      _SheetPageTurnAnimation.none =>
-        SheetViewerSettings.noPageTurnAnimation,
-      _SheetPageTurnAnimation.fast =>
-        SheetViewerSettings.fastPageTurnAnimation,
+      _SheetPageTurnAnimation.none => SheetViewerSettings.noPageTurnAnimation,
+      _SheetPageTurnAnimation.fast => SheetViewerSettings.fastPageTurnAnimation,
       _SheetPageTurnAnimation.natural =>
         SheetViewerSettings.naturalPageTurnAnimation,
     };
@@ -3846,8 +4216,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _SheetViewerPageScale _pageScale = _SheetViewerPageScale.fitPage;
   _SheetPedalMapping _pedalMapping = _SheetPedalMapping.standard;
   _SheetRenderProfile _renderProfile = _SheetRenderProfile.balanced;
-  _SheetPageTurnAnimation _pageTurnAnimation =
-      _SheetPageTurnAnimation.natural;
+  _SheetPageTurnAnimation _pageTurnAnimation = _SheetPageTurnAnimation.natural;
   bool _useHalfPageTurn = false;
   bool _isAnnotationMode = false;
   bool _isSanitizingPdfLinks = false;
@@ -3933,8 +4302,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     final renderLabel = _renderProfile == _SheetRenderProfile.balanced
         ? ''
         : ' · 렌더 ${_renderProfile.label}';
-    final animationLabel =
-        _pageTurnAnimation == _SheetPageTurnAnimation.natural
+    final animationLabel = _pageTurnAnimation == _SheetPageTurnAnimation.natural
         ? ''
         : ' · 넘김 ${_pageTurnAnimation.label}';
     final lockLabel = _isPerformanceMode ? ' · 공연 잠금' : '';
@@ -3961,8 +4329,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     final startPage = setlist!.scoreStartPages[currentScore.id];
     final duration = setlist.scoreDurations[currentScore.id] ?? 0;
     final note = setlist.scoreNotes[currentScore.id]?.trim();
-    final startLabel = startPage == null ? '' : ' ${startPage}쪽';
-    final durationLabel = duration <= 0 ? '' : ' · ${_formatDuration(duration)}';
+    final startLabel = startPage == null ? '' : ' $startPage쪽';
+    final durationLabel = duration <= 0
+        ? ''
+        : ' · ${_formatDuration(duration)}';
     final noteLabel = note == null || note.isEmpty ? '' : ' · $note';
     return ' · 리허설$startLabel$durationLabel$noteLabel';
   }
@@ -3997,8 +4367,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
             setlistId: widget.setlistId!,
             scoreId: currentScore.id,
           );
-    final duplicateCount = pageSettings.pageOrder.length -
-        pageSettings.pageOrder.toSet().length;
+    final duplicateCount =
+        pageSettings.pageOrder.length - pageSettings.pageOrder.toSet().length;
     final setlistLabel = setlistContext == null
         ? 'none'
         : '${setlistContext.positionLabel}, '
@@ -4014,7 +4384,8 @@ performanceLock=$_isPerformanceMode, annotationMode=$_isAnnotationMode
 pedal=${_pedalMapping.settingValue}, customInputs=${currentScore.viewerSettings.customPedalMapping.length}
 annotation=${annotationSummary.compactLabel}
 setlist=$setlistLabel
-'''.trim();
+'''
+        .trim();
   }
 
   Color get _viewerBackgroundColor {
@@ -4107,10 +4478,7 @@ setlist=$setlistLabel
     final nextPageCount = _pdfController.pageCount;
     if (nextPageCount != _pageCount) {
       unawaited(
-        widget.controller.compactScoreForPageCount(
-          score,
-          nextPageCount,
-        ),
+        widget.controller.compactScoreForPageCount(score, nextPageCount),
       );
     }
     if (nextPage != null && score.pageSettings.isHidden(nextPage)) {
@@ -4291,9 +4659,7 @@ setlist=$setlistLabel
           return;
         }
         _showSnackBar(
-          delta < 0
-              ? '순서상 이전 표시 페이지가 없습니다.'
-              : '순서상 다음 표시 페이지가 없습니다.',
+          delta < 0 ? '순서상 이전 표시 페이지가 없습니다.' : '순서상 다음 표시 페이지가 없습니다.',
         );
         return;
       }
@@ -4318,11 +4684,7 @@ setlist=$setlistLabel
         await _goToAdjacentSetlistScore(delta);
         return;
       }
-      _showSnackBar(
-        delta < 0
-            ? '이전 표시 페이지가 없습니다.'
-            : '다음 표시 페이지가 없습니다.',
-      );
+      _showSnackBar(delta < 0 ? '이전 표시 페이지가 없습니다.' : '다음 표시 페이지가 없습니다.');
       return;
     }
     await _pdfController.goToPage(
@@ -4520,9 +4882,7 @@ setlist=$setlistLabel
     final currentPage = _pageNumber ?? score.lastPage;
     final pageCount = _pdfController.pageCount;
     if (score.pageSettings.hasCustomPageOrder) {
-      _showSnackBar(
-        '반복 페이지 순서가 있는 곡은 자동 스크롤 대신 페달/페이지 넘김을 사용해주세요.',
-      );
+      _showSnackBar('반복 페이지 순서가 있는 곡은 자동 스크롤 대신 페달/페이지 넘김을 사용해주세요.');
       return;
     }
     final plan = settings.plan(currentPage: currentPage, pageCount: pageCount);
@@ -4564,9 +4924,7 @@ setlist=$setlistLabel
         _autoScrollCueRemainingSeconds = settings.cueSeconds;
         _showPageControls = true;
       });
-      _autoScrollCueTimer = Timer.periodic(const Duration(seconds: 1), (
-        timer,
-      ) {
+      _autoScrollCueTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (!mounted) {
           timer.cancel();
           return;
@@ -4746,11 +5104,7 @@ setlist=$setlistLabel
       _autoScrollCueRemainingSeconds = null;
     }
     if (showMessage) {
-      _showSnackBar(
-        completed
-            ? '자동 스크롤이 끝났습니다.'
-            : '자동 스크롤을 정지했습니다.',
-      );
+      _showSnackBar(completed ? '자동 스크롤이 끝났습니다.' : '자동 스크롤을 정지했습니다.');
     }
   }
 
@@ -4911,11 +5265,11 @@ setlist=$setlistLabel
                           tooltip: '이 파일 열기',
                           onPressed: canOpen
                               ? () => Navigator.of(context).pop(
-                                    _LinkedFileAction(
-                                      type: _LinkedFileActionType.open,
-                                      file: linkedFile,
-                                    ),
-                                  )
+                                  _LinkedFileAction(
+                                    type: _LinkedFileActionType.open,
+                                    file: linkedFile,
+                                  ),
+                                )
                               : null,
                           icon: const Icon(Icons.open_in_new),
                         ),
@@ -5004,7 +5358,8 @@ setlist=$setlistLabel
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (context) => _ScoreNotesSheet(initialNotes: score.structuredNotes),
+      builder: (context) =>
+          _ScoreNotesSheet(initialNotes: score.structuredNotes),
     );
     if (notes == null) {
       return;
@@ -5144,7 +5499,9 @@ setlist=$setlistLabel
                       '공연 중 화면 낭비를 줄이는 최소 여백 보기',
                     ),
                   },
-                  trailing: scale == _pageScale ? const Icon(Icons.check) : null,
+                  trailing: scale == _pageScale
+                      ? const Icon(Icons.check)
+                      : null,
                   onTap: () => Navigator.of(context).pop(scale),
                 ),
               )
@@ -5254,9 +5611,8 @@ setlist=$setlistLabel
                 children: [
                   Text(
                     '페달 직접 설정',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 8),
                   const Text('연결된 페달이 보내는 키 입력별 동작을 선택합니다.'),
@@ -5265,7 +5621,7 @@ setlist=$setlistLabel
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: DropdownButtonFormField<String>(
-                        value:
+                        initialValue:
                             mapping[inputId] ??
                             SheetViewerInputAction.none.value,
                         decoration: InputDecoration(
@@ -5409,9 +5765,7 @@ setlist=$setlistLabel
     });
     await widget.controller.updateViewerSettings(
       score,
-      score.viewerSettings.copyWith(
-        pageTurnAnimation: selected.settingValue,
-      ),
+      score.viewerSettings.copyWith(pageTurnAnimation: selected.settingValue),
     );
     _showPageControlsTemporarily();
   }
@@ -5420,9 +5774,8 @@ setlist=$setlistLabel
     final selected = await showModalBottomSheet<SheetViewerSettings>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _PerformanceSettingsSheet(
-        initialSettings: score.viewerSettings,
-      ),
+      builder: (context) =>
+          _PerformanceSettingsSheet(initialSettings: score.viewerSettings),
     );
     if (selected == null) {
       return;
@@ -5782,9 +6135,8 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.add_link),
                 title: Text('현재 $currentPage쪽에서 점프 추가'),
                 subtitle: const Text('반복 연주, D.S./Coda 이동에 사용'),
-                onTap: () => Navigator.of(context).pop(
-                  const _JumpPointRequest(action: _JumpPointAction.add),
-                ),
+                onTap: () => Navigator.of(context)
+                    .pop(const _JumpPointRequest(action: _JumpPointAction.add)),
               );
             }
             final jumpPoint = currentScore.pageSettings.jumpPoints[index - 1];
@@ -5873,9 +6225,7 @@ setlist=$setlistLabel
           pageCount: pageCount,
           jumpPoint: jumpPoint.copyWith(label: label),
         );
-        _showSnackBar(
-          didUpdate ? '점프 포인트 이름을 수정했습니다.' : '점프 포인트를 수정하지 못했습니다.',
-        );
+        _showSnackBar(didUpdate ? '점프 포인트 이름을 수정했습니다.' : '점프 포인트를 수정하지 못했습니다.');
         return;
       case _JumpPointAction.delete:
         final jumpPoint = request.jumpPoint;
@@ -5886,9 +6236,7 @@ setlist=$setlistLabel
           currentScore,
           jumpPoint.id,
         );
-        final message = didRemove
-            ? '점프 포인트를 삭제했습니다.'
-            : '삭제할 점프 포인트가 없습니다.';
+        final message = didRemove ? '점프 포인트를 삭제했습니다.' : '삭제할 점프 포인트가 없습니다.';
         _showSnackBar(message);
         return;
     }
@@ -5943,9 +6291,7 @@ setlist=$setlistLabel
       ),
     );
     _showSnackBar(
-      didAdd
-          ? '$sourcePage쪽에 점프 포인트를 추가했습니다.'
-          : '점프 포인트를 추가하지 못했습니다.',
+      didAdd ? '$sourcePage쪽에 점프 포인트를 추가했습니다.' : '점프 포인트를 추가하지 못했습니다.',
     );
   }
 
@@ -6088,7 +6434,8 @@ setlist=$setlistLabel
     final existingMark = selected?.mark;
     final input = await _showRehearsalMarkDialog(
       context: context,
-      pageNumber: existingMark?.pageNumber ??
+      pageNumber:
+          existingMark?.pageNumber ??
           _pdfController.pageNumber ??
           _pageNumber ??
           currentScore.lastPage,
@@ -6101,7 +6448,9 @@ setlist=$setlistLabel
     }
     final now = DateTime.now();
     final mark = SheetRehearsalMark(
-      id: existingMark?.id ?? '${now.microsecondsSinceEpoch}-mark-${input.pageNumber}',
+      id:
+          existingMark?.id ??
+          '${now.microsecondsSinceEpoch}-mark-${input.pageNumber}',
       pageNumber: input.pageNumber,
       label: input.label.trim().isEmpty
           ? _rehearsalMarkKindLabel(input.kind)
@@ -6123,12 +6472,8 @@ setlist=$setlistLabel
     _showSnackBar(didSave ? '리허설 마크를 저장했습니다.' : '리허설 마크를 저장하지 못했습니다.');
   }
 
-  Future<
-      ({
-        String label,
-        String kind,
-        int pageNumber,
-      })?> _showRehearsalMarkDialog({
+  Future<({String label, String kind, int pageNumber})?>
+  _showRehearsalMarkDialog({
     required BuildContext context,
     required int pageNumber,
     required int pageCount,
@@ -6139,12 +6484,7 @@ setlist=$setlistLabel
     var selectedKind = initialKind;
     var selectedPage = pageNumber.clamp(1, pageCount).toInt();
     try {
-      return await showDialog<
-          ({
-            String label,
-            String kind,
-            int pageNumber,
-          })>(
+      return await showDialog<({String label, String kind, int pageNumber})>(
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
@@ -6161,21 +6501,22 @@ setlist=$setlistLabel
                 DropdownButtonFormField<String>(
                   initialValue: selectedKind,
                   decoration: const InputDecoration(labelText: '마크 종류'),
-                  items: const [
-                    SheetRehearsalMark.rehearsalKind,
-                    SheetRehearsalMark.dsKind,
-                    SheetRehearsalMark.dcKind,
-                    SheetRehearsalMark.codaKind,
-                    SheetRehearsalMark.toCodaKind,
-                    SheetRehearsalMark.segnoKind,
-                  ]
-                      .map(
-                        (kind) => DropdownMenuItem<String>(
-                          value: kind,
-                          child: Text(_rehearsalMarkKindLabel(kind)),
-                        ),
-                      )
-                      .toList(growable: false),
+                  items:
+                      const [
+                            SheetRehearsalMark.rehearsalKind,
+                            SheetRehearsalMark.dsKind,
+                            SheetRehearsalMark.dcKind,
+                            SheetRehearsalMark.codaKind,
+                            SheetRehearsalMark.toCodaKind,
+                            SheetRehearsalMark.segnoKind,
+                          ]
+                          .map(
+                            (kind) => DropdownMenuItem<String>(
+                              value: kind,
+                              child: Text(_rehearsalMarkKindLabel(kind)),
+                            ),
+                          )
+                          .toList(growable: false),
                   onChanged: (value) {
                     if (value != null) {
                       setDialogState(() {
@@ -6190,10 +6531,7 @@ setlist=$setlistLabel
                   decoration: const InputDecoration(labelText: '페이지'),
                   items: [
                     for (var page = 1; page <= pageCount; page += 1)
-                      DropdownMenuItem<int>(
-                        value: page,
-                        child: Text('$page쪽'),
-                      ),
+                      DropdownMenuItem<int>(value: page, child: Text('$page쪽')),
                   ],
                   onChanged: (value) {
                     if (value != null) {
@@ -6211,13 +6549,11 @@ setlist=$setlistLabel
                 child: const Text('취소'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(
-                  (
-                    label: labelController.text,
-                    kind: selectedKind,
-                    pageNumber: selectedPage,
-                  ),
-                ),
+                onPressed: () => Navigator.of(context).pop((
+                  label: labelController.text,
+                  kind: selectedKind,
+                  pageNumber: selectedPage,
+                )),
                 child: const Text('저장'),
               ),
             ],
@@ -6302,20 +6638,14 @@ setlist=$setlistLabel
         return;
       }
       if (!result.didWrite) {
-        _showSnackBar(
-          '회전 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('회전 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
         return;
       }
       _pdfController.invalidate();
-      _showSnackBar(
-        '${result.rotatedPageCount}쪽 회전을 적용한 사본으로 교체했습니다.',
-      );
+      _showSnackBar('${result.rotatedPageCount}쪽 회전을 적용한 사본으로 교체했습니다.');
     } catch (_) {
       if (mounted) {
-        _showSnackBar(
-          '회전 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('회전 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
       }
     } finally {
       if (mounted) {
@@ -6354,9 +6684,7 @@ setlist=$setlistLabel
         duration: const Duration(milliseconds: 120),
       );
     }
-    _showSnackBar(
-      selected.hasCrop ? '자르기 맞춤 설정을 저장했습니다.' : '자르기 맞춤을 해제했습니다.',
-    );
+    _showSnackBar(selected.hasCrop ? '자르기 맞춤 설정을 저장했습니다.' : '자르기 맞춤을 해제했습니다.');
   }
 
   Future<void> _showCropPresets() async {
@@ -6373,11 +6701,13 @@ setlist=$setlistLabel
               leading: const Icon(Icons.add),
               title: const Text('현재 자르기 값을 preset으로 저장'),
               subtitle: Text(
-                currentScore.pageSettings.crop.hasCrop ? '현재 crop 사용' : 'crop 없음',
+                currentScore.pageSettings.crop.hasCrop
+                    ? '현재 crop 사용'
+                    : 'crop 없음',
               ),
-              onTap: () => Navigator.of(context).pop(
-                const _CropPresetAction(type: _CropPresetActionType.add),
-              ),
+              onTap: () => Navigator.of(
+                context,
+              ).pop(const _CropPresetAction(type: _CropPresetActionType.add)),
             ),
             for (final preset in currentScore.pageSettings.cropPresets)
               ListTile(
@@ -6414,7 +6744,9 @@ setlist=$setlistLabel
       final didApply = await widget.controller.applyCropPreset(
         currentScore,
         preset.id,
-        pageCount: _pdfController.isReady ? _pdfController.pageCount : _pageCount,
+        pageCount: _pdfController.isReady
+            ? _pdfController.pageCount
+            : _pageCount,
       );
       if (didApply) {
         _resetCropFitPosition();
@@ -6504,18 +6836,19 @@ setlist=$setlistLabel
                 DropdownButtonFormField<String>(
                   initialValue: selectedScope,
                   decoration: const InputDecoration(labelText: '적용 범위'),
-                  items: const [
-                    SheetCropPreset.allPagesScope,
-                    SheetCropPreset.oddEvenScope,
-                    SheetCropPreset.coverExcludedScope,
-                  ]
-                      .map(
-                        (scope) => DropdownMenuItem<String>(
-                          value: scope,
-                          child: Text(_cropPresetScopeLabel(scope)),
-                        ),
-                      )
-                      .toList(growable: false),
+                  items:
+                      const [
+                            SheetCropPreset.allPagesScope,
+                            SheetCropPreset.oddEvenScope,
+                            SheetCropPreset.coverExcludedScope,
+                          ]
+                          .map(
+                            (scope) => DropdownMenuItem<String>(
+                              value: scope,
+                              child: Text(_cropPresetScopeLabel(scope)),
+                            ),
+                          )
+                          .toList(growable: false),
                   onChanged: (value) {
                     if (value != null) {
                       setDialogState(() {
@@ -6538,12 +6871,10 @@ setlist=$setlistLabel
               FilledButton(
                 onPressed: () {
                   final label = labelController.text.trim();
-                  Navigator.of(context).pop(
-                    (
-                      label: label.isEmpty ? 'Crop preset' : label,
-                      scope: selectedScope,
-                    ),
-                  );
+                  Navigator.of(context).pop((
+                    label: label.isEmpty ? 'Crop preset' : label,
+                    scope: selectedScope,
+                  ));
                 },
                 child: const Text('저장'),
               ),
@@ -6607,11 +6938,13 @@ setlist=$setlistLabel
                 trailing: IconButton(
                   tooltip: 'Preset 삭제',
                   onPressed: () =>
-                      Navigator.of(context).pop('removeVisibility:${preset.id}'),
+                      Navigator.of(context)
+                          .pop('removeVisibility:${preset.id}'),
                   icon: const Icon(Icons.delete_outline),
                 ),
               ),
-            for (final insertion in currentScore.pageSettings.blankPageInsertions)
+            for (final insertion
+                in currentScore.pageSettings.blankPageInsertions)
               ListTile(
                 leading: const Icon(Icons.note_outlined),
                 title: Text(insertion.label),
@@ -6834,9 +7167,7 @@ setlist=$setlistLabel
     }
     if (annotationSummary.estimatedJsonBytes > 512 * 1024 ||
         annotationSummary.redoCount > 20) {
-      _showSnackBar(
-        '${annotationSummary.compactLabel}를 사본에 포함합니다.',
-      );
+      _showSnackBar('${annotationSummary.compactLabel}를 사본에 포함합니다.');
     }
 
     _showSnackBar('필기 포함 PDF 사본을 만드는 중입니다.');
@@ -6846,9 +7177,7 @@ setlist=$setlistLabel
     }
     if (!result.didWrite || result.outputPath == null) {
       if (result.requiresUnicodeFontEmbedding) {
-        _showSnackBar(
-          '한글 텍스트 주석은 아직 PDF에 안전하게 포함하지 못합니다. 원본 PDF를 공유합니다.',
-        );
+        _showSnackBar('한글 텍스트 주석은 아직 PDF에 안전하게 포함하지 못합니다. 원본 PDF를 공유합니다.');
         await _shareCurrentScorePdf();
         return;
       }
@@ -6856,9 +7185,7 @@ setlist=$setlistLabel
         _showSnackBar('현재 PDF 페이지 범위 안에 내보낼 필기가 없습니다.');
         return;
       }
-      _showSnackBar(
-        '필기 포함 PDF를 만들지 못했습니다. 원본 PDF와 앱 안 필기는 유지됩니다.',
-      );
+      _showSnackBar('필기 포함 PDF를 만들지 못했습니다. 원본 PDF와 앱 안 필기는 유지됩니다.');
       return;
     }
     if (result.skippedUnicodeTextCount > 0) {
@@ -6942,9 +7269,7 @@ setlist=$setlistLabel
     final didUndo = await _saveAnnotationChange(
       () => widget.controller.undoLastAnnotation(score, pageNumber),
     );
-    _showSnackBar(
-      didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.',
-    );
+    _showSnackBar(didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.');
   }
 
   Future<void> _redoCurrentPageAnnotation() async {
@@ -6953,9 +7278,7 @@ setlist=$setlistLabel
     final didRedo = await _saveAnnotationChange(
       () => widget.controller.redoLastAnnotation(score, pageNumber),
     );
-    _showSnackBar(
-      didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.',
-    );
+    _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');
   }
 
   void _saveFavoriteAnnotationPreset() {
@@ -7244,7 +7567,9 @@ setlist=$setlistLabel
   }
 
   Future<void> _showPagePicker() async {
-    final pageCount = _pdfController.isReady ? _pdfController.pageCount : _pageCount;
+    final pageCount = _pdfController.isReady
+        ? _pdfController.pageCount
+        : _pageCount;
     if (pageCount == null || pageCount < 1) {
       _showSnackBar('페이지 정보를 아직 불러오는 중입니다.');
       return;
@@ -7279,9 +7604,8 @@ setlist=$setlistLabel
             children: [
               Text(
                 '페이지 탐색',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               Text(
@@ -7339,10 +7663,7 @@ setlist=$setlistLabel
                               style: const TextStyle(fontSize: 11),
                             )
                           else if (isOutsideOrder)
-                            const Text(
-                              '순서 제외',
-                              style: TextStyle(fontSize: 11),
-                            ),
+                            const Text('순서 제외', style: TextStyle(fontSize: 11)),
                         ],
                       ),
                     );
@@ -7454,9 +7775,8 @@ setlist=$setlistLabel
                     children: [
                       Text(
                         'PDF 본문 검색',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w900,
-                        ),
+                        style: Theme.of(context).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w900),
                       ),
                       const SizedBox(height: 10),
                       TextField(
@@ -7559,11 +7879,14 @@ setlist=$setlistLabel
                                     subtitle: Text(
                                       '${match.pageNumber}쪽 · ${index + 1}/${matches.length}',
                                     ),
-                                    trailing: index == _textSearcher.currentIndex
+                                    trailing:
+                                        index == _textSearcher.currentIndex
                                         ? const Icon(Icons.check)
                                         : null,
                                     onTap: () async {
-                                      await _textSearcher.goToMatchOfIndex(index);
+                                      await _textSearcher.goToMatchOfIndex(
+                                        index,
+                                      );
                                       if (context.mounted) {
                                         Navigator.of(context).pop();
                                       }
@@ -7936,36 +8259,38 @@ setlist=$setlistLabel
           _showSnackBar('지원하지 않는 PDF 링크입니다.');
           return;
         }
-        unawaited(_pdfController
-            .goToDest(destination, duration: _pageTurnDuration)
-            .then((didNavigate) async {
-          if (!mounted) {
-            return;
-          }
-          if (!didNavigate) {
-            _showSnackBar('PDF 내부 링크로 이동할 수 없습니다.');
-            return;
-          }
-          final pageNumber = _pdfController.pageNumber;
-          if (pageNumber == null || !_pdfController.isReady) {
-            return;
-          }
-          final pageCount = _pdfController.pageCount;
-          final visiblePage = score.pageSettings.closestVisiblePage(
-            fromPage: pageNumber,
-            pageCount: pageCount,
-          );
-          _syncPageOrderCursor(visiblePage, pageCount);
-          if (visiblePage != pageNumber) {
-            await _pdfController.goToPage(
-              pageNumber: visiblePage,
-              duration: _pageTurnDuration,
-            );
-          }
-          if (mounted) {
-            _showPageControlsTemporarily();
-          }
-        }));
+        unawaited(
+          _pdfController
+              .goToDest(destination, duration: _pageTurnDuration)
+              .then((didNavigate) async {
+                if (!mounted) {
+                  return;
+                }
+                if (!didNavigate) {
+                  _showSnackBar('PDF 내부 링크로 이동할 수 없습니다.');
+                  return;
+                }
+                final pageNumber = _pdfController.pageNumber;
+                if (pageNumber == null || !_pdfController.isReady) {
+                  return;
+                }
+                final pageCount = _pdfController.pageCount;
+                final visiblePage = score.pageSettings.closestVisiblePage(
+                  fromPage: pageNumber,
+                  pageCount: pageCount,
+                );
+                _syncPageOrderCursor(visiblePage, pageCount);
+                if (visiblePage != pageNumber) {
+                  await _pdfController.goToPage(
+                    pageNumber: visiblePage,
+                    duration: _pageTurnDuration,
+                  );
+                }
+                if (mounted) {
+                  _showPageControlsTemporarily();
+                }
+              }),
+        );
         return;
       case SheetPdfLinkTapAction.ignoreInPerformanceMode:
         return;
@@ -8037,9 +8362,7 @@ setlist=$setlistLabel
         actions: [
           if (!_isPerformanceMode || !isCompactViewer)
             IconButton(
-              tooltip: isBookmarked
-                  ? '현재 페이지 북마크 해제'
-                  : '현재 페이지 북마크',
+              tooltip: isBookmarked ? '현재 페이지 북마크 해제' : '현재 페이지 북마크',
               onPressed: _toggleCurrentBookmark,
               icon: Icon(isBookmarked ? Icons.bookmark : Icons.bookmark_border),
             ),
@@ -8229,9 +8552,7 @@ setlist=$setlistLabel
                     leading: const Icon(Icons.reorder),
                     title: const Text('페이지 순서/복제'),
                     subtitle: currentScore.pageSettings.hasCustomPageOrder
-                        ? Text(
-                            '${_pageOrderDisplayCount(currentScore)}개 표시 항목',
-                          )
+                        ? Text('${_pageOrderDisplayCount(currentScore)}개 표시 항목')
                         : const Text('원본 PDF 보존'),
                   ),
                 ),
@@ -8551,9 +8872,7 @@ setlist=$setlistLabel
                     leading: const Icon(Icons.reorder),
                     title: const Text('페이지 순서/복제'),
                     subtitle: currentScore.pageSettings.hasCustomPageOrder
-                        ? Text(
-                            '${_pageOrderDisplayCount(currentScore)}개 표시 항목',
-                          )
+                        ? Text('${_pageOrderDisplayCount(currentScore)}개 표시 항목')
                         : const Text('원본 PDF 보존'),
                   ),
                 ),
@@ -8731,8 +9050,7 @@ setlist=$setlistLabel
                         params: PdfViewerParams(
                           margin: viewerMargin,
                           backgroundColor: _viewerBackgroundColor,
-                          limitRenderingCache:
-                              _renderProfile.limitsRenderCache,
+                          limitRenderingCache: _renderProfile.limitsRenderCache,
                           maxImageBytesCachedOnMemory:
                               _renderProfile.maxImageBytesCachedOnMemory,
                           pagePaintCallbacks: [
@@ -8742,25 +9060,21 @@ setlist=$setlistLabel
                           onePassRenderingScaleThreshold:
                               _renderProfile.onePassRenderingScaleThreshold,
                           // ignore: deprecated_member_use
-                          calculateInitialZoom: (
-                            document,
-                            controller,
-                            fitZoom,
-                            coverZoom,
-                          ) {
-                            return switch (_pageScale) {
-                              _SheetViewerPageScale.fitPage => fitZoom,
-                              _SheetViewerPageScale.fitWidth =>
-                                _initialFitWidthZoom(
-                                  pages: document.pages,
-                                  viewSize: controller.viewSize,
-                                  pageNumber: currentScore.lastPage,
-                                  margin: viewerMargin,
-                                  fallbackZoom: coverZoom,
-                                ),
-                              _SheetViewerPageScale.fullscreen => coverZoom,
-                            };
-                          },
+                          calculateInitialZoom:
+                              (document, controller, fitZoom, coverZoom) {
+                                return switch (_pageScale) {
+                                  _SheetViewerPageScale.fitPage => fitZoom,
+                                  _SheetViewerPageScale.fitWidth =>
+                                    _initialFitWidthZoom(
+                                      pages: document.pages,
+                                      viewSize: controller.viewSize,
+                                      pageNumber: currentScore.lastPage,
+                                      margin: viewerMargin,
+                                      fallbackZoom: coverZoom,
+                                    ),
+                                  _SheetViewerPageScale.fullscreen => coverZoom,
+                                };
+                              },
                           layoutPages: switch (_displayMode) {
                             _SheetViewerDisplayMode.singlePage =>
                               _layoutPagesHorizontally,
@@ -8919,8 +9233,7 @@ setlist=$setlistLabel
                           selectedStamp: _annotationStamp,
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
-                          hasFavoritePreset:
-                              _favoriteAnnotationPreset != null,
+                          hasFavoritePreset: _favoriteAnnotationPreset != null,
                           isCompact: isCompactViewer,
                           onToolSelected: (tool) {
                             setState(() {
@@ -9034,8 +9347,7 @@ setlist=$setlistLabel
                           onMetronome: _showMetronome,
                           onTuner: _showTuner,
                           onSettings: _showPerformanceSettings,
-                          onPreviousScore: () =>
-                              _goToAdjacentSetlistScore(-1),
+                          onPreviousScore: () => _goToAdjacentSetlistScore(-1),
                           onNextScore: () => _goToAdjacentSetlistScore(1),
                         ),
                       ),
@@ -9128,10 +9440,9 @@ class _PendingPageRotationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final maxWidth = (MediaQuery.sizeOf(context).width - 16).clamp(
-      220.0,
-      360.0,
-    ).toDouble();
+    final maxWidth = (MediaQuery.sizeOf(context).width - 16)
+        .clamp(220.0, 360.0)
+        .toDouble();
     return Material(
       color: theme.colorScheme.surface.withValues(alpha: 0.94),
       elevation: 4,
@@ -9224,19 +9535,12 @@ class _ScoreNotesSheetState extends State<_ScoreNotesSheet> {
           children: [
             Text(
               '악보 메모',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
-            _NoteTextField(
-              controller: _performanceController,
-              label: '공연 메모',
-            ),
-            _NoteTextField(
-              controller: _rehearsalController,
-              label: '리허설 메모',
-            ),
+            _NoteTextField(controller: _performanceController, label: '공연 메모'),
+            _NoteTextField(controller: _rehearsalController, label: '리허설 메모'),
             _NoteTextField(controller: _tuningController, label: '조율 메모'),
             _NoteTextField(
               controller: _instrumentationController,
@@ -9337,9 +9641,8 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
             subtitle: const Text('앱 안내와 함께 기기 자동 잠금 설정 확인'),
             value: _settings.keepAwakeInPerformance,
             onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                keepAwakeInPerformance: value,
-              ),
+              () =>
+                  _settings = _settings.copyWith(keepAwakeInPerformance: value),
             ),
           ),
           const Divider(),
@@ -9381,9 +9684,8 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
             subtitle: const Text('꺼두면 편집/정리 메뉴를 숨김'),
             value: _settings.allowPerformanceMenus,
             onChanged: (value) => setState(
-              () => _settings = _settings.copyWith(
-                allowPerformanceMenus: value,
-              ),
+              () =>
+                  _settings = _settings.copyWith(allowPerformanceMenus: value),
             ),
           ),
           SwitchListTile(
@@ -9728,10 +10030,7 @@ class _QuickJumpButtons extends StatelessWidget {
                       ),
                     ),
                 ],
-                constraints: const BoxConstraints(
-                  minWidth: 180,
-                  maxWidth: 280,
-                ),
+                constraints: const BoxConstraints(minWidth: 180, maxWidth: 280),
               ),
           ],
         ),
@@ -10301,9 +10600,7 @@ class _PerformanceQuickActions extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _PerformanceQuickActionButton(
-              tooltip: isBookmarked
-                  ? '현재 페이지 북마크 해제'
-                  : '현재 페이지 북마크',
+              tooltip: isBookmarked ? '현재 페이지 북마크 해제' : '현재 페이지 북마크',
               onPressed: onBookmark,
               icon: isBookmarked ? Icons.bookmark : Icons.bookmark_border,
               isActive: isBookmarked,
@@ -11130,9 +11427,7 @@ class _TunerSheetState extends State<_TunerSheet> {
               if (targetNote != null && targetWrittenNote != null)
                 Center(
                   child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(
-                      preferFlats: _settings.displayMode.preferFlats,
-                    )}'
+                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _settings.displayMode.preferFlats)}'
                     ' · Concert ${targetNote.labelWith(preferFlats: true)}',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.primary,
@@ -11178,7 +11473,8 @@ class _TunerSheetState extends State<_TunerSheet> {
                 children: [
                   for (final target in tuningTargets)
                     FilterChip(
-                      selected: _settings.targetConcertMidiNumber ==
+                      selected:
+                          _settings.targetConcertMidiNumber ==
                           target.concertMidiNumber,
                       label: Text(
                         target.displayLabel(
@@ -11194,9 +11490,8 @@ class _TunerSheetState extends State<_TunerSheet> {
                     ActionChip(
                       avatar: const Icon(Icons.close, size: 18),
                       label: const Text('타겟 해제'),
-                      onPressed: () => unawaited(
-                        _clearTargetConcertMidiNumber(),
-                      ),
+                      onPressed: () =>
+                          unawaited(_clearTargetConcertMidiNumber()),
                     ),
                 ],
               ),
@@ -11308,10 +11603,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       SheetTunerDisplayMode.cello ||
       SheetTunerDisplayMode.doubleBass =>
         SheetTunerDetectionProfile.lowInstrument,
-      SheetTunerDisplayMode.violin || SheetTunerDisplayMode.viola =>
-        SheetTunerDetectionProfile.strings,
-      SheetTunerDisplayMode.guitar || SheetTunerDisplayMode.bassGuitar =>
-        SheetTunerDetectionProfile.guitarBass,
+      SheetTunerDisplayMode.violin ||
+      SheetTunerDisplayMode.viola => SheetTunerDetectionProfile.strings,
+      SheetTunerDisplayMode.guitar ||
+      SheetTunerDisplayMode.bassGuitar => SheetTunerDetectionProfile.guitarBass,
       SheetTunerDisplayMode.concert => SheetTunerDetectionProfile.chromatic,
     };
   }

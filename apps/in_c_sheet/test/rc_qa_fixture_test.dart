@@ -121,21 +121,19 @@ void main() {
   });
 
   test('RC QA fixture tolerates legacy records without new metadata', () {
-    final legacyScoreJson = Map<String, Object?>.of(
-      buildRcQaScores().first.toJson(),
-    )
-      ..remove('viewerSettings')
-      ..remove('pageSettings')
-      ..remove('structuredNotes')
-      ..remove('annotationLayer')
-      ..remove('annotationStorage');
-    final legacySetlistJson = Map<String, Object?>.of(
-      buildRcQaSetlists().single.toJson(),
-    )
-      ..remove('scoreStartPages')
-      ..remove('scoreNotes')
-      ..remove('scoreDurations')
-      ..remove('transitionSeconds');
+    final legacyScoreJson =
+        Map<String, Object?>.of(buildRcQaScores().first.toJson())
+          ..remove('viewerSettings')
+          ..remove('pageSettings')
+          ..remove('structuredNotes')
+          ..remove('annotationLayer')
+          ..remove('annotationStorage');
+    final legacySetlistJson =
+        Map<String, Object?>.of(buildRcQaSetlists().single.toJson())
+          ..remove('scoreStartPages')
+          ..remove('scoreNotes')
+          ..remove('scoreDurations')
+          ..remove('transitionSeconds');
 
     final decodedScore = SheetScore.fromJson(legacyScoreJson);
     final decodedSetlist = SheetSetlist.fromJson(legacySetlistJson);

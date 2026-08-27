@@ -107,6 +107,10 @@ void main() {
         tuning: 'Bb trumpet.',
         instrumentation: 'Trumpet and piano.',
       ),
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: 'Publisher', value: 'Mann Lab'),
+        SheetCustomMetadataField(key: 'Lesson', value: 'Week 3'),
+      ],
       annotationLayer: SheetAnnotationLayer(
         strokes: <SheetAnnotationStroke>[
           SheetAnnotationStroke(
@@ -203,10 +207,7 @@ void main() {
     );
     expect(decoded.single.pageSettings.cropPresets.single.label, 'iPad stand');
     expect(decoded.single.pageSettings.cropPresets.single.crop.left, 0.04);
-    expect(
-      decoded.single.pageSettings.blankPageInsertions.single.afterPage,
-      2,
-    );
+    expect(decoded.single.pageSettings.blankPageInsertions.single.afterPage, 2);
     expect(
       decoded.single.pageSettings.visibilityPresets.single.hiddenPages,
       <int>[1],
@@ -214,7 +215,15 @@ void main() {
     expect(decoded.single.structuredNotes.performance, 'Mute ready.');
     expect(decoded.single.structuredNotes.rehearsal, 'Start at B.');
     expect(decoded.single.structuredNotes.tuning, 'Bb trumpet.');
-    expect(decoded.single.structuredNotes.instrumentation, 'Trumpet and piano.');
+    expect(
+      decoded.single.structuredNotes.instrumentation,
+      'Trumpet and piano.',
+    );
+    expect(decoded.single.customFields, hasLength(2));
+    expect(decoded.single.customFields.first.key, 'Publisher');
+    expect(decoded.single.customFields.first.value, 'Mann Lab');
+    expect(decoded.single.matches('week 3'), isTrue);
+    expect(decoded.single.matches('publisher'), isTrue);
     expect(decoded.single.annotationLayer.strokes, hasLength(1));
     expect(decoded.single.annotationLayer.strokes.single.pageNumber, 4);
     expect(decoded.single.annotationStorage.isFileBacked, isTrue);
@@ -229,6 +238,21 @@ void main() {
     expect(decoded.single.autoScrollSettings.startPage, 2);
     expect(decoded.single.autoScrollSettings.endPage, 9);
     expect(decoded.single.autoScrollSettings.cueSeconds, 5);
+  });
+
+  test('normalizes custom metadata fields safely', () {
+    final normalized = SheetScore.normalizeCustomFields(
+      const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: ' Publisher ', value: ' Mann Lab '),
+        SheetCustomMetadataField(key: 'publisher', value: 'Duplicate'),
+        SheetCustomMetadataField(key: 'Empty', value: ''),
+        SheetCustomMetadataField(key: '', value: 'Ignored'),
+      ],
+    );
+
+    expect(normalized, hasLength(1));
+    expect(normalized.single.key, 'Publisher');
+    expect(normalized.single.value, 'Mann Lab');
   });
 
   test('SheetScore decodes dynamic JSON maps from persisted storage', () {
@@ -414,22 +438,22 @@ void main() {
     expect(settings.blankPageInsertions.single.afterPage, 2);
     expect(settings.hiddenPages, <int>[1]);
 
-    final compacted = settings.copyWith(
-      rehearsalMarks: <SheetRehearsalMark>[
-        ...settings.rehearsalMarks,
-        SheetRehearsalMark(
-          id: 'stale',
-          pageNumber: 9,
-          label: 'Bad',
-          kind: SheetRehearsalMark.rehearsalKind,
-          createdAt: now,
-        ),
-      ],
-    ).compactForPageCount(4);
+    final compacted = settings
+        .copyWith(
+          rehearsalMarks: <SheetRehearsalMark>[
+            ...settings.rehearsalMarks,
+            SheetRehearsalMark(
+              id: 'stale',
+              pageNumber: 9,
+              label: 'Bad',
+              kind: SheetRehearsalMark.rehearsalKind,
+              createdAt: now,
+            ),
+          ],
+        )
+        .compactForPageCount(4);
 
-    expect(compacted.rehearsalMarks.map((mark) => mark.id), <String>[
-      'mark-1',
-    ]);
+    expect(compacted.rehearsalMarks.map((mark) => mark.id), <String>['mark-1']);
     expect(compacted.hasPageTemplateMetadata, isTrue);
   });
 
@@ -522,140 +546,146 @@ void main() {
     expect(decoded.single.annotationStorage.isExternal, isFalse);
   });
 
-  test('SheetScore skips invalid nested records without dropping the score', () {
-    final decoded = SheetScore.decodeJsonList(<dynamic>[
-      <String, dynamic>{
-        'id': 'score-1',
-        'title': 'Sonata',
-        'composer': 'Composer',
-        'tags': <dynamic>[],
-        'note': '',
-        'filePath': '/tmp/sonata.pdf',
-        'linkedFiles': <dynamic>[
-          <String, dynamic>{
-            'path': 42,
-            'type': 7,
-            'label': 9,
-            'createdAt': 'bad-date',
-          },
-          <String, dynamic>{
-            'path': '/tmp/part.pdf',
-            'type': 'pdf',
-            'label': 'Part',
-            'createdAt': '2026-08-20T10:02:00.000',
-          },
-        ],
-        'importedAt': '2026-08-20T10:00:00.000',
-        'updatedAt': '2026-08-20T10:01:00.000',
-        'bookmarks': <dynamic>[
-          <String, dynamic>{
-            'pageNumber': 2,
-            'label': 'Solo',
-            'createdAt': 'bad-date',
-          },
-          <String, dynamic>{
-            'pageNumber': 3,
-            'label': 'Coda',
-            'createdAt': '2026-08-20T10:02:00.000',
-          },
-        ],
-        'pageSettings': <String, dynamic>{
-          'jumpPoints': <dynamic>[
+  test(
+    'SheetScore skips invalid nested records without dropping the score',
+    () {
+      final decoded = SheetScore.decodeJsonList(<dynamic>[
+        <String, dynamic>{
+          'id': 'score-1',
+          'title': 'Sonata',
+          'composer': 'Composer',
+          'tags': <dynamic>[],
+          'note': '',
+          'filePath': '/tmp/sonata.pdf',
+          'linkedFiles': <dynamic>[
             <String, dynamic>{
-              'id': 42,
-              'sourcePage': 1,
-              'targetPage': 4,
-              'createdAt': '2026-08-20T10:02:30.000',
+              'path': 42,
+              'type': 7,
+              'label': 9,
+              'createdAt': 'bad-date',
             },
             <String, dynamic>{
-              'id': 'same-page',
-              'sourcePage': 2,
-              'targetPage': 2,
-              'createdAt': '2026-08-20T10:03:00.000',
-            },
-            <String, dynamic>{
-              'id': 'to-coda',
-              'sourcePage': 2,
-              'targetPage': 5,
-              'label': 'Coda',
-              'createdAt': '2026-08-20T10:04:00.000',
+              'path': '/tmp/part.pdf',
+              'type': 'pdf',
+              'label': 'Part',
+              'createdAt': '2026-08-20T10:02:00.000',
             },
           ],
+          'importedAt': '2026-08-20T10:00:00.000',
+          'updatedAt': '2026-08-20T10:01:00.000',
+          'bookmarks': <dynamic>[
+            <String, dynamic>{
+              'pageNumber': 2,
+              'label': 'Solo',
+              'createdAt': 'bad-date',
+            },
+            <String, dynamic>{
+              'pageNumber': 3,
+              'label': 'Coda',
+              'createdAt': '2026-08-20T10:02:00.000',
+            },
+          ],
+          'pageSettings': <String, dynamic>{
+            'jumpPoints': <dynamic>[
+              <String, dynamic>{
+                'id': 42,
+                'sourcePage': 1,
+                'targetPage': 4,
+                'createdAt': '2026-08-20T10:02:30.000',
+              },
+              <String, dynamic>{
+                'id': 'same-page',
+                'sourcePage': 2,
+                'targetPage': 2,
+                'createdAt': '2026-08-20T10:03:00.000',
+              },
+              <String, dynamic>{
+                'id': 'to-coda',
+                'sourcePage': 2,
+                'targetPage': 5,
+                'label': 'Coda',
+                'createdAt': '2026-08-20T10:04:00.000',
+              },
+            ],
+          },
+          'pdfLinkSanitization': <String, dynamic>{
+            'sanitizedFromPath': 42,
+            'removedUrlLinkCount': 3,
+            'createdAt': '2026-08-20T10:05:00.000',
+          },
         },
-        'pdfLinkSanitization': <String, dynamic>{
-          'sanitizedFromPath': 42,
-          'removedUrlLinkCount': 3,
-          'createdAt': '2026-08-20T10:05:00.000',
+      ]);
+
+      expect(decoded, hasLength(1));
+      expect(decoded.single.linkedFiles, hasLength(1));
+      expect(decoded.single.linkedFiles.single.label, 'Part');
+      expect(decoded.single.bookmarks, hasLength(2));
+      expect(decoded.single.bookmarks.first.label, 'Solo');
+      expect(
+        decoded.single.bookmarks.first.createdAt,
+        DateTime.fromMillisecondsSinceEpoch(0),
+      );
+      expect(decoded.single.bookmarks.last.label, 'Coda');
+      expect(decoded.single.pageSettings.jumpPoints, hasLength(1));
+      expect(decoded.single.pageSettings.jumpPoints.single.id, 'to-coda');
+      expect(decoded.single.pdfLinkSanitization.hasSanitizedCopy, isFalse);
+    },
+  );
+
+  test(
+    'SheetScore repairs invalid optional metadata without dropping score',
+    () {
+      final decoded = SheetScore.decodeJsonList(<dynamic>[
+        <String, dynamic>{
+          'id': ' score-1 ',
+          'title': 42,
+          'composer': <String>['Composer'],
+          'tags': <dynamic>['lesson', '', 7, ' trumpet '],
+          'note': 99,
+          'filePath': ' /tmp/sonata.pdf ',
+          'collection': 7,
+          'group': false,
+          'rating': '4',
+          'importedAt': 'bad-date',
+          'updatedAt': 'bad-date',
+          'lastOpenedAt': 7,
+          'lastPage': -2,
+          'isFavorite': 'true',
+          'viewerSettings': <String, dynamic>{
+            'displayMode': 7,
+            'halfPageTurn': 'yes',
+            'displayEffect': false,
+          },
         },
-      },
-    ]);
+      ]);
 
-    expect(decoded, hasLength(1));
-    expect(decoded.single.linkedFiles, hasLength(1));
-    expect(decoded.single.linkedFiles.single.label, 'Part');
-    expect(decoded.single.bookmarks, hasLength(2));
-    expect(decoded.single.bookmarks.first.label, 'Solo');
-    expect(
-      decoded.single.bookmarks.first.createdAt,
-      DateTime.fromMillisecondsSinceEpoch(0),
-    );
-    expect(decoded.single.bookmarks.last.label, 'Coda');
-    expect(decoded.single.pageSettings.jumpPoints, hasLength(1));
-    expect(decoded.single.pageSettings.jumpPoints.single.id, 'to-coda');
-    expect(decoded.single.pdfLinkSanitization.hasSanitizedCopy, isFalse);
-  });
-
-  test('SheetScore repairs invalid optional metadata without dropping score', () {
-    final decoded = SheetScore.decodeJsonList(<dynamic>[
-      <String, dynamic>{
-        'id': ' score-1 ',
-        'title': 42,
-        'composer': <String>['Composer'],
-        'tags': <dynamic>['lesson', '', 7, ' trumpet '],
-        'note': 99,
-        'filePath': ' /tmp/sonata.pdf ',
-        'collection': 7,
-        'group': false,
-        'rating': '4',
-        'importedAt': 'bad-date',
-        'updatedAt': 'bad-date',
-        'lastOpenedAt': 7,
-        'lastPage': -2,
-        'isFavorite': 'true',
-        'viewerSettings': <String, dynamic>{
-          'displayMode': 7,
-          'halfPageTurn': 'yes',
-          'displayEffect': false,
-        },
-      },
-    ]);
-
-    expect(decoded, hasLength(1));
-    expect(decoded.single.id, 'score-1');
-    expect(decoded.single.title, 'Untitled score');
-    expect(decoded.single.composer, isEmpty);
-    expect(decoded.single.tags, <String>['lesson', 'trumpet']);
-    expect(decoded.single.note, isEmpty);
-    expect(decoded.single.filePath, '/tmp/sonata.pdf');
-    expect(decoded.single.collection, isEmpty);
-    expect(decoded.single.group, isEmpty);
-    expect(decoded.single.rating, 4);
-    expect(decoded.single.importedAt, DateTime.fromMillisecondsSinceEpoch(0));
-    expect(decoded.single.updatedAt, decoded.single.importedAt);
-    expect(decoded.single.lastOpenedAt, isNull);
-    expect(decoded.single.lastPage, 1);
-    expect(decoded.single.isFavorite, isFalse);
-    expect(decoded.single.isPinned, isFalse);
-    expect(
-      decoded.single.viewerSettings.displayMode,
-      SheetViewerSettings.defaultSettings.displayMode,
-    );
-    expect(decoded.single.viewerSettings.halfPageTurn, isFalse);
-    expect(
-      decoded.single.viewerSettings.displayEffect,
-      SheetViewerSettings.normalDisplayEffect,
-    );
-  });
+      expect(decoded, hasLength(1));
+      expect(decoded.single.id, 'score-1');
+      expect(decoded.single.title, 'Untitled score');
+      expect(decoded.single.composer, isEmpty);
+      expect(decoded.single.tags, <String>['lesson', 'trumpet']);
+      expect(decoded.single.note, isEmpty);
+      expect(decoded.single.filePath, '/tmp/sonata.pdf');
+      expect(decoded.single.collection, isEmpty);
+      expect(decoded.single.group, isEmpty);
+      expect(decoded.single.rating, 4);
+      expect(decoded.single.importedAt, DateTime.fromMillisecondsSinceEpoch(0));
+      expect(decoded.single.updatedAt, decoded.single.importedAt);
+      expect(decoded.single.lastOpenedAt, isNull);
+      expect(decoded.single.lastPage, 1);
+      expect(decoded.single.isFavorite, isFalse);
+      expect(decoded.single.isPinned, isFalse);
+      expect(
+        decoded.single.viewerSettings.displayMode,
+        SheetViewerSettings.defaultSettings.displayMode,
+      );
+      expect(decoded.single.viewerSettings.halfPageTurn, isFalse);
+      expect(
+        decoded.single.viewerSettings.displayEffect,
+        SheetViewerSettings.normalDisplayEffect,
+      );
+    },
+  );
 
   test('SheetScore skips invalid persisted records', () {
     final decoded = SheetScore.decodeJsonList(<dynamic>[
@@ -890,10 +920,7 @@ void main() {
     expect(bookmark.label, '3쪽');
     expect(negativeBookmark.pageNumber, 1);
     expect(negativeBookmark.label, '1쪽');
-    expect(
-      negativeBookmark.createdAt,
-      DateTime.fromMillisecondsSinceEpoch(0),
-    );
+    expect(negativeBookmark.createdAt, DateTime.fromMillisecondsSinceEpoch(0));
     expect(labeledBookmark.label, 'Solo');
     expect(jumpPoint.sourcePage, 1);
     expect(jumpPoint.targetPage, 5);

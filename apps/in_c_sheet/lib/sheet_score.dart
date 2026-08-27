@@ -323,9 +323,10 @@ class SheetViewerSettings {
       }
       result[key] = action;
     }
-    return Map<String, String>.unmodifiable(
-      <String, String>{...defaultCustomPedalMapping, ...result},
-    );
+    return Map<String, String>.unmodifiable(<String, String>{
+      ...defaultCustomPedalMapping,
+      ...result,
+    });
   }
 
   static String _normalizeRenderProfile(Object? value) {
@@ -804,9 +805,7 @@ class SheetPageSettings {
         .where((page) => page >= 1 && page <= pageCount && !isHidden(page))
         .toList(growable: false);
     return List<int>.unmodifiable(
-      sanitized.isEmpty
-          ? visiblePages(pageCount)
-          : sanitized,
+      sanitized.isEmpty ? visiblePages(pageCount) : sanitized,
     );
   }
 
@@ -888,7 +887,10 @@ class SheetPageSettings {
         _intListsEqual(pageOrder, compactPageOrder) &&
         _jumpPointListsEqual(jumpPoints, compactJumpPoints) &&
         _jsonObjectListsEqual(rehearsalMarks, compactRehearsalMarks) &&
-        _jsonObjectListsEqual(blankPageInsertions, compactBlankPageInsertions) &&
+        _jsonObjectListsEqual(
+          blankPageInsertions,
+          compactBlankPageInsertions,
+        ) &&
         _jsonObjectListsEqual(visibilityPresets, compactVisibilityPresets)) {
       return this;
     }
@@ -979,16 +981,17 @@ class SheetPageSettings {
         isHidden(jumpPoint.targetPage)) {
       return this;
     }
-    final next = <SheetPageJumpPoint>[
-      ...jumpPoints.where((candidate) => candidate.id != jumpPoint.id),
-      jumpPoint,
-    ]..sort((a, b) {
-        final sourceCompare = a.sourcePage.compareTo(b.sourcePage);
-        if (sourceCompare != 0) {
-          return sourceCompare;
-        }
-        return a.createdAt.compareTo(b.createdAt);
-      });
+    final next =
+        <SheetPageJumpPoint>[
+          ...jumpPoints.where((candidate) => candidate.id != jumpPoint.id),
+          jumpPoint,
+        ]..sort((a, b) {
+          final sourceCompare = a.sourcePage.compareTo(b.sourcePage);
+          if (sourceCompare != 0) {
+            return sourceCompare;
+          }
+          return a.createdAt.compareTo(b.createdAt);
+        });
     return copyWith(jumpPoints: List<SheetPageJumpPoint>.unmodifiable(next));
   }
 
@@ -1015,16 +1018,17 @@ class SheetPageSettings {
     if (!mark.isValidForPageCount(pageCount) || isHidden(mark.pageNumber)) {
       return this;
     }
-    final next = <SheetRehearsalMark>[
-      ...rehearsalMarks.where((candidate) => candidate.id != mark.id),
-      mark,
-    ]..sort((a, b) {
-        final pageCompare = a.pageNumber.compareTo(b.pageNumber);
-        if (pageCompare != 0) {
-          return pageCompare;
-        }
-        return a.createdAt.compareTo(b.createdAt);
-      });
+    final next =
+        <SheetRehearsalMark>[
+          ...rehearsalMarks.where((candidate) => candidate.id != mark.id),
+          mark,
+        ]..sort((a, b) {
+          final pageCompare = a.pageNumber.compareTo(b.pageNumber);
+          if (pageCompare != 0) {
+            return pageCompare;
+          }
+          return a.createdAt.compareTo(b.createdAt);
+        });
     return copyWith(
       rehearsalMarks: List<SheetRehearsalMark>.unmodifiable(next),
     );
@@ -1114,9 +1118,7 @@ class SheetPageSettings {
       return this;
     }
     final next = <SheetBlankPageInsertion>[
-      ...blankPageInsertions.where(
-        (candidate) => candidate.id != insertion.id,
-      ),
+      ...blankPageInsertions.where((candidate) => candidate.id != insertion.id),
       insertion,
     ]..sort((a, b) => a.afterPage.compareTo(b.afterPage));
     return copyWith(
@@ -1208,10 +1210,7 @@ class SheetPageSettings {
     while (targetIndex >= 0 && targetIndex < order.length) {
       final targetPage = order[targetIndex];
       if (!isHidden(targetPage)) {
-        return SheetPageOrderTarget(
-          index: targetIndex,
-          pageNumber: targetPage,
-        );
+        return SheetPageOrderTarget(index: targetIndex, pageNumber: targetPage);
       }
       targetIndex += delta;
     }
@@ -1400,9 +1399,7 @@ class SheetPageSettings {
     return List<SheetPageVisibilityPreset>.unmodifiable(presets);
   }
 
-  static SheetPageJumpPoint? _tryJumpPointFromJson(
-    Map<String, Object?> json,
-  ) {
+  static SheetPageJumpPoint? _tryJumpPointFromJson(Map<String, Object?> json) {
     try {
       return SheetPageJumpPoint.fromJson(json);
     } catch (_) {
@@ -1589,10 +1586,7 @@ class SheetPageJumpPoint {
       id: _stringFromJson(json['id']),
       sourcePage: sourcePage,
       targetPage: targetPage,
-      label: _normalizeLabel(
-        _stringFromJson(json['label']),
-        targetPage,
-      ),
+      label: _normalizeLabel(_stringFromJson(json['label']), targetPage),
       createdAt:
           DateTime.tryParse(_stringFromJson(json['createdAt'])) ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -1627,7 +1621,10 @@ class SheetPageJumpPoint {
       id: id ?? this.id,
       sourcePage: sourcePage ?? this.sourcePage,
       targetPage: targetPage ?? this.targetPage,
-      label: _normalizeLabel(label ?? this.label, targetPage ?? this.targetPage),
+      label: _normalizeLabel(
+        label ?? this.label,
+        targetPage ?? this.targetPage,
+      ),
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1711,15 +1708,13 @@ class SheetAnnotationStorageReference {
     this.lastSaveError = '',
   });
 
-  factory SheetAnnotationStorageReference.fromJson(
-    Map<String, Object?>? json,
-  ) {
+  factory SheetAnnotationStorageReference.fromJson(Map<String, Object?>? json) {
     if (json == null) {
       return inline;
     }
     final mode = _normalizeMode(json['mode']);
     final path = _stringFromJson(json['path']).trim();
-    final updatedAt = _parseOptionalDate(json['updatedAt']);
+    final updatedAt = _parseDate(json['updatedAt']);
     return SheetAnnotationStorageReference(
       mode: mode == inlineMode || path.isNotEmpty ? mode : inlineMode,
       path: mode == inlineMode ? '' : path,
@@ -1791,6 +1786,13 @@ class SheetAnnotationStorageReference {
       return value.toString();
     }
     return inlineMode;
+  }
+
+  static DateTime? _parseDate(Object? value) {
+    if (value is! String || value.isEmpty) {
+      return null;
+    }
+    return DateTime.tryParse(value);
   }
 }
 
@@ -1942,6 +1944,33 @@ class SheetScoreNotes {
   }
 }
 
+class SheetCustomMetadataField {
+  const SheetCustomMetadataField({required this.key, required this.value});
+
+  factory SheetCustomMetadataField.fromJson(Map<String, Object?> json) {
+    return SheetCustomMetadataField(
+      key: _stringFromJson(json['key']).trim(),
+      value: _stringFromJson(json['value']).trim(),
+    );
+  }
+
+  final String key;
+  final String value;
+
+  bool get isValid => key.trim().isNotEmpty && value.trim().isNotEmpty;
+
+  SheetCustomMetadataField copyWith({String? key, String? value}) {
+    return SheetCustomMetadataField(
+      key: (key ?? this.key).trim(),
+      value: (value ?? this.value).trim(),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{'key': key, 'value': value};
+  }
+}
+
 class SheetScore {
   const SheetScore({
     required this.id,
@@ -1955,6 +1984,7 @@ class SheetScore {
     this.rating = 0,
     this.linkedFiles = const <SheetLinkedFile>[],
     this.structuredNotes = SheetScoreNotes.empty,
+    this.customFields = const <SheetCustomMetadataField>[],
     required this.importedAt,
     required this.updatedAt,
     required this.lastOpenedAt,
@@ -1990,6 +2020,7 @@ class SheetScore {
       structuredNotes: SheetScoreNotes.fromJson(
         _asJsonMap(json['structuredNotes']),
       ),
+      customFields: _parseCustomFields(json['customFields']),
       importedAt: importedAt,
       updatedAt: _dateFromJson(json['updatedAt'], fallback: importedAt),
       lastOpenedAt: _parseOptionalDate(json['lastOpenedAt']),
@@ -2066,6 +2097,7 @@ class SheetScore {
   final int rating;
   final List<SheetLinkedFile> linkedFiles;
   final SheetScoreNotes structuredNotes;
+  final List<SheetCustomMetadataField> customFields;
   final DateTime importedAt;
   final DateTime updatedAt;
   final DateTime? lastOpenedAt;
@@ -2095,7 +2127,12 @@ class SheetScore {
         structuredNotes.performance.toLowerCase().contains(normalized) ||
         structuredNotes.rehearsal.toLowerCase().contains(normalized) ||
         structuredNotes.tuning.toLowerCase().contains(normalized) ||
-        structuredNotes.instrumentation.toLowerCase().contains(normalized);
+        structuredNotes.instrumentation.toLowerCase().contains(normalized) ||
+        customFields.any(
+          (field) =>
+              field.key.toLowerCase().contains(normalized) ||
+              field.value.toLowerCase().contains(normalized),
+        );
   }
 
   SheetScore copyWith({
@@ -2109,6 +2146,7 @@ class SheetScore {
     int? rating,
     List<SheetLinkedFile>? linkedFiles,
     SheetScoreNotes? structuredNotes,
+    List<SheetCustomMetadataField>? customFields,
     DateTime? updatedAt,
     DateTime? lastOpenedAt,
     int? lastPage,
@@ -2136,6 +2174,9 @@ class SheetScore {
           ? this.linkedFiles
           : normalizeLinkedFiles(linkedFiles),
       structuredNotes: structuredNotes ?? this.structuredNotes,
+      customFields: customFields == null
+          ? this.customFields
+          : normalizeCustomFields(customFields),
       importedAt: importedAt,
       updatedAt: updatedAt ?? this.updatedAt,
       lastOpenedAt: lastOpenedAt ?? this.lastOpenedAt,
@@ -2165,6 +2206,7 @@ class SheetScore {
       'rating': rating,
       'linkedFiles': linkedFiles.map((file) => file.toJson()).toList(),
       'structuredNotes': structuredNotes.toJson(),
+      'customFields': customFields.map((field) => field.toJson()).toList(),
       'importedAt': importedAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'lastOpenedAt': lastOpenedAt?.toIso8601String(),
@@ -2206,6 +2248,13 @@ class SheetScore {
     return normalizeLinkedFiles(files);
   }
 
+  static List<SheetCustomMetadataField> _parseCustomFields(Object? value) {
+    final fields = _jsonMaps(value)
+        .map(SheetCustomMetadataField.fromJson)
+        .toList(growable: false);
+    return normalizeCustomFields(fields);
+  }
+
   static List<SheetLinkedFile> normalizeLinkedFiles(
     Iterable<SheetLinkedFile> files,
   ) {
@@ -2219,6 +2268,21 @@ class SheetScore {
       normalized.add(file.copyWith(path: path));
     }
     return List<SheetLinkedFile>.unmodifiable(normalized);
+  }
+
+  static List<SheetCustomMetadataField> normalizeCustomFields(
+    Iterable<SheetCustomMetadataField> fields,
+  ) {
+    final seenKeys = <String>{};
+    final normalized = <SheetCustomMetadataField>[];
+    for (final field in fields) {
+      final cleanField = field.copyWith();
+      if (!cleanField.isValid || !seenKeys.add(cleanField.key.toLowerCase())) {
+        continue;
+      }
+      normalized.add(cleanField);
+    }
+    return List<SheetCustomMetadataField>.unmodifiable(normalized);
   }
 
   static int normalizeRating(Object? value) {
@@ -2237,7 +2301,5 @@ class SheetScore {
 }
 
 Iterable<Map<String, Object?>> _jsonMaps(Object? value) {
-  return _jsonList(value)
-      .map(_asJsonMap)
-      .whereType<Map<String, Object?>>();
+  return _jsonList(value).map(_asJsonMap).whereType<Map<String, Object?>>();
 }

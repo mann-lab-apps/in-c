@@ -30,10 +30,7 @@ void main() {
       SheetLibraryViewSettingsCodec.decode('{bad json').sortMode,
       SheetLibraryViewSettings.defaultSettings.sortMode,
     );
-    expect(
-      SheetLibraryViewSettingsCodec.decode('[]').hasAnyFilter,
-      isFalse,
-    );
+    expect(SheetLibraryViewSettingsCodec.decode('[]').hasAnyFilter, isFalse);
   });
 
   test('ignores invalid persisted field types', () {

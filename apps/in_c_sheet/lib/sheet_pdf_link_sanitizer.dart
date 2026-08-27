@@ -114,8 +114,7 @@ class SheetPdfLinkSanitizer {
         outputPath: outputPath,
         pageCount: after.pageCount,
         originalUrlLinkCount: before.urlLinkCount,
-        removedUrlLinkCount:
-            removedUrlLinkCount < 0 ? 0 : removedUrlLinkCount,
+        removedUrlLinkCount: removedUrlLinkCount < 0 ? 0 : removedUrlLinkCount,
         remainingUrlLinkCount: after.urlLinkCount,
         didWrite: true,
       );

@@ -23,21 +23,21 @@
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 2차 구현: ordered score list, 생성/이름 변경/삭제, 검색 추가, 제거/순서 이동, 첫 곡 열기 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
-| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | library switching |
-| 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 21차 부분 구현: collection/group/rating. custom fields는 후속 |
+| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 22차 부분 구현: collection-backed pseudo-library switcher, 생성/전환/이름 변경/비우기. 실제 profile별 저장 key 분리는 후속 |
+| 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
 | 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
-| 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 15차 구현: JPG/PNG를 PDF 악보로 변환 등록. 이미지 원본 viewer와 HEIC는 후속 |
-| 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 15차 구현: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶어 등록 |
+| 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 22차 보강: JPG/PNG를 PDF 악보로 변환 등록하고 원본 이미지를 reference linkedFiles로 보존. 이미지 원본 viewer와 HEIC 변환은 후속 |
+| 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 22차 보강: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶고 원본 이미지를 reference 파일로 연결 |
 | 파일 | 외부 앱에서 PDF 열기/import | 국내 공유 흐름 | MVP | 중간 | 16차 구현: Android ACTION_VIEW/SEND PDF 수신, iOS document open URL bridge. iOS Share Extension은 후속 |
 | 파일 | PDF 공유/export | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유 |
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
-| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 부분 구현: linkedFiles metadata/backup round-trip. 관리 UI는 후속 |
+| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V2 | 중간 | CSV import, page range |
 | 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
-| 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | system picker 우선 |
+| 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
 | 보기 | 2페이지 보기 | 양쪽 기본 | MVP | 중간 | 4차 구현: 넓은 화면 tablet spread, 첫 페이지 단독 후 2-3 spread |

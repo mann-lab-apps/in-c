@@ -56,28 +56,31 @@ void main() {
     expect(File(outputPath).existsSync(), isFalse);
   });
 
-  test('does not write copy when valid rotations target missing pages', () async {
-    final tempDir = await Directory.systemTemp.createTemp(
-      'clef-page-rotation-out-of-range-',
-    );
-    addTearDown(() async {
-      if (tempDir.existsSync()) {
-        await tempDir.delete(recursive: true);
-      }
-    });
-    final outputPath = '${tempDir.path}/short-score-rotated.pdf';
+  test(
+    'does not write copy when valid rotations target missing pages',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'clef-page-rotation-out-of-range-',
+      );
+      addTearDown(() async {
+        if (tempDir.existsSync()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+      final outputPath = '${tempDir.path}/short-score-rotated.pdf';
 
-    final result = await SheetPdfPageTransformer.createRotationAppliedCopy(
-      inputPath: shortFixturePath,
-      outputPath: outputPath,
-      pageRotations: const <int, int>{99: 90},
-    );
+      final result = await SheetPdfPageTransformer.createRotationAppliedCopy(
+        inputPath: shortFixturePath,
+        outputPath: outputPath,
+        pageRotations: const <int, int>{99: 90},
+      );
 
-    expect(result.didWrite, isFalse);
-    expect(result.pageCount, 3);
-    expect(result.rotatedPageCount, 0);
-    expect(File(outputPath).existsSync(), isFalse);
-  });
+      expect(result.didWrite, isFalse);
+      expect(result.pageCount, 3);
+      expect(result.rotatedPageCount, 0);
+      expect(File(outputPath).existsSync(), isFalse);
+    },
+  );
 
   test('normalizes negative clockwise rotations before writing copy', () async {
     final tempDir = await Directory.systemTemp.createTemp(

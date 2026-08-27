@@ -26,6 +26,21 @@ void main() {
     );
   });
 
+  test('explains known unsupported image types', () {
+    expect(
+      SheetFileImportPolicy.unsupportedImportMessage(
+        'Unsupported image file: page-1.heic',
+      ),
+      contains('JPG로 내보낸 뒤'),
+    );
+    expect(
+      SheetFileImportPolicy.unsupportedImportMessage(
+        'Unsupported image file: page-1.tiff',
+      ),
+      contains('JPG/PNG'),
+    );
+  });
+
   test('cleans scanner-like filenames into readable titles', () {
     expect(
       SheetFileImportPolicy.titleFromFileName(

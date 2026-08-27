@@ -24,19 +24,22 @@ void main() {
     expect(isSheetExternalPdfUriText('relative/page.pdf'), isFalse);
   });
 
-  test('blocks external URI-like links and ignores non-external URI actions', () {
-    final protocolRelativeAction = resolveSheetPdfLinkTapAction(
-      url: Uri.parse('//example.invalid/score'),
-      hasDestination: false,
-    );
-    final relativeAction = resolveSheetPdfLinkTapAction(
-      url: Uri.parse('#page=2'),
-      hasDestination: false,
-    );
+  test(
+    'blocks external URI-like links and ignores non-external URI actions',
+    () {
+      final protocolRelativeAction = resolveSheetPdfLinkTapAction(
+        url: Uri.parse('//example.invalid/score'),
+        hasDestination: false,
+      );
+      final relativeAction = resolveSheetPdfLinkTapAction(
+        url: Uri.parse('#page=2'),
+        hasDestination: false,
+      );
 
-    expect(protocolRelativeAction, SheetPdfLinkTapAction.blockExternalUrl);
-    expect(relativeAction, SheetPdfLinkTapAction.ignore);
-  });
+      expect(protocolRelativeAction, SheetPdfLinkTapAction.blockExternalUrl);
+      expect(relativeAction, SheetPdfLinkTapAction.ignore);
+    },
+  );
 
   test('keeps internal destination links navigable', () {
     final action = resolveSheetPdfLinkTapAction(

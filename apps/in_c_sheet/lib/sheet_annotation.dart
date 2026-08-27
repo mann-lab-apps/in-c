@@ -360,9 +360,7 @@ class SheetAnnotationLayer {
     );
   }
 
-  static SheetAnnotationStroke? _tryStrokeFromJson(
-    Map<String, Object?> json,
-  ) {
+  static SheetAnnotationStroke? _tryStrokeFromJson(Map<String, Object?> json) {
     try {
       return SheetAnnotationStroke.fromJson(json);
     } catch (_) {
@@ -454,14 +452,10 @@ class SheetAnnotationLayer {
         )
         .toList(growable: false);
     final compactTexts = texts
-        .where(
-          (text) => text.pageNumber > 0 && text.pageNumber <= pageCount,
-        )
+        .where((text) => text.pageNumber > 0 && text.pageNumber <= pageCount)
         .toList(growable: false);
     final compactRedoStack = redoStack
-        .where(
-          (entry) => entry.pageNumber > 0 && entry.pageNumber <= pageCount,
-        )
+        .where((entry) => entry.pageNumber > 0 && entry.pageNumber <= pageCount)
         .toList(growable: false);
 
     if (_strokesEqual(strokes, compactStrokes) &&
@@ -645,9 +639,7 @@ class SheetAnnotationLayer {
         return SheetAnnotationLayer(
           strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
           texts: texts,
-          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
-            remainingRedo,
-          ),
+          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
         );
       }
       if (entry.text != null) {
@@ -658,9 +650,7 @@ class SheetAnnotationLayer {
         return SheetAnnotationLayer(
           strokes: strokes,
           texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
-          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
-            remainingRedo,
-          ),
+          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
         );
       }
     }
@@ -889,7 +879,5 @@ String _stringFromJson(Object? value) {
 }
 
 Iterable<Map<String, Object?>> _jsonMaps(Object? value) {
-  return _jsonList(value)
-      .map(_asJsonMap)
-      .whereType<Map<String, Object?>>();
+  return _jsonList(value).map(_asJsonMap).whereType<Map<String, Object?>>();
 }

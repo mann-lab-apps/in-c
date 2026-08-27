@@ -43,10 +43,9 @@ abstract class SheetAnnotationStorageAdapter {
 }
 
 class SheetFileBackedAnnotationStore implements SheetAnnotationStorageAdapter {
-  const SheetFileBackedAnnotationStore({Directory? rootDirectory})
-      : _rootDirectory = rootDirectory;
+  const SheetFileBackedAnnotationStore({this.rootDirectory});
 
-  final Directory? _rootDirectory;
+  final Directory? rootDirectory;
 
   @override
   Future<SheetExternalAnnotationSaveResult> saveLayer({
@@ -139,7 +138,7 @@ class SheetFileBackedAnnotationStore implements SheetAnnotationStorageAdapter {
   }
 
   Future<Directory> _annotationDirectory() async {
-    final root = _rootDirectory ?? await getApplicationDocumentsDirectory();
+    final root = rootDirectory ?? await getApplicationDocumentsDirectory();
     return Directory('${root.path}/annotations');
   }
 

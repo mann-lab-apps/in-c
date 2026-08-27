@@ -26,8 +26,7 @@ class SheetLibraryStore {
   static const _metronomeSettingsKey = 'clef_metronome_settings';
   static const _tunerSettingsKey = 'clef_tuner_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
-  static const _favoriteAnnotationPresetKey =
-      'clef_favorite_annotation_preset';
+  static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
   static const _legacyScoresKey = 'in_c_sheet_scores';
   static const _legacySetlistsKey = 'in_c_sheet_setlists';
   static const _legacyMetronomeSettingsKey = 'in_c_sheet_metronome_settings';
@@ -141,9 +140,7 @@ class SheetLibraryStore {
         return null;
       }
       final preset = SheetAnnotationToolPreset.fromJson(
-        decoded.map(
-          (key, value) => MapEntry(key.toString(), value as Object?),
-        ),
+        decoded.map((key, value) => MapEntry(key.toString(), value as Object?)),
       );
       return preset.isValid ? preset : null;
     } catch (_) {
@@ -228,7 +225,7 @@ class SheetLibraryStore {
   Future<SheetScore?> importImagesAsPdf() async {
     final files = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const <String>['jpg', 'jpeg', 'png'],
+      allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'heic', 'heif'],
     );
 
     if (files.isEmpty) {
@@ -261,10 +258,28 @@ class SheetLibraryStore {
       '$resolvedTitle.pdf',
       fallback: 'scanned-score.pdf',
     );
-    return importPdfBytes(
+    final score = await importPdfBytes(
       bytes: pdfBytes,
       fileName: outputFileName,
       importedAt: importedAt,
+    );
+    final linkedImages = <SheetLinkedFile>[];
+    final now = importedAt ?? DateTime.now();
+    for (var index = 0; index < images.length; index += 1) {
+      final image = images[index];
+      linkedImages.add(
+        (await importLinkedFileBytes(
+          bytes: image.bytes,
+          fileName: image.name,
+          importedAt: now.add(Duration(microseconds: index)),
+        )).copyWith(role: SheetLinkedFile.referenceRole),
+      );
+    }
+    if (linkedImages.isEmpty) {
+      return score;
+    }
+    return score.copyWith(
+      linkedFiles: SheetScore.normalizeLinkedFiles(linkedImages),
     );
   }
 
@@ -530,10 +545,7 @@ class SheetLibraryStore {
         );
         if (linkedExists) {
           archive.addFile(
-            ArchiveFile.bytes(
-              linkedEntryPath,
-              await sourceFile.readAsBytes(),
-            ),
+            ArchiveFile.bytes(linkedEntryPath, await sourceFile.readAsBytes()),
           );
         }
       }
@@ -733,11 +745,10 @@ class SheetLibraryStore {
         if (linkedFilePath == null) {
           continue;
         }
-        linkedFileMappingsByScoreId
-            .putIfAbsent(
-              mapping.scoreId,
-              () => <String, SheetLibraryFullBackupFileMapping>{},
-            )[linkedFilePath] = mapping;
+        linkedFileMappingsByScoreId.putIfAbsent(
+          mapping.scoreId,
+          () => <String, SheetLibraryFullBackupFileMapping>{},
+        )[linkedFilePath] = mapping;
       }
       final annotationMappingsByScoreId =
           <String, SheetLibraryFullBackupFileMapping>{
@@ -802,9 +813,7 @@ class SheetLibraryStore {
         if (annotationMapping != null &&
             !annotationMapping.missing &&
             _isSafeAnnotationZipEntryPath(annotationMapping.entryPath)) {
-          final annotationEntry = archive.findFile(
-            annotationMapping.entryPath,
-          );
+          final annotationEntry = archive.findFile(annotationMapping.entryPath);
           if (annotationEntry != null && annotationEntry.isFile) {
             final restoredAnnotationPath = await _writeAnnotationFile(
               bytes: annotationEntry.content,

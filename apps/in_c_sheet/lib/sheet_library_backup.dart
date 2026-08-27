@@ -146,9 +146,8 @@ class SheetLibraryFullBackupFileMapping {
       throw const FormatException('Invalid backup file mapping.');
     }
     final linkedFilePath = _stringFromJson(json['linkedFilePath']).trim();
-    final annotationStoragePath = _stringFromJson(
-      json['annotationStoragePath'],
-    ).trim();
+    final annotationStoragePath = _stringFromJson(json['annotationStoragePath'])
+        .trim();
     return SheetLibraryFullBackupFileMapping(
       scoreId: scoreId,
       entryPath: entryPath,

@@ -112,8 +112,8 @@ void main() {
     final loadedMetronomeSettings = await store.loadMetronomeSettings();
     final loadedTunerSettings = await store.loadTunerSettings();
     final loadedLibraryViewSettings = await store.loadLibraryViewSettings();
-    final loadedFavoriteAnnotationPreset =
-        await store.loadFavoriteAnnotationPreset();
+    final loadedFavoriteAnnotationPreset = await store
+        .loadFavoriteAnnotationPreset();
 
     expect(loadedScores.single.bookmarks.single.label, 'Solo');
     expect(loadedSetlists.single.scoreIds, <String>['score-1']);
@@ -193,6 +193,9 @@ void main() {
           createdAt: now,
         ),
       ],
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: 'Publisher', value: 'Mann Lab'),
+      ],
       viewerSettings: const SheetViewerSettings(
         displayMode: 'auto',
         halfPageTurn: false,
@@ -266,7 +269,12 @@ void main() {
     expect(backup.scores.single.group, 'Lesson A');
     expect(backup.scores.single.rating, 4);
     expect(backup.scores.single.linkedFiles.single.label, 'Trumpet part');
-    expect(backup.scores.single.linkedFiles.single.role, SheetLinkedFile.partRole);
+    expect(
+      backup.scores.single.linkedFiles.single.role,
+      SheetLinkedFile.partRole,
+    );
+    expect(backup.scores.single.customFields.single.key, 'Publisher');
+    expect(backup.scores.single.customFields.single.value, 'Mann Lab');
     expect(
       backup.scores.single.viewerSettings.customPedalMapping['Space'],
       'toggleQuickActions',
@@ -284,10 +292,7 @@ void main() {
       jsonEncode(corruptedBackupJson),
     );
 
-    expect(
-      repairedBackup.exportedAt,
-      DateTime.fromMillisecondsSinceEpoch(0),
-    );
+    expect(repairedBackup.exportedAt, DateTime.fromMillisecondsSinceEpoch(0));
     expect(repairedBackup.scores.single.id, score.id);
     expect(repairedBackup.favoriteAnnotationPreset, isNull);
 
@@ -303,6 +308,7 @@ void main() {
     expect(restoredScore.rating, 4);
     expect(restoredScore.linkedFiles.single.path, '/tmp/sonata-part.pdf');
     expect(restoredScore.linkedFiles.single.role, SheetLinkedFile.partRole);
+    expect(restoredScore.customFields.single.value, 'Mann Lab');
     expect(
       restoredScore.viewerSettings.customPedalMapping['Space'],
       'toggleQuickActions',
@@ -525,34 +531,37 @@ void main() {
     );
   });
 
-  test('creates page rotation applied copy without mutating source PDF', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final store = SheetLibraryStore();
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
-        .readAsBytes();
-    final score = await store.importPdfBytes(
-      bytes: sourceBytes,
-      fileName: 'short-score.pdf',
-      importedAt: now,
-    );
-    final scoreWithRotation = score.copyWith(
-      pageSettings: const SheetPageSettings(
-        hiddenPages: <int>[],
-        pageRotations: <int, int>{2: 90},
-      ),
-    );
+  test(
+    'creates page rotation applied copy without mutating source PDF',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+          .readAsBytes();
+      final score = await store.importPdfBytes(
+        bytes: sourceBytes,
+        fileName: 'short-score.pdf',
+        importedAt: now,
+      );
+      final scoreWithRotation = score.copyWith(
+        pageSettings: const SheetPageSettings(
+          hiddenPages: <int>[],
+          pageRotations: <int, int>{2: 90},
+        ),
+      );
 
-    final result = await store.createPageRotationAppliedCopy(
-      scoreWithRotation,
-    );
+      final result = await store.createPageRotationAppliedCopy(
+        scoreWithRotation,
+      );
 
-    expect(result.didWrite, isTrue);
-    expect(result.rotatedPageCount, 1);
-    expect(result.outputPath, isNotNull);
-    expect(await File(result.outputPath!).exists(), isTrue);
-    expect(await File(score.filePath).readAsBytes(), sourceBytes);
-  });
+      expect(result.didWrite, isTrue);
+      expect(result.rotatedPageCount, 1);
+      expect(result.outputPath, isNotNull);
+      expect(await File(result.outputPath!).exists(), isTrue);
+      expect(await File(score.filePath).readAsBytes(), sourceBytes);
+    },
+  );
 
   test('rejects non-zip full backup bytes', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -588,75 +597,78 @@ void main() {
     expect(score.filePath.endsWith('.pdf'), isTrue);
   });
 
-  test('provides existing original, sanitized, and linked share candidates', () {
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    final tempDir = Directory.systemTemp.createTempSync(
-      'clef-share-candidates-',
-    );
-    addTearDown(() {
-      if (tempDir.existsSync()) {
-        tempDir.deleteSync(recursive: true);
-      }
-    });
-    final currentFile = File('${tempDir.path}/current-links-disabled.pdf')
-      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
-    final originalFile = File('${tempDir.path}/original.pdf')
-      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
-    final trumpetPart = File('${tempDir.path}/trumpet-part.pdf')
-      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
-    final stageNote = File('${tempDir.path}/stage-note.png')
-      ..writeAsBytesSync(const <int>[137, 80, 78, 71]);
-    final missingLinkedPath = '${tempDir.path}/missing-part.pdf';
-    final baseScore = _score(now, filePath: currentFile.path);
-    final score = baseScore.copyWith(
-      title: 'Concert Etude',
-      composer: 'Goedicke',
-      pdfLinkSanitization: SheetPdfLinkSanitization(
-        sanitizedFromPath: originalFile.path,
-        removedUrlLinkCount: 1,
-        createdAt: now,
-      ),
-      linkedFiles: <SheetLinkedFile>[
-        SheetLinkedFile(
-          path: trumpetPart.path,
-          type: 'pdf',
-          label: 'Trumpet part',
+  test(
+    'provides existing original, sanitized, and linked share candidates',
+    () {
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      final tempDir = Directory.systemTemp.createTempSync(
+        'clef-share-candidates-',
+      );
+      addTearDown(() {
+        if (tempDir.existsSync()) {
+          tempDir.deleteSync(recursive: true);
+        }
+      });
+      final currentFile = File('${tempDir.path}/current-links-disabled.pdf')
+        ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+      final originalFile = File('${tempDir.path}/original.pdf')
+        ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+      final trumpetPart = File('${tempDir.path}/trumpet-part.pdf')
+        ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+      final stageNote = File('${tempDir.path}/stage-note.png')
+        ..writeAsBytesSync(const <int>[137, 80, 78, 71]);
+      final missingLinkedPath = '${tempDir.path}/missing-part.pdf';
+      final baseScore = _score(now, filePath: currentFile.path);
+      final score = baseScore.copyWith(
+        title: 'Concert Etude',
+        composer: 'Goedicke',
+        pdfLinkSanitization: SheetPdfLinkSanitization(
+          sanitizedFromPath: originalFile.path,
+          removedUrlLinkCount: 1,
           createdAt: now,
         ),
-        SheetLinkedFile(
-          path: stageNote.path,
-          type: 'png',
-          label: 'Stage note',
-          createdAt: now,
-        ),
-        SheetLinkedFile(
-          path: missingLinkedPath,
-          type: 'pdf',
-          label: 'Missing part',
-          createdAt: now,
-        ),
-      ],
-    );
+        linkedFiles: <SheetLinkedFile>[
+          SheetLinkedFile(
+            path: trumpetPart.path,
+            type: 'pdf',
+            label: 'Trumpet part',
+            createdAt: now,
+          ),
+          SheetLinkedFile(
+            path: stageNote.path,
+            type: 'png',
+            label: 'Stage note',
+            createdAt: now,
+          ),
+          SheetLinkedFile(
+            path: missingLinkedPath,
+            type: 'pdf',
+            label: 'Missing part',
+            createdAt: now,
+          ),
+        ],
+      );
 
-    final candidates = store.shareCandidates(score);
+      final candidates = store.shareCandidates(score);
 
-    expect(candidates, hasLength(4));
-    expect(candidates.first.isSanitizedCopy, isTrue);
-    expect(candidates.first.fileName, 'Goedicke-Concert-Etude.pdf');
-    expect(candidates.first.mimeType, 'application/pdf');
-    expect(candidates[1].label, '원본 PDF');
-    expect(candidates[2].label, '연결 파일: Trumpet part');
-    expect(candidates[2].fileName, 'Goedicke-Concert-Etude-Trumpet-part.pdf');
-    expect(candidates[2].mimeType, 'application/pdf');
-    expect(candidates[2].isLinkedFile, isTrue);
-    expect(candidates[3].fileName, 'Goedicke-Concert-Etude-Stage-note.png');
-    expect(candidates[3].mimeType, 'image/png');
-    expect(
-      candidates.any((candidate) => candidate.label.contains('Missing')),
-      isFalse,
-    );
-  });
+      expect(candidates, hasLength(4));
+      expect(candidates.first.isSanitizedCopy, isTrue);
+      expect(candidates.first.fileName, 'Goedicke-Concert-Etude.pdf');
+      expect(candidates.first.mimeType, 'application/pdf');
+      expect(candidates[1].label, '원본 PDF');
+      expect(candidates[2].label, '연결 파일: Trumpet part');
+      expect(candidates[2].fileName, 'Goedicke-Concert-Etude-Trumpet-part.pdf');
+      expect(candidates[2].mimeType, 'application/pdf');
+      expect(candidates[2].isLinkedFile, isTrue);
+      expect(candidates[3].fileName, 'Goedicke-Concert-Etude-Stage-note.png');
+      expect(candidates[3].mimeType, 'image/png');
+      expect(
+        candidates.any((candidate) => candidate.label.contains('Missing')),
+        isFalse,
+      );
+    },
+  );
 
   test('converts image bytes to a PDF score', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -671,6 +683,14 @@ void main() {
 
     expect(score.title, '001');
     expect(score.filePath.endsWith('.pdf'), isTrue);
+    expect(score.linkedFiles, hasLength(1));
+    expect(score.linkedFiles.single.type, 'png');
+    expect(score.linkedFiles.single.role, SheetLinkedFile.referenceRole);
+    expect(await File(score.linkedFiles.single.path).exists(), isTrue);
+    expect(
+      await File(score.linkedFiles.single.path).readAsBytes(),
+      _onePixelPng,
+    );
   });
 }
 

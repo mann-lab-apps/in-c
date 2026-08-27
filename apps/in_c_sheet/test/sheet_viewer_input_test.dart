@@ -182,9 +182,7 @@ void main() {
       ),
       isShiftPressed: false,
       pedalMapping: 'custom',
-      customMapping: const <String, String>{
-        'Space': 'toggleQuickActions',
-      },
+      customMapping: const <String, String>{'Space': 'toggleQuickActions'},
       timestamp: DateTime.parse('2026-08-27T10:00:00.000'),
     );
 
@@ -311,9 +309,7 @@ void main() {
         key: LogicalKeyboardKey.mediaTrackNext,
         isShiftPressed: false,
         pedalMapping: 'custom',
-        customMapping: const <String, String>{
-          'MediaNext': 'nextSetlistScore',
-        },
+        customMapping: const <String, String>{'MediaNext': 'nextSetlistScore'},
       ),
       SheetViewerInputAction.nextSetlistScore,
     );

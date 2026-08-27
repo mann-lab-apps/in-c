@@ -107,8 +107,8 @@ class SheetAnnotatedPdfExporter {
           )
           .length;
       if (drawableStrokeCount + drawableTextCount == 0) {
-        const unicodeReason =
-            SheetAnnotatedPdfExportResult.unicodeTextRequiresFontEmbeddingReason;
+        const unicodeReason = SheetAnnotatedPdfExportResult
+            .unicodeTextRequiresFontEmbeddingReason;
         const outsidePagesReason =
             SheetAnnotatedPdfExportResult.annotationsOutsideDocumentPagesReason;
         final failureReason = skippedUnicodeTextInRangeCount > 0

@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'sheet_annotation.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
@@ -151,7 +152,10 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final score = await store.importPdf();
+      final importedScore = await store.importPdf();
+      final score = importedScore == null
+          ? null
+          : _withActiveCollection(importedScore);
       if (score == null) {
         return null;
       }
@@ -160,7 +164,7 @@ class SheetLibraryController extends ChangeNotifier {
       await store.saveScores(_scores);
       return score;
     } catch (error) {
-      _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, 다른 앱에서 접근 가능한 위치인지 확인해주세요.';
+      _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
       return null;
     } finally {
       _isImporting = false;
@@ -178,7 +182,10 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final score = await store.importImagesAsPdf();
+      final importedScore = await store.importImagesAsPdf();
+      final score = importedScore == null
+          ? null
+          : _withActiveCollection(importedScore);
       if (score == null) {
         return null;
       }
@@ -187,7 +194,7 @@ class SheetLibraryController extends ChangeNotifier {
       await store.saveScores(_scores);
       return score;
     } catch (error) {
-      _errorMessage = '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지 확인해주세요.';
+      _errorMessage = _imageImportErrorMessage(error);
       return null;
     } finally {
       _isImporting = false;
@@ -209,9 +216,11 @@ class SheetLibraryController extends ChangeNotifier {
     try {
       final imported = <SheetScore>[];
       for (final sharedFile in files) {
-        final score = await store.importPdfFile(
-          File(sharedFile.path),
-          fileName: sharedFile.name,
+        final score = _withActiveCollection(
+          await store.importPdfFile(
+            File(sharedFile.path),
+            fileName: sharedFile.name,
+          ),
         );
         imported.add(score);
       }
@@ -222,7 +231,7 @@ class SheetLibraryController extends ChangeNotifier {
       await store.saveScores(_scores);
       return List<SheetScore>.unmodifiable(imported);
     } catch (error) {
-      _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 저장한 뒤 다시 열어보세요.';
+      _errorMessage = '공유받은 PDF를 가져오지 못했습니다. 원본 앱에서 파일을 기기에 저장하거나 클라우드 파일을 내려받은 뒤 다시 열어보세요.';
       return const <SheetScore>[];
     } finally {
       _isImporting = false;
@@ -343,6 +352,7 @@ class SheetLibraryController extends ChangeNotifier {
     String? group,
     int? rating,
     List<SheetLinkedFile>? linkedFiles,
+    List<SheetCustomMetadataField>? customFields,
   }) async {
     await _replace(
       score.copyWith(
@@ -356,9 +366,86 @@ class SheetLibraryController extends ChangeNotifier {
         linkedFiles: linkedFiles == null
             ? score.linkedFiles
             : SheetScore.normalizeLinkedFiles(linkedFiles),
+        customFields: customFields == null
+            ? score.customFields
+            : SheetScore.normalizeCustomFields(customFields),
         updatedAt: DateTime.now(),
       ),
     );
+  }
+
+  Future<void> createCollectionLibrary(String name) async {
+    final normalized = _normalizeOptionalMetadata(name);
+    if (normalized.isEmpty) {
+      return;
+    }
+    await updateCollectionFilter(normalized);
+  }
+
+  Future<int> renameCollectionLibrary({
+    required String from,
+    required String to,
+  }) async {
+    final fromName = _normalizeOptionalMetadata(from);
+    final toName = _normalizeOptionalMetadata(to);
+    if (fromName.isEmpty || toName.isEmpty) {
+      return 0;
+    }
+
+    var changedCount = 0;
+    final now = DateTime.now();
+    _scores = _scores
+        .map((score) {
+          if (score.collection.toLowerCase() != fromName.toLowerCase()) {
+            return score;
+          }
+          changedCount += 1;
+          return score.copyWith(collection: toName, updatedAt: now);
+        })
+        .toList(growable: false);
+    if (changedCount == 0) {
+      return 0;
+    }
+    await store.saveScores(_scores);
+    if (_libraryViewSettings.collectionQuery.toLowerCase() ==
+        fromName.toLowerCase()) {
+      _libraryViewSettings = _libraryViewSettings.copyWith(
+        collectionQuery: toName,
+      );
+      await store.saveLibraryViewSettings(_libraryViewSettings);
+    }
+    notifyListeners();
+    return changedCount;
+  }
+
+  Future<int> clearCollectionLibrary(String collection) async {
+    final collectionName = _normalizeOptionalMetadata(collection);
+    if (collectionName.isEmpty) {
+      return 0;
+    }
+
+    var changedCount = 0;
+    final now = DateTime.now();
+    _scores = _scores
+        .map((score) {
+          if (score.collection.toLowerCase() != collectionName.toLowerCase()) {
+            return score;
+          }
+          changedCount += 1;
+          return score.copyWith(collection: '', updatedAt: now);
+        })
+        .toList(growable: false);
+    if (changedCount == 0) {
+      return 0;
+    }
+    await store.saveScores(_scores);
+    if (_libraryViewSettings.collectionQuery.toLowerCase() ==
+        collectionName.toLowerCase()) {
+      _libraryViewSettings = _libraryViewSettings.copyWith(collectionQuery: '');
+      await store.saveLibraryViewSettings(_libraryViewSettings);
+    }
+    notifyListeners();
+    return changedCount;
   }
 
   Future<void> updateStructuredNotes(
@@ -382,9 +469,10 @@ class SheetLibraryController extends ChangeNotifier {
 
     await _replace(
       score.copyWith(
-        linkedFiles: SheetScore.normalizeLinkedFiles(
-          <SheetLinkedFile>[...score.linkedFiles, linkedFile],
-        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          ...score.linkedFiles,
+          linkedFile,
+        ]),
         updatedAt: DateTime.now(),
       ),
     );
@@ -425,13 +513,15 @@ class SheetLibraryController extends ChangeNotifier {
     SheetLinkedFile linkedFile,
   ) async {
     var didUpdate = false;
-    final nextLinkedFiles = score.linkedFiles.map((file) {
-      if (file.path == linkedFile.path) {
-        didUpdate = true;
-        return linkedFile;
-      }
-      return file;
-    }).toList(growable: false);
+    final nextLinkedFiles = score.linkedFiles
+        .map((file) {
+          if (file.path == linkedFile.path) {
+            didUpdate = true;
+            return linkedFile;
+          }
+          return file;
+        })
+        .toList(growable: false);
     if (!didUpdate) {
       return false;
     }
@@ -481,13 +571,8 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
-  Future<void> compactScoreForPageCount(
-    SheetScore score,
-    int pageCount,
-  ) async {
-    final nextPageSettings = score.pageSettings.compactForPageCount(
-      pageCount,
-    );
+  Future<void> compactScoreForPageCount(SheetScore score, int pageCount) async {
+    final nextPageSettings = score.pageSettings.compactForPageCount(pageCount);
     final nextAnnotationLayer = score.annotationLayer.compactForPageCount(
       pageCount,
     );
@@ -582,9 +667,10 @@ class SheetLibraryController extends ChangeNotifier {
         pageSettings: score.pageSettings.copyWith(
           pageRotations: const <int, int>{},
         ),
-        linkedFiles: SheetScore.normalizeLinkedFiles(
-          <SheetLinkedFile>[originalFile, ...score.linkedFiles],
-        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          originalFile,
+          ...score.linkedFiles,
+        ]),
         updatedAt: DateTime.now(),
       ),
     );
@@ -749,7 +835,9 @@ class SheetLibraryController extends ChangeNotifier {
     if (outlineBookmarks.isEmpty) {
       return false;
     }
-    final seenPages = score.bookmarks.map((bookmark) => bookmark.pageNumber).toSet();
+    final seenPages = score.bookmarks
+        .map((bookmark) => bookmark.pageNumber)
+        .toSet();
     final nextBookmarks = <SheetBookmark>[...score.bookmarks];
     for (final bookmark in outlineBookmarks) {
       if (bookmark.pageNumber < 1 || !seenPages.add(bookmark.pageNumber)) {
@@ -770,10 +858,7 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
-  Future<bool> addCropPreset(
-    SheetScore score,
-    SheetCropPreset preset,
-  ) async {
+  Future<bool> addCropPreset(SheetScore score, SheetCropPreset preset) async {
     final nextPageSettings = score.pageSettings.addCropPreset(preset);
     if (identical(nextPageSettings, score.pageSettings)) {
       return false;
@@ -982,7 +1067,9 @@ class SheetLibraryController extends ChangeNotifier {
   ) async {
     await _replace(
       score.copyWith(
-        annotationLayer: _guardAnnotationLayer(score.annotationLayer.addText(text)),
+        annotationLayer: _guardAnnotationLayer(
+          score.annotationLayer.addText(text),
+        ),
         updatedAt: DateTime.now(),
       ),
     );
@@ -1173,37 +1260,43 @@ class SheetLibraryController extends ChangeNotifier {
         .toSet();
     var changedCount = 0;
     final now = DateTime.now();
-    _scores = _scores.map((score) {
-      if (!scoreIds.contains(score.id)) {
-        return score;
-      }
-      final nextTags = <String>[];
-      final seenTags = <String>{};
-      for (final tag in score.tags) {
-        if (removeTagSet.contains(tag.toLowerCase()) ||
-            !seenTags.add(tag.toLowerCase())) {
-          continue;
-        }
-        nextTags.add(tag);
-      }
-      for (final tag in addTagSet) {
-        if (seenTags.add(tag.toLowerCase())) {
-          nextTags.add(tag);
-        }
-      }
-      changedCount += 1;
-      return score.copyWith(
-        tags: List<String>.unmodifiable(nextTags),
-        collection: collection == null
-            ? score.collection
-            : _normalizeOptionalMetadata(collection),
-        group: group == null ? score.group : _normalizeOptionalMetadata(group),
-        rating: rating == null ? score.rating : SheetScore.normalizeRating(rating),
-        isFavorite: isFavorite ?? score.isFavorite,
-        isPinned: isPinned ?? score.isPinned,
-        updatedAt: now,
-      );
-    }).toList(growable: false);
+    _scores = _scores
+        .map((score) {
+          if (!scoreIds.contains(score.id)) {
+            return score;
+          }
+          final nextTags = <String>[];
+          final seenTags = <String>{};
+          for (final tag in score.tags) {
+            if (removeTagSet.contains(tag.toLowerCase()) ||
+                !seenTags.add(tag.toLowerCase())) {
+              continue;
+            }
+            nextTags.add(tag);
+          }
+          for (final tag in addTagSet) {
+            if (seenTags.add(tag.toLowerCase())) {
+              nextTags.add(tag);
+            }
+          }
+          changedCount += 1;
+          return score.copyWith(
+            tags: List<String>.unmodifiable(nextTags),
+            collection: collection == null
+                ? score.collection
+                : _normalizeOptionalMetadata(collection),
+            group: group == null
+                ? score.group
+                : _normalizeOptionalMetadata(group),
+            rating: rating == null
+                ? score.rating
+                : SheetScore.normalizeRating(rating),
+            isFavorite: isFavorite ?? score.isFavorite,
+            isPinned: isPinned ?? score.isPinned,
+            updatedAt: now,
+          );
+        })
+        .toList(growable: false);
     if (changedCount > 0) {
       await store.saveScores(_scores);
       notifyListeners();
@@ -1400,13 +1493,31 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  SheetScore _withActiveCollection(SheetScore score) {
+    final collection = _normalizeOptionalMetadata(
+      _libraryViewSettings.collectionQuery,
+    );
+    if (collection.isEmpty || score.collection.trim().isNotEmpty) {
+      return score;
+    }
+    return score.copyWith(collection: collection, updatedAt: DateTime.now());
+  }
+
+  String _imageImportErrorMessage(Object error) {
+    if (error is FormatException) {
+      return SheetFileImportPolicy.unsupportedImportMessage(error.message);
+    }
+    return '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지, 클라우드 파일이 기기에 내려받아져 있는지 확인해주세요.';
+  }
+
   Future<void> _removeMissingSetlistScores() async {
     final validScoreIds = _scores.map((score) => score.id).toSet();
     var changed = false;
     final cleaned = _setlists
         .map((setlist) {
           final next = setlist.removeMissingScores(validScoreIds);
-          changed = changed ||
+          changed =
+              changed ||
               next.scoreIds.length != setlist.scoreIds.length ||
               next.scoreStartPages.length != setlist.scoreStartPages.length ||
               next.scoreNotes.length != setlist.scoreNotes.length;
@@ -1489,22 +1600,23 @@ List<SheetLibraryFacet> _stringFacets(Iterable<String> values) {
     }
     counts[value] = (counts[value] ?? 0) + 1;
   }
-  final facets = counts.entries
-      .map(
-        (entry) => SheetLibraryFacet(
-          label: entry.key,
-          value: entry.key,
-          count: entry.value,
-        ),
-      )
-      .toList()
-    ..sort((a, b) {
-      final countCompare = b.count.compareTo(a.count);
-      if (countCompare != 0) {
-        return countCompare;
-      }
-      return a.label.toLowerCase().compareTo(b.label.toLowerCase());
-    });
+  final facets =
+      counts.entries
+          .map(
+            (entry) => SheetLibraryFacet(
+              label: entry.key,
+              value: entry.key,
+              count: entry.value,
+            ),
+          )
+          .toList()
+        ..sort((a, b) {
+          final countCompare = b.count.compareTo(a.count);
+          if (countCompare != 0) {
+            return countCompare;
+          }
+          return a.label.toLowerCase().compareTo(b.label.toLowerCase());
+        });
   return List<SheetLibraryFacet>.unmodifiable(facets);
 }
 

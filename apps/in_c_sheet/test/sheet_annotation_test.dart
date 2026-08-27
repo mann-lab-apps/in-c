@@ -106,49 +106,52 @@ void main() {
     expect(redoText.redoStack, isEmpty);
   });
 
-  test('annotation layer compacts stale pages after PDF page count changes', () {
-    final now = DateTime.parse('2026-08-27T10:00:00.000');
-    final visibleStroke = _stroke(
-      id: 'visible-stroke',
-      pageNumber: 2,
-      createdAt: now,
-    );
-    final staleStroke = _stroke(
-      id: 'stale-stroke',
-      pageNumber: 5,
-      createdAt: now.add(const Duration(seconds: 1)),
-    );
-    final visibleText = _text(
-      id: 'visible-text',
-      pageNumber: 3,
-      createdAt: now.add(const Duration(seconds: 2)),
-    );
-    final staleText = _text(
-      id: 'stale-text',
-      pageNumber: 4,
-      createdAt: now.add(const Duration(seconds: 3)),
-    );
-    final staleRedoStroke = _stroke(
-      id: 'redo-stale',
-      pageNumber: 6,
-      createdAt: now.add(const Duration(seconds: 4)),
-    );
-    final layer = SheetAnnotationLayer(
-      strokes: <SheetAnnotationStroke>[visibleStroke, staleStroke],
-      texts: <SheetTextAnnotation>[visibleText, staleText],
-      redoStack: <SheetAnnotationRedoEntry>[
-        SheetAnnotationRedoEntry.stroke(staleRedoStroke),
-      ],
-    );
+  test(
+    'annotation layer compacts stale pages after PDF page count changes',
+    () {
+      final now = DateTime.parse('2026-08-27T10:00:00.000');
+      final visibleStroke = _stroke(
+        id: 'visible-stroke',
+        pageNumber: 2,
+        createdAt: now,
+      );
+      final staleStroke = _stroke(
+        id: 'stale-stroke',
+        pageNumber: 5,
+        createdAt: now.add(const Duration(seconds: 1)),
+      );
+      final visibleText = _text(
+        id: 'visible-text',
+        pageNumber: 3,
+        createdAt: now.add(const Duration(seconds: 2)),
+      );
+      final staleText = _text(
+        id: 'stale-text',
+        pageNumber: 4,
+        createdAt: now.add(const Duration(seconds: 3)),
+      );
+      final staleRedoStroke = _stroke(
+        id: 'redo-stale',
+        pageNumber: 6,
+        createdAt: now.add(const Duration(seconds: 4)),
+      );
+      final layer = SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[visibleStroke, staleStroke],
+        texts: <SheetTextAnnotation>[visibleText, staleText],
+        redoStack: <SheetAnnotationRedoEntry>[
+          SheetAnnotationRedoEntry.stroke(staleRedoStroke),
+        ],
+      );
 
-    final compacted = layer.compactForPageCount(3);
+      final compacted = layer.compactForPageCount(3);
 
-    expect(compacted.strokes.single.id, 'visible-stroke');
-    expect(compacted.texts.single.id, 'visible-text');
-    expect(compacted.redoStack, isEmpty);
-    expect(identical(compacted.compactForPageCount(3), compacted), isTrue);
-    expect(identical(layer.compactForPageCount(0), layer), isTrue);
-  });
+      expect(compacted.strokes.single.id, 'visible-stroke');
+      expect(compacted.texts.single.id, 'visible-text');
+      expect(compacted.redoStack, isEmpty);
+      expect(identical(compacted.compactForPageCount(3), compacted), isTrue);
+      expect(identical(layer.compactForPageCount(0), layer), isTrue);
+    },
+  );
 
   test('new annotation clears redo stack', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
@@ -238,7 +241,6 @@ void main() {
     expect(summary.storageLabel, 'external file');
     expect(summary.compactLabel, contains('saved'));
   });
-
 
   test('annotation stroke encodes and decodes normalized points', () {
     final createdAt = DateTime.parse('2026-08-21T10:00:00.000');

@@ -80,20 +80,17 @@ enum SheetTunerDisplayMode {
       SheetTunerDisplayMode.concert => 'C instruments',
       SheetTunerDisplayMode.bbTrumpet ||
       SheetTunerDisplayMode.bbClarinet ||
-      SheetTunerDisplayMode.tenorSax =>
-        'Bb instruments',
+      SheetTunerDisplayMode.tenorSax => 'Bb instruments',
       SheetTunerDisplayMode.altoSax ||
-      SheetTunerDisplayMode.baritoneSax =>
-        'Eb instruments',
+      SheetTunerDisplayMode.baritoneSax => 'Eb instruments',
       SheetTunerDisplayMode.frenchHorn => 'F instruments',
       SheetTunerDisplayMode.bassClef => 'Low instruments',
       SheetTunerDisplayMode.violin ||
       SheetTunerDisplayMode.viola ||
       SheetTunerDisplayMode.cello ||
-      SheetTunerDisplayMode.doubleBass =>
-        'Strings',
-      SheetTunerDisplayMode.guitar || SheetTunerDisplayMode.bassGuitar =>
-        'Guitar/Bass',
+      SheetTunerDisplayMode.doubleBass => 'Strings',
+      SheetTunerDisplayMode.guitar ||
+      SheetTunerDisplayMode.bassGuitar => 'Guitar/Bass',
     };
   }
 
@@ -104,8 +101,7 @@ enum SheetTunerDisplayMode {
       SheetTunerDisplayMode.tenorSax ||
       SheetTunerDisplayMode.altoSax ||
       SheetTunerDisplayMode.baritoneSax ||
-      SheetTunerDisplayMode.frenchHorn =>
-        true,
+      SheetTunerDisplayMode.frenchHorn => true,
       _ => false,
     };
   }
@@ -118,13 +114,13 @@ enum SheetTunerDisplayMode {
         SheetTunerTarget(label: 'A', concertMidiNumber: 69),
         SheetTunerTarget(label: 'E', concertMidiNumber: 76),
       ],
-      SheetTunerDisplayMode.viola || SheetTunerDisplayMode.cello =>
-        const <SheetTunerTarget>[
-          SheetTunerTarget(label: 'C', concertMidiNumber: 48),
-          SheetTunerTarget(label: 'G', concertMidiNumber: 55),
-          SheetTunerTarget(label: 'D', concertMidiNumber: 62),
-          SheetTunerTarget(label: 'A', concertMidiNumber: 69),
-        ],
+      SheetTunerDisplayMode.viola ||
+      SheetTunerDisplayMode.cello => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'C', concertMidiNumber: 48),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'D', concertMidiNumber: 62),
+        SheetTunerTarget(label: 'A', concertMidiNumber: 69),
+      ],
       SheetTunerDisplayMode.doubleBass => const <SheetTunerTarget>[
         SheetTunerTarget(label: 'E', concertMidiNumber: 40),
         SheetTunerTarget(label: 'A', concertMidiNumber: 45),
@@ -444,13 +440,9 @@ class SheetTunerDisplayedPitch {
 
   String get detailLabel {
     if (displayMode.transposeSemitones == 0) {
-      return 'Concert ${concertNote.labelWith(
-        preferFlats: displayMode.preferFlats,
-      )} · ${_formatCents(centsOffset)}';
+      return 'Concert ${concertNote.labelWith(preferFlats: displayMode.preferFlats)} · ${_formatCents(centsOffset)}';
     }
-    return 'Written ${writtenNote.labelWith(
-      preferFlats: displayMode.preferFlats,
-    )} · Concert ${concertNote.labelWith(preferFlats: true)} · '
+    return 'Written ${writtenNote.labelWith(preferFlats: displayMode.preferFlats)} · Concert ${concertNote.labelWith(preferFlats: true)} · '
         '${_formatCents(centsOffset)}';
   }
 

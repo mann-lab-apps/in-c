@@ -73,6 +73,11 @@ void main() {
           createdAt: now,
         ),
       ],
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: 'Publisher', value: 'Mann Lab'),
+        SheetCustomMetadataField(key: 'publisher', value: 'Duplicate'),
+        SheetCustomMetadataField(key: 'Edition', value: ''),
+      ],
     );
 
     final updated = controller.scores.single;
@@ -85,83 +90,136 @@ void main() {
     expect(updated.rating, 5);
     expect(updated.linkedFiles, hasLength(1));
     expect(updated.linkedFiles.single.label, 'Trumpet part');
+    expect(updated.customFields, hasLength(1));
+    expect(updated.customFields.single.value, 'Mann Lab');
 
     controller.updateQuery('register');
     expect(controller.filteredScores.single.id, updated.id);
     controller.updateQuery('etudes');
     expect(controller.filteredScores.single.id, updated.id);
+    controller.updateQuery('publisher');
+    expect(controller.filteredScores.single.id, updated.id);
+    controller.updateQuery('mann lab');
+    expect(controller.filteredScores.single.id, updated.id);
   });
 
-  test('switches between linked score parts without editing originals', () async {
+  test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final store = SheetLibraryStore();
     await store.saveScores(<SheetScore>[
-      _score(
-        now,
-        linkedFiles: <SheetLinkedFile>[
-          SheetLinkedFile(
-            path: '/tmp/trumpet-part.pdf',
-            type: 'pdf',
-            label: 'Trumpet part',
-            role: SheetLinkedFile.partRole,
-            createdAt: now,
-          ),
-        ],
-      ),
+      _score(now, id: 'etude-1', title: 'Etude 1', collection: 'Etudes'),
+      _score(now, id: 'etude-2', title: 'Etude 2', collection: 'Etudes'),
+      _score(now, id: 'solo-1', title: 'Solo', collection: 'Solos'),
     ]);
 
     final controller = SheetLibraryController(store: store);
     await controller.load();
 
-    final didSwitch = await controller.switchToLinkedFile(
-      controller.scores.single,
-      controller.scores.single.linkedFiles.single,
-    );
+    expect(controller.allCollections, <String>['Etudes', 'Solos']);
 
-    final updated = controller.scores.single;
-    expect(didSwitch, isTrue);
-    expect(updated.filePath, '/tmp/trumpet-part.pdf');
-    expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
-    expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
-  });
+    await controller.createCollectionLibrary('Warmups');
+    expect(controller.libraryViewSettings.collectionQuery, 'Warmups');
 
-  test('updates and removes linked file metadata without deleting files', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    final linkedFile = SheetLinkedFile(
-      path: '/tmp/trumpet-part.pdf',
-      type: 'pdf',
-      label: 'Trumpet part',
-      role: SheetLinkedFile.partRole,
-      createdAt: now,
-    );
-    await store.saveScores(<SheetScore>[
-      _score(now, linkedFiles: <SheetLinkedFile>[linkedFile]),
-    ]);
-
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
-
-    final didUpdate = await controller.updateLinkedFile(
-      controller.scores.single,
-      linkedFile.copyWith(role: SheetLinkedFile.fullScoreRole),
-    );
-    expect(didUpdate, isTrue);
+    await controller.updateCollectionFilter('Etudes');
     expect(
-      controller.scores.single.linkedFiles.single.role,
-      SheetLinkedFile.fullScoreRole,
+      controller.filteredScores.map((score) => score.id),
+      unorderedEquals(<String>['etude-1', 'etude-2']),
     );
 
-    final didRemove = await controller.removeLinkedFile(
-      controller.scores.single,
-      controller.scores.single.linkedFiles.single,
+    final renamedCount = await controller.renameCollectionLibrary(
+      from: 'Etudes',
+      to: 'Studies',
     );
-    expect(didRemove, isTrue);
-    expect(controller.scores.single.linkedFiles, isEmpty);
-    expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+    expect(renamedCount, 2);
+    expect(controller.libraryViewSettings.collectionQuery, 'Studies');
+    expect(controller.allCollections, <String>['Solos', 'Studies']);
+
+    final clearedCount = await controller.clearCollectionLibrary('Studies');
+    expect(clearedCount, 2);
+    expect(controller.libraryViewSettings.collectionQuery, '');
+    expect(
+      controller.scores.where((score) => score.collection == 'Studies'),
+      isEmpty,
+    );
   });
+
+  test(
+    'switches between linked score parts without editing originals',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          linkedFiles: <SheetLinkedFile>[
+            SheetLinkedFile(
+              path: '/tmp/trumpet-part.pdf',
+              type: 'pdf',
+              label: 'Trumpet part',
+              role: SheetLinkedFile.partRole,
+              createdAt: now,
+            ),
+          ],
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didSwitch = await controller.switchToLinkedFile(
+        controller.scores.single,
+        controller.scores.single.linkedFiles.single,
+      );
+
+      final updated = controller.scores.single;
+      expect(didSwitch, isTrue);
+      expect(updated.filePath, '/tmp/trumpet-part.pdf');
+      expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
+      expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
+    },
+  );
+
+  test(
+    'updates and removes linked file metadata without deleting files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      final linkedFile = SheetLinkedFile(
+        path: '/tmp/trumpet-part.pdf',
+        type: 'pdf',
+        label: 'Trumpet part',
+        role: SheetLinkedFile.partRole,
+        createdAt: now,
+      );
+      await store.saveScores(<SheetScore>[
+        _score(now, linkedFiles: <SheetLinkedFile>[linkedFile]),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didUpdate = await controller.updateLinkedFile(
+        controller.scores.single,
+        linkedFile.copyWith(role: SheetLinkedFile.fullScoreRole),
+      );
+      expect(didUpdate, isTrue);
+      expect(
+        controller.scores.single.linkedFiles.single.role,
+        SheetLinkedFile.fullScoreRole,
+      );
+
+      final didRemove = await controller.removeLinkedFile(
+        controller.scores.single,
+        controller.scores.single.linkedFiles.single,
+      );
+      expect(didRemove, isTrue);
+      expect(controller.scores.single.linkedFiles, isEmpty);
+      expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+    },
+  );
 
   test('updates structured notes for rehearsal and performance use', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -196,12 +254,7 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final store = SheetLibraryStore();
-    final older = _score(
-      now,
-      id: 'older',
-      title: 'Older',
-      lastOpenedAt: now,
-    );
+    final older = _score(now, id: 'older', title: 'Older', lastOpenedAt: now);
     final newer = _score(
       now,
       id: 'newer',
@@ -333,91 +386,91 @@ void main() {
     expect(controller.scores.single.pageSettings.hiddenPages, isEmpty);
   });
 
-  test('compacts stale score page data after PDF page count is known', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    final score = _score(now).copyWith(
-      pageSettings: SheetPageSettings(
-        hiddenPages: const <int>[1, 2, 4],
-        pageRotations: const <int, int>{2: 90, 4: 180},
-        pageOrder: const <int>[1, 4, 3, 2, 3],
-        jumpPoints: <SheetPageJumpPoint>[
-          SheetPageJumpPoint(
-            id: 'outside-target',
-            sourcePage: 3,
-            targetPage: 4,
-            label: 'Outside',
-            createdAt: now,
-          ),
-        ],
-      ),
-      annotationLayer: SheetAnnotationLayer(
-        strokes: <SheetAnnotationStroke>[
-          SheetAnnotationStroke(
-            id: 'visible-stroke',
-            pageNumber: 3,
-            tool: SheetAnnotationTool.pen,
-            color: 0xff111111,
-            width: 3,
-            points: const <SheetAnnotationPoint>[
-              SheetAnnotationPoint(x: 0.1, y: 0.1),
-              SheetAnnotationPoint(x: 0.2, y: 0.2),
-            ],
-            createdAt: now,
-          ),
-          SheetAnnotationStroke(
-            id: 'stale-stroke',
-            pageNumber: 4,
-            tool: SheetAnnotationTool.pen,
-            color: 0xff111111,
-            width: 3,
-            points: const <SheetAnnotationPoint>[
-              SheetAnnotationPoint(x: 0.1, y: 0.1),
-              SheetAnnotationPoint(x: 0.2, y: 0.2),
-            ],
-            createdAt: now.add(const Duration(seconds: 1)),
-          ),
-        ],
-        texts: <SheetTextAnnotation>[
-          SheetTextAnnotation(
-            id: 'stale-text',
-            pageNumber: 5,
-            position: const SheetAnnotationPoint(x: 0.1, y: 0.1),
-            text: 'Out of range',
-            color: 0xff111111,
-            fontSize: 18,
-            createdAt: now.add(const Duration(seconds: 2)),
-          ),
-        ],
-      ),
-    );
-    await store.saveScores(<SheetScore>[score]);
+  test(
+    'compacts stale score page data after PDF page count is known',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      final score = _score(now).copyWith(
+        pageSettings: SheetPageSettings(
+          hiddenPages: const <int>[1, 2, 4],
+          pageRotations: const <int, int>{2: 90, 4: 180},
+          pageOrder: const <int>[1, 4, 3, 2, 3],
+          jumpPoints: <SheetPageJumpPoint>[
+            SheetPageJumpPoint(
+              id: 'outside-target',
+              sourcePage: 3,
+              targetPage: 4,
+              label: 'Outside',
+              createdAt: now,
+            ),
+          ],
+        ),
+        annotationLayer: SheetAnnotationLayer(
+          strokes: <SheetAnnotationStroke>[
+            SheetAnnotationStroke(
+              id: 'visible-stroke',
+              pageNumber: 3,
+              tool: SheetAnnotationTool.pen,
+              color: 0xff111111,
+              width: 3,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.1, y: 0.1),
+                SheetAnnotationPoint(x: 0.2, y: 0.2),
+              ],
+              createdAt: now,
+            ),
+            SheetAnnotationStroke(
+              id: 'stale-stroke',
+              pageNumber: 4,
+              tool: SheetAnnotationTool.pen,
+              color: 0xff111111,
+              width: 3,
+              points: const <SheetAnnotationPoint>[
+                SheetAnnotationPoint(x: 0.1, y: 0.1),
+                SheetAnnotationPoint(x: 0.2, y: 0.2),
+              ],
+              createdAt: now.add(const Duration(seconds: 1)),
+            ),
+          ],
+          texts: <SheetTextAnnotation>[
+            SheetTextAnnotation(
+              id: 'stale-text',
+              pageNumber: 5,
+              position: const SheetAnnotationPoint(x: 0.1, y: 0.1),
+              text: 'Out of range',
+              color: 0xff111111,
+              fontSize: 18,
+              createdAt: now.add(const Duration(seconds: 2)),
+            ),
+          ],
+        ),
+      );
+      await store.saveScores(<SheetScore>[score]);
 
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
 
-    await controller.compactScoreForPageCount(
-      controller.scores.single,
-      3,
-    );
+      await controller.compactScoreForPageCount(controller.scores.single, 3);
 
-    final updated = controller.scores.single;
-    expect(updated.pageSettings.hiddenPages, <int>[1, 2]);
-    expect(updated.pageSettings.pageRotations, <int, int>{2: 90});
-    expect(updated.pageSettings.pageOrder, <int>[3, 3]);
-    expect(updated.pageSettings.jumpPoints, isEmpty);
-    expect(updated.annotationLayer.strokes.single.id, 'visible-stroke');
-    expect(updated.annotationLayer.texts, isEmpty);
-    expect((await store.loadScores()).single.pageSettings.pageOrder, <int>[
-      3,
-      3,
-    ]);
-    expect(
-      (await store.loadScores()).single.annotationLayer.strokes.single.id,
-      'visible-stroke',
-    );
-  });
+      final updated = controller.scores.single;
+      expect(updated.pageSettings.hiddenPages, <int>[1, 2]);
+      expect(updated.pageSettings.pageRotations, <int, int>{2: 90});
+      expect(updated.pageSettings.pageOrder, <int>[3, 3]);
+      expect(updated.pageSettings.jumpPoints, isEmpty);
+      expect(updated.annotationLayer.strokes.single.id, 'visible-stroke');
+      expect(updated.annotationLayer.texts, isEmpty);
+      expect((await store.loadScores()).single.pageSettings.pageOrder, <int>[
+        3,
+        3,
+      ]);
+      expect(
+        (await store.loadScores()).single.annotationLayer.strokes.single.id,
+        'visible-stroke',
+      );
+    },
+  );
 
   test(
     'applies page rotation copy and preserves original as linked file',
@@ -488,10 +541,7 @@ void main() {
       pageCount: 4,
     );
     expect(didMove, isTrue);
-    expect(
-      controller.scores.single.pageSettings.pageOrder,
-      <int>[1, 4, 2, 3],
-    );
+    expect(controller.scores.single.pageSettings.pageOrder, <int>[1, 4, 2, 3]);
 
     final didDuplicate = await controller.duplicatePageInOrder(
       controller.scores.single,
@@ -572,116 +622,122 @@ void main() {
     expect(controller.scores.single.pageSettings.jumpPoints, isEmpty);
   });
 
-  test('updates rehearsal marks, crop presets, and page template metadata', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    await store.saveScores(<SheetScore>[_score(now)]);
+  test(
+    'updates rehearsal marks, crop presets, and page template metadata',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[_score(now)]);
 
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
 
-    final didAddMark = await controller.addRehearsalMark(
-      controller.scores.single,
-      pageCount: 4,
-      mark: SheetRehearsalMark(
-        id: 'mark-1',
-        pageNumber: 3,
-        label: 'D.S.',
-        kind: SheetRehearsalMark.dsKind,
-        createdAt: now,
-      ),
-    );
-    expect(didAddMark, isTrue);
-    expect(
-      controller.scores.single.pageSettings.rehearsalMarks.single.kind,
-      'ds',
-    );
+      final didAddMark = await controller.addRehearsalMark(
+        controller.scores.single,
+        pageCount: 4,
+        mark: SheetRehearsalMark(
+          id: 'mark-1',
+          pageNumber: 3,
+          label: 'D.S.',
+          kind: SheetRehearsalMark.dsKind,
+          createdAt: now,
+        ),
+      );
+      expect(didAddMark, isTrue);
+      expect(
+        controller.scores.single.pageSettings.rehearsalMarks.single.kind,
+        'ds',
+      );
 
-    final didUpdateMark = await controller.updateRehearsalMark(
-      controller.scores.single,
-      pageCount: 4,
-      mark: controller.scores.single.pageSettings.rehearsalMarks.single
-          .copyWith(label: 'D.S. al Coda', pageNumber: 4),
-    );
-    expect(didUpdateMark, isTrue);
-    expect(
-      controller.scores.single.pageSettings.rehearsalMarks.single.pageNumber,
-      4,
-    );
+      final didUpdateMark = await controller.updateRehearsalMark(
+        controller.scores.single,
+        pageCount: 4,
+        mark: controller.scores.single.pageSettings.rehearsalMarks.single
+            .copyWith(label: 'D.S. al Coda', pageNumber: 4),
+      );
+      expect(didUpdateMark, isTrue);
+      expect(
+        controller.scores.single.pageSettings.rehearsalMarks.single.pageNumber,
+        4,
+      );
 
-    final didAddCrop = await controller.addCropPreset(
-      controller.scores.single,
-      SheetCropPreset(
-        id: 'crop-1',
-        label: 'Landscape tablet',
-        scope: SheetCropPreset.allPagesScope,
-        crop: const SheetCropSettings(top: 0.07),
-        createdAt: now,
-      ),
-    );
-    expect(didAddCrop, isTrue);
+      final didAddCrop = await controller.addCropPreset(
+        controller.scores.single,
+        SheetCropPreset(
+          id: 'crop-1',
+          label: 'Landscape tablet',
+          scope: SheetCropPreset.allPagesScope,
+          crop: const SheetCropSettings(top: 0.07),
+          createdAt: now,
+        ),
+      );
+      expect(didAddCrop, isTrue);
 
-    final didApplyCrop = await controller.applyCropPreset(
-      controller.scores.single,
-      'crop-1',
-    );
-    expect(didApplyCrop, isTrue);
-    expect(controller.scores.single.pageSettings.crop.top, 0.07);
+      final didApplyCrop = await controller.applyCropPreset(
+        controller.scores.single,
+        'crop-1',
+      );
+      expect(didApplyCrop, isTrue);
+      expect(controller.scores.single.pageSettings.crop.top, 0.07);
 
-    final didRemoveCrop = await controller.removeCropPreset(
-      controller.scores.single,
-      'crop-1',
-    );
-    expect(didRemoveCrop, isTrue);
-    expect(controller.scores.single.pageSettings.cropPresets, isEmpty);
+      final didRemoveCrop = await controller.removeCropPreset(
+        controller.scores.single,
+        'crop-1',
+      );
+      expect(didRemoveCrop, isTrue);
+      expect(controller.scores.single.pageSettings.cropPresets, isEmpty);
 
-    final didAddBlankPage = await controller.addBlankPageInsertion(
-      controller.scores.single,
-      pageCount: 4,
-      insertion: SheetBlankPageInsertion(
-        id: 'blank-1',
-        afterPage: 2,
-        label: 'Notes',
-        createdAt: now,
-      ),
-    );
-    expect(didAddBlankPage, isTrue);
+      final didAddBlankPage = await controller.addBlankPageInsertion(
+        controller.scores.single,
+        pageCount: 4,
+        insertion: SheetBlankPageInsertion(
+          id: 'blank-1',
+          afterPage: 2,
+          label: 'Notes',
+          createdAt: now,
+        ),
+      );
+      expect(didAddBlankPage, isTrue);
 
-    final didAddVisibility = await controller.addVisibilityPreset(
-      controller.scores.single,
-      pageCount: 4,
-      preset: SheetPageVisibilityPreset(
-        id: 'visibility-1',
-        label: 'No cover',
-        hiddenPages: const <int>[1],
-        createdAt: now,
-      ),
-    );
-    expect(didAddVisibility, isTrue);
+      final didAddVisibility = await controller.addVisibilityPreset(
+        controller.scores.single,
+        pageCount: 4,
+        preset: SheetPageVisibilityPreset(
+          id: 'visibility-1',
+          label: 'No cover',
+          hiddenPages: const <int>[1],
+          createdAt: now,
+        ),
+      );
+      expect(didAddVisibility, isTrue);
 
-    final didApplyVisibility = await controller.applyVisibilityPreset(
-      controller.scores.single,
-      'visibility-1',
-      4,
-    );
-    expect(didApplyVisibility, isTrue);
-    expect(controller.scores.single.pageSettings.hiddenPages, <int>[1]);
+      final didApplyVisibility = await controller.applyVisibilityPreset(
+        controller.scores.single,
+        presetId: 'visibility-1',
+        pageCount: 4,
+      );
+      expect(didApplyVisibility, isTrue);
+      expect(controller.scores.single.pageSettings.hiddenPages, <int>[1]);
 
-    final didRemoveBlankPage = await controller.removeBlankPageInsertion(
-      controller.scores.single,
-      'blank-1',
-    );
-    expect(didRemoveBlankPage, isTrue);
+      final didRemoveBlankPage = await controller.removeBlankPageInsertion(
+        controller.scores.single,
+        'blank-1',
+      );
+      expect(didRemoveBlankPage, isTrue);
 
-    final didRemoveVisibility = await controller.removeVisibilityPreset(
-      controller.scores.single,
-      'visibility-1',
-    );
-    expect(didRemoveVisibility, isTrue);
-    expect(controller.scores.single.pageSettings.blankPageInsertions, isEmpty);
-    expect(controller.scores.single.pageSettings.visibilityPresets, isEmpty);
-  });
+      final didRemoveVisibility = await controller.removeVisibilityPreset(
+        controller.scores.single,
+        'visibility-1',
+      );
+      expect(didRemoveVisibility, isTrue);
+      expect(
+        controller.scores.single.pageSettings.blankPageInsertions,
+        isEmpty,
+      );
+      expect(controller.scores.single.pageSettings.visibilityPresets, isEmpty);
+    },
+  );
 
   test('merges PDF outline bookmarks without duplicate pages', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1081,14 +1137,8 @@ void main() {
     );
 
     expect(changedCount, 2);
-    expect(controller.scoreById('score-1').tags, <String>[
-      'brass',
-      'recital',
-    ]);
-    expect(controller.scoreById('score-2').tags, <String>[
-      'brass',
-      'recital',
-    ]);
+    expect(controller.scoreById('score-1').tags, <String>['brass', 'recital']);
+    expect(controller.scoreById('score-2').tags, <String>['brass', 'recital']);
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
     expect(controller.scoreById('score-2').rating, 5);
@@ -1098,59 +1148,58 @@ void main() {
     expect(controller.scoreById('score-1').filePath, '/tmp/score-1.pdf');
   });
 
-  test('summarizes library facets for collection, group, and rating browsing', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    await store.saveScores(<SheetScore>[
-      _score(
-        now,
-        id: 'score-1',
-        title: 'Etude A',
-        collection: 'Methods',
-        group: 'Warmup',
-        rating: 4,
-      ),
-      _score(
-        now,
-        id: 'score-2',
-        title: 'Etude B',
-        collection: 'Methods',
-        group: 'Solo',
-        rating: 2,
-      ),
-      _score(
-        now,
-        id: 'score-3',
-        title: 'Ballad',
-        collection: 'Recital',
-        group: 'Solo',
-        rating: 5,
-      ),
-    ]);
+  test(
+    'summarizes library facets for collection, group, and rating browsing',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          id: 'score-1',
+          title: 'Etude A',
+          collection: 'Methods',
+          group: 'Warmup',
+          rating: 4,
+        ),
+        _score(
+          now,
+          id: 'score-2',
+          title: 'Etude B',
+          collection: 'Methods',
+          group: 'Solo',
+          rating: 2,
+        ),
+        _score(
+          now,
+          id: 'score-3',
+          title: 'Ballad',
+          collection: 'Recital',
+          group: 'Solo',
+          rating: 5,
+        ),
+      ]);
 
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
 
-    expect(
-      controller.collectionFacets.map(
-        (facet) => '${facet.label}:${facet.count}',
-      ),
-      <String>['Methods:2', 'Recital:1'],
-    );
-    expect(
-      controller.groupFacets.map(
-        (facet) => '${facet.label}:${facet.count}',
-      ),
-      <String>['Solo:2', 'Warmup:1'],
-    );
-    expect(
-      controller.ratingFacets.map(
-        (facet) => '${facet.value}:${facet.count}',
-      ),
-      <String>['5:1', '4:2', '3:2', '2:3', '1:3'],
-    );
-  });
+      expect(
+        controller.collectionFacets.map(
+          (facet) => '${facet.label}:${facet.count}',
+        ),
+        <String>['Methods:2', 'Recital:1'],
+      );
+      expect(
+        controller.groupFacets.map((facet) => '${facet.label}:${facet.count}'),
+        <String>['Solo:2', 'Warmup:1'],
+      );
+      expect(
+        controller.ratingFacets.map((facet) => '${facet.value}:${facet.count}'),
+        <String>['5:1', '4:2', '3:2', '2:3', '1:3'],
+      );
+    },
+  );
 
   test('returns setlist playback context in display order', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});

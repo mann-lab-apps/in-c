@@ -49,10 +49,7 @@ void main() {
 
     expect(writtenC.primaryLabel, 'C5');
     expect(writtenC.concertNote.label, 'A#4');
-    expect(
-      writtenC.detailLabel,
-      startsWith('Written C5 · Concert Bb4 · '),
-    );
+    expect(writtenC.detailLabel, startsWith('Written C5 · Concert Bb4 · '));
     expect(writtenD.primaryLabel, 'D4');
     expect(writtenG.primaryLabel, 'G4');
     expect(writtenC.centsOffset, closeTo(concertBb.centsOffset, 0.001));
@@ -171,10 +168,7 @@ void main() {
     expect(decimal.referencePitchA4, 442);
     expect(decoded.referencePitchA4, 442);
     expect(decoded.displayMode, SheetTunerDisplayMode.altoSax);
-    expect(
-      decoded.detectionProfile,
-      SheetTunerDetectionProfile.highInstrument,
-    );
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.highInstrument);
     expect(decoded.targetConcertMidiNumber, 70);
   });
 
@@ -202,7 +196,10 @@ void main() {
   test('detection profiles filter practical frequency ranges', () {
     expect(SheetTunerDetectionProfile.chromatic.acceptsFrequency(110), isTrue);
     expect(SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(110), isFalse);
-    expect(SheetTunerDetectionProfile.lowInstrument.acceptsFrequency(41), isTrue);
+    expect(
+      SheetTunerDetectionProfile.lowInstrument.acceptsFrequency(41),
+      isTrue,
+    );
     expect(SheetTunerDetectionProfile.guitarBass.acceptsFrequency(31), isTrue);
     expect(
       SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(466.16),

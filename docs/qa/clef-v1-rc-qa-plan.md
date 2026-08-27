@@ -17,6 +17,8 @@
   - 스캔 PDF 또는 이미지 기반 PDF 1개.
   - 50쪽 이상 큰 PDF 1개.
   - JPG 또는 PNG 이미지 악보 2-3장.
+  - 가능하면 HEIC/HEIF 이미지 1장.
+  - Drive, iCloud, Dropbox 같은 cloud file provider에 있는 PDF 1개.
   - URL link가 들어 있는 PDF 1개.
 - synthetic metadata fixture:
   - Dart fixture: `apps/in_c_sheet/test/fixtures/rc_qa_fixture.dart`.
@@ -29,7 +31,8 @@
 | --- | --- | --- | --- |
 | 1 | 설치/첫 실행 | 앱이 crash 없이 열리고 테스트 정보가 표시된다. | 설치 방식, 앱 버전/build, 기기/OS |
 | 2 | Import | PDF, JPG/PNG 변환 PDF가 라이브러리에 등록된다. | 파일 유형, 페이지 수, 파일 크기 |
-| 3 | 라이브러리 | 검색/정렬/필터, 즐겨찾기/고정, collection/group/rating이 유지된다. | 찾지 못한 필터 조건, 정렬 이상 여부 |
+| 3 | 라이브러리 | 검색/정렬/필터, 즐겨찾기/고정, collection/group/rating/custom field가 유지된다. | 찾지 못한 필터 조건, 정렬 이상 여부 |
+| 3-1 | 라이브러리 전환 | 전체/컬렉션 라이브러리를 전환하고 이름 변경/비우기가 파일 삭제 없이 동작한다. | 변경한 collection, 영향받은 악보 수 |
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop이 전환된다. | PDF 유형, blank 발생 page, 재현 여부 |
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
@@ -41,7 +44,8 @@
 | 12 | 페달/키보드 | predefined custom mapping이 page/score/quick action/no-op에 맞게 동작한다. | 장비명, 입력 key, action, 실패 key |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사된다. | diagnostic log, unknown key 여부 |
 | 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시가 자연스럽다. | 입력음, 표시 note, cents 흔들림 |
-| 15 | 백업/복원 | metadata/full backup 후 새 metadata가 보존된다. | custom pedal, page crop, score duration, annotation storage 보존 여부 |
+| 15 | 백업/복원 | metadata/full backup 후 새 metadata가 보존된다. | custom field, custom pedal, page crop, score duration, annotation storage 보존 여부 |
+| 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, 보기 설정 |
 
@@ -78,6 +82,9 @@ OS:
 - 현재 로컬 환경에서는 `dart`, `flutter`, `fvm` 명령이 PATH에 없어 전체 format/analyze/test를 실행할 수 없다.
 - Android 태블릿, iPad, Bluetooth 페달 실기기 검증은 주말 QA에서 진행해야 한다.
 - 스캔 PDF와 이미지 기반 PDF는 OCR을 지원하지 않으므로 PDF 본문 검색 결과가 없을 수 있다.
+- HEIC/HEIF 이미지는 아직 직접 PDF 변환하지 않는다. iOS 사진 앱에서 JPG로 내보낸 뒤 가져온다.
+- Drive/iCloud/Dropbox는 별도 계정 연동이 아니라 system file picker/provider를 사용한다. provider
+  파일 접근 실패 시 기기에 내려받은 뒤 다시 가져온다.
 - Bluetooth 페달은 v1에서 predefined input dropdown 방식이다. 실제 HID key capture는 지원하지 않는다.
 - 입력 진단은 key/action log를 수집하기 위한 QA 도구이며, mapping 자동 저장 UI는 아니다.
 - 공연 모드 keep-awake, 밝기 유지, immersive system UI는 플랫폼 제약이 있을 수 있다.
@@ -93,6 +100,7 @@ OS:
 - PDF 표준 annotation embed/export 고도화.
 - 기존 폴더 직접 참조(Android SAF/iOS Files) spike.
 - 클라우드 동기화, 계정, 서버 저장.
+- 실제 profile별 라이브러리 저장소 분리. v1 RC는 collection-backed 라이브러리 전환이다.
 
 ## 릴리즈 노트 초안
 

@@ -134,7 +134,8 @@ SheetViewerPageTurnDirection? resolveSheetViewerKeyTurn({
     pedalMapping: pedalMapping,
   );
   return switch (action) {
-    SheetViewerInputAction.previousPage => SheetViewerPageTurnDirection.previous,
+    SheetViewerInputAction.previousPage =>
+      SheetViewerPageTurnDirection.previous,
     SheetViewerInputAction.nextPage => SheetViewerPageTurnDirection.next,
     _ => null,
   };
@@ -158,8 +159,7 @@ SheetViewerInputAction resolveSheetViewerKeyAction({
     key: key,
     isShiftPressed: isShiftPressed,
   );
-  if (pedalMapping == 'reversed' ||
-      pedalMapping == 'reversedSetlistEdges') {
+  if (pedalMapping == 'reversed' || pedalMapping == 'reversedSetlistEdges') {
     final reversed = switch (direction) {
       SheetViewerPageTurnDirection.previous => SheetViewerInputAction.nextPage,
       SheetViewerPageTurnDirection.next => SheetViewerInputAction.previousPage,
@@ -172,7 +172,8 @@ SheetViewerInputAction resolveSheetViewerKeyAction({
     );
   }
   final action = switch (direction) {
-    SheetViewerPageTurnDirection.previous => SheetViewerInputAction.previousPage,
+    SheetViewerPageTurnDirection.previous =>
+      SheetViewerInputAction.previousPage,
     SheetViewerPageTurnDirection.next => SheetViewerInputAction.nextPage,
     null => SheetViewerInputAction.none,
   };
@@ -208,7 +209,8 @@ String sheetViewerInputIdForKey({
   if (key == LogicalKeyboardKey.pageDown) {
     return 'PageDown';
   }
-  if (key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter) {
+  if (key == LogicalKeyboardKey.enter ||
+      key == LogicalKeyboardKey.numpadEnter) {
     return 'Enter';
   }
   if (key == LogicalKeyboardKey.backspace) {

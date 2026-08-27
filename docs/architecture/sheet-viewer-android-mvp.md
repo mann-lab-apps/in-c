@@ -163,8 +163,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   stamp한 임시 export 사본을 만든 뒤 공유한다. 이 사본은 앱 metadata 복원이 아니라 외부 전달용
   산출물이다.
 - 이미지 PDF 변환은 Dart `pdf` 3.13.0으로 구현한다. 1차는 JPG/PNG만 지원하며, A4 portrait,
-  흰 배경, 페이지당 이미지 1장, 비율 유지 정책을 사용한다. HEIC는 iOS 사진 앱 흐름에서 중요하지만
-  pure Dart 변환 제약이 있어 후속 platform decode 또는 image package 검토가 필요하다.
+  흰 배경, 페이지당 이미지 1장, 비율 유지 정책을 사용한다. 22차 보강에서 변환된 PDF score에
+  원본 JPG/PNG를 `reference` linkedFiles로 자동 보존한다. HEIC/HEIF는 iOS 사진 앱 흐름에서
+  중요하지만 pure Dart 변환 제약이 있어 현재는 known-but-unsupported로 안내하고, 후속
+  platform decode 또는 image package 검토가 필요하다.
 - 표시 효과는 곡별 `SheetViewerSettings.displayEffect`로 저장한다. 1차는 일반/어두운 배경/색상
   반전을 제공한다. 색상 반전은 viewer 전체에 `ColorFiltered`를 적용하므로 PDF와 annotation
   overlay가 함께 반전된다.
@@ -198,14 +200,24 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - iOS 일반 Share Sheet에서 앱이 보이는지는 출처 앱의 document interaction/share extension 정책에
   따라 다를 수 있다. 이번 1차는 Files/document open URL bridge이며, 별도 iOS Share Extension은
   후속 검토 대상으로 둔다.
+- Drive, iCloud, Dropbox 같은 cloud file provider는 별도 SDK를 붙이지 않고 system file picker와
+  document open/share intent를 우선한다. provider URI가 아직 로컬에 내려받아지지 않았거나 권한이
+  만료되어 접근할 수 없으면, 앱은 기기에 저장/다운로드 후 다시 가져오라는 오류 문구를 보여준다.
 
 ## 라이브러리 정렬/필터/백업 1차 구조
 
 - `SheetScore`는 제목, 작곡가, 태그, 메모에 더해 collection, group, rating,
-  linkedFiles metadata를 저장한다.
+  linkedFiles metadata, custom key/value fields를 저장한다.
 - collection은 세트리스트와 독립된 라이브러리 분류이고, group은 레슨/파트/연주회 같은
   보조 분류로 둔다.
+- 22차 여러 라이브러리 1차는 별도 DB/profile 저장 key를 만들지 않고, collection을 가벼운
+  pseudo-library로 전환하는 방식이다. 라이브러리 상단에서 전체/collection을 전환하고, 새
+  라이브러리 생성은 현재 collection filter를 설정한다. collection 이름 변경은 해당 collection의
+  모든 score metadata를 갱신하고, 라이브러리 비우기는 악보 파일을 삭제하지 않고 collection 값만
+  비운다. 실제 profile별 저장소 분리와 폴더 권한 분리는 후속이다.
 - rating은 0-5 정수로 저장하고 decode/copy 시 clamp한다.
+- custom field는 악보별 `key`/`value` 문자열 목록이다. 빈 key/value와 중복 key는 저장 시
+  제거하고, 검색 대상에는 key와 value가 모두 포함된다.
 - linkedFiles는 한 곡에 여러 보조 파일을 연결하기 위한 모델이다. V1 완성 범위에서 role을
   추가해 full score, part, piano reduction, original, edited copy 같은 파트/버전 의미를
   저장한다. 라이브러리 metadata dialog에서 파일을 연결하고 viewer에서 PDF 연결 파일로 전환한다.
@@ -215,7 +227,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 필터는 즐겨찾기, 태그 exact match, collection exact match, group exact match, 최소 별점을
   지원한다.
 - 검색 query와 정렬/필터는 같은 `filteredScores` 경로에서 함께 적용하며, 검색 대상은 제목,
-  작곡가, 태그, 컬렉션, 그룹, 메모다.
+  작곡가, 태그, 컬렉션, 그룹, 메모, structured notes, custom field key/value다.
 - 라이브러리 화면의 검색창 아래 chip bar에서 현재 정렬/필터를 조정한다.
 - `SheetLibraryBackup`은 metadata-only JSON이다.
 - 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings가 포함된다.

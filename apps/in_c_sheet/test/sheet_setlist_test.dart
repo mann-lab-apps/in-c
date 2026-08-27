@@ -76,10 +76,7 @@ void main() {
           'score-2': -4,
           'bad': 'x',
         },
-        'scoreNotes': <String, dynamic>{
-          'score-1': 'Cue fast.',
-          'score-2': 7,
-        },
+        'scoreNotes': <String, dynamic>{'score-1': 'Cue fast.', 'score-2': 7},
         'scoreDurations': <String, dynamic>{
           'score-1': 180,
           'score-2': -5,
@@ -93,9 +90,7 @@ void main() {
     expect(decoded.single.scoreIds, <String>['score-1', 'score-2']);
     expect(decoded.single.rehearsalMode, isTrue);
     expect(decoded.single.scoreStartPages, <String, int>{'score-1': 2});
-    expect(decoded.single.scoreNotes, <String, String>{
-      'score-1': 'Cue fast.',
-    });
+    expect(decoded.single.scoreNotes, <String, String>{'score-1': 'Cue fast.'});
     expect(decoded.single.scoreDurations, <String, int>{'score-1': 180});
     expect(decoded.single.transitionSeconds, 600);
   });
@@ -199,7 +194,6 @@ void main() {
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
   });
-
 
   test('adds and removes scores without duplicating ids', () {
     final now = DateTime.parse('2026-08-20T10:00:00.000');

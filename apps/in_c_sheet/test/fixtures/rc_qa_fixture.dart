@@ -6,9 +6,8 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 const rcQaPageCount = 8;
 
 DateTime rcQaTimestamp({int minutes = 0}) {
-  return DateTime.parse('2026-08-27T10:00:00.000').add(
-    Duration(minutes: minutes),
-  );
+  return DateTime.parse('2026-08-27T10:00:00.000')
+      .add(Duration(minutes: minutes));
 }
 
 List<SheetScore> buildRcQaScores() {
@@ -61,11 +60,7 @@ List<SheetScore> buildRcQaScores() {
       isFavorite: true,
       isPinned: true,
       bookmarks: <SheetBookmark>[
-        SheetBookmark(
-          pageNumber: 1,
-          label: 'Cover',
-          createdAt: importedAt,
-        ),
+        SheetBookmark(pageNumber: 1, label: 'Cover', createdAt: importedAt),
         SheetBookmark(
           pageNumber: 4,
           label: 'Solo',
@@ -213,10 +208,7 @@ SheetAnnotationLayer buildRcQaAnnotationLayer() {
     return SheetTextAnnotation(
       id: 'rc-text-$index',
       pageNumber: (index % rcQaPageCount) + 1,
-      position: SheetAnnotationPoint(
-        x: 0.15,
-        y: 0.18 + (index * 0.07),
-      ),
+      position: SheetAnnotationPoint(x: 0.15, y: 0.18 + (index * 0.07)),
       text: 'Cue ${index + 1}',
       color: 0xff234466,
       fontSize: 18,
