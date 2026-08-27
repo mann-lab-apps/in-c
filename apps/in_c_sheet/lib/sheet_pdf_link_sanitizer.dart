@@ -3,6 +3,8 @@ import 'dart:typed_data';
 
 import 'package:pdf_document/pdf_document.dart';
 
+import 'pdf_link_policy.dart';
+
 class SheetPdfLinkInfo {
   const SheetPdfLinkInfo({
     required this.pageNumber,
@@ -50,6 +52,9 @@ class SheetPdfLinkSanitizationResult {
   final int remainingUrlLinkCount;
   final bool didWrite;
   final String? failureReason;
+
+  bool get removedAllUrlLinks =>
+      didWrite && originalUrlLinkCount > 0 && remainingUrlLinkCount == 0;
 }
 
 class SheetPdfLinkSanitizer {
@@ -103,12 +108,14 @@ class SheetPdfLinkSanitizer {
       await outputFile.parent.create(recursive: true);
       await outputFile.writeAsBytes(sanitizedBytes, flush: true);
       final after = inspectBytes(sanitizedBytes);
+      final removedUrlLinkCount = before.urlLinkCount - after.urlLinkCount;
       return SheetPdfLinkSanitizationResult(
         inputPath: inputPath,
         outputPath: outputPath,
         pageCount: after.pageCount,
         originalUrlLinkCount: before.urlLinkCount,
-        removedUrlLinkCount: before.urlLinkCount - after.urlLinkCount,
+        removedUrlLinkCount:
+            removedUrlLinkCount < 0 ? 0 : removedUrlLinkCount,
         remainingUrlLinkCount: after.urlLinkCount,
         didWrite: true,
       );
@@ -138,7 +145,7 @@ class SheetPdfLinkSanitizer {
         final action = annotation.action;
         if (action is PdfUriAction) {
           final url = Uri.tryParse(action.uri);
-          if (url != null && url.hasScheme) {
+          if (url != null && isSheetExternalPdfUriText(action.uri)) {
             urlLinks.add(
               SheetPdfLinkInfo(
                 pageNumber: pageIndex + 1,
@@ -161,7 +168,6 @@ class SheetPdfLinkSanitizer {
 
   static bool _isUrlLink(PdfLinkAnnotation annotation) {
     final action = annotation.action;
-    return action is PdfUriAction &&
-        Uri.tryParse(action.uri)?.hasScheme == true;
+    return action is PdfUriAction && isSheetExternalPdfUriText(action.uri);
   }
 }

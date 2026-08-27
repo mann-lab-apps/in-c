@@ -7,6 +7,7 @@ void main() {
       durationSeconds: 180,
       startPage: 2,
       endPage: 8,
+      cueSeconds: 5,
     );
 
     final decoded = SheetAutoScrollCodec.decode(
@@ -16,6 +17,7 @@ void main() {
     expect(decoded.durationSeconds, 180);
     expect(decoded.startPage, 2);
     expect(decoded.endPage, 8);
+    expect(decoded.cueSeconds, 5);
   });
 
   test('falls back to default settings for legacy values', () {
@@ -24,6 +26,18 @@ void main() {
     expect(decoded.durationSeconds, 240);
     expect(decoded.startPage, 1);
     expect(decoded.endPage, 0);
+    expect(decoded.cueSeconds, 0);
+  });
+
+  test('falls back to default settings for malformed JSON', () {
+    expect(
+      SheetAutoScrollCodec.decode('{bad json').durationSeconds,
+      SheetAutoScrollSettings.defaultSettings.durationSeconds,
+    );
+    expect(
+      SheetAutoScrollCodec.decode('[]').cueSeconds,
+      SheetAutoScrollSettings.defaultSettings.cueSeconds,
+    );
   });
 
   test('clamps duration and page range', () {
@@ -31,11 +45,41 @@ void main() {
       'durationSeconds': 8,
       'startPage': -4,
       'endPage': -2,
+      'cueSeconds': 40,
     });
 
     expect(settings.durationSeconds, 30);
     expect(settings.startPage, 1);
     expect(settings.endPage, 0);
+    expect(settings.cueSeconds, 30);
+  });
+
+  test('normalizes decimal JSON numbers', () {
+    final settings = SheetAutoScrollSettings.fromJson(<String, Object?>{
+      'durationSeconds': 119.6,
+      'startPage': 1.2,
+      'endPage': 4.7,
+      'cueSeconds': 4.6,
+    });
+
+    expect(settings.durationSeconds, 120);
+    expect(settings.startPage, 1);
+    expect(settings.endPage, 5);
+    expect(settings.cueSeconds, 5);
+  });
+
+  test('normalizes numeric strings from persisted settings', () {
+    final settings = SheetAutoScrollSettings.fromJson(<String, Object?>{
+      'durationSeconds': '300',
+      'startPage': '2',
+      'endPage': '9',
+      'cueSeconds': '10',
+    });
+
+    expect(settings.durationSeconds, 300);
+    expect(settings.startPage, 2);
+    expect(settings.endPage, 9);
+    expect(settings.cueSeconds, 10);
   });
 
   test('normalizes plan against current document page count', () {

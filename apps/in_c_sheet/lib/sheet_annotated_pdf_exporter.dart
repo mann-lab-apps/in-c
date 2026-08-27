@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data';
+import 'dart:math' as math;
 
 import 'package:pdf_document/pdf_document.dart';
 
@@ -29,7 +29,20 @@ class SheetAnnotatedPdfExportResult {
   final bool didWrite;
   final String? failureReason;
 
+  static const unicodeTextRequiresFontEmbeddingReason =
+      'unicodeTextRequiresFontEmbedding';
+  static const annotationsOutsideDocumentPagesReason =
+      'annotationsOutsideDocumentPages';
+
   bool get hasAnnotations => strokeCount + textCount > 0;
+
+  bool get requiresUnicodeFontEmbedding {
+    return failureReason == unicodeTextRequiresFontEmbeddingReason;
+  }
+
+  bool get hasOnlyAnnotationsOutsideDocumentPages {
+    return failureReason == annotationsOutsideDocumentPagesReason;
+  }
 }
 
 class SheetAnnotatedPdfExporter {
@@ -37,6 +50,10 @@ class SheetAnnotatedPdfExporter {
 
   static bool textRequiresUnicodeFont(String text) {
     return text.runes.any((rune) => rune > 0x7f);
+  }
+
+  static bool _isPageInRange(int pageNumber, int pageCount) {
+    return pageNumber >= 1 && pageNumber <= pageCount;
   }
 
   static bool scoreContainsUnicodeTextAnnotations(SheetScore score) {
@@ -67,25 +84,48 @@ class SheetAnnotatedPdfExporter {
         didWrite: false,
       );
     }
-    if (strokeCount + exportedTextCount == 0) {
-      return SheetAnnotatedPdfExportResult(
-        inputPath: score.filePath,
-        outputPath: null,
-        pageCount: 0,
-        strokeCount: strokeCount,
-        textCount: textCount,
-        exportedTextCount: 0,
-        skippedUnicodeTextCount: skippedUnicodeTextCount,
-        didWrite: false,
-        failureReason: 'unicodeTextRequiresFontEmbedding',
-      );
-    }
-
     try {
       final inputBytes = await File(score.filePath).readAsBytes();
-      final document = PdfDocument.open(Uint8List.fromList(inputBytes));
+      final document = PdfDocument.open(inputBytes);
       final editor = PdfEditor(document);
       final pageCount = document.pageCount;
+      final drawableStrokeCount = score.annotationLayer.strokes
+          .where((stroke) => _isPageInRange(stroke.pageNumber, pageCount))
+          .length;
+      final drawableTextCount = score.annotationLayer.texts
+          .where(
+            (text) =>
+                _isPageInRange(text.pageNumber, pageCount) &&
+                !textRequiresUnicodeFont(text.text),
+          )
+          .length;
+      final skippedUnicodeTextInRangeCount = score.annotationLayer.texts
+          .where(
+            (text) =>
+                _isPageInRange(text.pageNumber, pageCount) &&
+                textRequiresUnicodeFont(text.text),
+          )
+          .length;
+      if (drawableStrokeCount + drawableTextCount == 0) {
+        const unicodeReason =
+            SheetAnnotatedPdfExportResult.unicodeTextRequiresFontEmbeddingReason;
+        const outsidePagesReason =
+            SheetAnnotatedPdfExportResult.annotationsOutsideDocumentPagesReason;
+        final failureReason = skippedUnicodeTextInRangeCount > 0
+            ? unicodeReason
+            : outsidePagesReason;
+        return SheetAnnotatedPdfExportResult(
+          inputPath: score.filePath,
+          outputPath: null,
+          pageCount: pageCount,
+          strokeCount: strokeCount,
+          textCount: textCount,
+          exportedTextCount: exportedTextCount,
+          skippedUnicodeTextCount: skippedUnicodeTextCount,
+          didWrite: false,
+          failureReason: failureReason,
+        );
+      }
 
       for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
         final pageNumber = pageIndex + 1;
@@ -110,7 +150,9 @@ class SheetAnnotatedPdfExporter {
       }
 
       final outputBytes = editor.save();
-      await File(outputPath).writeAsBytes(outputBytes, flush: true);
+      final outputFile = File(outputPath);
+      await outputFile.parent.create(recursive: true);
+      await outputFile.writeAsBytes(outputBytes, flush: true);
       return SheetAnnotatedPdfExportResult(
         inputPath: score.filePath,
         outputPath: outputPath,
@@ -151,6 +193,12 @@ class SheetAnnotatedPdfExporter {
     content.strokeColor(_rgb(stroke.color));
     content.lineWidth(_pdfLineWidth(stroke));
     content.roundLines();
+    if (stroke.tool == SheetAnnotationTool.rectangle &&
+        stroke.points.length >= 2) {
+      _drawRectangle(content, geometry, stroke);
+      content.restore();
+      return;
+    }
     content.moveTo(first.x, first.y);
     for (final point in stroke.points.skip(1)) {
       final converted = geometry.toPdfPoint(point);
@@ -160,7 +208,61 @@ class SheetAnnotatedPdfExporter {
       content.lineTo(first.x + 0.1, first.y + 0.1);
     }
     content.stroke();
+    if (stroke.tool == SheetAnnotationTool.arrow && stroke.points.length >= 2) {
+      _drawArrowHead(content, geometry, stroke);
+    }
     content.restore();
+  }
+
+  static void _drawRectangle(
+    dynamic content,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    final first = geometry.toPdfPoint(stroke.points.first);
+    final second = geometry.toPdfPoint(stroke.points.last);
+    final left = math.min(first.x, second.x);
+    final right = math.max(first.x, second.x);
+    final top = math.max(first.y, second.y);
+    final bottom = math.min(first.y, second.y);
+    content
+      ..moveTo(left, bottom)
+      ..lineTo(right, bottom)
+      ..lineTo(right, top)
+      ..lineTo(left, top)
+      ..lineTo(left, bottom)
+      ..stroke();
+  }
+
+  static void _drawArrowHead(
+    dynamic content,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    final start = geometry.toPdfPoint(stroke.points[stroke.points.length - 2]);
+    final end = geometry.toPdfPoint(stroke.points.last);
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    if (math.sqrt((dx * dx) + (dy * dy)) < 0.1) {
+      return;
+    }
+    final angle = math.atan2(dy, dx);
+    final headLength = (_pdfLineWidth(stroke) * 4).clamp(8.0, 18.0).toDouble();
+    final wingAngle = math.pi / 7;
+    final left = SheetPdfAnnotationPoint(
+      end.x - (headLength * math.cos(angle - wingAngle)),
+      end.y - (headLength * math.sin(angle - wingAngle)),
+    );
+    final right = SheetPdfAnnotationPoint(
+      end.x - (headLength * math.cos(angle + wingAngle)),
+      end.y - (headLength * math.sin(angle + wingAngle)),
+    );
+    content
+      ..moveTo(end.x, end.y)
+      ..lineTo(left.x, left.y)
+      ..moveTo(end.x, end.y)
+      ..lineTo(right.x, right.y)
+      ..stroke();
   }
 
   static void _drawText(

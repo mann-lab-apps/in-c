@@ -22,6 +22,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   북마크, 컬렉션, 그룹, 별점, 연결 파일, 곡별 보기 설정, 페이지 정리 metadata 필드.
 - 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모 편집.
 - 라이브러리 목록, 검색, 최근 열기/즐겨찾기 표시, 정렬/필터.
+- V1 Polish quick access: 라이브러리 상단에서 고정, 즐겨찾기, 최근 연 악보를 별도 rail로 노출.
 - 세트리스트 생성, 이름 변경, 삭제.
 - 세트리스트 악보 검색 추가, 제거, 위/아래 순서 이동.
 - 세트리스트 첫 곡 바로 열기.
@@ -33,16 +34,35 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 북마크 목록에서 페이지 이동.
 - 세트리스트 context에서 이전/다음 곡 이동과 현재 순서 표시.
 - 보기 모드 1차: 1페이지식 가로 배치, 2페이지 태블릿 spread, 세로 스크롤.
-- 곡별 보기 설정 저장: 보기 모드, 반 페이지 넘김.
-- 페이지 정리 metadata 1차: 현재 페이지 숨김, 숨김 해제, 회전 metadata 저장.
-- 주석/필기 1차: 펜, 형광펜, 텍스트, 지우개, 색상/두께, page별 annotation 저장, undo,
-  page overlay 기반 좌표 정합성 보강.
+- 곡별 보기 설정 저장: 보기 모드, 반 페이지 넘김, page scale, 렌더 프로필, 페달 mapping.
+- 곡별 Polish 설정 저장: 페이지 넘김 애니메이션 강도, 공연 준비 안내, 화면 켜짐 확인,
+  세트리스트 전환 확인/자동 이동, 공연 중 필기/메뉴/PDF 링크 허용 여부.
+- 페이지 정리 1차: 현재 페이지 숨김/해제, 회전 metadata 저장, 회전 적용 사본 생성,
+  virtual page order, 페이지 순서 변경/복제, jump point.
+- V1 완성 페이지 metadata: 리허설 마크, crop preset, 빈 페이지 삽입 metadata,
+  page visibility preset. 원본 PDF page tree는 수정하지 않는다.
+- 파트/버전 관리 1차: `linkedFiles`에 role을 저장하고, 현재 악보와 연결 PDF 파일을
+  전환한다. 이전 현재 파일은 연결 파일 metadata로 남긴다.
+- PDF outline import 1차: PDF 내장 outline을 감지해 앱 bookmark 후보로 병합한다.
+  동일 page bookmark는 중복 생성하지 않고, 외부 URL link 정책과 분리해 내부 이동만 다룬다.
+- 악보별 structured notes: 공연, 리허설, 조율/악기, 편성 메모를 구분해 저장하고 검색 대상에
+  포함한다.
+- 세트리스트 리허설 UX 1차: 리허설 모드, 곡별 시작 page, 곡별 메모, 곡 사이 전환 대기
+  시간을 setlist metadata로 저장한다.
+- 라이브러리 bulk edit 1차: 검색/필터 결과에서 여러 악보를 선택해 태그 추가/제거,
+  collection/group/rating, favorite/pinned metadata를 일괄 변경한다. 원본 파일 삭제는
+  수행하지 않는다.
+- 주석/필기 1차: 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개, 색상/두께,
+  page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector,
   frequency-to-note 계산, cents meter, A4 기준음 저장, viewer bottom sheet.
-- 하드웨어 키/Bluetooth 페달 입력 1차: arrow, page, space 기반 이전/다음 페이지 넘김.
-- 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤.
-- 자동 스크롤 1차: 곡별 duration/start/end 저장, 세로 스크롤 기반 시간 진행, 수동 입력 시 정지.
+- 하드웨어 키/Bluetooth/USB 페달 입력 1차: arrow, page, space, media key 기반 이전/다음
+  페이지 넘김과 mapping preset.
+- 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤, quick action overlay,
+  immersive system UI, 공연 준비 안내, 잠금 정책 표시.
+- 자동 스크롤 1차: 곡별 duration/start/end/cue 저장, 세로 스크롤 기반 시간 진행,
+  pause/resume/stop, 수동 입력 시 정지.
 - URL link annotation 탭 비활성화.
 - PDF link annotation 영역 표시 토글.
 - PDF URL link annotation 제거 사본 생성.
@@ -53,7 +73,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 1차 MVP 제외 범위
 
 - 상용급 튜너 정확도/latency 보장.
-- Bluetooth/USB 페달 고급 mapping.
+- Bluetooth/USB 페달 실기기별 HID key 검증과 사용자별 custom mapping UI.
 - ChordPro/text.
 - HEIC 이미지 변환.
 - 클라우드 동기화.
@@ -71,26 +91,46 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   현재 score의 filePath를 정리된 앱 내부 사본으로 교체한다. Incremental save 특성상 forensic
   수준의 원본 object 완전 삭제가 필요한 요구는 별도 compact/rewrite 검토가 필요하다.
 - URL link annotation은 viewer layer에서도 차단한다. 제거 사본 생성은 사용자가 명시적으로
-  실행한 경우에만 수행한다.
-- 페이지 숨김/회전은 원본 PDF를 수정하지 않는 앱 metadata다. 숨김 페이지는 navigation
-  layer에서 건너뛰지만, 실제 PDF page tree는 그대로 유지된다.
+  실행한 경우에만 수행한다. PDF 내부 destination link는 허용하되 이동 후 숨김 page 보정과
+  virtual page order cursor 동기화를 다시 수행한다.
+- 페이지 숨김/회전 metadata는 원본 PDF를 수정하지 않는 앱 metadata다. 숨김 페이지는 navigation
+  layer에서 건너뛰지만, 실제 PDF page tree는 그대로 유지된다. 사용자가 명시적으로 실행한 경우에만
+  회전 metadata를 앱 내부 PDF 사본에 적용하고, 적용 전 PDF는 연결 파일 metadata로 보존한다.
 - 수동 크롭은 원본 PDF를 수정하지 않는 global crop metadata로 저장한다. 1차 구현은 page
   overlay에서 crop margin을 배경색으로 가려 보는 방식이며, cropped area를 다시 확대 배치하거나
   PDF cropBox를 재작성하지 않는다.
-- 페이지 회전은 현재 metadata 저장과 page overlay badge 표시까지만 구현했다. `pdfrx`의
-  low-level `PdfPageView`에는 `rotationOverride`가 있지만, 현재 `PdfViewer.file`/`PdfViewerParams`
-  경로에서 page별 렌더 rotation hook을 안정적으로 주입하는 API는 확인되지 않았다.
+- crop preset도 viewer metadata다. 모든 page, 홀수/짝수, cover 제외 scope를 저장하지만,
+  1차 적용은 현재 global crop 값 교체에 집중한다. page별 실제 cropBox 재작성은 후속이다.
+- 페이지 회전은 metadata 저장과 page overlay badge/pending action 표시를 먼저 수행하고, 필요하면
+  `pdf_document`의 `PdfEditor.rotatePages`로 회전 적용 사본을 만든다. `pdfrx`의 low-level
+  `PdfPageView`에는 `rotationOverride`가 있지만, 현재 `PdfViewer.file`/`PdfViewerParams`
+  경로에서 page별 live 렌더 rotation hook을 안정적으로 주입하는 API는 확인되지 않았다.
 - 메트로놈은 visual beat에 더해 기본 OFF `tick 소리` toggle을 제공한다. 1차 tick은 Flutter
   `SystemSoundType.click`을 사용하므로 accent/normal beat 음색 구분과 low-latency 보장은 후속이다.
 - 튜너는 `record` 기반 raw PCM stream과 autocorrelation pitch detector까지 1차 구현했다.
   Android/iOS microphone permission도 선언했다. Median smoothing, 낮은 confidence 무시,
   no-signal debounce를 1차로 적용했지만 실기기 pitch 정확도, latency, 소음 환경 안정성은
   Android 태블릿에서 별도 검증해야 한다.
-- Bluetooth 페달은 1차에서 Flutter logical key event 기반으로 처리한다. 실제 페달 모델별
-  HID key code와 Android focus 유지 여부는 실기기 검증이 필요하다.
+- Bluetooth/USB 페달은 1차에서 Flutter logical key event 기반으로 처리한다. 표준/반전/
+  세트리스트 경계 이동 mapping preset을 제공한다. 실제 페달 모델별 HID key code와 Android
+  focus 유지 여부는 실기기 검증이 필요하다.
+- v1.1 준비로 viewer 입력 진단 bottom sheet를 추가했다. `Focus.onKeyEvent`에서 최근 key down
+  event 20개를 기록하고 logical key id, physical HID usage, normalized input id, mapped action,
+  timestamp를 복사할 수 있다. 실제 HID key capture로 mapping을 자동 저장하는 기능은 아직 아니다.
+- 페이지 넘김 감각은 `pdfrx`의 `PdfViewerController.goToPage`/`goToArea`/`goToDest`
+  duration을 사용해 없음/빠름/자연스러움으로 저장한다. 기본값은 기존 viewer 동작과 가장 가까운
+  자연스러움이며, 대형 PDF나 페달 반복 입력이 민감한 곡은 없음 또는 빠름으로 낮출 수 있다.
+- 세트리스트 전환은 기본적으로 확인 dialog를 띄우며, 사용자가 켠 경우 곡 마지막 페이지에서
+  다음 페이지 입력을 다음 곡 이동으로 처리한다. 세트리스트 공연 중에는 실수로 악보별 마지막
+  페이지가 덮어써지지 않도록 last page 저장을 보수적으로 제한한다.
+- 공연 모드는 `SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky)`로 시스템 바
+  방해를 줄인다. 별도 wake-lock/brightness 플러그인은 아직 추가하지 않았으므로, 화면 켜짐 유지는
+  앱 내 안내와 기기 자동 잠금 설정 확인으로 처리한다.
 - 자동 스크롤은 `pdfrx`의 continuous vertical layout과 `goToArea`를 사용한다. 1차는
-  일정 시간 동안 시작 page top에서 끝 page bottom까지 선형 이동하는 방식이며, cue/pause,
-  BPM 연동, page별 duration은 후속으로 분리한다.
+  일정 시간 동안 시작 page top에서 끝 page bottom까지 선형 이동하는 방식이며, cue와
+  pause/resume을 제공한다. Virtual page order가 있는 곡은 반복 순서를 정확히 따르지 못하므로
+  자동 스크롤 시작을 막고 페달/수동 넘김을 안내한다. BPM 연동과 page별 duration은 후속으로
+  분리한다.
 - 주석/필기 overlay는 `pdfrx`의 `pageOverlaysBuilder`를 사용해 실제 page rect 위에 붙인다.
   stroke point는 page별 normalized coordinate로 저장하고, pointer 입력과 렌더링은 page-local
   rect 기준으로 변환한다. `pdfrx`가 zoom/pan/1페이지/2페이지/세로 스크롤 layout을 처리한 뒤
@@ -98,6 +138,17 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - annotation layer는 현재 `SharedPreferences`에 score metadata로 저장한다. 리허설 메모 수준의
   stroke에는 충분하지만, stroke가 많아지면 SQLite 또는 file-backed annotation store로 이전해야
   한다.
+- v1.1 준비로 `SheetAnnotationStorageReference`를 score metadata에 추가했다. 기본값은 inline이며,
+  기존 `annotationLayer`를 그대로 읽고 저장한다. `file` mode는 external annotation JSON 파일의
+  path/checksum/updatedAt/lastSaveStatus/lastSaveError를 기록할 수 있게 해 두었고, external 저장이
+  실패해도 inline metadata를 잃지 않는 fallback을 전제로 한다.
+- `SheetFileBackedAnnotationStore`는 file-backed store adapter 1차다. 저장/로드, missing file,
+  checksum mismatch, corrupted JSON을 crash 없이 결과 객체로 돌려준다. 실제 기존 inline data의
+  강제 migration은 아직 수행하지 않는다.
+- 전체 백업 manifest는 external annotation file mapping을 담을 수 있다. metadata-only 백업은
+  external ref metadata와 inline fallback layer를 함께 보존하는 전략으로 둔다.
+- annotation 요약은 stroke/text/redo/point/estimated JSON bytes/storage mode/save status를 같은
+  helper로 계산한다. 백업/export 안내와 QA debug info가 이 summary 기준을 공유한다.
 - metadata 백업은 JSON으로 scores/setlists/tool settings/library view settings를 저장한다.
   PDF 파일 bytes는 포함하지 않으므로 복원 뒤 기존 filePath가 접근 가능한지 별도 확인이 필요하다.
 - 공유/import/export 1차는 Android-first로 시작했고, iOS document open bridge까지 보강했다.
@@ -155,8 +206,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - collection은 세트리스트와 독립된 라이브러리 분류이고, group은 레슨/파트/연주회 같은
   보조 분류로 둔다.
 - rating은 0-5 정수로 저장하고 decode/copy 시 clamp한다.
-- linkedFiles는 한 곡에 여러 보조 파일을 연결하기 위한 모델이다. 이번 범위에서는 저장/백업
-  round-trip만 고정했고, 파일 추가/삭제/열기 UI는 후속이다.
+- linkedFiles는 한 곡에 여러 보조 파일을 연결하기 위한 모델이다. V1 완성 범위에서 role을
+  추가해 full score, part, piano reduction, original, edited copy 같은 파트/버전 의미를
+  저장한다. 라이브러리 metadata dialog에서 파일을 연결하고 viewer에서 PDF 연결 파일로 전환한다.
 - `SheetLibraryViewSettings`에 sortMode, favoriteOnly, tagQuery, collectionQuery,
   groupQuery, minimumRating을 저장한다.
 - sortMode는 최근 열기, 제목, 작곡가, 별점, 가져온 날짜를 지원한다.
@@ -265,9 +317,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 공연 모드에서는 관리 action은 숨기되 자동 스크롤 start/stop 진입점은 유지한다.
 - 메트로놈과 자동 스크롤을 BPM으로 동기화하거나 pause marker/cue를 두는 기능은 후속이다.
 
-## 페이지 정리 metadata 1차 구조
+## 페이지 정리 1차 구조
 
-- `SheetScore.pageSettings`에 hiddenPages와 pageRotations를 저장한다.
+- `SheetScore.pageSettings`에 hiddenPages, pageRotations, global crop, virtual page order,
+  jump points를 저장한다.
 - 원본 PDF 파일은 수정하거나 재저장하지 않는다.
 - 현재 페이지 숨김은 AppBar의 페이지 정리 메뉴에서 실행한다.
 - 모든 페이지를 숨기는 상태는 허용하지 않는다.
@@ -278,8 +331,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 페이지 카운트는 원본 PDF 기준으로 표시하고, 숨김 페이지가 있으면 `숨김 N` 보조 label을
   함께 표시한다.
 - 숨김 페이지 관리는 bottom sheet에서 제공하며, 숨김 해제 후 해당 원본 페이지로 이동한다.
-- 회전은 page별 90도 단위 metadata를 저장하지만, 현재 viewer 렌더링에는 적용하지 않는다.
-  PDF 원본 회전/재저장과 viewer transform 적용은 후속 작업이다.
+- 페이지 순서 변경은 원본 page tree를 재작성하지 않고 virtual page order metadata로 저장한다.
+  같은 원본 page number를 여러 번 넣어 반복 연주용 복제/반복 삽입을 표현한다.
+- jump point는 source page에서 target page로 이동하는 앱 내부 링크다. 숨김 page를 source나
+  target으로 삼는 jump point는 표시/추가하지 않는다.
+- 회전은 page별 90도 단위 metadata를 저장한다. 현재 viewer 경로에서는 metadata만으로 page별
+  live 렌더 rotation을 주입하지 않고, 사용자가 선택하면 회전 metadata를 적용한 앱 내부 PDF
+  사본을 생성한다. 원본 PDF는 연결 파일 metadata에 `회전 적용 전 원본`으로 보존한다.
 
 ## 연주 보조/외부 입력 1차 구조
 
@@ -302,14 +360,16 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 튜너 1차 구조
 
 - 튜너 설정은 앱 전역 `SheetTunerSettings`로 저장한다.
-- 저장 필드는 A4 기준음, 표시 모드, 감지 profile이며, 기본값은 440Hz / `Concert` /
-  `Chromatic`이다.
+- 저장 필드는 A4 기준음, 표시 모드, 감지 profile, 선택 target MIDI이며, 기본값은 440Hz /
+  `Concert` / `Chromatic` / target 없음이다.
 - A4 기준음은 415-466Hz 범위로 clamp한다.
-- 표시 모드는 `Concert`와 `Bb Trumpet`을 제공한다. `Bb Trumpet` 모드는 감지된 concert
-  pitch를 written pitch로 장2도 올려 보여주며, 혼동을 줄이기 위해 concert pitch도 보조
-  텍스트로 함께 표시한다.
-- 감지 profile은 `Chromatic`과 `Bb Trumpet`을 제공한다. 표시 모드는 음 이름 표기 방식이고,
-  감지 profile은 detector range와 안정화 threshold 정책이다.
+- 표시 모드는 `Concert`, Bb 악기, Eb 악기, Horn in F, bass clef/low instruments,
+  violin/viola/cello/double bass, guitar/bass guitar를 제공한다. 감지된 frequency는 계속
+  concert pitch로 계산하고, 표시 layer에서 written pitch로 transpose한다. 혼동을 줄이기 위해
+  written pitch와 concert pitch를 함께 표시한다.
+- 감지 profile은 `Chromatic`, `Bb Trumpet`, high winds/brass, low instruments, strings,
+  guitar/bass를 제공한다. 표시 모드는 음 이름 표기 방식이고, 감지 profile은 detector range와
+  안정화 threshold 정책이다.
 - `SheetTunerPitch.detect`는 입력 frequency를 가장 가까운 chromatic note와 cents offset으로
   변환한다. 테스트 기준은 A4 440Hz, A#4 466.16Hz, C4 261.63Hz다.
 - `SheetTunerPitchDetector`는 PCM16 mono sample을 4096 sample rolling window에 모아
@@ -324,9 +384,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   줄인다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
-- 1차 UI는 현재 음 이름, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile,
-  concert pitch 보조 표시, cents meter, A4 기준음 slider, start/stop, signal/confidence 상태를
-  제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
+- 1차 UI는 현재 음 이름, 악기별 표시 profile, 감지 profile, concert pitch 보조 표시,
+  target shortcut, cents meter, A4 기준음 slider, start/stop, signal/confidence 상태를 제공한다.
+  Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
 - Android에는 `RECORD_AUDIO`, iOS에는 `NSMicrophoneUsageDescription`을 추가했다.
 - permission denied, no signal, audio pipeline unavailable/error 상태는 crash 없이 안내한다.
 - bottom sheet가 닫히면 stream subscription, recorder, detector를 정리한다.
@@ -352,10 +412,17 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   무시한다.
 - 렌더링은 normalized point를 page-local offset으로 환산해 그린다. 따라서 확대/축소/이동,
   1페이지 가로 layout, 2페이지 spread, 세로 스크롤에서 page와 annotation이 같이 움직인다.
-- 지원 도구는 펜, 형광펜, 텍스트, 지우개다.
+- 지원 도구는 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개다. undo/redo와 favorite tool
+  preset을 제공한다.
 - 텍스트 주석은 id, pageNumber, normalized position, text, color, fontSize, createdAt을 저장한다.
 - 텍스트 도구를 선택한 뒤 page를 탭하면 입력 dialog를 띄우고, 입력한 텍스트를 해당 page 위치에
   렌더링한다.
+- v1 RC에서는 annotation metadata를 기존 `SharedPreferences` 기반 score JSON에 유지한다.
+  저장 안정성 보강은 stroke/text/point/redo 요약, export/backup 전 용량 안내, redoStack compact,
+  저장 실패 snackbar 안내로 제한한다.
+- v1.1 후보: SQLite 또는 file-backed annotation store migration, 실제 PDF annotation 표준
+  embed/export, 큰 annotation layer의 incremental save 전략. v1에서는 원본 PDF와 기존 metadata
+  구조를 흔들지 않는다.
 - 텍스트 도구 상태에서 기존 텍스트 주석을 탭하면 수정/삭제 bottom sheet를 연다. 빈 문자열로
   수정하면 삭제로 처리한다.
 - 지우개는 stroke 단위 hit-test 삭제로 구현한다. 1차 hit-test는 normalized segment distance와
@@ -381,21 +448,24 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - `SheetViewerSettings.displayEffect`는 곡별 저장이며 기본값은 `normal`이다. 좁은 화면에서도
   overflow menu에서 일반/어두운 배경/색상 반전을 선택할 수 있다.
+- `SheetViewerSettings.pageScale`은 `fitPage`, `fitWidth`, `fullscreen` 중 하나로 저장한다.
+  `fitWidth`는 현재 page width 기준 initial zoom을 계산하고, `fullscreen`은 viewer의 cover zoom을
+  사용한다.
+- `SheetViewerSettings.renderProfile`은 균형/대형 PDF preset을 저장한다. 대형 PDF preset은
+  렌더 캐시와 one-pass threshold를 보수적으로 낮춰 페이지 넘김 중 blank render 가능성을 줄이는
+  방향이다.
 - `SheetPageSettings.crop`은 top/bottom/left/right normalized margin을 가진다. 각 margin은
   0.0-0.5 범위로 clamp하고, 가로/세로 합계가 0.8을 넘으면 비율을 유지한 채 줄인다.
 - crop은 원본 PDF나 PDF page box를 변경하지 않는다. 1차는 악보 여백을 화면에서 가려 보며,
-  실제 fit-to-crop 확대와 export 반영은 후속이다.
-- 회전 metadata는 page별 90/180/270도를 저장하고 page 위 badge로 상태를 표시한다. 실제 렌더
-  rotation은 후속 `pdfrx` API spike 또는 별도 page renderer 도입 후 판단한다.
-- 페이지 순서 변경/복제/반복 삽입은 아직 구현하지 않았다. V1 후속 설계는 원본 PDF를 재작성하지
-  않는 virtual page sequence를 우선한다.
-- virtual page sequence 초안:
-  - 각 score는 원본 pageNumber 대신 `SheetPageInstance(id, sourcePageNumber, rotationOverride,
-    cropOverride, label)` 목록을 가질 수 있다.
-  - 숨김 페이지는 instance 제거/비활성화로, 복제/반복은 같은 sourcePageNumber를 가진 instance
-    추가로 표현한다.
-  - 북마크/필기/세트리스트는 1차로 source page 기준을 유지하고, 공연 순서만 instance order를
-    참조한다. instance별 다른 필기가 필요해지는 순간 annotation key 정책을 분리한다.
+  crop-to-fit 실행 시 crop 영역을 page rect로 계산해 해당 영역으로 이동/확대한다. export 반영은
+  후속이다.
+- 회전 metadata는 page별 90/180/270도를 저장하고 page 위 badge와 viewer 상단 pending action으로
+  상태를 표시한다. 실제 회전이 필요한 경우 `pdf_document` 기반 회전 적용 사본 생성으로 처리한다.
+- 페이지 순서 변경/복제/반복 삽입은 원본 PDF를 재작성하지 않는 virtual page order로 구현한다.
+  별도 per-instance crop/rotation override는 후속이다.
+- 북마크/필기/세트리스트는 1차로 source page 기준을 유지하고, 공연 순서만 virtual page order를
+  참조한다. 자동 스크롤은 source page 구간 기반이므로 custom virtual order가 있는 곡에서는
+  비활성화한다. instance별 다른 필기가 필요해지는 순간 annotation key 정책을 분리한다.
 
 ## 베타 전달 polish
 
@@ -446,13 +516,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   Median smoothing과 no-signal debounce도 1차 적용했다. Android 태블릿 실기기 pitch 정확도,
   latency, 추가 noise smoothing, YIN 비교, 외부 microphone 동작은 후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
-- 자동 스크롤 고도화: BPM 기반 duration preset, page cue, pause marker, 반복 구간, 세트리스트
-  전체 자동 진행은 후속이다. 1차는 세로 스크롤 기반 일정 속도 진행으로 제한한다.
-- Bluetooth/USB 페달 고급 설정: 실제 HID key mapping, 앱 foreground focus, 사용자 mapping UI
-  확인 필요. 기본 key event 기반 이전/다음 넘김은 1차 구현했다.
-- 페이지 크롭/정렬/복제: crop metadata와 화면 mask는 1차 구현했다. 원본 PDF 보존형 virtual page
-  order는 설계 초안만 있으며, 실제 페이지 순서 변경/복제/반복 삽입은 후속이다. 페이지 회전은
-  metadata 저장과 badge 표시까지만 구현했다.
+- 자동 스크롤 고도화: cue와 pause/resume은 1차 구현했다. BPM 기반 duration preset, pause
+  marker, 반복 구간, 세트리스트 전체 자동 진행은 후속이다.
+- Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
+  key mapping, 앱 foreground focus, 사용자별 custom mapping UI는 실기기 확인 필요.
+- 페이지 크롭/정렬/복제: crop metadata, 화면 mask, crop-to-fit, 원본 PDF 보존형 virtual page
+  order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전 적용 사본 생성은 1차 구현했다.
+  per-instance crop/rotation override와 PDF page tree 직접 재작성은 후속이다.
 - 카메라 PDF 스캔: edge detection, perspective correction, batch scan, 압축/품질 설정까지
   요구되어 별도 스캐너 앱 수준의 UX가 필요하다. MVP는 앱 내 스캔보다 외부 스캔 앱/사진 앱/파일
   앱에서 만든 PDF와 이미지를 악보로 잘 다루는 방향을 우선한다.
@@ -623,5 +693,14 @@ Flutter system click sound 기반이라 accent 음색 구분과 latency 보장�
 
 2026-08-26 V1 라이브러리 조직화 보강에서는 collection/group/rating을 `SheetScore` metadata와
 편집 UI에 추가하고, 검색/필터/별점 정렬에 반영했다. 또한 `SheetLinkedFile` 모델을 추가해
-파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 연결 파일 관리 UI,
-여러 라이브러리 전환, custom metadata fields, 기존 폴더 직접 참조는 후속 V1 작업으로 남긴다.
+파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 여러 라이브러리
+전환, custom metadata fields, 기존 폴더 직접 참조는 후속 V1 작업으로 남긴다.
+
+2026-08-27 V1 악보앱 필수 기능 보강에서는 스캔/카메라 플로우를 제외하고 일반 악보앱 기준의
+보기/정리/필기/공연/라이브러리 기능을 확장했다. 곡별 page scale과 대형 PDF 렌더 preset,
+crop-to-fit, virtual page order, 페이지 복제, jump point, 회전 적용 사본 생성, annotation redo,
+favorite annotation preset, 화살표/사각형/stamp, 자동 스크롤 cue/pause/resume, 공연 quick action
+overlay, Bluetooth/USB 페달 mapping preset, 연결 파일 관리 UI, collection/group/rating facet 탐색,
+PDF URL link tap 정책 보강을 추가했다. 원본 PDF는 계속 source of truth로 보존하고, URL 제거/회전
+적용/필기 포함 export는 앱 내부 사본 또는 임시 export 사본으로 처리한다. 로컬 환경에는 `dart`와
+`flutter` 실행 파일이 없어 `dart format`, `flutter analyze`, `flutter test`는 아직 실행하지 못했다.

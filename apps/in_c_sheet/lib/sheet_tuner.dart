@@ -4,11 +4,35 @@ import 'dart:math' as math;
 
 enum SheetTunerDisplayMode {
   concert,
-  bbTrumpet;
+  bbTrumpet,
+  bbClarinet,
+  tenorSax,
+  altoSax,
+  baritoneSax,
+  frenchHorn,
+  bassClef,
+  violin,
+  viola,
+  cello,
+  doubleBass,
+  guitar,
+  bassGuitar;
 
   factory SheetTunerDisplayMode.fromJson(Object? value) {
     return switch (value) {
       'bbTrumpet' => SheetTunerDisplayMode.bbTrumpet,
+      'bbClarinet' => SheetTunerDisplayMode.bbClarinet,
+      'tenorSax' => SheetTunerDisplayMode.tenorSax,
+      'altoSax' => SheetTunerDisplayMode.altoSax,
+      'baritoneSax' => SheetTunerDisplayMode.baritoneSax,
+      'frenchHorn' => SheetTunerDisplayMode.frenchHorn,
+      'bassClef' => SheetTunerDisplayMode.bassClef,
+      'violin' => SheetTunerDisplayMode.violin,
+      'viola' => SheetTunerDisplayMode.viola,
+      'cello' => SheetTunerDisplayMode.cello,
+      'doubleBass' => SheetTunerDisplayMode.doubleBass,
+      'guitar' => SheetTunerDisplayMode.guitar,
+      'bassGuitar' => SheetTunerDisplayMode.bassGuitar,
       _ => SheetTunerDisplayMode.concert,
     };
   }
@@ -17,6 +41,18 @@ enum SheetTunerDisplayMode {
     return switch (this) {
       SheetTunerDisplayMode.concert => 'Concert',
       SheetTunerDisplayMode.bbTrumpet => 'Bb Trumpet',
+      SheetTunerDisplayMode.bbClarinet => 'Bb Clarinet',
+      SheetTunerDisplayMode.tenorSax => 'Tenor Sax',
+      SheetTunerDisplayMode.altoSax => 'Alto Sax',
+      SheetTunerDisplayMode.baritoneSax => 'Baritone Sax',
+      SheetTunerDisplayMode.frenchHorn => 'Horn in F',
+      SheetTunerDisplayMode.bassClef => 'Bass clef',
+      SheetTunerDisplayMode.violin => 'Violin',
+      SheetTunerDisplayMode.viola => 'Viola',
+      SheetTunerDisplayMode.cello => 'Cello',
+      SheetTunerDisplayMode.doubleBass => 'Double Bass',
+      SheetTunerDisplayMode.guitar => 'Guitar',
+      SheetTunerDisplayMode.bassGuitar => 'Bass Guitar',
     };
   }
 
@@ -24,6 +60,105 @@ enum SheetTunerDisplayMode {
     return switch (this) {
       SheetTunerDisplayMode.concert => 0,
       SheetTunerDisplayMode.bbTrumpet => 2,
+      SheetTunerDisplayMode.bbClarinet => 2,
+      SheetTunerDisplayMode.tenorSax => 14,
+      SheetTunerDisplayMode.altoSax => 9,
+      SheetTunerDisplayMode.baritoneSax => 21,
+      SheetTunerDisplayMode.frenchHorn => 7,
+      SheetTunerDisplayMode.bassClef => 0,
+      SheetTunerDisplayMode.violin => 0,
+      SheetTunerDisplayMode.viola => 0,
+      SheetTunerDisplayMode.cello => 0,
+      SheetTunerDisplayMode.doubleBass => 12,
+      SheetTunerDisplayMode.guitar => 12,
+      SheetTunerDisplayMode.bassGuitar => 12,
+    };
+  }
+
+  String get familyLabel {
+    return switch (this) {
+      SheetTunerDisplayMode.concert => 'C instruments',
+      SheetTunerDisplayMode.bbTrumpet ||
+      SheetTunerDisplayMode.bbClarinet ||
+      SheetTunerDisplayMode.tenorSax =>
+        'Bb instruments',
+      SheetTunerDisplayMode.altoSax ||
+      SheetTunerDisplayMode.baritoneSax =>
+        'Eb instruments',
+      SheetTunerDisplayMode.frenchHorn => 'F instruments',
+      SheetTunerDisplayMode.bassClef => 'Low instruments',
+      SheetTunerDisplayMode.violin ||
+      SheetTunerDisplayMode.viola ||
+      SheetTunerDisplayMode.cello ||
+      SheetTunerDisplayMode.doubleBass =>
+        'Strings',
+      SheetTunerDisplayMode.guitar || SheetTunerDisplayMode.bassGuitar =>
+        'Guitar/Bass',
+    };
+  }
+
+  bool get preferFlats {
+    return switch (this) {
+      SheetTunerDisplayMode.bbTrumpet ||
+      SheetTunerDisplayMode.bbClarinet ||
+      SheetTunerDisplayMode.tenorSax ||
+      SheetTunerDisplayMode.altoSax ||
+      SheetTunerDisplayMode.baritoneSax ||
+      SheetTunerDisplayMode.frenchHorn =>
+        true,
+      _ => false,
+    };
+  }
+
+  List<SheetTunerTarget> get tuningTargets {
+    return switch (this) {
+      SheetTunerDisplayMode.violin => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'D', concertMidiNumber: 62),
+        SheetTunerTarget(label: 'A', concertMidiNumber: 69),
+        SheetTunerTarget(label: 'E', concertMidiNumber: 76),
+      ],
+      SheetTunerDisplayMode.viola || SheetTunerDisplayMode.cello =>
+        const <SheetTunerTarget>[
+          SheetTunerTarget(label: 'C', concertMidiNumber: 48),
+          SheetTunerTarget(label: 'G', concertMidiNumber: 55),
+          SheetTunerTarget(label: 'D', concertMidiNumber: 62),
+          SheetTunerTarget(label: 'A', concertMidiNumber: 69),
+        ],
+      SheetTunerDisplayMode.doubleBass => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'E', concertMidiNumber: 40),
+        SheetTunerTarget(label: 'A', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 55),
+      ],
+      SheetTunerDisplayMode.guitar => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'E', concertMidiNumber: 40),
+        SheetTunerTarget(label: 'A', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'B', concertMidiNumber: 59),
+        SheetTunerTarget(label: 'E', concertMidiNumber: 64),
+      ],
+      SheetTunerDisplayMode.bassGuitar => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'E', concertMidiNumber: 28),
+        SheetTunerTarget(label: 'A', concertMidiNumber: 33),
+        SheetTunerTarget(label: 'D', concertMidiNumber: 38),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 43),
+      ],
+      SheetTunerDisplayMode.bbTrumpet => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'C', concertMidiNumber: 70),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 65),
+        SheetTunerTarget(label: 'E', concertMidiNumber: 62),
+      ],
+      SheetTunerDisplayMode.frenchHorn => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'F', concertMidiNumber: 65),
+        SheetTunerTarget(label: 'C', concertMidiNumber: 60),
+      ],
+      _ => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'A4', concertMidiNumber: 69),
+        SheetTunerTarget(label: 'Bb4', concertMidiNumber: 70),
+        SheetTunerTarget(label: 'C4', concertMidiNumber: 60),
+      ],
     };
   }
 
@@ -50,6 +185,46 @@ enum SheetTunerDetectionProfile {
     minSignalLevel: 0.66,
     noSignalDebounceFrames: 5,
     noteHysteresisCents: 18,
+  ),
+  highInstrument(
+    label: 'High winds/brass',
+    minFrequency: 130,
+    maxFrequency: 1400,
+    minRms: 0.012,
+    minConfidence: 0.64,
+    minSignalLevel: 0.64,
+    noSignalDebounceFrames: 5,
+    noteHysteresisCents: 16,
+  ),
+  lowInstrument(
+    label: 'Low instruments',
+    minFrequency: 38,
+    maxFrequency: 700,
+    minRms: 0.01,
+    minConfidence: 0.62,
+    minSignalLevel: 0.62,
+    noSignalDebounceFrames: 5,
+    noteHysteresisCents: 14,
+  ),
+  strings(
+    label: 'Strings',
+    minFrequency: 55,
+    maxFrequency: 1600,
+    minRms: 0.01,
+    minConfidence: 0.62,
+    minSignalLevel: 0.62,
+    noSignalDebounceFrames: 4,
+    noteHysteresisCents: 12,
+  ),
+  guitarBass(
+    label: 'Guitar/Bass',
+    minFrequency: 30,
+    maxFrequency: 1000,
+    minRms: 0.01,
+    minConfidence: 0.62,
+    minSignalLevel: 0.62,
+    noSignalDebounceFrames: 5,
+    noteHysteresisCents: 14,
   );
 
   const SheetTunerDetectionProfile({
@@ -66,6 +241,10 @@ enum SheetTunerDetectionProfile {
   factory SheetTunerDetectionProfile.fromJson(Object? value) {
     return switch (value) {
       'bbTrumpet' => SheetTunerDetectionProfile.bbTrumpet,
+      'highInstrument' => SheetTunerDetectionProfile.highInstrument,
+      'lowInstrument' => SheetTunerDetectionProfile.lowInstrument,
+      'strings' => SheetTunerDetectionProfile.strings,
+      'guitarBass' => SheetTunerDetectionProfile.guitarBass,
       _ => SheetTunerDetectionProfile.chromatic,
     };
   }
@@ -95,16 +274,18 @@ class SheetTunerSettings {
     required this.referencePitchA4,
     this.displayMode = SheetTunerDisplayMode.concert,
     this.detectionProfile = SheetTunerDetectionProfile.chromatic,
+    this.targetConcertMidiNumber,
   });
 
   factory SheetTunerSettings.fromJson(Map<String, Object?>? json) {
     return SheetTunerSettings(
-      referencePitchA4: clampReferencePitch(
-        json?['referencePitchA4'] as int? ?? defaultSettings.referencePitchA4,
-      ),
+      referencePitchA4: _normalizeReferencePitch(json?['referencePitchA4']),
       displayMode: SheetTunerDisplayMode.fromJson(json?['displayMode']),
       detectionProfile: SheetTunerDetectionProfile.fromJson(
         json?['detectionProfile'],
+      ),
+      targetConcertMidiNumber: _normalizeTargetMidiNumber(
+        json?['targetConcertMidiNumber'],
       ),
     );
   }
@@ -114,11 +295,14 @@ class SheetTunerSettings {
   final int referencePitchA4;
   final SheetTunerDisplayMode displayMode;
   final SheetTunerDetectionProfile detectionProfile;
+  final int? targetConcertMidiNumber;
 
   SheetTunerSettings copyWith({
     int? referencePitchA4,
     SheetTunerDisplayMode? displayMode,
     SheetTunerDetectionProfile? detectionProfile,
+    int? targetConcertMidiNumber,
+    bool clearTargetConcertMidiNumber = false,
   }) {
     return SheetTunerSettings(
       referencePitchA4: clampReferencePitch(
@@ -126,6 +310,11 @@ class SheetTunerSettings {
       ),
       displayMode: displayMode ?? this.displayMode,
       detectionProfile: detectionProfile ?? this.detectionProfile,
+      targetConcertMidiNumber: clearTargetConcertMidiNumber
+          ? null
+          : _normalizeTargetMidiNumber(
+              targetConcertMidiNumber ?? this.targetConcertMidiNumber,
+            ),
     );
   }
 
@@ -134,11 +323,73 @@ class SheetTunerSettings {
       'referencePitchA4': referencePitchA4,
       'displayMode': displayMode.toJson(),
       'detectionProfile': detectionProfile.toJson(),
+      'targetConcertMidiNumber': targetConcertMidiNumber,
     };
   }
 
   static int clampReferencePitch(int value) {
     return value.clamp(415, 466).toInt();
+  }
+
+  static int _normalizeReferencePitch(Object? value) {
+    if (value is num) {
+      return clampReferencePitch(value.round());
+    }
+    return defaultSettings.referencePitchA4;
+  }
+
+  static int? _normalizeTargetMidiNumber(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    final parsed = value is num ? value.round() : int.tryParse('$value');
+    if (parsed == null || parsed < 0 || parsed > 127) {
+      return null;
+    }
+    return parsed;
+  }
+}
+
+class SheetTunerTarget {
+  const SheetTunerTarget({
+    required this.label,
+    required this.concertMidiNumber,
+  });
+
+  final String label;
+  final int concertMidiNumber;
+
+  SheetTunerNote concertNote({int referencePitchA4 = 440}) {
+    return SheetTunerPitch.noteFromMidi(
+      concertMidiNumber,
+      referencePitchA4: referencePitchA4,
+    );
+  }
+
+  SheetTunerNote writtenNote({
+    required SheetTunerDisplayMode displayMode,
+    int referencePitchA4 = 440,
+  }) {
+    return SheetTunerPitch.noteFromMidi(
+      concertMidiNumber + displayMode.transposeSemitones,
+      referencePitchA4: referencePitchA4,
+    );
+  }
+
+  String displayLabel({
+    required SheetTunerDisplayMode displayMode,
+    int referencePitchA4 = 440,
+  }) {
+    final written = writtenNote(
+      displayMode: displayMode,
+      referencePitchA4: referencePitchA4,
+    );
+    final concert = concertNote(referencePitchA4: referencePitchA4);
+    if (displayMode.transposeSemitones == 0) {
+      return written.labelWith(preferFlats: displayMode.preferFlats);
+    }
+    return '${written.labelWith(preferFlats: displayMode.preferFlats)}'
+        ' · Concert ${concert.labelWith(preferFlats: true)}';
   }
 }
 
@@ -156,6 +407,24 @@ class SheetTunerNote {
   final double frequency;
 
   String get label => '$name$octave';
+
+  String labelWith({bool preferFlats = false}) {
+    if (!preferFlats) {
+      return label;
+    }
+    return '${_flatNameFor(name)}$octave';
+  }
+
+  static String _flatNameFor(String name) {
+    return switch (name) {
+      'C#' => 'Db',
+      'D#' => 'Eb',
+      'F#' => 'Gb',
+      'G#' => 'Ab',
+      'A#' => 'Bb',
+      _ => name,
+    };
+  }
 }
 
 class SheetTunerDisplayedPitch {
@@ -174,12 +443,15 @@ class SheetTunerDisplayedPitch {
   String get primaryLabel => writtenNote.label;
 
   String get detailLabel {
-    return switch (displayMode) {
-      SheetTunerDisplayMode.concert =>
-        'Concert ${concertNote.label} · ${_formatCents(centsOffset)}',
-      SheetTunerDisplayMode.bbTrumpet =>
-        'Written ${writtenNote.label} · Concert ${concertNote.label}',
-    };
+    if (displayMode.transposeSemitones == 0) {
+      return 'Concert ${concertNote.labelWith(
+        preferFlats: displayMode.preferFlats,
+      )} · ${_formatCents(centsOffset)}';
+    }
+    return 'Written ${writtenNote.labelWith(
+      preferFlats: displayMode.preferFlats,
+    )} · Concert ${concertNote.labelWith(preferFlats: true)} · '
+        '${_formatCents(centsOffset)}';
   }
 
   static String _formatCents(double cents) {
@@ -705,15 +977,19 @@ class SheetTunerCodec {
       return SheetTunerSettings.defaultSettings;
     }
 
-    final decoded = jsonDecode(value);
-    if (decoded is! Map) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map) {
+        return SheetTunerSettings.defaultSettings;
+      }
+      return SheetTunerSettings.fromJson(
+        decoded.map(
+          (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+        ),
+      );
+    } catch (_) {
       return SheetTunerSettings.defaultSettings;
     }
-    return SheetTunerSettings.fromJson(
-      decoded.map(
-        (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
-      ),
-    );
   }
 
   static String encode(SheetTunerSettings settings) {

@@ -11,6 +11,33 @@ void main() {
     expect(action, SheetPdfLinkTapAction.blockExternalUrl);
   });
 
+  test('recognizes common external PDF URI text forms', () {
+    expect(isSheetExternalPdfUriText('https://example.invalid'), isTrue);
+    expect(isSheetExternalPdfUriText('HTTPS://example.invalid'), isTrue);
+    expect(isSheetExternalPdfUriText('mailto:player@example.invalid'), isTrue);
+    expect(isSheetExternalPdfUriText('javascript:alert(1)'), isTrue);
+    expect(isSheetExternalPdfUriText('tel:+15555550100'), isTrue);
+    expect(isSheetExternalPdfUriText(' www.example.invalid/score '), isTrue);
+    expect(isSheetExternalPdfUriText('//example.invalid/score'), isTrue);
+    expect(isSheetExternalPdfUriText(''), isFalse);
+    expect(isSheetExternalPdfUriText('#page=2'), isFalse);
+    expect(isSheetExternalPdfUriText('relative/page.pdf'), isFalse);
+  });
+
+  test('blocks external URI-like links and ignores non-external URI actions', () {
+    final protocolRelativeAction = resolveSheetPdfLinkTapAction(
+      url: Uri.parse('//example.invalid/score'),
+      hasDestination: false,
+    );
+    final relativeAction = resolveSheetPdfLinkTapAction(
+      url: Uri.parse('#page=2'),
+      hasDestination: false,
+    );
+
+    expect(protocolRelativeAction, SheetPdfLinkTapAction.blockExternalUrl);
+    expect(relativeAction, SheetPdfLinkTapAction.ignore);
+  });
+
   test('keeps internal destination links navigable', () {
     final action = resolveSheetPdfLinkTapAction(
       url: null,
@@ -18,6 +45,22 @@ void main() {
     );
 
     expect(action, SheetPdfLinkTapAction.navigateInternalDestination);
+  });
+
+  test('ignores all embedded PDF links in performance mode', () {
+    final externalAction = resolveSheetPdfLinkTapAction(
+      url: Uri.parse('https://example.invalid'),
+      hasDestination: true,
+      isPerformanceMode: true,
+    );
+    final internalAction = resolveSheetPdfLinkTapAction(
+      url: null,
+      hasDestination: true,
+      isPerformanceMode: true,
+    );
+
+    expect(externalAction, SheetPdfLinkTapAction.ignoreInPerformanceMode);
+    expect(internalAction, SheetPdfLinkTapAction.ignoreInPerformanceMode);
   });
 
   test('ignores links without URL or internal destination', () {

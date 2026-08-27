@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -97,12 +98,22 @@ void main() {
         minimumRating: 4,
       ),
     );
+    await store.saveFavoriteAnnotationPreset(
+      const SheetAnnotationToolPreset(
+        toolName: 'stamp',
+        color: 0xffd33232,
+        width: 8,
+        stampName: 'cue',
+      ),
+    );
 
     final loadedScores = await store.loadScores();
     final loadedSetlists = await store.loadSetlists();
     final loadedMetronomeSettings = await store.loadMetronomeSettings();
     final loadedTunerSettings = await store.loadTunerSettings();
     final loadedLibraryViewSettings = await store.loadLibraryViewSettings();
+    final loadedFavoriteAnnotationPreset =
+        await store.loadFavoriteAnnotationPreset();
 
     expect(loadedScores.single.bookmarks.single.label, 'Solo');
     expect(loadedSetlists.single.scoreIds, <String>['score-1']);
@@ -116,6 +127,8 @@ void main() {
     expect(loadedLibraryViewSettings.collectionQuery, 'Etudes');
     expect(loadedLibraryViewSettings.groupQuery, 'Lesson A');
     expect(loadedLibraryViewSettings.minimumRating, 4);
+    expect(loadedFavoriteAnnotationPreset?.toolName, 'stamp');
+    expect(loadedFavoriteAnnotationPreset?.stampName, 'cue');
   });
 
   test('loads legacy in_c_sheet preference keys after Clef rename', () async {
@@ -176,9 +189,24 @@ void main() {
           path: '/tmp/sonata-part.pdf',
           type: 'pdf',
           label: 'Trumpet part',
+          role: SheetLinkedFile.partRole,
           createdAt: now,
         ),
       ],
+      viewerSettings: const SheetViewerSettings(
+        displayMode: 'auto',
+        halfPageTurn: false,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'Space': 'toggleQuickActions',
+          'Shift+Space': 'previousPage',
+        },
+      ),
+      pageSettings: SheetPageSettings.empty.copyWith(
+        pageCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(left: 0.04, right: 0.03),
+        },
+      ),
       importedAt: now,
       updatedAt: now,
       lastOpenedAt: null,
@@ -192,6 +220,7 @@ void main() {
       scoreIds: const <String>['score-1'],
       createdAt: now,
       updatedAt: now,
+      scoreDurations: const <String, int>{'score-1': 240},
     );
 
     await store.saveScores(<SheetScore>[score]);
@@ -205,21 +234,62 @@ void main() {
     await store.saveTunerSettings(
       const SheetTunerSettings(
         referencePitchA4: 441,
-        displayMode: SheetTunerDisplayMode.bbTrumpet,
-        detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+        displayMode: SheetTunerDisplayMode.altoSax,
+        detectionProfile: SheetTunerDetectionProfile.highInstrument,
+        targetConcertMidiNumber: 70,
+      ),
+    );
+    await store.saveFavoriteAnnotationPreset(
+      const SheetAnnotationToolPreset(
+        toolName: 'highlighter',
+        color: 0xffffcc25,
+        width: 10,
       ),
     );
 
     final backupJson = await store.exportMetadataBackupJson();
     final backup = SheetLibraryBackupCodec.decode(backupJson);
+    final decimalVersionBackup = SheetLibraryBackupCodec.decode(
+      backupJson.replaceFirst('"version": 1', '"version": 1.0'),
+    );
 
     expect(backup.version, SheetLibraryBackup.currentVersion);
+    expect(decimalVersionBackup.version, SheetLibraryBackup.currentVersion);
+    expect(
+      () => SheetLibraryBackupCodec.decode(
+        backupJson.replaceFirst('"version": 1', '"version": 1.4'),
+      ),
+      throwsUnsupportedError,
+    );
     expect(backup.scores.single.filePath, '/tmp/sonata.pdf');
     expect(backup.scores.single.collection, 'Etudes');
     expect(backup.scores.single.group, 'Lesson A');
     expect(backup.scores.single.rating, 4);
     expect(backup.scores.single.linkedFiles.single.label, 'Trumpet part');
+    expect(backup.scores.single.linkedFiles.single.role, SheetLinkedFile.partRole);
+    expect(
+      backup.scores.single.viewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
+    expect(backup.scores.single.pageSettings.cropForPage(2).left, 0.04);
+    expect(backup.setlists.single.scoreDurations, <String, int>{
+      'score-1': 240,
+    });
+    expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
     expect(backup.toJson()['scope'], 'metadata-only');
+    final corruptedBackupJson = Map<String, Object?>.of(backup.toJson())
+      ..['exportedAt'] = 7
+      ..['favoriteAnnotationPreset'] = 7;
+    final repairedBackup = SheetLibraryBackupCodec.decode(
+      jsonEncode(corruptedBackupJson),
+    );
+
+    expect(
+      repairedBackup.exportedAt,
+      DateTime.fromMillisecondsSinceEpoch(0),
+    );
+    expect(repairedBackup.scores.single.id, score.id);
+    expect(repairedBackup.favoriteAnnotationPreset, isNull);
 
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final restoreStore = SheetLibraryStore();
@@ -232,17 +302,109 @@ void main() {
     expect(restoredScore.group, 'Lesson A');
     expect(restoredScore.rating, 4);
     expect(restoredScore.linkedFiles.single.path, '/tmp/sonata-part.pdf');
-    expect((await restoreStore.loadSetlists()).single.title, 'Recital');
+    expect(restoredScore.linkedFiles.single.role, SheetLinkedFile.partRole);
+    expect(
+      restoredScore.viewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
+    expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
+    final restoredSetlist = (await restoreStore.loadSetlists()).single;
+    expect(restoredSetlist.title, 'Recital');
+    expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
     expect(
       (await restoreStore.loadTunerSettings()).displayMode,
-      SheetTunerDisplayMode.bbTrumpet,
+      SheetTunerDisplayMode.altoSax,
     );
     expect(
       (await restoreStore.loadTunerSettings()).detectionProfile,
-      SheetTunerDetectionProfile.bbTrumpet,
+      SheetTunerDetectionProfile.highInstrument,
     );
+    expect(
+      (await restoreStore.loadTunerSettings()).targetConcertMidiNumber,
+      70,
+    );
+    expect(
+      (await restoreStore.loadFavoriteAnnotationPreset())?.toolName,
+      'highlighter',
+    );
+  });
+
+  test('imports linked files into app storage metadata', () async {
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final bytes = utf8.encode('%PDF linked part');
+
+    final linkedFile = await store.importLinkedFileBytes(
+      bytes: bytes,
+      fileName: 'Trumpet Part.pdf',
+      importedAt: now,
+    );
+
+    expect(linkedFile.type, 'pdf');
+    expect(linkedFile.label, 'Trumpet Part');
+    expect(linkedFile.createdAt, now);
+    expect(linkedFile.path, contains('linked-files'));
+    expect(await File(linkedFile.path).readAsBytes(), bytes);
+  });
+
+  test('decodes full backup file mappings from dynamic JSON maps', () {
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(<dynamic>[
+      <String, dynamic>{
+        'scoreId': 'score-1',
+        'entryPath': 'scores/score-1.pdf',
+        'originalFileName': 'score.pdf',
+        'missing': false,
+      },
+      <String, dynamic>{
+        'scoreId': 'score-1',
+        'entryPath': 'linked/part.pdf',
+        'originalFileName': 'part.pdf',
+        'missing': false,
+        'linkedFilePath': '/tmp/part.pdf',
+      },
+    ]);
+
+    expect(mappings, hasLength(2));
+    expect(mappings.first.isLinkedFile, isFalse);
+    expect(mappings.last.isLinkedFile, isTrue);
+    expect(mappings.last.linkedFilePath, '/tmp/part.pdf');
+  });
+
+  test('ignores non-list full backup file mappings', () {
+    expect(SheetLibraryFullBackupFileMapping.decodeList('bad'), isEmpty);
+  });
+
+  test('skips invalid full backup file mappings', () {
+    final mappings = SheetLibraryFullBackupFileMapping.decodeList(<dynamic>[
+      <String, dynamic>{
+        'scoreId': '',
+        'entryPath': 'scores/missing-score-id.pdf',
+        'originalFileName': 'broken.pdf',
+        'missing': false,
+      },
+      <String, dynamic>{
+        'scoreId': 'score-2',
+        'entryPath': 'scores/score-2.pdf',
+        'originalFileName': 7,
+        'missing': 'no',
+        'linkedFilePath': 42,
+      },
+      <String, dynamic>{
+        'scoreId': 'score-1',
+        'entryPath': 'scores/score-1.pdf',
+        'originalFileName': 'score.pdf',
+        'missing': false,
+      },
+    ]);
+
+    expect(mappings, hasLength(2));
+    expect(mappings.first.scoreId, 'score-2');
+    expect(mappings.first.originalFileName, 'score.pdf');
+    expect(mappings.first.missing, isFalse);
+    expect(mappings.first.isLinkedFile, isFalse);
+    expect(mappings.last.scoreId, 'score-1');
   });
 
   test('exports and restores a full backup zip with PDF files', () async {
@@ -256,14 +418,46 @@ void main() {
       fileName: 'short-score.pdf',
       importedAt: now,
     );
+    final linkedBytes = utf8.encode('%PDF linked part');
+    final linkedFile = await store.importLinkedFileBytes(
+      bytes: linkedBytes,
+      fileName: 'Trumpet Part.pdf',
+      importedAt: now,
+    );
+    final annotationFile = File('${documentsDir.path}/score.annotations.json')
+      ..writeAsStringSync('{"strokes":[],"texts":[],"redoStack":[]}');
+    final scoreWithLinkedFile = score.copyWith(
+      linkedFiles: <SheetLinkedFile>[linkedFile],
+      viewerSettings: const SheetViewerSettings(
+        displayMode: 'auto',
+        halfPageTurn: false,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'ArrowDown': 'nextPage',
+          'MediaNext': 'nextSetlistScore',
+        },
+      ),
+      pageSettings: SheetPageSettings.empty.copyWith(
+        pageCrops: const <int, SheetCropSettings>{
+          1: SheetCropSettings(top: 0.02, bottom: 0.02),
+        },
+      ),
+      annotationStorage: SheetAnnotationStorageReference(
+        mode: SheetAnnotationStorageReference.fileMode,
+        path: annotationFile.path,
+        updatedAt: now,
+        lastSaveStatus: 'saved',
+      ),
+    );
     final setlist = SheetSetlist(
       id: 'setlist-1',
       title: 'Recital',
       scoreIds: <String>[score.id],
       createdAt: now,
       updatedAt: now,
+      scoreDurations: <String, int>{score.id: 180},
     );
-    await store.saveScores(<SheetScore>[score]);
+    await store.saveScores(<SheetScore>[scoreWithLinkedFile]);
     await store.saveSetlists(<SheetSetlist>[setlist]);
 
     final zipBytes = await store.exportFullBackupZipBytes(exportedAt: now);
@@ -275,9 +469,25 @@ void main() {
     expect(manifestFile, isNotNull);
     final manifest = jsonDecode(utf8.decode(manifestFile!.content)) as Map;
     expect(manifest['scope'], SheetLibraryFullBackup.scope);
-    expect(manifest['fileMappings'], hasLength(1));
-    final mapping = (manifest['fileMappings'] as List).single as Map;
-    expect(archive.findFile(mapping['entryPath'] as String), isNotNull);
+    expect(manifest['fileMappings'], hasLength(3));
+    final mappings = (manifest['fileMappings'] as List).cast<Map>();
+    final scoreMapping = mappings.firstWhere(
+      (mapping) =>
+          !mapping.containsKey('linkedFilePath') &&
+          !mapping.containsKey('annotationStoragePath'),
+    );
+    final linkedMapping = mappings.firstWhere(
+      (mapping) => mapping.containsKey('linkedFilePath'),
+    );
+    final annotationMapping = mappings.firstWhere(
+      (mapping) => mapping.containsKey('annotationStoragePath'),
+    );
+    expect(archive.findFile(scoreMapping['entryPath'] as String), isNotNull);
+    expect(archive.findFile(linkedMapping['entryPath'] as String), isNotNull);
+    expect(
+      archive.findFile(annotationMapping['entryPath'] as String),
+      isNotNull,
+    );
 
     final sourceDocumentsDir = documentsDir;
     documentsDir = await Directory.systemTemp.createTemp(
@@ -293,9 +503,55 @@ void main() {
     expect(restoredScore.title, score.title);
     expect(await File(restoredScore.filePath).exists(), isTrue);
     expect(await File(restoredScore.filePath).readAsBytes(), sourceBytes);
+    expect(restoredScore.linkedFiles.single.label, linkedFile.label);
+    expect(
+      restoredScore.viewerSettings.customPedalMapping['MediaNext'],
+      'nextSetlistScore',
+    );
+    expect(restoredScore.pageSettings.cropForPage(1).top, 0.02);
+    expect(restoredScore.annotationStorage.isFileBacked, isTrue);
+    expect(await File(restoredScore.annotationStorage.path).exists(), isTrue);
+    expect(await File(restoredScore.linkedFiles.single.path).exists(), isTrue);
+    expect(
+      await File(restoredScore.linkedFiles.single.path).readAsBytes(),
+      linkedBytes,
+    );
     expect((await restoreStore.loadSetlists()).single.scoreIds, <String>[
       score.id,
     ]);
+    expect(
+      (await restoreStore.loadSetlists()).single.scoreDurations,
+      <String, int>{score.id: 180},
+    );
+  });
+
+  test('creates page rotation applied copy without mutating source PDF', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+        .readAsBytes();
+    final score = await store.importPdfBytes(
+      bytes: sourceBytes,
+      fileName: 'short-score.pdf',
+      importedAt: now,
+    );
+    final scoreWithRotation = score.copyWith(
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{2: 90},
+      ),
+    );
+
+    final result = await store.createPageRotationAppliedCopy(
+      scoreWithRotation,
+    );
+
+    expect(result.didWrite, isTrue);
+    expect(result.rotatedPageCount, 1);
+    expect(result.outputPath, isNotNull);
+    expect(await File(result.outputPath!).exists(), isTrue);
+    expect(await File(score.filePath).readAsBytes(), sourceBytes);
   });
 
   test('rejects non-zip full backup bytes', () async {
@@ -332,26 +588,74 @@ void main() {
     expect(score.filePath.endsWith('.pdf'), isTrue);
   });
 
-  test('provides original and sanitized PDF share candidates', () {
+  test('provides existing original, sanitized, and linked share candidates', () {
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final store = SheetLibraryStore();
-    final score = _score(now, filePath: '/tmp/current-links-disabled.pdf')
-        .copyWith(
-          title: 'Concert Etude',
-          composer: 'Goedicke',
-          pdfLinkSanitization: SheetPdfLinkSanitization(
-            sanitizedFromPath: '/tmp/original.pdf',
-            removedUrlLinkCount: 1,
-            createdAt: now,
-          ),
-        );
+    final tempDir = Directory.systemTemp.createTempSync(
+      'clef-share-candidates-',
+    );
+    addTearDown(() {
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+    final currentFile = File('${tempDir.path}/current-links-disabled.pdf')
+      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+    final originalFile = File('${tempDir.path}/original.pdf')
+      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+    final trumpetPart = File('${tempDir.path}/trumpet-part.pdf')
+      ..writeAsBytesSync(const <int>[37, 80, 68, 70]);
+    final stageNote = File('${tempDir.path}/stage-note.png')
+      ..writeAsBytesSync(const <int>[137, 80, 78, 71]);
+    final missingLinkedPath = '${tempDir.path}/missing-part.pdf';
+    final baseScore = _score(now, filePath: currentFile.path);
+    final score = baseScore.copyWith(
+      title: 'Concert Etude',
+      composer: 'Goedicke',
+      pdfLinkSanitization: SheetPdfLinkSanitization(
+        sanitizedFromPath: originalFile.path,
+        removedUrlLinkCount: 1,
+        createdAt: now,
+      ),
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: trumpetPart.path,
+          type: 'pdf',
+          label: 'Trumpet part',
+          createdAt: now,
+        ),
+        SheetLinkedFile(
+          path: stageNote.path,
+          type: 'png',
+          label: 'Stage note',
+          createdAt: now,
+        ),
+        SheetLinkedFile(
+          path: missingLinkedPath,
+          type: 'pdf',
+          label: 'Missing part',
+          createdAt: now,
+        ),
+      ],
+    );
 
     final candidates = store.shareCandidates(score);
 
-    expect(candidates, hasLength(2));
+    expect(candidates, hasLength(4));
     expect(candidates.first.isSanitizedCopy, isTrue);
     expect(candidates.first.fileName, 'Goedicke-Concert-Etude.pdf');
-    expect(candidates.last.label, '원본 PDF');
+    expect(candidates.first.mimeType, 'application/pdf');
+    expect(candidates[1].label, '원본 PDF');
+    expect(candidates[2].label, '연결 파일: Trumpet part');
+    expect(candidates[2].fileName, 'Goedicke-Concert-Etude-Trumpet-part.pdf');
+    expect(candidates[2].mimeType, 'application/pdf');
+    expect(candidates[2].isLinkedFile, isTrue);
+    expect(candidates[3].fileName, 'Goedicke-Concert-Etude-Stage-note.png');
+    expect(candidates[3].mimeType, 'image/png');
+    expect(
+      candidates.any((candidate) => candidate.label.contains('Missing')),
+      isFalse,
+    );
   });
 
   test('converts image bytes to a PDF score', () async {

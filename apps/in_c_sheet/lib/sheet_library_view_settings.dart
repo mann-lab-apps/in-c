@@ -28,12 +28,15 @@ class SheetLibraryViewSettings {
   });
 
   factory SheetLibraryViewSettings.fromJson(Map<String, Object?>? json) {
+    final favoriteOnlyValue = json?['favoriteOnly'];
     return SheetLibraryViewSettings(
-      sortMode: SheetLibrarySortMode.fromName(json?['sortMode'] as String?),
-      favoriteOnly: json?['favoriteOnly'] as bool? ?? false,
-      tagQuery: (json?['tagQuery'] as String? ?? '').trim(),
-      collectionQuery: (json?['collectionQuery'] as String? ?? '').trim(),
-      groupQuery: (json?['groupQuery'] as String? ?? '').trim(),
+      sortMode: SheetLibrarySortMode.fromName(
+        _stringFromJson(json?['sortMode']),
+      ),
+      favoriteOnly: favoriteOnlyValue is bool ? favoriteOnlyValue : false,
+      tagQuery: _stringFromJson(json?['tagQuery']).trim(),
+      collectionQuery: _stringFromJson(json?['collectionQuery']).trim(),
+      groupQuery: _stringFromJson(json?['groupQuery']).trim(),
       minimumRating: SheetScore.normalizeRating(json?['minimumRating']),
     );
   }
@@ -94,20 +97,21 @@ class SheetLibraryViewSettings {
       return false;
     }
     if (hasTagFilter) {
-      final normalizedTagQuery = tagQuery.toLowerCase();
+      final normalizedTagQuery = tagQuery.trim().toLowerCase();
       final hasTag = score.tags.any(
-        (tag) => tag.toLowerCase() == normalizedTagQuery,
+        (tag) => tag.trim().toLowerCase() == normalizedTagQuery,
       );
       if (!hasTag) {
         return false;
       }
     }
     if (hasCollectionFilter &&
-        score.collection.toLowerCase() != collectionQuery.toLowerCase()) {
+        score.collection.trim().toLowerCase() !=
+            collectionQuery.trim().toLowerCase()) {
       return false;
     }
     if (hasGroupFilter &&
-        score.group.toLowerCase() != groupQuery.toLowerCase()) {
+        score.group.trim().toLowerCase() != groupQuery.trim().toLowerCase()) {
       return false;
     }
     if (hasRatingFilter && score.rating < minimumRating) {
@@ -128,10 +132,10 @@ class SheetLibraryViewSettings {
     return <String, Object?>{
       'sortMode': sortMode.name,
       'favoriteOnly': favoriteOnly,
-      'tagQuery': tagQuery,
-      'collectionQuery': collectionQuery,
-      'groupQuery': groupQuery,
-      'minimumRating': minimumRating,
+      'tagQuery': tagQuery.trim(),
+      'collectionQuery': collectionQuery.trim(),
+      'groupQuery': groupQuery.trim(),
+      'minimumRating': SheetScore.normalizeRating(minimumRating),
     };
   }
 }
@@ -165,20 +169,28 @@ class SheetLibraryViewSettingsCodec {
       return SheetLibraryViewSettings.defaultSettings;
     }
 
-    final decoded = jsonDecode(value);
-    if (decoded is! Map) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map) {
+        return SheetLibraryViewSettings.defaultSettings;
+      }
+      return SheetLibraryViewSettings.fromJson(
+        decoded.map(
+          (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+        ),
+      );
+    } catch (_) {
       return SheetLibraryViewSettings.defaultSettings;
     }
-    return SheetLibraryViewSettings.fromJson(
-      decoded.map(
-        (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
-      ),
-    );
   }
 
   static String encode(SheetLibraryViewSettings settings) {
     return jsonEncode(settings.toJson());
   }
+}
+
+String _stringFromJson(Object? value) {
+  return value is String ? value : '';
 }
 
 int _compareRecent(SheetScore a, SheetScore b) {

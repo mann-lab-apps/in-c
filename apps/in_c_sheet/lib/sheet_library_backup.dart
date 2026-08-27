@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'sheet_annotation.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
@@ -15,19 +16,21 @@ class SheetLibraryBackup {
     required this.metronomeSettings,
     required this.tunerSettings,
     required this.libraryViewSettings,
+    this.favoriteAnnotationPreset,
   });
 
   factory SheetLibraryBackup.fromJson(Map<String, Object?> json) {
-    final version = json['version'] as int? ?? 0;
+    final versionValue = json['version'];
+    final version = versionValue is num && versionValue % 1 == 0
+        ? versionValue.toInt()
+        : int.tryParse(versionValue?.toString() ?? '') ?? 0;
     if (version != currentVersion) {
       throw UnsupportedError('Unsupported backup version: $version');
     }
 
     return SheetLibraryBackup(
       version: version,
-      exportedAt:
-          DateTime.tryParse(json['exportedAt'] as String? ?? '') ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+      exportedAt: _dateFromJson(json['exportedAt']),
       scores: SheetScore.decodeJsonList(json['scores']),
       setlists: SheetSetlist.decodeJsonList(json['setlists']),
       metronomeSettings: SheetMetronomeSettings.fromJson(
@@ -39,6 +42,9 @@ class SheetLibraryBackup {
       libraryViewSettings: SheetLibraryViewSettings.fromJson(
         _asJsonMap(json['libraryViewSettings']),
       ),
+      favoriteAnnotationPreset: _annotationPresetFromJson(
+        json['favoriteAnnotationPreset'],
+      ),
     );
   }
 
@@ -48,6 +54,7 @@ class SheetLibraryBackup {
     required SheetMetronomeSettings metronomeSettings,
     required SheetTunerSettings tunerSettings,
     required SheetLibraryViewSettings libraryViewSettings,
+    SheetAnnotationToolPreset? favoriteAnnotationPreset,
     DateTime? exportedAt,
   }) {
     return SheetLibraryBackup(
@@ -58,6 +65,7 @@ class SheetLibraryBackup {
       metronomeSettings: metronomeSettings,
       tunerSettings: tunerSettings,
       libraryViewSettings: libraryViewSettings,
+      favoriteAnnotationPreset: favoriteAnnotationPreset,
     );
   }
 
@@ -70,6 +78,7 @@ class SheetLibraryBackup {
   final SheetMetronomeSettings metronomeSettings;
   final SheetTunerSettings tunerSettings;
   final SheetLibraryViewSettings libraryViewSettings;
+  final SheetAnnotationToolPreset? favoriteAnnotationPreset;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -81,7 +90,11 @@ class SheetLibraryBackup {
       'metronomeSettings': metronomeSettings.toJson(),
       'tunerSettings': tunerSettings.toJson(),
       'libraryViewSettings': libraryViewSettings.toJson(),
-      'notes': 'PDF files are not embedded in this backup. Restored score file paths may require local files to still exist.',
+      if (favoriteAnnotationPreset != null)
+        'favoriteAnnotationPreset': favoriteAnnotationPreset!.toJson(),
+      'notes':
+          'PDF files are not embedded in this backup. Restored score file '
+          'paths may require local files to still exist.',
     };
   }
 }
@@ -106,7 +119,10 @@ class SheetLibraryFullBackup {
       'fileMappings': fileMappings
           .map((mapping) => mapping.toJson())
           .toList(growable: false),
-      'notes': 'This backup includes score PDF files when they were available at export time. Original source files are not modified.',
+      'notes':
+          'This backup includes score PDF files, linked files, and external '
+          'annotation files when they were available at export time. Original '
+          'source files are not modified.',
     };
   }
 }
@@ -117,21 +133,31 @@ class SheetLibraryFullBackupFileMapping {
     required this.entryPath,
     required this.originalFileName,
     required this.missing,
+    this.linkedFilePath,
+    this.annotationStoragePath,
   });
 
   factory SheetLibraryFullBackupFileMapping.fromJson(
     Map<String, Object?> json,
   ) {
-    final scoreId = json['scoreId'] as String? ?? '';
-    final entryPath = json['entryPath'] as String? ?? '';
+    final scoreId = _stringFromJson(json['scoreId']).trim();
+    final entryPath = _stringFromJson(json['entryPath']).trim();
     if (scoreId.isEmpty || entryPath.isEmpty) {
       throw const FormatException('Invalid backup file mapping.');
     }
+    final linkedFilePath = _stringFromJson(json['linkedFilePath']).trim();
+    final annotationStoragePath = _stringFromJson(
+      json['annotationStoragePath'],
+    ).trim();
     return SheetLibraryFullBackupFileMapping(
       scoreId: scoreId,
       entryPath: entryPath,
-      originalFileName: json['originalFileName'] as String? ?? 'score.pdf',
-      missing: json['missing'] as bool? ?? false,
+      originalFileName: _backupFileNameFromJson(json['originalFileName']),
+      missing: json['missing'] is bool ? json['missing'] as bool : false,
+      linkedFilePath: linkedFilePath.isEmpty ? null : linkedFilePath,
+      annotationStoragePath: annotationStoragePath.isEmpty
+          ? null
+          : annotationStoragePath,
     );
   }
 
@@ -139,6 +165,12 @@ class SheetLibraryFullBackupFileMapping {
   final String entryPath;
   final String originalFileName;
   final bool missing;
+  final String? linkedFilePath;
+  final String? annotationStoragePath;
+
+  bool get isLinkedFile => linkedFilePath?.isNotEmpty == true;
+
+  bool get isAnnotationFile => annotationStoragePath?.isNotEmpty == true;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -146,15 +178,30 @@ class SheetLibraryFullBackupFileMapping {
       'entryPath': entryPath,
       'originalFileName': originalFileName,
       'missing': missing,
+      if (linkedFilePath?.isNotEmpty == true) 'linkedFilePath': linkedFilePath,
+      if (annotationStoragePath?.isNotEmpty == true)
+        'annotationStoragePath': annotationStoragePath,
     };
   }
 
   static List<SheetLibraryFullBackupFileMapping> decodeList(Object? value) {
-    final decoded = value as List<dynamic>? ?? const <dynamic>[];
+    final decoded = _jsonList(value);
     return decoded
+        .map(_asJsonMap)
         .whereType<Map<String, Object?>>()
-        .map(SheetLibraryFullBackupFileMapping.fromJson)
+        .map(_tryFromJson)
+        .whereType<SheetLibraryFullBackupFileMapping>()
         .toList(growable: false);
+  }
+
+  static SheetLibraryFullBackupFileMapping? _tryFromJson(
+    Map<String, Object?> json,
+  ) {
+    try {
+      return SheetLibraryFullBackupFileMapping.fromJson(json);
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -221,4 +268,27 @@ Map<String, Object?>? _asJsonMap(Object? value) {
   return value.map(
     (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
   );
+}
+
+List<dynamic> _jsonList(Object? value) {
+  return value is List ? value : const <dynamic>[];
+}
+
+String _stringFromJson(Object? value) {
+  return value is String ? value : '';
+}
+
+String _backupFileNameFromJson(Object? value) {
+  final name = _stringFromJson(value).trim();
+  return name.isEmpty ? 'score.pdf' : name;
+}
+
+DateTime _dateFromJson(Object? value) {
+  final parsed = DateTime.tryParse(_stringFromJson(value));
+  return parsed ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+SheetAnnotationToolPreset? _annotationPresetFromJson(Object? value) {
+  final preset = SheetAnnotationToolPreset.fromJson(_asJsonMap(value));
+  return preset.isValid ? preset : null;
 }

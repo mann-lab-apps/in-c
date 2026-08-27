@@ -11,12 +11,16 @@ void main() {
       'bpm': 360,
       'meter': 'sixEight',
     });
+    final decimal = SheetMetronomeSettings.fromJson(<String, Object?>{
+      'bpm': 131.6,
+    });
 
     expect(low.bpm, 40);
     expect(low.meter, SheetMetronomeMeter.fourFour);
     expect(low.soundEnabled, isFalse);
     expect(high.bpm, 240);
     expect(high.meter, SheetMetronomeMeter.sixEight);
+    expect(decimal.bpm, 132);
   });
 
   test('encodes and decodes metronome settings', () {
@@ -33,6 +37,29 @@ void main() {
     expect(decoded.bpm, 132);
     expect(decoded.meter, SheetMetronomeMeter.threeFour);
     expect(decoded.soundEnabled, isTrue);
+  });
+
+  test('falls back to default settings for malformed JSON', () {
+    expect(
+      SheetMetronomeCodec.decode('{bad json').bpm,
+      SheetMetronomeSettings.defaultSettings.bpm,
+    );
+    expect(
+      SheetMetronomeCodec.decode('[]').meter,
+      SheetMetronomeSettings.defaultSettings.meter,
+    );
+  });
+
+  test('ignores invalid persisted field types', () {
+    final settings = SheetMetronomeSettings.fromJson(<String, Object?>{
+      'bpm': 'fast',
+      'meter': 6,
+      'soundEnabled': 'yes',
+    });
+
+    expect(settings.bpm, SheetMetronomeSettings.defaultSettings.bpm);
+    expect(settings.meter, SheetMetronomeSettings.defaultSettings.meter);
+    expect(settings.soundEnabled, isFalse);
   });
 
   test('cycles beat sequence and marks first beat as accent', () {

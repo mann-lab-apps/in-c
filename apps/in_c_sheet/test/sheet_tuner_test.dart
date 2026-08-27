@@ -49,9 +49,59 @@ void main() {
 
     expect(writtenC.primaryLabel, 'C5');
     expect(writtenC.concertNote.label, 'A#4');
+    expect(
+      writtenC.detailLabel,
+      startsWith('Written C5 · Concert Bb4 · '),
+    );
     expect(writtenD.primaryLabel, 'D4');
     expect(writtenG.primaryLabel, 'G4');
     expect(writtenC.centsOffset, closeTo(concertBb.centsOffset, 0.001));
+  });
+
+  test('displays transposed pitch for common instrument profiles', () {
+    final concertBb = SheetTunerPitch.detect(frequency: 466.16);
+
+    final clarinet = SheetTunerPitch.displayPitch(
+      reading: concertBb!,
+      displayMode: SheetTunerDisplayMode.bbClarinet,
+    );
+    final alto = SheetTunerPitch.displayPitch(
+      reading: concertBb,
+      displayMode: SheetTunerDisplayMode.altoSax,
+    );
+    final horn = SheetTunerPitch.displayPitch(
+      reading: concertBb,
+      displayMode: SheetTunerDisplayMode.frenchHorn,
+    );
+
+    expect(clarinet.primaryLabel, 'C5');
+    expect(alto.primaryLabel, 'G5');
+    expect(horn.primaryLabel, 'F5');
+    expect(alto.detailLabel, contains('Concert Bb4'));
+  });
+
+  test('provides tuning targets for strings and guitar profiles', () {
+    final violinTargets = SheetTunerDisplayMode.violin.tuningTargets;
+    final guitarTargets = SheetTunerDisplayMode.guitar.tuningTargets;
+
+    expect(violinTargets.map((target) => target.label), <String>[
+      'G',
+      'D',
+      'A',
+      'E',
+    ]);
+    expect(
+      violinTargets[2].displayLabel(displayMode: SheetTunerDisplayMode.violin),
+      'A4',
+    );
+    expect(guitarTargets.map((target) => target.concertMidiNumber), <int>[
+      40,
+      45,
+      50,
+      55,
+      59,
+      64,
+    ]);
   });
 
   test('keeps concert display mode unchanged', () {
@@ -64,6 +114,22 @@ void main() {
 
     expect(displayed.primaryLabel, 'A4');
     expect(displayed.concertNote.label, 'A4');
+  });
+
+  test('keeps cents in Bb trumpet detail labels', () {
+    final sharpConcertBb = SheetTunerPitch.detect(frequency: 468);
+
+    final displayed = SheetTunerPitch.displayPitch(
+      reading: sharpConcertBb!,
+      displayMode: SheetTunerDisplayMode.bbTrumpet,
+    );
+
+    expect(displayed.primaryLabel, 'C5');
+    expect(displayed.concertNote.label, 'A#4');
+    expect(displayed.concertNote.labelWith(preferFlats: true), 'Bb4');
+    expect(displayed.detailLabel, contains('Concert Bb4'));
+    expect(displayed.detailLabel, contains('+'));
+    expect(displayed.detailLabel, contains('cents'));
   });
 
   test('calculates positive and negative cents offsets', () {
@@ -88,19 +154,39 @@ void main() {
     final high = SheetTunerSettings.fromJson(<String, Object?>{
       'referencePitchA4': 500,
     });
+    final decimal = SheetTunerSettings.fromJson(<String, Object?>{
+      'referencePitchA4': 441.6,
+    });
     const settings = SheetTunerSettings(
       referencePitchA4: 442,
-      displayMode: SheetTunerDisplayMode.bbTrumpet,
-      detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+      displayMode: SheetTunerDisplayMode.altoSax,
+      detectionProfile: SheetTunerDetectionProfile.highInstrument,
+      targetConcertMidiNumber: 70,
     );
 
     final decoded = SheetTunerCodec.decode(SheetTunerCodec.encode(settings));
 
     expect(low.referencePitchA4, 415);
     expect(high.referencePitchA4, 466);
+    expect(decimal.referencePitchA4, 442);
     expect(decoded.referencePitchA4, 442);
-    expect(decoded.displayMode, SheetTunerDisplayMode.bbTrumpet);
-    expect(decoded.detectionProfile, SheetTunerDetectionProfile.bbTrumpet);
+    expect(decoded.displayMode, SheetTunerDisplayMode.altoSax);
+    expect(
+      decoded.detectionProfile,
+      SheetTunerDetectionProfile.highInstrument,
+    );
+    expect(decoded.targetConcertMidiNumber, 70);
+  });
+
+  test('falls back to default tuner settings for malformed JSON', () {
+    expect(
+      SheetTunerCodec.decode('{bad json').referencePitchA4,
+      SheetTunerSettings.defaultSettings.referencePitchA4,
+    );
+    expect(
+      SheetTunerCodec.decode('[]').displayMode,
+      SheetTunerSettings.defaultSettings.displayMode,
+    );
   });
 
   test('decodes legacy tuner settings with concert/profile fallback', () {
@@ -116,6 +202,8 @@ void main() {
   test('detection profiles filter practical frequency ranges', () {
     expect(SheetTunerDetectionProfile.chromatic.acceptsFrequency(110), isTrue);
     expect(SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(110), isFalse);
+    expect(SheetTunerDetectionProfile.lowInstrument.acceptsFrequency(41), isTrue);
+    expect(SheetTunerDetectionProfile.guitarBass.acceptsFrequency(31), isTrue);
     expect(
       SheetTunerDetectionProfile.bbTrumpet.acceptsFrequency(466.16),
       isTrue,

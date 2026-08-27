@@ -66,6 +66,30 @@ void main() {
             ],
             createdAt: now,
           ),
+          SheetAnnotationStroke(
+            id: 'arrow-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.arrow,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.8),
+              SheetAnnotationPoint(x: 0.4, y: 0.6),
+            ],
+            createdAt: now.add(const Duration(seconds: 1)),
+          ),
+          SheetAnnotationStroke(
+            id: 'rect-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.rectangle,
+            color: 0xff1d5fd1,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.45, y: 0.35),
+              SheetAnnotationPoint(x: 0.75, y: 0.55),
+            ],
+            createdAt: now.add(const Duration(seconds: 2)),
+          ),
         ],
         texts: <SheetTextAnnotation>[
           SheetTextAnnotation(
@@ -80,7 +104,7 @@ void main() {
         ],
       ),
     );
-    final outputPath = '${outputDir.path}/short-score-annotated.pdf';
+    final outputPath = '${outputDir.path}/exports/short-score-annotated.pdf';
 
     final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
       score: score,
@@ -88,7 +112,7 @@ void main() {
     );
 
     expect(result.didWrite, isTrue);
-    expect(result.strokeCount, 1);
+    expect(result.strokeCount, 3);
     expect(result.textCount, 1);
     expect(result.exportedTextCount, 1);
     expect(result.skippedUnicodeTextCount, 0);
@@ -124,6 +148,66 @@ void main() {
 
     expect(result.didWrite, isFalse);
     expect(result.outputPath, isNull);
+  });
+
+  test('does not write when annotations are outside PDF page range', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-annotated-export-outside-pages-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-annotated.pdf';
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'outside-stroke',
+            pageNumber: 9,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+    );
+
+    expect(result.didWrite, isFalse);
+    expect(result.outputPath, isNull);
+    expect(result.pageCount, 3);
+    expect(result.strokeCount, 1);
+    expect(
+      result.failureReason,
+      SheetAnnotatedPdfExportResult.annotationsOutsideDocumentPagesReason,
+    );
+    expect(result.hasOnlyAnnotationsOutsideDocumentPages, isTrue);
+    expect(await File(outputPath).exists(), isFalse);
   });
 
   test(
@@ -169,7 +253,11 @@ void main() {
       expect(result.outputPath, isNull);
       expect(result.exportedTextCount, 0);
       expect(result.skippedUnicodeTextCount, 1);
-      expect(result.failureReason, 'unicodeTextRequiresFontEmbedding');
+      expect(
+        result.failureReason,
+        SheetAnnotatedPdfExportResult.unicodeTextRequiresFontEmbeddingReason,
+      );
+      expect(result.requiresUnicodeFontEmbedding, isTrue);
     },
   );
 }

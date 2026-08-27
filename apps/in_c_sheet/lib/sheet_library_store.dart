@@ -9,11 +9,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sheet_annotated_pdf_exporter.dart';
+import 'sheet_annotation.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_file_import.dart';
 import 'sheet_pdf_link_sanitizer.dart';
+import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 import 'sheet_tuner.dart';
@@ -24,6 +26,8 @@ class SheetLibraryStore {
   static const _metronomeSettingsKey = 'clef_metronome_settings';
   static const _tunerSettingsKey = 'clef_tuner_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
+  static const _favoriteAnnotationPresetKey =
+      'clef_favorite_annotation_preset';
   static const _legacyScoresKey = 'in_c_sheet_scores';
   static const _legacySetlistsKey = 'in_c_sheet_setlists';
   static const _legacyMetronomeSettingsKey = 'in_c_sheet_metronome_settings';
@@ -31,6 +35,7 @@ class SheetLibraryStore {
   static const _legacyLibraryViewSettingsKey =
       'in_c_sheet_library_view_settings';
   static const _pdfFolderName = 'scores';
+  static const _linkedFilesFolderName = 'linked-files';
   static const _backupFolderName = 'backups';
 
   Future<List<SheetScore>> loadScores() async {
@@ -121,6 +126,42 @@ class SheetLibraryStore {
     await preferences.setString(
       _libraryViewSettingsKey,
       SheetLibraryViewSettingsCodec.encode(settings),
+    );
+  }
+
+  Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
+    final preferences = await SharedPreferences.getInstance();
+    final value = preferences.getString(_favoriteAnnotationPresetKey);
+    if (value == null) {
+      return null;
+    }
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map) {
+        return null;
+      }
+      final preset = SheetAnnotationToolPreset.fromJson(
+        decoded.map(
+          (key, value) => MapEntry(key.toString(), value as Object?),
+        ),
+      );
+      return preset.isValid ? preset : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> saveFavoriteAnnotationPreset(
+    SheetAnnotationToolPreset? preset,
+  ) async {
+    final preferences = await SharedPreferences.getInstance();
+    if (preset == null || !preset.isValid) {
+      await preferences.remove(_favoriteAnnotationPresetKey);
+      return;
+    }
+    await preferences.setString(
+      _favoriteAnnotationPresetKey,
+      const JsonEncoder.withIndent('  ').convert(preset.toJson()),
     );
   }
 
@@ -227,6 +268,47 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetLinkedFile?> pickLinkedFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (file == null) {
+      return null;
+    }
+
+    return importLinkedFileBytes(
+      bytes: await file.readAsBytes(),
+      fileName: file.name,
+    );
+  }
+
+  Future<SheetLinkedFile> importLinkedFileBytes({
+    required List<int> bytes,
+    required String fileName,
+    DateTime? importedAt,
+  }) async {
+    final extension = SheetFileImportPolicy.extensionOf(fileName);
+    if (!SheetFileImportPolicy.isPdfFileName(fileName) &&
+        !SheetFileImportPolicy.isSupportedImageFileName(fileName)) {
+      throw FormatException('Unsupported linked file: $fileName');
+    }
+
+    final now = importedAt ?? DateTime.now();
+    final storedPath = await _writeLinkedFile(
+      bytes: bytes,
+      originalFileName: fileName,
+      importedAt: now,
+    );
+    return SheetLinkedFile(
+      path: storedPath,
+      type: extension,
+      label: _titleFromFileName(fileName),
+      createdAt: now,
+    );
+  }
+
   List<SheetScoreShareCandidate> shareCandidates(SheetScore score) {
     final candidates = <SheetScoreShareCandidate>[
       SheetScoreShareCandidate(
@@ -236,12 +318,15 @@ class SheetLibraryStore {
           title: score.title,
           composer: score.composer,
         ),
+        mimeType: 'application/pdf',
         isSanitizedCopy: score.pdfLinkSanitization.hasSanitizedCopy,
       ),
     ];
 
     final originalPath = score.pdfLinkSanitization.sanitizedFromPath;
-    if (originalPath.isNotEmpty && originalPath != score.filePath) {
+    if (originalPath.isNotEmpty &&
+        originalPath != score.filePath &&
+        File(originalPath).existsSync()) {
       candidates.add(
         SheetScoreShareCandidate(
           label: '원본 PDF',
@@ -250,12 +335,67 @@ class SheetLibraryStore {
             title: '${score.title} 원본',
             composer: score.composer,
           ),
+          mimeType: 'application/pdf',
           isSanitizedCopy: false,
         ),
       );
     }
 
+    for (var index = 0; index < score.linkedFiles.length; index += 1) {
+      final linkedFile = score.linkedFiles[index];
+      if (linkedFile.path.isEmpty || !File(linkedFile.path).existsSync()) {
+        continue;
+      }
+      candidates.add(
+        SheetScoreShareCandidate(
+          label: '연결 파일: ${linkedFile.label}',
+          path: linkedFile.path,
+          fileName: _linkedFileShareFileName(
+            score: score,
+            linkedFile: linkedFile,
+            index: index,
+          ),
+          mimeType: _linkedFileMimeType(linkedFile),
+          isSanitizedCopy: false,
+          isLinkedFile: true,
+        ),
+      );
+    }
+
     return List<SheetScoreShareCandidate>.unmodifiable(candidates);
+  }
+
+  String _linkedFileShareFileName({
+    required SheetScore score,
+    required SheetLinkedFile linkedFile,
+    required int index,
+  }) {
+    final extension = SheetFileImportPolicy.extensionOf(linkedFile.path);
+    final fallbackExtension = linkedFile.type.trim().toLowerCase();
+    final resolvedExtension = extension.isEmpty ? fallbackExtension : extension;
+    final parts = <String>[
+      if (score.composer.trim().isNotEmpty) score.composer.trim(),
+      score.title.trim().isEmpty ? 'Untitled score' : score.title.trim(),
+      linkedFile.label.trim().isEmpty
+          ? 'linked file ${index + 1}'
+          : linkedFile.label.trim(),
+    ];
+    final fileName = _safeFileName(parts.join(' - '));
+    if (resolvedExtension.isEmpty ||
+        fileName.toLowerCase().endsWith('.$resolvedExtension')) {
+      return fileName;
+    }
+    return '$fileName.$resolvedExtension';
+  }
+
+  String _linkedFileMimeType(SheetLinkedFile linkedFile) {
+    final extension = SheetFileImportPolicy.extensionOf(linkedFile.path);
+    final fallbackExtension = linkedFile.type.trim().toLowerCase();
+    return switch (extension.isEmpty ? fallbackExtension : extension) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      _ => 'application/pdf',
+    };
   }
 
   Future<SheetPdfLinkSanitizationResult> createPdfLinkDisabledCopy(
@@ -278,6 +418,17 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetPdfPageRotationResult> createPageRotationAppliedCopy(
+    SheetScore score,
+  ) async {
+    final outputPath = await _rotatedPdfPath(score);
+    return SheetPdfPageTransformer.createRotationAppliedCopy(
+      inputPath: score.filePath,
+      outputPath: outputPath,
+      pageRotations: score.pageSettings.pageRotations,
+    );
+  }
+
   Future<String> exportMetadataBackupJson() async {
     final backup = SheetLibraryBackup.fromState(
       scores: await loadScores(),
@@ -285,6 +436,7 @@ class SheetLibraryStore {
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
+      favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
     );
     return SheetLibraryBackupCodec.encode(backup);
   }
@@ -329,6 +481,7 @@ class SheetLibraryStore {
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
+      favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
       exportedAt: exportedAt,
     );
     final archive = Archive();
@@ -354,6 +507,63 @@ class SheetLibraryStore {
         archive.addFile(
           ArchiveFile.bytes(entryPath, await originalFile.readAsBytes()),
         );
+      }
+
+      for (var index = 0; index < score.linkedFiles.length; index += 1) {
+        final linkedFile = score.linkedFiles[index];
+        final sourceFile = File(linkedFile.path);
+        final sourceFileName = linkedFile.path
+            .split(Platform.pathSeparator)
+            .last;
+        final linkedSafeName = _safeFileName(sourceFileName);
+        final linkedEntryPath =
+            'linked-files/${score.id}-$index-$linkedSafeName';
+        final linkedExists = await sourceFile.exists();
+        mappings.add(
+          SheetLibraryFullBackupFileMapping(
+            scoreId: score.id,
+            entryPath: linkedEntryPath,
+            originalFileName: linkedSafeName,
+            missing: !linkedExists,
+            linkedFilePath: linkedFile.path,
+          ),
+        );
+        if (linkedExists) {
+          archive.addFile(
+            ArchiveFile.bytes(
+              linkedEntryPath,
+              await sourceFile.readAsBytes(),
+            ),
+          );
+        }
+      }
+
+      if (score.annotationStorage.isFileBacked) {
+        final annotationFile = File(score.annotationStorage.path);
+        final annotationFileName = score.annotationStorage.path
+            .split(Platform.pathSeparator)
+            .last;
+        final annotationSafeName = _safeFileName(annotationFileName);
+        final annotationEntryPath =
+            'annotations/${score.id}-$annotationSafeName';
+        final annotationExists = await annotationFile.exists();
+        mappings.add(
+          SheetLibraryFullBackupFileMapping(
+            scoreId: score.id,
+            entryPath: annotationEntryPath,
+            originalFileName: annotationSafeName,
+            missing: !annotationExists,
+            annotationStoragePath: score.annotationStorage.path,
+          ),
+        );
+        if (annotationExists) {
+          archive.addFile(
+            ArchiveFile.bytes(
+              annotationEntryPath,
+              await annotationFile.readAsBytes(),
+            ),
+          );
+        }
       }
     }
 
@@ -457,6 +667,7 @@ class SheetLibraryStore {
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
+      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: backup.scores.length,
@@ -508,30 +719,111 @@ class SheetLibraryStore {
       final mappings = SheetLibraryFullBackupFileMapping.decodeList(
         manifestMap['fileMappings'],
       );
-      final mappingsByScoreId = <String, SheetLibraryFullBackupFileMapping>{
-        for (final mapping in mappings) mapping.scoreId: mapping,
-      };
+      final scoreFileMappingsByScoreId =
+          <String, SheetLibraryFullBackupFileMapping>{
+            for (final mapping in mappings.where(
+              (mapping) => !mapping.isLinkedFile && !mapping.isAnnotationFile,
+            ))
+              mapping.scoreId: mapping,
+          };
+      final linkedFileMappingsByScoreId =
+          <String, Map<String, SheetLibraryFullBackupFileMapping>>{};
+      for (final mapping in mappings.where((mapping) => mapping.isLinkedFile)) {
+        final linkedFilePath = mapping.linkedFilePath;
+        if (linkedFilePath == null) {
+          continue;
+        }
+        linkedFileMappingsByScoreId
+            .putIfAbsent(
+              mapping.scoreId,
+              () => <String, SheetLibraryFullBackupFileMapping>{},
+            )[linkedFilePath] = mapping;
+      }
+      final annotationMappingsByScoreId =
+          <String, SheetLibraryFullBackupFileMapping>{
+            for (final mapping in mappings.where(
+              (mapping) => mapping.isAnnotationFile,
+            ))
+              mapping.scoreId: mapping,
+          };
       final restoredScores = <SheetScore>[];
 
       for (final score in backup.scores) {
-        final mapping = mappingsByScoreId[score.id];
+        var restoredScore = score;
+        final mapping = scoreFileMappingsByScoreId[score.id];
         if (mapping == null ||
             mapping.missing ||
-            !_isSafeZipEntryPath(mapping.entryPath)) {
-          restoredScores.add(score);
-          continue;
+            !_isSafeScoreZipEntryPath(mapping.entryPath)) {
+        } else {
+          final entry = archive.findFile(mapping.entryPath);
+          if (entry != null && entry.isFile) {
+            final restoredPath = await _writeImportedPdf(
+              bytes: entry.content,
+              id: score.id,
+              originalFileName: mapping.originalFileName,
+            );
+            restoredScore = restoredScore.copyWith(filePath: restoredPath);
+          }
         }
-        final entry = archive.findFile(mapping.entryPath);
-        if (entry == null || !entry.isFile) {
-          restoredScores.add(score);
-          continue;
+
+        final linkedMappings =
+            linkedFileMappingsByScoreId[score.id] ??
+            const <String, SheetLibraryFullBackupFileMapping>{};
+        if (linkedMappings.isNotEmpty && score.linkedFiles.isNotEmpty) {
+          final restoredLinkedFiles = <SheetLinkedFile>[];
+          for (final linkedFile in score.linkedFiles) {
+            final linkedMapping = linkedMappings[linkedFile.path];
+            if (linkedMapping == null ||
+                linkedMapping.missing ||
+                !_isSafeLinkedZipEntryPath(linkedMapping.entryPath)) {
+              restoredLinkedFiles.add(linkedFile);
+              continue;
+            }
+            final linkedEntry = archive.findFile(linkedMapping.entryPath);
+            if (linkedEntry == null || !linkedEntry.isFile) {
+              restoredLinkedFiles.add(linkedFile);
+              continue;
+            }
+            final restoredPath = await _writeLinkedFile(
+              bytes: linkedEntry.content,
+              originalFileName: linkedMapping.originalFileName,
+              importedAt: linkedFile.createdAt,
+            );
+            restoredLinkedFiles.add(linkedFile.copyWith(path: restoredPath));
+          }
+          restoredScore = restoredScore.copyWith(
+            linkedFiles: List<SheetLinkedFile>.unmodifiable(
+              restoredLinkedFiles,
+            ),
+          );
         }
-        final restoredPath = await _writeImportedPdf(
-          bytes: entry.content,
-          id: score.id,
-          originalFileName: mapping.originalFileName,
-        );
-        restoredScores.add(score.copyWith(filePath: restoredPath));
+
+        final annotationMapping = annotationMappingsByScoreId[score.id];
+        if (annotationMapping != null &&
+            !annotationMapping.missing &&
+            _isSafeAnnotationZipEntryPath(annotationMapping.entryPath)) {
+          final annotationEntry = archive.findFile(
+            annotationMapping.entryPath,
+          );
+          if (annotationEntry != null && annotationEntry.isFile) {
+            final restoredAnnotationPath = await _writeAnnotationFile(
+              bytes: annotationEntry.content,
+              scoreId: score.id,
+              originalFileName: annotationMapping.originalFileName,
+            );
+            restoredScore = restoredScore.copyWith(
+              annotationStorage: restoredScore.annotationStorage.copyWith(
+                mode: SheetAnnotationStorageReference.fileMode,
+                path: restoredAnnotationPath,
+                updatedAt: DateTime.now(),
+                lastSaveStatus: 'restored',
+                lastSaveError: '',
+              ),
+            );
+          }
+        }
+
+        restoredScores.add(restoredScore);
       }
 
       await saveScores(restoredScores);
@@ -539,6 +831,7 @@ class SheetLibraryStore {
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
+      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: restoredScores.length,
@@ -584,6 +877,43 @@ class SheetLibraryStore {
     return file.path;
   }
 
+  Future<String> _writeLinkedFile({
+    required List<int> bytes,
+    required String originalFileName,
+    required DateTime importedAt,
+  }) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final linkedFilesDir = Directory(
+      '${documents.path}/$_linkedFilesFolderName',
+    );
+    if (!linkedFilesDir.existsSync()) {
+      await linkedFilesDir.create(recursive: true);
+    }
+
+    final safeName = _safeFileName(originalFileName);
+    final id = _newId(importedAt);
+    final file = File('${linkedFilesDir.path}/$id-$safeName');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
+  Future<String> _writeAnnotationFile({
+    required List<int> bytes,
+    required String scoreId,
+    required String originalFileName,
+  }) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final annotationsDir = Directory('${documents.path}/annotations');
+    if (!annotationsDir.existsSync()) {
+      await annotationsDir.create(recursive: true);
+    }
+
+    final safeName = _safeFileName(originalFileName);
+    final file = File('${annotationsDir.path}/$scoreId-$safeName');
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
   Future<String> _sanitizedPdfPath(SheetScore score) async {
     final documents = await getApplicationDocumentsDirectory();
     final scoresDir = Directory('${documents.path}/$_pdfFolderName');
@@ -616,6 +946,23 @@ class SheetLibraryStore {
     );
     final stamp = DateTime.now().microsecondsSinceEpoch;
     return '${exportsDir.path}/${score.id}-$stamp-$safeName';
+  }
+
+  Future<String> _rotatedPdfPath(SheetScore score) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final scoresDir = Directory('${documents.path}/$_pdfFolderName');
+    if (!scoresDir.existsSync()) {
+      await scoresDir.create(recursive: true);
+    }
+
+    final originalName = score.filePath.split(Platform.pathSeparator).last;
+    final withoutExtension = originalName.replaceFirst(
+      RegExp(r'\.pdf$', caseSensitive: false),
+      '',
+    );
+    final safeName = _safeFileName('$withoutExtension-rotated.pdf');
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    return '${scoresDir.path}/${score.id}-$stamp-$safeName';
   }
 
   Future<String> _writeInternalBackup(String fileName, String contents) async {
@@ -693,8 +1040,20 @@ class SheetLibraryStore {
     return 'clef-full-$year$month$day-$hour$minute$second.zip';
   }
 
-  bool _isSafeZipEntryPath(String path) {
-    return path.startsWith('scores/') &&
+  bool _isSafeScoreZipEntryPath(String path) {
+    return _isSafeZipEntryPath(path, requiredPrefix: 'scores/');
+  }
+
+  bool _isSafeLinkedZipEntryPath(String path) {
+    return _isSafeZipEntryPath(path, requiredPrefix: 'linked-files/');
+  }
+
+  bool _isSafeAnnotationZipEntryPath(String path) {
+    return _isSafeZipEntryPath(path, requiredPrefix: 'annotations/');
+  }
+
+  bool _isSafeZipEntryPath(String path, {required String requiredPrefix}) {
+    return path.startsWith(requiredPrefix) &&
         !path.contains('..') &&
         !path.startsWith('/') &&
         !path.contains('\\');
@@ -706,11 +1065,15 @@ class SheetScoreShareCandidate {
     required this.label,
     required this.path,
     required this.fileName,
+    required this.mimeType,
     required this.isSanitizedCopy,
+    this.isLinkedFile = false,
   });
 
   final String label;
   final String path;
   final String fileName;
+  final String mimeType;
   final bool isSanitizedCopy;
+  final bool isLinkedFile;
 }

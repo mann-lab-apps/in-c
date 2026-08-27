@@ -51,6 +51,7 @@ void main() {
       expect(result.originalUrlLinkCount, greaterThan(0));
       expect(result.removedUrlLinkCount, result.originalUrlLinkCount);
       expect(result.remainingUrlLinkCount, 0);
+      expect(result.removedAllUrlLinks, isTrue);
       expect(result.pageCount, 3);
       expect(sanitized.pageCount, 3);
       expect(sanitized.urlLinkCount, 0);
@@ -76,6 +77,7 @@ void main() {
 
     expect(result.didWrite, isFalse);
     expect(result.outputPath, isNull);
+    expect(result.removedAllUrlLinks, isFalse);
     expect(File(outputPath).existsSync(), isFalse);
   });
 }

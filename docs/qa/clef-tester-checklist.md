@@ -4,9 +4,11 @@
 
 ## 시작 전
 
+- v1 RC 전체 실행 순서와 기록 양식은 `docs/qa/clef-v1-rc-qa-plan.md`를 먼저 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
-- 가능하면 평소 쓰는 PDF 악보 1개와 스캔/이미지 악보 1개를 준비한다.
+- 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
+- iPad/TestFlight와 Android 태블릿/APK를 모두 테스트할 수 있으면 화면 크기별 표시 차이를 함께 기록한다.
 
 ## 필수 테스트
 
@@ -19,8 +21,8 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열어 Concert/Bb Trumpet 표시와 Chromatic/Bb Trumpet 감지 profile을 전환한다.
-9. 조용한 상태와 440Hz reference tone 또는 실제 트럼펫 입력에서 튜너 상태를 확인한다.
+8. 튜너를 열어 Concert, Bb/Eb/F 악기, Strings, Guitar/Bass 표시 profile을 전환한다.
+9. 조용한 상태, 440Hz reference tone, 실제 악기 입력에서 튜너 상태와 target shortcut을 확인한다.
 10. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
 11. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
 12. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
@@ -38,6 +40,18 @@
 7. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
 8. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키 넘김을 확인한다.
 9. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
+10. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
+11. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
+12. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
+13. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
+14. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
+15. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
+16. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
+17. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
+18. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
+19. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
+20. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
+21. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
 
 ## Known Issues
 
@@ -46,9 +60,9 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
-- 연결 파일 metadata는 내부 저장 모델만 있고, 테스터용 파일 연결 관리 UI는 아직 없다.
 - S Pen pressure와 palm rejection은 아직 고도화 전이다.
-- Bluetooth 페달은 기본 key mapping 수준이며, 페달별 mapping UI는 없다.
+- Bluetooth 페달은 predefined key dropdown 기반 custom mapping만 지원한다. 실제 key capture는 후속 범위다.
+- OCR, 실제 HID key capture, SQLite/file-backed annotation store, PDF 표준 annotation embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.
 
 ## 실패 시 기록할 정보

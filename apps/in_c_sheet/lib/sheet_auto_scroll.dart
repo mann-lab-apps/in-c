@@ -6,17 +6,31 @@ class SheetAutoScrollSettings {
     required this.durationSeconds,
     required this.startPage,
     required this.endPage,
+    this.cueSeconds = 0,
   });
 
   factory SheetAutoScrollSettings.fromJson(Map<String, Object?>? json) {
     return SheetAutoScrollSettings(
-      durationSeconds: clampDurationSeconds(
-        json?['durationSeconds'] as int? ?? defaultSettings.durationSeconds,
+      durationSeconds: _normalizeInt(
+        json?['durationSeconds'],
+        fallback: defaultSettings.durationSeconds,
+        clamp: clampDurationSeconds,
       ),
-      startPage: _positivePage(
-        json?['startPage'] as int? ?? defaultSettings.startPage,
+      startPage: _normalizeInt(
+        json?['startPage'],
+        fallback: defaultSettings.startPage,
+        clamp: _positivePage,
       ),
-      endPage: _nonNegativePage(json?['endPage'] as int? ?? 0),
+      endPage: _normalizeInt(
+        json?['endPage'],
+        fallback: 0,
+        clamp: _nonNegativePage,
+      ),
+      cueSeconds: _normalizeInt(
+        json?['cueSeconds'],
+        fallback: 0,
+        clamp: clampCueSeconds,
+      ),
     );
   }
 
@@ -29,11 +43,13 @@ class SheetAutoScrollSettings {
   final int durationSeconds;
   final int startPage;
   final int endPage;
+  final int cueSeconds;
 
   SheetAutoScrollSettings copyWith({
     int? durationSeconds,
     int? startPage,
     int? endPage,
+    int? cueSeconds,
   }) {
     return SheetAutoScrollSettings(
       durationSeconds: clampDurationSeconds(
@@ -41,6 +57,7 @@ class SheetAutoScrollSettings {
       ),
       startPage: _positivePage(startPage ?? this.startPage),
       endPage: _nonNegativePage(endPage ?? this.endPage),
+      cueSeconds: clampCueSeconds(cueSeconds ?? this.cueSeconds),
     );
   }
 
@@ -57,6 +74,7 @@ class SheetAutoScrollSettings {
       'durationSeconds': durationSeconds,
       'startPage': startPage,
       'endPage': endPage,
+      'cueSeconds': cueSeconds,
     };
   }
 
@@ -64,9 +82,24 @@ class SheetAutoScrollSettings {
     return value.clamp(30, 3600).toInt();
   }
 
+  static int clampCueSeconds(int value) {
+    return value.clamp(0, 30).toInt();
+  }
+
   static int _positivePage(int value) => math.max(1, value);
 
   static int _nonNegativePage(int value) => math.max(0, value);
+
+  static int _normalizeInt(
+    Object? value, {
+    required int fallback,
+    required int Function(int value) clamp,
+  }) {
+    if (value is num) {
+      return clamp(value.round());
+    }
+    return clamp(int.tryParse(value?.toString() ?? '') ?? fallback);
+  }
 }
 
 class SheetAutoScrollPlan {
@@ -130,15 +163,19 @@ class SheetAutoScrollCodec {
       return SheetAutoScrollSettings.defaultSettings;
     }
 
-    final decoded = jsonDecode(value);
-    if (decoded is! Map) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map) {
+        return SheetAutoScrollSettings.defaultSettings;
+      }
+      return SheetAutoScrollSettings.fromJson(
+        decoded.map(
+          (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+        ),
+      );
+    } catch (_) {
       return SheetAutoScrollSettings.defaultSettings;
     }
-    return SheetAutoScrollSettings.fromJson(
-      decoded.map(
-        (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
-      ),
-    );
   }
 
   static String encode(SheetAutoScrollSettings settings) {

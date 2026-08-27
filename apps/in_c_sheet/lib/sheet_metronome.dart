@@ -8,13 +8,16 @@ class SheetMetronomeSettings {
   });
 
   factory SheetMetronomeSettings.fromJson(Map<String, Object?>? json) {
+    final meterValue = json?['meter'];
+    final soundEnabledValue = json?['soundEnabled'];
     return SheetMetronomeSettings(
-      bpm: clampBpm(json?['bpm'] as int? ?? defaultSettings.bpm),
+      bpm: _normalizeBpm(json?['bpm']),
       meter: SheetMetronomeMeter.fromId(
-        json?['meter'] as String? ?? defaultSettings.meter.id,
+        meterValue is String ? meterValue : defaultSettings.meter.id,
       ),
-      soundEnabled:
-          json?['soundEnabled'] as bool? ?? defaultSettings.soundEnabled,
+      soundEnabled: soundEnabledValue is bool
+          ? soundEnabledValue
+          : defaultSettings.soundEnabled,
     );
   }
 
@@ -52,6 +55,13 @@ class SheetMetronomeSettings {
   }
 
   static int clampBpm(int bpm) => bpm.clamp(40, 240).toInt();
+
+  static int _normalizeBpm(Object? value) {
+    if (value is num) {
+      return clampBpm(value.round());
+    }
+    return defaultSettings.bpm;
+  }
 }
 
 enum SheetMetronomeMeter {
@@ -103,15 +113,19 @@ class SheetMetronomeCodec {
       return SheetMetronomeSettings.defaultSettings;
     }
 
-    final decoded = jsonDecode(value);
-    if (decoded is! Map) {
+    try {
+      final decoded = jsonDecode(value);
+      if (decoded is! Map) {
+        return SheetMetronomeSettings.defaultSettings;
+      }
+      return SheetMetronomeSettings.fromJson(
+        decoded.map(
+          (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+        ),
+      );
+    } catch (_) {
       return SheetMetronomeSettings.defaultSettings;
     }
-    return SheetMetronomeSettings.fromJson(
-      decoded.map(
-        (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
-      ),
-    );
   }
 
   static String encode(SheetMetronomeSettings settings) {
