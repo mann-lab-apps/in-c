@@ -464,6 +464,22 @@ void main() {
         },
       ),
     );
+    await store.savePerformancePresetTemplates(
+      const <SheetPerformancePresetTemplate>[
+        SheetPerformancePresetTemplate(
+          id: 'preset-stage',
+          name: 'Stage tablet',
+          deviceProfile: 'Galaxy Tab S9',
+          viewerSettings: SheetViewerSettings(
+            displayMode: 'twoPage',
+            halfPageTurn: true,
+            pageScale: SheetViewerSettings.fitWidthScale,
+            pedalMapping: SheetViewerSettings.setlistPedalMapping,
+            autoAdvanceSetlist: true,
+          ),
+        ),
+      ],
+    );
 
     final backupJson = await store.exportMetadataBackupJson();
     final backup = SheetLibraryBackupCodec.decode(backupJson);
@@ -520,6 +536,11 @@ void main() {
     expect(
       backup.globalViewerSettings.customPedalMapping['Space'],
       'toggleQuickActions',
+    );
+    expect(backup.performancePresetTemplates.single.name, 'Stage tablet');
+    expect(
+      backup.performancePresetTemplates.single.deviceProfile,
+      'Galaxy Tab S9',
     );
     expect(backup.toJson()['scope'], 'metadata-only');
     final corruptedBackupJson = Map<String, Object?>.of(backup.toJson())
@@ -592,6 +613,13 @@ void main() {
     expect(
       (await restoreStore.loadGlobalViewerSettings()).customPedalMapping['Tab'],
       'none',
+    );
+    final restoredTemplates =
+        await restoreStore.loadPerformancePresetTemplates();
+    expect(restoredTemplates.single.name, 'Stage tablet');
+    expect(
+      restoredTemplates.single.viewerSettings.pedalMapping,
+      SheetViewerSettings.setlistPedalMapping,
     );
   });
 
@@ -743,6 +771,19 @@ void main() {
         pedalMapping: SheetViewerSettings.reversedPedalMapping,
       ),
     );
+    await store.savePerformancePresetTemplates(
+      const <SheetPerformancePresetTemplate>[
+        SheetPerformancePresetTemplate(
+          id: 'preset-full-backup',
+          name: 'Full backup preset',
+          viewerSettings: SheetViewerSettings(
+            displayMode: 'twoPage',
+            halfPageTurn: true,
+            pageScale: SheetViewerSettings.fullscreenScale,
+          ),
+        ),
+      ],
+    );
 
     final zipBytes = await store.exportFullBackupZipBytes(exportedAt: now);
     final archive = ZipDecoder().decodeBytes(zipBytes);
@@ -810,6 +851,13 @@ void main() {
     expect(
       (await restoreStore.loadGlobalViewerSettings()).pedalMapping,
       SheetViewerSettings.reversedPedalMapping,
+    );
+    final restoredTemplates =
+        await restoreStore.loadPerformancePresetTemplates();
+    expect(restoredTemplates.single.name, 'Full backup preset');
+    expect(
+      restoredTemplates.single.viewerSettings.pageScale,
+      SheetViewerSettings.fullscreenScale,
     );
   });
 

@@ -43,6 +43,7 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 세트리스트 순서대로 곡 사이를 넘김.
 - 세트리스트별 공연 보기 preset으로 보기 모드, page scale, 반 페이지 넘김, 전환 확인,
   자동 곡 이동, 페달 mapping을 곡별 설정 위에 override.
+- 공연 preset template을 저장/적용/삭제하고 장비 profile metadata를 백업/복원.
 - 공연 모드: 편집 UI 숨김, 실수 탭 방지, 큰 페이지 넘김 영역.
 
 ### 북마크

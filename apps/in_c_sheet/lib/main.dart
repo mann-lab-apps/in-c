@@ -6378,8 +6378,19 @@ setlist=$setlistLabel
     final selected = await showModalBottomSheet<SheetViewerSettings>(
       context: context,
       showDragHandle: true,
-      builder: (context) =>
-          _PerformanceSettingsSheet(initialSettings: score.viewerSettings),
+      builder: (context) => _PerformanceSettingsSheet(
+        initialSettings: score.viewerSettings,
+        presetTemplates: widget.controller.performancePresetTemplates,
+        onSavePresetTemplate: (name, viewerSettings, deviceProfile) {
+          return widget.controller.savePerformancePresetTemplate(
+            name: name,
+            viewerSettings: viewerSettings,
+            deviceProfile: deviceProfile,
+          );
+        },
+        onDeletePresetTemplate:
+            widget.controller.deletePerformancePresetTemplate,
+      ),
     );
     if (selected == null) {
       return;
@@ -10427,9 +10438,22 @@ class _NoteTextField extends StatelessWidget {
 }
 
 class _PerformanceSettingsSheet extends StatefulWidget {
-  const _PerformanceSettingsSheet({required this.initialSettings});
+  const _PerformanceSettingsSheet({
+    required this.initialSettings,
+    required this.presetTemplates,
+    required this.onSavePresetTemplate,
+    required this.onDeletePresetTemplate,
+  });
 
   final SheetViewerSettings initialSettings;
+  final List<SheetPerformancePresetTemplate> presetTemplates;
+  final Future<SheetPerformancePresetTemplate> Function(
+    String name,
+    SheetViewerSettings viewerSettings,
+    String deviceProfile,
+  )
+  onSavePresetTemplate;
+  final Future<bool> Function(String templateId) onDeletePresetTemplate;
 
   @override
   State<_PerformanceSettingsSheet> createState() =>
@@ -10438,6 +10462,16 @@ class _PerformanceSettingsSheet extends StatefulWidget {
 
 class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   late var _settings = widget.initialSettings;
+  late var _presetTemplates = widget.presetTemplates;
+  final _templateNameController = TextEditingController();
+  final _templateDeviceController = TextEditingController();
+
+  @override
+  void dispose() {
+    _templateNameController.dispose();
+    _templateDeviceController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10537,6 +10571,8 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
               ),
             ),
           ),
+          const Divider(),
+          _buildPresetTemplates(context),
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerRight,
@@ -10549,6 +10585,111 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
         ],
       ),
     );
+  }
+
+  Widget _buildPresetTemplates(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '공연 preset template',
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _templateNameController,
+          decoration: const InputDecoration(
+            labelText: 'Template 이름',
+            prefixIcon: Icon(Icons.bookmark_add_outlined),
+          ),
+          textInputAction: TextInputAction.next,
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _templateDeviceController,
+          decoration: const InputDecoration(
+            labelText: '장비 profile',
+            prefixIcon: Icon(Icons.devices_other),
+          ),
+          textInputAction: TextInputAction.done,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: OutlinedButton.icon(
+            onPressed: _saveCurrentPresetTemplate,
+            icon: const Icon(Icons.save_outlined),
+            label: const Text('현재 설정 저장'),
+          ),
+        ),
+        if (_presetTemplates.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          for (final template in _presetTemplates)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.tune),
+              title: Text(template.name),
+              subtitle: Text(_presetTemplateSubtitle(template)),
+              onTap: () => setState(() {
+                _settings = template.viewerSettings;
+              }),
+              trailing: IconButton(
+                tooltip: '삭제',
+                icon: const Icon(Icons.delete_outline),
+                onPressed: () => _deletePresetTemplate(template),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _saveCurrentPresetTemplate() async {
+    final template = await widget.onSavePresetTemplate(
+      _templateNameController.text,
+      _settings,
+      _templateDeviceController.text,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _presetTemplates = SheetPerformancePresetTemplate.normalizeList([
+        for (final item in _presetTemplates)
+          if (item.id != template.id) item,
+        template,
+      ]);
+      _templateNameController.clear();
+      _templateDeviceController.clear();
+    });
+  }
+
+  Future<void> _deletePresetTemplate(
+    SheetPerformancePresetTemplate template,
+  ) async {
+    final didDelete = await widget.onDeletePresetTemplate(template.id);
+    if (!mounted || !didDelete) {
+      return;
+    }
+    setState(() {
+      _presetTemplates = _presetTemplates
+          .where((item) => item.id != template.id)
+          .toList(growable: false);
+    });
+  }
+
+  String _presetTemplateSubtitle(SheetPerformancePresetTemplate template) {
+    final parts = <String>[
+      template.viewerSettings.displayMode,
+      template.viewerSettings.pageScale,
+      template.viewerSettings.pedalMapping,
+      if (template.deviceProfile.trim().isNotEmpty)
+        template.deviceProfile.trim(),
+    ];
+    return parts.join(' · ');
   }
 }
 

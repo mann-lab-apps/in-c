@@ -1698,6 +1698,117 @@ void main() {
     );
   });
 
+  test('saves performance templates and keeps setlist override priority',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now).copyWith(
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'singlePage',
+          halfPageTurn: false,
+          pageScale: SheetViewerSettings.fitPageScale,
+        ),
+      ),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final scoreTemplate = await controller.savePerformancePresetTemplate(
+      name: 'Tablet page turns',
+      deviceProfile: 'Galaxy Tab',
+      viewerSettings: const SheetViewerSettings(
+        displayMode: 'twoPage',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.setlistPedalMapping,
+      ),
+    );
+    final setlistTemplate = await controller.savePerformancePresetTemplate(
+      name: 'Stage override',
+      viewerSettings: const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: false,
+        pageScale: SheetViewerSettings.fullscreenScale,
+        autoAdvanceSetlist: true,
+      ),
+    );
+
+    expect(controller.performancePresetTemplates, hasLength(2));
+    expect(
+      await controller.applyPerformancePresetToScore(
+        controller.scoreById('score-1'),
+        scoreTemplate.id,
+      ),
+      isTrue,
+    );
+    expect(
+      controller.scoreById('score-1').viewerSettings.displayMode,
+      'twoPage',
+    );
+
+    expect(
+      await controller.applyPerformancePresetToSetlist(
+        controller.setlistById('setlist-1'),
+        setlistTemplate.id,
+      ),
+      isTrue,
+    );
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-1'),
+            setlistId: 'setlist-1',
+          )
+          .pageScale,
+      SheetViewerSettings.fullscreenScale,
+    );
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-1'),
+            setlistId: 'setlist-1',
+          )
+          .autoAdvanceSetlist,
+      isTrue,
+    );
+
+    await controller.updateSetlistRehearsalSettings(
+      controller.setlistById('setlist-1'),
+      clearViewerSettingsOverride: true,
+    );
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-1'),
+            setlistId: 'setlist-1',
+          )
+          .pageScale,
+      SheetViewerSettings.fitWidthScale,
+    );
+
+    expect(
+      await controller.deletePerformancePresetTemplate(scoreTemplate.id),
+      isTrue,
+    );
+    expect(controller.performancePresetTemplates, hasLength(1));
+
+    final reloaded = SheetLibraryController(store: store);
+    await reloaded.load();
+    expect(reloaded.performancePresetTemplates.single.name, 'Stage override');
+  });
+
   test('normalizes shared import payloads', () {
     final files = normalizeSharedImportPayload(<Object?>[
       <Object?, Object?>{'path': '/tmp/a.pdf', 'name': 'score-a.pdf'},

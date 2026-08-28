@@ -47,6 +47,8 @@ class SheetLibraryStore {
   static const _toneSettingsKey = 'clef_tone_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
   static const _globalViewerSettingsKey = 'clef_global_viewer_settings';
+  static const _performancePresetTemplatesKey =
+      'clef_performance_preset_templates';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
   static const _automaticMetadataBackupKey =
       'clef_automatic_metadata_backup';
@@ -308,6 +310,17 @@ class SheetLibraryStore {
     );
   }
 
+  List<SheetPerformancePresetTemplate> _readPerformancePresetTemplates(
+    SharedPreferences preferences,
+    String activeLibraryId,
+  ) {
+    return SheetPerformancePresetTemplateCodec.decode(
+      preferences.getString(
+        _scopedKey(_performancePresetTemplatesKey, activeLibraryId),
+      ),
+    );
+  }
+
   String? _readFavoriteAnnotationPresetJson(
     SharedPreferences preferences,
     String activeLibraryId,
@@ -352,6 +365,7 @@ class SheetLibraryStore {
     SheetToneSettings? toneSettings,
     SheetLibraryViewSettings? libraryViewSettings,
     SheetViewerSettings? globalViewerSettings,
+    List<SheetPerformancePresetTemplate>? performancePresetTemplates,
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
   }) async {
     final backup = SheetLibraryBackup.fromState(
@@ -383,6 +397,9 @@ class SheetLibraryStore {
           _readLibraryViewSettings(preferences, activeLibraryId),
       globalViewerSettings:
           globalViewerSettings ?? _readGlobalViewerSettings(preferences),
+      performancePresetTemplates:
+          performancePresetTemplates ??
+          _readPerformancePresetTemplates(preferences, activeLibraryId),
       favoriteAnnotationPreset:
           favoriteAnnotationPreset ??
           _readFavoriteAnnotationPreset(preferences, activeLibraryId),
@@ -537,6 +554,30 @@ class SheetLibraryStore {
       preferences,
       await _activeLibraryId(preferences),
       globalViewerSettings: settings,
+    );
+  }
+
+  Future<List<SheetPerformancePresetTemplate>>
+  loadPerformancePresetTemplates() async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    return _readPerformancePresetTemplates(preferences, activeLibraryId);
+  }
+
+  Future<void> savePerformancePresetTemplates(
+    List<SheetPerformancePresetTemplate> templates,
+  ) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    final normalized = SheetPerformancePresetTemplate.normalizeList(templates);
+    await preferences.setString(
+      _scopedKey(_performancePresetTemplatesKey, activeLibraryId),
+      SheetPerformancePresetTemplateCodec.encode(normalized),
+    );
+    await _saveAutomaticMetadataBackup(
+      preferences,
+      activeLibraryId,
+      performancePresetTemplates: normalized,
     );
   }
 
@@ -934,6 +975,7 @@ class SheetLibraryStore {
       toneSettings: await loadToneSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
       globalViewerSettings: await loadGlobalViewerSettings(),
+      performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
     );
     return SheetLibraryBackupCodec.encode(backup);
@@ -981,6 +1023,7 @@ class SheetLibraryStore {
       toneSettings: await loadToneSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
       globalViewerSettings: await loadGlobalViewerSettings(),
+      performancePresetTemplates: await loadPerformancePresetTemplates(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
       exportedAt: exportedAt,
     );
@@ -1166,6 +1209,7 @@ class SheetLibraryStore {
       await saveToneSettings(backup.toneSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
       await saveGlobalViewerSettings(backup.globalViewerSettings);
+      await savePerformancePresetTemplates(backup.performancePresetTemplates);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
@@ -1329,6 +1373,7 @@ class SheetLibraryStore {
       await saveToneSettings(backup.toneSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
       await saveGlobalViewerSettings(backup.globalViewerSettings);
+      await savePerformancePresetTemplates(backup.performancePresetTemplates);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,

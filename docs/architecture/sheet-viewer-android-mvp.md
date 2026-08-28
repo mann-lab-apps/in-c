@@ -139,6 +139,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 세트리스트별 공연 보기 preset은 `SheetSetlist.viewerSettingsOverride`에 저장한다. display mode,
   page scale, 반 페이지 넘김, 곡 전환 확인, 곡 끝 자동 이동, 페달 mapping을 세트리스트로 열 때만
   곡별 `SheetScore.viewerSettings`보다 우선 적용하고, 곡 자체의 보기 설정은 보존한다.
+- 공연 preset template은 `SheetPerformancePresetTemplate` catalog로 active library profile별
+  SharedPreferences key에 저장한다. template은 `SheetViewerSettings` 전체와 선택적 장비 profile
+  metadata를 담으며, viewer 공연 설정 sheet에서 현재 곡 설정 저장, 적용, 삭제를 제공한다.
+  우선순위는 세트리스트 override, 곡별 viewer settings 순서이며 template은 적용 시점에 둘 중
+  하나로 복사되는 reusable source로만 동작한다.
 - 공연 모드는 `SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky)`로 시스템 바
   방해를 줄인다. 별도 wake-lock/brightness 플러그인은 아직 추가하지 않았으므로, 화면 켜짐 유지는
   앱 내 안내와 기기 자동 잠금 설정 확인으로 처리한다.
@@ -604,7 +609,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   timeline, page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은
   1차 구현했다. measure 위치 자동 감지는 후속이다.
 - 공연 preset override: 세트리스트별 viewer/action override 저장, 복제, 백업/복원, viewer runtime
-  적용을 1차 구현했다. 공연별 preset template 공유와 장비별 preset 추천은 후속이다.
+  적용을 1차 구현했다. 공연 preset template catalog와 장비 profile metadata, viewer 내
+  생성/적용/삭제, metadata/full backup round-trip을 추가했다. 실제 장비별 자동 추천은 실기기
+  검증 후 조정한다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
   key mapping, 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI와 input
   diagnostic log는 1차 구현했다.

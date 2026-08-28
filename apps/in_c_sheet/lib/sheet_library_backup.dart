@@ -19,6 +19,8 @@ class SheetLibraryBackup {
     this.toneSettings = SheetToneSettings.defaultSettings,
     required this.libraryViewSettings,
     this.globalViewerSettings = SheetViewerSettings.defaultSettings,
+    this.performancePresetTemplates =
+        const <SheetPerformancePresetTemplate>[],
     this.favoriteAnnotationPreset,
   });
 
@@ -51,6 +53,10 @@ class SheetLibraryBackup {
       globalViewerSettings: SheetViewerSettings.fromJson(
         _asJsonMap(json['globalViewerSettings']),
       ),
+      performancePresetTemplates:
+          SheetPerformancePresetTemplate.decodeJsonList(
+            json['performancePresetTemplates'],
+          ),
       favoriteAnnotationPreset: _annotationPresetFromJson(
         json['favoriteAnnotationPreset'],
       ),
@@ -66,6 +72,8 @@ class SheetLibraryBackup {
     required SheetLibraryViewSettings libraryViewSettings,
     SheetViewerSettings globalViewerSettings =
         SheetViewerSettings.defaultSettings,
+    List<SheetPerformancePresetTemplate> performancePresetTemplates =
+        const <SheetPerformancePresetTemplate>[],
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
     DateTime? exportedAt,
   }) {
@@ -79,6 +87,10 @@ class SheetLibraryBackup {
       toneSettings: toneSettings,
       libraryViewSettings: libraryViewSettings,
       globalViewerSettings: globalViewerSettings,
+      performancePresetTemplates:
+          SheetPerformancePresetTemplate.normalizeList(
+            performancePresetTemplates,
+          ),
       favoriteAnnotationPreset: favoriteAnnotationPreset,
     );
   }
@@ -94,6 +106,7 @@ class SheetLibraryBackup {
   final SheetToneSettings toneSettings;
   final SheetLibraryViewSettings libraryViewSettings;
   final SheetViewerSettings globalViewerSettings;
+  final List<SheetPerformancePresetTemplate> performancePresetTemplates;
   final SheetAnnotationToolPreset? favoriteAnnotationPreset;
 
   Map<String, Object?> toJson() {
@@ -108,6 +121,9 @@ class SheetLibraryBackup {
       'toneSettings': toneSettings.toJson(),
       'libraryViewSettings': libraryViewSettings.toJson(),
       'globalViewerSettings': globalViewerSettings.toJson(),
+      'performancePresetTemplates': performancePresetTemplates
+          .map((template) => template.toJson())
+          .toList(growable: false),
       if (favoriteAnnotationPreset != null)
         'favoriteAnnotationPreset': favoriteAnnotationPreset!.toJson(),
       'notes':

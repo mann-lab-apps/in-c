@@ -85,7 +85,7 @@
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
 | 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: viewer context 표시와 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
-| 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, backup round-trip |
+| 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, 공연 preset template 생성/적용/삭제, 장비 profile metadata, metadata/full backup round-trip |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
@@ -150,6 +150,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다. 2026-08-28에는 save mutation마다 active
   library profile별 metadata-only 자동 snapshot을 남기고 복원할 수 있게 했다.
 - 공연 모드.
+  세트리스트별 viewer/action override와 quick action overlay에 더해 active library profile별
+  공연 preset template catalog를 저장한다. viewer 공연 설정 sheet에서 현재 설정을 template으로
+  저장하고, 저장된 template을 적용/삭제할 수 있으며 장비 profile metadata는 백업에 포함된다.
+  실제 장비별 자동 추천은 QA blocker로 둔다.
 - Bluetooth 페달 기본 페이지 넘김. 6차 구현은 key event 기반이며 실제 페달 장비 검증은
   후속이다.
 

@@ -34,6 +34,8 @@ class SheetLibraryController extends ChangeNotifier {
       SheetLibraryViewSettings.defaultSettings;
   SheetViewerSettings _globalViewerSettings =
       SheetViewerSettings.defaultSettings;
+  List<SheetPerformancePresetTemplate> _performancePresetTemplates =
+      const <SheetPerformancePresetTemplate>[];
   List<SheetLibraryProfile> _libraryProfiles = <SheetLibraryProfile>[
     SheetLibraryProfile.defaultProfile,
   ];
@@ -52,6 +54,10 @@ class SheetLibraryController extends ChangeNotifier {
   SheetToneSettings get toneSettings => _toneSettings;
   SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
   SheetViewerSettings get globalViewerSettings => _globalViewerSettings;
+  List<SheetPerformancePresetTemplate> get performancePresetTemplates {
+    return _performancePresetTemplates;
+  }
+
   List<SheetLibraryProfile> get libraryProfiles => _libraryProfiles;
   SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
@@ -160,6 +166,8 @@ class SheetLibraryController extends ChangeNotifier {
     _toneSettings = await store.loadToneSettings();
     _libraryViewSettings = await store.loadLibraryViewSettings();
     _globalViewerSettings = await store.loadGlobalViewerSettings();
+    _performancePresetTemplates =
+        await store.loadPerformancePresetTemplates();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
     await _removeMissingSetlistScores();
   }
@@ -654,6 +662,93 @@ class SheetLibraryController extends ChangeNotifier {
     await _replace(
       score.copyWith(viewerSettings: viewerSettings, updatedAt: DateTime.now()),
     );
+  }
+
+  Future<SheetPerformancePresetTemplate> savePerformancePresetTemplate({
+    required String name,
+    required SheetViewerSettings viewerSettings,
+    String deviceProfile = '',
+  }) async {
+    final normalizedName = name.trim().isEmpty
+        ? SheetPerformancePresetTemplate.defaultName
+        : name.trim();
+    SheetPerformancePresetTemplate? existing;
+    for (final template in _performancePresetTemplates) {
+      if (template.name.toLowerCase() == normalizedName.toLowerCase() &&
+          template.deviceProfile.toLowerCase() ==
+              deviceProfile.trim().toLowerCase()) {
+        existing = template;
+        break;
+      }
+    }
+    final template = SheetPerformancePresetTemplate(
+      id: existing?.id ?? _newPerformancePresetId(),
+      name: normalizedName,
+      viewerSettings: viewerSettings,
+      deviceProfile: deviceProfile.trim(),
+    );
+    final next = <SheetPerformancePresetTemplate>[
+      for (final item in _performancePresetTemplates)
+        if (item.id != template.id) item,
+      template,
+    ];
+    _performancePresetTemplates =
+        SheetPerformancePresetTemplate.normalizeList(next);
+    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    notifyListeners();
+    return template;
+  }
+
+  Future<bool> deletePerformancePresetTemplate(String templateId) async {
+    final next = _performancePresetTemplates
+        .where((template) => template.id != templateId)
+        .toList(growable: false);
+    if (next.length == _performancePresetTemplates.length) {
+      return false;
+    }
+    _performancePresetTemplates =
+        SheetPerformancePresetTemplate.normalizeList(next);
+    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> applyPerformancePresetToScore(
+    SheetScore score,
+    String templateId,
+  ) async {
+    final template = performancePresetTemplateByIdOrNull(templateId);
+    if (template == null) {
+      return false;
+    }
+    await updateViewerSettings(score, template.viewerSettings);
+    return true;
+  }
+
+  Future<bool> applyPerformancePresetToSetlist(
+    SheetSetlist setlist,
+    String templateId,
+  ) async {
+    final template = performancePresetTemplateByIdOrNull(templateId);
+    if (template == null) {
+      return false;
+    }
+    await updateSetlist(
+      setlist,
+      viewerSettingsOverride: template.viewerSettings,
+    );
+    return true;
+  }
+
+  SheetPerformancePresetTemplate? performancePresetTemplateByIdOrNull(
+    String id,
+  ) {
+    for (final template in _performancePresetTemplates) {
+      if (template.id == id) {
+        return template;
+      }
+    }
+    return null;
   }
 
   Future<void> updatePageCrop(SheetScore score, SheetCropSettings crop) async {
@@ -1847,6 +1942,12 @@ class SheetLibraryController extends ChangeNotifier {
     _globalViewerSettings = settings;
     await store.saveGlobalViewerSettings(settings);
     notifyListeners();
+  }
+
+  String _newPerformancePresetId() {
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final suffix = Random().nextInt(0x7fffffff).toRadixString(16);
+    return 'performance-preset-$timestamp-$suffix';
   }
 
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
