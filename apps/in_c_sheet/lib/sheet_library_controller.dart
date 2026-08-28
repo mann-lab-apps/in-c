@@ -1634,6 +1634,7 @@ class SheetLibraryController extends ChangeNotifier {
       scoreNotes: Map<String, String>.unmodifiable(setlist.scoreNotes),
       scoreDurations: Map<String, int>.unmodifiable(setlist.scoreDurations),
       transitionSeconds: setlist.transitionSeconds,
+      viewerSettingsOverride: setlist.viewerSettingsOverride,
     );
     _setlists = <SheetSetlist>[duplicate, ..._setlists];
     await store.saveSetlists(_setlists);
@@ -1677,6 +1678,8 @@ class SheetLibraryController extends ChangeNotifier {
     Map<String, int>? scoreStartPages,
     Map<String, String>? scoreNotes,
     Map<String, int>? scoreDurations,
+    SheetViewerSettings? viewerSettingsOverride,
+    bool clearViewerSettingsOverride = false,
   }) async {
     await _replaceSetlist(
       setlist.copyWith(
@@ -1691,9 +1694,22 @@ class SheetLibraryController extends ChangeNotifier {
         scoreDurations: scoreDurations == null
             ? null
             : Map<String, int>.unmodifiable(scoreDurations),
+        viewerSettingsOverride: viewerSettingsOverride,
+        clearViewerSettingsOverride: clearViewerSettingsOverride,
         updatedAt: DateTime.now(),
       ),
     );
+  }
+
+  SheetViewerSettings viewerSettingsForScore(
+    SheetScore score, {
+    String? setlistId,
+  }) {
+    if (setlistId == null) {
+      return score.viewerSettings;
+    }
+    return setlistByIdOrNull(setlistId)?.viewerSettingsOverride ??
+        score.viewerSettings;
   }
 
   Future<int> bulkEditScores(

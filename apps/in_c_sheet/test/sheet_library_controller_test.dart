@@ -1596,6 +1596,19 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(
+        now,
+        id: 'score-2',
+        title: 'Second',
+      ).copyWith(
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'singlePage',
+          halfPageTurn: false,
+        ),
+      ),
+    ]);
     await store.saveSetlists(<SheetSetlist>[
       SheetSetlist(
         id: 'setlist-1',
@@ -1615,6 +1628,13 @@ void main() {
       transitionSeconds: 15,
       scoreStartPages: const <String, int>{'score-2': 3},
       scoreNotes: const <String, String>{'score-2': 'Wait for cue.'},
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.setlistPedalMapping,
+        autoAdvanceSetlist: true,
+      ),
     );
 
     final updated = controller.setlists.single;
@@ -1622,6 +1642,35 @@ void main() {
     expect(updated.transitionSeconds, 15);
     expect(updated.scoreStartPages, <String, int>{'score-2': 3});
     expect(updated.scoreNotes, <String, String>{'score-2': 'Wait for cue.'});
+    expect(updated.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(updated.viewerSettingsOverride?.autoAdvanceSetlist, isTrue);
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-2'),
+            setlistId: updated.id,
+          )
+          .pageScale,
+      SheetViewerSettings.fitWidthScale,
+    );
+
+    final duplicate = await controller.duplicateSetlist(updated);
+    expect(duplicate.viewerSettingsOverride?.displayMode, 'continuousVertical');
+
+    await controller.updateSetlistRehearsalSettings(
+      updated,
+      clearViewerSettingsOverride: true,
+    );
+    expect(controller.setlistById(updated.id).viewerSettingsOverride, isNull);
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-2'),
+            setlistId: updated.id,
+          )
+          .displayMode,
+      'singlePage',
+    );
   });
 
   test('normalizes shared import payloads', () {

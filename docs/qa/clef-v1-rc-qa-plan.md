@@ -42,11 +42,12 @@
 | 9 | 큰 annotation | 공유/백업 전 annotation 요약 안내가 표시된다. | stroke/text/point 요약, 파일 크기 |
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration |
+| 11-1 | 공연 preset | 세트리스트별 보기 preset을 켜면 세트리스트로 연 곡에만 override가 적용되고, 곡별 설정은 보존된다. | override 항목, 일반 열기/세트리스트 열기 차이, 복제 setlist 동작 |
 | 12 | 페달/키보드 | predefined custom mapping이 page/score/quick action/no-op에 맞게 동작한다. | 장비명, 입력 key, action, 실패 key |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사된다. | diagnostic log, unknown key 여부 |
 | 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시가 자연스럽다. | 입력음, 표시 note, cents 흔들림 |
-| 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, annotation storage, active library profile 보존 여부 |
+| 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, annotation storage, active library profile 보존 여부 |
 | 15-0 | 자동 백업 복원 | 백업 메뉴의 자동 metadata 복원이 파일 picker 없이 active library profile의 최신 snapshot으로 되돌린다. | 복원 전후 악보 수, 활성 library profile, PDF filePath 접근 여부 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary |

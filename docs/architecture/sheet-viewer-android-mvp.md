@@ -127,6 +127,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 세트리스트 전환은 기본적으로 확인 dialog를 띄우며, 사용자가 켠 경우 곡 마지막 페이지에서
   다음 페이지 입력을 다음 곡 이동으로 처리한다. 세트리스트 공연 중에는 실수로 악보별 마지막
   페이지가 덮어써지지 않도록 last page 저장을 보수적으로 제한한다.
+- 세트리스트별 공연 보기 preset은 `SheetSetlist.viewerSettingsOverride`에 저장한다. display mode,
+  page scale, 반 페이지 넘김, 곡 전환 확인, 곡 끝 자동 이동, 페달 mapping을 세트리스트로 열 때만
+  곡별 `SheetScore.viewerSettings`보다 우선 적용하고, 곡 자체의 보기 설정은 보존한다.
 - 공연 모드는 `SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky)`로 시스템 바
   방해를 줄인다. 별도 wake-lock/brightness 플러그인은 아직 추가하지 않았으므로, 화면 켜짐 유지는
   앱 내 안내와 기기 자동 잠금 설정 확인으로 처리한다.
@@ -251,7 +254,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `SheetLibraryBackup`은 metadata-only JSON이다.
 - 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings, global viewer
   action defaults가 포함된다. score 안의 viewer/page/annotation/auto scroll/PDF link sanitization
-  metadata도 함께 포함된다.
+  metadata와 setlist별 viewer/action override도 함께 포함된다.
 - PDF 파일 자체는 백업하지 않는다. 복원 dialog에서 이 제한을 명시한다.
 - export는 `file_picker` saveFile을 먼저 시도하고, 실패하거나 취소되면 앱 내부 documents의
   `backups/` 폴더에 저장한다.
@@ -390,8 +393,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   `Shift+Space`가 이전 페이지다.
 - 키 입력은 하단 페이지 버튼과 같은 `_goToRelativePage` 경로를 사용한다. 따라서 반 페이지
   넘김과 hidden page skip 정책을 그대로 따른다.
-- 세트리스트 마지막 페이지에서 자동으로 다음 곡으로 넘어가는 기능은 기본 OFF이며 후속으로
-  분리한다. 현재는 명시적 이전/다음 곡 버튼만 제공한다.
+- 세트리스트별 공연 보기 preset은 리허설 sheet에서 켜고 끈다. 켜면 보기 모드, page scale,
+  반 페이지 넘김, 곡 전환 확인, 곡 끝 자동 이동, 페달 mapping이 세트리스트 context에만 적용된다.
+- 세트리스트 마지막 페이지에서 자동으로 다음 곡으로 넘어가는 기능은 기본 OFF이며, 곡별 설정 또는
+  세트리스트 preset에서 명시적으로 켠 경우에만 동작한다. 현재는 반복 구간/세트리스트 전체 자동
+  진행 scheduler와는 연결하지 않는다.
 
 ## 튜너 1차 구조
 
@@ -557,6 +563,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset은 1차 구현했다. pause
   marker, 반복 구간, 세트리스트 전체 자동 진행은 후속이다.
+- 공연 preset override: 세트리스트별 viewer/action override 저장, 복제, 백업/복원, viewer runtime
+  적용을 1차 구현했다. 공연별 preset template 공유와 장비별 preset 추천은 후속이다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
   key mapping, 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI와 input
   diagnostic log는 1차 구현했다.

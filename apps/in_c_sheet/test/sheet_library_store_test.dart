@@ -390,6 +390,11 @@ void main() {
       createdAt: now,
       updatedAt: now,
       scoreDurations: const <String, int>{'score-1': 240},
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'twoPage',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+      ),
     );
 
     await store.saveScores(<SheetScore>[score]);
@@ -461,6 +466,10 @@ void main() {
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
+    expect(
+      backup.setlists.single.viewerSettingsOverride?.displayMode,
+      'twoPage',
+    );
     expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
     expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
     expect(backup.globalViewerSettings.halfPageTurn, isTrue);
@@ -501,6 +510,7 @@ void main() {
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});
+    expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
     expect(

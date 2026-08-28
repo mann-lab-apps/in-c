@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 
 void main() {
@@ -16,6 +17,13 @@ void main() {
       scoreNotes: const <String, String>{'score-1': 'Check transition.'},
       scoreDurations: const <String, int>{'score-1': 180, 'score-2': 210},
       transitionSeconds: 12,
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'twoPage',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.reversedSetlistPedalMapping,
+        autoAdvanceSetlist: true,
+      ),
     );
 
     final encoded = SheetSetlist.encodeList(<SheetSetlist>[setlist]);
@@ -35,6 +43,13 @@ void main() {
     });
     expect(decoded.single.transitionSeconds, 12);
     expect(decoded.single.totalEstimatedSeconds, 402);
+    expect(decoded.single.viewerSettingsOverride?.displayMode, 'twoPage');
+    expect(decoded.single.viewerSettingsOverride?.halfPageTurn, isTrue);
+    expect(
+      decoded.single.viewerSettingsOverride?.pedalMapping,
+      SheetViewerSettings.reversedSetlistPedalMapping,
+    );
+    expect(decoded.single.viewerSettingsOverride?.autoAdvanceSetlist, isTrue);
   });
 
   test('sorts decoded setlists by updated date', () {
@@ -83,6 +98,11 @@ void main() {
           'bad': 'x',
         },
         'transitionSeconds': 999,
+        'viewerSettingsOverride': <String, dynamic>{
+          'displayMode': 'gallery',
+          'halfPageTurn': true,
+          'pedalMapping': 'reversed',
+        },
       },
     ]);
 
@@ -93,6 +113,15 @@ void main() {
     expect(decoded.single.scoreNotes, <String, String>{'score-1': 'Cue fast.'});
     expect(decoded.single.scoreDurations, <String, int>{'score-1': 180});
     expect(decoded.single.transitionSeconds, 600);
+    expect(
+      decoded.single.viewerSettingsOverride?.displayMode,
+      SheetViewerSettings.defaultSettings.displayMode,
+    );
+    expect(decoded.single.viewerSettingsOverride?.halfPageTurn, isTrue);
+    expect(
+      decoded.single.viewerSettingsOverride?.pedalMapping,
+      SheetViewerSettings.reversedPedalMapping,
+    );
   });
 
   test('ignores non-list persisted setlist fields', () {
@@ -161,6 +190,10 @@ void main() {
         'missing': 'Drop me',
       },
       scoreDurations: const <String, int>{'score-1': 180, 'missing': 99},
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: false,
+      ),
     );
 
     final cleaned = setlist.removeMissingScores(<String>{'score-1', 'score-2'});
@@ -169,6 +202,7 @@ void main() {
     expect(cleaned.scoreStartPages, <String, int>{'score-1': 2});
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
+    expect(cleaned.viewerSettingsOverride?.displayMode, 'continuousVertical');
   });
 
   test('removes stale rehearsal metadata even when score ids are clean', () {

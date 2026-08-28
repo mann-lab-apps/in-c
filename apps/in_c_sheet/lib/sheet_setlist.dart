@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'sheet_score.dart';
+
 class SheetSetlist {
   const SheetSetlist({
     required this.id,
@@ -12,6 +14,7 @@ class SheetSetlist {
     this.scoreNotes = const <String, String>{},
     this.scoreDurations = const <String, int>{},
     this.transitionSeconds = 0,
+    this.viewerSettingsOverride,
   });
 
   factory SheetSetlist.fromJson(Map<String, Object?> json) {
@@ -38,6 +41,9 @@ class SheetSetlist {
         json['transitionSeconds'],
         fallback: 0,
       ).clamp(0, 600).toInt(),
+      viewerSettingsOverride: _viewerSettingsFromJson(
+        json['viewerSettingsOverride'],
+      ),
     );
   }
 
@@ -87,6 +93,7 @@ class SheetSetlist {
   final Map<String, String> scoreNotes;
   final Map<String, int> scoreDurations;
   final int transitionSeconds;
+  final SheetViewerSettings? viewerSettingsOverride;
 
   int get totalScoreDurationSeconds {
     var total = 0;
@@ -112,6 +119,8 @@ class SheetSetlist {
     Map<String, String>? scoreNotes,
     Map<String, int>? scoreDurations,
     int? transitionSeconds,
+    SheetViewerSettings? viewerSettingsOverride,
+    bool clearViewerSettingsOverride = false,
   }) {
     return SheetSetlist(
       id: id,
@@ -126,6 +135,9 @@ class SheetSetlist {
       transitionSeconds: (transitionSeconds ?? this.transitionSeconds)
           .clamp(0, 600)
           .toInt(),
+      viewerSettingsOverride: clearViewerSettingsOverride
+          ? null
+          : viewerSettingsOverride ?? this.viewerSettingsOverride,
     );
   }
 
@@ -212,6 +224,8 @@ class SheetSetlist {
       'scoreNotes': scoreNotes,
       'scoreDurations': scoreDurations,
       'transitionSeconds': transitionSeconds,
+      if (viewerSettingsOverride != null)
+        'viewerSettingsOverride': viewerSettingsOverride!.toJson(),
     };
   }
 
@@ -238,6 +252,11 @@ class SheetSetlist {
     }
     return true;
   }
+}
+
+SheetViewerSettings? _viewerSettingsFromJson(Object? value) {
+  final map = _asJsonMap(value);
+  return map == null ? null : SheetViewerSettings.fromJson(map);
 }
 
 Map<String, Object?>? _asJsonMap(Object? value) {

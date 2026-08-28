@@ -3672,6 +3672,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       scoreStartPages: updated.scoreStartPages,
       scoreNotes: updated.scoreNotes,
       scoreDurations: updated.scoreDurations,
+      viewerSettingsOverride: updated.viewerSettingsOverride,
+      clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
     );
   }
 
@@ -3867,6 +3869,11 @@ class _SetlistRehearsalSheet extends StatefulWidget {
 class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
   late bool _rehearsalMode = widget.setlist.rehearsalMode;
   late int _transitionSeconds = widget.setlist.transitionSeconds;
+  late bool _useViewerOverride =
+      widget.setlist.viewerSettingsOverride != null;
+  late SheetViewerSettings _viewerOverride =
+      widget.setlist.viewerSettingsOverride ??
+      SheetViewerSettings.defaultSettings;
   late final Map<String, TextEditingController> _pageControllers = {
     for (final score in widget.scores)
       score.id: TextEditingController(
@@ -3933,6 +3940,123 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
               onChanged: (value) =>
                   setState(() => _transitionSeconds = value.round()),
             ),
+            const Divider(),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('공연 보기 preset'),
+              subtitle: const Text('세트리스트로 열 때 곡별 보기 설정보다 우선 적용'),
+              value: _useViewerOverride,
+              onChanged: (value) => setState(() {
+                _useViewerOverride = value;
+              }),
+            ),
+            if (_useViewerOverride) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _globalViewerDisplayModeValue(_viewerOverride),
+                decoration: const InputDecoration(labelText: '보기 모드'),
+                items: const [
+                  DropdownMenuItem<String>(
+                    value: 'auto',
+                    child: Text('자동'),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'singlePage',
+                    child: Text('1페이지'),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'twoPage',
+                    child: Text('2페이지'),
+                  ),
+                  DropdownMenuItem<String>(
+                    value: 'continuousVertical',
+                    child: Text('세로 스크롤'),
+                  ),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _viewerOverride = _viewerOverride.copyWith(
+                        displayMode: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _viewerOverride.pageScale,
+                decoration: const InputDecoration(labelText: '페이지 맞춤'),
+                items: _SheetViewerPageScale.values
+                    .map(
+                      (scale) => DropdownMenuItem<String>(
+                        value: scale.settingValue,
+                        child: Text(scale.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _viewerOverride = _viewerOverride.copyWith(
+                        pageScale: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('반 페이지 넘김'),
+                value: _viewerOverride.halfPageTurn,
+                onChanged: (value) => setState(() {
+                  _viewerOverride = _viewerOverride.copyWith(
+                    halfPageTurn: value,
+                  );
+                }),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('곡 전환 전 확인'),
+                value: _viewerOverride.confirmSetlistTransition,
+                onChanged: (value) => setState(() {
+                  _viewerOverride = _viewerOverride.copyWith(
+                    confirmSetlistTransition: value,
+                  );
+                }),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('곡 끝에서 자동 이동'),
+                value: _viewerOverride.autoAdvanceSetlist,
+                onChanged: (value) => setState(() {
+                  _viewerOverride = _viewerOverride.copyWith(
+                    autoAdvanceSetlist: value,
+                  );
+                }),
+              ),
+              DropdownButtonFormField<String>(
+                initialValue: _viewerOverride.pedalMapping,
+                decoration: const InputDecoration(labelText: '페달 매핑'),
+                items: _SheetPedalMapping.values
+                    .map(
+                      (mapping) => DropdownMenuItem<String>(
+                        value: mapping.settingValue,
+                        child: Text(mapping.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _viewerOverride = _viewerOverride.copyWith(
+                        pedalMapping: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              const Divider(),
+            ],
             for (final score in widget.scores)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -4014,6 +4138,8 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
       scoreStartPages: Map<String, int>.unmodifiable(startPages),
       scoreNotes: Map<String, String>.unmodifiable(notes),
       scoreDurations: Map<String, int>.unmodifiable(durations),
+      viewerSettingsOverride: _useViewerOverride ? _viewerOverride : null,
+      clearViewerSettingsOverride: !_useViewerOverride,
     );
   }
 }
@@ -4512,6 +4638,13 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
 
+  SheetViewerSettings get _effectiveViewerSettings {
+    return widget.controller.viewerSettingsForScore(
+      score,
+      setlistId: widget.setlistId,
+    );
+  }
+
   int get _initialViewerPage {
     final setlistId = widget.setlistId;
     if (setlistId == null) {
@@ -4644,7 +4777,7 @@ display=${_displayMode.settingValue}, scale=${_pageScale.settingValue}
 crop=global:${pageSettings.crop.hasCrop}, pageCrops:${pageSettings.pageCrops.length}
 pages=hidden:${pageSettings.hiddenPages.length}, order:${pageSettings.pageOrder.length}, duplicates:$duplicateCount
 performanceLock=$_isPerformanceMode, annotationMode=$_isAnnotationMode
-pedal=${_pedalMapping.settingValue}, customInputs=${currentScore.viewerSettings.customPedalMapping.length}
+pedal=${_pedalMapping.settingValue}, customInputs=${_effectiveViewerSettings.customPedalMapping.length}
 annotation=${annotationSummary.compactLabel}
 setlist=$setlistLabel
 '''
@@ -4684,21 +4817,22 @@ setlist=$setlistLabel
     }
 
     final isCompactViewer = MediaQuery.sizeOf(context).width < 720;
+    final viewerSettings = _effectiveViewerSettings;
     _displayMode = _displayModeFromSettings(
-      score.viewerSettings,
+      viewerSettings,
       isCompactViewer: isCompactViewer,
     );
-    _displayEffect = _displayEffectFromSettings(score.viewerSettings);
-    _pageScale = _pageScaleFromSettings(score.viewerSettings);
-    _pedalMapping = _pedalMappingFromSettings(score.viewerSettings);
-    _renderProfile = _renderProfileFromSettings(score.viewerSettings);
-    _pageTurnAnimation = _pageTurnAnimationFromSettings(score.viewerSettings);
+    _displayEffect = _displayEffectFromSettings(viewerSettings);
+    _pageScale = _pageScaleFromSettings(viewerSettings);
+    _pedalMapping = _pedalMappingFromSettings(viewerSettings);
+    _renderProfile = _renderProfileFromSettings(viewerSettings);
+    _pageTurnAnimation = _pageTurnAnimationFromSettings(viewerSettings);
     final favoritePreset = widget.controller.favoriteAnnotationPreset;
     _favoriteAnnotationPreset = favoritePreset == null
         ? null
         : _AnnotationPreset.fromSettings(favoritePreset);
     _useHalfPageTurn =
-        score.viewerSettings.halfPageTurn &&
+        viewerSettings.halfPageTurn &&
         _displayMode != _SheetViewerDisplayMode.twoPage;
     _didResolveResponsiveDisplayMode = true;
     _schedulePageControlsAutoHide();
@@ -5028,7 +5162,7 @@ setlist=$setlistLabel
   bool _shouldAutoAdvanceSetlist(int delta) {
     return delta > 0 &&
         widget.setlistId != null &&
-        score.viewerSettings.autoAdvanceSetlist &&
+        _effectiveViewerSettings.autoAdvanceSetlist &&
         _adjacentSetlistScoreOrNull(delta) != null;
   }
 
@@ -6114,7 +6248,7 @@ setlist=$setlistLabel
   }
 
   Future<void> _showPerformancePrepNoticeIfNeeded() async {
-    if (!score.viewerSettings.showPerformancePrepNotice || !mounted) {
+    if (!_effectiveViewerSettings.showPerformancePrepNotice || !mounted) {
       return;
     }
     var hideNextTime = false;
@@ -6186,18 +6320,18 @@ setlist=$setlistLabel
     setState(() {
       _isPerformanceMode = enabled;
       if (_isPerformanceMode) {
-        if (!score.viewerSettings.allowPerformanceAnnotations) {
+        if (!_effectiveViewerSettings.allowPerformanceAnnotations) {
           _isAnnotationMode = false;
           _draftAnnotationPageNumber = null;
           _draftAnnotationPoints = const <SheetAnnotationPoint>[];
         }
-        if (!score.viewerSettings.allowPerformancePdfLinks) {
+        if (!_effectiveViewerSettings.allowPerformancePdfLinks) {
           _showPdfLinks = false;
         }
       }
       _showPageControls = true;
     });
-    if (enabled && score.viewerSettings.keepAwakeInPerformance) {
+    if (enabled && _effectiveViewerSettings.keepAwakeInPerformance) {
       _showSnackBar('자동 잠금 방지는 기기 설정에서 함께 확인해주세요.');
     } else if (enabled) {
       _showSnackBar('공연 모드입니다. 페이지 넘김과 허용된 quick action만 유지됩니다.');
@@ -7717,7 +7851,7 @@ setlist=$setlistLabel
 
   void _toggleAnnotationMode() {
     if (_isPerformanceMode &&
-        !score.viewerSettings.allowPerformanceAnnotations) {
+        !_effectiveViewerSettings.allowPerformanceAnnotations) {
       _showSnackBar('공연 모드에서는 필기 도구를 숨깁니다.');
       return;
     }
@@ -8614,7 +8748,7 @@ setlist=$setlistLabel
       event: event,
       isShiftPressed: HardwareKeyboard.instance.isShiftPressed,
       pedalMapping: _pedalMapping.settingValue,
-      customMapping: score.viewerSettings.customPedalMapping,
+      customMapping: _effectiveViewerSettings.customPedalMapping,
     );
     setState(() {
       _inputDiagnosticLog.insert(0, entry);
@@ -8668,7 +8802,7 @@ setlist=$setlistLabel
       return;
     }
 
-    if (score.viewerSettings.confirmSetlistTransition) {
+    if (_effectiveViewerSettings.confirmSetlistTransition) {
       final setlist = widget.controller.setlistByIdOrNull(setlistId);
       final transitionDetails = <String>[
         if (setlist?.scoreStartPages[nextScore.id] != null)
@@ -8724,7 +8858,8 @@ setlist=$setlistLabel
       url: link.url,
       hasDestination: link.dest != null,
       isPerformanceMode:
-          _isPerformanceMode && !score.viewerSettings.allowPerformancePdfLinks,
+          _isPerformanceMode &&
+          !_effectiveViewerSettings.allowPerformancePdfLinks,
     );
 
     switch (action) {
@@ -9177,7 +9312,7 @@ setlist=$setlistLabel
             ),
           if (!isCompactViewer &&
               (!_isPerformanceMode ||
-                  currentScore.viewerSettings.allowPerformanceMenus))
+                  _effectiveViewerSettings.allowPerformanceMenus))
             IconButton(
               tooltip: '공연 설정',
               onPressed: _showPerformanceSettings,
@@ -9563,7 +9698,7 @@ setlist=$setlistLabel
         child: Shortcuts(
           shortcuts: _viewerKeyboardShortcutsFor(
             _pedalMapping.settingValue,
-            currentScore.viewerSettings.customPedalMapping,
+            _effectiveViewerSettings.customPedalMapping,
           ),
           child: Actions(
             actions: <Type, Action<Intent>>{
@@ -9878,8 +10013,8 @@ setlist=$setlistLabel
                           isAutoScrolling: _isAutoScrolling,
                           isAutoScrollPaused: _isAutoScrollPaused,
                           isAutoScrollCueActive: isAutoScrollCueActive,
-                          allowMenus:
-                              currentScore.viewerSettings.allowPerformanceMenus,
+                          allowMenus: _effectiveViewerSettings
+                              .allowPerformanceMenus,
                           onBookmark: _toggleCurrentBookmark,
                           onAutoScroll: isAutoScrollCueActive
                               ? () => _stopAutoScroll(showMessage: true)
