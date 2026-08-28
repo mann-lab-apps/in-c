@@ -68,6 +68,7 @@ Build outputs:
 Tester checklist:
 
 - [`../../docs/qa/clef-tester-checklist.md`](../../docs/qa/clef-tester-checklist.md)
+- [`../../docs/qa/clef-v1-device-qa-runbook.md`](../../docs/qa/clef-v1-device-qa-runbook.md)
 - [`../../docs/qa/clef-beta-feedback-message.md`](../../docs/qa/clef-beta-feedback-message.md)
 
 ## PDF Fixtures

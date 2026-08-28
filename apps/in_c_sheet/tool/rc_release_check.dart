@@ -1,7 +1,10 @@
 import 'dart:io';
 
 const _clefDocs = <String>[
+  '../../docs/qa/clef-v1-device-qa-runbook.md',
   '../../docs/qa/clef-v1-rc-qa-plan.md',
+  '../../docs/qa/sheet-viewer-android-tablet-smoke-test.md',
+  '../../docs/qa/clef-share-import-export-qa.md',
   '../../docs/qa/clef-tester-checklist.md',
   '../../docs/qa/clef-beta-feedback-message.md',
   '../../docs/product/clef-v1-1-spike-backlog.md',

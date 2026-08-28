@@ -11,6 +11,7 @@
 ## 준비물
 
 - 설치 파일: Android debug/release APK, 가능하면 iPad용 TestFlight 또는 local iOS build.
+- 당일 실행표: [`clef-v1-device-qa-runbook.md`](clef-v1-device-qa-runbook.md).
 - 기기: Android 태블릿, iPad, hardware keyboard, Bluetooth 페달.
 - 파일:
   - 텍스트가 추출되는 일반 PDF 악보 1개.
@@ -80,13 +81,28 @@ OS:
 앱 버전/build:
 파일 유형:
 파일 크기/페이지 수:
+테스트 영역:
+샘플 파일 공유 가능 여부:
 재현 단계:
 기대 결과:
 실제 결과:
 표시 문구:
+스크린샷/화면녹화:
+콘솔/diagnostic log:
 재현율:
+blocker 여부:
+v1.1 spike 여부:
 첨부:
 ```
+
+## Triage 기준
+
+- blocker: 앱 crash, data loss, import/export 불가, 공연 중 page turn 불가, 백업/복원 실패.
+- high: 주요 기능은 가능하지만 반복 재현되는 UX/성능/입력 문제.
+- medium: workaround가 있는 혼동, 오류 문구, 특정 PDF/provider 문제.
+- low: copy polish, edge-case 표시 문제.
+- v1.1 spike: OCR, HEIC native conversion, PDF standard annotation embed, HID capture wizard,
+  SAF/iOS Files direct folder, iOS Share Extension, font embedding, cloud sync, page별 live rotation.
 
 ## Known Issues
 
@@ -240,6 +256,27 @@ dart run tool/rc_release_check.dart
 
 이 도구는 PDF fixture inspection, non-mutating formatter check, analyze/test, whitespace/tab scan,
 stale wording scan, debug print scan을 순서대로 실행한다.
+
+실기기 QA 사전 build 확인:
+
+```sh
+cd apps/in_c_sheet
+flutter build apk --debug
+flutter build apk
+flutter build appbundle
+flutter build ios --release --no-codesign
+```
+
+산출물 경로와 당일 실행 순서는
+[`clef-v1-device-qa-runbook.md`](clef-v1-device-qa-runbook.md)에 기록한다.
+
+2026-08-28 실기기 QA 사전 빌드 기록:
+
+- `flutter build apk --debug`: PASS. `app-debug.apk` 178MB.
+- `flutter build apk`: PASS. `app-release.apk` 77MB.
+- `flutter build appbundle`: PASS. `app-release.aab` 67MB.
+- `flutter build ios --release --no-codesign`: PASS. `Runner.app` 27MB. TestFlight 또는 실기기
+  배포에는 signing/provisioning이 별도로 필요하다.
 
 2026-08-28 바로 구현 후보 로컬 보강 기록:
 
