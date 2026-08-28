@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
+import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -142,6 +143,44 @@ void main() {
       controller.scores.where((score) => score.collection == 'Studies'),
       isEmpty,
     );
+  });
+
+  test('switches between separated library profile stores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'default-score', title: 'Default'),
+    ]);
+    final profile = await store.createLibraryProfile('Recital');
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'recital-score', title: 'Recital'),
+    ]);
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(controller.activeLibraryProfile.id, SheetLibraryProfile.defaultId);
+    expect(controller.scores.single.id, 'default-score');
+
+    await controller.switchLibraryProfile(profile.id);
+    expect(controller.activeLibraryProfile.name, 'Recital');
+    expect(controller.scores.single.id, 'recital-score');
+
+    final didRename = await controller.renameLibraryProfile(
+      id: profile.id,
+      name: 'Recital 2026',
+    );
+    expect(didRename, isTrue);
+    expect(controller.activeLibraryProfile.name, 'Recital 2026');
+
+    final didClear = await controller.clearLibraryProfile(profile.id);
+    expect(didClear, isTrue);
+    expect(controller.scores, isEmpty);
+
+    await controller.switchLibraryProfile(SheetLibraryProfile.defaultId);
+    expect(controller.scores.single.id, 'default-score');
   });
 
   test(
@@ -1532,6 +1571,16 @@ class _PageRotationCopyStore extends SheetLibraryStore {
   }
 
   @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
+  }
+
+  @override
   Future<void> saveScores(List<SheetScore> scores) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
@@ -1579,6 +1628,16 @@ class _PageCropCopyStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> loadScores() async {
     return savedScores;
+  }
+
+  @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
   }
 
   @override
@@ -1631,6 +1690,16 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> loadScores() async {
     return savedScores;
+  }
+
+  @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
   }
 
   @override

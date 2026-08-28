@@ -49,6 +49,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   포함한다.
 - 세트리스트 리허설 UX 1차: 리허설 모드, 곡별 시작 page, 곡별 메모, 곡 사이 전환 대기
   시간을 setlist metadata로 저장한다.
+- 여러 라이브러리 1차: library profile별 scores/setlists/library view/favorite annotation preset
+  저장 key를 분리하고, 상단 switcher에서 생성/전환/이름 변경/비우기를 제공한다. 기본
+  라이브러리는 기존 preference key를 유지해 과거 데이터와 호환한다.
 - 라이브러리 bulk edit 1차: 검색/필터 결과에서 여러 악보를 선택해 태그 추가/제거,
   collection/group/rating, favorite/pinned metadata를 일괄 변경한다. 원본 파일 삭제는
   수행하지 않는다.
@@ -85,8 +88,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `pdfrx`는 자체 캐시와 progressive loading을 제공하지만, 실제 50-100페이지 스캔 PDF에서
   Android 태블릿 메모리/지연을 계측해야 한다.
 - 앱 내부 사본 저장은 MVP에 안전하지만, MobileSheets처럼 기존 폴더를 직접 참조하는
-  고급 사용성은 V1에서 별도 설계가 필요하다. 2026-08-26 기준으로 collection/group/rating과
-  linked file metadata를 먼저 구현했고, 기존 폴더 직접 참조는 SAF/iOS Files 권한 spike로 분리했다.
+  고급 사용성은 V1에서 별도 설계가 필요하다. 2026-08-28 기준으로 실제 library profile 저장소,
+  collection/group/rating, linked file metadata를 먼저 구현했고, 기존 폴더 직접 참조는 SAF/iOS
+  Files 권한 spike로 분리했다.
 - PDF link annotation 제거 사본 생성은 `pdf_document`로 구현했다. 원본 PDF는 보존하고,
   현재 score의 filePath를 정리된 앱 내부 사본으로 교체한다. Incremental save 특성상 forensic
   수준의 원본 object 완전 삭제가 필요한 요구는 별도 compact/rewrite 검토가 필요하다.
@@ -210,11 +214,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   linkedFiles metadata, custom key/value fields를 저장한다.
 - collection은 세트리스트와 독립된 라이브러리 분류이고, group은 레슨/파트/연주회 같은
   보조 분류로 둔다.
-- 22차 여러 라이브러리 1차는 별도 DB/profile 저장 key를 만들지 않고, collection을 가벼운
-  pseudo-library로 전환하는 방식이다. 라이브러리 상단에서 전체/collection을 전환하고, 새
-  라이브러리 생성은 현재 collection filter를 설정한다. collection 이름 변경은 해당 collection의
-  모든 score metadata를 갱신하고, 라이브러리 비우기는 악보 파일을 삭제하지 않고 collection 값만
-  비운다. 실제 profile별 저장소 분리와 폴더 권한 분리는 후속이다.
+- 여러 라이브러리는 `SheetLibraryProfile` catalog와 active profile preference로 관리한다.
+  기본 라이브러리는 기존 scores/setlists/view/favorite preset key를 그대로 쓰고, 추가 profile은
+  `clef_scores.<libraryId>`처럼 scoped key에 저장한다. profile 전환 시 controller는 해당 profile의
+  scores/setlists/library view/favorite annotation preset을 다시 로드한다.
+- 라이브러리 비우기는 악보 PDF 파일을 삭제하지 않고 profile metadata key만 지운다. 기존 폴더 직접
+  참조와 profile별 파일 권한 정책은 SAF/iOS Files 권한 spike로 분리한다.
 - rating은 0-5 정수로 저장하고 decode/copy 시 clamp한다.
 - custom field는 악보별 `key`/`value` 문자열 목록이다. 빈 key/value와 중복 key는 저장 시
   제거하고, 검색 대상에는 key와 value가 모두 포함된다.
@@ -222,7 +227,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   추가해 full score, part, piano reduction, original, edited copy 같은 파트/버전 의미를
   저장한다. 라이브러리 metadata dialog에서 파일을 연결하고 viewer에서 PDF 연결 파일로 전환한다.
 - `SheetLibraryViewSettings`에 sortMode, favoriteOnly, tagQuery, collectionQuery,
-  groupQuery, minimumRating을 저장한다.
+  groupQuery, minimumRating을 저장하며 library profile별로 분리된다.
 - sortMode는 최근 열기, 제목, 작곡가, 별점, 가져온 날짜를 지원한다.
 - 필터는 즐겨찾기, 태그 exact match, collection exact match, group exact match, 최소 별점을
   지원한다.
@@ -710,8 +715,9 @@ Flutter system click sound 기반이라 accent 음색 구분과 latency 보장�
 
 2026-08-26 V1 라이브러리 조직화 보강에서는 collection/group/rating을 `SheetScore` metadata와
 편집 UI에 추가하고, 검색/필터/별점 정렬에 반영했다. 또한 `SheetLinkedFile` 모델을 추가해
-파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 여러 라이브러리
-전환, custom metadata fields, 기존 폴더 직접 참조는 후속 V1 작업으로 남긴다.
+파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 2026-08-28에는
+library profile별 실제 metadata 저장소 분리를 추가했다. 기존 폴더 직접 참조는 후속 V1 작업으로
+남긴다.
 
 2026-08-27 V1 악보앱 필수 기능 보강에서는 스캔/카메라 플로우를 제외하고 일반 악보앱 기준의
 보기/정리/필기/공연/라이브러리 기능을 확장했다. 곡별 page scale과 대형 PDF 렌더 preset,

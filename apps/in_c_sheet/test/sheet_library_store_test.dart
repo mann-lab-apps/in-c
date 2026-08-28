@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -167,6 +168,90 @@ void main() {
     expect(
       (await store.loadTunerSettings()).displayMode,
       SheetTunerDisplayMode.bbTrumpet,
+    );
+  });
+
+  test('separates scores and setlists by active library profile', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final defaultScore = SheetScore(
+      id: 'default-score',
+      title: 'Default',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/default.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+    final profileScore = SheetScore(
+      id: 'profile-score',
+      title: 'Profile',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/profile.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    await store.saveScores(<SheetScore>[defaultScore]);
+    final created = await store.createLibraryProfile('Recital');
+
+    expect(created.name, 'Recital');
+    expect(await store.loadScores(), isEmpty);
+
+    await store.saveScores(<SheetScore>[profileScore]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'profile-setlist',
+        title: 'Profile Setlist',
+        scoreIds: const <String>['profile-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    await store.saveLibraryViewSettings(
+      const SheetLibraryViewSettings(
+        sortMode: SheetLibrarySortMode.title,
+        favoriteOnly: true,
+        tagQuery: '',
+        collectionQuery: '',
+        groupQuery: '',
+        minimumRating: 0,
+      ),
+    );
+
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    expect((await store.loadScores()).single.id, 'default-score');
+    expect(await store.loadSetlists(), isEmpty);
+    expect(
+      (await store.loadLibraryViewSettings()).sortMode,
+      SheetLibrarySortMode.recent,
+    );
+
+    await store.setActiveLibraryProfile(created.id);
+    expect((await store.loadScores()).single.id, 'profile-score');
+    expect((await store.loadSetlists()).single.id, 'profile-setlist');
+    expect(
+      (await store.loadLibraryViewSettings()).sortMode,
+      SheetLibrarySortMode.title,
+    );
+
+    final duplicate = await store.createLibraryProfile('Recital');
+    expect(duplicate.id, created.id);
+    expect(
+      await store.renameLibraryProfile(id: created.id, name: '기본 라이브러리'),
+      isNull,
     );
   });
 

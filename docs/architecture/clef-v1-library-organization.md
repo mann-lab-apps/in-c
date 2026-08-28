@@ -5,8 +5,8 @@
 ## 범위
 
 이번 V1 보강은 악보 수가 늘어난 사용자가 라이브러리를 빠르게 정리하고 다시 찾는 흐름을
-우선한다. 구현 범위는 컬렉션, 그룹, 별점, 연결 파일 metadata 1차다. 여러 라이브러리 전환과
-기존 폴더 직접 참조는 플랫폼 파일 권한과 데이터 이관 정책이 커서 후속으로 분리한다.
+우선한다. 구현 범위는 컬렉션, 그룹, 별점, 연결 파일 metadata와 실제 library profile 저장소
+분리 1차다. 기존 폴더 직접 참조는 플랫폼 파일 권한과 데이터 이관 정책이 커서 후속으로 분리한다.
 
 ## 구현된 모델
 
@@ -14,6 +14,7 @@
 - `SheetScore.group`: 레슨, 파트, 연주회 단위 같은 보조 분류.
 - `SheetScore.rating`: 0-5 범위 정수 별점. 잘못된 저장값은 decode/copy 시 clamp한다.
 - `SheetScore.linkedFiles`: 한 곡에 여러 보조 파일을 연결하기 위한 metadata 모델.
+- `SheetLibraryProfile`: 기본/추가 라이브러리 profile catalog와 active profile을 저장한다.
 
 `linkedFiles`는 아직 제품 UI에 노출하지 않는다. V1 다음 단계에서 파트보, 반주 음원, 다른 조성
 PDF, 레슨 자료를 한 악보 상세에 묶는 UI를 붙일 수 있게 저장 모델과 백업 round-trip만 먼저
@@ -26,6 +27,9 @@ PDF, 레슨 자료를 한 악보 상세에 묶는 UI를 붙일 수 있게 저장
 - 필터는 즐겨찾기, 태그, 컬렉션, 그룹, 최소 별점을 제공한다.
 - 정렬은 최근 열기, 제목, 작곡가, 별점, 가져온 날짜를 제공한다.
 - 목록 카드에는 컬렉션, 그룹, 별점을 보조 정보로 한 줄만 표시한다.
+- 상단 library switcher는 기본 라이브러리와 추가 profile을 전환한다. 기본 라이브러리는 기존
+  preference key를 유지하고, 추가 profile은 profile id를 붙인 scoped key에 scores/setlists/view/
+  favorite preset metadata를 저장한다.
 
 ## 폴더 직접 참조 후속 설계
 
@@ -46,8 +50,5 @@ V1 현재 기본값은 앱 내부 사본 저장이다. 이 방식은 TestFlight/
 
 ## 남은 V1 작업
 
-- 연결 파일 관리 UI: 파일 추가/이름 변경/삭제/열기.
-- 여러 라이브러리 또는 컬렉션 기반 library switcher.
-- custom metadata fields.
 - 기존 폴더 직접 참조 spike 구현.
 - cloud file import 범위 결정.

@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_file_import.dart';
@@ -27,6 +28,8 @@ class SheetLibraryStore {
   static const _tunerSettingsKey = 'clef_tuner_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
+  static const _libraryProfilesKey = 'clef_library_profiles';
+  static const _activeLibraryProfileKey = 'clef_active_library_profile';
   static const _legacyScoresKey = 'in_c_sheet_scores';
   static const _legacySetlistsKey = 'in_c_sheet_setlists';
   static const _legacyMetronomeSettingsKey = 'in_c_sheet_metronome_settings';
@@ -37,34 +40,237 @@ class SheetLibraryStore {
   static const _linkedFilesFolderName = 'linked-files';
   static const _backupFolderName = 'backups';
 
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = SheetLibraryProfileCodec.decode(
+      preferences.getString(_libraryProfilesKey),
+    );
+    await preferences.setString(
+      _libraryProfilesKey,
+      SheetLibraryProfileCodec.encode(profiles),
+    );
+    return profiles;
+  }
+
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    final activeId =
+        preferences.getString(_activeLibraryProfileKey) ??
+        SheetLibraryProfile.defaultId;
+    return _profileById(profiles, activeId) ??
+        SheetLibraryProfile.defaultProfile;
+  }
+
+  Future<void> setActiveLibraryProfile(String id) async {
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    final active =
+        _profileById(profiles, id) ?? SheetLibraryProfile.defaultProfile;
+    await preferences.setString(_activeLibraryProfileKey, active.id);
+  }
+
+  Future<SheetLibraryProfile> createLibraryProfile(String name) async {
+    final normalized = _normalizeLibraryName(name);
+    if (normalized.isEmpty) {
+      return loadActiveLibraryProfile();
+    }
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    for (final profile in profiles) {
+      if (profile.name.toLowerCase() == normalized.toLowerCase()) {
+        await preferences.setString(_activeLibraryProfileKey, profile.id);
+        return profile;
+      }
+    }
+    final now = DateTime.now();
+    final profile = SheetLibraryProfile(
+      id: _newLibraryProfileId(now),
+      name: normalized,
+      createdAt: now,
+      updatedAt: now,
+    );
+    final nextProfiles = SheetLibraryProfile.normalizeProfiles([
+      ...profiles,
+      profile,
+    ]);
+    await preferences.setString(
+      _libraryProfilesKey,
+      SheetLibraryProfileCodec.encode(nextProfiles),
+    );
+    await preferences.setString(_activeLibraryProfileKey, profile.id);
+    return profile;
+  }
+
+  Future<SheetLibraryProfile?> renameLibraryProfile({
+    required String id,
+    required String name,
+  }) async {
+    if (id == SheetLibraryProfile.defaultId) {
+      return SheetLibraryProfile.defaultProfile;
+    }
+    final normalized = _normalizeLibraryName(name);
+    if (normalized.isEmpty) {
+      return null;
+    }
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    if (profiles.any(
+      (profile) =>
+          profile.id != id &&
+          profile.name.toLowerCase() == normalized.toLowerCase(),
+    )) {
+      return null;
+    }
+    final now = DateTime.now();
+    SheetLibraryProfile? renamed;
+    final nextProfiles = profiles.map((profile) {
+      if (profile.id != id) {
+        return profile;
+      }
+      renamed = profile.copyWith(name: normalized, updatedAt: now);
+      return renamed!;
+    }).toList(growable: false);
+    if (renamed == null) {
+      return null;
+    }
+    await preferences.setString(
+      _libraryProfilesKey,
+      SheetLibraryProfileCodec.encode(nextProfiles),
+    );
+    return renamed;
+  }
+
+  Future<bool> clearLibraryProfile(String id) async {
+    if (id == SheetLibraryProfile.defaultId) {
+      return false;
+    }
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    if (_profileById(profiles, id) == null) {
+      return false;
+    }
+    await _removeLibraryData(preferences, id);
+    return true;
+  }
+
+  Future<bool> deleteLibraryProfile(String id) async {
+    if (id == SheetLibraryProfile.defaultId) {
+      return false;
+    }
+    final preferences = await SharedPreferences.getInstance();
+    final profiles = await loadLibraryProfiles();
+    if (_profileById(profiles, id) == null) {
+      return false;
+    }
+    final nextProfiles = profiles
+        .where((profile) => profile.id != id)
+        .toList(growable: false);
+    await preferences.setString(
+      _libraryProfilesKey,
+      SheetLibraryProfileCodec.encode(nextProfiles),
+    );
+    await _removeLibraryData(preferences, id);
+    if (preferences.getString(_activeLibraryProfileKey) == id) {
+      await preferences.setString(
+        _activeLibraryProfileKey,
+        SheetLibraryProfile.defaultId,
+      );
+    }
+    return true;
+  }
+
+  Future<String> _activeLibraryId(SharedPreferences preferences) async {
+    final profiles = await loadLibraryProfiles();
+    final activeId =
+        preferences.getString(_activeLibraryProfileKey) ??
+        SheetLibraryProfile.defaultId;
+    final active = _profileById(profiles, activeId);
+    return active?.id ?? SheetLibraryProfile.defaultId;
+  }
+
+  Future<void> _removeLibraryData(
+    SharedPreferences preferences,
+    String libraryId,
+  ) async {
+    await preferences.remove(_scopedKey(_scoresKey, libraryId));
+    await preferences.remove(_scopedKey(_setlistsKey, libraryId));
+    await preferences.remove(_scopedKey(_libraryViewSettingsKey, libraryId));
+    await preferences.remove(
+      _scopedKey(_favoriteAnnotationPresetKey, libraryId),
+    );
+  }
+
+  static SheetLibraryProfile? _profileById(
+    List<SheetLibraryProfile> profiles,
+    String id,
+  ) {
+    for (final profile in profiles) {
+      if (profile.id == id) {
+        return profile;
+      }
+    }
+    return null;
+  }
+
+  static String _scopedKey(String key, String libraryId) {
+    if (libraryId == SheetLibraryProfile.defaultId) {
+      return key;
+    }
+    return '$key.$libraryId';
+  }
+
+  static String _normalizeLibraryName(String value) {
+    return value.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  static String _newLibraryProfileId(DateTime now) {
+    return 'library-${now.microsecondsSinceEpoch}';
+  }
+
   Future<List<SheetScore>> loadScores() async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
     final scores = SheetScore.decodeList(
-      _getStringWithLegacyFallback(preferences, _scoresKey, _legacyScoresKey),
+      activeLibraryId == SheetLibraryProfile.defaultId
+          ? _getStringWithLegacyFallback(
+              preferences,
+              _scoresKey,
+              _legacyScoresKey,
+            )
+          : preferences.getString(_scopedKey(_scoresKey, activeLibraryId)),
     );
     return _sortScores(scores);
   }
 
   Future<void> saveScores(List<SheetScore> scores) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_scoresKey, SheetScore.encodeList(scores));
+    final activeLibraryId = await _activeLibraryId(preferences);
+    await preferences.setString(
+      _scopedKey(_scoresKey, activeLibraryId),
+      SheetScore.encodeList(scores),
+    );
   }
 
   Future<List<SheetSetlist>> loadSetlists() async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
     return SheetSetlist.decodeList(
-      _getStringWithLegacyFallback(
-        preferences,
-        _setlistsKey,
-        _legacySetlistsKey,
-      ),
+      activeLibraryId == SheetLibraryProfile.defaultId
+          ? _getStringWithLegacyFallback(
+              preferences,
+              _setlistsKey,
+              _legacySetlistsKey,
+            )
+          : preferences.getString(_scopedKey(_setlistsKey, activeLibraryId)),
     );
   }
 
   Future<void> saveSetlists(List<SheetSetlist> setlists) async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
     await preferences.setString(
-      _setlistsKey,
+      _scopedKey(_setlistsKey, activeLibraryId),
       SheetSetlist.encodeList(setlists),
     );
   }
@@ -109,12 +315,17 @@ class SheetLibraryStore {
 
   Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
     return SheetLibraryViewSettingsCodec.decode(
-      _getStringWithLegacyFallback(
-        preferences,
-        _libraryViewSettingsKey,
-        _legacyLibraryViewSettingsKey,
-      ),
+      activeLibraryId == SheetLibraryProfile.defaultId
+          ? _getStringWithLegacyFallback(
+              preferences,
+              _libraryViewSettingsKey,
+              _legacyLibraryViewSettingsKey,
+            )
+          : preferences.getString(
+              _scopedKey(_libraryViewSettingsKey, activeLibraryId),
+            ),
     );
   }
 
@@ -122,15 +333,19 @@ class SheetLibraryStore {
     SheetLibraryViewSettings settings,
   ) async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
     await preferences.setString(
-      _libraryViewSettingsKey,
+      _scopedKey(_libraryViewSettingsKey, activeLibraryId),
       SheetLibraryViewSettingsCodec.encode(settings),
     );
   }
 
   Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
     final preferences = await SharedPreferences.getInstance();
-    final value = preferences.getString(_favoriteAnnotationPresetKey);
+    final activeLibraryId = await _activeLibraryId(preferences);
+    final value = preferences.getString(
+      _scopedKey(_favoriteAnnotationPresetKey, activeLibraryId),
+    );
     if (value == null) {
       return null;
     }
@@ -152,12 +367,14 @@ class SheetLibraryStore {
     SheetAnnotationToolPreset? preset,
   ) async {
     final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = await _activeLibraryId(preferences);
+    final key = _scopedKey(_favoriteAnnotationPresetKey, activeLibraryId);
     if (preset == null || !preset.isValid) {
-      await preferences.remove(_favoriteAnnotationPresetKey);
+      await preferences.remove(key);
       return;
     }
     await preferences.setString(
-      _favoriteAnnotationPresetKey,
+      key,
       const JsonEncoder.withIndent('  ').convert(preset.toJson()),
     );
   }

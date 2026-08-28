@@ -23,7 +23,7 @@
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 2차 구현: ordered score list, 생성/이름 변경/삭제, 검색 추가, 제거/순서 이동, 첫 곡 열기 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
-| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 22차 부분 구현: collection-backed pseudo-library switcher, 생성/전환/이름 변경/비우기. 실제 profile별 저장 key 분리는 후속 |
+| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기 |
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
 | 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
@@ -152,8 +152,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 
 ## V1 후보
 
-- 여러 라이브러리, custom metadata fields. Collection/group/rating은 21차 구현.
-- HEIC 이미지 변환, 이미지 원본 viewer, 한 곡에 여러 파일 연결 UI, 기존 폴더 직접 참조.
+- HEIC 이미지 변환, 이미지 원본 viewer, 기존 폴더 직접 참조.
 - iOS Share Extension이 필요한 출처 앱 대응.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.

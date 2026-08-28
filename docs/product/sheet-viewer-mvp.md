@@ -174,8 +174,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 라이브러리 정렬/필터 1차: 최근 열기, 제목, 작곡가, 별점, 가져온 날짜 정렬,
   즐겨찾기/태그/컬렉션/그룹/최소 별점 필터.
 - 악보 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모, custom metadata field 편집.
-- collection-backed 라이브러리 전환 1차: 전체/컬렉션 라이브러리 전환, 생성, 이름 변경,
-  비우기. 실제 profile별 저장소 분리는 후속.
+- profile-backed 라이브러리 전환 1차: 기본/추가 라이브러리 전환, 생성, 이름 변경,
+  비우기. scores/setlists/view/favorite preset metadata는 profile별 저장 key로 분리한다.
 - 연결 파일 metadata/UI 1차: 한 곡에 여러 보조 파일을 묶기 위한 저장 모델, 관리 UI,
   viewer 연결 PDF 전환, 백업 round-trip.
 - `pdfrx` 기반 PDF viewer.
@@ -235,7 +235,7 @@ Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거
 Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
 실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
 한글 텍스트 PDF font embedding,
-실제 profile별 여러 라이브러리 저장소 분리, 기존 폴더 직접 참조, ChordPro/text,
+기존 폴더 직접 참조, ChordPro/text,
 HEIC 이미지 변환, 이미지 원본 viewer, iOS Share Extension, 클라우드 동기화/자동 백업,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
 system file picker/provider 경로를 우선 사용한다. 구현 메모는

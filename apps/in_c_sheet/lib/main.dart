@@ -15,6 +15,7 @@ import 'sheet_auto_scroll.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_controller.dart';
+import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
@@ -221,8 +222,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) => _LibraryProfileSheet(
-        activeCollection: controller.libraryViewSettings.collectionQuery,
-        facets: controller.collectionFacets,
+        activeLibraryId: controller.activeLibraryProfile.id,
+        profiles: controller.libraryProfiles,
+        activeScoreCount: controller.scores.length,
       ),
     );
     if (!mounted || action == null) {
@@ -231,9 +233,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
     switch (action.type) {
       case _LibraryProfileActionType.all:
-        await controller.updateCollectionFilter('');
+        await controller.switchLibraryProfile(SheetLibraryProfile.defaultId);
       case _LibraryProfileActionType.select:
-        await controller.updateCollectionFilter(action.collection);
+        await controller.switchLibraryProfile(action.libraryId);
       case _LibraryProfileActionType.create:
         final name = await _showTextEntryDialog(
           context: context,
@@ -244,24 +246,24 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || name == null) {
           return;
         }
-        await controller.createCollectionLibrary(name);
+        await controller.createLibraryProfile(name);
       case _LibraryProfileActionType.rename:
         final name = await _showTextEntryDialog(
           context: context,
           title: '라이브러리 이름 변경',
           label: '새 이름',
-          initialValue: action.collection,
+          initialValue: action.label,
         );
         if (!mounted || name == null) {
           return;
         }
-        final changed = await controller.renameCollectionLibrary(
-          from: action.collection,
-          to: name,
+        final didRename = await controller.renameLibraryProfile(
+          id: action.libraryId,
+          name: name,
         );
-        if (changed > 0 && mounted) {
+        if (didRename && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$changed개 악보의 라이브러리 이름을 변경했습니다.')),
+            const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')),
           );
         }
       case _LibraryProfileActionType.delete:
@@ -270,7 +272,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           builder: (context) => AlertDialog(
             title: const Text('라이브러리 비우기'),
             content: Text(
-              '"${action.collection}" 라이브러리의 악보 파일은 삭제하지 않고, 악보의 컬렉션 값만 비웁니다.',
+              '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 metadata만 비웁니다.',
             ),
             actions: [
               TextButton(
@@ -287,12 +289,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || didConfirm != true) {
           return;
         }
-        final changed = await controller.clearCollectionLibrary(
-          action.collection,
-        );
-        if (changed > 0 && mounted) {
+        final didClear = await controller.clearLibraryProfile(action.libraryId);
+        if (didClear && mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$changed개 악보를 전체 라이브러리로 이동했습니다.')),
+            const SnackBar(content: Text('라이브러리를 비웠습니다.')),
           );
         }
     }
@@ -895,8 +895,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                       ),
                       const SizedBox(height: 10),
                       _LibraryProfileBar(
-                        activeCollection:
-                            controller.libraryViewSettings.collectionQuery,
+                        activeLibrary: controller.activeLibraryProfile.name,
                         visibleCount: scores.length,
                         totalCount: controller.scores.length,
                         onPressed: _showLibrarySwitcher,
@@ -1054,10 +1053,15 @@ enum _LibraryImportAction { pdf, images }
 enum _LibraryProfileActionType { all, select, create, rename, delete }
 
 class _LibraryProfileAction {
-  const _LibraryProfileAction(this.type, [this.collection = '']);
+  const _LibraryProfileAction(
+    this.type, {
+    this.libraryId = SheetLibraryProfile.defaultId,
+    this.label = '',
+  });
 
   final _LibraryProfileActionType type;
-  final String collection;
+  final String libraryId;
+  final String label;
 }
 
 List<SheetSharedImportFile> _parseSharedImportFiles(Object? value) {
@@ -1066,31 +1070,34 @@ List<SheetSharedImportFile> _parseSharedImportFiles(Object? value) {
 
 class _LibraryProfileBar extends StatelessWidget {
   const _LibraryProfileBar({
-    required this.activeCollection,
+    required this.activeLibrary,
     required this.visibleCount,
     required this.totalCount,
     required this.onPressed,
   });
 
-  final String activeCollection;
+  final String activeLibrary;
   final int visibleCount;
   final int totalCount;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final isScoped = activeCollection.trim().isNotEmpty;
-    final title = isScoped ? activeCollection.trim() : '전체 라이브러리';
-    final subtitle = isScoped
-        ? '$visibleCount곡 표시 · 전체 $totalCount곡'
-        : '$totalCount곡';
+    final title = activeLibrary.trim().isEmpty
+        ? SheetLibraryProfile.defaultName
+        : activeLibrary.trim();
+    final subtitle = visibleCount == totalCount
+        ? '$totalCount곡'
+        : '$visibleCount곡 표시 · 전체 $totalCount곡';
     return Material(
       color: Colors.white,
       borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         leading: Icon(
-          isScoped ? Icons.collections_bookmark : Icons.library_music_outlined,
+          title == SheetLibraryProfile.defaultName
+              ? Icons.library_music_outlined
+              : Icons.collections_bookmark,
         ),
         title: Text(
           title,
@@ -1108,16 +1115,17 @@ class _LibraryProfileBar extends StatelessWidget {
 
 class _LibraryProfileSheet extends StatelessWidget {
   const _LibraryProfileSheet({
-    required this.activeCollection,
-    required this.facets,
+    required this.activeLibraryId,
+    required this.profiles,
+    required this.activeScoreCount,
   });
 
-  final String activeCollection;
-  final List<SheetLibraryFacet> facets;
+  final String activeLibraryId;
+  final List<SheetLibraryProfile> profiles;
+  final int activeScoreCount;
 
   @override
   Widget build(BuildContext context) {
-    final active = activeCollection.trim();
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
@@ -1125,33 +1133,41 @@ class _LibraryProfileSheet extends StatelessWidget {
         children: [
           ListTile(
             leading: const Icon(Icons.library_music_outlined),
-            title: const Text('전체 라이브러리'),
-            subtitle: const Text('모든 악보 보기'),
-            trailing: active.isEmpty ? const Icon(Icons.check) : null,
+            title: const Text(SheetLibraryProfile.defaultName),
+            subtitle: const Text('기존 악보 저장소'),
+            trailing: activeLibraryId == SheetLibraryProfile.defaultId
+                ? const Icon(Icons.check)
+                : null,
             onTap: () => Navigator.of(
               context,
             ).pop(const _LibraryProfileAction(_LibraryProfileActionType.all)),
           ),
           const Divider(),
-          for (final facet in facets)
+          for (final profile
+              in profiles.where((profile) => !profile.isDefault))
             ListTile(
               leading: const Icon(Icons.collections_bookmark_outlined),
               title: Text(
-                facet.label,
+                profile.name,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              subtitle: Text('${facet.count}곡'),
+              subtitle: Text(
+                profile.id == activeLibraryId
+                    ? '$activeScoreCount곡'
+                    : '분리된 악보 저장소',
+              ),
               trailing: Wrap(
                 spacing: 0,
                 children: [
-                  if (facet.value == active) const Icon(Icons.check),
+                  if (profile.id == activeLibraryId) const Icon(Icons.check),
                   IconButton(
                     tooltip: '이름 변경',
                     onPressed: () => Navigator.of(context).pop(
                       _LibraryProfileAction(
                         _LibraryProfileActionType.rename,
-                        facet.value,
+                        libraryId: profile.id,
+                        label: profile.name,
                       ),
                     ),
                     icon: const Icon(Icons.edit_outlined),
@@ -1161,7 +1177,8 @@ class _LibraryProfileSheet extends StatelessWidget {
                     onPressed: () => Navigator.of(context).pop(
                       _LibraryProfileAction(
                         _LibraryProfileActionType.delete,
-                        facet.value,
+                        libraryId: profile.id,
+                        label: profile.name,
                       ),
                     ),
                     icon: const Icon(Icons.delete_outline),
@@ -1171,7 +1188,8 @@ class _LibraryProfileSheet extends StatelessWidget {
               onTap: () => Navigator.of(context).pop(
                 _LibraryProfileAction(
                   _LibraryProfileActionType.select,
-                  facet.value,
+                  libraryId: profile.id,
+                  label: profile.name,
                 ),
               ),
             ),
@@ -1179,7 +1197,7 @@ class _LibraryProfileSheet extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.add),
             title: const Text('새 라이브러리'),
-            subtitle: const Text('새로 가져오는 악보를 이 이름으로 묶기'),
+            subtitle: const Text('분리된 악보 저장소 만들기'),
             onTap: () => Navigator.of(context).pop(
               const _LibraryProfileAction(_LibraryProfileActionType.create),
             ),

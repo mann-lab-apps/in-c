@@ -8,6 +8,7 @@ import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
@@ -29,6 +30,11 @@ class SheetLibraryController extends ChangeNotifier {
   SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
   SheetLibraryViewSettings _libraryViewSettings =
       SheetLibraryViewSettings.defaultSettings;
+  List<SheetLibraryProfile> _libraryProfiles = <SheetLibraryProfile>[
+    SheetLibraryProfile.defaultProfile,
+  ];
+  SheetLibraryProfile _activeLibraryProfile =
+      SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   String _query = '';
   bool _isLoading = true;
@@ -40,6 +46,8 @@ class SheetLibraryController extends ChangeNotifier {
   SheetMetronomeSettings get metronomeSettings => _metronomeSettings;
   SheetTunerSettings get tunerSettings => _tunerSettings;
   SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
+  List<SheetLibraryProfile> get libraryProfiles => _libraryProfiles;
+  SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
     return _favoriteAnnotationPreset;
   }
@@ -127,19 +135,25 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> load() async {
     _setLoading(true);
     try {
-      _scores = await store.loadScores();
-      _setlists = await store.loadSetlists();
-      _metronomeSettings = await store.loadMetronomeSettings();
-      _tunerSettings = await store.loadTunerSettings();
-      _libraryViewSettings = await store.loadLibraryViewSettings();
-      _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
-      await _removeMissingSetlistScores();
+      await _loadActiveLibraryState();
       _errorMessage = null;
     } catch (error) {
       _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> _loadActiveLibraryState() async {
+    _libraryProfiles = await store.loadLibraryProfiles();
+    _activeLibraryProfile = await store.loadActiveLibraryProfile();
+    _scores = await store.loadScores();
+    _setlists = await store.loadSetlists();
+    _metronomeSettings = await store.loadMetronomeSettings();
+    _tunerSettings = await store.loadTunerSettings();
+    _libraryViewSettings = await store.loadLibraryViewSettings();
+    _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
+    await _removeMissingSetlistScores();
   }
 
   Future<SheetScore?> importPdf() async {
@@ -380,6 +394,78 @@ class SheetLibraryController extends ChangeNotifier {
       return;
     }
     await updateCollectionFilter(normalized);
+  }
+
+  Future<void> createLibraryProfile(String name) async {
+    _setLoading(true);
+    try {
+      await store.createLibraryProfile(name);
+      _query = '';
+      await _loadActiveLibraryState();
+      _errorMessage = null;
+    } catch (_) {
+      _errorMessage = '라이브러리를 만들지 못했습니다.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> switchLibraryProfile(String id) async {
+    if (id == _activeLibraryProfile.id) {
+      return;
+    }
+    _setLoading(true);
+    try {
+      await store.setActiveLibraryProfile(id);
+      _query = '';
+      await _loadActiveLibraryState();
+      _errorMessage = null;
+    } catch (_) {
+      _errorMessage = '라이브러리를 전환하지 못했습니다.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> renameLibraryProfile({
+    required String id,
+    required String name,
+  }) async {
+    final renamed = await store.renameLibraryProfile(id: id, name: name);
+    if (renamed == null) {
+      return false;
+    }
+    _libraryProfiles = await store.loadLibraryProfiles();
+    if (_activeLibraryProfile.id == renamed.id) {
+      _activeLibraryProfile = renamed;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> clearLibraryProfile(String id) async {
+    final didClear = await store.clearLibraryProfile(id);
+    if (!didClear) {
+      return false;
+    }
+    if (_activeLibraryProfile.id == id) {
+      _scores = const <SheetScore>[];
+      _setlists = const <SheetSetlist>[];
+      _libraryViewSettings = SheetLibraryViewSettings.defaultSettings;
+      _favoriteAnnotationPreset = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteLibraryProfile(String id) async {
+    final didDelete = await store.deleteLibraryProfile(id);
+    if (!didDelete) {
+      return false;
+    }
+    await _loadActiveLibraryState();
+    notifyListeners();
+    return true;
   }
 
   Future<int> renameCollectionLibrary({
