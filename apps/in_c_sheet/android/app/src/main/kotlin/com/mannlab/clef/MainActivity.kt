@@ -4,6 +4,7 @@ import android.content.Intent
 import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioTrack
+import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
@@ -18,10 +19,13 @@ import kotlin.math.sin
 class MainActivity : FlutterActivity() {
     private val sharedImportsChannelName = "clef/shared_imports"
     private val tonePlayerChannelName = "clef/tone_player"
+    private val audioPlayerChannelName = "clef/audio_player"
     private val pendingSharedFiles = mutableListOf<Map<String, String>>()
     private val tonePlayer = ClefTonePlayer()
+    private val audioPlayer = ClefAudioPlayer()
     private var sharedImportsChannel: MethodChannel? = null
     private var tonePlayerChannel: MethodChannel? = null
+    private var audioPlayerChannel: MethodChannel? = null
     private var didCollectInitialIntent = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -79,10 +83,45 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        audioPlayerChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            audioPlayerChannelName,
+        )
+        audioPlayerChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "play" -> {
+                    val path = call.argument<String>("path").orEmpty().trim()
+                    if (path.isEmpty()) {
+                        result.error(
+                            "invalid_path",
+                            "No audio file path was provided.",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        audioPlayer.play(path)
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "playback_error",
+                            error.message ?: "Audio playback failed.",
+                            null,
+                        )
+                    }
+                }
+                "stop" -> {
+                    audioPlayer.stop()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
     }
 
     override fun onDestroy() {
         tonePlayer.stop()
+        audioPlayer.stop()
         super.onDestroy()
     }
 
@@ -280,5 +319,42 @@ private class ClefTonePlayer {
         } catch (_: IllegalStateException) {
             isRunning = false
         }
+    }
+}
+
+private class ClefAudioPlayer {
+    private var mediaPlayer: MediaPlayer? = null
+
+    @Synchronized
+    fun play(path: String) {
+        stop()
+        val file = File(path)
+        if (!file.exists()) {
+            throw IllegalArgumentException("Audio file does not exist.")
+        }
+        mediaPlayer = MediaPlayer().apply {
+            setAudioStreamType(AudioManager.STREAM_MUSIC)
+            setDataSource(path)
+            setOnCompletionListener {
+                this@ClefAudioPlayer.stop()
+            }
+            prepare()
+            start()
+        }
+    }
+
+    @Synchronized
+    fun stop() {
+        mediaPlayer?.let { player ->
+            try {
+                if (player.isPlaying) {
+                    player.stop()
+                }
+            } catch (_: IllegalStateException) {
+            } finally {
+                player.release()
+            }
+        }
+        mediaPlayer = null
     }
 }

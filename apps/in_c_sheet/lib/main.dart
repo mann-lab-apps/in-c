@@ -11,6 +11,7 @@ import 'pdf_link_policy.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
 import 'sheet_annotation_geometry.dart';
+import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
@@ -1779,6 +1780,13 @@ bool _isSupportedLinkedImage(SheetLinkedFile file) {
       ? file.type.trim().toLowerCase()
       : SheetFileImportPolicy.extensionOf(file.path);
   return SheetFileImportPolicy.isSupportedImageExtension(extension);
+}
+
+bool _isSupportedLinkedAudio(SheetLinkedFile file) {
+  final extension = file.type.trim().isNotEmpty
+      ? file.type.trim().toLowerCase()
+      : SheetFileImportPolicy.extensionOf(file.path);
+  return SheetFileImportPolicy.isSupportedAudioExtension(extension);
 }
 
 String _rehearsalMarkKindLabel(String kind) {
@@ -5643,14 +5651,17 @@ setlist=$setlistLabel
                 builder: (context) {
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
-                  final canOpen =
-                      exists && (linkedFile.type == 'pdf' || isImage);
+                  final isAudio = _isSupportedLinkedAudio(linkedFile);
+                  final canOpen = exists &&
+                      (linkedFile.type == 'pdf' || isImage || isAudio);
                   return ListTile(
                     leading: Icon(
                       !exists
                           ? Icons.error_outline
                           : isImage
                           ? Icons.image_outlined
+                          : isAudio
+                          ? Icons.audiotrack
                           : Icons.library_music_outlined,
                     ),
                     title: Text(linkedFile.label),
@@ -5665,7 +5676,11 @@ setlist=$setlistLabel
                       spacing: 0,
                       children: [
                         IconButton(
-                          tooltip: isImage ? '이미지 보기' : '이 파일 열기',
+                          tooltip: isImage
+                              ? '이미지 보기'
+                              : isAudio
+                              ? '오디오 재생'
+                              : '이 파일 열기',
                           onPressed: canOpen
                               ? () => Navigator.of(context).pop(
                                   _LinkedFileAction(
@@ -5737,6 +5752,10 @@ setlist=$setlistLabel
         await _showLinkedImageViewer(selected.file);
         return;
       }
+      if (_isSupportedLinkedAudio(selected.file)) {
+        await _showLinkedAudioPlayer(selected.file);
+        return;
+      }
       final didSwitch = await widget.controller.switchToLinkedFile(
         currentScore,
         selected.file,
@@ -5758,6 +5777,19 @@ setlist=$setlistLabel
         ),
       );
     }
+  }
+
+  Future<void> _showLinkedAudioPlayer(SheetLinkedFile linkedFile) async {
+    final audioFile = File(linkedFile.path);
+    if (!await audioFile.exists()) {
+      _showSnackBar('오디오 파일을 찾지 못했습니다.');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _LinkedAudioPlayerSheet(linkedFile: linkedFile),
+    );
   }
 
   Future<void> _showLinkedImageViewer(SheetLinkedFile linkedFile) async {
@@ -11814,6 +11846,122 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LinkedAudioPlayerSheet extends StatefulWidget {
+  const _LinkedAudioPlayerSheet({required this.linkedFile});
+
+  final SheetLinkedFile linkedFile;
+
+  @override
+  State<_LinkedAudioPlayerSheet> createState() =>
+      _LinkedAudioPlayerSheetState();
+}
+
+class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
+  late final SheetAudioPlayer _player;
+  bool _isPlaying = false;
+  SheetAudioPlaybackResult? _lastResult;
+
+  @override
+  void initState() {
+    super.initState();
+    _player = SheetAudioPlayer();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_player.stop());
+    super.dispose();
+  }
+
+  Future<void> _togglePlayback() async {
+    if (_isPlaying) {
+      await _player.stop();
+      setState(() {
+        _isPlaying = false;
+        _lastResult = null;
+      });
+      return;
+    }
+    final result = await _player.play(widget.linkedFile.path);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isPlaying = result.isPlaying;
+      _lastResult = result;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.audiotrack),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    widget.linkedFile.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                FilledButton.icon(
+                  onPressed: _togglePlayback,
+                  icon: Icon(_isPlaying ? Icons.stop : Icons.play_arrow),
+                  label: Text(_isPlaying ? '정지' : '재생'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              widget.linkedFile.path,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            if (_lastResult?.status ==
+                SheetAudioPlaybackStatus.unsupportedPlatform)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  '이 기기에서는 로컬 오디오 재생 채널을 사용할 수 없습니다.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              )
+            else if (_lastResult?.status == SheetAudioPlaybackStatus.failed)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  _lastResult!.message.isEmpty
+                      ? '오디오 재생을 시작하지 못했습니다.'
+                      : _lastResult!.message,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.error,
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

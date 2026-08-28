@@ -26,6 +26,11 @@ void main() {
     );
     expect(SheetFileImportPolicy.isSupportedImageExtension('.jpeg'), isTrue);
     expect(SheetFileImportPolicy.isSupportedImageExtension('heif'), isFalse);
+    expect(
+      SheetFileImportPolicy.isSupportedAudioFileName('practice-track.MP3'),
+      isTrue,
+    );
+    expect(SheetFileImportPolicy.isSupportedAudioExtension('.m4a'), isTrue);
   });
 
   test('explains known unsupported image types', () {

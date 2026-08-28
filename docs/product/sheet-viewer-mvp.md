@@ -68,6 +68,7 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 메트로놈: BPM, 박자, 첫 박 강조, 시작/정지, 시각 표시.
 - 튜너: chromatic tuner, 현재 음 이름, cents 편차, A4 calibration.
 - 기준음/드론: 튜너 A4 기준을 공유하는 기준음, 5도, 옥타브 drone 재생.
+- 로컬 오디오 플레이어: 악보에 연결한 audio file 재생/정지.
 - 튜너는 악보 위 overlay 또는 side sheet로 열 수 있어야 한다.
 
 ### PDF link annotation 정리
@@ -237,7 +238,7 @@ Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인�
 
 Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
-기준음/드론 Android 오디오 latency와 iOS parity,
+기준음/드론/로컬 오디오 Android latency와 iOS parity,
 Bluetooth/USB 페달 실기기 HID 검증, 주석/필기 고도화, PDF annotation 객체 embed/export,
 실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
 한글 텍스트 PDF font embedding,

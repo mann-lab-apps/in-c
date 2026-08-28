@@ -727,7 +727,18 @@ class SheetLibraryStore {
   Future<SheetLinkedFile?> pickLinkedFile() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: const <String>['pdf', 'jpg', 'jpeg', 'png'],
+      allowedExtensions: const <String>[
+        'pdf',
+        'jpg',
+        'jpeg',
+        'png',
+        'mp3',
+        'wav',
+        'm4a',
+        'aac',
+        'flac',
+        'ogg',
+      ],
     );
 
     if (file == null) {
@@ -747,7 +758,8 @@ class SheetLibraryStore {
   }) async {
     final extension = SheetFileImportPolicy.extensionOf(fileName);
     if (!SheetFileImportPolicy.isPdfFileName(fileName) &&
-        !SheetFileImportPolicy.isSupportedImageFileName(fileName)) {
+        !SheetFileImportPolicy.isSupportedImageFileName(fileName) &&
+        !SheetFileImportPolicy.isSupportedAudioFileName(fileName)) {
       throw FormatException('Unsupported linked file: $fileName');
     }
 
@@ -850,6 +862,12 @@ class SheetLibraryStore {
     return switch (extension.isEmpty ? fallbackExtension : extension) {
       'jpg' || 'jpeg' => 'image/jpeg',
       'png' => 'image/png',
+      'mp3' => 'audio/mpeg',
+      'wav' => 'audio/wav',
+      'm4a' => 'audio/mp4',
+      'aac' => 'audio/aac',
+      'flac' => 'audio/flac',
+      'ogg' => 'audio/ogg',
       _ => 'application/pdf',
     };
   }

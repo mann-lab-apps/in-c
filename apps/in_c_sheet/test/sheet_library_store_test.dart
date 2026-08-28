@@ -578,12 +578,25 @@ void main() {
       fileName: 'Trumpet Part.pdf',
       importedAt: now,
     );
+    final audioFile = await store.importLinkedFileBytes(
+      bytes: const <int>[1, 2, 3, 4],
+      fileName: 'Practice Cue.m4a',
+      importedAt: now,
+    );
 
     expect(linkedFile.type, 'pdf');
     expect(linkedFile.label, 'Trumpet Part');
     expect(linkedFile.createdAt, now);
     expect(linkedFile.path, contains('linked-files'));
     expect(await File(linkedFile.path).readAsBytes(), bytes);
+    expect(audioFile.type, 'm4a');
+    expect(audioFile.label, 'Practice Cue');
+    expect(await File(audioFile.path).readAsBytes(), const <int>[1, 2, 3, 4]);
+
+    final candidates = store.shareCandidates(
+      _score(now, linkedFiles: <SheetLinkedFile>[audioFile]),
+    );
+    expect(candidates.last.mimeType, 'audio/mp4');
   });
 
   test('decodes full backup file mappings from dynamic JSON maps', () {

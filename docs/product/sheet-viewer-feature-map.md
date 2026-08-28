@@ -93,7 +93,7 @@
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
-| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | local audio |
+| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet. codec/latency/iOS parity는 QA 필요 |
 | 음악 도구 | A-B loop | MobileSheets 지원 | V2 | 중간 | time markers |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 6차 구현: Arrow/Page/Space logical key 기반 이전/다음 넘김. 실제 페달 검증 필요 |
@@ -160,7 +160,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
 - orientation별 반 페이지 정책 정교화.
 - pressure sensitivity, palm rejection.
-- 오디오 플레이어.
+- 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
 
 ## V2 후보
 

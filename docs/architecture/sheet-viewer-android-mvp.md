@@ -62,6 +62,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   frequency-to-note 계산, cents meter, A4 기준음 저장, viewer bottom sheet.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
   5도, 옥타브 drone을 재생한다.
+- 로컬 오디오 플레이어 1차: linked audio file을 앱 저장소에 복사하고 Android native
+  `MediaPlayer`로 재생/정지한다.
 - 하드웨어 키/Bluetooth/USB 페달 입력 1차: arrow, page, space, media key 기반 이전/다음
   페이지 넘김과 mapping preset.
 - 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤, quick action overlay,
@@ -394,6 +396,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   mode, volume percent를 저장하고, 실제 재생은 Android `clef/tone_player` MethodChannel과
   native `AudioTrack` sine stream을 사용한다. iOS/미지원 플랫폼에서는 playback channel 없음으로
   안내한다.
+- 로컬 오디오 플레이어는 악보별 `SheetLinkedFile`에 `mp3`, `wav`, `m4a`, `aac`, `flac`, `ogg`
+  파일을 저장하고, viewer의 파트/버전 sheet에서 `clef/audio_player` MethodChannel을 통해 Android
+  `MediaPlayer`로 연다. 별도 loop/tempo/pitch shift는 V2 범위다.
 - 하드웨어 키 입력은 viewer body를 `Focus`, `Shortcuts`, `Actions`로 감싸 처리한다.
 - 기본 매핑은 `ArrowRight`, `PageDown`, `Space`가 다음 페이지, `ArrowLeft`, `PageUp`,
   `Shift+Space`가 이전 페이지다.
@@ -739,7 +744,8 @@ font embedding 제약 때문에 export 사본에서 제외하고 개수를 안�
 경우에는 원본 PDF 공유로 fallback한다. 메트로놈은 기본 OFF `tick 소리` toggle을 추가했으며,
 Flutter system click sound 기반이라 accent 음색 구분과 latency 보장은 후속 검증 항목이다.
 2026-08-28에는 튜너 sheet에 기준음/드론을 추가하고 Android `AudioTrack` sine playback 채널,
-전역 tone 설정 저장, metadata/full backup round-trip을 연결했다.
+전역 tone 설정 저장, metadata/full backup round-trip을 연결했다. 이어서 linked audio file import와
+Android `MediaPlayer` 기반 로컬 오디오 재생/정지를 추가했다.
 
 2026-08-26 테스터 전달 polish에서는 테스트 정보 화면에 피드백 템플릿 복사 버튼을 추가하고,
 검색/필터 때문에 라이브러리 결과가 비는 경우 초기화 액션을 제공했다. 외부 전달용 QA
