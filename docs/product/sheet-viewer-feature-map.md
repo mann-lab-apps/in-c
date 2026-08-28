@@ -147,7 +147,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   남기지 않는다. 실제 CamScanner 샘플/compact rewrite 검증은 blocker다.
 - 자동 스크롤. 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
   설정을 저장하고, 세로 스크롤 보기에서 weighted timeline 기반으로 진행한다. pause/resume과 현재
-  메트로놈 BPM 기반 duration preset까지 1차 구현했다.
+  메트로놈 BPM 기반 duration preset까지 1차 구현했다. start/end 범위 밖 page duration과 cue point는
+  timeline에서 제외한다.
 - 로컬 백업/복원. 14차 구현은 PDF 파일을 제외한 metadata-only JSON export/import였고, 17차에서
   PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다. 2026-08-28에는 save mutation마다 active
   library profile별 metadata-only 자동 snapshot을 남기고 복원할 수 있게 했다.

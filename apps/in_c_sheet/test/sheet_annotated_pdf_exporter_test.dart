@@ -112,6 +112,7 @@ void main() {
     );
 
     expect(result.didWrite, isTrue);
+    expect(result.mode, SheetPdfAnnotationExportMode.renderedStamp);
     expect(result.strokeCount, 3);
     expect(result.textCount, 1);
     expect(result.exportedTextCount, 1);

@@ -87,8 +87,8 @@ class SheetAnnotatedPdfExporter {
   static Future<SheetAnnotatedPdfExportResult> createAnnotatedCopy({
     required SheetScore score,
     required String outputPath,
-    SheetPdfAnnotationExportMode mode = SheetPdfAnnotationExportMode
-        .renderedStamp,
+    SheetPdfAnnotationExportMode mode =
+        SheetPdfAnnotationExportMode.renderedStamp,
   }) async {
     final exportableStrokes = score.annotationLayer.includeDefaultLayerInExport
         ? score.annotationLayer.strokes

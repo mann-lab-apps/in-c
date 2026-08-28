@@ -142,4 +142,47 @@ void main() {
     expect(result.failureReason, isNotNull);
     expect(File(outputPath).existsSync(), isFalse);
   });
+
+  test(
+    'removes partial output when sanitizer fails after opening input',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'clef-link-sanitizer-partial-',
+      );
+      addTearDown(() async {
+        if (tempDir.existsSync()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+      final inputPath = '${tempDir.path}/broken-camscanner.pdf';
+      final outputPath = '${tempDir.path}/broken-links-disabled.pdf';
+      await File(inputPath).writeAsBytes(<int>[
+        0x25,
+        0x50,
+        0x44,
+        0x46,
+        0x2d,
+        0x31,
+        0x2e,
+        0x37,
+        0x0a,
+        0x62,
+        0x72,
+        0x6f,
+        0x6b,
+        0x65,
+        0x6e,
+      ]);
+      await File(outputPath).writeAsString('partial output');
+
+      final result = await SheetPdfLinkSanitizer.createSanitizedCopy(
+        inputPath: inputPath,
+        outputPath: outputPath,
+      );
+
+      expect(result.didWrite, isFalse);
+      expect(result.failureReason, isNotNull);
+      expect(File(outputPath).existsSync(), isFalse);
+    },
+  );
 }

@@ -155,7 +155,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   page timeline을 만들고, timeline segment의 from/to page top을 보간해 이동한다. cue와
   pause/resume을 제공하고, pause marker에 처음 도달하면 한 번만 자동 일시정지한다.
   rehearsal mark는 자동 스크롤 cue point로 가져와 진행 중 표시할 수 있고, cue point는
-  measureNumber를 optional metadata로 보존한다. Virtual page order가 있는 곡은
+  measureNumber를 optional metadata로 보존한다. page duration과 cue point가 시작/끝 page
+  범위 밖에 있으면 경계 page로 붙이지 않고 timeline에서 제외한다. Virtual page order가 있는 곡은
   반복 순서를 정확히 따르지 못하므로 자동 스크롤 시작을 막고 페달/수동 넘김을 안내한다.
   BPM preset은 현재 메트로놈 BPM과 페이지당 16/32/64박 기준으로 durationSeconds를 계산한다.
   세트리스트 override 또는 곡별 보기 설정에서 autoAdvanceSetlist가 켜져 있으면 자동 스크롤
@@ -629,7 +630,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset, pause marker, 반복 구간
   timeline, page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은
-  1차 구현했다. measure 위치 자동 감지는 후속이다.
+  1차 구현했다. start/end 범위 밖 page duration과 cue point는 timeline에서 제외한다. measure 위치
+  자동 감지는 후속이다.
 - OCR 기반 PDF 본문 검색: embedded text search와 OCR unsupported 안내, index manifest 준비는
   구현했다. OCR engine/native bridge 선택과 scan fixture 검증은 v1.1 spike다.
 - 공연 preset override: 세트리스트별 viewer/action override 저장, 복제, 백업/복원, viewer runtime

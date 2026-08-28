@@ -112,7 +112,8 @@ OS:
   분리다. 라이브러리 비우기는 앱 metadata만 제거하며, PDF 파일 삭제 QA는 별도 destructive
   테스트로 분리한다.
 - 자동 스크롤 pause marker, 반복 구간, page별 duration weight, cue point는 page 기반 1차
-  구현이다. 실제 measure 위치 자동 감지는 포함하지 않는다.
+  구현이다. start/end 범위 밖 page duration과 cue point는 timeline에서 제외한다. 실제 measure 위치
+  자동 감지는 포함하지 않는다.
 - 자동 DB 백업은 active library profile별 metadata-only snapshot이다. PDF bytes, 외부 원본 파일,
   OS background scheduled backup은 포함하지 않으며 전체 파일 복구는 PDF 포함 ZIP 백업으로 확인한다.
 
