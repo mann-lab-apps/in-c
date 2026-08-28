@@ -166,6 +166,25 @@ void main() {
     expect(plan.endPage, 5);
   });
 
+  test('drops page durations and cues outside normalized plan range', () {
+    const settings = SheetAutoScrollSettings(
+      durationSeconds: 120,
+      startPage: 2,
+      endPage: 4,
+      pageDurations: <int, int>{1: 30, 3: 90, 5: 120},
+      cuePoints: <SheetAutoScrollCuePoint>[
+        SheetAutoScrollCuePoint(pageNumber: 1, label: 'Before'),
+        SheetAutoScrollCuePoint(pageNumber: 3, label: 'Inside'),
+        SheetAutoScrollCuePoint(pageNumber: 5, label: 'After'),
+      ],
+    );
+
+    final plan = settings.plan(currentPage: 1, pageCount: 5);
+
+    expect(plan.pageDurations, <int, int>{3: 90});
+    expect(plan.cuePoints.map((cue) => cue.label), <String>['Inside']);
+  });
+
   test('maps elapsed progress to page range', () {
     const plan = SheetAutoScrollPlan(
       durationSeconds: 100,

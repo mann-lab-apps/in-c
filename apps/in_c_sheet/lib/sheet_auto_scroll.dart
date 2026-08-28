@@ -414,8 +414,12 @@ class SheetAutoScrollPlan {
           entry.key: entry.value,
     };
     final cuePoints = settings.cuePoints
-        .map((cue) => cue.clampToRange(startPage, endPage))
-        .where((cue) => cue.isValid)
+        .where(
+          (cue) =>
+              cue.isValid &&
+              cue.pageNumber >= startPage &&
+              cue.pageNumber <= endPage,
+        )
         .toList(growable: false);
     return SheetAutoScrollPlan(
       durationSeconds: settings.durationSeconds,

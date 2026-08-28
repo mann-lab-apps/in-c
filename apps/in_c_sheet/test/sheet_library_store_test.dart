@@ -786,6 +786,28 @@ void main() {
           1: SheetCropSettings(top: 0.02, bottom: 0.02),
         },
       ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'full-backup-stroke',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
       annotationStorage: SheetAnnotationStorageReference(
         mode: SheetAnnotationStorageReference.fileMode,
         path: annotationFile.path,
@@ -873,6 +895,12 @@ void main() {
       'nextSetlistScore',
     );
     expect(restoredScore.pageSettings.cropForPage(1).top, 0.02);
+    expect(
+      restoredScore.annotationLayer.strokes.single.id,
+      'full-backup-stroke',
+    );
+    expect(restoredScore.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(restoredScore.annotationLayer.includeDefaultLayerInExport, isFalse);
     expect(restoredScore.annotationStorage.isFileBacked, isTrue);
     expect(await File(restoredScore.annotationStorage.path).exists(), isTrue);
     expect(await File(restoredScore.linkedFiles.single.path).exists(), isTrue);
