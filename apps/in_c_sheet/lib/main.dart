@@ -4633,6 +4633,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   SheetAutoScrollPlan? _autoScrollPlan;
   double _autoScrollProgress = 0;
   Set<int> _autoScrollConsumedPausePages = const <int>{};
+  Set<String> _autoScrollConsumedCueKeys = const <String>{};
   bool _didAutoStartScroll = false;
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
@@ -5284,6 +5285,7 @@ setlist=$setlistLabel
       showDragHandle: true,
       builder: (context) => _AutoScrollSheet(
         initialSettings: score.autoScrollSettings,
+        rehearsalMarks: score.pageSettings.rehearsalMarks,
         metronomeBpm: widget.controller.metronomeSettings.bpm,
         currentPage: _pageNumber ?? score.lastPage,
         pageCount: pageCount,
@@ -5355,6 +5357,7 @@ setlist=$setlistLabel
         _autoScrollPlan = plan;
         _autoScrollProgress = 0;
         _autoScrollConsumedPausePages = <int>{};
+        _autoScrollConsumedCueKeys = <String>{};
         _autoScrollCueRemainingSeconds = settings.cueSeconds;
         _showPageControls = true;
       });
@@ -5405,6 +5408,7 @@ setlist=$setlistLabel
       _autoScrollPlan = plan;
       _autoScrollProgress = 0;
       _autoScrollConsumedPausePages = <int>{};
+      _autoScrollConsumedCueKeys = <String>{};
       _autoScrollCueRemainingSeconds = null;
       _showPageControls = true;
     });
@@ -5447,6 +5451,27 @@ setlist=$setlistLabel
       });
       _pauseAutoScroll(message: '$pausePage쪽 pause marker에서 일시정지했습니다.');
       return;
+    }
+    final cuePoints = plan.cuePointsForProgress(
+      progress,
+      consumedCueKeys: _autoScrollConsumedCueKeys,
+    );
+    if (cuePoints.isNotEmpty) {
+      setState(() {
+        _autoScrollConsumedCueKeys = <String>{
+          ..._autoScrollConsumedCueKeys,
+          for (final cue in cuePoints) cue.key,
+        };
+      });
+      final latestCue = cuePoints.last;
+      final label = latestCue.label.trim().isEmpty
+          ? '${latestCue.pageNumber}쪽 cue'
+          : latestCue.label.trim();
+      _showSnackBar(
+        latestCue.measureNumber > 0
+            ? '$label · ${latestCue.measureNumber}마디'
+            : label,
+      );
     }
 
     final pageCount = _pdfController.pageCount;
@@ -5582,6 +5607,7 @@ setlist=$setlistLabel
         _autoScrollPlan = null;
         _autoScrollProgress = 0;
         _autoScrollConsumedPausePages = const <int>{};
+        _autoScrollConsumedCueKeys = const <String>{};
         _autoScrollCueRemainingSeconds = null;
       });
     } else {
@@ -5592,6 +5618,7 @@ setlist=$setlistLabel
       _autoScrollPlan = null;
       _autoScrollProgress = 0;
       _autoScrollConsumedPausePages = const <int>{};
+      _autoScrollConsumedCueKeys = const <String>{};
       _autoScrollCueRemainingSeconds = null;
     }
     if (showMessage) {
@@ -11695,6 +11722,7 @@ class _AutoScrollCueOverlay extends StatelessWidget {
 class _AutoScrollSheet extends StatefulWidget {
   const _AutoScrollSheet({
     required this.initialSettings,
+    required this.rehearsalMarks,
     required this.metronomeBpm,
     required this.currentPage,
     required this.pageCount,
@@ -11709,6 +11737,7 @@ class _AutoScrollSheet extends StatefulWidget {
   });
 
   final SheetAutoScrollSettings initialSettings;
+  final List<SheetRehearsalMark> rehearsalMarks;
   final int metronomeBpm;
   final int currentPage;
   final int pageCount;
@@ -11752,11 +11781,22 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
         .map((section) => section.clampToRange(startPage, endPage))
         .where((section) => section.isValid)
         .toList(growable: false);
+    final pageDurations = <int, int>{
+      for (final entry in settings.pageDurations.entries)
+        if (entry.key >= startPage && entry.key <= endPage)
+          entry.key: entry.value,
+    };
+    final cuePoints = settings.cuePoints
+        .map((cue) => cue.clampToRange(startPage, endPage))
+        .where((cue) => cue.isValid)
+        .toList(growable: false);
     return settings.copyWith(
       startPage: startPage,
       endPage: endPage,
       pausePageNumbers: pausePageNumbers,
       repeatSections: repeatSections,
+      pageDurations: pageDurations,
+      cuePoints: cuePoints,
     );
   }
 
@@ -11826,6 +11866,46 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     return _setSettings(_settings.copyWith(repeatSections: sections));
   }
 
+  Future<void> _setCurrentPageDuration(int pageNumber, int seconds) {
+    final durations = Map<int, int>.of(_settings.pageDurations)
+      ..[pageNumber] = SheetAutoScrollSettings.clampPageDurationSeconds(
+        seconds,
+      );
+    return _setSettings(_settings.copyWith(pageDurations: durations));
+  }
+
+  Future<void> _clearCurrentPageDuration(int pageNumber) {
+    final durations = Map<int, int>.of(_settings.pageDurations)
+      ..remove(pageNumber);
+    return _setSettings(_settings.copyWith(pageDurations: durations));
+  }
+
+  Future<void> _importRehearsalCuePoints() {
+    final cuePoints = <SheetAutoScrollCuePoint>[
+      ..._settings.cuePoints,
+      for (final mark in widget.rehearsalMarks)
+        if (mark.pageNumber >= _settings.startPage &&
+            mark.pageNumber <= _settings.endPage)
+          SheetAutoScrollCuePoint(
+            pageNumber: mark.pageNumber,
+            label: '${_rehearsalMarkKindLabel(mark.kind)} ${mark.label}',
+          ),
+    ];
+    final unique = <String, SheetAutoScrollCuePoint>{
+      for (final cue in cuePoints) cue.key: cue,
+    };
+    return _setSettings(
+      _settings.copyWith(cuePoints: unique.values.toList(growable: false)),
+    );
+  }
+
+  Future<void> _removeCuePoint(String key) {
+    final cuePoints = _settings.cuePoints
+        .where((cue) => cue.key != key)
+        .toList(growable: false);
+    return _setSettings(_settings.copyWith(cuePoints: cuePoints));
+  }
+
   String _durationLabel(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
@@ -11847,6 +11927,9 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     final currentPage = widget.currentPage.clamp(1, _safePageCount).toInt();
     final hasCurrentPause =
         _settings.pausePageNumbers.contains(currentPage);
+    final currentPageDuration = _settings.pageDurations[currentPage] ?? 60;
+    final hasCurrentPageDuration =
+        _settings.pageDurations.containsKey(currentPage);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -11986,6 +12069,76 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                             ),
                         ],
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.speed_outlined),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              hasCurrentPageDuration
+                                  ? '현재 $currentPage쪽 ${_durationLabel(currentPageDuration)}'
+                                  : '현재 $currentPage쪽 기본 속도',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: '현재 쪽 빠르게',
+                            onPressed: () => _setCurrentPageDuration(
+                              currentPage,
+                              currentPageDuration - 10,
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                          ),
+                          IconButton(
+                            tooltip: '현재 쪽 느리게',
+                            onPressed: () => _setCurrentPageDuration(
+                              currentPage,
+                              currentPageDuration + 10,
+                            ),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                          ),
+                          IconButton(
+                            tooltip: '현재 쪽 기본 속도',
+                            onPressed: hasCurrentPageDuration
+                                ? () => _clearCurrentPageDuration(currentPage)
+                                : null,
+                            icon: const Icon(Icons.restart_alt),
+                          ),
+                        ],
+                      ),
+                      if (_settings.pageDurations.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final entry in _settings.pageDurations.entries)
+                              Chip(
+                                avatar: const Icon(Icons.timer, size: 18),
+                                label: Text(
+                                  '${entry.key}쪽 ${_durationLabel(entry.value)}',
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -12251,6 +12404,65 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                                   ' x${_settings.repeatSections[index].repeatCount + 1}',
                                 ),
                                 onDeleted: () => _removeRepeatSection(index),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.flag_outlined),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Cue point',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: widget.rehearsalMarks.isEmpty
+                                ? null
+                                : _importRehearsalCuePoints,
+                            icon: const Icon(Icons.playlist_add),
+                            label: const Text('리허설 mark 가져오기'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_settings.cuePoints.isEmpty)
+                        Text(
+                          '등록된 cue point가 없습니다.',
+                          style: theme.textTheme.bodySmall,
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final cue in _settings.cuePoints)
+                              InputChip(
+                                avatar: const Icon(Icons.flag, size: 18),
+                                label: Text(
+                                  cue.label.trim().isEmpty
+                                      ? '${cue.pageNumber}쪽'
+                                      : '${cue.pageNumber}쪽 ${cue.label}',
+                                ),
+                                onDeleted: () => _removeCuePoint(cue.key),
                               ),
                           ],
                         ),

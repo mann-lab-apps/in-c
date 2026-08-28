@@ -12,6 +12,10 @@ void main() {
       repeatSections: <SheetAutoScrollRepeatSection>[
         SheetAutoScrollRepeatSection(startPage: 3, endPage: 5),
       ],
+      pageDurations: <int, int>{3: 75, 4: 120},
+      cuePoints: <SheetAutoScrollCuePoint>[
+        SheetAutoScrollCuePoint(pageNumber: 4, measureNumber: 12, label: 'A'),
+      ],
     );
 
     final decoded = SheetAutoScrollCodec.decode(
@@ -26,6 +30,10 @@ void main() {
     expect(decoded.repeatSections.single.startPage, 3);
     expect(decoded.repeatSections.single.endPage, 5);
     expect(decoded.repeatSections.single.repeatCount, 1);
+    expect(decoded.pageDurations, <int, int>{3: 75, 4: 120});
+    expect(decoded.cuePoints.single.pageNumber, 4);
+    expect(decoded.cuePoints.single.measureNumber, 12);
+    expect(decoded.cuePoints.single.label, 'A');
   });
 
   test('falls back to default settings for legacy values', () {
@@ -96,6 +104,10 @@ void main() {
       'startPage': 1,
       'endPage': 8,
       'pausePageNumbers': <Object?>[4, '2', 0, 4, 'bad'],
+      'pageDurations': <String, Object?>{'3': 8, '4': 1200, 'bad': 30},
+      'cuePoints': <Object?>[
+        <String, Object?>{'pageNumber': 5, 'measureNumber': 12, 'label': ' B '},
+      ],
       'repeatSections': <Object?>[
         <String, Object?>{'startPage': 5, 'endPage': 3, 'repeatCount': 9},
         <String, Object?>{'startPage': '2', 'endPage': '4'},
@@ -110,9 +122,13 @@ void main() {
     expect(settings.repeatSections.last.startPage, 5);
     expect(settings.repeatSections.last.endPage, 5);
     expect(settings.repeatSections.last.repeatCount, 4);
+    expect(settings.pageDurations, <int, int>{3: 10, 4: 900});
+    expect(settings.cuePoints.single.pageNumber, 5);
+    expect(settings.cuePoints.single.measureNumber, 12);
+    expect(settings.cuePoints.single.label, 'B');
   });
 
-  test('copyWith preserves repeat section model objects', () {
+  test('copyWith preserves repeat section and cue model objects', () {
     const settings = SheetAutoScrollSettings(
       durationSeconds: 180,
       startPage: 1,
@@ -121,6 +137,10 @@ void main() {
       repeatSections: <SheetAutoScrollRepeatSection>[
         SheetAutoScrollRepeatSection(startPage: 2, endPage: 4),
       ],
+      pageDurations: <int, int>{2: 90},
+      cuePoints: <SheetAutoScrollCuePoint>[
+        SheetAutoScrollCuePoint(pageNumber: 3, label: 'C'),
+      ],
     );
 
     final updated = settings.copyWith(durationSeconds: 240);
@@ -128,6 +148,8 @@ void main() {
     expect(updated.pausePageNumbers, <int>[4]);
     expect(updated.repeatSections.single.startPage, 2);
     expect(updated.repeatSections.single.endPage, 4);
+    expect(updated.pageDurations, <int, int>{2: 90});
+    expect(updated.cuePoints.single.label, 'C');
   });
 
   test('normalizes plan against current document page count', () {
@@ -175,6 +197,49 @@ void main() {
     expect(plan.positionForProgress(0.5).fromPage, 3);
     expect(plan.positionForProgress(0.5).toPage, 2);
     expect(plan.pageForProgress(1), 4);
+  });
+
+  test('weights auto scroll timeline with page durations', () {
+    const settings = SheetAutoScrollSettings(
+      durationSeconds: 120,
+      startPage: 1,
+      endPage: 3,
+      pageDurations: <int, int>{1: 90, 2: 30},
+    );
+
+    final plan = settings.plan(currentPage: 1, pageCount: 3);
+
+    expect(plan.positionForProgress(0.25).fromPage, 1);
+    expect(plan.positionForProgress(0.25).toPage, 2);
+    expect(plan.positionForProgress(0.8).fromPage, 2);
+    expect(plan.positionForProgress(0.8).toPage, 3);
+  });
+
+  test('returns cue points once after their page is reached', () {
+    const settings = SheetAutoScrollSettings(
+      durationSeconds: 120,
+      startPage: 1,
+      endPage: 4,
+      cuePoints: <SheetAutoScrollCuePoint>[
+        SheetAutoScrollCuePoint(pageNumber: 2, label: 'A'),
+        SheetAutoScrollCuePoint(pageNumber: 3, measureNumber: 12, label: 'B'),
+      ],
+    );
+
+    final plan = settings.plan(currentPage: 1, pageCount: 4);
+    final firstCues = plan.cuePointsForProgress(
+      0.4,
+      consumedCueKeys: <String>{},
+    );
+
+    expect(firstCues.map((cue) => cue.label), <String>['A']);
+    expect(
+      plan.cuePointsForProgress(
+        0.7,
+        consumedCueKeys: <String>{firstCues.single.key},
+      ).map((cue) => cue.label),
+      <String>['B'],
+    );
   });
 
   test('returns pause markers once after the start page is reached', () {

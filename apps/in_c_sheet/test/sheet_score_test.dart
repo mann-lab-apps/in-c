@@ -148,6 +148,10 @@ void main() {
         repeatSections: <SheetAutoScrollRepeatSection>[
           SheetAutoScrollRepeatSection(startPage: 5, endPage: 6),
         ],
+        pageDurations: <int, int>{5: 90},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 5, measureNumber: 12, label: 'B'),
+        ],
       ),
     );
 
@@ -245,6 +249,9 @@ void main() {
     expect(decoded.single.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(decoded.single.autoScrollSettings.repeatSections.single.startPage, 5);
     expect(decoded.single.autoScrollSettings.repeatSections.single.endPage, 6);
+    expect(decoded.single.autoScrollSettings.pageDurations, <int, int>{5: 90});
+    expect(decoded.single.autoScrollSettings.cuePoints.single.label, 'B');
+    expect(decoded.single.autoScrollSettings.cuePoints.single.measureNumber, 12);
   });
 
   test('normalizes custom metadata fields safely', () {

@@ -9,6 +9,8 @@ class SheetAutoScrollSettings {
     this.cueSeconds = 0,
     this.pausePageNumbers = const <int>[],
     this.repeatSections = const <SheetAutoScrollRepeatSection>[],
+    this.pageDurations = const <int, int>{},
+    this.cuePoints = const <SheetAutoScrollCuePoint>[],
   });
 
   factory SheetAutoScrollSettings.fromJson(Map<String, Object?>? json) {
@@ -35,6 +37,8 @@ class SheetAutoScrollSettings {
       ),
       pausePageNumbers: _normalizePageList(json?['pausePageNumbers']),
       repeatSections: _normalizeRepeatSections(json?['repeatSections']),
+      pageDurations: _normalizePageDurations(json?['pageDurations']),
+      cuePoints: _normalizeCuePoints(json?['cuePoints']),
     );
   }
 
@@ -50,6 +54,8 @@ class SheetAutoScrollSettings {
   final int cueSeconds;
   final List<int> pausePageNumbers;
   final List<SheetAutoScrollRepeatSection> repeatSections;
+  final Map<int, int> pageDurations;
+  final List<SheetAutoScrollCuePoint> cuePoints;
 
   SheetAutoScrollSettings copyWith({
     int? durationSeconds,
@@ -58,6 +64,8 @@ class SheetAutoScrollSettings {
     int? cueSeconds,
     List<int>? pausePageNumbers,
     List<SheetAutoScrollRepeatSection>? repeatSections,
+    Map<int, int>? pageDurations,
+    List<SheetAutoScrollCuePoint>? cuePoints,
   }) {
     return SheetAutoScrollSettings(
       durationSeconds: clampDurationSeconds(
@@ -72,6 +80,10 @@ class SheetAutoScrollSettings {
       repeatSections: _normalizeRepeatSections(
         repeatSections ?? this.repeatSections,
       ),
+      pageDurations: _normalizePageDurations(
+        pageDurations ?? this.pageDurations,
+      ),
+      cuePoints: _normalizeCuePoints(cuePoints ?? this.cuePoints),
     );
   }
 
@@ -93,6 +105,10 @@ class SheetAutoScrollSettings {
       'repeatSections': repeatSections
           .map((section) => section.toJson())
           .toList(growable: false),
+      'pageDurations': pageDurations.map(
+        (page, seconds) => MapEntry(page.toString(), seconds),
+      ),
+      'cuePoints': cuePoints.map((cue) => cue.toJson()).toList(growable: false),
     };
   }
 
@@ -102,6 +118,10 @@ class SheetAutoScrollSettings {
 
   static int clampCueSeconds(int value) {
     return value.clamp(0, 30).toInt();
+  }
+
+  static int clampPageDurationSeconds(int value) {
+    return value.clamp(10, 900).toInt();
   }
 
   static int durationForBpmPreset({
@@ -169,6 +189,59 @@ class SheetAutoScrollSettings {
       return a.endPage.compareTo(b.endPage);
     });
     return List<SheetAutoScrollRepeatSection>.unmodifiable(sections);
+  }
+
+  static Map<int, int> _normalizePageDurations(Object? value) {
+    final durations = <int, int>{};
+    if (value is Map) {
+      for (final entry in value.entries) {
+        final page = entry.key is num
+            ? (entry.key as num).round()
+            : int.tryParse('${entry.key}');
+        final seconds = entry.value is num
+            ? (entry.value as num).round()
+            : int.tryParse('${entry.value}');
+        if (page != null && page > 0 && seconds != null) {
+          durations[page] = clampPageDurationSeconds(seconds);
+        }
+      }
+    }
+    final sortedEntries = durations.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Map<int, int>.unmodifiable(<int, int>{
+      for (final entry in sortedEntries) entry.key: entry.value,
+    });
+  }
+
+  static List<SheetAutoScrollCuePoint> _normalizeCuePoints(Object? value) {
+    if (value is! Iterable) {
+      return const <SheetAutoScrollCuePoint>[];
+    }
+    final cues = <SheetAutoScrollCuePoint>[];
+    for (final entry in value) {
+      if (entry is SheetAutoScrollCuePoint) {
+        if (entry.isValid) {
+          cues.add(entry);
+        }
+      } else if (entry is Map) {
+        final cue = SheetAutoScrollCuePoint.fromJson(
+          entry.map(
+            (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+          ),
+        );
+        if (cue.isValid) {
+          cues.add(cue);
+        }
+      }
+    }
+    cues.sort((a, b) {
+      final pageCompare = a.pageNumber.compareTo(b.pageNumber);
+      if (pageCompare != 0) {
+        return pageCompare;
+      }
+      return a.measureNumber.compareTo(b.measureNumber);
+    });
+    return List<SheetAutoScrollCuePoint>.unmodifiable(cues);
   }
 
   static int _normalizeInt(
@@ -240,6 +313,64 @@ class SheetAutoScrollRepeatSection {
   }
 }
 
+class SheetAutoScrollCuePoint {
+  const SheetAutoScrollCuePoint({
+    required this.pageNumber,
+    this.measureNumber = 0,
+    this.label = '',
+  });
+
+  factory SheetAutoScrollCuePoint.fromJson(Map<String, Object?> json) {
+    return SheetAutoScrollCuePoint(
+      pageNumber: SheetAutoScrollSettings._normalizeInt(
+        json['pageNumber'],
+        fallback: 1,
+        clamp: SheetAutoScrollSettings._positivePage,
+      ),
+      measureNumber: SheetAutoScrollSettings._normalizeInt(
+        json['measureNumber'],
+        fallback: 0,
+        clamp: SheetAutoScrollSettings._nonNegativePage,
+      ),
+      label: '${json['label'] ?? ''}'.trim(),
+    );
+  }
+
+  final int pageNumber;
+  final int measureNumber;
+  final String label;
+
+  bool get isValid => pageNumber > 0;
+
+  SheetAutoScrollCuePoint copyWith({
+    int? pageNumber,
+    int? measureNumber,
+    String? label,
+  }) {
+    return SheetAutoScrollCuePoint(
+      pageNumber: SheetAutoScrollSettings._positivePage(
+        pageNumber ?? this.pageNumber,
+      ),
+      measureNumber: SheetAutoScrollSettings._nonNegativePage(
+        measureNumber ?? this.measureNumber,
+      ),
+      label: label ?? this.label,
+    );
+  }
+
+  SheetAutoScrollCuePoint clampToRange(int startPage, int endPage) {
+    return copyWith(pageNumber: pageNumber.clamp(startPage, endPage).toInt());
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'pageNumber': pageNumber,
+      'measureNumber': measureNumber,
+      'label': label,
+    };
+  }
+}
+
 class SheetAutoScrollPlan {
   const SheetAutoScrollPlan({
     required this.durationSeconds,
@@ -248,6 +379,8 @@ class SheetAutoScrollPlan {
     this.pausePageNumbers = const <int>[],
     this.repeatSections = const <SheetAutoScrollRepeatSection>[],
     this.pageTimeline = const <int>[],
+    this.pageDurations = const <int, int>{},
+    this.cuePoints = const <SheetAutoScrollCuePoint>[],
   });
 
   factory SheetAutoScrollPlan.normalize({
@@ -275,6 +408,15 @@ class SheetAutoScrollPlan {
         .map((section) => section.clampToRange(startPage, endPage))
         .where((section) => section.isValid)
         .toList(growable: false);
+    final pageDurations = <int, int>{
+      for (final entry in settings.pageDurations.entries)
+        if (entry.key >= startPage && entry.key <= endPage)
+          entry.key: entry.value,
+    };
+    final cuePoints = settings.cuePoints
+        .map((cue) => cue.clampToRange(startPage, endPage))
+        .where((cue) => cue.isValid)
+        .toList(growable: false);
     return SheetAutoScrollPlan(
       durationSeconds: settings.durationSeconds,
       startPage: startPage,
@@ -286,6 +428,8 @@ class SheetAutoScrollPlan {
       pageTimeline: List<int>.unmodifiable(
         _buildPageTimeline(startPage, endPage, repeatSections),
       ),
+      pageDurations: Map<int, int>.unmodifiable(pageDurations),
+      cuePoints: List<SheetAutoScrollCuePoint>.unmodifiable(cuePoints),
     );
   }
 
@@ -295,6 +439,8 @@ class SheetAutoScrollPlan {
   final List<int> pausePageNumbers;
   final List<SheetAutoScrollRepeatSection> repeatSections;
   final List<int> pageTimeline;
+  final Map<int, int> pageDurations;
+  final List<SheetAutoScrollCuePoint> cuePoints;
 
   double progressForElapsed(Duration elapsed) {
     if (durationSeconds <= 0) {
@@ -319,12 +465,30 @@ class SheetAutoScrollPlan {
       );
     }
     final clamped = progress.clamp(0.0, 1.0).toDouble();
-    final scaled = clamped * (timeline.length - 1);
-    final index = scaled.floor().clamp(0, timeline.length - 2).toInt();
+    final weights = _segmentWeightsFor(timeline, pageDurations);
+    final totalWeight = weights.fold<double>(0, (sum, value) => sum + value);
+    final targetWeight = clamped * totalWeight;
+    var accumulated = 0.0;
+    var index = 0;
+    var segmentProgress = 0.0;
+    for (var weightIndex = 0; weightIndex < weights.length; weightIndex += 1) {
+      final weight = weights[weightIndex];
+      if (targetWeight <= accumulated + weight ||
+          weightIndex == weights.length - 1) {
+        index = weightIndex;
+        segmentProgress = weight <= 0
+            ? 0.0
+            : ((targetWeight - accumulated) / weight)
+                  .clamp(0.0, 1.0)
+                  .toDouble();
+        break;
+      }
+      accumulated += weight;
+    }
     return SheetAutoScrollPathPosition(
       fromPage: timeline[index],
       toPage: timeline[index + 1],
-      segmentProgress: scaled - index,
+      segmentProgress: segmentProgress,
     );
   }
 
@@ -345,6 +509,22 @@ class SheetAutoScrollPlan {
       }
     }
     return null;
+  }
+
+  List<SheetAutoScrollCuePoint> cuePointsForProgress(
+    double progress, {
+    required Set<String> consumedCueKeys,
+  }) {
+    if (cuePoints.isEmpty) {
+      return const <SheetAutoScrollCuePoint>[];
+    }
+    final page = pageForProgress(progress);
+    return cuePoints
+        .where(
+          (cue) =>
+              cue.pageNumber <= page && !consumedCueKeys.contains(cue.key),
+        )
+        .toList(growable: false);
   }
 
   static List<int> _buildPageTimeline(
@@ -378,6 +558,16 @@ class SheetAutoScrollPlan {
     }
     return pages;
   }
+
+  static List<double> _segmentWeightsFor(
+    List<int> timeline,
+    Map<int, int> pageDurations,
+  ) {
+    return <double>[
+      for (var index = 0; index < timeline.length - 1; index += 1)
+        (pageDurations[timeline[index]] ?? 60).toDouble(),
+    ];
+  }
 }
 
 class SheetAutoScrollPathPosition {
@@ -397,6 +587,10 @@ class SheetAutoScrollPathPosition {
     }
     return toPage;
   }
+}
+
+extension SheetAutoScrollCuePointKey on SheetAutoScrollCuePoint {
+  String get key => '$pageNumber:$measureNumber:$label';
 }
 
 class SheetAutoScrollCodec {

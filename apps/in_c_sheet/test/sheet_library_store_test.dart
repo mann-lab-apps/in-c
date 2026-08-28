@@ -167,6 +167,10 @@ void main() {
         repeatSections: <SheetAutoScrollRepeatSection>[
           SheetAutoScrollRepeatSection(startPage: 3, endPage: 4),
         ],
+        pageDurations: <int, int>{3: 75},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
+        ],
       ),
     );
 
@@ -496,6 +500,11 @@ void main() {
       backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
       3,
     );
+    expect(
+      backup.scores.single.autoScrollSettings.pageDurations,
+      <int, int>{3: 75},
+    );
+    expect(backup.scores.single.autoScrollSettings.cuePoints.single.label, 'A');
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
@@ -544,6 +553,8 @@ void main() {
     expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
     expect(restoredScore.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
+    expect(restoredScore.autoScrollSettings.pageDurations, <int, int>{3: 75});
+    expect(restoredScore.autoScrollSettings.cuePoints.single.pageNumber, 3);
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});

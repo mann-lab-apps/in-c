@@ -86,8 +86,8 @@
 | 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: viewer context 표시와 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, backup round-trip |
-| 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, cue/pause/resume, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
-| 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure cue와 page별 duration은 후속 |
+| 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
+| 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | V1 후보 구현: `record` PCM stream, autocorrelation detector, median smoothing, profile별 no-signal debounce/confidence, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Concert/Bb Trumpet 표시, Chromatic/Bb Trumpet 감지 profile, A4 저장. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
@@ -143,9 +143,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   검증은 후속이다.
 - PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. 12차 구현은
   `pdf_document` 기반이고, 실제 CamScanner 샘플/compact rewrite 검증은 후속이다.
-- 자동 스크롤. 곡별 duration/start/end/cue/pause marker/repeat section 설정을 저장하고,
-  세로 스크롤 보기에서 timeline 기반으로 진행한다. pause/resume과 현재 메트로놈 BPM 기반
-  duration preset까지 1차 구현했다.
+- 자동 스크롤. 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
+  설정을 저장하고, 세로 스크롤 보기에서 weighted timeline 기반으로 진행한다. pause/resume과 현재
+  메트로놈 BPM 기반 duration preset까지 1차 구현했다.
 - 로컬 백업/복원. 14차 구현은 PDF 파일을 제외한 metadata-only JSON export/import였고, 17차에서
   PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다. 2026-08-28에는 save mutation마다 active
   library profile별 metadata-only 자동 snapshot을 남기고 복원할 수 있게 했다.
@@ -171,7 +171,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - smart button.
 - crescendo/piano staff, nudge tool, annotation layer.
 - PDF annotation 객체 embed/export.
-- 고급 자동 스크롤 pause.
+- 고급 자동 스크롤 measure 위치 자동 감지.
 - A-B loop, tempo/pitch shift.
 - USB/Bluetooth MIDI.
 

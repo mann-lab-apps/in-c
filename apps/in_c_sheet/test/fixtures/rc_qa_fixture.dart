@@ -167,6 +167,11 @@ List<SheetScore> buildRcQaScores() {
         repeatSections: <SheetAutoScrollRepeatSection>[
           SheetAutoScrollRepeatSection(startPage: 4, endPage: 5),
         ],
+        pageDurations: <int, int>{4: 90, 5: 120},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 4, label: 'Rehearsal A'),
+          SheetAutoScrollCuePoint(pageNumber: 5, measureNumber: 32, label: 'B'),
+        ],
       ),
     ),
     SheetScore(

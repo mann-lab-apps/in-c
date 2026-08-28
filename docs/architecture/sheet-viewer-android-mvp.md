@@ -68,8 +68,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   페이지 넘김과 mapping preset.
 - 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤, quick action overlay,
   immersive system UI, 공연 준비 안내, 잠금 정책 표시.
-- 자동 스크롤 1차: 곡별 duration/start/end/cue/pause marker/repeat section 저장,
-  세로 스크롤 기반 timeline 진행, pause/resume/stop, BPM 기반 duration preset,
+- 자동 스크롤 1차: 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
+  저장, 세로 스크롤 기반 weighted timeline 진행, pause/resume/stop, BPM 기반 duration preset,
   세트리스트 자동 다음 곡 진행, 수동 입력 시 정지.
 - URL link annotation 탭 비활성화.
 - PDF link annotation 영역 표시 토글.
@@ -143,13 +143,15 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   방해를 줄인다. 별도 wake-lock/brightness 플러그인은 아직 추가하지 않았으므로, 화면 켜짐 유지는
   앱 내 안내와 기기 자동 잠금 설정 확인으로 처리한다.
 - 자동 스크롤은 `pdfrx`의 continuous vertical layout과 `goToArea`를 사용한다. 1차는
-  시작/끝 page 범위에 pause marker와 repeat section을 적용한 page timeline을 만들고,
-  timeline segment의 from/to page top을 보간해 이동한다. cue와 pause/resume을 제공하고,
-  pause marker에 처음 도달하면 한 번만 자동 일시정지한다. Virtual page order가 있는 곡은
+  시작/끝 page 범위에 pause marker, repeat section, page duration weight, cue point를 적용한
+  page timeline을 만들고, timeline segment의 from/to page top을 보간해 이동한다. cue와
+  pause/resume을 제공하고, pause marker에 처음 도달하면 한 번만 자동 일시정지한다.
+  rehearsal mark는 자동 스크롤 cue point로 가져와 진행 중 표시할 수 있고, cue point는
+  measureNumber를 optional metadata로 보존한다. Virtual page order가 있는 곡은
   반복 순서를 정확히 따르지 못하므로 자동 스크롤 시작을 막고 페달/수동 넘김을 안내한다.
   BPM preset은 현재 메트로놈 BPM과 페이지당 16/32/64박 기준으로 durationSeconds를 계산한다.
   세트리스트 override 또는 곡별 보기 설정에서 autoAdvanceSetlist가 켜져 있으면 자동 스크롤
-  완료 후 다음 세트리스트 곡으로 전환한다. page별 duration과 measure-level cue는 후속으로 분리한다.
+  완료 후 다음 세트리스트 곡으로 전환한다. measure 위치 자동 감지는 후속으로 분리한다.
 - 주석/필기 overlay는 `pdfrx`의 `pageOverlaysBuilder`를 사용해 실제 page rect 위에 붙인다.
   stroke point는 page별 normalized coordinate로 저장하고, pointer 입력과 렌더링은 page-local
   rect 기준으로 변환한다. `pdfrx`가 zoom/pan/1페이지/2페이지/세로 스크롤 layout을 처리한 뒤
@@ -355,7 +357,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - `SheetScore.autoScrollSettings`에 곡별 자동 스크롤 설정을 저장한다.
 - 저장 필드는 durationSeconds, startPage, endPage, cueSeconds, pausePageNumbers,
-  repeatSections다.
+  repeatSections, pageDurations, cuePoints다.
 - 기본 duration은 240초이며, 설정은 30-3600초 범위로 clamp한다.
 - BPM preset은 현재 메트로놈 BPM과 페이지당 16/32/64박 기준으로 durationSeconds를 계산한다.
 - endPage가 0이면 문서 끝으로 해석한다. UI에서는 현재 문서 pageCount 안으로 normalize해
@@ -364,6 +366,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   사용자가 재개하면 같은 marker에서는 다시 멈추지 않는다.
 - repeatSections는 start/end page 구간을 page timeline에 한 번 이상 다시 삽입한다. 현재 UI는
   선택한 자동 스크롤 시작/끝 구간을 1회 반복으로 추가/삭제하는 1차 형태다.
+- pageDurations는 전체 durationSeconds 안에서 특정 page segment에 더 큰/작은 상대 가중치를
+  준다. 현재 UI는 열린 page의 duration weight를 10초 단위로 조정한다.
+- cuePoints는 pageNumber, optional measureNumber, label을 저장한다. 리허설 mark를 cue point로
+  가져올 수 있고, 자동 스크롤 진행 중 처음 도달하면 한 번만 안내한다.
 - 자동 스크롤은 세로 스크롤 보기에서만 실행한다. 다른 보기 모드에서 시작하면 세로 스크롤로
   전환하고 반 페이지 넘김은 끈다.
 - 시작 시 필기 모드는 자동으로 꺼진다. PDF pan/zoom pointer 입력과 자동 이동이 충돌하는 것을
@@ -377,7 +383,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   숨김 같은 수동 조작이 들어오면 자동 스크롤을 정지한다.
 - 공연 모드에서는 관리 action은 숨기되 자동 스크롤 start/stop 진입점은 유지한다.
 - 메트로놈 BPM 기반 duration preset, cue/pause/resume, pause marker, 반복 구간 timeline,
-  세트리스트 자동 다음 곡 진행은 1차 구현했다. page별 duration과 measure-level cue는 후속이다.
+  page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은
+  1차 구현했다. measure 위치 자동 감지는 후속이다.
 
 ## 페이지 정리 1차 구조
 
@@ -594,8 +601,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   latency, 추가 noise smoothing, YIN 비교, 외부 microphone 동작은 후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset, pause marker, 반복 구간
-  timeline, 세트리스트 자동 다음 곡 진행은 1차 구현했다. page별 duration과 measure-level cue는
-  후속이다.
+  timeline, page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은
+  1차 구현했다. measure 위치 자동 감지는 후속이다.
 - 공연 preset override: 세트리스트별 viewer/action override 저장, 복제, 백업/복원, viewer runtime
   적용을 1차 구현했다. 공연별 preset template 공유와 장비별 preset 추천은 후속이다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
