@@ -23,6 +23,7 @@ import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_tuner_input_service.dart';
@@ -10890,42 +10891,74 @@ class _AnnotationPageOverlay extends StatefulWidget {
     TapUpDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
-  )
-  onTapUp;
+  ) onTapUp;
 
   @override
   State<_AnnotationPageOverlay> createState() => _AnnotationPageOverlayState();
 }
 
 class _AnnotationPageOverlayState extends State<_AnnotationPageOverlay> {
+  static const SheetStylusInputPolicy _stylusInputPolicy =
+      SheetStylusInputPolicy();
+
   int? _activePointer;
+  PointerDeviceKind? _latestPointerKind;
+  DateTime? _rejectTouchUntil;
   double _latestPressure = 1.0;
 
   void _recordPointerPressure(PointerEvent event) {
+    final now = DateTime.now();
+    _latestPointerKind = event.kind;
+    if (_stylusInputPolicy.shouldRejectTouch(
+      kind: event.kind,
+      now: now,
+      rejectTouchUntil: _rejectTouchUntil,
+    )) {
+      if (_activePointer == null || _activePointer == event.pointer) {
+        _activePointer = event.pointer;
+        _latestPressure = 1.0;
+      }
+      return;
+    }
     if (_activePointer != null && _activePointer != event.pointer) {
       return;
     }
     _activePointer = event.pointer;
     _latestPressure = _pressureMultiplierFor(event);
+    if (event.kind == PointerDeviceKind.stylus) {
+      _rejectTouchUntil = _stylusInputPolicy.rejectTouchUntil(now);
+    }
   }
 
   void _clearPointerPressure(PointerEvent event) {
     if (_activePointer == event.pointer) {
+      if (_latestPointerKind == PointerDeviceKind.stylus) {
+        _rejectTouchUntil = _stylusInputPolicy.rejectTouchUntil(DateTime.now());
+      }
       _activePointer = null;
       _latestPressure = 1.0;
     }
   }
 
   double _pressureMultiplierFor(PointerEvent event) {
-    if (event.kind != PointerDeviceKind.stylus) {
-      return 1.0;
+    return _stylusInputPolicy.pressureMultiplierFor(
+      kind: event.kind,
+      pressure: event.pressure,
+      pressureMin: event.pressureMin,
+      pressureMax: event.pressureMax,
+    );
+  }
+
+  bool get _shouldRejectCurrentGesture {
+    final latestKind = _latestPointerKind;
+    if (latestKind == null) {
+      return false;
     }
-    final min = event.pressureMin;
-    final max = event.pressureMax;
-    final normalized = max > min
-        ? ((event.pressure - min) / (max - min)).clamp(0.0, 1.0).toDouble()
-        : event.pressure.clamp(0.0, 1.0).toDouble();
-    return (0.6 + (normalized * 0.8)).clamp(0.4, 1.8).toDouble();
+    return _stylusInputPolicy.shouldRejectTouch(
+      kind: latestKind,
+      now: DateTime.now(),
+      rejectTouchUntil: _rejectTouchUntil,
+    );
   }
 
   @override
@@ -10946,25 +10979,38 @@ class _AnnotationPageOverlayState extends State<_AnnotationPageOverlay> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onPanStart: widget.isEnabled
-                  ? (details) => widget.onPanStart(
-                      details,
-                      geometry,
-                      widget.pageNumber,
-                      _latestPressure,
-                    )
+                  ? (details) {
+                      if (_shouldRejectCurrentGesture) {
+                        return Future<void>.value();
+                      }
+                      return widget.onPanStart(
+                        details,
+                        geometry,
+                        widget.pageNumber,
+                        _latestPressure,
+                      );
+                    }
                   : null,
               onPanUpdate: widget.isEnabled
-                  ? (details) => widget.onPanUpdate(
-                      details,
-                      geometry,
-                      widget.pageNumber,
-                      _latestPressure,
-                    )
+                  ? (details) {
+                      if (_shouldRejectCurrentGesture) {
+                        return Future<void>.value();
+                      }
+                      return widget.onPanUpdate(
+                        details,
+                        geometry,
+                        widget.pageNumber,
+                        _latestPressure,
+                      );
+                    }
                   : null,
               onPanEnd: widget.isEnabled ? (_) => widget.onPanEnd() : null,
               onPanCancel: widget.isEnabled ? widget.onPanEnd : null,
               onTapUp: widget.isEnabled
                   ? (details) {
+                      if (_shouldRejectCurrentGesture) {
+                        return Future<void>.value();
+                      }
                       return widget.onTapUp(
                         details,
                         geometry,

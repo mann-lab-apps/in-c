@@ -117,7 +117,7 @@ OS:
 | iOS Share Extension | Xcode target, App Group, provisioning 설정이 필요하다. | iOS document open URL bridge는 구현했다. | Apple 계정/provisioning과 extension target 구성 |
 | Android 기존 폴더 직접 참조 | SAF persistent URI permission과 tree scan 정책을 실기기에서 검증해야 한다. | 앱 내부 사본 저장, 연결 파일, 전체 ZIP 백업은 구현했다. | Android 태블릿에서 folder picker/권한 상실/재스캔 QA |
 | Cloud provider 실패 검증 | Drive/iCloud/Dropbox 계정과 provider별 offline placeholder 동작이 필요하다. | system file picker 우선 정책과 내려받기 안내가 있다. | provider별 실기기 import 실패/성공 기록 |
-| S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | pressure metadata/render/export 경로는 구현했다. palm rejection은 아직 platform gesture tuning이 필요하다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
+| S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | pressure metadata/render/export 경로와 stylus 직후 touch rejection window는 구현했다. platform gesture tuning은 실기기 검증이 필요하다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
 | 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback이 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
 | USB/Bluetooth 페달 실장비 검증 | 실제 장비가 보내는 HID key가 제조사별로 다르다. | key mapping resolver, custom dropdown, input diagnostic log가 있다. | 페달 모델별 logical/physical key와 action 결과 기록 |
 | 저지연 메트로놈 audio/player/iOS playback parity | audio session, latency, sound asset, background 정책 검증이 필요하다. | Android native 기준음/드론, Android local audio player, visual metronome, BPM preset, local linked file metadata는 있다. | audio package/asset 결정, iOS playback bridge, Android/iOS latency QA |
