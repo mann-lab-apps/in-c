@@ -4588,12 +4588,14 @@ class SheetViewerScreen extends StatefulWidget {
     required this.controller,
     required this.scoreId,
     this.setlistId,
+    this.autoStartScroll = false,
     super.key,
   });
 
   final SheetLibraryController controller;
   final String scoreId;
   final String? setlistId;
+  final bool autoStartScroll;
 
   @override
   State<SheetViewerScreen> createState() => _SheetViewerScreenState();
@@ -4629,6 +4631,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   DateTime? _autoScrollPausedAt;
   SheetAutoScrollPlan? _autoScrollPlan;
   double _autoScrollProgress = 0;
+  Set<int> _autoScrollConsumedPausePages = const <int>{};
+  bool _didAutoStartScroll = false;
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
@@ -5349,6 +5353,7 @@ setlist=$setlistLabel
         _autoScrollPausedAt = null;
         _autoScrollPlan = plan;
         _autoScrollProgress = 0;
+        _autoScrollConsumedPausePages = <int>{};
         _autoScrollCueRemainingSeconds = settings.cueSeconds;
         _showPageControls = true;
       });
@@ -5375,6 +5380,18 @@ setlist=$setlistLabel
     _beginAutoScroll(plan);
   }
 
+  void _maybeAutoStartScroll() {
+    if (!widget.autoStartScroll || _didAutoStartScroll) {
+      return;
+    }
+    _didAutoStartScroll = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_startAutoScroll(score.autoScrollSettings));
+      }
+    });
+  }
+
   void _beginAutoScroll(SheetAutoScrollPlan plan) {
     _autoScrollTimer?.cancel();
     _autoScrollCueTimer?.cancel();
@@ -5386,6 +5403,7 @@ setlist=$setlistLabel
       _autoScrollPausedAt = null;
       _autoScrollPlan = plan;
       _autoScrollProgress = 0;
+      _autoScrollConsumedPausePages = <int>{};
       _autoScrollCueRemainingSeconds = null;
       _showPageControls = true;
     });
@@ -5414,33 +5432,56 @@ setlist=$setlistLabel
     final progress = plan.progressForElapsed(
       DateTime.now().difference(startedAt),
     );
+    final pausePage = plan.pausePageForProgress(
+      progress,
+      consumedPageNumbers: _autoScrollConsumedPausePages,
+    );
+    if (pausePage != null) {
+      setState(() {
+        _autoScrollConsumedPausePages = <int>{
+          ..._autoScrollConsumedPausePages,
+          pausePage,
+        };
+        _autoScrollProgress = progress;
+      });
+      _pauseAutoScroll(message: '$pausePage쪽 pause marker에서 일시정지했습니다.');
+      return;
+    }
+
     final pageCount = _pdfController.pageCount;
     final layouts = _pdfController.layout.pageLayouts;
     if (layouts.isEmpty || pageCount < 1) {
       return;
     }
-    final targetPage = score.pageSettings.closestVisiblePage(
-      fromPage: plan.pageForProgress(progress),
+    final position = plan.positionForProgress(progress);
+    final fromPage = score.pageSettings.closestVisiblePage(
+      fromPage: position.fromPage,
       pageCount: pageCount,
     );
-    final startIndex = (plan.startPage - 1)
-        .clamp(0, layouts.length - 1)
-        .toInt();
-    final endIndex = (plan.endPage - 1).clamp(0, layouts.length - 1).toInt();
-    final targetIndex = (targetPage - 1).clamp(0, layouts.length - 1).toInt();
-    final startRect = layouts[startIndex];
-    final endRect = layouts[endIndex];
-    final targetRect = layouts[targetIndex];
+    final toPage = score.pageSettings.closestVisiblePage(
+      fromPage: position.toPage,
+      pageCount: pageCount,
+    );
     final visibleRect = _pdfController.visibleRect;
     if (visibleRect.width <= 0 || visibleRect.height <= 0) {
       return;
     }
-    final startTop = startRect.top;
-    final endTop = math.max(startTop, endRect.bottom - visibleRect.height);
+    final fromIndex = (fromPage - 1).clamp(0, layouts.length - 1).toInt();
+    final toIndex = (toPage - 1).clamp(0, layouts.length - 1).toInt();
+    final fromRect = layouts[fromIndex];
+    final toRect = layouts[toIndex];
+    final fromTop = _autoScrollPageTop(
+      fromRect,
+      visibleRect.height,
+      isEndPage: position.fromPage == plan.endPage,
+    );
+    final toTop = _autoScrollPageTop(
+      toRect,
+      visibleRect.height,
+      isEndPage: toPage == plan.endPage,
+    );
     final targetTop =
-        score.pageSettings.isHidden(plan.pageForProgress(progress))
-        ? targetRect.top
-        : startTop + ((endTop - startTop) * progress);
+        fromTop + ((toTop - fromTop) * position.segmentProgress);
 
     _isAutoScrollTicking = true;
     try {
@@ -5463,11 +5504,30 @@ setlist=$setlistLabel
       });
     }
     if (progress >= 1) {
-      _stopAutoScroll(showMessage: true, completed: true);
+      final shouldAdvanceSetlist = _shouldAutoAdvanceSetlist(1);
+      _stopAutoScroll(showMessage: !shouldAdvanceSetlist, completed: true);
+      if (shouldAdvanceSetlist) {
+        _showSnackBar('자동 스크롤이 끝나 다음 곡으로 이동합니다.');
+        await Future<void>.delayed(const Duration(milliseconds: 250));
+        if (mounted) {
+          await _goToAdjacentSetlistScore(1, autoStartScroll: true);
+        }
+      }
     }
   }
 
-  void _pauseAutoScroll() {
+  double _autoScrollPageTop(
+    Rect pageRect,
+    double visibleHeight, {
+    required bool isEndPage,
+  }) {
+    if (!isEndPage) {
+      return pageRect.top;
+    }
+    return math.max(pageRect.top, pageRect.bottom - visibleHeight);
+  }
+
+  void _pauseAutoScroll({String? message}) {
     if (!_isAutoScrolling || _isAutoScrollPaused) {
       return;
     }
@@ -5477,7 +5537,7 @@ setlist=$setlistLabel
       _isAutoScrollPaused = true;
       _autoScrollPausedAt = DateTime.now();
     });
-    _showSnackBar('자동 스크롤을 일시정지했습니다.');
+    _showSnackBar(message ?? '자동 스크롤을 일시정지했습니다.');
   }
 
   void _resumeAutoScroll() {
@@ -5520,6 +5580,7 @@ setlist=$setlistLabel
         _autoScrollPausedAt = null;
         _autoScrollPlan = null;
         _autoScrollProgress = 0;
+        _autoScrollConsumedPausePages = const <int>{};
         _autoScrollCueRemainingSeconds = null;
       });
     } else {
@@ -5529,6 +5590,7 @@ setlist=$setlistLabel
       _autoScrollPausedAt = null;
       _autoScrollPlan = null;
       _autoScrollProgress = 0;
+      _autoScrollConsumedPausePages = const <int>{};
       _autoScrollCueRemainingSeconds = null;
     }
     if (showMessage) {
@@ -8853,7 +8915,10 @@ setlist=$setlistLabel
     });
   }
 
-  Future<void> _goToAdjacentSetlistScore(int delta) async {
+  Future<void> _goToAdjacentSetlistScore(
+    int delta, {
+    bool autoStartScroll = false,
+  }) async {
     final setlistId = widget.setlistId;
     if (setlistId == null) {
       return;
@@ -8912,6 +8977,7 @@ setlist=$setlistLabel
           controller: widget.controller,
           scoreId: nextScore.id,
           setlistId: setlistId,
+          autoStartScroll: autoStartScroll,
         ),
       ),
     );
@@ -9851,6 +9917,7 @@ setlist=$setlistLabel
                               force: true,
                             );
                             unawaited(_loadPdfOutlineBookmarks(document));
+                            _maybeAutoStartScroll();
                           },
                           pageOverlaysBuilder: (context, pageRect, page) {
                             final pageNumber = page.pageNumber;
@@ -11632,7 +11699,19 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     if (endPage < startPage) {
       endPage = startPage;
     }
-    return settings.copyWith(startPage: startPage, endPage: endPage);
+    final pausePageNumbers = settings.pausePageNumbers
+        .where((page) => page > startPage && page <= endPage)
+        .toList(growable: false);
+    final repeatSections = settings.repeatSections
+        .map((section) => section.clampToRange(startPage, endPage))
+        .where((section) => section.isValid)
+        .toList(growable: false);
+    return settings.copyWith(
+      startPage: startPage,
+      endPage: endPage,
+      pausePageNumbers: pausePageNumbers,
+      repeatSections: repeatSections,
+    );
   }
 
   Future<void> _setSettings(SheetAutoScrollSettings settings) async {
@@ -11656,6 +11735,51 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     );
   }
 
+  Future<void> _togglePausePage(int pageNumber) {
+    final pages = _settings.pausePageNumbers.toSet();
+    if (pages.contains(pageNumber)) {
+      pages.remove(pageNumber);
+    } else {
+      pages.add(pageNumber);
+    }
+    return _setSettings(
+      _settings.copyWith(pausePageNumbers: pages.toList()..sort()),
+    );
+  }
+
+  Future<void> _removePausePage(int pageNumber) {
+    final pages = _settings.pausePageNumbers
+        .where((page) => page != pageNumber)
+        .toList(growable: false);
+    return _setSettings(_settings.copyWith(pausePageNumbers: pages));
+  }
+
+  Future<void> _addRepeatSection() {
+    final section = SheetAutoScrollRepeatSection(
+      startPage: _settings.startPage,
+      endPage: _settings.endPage,
+    );
+    final sections = <SheetAutoScrollRepeatSection>[
+      ..._settings.repeatSections.where(
+        (existing) =>
+            existing.startPage != section.startPage ||
+            existing.endPage != section.endPage,
+      ),
+      section,
+    ];
+    return _setSettings(_settings.copyWith(repeatSections: sections));
+  }
+
+  Future<void> _removeRepeatSection(int index) {
+    final sections = <SheetAutoScrollRepeatSection>[
+      for (var sectionIndex = 0;
+          sectionIndex < _settings.repeatSections.length;
+          sectionIndex += 1)
+        if (sectionIndex != index) _settings.repeatSections[sectionIndex],
+    ];
+    return _setSettings(_settings.copyWith(repeatSections: sections));
+  }
+
   String _durationLabel(int seconds) {
     final minutes = seconds ~/ 60;
     final remainingSeconds = seconds % 60;
@@ -11674,6 +11798,9 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     final progress = widget.progress.clamp(0.0, 1.0).toDouble();
     final cueOptions = <int>{0, 3, 5, 10, _settings.cueSeconds}.toList()
       ..sort();
+    final currentPage = widget.currentPage.clamp(1, _safePageCount).toInt();
+    final hasCurrentPause =
+        _settings.pausePageNumbers.contains(currentPage);
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -11961,6 +12088,126 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                           label: Text('현재 ${widget.currentPage}쪽부터'),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.pause_circle_outline),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              'Pause marker',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: () => _togglePausePage(currentPage),
+                            icon: Icon(
+                              hasCurrentPause ? Icons.remove : Icons.add,
+                            ),
+                            label: Text(
+                              hasCurrentPause
+                                  ? '현재 쪽 제거'
+                                  : '현재 $currentPage쪽 추가',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_settings.pausePageNumbers.isEmpty)
+                        Text(
+                          '등록된 pause marker가 없습니다.',
+                          style: theme.textTheme.bodySmall,
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final page in _settings.pausePageNumbers)
+                              InputChip(
+                                avatar: const Icon(Icons.pause, size: 18),
+                                label: Text('$page쪽'),
+                                onDeleted: () => _removePausePage(page),
+                              ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.repeat),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              '반복 구간',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                          TextButton.icon(
+                            onPressed: _addRepeatSection,
+                            icon: const Icon(Icons.add),
+                            label: Text(
+                              '${_settings.startPage}-${_settings.endPage}쪽',
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      if (_settings.repeatSections.isEmpty)
+                        Text(
+                          '등록된 반복 구간이 없습니다.',
+                          style: theme.textTheme.bodySmall,
+                        )
+                      else
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (var index = 0;
+                                index < _settings.repeatSections.length;
+                                index += 1)
+                              InputChip(
+                                avatar: const Icon(Icons.repeat, size: 18),
+                                label: Text(
+                                  '${_settings.repeatSections[index].startPage}-'
+                                  '${_settings.repeatSections[index].endPage}쪽'
+                                  ' x${_settings.repeatSections[index].repeatCount + 1}',
+                                ),
+                                onDeleted: () => _removeRepeatSection(index),
+                              ),
+                          ],
+                        ),
                     ],
                   ),
                 ),

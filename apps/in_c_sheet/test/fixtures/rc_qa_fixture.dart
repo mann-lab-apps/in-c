@@ -163,6 +163,10 @@ List<SheetScore> buildRcQaScores() {
         startPage: 3,
         endPage: 8,
         cueSeconds: 8,
+        pausePageNumbers: <int>[5],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 4, endPage: 5),
+        ],
       ),
     ),
     SheetScore(

@@ -159,6 +159,15 @@ void main() {
       lastPage: 1,
       isFavorite: false,
       bookmarks: const <SheetBookmark>[],
+      autoScrollSettings: const SheetAutoScrollSettings(
+        durationSeconds: 240,
+        startPage: 2,
+        endPage: 6,
+        pausePageNumbers: <int>[4],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 3, endPage: 4),
+        ],
+      ),
     );
 
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -482,6 +491,11 @@ void main() {
       'toggleQuickActions',
     );
     expect(backup.scores.single.pageSettings.cropForPage(2).left, 0.04);
+    expect(backup.scores.single.autoScrollSettings.pausePageNumbers, <int>[4]);
+    expect(
+      backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
+      3,
+    );
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
@@ -528,6 +542,8 @@ void main() {
       'toggleQuickActions',
     );
     expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
+    expect(restoredScore.autoScrollSettings.pausePageNumbers, <int>[4]);
+    expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});

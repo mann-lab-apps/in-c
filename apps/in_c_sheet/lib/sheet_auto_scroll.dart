@@ -7,6 +7,8 @@ class SheetAutoScrollSettings {
     required this.startPage,
     required this.endPage,
     this.cueSeconds = 0,
+    this.pausePageNumbers = const <int>[],
+    this.repeatSections = const <SheetAutoScrollRepeatSection>[],
   });
 
   factory SheetAutoScrollSettings.fromJson(Map<String, Object?>? json) {
@@ -31,6 +33,8 @@ class SheetAutoScrollSettings {
         fallback: 0,
         clamp: clampCueSeconds,
       ),
+      pausePageNumbers: _normalizePageList(json?['pausePageNumbers']),
+      repeatSections: _normalizeRepeatSections(json?['repeatSections']),
     );
   }
 
@@ -44,12 +48,16 @@ class SheetAutoScrollSettings {
   final int startPage;
   final int endPage;
   final int cueSeconds;
+  final List<int> pausePageNumbers;
+  final List<SheetAutoScrollRepeatSection> repeatSections;
 
   SheetAutoScrollSettings copyWith({
     int? durationSeconds,
     int? startPage,
     int? endPage,
     int? cueSeconds,
+    List<int>? pausePageNumbers,
+    List<SheetAutoScrollRepeatSection>? repeatSections,
   }) {
     return SheetAutoScrollSettings(
       durationSeconds: clampDurationSeconds(
@@ -58,6 +66,12 @@ class SheetAutoScrollSettings {
       startPage: _positivePage(startPage ?? this.startPage),
       endPage: _nonNegativePage(endPage ?? this.endPage),
       cueSeconds: clampCueSeconds(cueSeconds ?? this.cueSeconds),
+      pausePageNumbers: _normalizePageList(
+        pausePageNumbers ?? this.pausePageNumbers,
+      ),
+      repeatSections: _normalizeRepeatSections(
+        repeatSections ?? this.repeatSections,
+      ),
     );
   }
 
@@ -75,6 +89,10 @@ class SheetAutoScrollSettings {
       'startPage': startPage,
       'endPage': endPage,
       'cueSeconds': cueSeconds,
+      'pausePageNumbers': pausePageNumbers,
+      'repeatSections': repeatSections
+          .map((section) => section.toJson())
+          .toList(growable: false),
     };
   }
 
@@ -105,6 +123,54 @@ class SheetAutoScrollSettings {
 
   static int _nonNegativePage(int value) => math.max(0, value);
 
+  static List<int> _normalizePageList(Object? value) {
+    if (value is! Iterable) {
+      return const <int>[];
+    }
+    final pages = <int>{};
+    for (final entry in value) {
+      final page = entry is num ? entry.round() : int.tryParse('$entry');
+      if (page != null && page > 0) {
+        pages.add(page);
+      }
+    }
+    final sorted = pages.toList()..sort();
+    return List<int>.unmodifiable(sorted);
+  }
+
+  static List<SheetAutoScrollRepeatSection> _normalizeRepeatSections(
+    Object? value,
+  ) {
+    if (value is! Iterable) {
+      return const <SheetAutoScrollRepeatSection>[];
+    }
+    final sections = <SheetAutoScrollRepeatSection>[];
+    for (final entry in value) {
+      if (entry is SheetAutoScrollRepeatSection) {
+        if (entry.isValid) {
+          sections.add(entry);
+        }
+      } else if (entry is Map) {
+        final section = SheetAutoScrollRepeatSection.fromJson(
+          entry.map(
+            (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+          ),
+        );
+        if (section.isValid) {
+          sections.add(section);
+        }
+      }
+    }
+    sections.sort((a, b) {
+      final startCompare = a.startPage.compareTo(b.startPage);
+      if (startCompare != 0) {
+        return startCompare;
+      }
+      return a.endPage.compareTo(b.endPage);
+    });
+    return List<SheetAutoScrollRepeatSection>.unmodifiable(sections);
+  }
+
   static int _normalizeInt(
     Object? value, {
     required int fallback,
@@ -117,11 +183,71 @@ class SheetAutoScrollSettings {
   }
 }
 
+class SheetAutoScrollRepeatSection {
+  const SheetAutoScrollRepeatSection({
+    required this.startPage,
+    required this.endPage,
+    this.repeatCount = 1,
+  });
+
+  factory SheetAutoScrollRepeatSection.fromJson(Map<String, Object?> json) {
+    final startPage = SheetAutoScrollSettings._normalizeInt(
+      json['startPage'],
+      fallback: 1,
+      clamp: SheetAutoScrollSettings._positivePage,
+    );
+    var endPage = SheetAutoScrollSettings._normalizeInt(
+      json['endPage'],
+      fallback: startPage,
+      clamp: SheetAutoScrollSettings._positivePage,
+    );
+    if (endPage < startPage) {
+      endPage = startPage;
+    }
+    return SheetAutoScrollRepeatSection(
+      startPage: startPage,
+      endPage: endPage,
+      repeatCount: SheetAutoScrollSettings._normalizeInt(
+        json['repeatCount'],
+        fallback: 1,
+        clamp: (value) => value.clamp(1, 4).toInt(),
+      ),
+    );
+  }
+
+  final int startPage;
+  final int endPage;
+  final int repeatCount;
+
+  bool get isValid => startPage > 0 && endPage >= startPage && repeatCount > 0;
+
+  SheetAutoScrollRepeatSection clampToRange(int startPage, int endPage) {
+    final clampedStart = this.startPage.clamp(startPage, endPage).toInt();
+    final clampedEnd = this.endPage.clamp(clampedStart, endPage).toInt();
+    return SheetAutoScrollRepeatSection(
+      startPage: clampedStart,
+      endPage: clampedEnd,
+      repeatCount: repeatCount.clamp(1, 4).toInt(),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'startPage': startPage,
+      'endPage': endPage,
+      'repeatCount': repeatCount,
+    };
+  }
+}
+
 class SheetAutoScrollPlan {
   const SheetAutoScrollPlan({
     required this.durationSeconds,
     required this.startPage,
     required this.endPage,
+    this.pausePageNumbers = const <int>[],
+    this.repeatSections = const <SheetAutoScrollRepeatSection>[],
+    this.pageTimeline = const <int>[],
   });
 
   factory SheetAutoScrollPlan.normalize({
@@ -142,16 +268,33 @@ class SheetAutoScrollPlan {
       endPage = startPage;
     }
 
+    final pausePageNumbers = settings.pausePageNumbers
+        .where((page) => page > startPage && page <= endPage)
+        .toList(growable: false);
+    final repeatSections = settings.repeatSections
+        .map((section) => section.clampToRange(startPage, endPage))
+        .where((section) => section.isValid)
+        .toList(growable: false);
     return SheetAutoScrollPlan(
       durationSeconds: settings.durationSeconds,
       startPage: startPage,
       endPage: endPage,
+      pausePageNumbers: List<int>.unmodifiable(pausePageNumbers),
+      repeatSections: List<SheetAutoScrollRepeatSection>.unmodifiable(
+        repeatSections,
+      ),
+      pageTimeline: List<int>.unmodifiable(
+        _buildPageTimeline(startPage, endPage, repeatSections),
+      ),
     );
   }
 
   final int durationSeconds;
   final int startPage;
   final int endPage;
+  final List<int> pausePageNumbers;
+  final List<SheetAutoScrollRepeatSection> repeatSections;
+  final List<int> pageTimeline;
 
   double progressForElapsed(Duration elapsed) {
     if (durationSeconds <= 0) {
@@ -161,12 +304,98 @@ class SheetAutoScrollPlan {
   }
 
   int pageForProgress(double progress) {
-    final clamped = progress.clamp(0.0, 1.0).toDouble();
-    final pageSpan = endPage - startPage;
-    if (pageSpan <= 0) {
-      return startPage;
+    return positionForProgress(progress).targetPage;
+  }
+
+  SheetAutoScrollPathPosition positionForProgress(double progress) {
+    final timeline = pageTimeline.isEmpty
+        ? _buildPageTimeline(startPage, endPage, repeatSections)
+        : pageTimeline;
+    if (timeline.length <= 1) {
+      return SheetAutoScrollPathPosition(
+        fromPage: startPage,
+        toPage: startPage,
+        segmentProgress: 0,
+      );
     }
-    return (startPage + (pageSpan * clamped)).round().clamp(startPage, endPage);
+    final clamped = progress.clamp(0.0, 1.0).toDouble();
+    final scaled = clamped * (timeline.length - 1);
+    final index = scaled.floor().clamp(0, timeline.length - 2).toInt();
+    return SheetAutoScrollPathPosition(
+      fromPage: timeline[index],
+      toPage: timeline[index + 1],
+      segmentProgress: scaled - index,
+    );
+  }
+
+  int? pausePageForProgress(
+    double progress, {
+    required Set<int> consumedPageNumbers,
+  }) {
+    if (pausePageNumbers.isEmpty) {
+      return null;
+    }
+    final page = pageForProgress(progress);
+    if (page <= startPage) {
+      return null;
+    }
+    for (final pausePage in pausePageNumbers) {
+      if (pausePage <= page && !consumedPageNumbers.contains(pausePage)) {
+        return pausePage;
+      }
+    }
+    return null;
+  }
+
+  static List<int> _buildPageTimeline(
+    int startPage,
+    int endPage,
+    List<SheetAutoScrollRepeatSection> repeatSections,
+  ) {
+    if (endPage <= startPage) {
+      return <int>[startPage];
+    }
+    final repeatsByEndPage = <int, List<SheetAutoScrollRepeatSection>>{};
+    for (final section in repeatSections) {
+      repeatsByEndPage.putIfAbsent(section.endPage, () => []).add(section);
+    }
+    final pages = <int>[];
+    for (var page = startPage; page <= endPage; page += 1) {
+      pages.add(page);
+      final sections =
+          repeatsByEndPage[page] ?? const <SheetAutoScrollRepeatSection>[];
+      for (final section in sections) {
+        for (var repeat = 0; repeat < section.repeatCount; repeat += 1) {
+          for (
+            var repeatedPage = section.startPage;
+            repeatedPage <= section.endPage;
+            repeatedPage += 1
+          ) {
+            pages.add(repeatedPage);
+          }
+        }
+      }
+    }
+    return pages;
+  }
+}
+
+class SheetAutoScrollPathPosition {
+  const SheetAutoScrollPathPosition({
+    required this.fromPage,
+    required this.toPage,
+    required this.segmentProgress,
+  });
+
+  final int fromPage;
+  final int toPage;
+  final double segmentProgress;
+
+  int get targetPage {
+    if (segmentProgress < 0.5) {
+      return fromPage;
+    }
+    return toPage;
   }
 }
 
