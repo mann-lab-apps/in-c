@@ -13,6 +13,7 @@ void main() {
     expect(template, contains('텍스트 PDF / 스캔 PDF / 이미지 변환 PDF'));
     expect(template, contains('URL link PDF / 한글 주석 PDF'));
     expect(template, contains('샘플 파일 공유 가능 여부'));
+    expect(template, contains('blocker 여부'));
     expect(template, contains('스크린샷 또는 화면녹화'));
     expect(template, contains('annotation export'));
     expect(template, contains('scores=2, setlists=1'));

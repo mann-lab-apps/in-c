@@ -57,7 +57,7 @@
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
 | 15-0 | 자동 백업 복원 | 백업 메뉴의 자동 metadata 복원이 파일 picker 없이 active library profile의 최신 snapshot으로 되돌린다. | 복원 전후 악보 수, 활성 library profile, PDF filePath 접근 여부 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
-| 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부 |
+| 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
 
 ## 기기별 필수 확인
@@ -158,6 +158,7 @@ source of truth로 둔다.
 - 다중 annotation layer와 annotation별 layer keying.
 - 실제 HID key capture wizard 기반 페달 설정.
 - 저지연 metronome/audio/iOS playback parity.
+- Page별 live rotation rendering과 overlay/link/search coordinate regression.
 - Cloud sync/account/server 저장과 OS background scheduler 기반 주기적 전체 백업은 v1.1 또는 Later
   scope 결정 spike로 유지.
 
@@ -206,7 +207,7 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
 - `flutter pub get`: PASS.
 - `dart format lib test`: PASS. 기존 미포맷 Dart 파일을 formatter 기준으로 정리했다.
 - `flutter analyze`: PASS. No issues found.
-- `flutter test`: PASS. 245 tests passed.
+- `flutter test`: PASS. 246 tests passed.
 - `git diff --check`: PASS.
 
 2026-08-28 샘플 PDF 로컬 검증 기록:
@@ -225,7 +226,27 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
 2026-08-28 RC polish 로컬 검증 기록:
 
 - 앱 내 피드백 템플릿을 `SheetRcFeedbackTemplate`로 분리하고, 설치 방식, PDF/샘플 유형,
-  페이지 수/파일 크기, 샘플 파일 공유 가능 여부, screenshot/screen recording, 테스트 영역을
-  필수 기록 항목으로 추가했다.
+  페이지 수/파일 크기, 샘플 파일 공유 가능 여부, screenshot/screen recording, 테스트 영역, blocker
+  여부를 필수 기록 항목으로 추가했다.
 - 테스트 정보 화면의 확인 항목에 PDF 본문 검색/OCR 안내, URL link 제거 사본, 페이지 적용 사본,
   기준음/드론/로컬 오디오, 페달/키보드 입력 진단을 포함했다.
+
+RC release checklist 자동화:
+
+```sh
+cd apps/in_c_sheet
+dart run tool/rc_release_check.dart
+```
+
+이 도구는 PDF fixture inspection, non-mutating formatter check, analyze/test, whitespace/tab scan,
+stale wording scan, debug print scan을 순서대로 실행한다.
+
+2026-08-28 바로 구현 후보 로컬 보강 기록:
+
+- feedback template/tester checklist/QA plan의 이슈 기록 필드를 `blocker 여부`까지 맞췄다.
+- annotation file-backed adapter에 10k stroke stress-lite save/load test를 추가해 1MB 이상 외부
+  annotation JSON round-trip을 확인한다.
+- PDF link sanitizer 성공/부분 성공 snackbar가 원본 PDF 보존을 명시하도록 정리했다.
+- `pdfrx` 2.4.7 기준 page별 live rotation hook 미확인 상태를 v1.1 spike backlog로 분리했다.
+- `dart run tool/rc_release_check.dart`: PASS. PDF fixture inspection, format check, analyze,
+  246-test suite, whitespace/tab/stale wording/debug print scans가 통과했다.

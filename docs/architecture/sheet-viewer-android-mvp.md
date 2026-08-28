@@ -848,3 +848,8 @@ PDF 표준 annotation embed/export, 한글/비라틴 font embedding, SQLite/file
 migration, HID capture wizard, 저지연 metronome/audio/iOS parity, cloud sync/background backup을
 별도 backlog로 분리했다. 이 항목들은 RC 완료 조건이 아니라 engine/API/device/sample/license 결정과
 acceptance criteria를 먼저 고정해야 하는 후속 spike다.
+
+2026-08-28 바로 구현 후보 처리에서는 `pdfrx` 2.4.7 local API를 확인했다. `PdfPageView`에는
+`rotationOverride`가 있지만 현재 앱의 `PdfViewer.file` 경로에서 page별 live rotation을 안정적으로
+주입하는 공개 hook은 확인하지 못했다. 따라서 v1 RC는 source/instance rotation metadata와
+회전/페이지 정리 적용 사본 경로를 유지하고, live rotation은 v1.1 viewer spike로 남긴다.

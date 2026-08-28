@@ -77,9 +77,14 @@
 - 앱 버전/build.
 - 기기명과 OS 버전.
 - 설치 방식: TestFlight, debug APK, release APK.
-- PDF 종류와 페이지 수: 스캔 PDF, 일반 PDF, 이미지 변환 PDF 등.
+- PDF/샘플 파일 유형: 텍스트 PDF, 스캔 PDF, 이미지 변환 PDF, URL link PDF, 한글 주석 PDF 등.
+- 페이지 수와 파일 크기.
+- 샘플 파일 공유 가능 여부.
+- 테스트 영역: import, viewer, search, annotation export, backup, pedal, S Pen, tuner, audio 등.
+- blocker 여부: 예, 아니오, 모르겠음.
 - 한 일: 누른 버튼, 메뉴, 입력값.
 - 기대한 결과.
 - 실제 결과.
 - 표시된 오류 문구.
+- 스크린샷 또는 화면녹화 가능 여부.
 - 같은 순서로 다시 했을 때 재현되는지.

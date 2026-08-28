@@ -7952,12 +7952,13 @@ setlist=$setlistLabel
 
     if (result.removedAllUrlLinks) {
       _showSnackBar(
-        '${result.removedUrlLinkCount}개 외부 URL 링크를 제거한 사본으로 교체했습니다.',
+        '${result.removedUrlLinkCount}개 외부 URL 링크를 제거한 사본으로 교체했습니다. '
+        '원본 PDF는 연결 파일로 보존됩니다.',
       );
     } else {
       _showSnackBar(
         '${result.removedUrlLinkCount}개 제거, '
-        '${result.remainingUrlLinkCount}개 남았습니다. 사본으로 교체했습니다.',
+        '${result.remainingUrlLinkCount}개 남았습니다. 원본 PDF는 보존됩니다.',
       );
     }
   }

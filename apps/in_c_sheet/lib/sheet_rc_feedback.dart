@@ -16,6 +16,7 @@ PDF/샘플 파일:
 - 페이지 수/파일 크기:
 - 샘플 파일 공유 가능 여부:
 테스트 영역: import / viewer / search / annotation export / backup / pedal / S Pen / tuner / audio
+blocker 여부: 예 / 아니오 / 모르겠음
 한 일:
 기대한 결과:
 실제 결과:

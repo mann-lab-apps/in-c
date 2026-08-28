@@ -19,6 +19,7 @@
   - 페이지 수/파일 크기:
   - 샘플 파일 공유 가능 여부:
 - 테스트 영역: import / viewer / search / annotation export / backup / pedal / S Pen / tuner / audio
+- blocker 여부: 예 / 아니오 / 모르겠음
 - 한 일:
 - 기대한 결과:
 - 실제 결과:
@@ -40,4 +41,5 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있다.
 - 필기 포함 PDF 공유는 원본 PDF를 수정하지 않고 새 사본에 stamp하는 방식이다.
 - URL link 제거는 원본 PDF를 보존하고 앱 내부 사본만 만든다.
+- 실제 CamScanner/object stream PDF, 페달/S Pen, cloud provider 문제는 샘플/기기 정보가 있으면 좋다.
 - cloud sync/account/server 저장은 아직 없다.

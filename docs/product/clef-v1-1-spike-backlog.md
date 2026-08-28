@@ -119,7 +119,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 ## 7. SQLite/File-backed Annotation Store Migration
 
 - 현재 v1 상태: inline SharedPreferences metadata가 기본 저장소다. file-backed adapter와
-  `SheetAnnotationStorageReference` scaffold는 있고, 강제 migration은 하지 않는다.
+  `SheetAnnotationStorageReference` scaffold는 있고, 10k stroke stress-lite save/load test로
+  external file 경로의 기본 회귀를 확인했다. 강제 migration은 하지 않는다.
 - 왜 v1.1 spike인지: 대량 stroke 성능, corrupt file recovery, checksum, backup/restore, lazy
   migration rollback 정책이 필요하다.
 - 결정 필요사항: SQLite vs JSON file-backed, profile별 path, transaction/locking, checksum strategy,
@@ -127,7 +128,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 - 구현 후보: lazy non-destructive migration, read-through inline fallback, per-score external store,
   migration status badge, backup manifest annotation file mappings.
 - 테스트/fixture/실기기 조건: 10k stroke synthetic score, corrupted annotation file, checksum mismatch,
-  interrupted migration, metadata/full backup round-trip.
+  interrupted migration, metadata/full backup round-trip, inline metadata size threshold.
 - Acceptance criteria: 기존 inline records가 손상 없이 lazy migration되고, 실패 시 inline fallback
   또는 명확한 복구 안내가 제공된다.
 - Blocker 해제 조건: storage backend 선택, migration threshold 결정, stress test 통과.
@@ -181,6 +182,24 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   자동 삭제 없이 복구 가능한 상태로 남긴다.
 - Blocker 해제 조건: product scope 결정, account/cloud provider strategy, privacy/security review.
 
+## 11. Page별 Live Rotation Rendering
+
+- 현재 v1 상태: source page/virtual instance rotation metadata, 회전 badge, 회전 적용 사본, 페이지
+  정리 적용 사본의 output page metadata가 있다.
+- 왜 v1.1 spike인지: `pdfrx` 2.4.7 local API에서 `PdfPageView.rotationOverride`는 확인했지만
+  현재 앱의 `PdfViewer.file` 경로에 page별 rendered page rotation override를 주입하는 안정적인 공개
+  hook은 확인하지 못했다.
+- 결정 필요사항: `PdfViewer.file` 유지 vs custom `PdfDocumentView`/`PdfPageView` composition,
+  page overlay/crop/annotation coordinate transform, text search/link rect mapping, page layout/zoom
+  persistence.
+- 구현 후보: custom page view adapter, rotated applied-copy preview, upstream `pdfrx` hook request,
+  per-page transform helper.
+- 테스트/fixture/실기기 조건: 1페이지/2페이지/세로/half-page modes, crop/rotation mixed pageOrder
+  duplicate, annotation/bookmark/jump point overlays, link rects, tablet landscape/portrait screenshot QA.
+- Acceptance criteria: page별 live rotation이 viewer에서 즉시 보이고, annotations/links/search
+  overlays가 rotated coordinate에 맞으며, applied copy fallback은 계속 사용할 수 있다.
+- Blocker 해제 조건: stable viewer hook/API 선택, coordinate regression tests, screenshot QA.
+
 ## RC 이후 추천 우선순위
 
 1. 실제 CamScanner/object stream 샘플과 Android tablet smoke QA로 v1 RC release blocker를 먼저 닫는다.
@@ -188,6 +207,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    v1.1 spike로 착수한다.
 3. OCR, HEIC, font embedding은 engine/license/sample 결정이 선행되어야 하므로 별도 기술 선택 회의로
    묶는다.
-4. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
+4. Page별 live rotation은 `pdfrx` API 선택과 overlay/link/search coordinate regression을 먼저
+   고정한다.
+5. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
    adapter 설계를 먼저 고정한다.
-5. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.
+6. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.

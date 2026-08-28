@@ -84,6 +84,31 @@ void main() {
     expect(loadResult.layer.texts, isEmpty);
     expect(loadResult.failureReason, isNotEmpty);
   });
+
+  test('saves and loads a 10k stroke stress-lite annotation layer', () async {
+    final store = SheetFileBackedAnnotationStore(rootDirectory: tempDir);
+    final layer = _largeLayer(strokeCount: 10000, pointsPerStroke: 2);
+    final summary = layer.summary();
+
+    final saveResult = await store.saveLayer(
+      scoreId: 'stress-score',
+      layer: layer,
+      savedAt: DateTime.parse('2026-08-28T12:00:00.000'),
+    );
+    final loadResult = await store.loadLayer(saveResult.reference);
+
+    expect(summary.strokeCount, 10000);
+    expect(summary.pointCount, 20000);
+    expect(summary.estimatedJsonBytes, greaterThan(1024 * 1024));
+    expect(saveResult.didSave, isTrue);
+    expect(
+      await File(saveResult.reference.path).length(),
+      greaterThan(1024 * 1024),
+    );
+    expect(loadResult.didLoad, isTrue);
+    expect(loadResult.layer.strokeCount, 10000);
+    expect(loadResult.layer.pointCount, 20000);
+  });
 }
 
 SheetAnnotationLayer _layer() {
@@ -114,5 +139,32 @@ SheetAnnotationLayer _layer() {
         createdAt: now,
       ),
     ],
+  );
+}
+
+SheetAnnotationLayer _largeLayer({
+  required int strokeCount,
+  required int pointsPerStroke,
+}) {
+  final now = DateTime.parse('2026-08-28T12:00:00.000');
+  return SheetAnnotationLayer(
+    strokes: List<SheetAnnotationStroke>.generate(strokeCount, (index) {
+      return SheetAnnotationStroke(
+        id: 'stress-stroke-$index',
+        pageNumber: (index % 12) + 1,
+        tool: SheetAnnotationTool.pen,
+        color: 0xff111111,
+        width: 2,
+        points: List<SheetAnnotationPoint>.generate(pointsPerStroke, (
+          pointIndex,
+        ) {
+          return SheetAnnotationPoint(
+            x: 0.1 + (pointIndex * 0.05),
+            y: 0.1 + ((index % 10) * 0.04),
+          );
+        }),
+        createdAt: now.add(Duration(milliseconds: index)),
+      );
+    }),
   );
 }
