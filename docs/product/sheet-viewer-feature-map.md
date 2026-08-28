@@ -51,7 +51,7 @@
 | 보기 | 하단 페이지 컨트롤 자동 숨김 | iPhone smoke test 보강 | MVP | 낮음 | 3차 구현: 일반 모드 fade out, 터치 시 재표시, 공연 모드 유지 |
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
-| 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | performance spike |
+| 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | 구현됨: balanced/large PDF render profile로 `pdfrx` rendering cache limit, memory cap, one-pass threshold 조정. 50-100페이지 실기기 계측 필요 |
 | 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
 | 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
@@ -128,7 +128,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   보기 모드와 반 페이지 넘김을 곡별 metadata로 저장한다.
 - 페이지 숨김. 5차 구현은 원본 PDF를 수정하지 않고 hidden page metadata로 이전/다음 이동에서
   건너뛰는 방식이다.
-- 저지연 페이지 넘김을 위한 image caching/prefetch spike.
+- 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
+  확인한다.
 - 세트리스트, 세트리스트 연속 넘김. 2차 구현은 검색 추가, 첫 곡 열기, viewer context
   표시, 명시적 이전/다음 곡 이동이다.
 - 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제다.
