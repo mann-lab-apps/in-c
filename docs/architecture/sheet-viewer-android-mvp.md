@@ -168,8 +168,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   산출물이다.
 - 이미지 PDF 변환은 Dart `pdf` 3.13.0으로 구현한다. 1차는 JPG/PNG만 지원하며, A4 portrait,
   흰 배경, 페이지당 이미지 1장, 비율 유지 정책을 사용한다. 22차 보강에서 변환된 PDF score에
-  원본 JPG/PNG를 `reference` linkedFiles로 자동 보존한다. HEIC/HEIF는 iOS 사진 앱 흐름에서
-  중요하지만 pure Dart 변환 제약이 있어 현재는 known-but-unsupported로 안내하고, 후속
+  원본 JPG/PNG를 `reference` linkedFiles로 자동 보존한다. 연결 파일 목록에서 JPG/PNG는 원본
+  이미지 viewer로 확대 확인할 수 있다. HEIC/HEIF는 iOS 사진 앱 흐름에서 중요하지만 pure Dart
+  변환 제약이 있어 현재는 known-but-unsupported로 안내하고, 후속
   platform decode 또는 image package 검토가 필요하다.
 - 표시 효과는 곡별 `SheetViewerSettings.displayEffect`로 저장한다. 1차는 일반/어두운 배경/색상
   반전을 제공한다. 색상 반전은 viewer 전체에 `ColorFiltered`를 적용하므로 PDF와 annotation

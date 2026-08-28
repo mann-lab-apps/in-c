@@ -30,6 +30,11 @@ class SheetFileImportPolicy {
     return imageExtensions.contains(extensionOf(name));
   }
 
+  static bool isSupportedImageExtension(String extension) {
+    final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
+    return imageExtensions.contains(normalized);
+  }
+
   static bool isKnownButUnsupportedImageFileName(String name) {
     return unsupportedImageExtensions.contains(extensionOf(name));
   }

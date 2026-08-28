@@ -1537,6 +1537,13 @@ String _linkedFileRoleLabel(String role) {
   };
 }
 
+bool _isSupportedLinkedImage(SheetLinkedFile file) {
+  final extension = file.type.trim().isNotEmpty
+      ? file.type.trim().toLowerCase()
+      : SheetFileImportPolicy.extensionOf(file.path);
+  return SheetFileImportPolicy.isSupportedImageExtension(extension);
+}
+
 String _rehearsalMarkKindLabel(String kind) {
   return switch (kind) {
     SheetRehearsalMark.segnoKind => 'Segno',
@@ -5263,12 +5270,16 @@ setlist=$setlistLabel
               Builder(
                 builder: (context) {
                   final exists = File(linkedFile.path).existsSync();
-                  final canOpen = linkedFile.type == 'pdf' && exists;
+                  final isImage = _isSupportedLinkedImage(linkedFile);
+                  final canOpen =
+                      exists && (linkedFile.type == 'pdf' || isImage);
                   return ListTile(
                     leading: Icon(
-                      exists
-                          ? Icons.library_music_outlined
-                          : Icons.error_outline,
+                      !exists
+                          ? Icons.error_outline
+                          : isImage
+                          ? Icons.image_outlined
+                          : Icons.library_music_outlined,
                     ),
                     title: Text(linkedFile.label),
                     subtitle: Text(
@@ -5282,7 +5293,7 @@ setlist=$setlistLabel
                       spacing: 0,
                       children: [
                         IconButton(
-                          tooltip: '이 파일 열기',
+                          tooltip: isImage ? '이미지 보기' : '이 파일 열기',
                           onPressed: canOpen
                               ? () => Navigator.of(context).pop(
                                   _LinkedFileAction(
@@ -5350,6 +5361,10 @@ setlist=$setlistLabel
       return;
     }
     if (selected.type == _LinkedFileActionType.open) {
+      if (_isSupportedLinkedImage(selected.file)) {
+        await _showLinkedImageViewer(selected.file);
+        return;
+      }
       final didSwitch = await widget.controller.switchToLinkedFile(
         currentScore,
         selected.file,
@@ -5370,6 +5385,60 @@ setlist=$setlistLabel
           ),
         ),
       );
+    }
+  }
+
+  Future<void> _showLinkedImageViewer(SheetLinkedFile linkedFile) async {
+    final imageFile = File(linkedFile.path);
+    if (!await imageFile.exists()) {
+      _showSnackBar('이미지 파일을 찾지 못했습니다.');
+      return;
+    }
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.black,
+            title: Text(
+              linkedFile.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            actions: [
+              IconButton(
+                tooltip: '닫기',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
+            ],
+          ),
+          body: SafeArea(
+            child: Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 6,
+                child: Image.file(
+                  imageFile,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      '이미지를 표시하지 못했습니다.',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted) {
+      _keyboardFocusNode.requestFocus();
     }
   }
 

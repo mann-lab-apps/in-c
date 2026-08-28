@@ -236,7 +236,7 @@ Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객
 실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
 한글 텍스트 PDF font embedding,
 기존 폴더 직접 참조, ChordPro/text,
-HEIC 이미지 변환, 이미지 원본 viewer, iOS Share Extension, 클라우드 동기화/자동 백업,
+HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화/자동 백업,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
 system file picker/provider 경로를 우선 사용한다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에

@@ -27,7 +27,7 @@
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
 | 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
-| 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 22차 보강: JPG/PNG를 PDF 악보로 변환 등록하고 원본 이미지를 reference linkedFiles로 보존. 이미지 원본 viewer와 HEIC 변환은 후속 |
+| 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 구현됨: JPG/PNG를 PDF 악보로 변환 등록, 원본 이미지를 reference linkedFiles로 보존, 연결 파일 이미지 원본 viewer. HEIC 변환은 후속 |
 | 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 22차 보강: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶고 원본 이미지를 reference 파일로 연결 |
 | 파일 | 외부 앱에서 PDF 열기/import | 국내 공유 흐름 | MVP | 중간 | 16차 구현: Android ACTION_VIEW/SEND PDF 수신, iOS document open URL bridge. iOS Share Extension은 후속 |
 | 파일 | PDF 공유/export | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유 |
@@ -152,7 +152,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 
 ## V1 후보
 
-- HEIC 이미지 변환, 이미지 원본 viewer, 기존 폴더 직접 참조.
+- HEIC 이미지 변환, 기존 폴더 직접 참조.
 - iOS Share Extension이 필요한 출처 앱 대응.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.

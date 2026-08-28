@@ -24,6 +24,8 @@ void main() {
       SheetFileImportPolicy.isSupportedImageFileName('scan.heic'),
       isFalse,
     );
+    expect(SheetFileImportPolicy.isSupportedImageExtension('.jpeg'), isTrue);
+    expect(SheetFileImportPolicy.isSupportedImageExtension('heif'), isFalse);
   });
 
   test('explains known unsupported image types', () {
