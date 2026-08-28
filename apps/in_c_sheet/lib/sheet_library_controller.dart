@@ -1829,6 +1829,14 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() async {
+    final result = await store.restoreAutomaticMetadataBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
   Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
     final result = await store.importFullBackup();
     if (result.didRestore) {

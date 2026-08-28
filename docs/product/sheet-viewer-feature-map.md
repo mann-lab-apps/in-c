@@ -72,10 +72,10 @@
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 7차 구현: stroke 종료/지우개 삭제 시 SharedPreferences 저장. 대량 stroke는 file-backed store 후속 |
-| 주석 | 스탬프 | 양쪽 지원 | V1 | 중간 | stamp assets |
-| 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | vector shapes |
+| 주석 | 스탬프 | 양쪽 지원 | V1 | 중간 | 구현됨: stamp annotation tool, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
+| 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
 | 주석 | crescendo/piano staff | MobileSheets 지원 | V2 | 중간 | music-specific shapes |
-| 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | saved presets |
+| 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | 구현됨: favorite annotation tool preset 저장/복원, library profile별 분리 |
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | S Pen pointer data |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | platform gesture tuning |
@@ -84,7 +84,7 @@
 | 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | PDF 표준 annotation으로 편집 가능한 export/import |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
 | 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: viewer context 표시와 명시적 이전/다음 곡 이동 |
-| 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | shortcut/action system |
+| 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 세트리스트/공연 context별 override. 기본 곡별 설정은 보기 카테고리에서 5차 구현 |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, cue/pause/resume, BPM 기반 duration preset, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | page/measure cue |
@@ -97,8 +97,8 @@
 | 음악 도구 | A-B loop | MobileSheets 지원 | V2 | 중간 | time markers |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 6차 구현: Arrow/Page/Space logical key 기반 이전/다음 넘김. 실제 페달 검증 필요 |
-| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | key input mapping |
-| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | action registry |
+| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그. 실제 USB 페달 장비 QA는 blocker |
+| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, quick action/no-op/setlist action 저장 |
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
@@ -112,7 +112,7 @@
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
 | 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
-| 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | action registry |
+| 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 부분 구현: 곡별 viewer action/pedal mapping과 input diagnostic. 앱 전체 기본값 UI는 후속 |
 
 ## MVP Coverage
 
@@ -160,8 +160,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
 - orientation별 반 페이지 정책 정교화.
 - link point/jump point.
-- 스탬프, 도형/화살표, favorite tool, pressure sensitivity, palm rejection.
-- quick action box, 공연별 보기 preset override.
+- pressure sensitivity, palm rejection.
+- 공연별 보기 preset override.
 - 기준음/드론, 오디오 플레이어.
 - USB 페달, 페달 action mapping.
 - 전역 gesture/action 설정.

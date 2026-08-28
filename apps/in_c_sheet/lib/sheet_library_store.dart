@@ -521,8 +521,7 @@ class SheetLibraryStore {
     }
   }
 
-  Future<SheetLibraryBackupRestoreResult>
-  restoreAutomaticMetadataBackup() async {
+  Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() async {
     final value = await loadAutomaticMetadataBackupJson();
     if (value == null || value.trim().isEmpty) {
       return const SheetLibraryBackupRestoreResult(

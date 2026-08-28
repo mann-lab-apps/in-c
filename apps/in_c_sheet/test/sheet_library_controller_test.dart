@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
@@ -102,6 +103,30 @@ void main() {
     expect(controller.filteredScores.single.id, updated.id);
     controller.updateQuery('mann lab');
     expect(controller.filteredScores.single.id, updated.id);
+  });
+
+  test('restores automatic metadata backup and reloads controller state',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    expect(controller.scores.single.id, 'auto-backup-score');
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+
+    final result = await controller.restoreAutomaticMetadataBackup();
+    expect(result.status, SheetLibraryBackupRestoreStatus.restored);
+    expect(controller.scores.single.id, 'auto-backup-score');
   });
 
   test('uses collections as lightweight library profiles', () async {

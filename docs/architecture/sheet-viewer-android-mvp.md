@@ -160,8 +160,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   preset 저장 mutation 이후 최신 snapshot을 갱신하며, 프로필 비우기/삭제 시 해당 profile snapshot도
   제거한다.
 - 자동 metadata 백업 복원은 파일 picker 없이 현재 active library profile의 최신 snapshot을
-  `restoreMetadataBackupJson` 경로로 되돌린다. 이 snapshot도 PDF bytes를 포함하지 않으므로 전체 파일
-  복구는 PDF 포함 ZIP 백업이 담당한다.
+  `restoreMetadataBackupJson` 경로로 되돌린다. 라이브러리 백업 메뉴의 `자동 metadata 복원`에서
+  명시 확인 후 실행한다. 이 snapshot도 PDF bytes를 포함하지 않으므로 전체 파일 복구는 PDF 포함 ZIP
+  백업이 담당한다.
 - 공유/import/export 1차는 Android-first로 시작했고, iOS document open bridge까지 보강했다.
   Android는 `ACTION_VIEW`, `ACTION_SEND`, `ACTION_SEND_MULTIPLE`의 `application/pdf`를 받아 native
   layer에서 cache file로 복사한 뒤 Flutter `MethodChannel`로 path/name을 전달한다. iOS는
@@ -551,7 +552,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset은 1차 구현했다. pause
   marker, 반복 구간, 세트리스트 전체 자동 진행은 후속이다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
-  key mapping, 앱 foreground focus, 사용자별 custom mapping UI는 실기기 확인 필요.
+  key mapping, 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI와 input
+  diagnostic log는 1차 구현했다.
 - 페이지 크롭/정렬/복제: crop metadata, 화면 mask, crop-to-fit, 원본 PDF 보존형 virtual page
   order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전/crop/page tree 적용 사본 생성은
   1차 구현했다. per-instance crop/rotation override는 후속이다.

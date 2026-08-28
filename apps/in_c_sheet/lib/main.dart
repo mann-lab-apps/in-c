@@ -729,6 +729,46 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _restoreAutomaticBackup() async {
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('자동 metadata 복원'),
+        content: const Text(
+          '마지막 자동 metadata snapshot으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('복원'),
+          ),
+        ],
+      ),
+    );
+    if (didConfirm != true || !mounted) {
+      return;
+    }
+
+    final result = await controller.restoreAutomaticMetadataBackup();
+    if (!mounted) {
+      return;
+    }
+    final message = switch (result.status) {
+      SheetLibraryBackupRestoreStatus.restored =>
+        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 자동 백업에서 복원했습니다.',
+      SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
+      SheetLibraryBackupRestoreStatus.unsupportedVersion => '지원하지 않는 자동 백업 버전입니다.',
+      SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 metadata 백업이 없습니다.',
+      SheetLibraryBackupRestoreStatus.error => '자동 백업을 복원하지 못했습니다.',
+    };
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _importFullBackup() async {
     final didConfirm = await showDialog<bool>(
       context: context,
@@ -813,6 +853,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   _exportBackup();
                 case _LibraryBackupAction.importMetadata:
                   _importBackup();
+                case _LibraryBackupAction.restoreAutomaticMetadata:
+                  _restoreAutomaticBackup();
                 case _LibraryBackupAction.exportFull:
                   _exportFullBackup();
                 case _LibraryBackupAction.importFull:
@@ -832,6 +874,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 child: ListTile(
                   leading: Icon(Icons.restore),
                   title: Text('metadata 복원'),
+                ),
+              ),
+              PopupMenuItem<_LibraryBackupAction>(
+                value: _LibraryBackupAction.restoreAutomaticMetadata,
+                child: ListTile(
+                  leading: Icon(Icons.history),
+                  title: Text('자동 metadata 복원'),
                 ),
               ),
               PopupMenuDivider(),
@@ -1044,6 +1093,7 @@ class _SearchFieldState extends State<_SearchField> {
 enum _LibraryBackupAction {
   exportMetadata,
   importMetadata,
+  restoreAutomaticMetadata,
   exportFull,
   importFull,
 }
