@@ -150,6 +150,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   stroke point는 page별 normalized coordinate로 저장하고, pointer 입력과 렌더링은 page-local
   rect 기준으로 변환한다. `pdfrx`가 zoom/pan/1페이지/2페이지/세로 스크롤 layout을 처리한 뒤
   overlay도 같은 page box 안에서 이동하므로 기존 viewer-stack overlay보다 좌표 신뢰도가 높다.
+- stylus pressure는 pointer event pressure를 0.6-1.4 stroke width multiplier로 변환해
+  `SheetAnnotationPoint.pressure`에 저장한다. 일반 touch/mouse 입력은 1.0으로 유지한다. 자유곡선
+  stroke는 화면과 PDF export에서 segment별 평균 pressure를 폭에 반영하고, 화살표/도형은 고정 폭을
+  유지한다.
 - annotation layer는 현재 `SharedPreferences`에 score metadata로 저장한다. 리허설 메모 수준의
   stroke에는 충분하지만, stroke가 많아지면 SQLite 또는 file-backed annotation store로 이전해야
   한다.
@@ -570,7 +574,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - PDF link annotation 고도화: URL link 제거 사본 생성은 1차 구현했다. 실제 CamScanner 샘플,
   malformed PDF, compact/rewrite 방식의 완전한 object 제거는 추가 검증이 필요하다.
-- 주석/필기 고도화: S Pen pressure, palm rejection, 도형/stamp, layer visibility,
+- 주석/필기 고도화: S Pen pressure는 1차 구현했다. palm rejection, layer visibility,
   PDF embed/export 별도 spike 필요. 기본 stroke/text layer, text edit/delete와 page rect 기반
   overlay는 구현했다.
 - 튜너 고도화: runtime microphone permission request와 raw PCM stream은 1차 구현했다.

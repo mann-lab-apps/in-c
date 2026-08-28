@@ -199,6 +199,12 @@ class SheetAnnotatedPdfExporter {
       content.restore();
       return;
     }
+    if (stroke.tool != SheetAnnotationTool.arrow &&
+        _hasPressureVariation(stroke)) {
+      _drawPressureStroke(content, geometry, stroke);
+      content.restore();
+      return;
+    }
     content.moveTo(first.x, first.y);
     for (final point in stroke.points.skip(1)) {
       final converted = geometry.toPdfPoint(point);
@@ -212,6 +218,35 @@ class SheetAnnotatedPdfExporter {
       _drawArrowHead(content, geometry, stroke);
     }
     content.restore();
+  }
+
+  static void _drawPressureStroke(
+    dynamic content,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    final baseWidth = _pdfLineWidth(stroke);
+    if (stroke.points.length == 1) {
+      final first = geometry.toPdfPoint(stroke.points.single);
+      content
+        ..lineWidth(_pdfPressureLineWidth(baseWidth, stroke.points.single))
+        ..moveTo(first.x, first.y)
+        ..lineTo(first.x + 0.1, first.y + 0.1)
+        ..stroke();
+      return;
+    }
+    for (var index = 0; index < stroke.points.length - 1; index += 1) {
+      final start = stroke.points[index];
+      final end = stroke.points[index + 1];
+      final startPdf = geometry.toPdfPoint(start);
+      final endPdf = geometry.toPdfPoint(end);
+      final pressure = (start.pressure + end.pressure) / 2;
+      content
+        ..lineWidth((baseWidth * pressure).clamp(0.5, 36.0).toDouble())
+        ..moveTo(startPdf.x, startPdf.y)
+        ..lineTo(endPdf.x, endPdf.y)
+        ..stroke();
+    }
   }
 
   static void _drawRectangle(
@@ -289,6 +324,17 @@ class SheetAnnotatedPdfExporter {
   static double _pdfLineWidth(SheetAnnotationStroke stroke) {
     final base = stroke.width.clamp(1.0, 18.0).toDouble();
     return stroke.tool == SheetAnnotationTool.highlighter ? base * 1.8 : base;
+  }
+
+  static bool _hasPressureVariation(SheetAnnotationStroke stroke) {
+    return stroke.points.any((point) => point.pressure != 1.0);
+  }
+
+  static double _pdfPressureLineWidth(
+    double baseWidth,
+    SheetAnnotationPoint point,
+  ) {
+    return (baseWidth * point.pressure).clamp(0.5, 36.0).toDouble();
   }
 }
 

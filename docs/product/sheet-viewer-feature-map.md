@@ -77,7 +77,7 @@
 | 주석 | crescendo/piano staff | MobileSheets 지원 | V2 | 중간 | music-specific shapes |
 | 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | 구현됨: favorite annotation tool preset 저장/복원, library profile별 분리 |
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
-| 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | S Pen pointer data |
+| 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | platform gesture tuning |
 | 주석 | annotation layer | MobileSheets 강점 | V2 | 높음 | visibility/export model |
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
@@ -159,7 +159,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
-- pressure sensitivity, palm rejection.
+- palm rejection.
 - 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
 
 ## V2 후보

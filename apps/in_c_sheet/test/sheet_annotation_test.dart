@@ -251,8 +251,8 @@ void main() {
       color: 0xffffcc25,
       width: 8,
       points: const <SheetAnnotationPoint>[
-        SheetAnnotationPoint(x: 0.2, y: 0.3),
-        SheetAnnotationPoint(x: 0.4, y: 0.5),
+        SheetAnnotationPoint(x: 0.2, y: 0.3, pressure: 0.7),
+        SheetAnnotationPoint(x: 0.4, y: 0.5, pressure: 1.3),
       ],
       createdAt: createdAt,
     );
@@ -265,7 +265,9 @@ void main() {
     expect(decoded.color, 0xffffcc25);
     expect(decoded.width, 8);
     expect(decoded.points.first.x, 0.2);
+    expect(decoded.points.first.pressure, 0.7);
     expect(decoded.points.last.y, 0.5);
+    expect(decoded.points.last.pressure, 1.3);
   });
 
   test('annotation stroke supports arrow and rectangle tools', () {
@@ -615,6 +617,20 @@ void main() {
     expect(point, isNotNull);
     expect(point!.x, 0.25);
     expect(point.y, 0.25);
+  });
+
+  test('page geometry carries stylus pressure into normalized points', () {
+    const geometry = SheetAnnotationPageGeometry(
+      pageRect: Rect.fromLTWH(12, 24, 200, 400),
+    );
+
+    final point = geometry.pointFromPageLocal(
+      const Offset(50, 100),
+      pressure: 1.25,
+    );
+
+    expect(point, isNotNull);
+    expect(point!.pressure, 1.25);
   });
 
   test('page geometry rejects offsets outside the page box', () {

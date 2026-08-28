@@ -7976,8 +7976,12 @@ setlist=$setlistLabel
     DragStartDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
+    double pressure,
   ) async {
-    final point = geometry.pointFromPageLocal(details.localPosition);
+    final point = geometry.pointFromPageLocal(
+      details.localPosition,
+      pressure: pressure,
+    );
     if (point == null) {
       return;
     }
@@ -7999,8 +8003,12 @@ setlist=$setlistLabel
     DragUpdateDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
+    double pressure,
   ) async {
-    final point = geometry.pointFromPageLocal(details.localPosition);
+    final point = geometry.pointFromPageLocal(
+      details.localPosition,
+      pressure: pressure,
+    );
     if (point == null) {
       return;
     }
@@ -10774,7 +10782,7 @@ class _QuickJumpButtons extends StatelessWidget {
   }
 }
 
-class _AnnotationPageOverlay extends StatelessWidget {
+class _AnnotationPageOverlay extends StatefulWidget {
   const _AnnotationPageOverlay({
     required this.isEnabled,
     required this.pageNumber,
@@ -10802,14 +10810,14 @@ class _AnnotationPageOverlay extends StatelessWidget {
     DragStartDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
-  )
-  onPanStart;
+    double pressure,
+  ) onPanStart;
   final Future<void> Function(
     DragUpdateDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
-  )
-  onPanUpdate;
+    double pressure,
+  ) onPanUpdate;
   final Future<void> Function() onPanEnd;
   final Future<void> Function(
     TapUpDetails details,
@@ -10819,35 +10827,92 @@ class _AnnotationPageOverlay extends StatelessWidget {
   onTapUp;
 
   @override
+  State<_AnnotationPageOverlay> createState() => _AnnotationPageOverlayState();
+}
+
+class _AnnotationPageOverlayState extends State<_AnnotationPageOverlay> {
+  int? _activePointer;
+  double _latestPressure = 1.0;
+
+  void _recordPointerPressure(PointerEvent event) {
+    if (_activePointer != null && _activePointer != event.pointer) {
+      return;
+    }
+    _activePointer = event.pointer;
+    _latestPressure = _pressureMultiplierFor(event);
+  }
+
+  void _clearPointerPressure(PointerEvent event) {
+    if (_activePointer == event.pointer) {
+      _activePointer = null;
+      _latestPressure = 1.0;
+    }
+  }
+
+  double _pressureMultiplierFor(PointerEvent event) {
+    if (event.kind != PointerDeviceKind.stylus) {
+      return 1.0;
+    }
+    final min = event.pressureMin;
+    final max = event.pressureMax;
+    final normalized = max > min
+        ? ((event.pressure - min) / (max - min)).clamp(0.0, 1.0).toDouble()
+        : event.pressure.clamp(0.0, 1.0).toDouble();
+    return (0.6 + (normalized * 0.8)).clamp(0.4, 1.8).toDouble();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      ignoring: !isEnabled,
+      ignoring: !widget.isEnabled,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final size = constraints.biggest;
           final geometry = SheetAnnotationPageGeometry(
             pageRect: Offset.zero & size,
           );
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onPanStart: isEnabled
-                ? (details) => onPanStart(details, geometry, pageNumber)
-                : null,
-            onPanUpdate: isEnabled
-                ? (details) => onPanUpdate(details, geometry, pageNumber)
-                : null,
-            onPanEnd: isEnabled ? (_) => onPanEnd() : null,
-            onPanCancel: isEnabled ? onPanEnd : null,
-            onTapUp: isEnabled
-                ? (details) => onTapUp(details, geometry, pageNumber)
-                : null,
-            child: CustomPaint(
-              painter: _AnnotationPainter(
-                strokes: strokes,
-                texts: texts,
-                draftStroke: _draftStroke,
+          return Listener(
+            onPointerDown: widget.isEnabled ? _recordPointerPressure : null,
+            onPointerMove: widget.isEnabled ? _recordPointerPressure : null,
+            onPointerUp: widget.isEnabled ? _clearPointerPressure : null,
+            onPointerCancel: widget.isEnabled ? _clearPointerPressure : null,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onPanStart: widget.isEnabled
+                  ? (details) => widget.onPanStart(
+                      details,
+                      geometry,
+                      widget.pageNumber,
+                      _latestPressure,
+                    )
+                  : null,
+              onPanUpdate: widget.isEnabled
+                  ? (details) => widget.onPanUpdate(
+                      details,
+                      geometry,
+                      widget.pageNumber,
+                      _latestPressure,
+                    )
+                  : null,
+              onPanEnd: widget.isEnabled ? (_) => widget.onPanEnd() : null,
+              onPanCancel: widget.isEnabled ? widget.onPanEnd : null,
+              onTapUp: widget.isEnabled
+                  ? (details) {
+                      return widget.onTapUp(
+                        details,
+                        geometry,
+                        widget.pageNumber,
+                      );
+                    }
+                  : null,
+              child: CustomPaint(
+                painter: _AnnotationPainter(
+                  strokes: widget.strokes,
+                  texts: widget.texts,
+                  draftStroke: _draftStroke,
+                ),
+                size: Size.infinite,
               ),
-              size: Size.infinite,
             ),
           );
         },
@@ -10856,18 +10921,18 @@ class _AnnotationPageOverlay extends StatelessWidget {
   }
 
   SheetAnnotationStroke? get _draftStroke {
-    if (draftPoints.isEmpty ||
-        draftTool == _AnnotationToolbarTool.eraser ||
-        draftTool == _AnnotationToolbarTool.stamp) {
+    if (widget.draftPoints.isEmpty ||
+        widget.draftTool == _AnnotationToolbarTool.eraser ||
+        widget.draftTool == _AnnotationToolbarTool.stamp) {
       return null;
     }
     return SheetAnnotationStroke(
       id: 'draft',
       pageNumber: 1,
-      tool: draftTool.sheetAnnotationTool,
-      color: draftColor,
-      width: draftWidth,
-      points: draftPoints,
+      tool: widget.draftTool.sheetAnnotationTool,
+      color: widget.draftColor,
+      width: widget.draftWidth,
+      points: widget.draftPoints,
       createdAt: DateTime.fromMillisecondsSinceEpoch(0),
     );
   }
@@ -10899,13 +10964,14 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
     final color = Color(stroke.color);
+    final baseStrokeWidth = stroke.tool == SheetAnnotationTool.highlighter
+        ? stroke.width * 1.9
+        : stroke.width;
     final paint = Paint()
       ..color = stroke.tool == SheetAnnotationTool.highlighter
           ? color.withValues(alpha: 0.32)
           : color.withValues(alpha: 0.96)
-      ..strokeWidth = stroke.tool == SheetAnnotationTool.highlighter
-          ? stroke.width * 1.9
-          : stroke.width
+      ..strokeWidth = baseStrokeWidth
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
@@ -10926,6 +10992,11 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
 
+    if (stroke.tool != SheetAnnotationTool.arrow) {
+      _paintFreehandStroke(canvas, size, stroke, paint, baseStrokeWidth);
+      return;
+    }
+
     final path = Path()
       ..moveTo(
         stroke.points.first.x * size.width,
@@ -10938,6 +11009,41 @@ class _AnnotationPainter extends CustomPainter {
     if (stroke.tool == SheetAnnotationTool.arrow && stroke.points.length >= 2) {
       _paintArrowHead(canvas, size, stroke, paint);
     }
+  }
+
+  void _paintFreehandStroke(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+    double baseStrokeWidth,
+  ) {
+    if (stroke.points.length == 1) {
+      paint.strokeWidth = _pressureStrokeWidth(
+        baseStrokeWidth,
+        stroke.points.single.pressure,
+      );
+      final center = _pointOffset(stroke.points.single, size);
+      canvas.drawLine(center, center.translate(0.1, 0.1), paint);
+      return;
+    }
+    for (var index = 0; index < stroke.points.length - 1; index += 1) {
+      final start = stroke.points[index];
+      final end = stroke.points[index + 1];
+      paint.strokeWidth = _pressureStrokeWidth(
+        baseStrokeWidth,
+        (start.pressure + end.pressure) / 2,
+      );
+      canvas.drawLine(_pointOffset(start, size), _pointOffset(end, size), paint);
+    }
+  }
+
+  Offset _pointOffset(SheetAnnotationPoint point, Size size) {
+    return Offset(point.x * size.width, point.y * size.height);
+  }
+
+  double _pressureStrokeWidth(double baseStrokeWidth, double pressure) {
+    return (baseStrokeWidth * pressure).clamp(0.5, 48.0).toDouble();
   }
 
   void _paintArrowHead(

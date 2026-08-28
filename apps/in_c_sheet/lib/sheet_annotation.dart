@@ -76,20 +76,30 @@ class SheetAnnotationToolPreset {
 }
 
 class SheetAnnotationPoint {
-  const SheetAnnotationPoint({required this.x, required this.y});
+  const SheetAnnotationPoint({
+    required this.x,
+    required this.y,
+    this.pressure = 1.0,
+  });
 
   factory SheetAnnotationPoint.fromJson(Map<String, Object?> json) {
     return SheetAnnotationPoint(
       x: _normalizeCoordinate(json['x']),
       y: _normalizeCoordinate(json['y']),
+      pressure: _normalizePressure(json['pressure']),
     );
   }
 
   final double x;
   final double y;
+  final double pressure;
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{'x': x, 'y': y};
+    return <String, Object?>{
+      'x': x,
+      'y': y,
+      if (pressure != 1.0) 'pressure': pressure,
+    };
   }
 
   double distanceTo(SheetAnnotationPoint other) {
@@ -101,6 +111,11 @@ class SheetAnnotationPoint {
   static double _normalizeCoordinate(Object? value) {
     final coordinate = value is num ? value.toDouble() : 0.0;
     return coordinate.clamp(0.0, 1.0).toDouble();
+  }
+
+  static double _normalizePressure(Object? value) {
+    final pressure = value is num ? value.toDouble() : 1.0;
+    return pressure.clamp(0.4, 1.8).toDouble();
   }
 }
 
