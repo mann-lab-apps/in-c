@@ -21,6 +21,7 @@ import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
+import 'sheet_pdf_search_support.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 import 'sheet_stylus_input.dart';
@@ -2726,6 +2727,14 @@ $log
             icon: const Icon(Icons.content_copy),
             label: const Text('진단 로그 복사'),
           ),
+          if (entries.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).pop(true),
+              icon: const Icon(Icons.tune),
+              label: const Text('직접 설정에 사용'),
+            ),
+          ],
         ],
       ),
     );
@@ -6230,12 +6239,48 @@ setlist=$setlistLabel
     var mapping = Map<String, String>.of(
       score.viewerSettings.customPedalMapping,
     );
+    final recentUnknownInputIds = sheetViewerRecentCustomInputIds(
+      _inputDiagnosticLog,
+    );
+    final recentEntriesByInputId = <String, SheetViewerInputDiagnosticEntry>{
+      for (final entry in _inputDiagnosticLog.reversed) entry.inputId: entry,
+    };
     final updated = await showModalBottomSheet<Map<String, String>>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
+          Widget mappingField(String inputId, {String? helperText}) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DropdownButtonFormField<String>(
+                initialValue:
+                    mapping[inputId] ?? SheetViewerInputAction.none.value,
+                decoration: InputDecoration(
+                  labelText: _viewerInputLabel(inputId),
+                  helperText: helperText,
+                ),
+                items: SheetViewerInputAction.values
+                    .map(
+                      (action) => DropdownMenuItem<String>(
+                        value: action.value,
+                        child: Text(_viewerInputActionLabel(action)),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  setModalState(() {
+                    mapping = <String, String>{...mapping, inputId: value};
+                  });
+                },
+              ),
+            );
+          }
+
           return SafeArea(
             child: Padding(
               padding: EdgeInsets.only(
@@ -6254,37 +6299,29 @@ setlist=$setlistLabel
                   const SizedBox(height: 8),
                   const Text('연결된 페달이 보내는 키 입력별 동작을 선택합니다.'),
                   const SizedBox(height: 12),
-                  for (final inputId in sheetViewerCustomInputIds)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: DropdownButtonFormField<String>(
-                        initialValue:
-                            mapping[inputId] ??
-                            SheetViewerInputAction.none.value,
-                        decoration: InputDecoration(
-                          labelText: _viewerInputLabel(inputId),
-                        ),
-                        items: SheetViewerInputAction.values
-                            .map(
-                              (action) => DropdownMenuItem<String>(
-                                value: action.value,
-                                child: Text(_viewerInputActionLabel(action)),
-                              ),
-                            )
-                            .toList(growable: false),
-                        onChanged: (value) {
-                          if (value == null) {
-                            return;
-                          }
-                          setModalState(() {
-                            mapping = <String, String>{
-                              ...mapping,
-                              inputId: value,
-                            };
-                          });
-                        },
-                      ),
+                  if (recentUnknownInputIds.isNotEmpty) ...[
+                    Text(
+                      '최근 진단 입력',
+                      style: Theme.of(context).textTheme.titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
+                    const SizedBox(height: 8),
+                    for (final inputId in recentUnknownInputIds)
+                      mappingField(
+                        inputId,
+                        helperText: () {
+                          final entry = recentEntriesByInputId[inputId];
+                          if (entry == null) {
+                            return null;
+                          }
+                          return 'logical ${entry.logicalKeyLabel} · '
+                              'physical ${entry.physicalKeyId}';
+                        }(),
+                      ),
+                    const Divider(height: 24),
+                  ],
+                  for (final inputId in sheetViewerCustomInputIds)
+                    mappingField(inputId),
                   Align(
                     alignment: Alignment.centerRight,
                     child: FilledButton.icon(
@@ -8611,7 +8648,8 @@ setlist=$setlistLabel
               } catch (_) {
                 setModalState(() {
                   didSearch = true;
-                  errorMessage = '이 PDF에서는 본문 텍스트 검색을 사용할 수 없습니다.';
+                  errorMessage =
+                      SheetPdfSearchSupport.unsupportedTextSearchMessage;
                 });
               }
             }
@@ -8640,7 +8678,7 @@ setlist=$setlistLabel
                 : !didSearch
                 ? 'PDF 본문 검색은 악보 파일명/라이브러리 검색과 별개입니다.'
                 : matches.isEmpty
-                ? '결과 없음 · 스캔 PDF는 텍스트가 없을 수 있습니다.'
+                ? SheetPdfSearchSupport.noResultStatus
                 : currentLabel == null
                 ? '${matches.length}개 결과'
                 : '$currentLabel 결과';
@@ -8666,7 +8704,8 @@ setlist=$setlistLabel
                         controller: queryController,
                         decoration: InputDecoration(
                           labelText: '검색어',
-                          helperText: 'PDF 내부 텍스트가 있는 파일에서만 검색됩니다.',
+                          helperText:
+                              SheetPdfSearchSupport.embeddedTextOnlyHelper,
                           suffixIcon: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -8726,7 +8765,7 @@ setlist=$setlistLabel
                         Padding(
                           padding: const EdgeInsets.only(top: 6),
                           child: Text(
-                            'OCR은 v1 범위 밖입니다. 스캔 악보는 파일명/태그/북마크로 찾으세요.',
+                            SheetPdfSearchSupport.ocrUnsupportedHint,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
@@ -9035,12 +9074,17 @@ setlist=$setlistLabel
         _inputDiagnosticLog.removeRange(20, _inputDiagnosticLog.length);
       }
     });
+    if (_pedalMapping == _SheetPedalMapping.custom &&
+        entry.action != SheetViewerInputAction.none) {
+      _handleViewerInputIntent(_ViewerInputIntent(entry.action));
+      return KeyEventResult.handled;
+    }
     return KeyEventResult.ignored;
   }
 
   Future<void> _showInputDiagnostic() async {
     final currentScore = score;
-    await showModalBottomSheet<void>(
+    final openCustomMapping = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _InputDiagnosticSheet(
@@ -9050,6 +9094,9 @@ setlist=$setlistLabel
         viewerSummary: _viewerDebugSummary(currentScore),
       ),
     );
+    if (openCustomMapping == true && mounted) {
+      await _showCustomPedalMapping();
+    }
   }
 
   void _schedulePageControlsAutoHide() {

@@ -227,6 +227,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 공유/import/export 1차: Android 외부 PDF 수신, iOS document open URL 수신, 현재 PDF 공유,
   필기 포함 PDF 공유 사본 생성, 한글 텍스트 주석 PDF export 안전 fallback,
   JPG/PNG 이미지를 PDF 악보로 묶기, 변환 원본 이미지를 reference linked file로 보존.
+- PDF 본문 검색 1차: embedded text search UI, 결과 이동/이전/다음/clear, OCR unsupported 안내,
+  search index manifest/capability model.
 - 표시 효과 1차: 일반, 어두운 배경, 색상 반전.
 - 베타 전달 polish: 앱 내 테스트 정보/version 표시, 피드백 템플릿 복사, 빈 라이브러리 CTA,
   검색/필터 빈 결과 초기화, viewer 오류 배너, 구체적인 import/share/export 실패 안내,

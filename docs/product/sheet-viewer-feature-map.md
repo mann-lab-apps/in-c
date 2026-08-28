@@ -19,6 +19,7 @@
 | 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그 |
 | 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
+| 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그 필터 |
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 2차 구현: ordered score list, 생성/이름 변경/삭제, 검색 추가, 제거/순서 이동, 첫 곡 열기 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
@@ -81,7 +82,7 @@
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
 | 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. 다중 layer/annotation별 layer keying은 후속 |
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
-| 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | PDF 표준 annotation으로 편집 가능한 export/import |
+| 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 표준 annotation export mode는 capability flag/unsupported result로 분리. 편집 가능한 PDF 표준 객체 생성은 PDF writer API/fixture 필요 |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
 | 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: viewer context 표시와 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
@@ -97,8 +98,8 @@
 | 음악 도구 | A-B loop | MobileSheets 지원 | V2 | 중간 | time markers |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 6차 구현: Arrow/Page/Space logical key 기반 이전/다음 넘김. 실제 페달 검증 필요 |
-| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그. 실제 USB 페달 장비 QA는 blocker |
-| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, quick action/no-op/setlist action 저장 |
+| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 실제 USB 페달 장비 QA는 blocker |
+| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, 진단 로그에서 unknown key를 직접 설정으로 전달, quick action/no-op/setlist action 저장 |
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |

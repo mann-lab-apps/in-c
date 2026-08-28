@@ -6,6 +6,11 @@ import 'package:pdf_document/pdf_document.dart';
 import 'sheet_annotation.dart';
 import 'sheet_score.dart';
 
+enum SheetPdfAnnotationExportMode {
+  renderedStamp,
+  standardAnnotation,
+}
+
 class SheetAnnotatedPdfExportResult {
   const SheetAnnotatedPdfExportResult({
     required this.inputPath,
@@ -16,6 +21,7 @@ class SheetAnnotatedPdfExportResult {
     required this.exportedTextCount,
     required this.skippedUnicodeTextCount,
     required this.didWrite,
+    this.mode = SheetPdfAnnotationExportMode.renderedStamp,
     this.failureReason,
   });
 
@@ -27,12 +33,15 @@ class SheetAnnotatedPdfExportResult {
   final int exportedTextCount;
   final int skippedUnicodeTextCount;
   final bool didWrite;
+  final SheetPdfAnnotationExportMode mode;
   final String? failureReason;
 
   static const unicodeTextRequiresFontEmbeddingReason =
       'unicodeTextRequiresFontEmbedding';
   static const annotationsOutsideDocumentPagesReason =
       'annotationsOutsideDocumentPages';
+  static const standardAnnotationEmbeddingUnsupportedReason =
+      'standardAnnotationEmbeddingUnsupported';
 
   bool get hasAnnotations => strokeCount + textCount > 0;
 
@@ -43,10 +52,20 @@ class SheetAnnotatedPdfExportResult {
   bool get hasOnlyAnnotationsOutsideDocumentPages {
     return failureReason == annotationsOutsideDocumentPagesReason;
   }
+
+  bool get requestedStandardAnnotationEmbedding {
+    return mode == SheetPdfAnnotationExportMode.standardAnnotation;
+  }
+
+  bool get hasUnsupportedStandardAnnotationEmbedding {
+    return failureReason == standardAnnotationEmbeddingUnsupportedReason;
+  }
 }
 
 class SheetAnnotatedPdfExporter {
   const SheetAnnotatedPdfExporter._();
+
+  static const supportsStandardAnnotationEmbedding = false;
 
   static bool textRequiresUnicodeFont(String text) {
     return text.runes.any((rune) => rune > 0x7f);
@@ -68,6 +87,8 @@ class SheetAnnotatedPdfExporter {
   static Future<SheetAnnotatedPdfExportResult> createAnnotatedCopy({
     required SheetScore score,
     required String outputPath,
+    SheetPdfAnnotationExportMode mode = SheetPdfAnnotationExportMode
+        .renderedStamp,
   }) async {
     final exportableStrokes = score.annotationLayer.includeDefaultLayerInExport
         ? score.annotationLayer.strokes
@@ -81,6 +102,21 @@ class SheetAnnotatedPdfExporter {
         .where((text) => textRequiresUnicodeFont(text.text))
         .length;
     final exportedTextCount = textCount - skippedUnicodeTextCount;
+    if (mode == SheetPdfAnnotationExportMode.standardAnnotation) {
+      return SheetAnnotatedPdfExportResult(
+        inputPath: score.filePath,
+        outputPath: null,
+        pageCount: 0,
+        strokeCount: strokeCount,
+        textCount: textCount,
+        exportedTextCount: 0,
+        skippedUnicodeTextCount: skippedUnicodeTextCount,
+        didWrite: false,
+        mode: mode,
+        failureReason: SheetAnnotatedPdfExportResult
+            .standardAnnotationEmbeddingUnsupportedReason,
+      );
+    }
     if (strokeCount + textCount == 0) {
       return SheetAnnotatedPdfExportResult(
         inputPath: score.filePath,
@@ -91,6 +127,7 @@ class SheetAnnotatedPdfExporter {
         exportedTextCount: 0,
         skippedUnicodeTextCount: 0,
         didWrite: false,
+        mode: mode,
       );
     }
     try {
@@ -132,6 +169,7 @@ class SheetAnnotatedPdfExporter {
           exportedTextCount: exportedTextCount,
           skippedUnicodeTextCount: skippedUnicodeTextCount,
           didWrite: false,
+          mode: mode,
           failureReason: failureReason,
         );
       }
@@ -173,6 +211,7 @@ class SheetAnnotatedPdfExporter {
         exportedTextCount: exportedTextCount,
         skippedUnicodeTextCount: skippedUnicodeTextCount,
         didWrite: true,
+        mode: mode,
       );
     } catch (error) {
       return SheetAnnotatedPdfExportResult(
@@ -184,6 +223,7 @@ class SheetAnnotatedPdfExporter {
         exportedTextCount: exportedTextCount,
         skippedUnicodeTextCount: skippedUnicodeTextCount,
         didWrite: false,
+        mode: mode,
         failureReason: error.toString(),
       );
     }

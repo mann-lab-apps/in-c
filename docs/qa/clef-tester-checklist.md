@@ -61,8 +61,10 @@
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
 - S Pen pressure와 palm rejection은 아직 고도화 전이다.
-- Bluetooth 페달은 predefined key dropdown 기반 custom mapping만 지원한다. 실제 key capture는 후속 범위다.
-- OCR, 실제 HID key capture, SQLite/file-backed annotation store, PDF 표준 annotation embed는 v1.1 이후 후속 범위다.
+- Bluetooth 페달은 predefined/custom key dropdown과 진단 로그 기반 unknown key 설정을 지원한다.
+  실제 key capture wizard는 후속 범위다.
+- OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
+  embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.
 
 ## 실패 시 기록할 정보

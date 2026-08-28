@@ -201,6 +201,58 @@ void main() {
     expect(result.outputPath, isNull);
   });
 
+  test('reports standard PDF annotation export as unsupported', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: '/tmp/unused-clef-standard-annotation.pdf',
+      mode: SheetPdfAnnotationExportMode.standardAnnotation,
+    );
+
+    expect(SheetAnnotatedPdfExporter.supportsStandardAnnotationEmbedding,
+        isFalse);
+    expect(result.didWrite, isFalse);
+    expect(result.requestedStandardAnnotationEmbedding, isTrue);
+    expect(result.hasUnsupportedStandardAnnotationEmbedding, isTrue);
+    expect(
+      result.failureReason,
+      SheetAnnotatedPdfExportResult
+          .standardAnnotationEmbeddingUnsupportedReason,
+    );
+  });
+
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
     final outputDir = await Directory.systemTemp.createTemp(

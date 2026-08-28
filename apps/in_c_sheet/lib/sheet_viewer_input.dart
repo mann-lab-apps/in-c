@@ -53,6 +53,31 @@ const sheetViewerCustomInputIds = <String>[
   'MediaNext',
 ];
 
+List<String> sheetViewerRecentCustomInputIds(
+  Iterable<SheetViewerInputDiagnosticEntry> entries, {
+  Iterable<String> knownInputIds = sheetViewerCustomInputIds,
+  int limit = 6,
+}) {
+  if (limit <= 0) {
+    return const <String>[];
+  }
+  final known = knownInputIds.toSet();
+  final result = <String>[];
+  for (final entry in entries) {
+    final inputId = entry.inputId.trim();
+    if (inputId.isEmpty ||
+        known.contains(inputId) ||
+        result.contains(inputId)) {
+      continue;
+    }
+    result.add(inputId);
+    if (result.length >= limit) {
+      break;
+    }
+  }
+  return List<String>.unmodifiable(result);
+}
+
 class SheetViewerInputDiagnosticEntry {
   const SheetViewerInputDiagnosticEntry({
     required this.timestamp,

@@ -529,6 +529,7 @@ void main() {
           'customPedalMapping': <String, dynamic>{
             'Space': 'bad-action',
             'ArrowDown': 'nextPage',
+            'F13': 'toggleQuickActions',
           },
         },
         'pageSettings': <String, dynamic>{
@@ -566,6 +567,10 @@ void main() {
     expect(
       decoded.single.viewerSettings.customPedalMapping['ArrowDown'],
       'nextPage',
+    );
+    expect(
+      decoded.single.viewerSettings.customPedalMapping['F13'],
+      'toggleQuickActions',
     );
     expect(decoded.single.pageSettings.cropForPage(2).left, 0.04);
     expect(decoded.single.pageSettings.pageOrder, isEmpty);

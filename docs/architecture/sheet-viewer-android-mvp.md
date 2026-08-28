@@ -123,9 +123,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - Bluetooth/USB 페달은 1차에서 Flutter logical key event 기반으로 처리한다. 표준/반전/
   세트리스트 경계 이동 mapping preset을 제공한다. 실제 페달 모델별 HID key code와 Android
   focus 유지 여부는 실기기 검증이 필요하다.
-- v1.1 준비로 viewer 입력 진단 bottom sheet를 추가했다. `Focus.onKeyEvent`에서 최근 key down
-  event 20개를 기록하고 logical key id, physical HID usage, normalized input id, mapped action,
-  timestamp를 복사할 수 있다. 실제 HID key capture로 mapping을 자동 저장하는 기능은 아직 아니다.
+- viewer 입력 진단 bottom sheet는 `Focus.onKeyEvent`에서 최근 key down event 20개를 기록하고
+  logical key id, physical HID usage, normalized input id, mapped action, timestamp를 복사할 수
+  있다. 진단 로그에 나타난 unknown inputId는 `직접 설정에 사용`으로 custom mapping sheet에
+  전달해 action을 지정할 수 있다. custom mapping mode에서는 고정 `Shortcuts` activator에 없는
+  unknown key도 `Focus.onKeyEvent`에서 직접 action으로 처리한다. 실제 장비의 HID key 자동 캡처
+  wizard와 foreground focus 안정성은 실기기 검증이 필요하다.
 - 페이지 넘김 감각은 `pdfrx`의 `PdfViewerController.goToPage`/`goToArea`/`goToDest`
   duration을 사용해 없음/빠름/자연스러움으로 저장한다. 기본값은 기존 viewer 동작과 가장 가까운
   자연스러움이며, 대형 PDF나 페달 반복 입력이 민감한 곡은 없음 또는 빠름으로 낮출 수 있다.
@@ -157,6 +160,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   BPM preset은 현재 메트로놈 BPM과 페이지당 16/32/64박 기준으로 durationSeconds를 계산한다.
   세트리스트 override 또는 곡별 보기 설정에서 autoAdvanceSetlist가 켜져 있으면 자동 스크롤
   완료 후 다음 세트리스트 곡으로 전환한다. measure 위치 자동 감지는 후속으로 분리한다.
+- PDF 본문 검색은 `pdfrx.PdfTextSearcher`의 embedded text search를 사용한다. OCR dependency는
+  v1에 추가하지 않고, `SheetPdfSearchIndexManifest`와 capability/error 문구만 준비했다. 스캔 PDF나
+  이미지 변환 PDF에서 결과가 없으면 OCR 미지원 안내를 표시하고, 향후 ML Kit/Tesseract/platform
+  bridge는 별도 v1.1 spike로 붙인다.
 - 주석/필기 overlay는 `pdfrx`의 `pageOverlaysBuilder`를 사용해 실제 page rect 위에 붙인다.
   stroke point는 page별 normalized coordinate로 저장하고, pointer 입력과 렌더링은 page-local
   rect 기준으로 변환한다. `pdfrx`가 zoom/pan/1페이지/2페이지/세로 스크롤 layout을 처리한 뒤
@@ -205,6 +212,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 필기 포함 PDF 공유는 원본 PDF를 수정하지 않고 앱 내부 annotation layer를 새 PDF content로
   stamp한 임시 export 사본을 만든 뒤 공유한다. 이 사본은 앱 metadata 복원이 아니라 외부 전달용
   산출물이다.
+- `SheetAnnotatedPdfExporter`는 rendered stamp export를 기본 mode로 유지한다. 표준 PDF annotation
+  embed mode는 API 표면과 unsupported result reason을 분리해 두었지만, 현재 사용 가능한
+  `pdf_document` 경로에서는 편집 가능한 Ink/Text annotation object 생성 API가 확인되지 않아
+  실제 파일 생성은 blocker로 둔다.
 - 이미지 PDF 변환은 Dart `pdf` 3.13.0으로 구현한다. 1차는 JPG/PNG만 지원하며, A4 portrait,
   흰 배경, 페이지당 이미지 1장, 비율 유지 정책을 사용한다. 22차 보강에서 변환된 PDF score에
   원본 JPG/PNG를 `reference` linkedFiles로 자동 보존한다. 연결 파일 목록에서 JPG/PNG는 원본
@@ -530,8 +541,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 공연 모드에서는 필기 모드를 자동으로 끄고 toolbar를 숨긴다.
 - 필기 포함 PDF 공유는 별도 export 사본 생성으로 1차 지원한다. 기본 layer의 export flag가 꺼져
   있으면 앱 안 필기는 보존하지만 export 사본에는 포함하지 않는다. PDF 표준 annotation 객체로
-  embed/export하거나, 앱 내부 annotation layer를 다시 편집 가능한 형태로 외부 PDF에 싣는 기능은
-  후속이다.
+  embed/export하는 요청은 unsupported result로 분리하며, 앱 내부 annotation layer를 다시 편집
+  가능한 형태로 외부 PDF에 싣는 기능은 후속이다.
 - 텍스트 주석의 advanced style, 선택 이동/resize는 후속이다.
 - 남은 리스크는 stylus pressure/palm rejection 실기기 튜닝, PDF annotation embed 고도화, 대량
   annotation 저장 성능, 한글 PDF text font embedding, 다중 annotation layer keying이다.
@@ -619,13 +630,15 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset, pause marker, 반복 구간
   timeline, page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은
   1차 구현했다. measure 위치 자동 감지는 후속이다.
+- OCR 기반 PDF 본문 검색: embedded text search와 OCR unsupported 안내, index manifest 준비는
+  구현했다. OCR engine/native bridge 선택과 scan fixture 검증은 v1.1 spike다.
 - 공연 preset override: 세트리스트별 viewer/action override 저장, 복제, 백업/복원, viewer runtime
   적용을 1차 구현했다. 공연 preset template catalog와 장비 profile metadata, viewer 내
   생성/적용/삭제, metadata/full backup round-trip을 추가했다. 실제 장비별 자동 추천은 실기기
   검증 후 조정한다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
-  key mapping, 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI와 input
-  diagnostic log는 1차 구현했다.
+  key mapping과 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI, input
+  diagnostic log, unknown inputId를 custom action으로 저장/실행하는 경로는 1차 구현했다.
 - 페이지 크롭/정렬/복제: crop metadata, 화면 mask, crop-to-fit, 원본 PDF 보존형 virtual page
   order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전/crop/page tree 적용 사본 생성,
   pageOrder instance별 crop/rotation override를 1차 구현했다. duplicate instance의 별도
