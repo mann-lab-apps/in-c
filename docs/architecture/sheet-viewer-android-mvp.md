@@ -831,3 +831,11 @@ PDF URL link tap 정책 보강을 추가했다. 원본 PDF는 계속 source of t
 적용/필기 포함 export는 앱 내부 사본 또는 임시 export 사본으로 처리한다. 2026-08-28에
 Homebrew Flutter `3.47.2`/Dart `3.13.2`로 `flutter pub get`, `dart format lib test`,
 `flutter analyze`, `flutter test`를 실행해 통과했다.
+
+2026-08-28 샘플 PDF 로컬 검증 보강에서는 기존 synthetic PDF fixtures를 기준으로 URL link
+sanitizer의 원본 보존/page count 재검증/partial output cleanup을 다시 확인했고, 이미지-only scan
+PDF를 테스트 안에서 생성해 OCR unsupported manifest와 안내 문구를 검증했다. 또한 필기 포함 PDF
+export에서 mixed ASCII/한글 텍스트 중 한글만 font embedding blocker로 skip하고 rendered stamp
+사본은 유지하는 fallback, JPG/PNG 변환 PDF와 원본 이미지 reference linked file의 full backup
+restore bytes round-trip을 추가했다. 실제 CamScanner object stream PDF, OCR recall, Acrobat/Preview
+호환 가능한 표준 annotation embed는 외부 샘플/API 선택 전까지 blocker로 유지한다.

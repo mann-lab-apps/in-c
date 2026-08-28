@@ -60,6 +60,8 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
+- URL link 제거는 synthetic link PDF fixture 기준으로 검증되어 있다. 실제 CamScanner/object stream
+  PDF는 샘플 확보 후 별도 QA가 필요하다.
 - S Pen pressure metadata/render/export와 stylus 직후 touch rejection window는 1차 구현되어 있다.
   Galaxy Tab S Pen/palm QA tuning은 남아 있다.
 - Bluetooth 페달은 predefined/custom key dropdown과 진단 로그 기반 unknown key 설정을 지원한다.

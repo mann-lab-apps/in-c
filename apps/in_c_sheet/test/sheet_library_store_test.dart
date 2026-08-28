@@ -1168,6 +1168,54 @@ void main() {
       _onePixelPng,
     );
   });
+
+  test(
+    'full backup restores image-converted PDF and reference source image',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final importedAt = DateTime.parse('2026-08-23T10:00:00.000');
+
+      final score = await store.importImagesAsPdfBytes(
+        images: <SheetImportedFile>[
+          SheetImportedFile(name: 'scan_001.png', bytes: _onePixelPng),
+        ],
+        importedAt: importedAt,
+      );
+      await store.saveScores(<SheetScore>[score]);
+      final originalPdfBytes = await File(score.filePath).readAsBytes();
+
+      final zipBytes = await store.exportFullBackupZipBytes(
+        exportedAt: importedAt,
+      );
+
+      final sourceDocumentsDir = documentsDir;
+      documentsDir = await Directory.systemTemp.createTemp(
+        'clef-image-restore-test-',
+      );
+      await sourceDocumentsDir.delete(recursive: true);
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final restoreStore = SheetLibraryStore();
+      final result = await restoreStore.restoreFullBackupZipBytes(zipBytes);
+      final restoredScore = (await restoreStore.loadScores()).single;
+
+      expect(result.didRestore, isTrue);
+      expect(
+        await File(restoredScore.filePath).readAsBytes(),
+        originalPdfBytes,
+      );
+      expect(restoredScore.linkedFiles, hasLength(1));
+      expect(
+        restoredScore.linkedFiles.single.role,
+        SheetLinkedFile.referenceRole,
+      );
+      expect(restoredScore.linkedFiles.single.type, 'png');
+      expect(
+        await File(restoredScore.linkedFiles.single.path).readAsBytes(),
+        _onePixelPng,
+      );
+    },
+  );
 }
 
 SheetScore _score(

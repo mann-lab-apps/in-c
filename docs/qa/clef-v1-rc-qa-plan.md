@@ -24,6 +24,11 @@
   - Dart fixture: `apps/in_c_sheet/test/fixtures/rc_qa_fixture.dart`.
   - 회귀 테스트: `apps/in_c_sheet/test/rc_qa_fixture_test.dart`.
   - 실제 저작권 악보 파일은 포함하지 않는다.
+- synthetic PDF fixture:
+  - `apps/in_c_sheet/test-fixtures/pdfs/short-score.pdf`: 3-page score-like PDF.
+  - `apps/in_c_sheet/test-fixtures/pdfs/link-annotation-score.pdf`: page 1 URL link annotation fixture.
+  - `apps/in_c_sheet/test-fixtures/pdfs/long-scan-like-score.pdf`: 90-page scan-like stress fixture.
+  - 이미지-only scan PDF는 테스트 안에서 임시 생성해 OCR unsupported manifest를 검증한다.
 
 ## 실행 순서
 
@@ -85,7 +90,8 @@ OS:
 
 ## Known Issues
 
-- 현재 로컬 환경에서는 `dart`, `flutter`, `fvm` 명령이 PATH에 없어 전체 format/analyze/test를 실행할 수 없다.
+- 2026-08-28 기준 로컬 Homebrew Flutter/Dart SDK 검증은 통과했다. 이후 SDK/PATH가 바뀌면
+  아래 정적 검증 기록을 다시 갱신한다.
 - Android 태블릿, iPad, Bluetooth 페달 실기기 검증은 주말 QA에서 진행해야 한다.
 - 스캔 PDF와 이미지 기반 PDF는 OCR을 지원하지 않으므로 PDF 본문 검색 결과가 없을 수 있다.
   검색 UI는 embedded text 전용 helper와 OCR unsupported 안내를 사용한다.
@@ -106,8 +112,9 @@ OS:
 - crop, rotation, page hide, virtual order는 기본적으로 원본 PDF를 수정하지 않고 앱 metadata/viewer
   표시로 처리한다. 사용자가 적용 사본 생성을 명시적으로 실행한 경우에는 앱 내부 PDF 사본만 새로
   만들고, 원본 PDF는 연결 파일 metadata로 보존한다.
-- URL link sanitizer는 비PDF/손상 PDF를 거부하고 partial output을 정리한다. 실제 CamScanner
-  object stream/compact rewrite 검증은 샘플 확보 전까지 blocker다.
+- URL link sanitizer는 synthetic link annotation PDF에서 URL link 제거, 원본 보존, page count 재검증을
+  확인했고, 비PDF/손상 PDF를 거부하고 partial output을 정리한다. 실제 CamScanner object stream/compact
+  rewrite 검증은 샘플 확보 전까지 blocker다.
 - 여러 라이브러리는 별도 계정/폴더 권한이 아니라 앱 내부 library profile별 metadata 저장소
   분리다. 라이브러리 비우기는 앱 metadata만 제거하며, PDF 파일 삭제 QA는 별도 destructive
   테스트로 분리한다.
@@ -121,7 +128,7 @@ OS:
 
 | 항목 | 막힌 이유 | 준비된 상태 | 해제 조건 |
 | --- | --- | --- | --- |
-| OCR 기반 PDF 본문 검색 | OCR engine, native bridge, scan fixture 정확도 검증이 필요하다. | embedded text search UI, OCR unsupported 안내, search index manifest/capability model이 있다. | ML Kit/Tesseract/platform bridge 결정, 스캔 PDF fixture recall/latency QA |
+| OCR 기반 PDF 본문 검색 | OCR engine, native bridge, scan fixture 정확도 검증이 필요하다. | embedded text search UI, OCR unsupported 안내, search index manifest/capability model, 이미지-only synthetic fixture의 unsupported manifest test가 있다. | ML Kit/Tesseract/platform bridge 결정, 스캔 PDF fixture recall/latency QA |
 | HEIC/HEIF 직접 변환 | Flutter/Dart 순수 경로에서 HEIC decoder가 없고 platform decoder 선택이 필요하다. | HEIC/HEIF 감지와 JPG 변환 안내가 있다. | Android/iOS decoder dependency 또는 native bridge 결정, 실제 사진 샘플 QA |
 | iOS Share Extension | Xcode target, App Group, provisioning 설정이 필요하다. | iOS document open URL bridge는 구현했다. | Apple 계정/provisioning과 extension target 구성 |
 | Android 기존 폴더 직접 참조 | SAF persistent URI permission과 tree scan 정책을 실기기에서 검증해야 한다. | 앱 내부 사본 저장, 연결 파일, 전체 ZIP 백업은 구현했다. | Android 태블릿에서 folder picker/권한 상실/재스캔 QA |
@@ -129,7 +136,7 @@ OS:
 | CamScanner/malformed PDF link 제거 검증 | 실제 CamScanner류 PDF 샘플과 compact rewrite 비교가 필요하다. | 비PDF/손상 PDF 실패 안전장치, URL link 제거 후 page count 재검증, partial output cleanup 테스트가 있다. | 실제 샘플에서 URL link count, file size, object stream 잔존 여부 기록 |
 | S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | pressure metadata/render/export 경로와 stylus 직후 touch rejection window는 구현했다. platform gesture tuning은 실기기 검증이 필요하다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
 | PDF 표준 annotation embed/export | 현재 PDF writer 경로에서 편집 가능한 Ink/Text annotation object 생성 API가 확인되지 않는다. | rendered stamp fallback과 standard mode unsupported result/test가 있다. | PDF writer API 선택, 표준 annotation fixture와 Acrobat/Preview/MobileSheets 호환 QA |
-| 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback과 export 포함/제외 layer flag가 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
+| 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback, mixed ASCII/한글 annotation에서 한글만 skip하고 PDF 사본을 쓰는 test, export 포함/제외 layer flag가 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
 | USB/Bluetooth 페달 실장비 검증 | 실제 장비가 보내는 HID key가 제조사별로 다르고 앱 foreground focus 영향이 있다. | key mapping resolver, custom dropdown, input diagnostic log, unknown inputId mapping 실행 경로가 있다. | 페달 모델별 logical/physical key와 action 결과 기록 |
 | 저지연 메트로놈 audio/player/iOS playback parity | audio session, latency, sound asset, background 정책 검증이 필요하다. | Android native 기준음/드론, Android local audio player, visual metronome, BPM preset, local linked file metadata는 있다. | audio package/asset 결정, iOS playback bridge, Android/iOS latency QA |
 
@@ -189,5 +196,18 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
 - `flutter pub get`: PASS.
 - `dart format lib test`: PASS. 기존 미포맷 Dart 파일을 formatter 기준으로 정리했다.
 - `flutter analyze`: PASS. No issues found.
-- `flutter test`: PASS. 241 tests passed.
+- `flutter test`: PASS. 244 tests passed.
 - `git diff --check`: PASS.
+
+2026-08-28 샘플 PDF 로컬 검증 기록:
+
+- `dart run tool/inspect_pdf_fixtures.dart`: PASS. `short-score.pdf` 3 pages,
+  `long-scan-like-score.pdf` 90 pages, `link-annotation-score.pdf` 3 pages/page 1 URL link 1개.
+- `flutter test test/sheet_pdf_link_sanitizer_test.dart`: PASS. URL link 제거, 원본 보존,
+  비PDF/손상 PDF 실패 안전장치, partial output cleanup을 확인했다.
+- `flutter test test/sheet_pdf_search_support_test.dart`: PASS. embedded text manifest,
+  OCR unsupported manifest, 이미지-only synthetic scan fixture의 unsupported 안내를 확인했다.
+- `flutter test test/sheet_annotated_pdf_exporter_test.dart`: PASS. rendered stamp export,
+  표준 annotation export unsupported result, 한글/비ASCII font embedding fallback을 확인했다.
+- `flutter test test/sheet_library_store_test.dart`: PASS. JPG/PNG 이미지 PDF 변환, 원본 이미지
+  reference linked file 보존, full backup restore bytes round-trip을 확인했다.

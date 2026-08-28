@@ -368,4 +368,85 @@ void main() {
       expect(result.requiresUnicodeFontEmbedding, isTrue);
     },
   );
+
+  test('writes fallback PDF while skipping Unicode text annotations', () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final originalBytes = await input.readAsBytes();
+    final outputDir = await Directory.systemTemp.createTemp(
+      'clef-annotated-export-mixed-unicode-',
+    );
+    addTearDown(() async {
+      if (outputDir.existsSync()) {
+        await outputDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${outputDir.path}/short-score-annotated.pdf';
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'text-ascii',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.3),
+            text: 'Cue',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
+          SheetTextAnnotation(
+            id: 'text-kr',
+            pageNumber: 1,
+            position: const SheetAnnotationPoint(x: 0.3, y: 0.4),
+            text: '숨 크게',
+            color: 0xff111111,
+            fontSize: 14,
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: outputPath,
+    );
+    final exported = PdfDocument.open(await File(outputPath).readAsBytes());
+
+    expect(result.didWrite, isTrue);
+    expect(result.mode, SheetPdfAnnotationExportMode.renderedStamp);
+    expect(result.strokeCount, 1);
+    expect(result.textCount, 2);
+    expect(result.exportedTextCount, 1);
+    expect(result.skippedUnicodeTextCount, 1);
+    expect(result.requiresUnicodeFontEmbedding, isFalse);
+    expect(exported.pageCount, 3);
+    expect(await input.readAsBytes(), originalBytes);
+  });
 }
