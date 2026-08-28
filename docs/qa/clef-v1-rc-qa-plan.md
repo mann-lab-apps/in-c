@@ -180,3 +180,13 @@ rg -n "[[:blank:]]$" apps/in_c_sheet/lib apps/in_c_sheet/test docs/qa docs/archi
 rg -n "\t" apps/in_c_sheet/lib apps/in_c_sheet/test docs/qa docs/architecture
 rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/test
 ```
+
+2026-08-28 로컬 검증 기록:
+
+- `dart format lib test`: NOT RUN. `dart` command not found.
+- `flutter analyze`: NOT RUN. `flutter` command not found.
+- `flutter test`: NOT RUN. `flutter` command not found.
+- `git diff --check`: PASS.
+- trailing whitespace scan: PASS for `apps/in_c_sheet/lib`, `apps/in_c_sheet/test`, `docs/qa`, `docs/architecture`, and updated sheet-viewer product docs.
+- tab scan: PASS for `apps/in_c_sheet/lib`, `apps/in_c_sheet/test`, `docs/qa`, `docs/architecture`, and updated sheet-viewer product docs.
+- `TODO|FIXME|debugPrint|print` scan: PASS for `apps/in_c_sheet/lib` and `apps/in_c_sheet/test`.
