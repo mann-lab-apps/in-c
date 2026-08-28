@@ -73,9 +73,34 @@ class SheetPdfLinkSanitizer {
     required String inputPath,
     required String outputPath,
   }) async {
+    final outputFile = File(outputPath);
     try {
       final inputFile = File(inputPath);
+      if (!inputFile.existsSync()) {
+        return SheetPdfLinkSanitizationResult(
+          inputPath: inputPath,
+          outputPath: null,
+          pageCount: 0,
+          originalUrlLinkCount: 0,
+          removedUrlLinkCount: 0,
+          remainingUrlLinkCount: 0,
+          didWrite: false,
+          failureReason: 'Input PDF does not exist.',
+        );
+      }
       final originalBytes = await inputFile.readAsBytes();
+      if (!_looksLikePdf(originalBytes)) {
+        return SheetPdfLinkSanitizationResult(
+          inputPath: inputPath,
+          outputPath: null,
+          pageCount: 0,
+          originalUrlLinkCount: 0,
+          removedUrlLinkCount: 0,
+          remainingUrlLinkCount: 0,
+          didWrite: false,
+          failureReason: 'Input file is not a readable PDF.',
+        );
+      }
       final document = PdfDocument.open(originalBytes);
       final before = _inspectDocument(document);
       if (before.urlLinks.isEmpty) {
@@ -104,10 +129,15 @@ class SheetPdfLinkSanitizer {
       }
 
       final sanitizedBytes = editor.save();
-      final outputFile = File(outputPath);
       await outputFile.parent.create(recursive: true);
       await outputFile.writeAsBytes(sanitizedBytes, flush: true);
       final after = inspectBytes(sanitizedBytes);
+      if (after.pageCount != before.pageCount) {
+        throw StateError(
+          'Sanitized PDF page count changed from ${before.pageCount} '
+          'to ${after.pageCount}.',
+        );
+      }
       final removedUrlLinkCount = before.urlLinkCount - after.urlLinkCount;
       return SheetPdfLinkSanitizationResult(
         inputPath: inputPath,
@@ -119,6 +149,7 @@ class SheetPdfLinkSanitizer {
         didWrite: true,
       );
     } catch (error) {
+      await _deletePartialOutput(outputFile);
       return SheetPdfLinkSanitizationResult(
         inputPath: inputPath,
         outputPath: null,
@@ -168,5 +199,32 @@ class SheetPdfLinkSanitizer {
   static bool _isUrlLink(PdfLinkAnnotation annotation) {
     final action = annotation.action;
     return action is PdfUriAction && isSheetExternalPdfUriText(action.uri);
+  }
+
+  static bool _looksLikePdf(Uint8List bytes) {
+    if (bytes.length < 5) {
+      return false;
+    }
+    final scanLength = bytes.length < 1024 ? bytes.length : 1024;
+    for (var index = 0; index <= scanLength - 5; index += 1) {
+      if (bytes[index] == 0x25 &&
+          bytes[index + 1] == 0x50 &&
+          bytes[index + 2] == 0x44 &&
+          bytes[index + 3] == 0x46 &&
+          bytes[index + 4] == 0x2d) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  static Future<void> _deletePartialOutput(File outputFile) async {
+    try {
+      if (await outputFile.exists()) {
+        await outputFile.delete();
+      }
+    } catch (_) {
+      // Best-effort cleanup only; preserve the sanitizer failure reason.
+    }
   }
 }

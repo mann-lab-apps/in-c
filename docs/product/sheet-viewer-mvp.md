@@ -232,14 +232,14 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
   외부 테스터 체크리스트와 베타 피드백 요청 메시지.
 
 URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막고, 사용자가 명시적으로
-선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. PDF visible watermark 제거는
-범위에서 제외한다.
+선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. 비PDF/손상 PDF는 거부하고
+partial output을 정리한다. PDF visible watermark 제거는 범위에서 제외한다.
 
 iOS scaffold는 2026-08-21 smoke test 보조 타깃으로 추가했다. iPhone 16 Pro / iOS 18.4
 Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인했지만, 제품 검증의
 우선순위는 Android 태블릿이다.
 
-Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
+Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거/compact rewrite 검증,
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
 기준음/드론/로컬 오디오 Android latency와 iOS parity,
 Bluetooth/USB 페달 실기기 HID 검증, 주석/필기 고도화, PDF annotation 객체 embed/export,

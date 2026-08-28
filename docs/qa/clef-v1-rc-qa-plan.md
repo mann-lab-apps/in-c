@@ -101,6 +101,8 @@ OS:
 - crop, rotation, page hide, virtual order는 기본적으로 원본 PDF를 수정하지 않고 앱 metadata/viewer
   표시로 처리한다. 사용자가 적용 사본 생성을 명시적으로 실행한 경우에는 앱 내부 PDF 사본만 새로
   만들고, 원본 PDF는 연결 파일 metadata로 보존한다.
+- URL link sanitizer는 비PDF/손상 PDF를 거부하고 partial output을 정리한다. 실제 CamScanner
+  object stream/compact rewrite 검증은 샘플 확보 전까지 blocker다.
 - 여러 라이브러리는 별도 계정/폴더 권한이 아니라 앱 내부 library profile별 metadata 저장소
   분리다. 라이브러리 비우기는 앱 metadata만 제거하며, PDF 파일 삭제 QA는 별도 destructive
   테스트로 분리한다.
@@ -117,6 +119,7 @@ OS:
 | iOS Share Extension | Xcode target, App Group, provisioning 설정이 필요하다. | iOS document open URL bridge는 구현했다. | Apple 계정/provisioning과 extension target 구성 |
 | Android 기존 폴더 직접 참조 | SAF persistent URI permission과 tree scan 정책을 실기기에서 검증해야 한다. | 앱 내부 사본 저장, 연결 파일, 전체 ZIP 백업은 구현했다. | Android 태블릿에서 folder picker/권한 상실/재스캔 QA |
 | Cloud provider 실패 검증 | Drive/iCloud/Dropbox 계정과 provider별 offline placeholder 동작이 필요하다. | system file picker 우선 정책과 내려받기 안내가 있다. | provider별 실기기 import 실패/성공 기록 |
+| CamScanner/malformed PDF link 제거 검증 | 실제 CamScanner류 PDF 샘플과 compact rewrite 비교가 필요하다. | 비PDF/손상 PDF 실패 안전장치, URL link 제거 후 page count 재검증, partial output cleanup 테스트가 있다. | 실제 샘플에서 URL link count, file size, object stream 잔존 여부 기록 |
 | S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | pressure metadata/render/export 경로와 stylus 직후 touch rejection window는 구현했다. platform gesture tuning은 실기기 검증이 필요하다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
 | 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback이 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
 | USB/Bluetooth 페달 실장비 검증 | 실제 장비가 보내는 HID key가 제조사별로 다르다. | key mapping resolver, custom dropdown, input diagnostic log가 있다. | 페달 모델별 logical/physical key와 action 결과 기록 |

@@ -311,6 +311,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - URL link가 없으면 사본 파일을 만들지 않고 “제거할 외부 URL 링크가 없음”으로 안내한다.
 - URL link가 있으면 앱 내부 `scores/` 폴더에 정리된 사본을 저장하고, 현재 score의 `filePath`를
   새 사본 경로로 교체한다.
+- sanitizer는 입력 파일 존재 여부와 PDF header를 먼저 확인하고, 제거 후 page count를 재검증한다.
+  손상 PDF 또는 저장 후 재검증 실패가 발생하면 partial output을 best-effort로 삭제하고 현재 score를
+  교체하지 않는다.
 - score id, 북마크, 세트리스트 참조, 필기 metadata는 유지한다.
 - `SheetScore.pdfLinkSanitization`에는 이전 파일 경로, 제거 URL link 개수, 생성 시각을 저장한다.
 - 원본 PDF의 page content stream이나 visible watermark 이미지/텍스트는 수정하지 않는다.
@@ -601,8 +604,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 후속 분리 기능
 
-- PDF link annotation 고도화: URL link 제거 사본 생성은 1차 구현했다. 실제 CamScanner 샘플,
-  malformed PDF, compact/rewrite 방식의 완전한 object 제거는 추가 검증이 필요하다.
+- PDF link annotation 고도화: URL link 제거 사본 생성과 비PDF/손상 PDF 실패 안전장치는
+  1차 구현했다. 실제 CamScanner 샘플과 compact/rewrite 방식의 완전한 object 제거는 추가 검증이
+  필요하다.
 - 주석/필기 고도화: S Pen pressure와 stylus 직후 touch rejection window는 1차 구현했다.
   palm rejection 실기기 튜닝, layer visibility, PDF embed/export 별도 spike 필요.
   기본 stroke/text layer, text edit/delete와 page rect 기반 overlay는 구현했다.

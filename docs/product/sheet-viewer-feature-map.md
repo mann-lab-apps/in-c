@@ -63,7 +63,7 @@
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |
 | PDF 링크 | link annotation 표시 | 사용자 차별화 | MVP | 중간 | 구현됨: `pdfrx` link handler 영역 표시 |
 | PDF 링크 | link tap 비활성화 | 사용자 차별화 | MVP | 중간 | 구현됨: URL tap 차단, 내부 destination 유지 |
-| PDF 링크 | link 제거 사본 생성 | 사용자 차별화 | MVP | 높음 | 12차 부분 구현: `pdf_document`로 URL link annotation 제거 사본 생성, 원본 보존. 실제 CamScanner 샘플 검증 필요 |
+| PDF 링크 | link 제거 사본 생성 | 사용자 차별화 | MVP | 높음 | 구현됨: `pdf_document`로 URL link annotation 제거 사본 생성, 원본 보존, 비PDF/손상 PDF 실패 안전장치와 partial output cleanup. 실제 CamScanner 샘플/compact rewrite 검증 필요 |
 | PDF 링크 | visible watermark 제거 | 명시적 비목표 | Later | 높음 | 법적/윤리적 검토 필요 |
 | 주석 | 펜 | 양쪽 기본 | MVP | 중간 | 8차 보강: `pdfrx.pageOverlaysBuilder` 기반 page rect overlay, normalized point 저장 |
 | 주석 | 형광펜 | MobileSheets 기본 | MVP | 중간 | 8차 보강: page별 translucent stroke render |
@@ -141,8 +141,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 크로매틱 튜너. 11차 구현은 `record` 기반 microphone PCM stream, autocorrelation pitch
   detector, median smoothing, no-signal debounce까지 붙였다. Android 태블릿 실기기 정확도/latency
   검증은 후속이다.
-- PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. 12차 구현은
-  `pdf_document` 기반이고, 실제 CamScanner 샘플/compact rewrite 검증은 후속이다.
+- PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. `pdf_document` 기반으로
+  URL link annotation 제거 뒤 page count를 재검증하고, 비PDF/손상 PDF 실패 시 partial output을
+  남기지 않는다. 실제 CamScanner 샘플/compact rewrite 검증은 blocker다.
 - 자동 스크롤. 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
   설정을 저장하고, 세로 스크롤 보기에서 weighted timeline 기반으로 진행한다. pause/resume과 현재
   메트로놈 BPM 기반 duration preset까지 1차 구현했다.
