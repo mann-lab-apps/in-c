@@ -41,6 +41,9 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 세트리스트 생성, 이름 변경, 삭제.
 - 세트리스트에 악보 추가, 순서 변경, 제거.
 - 세트리스트 순서대로 곡 사이를 넘김.
+- 세트리스트별 공연 보기 preset으로 보기 모드, page scale, 반 페이지 넘김, 전환 확인,
+  자동 곡 이동, 페달 mapping을 곡별 설정 위에 override.
+- 공연 preset template을 저장/적용/삭제하고 장비 profile metadata를 백업/복원.
 - 공연 모드: 편집 UI 숨김, 실수 탭 방지, 큰 페이지 넘김 영역.
 
 ### 북마크
@@ -59,12 +62,15 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 색상/두께 선택.
 - undo/redo.
 - 자동 저장.
-- 주석은 앱 내부 레이어로 저장하고 원본 PDF는 수정하지 않는다.
+- 주석은 앱 내부 기본 layer로 저장하고 원본 PDF는 수정하지 않는다.
+- 기본 layer 표시/숨김과 PDF 공유 포함/제외를 저장한다.
 
 ### 음악 도구
 
 - 메트로놈: BPM, 박자, 첫 박 강조, 시작/정지, 시각 표시.
 - 튜너: chromatic tuner, 현재 음 이름, cents 편차, A4 calibration.
+- 기준음/드론: 튜너 A4 기준을 공유하는 기준음, 5도, 옥타브 drone 재생.
+- 로컬 오디오 플레이어: 악보에 연결한 audio file 재생/정지.
 - 튜너는 악보 위 overlay 또는 side sheet로 열 수 있어야 한다.
 
 ### PDF link annotation 정리
@@ -78,7 +84,7 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 ### Bluetooth 페달
 
 - 기본 HID 입력으로 이전/다음 페이지 넘김을 지원한다.
-- MVP에서는 복잡한 pedal action mapping을 제외한다.
+- V1에서는 predefined/custom action mapping으로 page, score, quick action, no-op을 지원한다.
 
 ## 핵심 사용자 흐름
 
@@ -164,8 +170,9 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 
 ## 현재 구현 상태
 
-제품명은 `Clef`다. 2026-08-27 기준으로 `apps/in_c_sheet` Android Flutter 앱 scaffold와 MobileSheets식
-기본 사용 흐름 일부를 구현했다.
+제품명은 `Clef`다. 2026-08-28 기준으로 `apps/in_c_sheet` Android Flutter 앱에서 Clef v1 RC 후보의
+import/library/viewer/annotation/performance/backup 흐름을 구현했고, Homebrew Flutter `3.47.2`/Dart
+`3.13.2`로 `dart format lib test`, `flutter analyze`, `flutter test`를 통과했다.
 
 - PDF 파일 선택.
 - 앱 내부 문서 저장소에 PDF 사본 저장.
@@ -174,8 +181,10 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 라이브러리 정렬/필터 1차: 최근 열기, 제목, 작곡가, 별점, 가져온 날짜 정렬,
   즐겨찾기/태그/컬렉션/그룹/최소 별점 필터.
 - 악보 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모, custom metadata field 편집.
-- collection-backed 라이브러리 전환 1차: 전체/컬렉션 라이브러리 전환, 생성, 이름 변경,
-  비우기. 실제 profile별 저장소 분리는 후속.
+- profile-backed 라이브러리 전환 1차: 기본/추가 라이브러리 전환, 생성, 이름 변경,
+  비우기. scores/setlists/view/favorite preset metadata는 profile별 저장 key로 분리한다.
+- 전역 보기/입력 기본값 1차: 새 악보에 적용할 보기 모드, 페이지 맞춤, 반 페이지 넘김,
+  공연 모드 화면 유지, 페달/action mapping을 저장하고 백업에 포함한다.
 - 연결 파일 metadata/UI 1차: 한 곡에 여러 보조 파일을 묶기 위한 저장 모델, 관리 UI,
   viewer 연결 PDF 전환, 백업 round-trip.
 - `pdfrx` 기반 PDF viewer.
@@ -199,10 +208,11 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 반 페이지 넘김 1차: visible viewport 기반 반 페이지 이동, 페이지 경계에서 이전/다음
   페이지 이동, 2페이지 보기와 동시 사용 제한.
 - 페이지 정리 metadata 1차: 현재 페이지 숨김/해제, 숨김 페이지 navigation skip, page별
-  회전 metadata 저장, global crop metadata와 화면 mask.
+  회전 metadata 저장, global/page/instance crop metadata와 화면 mask, duplicate instance별
+  crop/rotation override.
 - 주석/필기 1차: 펜/형광펜 stroke, 텍스트 주석, 지우개 stroke 삭제, 색상/두께 선택,
-  텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo, 앱 metadata 저장, `pdfrx` page overlay
-  기반 좌표 정합성 보강.
+  텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo/redo, 기본 layer 표시/숨김과 PDF 공유
+  포함/제외, 앱 metadata 저장, `pdfrx` page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 OFF tick sound toggle.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector, median
   smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
@@ -210,34 +220,42 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
   visual tuner fallback.
 - 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space 기반 이전/다음 페이지 넘김.
 - 공연 모드 1차: 관리 action 숨김, 큰 페이지 컨트롤 유지.
-- 자동 스크롤 1차: 곡별 duration/start/end 저장, 세로 스크롤 기반 일정 속도 진행,
-  수동 페이지 이동/키 입력 시 정지.
+- 자동 스크롤 1차: 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
+  저장, 세로 스크롤 기반 weighted timeline 진행, pause/resume/stop, BPM 기반 duration preset,
+  세트리스트 자동 다음 곡 진행, 수동 페이지 이동/키 입력 시 정지. start/end 범위 밖
+  page duration과 cue point는 timeline에서 제외.
 - 로컬 백업/복원 1차: PDF 파일을 제외한 앱 metadata JSON export/import, PDF 파일을 포함한
-  전체 백업/복원 ZIP.
+  전체 백업/복원 ZIP, active library profile별 save mutation 기반 metadata 자동 snapshot.
 - 공유/import/export 1차: Android 외부 PDF 수신, iOS document open URL 수신, 현재 PDF 공유,
   필기 포함 PDF 공유 사본 생성, 한글 텍스트 주석 PDF export 안전 fallback,
   JPG/PNG 이미지를 PDF 악보로 묶기, 변환 원본 이미지를 reference linked file로 보존.
+- PDF 본문 검색 1차: embedded text search UI, 결과 이동/이전/다음/clear, OCR unsupported 안내,
+  search index manifest/capability model.
 - 표시 효과 1차: 일반, 어두운 배경, 색상 반전.
 - 베타 전달 polish: 앱 내 테스트 정보/version 표시, 피드백 템플릿 복사, 빈 라이브러리 CTA,
   검색/필터 빈 결과 초기화, viewer 오류 배너, 구체적인 import/share/export 실패 안내,
   외부 테스터 체크리스트와 베타 피드백 요청 메시지.
 
 URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막고, 사용자가 명시적으로
-선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. PDF visible watermark 제거는
-범위에서 제외한다.
+선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. 비PDF/손상 PDF는 거부하고
+partial output을 정리한다. PDF visible watermark 제거는 범위에서 제외한다.
 
 iOS scaffold는 2026-08-21 smoke test 보조 타깃으로 추가했다. iPhone 16 Pro / iOS 18.4
 Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인했지만, 제품 검증의
 우선순위는 Android 태블릿이다.
 
-Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
-튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 cue/pause/BPM sync,
-Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
-실제 crop-to-fit/export, 페이지 순서 변경/복제,
-실제 페이지 회전 렌더링/PDF 재저장, 한글 텍스트 PDF font embedding,
-실제 profile별 여러 라이브러리 저장소 분리, 기존 폴더 직접 참조, ChordPro/text,
-HEIC 이미지 변환, 이미지 원본 viewer, iOS Share Extension, 클라우드 동기화/자동 백업,
+Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거/compact rewrite 검증,
+튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
+기준음/드론/로컬 오디오 Android latency와 iOS parity,
+Bluetooth/USB 페달 실기기 HID 검증, Galaxy Tab S Pen pressure/palm rejection tuning,
+PDF annotation 객체 embed/export,
+실제 페이지 회전 live 렌더링의 시각 QA,
+한글 텍스트 PDF font embedding,
+다중 annotation layer와 annotation별 layer keying,
+기존 폴더 직접 참조, ChordPro/text,
+HEIC/HEIF 직접 변환, iOS Share Extension, 클라우드 동기화,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
-system file picker/provider 경로를 우선 사용한다. 구현 메모는
+system file picker/provider 경로를 우선 사용하고 내려받기 안내를 제공한다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
-정리한다.
+정리한다. v1.1 spike backlog는
+[`docs/product/clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)에 분리한다.

@@ -5,6 +5,7 @@
 ## 시작 전
 
 - v1 RC 전체 실행 순서와 기록 양식은 `docs/qa/clef-v1-rc-qa-plan.md`를 먼저 확인한다.
+- 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
@@ -60,9 +61,14 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
-- S Pen pressure와 palm rejection은 아직 고도화 전이다.
-- Bluetooth 페달은 predefined key dropdown 기반 custom mapping만 지원한다. 실제 key capture는 후속 범위다.
-- OCR, 실제 HID key capture, SQLite/file-backed annotation store, PDF 표준 annotation embed는 v1.1 이후 후속 범위다.
+- URL link 제거는 synthetic link PDF fixture 기준으로 검증되어 있다. 실제 CamScanner/object stream
+  PDF는 샘플 확보 후 별도 QA가 필요하다.
+- S Pen pressure metadata/render/export와 stylus 직후 touch rejection window는 1차 구현되어 있다.
+  Galaxy Tab S Pen/palm QA tuning은 남아 있다.
+- Bluetooth 페달은 predefined/custom key dropdown과 진단 로그 기반 unknown key 설정을 지원한다.
+  실제 key capture wizard는 후속 범위다.
+- OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
+  embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.
 
 ## 실패 시 기록할 정보
@@ -72,9 +78,14 @@
 - 앱 버전/build.
 - 기기명과 OS 버전.
 - 설치 방식: TestFlight, debug APK, release APK.
-- PDF 종류와 페이지 수: 스캔 PDF, 일반 PDF, 이미지 변환 PDF 등.
+- PDF/샘플 파일 유형: 텍스트 PDF, 스캔 PDF, 이미지 변환 PDF, URL link PDF, 한글 주석 PDF 등.
+- 페이지 수와 파일 크기.
+- 샘플 파일 공유 가능 여부.
+- 테스트 영역: import, viewer, search, annotation export, backup, pedal, S Pen, tuner, audio 등.
+- blocker 여부: 예, 아니오, 모르겠음.
 - 한 일: 누른 버튼, 메뉴, 입력값.
 - 기대한 결과.
 - 실제 결과.
 - 표시된 오류 문구.
+- 스크린샷 또는 화면녹화 가능 여부.
 - 같은 순서로 다시 했을 때 재현되는지.

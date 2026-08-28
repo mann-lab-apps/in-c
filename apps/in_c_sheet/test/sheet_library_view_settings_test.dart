@@ -86,4 +86,69 @@ void main() {
     expect(json['groupQuery'], 'WARMUP');
     expect(json['minimumRating'], 4);
   });
+
+  test('encodes and decodes performance preset templates', () {
+    final templates = SheetPerformancePresetTemplateCodec.decode(
+      SheetPerformancePresetTemplateCodec.encode(
+        const <SheetPerformancePresetTemplate>[
+          SheetPerformancePresetTemplate(
+            id: 'preset-2',
+            name: 'Tablet',
+            deviceProfile: 'Galaxy Tab',
+            viewerSettings: SheetViewerSettings(
+              displayMode: 'twoPage',
+              halfPageTurn: true,
+              pageScale: SheetViewerSettings.fitWidthScale,
+              pedalMapping: SheetViewerSettings.setlistPedalMapping,
+              autoAdvanceSetlist: true,
+            ),
+          ),
+          SheetPerformancePresetTemplate(
+            id: 'preset-1',
+            name: 'Stage',
+            viewerSettings: SheetViewerSettings(
+              displayMode: 'continuousVertical',
+              halfPageTurn: false,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    expect(templates.map((template) => template.name), <String>[
+      'Stage',
+      'Tablet',
+    ]);
+    expect(templates.last.deviceProfile, 'Galaxy Tab');
+    expect(
+      templates.last.viewerSettings.pedalMapping,
+      SheetViewerSettings.setlistPedalMapping,
+    );
+    expect(templates.last.viewerSettings.autoAdvanceSetlist, isTrue);
+  });
+
+  test('normalizes malformed performance preset template JSON', () {
+    final templates = SheetPerformancePresetTemplate.decodeJsonList(<Object?>[
+      <String, Object?>{
+        'id': '',
+        'name': '',
+        'viewerSettings': <String, Object?>{
+          'displayMode': 'bad',
+          'halfPageTurn': 'true',
+          'pageScale': 'fullscreen',
+        },
+      },
+      'bad',
+    ]);
+
+    expect(templates.single.id, 'performance-preset');
+    expect(templates.single.name, SheetPerformancePresetTemplate.defaultName);
+    expect(templates.single.viewerSettings.displayMode, 'auto');
+    expect(templates.single.viewerSettings.halfPageTurn, isFalse);
+    expect(
+      templates.single.viewerSettings.pageScale,
+      SheetViewerSettings.fullscreenScale,
+    );
+    expect(SheetPerformancePresetTemplateCodec.decode('{bad'), isEmpty);
+  });
 }

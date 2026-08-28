@@ -8,6 +8,10 @@ int _intFromJson(Object? value, {required int fallback}) {
   return int.tryParse(value?.toString() ?? '') ?? fallback;
 }
 
+bool _boolFromJson(Object? value, {required bool fallback}) {
+  return value is bool ? value : fallback;
+}
+
 enum SheetAnnotationTool {
   pen,
   highlighter,
@@ -76,20 +80,30 @@ class SheetAnnotationToolPreset {
 }
 
 class SheetAnnotationPoint {
-  const SheetAnnotationPoint({required this.x, required this.y});
+  const SheetAnnotationPoint({
+    required this.x,
+    required this.y,
+    this.pressure = 1.0,
+  });
 
   factory SheetAnnotationPoint.fromJson(Map<String, Object?> json) {
     return SheetAnnotationPoint(
       x: _normalizeCoordinate(json['x']),
       y: _normalizeCoordinate(json['y']),
+      pressure: _normalizePressure(json['pressure']),
     );
   }
 
   final double x;
   final double y;
+  final double pressure;
 
   Map<String, Object?> toJson() {
-    return <String, Object?>{'x': x, 'y': y};
+    return <String, Object?>{
+      'x': x,
+      'y': y,
+      if (pressure != 1.0) 'pressure': pressure,
+    };
   }
 
   double distanceTo(SheetAnnotationPoint other) {
@@ -101,6 +115,11 @@ class SheetAnnotationPoint {
   static double _normalizeCoordinate(Object? value) {
     final coordinate = value is num ? value.toDouble() : 0.0;
     return coordinate.clamp(0.0, 1.0).toDouble();
+  }
+
+  static double _normalizePressure(Object? value) {
+    final pressure = value is num ? value.toDouble() : 1.0;
+    return pressure.clamp(0.4, 1.8).toDouble();
   }
 }
 
@@ -278,6 +297,7 @@ class SheetTextAnnotation {
   final DateTime createdAt;
 
   SheetTextAnnotation copyWith({
+    String? id,
     int? pageNumber,
     SheetAnnotationPoint? position,
     String? text,
@@ -286,7 +306,7 @@ class SheetTextAnnotation {
     DateTime? createdAt,
   }) {
     return SheetTextAnnotation(
-      id: id,
+      id: id ?? this.id,
       pageNumber: pageNumber ?? this.pageNumber,
       position: position ?? this.position,
       text: text ?? this.text,
@@ -328,11 +348,71 @@ class SheetTextAnnotation {
   }
 }
 
+class SheetAnnotationDisplayLayer {
+  const SheetAnnotationDisplayLayer({
+    required this.id,
+    required this.label,
+    this.isVisible = true,
+    this.includeInExport = true,
+  });
+
+  factory SheetAnnotationDisplayLayer.fromJson(Map<String, Object?> json) {
+    final id = _stringFromJson(json['id']).trim();
+    final label = _stringFromJson(json['label']).trim();
+    return SheetAnnotationDisplayLayer(
+      id: id.isEmpty ? defaultLayerId : id,
+      label: label.isEmpty ? defaultLayerLabel : label,
+      isVisible: _boolFromJson(json['isVisible'], fallback: true),
+      includeInExport: _boolFromJson(json['includeInExport'], fallback: true),
+    );
+  }
+
+  static const defaultLayerId = 'default';
+  static const defaultLayerLabel = '기본 필기';
+  static const defaultLayer = SheetAnnotationDisplayLayer(
+    id: defaultLayerId,
+    label: defaultLayerLabel,
+  );
+
+  final String id;
+  final String label;
+  final bool isVisible;
+  final bool includeInExport;
+
+  bool get isValid => id.trim().isNotEmpty && label.trim().isNotEmpty;
+
+  SheetAnnotationDisplayLayer copyWith({
+    String? id,
+    String? label,
+    bool? isVisible,
+    bool? includeInExport,
+  }) {
+    return SheetAnnotationDisplayLayer(
+      id: id?.trim().isNotEmpty == true ? id!.trim() : this.id,
+      label: label?.trim().isNotEmpty == true ? label!.trim() : this.label,
+      isVisible: isVisible ?? this.isVisible,
+      includeInExport: includeInExport ?? this.includeInExport,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'label': label,
+      'isVisible': isVisible,
+      'includeInExport': includeInExport,
+    };
+  }
+}
+
 class SheetAnnotationLayer {
   const SheetAnnotationLayer({
     required this.strokes,
     this.texts = const <SheetTextAnnotation>[],
     this.redoStack = const <SheetAnnotationRedoEntry>[],
+    this.layers = const <SheetAnnotationDisplayLayer>[
+      SheetAnnotationDisplayLayer.defaultLayer,
+    ],
   });
 
   factory SheetAnnotationLayer.fromJson(Map<String, Object?>? json) {
@@ -357,6 +437,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(strokes),
       texts: List<SheetTextAnnotation>.unmodifiable(texts),
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(redoStack),
+      layers: _normalizeLayers(json?['layers']),
     );
   }
 
@@ -390,17 +471,34 @@ class SheetAnnotationLayer {
     strokes: <SheetAnnotationStroke>[],
     texts: <SheetTextAnnotation>[],
     redoStack: <SheetAnnotationRedoEntry>[],
+    layers: <SheetAnnotationDisplayLayer>[
+      SheetAnnotationDisplayLayer.defaultLayer,
+    ],
   );
 
   final List<SheetAnnotationStroke> strokes;
   final List<SheetTextAnnotation> texts;
   final List<SheetAnnotationRedoEntry> redoStack;
+  final List<SheetAnnotationDisplayLayer> layers;
 
   int get strokeCount => strokes.length;
 
   int get textCount => texts.length;
 
   int get redoCount => redoStack.length;
+
+  SheetAnnotationDisplayLayer get defaultLayer {
+    for (final layer in layers) {
+      if (layer.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+        return layer;
+      }
+    }
+    return SheetAnnotationDisplayLayer.defaultLayer;
+  }
+
+  bool get isDefaultLayerVisible => defaultLayer.isVisible;
+
+  bool get includeDefaultLayerInExport => defaultLayer.includeInExport;
 
   int get pointCount {
     var total = 0;
@@ -441,6 +539,50 @@ class SheetAnnotationLayer {
         .toList(growable: false);
   }
 
+  List<SheetAnnotationStroke> visibleStrokesForPage(int pageNumber) {
+    return isDefaultLayerVisible
+        ? strokesForPage(pageNumber)
+        : const <SheetAnnotationStroke>[];
+  }
+
+  List<SheetTextAnnotation> visibleTextsForPage(int pageNumber) {
+    return isDefaultLayerVisible
+        ? textsForPage(pageNumber)
+        : const <SheetTextAnnotation>[];
+  }
+
+  List<SheetAnnotationStroke> exportableStrokesForPage(int pageNumber) {
+    return includeDefaultLayerInExport
+        ? strokesForPage(pageNumber)
+        : const <SheetAnnotationStroke>[];
+  }
+
+  List<SheetTextAnnotation> exportableTextsForPage(int pageNumber) {
+    return includeDefaultLayerInExport
+        ? textsForPage(pageNumber)
+        : const <SheetTextAnnotation>[];
+  }
+
+  SheetAnnotationLayer withDefaultLayerState({
+    bool? isVisible,
+    bool? includeInExport,
+  }) {
+    final defaultLayer = this.defaultLayer.copyWith(
+      isVisible: isVisible,
+      includeInExport: includeInExport,
+    );
+    return SheetAnnotationLayer(
+      strokes: strokes,
+      texts: texts,
+      redoStack: redoStack,
+      layers: _normalizeLayerList(<SheetAnnotationDisplayLayer>[
+        for (final layer in layers)
+          if (layer.id != SheetAnnotationDisplayLayer.defaultLayerId) layer,
+        defaultLayer,
+      ]),
+    );
+  }
+
   SheetAnnotationLayer compactForPageCount(int pageCount) {
     if (pageCount < 1) {
       return this;
@@ -468,6 +610,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(compactStrokes),
       texts: List<SheetTextAnnotation>.unmodifiable(compactTexts),
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(compactRedoStack),
+      layers: layers,
     );
   }
 
@@ -481,6 +624,7 @@ class SheetAnnotationLayer {
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
         redoStack.skip(redoStack.length - maxEntries),
       ),
+      layers: layers,
     );
   }
 
@@ -496,6 +640,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(next),
       texts: texts,
       redoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 
@@ -511,6 +656,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 
@@ -535,6 +681,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 
@@ -549,6 +696,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(next),
       texts: texts,
       redoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 
@@ -563,6 +711,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      layers: layers,
     );
   }
 
@@ -640,6 +789,7 @@ class SheetAnnotationLayer {
           strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
           texts: texts,
           redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
+          layers: layers,
         );
       }
       if (entry.text != null) {
@@ -651,6 +801,7 @@ class SheetAnnotationLayer {
           strokes: strokes,
           texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
           redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
+          layers: layers,
         );
       }
     }
@@ -673,6 +824,7 @@ class SheetAnnotationLayer {
           SheetAnnotationRedoEntry.stroke(stroke),
         ],
       ),
+      layers: layers,
     );
   }
 
@@ -692,6 +844,7 @@ class SheetAnnotationLayer {
           SheetAnnotationRedoEntry.text(text),
         ],
       ),
+      layers: layers,
     );
   }
 
@@ -700,7 +853,52 @@ class SheetAnnotationLayer {
       'strokes': strokes.map((stroke) => stroke.toJson()).toList(),
       'texts': texts.map((text) => text.toJson()).toList(),
       'redoStack': redoStack.map((entry) => entry.toJson()).toList(),
+      'layers': layers.map((layer) => layer.toJson()).toList(),
     };
+  }
+
+  static List<SheetAnnotationDisplayLayer> _normalizeLayers(Object? value) {
+    final layers = _jsonMaps(value)
+        .map(_tryLayerFromJson)
+        .whereType<SheetAnnotationDisplayLayer>()
+        .toList(growable: false);
+    return _normalizeLayerList(layers);
+  }
+
+  static SheetAnnotationDisplayLayer? _tryLayerFromJson(
+    Map<String, Object?> json,
+  ) {
+    try {
+      return SheetAnnotationDisplayLayer.fromJson(json);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static List<SheetAnnotationDisplayLayer> _normalizeLayerList(
+    List<SheetAnnotationDisplayLayer> layers,
+  ) {
+    final byId = <String, SheetAnnotationDisplayLayer>{
+      SheetAnnotationDisplayLayer.defaultLayerId:
+          SheetAnnotationDisplayLayer.defaultLayer,
+    };
+    for (final layer in layers) {
+      if (!layer.isValid) {
+        continue;
+      }
+      byId[layer.id] = layer;
+    }
+    final normalized = byId.values.toList(growable: false);
+    normalized.sort((a, b) {
+      if (a.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+        return -1;
+      }
+      if (b.id == SheetAnnotationDisplayLayer.defaultLayerId) {
+        return 1;
+      }
+      return a.label.toLowerCase().compareTo(b.label.toLowerCase());
+    });
+    return List<SheetAnnotationDisplayLayer>.unmodifiable(normalized);
   }
 
   static bool _strokesEqual(

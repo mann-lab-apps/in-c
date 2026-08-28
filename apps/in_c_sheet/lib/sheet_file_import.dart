@@ -20,6 +20,14 @@ class SheetFileImportPolicy {
 
   static const pdfExtensions = <String>{'pdf'};
   static const imageExtensions = <String>{'jpg', 'jpeg', 'png'};
+  static const audioExtensions = <String>{
+    'mp3',
+    'wav',
+    'm4a',
+    'aac',
+    'flac',
+    'ogg',
+  };
   static const unsupportedImageExtensions = <String>{'heic', 'heif'};
 
   static bool isPdfFileName(String name) {
@@ -28,6 +36,20 @@ class SheetFileImportPolicy {
 
   static bool isSupportedImageFileName(String name) {
     return imageExtensions.contains(extensionOf(name));
+  }
+
+  static bool isSupportedImageExtension(String extension) {
+    final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
+    return imageExtensions.contains(normalized);
+  }
+
+  static bool isSupportedAudioFileName(String name) {
+    return audioExtensions.contains(extensionOf(name));
+  }
+
+  static bool isSupportedAudioExtension(String extension) {
+    final normalized = extension.trim().toLowerCase().replaceFirst('.', '');
+    return audioExtensions.contains(normalized);
   }
 
   static bool isKnownButUnsupportedImageFileName(String name) {

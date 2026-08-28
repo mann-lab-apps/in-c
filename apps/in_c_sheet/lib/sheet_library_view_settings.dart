@@ -189,8 +189,140 @@ class SheetLibraryViewSettingsCodec {
   }
 }
 
+class SheetPerformancePresetTemplate {
+  const SheetPerformancePresetTemplate({
+    required this.id,
+    required this.name,
+    required this.viewerSettings,
+    this.deviceProfile = '',
+  });
+
+  factory SheetPerformancePresetTemplate.fromJson(Map<String, Object?> json) {
+    final id = _stringFromJson(json['id']).trim();
+    final name = _stringFromJson(json['name']).trim();
+    final deviceProfile = _stringFromJson(json['deviceProfile']).trim();
+    return SheetPerformancePresetTemplate(
+      id: id.isEmpty ? _fallbackTemplateId(name, deviceProfile) : id,
+      name: name.isEmpty ? defaultName : name,
+      viewerSettings: SheetViewerSettings.fromJson(
+        _jsonMapFromObject(json['viewerSettings']),
+      ),
+      deviceProfile: deviceProfile,
+    );
+  }
+
+  static const defaultName = '공연 preset';
+
+  final String id;
+  final String name;
+  final SheetViewerSettings viewerSettings;
+  final String deviceProfile;
+
+  SheetPerformancePresetTemplate copyWith({
+    String? id,
+    String? name,
+    SheetViewerSettings? viewerSettings,
+    String? deviceProfile,
+  }) {
+    return SheetPerformancePresetTemplate(
+      id: id?.trim().isNotEmpty == true ? id!.trim() : this.id,
+      name: name?.trim().isNotEmpty == true ? name!.trim() : this.name,
+      viewerSettings: viewerSettings ?? this.viewerSettings,
+      deviceProfile: deviceProfile?.trim() ?? this.deviceProfile,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'name': name.trim(),
+      'viewerSettings': viewerSettings.toJson(),
+      if (deviceProfile.trim().isNotEmpty)
+        'deviceProfile': deviceProfile.trim(),
+    };
+  }
+
+  static List<SheetPerformancePresetTemplate> normalizeList(
+    List<SheetPerformancePresetTemplate> templates,
+  ) {
+    final byId = <String, SheetPerformancePresetTemplate>{};
+    for (final template in templates) {
+      final id = template.id.trim();
+      if (id.isEmpty) {
+        continue;
+      }
+      byId[id] = template.copyWith(id: id);
+    }
+    final normalized = byId.values.toList(growable: false);
+    normalized.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
+    return List<SheetPerformancePresetTemplate>.unmodifiable(normalized);
+  }
+
+  static List<SheetPerformancePresetTemplate> decodeJsonList(Object? value) {
+    if (value is! List) {
+      return const <SheetPerformancePresetTemplate>[];
+    }
+    final templates = <SheetPerformancePresetTemplate>[];
+    for (final item in value) {
+      final json = _jsonMapFromObject(item);
+      if (json == null) {
+        continue;
+      }
+      final template = SheetPerformancePresetTemplate.fromJson(json);
+      if (template.id.trim().isNotEmpty) {
+        templates.add(template);
+      }
+    }
+    return normalizeList(templates);
+  }
+}
+
+class SheetPerformancePresetTemplateCodec {
+  const SheetPerformancePresetTemplateCodec._();
+
+  static List<SheetPerformancePresetTemplate> decode(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return const <SheetPerformancePresetTemplate>[];
+    }
+
+    try {
+      final decoded = jsonDecode(value);
+      return SheetPerformancePresetTemplate.decodeJsonList(decoded);
+    } catch (_) {
+      return const <SheetPerformancePresetTemplate>[];
+    }
+  }
+
+  static String encode(List<SheetPerformancePresetTemplate> templates) {
+    return jsonEncode(
+      SheetPerformancePresetTemplate.normalizeList(templates)
+          .map((template) => template.toJson())
+          .toList(growable: false),
+    );
+  }
+}
+
 String _stringFromJson(Object? value) {
   return value is String ? value : '';
+}
+
+Map<String, Object?>? _jsonMapFromObject(Object? value) {
+  if (value is! Map) {
+    return null;
+  }
+  return value.map(
+    (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+  );
+}
+
+String _fallbackTemplateId(String name, String deviceProfile) {
+  final source = '${name.trim()} ${deviceProfile.trim()}'.trim().toLowerCase();
+  final slug = source
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  return slug.isEmpty ? 'performance-preset' : 'performance-preset-$slug';
 }
 
 int _compareRecent(SheetScore a, SheetScore b) {

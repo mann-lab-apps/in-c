@@ -5,13 +5,16 @@ import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -88,6 +91,13 @@ void main() {
         displayMode: SheetTunerDisplayMode.bbTrumpet,
       ),
     );
+    await store.saveToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 57,
+        droneMode: SheetToneDroneMode.fifth,
+        volumePercent: 40,
+      ),
+    );
     await store.saveLibraryViewSettings(
       const SheetLibraryViewSettings(
         sortMode: SheetLibrarySortMode.title,
@@ -111,6 +121,7 @@ void main() {
     final loadedSetlists = await store.loadSetlists();
     final loadedMetronomeSettings = await store.loadMetronomeSettings();
     final loadedTunerSettings = await store.loadTunerSettings();
+    final loadedToneSettings = await store.loadToneSettings();
     final loadedLibraryViewSettings = await store.loadLibraryViewSettings();
     final loadedFavoriteAnnotationPreset = await store
         .loadFavoriteAnnotationPreset();
@@ -121,6 +132,9 @@ void main() {
     expect(loadedMetronomeSettings.meter, SheetMetronomeMeter.sixEight);
     expect(loadedTunerSettings.referencePitchA4, 442);
     expect(loadedTunerSettings.displayMode, SheetTunerDisplayMode.bbTrumpet);
+    expect(loadedToneSettings.rootConcertMidiNumber, 57);
+    expect(loadedToneSettings.droneMode, SheetToneDroneMode.fifth);
+    expect(loadedToneSettings.volumePercent, 40);
     expect(loadedLibraryViewSettings.sortMode, SheetLibrarySortMode.title);
     expect(loadedLibraryViewSettings.favoriteOnly, isTrue);
     expect(loadedLibraryViewSettings.tagQuery, 'lesson');
@@ -146,6 +160,19 @@ void main() {
       lastPage: 1,
       isFavorite: false,
       bookmarks: const <SheetBookmark>[],
+      autoScrollSettings: const SheetAutoScrollSettings(
+        durationSeconds: 240,
+        startPage: 2,
+        endPage: 6,
+        pausePageNumbers: <int>[4],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 3, endPage: 4),
+        ],
+        pageDurations: <int, int>{3: 75},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
+        ],
+      ),
     );
 
     SharedPreferences.setMockInitialValues(<String, Object>{
@@ -167,6 +194,171 @@ void main() {
     expect(
       (await store.loadTunerSettings()).displayMode,
       SheetTunerDisplayMode.bbTrumpet,
+    );
+  });
+
+  test('separates scores and setlists by active library profile', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final defaultScore = SheetScore(
+      id: 'default-score',
+      title: 'Default',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/default.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+    final profileScore = SheetScore(
+      id: 'profile-score',
+      title: 'Profile',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/profile.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    await store.saveScores(<SheetScore>[defaultScore]);
+    final created = await store.createLibraryProfile('Recital');
+
+    expect(created.name, 'Recital');
+    expect(await store.loadScores(), isEmpty);
+
+    await store.saveScores(<SheetScore>[profileScore]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'profile-setlist',
+        title: 'Profile Setlist',
+        scoreIds: const <String>['profile-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    await store.saveLibraryViewSettings(
+      const SheetLibraryViewSettings(
+        sortMode: SheetLibrarySortMode.title,
+        favoriteOnly: true,
+        tagQuery: '',
+        collectionQuery: '',
+        groupQuery: '',
+        minimumRating: 0,
+      ),
+    );
+
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    expect((await store.loadScores()).single.id, 'default-score');
+    expect(await store.loadSetlists(), isEmpty);
+    expect(
+      (await store.loadLibraryViewSettings()).sortMode,
+      SheetLibrarySortMode.recent,
+    );
+
+    await store.setActiveLibraryProfile(created.id);
+    expect((await store.loadScores()).single.id, 'profile-score');
+    expect((await store.loadSetlists()).single.id, 'profile-setlist');
+    expect(
+      (await store.loadLibraryViewSettings()).sortMode,
+      SheetLibrarySortMode.title,
+    );
+
+    final duplicate = await store.createLibraryProfile('Recital');
+    expect(duplicate.id, created.id);
+    expect(
+      await store.renameLibraryProfile(id: created.id, name: '기본 라이브러리'),
+      isNull,
+    );
+  });
+
+  test('keeps automatic metadata backups per active library profile', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'default-score',
+        title: 'Default',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/default.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final defaultBackup = await store.loadAutomaticMetadataBackup();
+
+    final profile = await store.createLibraryProfile('Lessons');
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'lesson-score',
+        title: 'Lesson',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/lesson.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'lesson-setlist',
+        title: 'Lesson Setlist',
+        scoreIds: const <String>['lesson-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final lessonBackup = await store.loadAutomaticMetadataBackup();
+
+    expect(defaultBackup?.scores.single.id, 'default-score');
+    expect(lessonBackup?.scores.single.id, 'lesson-score');
+    expect(lessonBackup?.setlists.single.id, 'lesson-setlist');
+
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    expect(
+      (await store.loadAutomaticMetadataBackup())?.scores.single.id,
+      'default-score',
+    );
+    await store.setActiveLibraryProfile(profile.id);
+    expect(
+      (await store.loadAutomaticMetadataBackup())?.scores.single.id,
+      'lesson-score',
+    );
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores.${profile.id}',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+    final restored = await store.restoreAutomaticMetadataBackup();
+    expect(restored.status, SheetLibraryBackupRestoreStatus.restored);
+    expect((await store.loadScores()).single.id, 'lesson-score');
+
+    expect(await store.deleteLibraryProfile(profile.id), isTrue);
+    expect(
+      preferences.getString('clef_automatic_metadata_backup.${profile.id}'),
+      isNull,
     );
   });
 
@@ -206,8 +398,13 @@ void main() {
         },
       ),
       pageSettings: SheetPageSettings.empty.copyWith(
+        pageOrder: const <int>[1, 2, 2],
         pageCrops: const <int, SheetCropSettings>{
           2: SheetCropSettings(left: 0.04, right: 0.03),
+        },
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(top: 0.05),
         },
       ),
       importedAt: now,
@@ -216,6 +413,41 @@ void main() {
       lastPage: 2,
       isFavorite: true,
       bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
+      autoScrollSettings: const SheetAutoScrollSettings(
+        durationSeconds: 240,
+        startPage: 2,
+        endPage: 6,
+        pausePageNumbers: <int>[4],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 3, endPage: 4),
+        ],
+        pageDurations: <int, int>{3: 75},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
+        ],
+      ),
     );
     final setlist = SheetSetlist(
       id: 'setlist-1',
@@ -224,6 +456,11 @@ void main() {
       createdAt: now,
       updatedAt: now,
       scoreDurations: const <String, int>{'score-1': 240},
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'twoPage',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+      ),
     );
 
     await store.saveScores(<SheetScore>[score]);
@@ -242,12 +479,47 @@ void main() {
         targetConcertMidiNumber: 70,
       ),
     );
+    await store.saveToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 60,
+        droneMode: SheetToneDroneMode.fifthOctave,
+        volumePercent: 30,
+      ),
+    );
     await store.saveFavoriteAnnotationPreset(
       const SheetAnnotationToolPreset(
         toolName: 'highlighter',
         color: 0xffffcc25,
         width: 10,
       ),
+    );
+    await store.saveGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'Space': 'toggleQuickActions',
+          'Tab': 'none',
+        },
+      ),
+    );
+    await store.savePerformancePresetTemplates(
+      const <SheetPerformancePresetTemplate>[
+        SheetPerformancePresetTemplate(
+          id: 'preset-stage',
+          name: 'Stage tablet',
+          deviceProfile: 'Galaxy Tab S9',
+          viewerSettings: SheetViewerSettings(
+            displayMode: 'twoPage',
+            halfPageTurn: true,
+            pageScale: SheetViewerSettings.fitWidthScale,
+            pedalMapping: SheetViewerSettings.setlistPedalMapping,
+            autoAdvanceSetlist: true,
+          ),
+        ),
+      ],
     );
 
     final backupJson = await store.exportMetadataBackupJson();
@@ -280,10 +552,44 @@ void main() {
       'toggleQuickActions',
     );
     expect(backup.scores.single.pageSettings.cropForPage(2).left, 0.04);
+    expect(backup.scores.single.pageSettings.instanceRotations, <int, int>{
+      2: 180,
+    });
+    expect(backup.scores.single.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(
+      backup.scores.single.annotationLayer.includeDefaultLayerInExport,
+      isFalse,
+    );
+    expect(backup.scores.single.autoScrollSettings.pausePageNumbers, <int>[4]);
+    expect(
+      backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
+      3,
+    );
+    expect(backup.scores.single.autoScrollSettings.pageDurations, <int, int>{
+      3: 75,
+    });
+    expect(backup.scores.single.autoScrollSettings.cuePoints.single.label, 'A');
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
+    expect(
+      backup.setlists.single.viewerSettingsOverride?.displayMode,
+      'twoPage',
+    );
     expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
+    expect(backup.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
+    expect(backup.toneSettings.volumePercent, 30);
+    expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
+    expect(backup.globalViewerSettings.halfPageTurn, isTrue);
+    expect(
+      backup.globalViewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
+    expect(backup.performancePresetTemplates.single.name, 'Stage tablet');
+    expect(
+      backup.performancePresetTemplates.single.deviceProfile,
+      'Galaxy Tab S9',
+    );
     expect(backup.toJson()['scope'], 'metadata-only');
     final corruptedBackupJson = Map<String, Object?>.of(backup.toJson())
       ..['exportedAt'] = 7
@@ -314,11 +620,25 @@ void main() {
       'toggleQuickActions',
     );
     expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
+    expect(restoredScore.pageSettings.instanceCrops[2]?.top, 0.05);
+    expect(restoredScore.annotationLayer.strokes, hasLength(1));
+    expect(restoredScore.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(restoredScore.annotationLayer.includeDefaultLayerInExport, isFalse);
+    expect(restoredScore.autoScrollSettings.pausePageNumbers, <int>[4]);
+    expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
+    expect(restoredScore.autoScrollSettings.pageDurations, <int, int>{3: 75});
+    expect(restoredScore.autoScrollSettings.cuePoints.single.pageNumber, 3);
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});
+    expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
+    expect((await restoreStore.loadToneSettings()).rootConcertMidiNumber, 60);
+    expect(
+      (await restoreStore.loadToneSettings()).droneMode,
+      SheetToneDroneMode.fifthOctave,
+    );
     expect(
       (await restoreStore.loadTunerSettings()).displayMode,
       SheetTunerDisplayMode.altoSax,
@@ -335,6 +655,21 @@ void main() {
       (await restoreStore.loadFavoriteAnnotationPreset())?.toolName,
       'highlighter',
     );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).displayMode,
+      'continuousVertical',
+    );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).customPedalMapping['Tab'],
+      'none',
+    );
+    final restoredTemplates = await restoreStore
+        .loadPerformancePresetTemplates();
+    expect(restoredTemplates.single.name, 'Stage tablet');
+    expect(
+      restoredTemplates.single.viewerSettings.pedalMapping,
+      SheetViewerSettings.setlistPedalMapping,
+    );
   });
 
   test('imports linked files into app storage metadata', () async {
@@ -347,12 +682,25 @@ void main() {
       fileName: 'Trumpet Part.pdf',
       importedAt: now,
     );
+    final audioFile = await store.importLinkedFileBytes(
+      bytes: const <int>[1, 2, 3, 4],
+      fileName: 'Practice Cue.m4a',
+      importedAt: now,
+    );
 
     expect(linkedFile.type, 'pdf');
     expect(linkedFile.label, 'Trumpet Part');
     expect(linkedFile.createdAt, now);
     expect(linkedFile.path, contains('linked-files'));
     expect(await File(linkedFile.path).readAsBytes(), bytes);
+    expect(audioFile.type, 'm4a');
+    expect(audioFile.label, 'Practice Cue');
+    expect(await File(audioFile.path).readAsBytes(), const <int>[1, 2, 3, 4]);
+
+    final candidates = store.shareCandidates(
+      _score(now, linkedFiles: <SheetLinkedFile>[audioFile]),
+    );
+    expect(candidates.last.mimeType, 'audio/mp4');
   });
 
   test('decodes full backup file mappings from dynamic JSON maps', () {
@@ -448,6 +796,28 @@ void main() {
           1: SheetCropSettings(top: 0.02, bottom: 0.02),
         },
       ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'full-backup-stroke',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
       annotationStorage: SheetAnnotationStorageReference(
         mode: SheetAnnotationStorageReference.fileMode,
         path: annotationFile.path,
@@ -465,6 +835,26 @@ void main() {
     );
     await store.saveScores(<SheetScore>[scoreWithLinkedFile]);
     await store.saveSetlists(<SheetSetlist>[setlist]);
+    await store.saveGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'singlePage',
+        halfPageTurn: false,
+        pedalMapping: SheetViewerSettings.reversedPedalMapping,
+      ),
+    );
+    await store.savePerformancePresetTemplates(
+      const <SheetPerformancePresetTemplate>[
+        SheetPerformancePresetTemplate(
+          id: 'preset-full-backup',
+          name: 'Full backup preset',
+          viewerSettings: SheetViewerSettings(
+            displayMode: 'twoPage',
+            halfPageTurn: true,
+            pageScale: SheetViewerSettings.fullscreenScale,
+          ),
+        ),
+      ],
+    );
 
     final zipBytes = await store.exportFullBackupZipBytes(exportedAt: now);
     final archive = ZipDecoder().decodeBytes(zipBytes);
@@ -515,6 +905,12 @@ void main() {
       'nextSetlistScore',
     );
     expect(restoredScore.pageSettings.cropForPage(1).top, 0.02);
+    expect(
+      restoredScore.annotationLayer.strokes.single.id,
+      'full-backup-stroke',
+    );
+    expect(restoredScore.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(restoredScore.annotationLayer.includeDefaultLayerInExport, isFalse);
     expect(restoredScore.annotationStorage.isFileBacked, isTrue);
     expect(await File(restoredScore.annotationStorage.path).exists(), isTrue);
     expect(await File(restoredScore.linkedFiles.single.path).exists(), isTrue);
@@ -528,6 +924,17 @@ void main() {
     expect(
       (await restoreStore.loadSetlists()).single.scoreDurations,
       <String, int>{score.id: 180},
+    );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).pedalMapping,
+      SheetViewerSettings.reversedPedalMapping,
+    );
+    final restoredTemplates = await restoreStore
+        .loadPerformancePresetTemplates();
+    expect(restoredTemplates.single.name, 'Full backup preset');
+    expect(
+      restoredTemplates.single.viewerSettings.pageScale,
+      SheetViewerSettings.fullscreenScale,
     );
   });
 
@@ -557,6 +964,75 @@ void main() {
 
       expect(result.didWrite, isTrue);
       expect(result.rotatedPageCount, 1);
+      expect(result.outputPath, isNotNull);
+      expect(await File(result.outputPath!).exists(), isTrue);
+      expect(await File(score.filePath).readAsBytes(), sourceBytes);
+    },
+  );
+
+  test('creates page crop applied copy without mutating source PDF', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+        .readAsBytes();
+    final score = await store.importPdfBytes(
+      bytes: sourceBytes,
+      fileName: 'short-score.pdf',
+      importedAt: now,
+    );
+    final scoreWithCrop = score.copyWith(
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        crop: SheetCropSettings(top: 0.08, bottom: 0.12),
+      ),
+    );
+
+    final result = await store.createPageCropAppliedCopy(scoreWithCrop);
+
+    expect(result.didWrite, isTrue);
+    expect(result.croppedPageCount, 3);
+    expect(result.outputPath, isNotNull);
+    expect(await File(result.outputPath!).exists(), isTrue);
+    expect(await File(score.filePath).readAsBytes(), sourceBytes);
+  });
+
+  test(
+    'creates page arrangement applied copy without mutating source PDF',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+          .readAsBytes();
+      final score = await store.importPdfBytes(
+        bytes: sourceBytes,
+        fileName: 'short-score.pdf',
+        importedAt: now,
+      );
+      final scoreWithArrangement = score.copyWith(
+        pageSettings: SheetPageSettings(
+          hiddenPages: const <int>[2],
+          pageRotations: const <int, int>{},
+          pageOrder: const <int>[3, 1, 3],
+          blankPageInsertions: <SheetBlankPageInsertion>[
+            SheetBlankPageInsertion(
+              id: 'blank-1',
+              afterPage: 1,
+              label: 'Notes',
+              createdAt: now,
+            ),
+          ],
+        ),
+      );
+
+      final result = await store.createPageArrangementAppliedCopy(
+        scoreWithArrangement,
+      );
+
+      expect(result.didWrite, isTrue);
+      expect(result.outputPageCount, 4);
       expect(result.outputPath, isNotNull);
       expect(await File(result.outputPath!).exists(), isTrue);
       expect(await File(score.filePath).readAsBytes(), sourceBytes);
@@ -692,9 +1168,61 @@ void main() {
       _onePixelPng,
     );
   });
+
+  test(
+    'full backup restores image-converted PDF and reference source image',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final importedAt = DateTime.parse('2026-08-23T10:00:00.000');
+
+      final score = await store.importImagesAsPdfBytes(
+        images: <SheetImportedFile>[
+          SheetImportedFile(name: 'scan_001.png', bytes: _onePixelPng),
+        ],
+        importedAt: importedAt,
+      );
+      await store.saveScores(<SheetScore>[score]);
+      final originalPdfBytes = await File(score.filePath).readAsBytes();
+
+      final zipBytes = await store.exportFullBackupZipBytes(
+        exportedAt: importedAt,
+      );
+
+      final sourceDocumentsDir = documentsDir;
+      documentsDir = await Directory.systemTemp.createTemp(
+        'clef-image-restore-test-',
+      );
+      await sourceDocumentsDir.delete(recursive: true);
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final restoreStore = SheetLibraryStore();
+      final result = await restoreStore.restoreFullBackupZipBytes(zipBytes);
+      final restoredScore = (await restoreStore.loadScores()).single;
+
+      expect(result.didRestore, isTrue);
+      expect(
+        await File(restoredScore.filePath).readAsBytes(),
+        originalPdfBytes,
+      );
+      expect(restoredScore.linkedFiles, hasLength(1));
+      expect(
+        restoredScore.linkedFiles.single.role,
+        SheetLinkedFile.referenceRole,
+      );
+      expect(restoredScore.linkedFiles.single.type, 'png');
+      expect(
+        await File(restoredScore.linkedFiles.single.path).readAsBytes(),
+        _onePixelPng,
+      );
+    },
+  );
 }
 
-SheetScore _score(DateTime now, {String filePath = '/tmp/sonata.pdf'}) {
+SheetScore _score(
+  DateTime now, {
+  String filePath = '/tmp/sonata.pdf',
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
+}) {
   return SheetScore(
     id: 'score-1',
     title: 'Sonata',
@@ -708,6 +1236,7 @@ SheetScore _score(DateTime now, {String filePath = '/tmp/sonata.pdf'}) {
     lastPage: 2,
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
+    linkedFiles: linkedFiles,
   );
 }
 

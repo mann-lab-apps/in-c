@@ -8,6 +8,7 @@ import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_file_import.dart';
 import 'sheet_library_backup.dart';
+import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
@@ -15,6 +16,7 @@ import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
 class SheetLibraryController extends ChangeNotifier {
@@ -27,8 +29,18 @@ class SheetLibraryController extends ChangeNotifier {
   SheetMetronomeSettings _metronomeSettings =
       SheetMetronomeSettings.defaultSettings;
   SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
+  SheetToneSettings _toneSettings = SheetToneSettings.defaultSettings;
   SheetLibraryViewSettings _libraryViewSettings =
       SheetLibraryViewSettings.defaultSettings;
+  SheetViewerSettings _globalViewerSettings =
+      SheetViewerSettings.defaultSettings;
+  List<SheetPerformancePresetTemplate> _performancePresetTemplates =
+      const <SheetPerformancePresetTemplate>[];
+  List<SheetLibraryProfile> _libraryProfiles = <SheetLibraryProfile>[
+    SheetLibraryProfile.defaultProfile,
+  ];
+  SheetLibraryProfile _activeLibraryProfile =
+      SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   String _query = '';
   bool _isLoading = true;
@@ -39,7 +51,15 @@ class SheetLibraryController extends ChangeNotifier {
   List<SheetSetlist> get setlists => _setlists;
   SheetMetronomeSettings get metronomeSettings => _metronomeSettings;
   SheetTunerSettings get tunerSettings => _tunerSettings;
+  SheetToneSettings get toneSettings => _toneSettings;
   SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
+  SheetViewerSettings get globalViewerSettings => _globalViewerSettings;
+  List<SheetPerformancePresetTemplate> get performancePresetTemplates {
+    return _performancePresetTemplates;
+  }
+
+  List<SheetLibraryProfile> get libraryProfiles => _libraryProfiles;
+  SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
     return _favoriteAnnotationPreset;
   }
@@ -127,19 +147,28 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> load() async {
     _setLoading(true);
     try {
-      _scores = await store.loadScores();
-      _setlists = await store.loadSetlists();
-      _metronomeSettings = await store.loadMetronomeSettings();
-      _tunerSettings = await store.loadTunerSettings();
-      _libraryViewSettings = await store.loadLibraryViewSettings();
-      _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
-      await _removeMissingSetlistScores();
+      await _loadActiveLibraryState();
       _errorMessage = null;
     } catch (error) {
       _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
     } finally {
       _setLoading(false);
     }
+  }
+
+  Future<void> _loadActiveLibraryState() async {
+    _libraryProfiles = await store.loadLibraryProfiles();
+    _activeLibraryProfile = await store.loadActiveLibraryProfile();
+    _scores = await store.loadScores();
+    _setlists = await store.loadSetlists();
+    _metronomeSettings = await store.loadMetronomeSettings();
+    _tunerSettings = await store.loadTunerSettings();
+    _toneSettings = await store.loadToneSettings();
+    _libraryViewSettings = await store.loadLibraryViewSettings();
+    _globalViewerSettings = await store.loadGlobalViewerSettings();
+    _performancePresetTemplates = await store.loadPerformancePresetTemplates();
+    _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
+    await _removeMissingSetlistScores();
   }
 
   Future<SheetScore?> importPdf() async {
@@ -382,6 +411,78 @@ class SheetLibraryController extends ChangeNotifier {
     await updateCollectionFilter(normalized);
   }
 
+  Future<void> createLibraryProfile(String name) async {
+    _setLoading(true);
+    try {
+      await store.createLibraryProfile(name);
+      _query = '';
+      await _loadActiveLibraryState();
+      _errorMessage = null;
+    } catch (_) {
+      _errorMessage = '라이브러리를 만들지 못했습니다.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<void> switchLibraryProfile(String id) async {
+    if (id == _activeLibraryProfile.id) {
+      return;
+    }
+    _setLoading(true);
+    try {
+      await store.setActiveLibraryProfile(id);
+      _query = '';
+      await _loadActiveLibraryState();
+      _errorMessage = null;
+    } catch (_) {
+      _errorMessage = '라이브러리를 전환하지 못했습니다.';
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  Future<bool> renameLibraryProfile({
+    required String id,
+    required String name,
+  }) async {
+    final renamed = await store.renameLibraryProfile(id: id, name: name);
+    if (renamed == null) {
+      return false;
+    }
+    _libraryProfiles = await store.loadLibraryProfiles();
+    if (_activeLibraryProfile.id == renamed.id) {
+      _activeLibraryProfile = renamed;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> clearLibraryProfile(String id) async {
+    final didClear = await store.clearLibraryProfile(id);
+    if (!didClear) {
+      return false;
+    }
+    if (_activeLibraryProfile.id == id) {
+      _scores = const <SheetScore>[];
+      _setlists = const <SheetSetlist>[];
+      _libraryViewSettings = SheetLibraryViewSettings.defaultSettings;
+      _favoriteAnnotationPreset = null;
+    }
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> deleteLibraryProfile(String id) async {
+    final didDelete = await store.deleteLibraryProfile(id);
+    if (!didDelete) {
+      return false;
+    }
+    await _loadActiveLibraryState();
+    notifyListeners();
+    return true;
+  }
+
   Future<int> renameCollectionLibrary({
     required String from,
     required String to,
@@ -562,6 +663,95 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<SheetPerformancePresetTemplate> savePerformancePresetTemplate({
+    required String name,
+    required SheetViewerSettings viewerSettings,
+    String deviceProfile = '',
+  }) async {
+    final normalizedName = name.trim().isEmpty
+        ? SheetPerformancePresetTemplate.defaultName
+        : name.trim();
+    SheetPerformancePresetTemplate? existing;
+    for (final template in _performancePresetTemplates) {
+      if (template.name.toLowerCase() == normalizedName.toLowerCase() &&
+          template.deviceProfile.toLowerCase() ==
+              deviceProfile.trim().toLowerCase()) {
+        existing = template;
+        break;
+      }
+    }
+    final template = SheetPerformancePresetTemplate(
+      id: existing?.id ?? _newPerformancePresetId(),
+      name: normalizedName,
+      viewerSettings: viewerSettings,
+      deviceProfile: deviceProfile.trim(),
+    );
+    final next = <SheetPerformancePresetTemplate>[
+      for (final item in _performancePresetTemplates)
+        if (item.id != template.id) item,
+      template,
+    ];
+    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
+      next,
+    );
+    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    notifyListeners();
+    return template;
+  }
+
+  Future<bool> deletePerformancePresetTemplate(String templateId) async {
+    final next = _performancePresetTemplates
+        .where((template) => template.id != templateId)
+        .toList(growable: false);
+    if (next.length == _performancePresetTemplates.length) {
+      return false;
+    }
+    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
+      next,
+    );
+    await store.savePerformancePresetTemplates(_performancePresetTemplates);
+    notifyListeners();
+    return true;
+  }
+
+  Future<bool> applyPerformancePresetToScore(
+    SheetScore score,
+    String templateId,
+  ) async {
+    final template = performancePresetTemplateByIdOrNull(templateId);
+    if (template == null) {
+      return false;
+    }
+    await updateViewerSettings(score, template.viewerSettings);
+    return true;
+  }
+
+  Future<bool> applyPerformancePresetToSetlist(
+    SheetSetlist setlist,
+    String templateId,
+  ) async {
+    final template = performancePresetTemplateByIdOrNull(templateId);
+    if (template == null) {
+      return false;
+    }
+    await updateSetlistRehearsalSettings(
+      setlist,
+      viewerSettingsOverride: template.viewerSettings,
+    );
+    return true;
+  }
+
+  SheetPerformancePresetTemplate? performancePresetTemplateByIdOrNull(
+    String id,
+  ) {
+    for (final template in _performancePresetTemplates) {
+      if (template.id == id) {
+        return template;
+      }
+    }
+    return null;
+  }
+
   Future<void> updatePageCrop(SheetScore score, SheetCropSettings crop) async {
     await _replace(
       score.copyWith(
@@ -608,6 +798,12 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> updateTunerSettings(SheetTunerSettings settings) async {
     _tunerSettings = settings;
     await store.saveTunerSettings(settings);
+    notifyListeners();
+  }
+
+  Future<void> updateToneSettings(SheetToneSettings settings) async {
+    _toneSettings = settings;
+    await store.saveToneSettings(settings);
     notifyListeners();
   }
 
@@ -677,6 +873,348 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetPdfPageCropResult> createPageCropAppliedCopy(
+    SheetScore score,
+  ) async {
+    final result = await store.createPageCropAppliedCopy(score);
+    if (!result.didWrite || result.outputPath == null) {
+      return result;
+    }
+
+    final originalFile = SheetLinkedFile(
+      path: score.filePath,
+      type: 'pdf',
+      label: '자르기 적용 전 원본',
+      createdAt: DateTime.now(),
+    );
+    await _replace(
+      score.copyWith(
+        filePath: result.outputPath,
+        pageSettings: score.pageSettings.copyWith(
+          crop: SheetCropSettings.none,
+          pageCrops: const <int, SheetCropSettings>{},
+        ),
+        annotationLayer: _rebaseAnnotationsForAppliedCrop(
+          score.annotationLayer,
+          score.pageSettings,
+        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          originalFile,
+          ...score.linkedFiles,
+        ]),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return result;
+  }
+
+  Future<SheetPdfPageArrangementResult> createPageArrangementAppliedCopy(
+    SheetScore score,
+  ) async {
+    final result = await store.createPageArrangementAppliedCopy(score);
+    if (!result.didWrite || result.outputPath == null) {
+      return result;
+    }
+
+    final originalFile = SheetLinkedFile(
+      path: score.filePath,
+      type: 'pdf',
+      label: '페이지 정리 적용 전 원본',
+      createdAt: DateTime.now(),
+    );
+    await _replace(
+      score.copyWith(
+        filePath: result.outputPath,
+        lastPage:
+            _firstMappedPage(result.sourcePageMapping, score.lastPage) ?? 1,
+        bookmarks: _rebaseBookmarksForAppliedArrangement(
+          score.bookmarks,
+          result.sourcePageMapping,
+        ),
+        pageSettings: _rebasePageSettingsForAppliedArrangement(
+          score.pageSettings,
+          result,
+        ),
+        annotationLayer: _rebaseAnnotationsForAppliedArrangement(
+          score.annotationLayer,
+          result.sourcePageMapping,
+        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          originalFile,
+          ...score.linkedFiles,
+        ]),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return result;
+  }
+
+  SheetAnnotationLayer _rebaseAnnotationsForAppliedCrop(
+    SheetAnnotationLayer layer,
+    SheetPageSettings pageSettings,
+  ) {
+    if (!pageSettings.crop.hasCrop && pageSettings.pageCrops.isEmpty) {
+      return layer;
+    }
+
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        layer.strokes.map(
+          (stroke) => _rebaseStrokeForAppliedCrop(stroke, pageSettings),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        layer.texts.map(
+          (text) => _rebaseTextForAppliedCrop(text, pageSettings),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        layer.redoStack.map(
+          (entry) => _rebaseRedoEntryForAppliedCrop(entry, pageSettings),
+        ),
+      ),
+      layers: layer.layers,
+    );
+  }
+
+  List<SheetBookmark> _rebaseBookmarksForAppliedArrangement(
+    List<SheetBookmark> bookmarks,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetBookmark>.unmodifiable(
+      bookmarks.map((bookmark) {
+        final pageNumber = _firstMappedPage(
+          sourcePageMapping,
+          bookmark.pageNumber,
+        );
+        return pageNumber == null
+            ? null
+            : bookmark.copyWith(pageNumber: pageNumber);
+      }).whereType<SheetBookmark>(),
+    );
+  }
+
+  SheetPageSettings _rebasePageSettingsForAppliedArrangement(
+    SheetPageSettings pageSettings,
+    SheetPdfPageArrangementResult result,
+  ) {
+    return pageSettings.copyWith(
+      hiddenPages: const <int>[],
+      pageRotations: result.pageRotations,
+      pageCrops: result.pageCrops,
+      pageOrder: const <int>[],
+      instanceRotations: const <int, int>{},
+      instanceCrops: const <int, SheetCropSettings>{},
+      jumpPoints: _rebaseJumpPointsForAppliedArrangement(
+        pageSettings.jumpPoints,
+        result.sourcePageMapping,
+      ),
+      rehearsalMarks: _rebaseRehearsalMarksForAppliedArrangement(
+        pageSettings.rehearsalMarks,
+        result.sourcePageMapping,
+      ),
+      blankPageInsertions: const <SheetBlankPageInsertion>[],
+      visibilityPresets: const <SheetPageVisibilityPreset>[],
+    );
+  }
+
+  List<SheetPageJumpPoint> _rebaseJumpPointsForAppliedArrangement(
+    List<SheetPageJumpPoint> jumpPoints,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetPageJumpPoint>.unmodifiable(
+      jumpPoints.map((jumpPoint) {
+        final sourcePage = _firstMappedPage(
+          sourcePageMapping,
+          jumpPoint.sourcePage,
+        );
+        final targetPage = _firstMappedPage(
+          sourcePageMapping,
+          jumpPoint.targetPage,
+        );
+        if (sourcePage == null ||
+            targetPage == null ||
+            sourcePage == targetPage) {
+          return null;
+        }
+        return jumpPoint.copyWith(
+          sourcePage: sourcePage,
+          targetPage: targetPage,
+        );
+      }).whereType<SheetPageJumpPoint>(),
+    );
+  }
+
+  List<SheetRehearsalMark> _rebaseRehearsalMarksForAppliedArrangement(
+    List<SheetRehearsalMark> marks,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetRehearsalMark>.unmodifiable(
+      marks.map((mark) {
+        final pageNumber = _firstMappedPage(sourcePageMapping, mark.pageNumber);
+        return pageNumber == null
+            ? null
+            : mark.copyWith(pageNumber: pageNumber);
+      }).whereType<SheetRehearsalMark>(),
+    );
+  }
+
+  SheetAnnotationLayer _rebaseAnnotationsForAppliedArrangement(
+    SheetAnnotationLayer layer,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        layer.strokes.expand(
+          (stroke) =>
+              _rebaseStrokeForAppliedArrangement(stroke, sourcePageMapping),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        layer.texts.expand(
+          (text) => _rebaseTextForAppliedArrangement(text, sourcePageMapping),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        layer.redoStack.expand(
+          (entry) =>
+              _rebaseRedoEntryForAppliedArrangement(entry, sourcePageMapping),
+        ),
+      ),
+      layers: layer.layers,
+    );
+  }
+
+  Iterable<SheetAnnotationStroke> _rebaseStrokeForAppliedArrangement(
+    SheetAnnotationStroke stroke,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final pages = sourcePageMapping[stroke.pageNumber] ?? const <int>[];
+    return [
+      for (final pageNumber in pages)
+        SheetAnnotationStroke(
+          id: pages.length == 1 ? stroke.id : '${stroke.id}-page$pageNumber',
+          pageNumber: pageNumber,
+          tool: stroke.tool,
+          color: stroke.color,
+          width: stroke.width,
+          points: stroke.points,
+          createdAt: stroke.createdAt,
+        ),
+    ];
+  }
+
+  Iterable<SheetTextAnnotation> _rebaseTextForAppliedArrangement(
+    SheetTextAnnotation text,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final pages = sourcePageMapping[text.pageNumber] ?? const <int>[];
+    return [
+      for (final pageNumber in pages)
+        text.copyWith(
+          pageNumber: pageNumber,
+          id: pages.length == 1 ? text.id : '${text.id}-page$pageNumber',
+        ),
+    ];
+  }
+
+  Iterable<SheetAnnotationRedoEntry> _rebaseRedoEntryForAppliedArrangement(
+    SheetAnnotationRedoEntry entry,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      return _rebaseStrokeForAppliedArrangement(
+        stroke,
+        sourcePageMapping,
+      ).map(SheetAnnotationRedoEntry.stroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      return _rebaseTextForAppliedArrangement(
+        text,
+        sourcePageMapping,
+      ).map(SheetAnnotationRedoEntry.text);
+    }
+    return const <SheetAnnotationRedoEntry>[];
+  }
+
+  int? _firstMappedPage(Map<int, List<int>> sourcePageMapping, int sourcePage) {
+    final pages = sourcePageMapping[sourcePage];
+    if (pages == null || pages.isEmpty) {
+      return null;
+    }
+    return pages.first;
+  }
+
+  SheetAnnotationStroke _rebaseStrokeForAppliedCrop(
+    SheetAnnotationStroke stroke,
+    SheetPageSettings pageSettings,
+  ) {
+    final crop = pageSettings.cropForPage(stroke.pageNumber).normalized();
+    if (!crop.hasCrop) {
+      return stroke;
+    }
+    return SheetAnnotationStroke(
+      id: stroke.id,
+      pageNumber: stroke.pageNumber,
+      tool: stroke.tool,
+      color: stroke.color,
+      width: stroke.width,
+      points: List<SheetAnnotationPoint>.unmodifiable(
+        stroke.points.map((point) => _rebasePointForAppliedCrop(point, crop)),
+      ),
+      createdAt: stroke.createdAt,
+    );
+  }
+
+  SheetTextAnnotation _rebaseTextForAppliedCrop(
+    SheetTextAnnotation text,
+    SheetPageSettings pageSettings,
+  ) {
+    final crop = pageSettings.cropForPage(text.pageNumber).normalized();
+    if (!crop.hasCrop) {
+      return text;
+    }
+    return text.copyWith(
+      position: _rebasePointForAppliedCrop(text.position, crop),
+    );
+  }
+
+  SheetAnnotationRedoEntry _rebaseRedoEntryForAppliedCrop(
+    SheetAnnotationRedoEntry entry,
+    SheetPageSettings pageSettings,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      return SheetAnnotationRedoEntry.stroke(
+        _rebaseStrokeForAppliedCrop(stroke, pageSettings),
+      );
+    }
+    final text = entry.text;
+    if (text != null) {
+      return SheetAnnotationRedoEntry.text(
+        _rebaseTextForAppliedCrop(text, pageSettings),
+      );
+    }
+    return entry;
+  }
+
+  SheetAnnotationPoint _rebasePointForAppliedCrop(
+    SheetAnnotationPoint point,
+    SheetCropSettings crop,
+  ) {
+    final width = 1 - crop.left - crop.right;
+    final height = 1 - crop.top - crop.bottom;
+    if (width <= 0 || height <= 0) {
+      return point;
+    }
+    return SheetAnnotationPoint(
+      x: ((point.x - crop.left) / width).clamp(0.0, 1.0).toDouble(),
+      y: ((point.y - crop.top) / height).clamp(0.0, 1.0).toDouble(),
+    );
+  }
+
   Future<bool> hidePage(
     SheetScore score, {
     required int pageNumber,
@@ -710,6 +1248,50 @@ class SheetLibraryController extends ChangeNotifier {
       score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
     );
     return nextPageSettings.pageRotations[pageNumber] ?? 0;
+  }
+
+  Future<int> rotatePageInstanceClockwise(
+    SheetScore score, {
+    required int orderIndex,
+    required int pageNumber,
+    required int pageCount,
+  }) async {
+    final nextPageSettings = score.pageSettings.rotatePageInstanceClockwise(
+      orderIndex: orderIndex,
+      pageNumber: pageNumber,
+      pageCount: pageCount,
+    );
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return score.pageSettings.rotationForPage(
+        pageNumber,
+        orderIndex: orderIndex,
+      );
+    }
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return nextPageSettings.rotationForPage(pageNumber, orderIndex: orderIndex);
+  }
+
+  Future<bool> updatePageInstanceCrop(
+    SheetScore score, {
+    required int orderIndex,
+    required int pageCount,
+    required SheetCropSettings crop,
+  }) async {
+    final nextPageSettings = score.pageSettings.updatePageInstanceCrop(
+      orderIndex: orderIndex,
+      pageCount: pageCount,
+      crop: crop,
+    );
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return true;
   }
 
   Future<bool> movePageInOrder(
@@ -1138,6 +1720,24 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
+  Future<void> updateAnnotationLayerState(
+    SheetScore score, {
+    bool? isVisible,
+    bool? includeInExport,
+  }) async {
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(
+          score.annotationLayer.withDefaultLayerState(
+            isVisible: isVisible,
+            includeInExport: includeInExport,
+          ),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
   Future<SheetSetlist> createSetlist(String title) async {
     final now = DateTime.now();
     final setlist = SheetSetlist(
@@ -1175,6 +1775,7 @@ class SheetLibraryController extends ChangeNotifier {
       scoreNotes: Map<String, String>.unmodifiable(setlist.scoreNotes),
       scoreDurations: Map<String, int>.unmodifiable(setlist.scoreDurations),
       transitionSeconds: setlist.transitionSeconds,
+      viewerSettingsOverride: setlist.viewerSettingsOverride,
     );
     _setlists = <SheetSetlist>[duplicate, ..._setlists];
     await store.saveSetlists(_setlists);
@@ -1218,6 +1819,8 @@ class SheetLibraryController extends ChangeNotifier {
     Map<String, int>? scoreStartPages,
     Map<String, String>? scoreNotes,
     Map<String, int>? scoreDurations,
+    SheetViewerSettings? viewerSettingsOverride,
+    bool clearViewerSettingsOverride = false,
   }) async {
     await _replaceSetlist(
       setlist.copyWith(
@@ -1232,9 +1835,22 @@ class SheetLibraryController extends ChangeNotifier {
         scoreDurations: scoreDurations == null
             ? null
             : Map<String, int>.unmodifiable(scoreDurations),
+        viewerSettingsOverride: viewerSettingsOverride,
+        clearViewerSettingsOverride: clearViewerSettingsOverride,
         updatedAt: DateTime.now(),
       ),
     );
+  }
+
+  SheetViewerSettings viewerSettingsForScore(
+    SheetScore score, {
+    String? setlistId,
+  }) {
+    if (setlistId == null) {
+      return score.viewerSettings;
+    }
+    return setlistByIdOrNull(setlistId)?.viewerSettingsOverride ??
+        score.viewerSettings;
   }
 
   Future<int> bulkEditScores(
@@ -1358,6 +1974,18 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateGlobalViewerSettings(SheetViewerSettings settings) async {
+    _globalViewerSettings = settings;
+    await store.saveGlobalViewerSettings(settings);
+    notifyListeners();
+  }
+
+  String _newPerformancePresetId() {
+    final timestamp = DateTime.now().microsecondsSinceEpoch;
+    final suffix = Random().nextInt(0x7fffffff).toRadixString(16);
+    return 'performance-preset-$timestamp-$suffix';
+  }
+
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
     return store.exportMetadataBackup();
   }
@@ -1368,6 +1996,15 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetLibraryBackupRestoreResult> importMetadataBackup() async {
     final result = await store.importMetadataBackup();
+    if (result.didRestore) {
+      await load();
+    }
+    return result;
+  }
+
+  Future<SheetLibraryBackupRestoreResult>
+  restoreAutomaticMetadataBackup() async {
+    final result = await store.restoreAutomaticMetadataBackup();
     if (result.didRestore) {
       await load();
     }
@@ -1497,10 +2134,15 @@ class SheetLibraryController extends ChangeNotifier {
     final collection = _normalizeOptionalMetadata(
       _libraryViewSettings.collectionQuery,
     );
-    if (collection.isEmpty || score.collection.trim().isNotEmpty) {
-      return score;
-    }
-    return score.copyWith(collection: collection, updatedAt: DateTime.now());
+    final hasExistingCollection = score.collection.trim().isNotEmpty;
+    final nextCollection = collection.isEmpty || hasExistingCollection
+        ? score.collection
+        : collection;
+    return score.copyWith(
+      viewerSettings: _globalViewerSettings,
+      collection: nextCollection,
+      updatedAt: DateTime.now(),
+    );
   }
 
   String _imageImportErrorMessage(Object error) {

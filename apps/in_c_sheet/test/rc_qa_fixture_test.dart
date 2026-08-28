@@ -52,6 +52,11 @@ void main() {
     expect(mainScore.annotationLayer.pointCount, greaterThan(400));
     expect(mainScore.annotationStorage.isFileBacked, isTrue);
     expect(mainScore.annotationStorage.lastSaveStatus, 'saved');
+    expect(mainScore.autoScrollSettings.pausePageNumbers, <int>[5]);
+    expect(mainScore.autoScrollSettings.repeatSections.single.startPage, 4);
+    expect(mainScore.autoScrollSettings.repeatSections.single.endPage, 5);
+    expect(mainScore.autoScrollSettings.pageDurations[5], 120);
+    expect(mainScore.autoScrollSettings.cuePoints.last.measureNumber, 32);
     expect(scanScore.tags, contains('scan-pdf'));
     expect(setlist.rehearsalMode, isTrue);
     expect(setlist.totalEstimatedSeconds, 620);
@@ -83,6 +88,10 @@ void main() {
     );
     expect(decodedMain.annotationLayer.estimatedJsonBytes, greaterThan(1000));
     expect(decodedMain.annotationStorage.mode, 'file');
+    expect(decodedMain.autoScrollSettings.pausePageNumbers, <int>[5]);
+    expect(decodedMain.autoScrollSettings.repeatSections.single.endPage, 5);
+    expect(decodedMain.autoScrollSettings.pageDurations[4], 90);
+    expect(decodedMain.autoScrollSettings.cuePoints.first.label, 'Rehearsal A');
     expect(decodedSetlists.single.scoreDurations['rc-score-main'], 420);
     expect(decodedSetlists.single.transitionSeconds, 20);
   });

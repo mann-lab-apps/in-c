@@ -9,13 +9,17 @@ class SheetAnnotationPageGeometry {
 
   Size get pageSize => pageRect.size;
 
-  SheetAnnotationPoint? pointFromPageLocal(Offset local) {
+  SheetAnnotationPoint? pointFromPageLocal(
+    Offset local, {
+    double pressure = 1.0,
+  }) {
     if (!_containsLocal(local)) {
       return null;
     }
     return SheetAnnotationPoint(
       x: local.dx / pageRect.width,
       y: local.dy / pageRect.height,
+      pressure: pressure,
     );
   }
 

@@ -12,6 +12,8 @@ pipeline이 crash 없이 이어지는지를 보는 수동 smoke test다.
 
 - v1 RC 전체 QA 순서는 `docs/qa/clef-v1-rc-qa-plan.md`를 기준으로 삼고, 이 문서는 Android
   태블릿 세부 smoke test로 사용한다.
+- 실기기 QA 당일 산출물, 샘플, triage 기록은 `docs/qa/clef-v1-device-qa-runbook.md`를 기준으로
+  남긴다.
 - Android 태블릿 개발자 옵션과 USB debugging을 켠다.
 - 태블릿을 Mac에 연결한 뒤 권한 dialog를 승인한다.
 - 프로젝트 루트: `apps/in_c_sheet`.
@@ -37,7 +39,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ## PDF 뷰어 흐름
 
 1. 앱 첫 화면이 렌더링되는지 확인한다.
-2. `PDF 추가`로 짧은 PDF를 import한다.
+2. `악보 추가`로 짧은 PDF를 import한다.
 3. 라이브러리 목록에 악보가 표시되는지 확인한다.
 4. 악보를 열고 첫 페이지가 blank 없이 렌더링되는지 확인한다.
 5. 이전/다음 페이지 버튼으로 이동한다.

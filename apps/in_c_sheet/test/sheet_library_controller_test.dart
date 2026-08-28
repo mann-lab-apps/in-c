@@ -1,13 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
+import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
+import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -103,6 +106,98 @@ void main() {
     expect(controller.filteredScores.single.id, updated.id);
   });
 
+  test(
+    'restores automatic metadata backup and reloads controller state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.scores.single.id, 'auto-backup-score');
+
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        'clef_scores',
+        SheetScore.encodeList(const <SheetScore>[]),
+      );
+
+      final result = await controller.restoreAutomaticMetadataBackup();
+      expect(result.status, SheetLibraryBackupRestoreStatus.restored);
+      expect(controller.scores.single.id, 'auto-backup-score');
+    },
+  );
+
+  test('updates and reloads global viewer action defaults', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'Space': 'toggleQuickActions',
+          'Tab': 'none',
+        },
+      ),
+    );
+
+    expect(controller.globalViewerSettings.halfPageTurn, isTrue);
+    expect(
+      controller.globalViewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(nextController.globalViewerSettings.pageScale, 'fitWidth');
+    expect(
+      nextController.globalViewerSettings.customPedalMapping['Tab'],
+      'none',
+    );
+  });
+
+  test(
+    'applies global viewer action defaults to newly imported scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(_score(now, id: 'imported-score'));
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateGlobalViewerSettings(
+        const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: true,
+          pageScale: SheetViewerSettings.fullscreenScale,
+          pedalMapping: SheetViewerSettings.reversedPedalMapping,
+        ),
+      );
+
+      final imported = await controller.importPdf();
+
+      expect(imported?.viewerSettings.displayMode, 'twoPage');
+      expect(imported?.viewerSettings.halfPageTurn, isTrue);
+      expect(
+        imported?.viewerSettings.pageScale,
+        SheetViewerSettings.fullscreenScale,
+      );
+      expect(
+        imported?.viewerSettings.pedalMapping,
+        SheetViewerSettings.reversedPedalMapping,
+      );
+    },
+  );
+
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -142,6 +237,44 @@ void main() {
       controller.scores.where((score) => score.collection == 'Studies'),
       isEmpty,
     );
+  });
+
+  test('switches between separated library profile stores', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'default-score', title: 'Default'),
+    ]);
+    final profile = await store.createLibraryProfile('Recital');
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'recital-score', title: 'Recital'),
+    ]);
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(controller.activeLibraryProfile.id, SheetLibraryProfile.defaultId);
+    expect(controller.scores.single.id, 'default-score');
+
+    await controller.switchLibraryProfile(profile.id);
+    expect(controller.activeLibraryProfile.name, 'Recital');
+    expect(controller.scores.single.id, 'recital-score');
+
+    final didRename = await controller.renameLibraryProfile(
+      id: profile.id,
+      name: 'Recital 2026',
+    );
+    expect(didRename, isTrue);
+    expect(controller.activeLibraryProfile.name, 'Recital 2026');
+
+    final didClear = await controller.clearLibraryProfile(profile.id);
+    expect(didClear, isTrue);
+    expect(controller.scores, isEmpty);
+
+    await controller.switchLibraryProfile(SheetLibraryProfile.defaultId);
+    expect(controller.scores.single.id, 'default-score');
   });
 
   test(
@@ -525,6 +658,249 @@ void main() {
     },
   );
 
+  test('applies page crop copy and clears crop metadata', () async {
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final stroke = SheetAnnotationStroke(
+      id: 'stroke-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.pen,
+      color: 0xff111111,
+      width: 3,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+      ],
+      createdAt: now,
+    );
+    final text = SheetTextAnnotation(
+      id: 'text-1',
+      pageNumber: 2,
+      position: const SheetAnnotationPoint(x: 0.5, y: 0.5),
+      text: 'Cue',
+      color: 0xff111111,
+      fontSize: 18,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final original = _score(now).copyWith(
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        crop: SheetCropSettings(top: 0.08),
+        pageCrops: <int, SheetCropSettings>{2: SheetCropSettings(bottom: 0.12)},
+      ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[stroke],
+        texts: <SheetTextAnnotation>[text],
+        redoStack: <SheetAnnotationRedoEntry>[
+          SheetAnnotationRedoEntry.stroke(stroke),
+        ],
+      ),
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/tmp/score-1.pdf',
+          type: 'pdf',
+          label: 'Existing original',
+          createdAt: now,
+        ),
+        SheetLinkedFile(
+          path: '/tmp/part.pdf',
+          type: 'pdf',
+          label: 'Part',
+          createdAt: now,
+        ),
+      ],
+    );
+    final store = _PageCropCopyStore(
+      scores: <SheetScore>[original],
+      result: const SheetPdfPageCropResult(
+        inputPath: '/tmp/score-1.pdf',
+        outputPath: '/tmp/score-1-cropped.pdf',
+        pageCount: 4,
+        croppedPageCount: 4,
+        didWrite: true,
+      ),
+    );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createPageCropAppliedCopy(
+      controller.scores.single,
+    );
+    final updated = controller.scores.single;
+
+    expect(result.didWrite, isTrue);
+    expect(updated.filePath, '/tmp/score-1-cropped.pdf');
+    expect(updated.pageSettings.crop.hasCrop, isFalse);
+    expect(updated.pageSettings.pageCrops, isEmpty);
+    expect(
+      updated.annotationLayer.strokes.single.points.single.y,
+      moreOrLessEquals((0.2 - 0.08) / 0.92),
+    );
+    expect(
+      updated.annotationLayer.texts.single.position.y,
+      moreOrLessEquals(0.5 / 0.88),
+    );
+    expect(
+      updated.annotationLayer.redoStack.single.stroke!.points.single.y,
+      moreOrLessEquals((0.2 - 0.08) / 0.92),
+    );
+    expect(updated.linkedFiles, hasLength(2));
+    expect(updated.linkedFiles.first.path, '/tmp/score-1.pdf');
+    expect(updated.linkedFiles.first.label, '자르기 적용 전 원본');
+    expect(updated.linkedFiles.last.label, 'Part');
+    expect(store.savedScores.single.filePath, updated.filePath);
+  });
+
+  test('applies page arrangement copy and remaps page metadata', () async {
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final stroke = SheetAnnotationStroke(
+      id: 'stroke-3',
+      pageNumber: 3,
+      tool: SheetAnnotationTool.pen,
+      color: 0xff111111,
+      width: 3,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+      ],
+      createdAt: now,
+    );
+    final original = _score(now).copyWith(
+      lastPage: 3,
+      bookmarks: <SheetBookmark>[
+        SheetBookmark(pageNumber: 3, label: 'Solo', createdAt: now),
+      ],
+      pageSettings: SheetPageSettings(
+        hiddenPages: const <int>[2],
+        pageRotations: const <int, int>{3: 90},
+        pageCrops: const <int, SheetCropSettings>{
+          3: SheetCropSettings(left: 0.04),
+        },
+        pageOrder: const <int>[3, 1, 3, 2],
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(bottom: 0.05),
+        },
+        jumpPoints: <SheetPageJumpPoint>[
+          SheetPageJumpPoint(
+            id: 'jump-1',
+            sourcePage: 1,
+            targetPage: 3,
+            label: 'Solo',
+            createdAt: now,
+          ),
+        ],
+        rehearsalMarks: <SheetRehearsalMark>[
+          SheetRehearsalMark(
+            id: 'mark-1',
+            pageNumber: 3,
+            label: 'A',
+            kind: SheetRehearsalMark.rehearsalKind,
+            createdAt: now,
+          ),
+        ],
+        blankPageInsertions: <SheetBlankPageInsertion>[
+          SheetBlankPageInsertion(
+            id: 'blank-1',
+            afterPage: 1,
+            label: 'Notes',
+            createdAt: now,
+          ),
+        ],
+        visibilityPresets: <SheetPageVisibilityPreset>[
+          SheetPageVisibilityPreset(
+            id: 'visibility-1',
+            label: 'Hide 2',
+            hiddenPages: const <int>[2],
+            createdAt: now,
+          ),
+        ],
+      ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[stroke],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'text-3',
+            pageNumber: 3,
+            position: const SheetAnnotationPoint(x: 0.4, y: 0.5),
+            text: 'Solo',
+            color: 0xff222222,
+            fontSize: 20,
+            createdAt: now,
+          ),
+        ],
+        redoStack: <SheetAnnotationRedoEntry>[
+          SheetAnnotationRedoEntry.stroke(stroke),
+        ],
+      ),
+    );
+    final store = _PageArrangementCopyStore(
+      scores: <SheetScore>[original],
+      result: const SheetPdfPageArrangementResult(
+        inputPath: '/tmp/score-1.pdf',
+        outputPath: '/tmp/score-1-arranged.pdf',
+        sourcePageCount: 3,
+        outputPageCount: 4,
+        insertedBlankPageCount: 1,
+        didWrite: true,
+        sourcePageMapping: <int, List<int>>{
+          3: <int>[1, 4],
+          1: <int>[2],
+        },
+        pageRotations: <int, int>{1: 90, 4: 180},
+        pageCrops: <int, SheetCropSettings>{
+          1: SheetCropSettings(left: 0.04),
+          4: SheetCropSettings(bottom: 0.05),
+        },
+        blankPageNumbers: <int>[3],
+      ),
+    );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createPageArrangementAppliedCopy(
+      controller.scores.single,
+    );
+    final updated = controller.scores.single;
+
+    expect(result.didWrite, isTrue);
+    expect(updated.filePath, '/tmp/score-1-arranged.pdf');
+    expect(updated.lastPage, 1);
+    expect(updated.bookmarks.single.pageNumber, 1);
+    expect(updated.pageSettings.hiddenPages, isEmpty);
+    expect(updated.pageSettings.pageOrder, isEmpty);
+    expect(updated.pageSettings.instanceRotations, isEmpty);
+    expect(updated.pageSettings.instanceCrops, isEmpty);
+    expect(updated.pageSettings.blankPageInsertions, isEmpty);
+    expect(updated.pageSettings.visibilityPresets, isEmpty);
+    expect(updated.pageSettings.pageRotations, <int, int>{1: 90, 4: 180});
+    expect(updated.pageSettings.pageCrops.keys, <int>[1, 4]);
+    expect(updated.pageSettings.pageCrops[4]?.bottom, 0.05);
+    expect(updated.pageSettings.jumpPoints.single.sourcePage, 2);
+    expect(updated.pageSettings.jumpPoints.single.targetPage, 1);
+    expect(updated.pageSettings.rehearsalMarks.single.pageNumber, 1);
+    expect(
+      updated.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+      <int>[1, 4],
+    );
+    expect(updated.annotationLayer.strokes.map((stroke) => stroke.id), <String>[
+      'stroke-3-page1',
+      'stroke-3-page4',
+    ]);
+    expect(updated.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+      1,
+      4,
+    ]);
+    expect(updated.annotationLayer.texts.map((text) => text.id), <String>[
+      'text-3-page1',
+      'text-3-page4',
+    ]);
+    expect(
+      updated.annotationLayer.redoStack.map((entry) => entry.pageNumber),
+      <int>[1, 4],
+    );
+    expect(updated.linkedFiles.first.label, '페이지 정리 적용 전 원본');
+    expect(store.savedScores.single.filePath, updated.filePath);
+  });
+
   test('updates virtual page order settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -823,6 +1199,30 @@ void main() {
     );
   });
 
+  test('updates tone settings', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 60,
+        droneMode: SheetToneDroneMode.fifthOctave,
+        volumePercent: 45,
+      ),
+    );
+
+    expect(controller.toneSettings.rootConcertMidiNumber, 60);
+    expect(controller.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
+    expect(controller.toneSettings.volumePercent, 45);
+    expect((await store.loadToneSettings()).rootConcertMidiNumber, 60);
+    expect(
+      (await store.loadToneSettings()).droneMode,
+      SheetToneDroneMode.fifthOctave,
+    );
+  });
+
   test('updates and loads favorite annotation tool preset', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1037,6 +1437,34 @@ void main() {
     );
   });
 
+  test('updates annotation layer visibility and export state', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateAnnotationLayerState(
+      controller.scores.single,
+      isVisible: false,
+      includeInExport: false,
+    );
+
+    expect(
+      controller.scores.single.annotationLayer.isDefaultLayerVisible,
+      isFalse,
+    );
+    expect(
+      controller.scores.single.annotationLayer.includeDefaultLayerInExport,
+      isFalse,
+    );
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(persisted.annotationLayer.includeDefaultLayerInExport, isFalse);
+  });
+
   test('sorts and filters library scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -1235,6 +1663,15 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
     final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second').copyWith(
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'singlePage',
+          halfPageTurn: false,
+        ),
+      ),
+    ]);
     await store.saveSetlists(<SheetSetlist>[
       SheetSetlist(
         id: 'setlist-1',
@@ -1254,6 +1691,13 @@ void main() {
       transitionSeconds: 15,
       scoreStartPages: const <String, int>{'score-2': 3},
       scoreNotes: const <String, String>{'score-2': 'Wait for cue.'},
+      viewerSettingsOverride: const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.setlistPedalMapping,
+        autoAdvanceSetlist: true,
+      ),
     );
 
     final updated = controller.setlists.single;
@@ -1261,7 +1705,149 @@ void main() {
     expect(updated.transitionSeconds, 15);
     expect(updated.scoreStartPages, <String, int>{'score-2': 3});
     expect(updated.scoreNotes, <String, String>{'score-2': 'Wait for cue.'});
+    expect(updated.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(updated.viewerSettingsOverride?.autoAdvanceSetlist, isTrue);
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-2'),
+            setlistId: updated.id,
+          )
+          .pageScale,
+      SheetViewerSettings.fitWidthScale,
+    );
+
+    final duplicate = await controller.duplicateSetlist(updated);
+    expect(duplicate.viewerSettingsOverride?.displayMode, 'continuousVertical');
+
+    await controller.updateSetlistRehearsalSettings(
+      updated,
+      clearViewerSettingsOverride: true,
+    );
+    expect(controller.setlistById(updated.id).viewerSettingsOverride, isNull);
+    expect(
+      controller
+          .viewerSettingsForScore(
+            controller.scoreById('score-2'),
+            setlistId: updated.id,
+          )
+          .displayMode,
+      'singlePage',
+    );
   });
+
+  test(
+    'saves performance templates and keeps setlist override priority',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now).copyWith(
+          viewerSettings: const SheetViewerSettings(
+            displayMode: 'singlePage',
+            halfPageTurn: false,
+            pageScale: SheetViewerSettings.fitPageScale,
+          ),
+        ),
+      ]);
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'setlist-1',
+          title: 'Recital',
+          scoreIds: const <String>['score-1'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final scoreTemplate = await controller.savePerformancePresetTemplate(
+        name: 'Tablet page turns',
+        deviceProfile: 'Galaxy Tab',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: true,
+          pageScale: SheetViewerSettings.fitWidthScale,
+          pedalMapping: SheetViewerSettings.setlistPedalMapping,
+        ),
+      );
+      final setlistTemplate = await controller.savePerformancePresetTemplate(
+        name: 'Stage override',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'continuousVertical',
+          halfPageTurn: false,
+          pageScale: SheetViewerSettings.fullscreenScale,
+          autoAdvanceSetlist: true,
+        ),
+      );
+
+      expect(controller.performancePresetTemplates, hasLength(2));
+      expect(
+        await controller.applyPerformancePresetToScore(
+          controller.scoreById('score-1'),
+          scoreTemplate.id,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.scoreById('score-1').viewerSettings.displayMode,
+        'twoPage',
+      );
+
+      expect(
+        await controller.applyPerformancePresetToSetlist(
+          controller.setlistById('setlist-1'),
+          setlistTemplate.id,
+        ),
+        isTrue,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .pageScale,
+        SheetViewerSettings.fullscreenScale,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .autoAdvanceSetlist,
+        isTrue,
+      );
+
+      await controller.updateSetlistRehearsalSettings(
+        controller.setlistById('setlist-1'),
+        clearViewerSettingsOverride: true,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .pageScale,
+        SheetViewerSettings.fitWidthScale,
+      );
+
+      expect(
+        await controller.deletePerformancePresetTemplate(scoreTemplate.id),
+        isTrue,
+      );
+      expect(controller.performancePresetTemplates, hasLength(1));
+
+      final reloaded = SheetLibraryController(store: store);
+      await reloaded.load();
+      expect(reloaded.performancePresetTemplates.single.name, 'Stage override');
+    },
+  );
 
   test('normalizes shared import payloads', () {
     final files = normalizeSharedImportPayload(<Object?>[
@@ -1299,6 +1885,16 @@ class _PageRotationCopyStore extends SheetLibraryStore {
   }
 
   @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
+  }
+
+  @override
   Future<void> saveScores(List<SheetScore> scores) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
@@ -1333,6 +1929,139 @@ class _PageRotationCopyStore extends SheetLibraryStore {
     SheetScore score,
   ) async {
     return result;
+  }
+}
+
+class _PageCropCopyStore extends SheetLibraryStore {
+  _PageCropCopyStore({required List<SheetScore> scores, required this.result})
+    : savedScores = scores;
+
+  List<SheetScore> savedScores;
+  final SheetPdfPageCropResult result;
+
+  @override
+  Future<List<SheetScore>> loadScores() async {
+    return savedScores;
+  }
+
+  @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    savedScores = List<SheetScore>.unmodifiable(scores);
+  }
+
+  @override
+  Future<List<SheetSetlist>> loadSetlists() async {
+    return const <SheetSetlist>[];
+  }
+
+  @override
+  Future<SheetMetronomeSettings> loadMetronomeSettings() async {
+    return SheetMetronomeSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetTunerSettings> loadTunerSettings() async {
+    return SheetTunerSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
+    return SheetLibraryViewSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
+    return null;
+  }
+
+  @override
+  Future<SheetPdfPageCropResult> createPageCropAppliedCopy(
+    SheetScore score,
+  ) async {
+    return result;
+  }
+}
+
+class _PageArrangementCopyStore extends SheetLibraryStore {
+  _PageArrangementCopyStore({
+    required List<SheetScore> scores,
+    required this.result,
+  }) : savedScores = scores;
+
+  List<SheetScore> savedScores;
+  final SheetPdfPageArrangementResult result;
+
+  @override
+  Future<List<SheetScore>> loadScores() async {
+    return savedScores;
+  }
+
+  @override
+  Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
+    return <SheetLibraryProfile>[SheetLibraryProfile.defaultProfile];
+  }
+
+  @override
+  Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
+    return SheetLibraryProfile.defaultProfile;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    savedScores = List<SheetScore>.unmodifiable(scores);
+  }
+
+  @override
+  Future<List<SheetSetlist>> loadSetlists() async {
+    return const <SheetSetlist>[];
+  }
+
+  @override
+  Future<SheetMetronomeSettings> loadMetronomeSettings() async {
+    return SheetMetronomeSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetTunerSettings> loadTunerSettings() async {
+    return SheetTunerSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
+    return SheetLibraryViewSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
+    return null;
+  }
+
+  @override
+  Future<SheetPdfPageArrangementResult> createPageArrangementAppliedCopy(
+    SheetScore score,
+  ) async {
+    return result;
+  }
+}
+
+class _ImportScoreStore extends SheetLibraryStore {
+  _ImportScoreStore(this.score);
+
+  final SheetScore score;
+
+  @override
+  Future<SheetScore?> importPdf() async {
+    return score;
   }
 }
 

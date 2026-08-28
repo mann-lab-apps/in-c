@@ -12,7 +12,8 @@ helpers:
 - draw pen/highlighter strokes and text annotations as app metadata
 - share PDFs, annotated PDF copies, and full local backups
 - block URL link taps and create URL-link-disabled PDF copies
-- use visual metronome, auto scroll, hardware-key page turns, and microphone tuner
+- use visual metronome, reference tone/drone, local audio playback, auto scroll,
+  hardware-key page turns, and microphone tuner
 - switch tuner display/profile between Concert and Bb Trumpet flows
 
 ## Current Scope
@@ -21,7 +22,7 @@ Included:
 
 - Android-first Flutter app with iOS TestFlight smoke-test support
 - local PDF/image copies in the app documents directory
-- `SharedPreferences` metadata persistence and ZIP full backup
+- `SharedPreferences` metadata persistence, automatic metadata snapshots, and ZIP full backup
 - `pdfrx` PDF rendering
 - tester info sheet with feedback template copy
 
@@ -30,8 +31,10 @@ Known limitations:
 - tuner accuracy/latency still needs real-device QA
 - Korean/non-ASCII text annotation PDF export can fall back to sharing the original PDF
 - annotated PDF sharing stamps content into a copy; it does not embed editable PDF annotations
-- crop/rotation/page hide are app metadata/display features, not source PDF rewrites
-- linked file management UI, folder references, S Pen pressure, palm rejection, pedal mapping UI, cloud sync, and account storage are not included
+- crop/rotation/page hide are app metadata/display features unless the user explicitly creates an app-internal applied copy
+- linked file management, S Pen pressure metadata, palm rejection guard, and pedal mapping UI have first-pass support
+- folder direct references, HEIC/HEIF native conversion, OCR, iOS Share Extension, cloud sync, and account storage are not included
+- real CamScanner/object-stream PDFs, S Pen tuning, pedal hardware, cloud providers, and audio latency need device/sample QA
 
 ## Commands
 
@@ -46,6 +49,15 @@ flutter build apk
 flutter build ios --release --no-codesign
 ```
 
+RC release checklist:
+
+```sh
+dart run tool/rc_release_check.dart
+```
+
+The checklist runs fixture inspection, non-mutating formatter check, analyze,
+tests, whitespace scans, stale wording scans, and debug print scans.
+
 Build outputs:
 
 - debug APK: `build/app/outputs/flutter-apk/app-debug.apk`
@@ -56,6 +68,7 @@ Build outputs:
 Tester checklist:
 
 - [`../../docs/qa/clef-tester-checklist.md`](../../docs/qa/clef-tester-checklist.md)
+- [`../../docs/qa/clef-v1-device-qa-runbook.md`](../../docs/qa/clef-v1-device-qa-runbook.md)
 - [`../../docs/qa/clef-beta-feedback-message.md`](../../docs/qa/clef-beta-feedback-message.md)
 
 ## PDF Fixtures

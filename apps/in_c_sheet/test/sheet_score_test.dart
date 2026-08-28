@@ -57,6 +57,10 @@ void main() {
         pageRotations: <int, int>{4: 90},
         crop: const SheetCropSettings(top: 0.08, bottom: 0.1),
         pageOrder: <int>[1, 4, 4, 2],
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(top: 0.03),
+        },
         jumpPoints: <SheetPageJumpPoint>[
           SheetPageJumpPoint(
             id: 'jump-1',
@@ -126,6 +130,12 @@ void main() {
             createdAt: importedAt,
           ),
         ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
       ),
       annotationStorage: SheetAnnotationStorageReference(
         mode: SheetAnnotationStorageReference.fileMode,
@@ -144,6 +154,14 @@ void main() {
         startPage: 2,
         endPage: 9,
         cueSeconds: 5,
+        pausePageNumbers: <int>[4],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 5, endPage: 6),
+        ],
+        pageDurations: <int, int>{5: 90},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 5, measureNumber: 12, label: 'B'),
+        ],
       ),
     );
 
@@ -196,6 +214,8 @@ void main() {
     expect(decoded.single.pageSettings.crop.top, 0.08);
     expect(decoded.single.pageSettings.crop.bottom, 0.1);
     expect(decoded.single.pageSettings.pageOrder, <int>[1, 4, 4, 2]);
+    expect(decoded.single.pageSettings.instanceRotations, <int, int>{2: 180});
+    expect(decoded.single.pageSettings.instanceCrops[2]?.top, 0.03);
     expect(decoded.single.pageSettings.jumpPoints.single.id, 'jump-1');
     expect(decoded.single.pageSettings.jumpPoints.single.sourcePage, 2);
     expect(decoded.single.pageSettings.jumpPoints.single.targetPage, 4);
@@ -226,6 +246,8 @@ void main() {
     expect(decoded.single.matches('publisher'), isTrue);
     expect(decoded.single.annotationLayer.strokes, hasLength(1));
     expect(decoded.single.annotationLayer.strokes.single.pageNumber, 4);
+    expect(decoded.single.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(decoded.single.annotationLayer.includeDefaultLayerInExport, isFalse);
     expect(decoded.single.annotationStorage.isFileBacked, isTrue);
     expect(decoded.single.annotationStorage.checksum, 'abc123');
     expect(decoded.single.annotationStorage.lastSaveStatus, 'saved');
@@ -238,6 +260,18 @@ void main() {
     expect(decoded.single.autoScrollSettings.startPage, 2);
     expect(decoded.single.autoScrollSettings.endPage, 9);
     expect(decoded.single.autoScrollSettings.cueSeconds, 5);
+    expect(decoded.single.autoScrollSettings.pausePageNumbers, <int>[4]);
+    expect(
+      decoded.single.autoScrollSettings.repeatSections.single.startPage,
+      5,
+    );
+    expect(decoded.single.autoScrollSettings.repeatSections.single.endPage, 6);
+    expect(decoded.single.autoScrollSettings.pageDurations, <int, int>{5: 90});
+    expect(decoded.single.autoScrollSettings.cuePoints.single.label, 'B');
+    expect(
+      decoded.single.autoScrollSettings.cuePoints.single.measureNumber,
+      12,
+    );
   });
 
   test('normalizes custom metadata fields safely', () {
@@ -501,6 +535,7 @@ void main() {
           'customPedalMapping': <String, dynamic>{
             'Space': 'bad-action',
             'ArrowDown': 'nextPage',
+            'F13': 'toggleQuickActions',
           },
         },
         'pageSettings': <String, dynamic>{
@@ -538,6 +573,10 @@ void main() {
     expect(
       decoded.single.viewerSettings.customPedalMapping['ArrowDown'],
       'nextPage',
+    );
+    expect(
+      decoded.single.viewerSettings.customPedalMapping['F13'],
+      'toggleQuickActions',
     );
     expect(decoded.single.pageSettings.cropForPage(2).left, 0.04);
     expect(decoded.single.pageSettings.pageOrder, isEmpty);
@@ -790,7 +829,7 @@ void main() {
 
   test('viewer settings normalize unknown enum-like values', () {
     final settings = SheetViewerSettings.fromJson(const <String, Object?>{
-      'displayMode': 'singlePage',
+      'displayMode': 'gallery',
       'halfPageTurn': true,
       'displayEffect': 'normal',
       'pageScale': 'poster',
@@ -799,6 +838,10 @@ void main() {
       'pageTurnAnimation': 'dramatic',
     });
 
+    expect(
+      settings.displayMode,
+      SheetViewerSettings.defaultSettings.displayMode,
+    );
     expect(settings.pageScale, SheetViewerSettings.fitPageScale);
     expect(settings.pedalMapping, SheetViewerSettings.standardPedalMapping);
     expect(settings.renderProfile, SheetViewerSettings.balancedRenderProfile);
@@ -914,6 +957,12 @@ void main() {
         '4': 2.4,
         '5': -90,
       },
+      'instanceRotations': <String, Object?>{'-1': 90, '0': 45, '2': 270.2},
+      'instanceCrops': <String, Object?>{
+        '-1': <String, Object?>{'left': 0.2},
+        '1': <String, Object?>{'left': 0},
+        '3': <String, Object?>{'right': 0.04},
+      },
     });
 
     expect(bookmark.pageNumber, 3);
@@ -929,6 +978,8 @@ void main() {
     expect(pageSettings.hiddenPages, <int>[2, 4]);
     expect(pageSettings.pageOrder, <int>[1, 4, 4]);
     expect(pageSettings.pageRotations, <int, int>{2: 90, 3: 180, 5: 270});
+    expect(pageSettings.instanceRotations, <int, int>{2: 270});
+    expect(pageSettings.instanceCrops[3]?.right, 0.04);
   });
 
   test('sorts decoded bookmarks by page number', () {
@@ -1036,6 +1087,74 @@ void main() {
     expect(duplicatedSelectedIndex.pageOrder, <int>[1, 4, 4, 2, 4, 3]);
     expect(reset.pageOrder, isEmpty);
     expect(reset.effectivePageOrder(4), <int>[1, 2, 3, 4]);
+  });
+
+  test('page settings keep per-instance crop and rotation overrides', () {
+    const settings = SheetPageSettings(
+      hiddenPages: <int>[],
+      pageRotations: <int, int>{4: 90},
+      crop: SheetCropSettings(left: 0.01),
+      pageCrops: <int, SheetCropSettings>{4: SheetCropSettings(right: 0.02)},
+      pageOrder: <int>[1, 4, 2, 4, 3],
+      instanceRotations: <int, int>{1: 180},
+      instanceCrops: <int, SheetCropSettings>{1: SheetCropSettings(top: 0.03)},
+    );
+
+    final moved = settings.movePageInOrder(
+      fromIndex: 1,
+      toIndex: 3,
+      pageCount: 4,
+    );
+    final duplicated = settings.duplicatePageInOrder(
+      pageNumber: 4,
+      pageCount: 4,
+      orderIndex: 1,
+    );
+    final rotatedInstance = settings.rotatePageInstanceClockwise(
+      orderIndex: 1,
+      pageNumber: 4,
+      pageCount: 4,
+    );
+    final zeroRotationInstance = rotatedInstance.rotatePageInstanceClockwise(
+      orderIndex: 1,
+      pageNumber: 4,
+      pageCount: 4,
+    );
+    final croppedInstance = settings.updatePageInstanceCrop(
+      orderIndex: 3,
+      pageCount: 4,
+      crop: const SheetCropSettings(bottom: 0.04),
+    );
+    final decoded = SheetPageSettings.fromJson(settings.toJson());
+    final compacted = settings
+        .copyWith(
+          instanceRotations: const <int, int>{1: 180, 99: 90},
+          instanceCrops: const <int, SheetCropSettings>{
+            1: SheetCropSettings(top: 0.03),
+            99: SheetCropSettings(left: 0.05),
+          },
+        )
+        .compactForPageCount(4);
+    final reset = settings.resetPageOrder();
+
+    expect(settings.rotationForPage(4), 90);
+    expect(settings.rotationForPage(4, orderIndex: 1), 180);
+    expect(settings.cropForPage(4).right, 0.02);
+    expect(settings.cropForPage(4, orderIndex: 1).top, 0.03);
+    expect(moved.pageOrder, <int>[1, 2, 4, 4, 3]);
+    expect(moved.instanceRotations, <int, int>{3: 180});
+    expect(duplicated.pageOrder, <int>[1, 4, 4, 2, 4, 3]);
+    expect(duplicated.instanceRotations, <int, int>{1: 180, 2: 180});
+    expect(rotatedInstance.instanceRotations[1], 270);
+    expect(zeroRotationInstance.instanceRotations[1], 0);
+    expect(zeroRotationInstance.rotationForPage(4, orderIndex: 1), 0);
+    expect(croppedInstance.instanceCrops[3]?.bottom, 0.04);
+    expect(decoded.instanceRotations, <int, int>{1: 180});
+    expect(decoded.instanceCrops[1]?.top, 0.03);
+    expect(compacted.instanceRotations, <int, int>{1: 180});
+    expect(compacted.instanceCrops.keys, <int>[1]);
+    expect(reset.instanceRotations, isEmpty);
+    expect(reset.instanceCrops, isEmpty);
   });
 
   test('page settings omit hidden pages from effective page order', () {

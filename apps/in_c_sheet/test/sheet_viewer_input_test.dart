@@ -193,6 +193,38 @@ void main() {
     expect(entry.logLine, contains('toggleQuickActions'));
   });
 
+  test('collects recent unknown input ids for custom mapping UI', () {
+    final now = DateTime.parse('2026-08-27T10:00:00.000');
+    final entries = <SheetViewerInputDiagnosticEntry>[
+      SheetViewerInputDiagnosticEntry(
+        timestamp: now,
+        logicalKeyLabel: 'F13',
+        logicalKeyId: 1013,
+        physicalKeyId: 2013,
+        inputId: 'F13',
+        action: SheetViewerInputAction.none,
+      ),
+      SheetViewerInputDiagnosticEntry(
+        timestamp: now.add(const Duration(seconds: 1)),
+        logicalKeyLabel: 'Space',
+        logicalKeyId: LogicalKeyboardKey.space.keyId,
+        physicalKeyId: PhysicalKeyboardKey.space.usbHidUsage,
+        inputId: 'Space',
+        action: SheetViewerInputAction.nextPage,
+      ),
+      SheetViewerInputDiagnosticEntry(
+        timestamp: now.add(const Duration(seconds: 2)),
+        logicalKeyLabel: 'F13',
+        logicalKeyId: 1013,
+        physicalKeyId: 2013,
+        inputId: 'F13',
+        action: SheetViewerInputAction.none,
+      ),
+    ];
+
+    expect(sheetViewerRecentCustomInputIds(entries), <String>['F13']);
+  });
+
   test('reverses pedal mapping when selected', () {
     expect(
       resolveSheetViewerKeyTurn(
@@ -335,6 +367,15 @@ void main() {
         customMapping: const <String, String>{'Enter': 'none'},
       ),
       SheetViewerInputAction.none,
+    );
+    expect(
+      resolveSheetViewerKeyAction(
+        key: LogicalKeyboardKey.keyA,
+        isShiftPressed: false,
+        pedalMapping: 'custom',
+        customMapping: const <String, String>{'A': 'toggleQuickActions'},
+      ),
+      SheetViewerInputAction.toggleQuickActions,
     );
   });
 

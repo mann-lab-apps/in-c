@@ -189,6 +189,55 @@ void main() {
     expect(layer.redoStack, isEmpty);
   });
 
+  test('annotation layer visibility and export flags round-trip safely', () {
+    final now = DateTime.parse('2026-08-27T10:00:00.000');
+    final stroke = _stroke(id: 'stroke-1', pageNumber: 1, createdAt: now);
+    final text = _text(
+      id: 'text-1',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[stroke],
+      texts: <SheetTextAnnotation>[text],
+      layers: <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+          isVisible: false,
+          includeInExport: false,
+        ),
+      ],
+    );
+
+    final decoded = SheetAnnotationLayer.fromJson(layer.toJson());
+
+    expect(decoded.strokesForPage(1), hasLength(1));
+    expect(decoded.textsForPage(1), hasLength(1));
+    expect(decoded.visibleStrokesForPage(1), isEmpty);
+    expect(decoded.visibleTextsForPage(1), isEmpty);
+    expect(decoded.exportableStrokesForPage(1), isEmpty);
+    expect(decoded.exportableTextsForPage(1), isEmpty);
+    expect(
+      decoded
+          .addStroke(
+            _stroke(
+              id: 'stroke-2',
+              pageNumber: 1,
+              createdAt: now.add(const Duration(seconds: 2)),
+            ),
+          )
+          .isDefaultLayerVisible,
+      isFalse,
+    );
+
+    final visibleForExport = decoded.withDefaultLayerState(
+      isVisible: true,
+      includeInExport: true,
+    );
+
+    expect(visibleForExport.visibleStrokesForPage(1), hasLength(1));
+    expect(visibleForExport.exportableTextsForPage(1), hasLength(1));
+  });
+
   test('compacts redo stack without dropping annotations', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
     final stroke = _stroke(id: 'visible', pageNumber: 1, createdAt: now);
@@ -251,8 +300,8 @@ void main() {
       color: 0xffffcc25,
       width: 8,
       points: const <SheetAnnotationPoint>[
-        SheetAnnotationPoint(x: 0.2, y: 0.3),
-        SheetAnnotationPoint(x: 0.4, y: 0.5),
+        SheetAnnotationPoint(x: 0.2, y: 0.3, pressure: 0.7),
+        SheetAnnotationPoint(x: 0.4, y: 0.5, pressure: 1.3),
       ],
       createdAt: createdAt,
     );
@@ -265,7 +314,9 @@ void main() {
     expect(decoded.color, 0xffffcc25);
     expect(decoded.width, 8);
     expect(decoded.points.first.x, 0.2);
+    expect(decoded.points.first.pressure, 0.7);
     expect(decoded.points.last.y, 0.5);
+    expect(decoded.points.last.pressure, 1.3);
   });
 
   test('annotation stroke supports arrow and rectangle tools', () {
@@ -615,6 +666,20 @@ void main() {
     expect(point, isNotNull);
     expect(point!.x, 0.25);
     expect(point.y, 0.25);
+  });
+
+  test('page geometry carries stylus pressure into normalized points', () {
+    const geometry = SheetAnnotationPageGeometry(
+      pageRect: Rect.fromLTWH(12, 24, 200, 400),
+    );
+
+    final point = geometry.pointFromPageLocal(
+      const Offset(50, 100),
+      pressure: 1.25,
+    );
+
+    expect(point, isNotNull);
+    expect(point!.pressure, 1.25);
   });
 
   test('page geometry rejects offsets outside the page box', () {
