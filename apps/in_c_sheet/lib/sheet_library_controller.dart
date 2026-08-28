@@ -975,6 +975,7 @@ class SheetLibraryController extends ChangeNotifier {
           (entry) => _rebaseRedoEntryForAppliedCrop(entry, pageSettings),
         ),
       ),
+      layers: layer.layers,
     );
   }
 
@@ -1093,6 +1094,7 @@ class SheetLibraryController extends ChangeNotifier {
               _rebaseRedoEntryForAppliedArrangement(entry, sourcePageMapping),
         ),
       ),
+      layers: layer.layers,
     );
   }
 
@@ -1735,6 +1737,24 @@ class SheetLibraryController extends ChangeNotifier {
       ),
     );
     return true;
+  }
+
+  Future<void> updateAnnotationLayerState(
+    SheetScore score, {
+    bool? isVisible,
+    bool? includeInExport,
+  }) async {
+    await _replace(
+      score.copyWith(
+        annotationLayer: _guardAnnotationLayer(
+          score.annotationLayer.withDefaultLayerState(
+            isVisible: isVisible,
+            includeInExport: includeInExport,
+          ),
+        ),
+        updatedAt: DateTime.now(),
+      ),
+    );
   }
 
   Future<SheetSetlist> createSetlist(String title) async {

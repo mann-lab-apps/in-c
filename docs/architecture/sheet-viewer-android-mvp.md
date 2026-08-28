@@ -168,9 +168,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - palm rejection은 1차로 stylus pointer 입력 직후 700ms 동안 touch gesture를 거절하는
   `SheetStylusInputPolicy`를 overlay에 적용한다. 실제 S Pen palm classification, multi-touch
   edge case, rejection window 값은 Galaxy Tab 실기기 QA에서 튜닝한다.
-- annotation layer는 현재 `SharedPreferences`에 score metadata로 저장한다. 리허설 메모 수준의
-  stroke에는 충분하지만, stroke가 많아지면 SQLite 또는 file-backed annotation store로 이전해야
-  한다.
+- annotation layer는 현재 `SharedPreferences`에 score metadata로 저장한다. 기본 필기 layer는
+  visibility와 PDF export 포함/제외 flag를 가지며, viewer overlay와 필기 포함 PDF export는 이
+  flag를 각각 반영한다. 리허설 메모 수준의 stroke에는 충분하지만, stroke가 많아지면 SQLite 또는
+  file-backed annotation store로 이전해야 한다.
 - v1.1 준비로 `SheetAnnotationStorageReference`를 score metadata에 추가했다. 기본값은 inline이며,
   기존 `annotationLayer`를 그대로 읽고 저장한다. `file` mode는 external annotation JSON 파일의
   path/checksum/updatedAt/lastSaveStatus/lastSaveError를 기록할 수 있게 해 두었고, external 저장이
@@ -508,11 +509,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 텍스트 도구를 선택한 뒤 page를 탭하면 입력 dialog를 띄우고, 입력한 텍스트를 해당 page 위치에
   렌더링한다.
 - v1 RC에서는 annotation metadata를 기존 `SharedPreferences` 기반 score JSON에 유지한다.
+  기본 필기 layer의 visibility/export flag도 같은 JSON에 backward-compatible하게 저장한다.
   저장 안정성 보강은 stroke/text/point/redo 요약, export/backup 전 용량 안내, redoStack compact,
   저장 실패 snackbar 안내로 제한한다.
-- v1.1 후보: SQLite 또는 file-backed annotation store migration, 실제 PDF annotation 표준
-  embed/export, 큰 annotation layer의 incremental save 전략. v1에서는 원본 PDF와 기존 metadata
-  구조를 흔들지 않는다.
+- v1.1 후보: SQLite 또는 file-backed annotation store lazy migration, 다중 annotation layer와
+  annotation별 layer keying, 실제 PDF annotation 표준 embed/export, 큰 annotation layer의
+  incremental save 전략. v1에서는 원본 PDF와 기존 metadata 구조를 흔들지 않는다.
 - 텍스트 도구 상태에서 기존 텍스트 주석을 탭하면 수정/삭제 bottom sheet를 연다. 빈 문자열로
   수정하면 삭제로 처리한다.
 - 지우개는 stroke 단위 hit-test 삭제로 구현한다. 1차 hit-test는 normalized segment distance와
@@ -526,13 +528,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 두께는 slider로 선택한다.
 - 현재 페이지 마지막 stroke/text annotation undo를 제공한다.
 - 공연 모드에서는 필기 모드를 자동으로 끄고 toolbar를 숨긴다.
-- 필기 포함 PDF 공유는 별도 export 사본 생성으로 1차 지원한다. PDF 표준 annotation 객체로
+- 필기 포함 PDF 공유는 별도 export 사본 생성으로 1차 지원한다. 기본 layer의 export flag가 꺼져
+  있으면 앱 안 필기는 보존하지만 export 사본에는 포함하지 않는다. PDF 표준 annotation 객체로
   embed/export하거나, 앱 내부 annotation layer를 다시 편집 가능한 형태로 외부 PDF에 싣는 기능은
   후속이다.
 - 텍스트 주석의 advanced style, 선택 이동/resize는 후속이다.
-- 남은 리스크는 stylus pressure, palm rejection, PDF annotation embed 고도화, 대량 annotation 저장
-  성능, 한글 PDF text font embedding, page별 rotation metadata를 실제 렌더링 transform에 반영하는
-  부분이다.
+- 남은 리스크는 stylus pressure/palm rejection 실기기 튜닝, PDF annotation embed 고도화, 대량
+  annotation 저장 성능, 한글 PDF text font embedding, 다중 annotation layer keying이다.
 
 ## V1 뷰어 표시/페이지 정리 보강
 
@@ -608,8 +610,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   1차 구현했다. 실제 CamScanner 샘플과 compact/rewrite 방식의 완전한 object 제거는 추가 검증이
   필요하다.
 - 주석/필기 고도화: S Pen pressure와 stylus 직후 touch rejection window는 1차 구현했다.
-  palm rejection 실기기 튜닝, layer visibility, PDF embed/export 별도 spike 필요.
-  기본 stroke/text layer, text edit/delete와 page rect 기반 overlay는 구현했다.
+  기본 필기 layer visibility/export 포함 flag, text edit/delete와 page rect 기반 overlay도 구현했다.
+  palm rejection 실기기 튜닝, 다중 layer keying, PDF embed/export 별도 spike는 남아 있다.
 - 튜너 고도화: runtime microphone permission request와 raw PCM stream은 1차 구현했다.
   Median smoothing과 no-signal debounce도 1차 적용했다. Android 태블릿 실기기 pitch 정확도,
   latency, 추가 noise smoothing, YIN 비교, 외부 microphone 동작은 후속 검증이 필요하다.

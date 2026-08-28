@@ -150,6 +150,57 @@ void main() {
     expect(result.outputPath, isNull);
   });
 
+  test('does not write a PDF copy when default annotation layer is excluded',
+      () async {
+    final input = File('test-fixtures/pdfs/short-score.pdf');
+    final now = DateTime.parse('2026-08-23T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-1',
+      title: 'Short Score',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: input.path,
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            includeInExport: false,
+          ),
+        ],
+      ),
+    );
+
+    final result = await SheetAnnotatedPdfExporter.createAnnotatedCopy(
+      score: score,
+      outputPath: '/tmp/unused-clef-layer-excluded.pdf',
+    );
+
+    expect(score.annotationLayer.strokesForPage(1), hasLength(1));
+    expect(result.didWrite, isFalse);
+    expect(result.hasAnnotations, isFalse);
+    expect(result.outputPath, isNull);
+  });
+
   test('does not write when annotations are outside PDF page range', () async {
     final input = File('test-fixtures/pdfs/short-score.pdf');
     final outputDir = await Directory.systemTemp.createTemp(

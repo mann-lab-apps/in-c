@@ -62,7 +62,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 색상/두께 선택.
 - undo/redo.
 - 자동 저장.
-- 주석은 앱 내부 레이어로 저장하고 원본 PDF는 수정하지 않는다.
+- 주석은 앱 내부 기본 layer로 저장하고 원본 PDF는 수정하지 않는다.
+- 기본 layer 표시/숨김과 PDF 공유 포함/제외를 저장한다.
 
 ### 음악 도구
 
@@ -209,8 +210,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
   회전 metadata 저장, global/page/instance crop metadata와 화면 mask, duplicate instance별
   crop/rotation override.
 - 주석/필기 1차: 펜/형광펜 stroke, 텍스트 주석, 지우개 stroke 삭제, 색상/두께 선택,
-  텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo, 앱 metadata 저장, `pdfrx` page overlay
-  기반 좌표 정합성 보강.
+  텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo/redo, 기본 layer 표시/숨김과 PDF 공유
+  포함/제외, 앱 metadata 저장, `pdfrx` page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 OFF tick sound toggle.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector, median
   smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
@@ -245,6 +246,7 @@ Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거
 Bluetooth/USB 페달 실기기 HID 검증, 주석/필기 고도화, PDF annotation 객체 embed/export,
 실제 페이지 회전 live 렌더링의 시각 QA,
 한글 텍스트 PDF font embedding,
+다중 annotation layer와 annotation별 layer keying,
 기존 폴더 직접 참조, ChordPro/text,
 HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이

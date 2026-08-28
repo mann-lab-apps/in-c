@@ -8126,6 +8126,32 @@ setlist=$setlistLabel
     _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');
   }
 
+  Future<void> _toggleAnnotationLayerVisibility() async {
+    final nextValue = !score.annotationLayer.isDefaultLayerVisible;
+    await widget.controller.updateAnnotationLayerState(
+      score,
+      isVisible: nextValue,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    _showSnackBar(nextValue ? '필기 layer를 표시합니다.' : '필기 layer를 숨깁니다.');
+  }
+
+  Future<void> _toggleAnnotationLayerExport() async {
+    final nextValue = !score.annotationLayer.includeDefaultLayerInExport;
+    await widget.controller.updateAnnotationLayerState(
+      score,
+      includeInExport: nextValue,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {});
+    _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
+  }
+
   void _saveFavoriteAnnotationPreset() {
     final preset = _AnnotationPreset(
       tool: _annotationTool,
@@ -10079,9 +10105,9 @@ setlist=$setlistLabel
                                   isEnabled: _isAnnotationMode,
                                   pageNumber: pageNumber,
                                   strokes: currentScore.annotationLayer
-                                      .strokesForPage(pageNumber),
+                                      .visibleStrokesForPage(pageNumber),
                                   texts: currentScore.annotationLayer
-                                      .textsForPage(pageNumber),
+                                      .visibleTextsForPage(pageNumber),
                                   draftPoints:
                                       _draftAnnotationPageNumber == pageNumber
                                       ? _draftAnnotationPoints
@@ -10192,6 +10218,11 @@ setlist=$setlistLabel
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
                           hasFavoritePreset: _favoriteAnnotationPreset != null,
+                          isLayerVisible:
+                              currentScore.annotationLayer.isDefaultLayerVisible,
+                          includeLayerInExport: currentScore
+                              .annotationLayer
+                              .includeDefaultLayerInExport,
                           isCompact: isCompactViewer,
                           onToolSelected: (tool) {
                             setState(() {
@@ -10217,6 +10248,9 @@ setlist=$setlistLabel
                           onRedo: _redoCurrentPageAnnotation,
                           onSaveFavorite: _saveFavoriteAnnotationPreset,
                           onApplyFavorite: _applyFavoriteAnnotationPreset,
+                          onToggleLayerVisibility:
+                              _toggleAnnotationLayerVisibility,
+                          onToggleLayerExport: _toggleAnnotationLayerExport,
                         ),
                       ),
                     if (_isSanitizingPdfLinks)
@@ -11511,6 +11545,8 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.selectedColor,
     required this.selectedWidth,
     required this.hasFavoritePreset,
+    required this.isLayerVisible,
+    required this.includeLayerInExport,
     required this.isCompact,
     required this.onToolSelected,
     required this.onStampSelected,
@@ -11520,6 +11556,8 @@ class _AnnotationToolbar extends StatelessWidget {
     required this.onRedo,
     required this.onSaveFavorite,
     required this.onApplyFavorite,
+    required this.onToggleLayerVisibility,
+    required this.onToggleLayerExport,
   });
 
   final _AnnotationToolbarTool selectedTool;
@@ -11527,6 +11565,8 @@ class _AnnotationToolbar extends StatelessWidget {
   final int selectedColor;
   final double selectedWidth;
   final bool hasFavoritePreset;
+  final bool isLayerVisible;
+  final bool includeLayerInExport;
   final bool isCompact;
   final ValueChanged<_AnnotationToolbarTool> onToolSelected;
   final ValueChanged<_AnnotationStamp> onStampSelected;
@@ -11536,6 +11576,8 @@ class _AnnotationToolbar extends StatelessWidget {
   final VoidCallback onRedo;
   final VoidCallback onSaveFavorite;
   final VoidCallback onApplyFavorite;
+  final VoidCallback onToggleLayerVisibility;
+  final VoidCallback onToggleLayerExport;
 
   static const List<int> _colors = <int>[
     0xff111111,
@@ -11674,6 +11716,22 @@ class _AnnotationToolbar extends StatelessWidget {
               tooltip: '마지막 필기 다시 적용',
               onPressed: onRedo,
               icon: const Icon(Icons.redo),
+            ),
+            IconButton(
+              tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
+              onPressed: onToggleLayerVisibility,
+              icon: Icon(
+                isLayerVisible ? Icons.visibility : Icons.visibility_off,
+              ),
+            ),
+            IconButton(
+              tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+              onPressed: onToggleLayerExport,
+              icon: Icon(
+                includeLayerInExport
+                    ? Icons.file_upload_outlined
+                    : Icons.block,
+              ),
             ),
             IconButton(
               tooltip: '현재 필기 도구 즐겨찾기 저장',

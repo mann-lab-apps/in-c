@@ -38,7 +38,7 @@
 | 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
-| 8 | 필기/주석 | pen/highlighter/text/shape/stamp, undo/redo, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, 저장 실패 문구, 복원 여부 |
+| 8 | 필기/주석 | pen/highlighter/text/shape/stamp, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |
 | 9 | 큰 annotation | 공유/백업 전 annotation 요약 안내가 표시된다. | stroke/text/point 요약, 파일 크기 |
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset/page duration/cue point/pause marker/반복 구간/자동 다음 곡 진행이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration, page별 duration, cue point, pause page, 반복 구간, 다음 곡 전환 |
@@ -96,8 +96,11 @@ OS:
 - 공연 모드 keep-awake, 밝기 유지, immersive system UI는 플랫폼 제약이 있을 수 있다.
 - 기준음/드론 재생은 Android native `AudioTrack` 채널 기준이고 로컬 오디오는 Android
   `MediaPlayer` 채널 기준이다. iOS에서는 playback channel parity가 아직 필요하다.
-- annotation은 v1에서 SharedPreferences 기반 score metadata에 저장된다. file-backed store adapter와 external ref metadata는 v1.1 준비 단계이며, 기존 inline metadata를 강제 migration하지 않는다.
-- 필기 포함 PDF 공유는 표준 PDF annotation embed가 아니라 렌더링된 사본 생성 방식이다.
+- annotation은 v1에서 SharedPreferences 기반 score metadata에 저장된다. 기본 필기 layer의
+  표시/숨김과 PDF 공유 포함/제외 flag는 구현되어 있으며, file-backed store adapter와 external ref
+  metadata는 v1.1 준비 단계다. 기존 inline metadata를 강제 migration하지 않는다.
+- 필기 포함 PDF 공유는 표준 PDF annotation embed가 아니라 렌더링된 사본 생성 방식이다. PDF 공유
+  제외 flag가 꺼진 layer는 앱 안 필기를 보존하되 export 사본에는 포함하지 않는다.
 - crop, rotation, page hide, virtual order는 기본적으로 원본 PDF를 수정하지 않고 앱 metadata/viewer
   표시로 처리한다. 사용자가 적용 사본 생성을 명시적으로 실행한 경우에는 앱 내부 PDF 사본만 새로
   만들고, 원본 PDF는 연결 파일 metadata로 보존한다.
@@ -121,7 +124,7 @@ OS:
 | Cloud provider 실패 검증 | Drive/iCloud/Dropbox 계정과 provider별 offline placeholder 동작이 필요하다. | system file picker 우선 정책과 내려받기 안내가 있다. | provider별 실기기 import 실패/성공 기록 |
 | CamScanner/malformed PDF link 제거 검증 | 실제 CamScanner류 PDF 샘플과 compact rewrite 비교가 필요하다. | 비PDF/손상 PDF 실패 안전장치, URL link 제거 후 page count 재검증, partial output cleanup 테스트가 있다. | 실제 샘플에서 URL link count, file size, object stream 잔존 여부 기록 |
 | S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | pressure metadata/render/export 경로와 stylus 직후 touch rejection window는 구현했다. platform gesture tuning은 실기기 검증이 필요하다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
-| 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback이 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
+| 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback과 export 포함/제외 layer flag가 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
 | USB/Bluetooth 페달 실장비 검증 | 실제 장비가 보내는 HID key가 제조사별로 다르다. | key mapping resolver, custom dropdown, input diagnostic log가 있다. | 페달 모델별 logical/physical key와 action 결과 기록 |
 | 저지연 메트로놈 audio/player/iOS playback parity | audio session, latency, sound asset, background 정책 검증이 필요하다. | Android native 기준음/드론, Android local audio player, visual metronome, BPM preset, local linked file metadata는 있다. | audio package/asset 결정, iOS playback bridge, Android/iOS latency QA |
 
@@ -130,6 +133,7 @@ OS:
 - OCR 기반 PDF 본문 검색.
 - 실제 HID key capture 기반 페달 설정.
 - SQLite-backed annotation store 또는 inline-to-external migration.
+- 다중 annotation layer와 annotation별 layer keying.
 - PDF 표준 annotation embed/export 고도화.
 - 기존 폴더 직접 참조(Android SAF/iOS Files) spike.
 - 클라우드 동기화, 계정, 서버 저장.

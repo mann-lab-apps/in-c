@@ -130,6 +130,12 @@ void main() {
             createdAt: importedAt,
           ),
         ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
       ),
       annotationStorage: SheetAnnotationStorageReference(
         mode: SheetAnnotationStorageReference.fileMode,
@@ -240,6 +246,8 @@ void main() {
     expect(decoded.single.matches('publisher'), isTrue);
     expect(decoded.single.annotationLayer.strokes, hasLength(1));
     expect(decoded.single.annotationLayer.strokes.single.pageNumber, 4);
+    expect(decoded.single.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(decoded.single.annotationLayer.includeDefaultLayerInExport, isFalse);
     expect(decoded.single.annotationStorage.isFileBacked, isTrue);
     expect(decoded.single.annotationStorage.checksum, 'abc123');
     expect(decoded.single.annotationStorage.lastSaveStatus, 'saved');

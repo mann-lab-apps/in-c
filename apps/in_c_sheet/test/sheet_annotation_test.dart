@@ -189,6 +189,53 @@ void main() {
     expect(layer.redoStack, isEmpty);
   });
 
+  test('annotation layer visibility and export flags round-trip safely', () {
+    final now = DateTime.parse('2026-08-27T10:00:00.000');
+    final stroke = _stroke(id: 'stroke-1', pageNumber: 1, createdAt: now);
+    final text = _text(
+      id: 'text-1',
+      pageNumber: 1,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final layer = SheetAnnotationLayer(
+      strokes: <SheetAnnotationStroke>[stroke],
+      texts: <SheetTextAnnotation>[text],
+      layers: <SheetAnnotationDisplayLayer>[
+        SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+          isVisible: false,
+          includeInExport: false,
+        ),
+      ],
+    );
+
+    final decoded = SheetAnnotationLayer.fromJson(layer.toJson());
+
+    expect(decoded.strokesForPage(1), hasLength(1));
+    expect(decoded.textsForPage(1), hasLength(1));
+    expect(decoded.visibleStrokesForPage(1), isEmpty);
+    expect(decoded.visibleTextsForPage(1), isEmpty);
+    expect(decoded.exportableStrokesForPage(1), isEmpty);
+    expect(decoded.exportableTextsForPage(1), isEmpty);
+    expect(
+      decoded.addStroke(
+        _stroke(
+          id: 'stroke-2',
+          pageNumber: 1,
+          createdAt: now.add(const Duration(seconds: 2)),
+        ),
+      ).isDefaultLayerVisible,
+      isFalse,
+    );
+
+    final visibleForExport = decoded.withDefaultLayerState(
+      isVisible: true,
+      includeInExport: true,
+    );
+
+    expect(visibleForExport.visibleStrokesForPage(1), hasLength(1));
+    expect(visibleForExport.exportableTextsForPage(1), hasLength(1));
+  });
+
   test('compacts redo stack without dropping annotations', () {
     final now = DateTime.parse('2026-08-27T10:00:00.000');
     final stroke = _stroke(id: 'visible', pageNumber: 1, createdAt: now);

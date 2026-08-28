@@ -71,7 +71,7 @@
 | 주석 | 텍스트 | 양쪽 기본 | MVP | 중간 | 18차 구현: page normalized position, 입력 dialog, render, edit/delete, undo |
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
-| 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 7차 구현: stroke 종료/지우개 삭제 시 SharedPreferences 저장. 대량 stroke는 file-backed store 후속 |
+| 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 구현됨: stroke/text/redo와 layer flag를 SharedPreferences inline metadata로 저장하고, file-backed annotation store adapter/external reference를 v1.1 준비 상태로 보유 |
 | 주석 | 스탬프 | 양쪽 지원 | V1 | 중간 | 구현됨: stamp annotation tool, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
 | 주석 | crescendo/piano staff | MobileSheets 지원 | V2 | 중간 | music-specific shapes |
@@ -79,7 +79,7 @@
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
-| 주석 | annotation layer | MobileSheets 강점 | V2 | 높음 | visibility/export model |
+| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. 다중 layer/annotation별 layer keying은 후속 |
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
 | 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | PDF 표준 annotation으로 편집 가능한 export/import |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
@@ -174,7 +174,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - CSV index 기반 PDF songbook 분할.
 - 자동 크롭.
 - smart button.
-- crescendo/piano staff, nudge tool, annotation layer.
+- crescendo/piano staff, nudge tool, 다중 annotation layer.
 - PDF annotation 객체 embed/export.
 - 고급 자동 스크롤 measure 위치 자동 감지.
 - A-B loop, tempo/pitch shift.

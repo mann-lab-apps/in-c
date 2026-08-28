@@ -1435,6 +1435,32 @@ void main() {
     );
   });
 
+  test('updates annotation layer visibility and export state', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateAnnotationLayerState(
+      controller.scores.single,
+      isVisible: false,
+      includeInExport: false,
+    );
+
+    expect(controller.scores.single.annotationLayer.isDefaultLayerVisible,
+        isFalse);
+    expect(
+      controller.scores.single.annotationLayer.includeDefaultLayerInExport,
+      isFalse,
+    );
+    final persisted = (await store.loadScores()).single;
+    expect(persisted.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(persisted.annotationLayer.includeDefaultLayerInExport, isFalse);
+  });
+
   test('sorts and filters library scores', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

@@ -57,6 +57,9 @@ class SheetAnnotatedPdfExporter {
   }
 
   static bool scoreContainsUnicodeTextAnnotations(SheetScore score) {
+    if (!score.annotationLayer.includeDefaultLayerInExport) {
+      return false;
+    }
     return score.annotationLayer.texts.any(
       (text) => textRequiresUnicodeFont(text.text),
     );
@@ -66,9 +69,15 @@ class SheetAnnotatedPdfExporter {
     required SheetScore score,
     required String outputPath,
   }) async {
-    final strokeCount = score.annotationLayer.strokes.length;
-    final textCount = score.annotationLayer.texts.length;
-    final skippedUnicodeTextCount = score.annotationLayer.texts
+    final exportableStrokes = score.annotationLayer.includeDefaultLayerInExport
+        ? score.annotationLayer.strokes
+        : const <SheetAnnotationStroke>[];
+    final exportableTexts = score.annotationLayer.includeDefaultLayerInExport
+        ? score.annotationLayer.texts
+        : const <SheetTextAnnotation>[];
+    final strokeCount = exportableStrokes.length;
+    final textCount = exportableTexts.length;
+    final skippedUnicodeTextCount = exportableTexts
         .where((text) => textRequiresUnicodeFont(text.text))
         .length;
     final exportedTextCount = textCount - skippedUnicodeTextCount;
@@ -89,17 +98,17 @@ class SheetAnnotatedPdfExporter {
       final document = PdfDocument.open(inputBytes);
       final editor = PdfEditor(document);
       final pageCount = document.pageCount;
-      final drawableStrokeCount = score.annotationLayer.strokes
+      final drawableStrokeCount = exportableStrokes
           .where((stroke) => _isPageInRange(stroke.pageNumber, pageCount))
           .length;
-      final drawableTextCount = score.annotationLayer.texts
+      final drawableTextCount = exportableTexts
           .where(
             (text) =>
                 _isPageInRange(text.pageNumber, pageCount) &&
                 !textRequiresUnicodeFont(text.text),
           )
           .length;
-      final skippedUnicodeTextInRangeCount = score.annotationLayer.texts
+      final skippedUnicodeTextInRangeCount = exportableTexts
           .where(
             (text) =>
                 _isPageInRange(text.pageNumber, pageCount) &&
@@ -129,8 +138,10 @@ class SheetAnnotatedPdfExporter {
 
       for (var pageIndex = 0; pageIndex < pageCount; pageIndex++) {
         final pageNumber = pageIndex + 1;
-        final strokes = score.annotationLayer.strokesForPage(pageNumber);
-        final texts = score.annotationLayer.textsForPage(pageNumber);
+        final strokes = score.annotationLayer.exportableStrokesForPage(
+          pageNumber,
+        );
+        final texts = score.annotationLayer.exportableTextsForPage(pageNumber);
         if (strokes.isEmpty && texts.isEmpty) {
           continue;
         }

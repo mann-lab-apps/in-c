@@ -412,6 +412,28 @@ void main() {
       lastPage: 2,
       isFavorite: true,
       bookmarks: const <SheetBookmark>[],
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[
+          SheetAnnotationStroke(
+            id: 'stroke-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.pen,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.1, y: 0.1),
+              SheetAnnotationPoint(x: 0.2, y: 0.2),
+            ],
+            createdAt: now,
+          ),
+        ],
+        layers: <SheetAnnotationDisplayLayer>[
+          SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+            isVisible: false,
+            includeInExport: false,
+          ),
+        ],
+      ),
     );
     final setlist = SheetSetlist(
       id: 'setlist-1',
@@ -519,6 +541,11 @@ void main() {
     expect(backup.scores.single.pageSettings.instanceRotations, <int, int>{
       2: 180,
     });
+    expect(backup.scores.single.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(
+      backup.scores.single.annotationLayer.includeDefaultLayerInExport,
+      isFalse,
+    );
     expect(backup.scores.single.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(
       backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
@@ -581,6 +608,9 @@ void main() {
     );
     expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
     expect(restoredScore.pageSettings.instanceCrops[2]?.top, 0.05);
+    expect(restoredScore.annotationLayer.strokes, hasLength(1));
+    expect(restoredScore.annotationLayer.isDefaultLayerVisible, isFalse);
+    expect(restoredScore.annotationLayer.includeDefaultLayerInExport, isFalse);
     expect(restoredScore.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
     expect(restoredScore.autoScrollSettings.pageDurations, <int, int>{3: 75});
