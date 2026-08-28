@@ -257,4 +257,5 @@ HEIC/HEIF 직접 변환, iOS Share Extension, 클라우드 동기화,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
 system file picker/provider 경로를 우선 사용하고 내려받기 안내를 제공한다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
-정리한다.
+정리한다. v1.1 spike backlog는
+[`docs/product/clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)에 분리한다.

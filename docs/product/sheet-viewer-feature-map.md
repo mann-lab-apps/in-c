@@ -9,6 +9,8 @@
 - V2: 고급 연주, 편집, 기기 연동 기능.
 - Later: 협업, 크로스 플랫폼, 기관/팀 운영처럼 제품 검증 후 확장할 기능.
 
+상세 v1.1 spike backlog는 [`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)에 분리한다.
+
 난이도는 Android 태블릿 앱 기준으로 낮음, 중간, 높음으로 표시한다.
 
 ## Feature Coverage Matrix
@@ -170,6 +172,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 실제 페이지 회전 live 렌더링. source/instance rotation metadata와 적용 사본은 구현했고, `PdfViewer.file` 경로의 page별 live rotation 안정 API 확인은 후속 spike다.
 - S Pen pressure/palm rejection 실기기 튜닝. pressure metadata/render/export와 stylus 직후 touch rejection window는 구현됨.
 - 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
+
+위 후보 중 engine/API/device/sample/license 결정이 필요한 항목은
+[`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)의 spike 항목으로 추적한다.
 
 ## V2 후보
 

@@ -618,6 +618,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 후속 분리 기능
 
+상세 v1.1 spike backlog는
+[`docs/product/clef-v1-1-spike-backlog.md`](../product/clef-v1-1-spike-backlog.md)에 분리한다.
+
 - PDF link annotation 고도화: URL link 제거 사본 생성과 비PDF/손상 PDF 실패 안전장치는
   1차 구현했다. 실제 CamScanner 샘플과 compact/rewrite 방식의 완전한 object 제거는 추가 검증이
   필요하다.
@@ -819,8 +822,8 @@ Android `MediaPlayer` 기반 로컬 오디오 재생/정지를 추가했다.
 2026-08-26 V1 라이브러리 조직화 보강에서는 collection/group/rating을 `SheetScore` metadata와
 편집 UI에 추가하고, 검색/필터/별점 정렬에 반영했다. 또한 `SheetLinkedFile` 모델을 추가해
 파트보/반주/레슨 자료 같은 보조 파일을 한 곡에 묶을 저장 구조를 만들었다. 2026-08-28에는
-library profile별 실제 metadata 저장소 분리를 추가했다. 기존 폴더 직접 참조는 후속 V1 작업으로
-남긴다.
+library profile별 실제 metadata 저장소 분리를 추가했다. 기존 폴더 직접 참조는 v1.1 SAF/iOS Files
+spike로 분리한다.
 
 2026-08-27 V1 악보앱 필수 기능 보강에서는 스캔/카메라 플로우를 제외하고 일반 악보앱 기준의
 보기/정리/필기/공연/라이브러리 기능을 확장했다. 곡별 page scale과 대형 PDF 렌더 preset,
@@ -839,3 +842,9 @@ export에서 mixed ASCII/한글 텍스트 중 한글만 font embedding blocker�
 사본은 유지하는 fallback, JPG/PNG 변환 PDF와 원본 이미지 reference linked file의 full backup
 restore bytes round-trip을 추가했다. 실제 CamScanner object stream PDF, OCR recall, Acrobat/Preview
 호환 가능한 표준 annotation embed는 외부 샘플/API 선택 전까지 blocker로 유지한다.
+
+2026-08-28 v1.1 spike 분리에서는 OCR, HEIC/HEIF, SAF/iOS Files 직접 참조, iOS Share Extension,
+PDF 표준 annotation embed/export, 한글/비라틴 font embedding, SQLite/file-backed annotation
+migration, HID capture wizard, 저지연 metronome/audio/iOS parity, cloud sync/background backup을
+별도 backlog로 분리했다. 이 항목들은 RC 완료 조건이 아니라 engine/API/device/sample/license 결정과
+acceptance criteria를 먼저 고정해야 하는 후속 spike다.

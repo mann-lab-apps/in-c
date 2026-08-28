@@ -126,6 +126,9 @@ OS:
 
 ## V1 Blockers
 
+상세 문제 정의와 acceptance criteria는
+[`../product/clef-v1-1-spike-backlog.md`](../product/clef-v1-1-spike-backlog.md)에 분리한다.
+
 | 항목 | 막힌 이유 | 준비된 상태 | 해제 조건 |
 | --- | --- | --- | --- |
 | OCR 기반 PDF 본문 검색 | OCR engine, native bridge, scan fixture 정확도 검증이 필요하다. | embedded text search UI, OCR unsupported 안내, search index manifest/capability model, 이미지-only synthetic fixture의 unsupported manifest test가 있다. | ML Kit/Tesseract/platform bridge 결정, 스캔 PDF fixture recall/latency QA |
@@ -142,14 +145,21 @@ OS:
 
 ## v1.1 후보
 
+상세 backlog는 [`../product/clef-v1-1-spike-backlog.md`](../product/clef-v1-1-spike-backlog.md)를
+source of truth로 둔다.
+
 - OCR engine 기반 PDF 본문 검색.
-- 실제 HID key capture wizard 기반 페달 설정.
+- HEIC/HEIF 직접 변환.
+- 기존 폴더 직접 참조(Android SAF/iOS Files) spike.
+- iOS Share Extension.
+- PDF 표준 annotation embed/export 고도화.
+- 한글/비라틴 PDF font embedding.
 - SQLite-backed annotation store 또는 inline-to-external migration.
 - 다중 annotation layer와 annotation별 layer keying.
-- PDF 표준 annotation embed/export 고도화.
-- 기존 폴더 직접 참조(Android SAF/iOS Files) spike.
-- 클라우드 동기화, 계정, 서버 저장.
-- OS background scheduler 기반 주기적 전체 백업과 cloud sync conflict handling.
+- 실제 HID key capture wizard 기반 페달 설정.
+- 저지연 metronome/audio/iOS playback parity.
+- Cloud sync/account/server 저장과 OS background scheduler 기반 주기적 전체 백업은 v1.1 또는 Later
+  scope 결정 spike로 유지.
 
 ## 릴리즈 노트 초안
 
