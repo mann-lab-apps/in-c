@@ -4879,6 +4879,7 @@ setlist=$setlistLabel
       showDragHandle: true,
       builder: (context) => _AutoScrollSheet(
         initialSettings: score.autoScrollSettings,
+        metronomeBpm: widget.controller.metronomeSettings.bpm,
         currentPage: _pageNumber ?? score.lastPage,
         pageCount: pageCount,
         isAutoScrolling: _isAutoScrolling,
@@ -11048,6 +11049,7 @@ class _AutoScrollCueOverlay extends StatelessWidget {
 class _AutoScrollSheet extends StatefulWidget {
   const _AutoScrollSheet({
     required this.initialSettings,
+    required this.metronomeBpm,
     required this.currentPage,
     required this.pageCount,
     required this.isAutoScrolling,
@@ -11061,6 +11063,7 @@ class _AutoScrollSheet extends StatefulWidget {
   });
 
   final SheetAutoScrollSettings initialSettings;
+  final int metronomeBpm;
   final int currentPage;
   final int pageCount;
   final bool isAutoScrolling;
@@ -11105,6 +11108,19 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
       _settings = nextSettings;
     });
     await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _applyBpmPreset(int beatsPerPage) {
+    return _setSettings(
+      _settings.copyWith(
+        durationSeconds: SheetAutoScrollSettings.durationForBpmPreset(
+          bpm: widget.metronomeBpm,
+          startPage: _settings.startPage,
+          endPage: _settings.endPage,
+          beatsPerPage: beatsPerPage,
+        ),
+      ),
+    );
   }
 
   String _durationLabel(int seconds) {
@@ -11248,6 +11264,21 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                             durationSeconds: (value / 30).round() * 30,
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final beatsPerPage in const <int>[16, 32, 64])
+                            ActionChip(
+                              avatar: const Icon(Icons.music_note, size: 18),
+                              label: Text(
+                                '${widget.metronomeBpm} BPM · $beatsPerPage박/쪽',
+                              ),
+                              onPressed: () => _applyBpmPreset(beatsPerPage),
+                            ),
+                        ],
                       ),
                     ],
                   ),

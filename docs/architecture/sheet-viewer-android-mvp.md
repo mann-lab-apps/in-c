@@ -65,7 +65,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤, quick action overlay,
   immersive system UI, 공연 준비 안내, 잠금 정책 표시.
 - 자동 스크롤 1차: 곡별 duration/start/end/cue 저장, 세로 스크롤 기반 시간 진행,
-  pause/resume/stop, 수동 입력 시 정지.
+  pause/resume/stop, BPM 기반 duration preset, 수동 입력 시 정지.
 - URL link annotation 탭 비활성화.
 - PDF link annotation 영역 표시 토글.
 - PDF URL link annotation 제거 사본 생성.
@@ -133,8 +133,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 자동 스크롤은 `pdfrx`의 continuous vertical layout과 `goToArea`를 사용한다. 1차는
   일정 시간 동안 시작 page top에서 끝 page bottom까지 선형 이동하는 방식이며, cue와
   pause/resume을 제공한다. Virtual page order가 있는 곡은 반복 순서를 정확히 따르지 못하므로
-  자동 스크롤 시작을 막고 페달/수동 넘김을 안내한다. BPM 연동과 page별 duration은 후속으로
-  분리한다.
+  자동 스크롤 시작을 막고 페달/수동 넘김을 안내한다. BPM preset은 현재 메트로놈 BPM과
+  페이지당 16/32/64박 기준으로 durationSeconds를 계산한다. page별 duration은 후속으로 분리한다.
 - 주석/필기 overlay는 `pdfrx`의 `pageOverlaysBuilder`를 사용해 실제 page rect 위에 붙인다.
   stroke point는 page별 normalized coordinate로 저장하고, pointer 입력과 렌더링은 page-local
   rect 기준으로 변환한다. `pdfrx`가 zoom/pan/1페이지/2페이지/세로 스크롤 layout을 처리한 뒤
@@ -317,8 +317,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 자동 스크롤/곡별 연주 설정 1차 구조
 
 - `SheetScore.autoScrollSettings`에 곡별 자동 스크롤 설정을 저장한다.
-- 저장 필드는 durationSeconds, startPage, endPage다.
+- 저장 필드는 durationSeconds, startPage, endPage, cueSeconds다.
 - 기본 duration은 240초이며, 설정은 30-3600초 범위로 clamp한다.
+- BPM preset은 현재 메트로놈 BPM과 페이지당 16/32/64박 기준으로 durationSeconds를 계산한다.
 - endPage가 0이면 문서 끝으로 해석한다. UI에서는 현재 문서 pageCount 안으로 normalize해
   저장한다.
 - 자동 스크롤은 세로 스크롤 보기에서만 실행한다. 다른 보기 모드에서 시작하면 세로 스크롤로
@@ -333,7 +334,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 하단 페이지 버튼, keyboard/pedal page turn, 보기 변경, 반 페이지 toggle, 필기 시작, 페이지
   숨김 같은 수동 조작이 들어오면 자동 스크롤을 정지한다.
 - 공연 모드에서는 관리 action은 숨기되 자동 스크롤 start/stop 진입점은 유지한다.
-- 메트로놈과 자동 스크롤을 BPM으로 동기화하거나 pause marker/cue를 두는 기능은 후속이다.
+- 메트로놈 BPM 기반 duration preset과 cue/pause/resume은 1차 구현했다. pause marker와 반복
+  구간 진행은 후속이다.
 
 ## 페이지 정리 1차 구조
 
@@ -539,7 +541,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   Median smoothing과 no-signal debounce도 1차 적용했다. Android 태블릿 실기기 pitch 정확도,
   latency, 추가 noise smoothing, YIN 비교, 외부 microphone 동작은 후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
-- 자동 스크롤 고도화: cue와 pause/resume은 1차 구현했다. BPM 기반 duration preset, pause
+- 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset은 1차 구현했다. pause
   marker, 반복 구간, 세트리스트 전체 자동 진행은 후속이다.
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
   key mapping, 앱 foreground focus, 사용자별 custom mapping UI는 실기기 확인 필요.

@@ -108,4 +108,25 @@ void main() {
     expect(plan.pageForProgress(0.5), 4);
     expect(plan.pageForProgress(1), 6);
   });
+
+  test('derives duration presets from BPM and page span', () {
+    expect(
+      SheetAutoScrollSettings.durationForBpmPreset(
+        bpm: 120,
+        startPage: 2,
+        endPage: 4,
+        beatsPerPage: 32,
+      ),
+      48,
+    );
+    expect(
+      SheetAutoScrollSettings.durationForBpmPreset(
+        bpm: 240,
+        startPage: 1,
+        endPage: 1,
+        beatsPerPage: 4,
+      ),
+      30,
+    );
+  });
 }

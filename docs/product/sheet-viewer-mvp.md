@@ -210,8 +210,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
   visual tuner fallback.
 - 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space 기반 이전/다음 페이지 넘김.
 - 공연 모드 1차: 관리 action 숨김, 큰 페이지 컨트롤 유지.
-- 자동 스크롤 1차: 곡별 duration/start/end 저장, 세로 스크롤 기반 일정 속도 진행,
-  수동 페이지 이동/키 입력 시 정지.
+- 자동 스크롤 1차: 곡별 duration/start/end/cue 저장, 세로 스크롤 기반 일정 속도 진행,
+  pause/resume/stop, BPM 기반 duration preset, 수동 페이지 이동/키 입력 시 정지.
 - 로컬 백업/복원 1차: PDF 파일을 제외한 앱 metadata JSON export/import, PDF 파일을 포함한
   전체 백업/복원 ZIP.
 - 공유/import/export 1차: Android 외부 PDF 수신, iOS document open URL 수신, 현재 PDF 공유,
@@ -231,7 +231,7 @@ Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인�
 우선순위는 Android 태블릿이다.
 
 Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
-튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 BPM sync,
+튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
 Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
 실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
 한글 텍스트 PDF font embedding,

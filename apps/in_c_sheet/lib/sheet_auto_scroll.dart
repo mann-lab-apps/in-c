@@ -86,6 +86,21 @@ class SheetAutoScrollSettings {
     return value.clamp(0, 30).toInt();
   }
 
+  static int durationForBpmPreset({
+    required int bpm,
+    required int startPage,
+    required int endPage,
+    required int beatsPerPage,
+  }) {
+    final safeBpm = bpm.clamp(40, 240).toInt();
+    final safeStartPage = _positivePage(startPage);
+    final safeEndPage = math.max(safeStartPage, _positivePage(endPage));
+    final safePageCount = safeEndPage - safeStartPage + 1;
+    final safeBeatsPerPage = beatsPerPage.clamp(4, 512).toInt();
+    final seconds = (safePageCount * safeBeatsPerPage * 60 / safeBpm).round();
+    return clampDurationSeconds(seconds);
+  }
+
   static int _positivePage(int value) => math.max(1, value);
 
   static int _nonNegativePage(int value) => math.max(0, value);

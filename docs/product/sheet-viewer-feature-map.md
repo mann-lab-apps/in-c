@@ -86,7 +86,7 @@
 | 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: viewer context 표시와 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | shortcut/action system |
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 세트리스트/공연 context별 override. 기본 곡별 설정은 보기 카테고리에서 5차 구현 |
-| 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 13차 구현: 곡별 duration/start/end 저장, 세로 스크롤 기반 일정 속도 진행, 수동 입력 시 정지 |
+| 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, cue/pause/resume, BPM 기반 duration preset, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | page/measure cue |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | V1 후보 구현: `record` PCM stream, autocorrelation detector, median smoothing, profile별 no-signal debounce/confidence, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Concert/Bb Trumpet 표시, Chromatic/Bb Trumpet 감지 profile, A4 저장. 실기기 정확도/latency 검증 필요 |
@@ -142,8 +142,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   검증은 후속이다.
 - PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. 12차 구현은
   `pdf_document` 기반이고, 실제 CamScanner 샘플/compact rewrite 검증은 후속이다.
-- 자동 스크롤. 13차 구현은 곡별 duration/start/end 설정을 저장하고, 세로 스크롤 보기에서
-  일정한 속도로 진행한다. cue/pause/BPM sync는 후속이다.
+- 자동 스크롤. 곡별 duration/start/end/cue 설정을 저장하고, 세로 스크롤 보기에서 일정한 속도로
+  진행한다. pause/resume과 현재 메트로놈 BPM 기반 duration preset까지 1차 구현했다.
 - 로컬 백업/복원. 14차 구현은 PDF 파일을 제외한 metadata-only JSON export/import였고, 17차에서
   PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다.
 - 공연 모드.
@@ -160,7 +160,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - orientation별 반 페이지 정책 정교화.
 - link point/jump point.
 - 스탬프, 도형/화살표, favorite tool, pressure sensitivity, palm rejection.
-- quick action box, 공연별 보기 preset override, 자동 스크롤 cue/pause/BPM sync.
+- quick action box, 공연별 보기 preset override.
 - 기준음/드론, 오디오 플레이어.
 - USB 페달, 페달 action mapping.
 - 자동 DB 백업.
