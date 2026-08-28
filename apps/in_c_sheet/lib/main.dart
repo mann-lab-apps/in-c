@@ -23,6 +23,7 @@ import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_pdf_search_support.dart';
+import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 import 'sheet_stylus_input.dart';
@@ -2404,32 +2405,25 @@ class _TesterInfoSheet extends StatelessWidget {
 
   static const List<String> _testItems = <String>[
     'PDF 가져오기와 페이지 넘김',
+    'PDF 본문 검색과 OCR 미지원 안내',
+    'URL 링크 제거 사본',
     '필기/텍스트 주석',
     '필기 포함 PDF 공유',
+    '페이지 적용 사본과 원본 보존',
     '튜너와 Bb Trumpet 표시',
     '메트로놈',
+    '기준음/드론과 로컬 오디오',
     '자동 스크롤',
     '세트리스트',
+    '페달/키보드 입력 진단',
     '백업/복원',
   ];
 
   String feedbackTemplate() {
-    return '''
-Clef 피드백
-
-앱 버전/build: $appVersion
-기기/OS:
-PDF 종류/페이지 수:
-한 일:
-기대한 결과:
-실제 결과:
-표시된 오류 문구:
-재현 가능 여부:
-
-Debug summary:
-${_debugSummary()}
-'''
-        .trim();
+    return SheetRcFeedbackTemplate.build(
+      appVersion: appVersion,
+      debugSummary: _debugSummary(),
+    );
   }
 
   String _debugSummary() {
@@ -2554,7 +2548,8 @@ pageMetadataScores=$pageMetadataCount
             ),
           const SizedBox(height: 8),
           Text(
-            '피드백에는 기기명, OS 버전, PDF 종류, 재현 단계를 같이 적어주세요.',
+            '피드백에는 기기명, OS 버전, 설치 방식, PDF 유형/페이지 수/파일 크기, '
+            '재현 단계, 스크린샷 또는 화면녹화, 샘플 파일 공유 가능 여부를 같이 적어주세요.',
             style: theme.textTheme.bodySmall,
           ),
           const SizedBox(height: 14),

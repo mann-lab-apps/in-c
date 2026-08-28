@@ -57,7 +57,7 @@
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
 | 15-0 | 자동 백업 복원 | 백업 메뉴의 자동 metadata 복원이 파일 picker 없이 active library profile의 최신 snapshot으로 되돌린다. | 복원 전후 악보 수, 활성 library profile, PDF filePath 접근 여부 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
-| 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary |
+| 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
 
 ## 기기별 필수 확인
@@ -196,7 +196,7 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
 - `flutter pub get`: PASS.
 - `dart format lib test`: PASS. 기존 미포맷 Dart 파일을 formatter 기준으로 정리했다.
 - `flutter analyze`: PASS. No issues found.
-- `flutter test`: PASS. 244 tests passed.
+- `flutter test`: PASS. 245 tests passed.
 - `git diff --check`: PASS.
 
 2026-08-28 샘플 PDF 로컬 검증 기록:
@@ -211,3 +211,11 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
   표준 annotation export unsupported result, 한글/비ASCII font embedding fallback을 확인했다.
 - `flutter test test/sheet_library_store_test.dart`: PASS. JPG/PNG 이미지 PDF 변환, 원본 이미지
   reference linked file 보존, full backup restore bytes round-trip을 확인했다.
+
+2026-08-28 RC polish 로컬 검증 기록:
+
+- 앱 내 피드백 템플릿을 `SheetRcFeedbackTemplate`로 분리하고, 설치 방식, PDF/샘플 유형,
+  페이지 수/파일 크기, 샘플 파일 공유 가능 여부, screenshot/screen recording, 테스트 영역을
+  필수 기록 항목으로 추가했다.
+- 테스트 정보 화면의 확인 항목에 PDF 본문 검색/OCR 안내, URL link 제거 사본, 페이지 적용 사본,
+  기준음/드론/로컬 오디오, 페달/키보드 입력 진단을 포함했다.
