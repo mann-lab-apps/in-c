@@ -60,7 +60,8 @@
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
-- S Pen pressure와 palm rejection은 아직 고도화 전이다.
+- S Pen pressure metadata/render/export와 stylus 직후 touch rejection window는 1차 구현되어 있다.
+  Galaxy Tab S Pen/palm QA tuning은 남아 있다.
 - Bluetooth 페달은 predefined/custom key dropdown과 진단 로그 기반 unknown key 설정을 지원한다.
   실제 key capture wizard는 후속 범위다.
 - OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation

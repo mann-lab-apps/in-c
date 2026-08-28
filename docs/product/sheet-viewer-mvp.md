@@ -170,8 +170,9 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 
 ## 현재 구현 상태
 
-제품명은 `Clef`다. 2026-08-27 기준으로 `apps/in_c_sheet` Android Flutter 앱 scaffold와 MobileSheets식
-기본 사용 흐름 일부를 구현했다.
+제품명은 `Clef`다. 2026-08-28 기준으로 `apps/in_c_sheet` Android Flutter 앱에서 Clef v1 RC 후보의
+import/library/viewer/annotation/performance/backup 흐름을 구현했고, Homebrew Flutter `3.47.2`/Dart
+`3.13.2`로 `dart format lib test`, `flutter analyze`, `flutter test`를 통과했다.
 
 - PDF 파일 선택.
 - 앱 내부 문서 저장소에 PDF 사본 저장.
@@ -246,13 +247,14 @@ Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인�
 Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거/compact rewrite 검증,
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
 기준음/드론/로컬 오디오 Android latency와 iOS parity,
-Bluetooth/USB 페달 실기기 HID 검증, 주석/필기 고도화, PDF annotation 객체 embed/export,
+Bluetooth/USB 페달 실기기 HID 검증, Galaxy Tab S Pen pressure/palm rejection tuning,
+PDF annotation 객체 embed/export,
 실제 페이지 회전 live 렌더링의 시각 QA,
 한글 텍스트 PDF font embedding,
 다중 annotation layer와 annotation별 layer keying,
 기존 폴더 직접 참조, ChordPro/text,
-HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화,
+HEIC/HEIF 직접 변환, iOS Share Extension, 클라우드 동기화,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
-system file picker/provider 경로를 우선 사용한다. 구현 메모는
+system file picker/provider 경로를 우선 사용하고 내려받기 안내를 제공한다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
 정리한다.
