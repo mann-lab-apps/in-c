@@ -103,7 +103,7 @@
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
 | 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | 17차 구현: metadata-only JSON 유지, PDF 포함 전체 백업/복원 ZIP 추가 |
-| 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | scheduled local backup |
+| 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
 | 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | conflict model |
 | 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Wi-Fi/Bluetooth session |
 | 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
@@ -145,7 +145,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 자동 스크롤. 곡별 duration/start/end/cue 설정을 저장하고, 세로 스크롤 보기에서 일정한 속도로
   진행한다. pause/resume과 현재 메트로놈 BPM 기반 duration preset까지 1차 구현했다.
 - 로컬 백업/복원. 14차 구현은 PDF 파일을 제외한 metadata-only JSON export/import였고, 17차에서
-  PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다.
+  PDF 파일을 포함한 전체 백업/복원 ZIP을 추가했다. 2026-08-28에는 save mutation마다 active
+  library profile별 metadata-only 자동 snapshot을 남기고 복원할 수 있게 했다.
 - 공연 모드.
 - Bluetooth 페달 기본 페이지 넘김. 6차 구현은 key event 기반이며 실제 페달 장비 검증은
   후속이다.
@@ -163,7 +164,6 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - quick action box, 공연별 보기 preset override.
 - 기준음/드론, 오디오 플레이어.
 - USB 페달, 페달 action mapping.
-- 자동 DB 백업.
 - 전역 gesture/action 설정.
 
 ## V2 후보

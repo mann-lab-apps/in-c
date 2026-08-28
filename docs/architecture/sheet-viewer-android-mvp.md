@@ -155,6 +155,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   helper로 계산한다. 백업/export 안내와 QA debug info가 이 summary 기준을 공유한다.
 - metadata 백업은 JSON으로 scores/setlists/tool settings/library view settings를 저장한다.
   PDF 파일 bytes는 포함하지 않으므로 복원 뒤 기존 filePath가 접근 가능한지 별도 확인이 필요하다.
+- 자동 metadata 백업은 수동 export와 같은 `SheetLibraryBackup` JSON을 active library profile별
+  SharedPreferences key에 저장한다. scores/setlists/metronome/tuner/library view/favorite annotation
+  preset 저장 mutation 이후 최신 snapshot을 갱신하며, 프로필 비우기/삭제 시 해당 profile snapshot도
+  제거한다.
+- 자동 metadata 백업 복원은 파일 picker 없이 현재 active library profile의 최신 snapshot을
+  `restoreMetadataBackupJson` 경로로 되돌린다. 이 snapshot도 PDF bytes를 포함하지 않으므로 전체 파일
+  복구는 PDF 포함 ZIP 백업이 담당한다.
 - 공유/import/export 1차는 Android-first로 시작했고, iOS document open bridge까지 보강했다.
   Android는 `ACTION_VIEW`, `ACTION_SEND`, `ACTION_SEND_MULTIPLE`의 `application/pdf`를 받아 native
   layer에서 cache file로 복사한 뒤 Flutter `MethodChannel`로 path/name을 전달한다. iOS는
@@ -551,8 +558,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 카메라 PDF 스캔: edge detection, perspective correction, batch scan, 압축/품질 설정까지
   요구되어 별도 스캐너 앱 수준의 UX가 필요하다. MVP는 앱 내 스캔보다 외부 스캔 앱/사진 앱/파일
   앱에서 만든 PDF와 이미지를 악보로 잘 다루는 방향을 우선한다.
-- ChordPro/text 파일 보기, 이미지 파일, 클라우드 동기화, 자동 백업, 계정/서버 저장은 MVP 검증 후
-  확장한다. metadata-only 로컬 백업/복원은 1차 구현했다.
+- ChordPro/text 파일 보기, HEIC 이미지 변환, 클라우드 동기화, 계정/서버 저장은 MVP 검증 후
+  확장한다. metadata-only 로컬 백업/복원과 save mutation 기반 자동 metadata snapshot은 1차 구현했다.
 
 수동 확인 절차:
 

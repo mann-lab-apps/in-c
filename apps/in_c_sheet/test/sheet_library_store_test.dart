@@ -255,6 +255,87 @@ void main() {
     );
   });
 
+  test('keeps automatic metadata backups per active library profile', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'default-score',
+        title: 'Default',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/default.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final defaultBackup = await store.loadAutomaticMetadataBackup();
+
+    final profile = await store.createLibraryProfile('Lessons');
+    await store.saveScores(<SheetScore>[
+      SheetScore(
+        id: 'lesson-score',
+        title: 'Lesson',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/lesson.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'lesson-setlist',
+        title: 'Lesson Setlist',
+        scoreIds: const <String>['lesson-score'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final lessonBackup = await store.loadAutomaticMetadataBackup();
+
+    expect(defaultBackup?.scores.single.id, 'default-score');
+    expect(lessonBackup?.scores.single.id, 'lesson-score');
+    expect(lessonBackup?.setlists.single.id, 'lesson-setlist');
+
+    await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+    expect(
+      (await store.loadAutomaticMetadataBackup())?.scores.single.id,
+      'default-score',
+    );
+    await store.setActiveLibraryProfile(profile.id);
+    expect(
+      (await store.loadAutomaticMetadataBackup())?.scores.single.id,
+      'lesson-score',
+    );
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      'clef_scores.${profile.id}',
+      SheetScore.encodeList(const <SheetScore>[]),
+    );
+    final restored = await store.restoreAutomaticMetadataBackup();
+    expect(restored.status, SheetLibraryBackupRestoreStatus.restored);
+    expect((await store.loadScores()).single.id, 'lesson-score');
+
+    expect(await store.deleteLibraryProfile(profile.id), isTrue);
+    expect(
+      preferences.getString('clef_automatic_metadata_backup.${profile.id}'),
+      isNull,
+    );
+  });
+
   test('encodes and restores metadata backup without PDF bytes', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

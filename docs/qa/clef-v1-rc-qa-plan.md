@@ -45,7 +45,7 @@
 | 12 | 페달/키보드 | predefined custom mapping이 page/score/quick action/no-op에 맞게 동작한다. | 장비명, 입력 key, action, 실패 key |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사된다. | diagnostic log, unknown key 여부 |
 | 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시가 자연스럽다. | 입력음, 표시 note, cents 흔들림 |
-| 15 | 백업/복원 | metadata/full backup 후 새 metadata가 보존된다. | custom field, custom pedal, page crop, score duration, annotation storage 보존 여부 |
+| 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, annotation storage, active library profile 보존 여부 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, 보기 설정 |
@@ -97,6 +97,8 @@ OS:
 - 여러 라이브러리는 별도 계정/폴더 권한이 아니라 앱 내부 library profile별 metadata 저장소
   분리다. 라이브러리 비우기는 앱 metadata만 제거하며, PDF 파일 삭제 QA는 별도 destructive
   테스트로 분리한다.
+- 자동 DB 백업은 active library profile별 metadata-only snapshot이다. PDF bytes, 외부 원본 파일,
+  OS background scheduled backup은 포함하지 않으며 전체 파일 복구는 PDF 포함 ZIP 백업으로 확인한다.
 
 ## v1.1 후보
 
@@ -106,7 +108,7 @@ OS:
 - PDF 표준 annotation embed/export 고도화.
 - 기존 폴더 직접 참조(Android SAF/iOS Files) spike.
 - 클라우드 동기화, 계정, 서버 저장.
-- 실제 profile별 라이브러리 저장소 분리. v1 RC는 collection-backed 라이브러리 전환이다.
+- OS background scheduler 기반 주기적 전체 백업과 cloud sync conflict handling.
 
 ## 릴리즈 노트 초안
 
@@ -115,8 +117,9 @@ OS:
 Clef v1 RC는 악보 import, 라이브러리 관리, 세트리스트, PDF viewer, 주석, 공연 모드, 자동
 스크롤, 메트로놈, 튜너, PDF link safety, 백업/복원을 포함한다. 이번 RC에서는 page
 scaling/crop/page order/rehearsal mark/part management/custom pedal mapping/PDF body
-search/annotation guard/setlist duration 같은 연주 현장 기능을 metadata 중심으로 안정화했다. 또한
-crop/rotation/page arrangement는 원본 보존형 앱 내부 PDF 적용 사본을 만들 수 있다.
+search/annotation guard/setlist duration/library profile 분리/자동 metadata snapshot 같은 연주 현장
+기능을 metadata 중심으로 안정화했다. 또한 crop/rotation/page arrangement는 원본 보존형 앱 내부 PDF
+적용 사본을 만들 수 있다.
 
 ### 외부 테스터용
 

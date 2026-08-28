@@ -213,7 +213,7 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 자동 스크롤 1차: 곡별 duration/start/end/cue 저장, 세로 스크롤 기반 일정 속도 진행,
   pause/resume/stop, BPM 기반 duration preset, 수동 페이지 이동/키 입력 시 정지.
 - 로컬 백업/복원 1차: PDF 파일을 제외한 앱 metadata JSON export/import, PDF 파일을 포함한
-  전체 백업/복원 ZIP.
+  전체 백업/복원 ZIP, active library profile별 save mutation 기반 metadata 자동 snapshot.
 - 공유/import/export 1차: Android 외부 PDF 수신, iOS document open URL 수신, 현재 PDF 공유,
   필기 포함 PDF 공유 사본 생성, 한글 텍스트 주석 PDF export 안전 fallback,
   JPG/PNG 이미지를 PDF 악보로 묶기, 변환 원본 이미지를 reference linked file로 보존.
@@ -236,7 +236,7 @@ Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객
 실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
 한글 텍스트 PDF font embedding,
 기존 폴더 직접 참조, ChordPro/text,
-HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화/자동 백업,
+HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이
 system file picker/provider 경로를 우선 사용한다. 구현 메모는
 [`docs/architecture/sheet-viewer-android-mvp.md`](../architecture/sheet-viewer-android-mvp.md)에
