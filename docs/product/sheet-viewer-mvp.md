@@ -231,10 +231,10 @@ Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인�
 우선순위는 Android 태블릿이다.
 
 Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거 검증,
-튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 cue/pause/BPM sync,
+튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound, 자동 스크롤 BPM sync,
 Bluetooth/USB 페달 고급 mapping, 주석/필기 고도화, PDF annotation 객체 embed/export,
-실제 crop-to-fit/export, 페이지 순서 변경/복제,
-실제 페이지 회전 렌더링/PDF 재저장, 한글 텍스트 PDF font embedding,
+실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
+한글 텍스트 PDF font embedding,
 실제 profile별 여러 라이브러리 저장소 분리, 기존 폴더 직접 참조, ChordPro/text,
 HEIC 이미지 변환, 이미지 원본 viewer, iOS Share Extension, 클라우드 동기화/자동 백업,
 계정/서버 저장은 이후 단계로 남겨둔다. Drive/iCloud/Dropbox 같은 클라우드 파일은 별도 SDK 없이

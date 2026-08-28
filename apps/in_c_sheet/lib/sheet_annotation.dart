@@ -278,6 +278,7 @@ class SheetTextAnnotation {
   final DateTime createdAt;
 
   SheetTextAnnotation copyWith({
+    String? id,
     int? pageNumber,
     SheetAnnotationPoint? position,
     String? text,
@@ -286,7 +287,7 @@ class SheetTextAnnotation {
     DateTime? createdAt,
   }) {
     return SheetTextAnnotation(
-      id: id,
+      id: id ?? this.id,
       pageNumber: pageNumber ?? this.pageNumber,
       position: position ?? this.position,
       text: text ?? this.text,

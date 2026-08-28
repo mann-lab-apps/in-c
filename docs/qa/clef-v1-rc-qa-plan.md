@@ -35,6 +35,7 @@
 | 3-1 | 라이브러리 전환 | 전체/컬렉션 라이브러리를 전환하고 이름 변경/비우기가 파일 삭제 없이 동작한다. | 변경한 collection, 영향받은 악보 수 |
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop이 전환된다. | PDF 유형, blank 발생 page, 재현 여부 |
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
+| 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
 | 8 | 필기/주석 | pen/highlighter/text/shape/stamp, undo/redo, 저장 복원이 유지된다. | stroke 수, 저장 실패 문구, 복원 여부 |
@@ -90,7 +91,9 @@ OS:
 - 공연 모드 keep-awake, 밝기 유지, immersive system UI는 플랫폼 제약이 있을 수 있다.
 - annotation은 v1에서 SharedPreferences 기반 score metadata에 저장된다. file-backed store adapter와 external ref metadata는 v1.1 준비 단계이며, 기존 inline metadata를 강제 migration하지 않는다.
 - 필기 포함 PDF 공유는 표준 PDF annotation embed가 아니라 렌더링된 사본 생성 방식이다.
-- crop, rotation, page hide, virtual order는 원본 PDF를 수정하지 않고 앱 metadata/viewer 표시로 처리한다.
+- crop, rotation, page hide, virtual order는 기본적으로 원본 PDF를 수정하지 않고 앱 metadata/viewer
+  표시로 처리한다. 사용자가 적용 사본 생성을 명시적으로 실행한 경우에는 앱 내부 PDF 사본만 새로
+  만들고, 원본 PDF는 연결 파일 metadata로 보존한다.
 
 ## v1.1 후보
 
@@ -109,13 +112,14 @@ OS:
 Clef v1 RC는 악보 import, 라이브러리 관리, 세트리스트, PDF viewer, 주석, 공연 모드, 자동
 스크롤, 메트로놈, 튜너, PDF link safety, 백업/복원을 포함한다. 이번 RC에서는 page
 scaling/crop/page order/rehearsal mark/part management/custom pedal mapping/PDF body
-search/annotation guard/setlist duration 같은 연주 현장 기능을 metadata 중심으로 안정화했다.
+search/annotation guard/setlist duration 같은 연주 현장 기능을 metadata 중심으로 안정화했다. 또한
+crop/rotation/page arrangement는 원본 보존형 앱 내부 PDF 적용 사본을 만들 수 있다.
 
 ### 외부 테스터용
 
 Clef v1 RC는 연주자가 PDF 악보를 가져와 정리하고, 공연 중 빠르게 넘기고, 필요한 표시를
-남기고, 세트리스트로 이어 연주할 수 있게 만든 테스트 버전이다. 원본 PDF는 수정하지 않고
-앱 안의 보기 설정과 metadata로 관리한다. 스캔 PDF의 OCR 검색, 실제 페달 key 자동 캡처,
+남기고, 세트리스트로 이어 연주할 수 있게 만든 테스트 버전이다. 원본 PDF는 기본적으로 수정하지 않고
+앱 안의 보기 설정과 metadata로 관리하며, 필요할 때는 앱 내부 적용 사본을 따로 만든다. 스캔 PDF의 OCR 검색, 실제 페달 key 자동 캡처,
 클라우드 동기화는 이번 RC 범위에 포함되지 않는다.
 
 ## 정적 검증 기록

@@ -52,13 +52,13 @@
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | fit width/fullscreen |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 4차 이후 정교화: orientation별 anchor/persistence rules |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | performance spike |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: 원본 보존 crop metadata와 viewer mask. 후속 보강: crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
-| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: metadata 저장과 badge 표시. 후속 보강: 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
+| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
-| 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | virtual order |
-| 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | per-instance metadata |
-| 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | performance order |
+| 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 실제 PDF page tree 적용 사본 생성 |
+| 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate와 실제 PDF page tree 적용 사본 생성 |
+| 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | 구현됨: 빈 페이지 metadata와 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | tappable jump overlay |
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |
 | PDF 링크 | link annotation 표시 | 사용자 차별화 | MVP | 중간 | 구현됨: `pdfrx` link handler 영역 표시 |
@@ -157,7 +157,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - iOS Share Extension이 필요한 출처 앱 대응.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.
-- 실제 페이지 회전 live 렌더링, 페이지 순서 변경/복제/반복 삽입의 실제 PDF page tree rewrite/export.
+- 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
 - orientation별 반 페이지 정책 정교화.
 - link point/jump point.
 - 스탬프, 도형/화살표, favorite tool, pressure sensitivity, palm rejection.

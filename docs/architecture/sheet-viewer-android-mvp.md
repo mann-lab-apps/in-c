@@ -333,7 +333,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - `SheetScore.pageSettings`에 hiddenPages, pageRotations, global crop, virtual page order,
   jump points를 저장한다.
-- 원본 PDF 파일은 수정하거나 재저장하지 않는다.
+- 원본 PDF 파일은 기본적으로 수정하거나 재저장하지 않는다. 사용자가 명시적으로 선택하면 앱 내부
+  적용 사본을 만들고, 적용 전 PDF는 연결 파일 metadata로 보존한다.
 - 현재 페이지 숨김은 AppBar의 페이지 정리 메뉴에서 실행한다.
 - 모든 페이지를 숨기는 상태는 허용하지 않는다.
 - 현재 페이지를 숨기면 가장 가까운 다음 표시 페이지로 이동하고, 다음 페이지가 없으면 이전
@@ -343,8 +344,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 페이지 카운트는 원본 PDF 기준으로 표시하고, 숨김 페이지가 있으면 `숨김 N` 보조 label을
   함께 표시한다.
 - 숨김 페이지 관리는 bottom sheet에서 제공하며, 숨김 해제 후 해당 원본 페이지로 이동한다.
-- 페이지 순서 변경은 원본 page tree를 재작성하지 않고 virtual page order metadata로 저장한다.
-  같은 원본 page number를 여러 번 넣어 반복 연주용 복제/반복 삽입을 표현한다.
+- 페이지 순서 변경은 기본적으로 virtual page order metadata로 저장한다. 사용자가 명시적으로
+  실행하면 hidden/order/duplicate/blank insertion metadata를 실제 PDF page tree에 적용한 앱
+  내부 사본을 생성한다.
 - jump point는 source page에서 target page로 이동하는 앱 내부 링크다. 숨김 page를 source나
   target으로 삼는 jump point는 표시/추가하지 않는다.
 - 회전은 page별 90도 단위 metadata를 저장한다. 현재 viewer 경로에서는 metadata만으로 page별
@@ -468,16 +470,19 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   방향이다.
 - `SheetPageSettings.crop`은 top/bottom/left/right normalized margin을 가진다. 각 margin은
   0.0-0.5 범위로 clamp하고, 가로/세로 합계가 0.8을 넘으면 비율을 유지한 채 줄인다.
-- crop은 원본 PDF나 PDF page box를 변경하지 않는다. 1차는 악보 여백을 화면에서 가려 보며,
-  crop-to-fit 실행 시 crop 영역을 page rect로 계산해 해당 영역으로 이동/확대한다. export 반영은
-  후속이다.
+- crop은 기본적으로 원본 PDF나 PDF page box를 변경하지 않는다. 1차는 악보 여백을 화면에서
+  가려 보며, crop-to-fit 실행 시 crop 영역을 page rect로 계산해 해당 영역으로 이동/확대한다.
+  사용자가 명시적으로 실행하면 crop metadata를 PDF CropBox로 적용한 앱 내부 사본을 생성한다.
 - 회전 metadata는 page별 90/180/270도를 저장하고 page 위 badge와 viewer 상단 pending action으로
   상태를 표시한다. 실제 회전이 필요한 경우 `pdf_document` 기반 회전 적용 사본 생성으로 처리한다.
-- 페이지 순서 변경/복제/반복 삽입은 원본 PDF를 재작성하지 않는 virtual page order로 구현한다.
-  별도 per-instance crop/rotation override는 후속이다.
-- 북마크/필기/세트리스트는 1차로 source page 기준을 유지하고, 공연 순서만 virtual page order를
-  참조한다. 자동 스크롤은 source page 구간 기반이므로 custom virtual order가 있는 곡에서는
-  비활성화한다. instance별 다른 필기가 필요해지는 순간 annotation key 정책을 분리한다.
+- 페이지 순서 변경/복제/반복 삽입은 기본적으로 원본 PDF를 재작성하지 않는 virtual page order로
+  구현한다. 사용자가 명시적으로 실행하면 실제 PDF page tree 적용 사본을 만들고, 북마크/필기/redo
+  stack/page별 crop/rotation/jump/rehearsal metadata를 새 page number로 재배치한다. 별도
+  per-instance crop/rotation override는 후속이다.
+- 북마크/필기/세트리스트는 적용 사본 생성 전에는 source page 기준을 유지하고, 공연 순서만
+  virtual page order를 참조한다. 자동 스크롤은 source page 구간 기반이므로 custom virtual
+  order가 있는 곡에서는 비활성화한다. instance별 다른 필기가 필요해지는 순간 annotation key
+  정책을 분리한다.
 
 ## 베타 전달 polish
 
@@ -533,8 +538,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - Bluetooth/USB 페달 고급 설정: 표준/반전/세트리스트 경계 이동 preset은 1차 구현했다. 실제 HID
   key mapping, 앱 foreground focus, 사용자별 custom mapping UI는 실기기 확인 필요.
 - 페이지 크롭/정렬/복제: crop metadata, 화면 mask, crop-to-fit, 원본 PDF 보존형 virtual page
-  order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전 적용 사본 생성은 1차 구현했다.
-  per-instance crop/rotation override와 PDF page tree 직접 재작성은 후속이다.
+  order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전/crop/page tree 적용 사본 생성은
+  1차 구현했다. per-instance crop/rotation override는 후속이다.
 - 카메라 PDF 스캔: edge detection, perspective correction, batch scan, 압축/품질 설정까지
   요구되어 별도 스캐너 앱 수준의 UX가 필요하다. MVP는 앱 내 스캔보다 외부 스캔 앱/사진 앱/파일
   앱에서 만든 PDF와 이미지를 악보로 잘 다루는 방향을 우선한다.

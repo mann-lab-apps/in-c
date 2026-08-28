@@ -455,6 +455,17 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetPdfPageArrangementResult> createPageArrangementAppliedCopy(
+    SheetScore score,
+  ) async {
+    final outputPath = await _arrangedPdfPath(score);
+    return SheetPdfPageTransformer.createArrangementAppliedCopy(
+      inputPath: score.filePath,
+      outputPath: outputPath,
+      pageSettings: score.pageSettings,
+    );
+  }
+
   Future<String> exportMetadataBackupJson() async {
     final backup = SheetLibraryBackup.fromState(
       scores: await loadScores(),
@@ -998,6 +1009,23 @@ class SheetLibraryStore {
       '',
     );
     final safeName = _safeFileName('$withoutExtension-cropped.pdf');
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    return '${scoresDir.path}/${score.id}-$stamp-$safeName';
+  }
+
+  Future<String> _arrangedPdfPath(SheetScore score) async {
+    final documents = await getApplicationDocumentsDirectory();
+    final scoresDir = Directory('${documents.path}/$_pdfFolderName');
+    if (!scoresDir.existsSync()) {
+      await scoresDir.create(recursive: true);
+    }
+
+    final originalName = score.filePath.split(Platform.pathSeparator).last;
+    final withoutExtension = originalName.replaceFirst(
+      RegExp(r'\.pdf$', caseSensitive: false),
+      '',
+    );
+    final safeName = _safeFileName('$withoutExtension-arranged.pdf');
     final stamp = DateTime.now().microsecondsSinceEpoch;
     return '${scoresDir.path}/${score.id}-$stamp-$safeName';
   }

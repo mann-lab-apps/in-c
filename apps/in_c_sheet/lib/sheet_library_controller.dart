@@ -712,6 +712,50 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetPdfPageArrangementResult> createPageArrangementAppliedCopy(
+    SheetScore score,
+  ) async {
+    final result = await store.createPageArrangementAppliedCopy(score);
+    if (!result.didWrite || result.outputPath == null) {
+      return result;
+    }
+
+    final originalFile = SheetLinkedFile(
+      path: score.filePath,
+      type: 'pdf',
+      label: '페이지 정리 적용 전 원본',
+      createdAt: DateTime.now(),
+    );
+    await _replace(
+      score.copyWith(
+        filePath: result.outputPath,
+        lastPage: _firstMappedPage(
+              result.sourcePageMapping,
+              score.lastPage,
+            ) ??
+            1,
+        bookmarks: _rebaseBookmarksForAppliedArrangement(
+          score.bookmarks,
+          result.sourcePageMapping,
+        ),
+        pageSettings: _rebasePageSettingsForAppliedArrangement(
+          score.pageSettings,
+          result.sourcePageMapping,
+        ),
+        annotationLayer: _rebaseAnnotationsForAppliedArrangement(
+          score.annotationLayer,
+          result.sourcePageMapping,
+        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          originalFile,
+          ...score.linkedFiles,
+        ]),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return result;
+  }
+
   SheetAnnotationLayer _rebaseAnnotationsForAppliedCrop(
     SheetAnnotationLayer layer,
     SheetPageSettings pageSettings,
@@ -737,6 +781,201 @@ class SheetLibraryController extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  List<SheetBookmark> _rebaseBookmarksForAppliedArrangement(
+    List<SheetBookmark> bookmarks,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetBookmark>.unmodifiable(
+      bookmarks
+          .map((bookmark) {
+            final pageNumber = _firstMappedPage(
+              sourcePageMapping,
+              bookmark.pageNumber,
+            );
+            return pageNumber == null
+                ? null
+                : bookmark.copyWith(pageNumber: pageNumber);
+          })
+          .whereType<SheetBookmark>(),
+    );
+  }
+
+  SheetPageSettings _rebasePageSettingsForAppliedArrangement(
+    SheetPageSettings pageSettings,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final pageRotations = <int, int>{};
+    for (final entry in pageSettings.pageRotations.entries) {
+      for (final pageNumber in sourcePageMapping[entry.key] ?? const <int>[]) {
+        pageRotations[pageNumber] = entry.value;
+      }
+    }
+
+    final pageCrops = <int, SheetCropSettings>{};
+    for (final entry in pageSettings.pageCrops.entries) {
+      for (final pageNumber in sourcePageMapping[entry.key] ?? const <int>[]) {
+        pageCrops[pageNumber] = entry.value;
+      }
+    }
+
+    return pageSettings.copyWith(
+      hiddenPages: const <int>[],
+      pageRotations: Map<int, int>.unmodifiable(pageRotations),
+      pageCrops: Map<int, SheetCropSettings>.unmodifiable(pageCrops),
+      pageOrder: const <int>[],
+      jumpPoints: _rebaseJumpPointsForAppliedArrangement(
+        pageSettings.jumpPoints,
+        sourcePageMapping,
+      ),
+      rehearsalMarks: _rebaseRehearsalMarksForAppliedArrangement(
+        pageSettings.rehearsalMarks,
+        sourcePageMapping,
+      ),
+      blankPageInsertions: const <SheetBlankPageInsertion>[],
+      visibilityPresets: const <SheetPageVisibilityPreset>[],
+    );
+  }
+
+  List<SheetPageJumpPoint> _rebaseJumpPointsForAppliedArrangement(
+    List<SheetPageJumpPoint> jumpPoints,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetPageJumpPoint>.unmodifiable(
+      jumpPoints
+          .map((jumpPoint) {
+            final sourcePage = _firstMappedPage(
+              sourcePageMapping,
+              jumpPoint.sourcePage,
+            );
+            final targetPage = _firstMappedPage(
+              sourcePageMapping,
+              jumpPoint.targetPage,
+            );
+            if (sourcePage == null ||
+                targetPage == null ||
+                sourcePage == targetPage) {
+              return null;
+            }
+            return jumpPoint.copyWith(
+              sourcePage: sourcePage,
+              targetPage: targetPage,
+            );
+          })
+          .whereType<SheetPageJumpPoint>(),
+    );
+  }
+
+  List<SheetRehearsalMark> _rebaseRehearsalMarksForAppliedArrangement(
+    List<SheetRehearsalMark> marks,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return List<SheetRehearsalMark>.unmodifiable(
+      marks
+          .map((mark) {
+            final pageNumber = _firstMappedPage(
+              sourcePageMapping,
+              mark.pageNumber,
+            );
+            return pageNumber == null
+                ? null
+                : mark.copyWith(pageNumber: pageNumber);
+          })
+          .whereType<SheetRehearsalMark>(),
+    );
+  }
+
+  SheetAnnotationLayer _rebaseAnnotationsForAppliedArrangement(
+    SheetAnnotationLayer layer,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        layer.strokes.expand(
+          (stroke) => _rebaseStrokeForAppliedArrangement(
+            stroke,
+            sourcePageMapping,
+          ),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        layer.texts.expand(
+          (text) => _rebaseTextForAppliedArrangement(text, sourcePageMapping),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        layer.redoStack.expand(
+          (entry) =>
+              _rebaseRedoEntryForAppliedArrangement(entry, sourcePageMapping),
+        ),
+      ),
+    );
+  }
+
+  Iterable<SheetAnnotationStroke> _rebaseStrokeForAppliedArrangement(
+    SheetAnnotationStroke stroke,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final pages = sourcePageMapping[stroke.pageNumber] ?? const <int>[];
+    return [
+      for (final pageNumber in pages)
+        SheetAnnotationStroke(
+          id: pages.length == 1 ? stroke.id : '${stroke.id}-page$pageNumber',
+          pageNumber: pageNumber,
+          tool: stroke.tool,
+          color: stroke.color,
+          width: stroke.width,
+          points: stroke.points,
+          createdAt: stroke.createdAt,
+        ),
+    ];
+  }
+
+  Iterable<SheetTextAnnotation> _rebaseTextForAppliedArrangement(
+    SheetTextAnnotation text,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final pages = sourcePageMapping[text.pageNumber] ?? const <int>[];
+    return [
+      for (final pageNumber in pages)
+        text.copyWith(
+          pageNumber: pageNumber,
+          id: pages.length == 1 ? text.id : '${text.id}-page$pageNumber',
+        ),
+    ];
+  }
+
+  Iterable<SheetAnnotationRedoEntry> _rebaseRedoEntryForAppliedArrangement(
+    SheetAnnotationRedoEntry entry,
+    Map<int, List<int>> sourcePageMapping,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      return _rebaseStrokeForAppliedArrangement(
+        stroke,
+        sourcePageMapping,
+      ).map(SheetAnnotationRedoEntry.stroke);
+    }
+    final text = entry.text;
+    if (text != null) {
+      return _rebaseTextForAppliedArrangement(
+        text,
+        sourcePageMapping,
+      ).map(SheetAnnotationRedoEntry.text);
+    }
+    return const <SheetAnnotationRedoEntry>[];
+  }
+
+  int? _firstMappedPage(
+    Map<int, List<int>> sourcePageMapping,
+    int sourcePage,
+  ) {
+    final pages = sourcePageMapping[sourcePage];
+    if (pages == null || pages.isEmpty) {
+      return null;
+    }
+    return pages.first;
   }
 
   SheetAnnotationStroke _rebaseStrokeForAppliedCrop(

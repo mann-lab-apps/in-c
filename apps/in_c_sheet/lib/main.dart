@@ -4020,6 +4020,7 @@ enum _ViewerMenuAction {
   cropPresets,
   applyPageCrop,
   pageTemplates,
+  applyPageArrangement,
   rotateCurrentPage,
   applyPageRotations,
   sanitizePdfLinks,
@@ -6980,7 +6981,7 @@ setlist=$setlistLabel
             const ListTile(
               leading: Icon(Icons.info_outline),
               title: Text('페이지 템플릿 metadata'),
-              subtitle: Text('원본 PDF는 그대로이고 앱 표시 순서/표시 여부만 바꿉니다.'),
+              subtitle: Text('기본 저장은 metadata이며, 필요하면 PDF 사본에 적용합니다.'),
             ),
             ListTile(
               leading: const Icon(Icons.summarize_outlined),
@@ -7097,6 +7098,80 @@ setlist=$setlistLabel
       _showSnackBar(
         didRemove ? '빈 페이지 metadata를 삭제했습니다.' : '삭제할 metadata가 없습니다.',
       );
+    }
+  }
+
+  Future<void> _createPageArrangementAppliedCopy() async {
+    if (_isPerformanceMode) {
+      _showSnackBar('공연 모드에서는 페이지 정리 기능을 숨깁니다.');
+      return;
+    }
+    final currentScore = score;
+    final settings = currentScore.pageSettings;
+    if (settings.hiddenPages.isEmpty &&
+        settings.pageOrder.isEmpty &&
+        settings.blankPageInsertions.isEmpty) {
+      _showSnackBar('적용할 페이지 정리 metadata가 없습니다.');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('페이지 정리 적용 사본 생성'),
+        content: const Text(
+          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지 metadata를 '
+          '실제 PDF page tree로 적용한 앱 내부 사본을 만듭니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('생성'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isApplyingPageTransform = true;
+    });
+    try {
+      final result = await widget.controller.createPageArrangementAppliedCopy(
+        currentScore,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (!result.didWrite) {
+        _showSnackBar(
+          '페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
+        );
+        return;
+      }
+      _pageOrderCursor = null;
+      _pdfController.invalidate();
+      _showSnackBar(
+        '${result.outputPageCount}쪽 페이지 정리 사본으로 교체했습니다.',
+      );
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar(
+          '페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingPageTransform = false;
+        });
+        _keyboardFocusNode.requestFocus();
+      }
     }
   }
 
@@ -8162,6 +8237,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.pageTemplates:
         await _showPageTemplates();
         return;
+      case _ViewerMenuAction.applyPageArrangement:
+        await _createPageArrangementAppliedCopy();
+        return;
       case _ViewerMenuAction.rotateCurrentPage:
         await _rotateCurrentPageMetadata();
         return;
@@ -8723,6 +8801,20 @@ setlist=$setlistLabel
                   ),
                 ),
                 PopupMenuItem<_ViewerMenuAction>(
+                  enabled:
+                      currentScore.pageSettings.hiddenPages.isNotEmpty ||
+                      currentScore.pageSettings.pageOrder.isNotEmpty ||
+                      currentScore.pageSettings.blankPageInsertions.isNotEmpty,
+                  value: _ViewerMenuAction.applyPageArrangement,
+                  child: ListTile(
+                    leading: const Icon(Icons.library_books_outlined),
+                    title: const Text('페이지 정리 적용 사본 생성'),
+                    subtitle: Text(
+                      _pageTemplateSummary(currentScore, pageCount),
+                    ),
+                  ),
+                ),
+                PopupMenuItem<_ViewerMenuAction>(
                   enabled: !_isSanitizingPdfLinks,
                   value: _ViewerMenuAction.sanitizePdfLinks,
                   child: ListTile(
@@ -9059,6 +9151,20 @@ setlist=$setlistLabel
                   child: ListTile(
                     leading: Icon(Icons.dashboard_customize_outlined),
                     title: Text('페이지 템플릿'),
+                  ),
+                ),
+                PopupMenuItem<_ViewerMenuAction>(
+                  enabled:
+                      currentScore.pageSettings.hiddenPages.isNotEmpty ||
+                      currentScore.pageSettings.pageOrder.isNotEmpty ||
+                      currentScore.pageSettings.blankPageInsertions.isNotEmpty,
+                  value: _ViewerMenuAction.applyPageArrangement,
+                  child: ListTile(
+                    leading: const Icon(Icons.library_books_outlined),
+                    title: const Text('페이지 정리 적용 사본 생성'),
+                    subtitle: Text(
+                      _pageTemplateSummary(currentScore, pageCount),
+                    ),
                   ),
                 ),
                 PopupMenuItem<_ViewerMenuAction>(

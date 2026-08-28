@@ -619,6 +619,145 @@ void main() {
     expect(store.savedScores.single.filePath, updated.filePath);
   });
 
+  test('applies page arrangement copy and remaps page metadata', () async {
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final stroke = SheetAnnotationStroke(
+      id: 'stroke-3',
+      pageNumber: 3,
+      tool: SheetAnnotationTool.pen,
+      color: 0xff111111,
+      width: 3,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+      ],
+      createdAt: now,
+    );
+    final original = _score(now).copyWith(
+      lastPage: 3,
+      bookmarks: <SheetBookmark>[
+        SheetBookmark(pageNumber: 3, label: 'Solo', createdAt: now),
+      ],
+      pageSettings: SheetPageSettings(
+        hiddenPages: const <int>[2],
+        pageRotations: const <int, int>{3: 90},
+        pageCrops: const <int, SheetCropSettings>{
+          3: SheetCropSettings(left: 0.04),
+        },
+        pageOrder: const <int>[3, 1, 3, 2],
+        jumpPoints: <SheetPageJumpPoint>[
+          SheetPageJumpPoint(
+            id: 'jump-1',
+            sourcePage: 1,
+            targetPage: 3,
+            label: 'Solo',
+            createdAt: now,
+          ),
+        ],
+        rehearsalMarks: <SheetRehearsalMark>[
+          SheetRehearsalMark(
+            id: 'mark-1',
+            pageNumber: 3,
+            label: 'A',
+            kind: SheetRehearsalMark.rehearsalKind,
+            createdAt: now,
+          ),
+        ],
+        blankPageInsertions: <SheetBlankPageInsertion>[
+          SheetBlankPageInsertion(
+            id: 'blank-1',
+            afterPage: 1,
+            label: 'Notes',
+            createdAt: now,
+          ),
+        ],
+        visibilityPresets: <SheetPageVisibilityPreset>[
+          SheetPageVisibilityPreset(
+            id: 'visibility-1',
+            label: 'Hide 2',
+            hiddenPages: const <int>[2],
+            createdAt: now,
+          ),
+        ],
+      ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[stroke],
+        texts: <SheetTextAnnotation>[
+          SheetTextAnnotation(
+            id: 'text-3',
+            pageNumber: 3,
+            position: const SheetAnnotationPoint(x: 0.4, y: 0.5),
+            text: 'Solo',
+            color: 0xff222222,
+            fontSize: 20,
+            createdAt: now,
+          ),
+        ],
+        redoStack: <SheetAnnotationRedoEntry>[
+          SheetAnnotationRedoEntry.stroke(stroke),
+        ],
+      ),
+    );
+    final store = _PageArrangementCopyStore(
+      scores: <SheetScore>[original],
+      result: const SheetPdfPageArrangementResult(
+        inputPath: '/tmp/score-1.pdf',
+        outputPath: '/tmp/score-1-arranged.pdf',
+        sourcePageCount: 3,
+        outputPageCount: 4,
+        insertedBlankPageCount: 1,
+        didWrite: true,
+        sourcePageMapping: <int, List<int>>{
+          3: <int>[1, 4],
+          1: <int>[2],
+        },
+        blankPageNumbers: <int>[3],
+      ),
+    );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createPageArrangementAppliedCopy(
+      controller.scores.single,
+    );
+    final updated = controller.scores.single;
+
+    expect(result.didWrite, isTrue);
+    expect(updated.filePath, '/tmp/score-1-arranged.pdf');
+    expect(updated.lastPage, 1);
+    expect(updated.bookmarks.single.pageNumber, 1);
+    expect(updated.pageSettings.hiddenPages, isEmpty);
+    expect(updated.pageSettings.pageOrder, isEmpty);
+    expect(updated.pageSettings.blankPageInsertions, isEmpty);
+    expect(updated.pageSettings.visibilityPresets, isEmpty);
+    expect(updated.pageSettings.pageRotations, <int, int>{1: 90, 4: 90});
+    expect(updated.pageSettings.pageCrops.keys, <int>[1, 4]);
+    expect(updated.pageSettings.jumpPoints.single.sourcePage, 2);
+    expect(updated.pageSettings.jumpPoints.single.targetPage, 1);
+    expect(updated.pageSettings.rehearsalMarks.single.pageNumber, 1);
+    expect(
+      updated.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+      <int>[1, 4],
+    );
+    expect(updated.annotationLayer.strokes.map((stroke) => stroke.id), <String>[
+      'stroke-3-page1',
+      'stroke-3-page4',
+    ]);
+    expect(
+      updated.annotationLayer.texts.map((text) => text.pageNumber),
+      <int>[1, 4],
+    );
+    expect(updated.annotationLayer.texts.map((text) => text.id), <String>[
+      'text-3-page1',
+      'text-3-page4',
+    ]);
+    expect(
+      updated.annotationLayer.redoStack.map((entry) => entry.pageNumber),
+      <int>[1, 4],
+    );
+    expect(updated.linkedFiles.first.label, '페이지 정리 적용 전 원본');
+    expect(store.savedScores.single.filePath, updated.filePath);
+  });
+
   test('updates virtual page order settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -1474,6 +1613,58 @@ class _PageCropCopyStore extends SheetLibraryStore {
 
   @override
   Future<SheetPdfPageCropResult> createPageCropAppliedCopy(
+    SheetScore score,
+  ) async {
+    return result;
+  }
+}
+
+class _PageArrangementCopyStore extends SheetLibraryStore {
+  _PageArrangementCopyStore({
+    required List<SheetScore> scores,
+    required this.result,
+  }) : savedScores = scores;
+
+  List<SheetScore> savedScores;
+  final SheetPdfPageArrangementResult result;
+
+  @override
+  Future<List<SheetScore>> loadScores() async {
+    return savedScores;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    savedScores = List<SheetScore>.unmodifiable(scores);
+  }
+
+  @override
+  Future<List<SheetSetlist>> loadSetlists() async {
+    return const <SheetSetlist>[];
+  }
+
+  @override
+  Future<SheetMetronomeSettings> loadMetronomeSettings() async {
+    return SheetMetronomeSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetTunerSettings> loadTunerSettings() async {
+    return SheetTunerSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
+    return SheetLibraryViewSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
+    return null;
+  }
+
+  @override
+  Future<SheetPdfPageArrangementResult> createPageArrangementAppliedCopy(
     SheetScore score,
   ) async {
     return result;

@@ -591,6 +591,44 @@ void main() {
     expect(await File(score.filePath).readAsBytes(), sourceBytes);
   });
 
+  test('creates page arrangement applied copy without mutating source PDF', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+        .readAsBytes();
+    final score = await store.importPdfBytes(
+      bytes: sourceBytes,
+      fileName: 'short-score.pdf',
+      importedAt: now,
+    );
+    final scoreWithArrangement = score.copyWith(
+      pageSettings: SheetPageSettings(
+        hiddenPages: const <int>[2],
+        pageRotations: const <int, int>{},
+        pageOrder: const <int>[3, 1, 3],
+        blankPageInsertions: <SheetBlankPageInsertion>[
+          SheetBlankPageInsertion(
+            id: 'blank-1',
+            afterPage: 1,
+            label: 'Notes',
+            createdAt: now,
+          ),
+        ],
+      ),
+    );
+
+    final result = await store.createPageArrangementAppliedCopy(
+      scoreWithArrangement,
+    );
+
+    expect(result.didWrite, isTrue);
+    expect(result.outputPageCount, 4);
+    expect(result.outputPath, isNotNull);
+    expect(await File(result.outputPath!).exists(), isTrue);
+    expect(await File(score.filePath).readAsBytes(), sourceBytes);
+  });
+
   test('rejects non-zip full backup bytes', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

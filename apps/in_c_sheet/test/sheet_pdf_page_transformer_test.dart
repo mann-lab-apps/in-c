@@ -191,4 +191,71 @@ void main() {
     expect(result.outputPath, isNull);
     expect(File(outputPath).existsSync(), isFalse);
   });
+
+  test('creates arrangement applied PDF copy with mapping and blank pages', () async {
+    final originalBytes = await File(shortFixturePath).readAsBytes();
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-page-arrange-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-arranged.pdf';
+
+    final result = await SheetPdfPageTransformer.createArrangementAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: SheetPageSettings(
+        hiddenPages: const <int>[2],
+        pageRotations: const <int, int>{},
+        pageOrder: const <int>[3, 1, 3, 2],
+        blankPageInsertions: <SheetBlankPageInsertion>[
+          SheetBlankPageInsertion(
+            id: 'blank-1',
+            afterPage: 1,
+            label: 'Notes',
+            createdAt: DateTime.parse('2026-08-28T10:00:00.000'),
+          ),
+        ],
+      ),
+    );
+    final arranged = PdfDocument.open(await File(outputPath).readAsBytes());
+    final afterOriginalBytes = await File(shortFixturePath).readAsBytes();
+
+    expect(result.didWrite, isTrue);
+    expect(result.sourcePageCount, 3);
+    expect(result.outputPageCount, 4);
+    expect(result.insertedBlankPageCount, 1);
+    expect(result.sourcePageMapping, <int, List<int>>{
+      3: <int>[1, 4],
+      1: <int>[2],
+    });
+    expect(result.blankPageNumbers, <int>[3]);
+    expect(arranged.pageCount, 4);
+    expect(afterOriginalBytes, originalBytes);
+  });
+
+  test('does not write arrangement copy without page arrangement metadata', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-page-arrange-empty-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-arranged.pdf';
+
+    final result = await SheetPdfPageTransformer.createArrangementAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: SheetPageSettings.empty,
+    );
+
+    expect(result.didWrite, isFalse);
+    expect(result.outputPath, isNull);
+    expect(File(outputPath).existsSync(), isFalse);
+  });
 }

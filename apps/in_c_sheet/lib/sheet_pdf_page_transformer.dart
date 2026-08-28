@@ -41,6 +41,30 @@ class SheetPdfPageCropResult {
   final String? failureReason;
 }
 
+class SheetPdfPageArrangementResult {
+  const SheetPdfPageArrangementResult({
+    required this.inputPath,
+    required this.outputPath,
+    required this.sourcePageCount,
+    required this.outputPageCount,
+    required this.insertedBlankPageCount,
+    required this.didWrite,
+    this.sourcePageMapping = const <int, List<int>>{},
+    this.blankPageNumbers = const <int>[],
+    this.failureReason,
+  });
+
+  final String inputPath;
+  final String? outputPath;
+  final int sourcePageCount;
+  final int outputPageCount;
+  final int insertedBlankPageCount;
+  final bool didWrite;
+  final Map<int, List<int>> sourcePageMapping;
+  final List<int> blankPageNumbers;
+  final String? failureReason;
+}
+
 class SheetPdfPageTransformer {
   const SheetPdfPageTransformer._();
 
@@ -181,6 +205,101 @@ class SheetPdfPageTransformer {
     }
   }
 
+  static Future<SheetPdfPageArrangementResult> createArrangementAppliedCopy({
+    required String inputPath,
+    required String outputPath,
+    required SheetPageSettings pageSettings,
+  }) async {
+    if (pageSettings.hiddenPages.isEmpty &&
+        pageSettings.pageOrder.isEmpty &&
+        pageSettings.blankPageInsertions.isEmpty) {
+      return SheetPdfPageArrangementResult(
+        inputPath: inputPath,
+        outputPath: null,
+        sourcePageCount: 0,
+        outputPageCount: 0,
+        insertedBlankPageCount: 0,
+        didWrite: false,
+      );
+    }
+
+    try {
+      final inputBytes = await File(inputPath).readAsBytes();
+      final document = PdfDocument.open(inputBytes);
+      final sourcePageCount = document.pageCount;
+      final slots = _arrangedPageSlots(
+        pageSettings: pageSettings,
+        pageCount: sourcePageCount,
+      );
+      final sourcePages = slots
+          .map((slot) => slot.sourcePage)
+          .whereType<int>()
+          .toList(growable: false);
+      final blankPageNumbers = <int>[
+        for (var index = 0; index < slots.length; index += 1)
+          if (slots[index].isBlank) index + 1,
+      ];
+
+      if (sourcePages.isEmpty ||
+          (_isIdentityOrder(sourcePages, sourcePageCount) &&
+              blankPageNumbers.isEmpty)) {
+        return SheetPdfPageArrangementResult(
+          inputPath: inputPath,
+          outputPath: null,
+          sourcePageCount: sourcePageCount,
+          outputPageCount: sourcePageCount,
+          insertedBlankPageCount: 0,
+          didWrite: false,
+        );
+      }
+
+      var outputBytes = document.extractPages(
+        sourcePages.map((page) => page - 1).toList(growable: false),
+      );
+      if (blankPageNumbers.isNotEmpty) {
+        final arrangedDocument = PdfDocument.open(outputBytes);
+        final editor = PdfEditor(arrangedDocument);
+        for (final pageNumber in blankPageNumbers) {
+          final size = _blankPageSizeForSlot(
+            document: document,
+            slots: slots,
+            blankIndex: pageNumber - 1,
+          );
+          editor.insertBlankPage(
+            width: size.width,
+            height: size.height,
+            at: pageNumber - 1,
+          );
+        }
+        outputBytes = editor.save();
+      }
+
+      final outputFile = File(outputPath);
+      await outputFile.parent.create(recursive: true);
+      await outputFile.writeAsBytes(outputBytes, flush: true);
+      return SheetPdfPageArrangementResult(
+        inputPath: inputPath,
+        outputPath: outputPath,
+        sourcePageCount: sourcePageCount,
+        outputPageCount: slots.length,
+        insertedBlankPageCount: blankPageNumbers.length,
+        didWrite: true,
+        sourcePageMapping: _sourcePageMapping(slots),
+        blankPageNumbers: List<int>.unmodifiable(blankPageNumbers),
+      );
+    } catch (error) {
+      return SheetPdfPageArrangementResult(
+        inputPath: inputPath,
+        outputPath: null,
+        sourcePageCount: 0,
+        outputPageCount: 0,
+        insertedBlankPageCount: 0,
+        didWrite: false,
+        failureReason: error.toString(),
+      );
+    }
+  }
+
   static Map<int, int> _normalizeRotations(Map<int, int> rotations) {
     final normalized = <int, int>{};
     for (final entry in rotations.entries) {
@@ -220,4 +339,101 @@ class SheetPdfPageTransformer {
       CosReal(rect.top),
     ]);
   }
+
+  static List<_ArrangedPageSlot> _arrangedPageSlots({
+    required SheetPageSettings pageSettings,
+    required int pageCount,
+  }) {
+    final slots = pageSettings
+        .effectivePageOrder(pageCount)
+        .map(_ArrangedPageSlot.source)
+        .toList(growable: true);
+    if (slots.isEmpty) {
+      return const <_ArrangedPageSlot>[];
+    }
+
+    final insertions = pageSettings.blankPageInsertions
+        .where((insertion) => insertion.isValidForPageCount(pageCount))
+        .toList(growable: false);
+    for (final insertion in insertions) {
+      final insertAt = insertion.afterPage == 0
+          ? 0
+          : slots.lastIndexWhere(
+                  (slot) => slot.sourcePage == insertion.afterPage,
+                ) +
+                1;
+      if (insertAt < 1 && insertion.afterPage != 0) {
+        continue;
+      }
+      slots.insert(insertAt, const _ArrangedPageSlot.blank());
+    }
+    return List<_ArrangedPageSlot>.unmodifiable(slots);
+  }
+
+  static Map<int, List<int>> _sourcePageMapping(
+    List<_ArrangedPageSlot> slots,
+  ) {
+    final mapping = <int, List<int>>{};
+    for (var index = 0; index < slots.length; index += 1) {
+      final sourcePage = slots[index].sourcePage;
+      if (sourcePage == null) {
+        continue;
+      }
+      mapping.putIfAbsent(sourcePage, () => <int>[]).add(index + 1);
+    }
+    return Map<int, List<int>>.unmodifiable(
+      mapping.map(
+        (page, pages) => MapEntry(page, List<int>.unmodifiable(pages)),
+      ),
+    );
+  }
+
+  static PdfRect _blankPageSizeForSlot({
+    required PdfDocument document,
+    required List<_ArrangedPageSlot> slots,
+    required int blankIndex,
+  }) {
+    int? sourcePage;
+    for (var index = blankIndex - 1; index >= 0; index -= 1) {
+      sourcePage = slots[index].sourcePage;
+      if (sourcePage != null) {
+        break;
+      }
+    }
+    if (sourcePage == null) {
+      for (var index = blankIndex + 1; index < slots.length; index += 1) {
+        sourcePage = slots[index].sourcePage;
+        if (sourcePage != null) {
+          break;
+        }
+      }
+    }
+    final pageIndex = ((sourcePage ?? 1) - 1)
+        .clamp(0, document.pageCount - 1)
+        .toInt();
+    final page = document.page(pageIndex);
+    return page.cropBox;
+  }
+
+  static bool _isIdentityOrder(List<int> sourcePages, int pageCount) {
+    if (sourcePages.length != pageCount) {
+      return false;
+    }
+    for (var index = 0; index < pageCount; index += 1) {
+      if (sourcePages[index] != index + 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+class _ArrangedPageSlot {
+  const _ArrangedPageSlot.source(this.sourcePage);
+
+  const _ArrangedPageSlot.blank() : sourcePage = null;
+
+  final int? sourcePage;
+
+  bool get isBlank => sourcePage == null;
 }
