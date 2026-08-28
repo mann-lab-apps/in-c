@@ -96,11 +96,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 페이지 숨김/회전 metadata는 원본 PDF를 수정하지 않는 앱 metadata다. 숨김 페이지는 navigation
   layer에서 건너뛰지만, 실제 PDF page tree는 그대로 유지된다. 사용자가 명시적으로 실행한 경우에만
   회전 metadata를 앱 내부 PDF 사본에 적용하고, 적용 전 PDF는 연결 파일 metadata로 보존한다.
-- 수동 크롭은 원본 PDF를 수정하지 않는 global crop metadata로 저장한다. 1차 구현은 page
-  overlay에서 crop margin을 배경색으로 가려 보는 방식이며, cropped area를 다시 확대 배치하거나
-  PDF cropBox를 재작성하지 않는다.
-- crop preset도 viewer metadata다. 모든 page, 홀수/짝수, cover 제외 scope를 저장하지만,
-  1차 적용은 현재 global crop 값 교체에 집중한다. page별 실제 cropBox 재작성은 후속이다.
+- 수동 크롭은 원본 PDF를 수정하지 않는 global/page crop metadata로 저장한다. viewer에서는 page
+  overlay에서 crop margin을 배경색으로 가려 보고, 사용자가 명시적으로 실행하면 crop metadata를
+  실제 PDF CropBox로 적용한 앱 내부 사본을 만든다. 적용 전 PDF는 연결 파일 metadata로 보존한다.
+- crop preset도 viewer metadata다. 모든 page, 홀수/짝수, cover 제외 scope를 저장하고 page별
+  crop override를 만들 수 있다.
 - 페이지 회전은 metadata 저장과 page overlay badge/pending action 표시를 먼저 수행하고, 필요하면
   `pdf_document`의 `PdfEditor.rotatePages`로 회전 적용 사본을 만든다. `pdfrx`의 low-level
   `PdfPageView`에는 `rotationOverride`가 있지만, 현재 `PdfViewer.file`/`PdfViewerParams`

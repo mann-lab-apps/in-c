@@ -677,6 +677,136 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
+  Future<SheetPdfPageCropResult> createPageCropAppliedCopy(
+    SheetScore score,
+  ) async {
+    final result = await store.createPageCropAppliedCopy(score);
+    if (!result.didWrite || result.outputPath == null) {
+      return result;
+    }
+
+    final originalFile = SheetLinkedFile(
+      path: score.filePath,
+      type: 'pdf',
+      label: '자르기 적용 전 원본',
+      createdAt: DateTime.now(),
+    );
+    await _replace(
+      score.copyWith(
+        filePath: result.outputPath,
+        pageSettings: score.pageSettings.copyWith(
+          crop: SheetCropSettings.none,
+          pageCrops: const <int, SheetCropSettings>{},
+        ),
+        annotationLayer: _rebaseAnnotationsForAppliedCrop(
+          score.annotationLayer,
+          score.pageSettings,
+        ),
+        linkedFiles: SheetScore.normalizeLinkedFiles(<SheetLinkedFile>[
+          originalFile,
+          ...score.linkedFiles,
+        ]),
+        updatedAt: DateTime.now(),
+      ),
+    );
+    return result;
+  }
+
+  SheetAnnotationLayer _rebaseAnnotationsForAppliedCrop(
+    SheetAnnotationLayer layer,
+    SheetPageSettings pageSettings,
+  ) {
+    if (!pageSettings.crop.hasCrop && pageSettings.pageCrops.isEmpty) {
+      return layer;
+    }
+
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(
+        layer.strokes.map(
+          (stroke) => _rebaseStrokeForAppliedCrop(stroke, pageSettings),
+        ),
+      ),
+      texts: List<SheetTextAnnotation>.unmodifiable(
+        layer.texts.map(
+          (text) => _rebaseTextForAppliedCrop(text, pageSettings),
+        ),
+      ),
+      redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        layer.redoStack.map(
+          (entry) => _rebaseRedoEntryForAppliedCrop(entry, pageSettings),
+        ),
+      ),
+    );
+  }
+
+  SheetAnnotationStroke _rebaseStrokeForAppliedCrop(
+    SheetAnnotationStroke stroke,
+    SheetPageSettings pageSettings,
+  ) {
+    final crop = pageSettings.cropForPage(stroke.pageNumber).normalized();
+    if (!crop.hasCrop) {
+      return stroke;
+    }
+    return SheetAnnotationStroke(
+      id: stroke.id,
+      pageNumber: stroke.pageNumber,
+      tool: stroke.tool,
+      color: stroke.color,
+      width: stroke.width,
+      points: List<SheetAnnotationPoint>.unmodifiable(
+        stroke.points.map((point) => _rebasePointForAppliedCrop(point, crop)),
+      ),
+      createdAt: stroke.createdAt,
+    );
+  }
+
+  SheetTextAnnotation _rebaseTextForAppliedCrop(
+    SheetTextAnnotation text,
+    SheetPageSettings pageSettings,
+  ) {
+    final crop = pageSettings.cropForPage(text.pageNumber).normalized();
+    if (!crop.hasCrop) {
+      return text;
+    }
+    return text.copyWith(
+      position: _rebasePointForAppliedCrop(text.position, crop),
+    );
+  }
+
+  SheetAnnotationRedoEntry _rebaseRedoEntryForAppliedCrop(
+    SheetAnnotationRedoEntry entry,
+    SheetPageSettings pageSettings,
+  ) {
+    final stroke = entry.stroke;
+    if (stroke != null) {
+      return SheetAnnotationRedoEntry.stroke(
+        _rebaseStrokeForAppliedCrop(stroke, pageSettings),
+      );
+    }
+    final text = entry.text;
+    if (text != null) {
+      return SheetAnnotationRedoEntry.text(
+        _rebaseTextForAppliedCrop(text, pageSettings),
+      );
+    }
+    return entry;
+  }
+
+  SheetAnnotationPoint _rebasePointForAppliedCrop(
+    SheetAnnotationPoint point,
+    SheetCropSettings crop,
+  ) {
+    final width = 1 - crop.left - crop.right;
+    final height = 1 - crop.top - crop.bottom;
+    if (width <= 0 || height <= 0) {
+      return point;
+    }
+    return SheetAnnotationPoint(
+      x: ((point.x - crop.left) / width).clamp(0.0, 1.0).toDouble(),
+      y: ((point.y - crop.top) / height).clamp(0.0, 1.0).toDouble(),
+    );
+  }
+
   Future<bool> hidePage(
     SheetScore score, {
     required int pageNumber,

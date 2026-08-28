@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
+import 'package:in_c_sheet/sheet_score.dart';
 import 'package:pdf_document/pdf_document.dart';
 
 void main() {
@@ -102,5 +103,92 @@ void main() {
     expect(result.didWrite, isTrue);
     expect(result.rotatedPageCount, 1);
     expect(File(outputPath).existsSync(), isTrue);
+  });
+
+  test('creates crop applied PDF copy and preserves original', () async {
+    final originalBytes = await File(shortFixturePath).readAsBytes();
+    final tempDir = await Directory.systemTemp.createTemp('clef-page-crop-');
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-cropped.pdf';
+
+    final result = await SheetPdfPageTransformer.createCropAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        crop: SheetCropSettings(top: 0.1, bottom: 0.2),
+      ),
+    );
+    final cropped = PdfDocument.open(await File(outputPath).readAsBytes());
+    final firstCropBox = cropped.page(0).cropBox;
+    final afterOriginalBytes = await File(shortFixturePath).readAsBytes();
+
+    expect(result.didWrite, isTrue);
+    expect(result.pageCount, 3);
+    expect(result.croppedPageCount, 3);
+    expect(firstCropBox.height, lessThan(cropped.page(0).mediaBox.height));
+    expect(firstCropBox.bottom, greaterThan(cropped.page(0).mediaBox.bottom));
+    expect(firstCropBox.top, lessThan(cropped.page(0).mediaBox.top));
+    expect(afterOriginalBytes, originalBytes);
+  });
+
+  test('uses page crop overrides when creating crop applied copy', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-page-crop-overrides-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-cropped.pdf';
+
+    final result = await SheetPdfPageTransformer.createCropAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        pageCrops: <int, SheetCropSettings>{
+          2: SheetCropSettings(left: 0.1, right: 0.1),
+        },
+      ),
+    );
+    final cropped = PdfDocument.open(await File(outputPath).readAsBytes());
+
+    expect(result.didWrite, isTrue);
+    expect(result.croppedPageCount, 1);
+    expect(cropped.page(0).cropBox, cropped.page(0).mediaBox);
+    expect(
+      cropped.page(1).cropBox.width,
+      lessThan(cropped.page(1).mediaBox.width),
+    );
+  });
+
+  test('does not write crop copy when there is no crop metadata', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-page-crop-empty-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-cropped.pdf';
+
+    final result = await SheetPdfPageTransformer.createCropAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: SheetPageSettings.empty,
+    );
+
+    expect(result.didWrite, isFalse);
+    expect(result.outputPath, isNull);
+    expect(File(outputPath).existsSync(), isFalse);
   });
 }

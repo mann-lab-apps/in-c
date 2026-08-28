@@ -52,9 +52,9 @@
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | fit width/fullscreen |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 4차 이후 정교화: orientation별 anchor/persistence rules |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | performance spike |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: 원본 보존 crop metadata와 viewer mask. fit-to-crop/export 반영은 후속 |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: 원본 보존 crop metadata와 viewer mask. 후속 보강: crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
-| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: metadata 저장과 badge 표시. viewer transform/PDF 재저장은 후속 |
+| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 18차 부분 구현: metadata 저장과 badge 표시. 후속 보강: 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | virtual order |
 | 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | per-instance metadata |
@@ -70,7 +70,7 @@
 | 주석 | 지우개 | 양쪽 기본 | MVP | 중간 | 8차 보강: page-local 좌표를 normalized hit-test로 변환해 stroke 단위 삭제 |
 | 주석 | 텍스트 | 양쪽 기본 | MVP | 중간 | 18차 구현: page normalized position, 입력 dialog, render, edit/delete, undo |
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
-| 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 7차 부분 구현: 현재 페이지 마지막 stroke undo. redo는 후속 |
+| 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 7차 구현: stroke 종료/지우개 삭제 시 SharedPreferences 저장. 대량 stroke는 file-backed store 후속 |
 | 주석 | 스탬프 | 양쪽 지원 | V1 | 중간 | stamp assets |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | vector shapes |
@@ -133,9 +133,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   표시, 명시적 이전/다음 곡 이동이다.
 - 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제다.
 - 펜, 형광펜, 텍스트, 지우개, 색상/두께, 자동 저장. 7차 구현은 원본 PDF를 수정하지 않는
-  normalized stroke overlay이며, 현재 페이지 마지막 stroke undo까지 제공한다. 8차 보강에서
+  normalized stroke overlay이며, 현재 페이지 마지막 stroke undo를 제공한다. 8차 보강에서
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
-  추가했다. redo는 후속이다.
+  추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
 - 메트로놈. 6차 구현은 visual metronome, BPM/박자 저장, start/stop, accent beat 표시다.
 - 크로매틱 튜너. 11차 구현은 `record` 기반 microphone PCM stream, autocorrelation pitch
   detector, median smoothing, no-signal debounce까지 붙였다. Android 태블릿 실기기 정확도/latency
@@ -157,8 +157,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - iOS Share Extension이 필요한 출처 앱 대응.
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.
-- 실제 crop-to-fit/export, 실제 페이지 회전 렌더링/PDF 재저장, 페이지 순서 변경/복제,
-  반복 페이지 삽입.
+- 실제 페이지 회전 live 렌더링, 페이지 순서 변경/복제/반복 삽입의 실제 PDF page tree rewrite/export.
 - orientation별 반 페이지 정책 정교화.
 - link point/jump point.
 - 스탬프, 도형/화살표, favorite tool, pressure sensitivity, palm rejection.

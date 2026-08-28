@@ -525,6 +525,100 @@ void main() {
     },
   );
 
+  test('applies page crop copy and clears crop metadata', () async {
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final stroke = SheetAnnotationStroke(
+      id: 'stroke-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.pen,
+      color: 0xff111111,
+      width: 3,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.2, y: 0.2),
+      ],
+      createdAt: now,
+    );
+    final text = SheetTextAnnotation(
+      id: 'text-1',
+      pageNumber: 2,
+      position: const SheetAnnotationPoint(x: 0.5, y: 0.5),
+      text: 'Cue',
+      color: 0xff111111,
+      fontSize: 18,
+      createdAt: now.add(const Duration(seconds: 1)),
+    );
+    final original = _score(now).copyWith(
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        crop: SheetCropSettings(top: 0.08),
+        pageCrops: <int, SheetCropSettings>{
+          2: SheetCropSettings(bottom: 0.12),
+        },
+      ),
+      annotationLayer: SheetAnnotationLayer(
+        strokes: <SheetAnnotationStroke>[stroke],
+        texts: <SheetTextAnnotation>[text],
+        redoStack: <SheetAnnotationRedoEntry>[
+          SheetAnnotationRedoEntry.stroke(stroke),
+        ],
+      ),
+      linkedFiles: <SheetLinkedFile>[
+        SheetLinkedFile(
+          path: '/tmp/score-1.pdf',
+          type: 'pdf',
+          label: 'Existing original',
+          createdAt: now,
+        ),
+        SheetLinkedFile(
+          path: '/tmp/part.pdf',
+          type: 'pdf',
+          label: 'Part',
+          createdAt: now,
+        ),
+      ],
+    );
+    final store = _PageCropCopyStore(
+      scores: <SheetScore>[original],
+      result: const SheetPdfPageCropResult(
+        inputPath: '/tmp/score-1.pdf',
+        outputPath: '/tmp/score-1-cropped.pdf',
+        pageCount: 4,
+        croppedPageCount: 4,
+        didWrite: true,
+      ),
+    );
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createPageCropAppliedCopy(
+      controller.scores.single,
+    );
+    final updated = controller.scores.single;
+
+    expect(result.didWrite, isTrue);
+    expect(updated.filePath, '/tmp/score-1-cropped.pdf');
+    expect(updated.pageSettings.crop.hasCrop, isFalse);
+    expect(updated.pageSettings.pageCrops, isEmpty);
+    expect(
+      updated.annotationLayer.strokes.single.points.single.y,
+      moreOrLessEquals((0.2 - 0.08) / 0.92),
+    );
+    expect(
+      updated.annotationLayer.texts.single.position.y,
+      moreOrLessEquals(0.5 / 0.88),
+    );
+    expect(
+      updated.annotationLayer.redoStack.single.stroke!.points.single.y,
+      moreOrLessEquals((0.2 - 0.08) / 0.92),
+    );
+    expect(updated.linkedFiles, hasLength(2));
+    expect(updated.linkedFiles.first.path, '/tmp/score-1.pdf');
+    expect(updated.linkedFiles.first.label, '자르기 적용 전 원본');
+    expect(updated.linkedFiles.last.label, 'Part');
+    expect(store.savedScores.single.filePath, updated.filePath);
+  });
+
   test('updates virtual page order settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -1330,6 +1424,56 @@ class _PageRotationCopyStore extends SheetLibraryStore {
 
   @override
   Future<SheetPdfPageRotationResult> createPageRotationAppliedCopy(
+    SheetScore score,
+  ) async {
+    return result;
+  }
+}
+
+class _PageCropCopyStore extends SheetLibraryStore {
+  _PageCropCopyStore({required List<SheetScore> scores, required this.result})
+    : savedScores = scores;
+
+  List<SheetScore> savedScores;
+  final SheetPdfPageCropResult result;
+
+  @override
+  Future<List<SheetScore>> loadScores() async {
+    return savedScores;
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    savedScores = List<SheetScore>.unmodifiable(scores);
+  }
+
+  @override
+  Future<List<SheetSetlist>> loadSetlists() async {
+    return const <SheetSetlist>[];
+  }
+
+  @override
+  Future<SheetMetronomeSettings> loadMetronomeSettings() async {
+    return SheetMetronomeSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetTunerSettings> loadTunerSettings() async {
+    return SheetTunerSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
+    return SheetLibraryViewSettings.defaultSettings;
+  }
+
+  @override
+  Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
+    return null;
+  }
+
+  @override
+  Future<SheetPdfPageCropResult> createPageCropAppliedCopy(
     SheetScore score,
   ) async {
     return result;

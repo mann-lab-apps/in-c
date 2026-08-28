@@ -441,7 +441,7 @@ packages:
     source: hosted
     version: "3.13.0"
   pdf_cos:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: pdf_cos
       sha256: dee382d50ca0a3707bcc6bfa63e12d8a7d9f71757e42fe291275b41280ef810e

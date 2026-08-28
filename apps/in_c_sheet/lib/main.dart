@@ -4018,6 +4018,7 @@ enum _ViewerMenuAction {
   importPdfOutline,
   cropPages,
   cropPresets,
+  applyPageCrop,
   pageTemplates,
   rotateCurrentPage,
   applyPageRotations,
@@ -4220,7 +4221,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   bool _useHalfPageTurn = false;
   bool _isAnnotationMode = false;
   bool _isSanitizingPdfLinks = false;
-  bool _isApplyingPageRotations = false;
+  bool _isApplyingPageTransform = false;
   bool _isAutoScrolling = false;
   bool _isAutoScrollPaused = false;
   bool _isAutoScrollTicking = false;
@@ -6628,7 +6629,7 @@ setlist=$setlistLabel
     }
 
     setState(() {
-      _isApplyingPageRotations = true;
+      _isApplyingPageTransform = true;
     });
     try {
       final result = await widget.controller.createPageRotationAppliedCopy(
@@ -6650,7 +6651,79 @@ setlist=$setlistLabel
     } finally {
       if (mounted) {
         setState(() {
-          _isApplyingPageRotations = false;
+          _isApplyingPageTransform = false;
+        });
+        _keyboardFocusNode.requestFocus();
+      }
+    }
+  }
+
+  Future<void> _createPageCropAppliedCopy() async {
+    if (_isPerformanceMode) {
+      _showSnackBar('공연 모드에서는 페이지 정리 기능을 숨깁니다.');
+      return;
+    }
+    final currentScore = score;
+    if (!currentScore.pageSettings.crop.hasCrop &&
+        currentScore.pageSettings.pageCrops.isEmpty) {
+      _showSnackBar('적용할 crop metadata가 없습니다.');
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('자르기 적용 사본 생성'),
+        content: const Text(
+          '원본 PDF는 연결 파일로 보존하고, crop metadata를 실제 PDF CropBox로 '
+          '적용한 앱 내부 사본을 만듭니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('생성'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isApplyingPageTransform = true;
+    });
+    try {
+      final result = await widget.controller.createPageCropAppliedCopy(
+        currentScore,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (!result.didWrite) {
+        _showSnackBar(
+          '자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
+        );
+        return;
+      }
+      _resetCropFitPosition();
+      _pdfController.invalidate();
+      _showSnackBar(
+        '${result.croppedPageCount}쪽 자르기를 적용한 사본으로 교체했습니다.',
+      );
+    } catch (_) {
+      if (mounted) {
+        _showSnackBar(
+          '자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isApplyingPageTransform = false;
         });
         _keyboardFocusNode.requestFocus();
       }
@@ -6859,7 +6932,7 @@ setlist=$setlistLabel
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '현재 v1 viewer는 원본 PDF cropBox를 수정하지 않고 앱 표시 metadata로만 저장합니다.',
+                  '기본 저장은 앱 표시 metadata이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
                 ),
               ],
             ),
@@ -8083,6 +8156,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.cropPresets:
         await _showCropPresets();
         return;
+      case _ViewerMenuAction.applyPageCrop:
+        await _createPageCropAppliedCopy();
+        return;
       case _ViewerMenuAction.pageTemplates:
         await _showPageTemplates();
         return;
@@ -8613,6 +8689,25 @@ setlist=$setlistLabel
                         : const Text('원본 PDF 보존'),
                   ),
                 ),
+                PopupMenuItem<_ViewerMenuAction>(
+                  enabled:
+                      currentScore.pageSettings.crop.hasCrop ||
+                      currentScore.pageSettings.pageCrops.isNotEmpty,
+                  value: _ViewerMenuAction.applyPageCrop,
+                  child: ListTile(
+                    leading: const Icon(Icons.crop_free_outlined),
+                    title: const Text('자르기 적용 사본 생성'),
+                    subtitle:
+                        currentScore.pageSettings.crop.hasCrop ||
+                            currentScore.pageSettings.pageCrops.isNotEmpty
+                        ? Text(
+                            '전체 crop'
+                            '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
+                            '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
+                          )
+                        : const Text('저장된 crop 없음'),
+                  ),
+                ),
                 const PopupMenuItem<_ViewerMenuAction>(
                   value: _ViewerMenuAction.cropPresets,
                   child: ListTile(
@@ -8931,6 +9026,25 @@ setlist=$setlistLabel
                     subtitle: currentScore.pageSettings.crop.hasCrop
                         ? const Text('metadata 적용 중')
                         : const Text('원본 PDF 보존'),
+                  ),
+                ),
+                PopupMenuItem<_ViewerMenuAction>(
+                  enabled:
+                      currentScore.pageSettings.crop.hasCrop ||
+                      currentScore.pageSettings.pageCrops.isNotEmpty,
+                  value: _ViewerMenuAction.applyPageCrop,
+                  child: ListTile(
+                    leading: const Icon(Icons.crop_free_outlined),
+                    title: const Text('자르기 적용 사본 생성'),
+                    subtitle:
+                        currentScore.pageSettings.crop.hasCrop ||
+                            currentScore.pageSettings.pageCrops.isNotEmpty
+                        ? Text(
+                            '전체 crop'
+                            '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
+                            '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
+                          )
+                        : const Text('저장된 crop 없음'),
                   ),
                 ),
                 const PopupMenuItem<_ViewerMenuAction>(
@@ -9282,7 +9396,7 @@ setlist=$setlistLabel
                           ),
                         ),
                       ),
-                    if (_isApplyingPageRotations)
+                    if (_isApplyingPageTransform)
                       Positioned.fill(
                         child: ColoredBox(
                           color: Colors.black.withValues(alpha: 0.24),
@@ -9295,7 +9409,7 @@ setlist=$setlistLabel
                                   children: const [
                                     CircularProgressIndicator(),
                                     SizedBox(height: 14),
-                                    Text('페이지 회전 적용 사본 생성 중'),
+                                    Text('페이지 적용 사본 생성 중'),
                                   ],
                                 ),
                               ),
@@ -9306,7 +9420,7 @@ setlist=$setlistLabel
                     if (currentScore.pageSettings.pageRotations.isNotEmpty &&
                         !_isPerformanceMode &&
                         !_isAnnotationMode &&
-                        !_isApplyingPageRotations)
+                        !_isApplyingPageTransform)
                       Positioned(
                         top: 12,
                         right: isCompactViewer ? 8 : 20,
