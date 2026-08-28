@@ -131,6 +131,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 세트리스트 전환은 기본적으로 확인 dialog를 띄우며, 사용자가 켠 경우 곡 마지막 페이지에서
   다음 페이지 입력을 다음 곡 이동으로 처리한다. 세트리스트 공연 중에는 실수로 악보별 마지막
   페이지가 덮어써지지 않도록 last page 저장을 보수적으로 제한한다.
+- 반 페이지 넘김은 `SheetHalfPageTurnPolicy`로 orientation별 step을 계산한다. portrait는 기존에
+  가까운 82%, landscape는 anchor 이탈을 줄이기 위해 66%를 사용한다. 같은 page 안에서는 top
+  anchor로 viewport만 이동하고, page boundary를 넘는 경우에만 다음/이전 표시 page로 이동해
+  lastPage persistence가 갱신된다.
 - 세트리스트별 공연 보기 preset은 `SheetSetlist.viewerSettingsOverride`에 저장한다. display mode,
   page scale, 반 페이지 넘김, 곡 전환 확인, 곡 끝 자동 이동, 페달 mapping을 세트리스트로 열 때만
   곡별 `SheetScore.viewerSettings`보다 우선 적용하고, 곡 자체의 보기 설정은 보존한다.
@@ -324,7 +328,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   숨김 페이지를 건너뛰어 이전/다음 표시 페이지로 넘어간다.
 - 반 페이지 넘김은 `2페이지` 보기와 동시에 사용하지 않는다. `2페이지` 전환 시 자동으로
   꺼지고, `2페이지` 상태에서는 메뉴 항목을 비활성화한다.
-- 더 정밀한 상단/하단 anchor persistence, landscape half-page 정책은 후속 spike로 분리한다.
+- orientation별 half-page step과 page boundary persistence는 1차 구현했다. zoom level별 더 정밀한
+  상단/하단 anchor 보정은 후속 spike로 분리한다.
 - 공연 모드는 viewer session local 상태로 둔다.
 - 공연 모드 ON 시 북마크 편집, 보기 모드, PDF 링크 영역 표시 같은 관리 action을 숨기고
   페이지 컨트롤 크기를 키운다.

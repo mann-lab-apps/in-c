@@ -14,6 +14,7 @@ import 'sheet_annotation_geometry.dart';
 import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
 import 'sheet_file_import.dart';
+import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_controller.dart';
 import 'sheet_library_profile.dart';
@@ -5181,6 +5182,14 @@ setlist=$setlistLabel
         !score.pageSettings.hasCustomPageOrder;
   }
 
+  SheetHalfPageTurnPolicy get _halfPageTurnPolicy {
+    final size = MediaQuery.sizeOf(context);
+    return SheetHalfPageTurnPolicy.fromDimensions(
+      width: size.width,
+      height: size.height,
+    );
+  }
+
   bool _canGoToRelativeHalfPage(int delta) {
     if (!_pdfController.isReady || !_usesHalfPageTurnForRelativePage) {
       return false;
@@ -5195,10 +5204,13 @@ setlist=$setlistLabel
       return false;
     }
     final pageRect = layouts[currentPage - 1];
-    final halfStep = visibleRect.height * 0.82;
-    final targetTop = visibleRect.top + (halfStep * delta);
-    return targetTop >= pageRect.top &&
-        targetTop + visibleRect.height <= pageRect.bottom;
+    return _halfPageTurnPolicy.canStayWithinPage(
+      visibleTop: visibleRect.top,
+      visibleHeight: visibleRect.height,
+      pageTop: pageRect.top,
+      pageBottom: pageRect.bottom,
+      delta: delta,
+    );
   }
 
   Future<bool> _goToRelativeHalfPage(int delta) async {
@@ -5215,11 +5227,20 @@ setlist=$setlistLabel
       return false;
     }
     final pageRect = layouts[currentPage - 1];
-    final halfStep = visibleRect.height * 0.82;
-    final targetTop = visibleRect.top + (halfStep * delta);
+    final policy = _halfPageTurnPolicy;
+    final targetTop = policy.targetTop(
+      visibleTop: visibleRect.top,
+      visibleHeight: visibleRect.height,
+      delta: delta,
+    );
 
-    if (targetTop >= pageRect.top &&
-        targetTop + visibleRect.height <= pageRect.bottom) {
+    if (policy.canStayWithinPage(
+      visibleTop: visibleRect.top,
+      visibleHeight: visibleRect.height,
+      pageTop: pageRect.top,
+      pageBottom: pageRect.bottom,
+      delta: delta,
+    )) {
       await _pdfController.goToArea(
         rect: Rect.fromLTWH(
           visibleRect.left,

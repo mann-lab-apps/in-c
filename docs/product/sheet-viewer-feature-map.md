@@ -50,7 +50,7 @@
 | 보기 | 모바일 viewer AppBar 정리 | iPhone smoke test 보강 | MVP | 낮음 | 3차 구현: 좁은 화면 overflow menu, 핵심 action 우선 노출 |
 | 보기 | 하단 페이지 컨트롤 자동 숨김 | iPhone smoke test 보강 | MVP | 낮음 | 3차 구현: 일반 모드 fade out, 터치 시 재표시, 공연 모드 유지 |
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
-| 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 4차 이후 정교화: orientation별 anchor/persistence rules |
+| 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | performance spike |
 | 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
@@ -158,7 +158,6 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 카메라 PDF 스캔은 별도 스캐너 품질 기대가 생기므로 Later로 둔다.
 - cloud file import.
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
-- orientation별 반 페이지 정책 정교화.
 - pressure sensitivity, palm rejection.
 - 로컬 오디오 플레이어 iOS parity와 codec/latency QA.
 
