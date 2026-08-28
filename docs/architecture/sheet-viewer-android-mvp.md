@@ -828,5 +828,6 @@ crop-to-fit, virtual page order, 페이지 복제, jump point, 회전 적용 사
 favorite annotation preset, 화살표/사각형/stamp, 자동 스크롤 cue/pause/resume, 공연 quick action
 overlay, Bluetooth/USB 페달 mapping preset, 연결 파일 관리 UI, collection/group/rating facet 탐색,
 PDF URL link tap 정책 보강을 추가했다. 원본 PDF는 계속 source of truth로 보존하고, URL 제거/회전
-적용/필기 포함 export는 앱 내부 사본 또는 임시 export 사본으로 처리한다. 로컬 환경에는 `dart`와
-`flutter` 실행 파일이 없어 `dart format`, `flutter analyze`, `flutter test`는 아직 실행하지 못했다.
+적용/필기 포함 export는 앱 내부 사본 또는 임시 export 사본으로 처리한다. 2026-08-28에
+Homebrew Flutter `3.47.2`/Dart `3.13.2`로 `flutter pub get`, `dart format lib test`,
+`flutter analyze`, `flutter test`를 실행해 통과했다.

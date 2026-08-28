@@ -42,7 +42,7 @@ void main() {
 
     expect(frequencies, hasLength(2));
     expect(frequencies.first.toStringAsFixed(1), '442.0');
-    expect(frequencies.last.toStringAsFixed(1), '662.0');
+    expect(frequencies.last.toStringAsFixed(1), '662.3');
   });
 
   test('sends playback payload through method channel', () async {

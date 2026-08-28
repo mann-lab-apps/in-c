@@ -28,19 +28,16 @@ enum SheetToneDroneMode {
     final root = rootMidiNumber.clamp(0, 127).toInt();
     return switch (this) {
       SheetToneDroneMode.reference => <int>[root],
-      SheetToneDroneMode.fifth => <int>[
-          root,
-          (root + 7).clamp(0, 127).toInt(),
-        ],
+      SheetToneDroneMode.fifth => <int>[root, (root + 7).clamp(0, 127).toInt()],
       SheetToneDroneMode.octave => <int>[
-          root,
-          (root + 12).clamp(0, 127).toInt(),
-        ],
+        root,
+        (root + 12).clamp(0, 127).toInt(),
+      ],
       SheetToneDroneMode.fifthOctave => <int>[
-          root,
-          (root + 7).clamp(0, 127).toInt(),
-          (root + 12).clamp(0, 127).toInt(),
-        ],
+        root,
+        (root + 7).clamp(0, 127).toInt(),
+        (root + 12).clamp(0, 127).toInt(),
+      ],
     };
   }
 
@@ -189,10 +186,7 @@ class SheetTonePlayer {
 }
 
 class SheetTonePlaybackResult {
-  const SheetTonePlaybackResult._({
-    required this.status,
-    this.message = '',
-  });
+  const SheetTonePlaybackResult._({required this.status, this.message = ''});
 
   static const playing = SheetTonePlaybackResult._(
     status: SheetTonePlaybackStatus.playing,

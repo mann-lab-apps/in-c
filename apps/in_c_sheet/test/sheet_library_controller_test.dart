@@ -106,29 +106,31 @@ void main() {
     expect(controller.filteredScores.single.id, updated.id);
   });
 
-  test('restores automatic metadata backup and reloads controller state',
-      () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    await store.saveScores(<SheetScore>[
-      _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
-    ]);
+  test(
+    'restores automatic metadata backup and reloads controller state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now, id: 'auto-backup-score', title: 'Automatic Backup Score'),
+      ]);
 
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
-    expect(controller.scores.single.id, 'auto-backup-score');
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.scores.single.id, 'auto-backup-score');
 
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      'clef_scores',
-      SheetScore.encodeList(const <SheetScore>[]),
-    );
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        'clef_scores',
+        SheetScore.encodeList(const <SheetScore>[]),
+      );
 
-    final result = await controller.restoreAutomaticMetadataBackup();
-    expect(result.status, SheetLibraryBackupRestoreStatus.restored);
-    expect(controller.scores.single.id, 'auto-backup-score');
-  });
+      final result = await controller.restoreAutomaticMetadataBackup();
+      expect(result.status, SheetLibraryBackupRestoreStatus.restored);
+      expect(controller.scores.single.id, 'auto-backup-score');
+    },
+  );
 
   test('updates and reloads global viewer action defaults', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -164,35 +166,37 @@ void main() {
     );
   });
 
-  test('applies global viewer action defaults to newly imported scores',
-      () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = _ImportScoreStore(_score(now, id: 'imported-score'));
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
-    await controller.updateGlobalViewerSettings(
-      const SheetViewerSettings(
-        displayMode: 'twoPage',
-        halfPageTurn: true,
-        pageScale: SheetViewerSettings.fullscreenScale,
-        pedalMapping: SheetViewerSettings.reversedPedalMapping,
-      ),
-    );
+  test(
+    'applies global viewer action defaults to newly imported scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(_score(now, id: 'imported-score'));
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateGlobalViewerSettings(
+        const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: true,
+          pageScale: SheetViewerSettings.fullscreenScale,
+          pedalMapping: SheetViewerSettings.reversedPedalMapping,
+        ),
+      );
 
-    final imported = await controller.importPdf();
+      final imported = await controller.importPdf();
 
-    expect(imported?.viewerSettings.displayMode, 'twoPage');
-    expect(imported?.viewerSettings.halfPageTurn, isTrue);
-    expect(
-      imported?.viewerSettings.pageScale,
-      SheetViewerSettings.fullscreenScale,
-    );
-    expect(
-      imported?.viewerSettings.pedalMapping,
-      SheetViewerSettings.reversedPedalMapping,
-    );
-  });
+      expect(imported?.viewerSettings.displayMode, 'twoPage');
+      expect(imported?.viewerSettings.halfPageTurn, isTrue);
+      expect(
+        imported?.viewerSettings.pageScale,
+        SheetViewerSettings.fullscreenScale,
+      );
+      expect(
+        imported?.viewerSettings.pedalMapping,
+        SheetViewerSettings.reversedPedalMapping,
+      );
+    },
+  );
 
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -681,9 +685,7 @@ void main() {
         hiddenPages: <int>[],
         pageRotations: <int, int>{},
         crop: SheetCropSettings(top: 0.08),
-        pageCrops: <int, SheetCropSettings>{
-          2: SheetCropSettings(bottom: 0.12),
-        },
+        pageCrops: <int, SheetCropSettings>{2: SheetCropSettings(bottom: 0.12)},
       ),
       annotationLayer: SheetAnnotationLayer(
         strokes: <SheetAnnotationStroke>[stroke],
@@ -883,10 +885,10 @@ void main() {
       'stroke-3-page1',
       'stroke-3-page4',
     ]);
-    expect(
-      updated.annotationLayer.texts.map((text) => text.pageNumber),
-      <int>[1, 4],
-    );
+    expect(updated.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+      1,
+      4,
+    ]);
     expect(updated.annotationLayer.texts.map((text) => text.id), <String>[
       'text-3-page1',
       'text-3-page4',
@@ -1450,8 +1452,10 @@ void main() {
       includeInExport: false,
     );
 
-    expect(controller.scores.single.annotationLayer.isDefaultLayerVisible,
-        isFalse);
+    expect(
+      controller.scores.single.annotationLayer.isDefaultLayerVisible,
+      isFalse,
+    );
     expect(
       controller.scores.single.annotationLayer.includeDefaultLayerInExport,
       isFalse,
@@ -1661,11 +1665,7 @@ void main() {
     final store = SheetLibraryStore();
     await store.saveScores(<SheetScore>[
       _score(now, id: 'score-1', title: 'First'),
-      _score(
-        now,
-        id: 'score-2',
-        title: 'Second',
-      ).copyWith(
+      _score(now, id: 'score-2', title: 'Second').copyWith(
         viewerSettings: const SheetViewerSettings(
           displayMode: 'singlePage',
           halfPageTurn: false,
@@ -1736,116 +1736,118 @@ void main() {
     );
   });
 
-  test('saves performance templates and keeps setlist override priority',
-      () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final store = SheetLibraryStore();
-    await store.saveScores(<SheetScore>[
-      _score(now).copyWith(
-        viewerSettings: const SheetViewerSettings(
-          displayMode: 'singlePage',
-          halfPageTurn: false,
-          pageScale: SheetViewerSettings.fitPageScale,
+  test(
+    'saves performance templates and keeps setlist override priority',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now).copyWith(
+          viewerSettings: const SheetViewerSettings(
+            displayMode: 'singlePage',
+            halfPageTurn: false,
+            pageScale: SheetViewerSettings.fitPageScale,
+          ),
         ),
-      ),
-    ]);
-    await store.saveSetlists(<SheetSetlist>[
-      SheetSetlist(
-        id: 'setlist-1',
-        title: 'Recital',
-        scoreIds: const <String>['score-1'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-    ]);
+      ]);
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'setlist-1',
+          title: 'Recital',
+          scoreIds: const <String>['score-1'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
 
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
 
-    final scoreTemplate = await controller.savePerformancePresetTemplate(
-      name: 'Tablet page turns',
-      deviceProfile: 'Galaxy Tab',
-      viewerSettings: const SheetViewerSettings(
-        displayMode: 'twoPage',
-        halfPageTurn: true,
-        pageScale: SheetViewerSettings.fitWidthScale,
-        pedalMapping: SheetViewerSettings.setlistPedalMapping,
-      ),
-    );
-    final setlistTemplate = await controller.savePerformancePresetTemplate(
-      name: 'Stage override',
-      viewerSettings: const SheetViewerSettings(
-        displayMode: 'continuousVertical',
-        halfPageTurn: false,
-        pageScale: SheetViewerSettings.fullscreenScale,
-        autoAdvanceSetlist: true,
-      ),
-    );
+      final scoreTemplate = await controller.savePerformancePresetTemplate(
+        name: 'Tablet page turns',
+        deviceProfile: 'Galaxy Tab',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: true,
+          pageScale: SheetViewerSettings.fitWidthScale,
+          pedalMapping: SheetViewerSettings.setlistPedalMapping,
+        ),
+      );
+      final setlistTemplate = await controller.savePerformancePresetTemplate(
+        name: 'Stage override',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'continuousVertical',
+          halfPageTurn: false,
+          pageScale: SheetViewerSettings.fullscreenScale,
+          autoAdvanceSetlist: true,
+        ),
+      );
 
-    expect(controller.performancePresetTemplates, hasLength(2));
-    expect(
-      await controller.applyPerformancePresetToScore(
-        controller.scoreById('score-1'),
-        scoreTemplate.id,
-      ),
-      isTrue,
-    );
-    expect(
-      controller.scoreById('score-1').viewerSettings.displayMode,
-      'twoPage',
-    );
+      expect(controller.performancePresetTemplates, hasLength(2));
+      expect(
+        await controller.applyPerformancePresetToScore(
+          controller.scoreById('score-1'),
+          scoreTemplate.id,
+        ),
+        isTrue,
+      );
+      expect(
+        controller.scoreById('score-1').viewerSettings.displayMode,
+        'twoPage',
+      );
 
-    expect(
-      await controller.applyPerformancePresetToSetlist(
+      expect(
+        await controller.applyPerformancePresetToSetlist(
+          controller.setlistById('setlist-1'),
+          setlistTemplate.id,
+        ),
+        isTrue,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .pageScale,
+        SheetViewerSettings.fullscreenScale,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .autoAdvanceSetlist,
+        isTrue,
+      );
+
+      await controller.updateSetlistRehearsalSettings(
         controller.setlistById('setlist-1'),
-        setlistTemplate.id,
-      ),
-      isTrue,
-    );
-    expect(
-      controller
-          .viewerSettingsForScore(
-            controller.scoreById('score-1'),
-            setlistId: 'setlist-1',
-          )
-          .pageScale,
-      SheetViewerSettings.fullscreenScale,
-    );
-    expect(
-      controller
-          .viewerSettingsForScore(
-            controller.scoreById('score-1'),
-            setlistId: 'setlist-1',
-          )
-          .autoAdvanceSetlist,
-      isTrue,
-    );
+        clearViewerSettingsOverride: true,
+      );
+      expect(
+        controller
+            .viewerSettingsForScore(
+              controller.scoreById('score-1'),
+              setlistId: 'setlist-1',
+            )
+            .pageScale,
+        SheetViewerSettings.fitWidthScale,
+      );
 
-    await controller.updateSetlistRehearsalSettings(
-      controller.setlistById('setlist-1'),
-      clearViewerSettingsOverride: true,
-    );
-    expect(
-      controller
-          .viewerSettingsForScore(
-            controller.scoreById('score-1'),
-            setlistId: 'setlist-1',
-          )
-          .pageScale,
-      SheetViewerSettings.fitWidthScale,
-    );
+      expect(
+        await controller.deletePerformancePresetTemplate(scoreTemplate.id),
+        isTrue,
+      );
+      expect(controller.performancePresetTemplates, hasLength(1));
 
-    expect(
-      await controller.deletePerformancePresetTemplate(scoreTemplate.id),
-      isTrue,
-    );
-    expect(controller.performancePresetTemplates, hasLength(1));
-
-    final reloaded = SheetLibraryController(store: store);
-    await reloaded.load();
-    expect(reloaded.performancePresetTemplates.single.name, 'Stage override');
-  });
+      final reloaded = SheetLibraryController(store: store);
+      await reloaded.load();
+      expect(reloaded.performancePresetTemplates.single.name, 'Stage override');
+    },
+  );
 
   test('normalizes shared import payloads', () {
     final files = normalizeSharedImportPayload(<Object?>[

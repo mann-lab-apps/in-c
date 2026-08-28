@@ -6,10 +6,7 @@ import 'package:pdf_document/pdf_document.dart';
 import 'sheet_annotation.dart';
 import 'sheet_score.dart';
 
-enum SheetPdfAnnotationExportMode {
-  renderedStamp,
-  standardAnnotation,
-}
+enum SheetPdfAnnotationExportMode { renderedStamp, standardAnnotation }
 
 class SheetAnnotatedPdfExportResult {
   const SheetAnnotatedPdfExportResult({

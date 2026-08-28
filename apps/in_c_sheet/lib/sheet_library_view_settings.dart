@@ -197,9 +197,7 @@ class SheetPerformancePresetTemplate {
     this.deviceProfile = '',
   });
 
-  factory SheetPerformancePresetTemplate.fromJson(
-    Map<String, Object?> json,
-  ) {
+  factory SheetPerformancePresetTemplate.fromJson(Map<String, Object?> json) {
     final id = _stringFromJson(json['id']).trim();
     final name = _stringFromJson(json['name']).trim();
     final deviceProfile = _stringFromJson(json['deviceProfile']).trim();
@@ -299,9 +297,9 @@ class SheetPerformancePresetTemplateCodec {
 
   static String encode(List<SheetPerformancePresetTemplate> templates) {
     return jsonEncode(
-      SheetPerformancePresetTemplate.normalizeList(
-        templates,
-      ).map((template) => template.toJson()).toList(growable: false),
+      SheetPerformancePresetTemplate.normalizeList(templates)
+          .map((template) => template.toJson())
+          .toList(growable: false),
     );
   }
 }

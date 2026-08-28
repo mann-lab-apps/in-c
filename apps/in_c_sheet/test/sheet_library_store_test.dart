@@ -5,6 +5,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
+import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
@@ -434,6 +435,19 @@ void main() {
           ),
         ],
       ),
+      autoScrollSettings: const SheetAutoScrollSettings(
+        durationSeconds: 240,
+        startPage: 2,
+        endPage: 6,
+        pausePageNumbers: <int>[4],
+        repeatSections: <SheetAutoScrollRepeatSection>[
+          SheetAutoScrollRepeatSection(startPage: 3, endPage: 4),
+        ],
+        pageDurations: <int, int>{3: 75},
+        cuePoints: <SheetAutoScrollCuePoint>[
+          SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
+        ],
+      ),
     );
     final setlist = SheetSetlist(
       id: 'setlist-1',
@@ -551,10 +565,9 @@ void main() {
       backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
       3,
     );
-    expect(
-      backup.scores.single.autoScrollSettings.pageDurations,
-      <int, int>{3: 75},
-    );
+    expect(backup.scores.single.autoScrollSettings.pageDurations, <int, int>{
+      3: 75,
+    });
     expect(backup.scores.single.autoScrollSettings.cuePoints.single.label, 'A');
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
@@ -621,10 +634,7 @@ void main() {
     expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
-    expect(
-      (await restoreStore.loadToneSettings()).rootConcertMidiNumber,
-      60,
-    );
+    expect((await restoreStore.loadToneSettings()).rootConcertMidiNumber, 60);
     expect(
       (await restoreStore.loadToneSettings()).droneMode,
       SheetToneDroneMode.fifthOctave,
@@ -653,8 +663,8 @@ void main() {
       (await restoreStore.loadGlobalViewerSettings()).customPedalMapping['Tab'],
       'none',
     );
-    final restoredTemplates =
-        await restoreStore.loadPerformancePresetTemplates();
+    final restoredTemplates = await restoreStore
+        .loadPerformancePresetTemplates();
     expect(restoredTemplates.single.name, 'Stage tablet');
     expect(
       restoredTemplates.single.viewerSettings.pedalMapping,
@@ -919,8 +929,8 @@ void main() {
       (await restoreStore.loadGlobalViewerSettings()).pedalMapping,
       SheetViewerSettings.reversedPedalMapping,
     );
-    final restoredTemplates =
-        await restoreStore.loadPerformancePresetTemplates();
+    final restoredTemplates = await restoreStore
+        .loadPerformancePresetTemplates();
     expect(restoredTemplates.single.name, 'Full backup preset');
     expect(
       restoredTemplates.single.viewerSettings.pageScale,
@@ -988,43 +998,46 @@ void main() {
     expect(await File(score.filePath).readAsBytes(), sourceBytes);
   });
 
-  test('creates page arrangement applied copy without mutating source PDF', () async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    final store = SheetLibraryStore();
-    final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
-        .readAsBytes();
-    final score = await store.importPdfBytes(
-      bytes: sourceBytes,
-      fileName: 'short-score.pdf',
-      importedAt: now,
-    );
-    final scoreWithArrangement = score.copyWith(
-      pageSettings: SheetPageSettings(
-        hiddenPages: const <int>[2],
-        pageRotations: const <int, int>{},
-        pageOrder: const <int>[3, 1, 3],
-        blankPageInsertions: <SheetBlankPageInsertion>[
-          SheetBlankPageInsertion(
-            id: 'blank-1',
-            afterPage: 1,
-            label: 'Notes',
-            createdAt: now,
-          ),
-        ],
-      ),
-    );
+  test(
+    'creates page arrangement applied copy without mutating source PDF',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final sourceBytes = await File('test-fixtures/pdfs/short-score.pdf')
+          .readAsBytes();
+      final score = await store.importPdfBytes(
+        bytes: sourceBytes,
+        fileName: 'short-score.pdf',
+        importedAt: now,
+      );
+      final scoreWithArrangement = score.copyWith(
+        pageSettings: SheetPageSettings(
+          hiddenPages: const <int>[2],
+          pageRotations: const <int, int>{},
+          pageOrder: const <int>[3, 1, 3],
+          blankPageInsertions: <SheetBlankPageInsertion>[
+            SheetBlankPageInsertion(
+              id: 'blank-1',
+              afterPage: 1,
+              label: 'Notes',
+              createdAt: now,
+            ),
+          ],
+        ),
+      );
 
-    final result = await store.createPageArrangementAppliedCopy(
-      scoreWithArrangement,
-    );
+      final result = await store.createPageArrangementAppliedCopy(
+        scoreWithArrangement,
+      );
 
-    expect(result.didWrite, isTrue);
-    expect(result.outputPageCount, 4);
-    expect(result.outputPath, isNotNull);
-    expect(await File(result.outputPath!).exists(), isTrue);
-    expect(await File(score.filePath).readAsBytes(), sourceBytes);
-  });
+      expect(result.didWrite, isTrue);
+      expect(result.outputPageCount, 4);
+      expect(result.outputPath, isNotNull);
+      expect(await File(result.outputPath!).exists(), isTrue);
+      expect(await File(score.filePath).readAsBytes(), sourceBytes);
+    },
+  );
 
   test('rejects non-zip full backup bytes', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1157,7 +1170,11 @@ void main() {
   });
 }
 
-SheetScore _score(DateTime now, {String filePath = '/tmp/sonata.pdf'}) {
+SheetScore _score(
+  DateTime now, {
+  String filePath = '/tmp/sonata.pdf',
+  List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
+}) {
   return SheetScore(
     id: 'score-1',
     title: 'Sonata',
@@ -1171,6 +1188,7 @@ SheetScore _score(DateTime now, {String filePath = '/tmp/sonata.pdf'}) {
     lastPage: 2,
     isFavorite: false,
     bookmarks: const <SheetBookmark>[],
+    linkedFiles: linkedFiles,
   );
 }
 

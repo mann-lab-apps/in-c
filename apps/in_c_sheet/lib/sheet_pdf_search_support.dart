@@ -5,11 +5,9 @@ class SheetPdfSearchSupport {
   static const embeddedTextEngine = 'pdfrx.embeddedText';
   static const ocrUnsupportedEngine = 'ocr.unsupported';
   static const embeddedTextOnlyHelper = 'PDF 내부 텍스트가 있는 파일에서만 검색됩니다.';
-  static const unsupportedTextSearchMessage =
-      '이 PDF에서는 본문 텍스트 검색을 사용할 수 없습니다.';
+  static const unsupportedTextSearchMessage = '이 PDF에서는 본문 텍스트 검색을 사용할 수 없습니다.';
   static const noResultStatus = '결과 없음 · 스캔 PDF는 텍스트가 없을 수 있습니다.';
-  static const ocrUnsupportedHint =
-      'OCR은 v1 범위 밖입니다. 스캔 악보는 파일명/태그/북마크로 찾으세요.';
+  static const ocrUnsupportedHint = 'OCR은 v1 범위 밖입니다. 스캔 악보는 파일명/태그/북마크로 찾으세요.';
 }
 
 class SheetPdfSearchIndexManifest {

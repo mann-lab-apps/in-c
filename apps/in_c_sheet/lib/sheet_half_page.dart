@@ -28,6 +28,9 @@ class SheetHalfPageTurnPolicy {
     );
   }
 
+  final SheetHalfPageOrientation orientation;
+  final double stepRatio;
+
   double stepFor(double visibleHeight) {
     if (visibleHeight <= 0 || visibleHeight.isNaN) {
       return 0;

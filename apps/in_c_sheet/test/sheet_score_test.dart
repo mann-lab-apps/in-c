@@ -261,11 +261,17 @@ void main() {
     expect(decoded.single.autoScrollSettings.endPage, 9);
     expect(decoded.single.autoScrollSettings.cueSeconds, 5);
     expect(decoded.single.autoScrollSettings.pausePageNumbers, <int>[4]);
-    expect(decoded.single.autoScrollSettings.repeatSections.single.startPage, 5);
+    expect(
+      decoded.single.autoScrollSettings.repeatSections.single.startPage,
+      5,
+    );
     expect(decoded.single.autoScrollSettings.repeatSections.single.endPage, 6);
     expect(decoded.single.autoScrollSettings.pageDurations, <int, int>{5: 90});
     expect(decoded.single.autoScrollSettings.cuePoints.single.label, 'B');
-    expect(decoded.single.autoScrollSettings.cuePoints.single.measureNumber, 12);
+    expect(
+      decoded.single.autoScrollSettings.cuePoints.single.measureNumber,
+      12,
+    );
   });
 
   test('normalizes custom metadata fields safely', () {
@@ -951,11 +957,7 @@ void main() {
         '4': 2.4,
         '5': -90,
       },
-      'instanceRotations': <String, Object?>{
-        '-1': 90,
-        '0': 45,
-        '2': 270.2,
-      },
+      'instanceRotations': <String, Object?>{'-1': 90, '0': 45, '2': 270.2},
       'instanceCrops': <String, Object?>{
         '-1': <String, Object?>{'left': 0.2},
         '1': <String, Object?>{'left': 0},
@@ -1095,9 +1097,7 @@ void main() {
       pageCrops: <int, SheetCropSettings>{4: SheetCropSettings(right: 0.02)},
       pageOrder: <int>[1, 4, 2, 4, 3],
       instanceRotations: <int, int>{1: 180},
-      instanceCrops: <int, SheetCropSettings>{
-        1: SheetCropSettings(top: 0.03),
-      },
+      instanceCrops: <int, SheetCropSettings>{1: SheetCropSettings(top: 0.03)},
     );
 
     final moved = settings.movePageInOrder(
@@ -1126,13 +1126,15 @@ void main() {
       crop: const SheetCropSettings(bottom: 0.04),
     );
     final decoded = SheetPageSettings.fromJson(settings.toJson());
-    final compacted = settings.copyWith(
-      instanceRotations: const <int, int>{1: 180, 99: 90},
-      instanceCrops: const <int, SheetCropSettings>{
-        1: SheetCropSettings(top: 0.03),
-        99: SheetCropSettings(left: 0.05),
-      },
-    ).compactForPageCount(4);
+    final compacted = settings
+        .copyWith(
+          instanceRotations: const <int, int>{1: 180, 99: 90},
+          instanceCrops: const <int, SheetCropSettings>{
+            1: SheetCropSettings(top: 0.03),
+            99: SheetCropSettings(left: 0.05),
+          },
+        )
+        .compactForPageCount(4);
     final reset = settings.resetPageOrder();
 
     expect(settings.rotationForPage(4), 90);

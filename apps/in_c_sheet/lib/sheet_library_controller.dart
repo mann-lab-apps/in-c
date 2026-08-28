@@ -166,8 +166,7 @@ class SheetLibraryController extends ChangeNotifier {
     _toneSettings = await store.loadToneSettings();
     _libraryViewSettings = await store.loadLibraryViewSettings();
     _globalViewerSettings = await store.loadGlobalViewerSettings();
-    _performancePresetTemplates =
-        await store.loadPerformancePresetTemplates();
+    _performancePresetTemplates = await store.loadPerformancePresetTemplates();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
     await _removeMissingSetlistScores();
   }
@@ -692,8 +691,9 @@ class SheetLibraryController extends ChangeNotifier {
         if (item.id != template.id) item,
       template,
     ];
-    _performancePresetTemplates =
-        SheetPerformancePresetTemplate.normalizeList(next);
+    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
+      next,
+    );
     await store.savePerformancePresetTemplates(_performancePresetTemplates);
     notifyListeners();
     return template;
@@ -706,8 +706,9 @@ class SheetLibraryController extends ChangeNotifier {
     if (next.length == _performancePresetTemplates.length) {
       return false;
     }
-    _performancePresetTemplates =
-        SheetPerformancePresetTemplate.normalizeList(next);
+    _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
+      next,
+    );
     await store.savePerformancePresetTemplates(_performancePresetTemplates);
     notifyListeners();
     return true;
@@ -733,7 +734,7 @@ class SheetLibraryController extends ChangeNotifier {
     if (template == null) {
       return false;
     }
-    await updateSetlist(
+    await updateSetlistRehearsalSettings(
       setlist,
       viewerSettingsOverride: template.viewerSettings,
     );
@@ -924,11 +925,8 @@ class SheetLibraryController extends ChangeNotifier {
     await _replace(
       score.copyWith(
         filePath: result.outputPath,
-        lastPage: _firstMappedPage(
-              result.sourcePageMapping,
-              score.lastPage,
-            ) ??
-            1,
+        lastPage:
+            _firstMappedPage(result.sourcePageMapping, score.lastPage) ?? 1,
         bookmarks: _rebaseBookmarksForAppliedArrangement(
           score.bookmarks,
           result.sourcePageMapping,
@@ -984,17 +982,15 @@ class SheetLibraryController extends ChangeNotifier {
     Map<int, List<int>> sourcePageMapping,
   ) {
     return List<SheetBookmark>.unmodifiable(
-      bookmarks
-          .map((bookmark) {
-            final pageNumber = _firstMappedPage(
-              sourcePageMapping,
-              bookmark.pageNumber,
-            );
-            return pageNumber == null
-                ? null
-                : bookmark.copyWith(pageNumber: pageNumber);
-          })
-          .whereType<SheetBookmark>(),
+      bookmarks.map((bookmark) {
+        final pageNumber = _firstMappedPage(
+          sourcePageMapping,
+          bookmark.pageNumber,
+        );
+        return pageNumber == null
+            ? null
+            : bookmark.copyWith(pageNumber: pageNumber);
+      }).whereType<SheetBookmark>(),
     );
   }
 
@@ -1027,27 +1023,25 @@ class SheetLibraryController extends ChangeNotifier {
     Map<int, List<int>> sourcePageMapping,
   ) {
     return List<SheetPageJumpPoint>.unmodifiable(
-      jumpPoints
-          .map((jumpPoint) {
-            final sourcePage = _firstMappedPage(
-              sourcePageMapping,
-              jumpPoint.sourcePage,
-            );
-            final targetPage = _firstMappedPage(
-              sourcePageMapping,
-              jumpPoint.targetPage,
-            );
-            if (sourcePage == null ||
-                targetPage == null ||
-                sourcePage == targetPage) {
-              return null;
-            }
-            return jumpPoint.copyWith(
-              sourcePage: sourcePage,
-              targetPage: targetPage,
-            );
-          })
-          .whereType<SheetPageJumpPoint>(),
+      jumpPoints.map((jumpPoint) {
+        final sourcePage = _firstMappedPage(
+          sourcePageMapping,
+          jumpPoint.sourcePage,
+        );
+        final targetPage = _firstMappedPage(
+          sourcePageMapping,
+          jumpPoint.targetPage,
+        );
+        if (sourcePage == null ||
+            targetPage == null ||
+            sourcePage == targetPage) {
+          return null;
+        }
+        return jumpPoint.copyWith(
+          sourcePage: sourcePage,
+          targetPage: targetPage,
+        );
+      }).whereType<SheetPageJumpPoint>(),
     );
   }
 
@@ -1056,17 +1050,12 @@ class SheetLibraryController extends ChangeNotifier {
     Map<int, List<int>> sourcePageMapping,
   ) {
     return List<SheetRehearsalMark>.unmodifiable(
-      marks
-          .map((mark) {
-            final pageNumber = _firstMappedPage(
-              sourcePageMapping,
-              mark.pageNumber,
-            );
-            return pageNumber == null
-                ? null
-                : mark.copyWith(pageNumber: pageNumber);
-          })
-          .whereType<SheetRehearsalMark>(),
+      marks.map((mark) {
+        final pageNumber = _firstMappedPage(sourcePageMapping, mark.pageNumber);
+        return pageNumber == null
+            ? null
+            : mark.copyWith(pageNumber: pageNumber);
+      }).whereType<SheetRehearsalMark>(),
     );
   }
 
@@ -1077,10 +1066,8 @@ class SheetLibraryController extends ChangeNotifier {
     return SheetAnnotationLayer(
       strokes: List<SheetAnnotationStroke>.unmodifiable(
         layer.strokes.expand(
-          (stroke) => _rebaseStrokeForAppliedArrangement(
-            stroke,
-            sourcePageMapping,
-          ),
+          (stroke) =>
+              _rebaseStrokeForAppliedArrangement(stroke, sourcePageMapping),
         ),
       ),
       texts: List<SheetTextAnnotation>.unmodifiable(
@@ -1152,10 +1139,7 @@ class SheetLibraryController extends ChangeNotifier {
     return const <SheetAnnotationRedoEntry>[];
   }
 
-  int? _firstMappedPage(
-    Map<int, List<int>> sourcePageMapping,
-    int sourcePage,
-  ) {
+  int? _firstMappedPage(Map<int, List<int>> sourcePageMapping, int sourcePage) {
     final pages = sourcePageMapping[sourcePage];
     if (pages == null || pages.isEmpty) {
       return null;
@@ -1286,10 +1270,7 @@ class SheetLibraryController extends ChangeNotifier {
     await _replace(
       score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
     );
-    return nextPageSettings.rotationForPage(
-      pageNumber,
-      orderIndex: orderIndex,
-    );
+    return nextPageSettings.rotationForPage(pageNumber, orderIndex: orderIndex);
   }
 
   Future<bool> updatePageInstanceCrop(
@@ -2021,7 +2002,8 @@ class SheetLibraryController extends ChangeNotifier {
     return result;
   }
 
-  Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() async {
+  Future<SheetLibraryBackupRestoreResult>
+  restoreAutomaticMetadataBackup() async {
     final result = await store.restoreAutomaticMetadataBackup();
     if (result.didRestore) {
       await load();

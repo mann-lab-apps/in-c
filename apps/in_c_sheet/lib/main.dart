@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -267,9 +268,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           name: name,
         );
         if (didRename && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')));
         }
       case _LibraryProfileActionType.delete:
         final didConfirm = await showDialog<bool>(
@@ -296,9 +296,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         }
         final didClear = await controller.clearLibraryProfile(action.libraryId);
         if (didClear && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('라이브러리를 비웠습니다.')),
-          );
+          ScaffoldMessenger.of(context)
+              .showSnackBar(const SnackBar(content: Text('라이브러리를 비웠습니다.')));
         }
     }
   }
@@ -766,7 +765,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       SheetLibraryBackupRestoreStatus.restored =>
         '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 자동 백업에서 복원했습니다.',
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
-      SheetLibraryBackupRestoreStatus.unsupportedVersion => '지원하지 않는 자동 백업 버전입니다.',
+      SheetLibraryBackupRestoreStatus.unsupportedVersion =>
+        '지원하지 않는 자동 백업 버전입니다.',
       SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 metadata 백업이 없습니다.',
       SheetLibraryBackupRestoreStatus.error => '자동 백업을 복원하지 못했습니다.',
     };
@@ -852,9 +852,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text('반 페이지 넘김'),
                     value: settings.halfPageTurn,
-                    onChanged: (value) => updateSettings(
-                      settings.copyWith(halfPageTurn: value),
-                    ),
+                    onChanged: (value) =>
+                        updateSettings(settings.copyWith(halfPageTurn: value)),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
@@ -941,9 +940,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted) {
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('전역 보기/입력 기본값을 저장했습니다.')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('전역 보기/입력 기본값을 저장했습니다.')));
   }
 
   Future<void> _importFullBackup() async {
@@ -1384,8 +1382,7 @@ class _LibraryProfileSheet extends StatelessWidget {
             ).pop(const _LibraryProfileAction(_LibraryProfileActionType.all)),
           ),
           const Divider(),
-          for (final profile
-              in profiles.where((profile) => !profile.isDefault))
+          for (final profile in profiles.where((profile) => !profile.isDefault))
             ListTile(
               leading: const Icon(Icons.collections_bookmark_outlined),
               title: Text(
@@ -3889,8 +3886,7 @@ class _SetlistRehearsalSheet extends StatefulWidget {
 class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
   late bool _rehearsalMode = widget.setlist.rehearsalMode;
   late int _transitionSeconds = widget.setlist.transitionSeconds;
-  late bool _useViewerOverride =
-      widget.setlist.viewerSettingsOverride != null;
+  late bool _useViewerOverride = widget.setlist.viewerSettingsOverride != null;
   late SheetViewerSettings _viewerOverride =
       widget.setlist.viewerSettingsOverride ??
       SheetViewerSettings.defaultSettings;
@@ -3975,10 +3971,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
                 initialValue: _globalViewerDisplayModeValue(_viewerOverride),
                 decoration: const InputDecoration(labelText: '보기 모드'),
                 items: const [
-                  DropdownMenuItem<String>(
-                    value: 'auto',
-                    child: Text('자동'),
-                  ),
+                  DropdownMenuItem<String>(value: 'auto', child: Text('자동')),
                   DropdownMenuItem<String>(
                     value: 'singlePage',
                     child: Text('1페이지'),
@@ -5548,8 +5541,7 @@ setlist=$setlistLabel
       visibleRect.height,
       isEndPage: toPage == plan.endPage,
     );
-    final targetTop =
-        fromTop + ((toTop - fromTop) * position.segmentProgress);
+    final targetTop = fromTop + ((toTop - fromTop) * position.segmentProgress);
 
     _isAutoScrollTicking = true;
     try {
@@ -5805,7 +5797,8 @@ setlist=$setlistLabel
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
                   final isAudio = _isSupportedLinkedAudio(linkedFile);
-                  final canOpen = exists &&
+                  final canOpen =
+                      exists &&
                       (linkedFile.type == 'pdf' || isImage || isAudio);
                   return ListTile(
                     leading: Icon(
@@ -5938,6 +5931,9 @@ setlist=$setlistLabel
       _showSnackBar('오디오 파일을 찾지 못했습니다.');
       return;
     }
+    if (!mounted) {
+      return;
+    }
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -5949,6 +5945,9 @@ setlist=$setlistLabel
     final imageFile = File(linkedFile.path);
     if (!await imageFile.exists()) {
       _showSnackBar('이미지 파일을 찾지 못했습니다.');
+      return;
+    }
+    if (!mounted) {
       return;
     }
     await showDialog<void>(
@@ -7256,10 +7255,7 @@ setlist=$setlistLabel
         _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
     final orderIndex = _effectiveOrderIndexForPage(currentScore, pageNumber);
     final degrees = orderIndex == null
-        ? await widget.controller.rotatePageClockwise(
-            currentScore,
-            pageNumber,
-          )
+        ? await widget.controller.rotatePageClockwise(currentScore, pageNumber)
         : await widget.controller.rotatePageInstanceClockwise(
             currentScore,
             orderIndex: orderIndex,
@@ -7412,21 +7408,15 @@ setlist=$setlistLabel
         return;
       }
       if (!result.didWrite) {
-        _showSnackBar(
-          '자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
         return;
       }
       _resetCropFitPosition();
       _pdfController.invalidate();
-      _showSnackBar(
-        '${result.croppedPageCount}쪽 자르기를 적용한 사본으로 교체했습니다.',
-      );
+      _showSnackBar('${result.croppedPageCount}쪽 자르기를 적용한 사본으로 교체했습니다.');
     } catch (_) {
       if (mounted) {
-        _showSnackBar(
-          '자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('자르기 적용 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
       }
     } finally {
       if (mounted) {
@@ -7475,11 +7465,7 @@ setlist=$setlistLabel
     }
     _resetCropFitPosition();
     if (selected.hasCrop) {
-      _scheduleCropToFit(
-        pageNumber,
-        orderIndex: orderIndex,
-        force: true,
-      );
+      _scheduleCropToFit(pageNumber, orderIndex: orderIndex, force: true);
     } else if (_pdfController.isReady) {
       await _pdfController.goToPage(
         pageNumber: pageNumber,
@@ -7883,21 +7869,15 @@ setlist=$setlistLabel
         return;
       }
       if (!result.didWrite) {
-        _showSnackBar(
-          '페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
         return;
       }
       _pageOrderCursor = null;
       _pdfController.invalidate();
-      _showSnackBar(
-        '${result.outputPageCount}쪽 페이지 정리 사본으로 교체했습니다.',
-      );
+      _showSnackBar('${result.outputPageCount}쪽 페이지 정리 사본으로 교체했습니다.');
     } catch (_) {
       if (mounted) {
-        _showSnackBar(
-          '페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.',
-        );
+        _showSnackBar('페이지 정리 사본을 만들지 못했습니다. 원본 PDF는 그대로 유지됩니다.');
       }
     } finally {
       if (mounted) {
@@ -9599,7 +9579,10 @@ setlist=$setlistLabel
                     leading: const Icon(Icons.library_books_outlined),
                     title: const Text('페이지 정리 적용 사본 생성'),
                     subtitle: Text(
-                      _pageTemplateSummary(currentScore, pageCount),
+                      _pageTemplateSummary(
+                        currentScore,
+                        _pdfController.pageCount,
+                      ),
                     ),
                   ),
                 ),
@@ -9952,7 +9935,10 @@ setlist=$setlistLabel
                     leading: const Icon(Icons.library_books_outlined),
                     title: const Text('페이지 정리 적용 사본 생성'),
                     subtitle: Text(
-                      _pageTemplateSummary(currentScore, pageCount),
+                      _pageTemplateSummary(
+                        currentScore,
+                        _pdfController.pageCount,
+                      ),
                     ),
                   ),
                 ),
@@ -10265,8 +10251,9 @@ setlist=$setlistLabel
                           selectedColor: _annotationColor,
                           selectedWidth: _annotationWidth,
                           hasFavoritePreset: _favoriteAnnotationPreset != null,
-                          isLayerVisible:
-                              currentScore.annotationLayer.isDefaultLayerVisible,
+                          isLayerVisible: currentScore
+                              .annotationLayer
+                              .isDefaultLayerVisible,
                           includeLayerInExport: currentScore
                               .annotationLayer
                               .includeDefaultLayerInExport,
@@ -10373,8 +10360,8 @@ setlist=$setlistLabel
                           isAutoScrolling: _isAutoScrolling,
                           isAutoScrollPaused: _isAutoScrollPaused,
                           isAutoScrollCueActive: isAutoScrollCueActive,
-                          allowMenus: _effectiveViewerSettings
-                              .allowPerformanceMenus,
+                          allowMenus:
+                              _effectiveViewerSettings.allowPerformanceMenus,
                           onBookmark: _toggleCurrentBookmark,
                           onAutoScroll: isAutoScrollCueActive
                               ? () => _stopAutoScroll(showMessage: true)
@@ -11237,19 +11224,22 @@ class _AnnotationPageOverlay extends StatefulWidget {
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
     double pressure,
-  ) onPanStart;
+  )
+  onPanStart;
   final Future<void> Function(
     DragUpdateDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
     double pressure,
-  ) onPanUpdate;
+  )
+  onPanUpdate;
   final Future<void> Function() onPanEnd;
   final Future<void> Function(
     TapUpDetails details,
     SheetAnnotationPageGeometry geometry,
     int pageNumber,
-  ) onTapUp;
+  )
+  onTapUp;
 
   @override
   State<_AnnotationPageOverlay> createState() => _AnnotationPageOverlayState();
@@ -11339,40 +11329,46 @@ class _AnnotationPageOverlayState extends State<_AnnotationPageOverlay> {
               onPanStart: widget.isEnabled
                   ? (details) {
                       if (_shouldRejectCurrentGesture) {
-                        return Future<void>.value();
+                        return;
                       }
-                      return widget.onPanStart(
-                        details,
-                        geometry,
-                        widget.pageNumber,
-                        _latestPressure,
+                      unawaited(
+                        widget.onPanStart(
+                          details,
+                          geometry,
+                          widget.pageNumber,
+                          _latestPressure,
+                        ),
                       );
                     }
                   : null,
               onPanUpdate: widget.isEnabled
                   ? (details) {
                       if (_shouldRejectCurrentGesture) {
-                        return Future<void>.value();
+                        return;
                       }
-                      return widget.onPanUpdate(
-                        details,
-                        geometry,
-                        widget.pageNumber,
-                        _latestPressure,
+                      unawaited(
+                        widget.onPanUpdate(
+                          details,
+                          geometry,
+                          widget.pageNumber,
+                          _latestPressure,
+                        ),
                       );
                     }
                   : null,
-              onPanEnd: widget.isEnabled ? (_) => widget.onPanEnd() : null,
-              onPanCancel: widget.isEnabled ? widget.onPanEnd : null,
+              onPanEnd: widget.isEnabled
+                  ? (_) => unawaited(widget.onPanEnd())
+                  : null,
+              onPanCancel: widget.isEnabled
+                  ? () => unawaited(widget.onPanEnd())
+                  : null,
               onTapUp: widget.isEnabled
                   ? (details) {
                       if (_shouldRejectCurrentGesture) {
-                        return Future<void>.value();
+                        return;
                       }
-                      return widget.onTapUp(
-                        details,
-                        geometry,
-                        widget.pageNumber,
+                      unawaited(
+                        widget.onTapUp(details, geometry, widget.pageNumber),
                       );
                     }
                   : null,
@@ -11505,7 +11501,11 @@ class _AnnotationPainter extends CustomPainter {
         baseStrokeWidth,
         (start.pressure + end.pressure) / 2,
       );
-      canvas.drawLine(_pointOffset(start, size), _pointOffset(end, size), paint);
+      canvas.drawLine(
+        _pointOffset(start, size),
+        _pointOffset(end, size),
+        paint,
+      );
     }
   }
 
@@ -11772,12 +11772,12 @@ class _AnnotationToolbar extends StatelessWidget {
               ),
             ),
             IconButton(
-              tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+              tooltip: includeLayerInExport
+                  ? 'PDF 공유에서 필기 제외'
+                  : 'PDF 공유에 필기 포함',
               onPressed: onToggleLayerExport,
               icon: Icon(
-                includeLayerInExport
-                    ? Icons.file_upload_outlined
-                    : Icons.block,
+                includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
               ),
             ),
             IconButton(
@@ -12217,19 +12217,20 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 
   Future<void> _removeRepeatSection(int index) {
     final sections = <SheetAutoScrollRepeatSection>[
-      for (var sectionIndex = 0;
-          sectionIndex < _settings.repeatSections.length;
-          sectionIndex += 1)
+      for (
+        var sectionIndex = 0;
+        sectionIndex < _settings.repeatSections.length;
+        sectionIndex += 1
+      )
         if (sectionIndex != index) _settings.repeatSections[sectionIndex],
     ];
     return _setSettings(_settings.copyWith(repeatSections: sections));
   }
 
   Future<void> _setCurrentPageDuration(int pageNumber, int seconds) {
-    final durations = Map<int, int>.of(_settings.pageDurations)
-      ..[pageNumber] = SheetAutoScrollSettings.clampPageDurationSeconds(
-        seconds,
-      );
+    final durations = Map<int, int>.of(
+      _settings.pageDurations,
+    )..[pageNumber] = SheetAutoScrollSettings.clampPageDurationSeconds(seconds);
     return _setSettings(_settings.copyWith(pageDurations: durations));
   }
 
@@ -12284,11 +12285,11 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
     final cueOptions = <int>{0, 3, 5, 10, _settings.cueSeconds}.toList()
       ..sort();
     final currentPage = widget.currentPage.clamp(1, _safePageCount).toInt();
-    final hasCurrentPause =
-        _settings.pausePageNumbers.contains(currentPage);
+    final hasCurrentPause = _settings.pausePageNumbers.contains(currentPage);
     final currentPageDuration = _settings.pageDurations[currentPage] ?? 60;
-    final hasCurrentPageDuration =
-        _settings.pageDurations.containsKey(currentPage);
+    final hasCurrentPageDuration = _settings.pageDurations.containsKey(
+      currentPage,
+    );
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -12752,9 +12753,11 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            for (var index = 0;
-                                index < _settings.repeatSections.length;
-                                index += 1)
+                            for (
+                              var index = 0;
+                              index < _settings.repeatSections.length;
+                              index += 1
+                            )
                               InputChip(
                                 avatar: const Icon(Icons.repeat, size: 18),
                                 label: Text(
@@ -12970,8 +12973,7 @@ class _TunerSheet extends StatefulWidget {
   final SheetTunerSettings initialSettings;
   final SheetToneSettings initialToneSettings;
   final Future<void> Function(SheetTunerSettings settings) onSettingsChanged;
-  final Future<void> Function(SheetToneSettings settings)
-  onToneSettingsChanged;
+  final Future<void> Function(SheetToneSettings settings) onToneSettingsChanged;
 
   @override
   State<_TunerSheet> createState() => _TunerSheetState();

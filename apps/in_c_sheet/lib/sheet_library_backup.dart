@@ -19,8 +19,7 @@ class SheetLibraryBackup {
     this.toneSettings = SheetToneSettings.defaultSettings,
     required this.libraryViewSettings,
     this.globalViewerSettings = SheetViewerSettings.defaultSettings,
-    this.performancePresetTemplates =
-        const <SheetPerformancePresetTemplate>[],
+    this.performancePresetTemplates = const <SheetPerformancePresetTemplate>[],
     this.favoriteAnnotationPreset,
   });
 
@@ -53,10 +52,9 @@ class SheetLibraryBackup {
       globalViewerSettings: SheetViewerSettings.fromJson(
         _asJsonMap(json['globalViewerSettings']),
       ),
-      performancePresetTemplates:
-          SheetPerformancePresetTemplate.decodeJsonList(
-            json['performancePresetTemplates'],
-          ),
+      performancePresetTemplates: SheetPerformancePresetTemplate.decodeJsonList(
+        json['performancePresetTemplates'],
+      ),
       favoriteAnnotationPreset: _annotationPresetFromJson(
         json['favoriteAnnotationPreset'],
       ),
@@ -87,10 +85,9 @@ class SheetLibraryBackup {
       toneSettings: toneSettings,
       libraryViewSettings: libraryViewSettings,
       globalViewerSettings: globalViewerSettings,
-      performancePresetTemplates:
-          SheetPerformancePresetTemplate.normalizeList(
-            performancePresetTemplates,
-          ),
+      performancePresetTemplates: SheetPerformancePresetTemplate.normalizeList(
+        performancePresetTemplates,
+      ),
       favoriteAnnotationPreset: favoriteAnnotationPreset,
     );
   }

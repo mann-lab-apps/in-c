@@ -294,10 +294,7 @@ class SheetPdfPageTransformer {
           slots: slots,
           pageSettings: pageSettings,
         ),
-        pageCrops: _arrangedPageCrops(
-          slots: slots,
-          pageSettings: pageSettings,
-        ),
+        pageCrops: _arrangedPageCrops(slots: slots, pageSettings: pageSettings),
         blankPageNumbers: List<int>.unmodifiable(blankPageNumbers),
       );
     } catch (error) {
@@ -390,9 +387,7 @@ class SheetPdfPageTransformer {
     return List<_ArrangedPageSlot>.unmodifiable(slots);
   }
 
-  static Map<int, List<int>> _sourcePageMapping(
-    List<_ArrangedPageSlot> slots,
-  ) {
+  static Map<int, List<int>> _sourcePageMapping(List<_ArrangedPageSlot> slots) {
     final mapping = <int, List<int>>{};
     for (var index = 0; index < slots.length; index += 1) {
       final sourcePage = slots[index].sourcePage;
@@ -499,9 +494,7 @@ class _ArrangedPageSlot {
     required this.orderIndex,
   });
 
-  const _ArrangedPageSlot.blank()
-    : sourcePage = null,
-      orderIndex = null;
+  const _ArrangedPageSlot.blank() : sourcePage = null, orderIndex = null;
 
   final int? sourcePage;
   final int? orderIndex;

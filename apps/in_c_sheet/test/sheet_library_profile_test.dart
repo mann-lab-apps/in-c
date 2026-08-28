@@ -11,26 +11,28 @@ void main() {
 
   test('normalizes profile names and keeps default first', () {
     final now = DateTime.parse('2026-08-20T10:00:00.000');
-    final profiles = SheetLibraryProfile.normalizeProfiles(<SheetLibraryProfile>[
-      SheetLibraryProfile(
-        id: SheetLibraryProfile.defaultId,
-        name: 'Renamed Default',
-        createdAt: now,
-        updatedAt: now,
-      ),
-      SheetLibraryProfile(
-        id: 'recital',
-        name: ' Recital ',
-        createdAt: now,
-        updatedAt: now,
-      ),
-      SheetLibraryProfile(
-        id: 'lesson',
-        name: 'Lessons',
-        createdAt: now,
-        updatedAt: now,
-      ),
-    ]);
+    final profiles = SheetLibraryProfile.normalizeProfiles(
+      <SheetLibraryProfile>[
+        SheetLibraryProfile(
+          id: SheetLibraryProfile.defaultId,
+          name: 'Renamed Default',
+          createdAt: now,
+          updatedAt: now,
+        ),
+        SheetLibraryProfile(
+          id: 'recital',
+          name: ' Recital ',
+          createdAt: now,
+          updatedAt: now,
+        ),
+        SheetLibraryProfile(
+          id: 'lesson',
+          name: 'Lessons',
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ],
+    );
 
     expect(profiles.first.name, SheetLibraryProfile.defaultName);
     expect(profiles.map((profile) => profile.id), <String>[

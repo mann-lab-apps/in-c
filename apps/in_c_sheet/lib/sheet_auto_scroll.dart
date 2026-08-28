@@ -477,7 +477,7 @@ class SheetAutoScrollPlan {
     var segmentProgress = 0.0;
     for (var weightIndex = 0; weightIndex < weights.length; weightIndex += 1) {
       final weight = weights[weightIndex];
-      if (targetWeight <= accumulated + weight ||
+      if (targetWeight < accumulated + weight ||
           weightIndex == weights.length - 1) {
         index = weightIndex;
         segmentProgress = weight <= 0
@@ -525,8 +525,7 @@ class SheetAutoScrollPlan {
     final page = pageForProgress(progress);
     return cuePoints
         .where(
-          (cue) =>
-              cue.pageNumber <= page && !consumedCueKeys.contains(cue.key),
+          (cue) => cue.pageNumber <= page && !consumedCueKeys.contains(cue.key),
         )
         .toList(growable: false);
   }

@@ -50,8 +50,7 @@ class SheetLibraryStore {
   static const _performancePresetTemplatesKey =
       'clef_performance_preset_templates';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
-  static const _automaticMetadataBackupKey =
-      'clef_automatic_metadata_backup';
+  static const _automaticMetadataBackupKey = 'clef_automatic_metadata_backup';
   static const _libraryProfilesKey = 'clef_library_profiles';
   static const _activeLibraryProfileKey = 'clef_active_library_profile';
   static const _legacyScoresKey = 'in_c_sheet_scores';
@@ -148,13 +147,15 @@ class SheetLibraryStore {
     }
     final now = DateTime.now();
     SheetLibraryProfile? renamed;
-    final nextProfiles = profiles.map((profile) {
-      if (profile.id != id) {
-        return profile;
-      }
-      renamed = profile.copyWith(name: normalized, updatedAt: now);
-      return renamed!;
-    }).toList(growable: false);
+    final nextProfiles = profiles
+        .map((profile) {
+          if (profile.id != id) {
+            return profile;
+          }
+          renamed = profile.copyWith(name: normalized, updatedAt: now);
+          return renamed!;
+        })
+        .toList(growable: false);
     if (renamed == null) {
       return null;
     }
@@ -302,9 +303,7 @@ class SheetLibraryStore {
     );
   }
 
-  SheetViewerSettings _readGlobalViewerSettings(
-    SharedPreferences preferences,
-  ) {
+  SheetViewerSettings _readGlobalViewerSettings(SharedPreferences preferences) {
     return SheetViewerSettings.fromJson(
       _jsonMapFromString(preferences.getString(_globalViewerSettingsKey)),
     );
@@ -633,7 +632,8 @@ class SheetLibraryStore {
     }
   }
 
-  Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() async {
+  Future<SheetLibraryBackupRestoreResult>
+  restoreAutomaticMetadataBackup() async {
     final value = await loadAutomaticMetadataBackupJson();
     if (value == null || value.trim().isEmpty) {
       return const SheetLibraryBackupRestoreResult(

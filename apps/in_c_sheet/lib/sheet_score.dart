@@ -949,9 +949,7 @@ class SheetPageSettings {
       pageRotations: Map<int, int>.unmodifiable(compactRotations),
       pageCrops: Map<int, SheetCropSettings>.unmodifiable(compactPageCrops),
       pageOrder: List<int>.unmodifiable(compactPageOrder),
-      instanceRotations: Map<int, int>.unmodifiable(
-        compactInstanceRotations,
-      ),
+      instanceRotations: Map<int, int>.unmodifiable(compactInstanceRotations),
       instanceCrops: Map<int, SheetCropSettings>.unmodifiable(
         compactInstanceCrops,
       ),
@@ -1667,13 +1665,9 @@ class SheetPageSettings {
       late final int nextIndex;
       if (index == fromIndex) {
         nextIndex = toIndex;
-      } else if (fromIndex < toIndex &&
-          index > fromIndex &&
-          index <= toIndex) {
+      } else if (fromIndex < toIndex && index > fromIndex && index <= toIndex) {
         nextIndex = index - 1;
-      } else if (toIndex < fromIndex &&
-          index >= toIndex &&
-          index < fromIndex) {
+      } else if (toIndex < fromIndex && index >= toIndex && index < fromIndex) {
         nextIndex = index + 1;
       } else {
         nextIndex = index;

@@ -253,10 +253,12 @@ void main() {
 
     expect(firstCues.map((cue) => cue.label), <String>['A']);
     expect(
-      plan.cuePointsForProgress(
-        0.7,
-        consumedCueKeys: <String>{firstCues.single.key},
-      ).map((cue) => cue.label),
+      plan
+          .cuePointsForProgress(
+            0.7,
+            consumedCueKeys: <String>{firstCues.single.key},
+          )
+          .map((cue) => cue.label),
       <String>['B'],
     );
   });

@@ -31,10 +31,7 @@ class SheetAudioPlayer {
 }
 
 class SheetAudioPlaybackResult {
-  const SheetAudioPlaybackResult._({
-    required this.status,
-    this.message = '',
-  });
+  const SheetAudioPlaybackResult._({required this.status, this.message = ''});
 
   static const playing = SheetAudioPlaybackResult._(
     status: SheetAudioPlaybackStatus.playing,

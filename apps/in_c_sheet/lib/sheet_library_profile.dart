@@ -37,10 +37,7 @@ class SheetLibraryProfile {
 
   bool get isDefault => id == defaultId;
 
-  SheetLibraryProfile copyWith({
-    String? name,
-    DateTime? updatedAt,
-  }) {
+  SheetLibraryProfile copyWith({String? name, DateTime? updatedAt}) {
     final nextName = name == null ? this.name : _normalizeName(name);
     return SheetLibraryProfile(
       id: id,

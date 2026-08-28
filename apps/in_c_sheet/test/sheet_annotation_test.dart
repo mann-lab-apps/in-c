@@ -217,13 +217,15 @@ void main() {
     expect(decoded.exportableStrokesForPage(1), isEmpty);
     expect(decoded.exportableTextsForPage(1), isEmpty);
     expect(
-      decoded.addStroke(
-        _stroke(
-          id: 'stroke-2',
-          pageNumber: 1,
-          createdAt: now.add(const Duration(seconds: 2)),
-        ),
-      ).isDefaultLayerVisible,
+      decoded
+          .addStroke(
+            _stroke(
+              id: 'stroke-2',
+              pageNumber: 1,
+              createdAt: now.add(const Duration(seconds: 2)),
+            ),
+          )
+          .isDefaultLayerVisible,
       isFalse,
     );
 

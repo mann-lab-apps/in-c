@@ -35,16 +35,14 @@ void main() {
     expect(manifest.requiresOcr, isTrue);
     expect(manifest.failureReason, SheetPdfSearchSupport.ocrUnsupportedHint);
     expect(
-      SheetPdfSearchIndexManifest.fromJson(
-        <String, Object?>{
-          'scoreId': 'scan-1',
-          'filePath': '/tmp/scan.pdf',
-          'engine': SheetPdfSearchSupport.ocrUnsupportedEngine,
-          'pageCount': '-7',
-          'indexedAt': 'bad-date',
-          'requiresOcr': true,
-        },
-      ).pageCount,
+      SheetPdfSearchIndexManifest.fromJson(<String, Object?>{
+        'scoreId': 'scan-1',
+        'filePath': '/tmp/scan.pdf',
+        'engine': SheetPdfSearchSupport.ocrUnsupportedEngine,
+        'pageCount': '-7',
+        'indexedAt': 'bad-date',
+        'requiresOcr': true,
+      }).pageCount,
       0,
     );
   });

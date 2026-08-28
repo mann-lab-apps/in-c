@@ -184,10 +184,10 @@ rg -n "TODO|FIXME|debugPrint\\(|print\\(" apps/in_c_sheet/lib apps/in_c_sheet/te
 
 2026-08-28 로컬 검증 기록:
 
-- `dart format lib test`: NOT RUN. `dart` command not found.
-- `flutter analyze`: NOT RUN. `flutter` command not found.
-- `flutter test`: NOT RUN. `flutter` command not found.
+- SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
+  Flutter `3.47.2` stable, Dart `3.13.2`.
+- `flutter pub get`: PASS.
+- `dart format lib test`: PASS. 기존 미포맷 Dart 파일을 formatter 기준으로 정리했다.
+- `flutter analyze`: PASS. No issues found.
+- `flutter test`: PASS. 241 tests passed.
 - `git diff --check`: PASS.
-- trailing whitespace scan: PASS for `apps/in_c_sheet/lib`, `apps/in_c_sheet/test`, `docs/qa`, `docs/architecture`, and updated sheet-viewer product docs.
-- tab scan: PASS for `apps/in_c_sheet/lib`, `apps/in_c_sheet/test`, `docs/qa`, `docs/architecture`, and updated sheet-viewer product docs.
-- `TODO|FIXME|debugPrint|print` scan: PASS for `apps/in_c_sheet/lib` and `apps/in_c_sheet/test`.
