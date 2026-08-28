@@ -21,12 +21,30 @@ import 'sheet_score.dart';
 import 'sheet_setlist.dart';
 import 'sheet_tuner.dart';
 
+Map<String, Object?>? _jsonMapFromString(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return null;
+  }
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is! Map) {
+      return null;
+    }
+    return decoded.map(
+      (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
+    );
+  } catch (_) {
+    return null;
+  }
+}
+
 class SheetLibraryStore {
   static const _scoresKey = 'clef_scores';
   static const _setlistsKey = 'clef_setlists';
   static const _metronomeSettingsKey = 'clef_metronome_settings';
   static const _tunerSettingsKey = 'clef_tuner_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
+  static const _globalViewerSettingsKey = 'clef_global_viewer_settings';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
   static const _automaticMetadataBackupKey =
       'clef_automatic_metadata_backup';
@@ -280,6 +298,14 @@ class SheetLibraryStore {
     );
   }
 
+  SheetViewerSettings _readGlobalViewerSettings(
+    SharedPreferences preferences,
+  ) {
+    return SheetViewerSettings.fromJson(
+      _jsonMapFromString(preferences.getString(_globalViewerSettingsKey)),
+    );
+  }
+
   String? _readFavoriteAnnotationPresetJson(
     SharedPreferences preferences,
     String activeLibraryId,
@@ -322,6 +348,7 @@ class SheetLibraryStore {
     SheetMetronomeSettings? metronomeSettings,
     SheetTunerSettings? tunerSettings,
     SheetLibraryViewSettings? libraryViewSettings,
+    SheetViewerSettings? globalViewerSettings,
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
   }) async {
     final backup = SheetLibraryBackup.fromState(
@@ -348,6 +375,8 @@ class SheetLibraryStore {
       libraryViewSettings:
           libraryViewSettings ??
           _readLibraryViewSettings(preferences, activeLibraryId),
+      globalViewerSettings:
+          globalViewerSettings ?? _readGlobalViewerSettings(preferences),
       favoriteAnnotationPreset:
           favoriteAnnotationPreset ??
           _readFavoriteAnnotationPreset(preferences, activeLibraryId),
@@ -466,6 +495,24 @@ class SheetLibraryStore {
       preferences,
       activeLibraryId,
       libraryViewSettings: settings,
+    );
+  }
+
+  Future<SheetViewerSettings> loadGlobalViewerSettings() async {
+    final preferences = await SharedPreferences.getInstance();
+    return _readGlobalViewerSettings(preferences);
+  }
+
+  Future<void> saveGlobalViewerSettings(SheetViewerSettings settings) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _globalViewerSettingsKey,
+      jsonEncode(settings.toJson()),
+    );
+    await _saveAutomaticMetadataBackup(
+      preferences,
+      await _activeLibraryId(preferences),
+      globalViewerSettings: settings,
     );
   }
 
@@ -843,6 +890,7 @@ class SheetLibraryStore {
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
+      globalViewerSettings: await loadGlobalViewerSettings(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
     );
     return SheetLibraryBackupCodec.encode(backup);
@@ -888,6 +936,7 @@ class SheetLibraryStore {
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
+      globalViewerSettings: await loadGlobalViewerSettings(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
       exportedAt: exportedAt,
     );
@@ -1071,6 +1120,7 @@ class SheetLibraryStore {
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
+      await saveGlobalViewerSettings(backup.globalViewerSettings);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
@@ -1232,6 +1282,7 @@ class SheetLibraryStore {
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
+      await saveGlobalViewerSettings(backup.globalViewerSettings);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,

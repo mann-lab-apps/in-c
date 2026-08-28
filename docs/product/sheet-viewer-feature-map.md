@@ -49,7 +49,7 @@
 | 보기 | 곡별 보기 설정 | MobileSheets 지원 | MVP | 중간 | 5차 구현: displayMode, halfPageTurn 저장. 좁은 화면 2페이지 fallback |
 | 보기 | 모바일 viewer AppBar 정리 | iPhone smoke test 보강 | MVP | 낮음 | 3차 구현: 좁은 화면 overflow menu, 핵심 action 우선 노출 |
 | 보기 | 하단 페이지 컨트롤 자동 숨김 | iPhone smoke test 보강 | MVP | 낮음 | 3차 구현: 일반 모드 fade out, 터치 시 재표시, 공연 모드 유지 |
-| 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | fit width/fullscreen |
+| 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 4차 이후 정교화: orientation별 anchor/persistence rules |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | performance spike |
 | 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
@@ -59,7 +59,7 @@
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate와 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | 구현됨: 빈 페이지 metadata와 실제 PDF page tree 적용 사본 생성 |
-| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | tappable jump overlay |
+| 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, rename/delete |
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |
 | PDF 링크 | link annotation 표시 | 사용자 차별화 | MVP | 중간 | 구현됨: `pdfrx` link handler 영역 표시 |
 | PDF 링크 | link tap 비활성화 | 사용자 차별화 | MVP | 중간 | 구현됨: URL tap 차단, 내부 destination 유지 |
@@ -112,7 +112,7 @@
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
 | 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
-| 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 부분 구현: 곡별 viewer action/pedal mapping과 input diagnostic. 앱 전체 기본값 UI는 후속 |
+| 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 
 ## MVP Coverage
 
@@ -159,12 +159,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - cloud file import.
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
 - orientation별 반 페이지 정책 정교화.
-- link point/jump point.
 - pressure sensitivity, palm rejection.
 - 공연별 보기 preset override.
 - 기준음/드론, 오디오 플레이어.
-- USB 페달, 페달 action mapping.
-- 전역 gesture/action 설정.
 
 ## V2 후보
 

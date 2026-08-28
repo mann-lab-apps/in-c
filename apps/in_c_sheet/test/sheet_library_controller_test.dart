@@ -129,6 +129,70 @@ void main() {
     expect(controller.scores.single.id, 'auto-backup-score');
   });
 
+  test('updates and reloads global viewer action defaults', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'Space': 'toggleQuickActions',
+          'Tab': 'none',
+        },
+      ),
+    );
+
+    expect(controller.globalViewerSettings.halfPageTurn, isTrue);
+    expect(
+      controller.globalViewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
+
+    final nextController = SheetLibraryController(store: store);
+    await nextController.load();
+    expect(nextController.globalViewerSettings.pageScale, 'fitWidth');
+    expect(
+      nextController.globalViewerSettings.customPedalMapping['Tab'],
+      'none',
+    );
+  });
+
+  test('applies global viewer action defaults to newly imported scores',
+      () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = _ImportScoreStore(_score(now, id: 'imported-score'));
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await controller.updateGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'twoPage',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fullscreenScale,
+        pedalMapping: SheetViewerSettings.reversedPedalMapping,
+      ),
+    );
+
+    final imported = await controller.importPdf();
+
+    expect(imported?.viewerSettings.displayMode, 'twoPage');
+    expect(imported?.viewerSettings.halfPageTurn, isTrue);
+    expect(
+      imported?.viewerSettings.pageScale,
+      SheetViewerSettings.fullscreenScale,
+    );
+    expect(
+      imported?.viewerSettings.pedalMapping,
+      SheetViewerSettings.reversedPedalMapping,
+    );
+  });
+
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -1762,6 +1826,17 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
     SheetScore score,
   ) async {
     return result;
+  }
+}
+
+class _ImportScoreStore extends SheetLibraryStore {
+  _ImportScoreStore(this.score);
+
+  final SheetScore score;
+
+  @override
+  Future<SheetScore?> importPdf() async {
+    return score;
   }
 }
 

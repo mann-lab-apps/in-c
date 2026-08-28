@@ -30,6 +30,8 @@ class SheetLibraryController extends ChangeNotifier {
   SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
   SheetLibraryViewSettings _libraryViewSettings =
       SheetLibraryViewSettings.defaultSettings;
+  SheetViewerSettings _globalViewerSettings =
+      SheetViewerSettings.defaultSettings;
   List<SheetLibraryProfile> _libraryProfiles = <SheetLibraryProfile>[
     SheetLibraryProfile.defaultProfile,
   ];
@@ -46,6 +48,7 @@ class SheetLibraryController extends ChangeNotifier {
   SheetMetronomeSettings get metronomeSettings => _metronomeSettings;
   SheetTunerSettings get tunerSettings => _tunerSettings;
   SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
+  SheetViewerSettings get globalViewerSettings => _globalViewerSettings;
   List<SheetLibraryProfile> get libraryProfiles => _libraryProfiles;
   SheetLibraryProfile get activeLibraryProfile => _activeLibraryProfile;
   SheetAnnotationToolPreset? get favoriteAnnotationPreset {
@@ -152,6 +155,7 @@ class SheetLibraryController extends ChangeNotifier {
     _metronomeSettings = await store.loadMetronomeSettings();
     _tunerSettings = await store.loadTunerSettings();
     _libraryViewSettings = await store.loadLibraryViewSettings();
+    _globalViewerSettings = await store.loadGlobalViewerSettings();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
     await _removeMissingSetlistScores();
   }
@@ -1813,6 +1817,12 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateGlobalViewerSettings(SheetViewerSettings settings) async {
+    _globalViewerSettings = settings;
+    await store.saveGlobalViewerSettings(settings);
+    notifyListeners();
+  }
+
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
     return store.exportMetadataBackup();
   }
@@ -1960,10 +1970,15 @@ class SheetLibraryController extends ChangeNotifier {
     final collection = _normalizeOptionalMetadata(
       _libraryViewSettings.collectionQuery,
     );
-    if (collection.isEmpty || score.collection.trim().isNotEmpty) {
-      return score;
-    }
-    return score.copyWith(collection: collection, updatedAt: DateTime.now());
+    final hasExistingCollection = score.collection.trim().isNotEmpty;
+    final nextCollection = collection.isEmpty || hasExistingCollection
+        ? score.collection
+        : collection;
+    return score.copyWith(
+      viewerSettings: _globalViewerSettings,
+      collection: nextCollection,
+      updatedAt: DateTime.now(),
+    );
   }
 
   String _imageImportErrorMessage(Object error) {

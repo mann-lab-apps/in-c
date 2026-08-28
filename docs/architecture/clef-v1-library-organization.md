@@ -16,9 +16,9 @@
 - `SheetScore.linkedFiles`: 한 곡에 여러 보조 파일을 연결하기 위한 metadata 모델.
 - `SheetLibraryProfile`: 기본/추가 라이브러리 profile catalog와 active profile을 저장한다.
 
-`linkedFiles`는 아직 제품 UI에 노출하지 않는다. V1 다음 단계에서 파트보, 반주 음원, 다른 조성
-PDF, 레슨 자료를 한 악보 상세에 묶는 UI를 붙일 수 있게 저장 모델과 백업 round-trip만 먼저
-고정했다.
+`linkedFiles`는 제품 UI에 1차 노출했다. 악보 정보 편집 dialog에서 보조 파일을 연결하고,
+viewer에서는 PDF 연결 파일 전환과 JPG/PNG 원본 이미지 미리보기를 제공한다. 반주 음원 playback,
+다른 조성 PDF의 자동 추천, 외부 폴더 watch는 후속이다.
 
 ## 라이브러리 UI 정책
 
@@ -30,6 +30,8 @@ PDF, 레슨 자료를 한 악보 상세에 묶는 UI를 붙일 수 있게 저장
 - 상단 library switcher는 기본 라이브러리와 추가 profile을 전환한다. 기본 라이브러리는 기존
   preference key를 유지하고, 추가 profile은 profile id를 붙인 scoped key에 scores/setlists/view/
   favorite preset metadata를 저장한다.
+- 라이브러리 백업 메뉴는 metadata JSON, PDF 포함 ZIP, active profile별 자동 metadata snapshot
+  복원을 분리해서 제공한다.
 
 ## 폴더 직접 참조 후속 설계
 
@@ -51,4 +53,5 @@ V1 현재 기본값은 앱 내부 사본 저장이다. 이 방식은 TestFlight/
 ## 남은 V1 작업
 
 - 기존 폴더 직접 참조 spike 구현.
-- cloud file import 범위 결정.
+- cloud file provider 실기기 QA.
+- HEIC/HEIF platform decoder 또는 변환 dependency 결정.

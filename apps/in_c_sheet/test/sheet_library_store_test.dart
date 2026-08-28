@@ -415,6 +415,18 @@ void main() {
         width: 10,
       ),
     );
+    await store.saveGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'continuousVertical',
+        halfPageTurn: true,
+        pageScale: SheetViewerSettings.fitWidthScale,
+        pedalMapping: SheetViewerSettings.customPedalMappingType,
+        customPedalMapping: <String, String>{
+          'Space': 'toggleQuickActions',
+          'Tab': 'none',
+        },
+      ),
+    );
 
     final backupJson = await store.exportMetadataBackupJson();
     final backup = SheetLibraryBackupCodec.decode(backupJson);
@@ -450,6 +462,12 @@ void main() {
       'score-1': 240,
     });
     expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
+    expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
+    expect(backup.globalViewerSettings.halfPageTurn, isTrue);
+    expect(
+      backup.globalViewerSettings.customPedalMapping['Space'],
+      'toggleQuickActions',
+    );
     expect(backup.toJson()['scope'], 'metadata-only');
     final corruptedBackupJson = Map<String, Object?>.of(backup.toJson())
       ..['exportedAt'] = 7
@@ -500,6 +518,14 @@ void main() {
     expect(
       (await restoreStore.loadFavoriteAnnotationPreset())?.toolName,
       'highlighter',
+    );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).displayMode,
+      'continuousVertical',
+    );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).customPedalMapping['Tab'],
+      'none',
     );
   });
 
@@ -631,6 +657,13 @@ void main() {
     );
     await store.saveScores(<SheetScore>[scoreWithLinkedFile]);
     await store.saveSetlists(<SheetSetlist>[setlist]);
+    await store.saveGlobalViewerSettings(
+      const SheetViewerSettings(
+        displayMode: 'singlePage',
+        halfPageTurn: false,
+        pedalMapping: SheetViewerSettings.reversedPedalMapping,
+      ),
+    );
 
     final zipBytes = await store.exportFullBackupZipBytes(exportedAt: now);
     final archive = ZipDecoder().decodeBytes(zipBytes);
@@ -694,6 +727,10 @@ void main() {
     expect(
       (await restoreStore.loadSetlists()).single.scoreDurations,
       <String, int>{score.id: 180},
+    );
+    expect(
+      (await restoreStore.loadGlobalViewerSettings()).pedalMapping,
+      SheetViewerSettings.reversedPedalMapping,
     );
   });
 

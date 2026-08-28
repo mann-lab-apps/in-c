@@ -153,12 +153,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   external ref metadata와 inline fallback layer를 함께 보존하는 전략으로 둔다.
 - annotation 요약은 stroke/text/redo/point/estimated JSON bytes/storage mode/save status를 같은
   helper로 계산한다. 백업/export 안내와 QA debug info가 이 summary 기준을 공유한다.
-- metadata 백업은 JSON으로 scores/setlists/tool settings/library view settings를 저장한다.
-  PDF 파일 bytes는 포함하지 않으므로 복원 뒤 기존 filePath가 접근 가능한지 별도 확인이 필요하다.
+- metadata 백업은 JSON으로 scores/setlists/tool settings/library view settings/global viewer action
+  defaults를 저장한다. PDF 파일 bytes는 포함하지 않으므로 복원 뒤 기존 filePath가 접근 가능한지
+  별도 확인이 필요하다.
 - 자동 metadata 백업은 수동 export와 같은 `SheetLibraryBackup` JSON을 active library profile별
   SharedPreferences key에 저장한다. scores/setlists/metronome/tuner/library view/favorite annotation
-  preset 저장 mutation 이후 최신 snapshot을 갱신하며, 프로필 비우기/삭제 시 해당 profile snapshot도
-  제거한다.
+  preset/global viewer defaults 저장 mutation 이후 최신 snapshot을 갱신하며, 프로필 비우기/삭제 시
+  해당 profile snapshot도 제거한다.
 - 자동 metadata 백업 복원은 파일 picker 없이 현재 active library profile의 최신 snapshot을
   `restoreMetadataBackupJson` 경로로 되돌린다. 라이브러리 백업 메뉴의 `자동 metadata 복원`에서
   명시 확인 후 실행한다. 이 snapshot도 PDF bytes를 포함하지 않으므로 전체 파일 복구는 PDF 포함 ZIP
@@ -243,9 +244,14 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 검색 query와 정렬/필터는 같은 `filteredScores` 경로에서 함께 적용하며, 검색 대상은 제목,
   작곡가, 태그, 컬렉션, 그룹, 메모, structured notes, custom field key/value다.
 - 라이브러리 화면의 검색창 아래 chip bar에서 현재 정렬/필터를 조정한다.
+- 라이브러리 AppBar의 전역 보기/입력 기본값 메뉴는 새로 가져오는 악보에 적용할 display mode,
+  page scale, half page turn, performance keep-awake, pedal/action mapping을 저장한다. 곡별
+  viewerSettings가 이미 있는 악보는 그대로 유지하고, 새 import/shared import/image import record에
+  기본값을 입힌다.
 - `SheetLibraryBackup`은 metadata-only JSON이다.
-- 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings가 포함된다.
-  score 안의 viewer/page/annotation/auto scroll/PDF link sanitization metadata도 함께 포함된다.
+- 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings, global viewer
+  action defaults가 포함된다. score 안의 viewer/page/annotation/auto scroll/PDF link sanitization
+  metadata도 함께 포함된다.
 - PDF 파일 자체는 백업하지 않는다. 복원 dialog에서 이 제한을 명시한다.
 - export는 `file_picker` saveFile을 먼저 시도하고, 실패하거나 취소되면 앱 내부 documents의
   `backups/` 폴더에 저장한다.

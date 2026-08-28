@@ -43,6 +43,7 @@
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration |
 | 12 | 페달/키보드 | predefined custom mapping이 page/score/quick action/no-op에 맞게 동작한다. | 장비명, 입력 key, action, 실패 key |
+| 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사된다. | diagnostic log, unknown key 여부 |
 | 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시가 자연스럽다. | 입력음, 표시 note, cents 흔들림 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, annotation storage, active library profile 보존 여부 |
@@ -100,6 +101,19 @@ OS:
   테스트로 분리한다.
 - 자동 DB 백업은 active library profile별 metadata-only snapshot이다. PDF bytes, 외부 원본 파일,
   OS background scheduled backup은 포함하지 않으며 전체 파일 복구는 PDF 포함 ZIP 백업으로 확인한다.
+
+## V1 Blockers
+
+| 항목 | 막힌 이유 | 준비된 상태 | 해제 조건 |
+| --- | --- | --- | --- |
+| HEIC/HEIF 직접 변환 | Flutter/Dart 순수 경로에서 HEIC decoder가 없고 platform decoder 선택이 필요하다. | HEIC/HEIF 감지와 JPG 변환 안내가 있다. | Android/iOS decoder dependency 또는 native bridge 결정, 실제 사진 샘플 QA |
+| iOS Share Extension | Xcode target, App Group, provisioning 설정이 필요하다. | iOS document open URL bridge는 구현했다. | Apple 계정/provisioning과 extension target 구성 |
+| Android 기존 폴더 직접 참조 | SAF persistent URI permission과 tree scan 정책을 실기기에서 검증해야 한다. | 앱 내부 사본 저장, 연결 파일, 전체 ZIP 백업은 구현했다. | Android 태블릿에서 folder picker/권한 상실/재스캔 QA |
+| Cloud provider 실패 검증 | Drive/iCloud/Dropbox 계정과 provider별 offline placeholder 동작이 필요하다. | system file picker 우선 정책과 내려받기 안내가 있다. | provider별 실기기 import 실패/성공 기록 |
+| S Pen pressure/palm rejection | 스타일러스 hardware와 Android pointer classification 동작이 필요하다. | page overlay normalized annotation 경로는 구현했다. | Galaxy Tab + S Pen으로 pressure/palm 입력 로그 확인 |
+| 한글/비라틴 PDF font embedding | 배포 가능한 폰트 asset/license와 PDF embedding 경로가 필요하다. | 비ASCII text export 안내/fallback이 있다. | 폰트 asset 결정과 한글 텍스트 export fixture 검증 |
+| USB/Bluetooth 페달 실장비 검증 | 실제 장비가 보내는 HID key가 제조사별로 다르다. | key mapping resolver, custom dropdown, input diagnostic log가 있다. | 페달 모델별 logical/physical key와 action 결과 기록 |
+| 저지연 메트로놈 audio/drone/player | audio session, latency, sound asset, background 정책 검증이 필요하다. | visual metronome, BPM preset, local linked file metadata는 있다. | audio package/asset 결정과 Android/iOS latency QA |
 
 ## v1.1 후보
 

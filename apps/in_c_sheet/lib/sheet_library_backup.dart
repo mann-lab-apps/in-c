@@ -16,6 +16,7 @@ class SheetLibraryBackup {
     required this.metronomeSettings,
     required this.tunerSettings,
     required this.libraryViewSettings,
+    this.globalViewerSettings = SheetViewerSettings.defaultSettings,
     this.favoriteAnnotationPreset,
   });
 
@@ -42,6 +43,9 @@ class SheetLibraryBackup {
       libraryViewSettings: SheetLibraryViewSettings.fromJson(
         _asJsonMap(json['libraryViewSettings']),
       ),
+      globalViewerSettings: SheetViewerSettings.fromJson(
+        _asJsonMap(json['globalViewerSettings']),
+      ),
       favoriteAnnotationPreset: _annotationPresetFromJson(
         json['favoriteAnnotationPreset'],
       ),
@@ -54,6 +58,8 @@ class SheetLibraryBackup {
     required SheetMetronomeSettings metronomeSettings,
     required SheetTunerSettings tunerSettings,
     required SheetLibraryViewSettings libraryViewSettings,
+    SheetViewerSettings globalViewerSettings =
+        SheetViewerSettings.defaultSettings,
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
     DateTime? exportedAt,
   }) {
@@ -65,6 +71,7 @@ class SheetLibraryBackup {
       metronomeSettings: metronomeSettings,
       tunerSettings: tunerSettings,
       libraryViewSettings: libraryViewSettings,
+      globalViewerSettings: globalViewerSettings,
       favoriteAnnotationPreset: favoriteAnnotationPreset,
     );
   }
@@ -78,6 +85,7 @@ class SheetLibraryBackup {
   final SheetMetronomeSettings metronomeSettings;
   final SheetTunerSettings tunerSettings;
   final SheetLibraryViewSettings libraryViewSettings;
+  final SheetViewerSettings globalViewerSettings;
   final SheetAnnotationToolPreset? favoriteAnnotationPreset;
 
   Map<String, Object?> toJson() {
@@ -90,6 +98,7 @@ class SheetLibraryBackup {
       'metronomeSettings': metronomeSettings.toJson(),
       'tunerSettings': tunerSettings.toJson(),
       'libraryViewSettings': libraryViewSettings.toJson(),
+      'globalViewerSettings': globalViewerSettings.toJson(),
       if (favoriteAnnotationPreset != null)
         'favoriteAnnotationPreset': favoriteAnnotationPreset!.toJson(),
       'notes':

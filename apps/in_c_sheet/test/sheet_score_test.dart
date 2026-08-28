@@ -790,7 +790,7 @@ void main() {
 
   test('viewer settings normalize unknown enum-like values', () {
     final settings = SheetViewerSettings.fromJson(const <String, Object?>{
-      'displayMode': 'singlePage',
+      'displayMode': 'gallery',
       'halfPageTurn': true,
       'displayEffect': 'normal',
       'pageScale': 'poster',
@@ -799,6 +799,10 @@ void main() {
       'pageTurnAnimation': 'dramatic',
     });
 
+    expect(
+      settings.displayMode,
+      SheetViewerSettings.defaultSettings.displayMode,
+    );
     expect(settings.pageScale, SheetViewerSettings.fitPageScale);
     expect(settings.pedalMapping, SheetViewerSettings.standardPedalMapping);
     expect(settings.renderProfile, SheetViewerSettings.balancedRenderProfile);

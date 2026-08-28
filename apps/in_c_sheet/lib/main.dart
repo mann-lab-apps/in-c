@@ -769,6 +769,178 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _showGlobalViewerDefaults() async {
+    var settings = controller.globalViewerSettings;
+    final selected = await showModalBottomSheet<SheetViewerSettings>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          void updateSettings(SheetViewerSettings next) {
+            setModalState(() => settings = next);
+          }
+
+          return SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                bottom: MediaQuery.viewInsetsOf(context).bottom + 24,
+              ),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  Text(
+                    '전역 보기/입력 기본값',
+                    style: Theme.of(context).textTheme.titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w900),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _globalViewerDisplayModeValue(settings),
+                    decoration: const InputDecoration(labelText: '보기 모드'),
+                    items: const [
+                      DropdownMenuItem<String>(
+                        value: 'auto',
+                        child: Text('자동'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: 'singlePage',
+                        child: Text('1페이지'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: 'twoPage',
+                        child: Text('2페이지'),
+                      ),
+                      DropdownMenuItem<String>(
+                        value: 'continuousVertical',
+                        child: Text('세로 스크롤'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        updateSettings(settings.copyWith(displayMode: value));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: settings.pageScale,
+                    decoration: const InputDecoration(labelText: '페이지 맞춤'),
+                    items: _SheetViewerPageScale.values
+                        .map(
+                          (scale) => DropdownMenuItem<String>(
+                            value: scale.settingValue,
+                            child: Text(scale.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        updateSettings(settings.copyWith(pageScale: value));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('반 페이지 넘김'),
+                    value: settings.halfPageTurn,
+                    onChanged: (value) => updateSettings(
+                      settings.copyWith(halfPageTurn: value),
+                    ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('공연 모드 화면 유지'),
+                    value: settings.keepAwakeInPerformance,
+                    onChanged: (value) => updateSettings(
+                      settings.copyWith(keepAwakeInPerformance: value),
+                    ),
+                  ),
+                  DropdownButtonFormField<String>(
+                    initialValue: settings.pedalMapping,
+                    decoration: const InputDecoration(labelText: '페달 매핑'),
+                    items: _SheetPedalMapping.values
+                        .map(
+                          (mapping) => DropdownMenuItem<String>(
+                            value: mapping.settingValue,
+                            child: Text(mapping.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        updateSettings(settings.copyWith(pedalMapping: value));
+                      }
+                    },
+                  ),
+                  if (settings.pedalMapping ==
+                      SheetViewerSettings.customPedalMappingType) ...[
+                    const SizedBox(height: 12),
+                    for (final inputId in sheetViewerCustomInputIds)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: DropdownButtonFormField<String>(
+                          initialValue:
+                              settings.customPedalMapping[inputId] ??
+                              SheetViewerInputAction.none.value,
+                          decoration: InputDecoration(
+                            labelText: _viewerInputLabel(inputId),
+                          ),
+                          items: SheetViewerInputAction.values
+                              .map(
+                                (action) => DropdownMenuItem<String>(
+                                  value: action.value,
+                                  child: Text(_viewerInputActionLabel(action)),
+                                ),
+                              )
+                              .toList(growable: false),
+                          onChanged: (value) {
+                            if (value == null) {
+                              return;
+                            }
+                            updateSettings(
+                              settings.copyWith(
+                                customPedalMapping: <String, String>{
+                                  ...settings.customPedalMapping,
+                                  inputId: value,
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.of(context).pop(settings),
+                      icon: const Icon(Icons.check),
+                      label: const Text('저장'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    if (selected == null || !mounted) {
+      return;
+    }
+    await controller.updateGlobalViewerSettings(selected);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('전역 보기/입력 기본값을 저장했습니다.')),
+    );
+  }
+
   Future<void> _importFullBackup() async {
     final didConfirm = await showDialog<bool>(
       context: context,
@@ -843,6 +1015,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             tooltip: '테스트 정보',
             onPressed: _showTesterInfo,
             icon: const Icon(Icons.info_outline),
+          ),
+          IconButton(
+            tooltip: '전역 보기/입력 기본값',
+            onPressed: _showGlobalViewerDefaults,
+            icon: const Icon(Icons.settings_applications_outlined),
           ),
           PopupMenuButton<_LibraryBackupAction>(
             tooltip: '백업/복원',
@@ -1088,6 +1265,15 @@ class _SearchFieldState extends State<_SearchField> {
       ),
     );
   }
+}
+
+String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
+  return switch (settings.displayMode) {
+    'singlePage' => 'singlePage',
+    'twoPage' => 'twoPage',
+    'continuousVertical' => 'continuousVertical',
+    _ => 'auto',
+  };
 }
 
 enum _LibraryBackupAction {

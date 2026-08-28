@@ -176,6 +176,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 악보 제목, 작곡가, 태그, 컬렉션, 그룹, 별점, 메모, custom metadata field 편집.
 - profile-backed 라이브러리 전환 1차: 기본/추가 라이브러리 전환, 생성, 이름 변경,
   비우기. scores/setlists/view/favorite preset metadata는 profile별 저장 key로 분리한다.
+- 전역 보기/입력 기본값 1차: 새 악보에 적용할 보기 모드, 페이지 맞춤, 반 페이지 넘김,
+  공연 모드 화면 유지, 페달/action mapping을 저장하고 백업에 포함한다.
 - 연결 파일 metadata/UI 1차: 한 곡에 여러 보조 파일을 묶기 위한 저장 모델, 관리 UI,
   viewer 연결 PDF 전환, 백업 round-trip.
 - `pdfrx` 기반 PDF viewer.

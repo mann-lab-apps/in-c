@@ -116,10 +116,7 @@ class SheetViewerSettings {
 
   factory SheetViewerSettings.fromJson(Map<String, Object?>? json) {
     return SheetViewerSettings(
-      displayMode: _fallbackStringFromJson(
-        json?['displayMode'],
-        defaultSettings.displayMode,
-      ),
+      displayMode: _normalizeDisplayMode(json?['displayMode']),
       halfPageTurn: _boolFromJson(
         json?['halfPageTurn'],
         fallback: defaultSettings.halfPageTurn,
@@ -288,6 +285,15 @@ class SheetViewerSettings {
       'allowPerformanceMenus': allowPerformanceMenus,
       'allowPerformancePdfLinks': allowPerformancePdfLinks,
     };
+  }
+
+  static String _normalizeDisplayMode(Object? value) {
+    if (value == 'singlePage' ||
+        value == 'twoPage' ||
+        value == 'continuousVertical') {
+      return value.toString();
+    }
+    return defaultSettings.displayMode;
   }
 
   static String _normalizePageScale(Object? value) {
