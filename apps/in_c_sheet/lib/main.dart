@@ -4974,20 +4974,50 @@ setlist=$setlistLabel
     _cropFitToken = null;
   }
 
-  void _scheduleCropToFit(int pageNumber, {bool force = false}) {
-    if (!mounted || !score.pageSettings.cropForPage(pageNumber).hasCrop) {
+  int? _effectiveOrderIndexForPage(SheetScore currentScore, int pageNumber) {
+    final currentIndex = _pageOrderCursor;
+    if (currentIndex == null || !currentScore.pageSettings.hasCustomPageOrder) {
+      return null;
+    }
+    final order = currentScore.pageSettings.effectivePageOrder(
+      _pdfController.pageCount,
+    );
+    if (currentIndex < 0 ||
+        currentIndex >= order.length ||
+        order[currentIndex] != pageNumber) {
+      return null;
+    }
+    return currentIndex;
+  }
+
+  void _scheduleCropToFit(
+    int pageNumber, {
+    int? orderIndex,
+    bool force = false,
+  }) {
+    if (!mounted ||
+        !score.pageSettings
+            .cropForPage(pageNumber, orderIndex: orderIndex)
+            .hasCrop) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) {
         return;
       }
-      unawaited(_applyCropToFitForPage(pageNumber, force: force));
+      unawaited(
+        _applyCropToFitForPage(
+          pageNumber,
+          orderIndex: orderIndex,
+          force: force,
+        ),
+      );
     });
   }
 
   Future<void> _applyCropToFitForPage(
     int pageNumber, {
+    int? orderIndex,
     bool force = false,
   }) async {
     if (!_pdfController.isReady ||
@@ -4995,14 +5025,17 @@ setlist=$setlistLabel
       return;
     }
 
-    final crop = score.pageSettings.cropForPage(pageNumber).normalized();
+    final crop = score.pageSettings
+        .cropForPage(pageNumber, orderIndex: orderIndex)
+        .normalized();
     if (!crop.hasCrop || pageNumber < 1) {
       return;
     }
 
     final token =
         '${score.id}:$pageNumber:${crop.left}:${crop.top}:'
-        '${crop.right}:${crop.bottom}:${_displayMode.name}:${_pageScale.name}';
+        '${crop.right}:${crop.bottom}:${orderIndex ?? -1}:'
+        '${_displayMode.name}:${_pageScale.name}';
     if (!force && token == _cropFitToken) {
       return;
     }
@@ -7184,24 +7217,40 @@ setlist=$setlistLabel
     final currentScore = score;
     final pageNumber =
         _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
-    final degrees = await widget.controller.rotatePageClockwise(
-      currentScore,
-      pageNumber,
-    );
+    final orderIndex = _effectiveOrderIndexForPage(currentScore, pageNumber);
+    final degrees = orderIndex == null
+        ? await widget.controller.rotatePageClockwise(
+            currentScore,
+            pageNumber,
+          )
+        : await widget.controller.rotatePageInstanceClockwise(
+            currentScore,
+            orderIndex: orderIndex,
+            pageNumber: pageNumber,
+            pageCount: _pdfController.pageCount,
+          );
     if (!mounted) {
       return;
     }
     final label = degrees == 0 ? '기본 방향' : '$degrees도';
     final updatedScore = widget.controller.scoreById(currentScore.id);
-    final hasPendingRotations =
-        updatedScore.pageSettings.pageRotations.isNotEmpty;
+    final hasPageRotations = updatedScore.pageSettings.pageRotations.isNotEmpty;
+    final hasInstanceRotations =
+        updatedScore.pageSettings.instanceRotations.isNotEmpty;
+    final targetLabel = orderIndex == null
+        ? '$pageNumber쪽'
+        : '순서 ${orderIndex + 1}';
     _showSnackBar(
-      '$pageNumber쪽 회전 metadata: $label',
-      action: hasPendingRotations
+      '$targetLabel 회전 metadata: $label',
+      action: hasPageRotations || hasInstanceRotations
           ? SnackBarAction(
               label: '사본 생성',
               onPressed: () {
-                unawaited(_createPageRotationAppliedCopy());
+                unawaited(
+                  hasInstanceRotations
+                      ? _createPageArrangementAppliedCopy()
+                      : _createPageRotationAppliedCopy(),
+                );
               },
             )
           : null,
@@ -7216,6 +7265,10 @@ setlist=$setlistLabel
     final currentScore = score;
     if (currentScore.pageSettings.pageRotations.isEmpty) {
       _showSnackBar('적용할 페이지 회전 metadata가 없습니다.');
+      return;
+    }
+    if (currentScore.pageSettings.instanceRotations.isNotEmpty) {
+      _showSnackBar('instance 회전은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -7281,6 +7334,10 @@ setlist=$setlistLabel
     if (!currentScore.pageSettings.crop.hasCrop &&
         currentScore.pageSettings.pageCrops.isEmpty) {
       _showSnackBar('적용할 crop metadata가 없습니다.');
+      return;
+    }
+    if (currentScore.pageSettings.instanceCrops.isNotEmpty) {
+      _showSnackBar('instance crop은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -7349,29 +7406,56 @@ setlist=$setlistLabel
       _showSnackBar('공연 모드에서는 페이지 정리 기능을 숨깁니다.');
       return;
     }
+    final currentScore = score;
+    final pageNumber =
+        _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
+    final orderIndex = _effectiveOrderIndexForPage(currentScore, pageNumber);
+    final initialCrop = orderIndex == null
+        ? currentScore.pageSettings.crop
+        : currentScore.pageSettings.cropForPage(
+            pageNumber,
+            orderIndex: orderIndex,
+          );
 
     final selected = await showModalBottomSheet<SheetCropSettings>(
       context: context,
       showDragHandle: true,
-      builder: (context) =>
-          _CropSettingsSheet(initialCrop: score.pageSettings.crop),
+      builder: (context) => _CropSettingsSheet(initialCrop: initialCrop),
     );
     if (selected == null) {
       return;
     }
 
-    await widget.controller.updatePageCrop(score, selected);
+    if (orderIndex == null) {
+      await widget.controller.updatePageCrop(currentScore, selected);
+    } else {
+      await widget.controller.updatePageInstanceCrop(
+        currentScore,
+        orderIndex: orderIndex,
+        pageCount: _pdfController.pageCount,
+        crop: selected,
+      );
+    }
     _resetCropFitPosition();
     if (selected.hasCrop) {
-      _scheduleCropToFit(_pageNumber ?? score.lastPage, force: true);
+      _scheduleCropToFit(
+        pageNumber,
+        orderIndex: orderIndex,
+        force: true,
+      );
     } else if (_pdfController.isReady) {
       await _pdfController.goToPage(
-        pageNumber: _pageNumber ?? score.lastPage,
+        pageNumber: pageNumber,
         anchor: PdfPageAnchor.top,
         duration: const Duration(milliseconds: 120),
       );
     }
-    _showSnackBar(selected.hasCrop ? '자르기 맞춤 설정을 저장했습니다.' : '자르기 맞춤을 해제했습니다.');
+    final targetLabel = orderIndex == null ? '' : '순서 ${orderIndex + 1} ';
+    _showSnackBar(
+      selected.hasCrop
+          ? '$targetLabel자르기 맞춤 설정을 저장했습니다.'
+          : '$targetLabel자르기 맞춤을 해제했습니다.',
+    );
   }
 
   Future<void> _showCropPresets() async {
@@ -7732,8 +7816,8 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('페이지 정리 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지 metadata를 '
-          '실제 PDF page tree로 적용한 앱 내부 사본을 만듭니다.',
+          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지와 instance '
+          'crop/rotation metadata를 앱 내부 사본의 페이지 구조로 적용합니다.',
         ),
         actions: [
           TextButton(
@@ -8360,6 +8444,10 @@ setlist=$setlistLabel
       if (pageSettings.hasCustomPageOrder) '가상 순서 ${order.length}',
       if (pageSettings.pageCrops.isNotEmpty)
         '페이지별 crop ${pageSettings.pageCrops.length}',
+      if (pageSettings.instanceCrops.isNotEmpty)
+        'instance crop ${pageSettings.instanceCrops.length}',
+      if (pageSettings.instanceRotations.isNotEmpty)
+        'instance 회전 ${pageSettings.instanceRotations.length}',
     ].join(' · ');
     await showModalBottomSheet<void>(
       context: context,
@@ -9951,8 +10039,14 @@ setlist=$setlistLabel
                             documentRef,
                           ) => const _ViewerErrorBanner(),
                           onViewerReady: (document, _) {
+                            final initialPage =
+                                _pageNumber ?? currentScore.lastPage;
                             _scheduleCropToFit(
-                              _pageNumber ?? currentScore.lastPage,
+                              initialPage,
+                              orderIndex: _effectiveOrderIndexForPage(
+                                currentScore,
+                                initialPage,
+                              ),
                               force: true,
                             );
                             unawaited(_loadPdfOutlineBookmarks(document));
@@ -9960,13 +10054,22 @@ setlist=$setlistLabel
                           },
                           pageOverlaysBuilder: (context, pageRect, page) {
                             final pageNumber = page.pageNumber;
-                            final rotation = currentScore
-                                .pageSettings
-                                .pageRotations[pageNumber];
+                            final orderIndex = _effectiveOrderIndexForPage(
+                              currentScore,
+                              pageNumber,
+                            );
+                            final rotation = currentScore.pageSettings
+                                .rotationForPage(
+                                  pageNumber,
+                                  orderIndex: orderIndex,
+                                );
                             final jumpPoints = currentScore.pageSettings
                                 .jumpPointsFromPage(pageNumber);
                             final pageCrop = currentScore.pageSettings
-                                .cropForPage(pageNumber);
+                                .cropForPage(
+                                  pageNumber,
+                                  orderIndex: orderIndex,
+                                );
                             final rehearsalMarks =
                                 currentScore.pageSettings.rehearsalMarks;
                             final bookmarks = currentScore.bookmarks;
@@ -10019,7 +10122,7 @@ setlist=$setlistLabel
                                     onPageSelected: _goToSheetPage,
                                   ),
                                 ),
-                              if (rotation != null)
+                              if (rotation != 0)
                                 Positioned(
                                   top: 8,
                                   right: 8,
@@ -10067,7 +10170,13 @@ setlist=$setlistLabel
                             setState(() {
                               _pageNumber = pageNumber;
                             });
-                            _scheduleCropToFit(pageNumber);
+                            _scheduleCropToFit(
+                              pageNumber,
+                              orderIndex: _effectiveOrderIndexForPage(
+                                currentScore,
+                                pageNumber,
+                              ),
+                            );
                           },
                         ),
                       ),

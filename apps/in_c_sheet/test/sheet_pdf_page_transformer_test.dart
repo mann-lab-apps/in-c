@@ -209,8 +209,15 @@ void main() {
       outputPath: outputPath,
       pageSettings: SheetPageSettings(
         hiddenPages: const <int>[2],
-        pageRotations: const <int, int>{},
+        pageRotations: const <int, int>{3: 90},
+        pageCrops: const <int, SheetCropSettings>{
+          3: SheetCropSettings(left: 0.1),
+        },
         pageOrder: const <int>[3, 1, 3, 2],
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(bottom: 0.04),
+        },
         blankPageInsertions: <SheetBlankPageInsertion>[
           SheetBlankPageInsertion(
             id: 'blank-1',
@@ -232,6 +239,9 @@ void main() {
       3: <int>[1, 4],
       1: <int>[2],
     });
+    expect(result.pageRotations, <int, int>{1: 90, 4: 180});
+    expect(result.pageCrops[1]?.left, 0.1);
+    expect(result.pageCrops[4]?.bottom, 0.04);
     expect(result.blankPageNumbers, <int>[3]);
     expect(arranged.pageCount, 4);
     expect(afterOriginalBytes, originalBytes);

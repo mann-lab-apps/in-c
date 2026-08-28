@@ -393,8 +393,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 페이지 정리 1차 구조
 
-- `SheetScore.pageSettings`에 hiddenPages, pageRotations, global crop, virtual page order,
-  jump points를 저장한다.
+- `SheetScore.pageSettings`에 hiddenPages, source page 기반 pageRotations/pageCrops, global crop,
+  virtual page order, order index 기반 instanceRotations/instanceCrops, jump points를 저장한다.
 - 원본 PDF 파일은 기본적으로 수정하거나 재저장하지 않는다. 사용자가 명시적으로 선택하면 앱 내부
   적용 사본을 만들고, 적용 전 PDF는 연결 파일 metadata로 보존한다.
 - 현재 페이지 숨김은 AppBar의 페이지 정리 메뉴에서 실행한다.
@@ -408,7 +408,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 숨김 페이지 관리는 bottom sheet에서 제공하며, 숨김 해제 후 해당 원본 페이지로 이동한다.
 - 페이지 순서 변경은 기본적으로 virtual page order metadata로 저장한다. 사용자가 명시적으로
   실행하면 hidden/order/duplicate/blank insertion metadata를 실제 PDF page tree에 적용한 앱
-  내부 사본을 생성한다.
+  내부 사본을 생성한다. 적용 사본 생성 뒤 instance crop/rotation은 출력 page별 source metadata로
+  재배치하고 instance metadata는 비운다.
 - jump point는 source page에서 target page로 이동하는 앱 내부 링크다. 숨김 page를 source나
   target으로 삼는 jump point는 표시/추가하지 않는다.
 - 회전은 page별 90도 단위 metadata를 저장한다. 현재 viewer 경로에서는 metadata만으로 page별
@@ -548,9 +549,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 회전 metadata는 page별 90/180/270도를 저장하고 page 위 badge와 viewer 상단 pending action으로
   상태를 표시한다. 실제 회전이 필요한 경우 `pdf_document` 기반 회전 적용 사본 생성으로 처리한다.
 - 페이지 순서 변경/복제/반복 삽입은 기본적으로 원본 PDF를 재작성하지 않는 virtual page order로
-  구현한다. 사용자가 명시적으로 실행하면 실제 PDF page tree 적용 사본을 만들고, 북마크/필기/redo
-  stack/page별 crop/rotation/jump/rehearsal metadata를 새 page number로 재배치한다. 별도
-  per-instance crop/rotation override는 후속이다.
+  구현한다. `instanceRotations`와 `instanceCrops`는 pageOrder의 0-based 표시 index를 key로
+  저장하고, 같은 source page가 여러 번 등장할 때 특정 instance만 다른 crop/rotation을 가질 수
+  있게 한다. 사용자가 명시적으로 실행하면 실제 PDF page tree 적용 사본을 만들고,
+  북마크/필기/redo stack/jump/rehearsal metadata는 source page mapping으로, crop/rotation은
+  source page metadata와 instance override를 합친 출력 page metadata로 재배치한다.
+  instance override가 남아 있는 경우 개별 crop/rotation 적용 사본 대신 page arrangement 적용
+  사본 경로를 사용한다.
 - 북마크/필기/세트리스트는 적용 사본 생성 전에는 source page 기준을 유지하고, 공연 순서만
   virtual page order를 참조한다. 자동 스크롤은 source page 구간 기반이므로 custom virtual
   order가 있는 곡에서는 비활성화한다. instance별 다른 필기가 필요해지는 순간 annotation key
@@ -616,8 +621,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   key mapping, 앱 foreground focus는 실기기 확인 필요하다. 사용자별 custom mapping UI와 input
   diagnostic log는 1차 구현했다.
 - 페이지 크롭/정렬/복제: crop metadata, 화면 mask, crop-to-fit, 원본 PDF 보존형 virtual page
-  order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전/crop/page tree 적용 사본 생성은
-  1차 구현했다. per-instance crop/rotation override는 후속이다.
+  order, 페이지 순서 변경/복제/반복 삽입, jump point, 회전/crop/page tree 적용 사본 생성,
+  pageOrder instance별 crop/rotation override를 1차 구현했다. duplicate instance의 별도
+  annotation layer keying은 후속 데이터 모델 검토가 필요하다.
 - 카메라 PDF 스캔: edge detection, perspective correction, batch scan, 압축/품질 설정까지
   요구되어 별도 스캐너 앱 수준의 UX가 필요하다. MVP는 앱 내 스캔보다 외부 스캔 앱/사진 앱/파일
   앱에서 만든 PDF와 이미지를 악보로 잘 다루는 방향을 우선한다.

@@ -52,12 +52,12 @@
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | 구현됨: balanced/large PDF render profile로 `pdfrx` rendering cache limit, memory cap, one-pass threshold 조정. 50-100페이지 실기기 계측 필요 |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, crop metadata를 PDF CropBox로 적용한 앱 내부 사본 생성 |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
-| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
+| 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: source page/virtual instance metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
-| 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 실제 PDF page tree 적용 사본 생성 |
-| 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate와 실제 PDF page tree 적용 사본 생성 |
+| 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 instance override metadata, 실제 PDF page tree 적용 사본 생성 |
+| 페이지 정리 | 페이지 복제 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual duplicate, duplicate별 crop/rotation override, 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | 반복 페이지 삽입 | MobileSheets 지원 | V1 | 중간 | 구현됨: 빈 페이지 metadata와 실제 PDF page tree 적용 사본 생성 |
 | 페이지 정리 | link point/jump point | 양쪽 지원 | V1 | 중간 | 구현됨: page jump point metadata, tappable overlay/list, rename/delete |
 | 페이지 정리 | smart button | MobileSheets 지원 | V2 | 높음 | action registry |

@@ -206,7 +206,8 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 - 반 페이지 넘김 1차: visible viewport 기반 반 페이지 이동, 페이지 경계에서 이전/다음
   페이지 이동, 2페이지 보기와 동시 사용 제한.
 - 페이지 정리 metadata 1차: 현재 페이지 숨김/해제, 숨김 페이지 navigation skip, page별
-  회전 metadata 저장, global crop metadata와 화면 mask.
+  회전 metadata 저장, global/page/instance crop metadata와 화면 mask, duplicate instance별
+  crop/rotation override.
 - 주석/필기 1차: 펜/형광펜 stroke, 텍스트 주석, 지우개 stroke 삭제, 색상/두께 선택,
   텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo, 앱 metadata 저장, `pdfrx` page overlay
   기반 좌표 정합성 보강.
@@ -242,7 +243,7 @@ Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
 기준음/드론/로컬 오디오 Android latency와 iOS parity,
 Bluetooth/USB 페달 실기기 HID 검증, 주석/필기 고도화, PDF annotation 객체 embed/export,
-실제 페이지 회전 live 렌더링, per-instance crop/rotation override,
+실제 페이지 회전 live 렌더링의 시각 QA,
 한글 텍스트 PDF font embedding,
 기존 폴더 직접 참조, ChordPro/text,
 HEIC 이미지 변환, iOS Share Extension, 클라우드 동기화,

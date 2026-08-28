@@ -397,8 +397,13 @@ void main() {
         },
       ),
       pageSettings: SheetPageSettings.empty.copyWith(
+        pageOrder: const <int>[1, 2, 2],
         pageCrops: const <int, SheetCropSettings>{
           2: SheetCropSettings(left: 0.04, right: 0.03),
+        },
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(top: 0.05),
         },
       ),
       importedAt: now,
@@ -511,6 +516,9 @@ void main() {
       'toggleQuickActions',
     );
     expect(backup.scores.single.pageSettings.cropForPage(2).left, 0.04);
+    expect(backup.scores.single.pageSettings.instanceRotations, <int, int>{
+      2: 180,
+    });
     expect(backup.scores.single.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(
       backup.scores.single.autoScrollSettings.repeatSections.single.startPage,
@@ -572,6 +580,7 @@ void main() {
       'toggleQuickActions',
     );
     expect(restoredScore.pageSettings.cropForPage(2).right, 0.03);
+    expect(restoredScore.pageSettings.instanceCrops[2]?.top, 0.05);
     expect(restoredScore.autoScrollSettings.pausePageNumbers, <int>[4]);
     expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
     expect(restoredScore.autoScrollSettings.pageDurations, <int, int>{3: 75});

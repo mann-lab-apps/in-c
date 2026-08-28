@@ -935,7 +935,7 @@ class SheetLibraryController extends ChangeNotifier {
         ),
         pageSettings: _rebasePageSettingsForAppliedArrangement(
           score.pageSettings,
-          result.sourcePageMapping,
+          result,
         ),
         annotationLayer: _rebaseAnnotationsForAppliedArrangement(
           score.annotationLayer,
@@ -999,34 +999,22 @@ class SheetLibraryController extends ChangeNotifier {
 
   SheetPageSettings _rebasePageSettingsForAppliedArrangement(
     SheetPageSettings pageSettings,
-    Map<int, List<int>> sourcePageMapping,
+    SheetPdfPageArrangementResult result,
   ) {
-    final pageRotations = <int, int>{};
-    for (final entry in pageSettings.pageRotations.entries) {
-      for (final pageNumber in sourcePageMapping[entry.key] ?? const <int>[]) {
-        pageRotations[pageNumber] = entry.value;
-      }
-    }
-
-    final pageCrops = <int, SheetCropSettings>{};
-    for (final entry in pageSettings.pageCrops.entries) {
-      for (final pageNumber in sourcePageMapping[entry.key] ?? const <int>[]) {
-        pageCrops[pageNumber] = entry.value;
-      }
-    }
-
     return pageSettings.copyWith(
       hiddenPages: const <int>[],
-      pageRotations: Map<int, int>.unmodifiable(pageRotations),
-      pageCrops: Map<int, SheetCropSettings>.unmodifiable(pageCrops),
+      pageRotations: result.pageRotations,
+      pageCrops: result.pageCrops,
       pageOrder: const <int>[],
+      instanceRotations: const <int, int>{},
+      instanceCrops: const <int, SheetCropSettings>{},
       jumpPoints: _rebaseJumpPointsForAppliedArrangement(
         pageSettings.jumpPoints,
-        sourcePageMapping,
+        result.sourcePageMapping,
       ),
       rehearsalMarks: _rebaseRehearsalMarksForAppliedArrangement(
         pageSettings.rehearsalMarks,
-        sourcePageMapping,
+        result.sourcePageMapping,
       ),
       blankPageInsertions: const <SheetBlankPageInsertion>[],
       visibilityPresets: const <SheetPageVisibilityPreset>[],
@@ -1274,6 +1262,53 @@ class SheetLibraryController extends ChangeNotifier {
       score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
     );
     return nextPageSettings.pageRotations[pageNumber] ?? 0;
+  }
+
+  Future<int> rotatePageInstanceClockwise(
+    SheetScore score, {
+    required int orderIndex,
+    required int pageNumber,
+    required int pageCount,
+  }) async {
+    final nextPageSettings = score.pageSettings.rotatePageInstanceClockwise(
+      orderIndex: orderIndex,
+      pageNumber: pageNumber,
+      pageCount: pageCount,
+    );
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return score.pageSettings.rotationForPage(
+        pageNumber,
+        orderIndex: orderIndex,
+      );
+    }
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return nextPageSettings.rotationForPage(
+      pageNumber,
+      orderIndex: orderIndex,
+    );
+  }
+
+  Future<bool> updatePageInstanceCrop(
+    SheetScore score, {
+    required int orderIndex,
+    required int pageCount,
+    required SheetCropSettings crop,
+  }) async {
+    final nextPageSettings = score.pageSettings.updatePageInstanceCrop(
+      orderIndex: orderIndex,
+      pageCount: pageCount,
+      crop: crop,
+    );
+    if (identical(nextPageSettings, score.pageSettings)) {
+      return false;
+    }
+
+    await _replace(
+      score.copyWith(pageSettings: nextPageSettings, updatedAt: DateTime.now()),
+    );
+    return true;
   }
 
   Future<bool> movePageInOrder(

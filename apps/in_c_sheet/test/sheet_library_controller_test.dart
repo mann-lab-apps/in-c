@@ -773,6 +773,10 @@ void main() {
           3: SheetCropSettings(left: 0.04),
         },
         pageOrder: const <int>[3, 1, 3, 2],
+        instanceRotations: const <int, int>{2: 180},
+        instanceCrops: const <int, SheetCropSettings>{
+          2: SheetCropSettings(bottom: 0.05),
+        },
         jumpPoints: <SheetPageJumpPoint>[
           SheetPageJumpPoint(
             id: 'jump-1',
@@ -839,6 +843,11 @@ void main() {
           3: <int>[1, 4],
           1: <int>[2],
         },
+        pageRotations: <int, int>{1: 90, 4: 180},
+        pageCrops: <int, SheetCropSettings>{
+          1: SheetCropSettings(left: 0.04),
+          4: SheetCropSettings(bottom: 0.05),
+        },
         blankPageNumbers: <int>[3],
       ),
     );
@@ -856,10 +865,13 @@ void main() {
     expect(updated.bookmarks.single.pageNumber, 1);
     expect(updated.pageSettings.hiddenPages, isEmpty);
     expect(updated.pageSettings.pageOrder, isEmpty);
+    expect(updated.pageSettings.instanceRotations, isEmpty);
+    expect(updated.pageSettings.instanceCrops, isEmpty);
     expect(updated.pageSettings.blankPageInsertions, isEmpty);
     expect(updated.pageSettings.visibilityPresets, isEmpty);
-    expect(updated.pageSettings.pageRotations, <int, int>{1: 90, 4: 90});
+    expect(updated.pageSettings.pageRotations, <int, int>{1: 90, 4: 180});
     expect(updated.pageSettings.pageCrops.keys, <int>[1, 4]);
+    expect(updated.pageSettings.pageCrops[4]?.bottom, 0.05);
     expect(updated.pageSettings.jumpPoints.single.sourcePage, 2);
     expect(updated.pageSettings.jumpPoints.single.targetPage, 1);
     expect(updated.pageSettings.rehearsalMarks.single.pageNumber, 1);

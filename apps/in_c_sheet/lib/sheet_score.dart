@@ -672,6 +672,8 @@ class SheetPageSettings {
     this.crop = SheetCropSettings.none,
     this.pageCrops = const <int, SheetCropSettings>{},
     this.pageOrder = const <int>[],
+    this.instanceRotations = const <int, int>{},
+    this.instanceCrops = const <int, SheetCropSettings>{},
     this.jumpPoints = const <SheetPageJumpPoint>[],
     this.rehearsalMarks = const <SheetRehearsalMark>[],
     this.cropPresets = const <SheetCropPreset>[],
@@ -686,6 +688,8 @@ class SheetPageSettings {
       crop: SheetCropSettings.fromJson(_asJsonMap(json?['crop'])),
       pageCrops: _normalizePageCrops(json?['pageCrops']),
       pageOrder: _normalizePageOrder(json?['pageOrder']),
+      instanceRotations: _normalizeIndexRotations(json?['instanceRotations']),
+      instanceCrops: _normalizeIndexCrops(json?['instanceCrops']),
       jumpPoints: _normalizeJumpPoints(json?['jumpPoints']),
       rehearsalMarks: _normalizeRehearsalMarks(json?['rehearsalMarks']),
       cropPresets: _normalizeCropPresets(json?['cropPresets']),
@@ -703,6 +707,8 @@ class SheetPageSettings {
     pageRotations: <int, int>{},
     pageCrops: <int, SheetCropSettings>{},
     pageOrder: <int>[],
+    instanceRotations: <int, int>{},
+    instanceCrops: <int, SheetCropSettings>{},
     jumpPoints: <SheetPageJumpPoint>[],
     rehearsalMarks: <SheetRehearsalMark>[],
     cropPresets: <SheetCropPreset>[],
@@ -715,6 +721,8 @@ class SheetPageSettings {
   final SheetCropSettings crop;
   final Map<int, SheetCropSettings> pageCrops;
   final List<int> pageOrder;
+  final Map<int, int> instanceRotations;
+  final Map<int, SheetCropSettings> instanceCrops;
   final List<SheetPageJumpPoint> jumpPoints;
   final List<SheetRehearsalMark> rehearsalMarks;
   final List<SheetCropPreset> cropPresets;
@@ -733,7 +741,21 @@ class SheetPageSettings {
 
   bool isHidden(int pageNumber) => hiddenPages.contains(pageNumber);
 
-  SheetCropSettings cropForPage(int pageNumber) {
+  bool get hasInstanceOverrides {
+    return instanceRotations.isNotEmpty || instanceCrops.isNotEmpty;
+  }
+
+  int rotationForPage(int pageNumber, {int? orderIndex}) {
+    if (orderIndex != null && instanceRotations.containsKey(orderIndex)) {
+      return instanceRotations[orderIndex] ?? 0;
+    }
+    return pageRotations[pageNumber] ?? 0;
+  }
+
+  SheetCropSettings cropForPage(int pageNumber, {int? orderIndex}) {
+    if (orderIndex != null && instanceCrops.containsKey(orderIndex)) {
+      return instanceCrops[orderIndex] ?? SheetCropSettings.none;
+    }
     return pageCrops[pageNumber] ?? crop;
   }
 
@@ -851,6 +873,25 @@ class SheetPageSettings {
               !compactHiddenPages.contains(page),
         )
         .toList(growable: false);
+    final effectiveOrderLength = compactPageOrder.isEmpty && pageOrder.isEmpty
+        ? pageCount - compactHiddenPages.length
+        : compactPageOrder.length;
+    final compactInstanceRotations = <int, int>{};
+    for (final entry in instanceRotations.entries) {
+      final rotation = _normalizeInstanceRotationValue(entry.value);
+      if (entry.key >= 0 &&
+          entry.key < effectiveOrderLength &&
+          rotation != null) {
+        compactInstanceRotations[entry.key] = rotation;
+      }
+    }
+    final compactInstanceCrops = <int, SheetCropSettings>{
+      for (final entry in instanceCrops.entries)
+        if (entry.key >= 0 &&
+            entry.key < effectiveOrderLength &&
+            entry.value.hasCrop)
+          entry.key: entry.value.normalized(),
+    };
     final compactJumpPoints = jumpPoints
         .where(
           (jumpPoint) =>
@@ -891,6 +932,8 @@ class SheetPageSettings {
         _intMapsEqual(pageRotations, compactRotations) &&
         _cropMapsEqual(pageCrops, compactPageCrops) &&
         _intListsEqual(pageOrder, compactPageOrder) &&
+        _intMapsEqual(instanceRotations, compactInstanceRotations) &&
+        _cropMapsEqual(instanceCrops, compactInstanceCrops) &&
         _jumpPointListsEqual(jumpPoints, compactJumpPoints) &&
         _jsonObjectListsEqual(rehearsalMarks, compactRehearsalMarks) &&
         _jsonObjectListsEqual(
@@ -906,6 +949,12 @@ class SheetPageSettings {
       pageRotations: Map<int, int>.unmodifiable(compactRotations),
       pageCrops: Map<int, SheetCropSettings>.unmodifiable(compactPageCrops),
       pageOrder: List<int>.unmodifiable(compactPageOrder),
+      instanceRotations: Map<int, int>.unmodifiable(
+        compactInstanceRotations,
+      ),
+      instanceCrops: Map<int, SheetCropSettings>.unmodifiable(
+        compactInstanceCrops,
+      ),
       jumpPoints: List<SheetPageJumpPoint>.unmodifiable(compactJumpPoints),
       rehearsalMarks: List<SheetRehearsalMark>.unmodifiable(
         compactRehearsalMarks,
@@ -934,7 +983,19 @@ class SheetPageSettings {
     }
     final page = order.removeAt(fromIndex);
     order.insert(toIndex, page);
-    return copyWith(pageOrder: List<int>.unmodifiable(order));
+    return copyWith(
+      pageOrder: List<int>.unmodifiable(order),
+      instanceRotations: _moveOrderIndexMap(
+        instanceRotations,
+        fromIndex: fromIndex,
+        toIndex: toIndex,
+      ),
+      instanceCrops: _moveOrderIndexMap(
+        instanceCrops,
+        fromIndex: fromIndex,
+        toIndex: toIndex,
+      ),
+    );
   }
 
   SheetPageSettings duplicatePageInOrder({
@@ -957,14 +1018,72 @@ class SheetPageSettings {
       return this;
     }
     order.insert(index + 1, pageNumber);
-    return copyWith(pageOrder: List<int>.unmodifiable(order));
+    return copyWith(
+      pageOrder: List<int>.unmodifiable(order),
+      instanceRotations: _duplicateOrderIndexMap(
+        instanceRotations,
+        index: index,
+      ),
+      instanceCrops: _duplicateOrderIndexMap(instanceCrops, index: index),
+    );
   }
 
   SheetPageSettings resetPageOrder() {
-    if (pageOrder.isEmpty) {
+    if (pageOrder.isEmpty && !hasInstanceOverrides) {
       return this;
     }
-    return copyWith(pageOrder: const <int>[]);
+    return copyWith(
+      pageOrder: const <int>[],
+      instanceRotations: const <int, int>{},
+      instanceCrops: const <int, SheetCropSettings>{},
+    );
+  }
+
+  SheetPageSettings rotatePageInstanceClockwise({
+    required int orderIndex,
+    required int pageNumber,
+    required int pageCount,
+  }) {
+    final order = effectivePageOrder(pageCount);
+    if (orderIndex < 0 ||
+        orderIndex >= order.length ||
+        order[orderIndex] != pageNumber) {
+      return this;
+    }
+
+    final base = pageRotations[pageNumber] ?? 0;
+    final current = rotationForPage(pageNumber, orderIndex: orderIndex);
+    final nextDegrees = (current + 90) % 360;
+    final nextRotations = Map<int, int>.of(instanceRotations);
+    if (nextDegrees == base) {
+      nextRotations.remove(orderIndex);
+    } else {
+      nextRotations[orderIndex] = nextDegrees;
+    }
+    return copyWith(
+      instanceRotations: Map<int, int>.unmodifiable(nextRotations),
+    );
+  }
+
+  SheetPageSettings updatePageInstanceCrop({
+    required int orderIndex,
+    required int pageCount,
+    required SheetCropSettings crop,
+  }) {
+    if (orderIndex < 0 || orderIndex >= effectivePageOrder(pageCount).length) {
+      return this;
+    }
+
+    final nextCrops = Map<int, SheetCropSettings>.of(instanceCrops);
+    final normalized = crop.normalized();
+    if (normalized.hasCrop) {
+      nextCrops[orderIndex] = normalized;
+    } else {
+      nextCrops.remove(orderIndex);
+    }
+    return copyWith(
+      instanceCrops: Map<int, SheetCropSettings>.unmodifiable(nextCrops),
+    );
   }
 
   List<SheetPageJumpPoint> jumpPointsFromPage(int pageNumber) {
@@ -1268,6 +1387,8 @@ class SheetPageSettings {
     SheetCropSettings? crop,
     Map<int, SheetCropSettings>? pageCrops,
     List<int>? pageOrder,
+    Map<int, int>? instanceRotations,
+    Map<int, SheetCropSettings>? instanceCrops,
     List<SheetPageJumpPoint>? jumpPoints,
     List<SheetRehearsalMark>? rehearsalMarks,
     List<SheetCropPreset>? cropPresets,
@@ -1280,6 +1401,8 @@ class SheetPageSettings {
       crop: crop ?? this.crop,
       pageCrops: pageCrops ?? this.pageCrops,
       pageOrder: pageOrder ?? this.pageOrder,
+      instanceRotations: instanceRotations ?? this.instanceRotations,
+      instanceCrops: instanceCrops ?? this.instanceCrops,
       jumpPoints: jumpPoints ?? this.jumpPoints,
       rehearsalMarks: rehearsalMarks ?? this.rehearsalMarks,
       cropPresets: cropPresets ?? this.cropPresets,
@@ -1299,6 +1422,12 @@ class SheetPageSettings {
         (page, pageCrop) => MapEntry(page.toString(), pageCrop.toJson()),
       ),
       'pageOrder': pageOrder,
+      'instanceRotations': instanceRotations.map(
+        (index, degrees) => MapEntry(index.toString(), degrees),
+      ),
+      'instanceCrops': instanceCrops.map(
+        (index, pageCrop) => MapEntry(index.toString(), pageCrop.toJson()),
+      ),
       'jumpPoints': jumpPoints.map((jumpPoint) => jumpPoint.toJson()).toList(),
       'rehearsalMarks': rehearsalMarks.map((mark) => mark.toJson()).toList(),
       'cropPresets': cropPresets.map((preset) => preset.toJson()).toList(),
@@ -1487,6 +1616,91 @@ class SheetPageSettings {
     return Map<int, SheetCropSettings>.unmodifiable(crops);
   }
 
+  static Map<int, int> _normalizeIndexRotations(Object? value) {
+    final rotations = <int, int>{};
+    if (value is Map) {
+      for (final entry in value.entries) {
+        final index = int.tryParse(entry.key.toString());
+        final degrees = _rotationIntFromJson(entry.value);
+        if (index == null || index < 0) {
+          continue;
+        }
+        final normalized = degrees == null
+            ? null
+            : _normalizeInstanceRotationValue(degrees);
+        if (normalized != null) {
+          rotations[index] = normalized;
+        }
+      }
+    }
+    return Map<int, int>.unmodifiable(rotations);
+  }
+
+  static Map<int, SheetCropSettings> _normalizeIndexCrops(Object? value) {
+    final crops = <int, SheetCropSettings>{};
+    if (value is Map) {
+      for (final entry in value.entries) {
+        final index = int.tryParse(entry.key.toString());
+        if (index == null || index < 0) {
+          continue;
+        }
+        final crop = SheetCropSettings.fromJson(_asJsonMap(entry.value));
+        if (crop.hasCrop) {
+          crops[index] = crop;
+        }
+      }
+    }
+    return Map<int, SheetCropSettings>.unmodifiable(crops);
+  }
+
+  static Map<int, T> _moveOrderIndexMap<T>(
+    Map<int, T> values, {
+    required int fromIndex,
+    required int toIndex,
+  }) {
+    if (values.isEmpty || fromIndex == toIndex) {
+      return Map<int, T>.unmodifiable(values);
+    }
+    final next = <int, T>{};
+    for (final entry in values.entries) {
+      final index = entry.key;
+      late final int nextIndex;
+      if (index == fromIndex) {
+        nextIndex = toIndex;
+      } else if (fromIndex < toIndex &&
+          index > fromIndex &&
+          index <= toIndex) {
+        nextIndex = index - 1;
+      } else if (toIndex < fromIndex &&
+          index >= toIndex &&
+          index < fromIndex) {
+        nextIndex = index + 1;
+      } else {
+        nextIndex = index;
+      }
+      next[nextIndex] = entry.value;
+    }
+    return Map<int, T>.unmodifiable(next);
+  }
+
+  static Map<int, T> _duplicateOrderIndexMap<T>(
+    Map<int, T> values, {
+    required int index,
+  }) {
+    if (values.isEmpty) {
+      return Map<int, T>.unmodifiable(values);
+    }
+    final next = <int, T>{};
+    for (final entry in values.entries) {
+      final nextIndex = entry.key <= index ? entry.key : entry.key + 1;
+      next[nextIndex] = entry.value;
+    }
+    if (values.containsKey(index)) {
+      next[index + 1] = values[index] as T;
+    }
+    return Map<int, T>.unmodifiable(next);
+  }
+
   static int _normalizedRotationDegrees(int degrees) {
     final normalized = ((degrees % 360) + 360) % 360;
     return normalized == 90 || normalized == 180 || normalized == 270
@@ -1561,6 +1775,26 @@ class SheetPageSettings {
       }
     }
     return true;
+  }
+
+  static int? _normalizeInstanceRotationValue(int degrees) {
+    final normalized = ((degrees % 360) + 360) % 360;
+    return normalized == 0 ||
+            normalized == 90 ||
+            normalized == 180 ||
+            normalized == 270
+        ? normalized
+        : null;
+  }
+
+  static int? _rotationIntFromJson(Object? value) {
+    if (value is num) {
+      return value.round();
+    }
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 }
 

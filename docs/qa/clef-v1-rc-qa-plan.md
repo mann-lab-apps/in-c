@@ -35,7 +35,7 @@
 | 3-1 | 라이브러리 전환 | 기본/추가 라이브러리를 전환하고 이름 변경/비우기가 파일 삭제 없이 동작한다. | 변경한 library profile, 전환 전후 악보 수 |
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop/render profile/반 페이지 정책이 전환된다. | PDF 유형, blank 발생 page, render profile, portrait/landscape half-page anchor, 재현 여부 |
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
-| 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page |
+| 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
 | 8 | 필기/주석 | pen/highlighter/text/shape/stamp, undo/redo, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, 저장 실패 문구, 복원 여부 |

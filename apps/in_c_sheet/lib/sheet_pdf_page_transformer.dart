@@ -50,6 +50,8 @@ class SheetPdfPageArrangementResult {
     required this.insertedBlankPageCount,
     required this.didWrite,
     this.sourcePageMapping = const <int, List<int>>{},
+    this.pageRotations = const <int, int>{},
+    this.pageCrops = const <int, SheetCropSettings>{},
     this.blankPageNumbers = const <int>[],
     this.failureReason,
   });
@@ -61,6 +63,8 @@ class SheetPdfPageArrangementResult {
   final int insertedBlankPageCount;
   final bool didWrite;
   final Map<int, List<int>> sourcePageMapping;
+  final Map<int, int> pageRotations;
+  final Map<int, SheetCropSettings> pageCrops;
   final List<int> blankPageNumbers;
   final String? failureReason;
 }
@@ -242,7 +246,8 @@ class SheetPdfPageTransformer {
 
       if (sourcePages.isEmpty ||
           (_isIdentityOrder(sourcePages, sourcePageCount) &&
-              blankPageNumbers.isEmpty)) {
+              blankPageNumbers.isEmpty &&
+              !pageSettings.hasInstanceOverrides)) {
         return SheetPdfPageArrangementResult(
           inputPath: inputPath,
           outputPath: null,
@@ -285,6 +290,14 @@ class SheetPdfPageTransformer {
         insertedBlankPageCount: blankPageNumbers.length,
         didWrite: true,
         sourcePageMapping: _sourcePageMapping(slots),
+        pageRotations: _arrangedPageRotations(
+          slots: slots,
+          pageSettings: pageSettings,
+        ),
+        pageCrops: _arrangedPageCrops(
+          slots: slots,
+          pageSettings: pageSettings,
+        ),
         blankPageNumbers: List<int>.unmodifiable(blankPageNumbers),
       );
     } catch (error) {
@@ -346,7 +359,14 @@ class SheetPdfPageTransformer {
   }) {
     final slots = pageSettings
         .effectivePageOrder(pageCount)
-        .map(_ArrangedPageSlot.source)
+        .asMap()
+        .entries
+        .map(
+          (entry) => _ArrangedPageSlot.source(
+            sourcePage: entry.value,
+            orderIndex: entry.key,
+          ),
+        )
         .toList(growable: true);
     if (slots.isEmpty) {
       return const <_ArrangedPageSlot>[];
@@ -386,6 +406,51 @@ class SheetPdfPageTransformer {
         (page, pages) => MapEntry(page, List<int>.unmodifiable(pages)),
       ),
     );
+  }
+
+  static Map<int, int> _arrangedPageRotations({
+    required List<_ArrangedPageSlot> slots,
+    required SheetPageSettings pageSettings,
+  }) {
+    final rotations = <int, int>{};
+    for (var index = 0; index < slots.length; index += 1) {
+      final slot = slots[index];
+      final sourcePage = slot.sourcePage;
+      final orderIndex = slot.orderIndex;
+      if (sourcePage == null || orderIndex == null) {
+        continue;
+      }
+      final rotation = pageSettings.rotationForPage(
+        sourcePage,
+        orderIndex: orderIndex,
+      );
+      if (rotation != 0) {
+        rotations[index + 1] = rotation;
+      }
+    }
+    return Map<int, int>.unmodifiable(rotations);
+  }
+
+  static Map<int, SheetCropSettings> _arrangedPageCrops({
+    required List<_ArrangedPageSlot> slots,
+    required SheetPageSettings pageSettings,
+  }) {
+    final crops = <int, SheetCropSettings>{};
+    for (var index = 0; index < slots.length; index += 1) {
+      final slot = slots[index];
+      final sourcePage = slot.sourcePage;
+      final orderIndex = slot.orderIndex;
+      if (sourcePage == null || orderIndex == null) {
+        continue;
+      }
+      final crop = pageSettings
+          .cropForPage(sourcePage, orderIndex: orderIndex)
+          .normalized();
+      if (crop.hasCrop) {
+        crops[index + 1] = crop;
+      }
+    }
+    return Map<int, SheetCropSettings>.unmodifiable(crops);
   }
 
   static PdfRect _blankPageSizeForSlot({
@@ -429,11 +494,17 @@ class SheetPdfPageTransformer {
 }
 
 class _ArrangedPageSlot {
-  const _ArrangedPageSlot.source(this.sourcePage);
+  const _ArrangedPageSlot.source({
+    required this.sourcePage,
+    required this.orderIndex,
+  });
 
-  const _ArrangedPageSlot.blank() : sourcePage = null;
+  const _ArrangedPageSlot.blank()
+    : sourcePage = null,
+      orderIndex = null;
 
   final int? sourcePage;
+  final int? orderIndex;
 
   bool get isBlank => sourcePage == null;
 }
