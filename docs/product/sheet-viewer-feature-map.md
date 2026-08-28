@@ -90,7 +90,7 @@
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | page/measure cue |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | V1 후보 구현: `record` PCM stream, autocorrelation detector, median smoothing, profile별 no-signal debounce/confidence, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Concert/Bb Trumpet 표시, Chromatic/Bb Trumpet 감지 profile, A4 저장. 실기기 정확도/latency 검증 필요 |
-| 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | synth/audio engine |
+| 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
 | 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | local audio |
@@ -160,7 +160,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 실제 페이지 회전 live 렌더링과 per-instance crop/rotation override.
 - orientation별 반 페이지 정책 정교화.
 - pressure sensitivity, palm rejection.
-- 기준음/드론, 오디오 플레이어.
+- 오디오 플레이어.
 
 ## V2 후보
 

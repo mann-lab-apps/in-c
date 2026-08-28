@@ -16,6 +16,7 @@ import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
 class SheetLibraryController extends ChangeNotifier {
@@ -28,6 +29,7 @@ class SheetLibraryController extends ChangeNotifier {
   SheetMetronomeSettings _metronomeSettings =
       SheetMetronomeSettings.defaultSettings;
   SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
+  SheetToneSettings _toneSettings = SheetToneSettings.defaultSettings;
   SheetLibraryViewSettings _libraryViewSettings =
       SheetLibraryViewSettings.defaultSettings;
   SheetViewerSettings _globalViewerSettings =
@@ -47,6 +49,7 @@ class SheetLibraryController extends ChangeNotifier {
   List<SheetSetlist> get setlists => _setlists;
   SheetMetronomeSettings get metronomeSettings => _metronomeSettings;
   SheetTunerSettings get tunerSettings => _tunerSettings;
+  SheetToneSettings get toneSettings => _toneSettings;
   SheetLibraryViewSettings get libraryViewSettings => _libraryViewSettings;
   SheetViewerSettings get globalViewerSettings => _globalViewerSettings;
   List<SheetLibraryProfile> get libraryProfiles => _libraryProfiles;
@@ -154,6 +157,7 @@ class SheetLibraryController extends ChangeNotifier {
     _setlists = await store.loadSetlists();
     _metronomeSettings = await store.loadMetronomeSettings();
     _tunerSettings = await store.loadTunerSettings();
+    _toneSettings = await store.loadToneSettings();
     _libraryViewSettings = await store.loadLibraryViewSettings();
     _globalViewerSettings = await store.loadGlobalViewerSettings();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
@@ -698,6 +702,12 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> updateTunerSettings(SheetTunerSettings settings) async {
     _tunerSettings = settings;
     await store.saveTunerSettings(settings);
+    notifyListeners();
+  }
+
+  Future<void> updateToneSettings(SheetToneSettings settings) async {
+    _toneSettings = settings;
+    await store.saveToneSettings(settings);
     notifyListeners();
   }
 

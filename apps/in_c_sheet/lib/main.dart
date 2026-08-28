@@ -21,6 +21,7 @@ import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_tuner_input_service.dart';
 import 'sheet_viewer_input.dart';
@@ -8538,7 +8539,9 @@ setlist=$setlistLabel
       showDragHandle: true,
       builder: (context) => _TunerSheet(
         initialSettings: widget.controller.tunerSettings,
+        initialToneSettings: widget.controller.toneSettings,
         onSettingsChanged: widget.controller.updateTunerSettings,
+        onToneSettingsChanged: widget.controller.updateToneSettings,
       ),
     );
     if (mounted) {
@@ -11820,11 +11823,16 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 class _TunerSheet extends StatefulWidget {
   const _TunerSheet({
     required this.initialSettings,
+    required this.initialToneSettings,
     required this.onSettingsChanged,
+    required this.onToneSettingsChanged,
   });
 
   final SheetTunerSettings initialSettings;
+  final SheetToneSettings initialToneSettings;
   final Future<void> Function(SheetTunerSettings settings) onSettingsChanged;
+  final Future<void> Function(SheetToneSettings settings)
+  onToneSettingsChanged;
 
   @override
   State<_TunerSheet> createState() => _TunerSheetState();
@@ -11832,16 +11840,22 @@ class _TunerSheet extends StatefulWidget {
 
 class _TunerSheetState extends State<_TunerSheet> {
   late SheetTunerSettings _settings;
+  late SheetToneSettings _toneSettings;
   late final SheetTunerInputService _inputService;
+  late final SheetTonePlayer _tonePlayer;
   late double _demoFrequency;
   StreamSubscription<SheetTunerState>? _inputSubscription;
   SheetTunerState _state = SheetTunerState.idle;
+  bool _isTonePlaying = false;
+  SheetTonePlaybackResult? _lastTonePlaybackResult;
 
   @override
   void initState() {
     super.initState();
     _settings = widget.initialSettings;
+    _toneSettings = widget.initialToneSettings;
     _inputService = SheetTunerInputService();
+    _tonePlayer = SheetTonePlayer();
     _inputSubscription = _inputService.states.listen((state) {
       if (mounted) {
         setState(() {
@@ -11854,6 +11868,7 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   @override
   void dispose() {
+    unawaited(_tonePlayer.stop());
     _inputSubscription?.cancel();
     unawaited(_inputService.dispose());
     super.dispose();
@@ -11869,6 +11884,9 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
     _inputService.updateSettings(nextSettings);
     await widget.onSettingsChanged(nextSettings);
+    if (_isTonePlaying) {
+      await _playTone();
+    }
   }
 
   Future<void> _setDisplayMode(SheetTunerDisplayMode displayMode) async {
@@ -11891,6 +11909,42 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
     _inputService.updateSettings(nextSettings);
     await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _setToneSettings(SheetToneSettings settings) async {
+    setState(() {
+      _toneSettings = settings;
+    });
+    await widget.onToneSettingsChanged(settings);
+    if (_isTonePlaying) {
+      await _playTone();
+    }
+  }
+
+  Future<void> _toggleTone() async {
+    if (_isTonePlaying) {
+      await _tonePlayer.stop();
+      setState(() {
+        _isTonePlaying = false;
+        _lastTonePlaybackResult = null;
+      });
+      return;
+    }
+    await _playTone();
+  }
+
+  Future<void> _playTone() async {
+    final result = await _tonePlayer.play(
+      settings: _toneSettings,
+      referencePitchA4: _settings.referencePitchA4,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isTonePlaying = result.isPlaying;
+      _lastTonePlaybackResult = result;
+    });
   }
 
   Future<void> _setTargetConcertMidiNumber(int midiNumber) async {
@@ -12205,6 +12259,107 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ],
               ),
               const SizedBox(height: 24),
+              Text('기준음/드론', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final target in tuningTargets)
+                    ChoiceChip(
+                      selected:
+                          _toneSettings.rootConcertMidiNumber ==
+                          target.concertMidiNumber,
+                      label: Text(
+                        target.displayLabel(
+                          displayMode: _settings.displayMode,
+                          referencePitchA4: _settings.referencePitchA4,
+                        ),
+                      ),
+                      onSelected: (_) => unawaited(
+                        _setToneSettings(
+                          _toneSettings.copyWith(
+                            rootConcertMidiNumber: target.concertMidiNumber,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<SheetToneDroneMode>(
+                initialValue: _toneSettings.droneMode,
+                decoration: const InputDecoration(
+                  labelText: '드론 모드',
+                  border: OutlineInputBorder(),
+                ),
+                items: SheetToneDroneMode.values
+                    .map(
+                      (mode) => DropdownMenuItem<SheetToneDroneMode>(
+                        value: mode,
+                        child: Text(mode.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    unawaited(
+                      _setToneSettings(
+                        _toneSettings.copyWith(droneMode: value),
+                      ),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _toneLabel(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Slider(
+                value: _toneSettings.volumePercent.toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 20,
+                label: '${_toneSettings.volumePercent}%',
+                onChanged: (value) => unawaited(
+                  _setToneSettings(
+                    _toneSettings.copyWith(volumePercent: value.round()),
+                  ),
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: _toggleTone,
+                icon: Icon(_isTonePlaying ? Icons.stop : Icons.graphic_eq),
+                label: Text(_isTonePlaying ? '드론 정지' : '드론 재생'),
+              ),
+              if (_lastTonePlaybackResult?.status ==
+                  SheetTonePlaybackStatus.unsupportedPlatform)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    '이 기기에서는 기준음 재생 채널을 사용할 수 없습니다.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                )
+              else if (_lastTonePlaybackResult?.status ==
+                  SheetTonePlaybackStatus.failed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _lastTonePlaybackResult!.message.isEmpty
+                        ? '기준음 재생을 시작하지 못했습니다.'
+                        : _lastTonePlaybackResult!.message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 24),
               Text(
                 'A4 기준음 ${_settings.referencePitchA4} Hz',
                 style: theme.textTheme.labelLarge,
@@ -12255,6 +12410,30 @@ class _TunerSheetState extends State<_TunerSheet> {
         ),
       ),
     );
+  }
+
+  String _toneLabel() {
+    final rootNote = SheetTunerPitch.noteFromMidi(
+      _toneSettings.rootConcertMidiNumber,
+      referencePitchA4: _settings.referencePitchA4,
+    );
+    final writtenNote = SheetTunerPitch.noteFromMidi(
+      _toneSettings.rootConcertMidiNumber +
+          _settings.displayMode.transposeSemitones,
+      referencePitchA4: _settings.referencePitchA4,
+    );
+    final frequencies = _toneSettings.frequencies(
+      referencePitchA4: _settings.referencePitchA4,
+    );
+    final frequencyLabel = frequencies
+        .map((frequency) => '${frequency.toStringAsFixed(1)} Hz')
+        .join(' / ');
+    final writtenLabel = writtenNote.labelWith(
+      preferFlats: _settings.displayMode.preferFlats,
+    );
+    final concertLabel = rootNote.labelWith(preferFlats: true);
+    return '$writtenLabel'
+        ' · Concert $concertLabel · $frequencyLabel';
   }
 
   ({IconData icon, String label}) _tunerStatusLabel(

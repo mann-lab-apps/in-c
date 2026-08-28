@@ -5,6 +5,7 @@ import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
 class SheetLibraryBackup {
@@ -15,6 +16,7 @@ class SheetLibraryBackup {
     required this.setlists,
     required this.metronomeSettings,
     required this.tunerSettings,
+    this.toneSettings = SheetToneSettings.defaultSettings,
     required this.libraryViewSettings,
     this.globalViewerSettings = SheetViewerSettings.defaultSettings,
     this.favoriteAnnotationPreset,
@@ -40,6 +42,9 @@ class SheetLibraryBackup {
       tunerSettings: SheetTunerSettings.fromJson(
         _asJsonMap(json['tunerSettings']),
       ),
+      toneSettings: SheetToneSettings.fromJson(
+        _asJsonMap(json['toneSettings']),
+      ),
       libraryViewSettings: SheetLibraryViewSettings.fromJson(
         _asJsonMap(json['libraryViewSettings']),
       ),
@@ -57,6 +62,7 @@ class SheetLibraryBackup {
     required List<SheetSetlist> setlists,
     required SheetMetronomeSettings metronomeSettings,
     required SheetTunerSettings tunerSettings,
+    SheetToneSettings toneSettings = SheetToneSettings.defaultSettings,
     required SheetLibraryViewSettings libraryViewSettings,
     SheetViewerSettings globalViewerSettings =
         SheetViewerSettings.defaultSettings,
@@ -70,6 +76,7 @@ class SheetLibraryBackup {
       setlists: List<SheetSetlist>.unmodifiable(setlists),
       metronomeSettings: metronomeSettings,
       tunerSettings: tunerSettings,
+      toneSettings: toneSettings,
       libraryViewSettings: libraryViewSettings,
       globalViewerSettings: globalViewerSettings,
       favoriteAnnotationPreset: favoriteAnnotationPreset,
@@ -84,6 +91,7 @@ class SheetLibraryBackup {
   final List<SheetSetlist> setlists;
   final SheetMetronomeSettings metronomeSettings;
   final SheetTunerSettings tunerSettings;
+  final SheetToneSettings toneSettings;
   final SheetLibraryViewSettings libraryViewSettings;
   final SheetViewerSettings globalViewerSettings;
   final SheetAnnotationToolPreset? favoriteAnnotationPreset;
@@ -97,6 +105,7 @@ class SheetLibraryBackup {
       'setlists': setlists.map((setlist) => setlist.toJson()).toList(),
       'metronomeSettings': metronomeSettings.toJson(),
       'tunerSettings': tunerSettings.toJson(),
+      'toneSettings': toneSettings.toJson(),
       'libraryViewSettings': libraryViewSettings.toJson(),
       'globalViewerSettings': globalViewerSettings.toJson(),
       if (favoriteAnnotationPreset != null)

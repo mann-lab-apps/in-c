@@ -13,6 +13,7 @@ import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -89,6 +90,13 @@ void main() {
         displayMode: SheetTunerDisplayMode.bbTrumpet,
       ),
     );
+    await store.saveToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 57,
+        droneMode: SheetToneDroneMode.fifth,
+        volumePercent: 40,
+      ),
+    );
     await store.saveLibraryViewSettings(
       const SheetLibraryViewSettings(
         sortMode: SheetLibrarySortMode.title,
@@ -112,6 +120,7 @@ void main() {
     final loadedSetlists = await store.loadSetlists();
     final loadedMetronomeSettings = await store.loadMetronomeSettings();
     final loadedTunerSettings = await store.loadTunerSettings();
+    final loadedToneSettings = await store.loadToneSettings();
     final loadedLibraryViewSettings = await store.loadLibraryViewSettings();
     final loadedFavoriteAnnotationPreset = await store
         .loadFavoriteAnnotationPreset();
@@ -122,6 +131,9 @@ void main() {
     expect(loadedMetronomeSettings.meter, SheetMetronomeMeter.sixEight);
     expect(loadedTunerSettings.referencePitchA4, 442);
     expect(loadedTunerSettings.displayMode, SheetTunerDisplayMode.bbTrumpet);
+    expect(loadedToneSettings.rootConcertMidiNumber, 57);
+    expect(loadedToneSettings.droneMode, SheetToneDroneMode.fifth);
+    expect(loadedToneSettings.volumePercent, 40);
     expect(loadedLibraryViewSettings.sortMode, SheetLibrarySortMode.title);
     expect(loadedLibraryViewSettings.favoriteOnly, isTrue);
     expect(loadedLibraryViewSettings.tagQuery, 'lesson');
@@ -413,6 +425,13 @@ void main() {
         targetConcertMidiNumber: 70,
       ),
     );
+    await store.saveToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 60,
+        droneMode: SheetToneDroneMode.fifthOctave,
+        volumePercent: 30,
+      ),
+    );
     await store.saveFavoriteAnnotationPreset(
       const SheetAnnotationToolPreset(
         toolName: 'highlighter',
@@ -471,6 +490,8 @@ void main() {
       'twoPage',
     );
     expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
+    expect(backup.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
+    expect(backup.toneSettings.volumePercent, 30);
     expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
     expect(backup.globalViewerSettings.halfPageTurn, isTrue);
     expect(
@@ -513,6 +534,14 @@ void main() {
     expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
+    expect(
+      (await restoreStore.loadToneSettings()).rootConcertMidiNumber,
+      60,
+    );
+    expect(
+      (await restoreStore.loadToneSettings()).droneMode,
+      SheetToneDroneMode.fifthOctave,
+    );
     expect(
       (await restoreStore.loadTunerSettings()).displayMode,
       SheetTunerDisplayMode.altoSax,

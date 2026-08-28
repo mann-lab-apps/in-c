@@ -19,6 +19,7 @@ import 'sheet_pdf_link_sanitizer.dart';
 import 'sheet_pdf_page_transformer.dart';
 import 'sheet_score.dart';
 import 'sheet_setlist.dart';
+import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
 Map<String, Object?>? _jsonMapFromString(String? value) {
@@ -43,6 +44,7 @@ class SheetLibraryStore {
   static const _setlistsKey = 'clef_setlists';
   static const _metronomeSettingsKey = 'clef_metronome_settings';
   static const _tunerSettingsKey = 'clef_tuner_settings';
+  static const _toneSettingsKey = 'clef_tone_settings';
   static const _libraryViewSettingsKey = 'clef_library_view_settings';
   static const _globalViewerSettingsKey = 'clef_global_viewer_settings';
   static const _favoriteAnnotationPresetKey = 'clef_favorite_annotation_preset';
@@ -347,6 +349,7 @@ class SheetLibraryStore {
     List<SheetSetlist>? setlists,
     SheetMetronomeSettings? metronomeSettings,
     SheetTunerSettings? tunerSettings,
+    SheetToneSettings? toneSettings,
     SheetLibraryViewSettings? libraryViewSettings,
     SheetViewerSettings? globalViewerSettings,
     SheetAnnotationToolPreset? favoriteAnnotationPreset,
@@ -372,6 +375,9 @@ class SheetLibraryStore {
               _legacyTunerSettingsKey,
             ),
           ),
+      toneSettings:
+          toneSettings ??
+          SheetToneCodec.decode(preferences.getString(_toneSettingsKey)),
       libraryViewSettings:
           libraryViewSettings ??
           _readLibraryViewSettings(preferences, activeLibraryId),
@@ -473,6 +479,24 @@ class SheetLibraryStore {
       preferences,
       await _activeLibraryId(preferences),
       tunerSettings: settings,
+    );
+  }
+
+  Future<SheetToneSettings> loadToneSettings() async {
+    final preferences = await SharedPreferences.getInstance();
+    return SheetToneCodec.decode(preferences.getString(_toneSettingsKey));
+  }
+
+  Future<void> saveToneSettings(SheetToneSettings settings) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(
+      _toneSettingsKey,
+      SheetToneCodec.encode(settings),
+    );
+    await _saveAutomaticMetadataBackup(
+      preferences,
+      await _activeLibraryId(preferences),
+      toneSettings: settings,
     );
   }
 
@@ -889,6 +913,7 @@ class SheetLibraryStore {
       setlists: await loadSetlists(),
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
+      toneSettings: await loadToneSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
       globalViewerSettings: await loadGlobalViewerSettings(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
@@ -935,6 +960,7 @@ class SheetLibraryStore {
       setlists: setlists,
       metronomeSettings: await loadMetronomeSettings(),
       tunerSettings: await loadTunerSettings(),
+      toneSettings: await loadToneSettings(),
       libraryViewSettings: await loadLibraryViewSettings(),
       globalViewerSettings: await loadGlobalViewerSettings(),
       favoriteAnnotationPreset: await loadFavoriteAnnotationPreset(),
@@ -1119,6 +1145,7 @@ class SheetLibraryStore {
       await saveSetlists(backup.setlists);
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
+      await saveToneSettings(backup.toneSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
       await saveGlobalViewerSettings(backup.globalViewerSettings);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
@@ -1281,6 +1308,7 @@ class SheetLibraryStore {
       await saveSetlists(backup.setlists);
       await saveMetronomeSettings(backup.metronomeSettings);
       await saveTunerSettings(backup.tunerSettings);
+      await saveToneSettings(backup.toneSettings);
       await saveLibraryViewSettings(backup.libraryViewSettings);
       await saveGlobalViewerSettings(backup.globalViewerSettings);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);

@@ -60,6 +60,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector,
   frequency-to-note 계산, cents meter, A4 기준음 저장, viewer bottom sheet.
+- 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
+  5도, 옥타브 drone을 재생한다.
 - 하드웨어 키/Bluetooth/USB 페달 입력 1차: arrow, page, space, media key 기반 이전/다음
   페이지 넘김과 mapping preset.
 - 공연 모드 1차: 뷰어 관리 액션 숨김, 큰 페이지 컨트롤, quick action overlay,
@@ -76,7 +78,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 1차 MVP 제외 범위
 
 - 상용급 튜너 정확도/latency 보장.
-- Bluetooth/USB 페달 실기기별 HID key 검증과 사용자별 custom mapping UI.
+- Bluetooth/USB 페달 실기기별 HID key 검증.
 - ChordPro/text.
 - HEIC 이미지 변환.
 - 클라우드 동기화.
@@ -252,9 +254,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   viewerSettings가 이미 있는 악보는 그대로 유지하고, 새 import/shared import/image import record에
   기본값을 입힌다.
 - `SheetLibraryBackup`은 metadata-only JSON이다.
-- 백업에는 scores metadata, setlists, metronome/tuner settings, library view settings, global viewer
-  action defaults가 포함된다. score 안의 viewer/page/annotation/auto scroll/PDF link sanitization
-  metadata와 setlist별 viewer/action override도 함께 포함된다.
+- 백업에는 scores metadata, setlists, metronome/tuner/tone settings, library view settings,
+  global viewer action defaults가 포함된다. score 안의 viewer/page/annotation/auto scroll/PDF link
+  sanitization metadata와 setlist별 viewer/action override도 함께 포함된다.
 - PDF 파일 자체는 백업하지 않는다. 복원 dialog에서 이 제한을 명시한다.
 - export는 `file_picker` saveFile을 먼저 시도하고, 실패하거나 취소되면 앱 내부 documents의
   `backups/` 폴더에 저장한다.
@@ -386,8 +388,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다.
 - 현재 구현은 visual metronome이다. 첫 박은 accent color로 표시하고, 현재 beat와 마지막 beat
   시각을 보여준다.
-- 오디오 tick은 MVP 1차에서 제외했다. 악보 viewer 안정성과 앱 패키징을 먼저 유지하고,
+- 메트로놈 tick은 기본 OFF `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
   low-latency audio package 선택은 별도 검증 후 붙인다.
+- 기준음/드론 설정은 앱 전역 `SheetToneSettings`로 저장한다. root concert MIDI note, drone
+  mode, volume percent를 저장하고, 실제 재생은 Android `clef/tone_player` MethodChannel과
+  native `AudioTrack` sine stream을 사용한다. iOS/미지원 플랫폼에서는 playback channel 없음으로
+  안내한다.
 - 하드웨어 키 입력은 viewer body를 `Focus`, `Shortcuts`, `Actions`로 감싸 처리한다.
 - 기본 매핑은 `ArrowRight`, `PageDown`, `Space`가 다음 페이지, `ArrowLeft`, `PageUp`,
   `Shift+Space`가 이전 페이지다.
@@ -732,6 +738,8 @@ spike로 유지한다. 페이지 순서 변경/복제/반복 삽입은 원본 PD
 font embedding 제약 때문에 export 사본에서 제외하고 개수를 안내한다. 한글 텍스트 주석만 있는
 경우에는 원본 PDF 공유로 fallback한다. 메트로놈은 기본 OFF `tick 소리` toggle을 추가했으며,
 Flutter system click sound 기반이라 accent 음색 구분과 latency 보장은 후속 검증 항목이다.
+2026-08-28에는 튜너 sheet에 기준음/드론을 추가하고 Android `AudioTrack` sine playback 채널,
+전역 tone 설정 저장, metadata/full backup round-trip을 연결했다.
 
 2026-08-26 테스터 전달 polish에서는 테스트 정보 화면에 피드백 템플릿 복사 버튼을 추가하고,
 검색/필터 때문에 라이브러리 결과가 비는 경우 초기화 액션을 제공했다. 외부 전달용 QA

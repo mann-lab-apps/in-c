@@ -10,6 +10,7 @@ import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_pdf_page_transformer.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -1181,6 +1182,30 @@ void main() {
     expect(
       (await store.loadTunerSettings()).detectionProfile,
       SheetTunerDetectionProfile.bbTrumpet,
+    );
+  });
+
+  test('updates tone settings', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.updateToneSettings(
+      const SheetToneSettings(
+        rootConcertMidiNumber: 60,
+        droneMode: SheetToneDroneMode.fifthOctave,
+        volumePercent: 45,
+      ),
+    );
+
+    expect(controller.toneSettings.rootConcertMidiNumber, 60);
+    expect(controller.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
+    expect(controller.toneSettings.volumePercent, 45);
+    expect((await store.loadToneSettings()).rootConcertMidiNumber, 60);
+    expect(
+      (await store.loadToneSettings()).droneMode,
+      SheetToneDroneMode.fifthOctave,
     );
   });
 

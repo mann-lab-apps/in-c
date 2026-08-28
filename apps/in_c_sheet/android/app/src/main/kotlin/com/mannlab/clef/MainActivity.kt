@@ -1,26 +1,36 @@
 package com.mannlab.clef
 
 import android.content.Intent
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.net.Uri
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.max
+import kotlin.math.roundToInt
+import kotlin.math.sin
 
 class MainActivity : FlutterActivity() {
     private val sharedImportsChannelName = "clef/shared_imports"
+    private val tonePlayerChannelName = "clef/tone_player"
     private val pendingSharedFiles = mutableListOf<Map<String, String>>()
-    private var methodChannel: MethodChannel? = null
+    private val tonePlayer = ClefTonePlayer()
+    private var sharedImportsChannel: MethodChannel? = null
+    private var tonePlayerChannel: MethodChannel? = null
     private var didCollectInitialIntent = false
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        methodChannel = MethodChannel(
+        sharedImportsChannel = MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
             sharedImportsChannelName,
         )
-        methodChannel?.setMethodCallHandler { call, result ->
+        sharedImportsChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getInitialSharedFiles" -> {
                     collectInitialIntent()
@@ -29,6 +39,51 @@ class MainActivity : FlutterActivity() {
                 else -> result.notImplemented()
             }
         }
+        tonePlayerChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            tonePlayerChannelName,
+        )
+        tonePlayerChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "play" -> {
+                    val frequencies = (
+                        call.argument<List<Any>>("frequencies") ?: emptyList()
+                    )
+                        .mapNotNull { (it as? Number)?.toDouble() }
+                        .filter { it in 20.0..20000.0 }
+                    val volume =
+                        call.argument<Number>("volume")?.toDouble() ?: 0.35
+                    if (frequencies.isEmpty()) {
+                        result.error(
+                            "invalid_frequencies",
+                            "No playable frequencies were provided.",
+                            null,
+                        )
+                        return@setMethodCallHandler
+                    }
+                    try {
+                        tonePlayer.play(frequencies, volume)
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "playback_error",
+                            error.message ?: "Tone playback failed.",
+                            null,
+                        )
+                    }
+                }
+                "stop" -> {
+                    tonePlayer.stop()
+                    result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onDestroy() {
+        tonePlayer.stop()
+        super.onDestroy()
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -39,7 +94,10 @@ class MainActivity : FlutterActivity() {
             return
         }
         pendingSharedFiles.addAll(files)
-        methodChannel?.invokeMethod("sharedFiles", drainPendingSharedFiles())
+        sharedImportsChannel?.invokeMethod(
+            "sharedFiles",
+            drainPendingSharedFiles(),
+        )
     }
 
     private fun collectInitialIntent() {
@@ -128,4 +186,99 @@ class MainActivity : FlutterActivity() {
     }
 
     private data class SharedImportFile(val file: File, val displayName: String)
+}
+
+private class ClefTonePlayer {
+    private val sampleRate = 44_100
+    @Volatile private var isRunning = false
+    private var audioTrack: AudioTrack? = null
+    private var worker: Thread? = null
+
+    @Synchronized
+    fun play(frequencies: List<Double>, volume: Double) {
+        stop()
+        val playableFrequencies = frequencies.filter { it in 20.0..20_000.0 }
+        if (playableFrequencies.isEmpty()) {
+            return
+        }
+        val minBufferSize = AudioTrack.getMinBufferSize(
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+        )
+        val bufferSize = max(minBufferSize, sampleRate / 5)
+        val track = AudioTrack(
+            AudioManager.STREAM_MUSIC,
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufferSize,
+            AudioTrack.MODE_STREAM,
+        )
+        audioTrack = track
+        isRunning = true
+        worker = Thread {
+            streamSineDrone(
+                track,
+                playableFrequencies,
+                volume.coerceIn(0.0, 1.0),
+            )
+        }.apply {
+            name = "ClefTonePlayer"
+            isDaemon = true
+            start()
+        }
+    }
+
+    @Synchronized
+    fun stop() {
+        isRunning = false
+        worker?.join(200)
+        worker = null
+        audioTrack?.let { track ->
+            try {
+                track.pause()
+                track.flush()
+                track.release()
+            } catch (_: IllegalStateException) {
+                track.release()
+            }
+        }
+        audioTrack = null
+    }
+
+    private fun streamSineDrone(
+        track: AudioTrack,
+        frequencies: List<Double>,
+        volume: Double,
+    ) {
+        val buffer = ShortArray(1024)
+        val phases = DoubleArray(frequencies.size)
+        val phaseSteps = frequencies.map { frequency ->
+            2.0 * PI * frequency / sampleRate
+        }
+        val gain = (volume * 0.65 / frequencies.size).coerceIn(0.0, 0.65)
+        try {
+            track.play()
+            while (isRunning) {
+                for (sampleIndex in buffer.indices) {
+                    var sample = 0.0
+                    for (frequencyIndex in frequencies.indices) {
+                        sample += sin(phases[frequencyIndex])
+                        phases[frequencyIndex] += phaseSteps[frequencyIndex]
+                        if (phases[frequencyIndex] >= 2.0 * PI) {
+                            phases[frequencyIndex] -= 2.0 * PI
+                        }
+                    }
+                    buffer[sampleIndex] = (sample * gain * Short.MAX_VALUE)
+                        .roundToInt()
+                        .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                        .toShort()
+                }
+                track.write(buffer, 0, buffer.size)
+            }
+        } catch (_: IllegalStateException) {
+            isRunning = false
+        }
+    }
 }
