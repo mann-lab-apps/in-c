@@ -35,7 +35,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+7';
+const String _clefAppVersion = '1.0.0+8';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
