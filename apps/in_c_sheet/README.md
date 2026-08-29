@@ -65,6 +65,14 @@ Build outputs:
 - release AAB: `build/app/outputs/bundle/release/app-release.aab`
 - iOS no-codesign app: `build/ios/iphoneos/Runner.app`
 
+Android release signing:
+
+- `android/app/build.gradle.kts` reads `android/key.properties` when present and signs release APK/AAB
+  with the configured upload keystore.
+- `android/key.properties` and `android/app/upload-keystore.jks` are ignored secrets. Keep secure backups
+  outside git.
+- Use `android/key.properties.example` as the template if the local signing files need to be recreated.
+
 Tester checklist:
 
 - [`../../docs/qa/clef-tester-checklist.md`](../../docs/qa/clef-tester-checklist.md)
