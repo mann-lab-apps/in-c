@@ -30,10 +30,11 @@ import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_tuner_input_service.dart';
+import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+1';
+const String _clefAppVersion = '1.0.0+2';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -4648,6 +4649,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   String? _cropFitToken;
   List<SheetBookmark> _pdfOutlineBookmarks = const <SheetBookmark>[];
   bool _didLoadPdfOutline = false;
+  String? _viewerFileStatusPath;
+  Future<SheetViewerFileStatus>? _viewerFileStatusFuture;
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
 
@@ -4877,6 +4880,14 @@ setlist=$setlistLabel
     if (mounted) {
       setState(() {});
     }
+  }
+
+  Future<SheetViewerFileStatus> _viewerFileStatusFor(String path) {
+    if (_viewerFileStatusPath != path || _viewerFileStatusFuture == null) {
+      _viewerFileStatusPath = path;
+      _viewerFileStatusFuture = SheetViewerFileStatus.inspect(path);
+    }
+    return _viewerFileStatusFuture!;
   }
 
   void _handleViewerChanged() {
@@ -10027,214 +10038,239 @@ setlist=$setlistLabel
                 },
                 child: Stack(
                   children: [
-                    _ViewerDisplayEffectWrapper(
-                      effect: _displayEffect,
-                      child: PdfViewer.file(
-                        currentScore.filePath,
-                        key: ValueKey(
-                          '${currentScore.filePath}-${_displayMode.name}-'
-                          '${_displayEffect.name}-${_pageScale.name}-'
-                          '${_renderProfile.name}',
-                        ),
-                        controller: _pdfController,
-                        initialPageNumber: _initialViewerPage,
-                        params: PdfViewerParams(
-                          margin: viewerMargin,
-                          backgroundColor: _viewerBackgroundColor,
-                          limitRenderingCache: _renderProfile.limitsRenderCache,
-                          maxImageBytesCachedOnMemory:
-                              _renderProfile.maxImageBytesCachedOnMemory,
-                          pagePaintCallbacks: [
-                            _textSearcher.pageTextMatchPaintCallback,
-                          ],
-                          // ignore: deprecated_member_use
-                          onePassRenderingScaleThreshold:
-                              _renderProfile.onePassRenderingScaleThreshold,
-                          // ignore: deprecated_member_use
-                          calculateInitialZoom:
-                              (document, controller, fitZoom, coverZoom) {
-                                return switch (_pageScale) {
-                                  _SheetViewerPageScale.fitPage => fitZoom,
-                                  _SheetViewerPageScale.fitWidth =>
-                                    _initialFitWidthZoom(
-                                      pages: document.pages,
-                                      viewSize: controller.viewSize,
-                                      pageNumber: currentScore.lastPage,
-                                      margin: viewerMargin,
-                                      fallbackZoom: coverZoom,
-                                    ),
-                                  _SheetViewerPageScale.fullscreen => coverZoom,
-                                };
+                    FutureBuilder<SheetViewerFileStatus>(
+                      future: _viewerFileStatusFor(currentScore.filePath),
+                      builder: (context, snapshot) {
+                        final status = snapshot.data;
+                        if (status == null) {
+                          return const _ViewerLoadingBanner(
+                            message: 'PDF 파일 확인 중',
+                          );
+                        }
+                        if (!status.canOpen) {
+                          return _ViewerFileStatusBanner(status: status);
+                        }
+                        return _ViewerDisplayEffectWrapper(
+                          effect: _displayEffect,
+                          child: PdfViewer.file(
+                            currentScore.filePath,
+                            key: ValueKey(
+                              '${currentScore.filePath}-${_displayMode.name}-'
+                              '${_displayEffect.name}-${_pageScale.name}-'
+                              '${_renderProfile.name}',
+                            ),
+                            controller: _pdfController,
+                            initialPageNumber: _initialViewerPage,
+                            params: PdfViewerParams(
+                              margin: viewerMargin,
+                              backgroundColor: _viewerBackgroundColor,
+                              limitRenderingCache:
+                                  _renderProfile.limitsRenderCache,
+                              maxImageBytesCachedOnMemory:
+                                  _renderProfile.maxImageBytesCachedOnMemory,
+                              pagePaintCallbacks: [
+                                _textSearcher.pageTextMatchPaintCallback,
+                              ],
+                              // ignore: deprecated_member_use
+                              onePassRenderingScaleThreshold:
+                                  _renderProfile.onePassRenderingScaleThreshold,
+                              // ignore: deprecated_member_use
+                              calculateInitialZoom:
+                                  (document, controller, fitZoom, coverZoom) {
+                                    return switch (_pageScale) {
+                                      _SheetViewerPageScale.fitPage => fitZoom,
+                                      _SheetViewerPageScale.fitWidth =>
+                                        _initialFitWidthZoom(
+                                          pages: document.pages,
+                                          viewSize: controller.viewSize,
+                                          pageNumber: currentScore.lastPage,
+                                          margin: viewerMargin,
+                                          fallbackZoom: coverZoom,
+                                        ),
+                                      _SheetViewerPageScale.fullscreen =>
+                                        coverZoom,
+                                    };
+                                  },
+                              layoutPages: switch (_displayMode) {
+                                _SheetViewerDisplayMode.singlePage =>
+                                  _layoutPagesHorizontally,
+                                _SheetViewerDisplayMode.twoPage =>
+                                  _layoutPagesAsSpreads,
+                                _SheetViewerDisplayMode.continuousVertical =>
+                                  null,
                               },
-                          layoutPages: switch (_displayMode) {
-                            _SheetViewerDisplayMode.singlePage =>
-                              _layoutPagesHorizontally,
-                            _SheetViewerDisplayMode.twoPage =>
-                              _layoutPagesAsSpreads,
-                            _SheetViewerDisplayMode.continuousVertical => null,
-                          },
-                          scrollHorizontallyByMouseWheel:
-                              _displayMode !=
-                              _SheetViewerDisplayMode.continuousVertical,
-                          textSelectionParams: _isPerformanceMode
-                              ? const PdfTextSelectionParams(enabled: false)
-                              : null,
-                          linkHandlerParams: PdfLinkHandlerParams(
-                            onLinkTap: _handlePdfLinkTap,
-                            linkColor: _showPdfLinks
-                                ? const Color(0xff2f8c8f)
-                                      .withValues(alpha: 0.26)
-                                : Colors.transparent,
-                            enableAutoLinkDetection: false,
-                          ),
-                          errorBannerBuilder: (
-                            context,
-                            error,
-                            stackTrace,
-                            documentRef,
-                          ) => const _ViewerErrorBanner(),
-                          onViewerReady: (document, _) {
-                            final initialPage =
-                                _pageNumber ?? currentScore.lastPage;
-                            _scheduleCropToFit(
-                              initialPage,
-                              orderIndex: _effectiveOrderIndexForPage(
-                                currentScore,
-                                initialPage,
+                              scrollHorizontallyByMouseWheel:
+                                  _displayMode !=
+                                  _SheetViewerDisplayMode.continuousVertical,
+                              textSelectionParams: _isPerformanceMode
+                                  ? const PdfTextSelectionParams(enabled: false)
+                                  : null,
+                              linkHandlerParams: PdfLinkHandlerParams(
+                                onLinkTap: _handlePdfLinkTap,
+                                linkColor: _showPdfLinks
+                                    ? const Color(0xff2f8c8f)
+                                          .withValues(alpha: 0.26)
+                                    : Colors.transparent,
+                                enableAutoLinkDetection: false,
                               ),
-                              force: true,
-                            );
-                            unawaited(_loadPdfOutlineBookmarks(document));
-                            _maybeAutoStartScroll();
-                          },
-                          pageOverlaysBuilder: (context, pageRect, page) {
-                            final pageNumber = page.pageNumber;
-                            final orderIndex = _effectiveOrderIndexForPage(
-                              currentScore,
-                              pageNumber,
-                            );
-                            final rotation = currentScore.pageSettings
-                                .rotationForPage(
-                                  pageNumber,
-                                  orderIndex: orderIndex,
+                              loadingBannerBuilder:
+                                  (context, bytesDownloaded, totalBytes) {
+                                    return const _ViewerLoadingBanner(
+                                      message: 'PDF를 여는 중',
+                                    );
+                                  },
+                              errorBannerBuilder:
+                                  (context, error, stackTrace, documentRef) =>
+                                      _ViewerErrorBanner(
+                                        filePath: currentScore.filePath,
+                                        error: error,
+                                      ),
+                              onViewerReady: (document, _) {
+                                final initialPage =
+                                    _pageNumber ?? currentScore.lastPage;
+                                _scheduleCropToFit(
+                                  initialPage,
+                                  orderIndex: _effectiveOrderIndexForPage(
+                                    currentScore,
+                                    initialPage,
+                                  ),
+                                  force: true,
                                 );
-                            final jumpPoints = currentScore.pageSettings
-                                .jumpPointsFromPage(pageNumber);
-                            final pageCrop = currentScore.pageSettings
-                                .cropForPage(
+                                unawaited(_loadPdfOutlineBookmarks(document));
+                                _maybeAutoStartScroll();
+                              },
+                              pageOverlaysBuilder: (context, pageRect, page) {
+                                final pageNumber = page.pageNumber;
+                                final orderIndex = _effectiveOrderIndexForPage(
+                                  currentScore,
                                   pageNumber,
-                                  orderIndex: orderIndex,
                                 );
-                            final rehearsalMarks =
-                                currentScore.pageSettings.rehearsalMarks;
-                            final bookmarks = currentScore.bookmarks;
-                            return <Widget>[
-                              Positioned.fill(
-                                child: _AnnotationPageOverlay(
-                                  isEnabled: _isAnnotationMode,
-                                  pageNumber: pageNumber,
-                                  strokes: currentScore.annotationLayer
-                                      .visibleStrokesForPage(pageNumber),
-                                  texts: currentScore.annotationLayer
-                                      .visibleTextsForPage(pageNumber),
-                                  draftPoints:
-                                      _draftAnnotationPageNumber == pageNumber
-                                      ? _draftAnnotationPoints
-                                      : const <SheetAnnotationPoint>[],
-                                  draftTool: _annotationTool,
-                                  draftColor: _annotationColor,
-                                  draftWidth: _annotationWidth,
-                                  onPanStart: _handleAnnotationPanStart,
-                                  onPanUpdate: _handleAnnotationPanUpdate,
-                                  onPanEnd: _handleAnnotationPanEnd,
-                                  onTapUp: _handleAnnotationTapUp,
-                                ),
-                              ),
-                              if (pageCrop.hasCrop)
-                                Positioned.fill(
-                                  child: IgnorePointer(
-                                    child: CustomPaint(
-                                      painter: _CropMaskPainter(
-                                        crop: pageCrop,
-                                        color: _viewerBackgroundColor
-                                            .withValues(alpha: 0.9),
+                                final rotation = currentScore.pageSettings
+                                    .rotationForPage(
+                                      pageNumber,
+                                      orderIndex: orderIndex,
+                                    );
+                                final jumpPoints = currentScore.pageSettings
+                                    .jumpPointsFromPage(pageNumber);
+                                final pageCrop = currentScore.pageSettings
+                                    .cropForPage(
+                                      pageNumber,
+                                      orderIndex: orderIndex,
+                                    );
+                                final rehearsalMarks =
+                                    currentScore.pageSettings.rehearsalMarks;
+                                final bookmarks = currentScore.bookmarks;
+                                return <Widget>[
+                                  Positioned.fill(
+                                    child: _AnnotationPageOverlay(
+                                      isEnabled: _isAnnotationMode,
+                                      pageNumber: pageNumber,
+                                      strokes: currentScore.annotationLayer
+                                          .visibleStrokesForPage(pageNumber),
+                                      texts: currentScore.annotationLayer
+                                          .visibleTextsForPage(pageNumber),
+                                      draftPoints:
+                                          _draftAnnotationPageNumber ==
+                                              pageNumber
+                                          ? _draftAnnotationPoints
+                                          : const <SheetAnnotationPoint>[],
+                                      draftTool: _annotationTool,
+                                      draftColor: _annotationColor,
+                                      draftWidth: _annotationWidth,
+                                      onPanStart: _handleAnnotationPanStart,
+                                      onPanUpdate: _handleAnnotationPanUpdate,
+                                      onPanEnd: _handleAnnotationPanEnd,
+                                      onTapUp: _handleAnnotationTapUp,
+                                    ),
+                                  ),
+                                  if (pageCrop.hasCrop)
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: CustomPaint(
+                                          painter: _CropMaskPainter(
+                                            crop: pageCrop,
+                                            color: _viewerBackgroundColor
+                                                .withValues(alpha: 0.9),
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ),
-                              if (!_isAnnotationMode &&
-                                  (jumpPoints.isNotEmpty ||
-                                      rehearsalMarks.isNotEmpty ||
-                                      bookmarks.isNotEmpty))
-                                Positioned(
-                                  right: 8,
-                                  bottom: 8,
-                                  child: _QuickJumpButtons(
-                                    jumpPoints: jumpPoints,
-                                    onJump: _goToJumpPoint,
-                                    rehearsalMarks: rehearsalMarks,
-                                    bookmarks: bookmarks,
-                                    onPageSelected: _goToSheetPage,
-                                  ),
-                                ),
-                              if (rotation != 0)
-                                Positioned(
-                                  top: 8,
-                                  right: 8,
-                                  child: IgnorePointer(
-                                    child: _PageMetadataBadge(
-                                      label: '회전 $rotation도',
+                                  if (!_isAnnotationMode &&
+                                      (jumpPoints.isNotEmpty ||
+                                          rehearsalMarks.isNotEmpty ||
+                                          bookmarks.isNotEmpty))
+                                    Positioned(
+                                      right: 8,
+                                      bottom: 8,
+                                      child: _QuickJumpButtons(
+                                        jumpPoints: jumpPoints,
+                                        onJump: _goToJumpPoint,
+                                        rehearsalMarks: rehearsalMarks,
+                                        bookmarks: bookmarks,
+                                        onPageSelected: _goToSheetPage,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                            ];
-                          },
-                          onPageChanged: (pageNumber) {
-                            if (pageNumber == null) {
-                              return;
-                            }
-                            if ((_isAutoScrolling ||
-                                    _autoScrollCueRemainingSeconds != null) &&
-                                !_isAutoScrollTicking) {
-                              _stopAutoScroll(showMessage: true);
-                            }
-                            final currentPageSettings = score.pageSettings;
-                            if (currentPageSettings.isHidden(pageNumber) &&
-                                _pdfController.isReady) {
-                              final visiblePage = currentPageSettings
-                                  .closestVisiblePage(
-                                    fromPage: pageNumber,
-                                    pageCount: _pdfController.pageCount,
-                                  );
-                              if (visiblePage != pageNumber) {
-                                _pdfController.goToPage(
-                                  pageNumber: visiblePage,
-                                  duration: _pageTurnDuration,
+                                  if (rotation != 0)
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: IgnorePointer(
+                                        child: _PageMetadataBadge(
+                                          label: '회전 $rotation도',
+                                        ),
+                                      ),
+                                    ),
+                                ];
+                              },
+                              onPageChanged: (pageNumber) {
+                                if (pageNumber == null) {
+                                  return;
+                                }
+                                if ((_isAutoScrolling ||
+                                        _autoScrollCueRemainingSeconds !=
+                                            null) &&
+                                    !_isAutoScrollTicking) {
+                                  _stopAutoScroll(showMessage: true);
+                                }
+                                final currentPageSettings = score.pageSettings;
+                                if (currentPageSettings.isHidden(pageNumber) &&
+                                    _pdfController.isReady) {
+                                  final visiblePage = currentPageSettings
+                                      .closestVisiblePage(
+                                        fromPage: pageNumber,
+                                        pageCount: _pdfController.pageCount,
+                                      );
+                                  if (visiblePage != pageNumber) {
+                                    _pdfController.goToPage(
+                                      pageNumber: visiblePage,
+                                      duration: _pageTurnDuration,
+                                    );
+                                    return;
+                                  }
+                                }
+                                widget.controller.updateLastPage(
+                                  currentScore,
+                                  pageNumber,
                                 );
-                                return;
-                              }
-                            }
-                            widget.controller.updateLastPage(
-                              currentScore,
-                              pageNumber,
-                            );
-                            _syncPageOrderCursor(
-                              pageNumber,
-                              _pdfController.pageCount,
-                            );
-                            setState(() {
-                              _pageNumber = pageNumber;
-                            });
-                            _scheduleCropToFit(
-                              pageNumber,
-                              orderIndex: _effectiveOrderIndexForPage(
-                                currentScore,
-                                pageNumber,
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                                _syncPageOrderCursor(
+                                  pageNumber,
+                                  _pdfController.pageCount,
+                                );
+                                setState(() {
+                                  _pageNumber = pageNumber;
+                                });
+                                _scheduleCropToFit(
+                                  pageNumber,
+                                  orderIndex: _effectiveOrderIndexForPage(
+                                    currentScore,
+                                    pageNumber,
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     if (_isAnnotationMode)
                       Positioned(
@@ -10866,8 +10902,94 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   }
 }
 
+class _ViewerLoadingBanner extends StatelessWidget {
+  const _ViewerLoadingBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Card(
+        margin: const EdgeInsets.all(24),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 12),
+                Text(
+                  message,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  '큰 PDF나 클라우드에서 가져온 파일은 첫 렌더링에 시간이 걸릴 수 있습니다.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerFileStatusBanner extends StatelessWidget {
+  const _ViewerFileStatusBanner({required this.status});
+
+  final SheetViewerFileStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final detail = status.sizeBytes > 0
+        ? '파일 크기: ${status.sizeBytes} bytes'
+        : status.path;
+    return _ViewerProblemBanner(
+      icon: Icons.picture_as_pdf_outlined,
+      title: status.title,
+      message: status.message,
+      detail: detail,
+    );
+  }
+}
+
 class _ViewerErrorBanner extends StatelessWidget {
-  const _ViewerErrorBanner();
+  const _ViewerErrorBanner({required this.filePath, required this.error});
+
+  final String filePath;
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ViewerProblemBanner(
+      icon: Icons.picture_as_pdf_outlined,
+      title: 'PDF를 열지 못했습니다.',
+      message: '파일이 삭제되었거나 손상되었을 수 있습니다. 다시 가져오거나 전체 백업을 복원해주세요.',
+      detail: '$filePath\n$error',
+    );
+  }
+}
+
+class _ViewerProblemBanner extends StatelessWidget {
+  const _ViewerProblemBanner({
+    required this.icon,
+    required this.title,
+    required this.message,
+    required this.detail,
+  });
+
+  final IconData icon;
+  final String title;
+  final String message;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
@@ -10878,26 +11000,28 @@ class _ViewerErrorBanner extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 420),
+            constraints: const BoxConstraints(maxWidth: 460),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.picture_as_pdf_outlined,
-                  size: 42,
-                  color: theme.colorScheme.error,
-                ),
+                Icon(icon, size: 42, color: theme.colorScheme.error),
                 const SizedBox(height: 12),
                 Text(
-                  'PDF를 열지 못했습니다.',
+                  title,
+                  textAlign: TextAlign.center,
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  '파일이 삭제되었거나 손상되었을 수 있습니다. 다시 가져오거나 전체 백업을 복원해주세요.',
+                Text(message, textAlign: TextAlign.center),
+                const SizedBox(height: 12),
+                SelectableText(
+                  detail,
                   textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
