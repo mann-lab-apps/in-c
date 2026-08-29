@@ -18,6 +18,7 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - 앱 id: `com.mannlab.clef`
 - 현재 검증 build: `1.0.0+4` release APK
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
+- 최근 전체 QA 실행: 2026-08-29 16:30-16:36 KST, `clef_rc_tablet_api35`
 
 ## 사전 준비
 
@@ -60,9 +61,9 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | 4 | 라이브러리 카드 | viewer에서 뒤로 돌아오기 | 카드가 `마지막 N쪽`으로 표시되어 총 page 수와 혼동되지 않음 | 통과 |
 | 5 | 보기 모드 | 1페이지, 2페이지, 세로 스크롤, fit width/fullscreen 전환 | layout 전환 후 blank 고정 없음 | 예정 |
 | 6 | 필기 저장 | pen/highlighter 짧은 stroke 후 앱 재시작 | annotation이 보존됨 | 예정 |
-| 7 | 본문 검색 | text PDF에서 `PDF 본문 검색` 실행 | 결과 이동/이전/다음/clear 동작 | 예정 |
+| 7 | 본문 검색 | text PDF에서 `PDF 본문 검색` 실행 | 결과 이동/이전/다음/clear 동작 | 통과 |
 | 8 | 자동 스크롤 | 시작 후 수동 page turn | 자동 스크롤이 정지하고 안내가 자연스러움 | 예정 |
-| 9 | 테스트 정보 | 테스트 정보 sheet와 피드백 템플릿 복사 | version/build, debug summary, sample file 필드 포함 | 예정 |
+| 9 | 테스트 정보 | 테스트 정보 sheet와 피드백 템플릿 복사 | version/build, debug summary, sample file 필드 포함 | 통과 |
 | 10 | 백업 | metadata backup/full backup 진입 | crash 없이 export/share flow 진입 | 예정 |
 
 ## 상세 QA 매트릭스
@@ -70,7 +71,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | ID | 영역 | 에뮬레이터에서 할 일 | 샘플/입력 | 통과 기준 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | EMU-001 | 설치/업데이트 | `adb install -r`로 release APK 덮어 설치 | `app-release.apk` | 기존 library metadata가 유지되고 앱이 실행됨 | 통과 |
-| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+4` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 예정 |
+| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+4` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
 | EMU-003 | 첫 화면 | 빈 라이브러리/기존 라이브러리 상태 확인 | 앱 첫 화면 | 검색, 필터, import CTA, 테스트 정보 진입이 보임 | 통과 |
 | EMU-004 | PDF import | system picker로 PDF 가져오기 | IMSLP, `short-score.pdf` | import 실패 없이 viewer 진입 | 통과 |
 | EMU-005 | 비PDF import 실패 | PDF picker/공유에서 비PDF 선택 시도 | `.txt` 또는 이미지 파일 | crash 없이 unsupported 안내 | 예정 |
@@ -78,7 +79,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-007 | HEIC 안내 | HEIC/HEIF 선택 시도 | HEIC/HEIF sample | 직접 변환 미지원 안내와 JPG 변환 유도 | 예정 |
 | EMU-008 | IMSLP 회귀 | IMSLP PDF 열기 | 사용자 제공 IMSLP PDF | viewer render, `PdfTextSearcher` null crash 없음 | 통과 |
 | EMU-009 | PDF page render | 첫/마지막 page와 빠른 이동 | IMSLP 4-page PDF | toolbar `N/4`와 화면이 일치, blank 없음 | 통과 |
-| EMU-010 | 대형 PDF render | 90-page fixture 열기 | `long-scan-like-score.pdf` | 첫 render, page jump, scroll 중 crash 없음 | 예정 |
+| EMU-010 | 대형 PDF render | 90-page fixture 열기 | `long-scan-like-score.pdf` | 첫 render, page jump, scroll 중 crash 없음 | 통과 |
 | EMU-011 | 보기 모드 | 1-page/two-page/vertical 전환 | any PDF | 전환 후 현재 page와 layout 유지 | 예정 |
 | EMU-012 | scale/display | fit page, fit width, fullscreen, dark/invert | any PDF | 악보가 프레임 밖으로 사라지지 않음 | 예정 |
 | EMU-013 | half-page | landscape half-page 이동 | any PDF | half-page anchor와 마지막 page 저장이 자연스러움 | 예정 |
@@ -92,8 +93,8 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-021 | 자동 스크롤 기본 | duration/start/end 설정 후 실행 | any PDF | 진행 bar와 page 이동이 설정대로 동작 | 예정 |
 | EMU-022 | 자동 스크롤 marker | page duration, pause marker, repeat section, cue 추가 | 3+ page PDF | timeline 충돌 없이 저장/복원 | 예정 |
 | EMU-023 | 자동 다음 곡 | setlist auto advance | 2-score setlist | 곡 종료 후 다음 곡 이동/확인이 설정대로 동작 | 예정 |
-| EMU-024 | 본문 검색 | text PDF 검색, 결과 클릭, 이전/다음, clear | `short-score.pdf`, IMSLP | viewer ready 이후 sheet 동작, highlight가 page와 맞음 | 예정 |
-| EMU-025 | 스캔 PDF 검색 | scan-like PDF에서 검색 | `long-scan-like-score.pdf` | crash 없이 결과 없음/OCR unsupported 안내 | 예정 |
+| EMU-024 | 본문 검색 | text PDF 검색, 결과 클릭, 이전/다음, clear | `short-score.pdf`, IMSLP | viewer ready 이후 sheet 동작, highlight가 page와 맞음 | 통과 |
+| EMU-025 | 스캔 PDF 검색 | scan-like PDF에서 검색 | `long-scan-like-score.pdf` | crash 없이 결과 없음/OCR unsupported 안내 | 통과 |
 | EMU-026 | PDF link tap | URL link 영역 탭 | `link-annotation-score.pdf` | URL tap 차단, 내부 destination은 유지 | 예정 |
 | EMU-027 | PDF link sanitizer | URL link 제거 사본 생성 | `link-annotation-score.pdf` | 원본 linked file 보존, removed count/page count 재검증 | 예정 |
 | EMU-028 | sanitizer 실패 | 손상/비PDF/header malformed | synthetic bad file | partial output cleanup, 사용자 안내 | 예정 |
@@ -110,7 +111,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-039 | annotated PDF export | 필기 포함 PDF 공유 | annotated score | 원본 수정 없이 rendered stamp copy 생성 | 예정 |
 | EMU-040 | export unsupported | standard annotation mode 또는 한글 text fallback | Korean text annotation | unsupported/fallback 안내가 명확함 | 예정 |
 | EMU-041 | large annotation | 10k stroke fixture 성격의 큰 annotation score | generated metadata/test fixture | summary 안내와 저장/복원 crash 없음 | 예정 |
-| EMU-042 | keyboard page turn | `adb shell input keyevent` 또는 hardware keyboard | DPAD/Page/Space keys | mapped action이 page/score 이동으로 실행 | 예정 |
+| EMU-042 | keyboard page turn | `adb shell input keyevent` 또는 hardware keyboard | DPAD/Page/Space keys | mapped action이 page/score 이동으로 실행 | 수동 재확인 |
 | EMU-043 | unknown inputId | diagnostic log에서 custom mapping 저장 | unknown key path | 저장한 inputId가 action으로 실행 | 예정 |
 | EMU-044 | global defaults | viewer/action 기본값 변경 후 새 score import | settings UI | 새 score에만 기본값 적용, 기존 score 불변 | 예정 |
 | EMU-045 | metronome | BPM/meter/start/stop/sound toggle | metronome sheet | visual tick과 state 저장 | 예정 |
@@ -120,8 +121,8 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-049 | backup metadata | metadata export/import | score with metadata | custom field, page metadata, pedal mapping 보존 | 예정 |
 | EMU-050 | full backup | PDF 포함 ZIP export/import | 1-2 PDFs | PDF bytes와 linked files round-trip | 예정 |
 | EMU-051 | automatic backup | automatic metadata snapshot restore | edited library | active library profile 기준 restore | 예정 |
-| EMU-052 | app restart | force-stop 후 재실행 | `adb shell am force-stop` | last score/page/view setting/recent 유지 | 예정 |
-| EMU-053 | tester info | 테스트 정보 sheet | top-right info | app version/build, debug summary 복사 가능 | 예정 |
+| EMU-052 | app restart | force-stop 후 재실행 | `adb shell am force-stop` | last score/page/view setting/recent 유지 | 통과 |
+| EMU-053 | tester info | 테스트 정보 sheet | top-right info | app version/build, debug summary 복사 가능 | 통과 |
 | EMU-054 | feedback template | 피드백 템플릿 복사 | tester info sheet | device/OS/install/sample/steps/severity fields 포함 | 예정 |
 | EMU-055 | log capture | logcat capture after issue | `adb logcat -d --pid=...` | crash/error 원인 기록 가능 | 통과 |
 
@@ -183,6 +184,21 @@ v1.1 spike 여부:
 - 라이브러리 카드의 `1쪽` 문구는 총 page count가 아니라 마지막 열린 page 의미라 오해 가능성이 있어
   `마지막 1쪽` 문구로 보강했고, `1.0.0+4` release APK 설치 후 화면에서 확인했다.
 - `1.0.0+4` release APK 설치 후 같은 IMSLP PDF를 다시 열었고 viewer toolbar는 `1/4`를 표시했다.
+- 2026-08-29 16:30-16:36 KST 전체 QA에서 `dart run tool/rc_release_check.dart`와
+  `flutter test --reporter compact`가 통과했다. Flutter test는 251개 테스트 통과.
+- release APK를 `clef_rc_tablet_api35`에 설치하고 IMSLP PDF, `long-scan-like-score.pdf`를 Downloads에서
+  import했다. 두 PDF 모두 viewer에서 회색 blank 없이 렌더링됐다.
+- IMSLP PDF의 `PDF 본문 검색`에서 `Bach` 검색은 `1/2 결과`를 표시하고 결과 탭 후 페이지 하이라이트가
+  렌더링됐다.
+- `long-scan-like-score.pdf`에서 `zzzzz` 검색은 crash 없이 `결과 없음 - 스캔 PDF는 텍스트가 없을 수
+  있습니다.` 및 OCR v1 범위 밖 안내를 표시했다.
+- 앱 force-stop 후 재실행해도 라이브러리 2곡, 최근 카드, 마지막 page 문구가 보존됐다.
+- 테스트 정보 sheet에서 앱 `1.0.0+4`, `Beta test build`, 악보 수, 필기 요약, 외부 필기 저장소,
+  custom pedal 요약이 표시됐다.
+- 재시작 후 앱 프로세스 logcat에는 Flutter exception/crash가 없었다. 초기 render에서 Android
+  `Skipped frames` 경고 1건은 관찰됐고 실기기 성능 QA에서 재확인한다.
+- ADB `KEYCODE_DPAD_RIGHT`/`KEYCODE_PAGE_DOWN` 입력은 현재 focus 상태에서 page label 변화가
+  확인되지 않았다. 실제 hardware keyboard/페달 QA 또는 focus 경로 보강 이슈로 별도 재확인한다.
 
 ## 내부테스트 업로드 전 확인
 
