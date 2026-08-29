@@ -34,16 +34,33 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+2';
+const String _clefAppVersion = '1.0.0+3';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  pdfrxFlutterInitialize();
+  await pdfrxFlutterInitialize();
 
   final controller = SheetLibraryController(store: SheetLibraryStore());
   await controller.load();
 
   runApp(InCSheetApp(controller: controller));
+}
+
+Future<int> _readPdfFileRange(
+  String path,
+  Uint8List buffer,
+  int position,
+  int size,
+) async {
+  final file = await File(path).open();
+  try {
+    await file.setPosition(position);
+    final bytes = await file.read(size);
+    buffer.setRange(0, bytes.length, bytes);
+    return bytes.length;
+  } finally {
+    await file.close();
+  }
 }
 
 class InCSheetApp extends StatelessWidget {
@@ -10052,12 +10069,20 @@ setlist=$setlistLabel
                         }
                         return _ViewerDisplayEffectWrapper(
                           effect: _displayEffect,
-                          child: PdfViewer.file(
-                            currentScore.filePath,
+                          child: PdfViewer.custom(
+                            fileSize: status.sizeBytes,
+                            sourceName:
+                                '${currentScore.filePath}-${status.sizeBytes}',
+                            read: (buffer, position, size) => _readPdfFileRange(
+                              currentScore.filePath,
+                              buffer,
+                              position,
+                              size,
+                            ),
                             key: ValueKey(
                               '${currentScore.filePath}-${_displayMode.name}-'
                               '${_displayEffect.name}-${_pageScale.name}-'
-                              '${_renderProfile.name}',
+                              '${_renderProfile.name}-${status.sizeBytes}',
                             ),
                             controller: _pdfController,
                             initialPageNumber: _initialViewerPage,

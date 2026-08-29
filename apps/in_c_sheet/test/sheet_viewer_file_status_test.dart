@@ -23,6 +23,36 @@ void main() {
     expect(status.sizeBytes, 6);
   });
 
+  test(
+    'accepts scanner PDFs with a short preamble before the header',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp(
+        'clef-viewer-file-status-',
+      );
+      addTearDown(() async {
+        if (tempDir.existsSync()) {
+          await tempDir.delete(recursive: true);
+        }
+      });
+      final file = File('${tempDir.path}/imslp-like-score.pdf');
+      await file.writeAsBytes(<int>[
+        0x0d,
+        0x0a,
+        0x25,
+        0x50,
+        0x44,
+        0x46,
+        0x2d,
+        0x31,
+      ]);
+
+      final status = await SheetViewerFileStatus.inspect(file.path);
+
+      expect(status.type, SheetViewerFileStatusType.ready);
+      expect(status.canOpen, isTrue);
+    },
+  );
+
   test('reports missing file before opening the viewer', () async {
     final status = await SheetViewerFileStatus.inspect('/tmp/missing-clef.pdf');
 
