@@ -1356,6 +1356,16 @@ void main() {
     expect(didErase, isTrue);
     expect(controller.scores.single.annotationLayer.strokes, isEmpty);
 
+    final didUndoErase = await controller.undoLastAnnotation(
+      controller.scores.single,
+      1,
+    );
+    expect(didUndoErase, isTrue);
+    expect(
+      controller.scores.single.annotationLayer.strokes.single.id,
+      stroke.id,
+    );
+
     await controller.addAnnotationStroke(controller.scores.single, stroke);
     final didUndo = await controller.undoLastAnnotationStroke(
       controller.scores.single,

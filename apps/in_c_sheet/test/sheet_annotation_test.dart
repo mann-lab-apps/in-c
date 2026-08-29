@@ -641,6 +641,36 @@ void main() {
     expect(erased.strokes, isEmpty);
   });
 
+  test('annotation erase can be undone and redone', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final stroke = _stroke(
+      id: 'stroke-1',
+      pageNumber: 1,
+      createdAt: now,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.1, y: 0.1),
+        SheetAnnotationPoint(x: 0.8, y: 0.1),
+      ],
+    );
+    final layer = SheetAnnotationLayer.empty.addStroke(stroke);
+
+    final erased = layer.eraseAt(
+      pageNumber: 1,
+      point: const SheetAnnotationPoint(x: 0.4, y: 0.12),
+      tolerance: 0.04,
+    );
+    final restored = erased.undoLastAnnotation(1);
+    final erasedAgain = restored.redoLastAnnotation(1);
+
+    expect(erased.strokes, isEmpty);
+    expect(erased.eraseUndoStack.single.stroke?.id, 'stroke-1');
+    expect(restored.strokes.single.id, 'stroke-1');
+    expect(restored.eraseUndoStack, isEmpty);
+    expect(restored.redoStack.single.erasesAnnotation, isTrue);
+    expect(erasedAgain.strokes, isEmpty);
+    expect(erasedAgain.redoStack, isEmpty);
+  });
+
   test('annotation erase removes text and stamp annotations', () {
     final now = DateTime.parse('2026-08-21T10:00:00.000');
     final layer = SheetAnnotationLayer.empty.addText(
@@ -654,6 +684,27 @@ void main() {
     );
 
     expect(erased.texts, isEmpty);
+  });
+
+  test('annotation erase undo stack round-trips safely', () {
+    final now = DateTime.parse('2026-08-21T10:00:00.000');
+    final layer = SheetAnnotationLayer.empty
+        .addText(_text(id: 'stamp-1', pageNumber: 1, createdAt: now))
+        .eraseAt(
+          pageNumber: 1,
+          point: const SheetAnnotationPoint(x: 0.26, y: 0.51),
+          tolerance: 0.04,
+        );
+
+    final decoded = SheetAnnotationLayer.fromJson(layer.toJson());
+    final restored = decoded.undoLastAnnotation(1);
+
+    expect(decoded.eraseUndoStack.single.text?.id, 'stamp-1');
+    expect(restored.texts.single.id, 'stamp-1');
+    expect(
+      restored.redoStack.single.type,
+      SheetAnnotationRedoEntry.eraseTextType,
+    );
   });
 
   test('page geometry converts local offsets to normalized page points', () {

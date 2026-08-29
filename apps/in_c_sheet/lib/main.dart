@@ -35,7 +35,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+4';
+const String _clefAppVersion = '1.0.0+6';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -11650,6 +11650,10 @@ class _AnnotationPainter extends CustomPainter {
     Paint paint,
     double baseStrokeWidth,
   ) {
+    if (stroke.tool == SheetAnnotationTool.highlighter) {
+      _paintContinuousStrokePath(canvas, size, stroke, paint, baseStrokeWidth);
+      return;
+    }
     if (stroke.points.length == 1) {
       paint.strokeWidth = _pressureStrokeWidth(
         baseStrokeWidth,
@@ -11672,6 +11676,51 @@ class _AnnotationPainter extends CustomPainter {
         paint,
       );
     }
+  }
+
+  void _paintContinuousStrokePath(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+    double baseStrokeWidth,
+  ) {
+    paint.strokeWidth = baseStrokeWidth;
+    if (stroke.points.length == 1) {
+      final center = _pointOffset(stroke.points.single, size);
+      canvas.drawLine(center, center.translate(0.1, 0.1), paint);
+      return;
+    }
+
+    final path = Path()
+      ..moveTo(
+        stroke.points.first.x * size.width,
+        stroke.points.first.y * size.height,
+      );
+    if (stroke.points.length == 2) {
+      path.lineTo(
+        stroke.points.last.x * size.width,
+        stroke.points.last.y * size.height,
+      );
+    } else {
+      for (var index = 1; index < stroke.points.length - 1; index += 1) {
+        final current = _pointOffset(stroke.points[index], size);
+        final next = _pointOffset(stroke.points[index + 1], size);
+        final midpoint = Offset(
+          (current.dx + next.dx) / 2,
+          (current.dy + next.dy) / 2,
+        );
+        path.quadraticBezierTo(
+          current.dx,
+          current.dy,
+          midpoint.dx,
+          midpoint.dy,
+        );
+      }
+      final last = _pointOffset(stroke.points.last, size);
+      path.lineTo(last.dx, last.dy);
+    }
+    canvas.drawPath(path, paint);
   }
 
   Offset _pointOffset(SheetAnnotationPoint point, Size size) {

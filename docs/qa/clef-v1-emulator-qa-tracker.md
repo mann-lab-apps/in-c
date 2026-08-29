@@ -16,7 +16,7 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - System image: Android 15 API 35, Google APIs Play Store, arm64-v8a
 - Flutter device id: `emulator-5554`
 - 앱 id: `com.mannlab.clef`
-- 현재 검증 build: `1.0.0+4` release APK
+- 현재 검증 build: `1.0.0+6` release APK/AAB
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
 - 최근 전체 QA 실행: 2026-08-29 16:30-16:36 KST, `clef_rc_tablet_api35`
 
@@ -71,7 +71,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | ID | 영역 | 에뮬레이터에서 할 일 | 샘플/입력 | 통과 기준 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | EMU-001 | 설치/업데이트 | `adb install -r`로 release APK 덮어 설치 | `app-release.apk` | 기존 library metadata가 유지되고 앱이 실행됨 | 통과 |
-| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+4` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
+| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+6` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 재확인 필요 |
 | EMU-003 | 첫 화면 | 빈 라이브러리/기존 라이브러리 상태 확인 | 앱 첫 화면 | 검색, 필터, import CTA, 테스트 정보 진입이 보임 | 통과 |
 | EMU-004 | PDF import | system picker로 PDF 가져오기 | IMSLP, `short-score.pdf` | import 실패 없이 viewer 진입 | 통과 |
 | EMU-005 | 비PDF import 실패 | PDF picker/공유에서 비PDF 선택 시도 | `.txt` 또는 이미지 파일 | crash 없이 unsupported 안내 | 예정 |
@@ -199,6 +199,14 @@ v1.1 spike 여부:
   `Skipped frames` 경고 1건은 관찰됐고 실기기 성능 QA에서 재확인한다.
 - ADB `KEYCODE_DPAD_RIGHT`/`KEYCODE_PAGE_DOWN` 입력은 현재 focus 상태에서 page label 변화가
   확인되지 않았다. 실제 hardware keyboard/페달 QA 또는 focus 경로 보강 이슈로 별도 재확인한다.
+- 2026-08-29 사용자 실기기 QA에서 Play 설치 앱의 테스트 정보가 `1.0.0+4`로 표시됐다. 원인은 앱
+  내부 테스트 정보 상수와 `pubspec.yaml` build number가 분리되어 있던 점으로 확인했고, 새 QA build
+  `1.0.0+6`에서 둘을 맞췄다. Play 설치 후 테스트 정보에서 `1.0.0+6` 표시를 재확인한다.
+- 같은 사용자 QA에서 직접 스캔 PDF는 아니지만 IMSLP PDF 정상 출력, page turn/jump, 마지막 page
+  저장은 통과로 기록했다.
+- 같은 사용자 QA에서 형광펜이 얇을 때 원형 cap이 연속으로 겹쳐 보여 부자연스럽고, 지우개 삭제가
+  undo로 복원되지 않는 문제가 발견됐다. `1.0.0+6`에서 highlighter를 continuous path로 렌더링하고
+  eraser 삭제 undo/redo 모델 테스트를 추가했다.
 
 ## 내부테스트 업로드 전 확인
 

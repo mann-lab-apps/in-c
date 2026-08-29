@@ -410,6 +410,7 @@ class SheetAnnotationLayer {
     required this.strokes,
     this.texts = const <SheetTextAnnotation>[],
     this.redoStack = const <SheetAnnotationRedoEntry>[],
+    this.eraseUndoStack = const <SheetAnnotationRedoEntry>[],
     this.layers = const <SheetAnnotationDisplayLayer>[
       SheetAnnotationDisplayLayer.defaultLayer,
     ],
@@ -433,10 +434,18 @@ class SheetAnnotationLayer {
         .whereType<SheetAnnotationRedoEntry>()
         .where((entry) => entry.isValid)
         .toList(growable: false);
+    final eraseUndoStack = _jsonMaps(json?['eraseUndoStack'])
+        .map(_tryRedoEntryFromJson)
+        .whereType<SheetAnnotationRedoEntry>()
+        .where((entry) => entry.isValid)
+        .toList(growable: false);
     return SheetAnnotationLayer(
       strokes: List<SheetAnnotationStroke>.unmodifiable(strokes),
       texts: List<SheetTextAnnotation>.unmodifiable(texts),
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(redoStack),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        eraseUndoStack,
+      ),
       layers: _normalizeLayers(json?['layers']),
     );
   }
@@ -471,6 +480,7 @@ class SheetAnnotationLayer {
     strokes: <SheetAnnotationStroke>[],
     texts: <SheetTextAnnotation>[],
     redoStack: <SheetAnnotationRedoEntry>[],
+    eraseUndoStack: <SheetAnnotationRedoEntry>[],
     layers: <SheetAnnotationDisplayLayer>[
       SheetAnnotationDisplayLayer.defaultLayer,
     ],
@@ -479,6 +489,7 @@ class SheetAnnotationLayer {
   final List<SheetAnnotationStroke> strokes;
   final List<SheetTextAnnotation> texts;
   final List<SheetAnnotationRedoEntry> redoStack;
+  final List<SheetAnnotationRedoEntry> eraseUndoStack;
   final List<SheetAnnotationDisplayLayer> layers;
 
   int get strokeCount => strokes.length;
@@ -575,6 +586,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: texts,
       redoStack: redoStack,
+      eraseUndoStack: eraseUndoStack,
       layers: _normalizeLayerList(<SheetAnnotationDisplayLayer>[
         for (final layer in layers)
           if (layer.id != SheetAnnotationDisplayLayer.defaultLayerId) layer,
@@ -599,10 +611,14 @@ class SheetAnnotationLayer {
     final compactRedoStack = redoStack
         .where((entry) => entry.pageNumber > 0 && entry.pageNumber <= pageCount)
         .toList(growable: false);
+    final compactEraseUndoStack = eraseUndoStack
+        .where((entry) => entry.pageNumber > 0 && entry.pageNumber <= pageCount)
+        .toList(growable: false);
 
     if (_strokesEqual(strokes, compactStrokes) &&
         _textsEqual(texts, compactTexts) &&
-        _redoEntriesEqual(redoStack, compactRedoStack)) {
+        _redoEntriesEqual(redoStack, compactRedoStack) &&
+        _redoEntriesEqual(eraseUndoStack, compactEraseUndoStack)) {
       return this;
     }
 
@@ -610,6 +626,9 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(compactStrokes),
       texts: List<SheetTextAnnotation>.unmodifiable(compactTexts),
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(compactRedoStack),
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        compactEraseUndoStack,
+      ),
       layers: layers,
     );
   }
@@ -624,6 +643,7 @@ class SheetAnnotationLayer {
       redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
         redoStack.skip(redoStack.length - maxEntries),
       ),
+      eraseUndoStack: eraseUndoStack,
       layers: layers,
     );
   }
@@ -640,6 +660,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(next),
       texts: texts,
       redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,
     );
   }
@@ -656,6 +677,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,
     );
   }
@@ -681,6 +703,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,
     );
   }
@@ -696,6 +719,7 @@ class SheetAnnotationLayer {
       strokes: List<SheetAnnotationStroke>.unmodifiable(next),
       texts: texts,
       redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,
     );
   }
@@ -711,6 +735,7 @@ class SheetAnnotationLayer {
       strokes: strokes,
       texts: List<SheetTextAnnotation>.unmodifiable(next),
       redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: const <SheetAnnotationRedoEntry>[],
       layers: layers,
     );
   }
@@ -728,9 +753,9 @@ class SheetAnnotationLayer {
         point: point,
         tolerance: tolerance,
       );
-      return hitText == null ? this : removeText(hitText.id);
+      return hitText == null ? this : _removeTextForEraseUndo(hitText);
     }
-    return removeStroke(hitStroke.last.id);
+    return _removeStrokeForEraseUndo(hitStroke.last);
   }
 
   SheetTextAnnotation? textAt({
@@ -755,6 +780,10 @@ class SheetAnnotationLayer {
   }
 
   SheetAnnotationLayer undoLastAnnotation(int pageNumber) {
+    final eraseRestored = _restoreLastErasedAnnotation(pageNumber);
+    if (!identical(eraseRestored, this)) {
+      return eraseRestored;
+    }
     final pageStrokes = strokesForPage(pageNumber);
     final pageTexts = textsForPage(pageNumber);
     final lastStroke = pageStrokes.isEmpty ? null : pageStrokes.last;
@@ -781,6 +810,20 @@ class SheetAnnotationLayer {
         ...redoStack.skip(index + 1),
       ];
       if (entry.stroke != null) {
+        if (entry.erasesAnnotation) {
+          final nextStrokes = strokes
+              .where((stroke) => stroke.id != entry.stroke!.id)
+              .toList(growable: false);
+          return SheetAnnotationLayer(
+            strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
+            texts: texts,
+            redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+              remainingRedo,
+            ),
+            eraseUndoStack: eraseUndoStack,
+            layers: layers,
+          );
+        }
         final nextStrokes = <SheetAnnotationStroke>[
           ...strokes.where((stroke) => stroke.id != entry.stroke!.id),
           entry.stroke!,
@@ -789,10 +832,25 @@ class SheetAnnotationLayer {
           strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
           texts: texts,
           redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
+          eraseUndoStack: eraseUndoStack,
           layers: layers,
         );
       }
       if (entry.text != null) {
+        if (entry.erasesAnnotation) {
+          final nextTexts = texts
+              .where((text) => text.id != entry.text!.id)
+              .toList(growable: false);
+          return SheetAnnotationLayer(
+            strokes: strokes,
+            texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
+            redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+              remainingRedo,
+            ),
+            eraseUndoStack: eraseUndoStack,
+            layers: layers,
+          );
+        }
         final nextTexts = <SheetTextAnnotation>[
           ...texts.where((text) => text.id != entry.text!.id),
           entry.text!,
@@ -801,6 +859,7 @@ class SheetAnnotationLayer {
           strokes: strokes,
           texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
           redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(remainingRedo),
+          eraseUndoStack: eraseUndoStack,
           layers: layers,
         );
       }
@@ -824,6 +883,7 @@ class SheetAnnotationLayer {
           SheetAnnotationRedoEntry.stroke(stroke),
         ],
       ),
+      eraseUndoStack: eraseUndoStack,
       layers: layers,
     );
   }
@@ -844,8 +904,105 @@ class SheetAnnotationLayer {
           SheetAnnotationRedoEntry.text(text),
         ],
       ),
+      eraseUndoStack: eraseUndoStack,
       layers: layers,
     );
+  }
+
+  SheetAnnotationLayer _removeStrokeForEraseUndo(SheetAnnotationStroke stroke) {
+    final next = strokes
+        .where((candidate) => candidate.id != stroke.id)
+        .toList(growable: false);
+    if (next.length == strokes.length) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: List<SheetAnnotationStroke>.unmodifiable(next),
+      texts: texts,
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        <SheetAnnotationRedoEntry>[
+          ...eraseUndoStack,
+          SheetAnnotationRedoEntry.stroke(stroke),
+        ],
+      ),
+      layers: layers,
+    );
+  }
+
+  SheetAnnotationLayer _removeTextForEraseUndo(SheetTextAnnotation text) {
+    final next = texts
+        .where((candidate) => candidate.id != text.id)
+        .toList(growable: false);
+    if (next.length == texts.length) {
+      return this;
+    }
+    return SheetAnnotationLayer(
+      strokes: strokes,
+      texts: List<SheetTextAnnotation>.unmodifiable(next),
+      redoStack: const <SheetAnnotationRedoEntry>[],
+      eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+        <SheetAnnotationRedoEntry>[
+          ...eraseUndoStack,
+          SheetAnnotationRedoEntry.text(text),
+        ],
+      ),
+      layers: layers,
+    );
+  }
+
+  SheetAnnotationLayer _restoreLastErasedAnnotation(int pageNumber) {
+    for (var index = eraseUndoStack.length - 1; index >= 0; index -= 1) {
+      final entry = eraseUndoStack[index];
+      if (entry.pageNumber != pageNumber) {
+        continue;
+      }
+      final remainingEraseUndo = <SheetAnnotationRedoEntry>[
+        ...eraseUndoStack.take(index),
+        ...eraseUndoStack.skip(index + 1),
+      ];
+      if (entry.stroke != null) {
+        final nextStrokes = <SheetAnnotationStroke>[
+          ...strokes.where((stroke) => stroke.id != entry.stroke!.id),
+          entry.stroke!,
+        ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        return SheetAnnotationLayer(
+          strokes: List<SheetAnnotationStroke>.unmodifiable(nextStrokes),
+          texts: texts,
+          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+            <SheetAnnotationRedoEntry>[
+              ...redoStack,
+              SheetAnnotationRedoEntry.eraseStroke(entry.stroke!),
+            ],
+          ),
+          eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+            remainingEraseUndo,
+          ),
+          layers: layers,
+        );
+      }
+      if (entry.text != null) {
+        final nextTexts = <SheetTextAnnotation>[
+          ...texts.where((text) => text.id != entry.text!.id),
+          entry.text!,
+        ]..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        return SheetAnnotationLayer(
+          strokes: strokes,
+          texts: List<SheetTextAnnotation>.unmodifiable(nextTexts),
+          redoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+            <SheetAnnotationRedoEntry>[
+              ...redoStack,
+              SheetAnnotationRedoEntry.eraseText(entry.text!),
+            ],
+          ),
+          eraseUndoStack: List<SheetAnnotationRedoEntry>.unmodifiable(
+            remainingEraseUndo,
+          ),
+          layers: layers,
+        );
+      }
+    }
+    return this;
   }
 
   Map<String, Object?> toJson() {
@@ -853,6 +1010,7 @@ class SheetAnnotationLayer {
       'strokes': strokes.map((stroke) => stroke.toJson()).toList(),
       'texts': texts.map((text) => text.toJson()).toList(),
       'redoStack': redoStack.map((entry) => entry.toJson()).toList(),
+      'eraseUndoStack': eraseUndoStack.map((entry) => entry.toJson()).toList(),
       'layers': layers.map((layer) => layer.toJson()).toList(),
     };
   }
@@ -1010,7 +1168,11 @@ class SheetAnnotationSummary {
 }
 
 class SheetAnnotationRedoEntry {
-  const SheetAnnotationRedoEntry._({this.stroke, this.text});
+  const SheetAnnotationRedoEntry._({
+    this.stroke,
+    this.text,
+    this.type = unknownType,
+  });
 
   factory SheetAnnotationRedoEntry.fromJson(Map<String, Object?> json) {
     final type = _stringFromJson(json['type']);
@@ -1025,21 +1187,50 @@ class SheetAnnotationRedoEntry {
         SheetTextAnnotation.fromJson(payload),
       );
     }
+    if (type == eraseStrokeType && payload != null) {
+      return SheetAnnotationRedoEntry.eraseStroke(
+        SheetAnnotationStroke.fromJson(payload),
+      );
+    }
+    if (type == eraseTextType && payload != null) {
+      return SheetAnnotationRedoEntry.eraseText(
+        SheetTextAnnotation.fromJson(payload),
+      );
+    }
     return const SheetAnnotationRedoEntry._();
   }
 
+  static const strokeType = 'stroke';
+  static const textType = 'text';
+  static const eraseStrokeType = 'eraseStroke';
+  static const eraseTextType = 'eraseText';
+  static const unknownType = 'unknown';
+
   factory SheetAnnotationRedoEntry.stroke(SheetAnnotationStroke stroke) {
-    return SheetAnnotationRedoEntry._(stroke: stroke);
+    return SheetAnnotationRedoEntry._(stroke: stroke, type: strokeType);
   }
 
   factory SheetAnnotationRedoEntry.text(SheetTextAnnotation text) {
-    return SheetAnnotationRedoEntry._(text: text);
+    return SheetAnnotationRedoEntry._(text: text, type: textType);
+  }
+
+  factory SheetAnnotationRedoEntry.eraseStroke(SheetAnnotationStroke stroke) {
+    return SheetAnnotationRedoEntry._(stroke: stroke, type: eraseStrokeType);
+  }
+
+  factory SheetAnnotationRedoEntry.eraseText(SheetTextAnnotation text) {
+    return SheetAnnotationRedoEntry._(text: text, type: eraseTextType);
   }
 
   final SheetAnnotationStroke? stroke;
   final SheetTextAnnotation? text;
+  final String type;
 
   int get pageNumber => stroke?.pageNumber ?? text?.pageNumber ?? 0;
+
+  bool get erasesAnnotation {
+    return type == eraseStrokeType || type == eraseTextType;
+  }
 
   bool get isValid {
     if (stroke != null) {
@@ -1050,12 +1241,12 @@ class SheetAnnotationRedoEntry {
 
   Map<String, Object?> toJson() {
     if (stroke != null) {
-      return <String, Object?>{'type': 'stroke', 'payload': stroke!.toJson()};
+      return <String, Object?>{'type': type, 'payload': stroke!.toJson()};
     }
     if (text != null) {
-      return <String, Object?>{'type': 'text', 'payload': text!.toJson()};
+      return <String, Object?>{'type': type, 'payload': text!.toJson()};
     }
-    return <String, Object?>{'type': 'unknown'};
+    return <String, Object?>{'type': unknownType};
   }
 }
 
