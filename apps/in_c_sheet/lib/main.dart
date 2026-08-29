@@ -5488,7 +5488,7 @@ setlist=$setlistLabel
       _showPageControls = true;
     });
     _autoScrollTimer = Timer.periodic(
-      const Duration(milliseconds: 500),
+      sheetAutoScrollSmoothTickInterval,
       (_) => _tickAutoScroll(),
     );
     unawaited(_tickAutoScroll());
@@ -5496,6 +5496,9 @@ setlist=$setlistLabel
 
   Future<void> _tickAutoScroll() async {
     if (!_isAutoScrolling || !_pdfController.isReady || !mounted) {
+      return;
+    }
+    if (_isAutoScrollTicking) {
       return;
     }
     if (_isAutoScrollPaused) {
@@ -5593,7 +5596,9 @@ setlist=$setlistLabel
           visibleRect.height,
         ),
         anchor: PdfPageAnchor.top,
+        duration: sheetAutoScrollViewportMoveDuration,
       );
+      await WidgetsBinding.instance.endOfFrame;
     } finally {
       _isAutoScrollTicking = false;
     }
@@ -5655,7 +5660,7 @@ setlist=$setlistLabel
     });
     _autoScrollTimer?.cancel();
     _autoScrollTimer = Timer.periodic(
-      const Duration(milliseconds: 500),
+      sheetAutoScrollSmoothTickInterval,
       (_) => _tickAutoScroll(),
     );
     unawaited(_tickAutoScroll());
@@ -11851,6 +11856,148 @@ class _AnnotationToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final toolbarContent = Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: isCompact ? 6 : 10,
+      runSpacing: 8,
+      children: [
+        SegmentedButton<_AnnotationToolbarTool>(
+          showSelectedIcon: false,
+          segments: _AnnotationToolbarTool.values
+              .map(
+                (tool) => ButtonSegment<_AnnotationToolbarTool>(
+                  value: tool,
+                  icon: Tooltip(
+                    message: tool.label,
+                    child: Icon(tool.icon, size: 19),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          selected: <_AnnotationToolbarTool>{selectedTool},
+          onSelectionChanged: (selection) {
+            onToolSelected(selection.single);
+          },
+        ),
+        if (selectedTool == _AnnotationToolbarTool.stamp)
+          PopupMenuButton<_AnnotationStamp>(
+            tooltip: '스탬프 선택',
+            icon: Icon(selectedStamp.icon),
+            initialValue: selectedStamp,
+            onSelected: onStampSelected,
+            itemBuilder: (context) => _AnnotationStamp.values
+                .map(
+                  (stamp) => PopupMenuItem<_AnnotationStamp>(
+                    value: stamp,
+                    child: ListTile(
+                      leading: Icon(stamp.icon),
+                      title: Text(stamp.label),
+                    ),
+                  ),
+                )
+                .toList(growable: false),
+          ),
+        for (final color in _colors)
+          Tooltip(
+            message: _colorLabel(color),
+            child: InkResponse(
+              onTap: () => onColorSelected(color),
+              radius: 18,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(color),
+                  border: Border.all(
+                    color: selectedColor == color
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                    width: selectedColor == color ? 3 : 1,
+                  ),
+                ),
+                child: const SizedBox(width: 24, height: 24),
+              ),
+            ),
+          ),
+        for (final width in _widthPresets)
+          Tooltip(
+            message: '${width.toStringAsFixed(0)}pt',
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => onWidthChanged(width),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: (selectedWidth - width).abs() < 0.5
+                      ? theme.colorScheme.primaryContainer
+                      : theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: (selectedWidth - width).abs() < 0.5
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                  ),
+                ),
+                child: SizedBox(
+                  width: 34,
+                  height: 30,
+                  child: Center(
+                    child: Container(
+                      width: 18,
+                      height: width.clamp(2, 10).toDouble(),
+                      decoration: BoxDecoration(
+                        color: Color(selectedColor),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        SizedBox(
+          width: isCompact ? 108 : 150,
+          child: Slider(
+            value: selectedWidth,
+            min: 2,
+            max: 14,
+            divisions: 6,
+            label: selectedWidth.toStringAsFixed(0),
+            onChanged: onWidthChanged,
+          ),
+        ),
+        IconButton(
+          tooltip: '마지막 필기 취소',
+          onPressed: onUndo,
+          icon: const Icon(Icons.undo),
+        ),
+        IconButton(
+          tooltip: '마지막 필기 다시 적용',
+          onPressed: onRedo,
+          icon: const Icon(Icons.redo),
+        ),
+        IconButton(
+          tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
+          onPressed: onToggleLayerVisibility,
+          icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
+        ),
+        IconButton(
+          tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+          onPressed: onToggleLayerExport,
+          icon: Icon(
+            includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
+          ),
+        ),
+        IconButton(
+          tooltip: '현재 필기 도구 즐겨찾기 저장',
+          onPressed: onSaveFavorite,
+          icon: const Icon(Icons.star_border),
+        ),
+        IconButton(
+          tooltip: '즐겨찾기 필기 도구 적용',
+          onPressed: hasFavoritePreset ? onApplyFavorite : null,
+          icon: const Icon(Icons.star),
+        ),
+      ],
+    );
     return Material(
       elevation: 4,
       color: theme.colorScheme.surface.withValues(alpha: 0.94),
@@ -11860,152 +12007,12 @@ class _AnnotationToolbar extends StatelessWidget {
           horizontal: isCompact ? 8 : 12,
           vertical: 8,
         ),
-        child: Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: isCompact ? 6 : 10,
-          runSpacing: 8,
-          children: [
-            SegmentedButton<_AnnotationToolbarTool>(
-              showSelectedIcon: false,
-              segments: _AnnotationToolbarTool.values
-                  .map(
-                    (tool) => ButtonSegment<_AnnotationToolbarTool>(
-                      value: tool,
-                      icon: Tooltip(
-                        message: tool.label,
-                        child: Icon(tool.icon, size: 19),
-                      ),
-                    ),
-                  )
-                  .toList(growable: false),
-              selected: <_AnnotationToolbarTool>{selectedTool},
-              onSelectionChanged: (selection) {
-                onToolSelected(selection.single);
-              },
-            ),
-            if (selectedTool == _AnnotationToolbarTool.stamp)
-              PopupMenuButton<_AnnotationStamp>(
-                tooltip: '스탬프 선택',
-                icon: Icon(selectedStamp.icon),
-                initialValue: selectedStamp,
-                onSelected: onStampSelected,
-                itemBuilder: (context) => _AnnotationStamp.values
-                    .map(
-                      (stamp) => PopupMenuItem<_AnnotationStamp>(
-                        value: stamp,
-                        child: ListTile(
-                          leading: Icon(stamp.icon),
-                          title: Text(stamp.label),
-                        ),
-                      ),
-                    )
-                    .toList(growable: false),
-              ),
-            for (final color in _colors)
-              Tooltip(
-                message: _colorLabel(color),
-                child: InkResponse(
-                  onTap: () => onColorSelected(color),
-                  radius: 18,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Color(color),
-                      border: Border.all(
-                        color: selectedColor == color
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                        width: selectedColor == color ? 3 : 1,
-                      ),
-                    ),
-                    child: const SizedBox(width: 24, height: 24),
-                  ),
-                ),
-              ),
-            for (final width in _widthPresets)
-              Tooltip(
-                message: '${width.toStringAsFixed(0)}pt',
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8),
-                  onTap: () => onWidthChanged(width),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: (selectedWidth - width).abs() < 0.5
-                          ? theme.colorScheme.primaryContainer
-                          : theme.colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: (selectedWidth - width).abs() < 0.5
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outlineVariant,
-                      ),
-                    ),
-                    child: SizedBox(
-                      width: 34,
-                      height: 30,
-                      child: Center(
-                        child: Container(
-                          width: 18,
-                          height: width.clamp(2, 10).toDouble(),
-                          decoration: BoxDecoration(
-                            color: Color(selectedColor),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            SizedBox(
-              width: isCompact ? 108 : 150,
-              child: Slider(
-                value: selectedWidth,
-                min: 2,
-                max: 14,
-                divisions: 6,
-                label: selectedWidth.toStringAsFixed(0),
-                onChanged: onWidthChanged,
-              ),
-            ),
-            IconButton(
-              tooltip: '마지막 필기 취소',
-              onPressed: onUndo,
-              icon: const Icon(Icons.undo),
-            ),
-            IconButton(
-              tooltip: '마지막 필기 다시 적용',
-              onPressed: onRedo,
-              icon: const Icon(Icons.redo),
-            ),
-            IconButton(
-              tooltip: isLayerVisible ? '필기 layer 숨기기' : '필기 layer 표시',
-              onPressed: onToggleLayerVisibility,
-              icon: Icon(
-                isLayerVisible ? Icons.visibility : Icons.visibility_off,
-              ),
-            ),
-            IconButton(
-              tooltip: includeLayerInExport
-                  ? 'PDF 공유에서 필기 제외'
-                  : 'PDF 공유에 필기 포함',
-              onPressed: onToggleLayerExport,
-              icon: Icon(
-                includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
-              ),
-            ),
-            IconButton(
-              tooltip: '현재 필기 도구 즐겨찾기 저장',
-              onPressed: onSaveFavorite,
-              icon: const Icon(Icons.star_border),
-            ),
-            IconButton(
-              tooltip: '즐겨찾기 필기 도구 적용',
-              onPressed: hasFavoritePreset ? onApplyFavorite : null,
-              icon: const Icon(Icons.star),
-            ),
-          ],
-        ),
+        child: isCompact
+            ? SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: toolbarContent,
+              )
+            : toolbarContent,
       ),
     );
   }

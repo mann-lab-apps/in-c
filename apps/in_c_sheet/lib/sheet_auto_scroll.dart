@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:math' as math;
 
+const Duration sheetAutoScrollSmoothTickInterval = Duration(milliseconds: 16);
+const Duration sheetAutoScrollViewportMoveDuration = Duration.zero;
+
 class SheetAutoScrollSettings {
   const SheetAutoScrollSettings({
     required this.durationSeconds,

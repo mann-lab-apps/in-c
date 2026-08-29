@@ -2,6 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 
 void main() {
+  test('uses smooth viewport updates for viewer auto-scroll', () {
+    expect(
+      sheetAutoScrollSmoothTickInterval,
+      lessThanOrEqualTo(const Duration(milliseconds: 16)),
+    );
+    expect(sheetAutoScrollViewportMoveDuration, Duration.zero);
+  });
+
   test('encodes and decodes settings', () {
     const settings = SheetAutoScrollSettings(
       durationSeconds: 180,
