@@ -12,6 +12,7 @@
 
 - 설치 파일: Android debug/release APK, 가능하면 iPad용 TestFlight 또는 local iOS build.
 - 당일 실행표: [`clef-v1-device-qa-runbook.md`](clef-v1-device-qa-runbook.md).
+- 에뮬레이터 사전 검증표: [`clef-v1-emulator-qa-tracker.md`](clef-v1-emulator-qa-tracker.md).
 - 기기: Android 태블릿, iPad, hardware keyboard, Bluetooth 페달.
 - 파일:
   - 텍스트가 추출되는 일반 PDF 악보 1개.

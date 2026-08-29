@@ -8,6 +8,9 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 로컬 자동화로 확인할 수 없는 Android 태블릿, iPad, S Pen, Bluetooth/USB 페달, cloud provider,
 실제 CamScanner/object-stream PDF, audio latency를 기록하기 위한 실행표다.
 
+에뮬레이터에서 Codex가 사전에 재현/회귀 확인할 수 있는 항목은
+[`clef-v1-emulator-qa-tracker.md`](clef-v1-emulator-qa-tracker.md)에서 따로 관리한다.
+
 ## 사전 확인
 
 실행 위치는 `apps/in_c_sheet`다.

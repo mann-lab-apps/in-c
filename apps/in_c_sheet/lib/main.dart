@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'dart:ui' as ui show Canvas;
 import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+3';
+const String _clefAppVersion = '1.0.0+4';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -2891,7 +2892,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   score.composer.isEmpty
-                      ? '${score.lastPage}쪽'
+                      ? '마지막 ${score.lastPage}쪽'
                       : score.composer,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -3314,7 +3315,7 @@ class _ScoreTile extends StatelessWidget {
               ],
               const Spacer(),
               Text(
-                '$tags · $lastOpened · ${score.lastPage}쪽',
+                '$tags · $lastOpened · 마지막 ${score.lastPage}쪽',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
@@ -4619,7 +4620,7 @@ class SheetViewerScreen extends StatefulWidget {
 
 class _SheetViewerScreenState extends State<SheetViewerScreen> {
   late final PdfViewerController _pdfController;
-  late final PdfTextSearcher _textSearcher;
+  PdfTextSearcher? _textSearcher;
   late final FocusNode _keyboardFocusNode;
   final SheetViewerPageTurnGuard _pageTurnGuard = SheetViewerPageTurnGuard();
   final List<SheetViewerInputDiagnosticEntry> _inputDiagnosticLog =
@@ -4829,11 +4830,9 @@ setlist=$setlistLabel
   void initState() {
     super.initState();
     _pdfController = PdfViewerController();
-    _textSearcher = PdfTextSearcher(_pdfController);
     _keyboardFocusNode = FocusNode(debugLabel: 'Sheet viewer shortcuts');
     _pageNumber = _initialViewerPage;
     _pdfController.addListener(_handleViewerChanged);
-    _textSearcher.addListener(_handleTextSearchChanged);
     widget.controller.addListener(_handleLibraryChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -4880,8 +4879,11 @@ setlist=$setlistLabel
     _pageControlsTimer?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     widget.controller.removeListener(_handleLibraryChanged);
-    _textSearcher.removeListener(_handleTextSearchChanged);
-    _textSearcher.dispose();
+    final textSearcher = _textSearcher;
+    if (textSearcher != null) {
+      textSearcher.removeListener(_handleTextSearchChanged);
+      textSearcher.dispose();
+    }
     _pdfController.removeListener(_handleViewerChanged);
     _keyboardFocusNode.dispose();
     super.dispose();
@@ -4897,6 +4899,21 @@ setlist=$setlistLabel
     if (mounted) {
       setState(() {});
     }
+  }
+
+  PdfTextSearcher _ensureTextSearcher() {
+    final existing = _textSearcher;
+    if (existing != null) {
+      return existing;
+    }
+    final created = PdfTextSearcher(_pdfController)
+      ..addListener(_handleTextSearchChanged);
+    _textSearcher = created;
+    return created;
+  }
+
+  void _paintTextSearchMatches(ui.Canvas canvas, Rect pageRect, PdfPage page) {
+    _textSearcher?.pageTextMatchPaintCallback(canvas, pageRect, page);
   }
 
   Future<SheetViewerFileStatus> _viewerFileStatusFor(String path) {
@@ -8602,8 +8619,13 @@ setlist=$setlistLabel
   }
 
   Future<void> _showPdfTextSearch() async {
+    if (!_pdfController.isReady) {
+      _showSnackBar('PDF가 열린 뒤 본문 검색을 사용할 수 있습니다.');
+      return;
+    }
+    final textSearcher = _ensureTextSearcher();
     final queryController = TextEditingController();
-    final currentPattern = _textSearcher.pattern;
+    final currentPattern = textSearcher.pattern;
     if (currentPattern != null) {
       queryController.text = currentPattern.toString();
     }
@@ -8622,7 +8644,7 @@ setlist=$setlistLabel
                   return;
                 }
                 setModalState(() {});
-                if (_textSearcher.isSearching) {
+                if (textSearcher.isSearching) {
                   refreshWhileSearching();
                 }
               });
@@ -8631,7 +8653,7 @@ setlist=$setlistLabel
             void startSearch() {
               final query = queryController.text.trim();
               if (query.isEmpty) {
-                _textSearcher.resetTextSearch();
+                textSearcher.resetTextSearch();
                 setModalState(() {
                   didSearch = false;
                   errorMessage = null;
@@ -8639,7 +8661,7 @@ setlist=$setlistLabel
                 return;
               }
               try {
-                _textSearcher.startTextSearch(
+                textSearcher.startTextSearch(
                   query,
                   caseInsensitive: true,
                   searchImmediately: true,
@@ -8660,22 +8682,22 @@ setlist=$setlistLabel
 
             void clearSearch() {
               queryController.clear();
-              _textSearcher.resetTextSearch();
+              textSearcher.resetTextSearch();
               setModalState(() {
                 didSearch = false;
                 errorMessage = null;
               });
             }
 
-            final matches = _textSearcher.matches;
-            final progress = _textSearcher.searchProgress;
-            final currentIndex = _textSearcher.currentIndex;
+            final matches = textSearcher.matches;
+            final progress = textSearcher.searchProgress;
+            final currentIndex = textSearcher.currentIndex;
             final currentLabel = currentIndex == null || matches.isEmpty
                 ? null
                 : '${currentIndex + 1}/${matches.length}';
-            final searchingPage = _textSearcher.searchingPageNumber;
-            final totalPageCount = _textSearcher.totalPageCount;
-            final searchStatus = _textSearcher.isSearching
+            final searchingPage = textSearcher.searchingPageNumber;
+            final totalPageCount = textSearcher.totalPageCount;
+            final searchStatus = textSearcher.isSearching
                 ? searchingPage == null || totalPageCount == null
                       ? '검색 중'
                       : '검색 중 · $searchingPage/$totalPageCount쪽'
@@ -8741,7 +8763,7 @@ setlist=$setlistLabel
                             onPressed: matches.isEmpty
                                 ? null
                                 : () async {
-                                    await _textSearcher.goToPrevMatch();
+                                    await textSearcher.goToPrevMatch();
                                     setModalState(() {});
                                   },
                             icon: const Icon(Icons.keyboard_arrow_up),
@@ -8751,18 +8773,18 @@ setlist=$setlistLabel
                             onPressed: matches.isEmpty
                                 ? null
                                 : () async {
-                                    await _textSearcher.goToNextMatch();
+                                    await textSearcher.goToNextMatch();
                                     setModalState(() {});
                                   },
                             icon: const Icon(Icons.keyboard_arrow_down),
                           ),
                         ],
                       ),
-                      if (_textSearcher.isSearching) ...[
+                      if (textSearcher.isSearching) ...[
                         const SizedBox(height: 6),
                         LinearProgressIndicator(value: progress),
                       ],
-                      if (!_textSearcher.isSearching &&
+                      if (!textSearcher.isSearching &&
                           didSearch &&
                           matches.isEmpty &&
                           errorMessage == null)
@@ -8805,12 +8827,11 @@ setlist=$setlistLabel
                                     subtitle: Text(
                                       '${match.pageNumber}쪽 · ${index + 1}/${matches.length}',
                                     ),
-                                    trailing:
-                                        index == _textSearcher.currentIndex
+                                    trailing: index == textSearcher.currentIndex
                                         ? const Icon(Icons.check)
                                         : null,
                                     onTap: () async {
-                                      await _textSearcher.goToMatchOfIndex(
+                                      await textSearcher.goToMatchOfIndex(
                                         index,
                                       );
                                       if (context.mounted) {
@@ -10093,9 +10114,7 @@ setlist=$setlistLabel
                                   _renderProfile.limitsRenderCache,
                               maxImageBytesCachedOnMemory:
                                   _renderProfile.maxImageBytesCachedOnMemory,
-                              pagePaintCallbacks: [
-                                _textSearcher.pageTextMatchPaintCallback,
-                              ],
+                              pagePaintCallbacks: [_paintTextSearchMatches],
                               // ignore: deprecated_member_use
                               onePassRenderingScaleThreshold:
                                   _renderProfile.onePassRenderingScaleThreshold,
@@ -10151,6 +10170,7 @@ setlist=$setlistLabel
                                         error: error,
                                       ),
                               onViewerReady: (document, _) {
+                                _ensureTextSearcher();
                                 final initialPage =
                                     _pageNumber ?? currentScore.lastPage;
                                 _scheduleCropToFit(
