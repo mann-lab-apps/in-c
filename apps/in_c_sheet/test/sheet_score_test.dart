@@ -289,6 +289,32 @@ void main() {
     expect(normalized.single.value, 'Mann Lab');
   });
 
+  test('derives readable source file display name from stored paths', () {
+    final now = DateTime.parse('2026-08-29T10:00:00.000');
+    final score = SheetScore(
+      id: 'score-123',
+      title: 'Imported scan',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/app/docs/scores/score-123-Bach Minuet Anh 120.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+
+    expect(score.sourceFileDisplayName, 'Bach Minuet Anh 120');
+    expect(
+      score
+          .copyWith(filePath: '/downloads/plain-name.PDF')
+          .sourceFileDisplayName,
+      'plain-name',
+    );
+  });
+
   test('SheetScore decodes dynamic JSON maps from persisted storage', () {
     final decoded = SheetScore.decodeJsonList(<dynamic>[
       <String, dynamic>{

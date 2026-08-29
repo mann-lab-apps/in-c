@@ -2346,6 +2346,21 @@ class SheetScore {
   final SheetPdfLinkSanitization pdfLinkSanitization;
   final SheetAutoScrollSettings autoScrollSettings;
 
+  String get sourceFileDisplayName {
+    final normalizedPath = filePath.trim().replaceAll('\\', '/');
+    final rawName = normalizedPath.split('/').last.trim();
+    if (rawName.isEmpty) {
+      return title.trim().isEmpty ? '악보 파일' : title.trim();
+    }
+    final unprefixed = rawName.startsWith('$id-')
+        ? rawName.substring(id.length + 1)
+        : rawName;
+    final withoutExtension = unprefixed
+        .replaceFirst(RegExp(r'\.[^.]+$'), '')
+        .trim();
+    return withoutExtension.isEmpty ? unprefixed : withoutExtension;
+  }
+
   bool matches(String query) {
     final normalized = query.trim().toLowerCase();
     if (normalized.isEmpty) {

@@ -1011,9 +1011,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _isBulkSelecting ? '${_bulkSelectedScoreIds.length}개 선택' : 'Clef',
-        ),
+        title: _isBulkSelecting
+            ? Text('${_bulkSelectedScoreIds.length}개 선택')
+            : null,
         actions: [
           IconButton(
             tooltip: _isBulkSelecting ? '선택 취소' : '여러 악보 선택',
@@ -2870,8 +2870,15 @@ class _QuickAccessScoreChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final sourceName = score.sourceFileDisplayName;
+    final subtitle = score.composer.isEmpty
+        ? '파일 · $sourceName'
+        : score.composer;
+    final openedLabel = score.lastOpenedAt == null
+        ? '마지막 ${score.lastPage}쪽'
+        : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
     return SizedBox(
-      width: 136,
+      width: 156,
       child: Material(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -2885,15 +2892,13 @@ class _QuickAccessScoreChip extends StatelessWidget {
               children: [
                 Text(
                   score.title,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  score.composer.isEmpty
-                      ? '마지막 ${score.lastPage}쪽'
-                      : score.composer,
+                  subtitle,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
@@ -2910,9 +2915,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        score.lastOpenedAt == null
-                            ? '열기'
-                            : _formatShortDate(score.lastOpenedAt!),
+                        openedLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall,
@@ -3221,7 +3224,10 @@ class _ScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tags = score.tags.isEmpty ? '태그 없음' : score.tags.join(', ');
+    final sourceName = score.sourceFileDisplayName;
+    final subtitle = score.composer.isEmpty
+        ? '파일 · $sourceName'
+        : score.composer;
     final organization = <String>[
       if (score.collection.isNotEmpty) score.collection,
       if (score.group.isNotEmpty) score.group,
@@ -3230,6 +3236,11 @@ class _ScoreTile extends StatelessWidget {
     final lastOpened = score.lastOpenedAt == null
         ? '아직 열지 않음'
         : '최근 ${_formatShortDate(score.lastOpenedAt!)}';
+    final footerParts = <String>[
+      if (score.tags.isNotEmpty) score.tags.join(', '),
+      lastOpened,
+      '마지막 ${score.lastPage}쪽',
+    ];
 
     return Material(
       color: Colors.white,
@@ -3255,7 +3266,7 @@ class _ScoreTile extends StatelessWidget {
                   Expanded(
                     child: Text(
                       score.title,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: 17,
@@ -3298,11 +3309,7 @@ class _ScoreTile extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 8),
-              Text(
-                score.composer.isEmpty ? '작곡가 미입력' : score.composer,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
               if (organization.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
@@ -3315,7 +3322,7 @@ class _ScoreTile extends StatelessWidget {
               ],
               const Spacer(),
               Text(
-                '$tags · $lastOpened · 마지막 ${score.lastPage}쪽',
+                footerParts.join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall,
