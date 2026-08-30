@@ -135,8 +135,10 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | 화면 캡처 | `adb exec-out screencap -p > /private/tmp/clef-screen.png` | 시각 QA evidence 저장 |
 | 로그 확인 | `adb logcat -d --pid="$(adb shell pidof com.mannlab.clef)" -v time` | crash/Flutter error 확인 |
 | 뒤로가기 | `adb shell input keyevent KEYCODE_BACK` | viewer/library navigation |
-| 다음 page 후보 | `adb shell input keyevent KEYCODE_DPAD_RIGHT` | keyboard mapping path 확인 |
-| 이전 page 후보 | `adb shell input keyevent KEYCODE_DPAD_LEFT` | keyboard mapping path 확인 |
+| 다음 page 후보 | `adb shell input keyevent KEYCODE_DPAD_RIGHT` | keyboard mapping path 확인, PDF 내부 스크롤 없음 |
+| 이전 page 후보 | `adb shell input keyevent KEYCODE_DPAD_LEFT` | keyboard mapping path 확인, PDF 내부 스크롤 없음 |
+| 다음 page 후보 | `adb shell input keyevent KEYCODE_DPAD_DOWN` | 방향키 방식 페달 호환 확인 |
+| 이전 page 후보 | `adb shell input keyevent KEYCODE_DPAD_UP` | 방향키 방식 페달 호환 확인 |
 | Space 입력 | `adb shell input keyevent KEYCODE_SPACE` | pedal/keyboard standard mapping 확인 |
 | PageDown 입력 | `adb shell input keyevent KEYCODE_PAGE_DOWN` | pedal/keyboard mapping 확인 |
 | PageUp 입력 | `adb shell input keyevent KEYCODE_PAGE_UP` | pedal/keyboard mapping 확인 |

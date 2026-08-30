@@ -379,6 +379,57 @@ void main() {
     );
   });
 
+  test('consumes standard page turn keys before the PDF viewer scrolls', () {
+    final action = resolveSheetViewerKeyAction(
+      key: LogicalKeyboardKey.arrowDown,
+      isShiftPressed: false,
+    );
+
+    expect(action, SheetViewerInputAction.nextPage);
+    expect(
+      sheetViewerConsumesKeyEvent(
+        action: action,
+        pedalMapping: 'standard',
+        inputId: 'ArrowDown',
+        customMapping: const <String, String>{},
+      ),
+      isTrue,
+    );
+  });
+
+  test('consumes explicit custom no-op mappings', () {
+    final customMapping = const <String, String>{'ArrowDown': 'none'};
+    final action = resolveSheetViewerKeyAction(
+      key: LogicalKeyboardKey.arrowDown,
+      isShiftPressed: false,
+      pedalMapping: 'custom',
+      customMapping: customMapping,
+    );
+
+    expect(action, SheetViewerInputAction.none);
+    expect(
+      sheetViewerConsumesKeyEvent(
+        action: action,
+        pedalMapping: 'custom',
+        inputId: 'ArrowDown',
+        customMapping: customMapping,
+      ),
+      isTrue,
+    );
+  });
+
+  test('ignores unmapped custom keys', () {
+    expect(
+      sheetViewerConsumesKeyEvent(
+        action: SheetViewerInputAction.none,
+        pedalMapping: 'custom',
+        inputId: 'F13',
+        customMapping: const <String, String>{},
+      ),
+      isFalse,
+    );
+  });
+
   test('ignores unrelated keys', () {
     expect(
       resolveSheetViewerKeyTurn(

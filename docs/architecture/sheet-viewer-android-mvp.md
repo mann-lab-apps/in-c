@@ -450,10 +450,13 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   파일을 저장하고, viewer의 파트/버전 sheet에서 `clef/audio_player` MethodChannel을 통해 Android
   `MediaPlayer`로 연다. 별도 loop/tempo/pitch shift는 V2 범위다.
 - 하드웨어 키 입력은 viewer body를 `Focus`, `Shortcuts`, `Actions`로 감싸 처리한다.
-- 기본 매핑은 `ArrowRight`, `PageDown`, `Space`가 다음 페이지, `ArrowLeft`, `PageUp`,
-  `Shift+Space`가 이전 페이지다.
+- 기본 매핑은 `ArrowRight`, `ArrowDown`, `PageDown`, `Space`, `Enter`, `Tab`이 다음
+  페이지, `ArrowLeft`, `ArrowUp`, `PageUp`, `Backspace`, `Shift+Space`, `Shift+Tab`이
+  이전 페이지다. Media previous/next 계열도 같은 방향으로 처리한다.
 - 키 입력은 하단 페이지 버튼과 같은 `_goToRelativePage` 경로를 사용한다. 따라서 반 페이지
-  넘김과 hidden page skip 정책을 그대로 따른다.
+  넘김과 hidden page skip 정책을 그대로 따른다. viewer focus가 매핑된 키 이벤트를 소비하므로
+  방향키 방식 페달 입력이 PDF 내부의 미세 스크롤로 흘러가지 않는다. 곡 처음/끝 경계에서는
+  `곡 처음`/`곡 끝` 안내를 표시한다.
 - 세트리스트별 공연 보기 preset은 리허설 sheet에서 켜고 끈다. 켜면 보기 모드, page scale,
   반 페이지 넘김, 곡 전환 확인, 곡 끝 자동 이동, 페달 mapping이 세트리스트 context에만 적용된다.
 - 세트리스트 마지막 페이지에서 자동으로 다음 곡으로 넘어가는 기능은 기본 OFF이며, 곡별 설정 또는

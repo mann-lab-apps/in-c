@@ -4566,6 +4566,8 @@ class _PerformanceModeCanceled implements Exception {
   const _PerformanceModeCanceled();
 }
 
+String _songPageBoundaryMessage(int delta) => delta < 0 ? '곡 처음' : '곡 끝';
+
 Map<ShortcutActivator, Intent> _viewerKeyboardShortcutsFor(
   String pedalMapping,
   Map<String, String> customMapping,
@@ -5153,9 +5155,7 @@ setlist=$setlistLabel
           await _goToAdjacentSetlistScore(delta);
           return;
         }
-        _showSnackBar(
-          delta < 0 ? '순서상 이전 표시 페이지가 없습니다.' : '순서상 다음 표시 페이지가 없습니다.',
-        );
+        _showSnackBar(_songPageBoundaryMessage(delta));
         return;
       }
       _pageOrderCursor = orderedTarget.index;
@@ -5179,7 +5179,7 @@ setlist=$setlistLabel
         await _goToAdjacentSetlistScore(delta);
         return;
       }
-      _showSnackBar(delta < 0 ? '이전 표시 페이지가 없습니다.' : '다음 표시 페이지가 없습니다.');
+      _showSnackBar(_songPageBoundaryMessage(delta));
       return;
     }
     await _pdfController.goToPage(
@@ -9111,8 +9111,16 @@ setlist=$setlistLabel
         _inputDiagnosticLog.removeRange(20, _inputDiagnosticLog.length);
       }
     });
-    if (_pedalMapping == _SheetPedalMapping.custom &&
-        entry.action != SheetViewerInputAction.none) {
+    final shouldConsume = sheetViewerConsumesKeyEvent(
+      action: entry.action,
+      pedalMapping: _pedalMapping.settingValue,
+      inputId: entry.inputId,
+      customMapping: _effectiveViewerSettings.customPedalMapping,
+    );
+    if (shouldConsume) {
+      if (entry.action == SheetViewerInputAction.none) {
+        return KeyEventResult.handled;
+      }
       _handleViewerInputIntent(_ViewerInputIntent(entry.action));
       return KeyEventResult.handled;
     }

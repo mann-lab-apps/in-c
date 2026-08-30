@@ -53,6 +53,19 @@ const sheetViewerCustomInputIds = <String>[
   'MediaNext',
 ];
 
+bool sheetViewerConsumesKeyEvent({
+  required SheetViewerInputAction action,
+  required String pedalMapping,
+  required String inputId,
+  required Map<String, String> customMapping,
+}) {
+  if (pedalMapping == 'custom') {
+    return customMapping.containsKey(inputId) ||
+        action != SheetViewerInputAction.none;
+  }
+  return action != SheetViewerInputAction.none;
+}
+
 List<String> sheetViewerRecentCustomInputIds(
   Iterable<SheetViewerInputDiagnosticEntry> entries, {
   Iterable<String> knownInputIds = sheetViewerCustomInputIds,

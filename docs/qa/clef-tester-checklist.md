@@ -39,7 +39,9 @@
 5. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
 6. metadata 백업과 PDF 포함 전체 백업을 생성한다.
 7. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
-8. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키 넘김을 확인한다.
+8. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
+   PDF가 조금씩 스크롤되지 않는지 확인한다. 첫 page에서 이전, 마지막 page에서 다음을 누르면
+   `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
 9. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
 10. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
 11. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
@@ -67,6 +69,7 @@
   Galaxy Tab S Pen/palm QA tuning은 남아 있다.
 - Bluetooth 페달은 predefined/custom key dropdown과 진단 로그 기반 unknown key 설정을 지원한다.
   실제 key capture wizard는 후속 범위다.
+- 방향키 방식 페달은 위/왼쪽이 이전 page, 아래/오른쪽이 다음 page로 동작해야 한다.
 - OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
   embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.

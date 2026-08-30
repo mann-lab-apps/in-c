@@ -99,8 +99,8 @@
 | 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet. codec/latency/iOS parity는 QA 필요 |
 | 음악 도구 | A-B loop | MobileSheets 지원 | V2 | 중간 | time markers |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
-| 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 6차 구현: Arrow/Page/Space logical key 기반 이전/다음 넘김. 실제 페달 검증 필요 |
-| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 실제 USB 페달 장비 QA는 blocker |
+| 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 실제 페달 검증 필요 |
+| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 실제 USB 페달 장비 QA는 blocker |
 | 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, 진단 로그에서 unknown key를 직접 설정으로 전달, quick action/no-op/setlist action 저장 |
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |

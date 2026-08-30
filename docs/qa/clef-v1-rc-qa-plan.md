@@ -50,7 +50,7 @@
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset/page duration/cue point/pause marker/반복 구간/자동 다음 곡 진행이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration, page별 duration, cue point, pause page, 반복 구간, 다음 곡 전환 |
 | 11-1 | 공연 preset | 세트리스트별 보기 preset을 켜면 세트리스트로 연 곡에만 override가 적용되고, 곡별 설정은 보존된다. 공연 preset template을 생성, 적용, 삭제해도 우선순위가 유지된다. | override 항목, 일반 열기/세트리스트 열기 차이, template 이름/장비 profile, 복제 setlist 동작 |
-| 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. | 장비명, 입력 key, action, 실패 key |
+| 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
 | 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시가 자연스럽다. | 입력음, 표시 note, cents 흔들림 |
@@ -68,7 +68,7 @@
 | --- | --- | --- |
 | Android 태블릿 | 큰 PDF 렌더링, immersive mode, keep-awake 안내, Bluetooth 페달 | 미확인으로 남김 |
 | iPad | 화면 회전, 2페이지 보기, TestFlight 설치, iOS share/import | 미확인으로 남김 |
-| Hardware keyboard | Arrow, PageUp/PageDown, Space, Shift+Space, Enter, Tab | simulator/desktop에서 일부 확인 가능 |
+| Hardware keyboard | Arrow, PageUp/PageDown, Space, Shift+Space, Enter, Tab이 페이지 단위로 이동하고 PDF가 찔끔 스크롤되지 않는지 확인 | simulator/desktop에서 일부 확인 가능 |
 | Bluetooth 페달 | 실제 장비가 보내는 key와 predefined dropdown mapping 일치 | 장비명/key 기록 필요 |
 
 ## 이슈 기록 템플릿
@@ -116,7 +116,8 @@ v1.1 spike 여부:
 - Drive/iCloud/Dropbox는 별도 계정 연동이 아니라 system file picker/provider를 사용한다. provider
   파일 접근 실패 시 기기에 내려받은 뒤 다시 가져온다.
 - Bluetooth 페달은 v1에서 predefined/custom input dropdown 방식이다. 입력 진단에서 unknown inputId를
-  직접 설정으로 전달할 수 있지만, 실제 HID key capture wizard는 지원하지 않는다.
+  직접 설정으로 전달할 수 있지만, 실제 HID key capture wizard는 지원하지 않는다. 방향키 방식
+  페달은 MobileSheets처럼 위/왼쪽을 이전 page, 아래/오른쪽을 다음 page로 소비한다.
 - 공연 모드 keep-awake, 밝기 유지, immersive system UI는 플랫폼 제약이 있을 수 있다.
 - 기준음/드론 재생은 Android native `AudioTrack` 채널 기준이고 로컬 오디오는 Android
   `MediaPlayer` 채널 기준이다. iOS에서는 playback channel parity가 아직 필요하다.
