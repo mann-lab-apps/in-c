@@ -41,6 +41,14 @@ flutter build ios --release --no-codesign
 - 첫 Android build 중 Android SDK Build-Tools 36, Android SDK Platform 35/36, CMake 3.22.1이
   설치되었다.
 
+2026-08-30 튜너 보강분 내부테스트 빌드 준비:
+
+- 대상 커밋: `fadffd0 feat: expand Clef tuner practice controls` 이후 versionCode bump.
+- 앱 버전: `1.0.0+10`.
+- dirty workspace의 classical discovery/pubspec 변경은 이번 튜너 빌드 범위가 아니므로 커밋하지 않고,
+  release 산출물은 clean worktree에서 생성해 빌드에 섞이지 않게 한다.
+- Android 내부테스트 업로드 대상: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
+
 ## 준비물
 
 Repo 포함 fixture:
@@ -155,8 +163,13 @@ iPad/iOS smoke:
 
 Audio/tuner:
 
-- tuner no-signal behavior, reference tone frequency/cents, instrument profile 표시.
-- reference tone/drone 재생/정지, volume, latency 체감.
+- tuner no-signal behavior, 440/441/442Hz A4 quick action/history, reference tone frequency/cents,
+  instrument profile 표시.
+- Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset 전환, Target mode shortcut, target lock
+  on/off, 다른 줄/음 입력 시 `타겟 음을 기다리는 중` 표시.
+- 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
+- reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
+- sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
 
 ## Triage 기준

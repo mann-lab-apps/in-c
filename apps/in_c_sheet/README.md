@@ -14,7 +14,8 @@ helpers:
 - block URL link taps and create URL-link-disabled PDF copies
 - use visual metronome, reference tone/drone, local audio playback, auto scroll,
   hardware-key page turns, and microphone tuner
-- switch tuner display/profile between Concert and Bb Trumpet flows
+- switch tuner preset/profile across chromatic, target, guitar/bass, ukulele,
+  mandolin, strings, and transposing-instrument flows
 
 ## Current Scope
 
@@ -27,6 +28,8 @@ Included:
 - `pdfrx` PDF rendering
 - tester info sheet with feedback template copy
 - Korean-first app copy with feedback fields for awkward wording
+- tuner quick A4 actions, target lock, calibration history, and adaptive
+  noise-floor guard for practice-session tuning
 
 Known limitations:
 
