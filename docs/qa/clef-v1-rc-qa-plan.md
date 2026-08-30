@@ -84,6 +84,7 @@ OS:
 파일 크기/페이지 수:
 테스트 영역:
 샘플 파일 공유 가능 여부:
+어색한 한글 문구/표시:
 재현 단계:
 기대 결과:
 실제 결과:
@@ -109,10 +110,12 @@ v1.1 spike 여부:
 
 - 2026-08-28 기준 로컬 Homebrew Flutter/Dart SDK 검증은 통과했다. 이후 SDK/PATH가 바뀌면
   아래 정적 검증 기록을 다시 갱신한다.
-- Android 태블릿, iPad, Bluetooth 페달 실기기 검증은 주말 QA에서 진행해야 한다.
+- Android 태블릿의 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장은 2026-08-30 1차 QA에서
+  확인했다. S Pen, Bluetooth/USB 페달, cloud provider, CamScanner link annotation, audio latency,
+  iPad smoke는 별도 실기기/샘플 QA가 필요하다.
 - 스캔 PDF와 이미지 기반 PDF는 OCR을 지원하지 않으므로 PDF 본문 검색 결과가 없을 수 있다.
   검색 UI는 embedded text 전용 helper와 OCR unsupported 안내를 사용한다.
-- HEIC/HEIF 이미지는 아직 직접 PDF 변환하지 않는다. iOS 사진 앱에서 JPG로 내보낸 뒤 가져온다.
+- HEIC/HEIF 이미지는 바로 PDF로 가져오지 않는다. iOS 사진 앱에서 JPG로 저장한 뒤 가져온다.
 - Drive/iCloud/Dropbox는 별도 계정 연동이 아니라 system file picker/provider를 사용한다. provider
   파일 접근 실패 시 기기에 내려받은 뒤 다시 가져온다.
 - Bluetooth 페달은 v1에서 predefined/custom input dropdown 방식이다. 입력 진단에서 unknown inputId를
@@ -289,3 +292,18 @@ flutter build ios --release --no-codesign
 - `pdfrx` 2.4.7 기준 page별 live rotation hook 미확인 상태를 v1.1 spike backlog로 분리했다.
 - `dart run tool/rc_release_check.dart`: PASS. PDF fixture inspection, format check, analyze,
   246-test suite, whitespace/tab/stale wording/debug print scans가 통과했다.
+
+2026-08-30 실기기 1차 QA 반영 기록:
+
+- Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
+- 사용자가 설치한 앱 버전은 `1.0.0+4`로 확인했고, repo의 현재 버전은 `1.0.0+8`이다.
+- IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
+- 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
+- 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
+  PDF 내부 미세 스크롤이 없어야 한다.
+- 곡 처음/끝 경계에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내를 표시한다.
+- CamScanner PDF는 워터마크 또는 URL link annotation이 보이지 않아 link tap 차단 검증은
+  완료하지 않았다. 실제 link annotation/object stream 샘플 확보 후 blocker를 닫는다.
+- 한국어 버전을 원하는 사용자 요구가 있으므로 앱 내 피드백 템플릿과 QA 기록에 어색한 한글
+  문구/표시 항목을 추가했다.
+- Android legacy launcher PNG를 Flutter 기본 아이콘에서 Clef 악보/음표 아이콘으로 교체했다.

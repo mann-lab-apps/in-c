@@ -14,6 +14,7 @@ void main() {
     expect(template, contains('URL link PDF / 한글 주석 PDF'));
     expect(template, contains('샘플 파일 공유 가능 여부'));
     expect(template, contains('blocker 여부'));
+    expect(template, contains('어색한 한글 문구/표시'));
     expect(template, contains('스크린샷 또는 화면녹화'));
     expect(template, contains('annotation export'));
     expect(template, contains('scores=2, setlists=1'));

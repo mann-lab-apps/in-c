@@ -856,3 +856,9 @@ acceptance criteria를 먼저 고정해야 하는 후속 spike다.
 `rotationOverride`가 있지만 현재 앱의 `PdfViewer.file` 경로에서 page별 live rotation을 안정적으로
 주입하는 공개 hook은 확인하지 못했다. 따라서 v1 RC는 source/instance rotation metadata와
 회전/페이지 정리 적용 사본 경로를 유지하고, live rotation은 v1.1 viewer spike로 남긴다.
+
+2026-08-30 실기기 1차 QA 이후에는 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장이 Android
+내부 테스트 설치본에서 합격선임을 문서화했다. MobileSheets 비교에서 확인한 방향키 방식 페이지
+넘김과 곡 처음/끝 안내를 기준으로 viewer key event 소비 경로를 보강했고, legacy launcher PNG를
+Clef 악보/음표 아이콘으로 교체했다. 앱 내 피드백 템플릿에는 어색한 한글 문구/표시 기록 필드를
+추가해 한국어 UX polish를 RC QA 항목으로 수집한다.

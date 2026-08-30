@@ -21,10 +21,12 @@ helpers:
 Included:
 
 - Android-first Flutter app with iOS TestFlight smoke-test support
+- Android adaptive and legacy launcher icons for RC internal testing
 - local PDF/image copies in the app documents directory
 - `SharedPreferences` metadata persistence, automatic metadata snapshots, and ZIP full backup
 - `pdfrx` PDF rendering
 - tester info sheet with feedback template copy
+- Korean-first app copy with feedback fields for awkward wording
 
 Known limitations:
 

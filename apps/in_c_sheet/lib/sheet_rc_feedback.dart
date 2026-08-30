@@ -17,6 +17,7 @@ PDF/샘플 파일:
 - 샘플 파일 공유 가능 여부:
 테스트 영역: import / viewer / search / annotation export / backup / pedal / S Pen / tuner / audio
 blocker 여부: 예 / 아니오 / 모르겠음
+어색한 한글 문구/표시:
 한 일:
 기대한 결과:
 실제 결과:

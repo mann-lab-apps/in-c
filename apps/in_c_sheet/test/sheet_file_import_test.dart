@@ -38,7 +38,7 @@ void main() {
       SheetFileImportPolicy.unsupportedImportMessage(
         'Unsupported image file: page-1.heic',
       ),
-      contains('JPG로 내보낸 뒤'),
+      contains('JPG로 저장한 뒤'),
     );
     expect(
       SheetFileImportPolicy.unsupportedImportMessage(

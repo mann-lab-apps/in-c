@@ -193,14 +193,15 @@ v1.1 spike 여부:
 - IMSLP PDF의 `PDF 본문 검색`에서 `Bach` 검색은 `1/2 결과`를 표시하고 결과 탭 후 페이지 하이라이트가
   렌더링됐다.
 - `long-scan-like-score.pdf`에서 `zzzzz` 검색은 crash 없이 `결과 없음 - 스캔 PDF는 텍스트가 없을 수
-  있습니다.` 및 OCR v1 범위 밖 안내를 표시했다.
+  있습니다.` 및 스캔 악보 본문 검색 미지원 안내를 표시했다.
 - 앱 force-stop 후 재실행해도 라이브러리 2곡, 최근 카드, 마지막 page 문구가 보존됐다.
 - 테스트 정보 sheet에서 앱 `1.0.0+4`, `Beta test build`, 악보 수, 필기 요약, 외부 필기 저장소,
   custom pedal 요약이 표시됐다.
 - 재시작 후 앱 프로세스 logcat에는 Flutter exception/crash가 없었다. 초기 render에서 Android
   `Skipped frames` 경고 1건은 관찰됐고 실기기 성능 QA에서 재확인한다.
-- ADB `KEYCODE_DPAD_RIGHT`/`KEYCODE_PAGE_DOWN` 입력은 현재 focus 상태에서 page label 변화가
-  확인되지 않았다. 실제 hardware keyboard/페달 QA 또는 focus 경로 보강 이슈로 별도 재확인한다.
+- ADB `KEYCODE_DPAD_RIGHT`/`KEYCODE_PAGE_DOWN` 입력은 당시 focus 상태에서 page label 변화가
+  확인되지 않았다. 이후 viewer key event 소비 경로를 보강했으므로 다음 emulator/실기기 QA에서
+  PDF 내부 스크롤 없이 페이지 단위 이동하는지 재확인한다.
 - 2026-08-29 사용자 실기기 QA에서 Play 설치 앱의 테스트 정보가 `1.0.0+4`로 표시됐다. 원인은 앱
   내부 테스트 정보 상수와 `pubspec.yaml` build number가 분리되어 있던 점으로 확인했고, 새 QA build
   `1.0.0+6`에서 둘을 맞췄다. Play 설치 후 테스트 정보에서 `1.0.0+6` 표시를 재확인한다.

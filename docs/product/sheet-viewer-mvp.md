@@ -218,7 +218,8 @@ import/library/viewer/annotation/performance/backup 흐름을 구현했고, Home
   smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
   cents meter, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
   visual tuner fallback.
-- 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space 기반 이전/다음 페이지 넘김.
+- 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space/Enter/Tab/Media key 기반 이전/다음
+  페이지 넘김, 방향키 방식 페달의 PDF 내부 미세 스크롤 방지, 곡 처음/끝 경계 안내.
 - 공연 모드 1차: 관리 action 숨김, 큰 페이지 컨트롤 유지.
 - 자동 스크롤 1차: 곡별 duration/start/end/cue/pause marker/repeat section/page duration/cue point
   저장, 세로 스크롤 기반 weighted timeline 진행, pause/resume/stop, BPM 기반 duration preset,
@@ -234,7 +235,7 @@ import/library/viewer/annotation/performance/backup 흐름을 구현했고, Home
 - 표시 효과 1차: 일반, 어두운 배경, 색상 반전.
 - 베타 전달 polish: 앱 내 테스트 정보/version 표시, 피드백 템플릿 복사, 빈 라이브러리 CTA,
   검색/필터 빈 결과 초기화, viewer 오류 배너, 구체적인 import/share/export 실패 안내,
-  외부 테스터 체크리스트와 베타 피드백 요청 메시지.
+  Android launcher icon, 한국어 문구 피드백 필드, 외부 테스터 체크리스트와 베타 피드백 요청 메시지.
 
 URL link annotation은 viewer layer에서 외부 브라우저가 열리지 않게 막고, 사용자가 명시적으로
 선택하면 외부 URL link annotation만 제거한 앱 내부 사본을 생성한다. 비PDF/손상 PDF는 거부하고
@@ -244,7 +245,8 @@ iOS scaffold는 2026-08-21 smoke test 보조 타깃으로 추가했다. iPhone 1
 Simulator에서 276페이지 PDF import/open/render/page move를 수동 확인했지만, 제품 검증의
 우선순위는 Android 태블릿이다.
 
-Android 태블릿 실기기 smoke test, 실제 CamScanner 샘플 PDF link 제거/compact rewrite 검증,
+Android 태블릿의 IMSLP PDF 렌더링/페이지 이동/마지막 페이지 저장은 2026-08-30 1차 QA에서
+합격선으로 확인했다. 실제 CamScanner 샘플 PDF link 제거/compact rewrite 검증,
 튜너 정확도/latency 실기기 검증, 메트로놈 오디오 latency/accent sound,
 기준음/드론/로컬 오디오 Android latency와 iOS parity,
 Bluetooth/USB 페달 실기기 HID 검증, Galaxy Tab S Pen pressure/palm rejection tuning,

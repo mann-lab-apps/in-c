@@ -8078,7 +8078,7 @@ setlist=$setlistLabel
     if (SheetAnnotatedPdfExporter.scoreContainsUnicodeTextAnnotations(
       currentScore,
     )) {
-      _showSnackBar('한글 텍스트 주석 PDF 출력은 폰트 표시 확인이 필요합니다.');
+      _showSnackBar('한글 텍스트 주석은 PDF 사본에서 표시가 제한될 수 있습니다.');
     }
     if (annotationSummary.estimatedJsonBytes > 512 * 1024 ||
         annotationSummary.redoCount > 20) {
@@ -8092,7 +8092,7 @@ setlist=$setlistLabel
     }
     if (!result.didWrite || result.outputPath == null) {
       if (result.requiresUnicodeFontEmbedding) {
-        _showSnackBar('한글 텍스트 주석은 아직 PDF에 안전하게 포함하지 못합니다. 원본 PDF를 공유합니다.');
+        _showSnackBar('한글 텍스트 주석은 PDF 사본에 포함되지 않아 원본 PDF를 공유합니다.');
         await _shareCurrentScorePdf();
         return;
       }

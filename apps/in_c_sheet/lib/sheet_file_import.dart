@@ -59,7 +59,7 @@ class SheetFileImportPolicy {
   static String unsupportedImportMessage(String value) {
     final name = _fileNameFromMessage(value);
     if (isKnownButUnsupportedImageFileName(name)) {
-      return 'HEIC/HEIF 이미지는 아직 직접 변환하지 못합니다. 사진 앱에서 JPG로 내보낸 뒤 다시 가져와주세요.';
+      return 'HEIC/HEIF 이미지는 바로 가져올 수 없습니다. 사진 앱에서 JPG로 저장한 뒤 다시 가져와주세요.';
     }
     return '이미지를 PDF 악보로 가져오지 못했습니다. JPG/PNG 파일인지, 클라우드 파일이 기기에 내려받아져 있는지 확인해주세요.';
   }
