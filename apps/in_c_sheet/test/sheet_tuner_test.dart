@@ -139,6 +139,25 @@ void main() {
     expect(flat.centsOffset, lessThan(0));
   });
 
+  test('calculates cents against an explicit target frequency', () {
+    final target = SheetTunerPitch.noteFromMidi(69);
+    final sharp = SheetTunerPitch.centsFromTarget(
+      frequency: _frequencyAtCents(target.frequency, 15),
+      targetFrequency: target.frequency,
+    );
+    final flat = SheetTunerPitch.centsFromTarget(
+      frequency: _frequencyAtCents(target.frequency, -12),
+      targetFrequency: target.frequency,
+    );
+
+    expect(sharp, closeTo(15, 0.001));
+    expect(flat, closeTo(-12, 0.001));
+    expect(
+      SheetTunerPitch.centsFromTarget(frequency: 440, targetFrequency: 0),
+      0,
+    );
+  });
+
   test('returns null for invalid frequency', () {
     expect(SheetTunerPitch.detect(frequency: 0), isNull);
     expect(SheetTunerPitch.detect(frequency: double.nan), isNull);
@@ -172,6 +191,26 @@ void main() {
     expect(decoded.targetConcertMidiNumber, 70);
   });
 
+  test('persists tuner target mode and preset fields', () {
+    const settings = SheetTunerSettings(
+      referencePitchA4: 442,
+      tuningMode: SheetTunerMode.target,
+      tuningPreset: SheetTunerPreset.guitarDropD,
+      displayMode: SheetTunerDisplayMode.guitar,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+      targetConcertMidiNumber: 38,
+    );
+
+    final decoded = SheetTunerCodec.decode(SheetTunerCodec.encode(settings));
+
+    expect(decoded.referencePitchA4, 442);
+    expect(decoded.tuningMode, SheetTunerMode.target);
+    expect(decoded.tuningPreset, SheetTunerPreset.guitarDropD);
+    expect(decoded.displayMode, SheetTunerDisplayMode.guitar);
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.guitarBass);
+    expect(decoded.targetConcertMidiNumber, 38);
+  });
+
   test('falls back to default tuner settings for malformed JSON', () {
     expect(
       SheetTunerCodec.decode('{bad json').referencePitchA4,
@@ -189,8 +228,54 @@ void main() {
     });
 
     expect(decoded.referencePitchA4, 441);
+    expect(decoded.tuningMode, SheetTunerMode.chromatic);
+    expect(decoded.tuningPreset, SheetTunerPreset.chromatic);
     expect(decoded.displayMode, SheetTunerDisplayMode.concert);
     expect(decoded.detectionProfile, SheetTunerDetectionProfile.chromatic);
+  });
+
+  test('repairs target mode without a saved target', () {
+    final decoded = SheetTunerSettings.fromJson(<String, Object?>{
+      'tuningMode': 'target',
+      'tuningPreset': 'violin',
+    });
+
+    expect(decoded.tuningMode, SheetTunerMode.chromatic);
+    expect(decoded.tuningPreset, SheetTunerPreset.violin);
+    expect(decoded.displayMode, SheetTunerDisplayMode.violin);
+    expect(decoded.detectionProfile, SheetTunerDetectionProfile.strings);
+    expect(decoded.targetConcertMidiNumber, isNull);
+  });
+
+  test('tuning presets provide practical target lists and profiles', () {
+    final dropDTargets = SheetTunerPreset.guitarDropD.targets;
+    final violinTargets = SheetTunerPreset.violin.targets;
+
+    expect(
+      SheetTunerPreset.guitarDropD.displayMode,
+      SheetTunerDisplayMode.guitar,
+    );
+    expect(
+      SheetTunerPreset.guitarDropD.detectionProfile,
+      SheetTunerDetectionProfile.guitarBass,
+    );
+    expect(dropDTargets.map((target) => target.concertMidiNumber), <int>[
+      38,
+      45,
+      50,
+      55,
+      59,
+      64,
+    ]);
+    expect(dropDTargets.first.label, 'D2');
+    expect(violinTargets.map((target) => target.label), <String>[
+      'G',
+      'D',
+      'A',
+      'E',
+    ]);
+    expect(SheetTunerPreset.violin.hasTarget(69), isTrue);
+    expect(SheetTunerPreset.violin.hasTarget(70), isFalse);
   });
 
   test('detection profiles filter practical frequency ranges', () {
@@ -453,6 +538,44 @@ void main() {
     expect(verySharp.band, SheetTunerFeedbackBand.verySharp);
     expect(verySharp.isSharp, isTrue);
   });
+
+  test(
+    'feedback stabilizer damps needle movement and holds in tune briefly',
+    () {
+      final stabilizer = SheetTunerFeedbackStabilizer(
+        dampingFactor: 0.5,
+        inTuneHoldFrames: 2,
+        inTuneReleaseCents: 8,
+      );
+
+      final first = stabilizer.add(
+        inputStatus: SheetTunerInputStatus.listening,
+        reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.9),
+        centsOffset: 0,
+      );
+      final held = stabilizer.add(
+        inputStatus: SheetTunerInputStatus.listening,
+        reading: SheetTunerPitch.detect(frequency: 442, signalLevel: 0.9),
+        centsOffset: 7,
+      );
+      final damped = stabilizer.add(
+        inputStatus: SheetTunerInputStatus.listening,
+        reading: SheetTunerPitch.detect(frequency: 448, signalLevel: 0.9),
+        centsOffset: 31,
+      );
+      final reset = stabilizer.add(
+        inputStatus: SheetTunerInputStatus.noSignal,
+        reading: null,
+        centsOffset: 0,
+      );
+
+      expect(first.band, SheetTunerFeedbackBand.inTune);
+      expect(held.band, SheetTunerFeedbackBand.inTune);
+      expect(damped.displayCents, lessThan(31));
+      expect(damped.band, SheetTunerFeedbackBand.slightlySharp);
+      expect(reset.hasPitch, isFalse);
+    },
+  );
 
   test('stabilizer holds note near a boundary with hysteresis', () {
     final stabilizer = SheetTunerReadingStabilizer(

@@ -53,7 +53,7 @@
 | 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
-| 14 | 튜너 | Concert/Bb/Eb/F/Strings/Guitar/Bass profile 표시와 `소리가 너무 작습니다`/`음을 잡는 중`/`조금 낮아요`/`조금 높아요`/`맞았습니다` feedback이 자연스럽다. | 입력음, 표시 note, cents 흔들림, 신호 %, feedback 문구 |
+| 14 | 튜너 | Chromatic/Target mode, Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset, target shortcut, `소리가 너무 작습니다`/`음을 잡는 중`/`조금 낮아요`/`조금 높아요`/`맞았습니다` feedback이 자연스럽다. | 입력음, preset, target, 표시 note, cents 흔들림, 신호 %, feedback 문구 |
 | 14-1 | 기준음/드론 | Android에서 기준음/5도/옥타브 drone이 재생/정지되고 A4 기준 변경이 주파수에 반영된다. | root note, drone mode, volume, latency/끊김, iOS 표시 문구 |
 | 14-2 | 로컬 오디오 | MP3/M4A/WAV linked file이 가져와지고 파트/버전 sheet에서 재생/정지된다. | 파일 확장자, codec 실패 여부, latency/끊김, iOS 표시 문구 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
@@ -113,8 +113,9 @@ v1.1 spike 여부:
 - Android 태블릿의 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장은 2026-08-30 1차 QA에서
   확인했다. S Pen, Bluetooth/USB 페달, cloud provider, CamScanner link annotation, audio latency,
   iPad smoke는 별도 실기기/샘플 QA가 필요하다.
-- 튜너의 sine/noise synthetic test는 통과했다. 실제 악기/기기 마이크 기준 정확도, latency, 외부
-  마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
+- 튜너의 sine/noise/time-series synthetic test는 통과했다. Chromatic/Target mode, 악기별 preset,
+  target cents, feedback damping/hold는 자동 테스트로 검증했다. 실제 악기/기기 마이크 기준 정확도,
+  latency, 외부 마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
 - 스캔 PDF와 이미지 기반 PDF는 OCR을 지원하지 않으므로 PDF 본문 검색 결과가 없을 수 있다.
   검색 UI는 embedded text 전용 helper와 OCR unsupported 안내를 사용한다.
 - HEIC/HEIF 이미지는 바로 PDF로 가져오지 않는다. iOS 사진 앱에서 JPG로 저장한 뒤 가져온다.

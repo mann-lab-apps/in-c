@@ -161,6 +161,180 @@ enum SheetTunerDisplayMode {
   String toJson() => name;
 }
 
+enum SheetTunerMode {
+  chromatic,
+  target;
+
+  factory SheetTunerMode.fromJson(Object? value) {
+    return switch (value) {
+      'target' => SheetTunerMode.target,
+      _ => SheetTunerMode.chromatic,
+    };
+  }
+
+  String get label {
+    return switch (this) {
+      SheetTunerMode.chromatic => '크로매틱',
+      SheetTunerMode.target => '타겟',
+    };
+  }
+
+  String toJson() => name;
+}
+
+enum SheetTunerPreset {
+  chromatic,
+  guitarStandard,
+  guitarDropD,
+  bassStandard,
+  violin,
+  viola,
+  cello,
+  doubleBass,
+  bbTrumpet,
+  bbClarinet,
+  altoSax,
+  tenorSax,
+  frenchHorn,
+  manual;
+
+  factory SheetTunerPreset.fromJson(Object? value) {
+    return switch (value) {
+      'guitarStandard' => SheetTunerPreset.guitarStandard,
+      'guitarDropD' => SheetTunerPreset.guitarDropD,
+      'bassStandard' => SheetTunerPreset.bassStandard,
+      'violin' => SheetTunerPreset.violin,
+      'viola' => SheetTunerPreset.viola,
+      'cello' => SheetTunerPreset.cello,
+      'doubleBass' => SheetTunerPreset.doubleBass,
+      'bbTrumpet' => SheetTunerPreset.bbTrumpet,
+      'bbClarinet' => SheetTunerPreset.bbClarinet,
+      'altoSax' => SheetTunerPreset.altoSax,
+      'tenorSax' => SheetTunerPreset.tenorSax,
+      'frenchHorn' => SheetTunerPreset.frenchHorn,
+      'manual' => SheetTunerPreset.manual,
+      _ => SheetTunerPreset.chromatic,
+    };
+  }
+
+  String get label {
+    return switch (this) {
+      SheetTunerPreset.chromatic => 'Chromatic',
+      SheetTunerPreset.guitarStandard => 'Guitar standard',
+      SheetTunerPreset.guitarDropD => 'Guitar drop D',
+      SheetTunerPreset.bassStandard => 'Bass standard',
+      SheetTunerPreset.violin => 'Violin',
+      SheetTunerPreset.viola => 'Viola',
+      SheetTunerPreset.cello => 'Cello',
+      SheetTunerPreset.doubleBass => 'Double Bass',
+      SheetTunerPreset.bbTrumpet => 'Bb Trumpet',
+      SheetTunerPreset.bbClarinet => 'Bb Clarinet',
+      SheetTunerPreset.altoSax => 'Alto Sax',
+      SheetTunerPreset.tenorSax => 'Tenor Sax',
+      SheetTunerPreset.frenchHorn => 'Horn in F',
+      SheetTunerPreset.manual => 'Manual',
+    };
+  }
+
+  SheetTunerDisplayMode get displayMode {
+    return switch (this) {
+      SheetTunerPreset.guitarStandard ||
+      SheetTunerPreset.guitarDropD => SheetTunerDisplayMode.guitar,
+      SheetTunerPreset.bassStandard => SheetTunerDisplayMode.bassGuitar,
+      SheetTunerPreset.violin => SheetTunerDisplayMode.violin,
+      SheetTunerPreset.viola => SheetTunerDisplayMode.viola,
+      SheetTunerPreset.cello => SheetTunerDisplayMode.cello,
+      SheetTunerPreset.doubleBass => SheetTunerDisplayMode.doubleBass,
+      SheetTunerPreset.bbTrumpet => SheetTunerDisplayMode.bbTrumpet,
+      SheetTunerPreset.bbClarinet => SheetTunerDisplayMode.bbClarinet,
+      SheetTunerPreset.altoSax => SheetTunerDisplayMode.altoSax,
+      SheetTunerPreset.tenorSax => SheetTunerDisplayMode.tenorSax,
+      SheetTunerPreset.frenchHorn => SheetTunerDisplayMode.frenchHorn,
+      SheetTunerPreset.chromatic ||
+      SheetTunerPreset.manual => SheetTunerDisplayMode.concert,
+    };
+  }
+
+  SheetTunerDetectionProfile get detectionProfile {
+    return switch (this) {
+      SheetTunerPreset.guitarStandard ||
+      SheetTunerPreset.guitarDropD ||
+      SheetTunerPreset.bassStandard => SheetTunerDetectionProfile.guitarBass,
+      SheetTunerPreset.violin ||
+      SheetTunerPreset.viola => SheetTunerDetectionProfile.strings,
+      SheetTunerPreset.cello ||
+      SheetTunerPreset.doubleBass => SheetTunerDetectionProfile.lowInstrument,
+      SheetTunerPreset.bbTrumpet => SheetTunerDetectionProfile.bbTrumpet,
+      SheetTunerPreset.bbClarinet ||
+      SheetTunerPreset.altoSax ||
+      SheetTunerPreset.tenorSax ||
+      SheetTunerPreset.frenchHorn => SheetTunerDetectionProfile.highInstrument,
+      SheetTunerPreset.chromatic ||
+      SheetTunerPreset.manual => SheetTunerDetectionProfile.chromatic,
+    };
+  }
+
+  List<SheetTunerTarget> get targets {
+    return switch (this) {
+      SheetTunerPreset.guitarStandard => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'E2', concertMidiNumber: 40),
+        SheetTunerTarget(label: 'A2', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D3', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G3', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'B3', concertMidiNumber: 59),
+        SheetTunerTarget(label: 'E4', concertMidiNumber: 64),
+      ],
+      SheetTunerPreset.guitarDropD => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'D2', concertMidiNumber: 38),
+        SheetTunerTarget(label: 'A2', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D3', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G3', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'B3', concertMidiNumber: 59),
+        SheetTunerTarget(label: 'E4', concertMidiNumber: 64),
+      ],
+      SheetTunerPreset.bassStandard => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'E1', concertMidiNumber: 28),
+        SheetTunerTarget(label: 'A1', concertMidiNumber: 33),
+        SheetTunerTarget(label: 'D2', concertMidiNumber: 38),
+        SheetTunerTarget(label: 'G2', concertMidiNumber: 43),
+      ],
+      SheetTunerPreset.violin => SheetTunerDisplayMode.violin.tuningTargets,
+      SheetTunerPreset.viola => SheetTunerDisplayMode.viola.tuningTargets,
+      SheetTunerPreset.cello => SheetTunerDisplayMode.cello.tuningTargets,
+      SheetTunerPreset.doubleBass =>
+        SheetTunerDisplayMode.doubleBass.tuningTargets,
+      SheetTunerPreset.bbTrumpet =>
+        SheetTunerDisplayMode.bbTrumpet.tuningTargets,
+      SheetTunerPreset.bbClarinet => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'C', concertMidiNumber: 70),
+        SheetTunerTarget(label: 'G', concertMidiNumber: 65),
+        SheetTunerTarget(label: 'E', concertMidiNumber: 62),
+      ],
+      SheetTunerPreset.altoSax => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G', concertMidiNumber: 46),
+        SheetTunerTarget(label: 'C', concertMidiNumber: 51),
+        SheetTunerTarget(label: 'F', concertMidiNumber: 56),
+      ],
+      SheetTunerPreset.tenorSax => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G', concertMidiNumber: 53),
+        SheetTunerTarget(label: 'C', concertMidiNumber: 58),
+        SheetTunerTarget(label: 'F', concertMidiNumber: 63),
+      ],
+      SheetTunerPreset.frenchHorn =>
+        SheetTunerDisplayMode.frenchHorn.tuningTargets,
+      SheetTunerPreset.chromatic ||
+      SheetTunerPreset.manual => SheetTunerDisplayMode.concert.tuningTargets,
+    };
+  }
+
+  bool hasTarget(int? midiNumber) {
+    return midiNumber != null &&
+        targets.any((target) => target.concertMidiNumber == midiNumber);
+  }
+
+  String toJson() => name;
+}
+
 enum SheetTunerDetectionProfile {
   chromatic(
     label: 'Chromatic',
@@ -268,55 +442,83 @@ enum SheetTunerDetectionProfile {
 class SheetTunerSettings {
   const SheetTunerSettings({
     required this.referencePitchA4,
+    this.tuningMode = SheetTunerMode.chromatic,
+    this.tuningPreset = SheetTunerPreset.chromatic,
     this.displayMode = SheetTunerDisplayMode.concert,
     this.detectionProfile = SheetTunerDetectionProfile.chromatic,
     this.targetConcertMidiNumber,
   });
 
   factory SheetTunerSettings.fromJson(Map<String, Object?>? json) {
+    final tuningPreset = SheetTunerPreset.fromJson(json?['tuningPreset']);
+    final targetConcertMidiNumber = _normalizeTargetMidiNumber(
+      json?['targetConcertMidiNumber'],
+    );
+    final tuningMode = SheetTunerMode.fromJson(json?['tuningMode']);
+    final displayMode = json?.containsKey('displayMode') ?? false
+        ? SheetTunerDisplayMode.fromJson(json?['displayMode'])
+        : tuningPreset.displayMode;
+    final detectionProfile = json?.containsKey('detectionProfile') ?? false
+        ? SheetTunerDetectionProfile.fromJson(json?['detectionProfile'])
+        : tuningPreset.detectionProfile;
     return SheetTunerSettings(
       referencePitchA4: _normalizeReferencePitch(json?['referencePitchA4']),
-      displayMode: SheetTunerDisplayMode.fromJson(json?['displayMode']),
-      detectionProfile: SheetTunerDetectionProfile.fromJson(
-        json?['detectionProfile'],
-      ),
-      targetConcertMidiNumber: _normalizeTargetMidiNumber(
-        json?['targetConcertMidiNumber'],
-      ),
+      tuningMode:
+          tuningMode == SheetTunerMode.target && targetConcertMidiNumber == null
+          ? SheetTunerMode.chromatic
+          : tuningMode,
+      tuningPreset: tuningPreset,
+      displayMode: displayMode,
+      detectionProfile: detectionProfile,
+      targetConcertMidiNumber: targetConcertMidiNumber,
     );
   }
 
   static const defaultSettings = SheetTunerSettings(referencePitchA4: 440);
 
   final int referencePitchA4;
+  final SheetTunerMode tuningMode;
+  final SheetTunerPreset tuningPreset;
   final SheetTunerDisplayMode displayMode;
   final SheetTunerDetectionProfile detectionProfile;
   final int? targetConcertMidiNumber;
 
   SheetTunerSettings copyWith({
     int? referencePitchA4,
+    SheetTunerMode? tuningMode,
+    SheetTunerPreset? tuningPreset,
     SheetTunerDisplayMode? displayMode,
     SheetTunerDetectionProfile? detectionProfile,
     int? targetConcertMidiNumber,
     bool clearTargetConcertMidiNumber = false,
   }) {
+    final nextTargetConcertMidiNumber = clearTargetConcertMidiNumber
+        ? null
+        : _normalizeTargetMidiNumber(
+            targetConcertMidiNumber ?? this.targetConcertMidiNumber,
+          );
+    final nextTuningMode = tuningMode ?? this.tuningMode;
     return SheetTunerSettings(
       referencePitchA4: clampReferencePitch(
         referencePitchA4 ?? this.referencePitchA4,
       ),
+      tuningMode:
+          nextTuningMode == SheetTunerMode.target &&
+              nextTargetConcertMidiNumber == null
+          ? SheetTunerMode.chromatic
+          : nextTuningMode,
+      tuningPreset: tuningPreset ?? this.tuningPreset,
       displayMode: displayMode ?? this.displayMode,
       detectionProfile: detectionProfile ?? this.detectionProfile,
-      targetConcertMidiNumber: clearTargetConcertMidiNumber
-          ? null
-          : _normalizeTargetMidiNumber(
-              targetConcertMidiNumber ?? this.targetConcertMidiNumber,
-            ),
+      targetConcertMidiNumber: nextTargetConcertMidiNumber,
     );
   }
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'referencePitchA4': referencePitchA4,
+      'tuningMode': tuningMode.toJson(),
+      'tuningPreset': tuningPreset.toJson(),
       'displayMode': displayMode.toJson(),
       'detectionProfile': detectionProfile.toJson(),
       'targetConcertMidiNumber': targetConcertMidiNumber,
@@ -386,6 +588,20 @@ class SheetTunerTarget {
     }
     return '${written.labelWith(preferFlats: displayMode.preferFlats)}'
         ' · Concert ${concert.labelWith(preferFlats: true)}';
+  }
+
+  String targetLabel({
+    required SheetTunerDisplayMode displayMode,
+    int referencePitchA4 = 440,
+  }) {
+    final display = displayLabel(
+      displayMode: displayMode,
+      referencePitchA4: referencePitchA4,
+    );
+    if (label.isEmpty || display.startsWith(label)) {
+      return display;
+    }
+    return '$label · $display';
   }
 }
 
@@ -594,6 +810,18 @@ class SheetTunerFeedback {
   final String label;
   final double displayCents;
 
+  SheetTunerFeedback copyWith({
+    SheetTunerFeedbackBand? band,
+    String? label,
+    double? displayCents,
+  }) {
+    return SheetTunerFeedback(
+      band: band ?? this.band,
+      label: label ?? this.label,
+      displayCents: displayCents ?? this.displayCents,
+    );
+  }
+
   bool get hasPitch =>
       band == SheetTunerFeedbackBand.inTune ||
       band == SheetTunerFeedbackBand.slightlyFlat ||
@@ -609,6 +837,69 @@ class SheetTunerFeedback {
   bool get isSharp =>
       band == SheetTunerFeedbackBand.slightlySharp ||
       band == SheetTunerFeedbackBand.verySharp;
+}
+
+class SheetTunerFeedbackStabilizer {
+  SheetTunerFeedbackStabilizer({
+    this.dampingFactor = 0.35,
+    this.inTuneHoldFrames = 3,
+    this.inTuneReleaseCents = 8,
+  });
+
+  final double dampingFactor;
+  final int inTuneHoldFrames;
+  final double inTuneReleaseCents;
+
+  double? _lastDisplayCents;
+  int _heldInTuneFrames = 0;
+
+  SheetTunerFeedback add({
+    required SheetTunerInputStatus inputStatus,
+    required SheetTunerReading? reading,
+    required double centsOffset,
+  }) {
+    final raw = SheetTunerFeedback.fromState(
+      inputStatus: inputStatus,
+      reading: reading,
+      centsOffset: centsOffset,
+    );
+    if (!raw.hasPitch) {
+      reset();
+      return raw;
+    }
+
+    final previousCents = _lastDisplayCents;
+    final nextCents = previousCents == null
+        ? raw.displayCents
+        : previousCents + ((raw.displayCents - previousCents) * dampingFactor);
+    _lastDisplayCents = nextCents;
+
+    if (raw.isInTune) {
+      _heldInTuneFrames = inTuneHoldFrames;
+      _lastDisplayCents = 0;
+      return raw.copyWith(displayCents: 0);
+    }
+    if (_heldInTuneFrames > 0 && nextCents.abs() <= inTuneReleaseCents) {
+      _heldInTuneFrames -= 1;
+      _lastDisplayCents = 0;
+      return const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.inTune,
+        label: '맞았습니다',
+        displayCents: 0,
+      );
+    }
+
+    return SheetTunerFeedback.fromState(
+      inputStatus: inputStatus,
+      reading: reading,
+      centsOffset: nextCents,
+    );
+  }
+
+  void reset() {
+    _lastDisplayCents = null;
+    _heldInTuneFrames = 0;
+  }
 }
 
 class SheetTunerPitch {
@@ -702,6 +993,21 @@ class SheetTunerPitch {
       octave: octave,
       frequency: targetFrequency,
     );
+  }
+
+  static double centsFromTarget({
+    required double frequency,
+    required double targetFrequency,
+  }) {
+    if (frequency <= 0 ||
+        targetFrequency <= 0 ||
+        frequency.isNaN ||
+        targetFrequency.isNaN ||
+        frequency.isInfinite ||
+        targetFrequency.isInfinite) {
+      return 0;
+    }
+    return 1200 * _log2(frequency / targetFrequency);
   }
 
   static double _log2(double value) => math.log(value) / math.ln2;
