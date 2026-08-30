@@ -240,6 +240,35 @@ void main() {
     expect(reading.frequency, closeTo(440, 1.5));
   });
 
+  test('detects practical low and high instrument pitches', () {
+    final low = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 82.41, sampleCount: 8192),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+    );
+    final high = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 1046.5),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.highInstrument,
+    );
+
+    expect(low, isNotNull);
+    expect(low!.note.label, 'E2');
+    expect(low.frequency, closeTo(82.41, 1.5));
+    expect(high, isNotNull);
+    expect(high!.note.label, 'C6');
+    expect(high.frequency, closeTo(1046.5, 3));
+  });
+
+  test('rejects low RMS input before pitch detection', () {
+    final reading = SheetTunerPitchDetector.detectSamples(
+      _sineSamples(frequency: 440, amplitude: 0.004),
+      sampleRate: 44100,
+    );
+
+    expect(reading, isNull);
+  });
+
   test('trumpet profile rejects low rumble outside practical range', () {
     final lowReading = SheetTunerPitchDetector.detectSamples(
       _sineSamples(frequency: 110),
@@ -383,6 +412,46 @@ void main() {
 
     expect(reading, isNotNull);
     expect(reading!.note.label, 'D5');
+  });
+
+  test('feedback summarizes tuner states for performance use', () {
+    final noSignal = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.noSignal,
+      reading: null,
+      centsOffset: 0,
+    );
+    final lowConfidence = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.65),
+      centsOffset: 0,
+    );
+    final inTune = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.9),
+      centsOffset: 3,
+    );
+    final flat = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 435, signalLevel: 0.9),
+      centsOffset: -19,
+    );
+    final verySharp = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 448, signalLevel: 0.9),
+      centsOffset: 31,
+    );
+
+    expect(noSignal.band, SheetTunerFeedbackBand.noSignal);
+    expect(noSignal.hasPitch, isFalse);
+    expect(noSignal.label, '소리가 너무 작습니다');
+    expect(lowConfidence.band, SheetTunerFeedbackBand.lowConfidence);
+    expect(inTune.band, SheetTunerFeedbackBand.inTune);
+    expect(inTune.displayCents, 0);
+    expect(inTune.label, '맞았습니다');
+    expect(flat.band, SheetTunerFeedbackBand.slightlyFlat);
+    expect(flat.isFlat, isTrue);
+    expect(verySharp.band, SheetTunerFeedbackBand.verySharp);
+    expect(verySharp.isSharp, isTrue);
   });
 
   test('stabilizer holds note near a boundary with hysteresis', () {

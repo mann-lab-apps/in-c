@@ -59,7 +59,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector,
-  frequency-to-note 계산, cents meter, A4 기준음 저장, viewer bottom sheet.
+  RMS gate/confidence, median smoothing, frequency-to-note 계산, 상용 튜너형 feedback label/cents
+  meter, A4 기준음 저장, viewer bottom sheet.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
   5도, 옥타브 drone을 재생한다.
 - 로컬 오디오 플레이어 1차: linked audio file을 앱 저장소에 복사하고 Android native
@@ -80,7 +81,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 1차 MVP 제외 범위
 
-- 상용급 튜너 정확도/latency 보장.
+- 기기/외부 마이크별 상용급 튜너 정확도/latency 보장.
 - Bluetooth/USB 페달 실기기별 HID key 검증.
 - ChordPro/text.
 - HEIC 이미지 변환.
@@ -480,7 +481,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   변환한다. 테스트 기준은 A4 440Hz, A#4 466.16Hz, C4 261.63Hz다.
 - `SheetTunerPitchDetector`는 PCM16 mono sample을 4096 sample rolling window에 모아
   autocorrelation으로 pitch를 추정한다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
-  concert E3-C6 중심 range를 사용한다.
+  concert E3-C6 중심 range를 사용한다. Guitar/Bass, Strings, low/high instrument profile은
+  각 악기군의 실제 range에 맞춰 detector frequency range와 RMS/confidence threshold를 분리한다.
 - `SheetTunerInputService`는 `record` 7.1.1의 `AudioRecorder.hasPermission`과
   `AudioRecorder.startStream`을 사용한다. Stream 설정은 `pcm16bits`, mono, 44.1kHz,
   `streamBufferSize: 4096`이다.
@@ -488,11 +490,15 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   confidence reading을 무시하며, profile별 no signal debounce 후 표시한다. 짧은 octave
   jump는 직전 안정 reading 근처로 접고, boundary 근처 note hysteresis로 label 깜빡임을
   줄인다.
+- `SheetTunerFeedback`은 input status와 reading confidence/cents를 `소리가 너무 작습니다`,
+  `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 같은 performance-facing 상태로
+  변환한다. In-tune dead zone 안에서는 표시 cents를 0으로 잡아 needle이 과하게 떨려 보이지 않게
+  한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
 - 1차 UI는 현재 음 이름, 악기별 표시 profile, 감지 profile, concert pitch 보조 표시,
-  target shortcut, cents meter, A4 기준음 slider, start/stop, signal/confidence 상태를 제공한다.
-  Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
+  target shortcut, 낮음/정확/높음 cents meter, A4 기준음 slider, start/stop, signal/confidence
+  상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
 - Android에는 `RECORD_AUDIO`, iOS에는 `NSMicrophoneUsageDescription`을 추가했다.
 - permission denied, no signal, audio pipeline unavailable/error 상태는 crash 없이 안내한다.
 - bottom sheet가 닫히면 stream subscription, recorder, detector를 정리한다.
@@ -630,9 +636,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 주석/필기 고도화: S Pen pressure와 stylus 직후 touch rejection window는 1차 구현했다.
   기본 필기 layer visibility/export 포함 flag, text edit/delete와 page rect 기반 overlay도 구현했다.
   palm rejection 실기기 튜닝, 다중 layer keying, PDF embed/export 별도 spike는 남아 있다.
-- 튜너 고도화: runtime microphone permission request와 raw PCM stream은 1차 구현했다.
-  Median smoothing과 no-signal debounce도 1차 적용했다. Android 태블릿 실기기 pitch 정확도,
-  latency, 추가 noise smoothing, YIN 비교, 외부 microphone 동작은 후속 검증이 필요하다.
+- 튜너 고도화: runtime microphone permission request, raw PCM stream, RMS/confidence gate,
+  median smoothing, no-signal debounce, octave guard, note hysteresis, feedback label/meter는 1차
+  구현했다. Android 태블릿 실기기 pitch 정확도, latency, YIN/MPM 비교, 외부 microphone 동작은
+  후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
 - 자동 스크롤 고도화: cue, pause/resume, BPM 기반 duration preset, pause marker, 반복 구간
   timeline, page별 duration weight, rehearsal mark 기반 cue point, 세트리스트 자동 다음 곡 진행은

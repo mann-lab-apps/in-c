@@ -494,6 +494,123 @@ enum SheetTunerInputStatus {
   error,
 }
 
+enum SheetTunerFeedbackBand {
+  idle,
+  noSignal,
+  lowConfidence,
+  inTune,
+  slightlyFlat,
+  slightlySharp,
+  veryFlat,
+  verySharp,
+  permissionDenied,
+  unavailable,
+  error,
+}
+
+class SheetTunerFeedback {
+  const SheetTunerFeedback({
+    required this.band,
+    required this.label,
+    required this.displayCents,
+  });
+
+  factory SheetTunerFeedback.fromState({
+    required SheetTunerInputStatus inputStatus,
+    required SheetTunerReading? reading,
+    required double centsOffset,
+    double inTuneCents = 5,
+    double slightCents = 20,
+    double lowConfidenceSignalLevel = 0.7,
+  }) {
+    return switch (inputStatus) {
+      SheetTunerInputStatus.idle => const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.idle,
+        label: '음을 잡을 준비가 됐습니다',
+        displayCents: 0,
+      ),
+      SheetTunerInputStatus.permissionDenied => const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.permissionDenied,
+        label: '마이크 권한이 필요합니다',
+        displayCents: 0,
+      ),
+      SheetTunerInputStatus.audioPipelineUnavailable =>
+        const SheetTunerFeedback(
+          band: SheetTunerFeedbackBand.unavailable,
+          label: '마이크를 시작하지 못했습니다',
+          displayCents: 0,
+        ),
+      SheetTunerInputStatus.error => const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.error,
+        label: '튜너를 다시 시작해주세요',
+        displayCents: 0,
+      ),
+      SheetTunerInputStatus.noSignal when reading == null =>
+        const SheetTunerFeedback(
+          band: SheetTunerFeedbackBand.noSignal,
+          label: '소리가 너무 작습니다',
+          displayCents: 0,
+        ),
+      _ when reading == null => const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.noSignal,
+        label: '음을 잡는 중',
+        displayCents: 0,
+      ),
+      _ when reading.signalLevel < lowConfidenceSignalLevel =>
+        SheetTunerFeedback(
+          band: SheetTunerFeedbackBand.lowConfidence,
+          label: '음을 잡는 중',
+          displayCents: centsOffset,
+        ),
+      _ when centsOffset.abs() <= inTuneCents => const SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.inTune,
+        label: '맞았습니다',
+        displayCents: 0,
+      ),
+      _ when centsOffset < -slightCents => SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.veryFlat,
+        label: '많이 낮아요',
+        displayCents: centsOffset,
+      ),
+      _ when centsOffset < 0 => SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.slightlyFlat,
+        label: '조금 낮아요',
+        displayCents: centsOffset,
+      ),
+      _ when centsOffset > slightCents => SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.verySharp,
+        label: '많이 높아요',
+        displayCents: centsOffset,
+      ),
+      _ => SheetTunerFeedback(
+        band: SheetTunerFeedbackBand.slightlySharp,
+        label: '조금 높아요',
+        displayCents: centsOffset,
+      ),
+    };
+  }
+
+  final SheetTunerFeedbackBand band;
+  final String label;
+  final double displayCents;
+
+  bool get hasPitch =>
+      band == SheetTunerFeedbackBand.inTune ||
+      band == SheetTunerFeedbackBand.slightlyFlat ||
+      band == SheetTunerFeedbackBand.slightlySharp ||
+      band == SheetTunerFeedbackBand.veryFlat ||
+      band == SheetTunerFeedbackBand.verySharp ||
+      band == SheetTunerFeedbackBand.lowConfidence;
+
+  bool get isInTune => band == SheetTunerFeedbackBand.inTune;
+  bool get isFlat =>
+      band == SheetTunerFeedbackBand.slightlyFlat ||
+      band == SheetTunerFeedbackBand.veryFlat;
+  bool get isSharp =>
+      band == SheetTunerFeedbackBand.slightlySharp ||
+      band == SheetTunerFeedbackBand.verySharp;
+}
+
 class SheetTunerPitch {
   const SheetTunerPitch._();
 

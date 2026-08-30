@@ -92,7 +92,7 @@
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
-| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | V1 후보 구현: `record` PCM stream, autocorrelation detector, median smoothing, profile별 no-signal debounce/confidence, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Concert/Bb Trumpet 표시, Chromatic/Bb Trumpet 감지 profile, A4 저장. 실기기 정확도/latency 검증 필요 |
+| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, autocorrelation detector, RMS gate/confidence, median smoothing, profile별 no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, instrument range profile, A4 저장, 소리 작음/잡는 중/낮음/높음/맞음 feedback. synthetic sine/noise test 통과. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
@@ -142,9 +142,10 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
   추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
 - 메트로놈. 6차 구현은 visual metronome, BPM/박자 저장, start/stop, accent beat 표시다.
-- 크로매틱 튜너. 11차 구현은 `record` 기반 microphone PCM stream, autocorrelation pitch
-  detector, median smoothing, no-signal debounce까지 붙였다. Android 태블릿 실기기 정확도/latency
-  검증은 후속이다.
+- 크로매틱 튜너. `record` 기반 microphone PCM stream, autocorrelation pitch detector, RMS gate,
+  confidence, median smoothing, no-signal debounce, octave guard, note hysteresis,
+  Concert/Bb/Eb/F/Strings/Guitar/Bass 표시와 상용 튜너형 feedback label/meter를 붙였다. Android
+  태블릿 실기기 정확도/latency 검증은 후속이다.
 - PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. `pdf_document` 기반으로
   URL link annotation 제거 뒤 page count를 재검증하고, 비PDF/손상 PDF 실패 시 partial output을
   남기지 않는다. 실제 CamScanner 샘플/compact rewrite 검증은 blocker다.
@@ -208,6 +209,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 원본 PDF는 기본적으로 보존한다.
 - PDF link annotation 제거는 사용자가 확인한 사본에만 적용한다.
 - MobileSheets와 기능 범주는 맞추되, UI와 상호작용을 그대로 복제하지 않는다.
-- 튜너는 핵심 차별점이지만 전체 악기별 튜너가 아니라 chromatic tuner와 Bb Trumpet 표시
-  모드부터 시작한다. 1차 구현은 visual tuner, pitch math, `record` raw PCM stream, median
-  smoothing, octave jump 완화를 고정했고, 실기기 정확도와 latency는 별도 검증한다.
+- 튜너는 핵심 차별점이지만 전용 튜너 앱 수준의 기기별 정확도 보장은 실기기 QA 뒤에 확정한다.
+  v1은 chromatic tuner, Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, profile별 range/threshold,
+  target shortcut, A4 calibration, 기준음/드론 연계를 제공한다. Synthetic audio 테스트는 통과했으며,
+  Android/iOS 마이크 latency와 외부 마이크 안정성은 별도 검증한다.

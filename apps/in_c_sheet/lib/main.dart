@@ -13451,7 +13451,12 @@ class _TunerSheetState extends State<_TunerSheet> {
             referencePitchA4: _settings.referencePitchA4,
           );
     final cents = targetCents ?? reading?.centsOffset ?? 0;
-    final isInTune = cents.abs() <= 5 && reading != null;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: _state.inputStatus,
+      reading: reading,
+      centsOffset: cents,
+    );
+    final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
     final tuningTargets = _settings.displayMode.tuningTargets;
 
@@ -13502,7 +13507,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          status.label,
+                          feedback.label,
                           style: theme.textTheme.labelLarge,
                         ),
                       ),
@@ -13566,7 +13571,9 @@ class _TunerSheetState extends State<_TunerSheet> {
               ),
               Center(
                 child: Text(
-                  reading == null ? '입력 대기' : displayedPitch!.detailLabel,
+                  reading == null
+                      ? '시작하면 마이크로 음을 잡습니다'
+                      : displayedPitch!.detailLabel,
                   style: theme.textTheme.labelLarge,
                 ),
               ),
@@ -13593,7 +13600,8 @@ class _TunerSheetState extends State<_TunerSheet> {
                 Center(
                   child: Text(
                     '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${cents >= 0 ? '+' : ''}${cents.toStringAsFixed(1)} cents',
+                    '${feedback.displayCents >= 0 ? '+' : ''}'
+                    '${feedback.displayCents.toStringAsFixed(1)} cents',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -13609,7 +13617,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                   ),
                 ),
               const SizedBox(height: 20),
-              _TunerMeter(centsOffset: cents),
+              _TunerMeter(feedback: feedback),
               const SizedBox(height: 24),
               Text('빠른 타겟', style: theme.textTheme.labelLarge),
               const SizedBox(height: 8),
@@ -13884,51 +13892,74 @@ class _TunerSheetState extends State<_TunerSheet> {
 }
 
 class _TunerMeter extends StatelessWidget {
-  const _TunerMeter({required this.centsOffset});
+  const _TunerMeter({required this.feedback});
 
-  final double centsOffset;
+  final SheetTunerFeedback feedback;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final clamped = centsOffset.clamp(-50.0, 50.0).toDouble();
+    final clamped = feedback.displayCents.clamp(-50.0, 50.0).toDouble();
     final alignmentX = clamped / 50.0;
+    final markerColor = switch (feedback.band) {
+      SheetTunerFeedbackBand.inTune => theme.colorScheme.primary,
+      SheetTunerFeedbackBand.slightlyFlat ||
+      SheetTunerFeedbackBand.slightlySharp => theme.colorScheme.tertiary,
+      SheetTunerFeedbackBand.veryFlat ||
+      SheetTunerFeedbackBand.verySharp => theme.colorScheme.error,
+      SheetTunerFeedbackBand.lowConfidence => theme.colorScheme.secondary,
+      _ => theme.colorScheme.outline,
+    };
 
-    return SizedBox(
-      height: 54,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            height: 10,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          Container(
-            width: 3,
-            height: 42,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          Align(
-            alignment: Alignment(alignmentX, 0),
-            child: Container(
-              width: 18,
-              height: 42,
-              decoration: BoxDecoration(
-                color: centsOffset.abs() <= 5
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.tertiary,
-                borderRadius: BorderRadius.circular(999),
+    return Column(
+      children: [
+        SizedBox(
+          height: 54,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                height: 10,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(999),
+                ),
               ),
-            ),
+              Container(
+                width: 3,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              Align(
+                alignment: Alignment(alignmentX, 0),
+                child: Container(
+                  width: feedback.hasPitch ? 18 : 10,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: markerColor,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              Text('낮음', style: theme.textTheme.labelSmall),
+              const Spacer(),
+              Text('정확', style: theme.textTheme.labelSmall),
+              const Spacer(),
+              Text('높음', style: theme.textTheme.labelSmall),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
