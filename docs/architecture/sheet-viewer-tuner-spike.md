@@ -7,7 +7,8 @@
 튜너는 `record` 7.1.1 기반 raw PCM stream을 붙여 실제 microphone input pipeline 1차까지
 구현했다. V1 전달 전 보강으로 Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 표시 모드와 별개인
 detection profile, Chromatic/Target mode, Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset,
-target 기준 cents 계산, 상용 튜너형 feedback label/meter를 추가했다. 이번 단계의 목표는
+target 기준 cents 계산, custom tuning preset 저장, sharp/flat 표기 선택, A4 보정 제안,
+상용 튜너형 feedback label/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
 상용급 튜너 정확도 보장이 아니라, 연습자가 악보 viewer 안에서 바로 이해할 수 있는 note/cents
 피드백을 crash 없이 받는 것이다.
 
@@ -22,6 +23,8 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
     Cello, Double Bass, Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F, Manual을 저장한다.
   - 표시 모드는 `Concert`, Bb/Eb/F 악기, Strings, Guitar/Bass 계열을 저장한다.
   - 감지 profile은 `Chromatic`, `Bb Trumpet`, high/low instruments, strings, guitar/bass를 저장한다.
+  - 음 이름 표기는 악기 기본, sharp, flat preference를 저장한다.
+  - custom target list와 custom preset list를 저장한다.
   - 표시 모드는 음 이름 표기 방식이고, 감지 profile은 마이크 입력 range/안정화 정책이다.
   - 기본값 440Hz, Chromatic mode/preset, Concert 표시, Chromatic profile, target 없음.
   - 415-466Hz 범위 clamp.
@@ -76,16 +79,28 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
     `조금 높아요`, `맞았습니다` 상태로 변환한다.
   - In-tune dead zone에서는 표시 cents를 0으로 고정한다.
   - 표시용 needle damping과 짧은 in-tune hold로 label/needle이 과하게 흔들리지 않게 한다.
+  - feedback band를 LED flat/center/sharp strip으로 변환해 한눈에 볼 수 있게 한다.
+- `SheetTunerInputPower`
+  - confidence 기반 입력강도 bar를 제공한다. 현재는 amplitude overload meter가 아니라 안정도
+    표시이며, 실제 adaptive noise floor/overload 감지는 v1.1 spike다.
+- `SheetTunerReferenceCalibration`
+  - 안정적인 A 계열 입력이 최소 4개 쌓이고 spread가 작을 때 A4 보정 제안을 만든다.
+  - UI는 자동 보정하지 않고 확인 dialog를 통해 적용한다.
+- Custom tuning
+  - 현재 target list를 custom preset으로 저장/적용/삭제한다.
+  - 현재 감지된 음을 custom target으로 추가하고, custom target은 chip 삭제로 정리한다.
+  - custom preset은 metadata/full backup round-trip에 포함된다.
 - Viewer 튜너 UI
   - AppBar 또는 overflow menu에서 진입.
   - 공연 모드에서도 진입 가능.
   - 현재 음 이름, Chromatic/Target mode, tuning preset, 표시 모드, 감지 profile, concert pitch
     보조 표시, target 기준 cents meter, target shortcut, target을 기준음/드론 root로 맞추는 action,
-    A4 기준음 slider, start/stop, signal/confidence 표시.
+    custom preset 저장/적용/삭제, sharp/flat 표기, A4 기준음 slider, 보정 제안, start/stop,
+    signal/confidence와 입력강도 표시.
   - listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
 - Persistence
-  - A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, target MIDI는 앱 전역
-    SharedPreferences 설정으로 저장.
+  - A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, notation preference,
+    target MIDI, custom target/preset은 앱 전역 SharedPreferences 설정으로 저장.
 - Platform permission declaration
   - Android: `RECORD_AUDIO`.
   - iOS: `NSMicrophoneUsageDescription`.
@@ -118,7 +133,7 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
    cleanup을 실기기로 확인한다.
 2. 44.1kHz 입력을 우선 사용하고, Android 태블릿에서 실제 지원 sample rate와 buffer cadence를
    확인한다.
-3. Guitar/Bass/Strings/Bb/Eb/F preset별 target list와 display transpose가 실제 연주자 기대와
+3. Guitar/Bass/Strings/Bb/Eb/F preset별 target list, custom preset, display transpose가 실제 연주자 기대와
    맞는지 확인한다.
 4. cents jitter가 여전히 크면 profile별 smoothing window, adaptive noise floor, attack frame
    ignore 또는 YIN/MPM 기반 detector를 비교한다.
@@ -128,6 +143,6 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 
 - 고급 temperament.
 - background listening.
-- 사용자 custom tuning 저장.
 - metronome audio와 동시 audio session 고도화.
 - 외부 오디오 인터페이스 최적화.
+- 실제 RMS overload meter, adaptive noise floor, YIN/MPM detector 교체.

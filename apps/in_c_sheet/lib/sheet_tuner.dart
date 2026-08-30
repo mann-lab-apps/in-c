@@ -182,6 +182,38 @@ enum SheetTunerMode {
   String toJson() => name;
 }
 
+enum SheetTunerNotationPreference {
+  instrumentDefault,
+  sharps,
+  flats;
+
+  factory SheetTunerNotationPreference.fromJson(Object? value) {
+    return switch (value) {
+      'sharps' => SheetTunerNotationPreference.sharps,
+      'flats' => SheetTunerNotationPreference.flats,
+      _ => SheetTunerNotationPreference.instrumentDefault,
+    };
+  }
+
+  String get label {
+    return switch (this) {
+      SheetTunerNotationPreference.instrumentDefault => '악기 기본',
+      SheetTunerNotationPreference.sharps => '샵 표기',
+      SheetTunerNotationPreference.flats => '플랫 표기',
+    };
+  }
+
+  bool preferFlatsFor(SheetTunerDisplayMode displayMode) {
+    return switch (this) {
+      SheetTunerNotationPreference.instrumentDefault => displayMode.preferFlats,
+      SheetTunerNotationPreference.sharps => false,
+      SheetTunerNotationPreference.flats => true,
+    };
+  }
+
+  String toJson() => name;
+}
+
 enum SheetTunerPreset {
   chromatic,
   guitarStandard,
@@ -446,11 +478,23 @@ class SheetTunerSettings {
     this.tuningPreset = SheetTunerPreset.chromatic,
     this.displayMode = SheetTunerDisplayMode.concert,
     this.detectionProfile = SheetTunerDetectionProfile.chromatic,
+    this.notationPreference = SheetTunerNotationPreference.instrumentDefault,
     this.targetConcertMidiNumber,
+    this.customPresetId,
+    this.customTargets = const <SheetTunerTarget>[],
+    this.customPresets = const <SheetTunerCustomPreset>[],
   });
 
   factory SheetTunerSettings.fromJson(Map<String, Object?>? json) {
     final tuningPreset = SheetTunerPreset.fromJson(json?['tuningPreset']);
+    final customPresets = SheetTunerCustomPreset.decodeList(
+      json?['customPresets'],
+    );
+    final customPresetId = _normalizeCustomPresetId(
+      json?['customPresetId'],
+      customPresets,
+    );
+    final customTargets = SheetTunerTarget.decodeList(json?['customTargets']);
     final targetConcertMidiNumber = _normalizeTargetMidiNumber(
       json?['targetConcertMidiNumber'],
     );
@@ -470,7 +514,13 @@ class SheetTunerSettings {
       tuningPreset: tuningPreset,
       displayMode: displayMode,
       detectionProfile: detectionProfile,
+      notationPreference: SheetTunerNotationPreference.fromJson(
+        json?['notationPreference'],
+      ),
       targetConcertMidiNumber: targetConcertMidiNumber,
+      customPresetId: customPresetId,
+      customTargets: customTargets,
+      customPresets: customPresets,
     );
   }
 
@@ -481,7 +531,11 @@ class SheetTunerSettings {
   final SheetTunerPreset tuningPreset;
   final SheetTunerDisplayMode displayMode;
   final SheetTunerDetectionProfile detectionProfile;
+  final SheetTunerNotationPreference notationPreference;
   final int? targetConcertMidiNumber;
+  final String? customPresetId;
+  final List<SheetTunerTarget> customTargets;
+  final List<SheetTunerCustomPreset> customPresets;
 
   SheetTunerSettings copyWith({
     int? referencePitchA4,
@@ -489,8 +543,14 @@ class SheetTunerSettings {
     SheetTunerPreset? tuningPreset,
     SheetTunerDisplayMode? displayMode,
     SheetTunerDetectionProfile? detectionProfile,
+    SheetTunerNotationPreference? notationPreference,
     int? targetConcertMidiNumber,
+    String? customPresetId,
+    List<SheetTunerTarget>? customTargets,
+    List<SheetTunerCustomPreset>? customPresets,
     bool clearTargetConcertMidiNumber = false,
+    bool clearCustomPresetId = false,
+    bool clearCustomTargets = false,
   }) {
     final nextTargetConcertMidiNumber = clearTargetConcertMidiNumber
         ? null
@@ -498,6 +558,15 @@ class SheetTunerSettings {
             targetConcertMidiNumber ?? this.targetConcertMidiNumber,
           );
     final nextTuningMode = tuningMode ?? this.tuningMode;
+    final nextCustomPresets = SheetTunerCustomPreset.normalizeList(
+      customPresets ?? this.customPresets,
+    );
+    final nextCustomPresetId = clearCustomPresetId
+        ? null
+        : _normalizeCustomPresetId(
+            customPresetId ?? this.customPresetId,
+            nextCustomPresets,
+          );
     return SheetTunerSettings(
       referencePitchA4: clampReferencePitch(
         referencePitchA4 ?? this.referencePitchA4,
@@ -510,7 +579,13 @@ class SheetTunerSettings {
       tuningPreset: tuningPreset ?? this.tuningPreset,
       displayMode: displayMode ?? this.displayMode,
       detectionProfile: detectionProfile ?? this.detectionProfile,
+      notationPreference: notationPreference ?? this.notationPreference,
       targetConcertMidiNumber: nextTargetConcertMidiNumber,
+      customPresetId: nextCustomPresetId,
+      customTargets: clearCustomTargets
+          ? const <SheetTunerTarget>[]
+          : SheetTunerTarget.normalizeList(customTargets ?? this.customTargets),
+      customPresets: nextCustomPresets,
     );
   }
 
@@ -521,7 +596,15 @@ class SheetTunerSettings {
       'tuningPreset': tuningPreset.toJson(),
       'displayMode': displayMode.toJson(),
       'detectionProfile': detectionProfile.toJson(),
+      'notationPreference': notationPreference.toJson(),
       'targetConcertMidiNumber': targetConcertMidiNumber,
+      'customPresetId': customPresetId,
+      'customTargets': customTargets
+          .map((target) => target.toJson())
+          .toList(growable: false),
+      'customPresets': customPresets
+          .map((preset) => preset.toJson())
+          .toList(growable: false),
     };
   }
 
@@ -546,6 +629,17 @@ class SheetTunerSettings {
     }
     return parsed;
   }
+
+  static String? _normalizeCustomPresetId(
+    Object? value,
+    List<SheetTunerCustomPreset> presets,
+  ) {
+    final id = value is String ? value.trim() : '';
+    if (id.isEmpty) {
+      return null;
+    }
+    return presets.any((preset) => preset.id == id) ? id : null;
+  }
 }
 
 class SheetTunerTarget {
@@ -554,8 +648,68 @@ class SheetTunerTarget {
     required this.concertMidiNumber,
   });
 
+  factory SheetTunerTarget.fromJson(Object? value) {
+    if (value is! Map) {
+      return const SheetTunerTarget(label: '', concertMidiNumber: -1);
+    }
+    final midi = SheetTunerSettings._normalizeTargetMidiNumber(
+      value['concertMidiNumber'],
+    );
+    if (midi == null) {
+      return const SheetTunerTarget(label: '', concertMidiNumber: -1);
+    }
+    final label = value['label'] is String
+        ? (value['label'] as String).trim()
+        : '';
+    return SheetTunerTarget(label: label, concertMidiNumber: midi);
+  }
+
   final String label;
   final int concertMidiNumber;
+
+  bool get isValid => concertMidiNumber >= 0 && concertMidiNumber <= 127;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'label': label,
+      'concertMidiNumber': concertMidiNumber,
+    };
+  }
+
+  static List<SheetTunerTarget> decodeList(Object? value) {
+    if (value is! List) {
+      return const <SheetTunerTarget>[];
+    }
+    return normalizeList(value.map(SheetTunerTarget.fromJson));
+  }
+
+  static List<SheetTunerTarget> normalizeList(
+    Iterable<SheetTunerTarget> targets, {
+    int maxTargets = 16,
+  }) {
+    final seen = <int>{};
+    final normalized = <SheetTunerTarget>[];
+    for (final target in targets) {
+      if (!target.isValid || !seen.add(target.concertMidiNumber)) {
+        continue;
+      }
+      final fallbackNote = SheetTunerPitch.noteFromMidi(
+        target.concertMidiNumber,
+      );
+      normalized.add(
+        SheetTunerTarget(
+          label: target.label.trim().isEmpty
+              ? fallbackNote.label
+              : target.label.trim(),
+          concertMidiNumber: target.concertMidiNumber,
+        ),
+      );
+      if (normalized.length >= maxTargets) {
+        break;
+      }
+    }
+    return List<SheetTunerTarget>.unmodifiable(normalized);
+  }
 
   SheetTunerNote concertNote({int referencePitchA4 = 440}) {
     return SheetTunerPitch.noteFromMidi(
@@ -574,34 +728,146 @@ class SheetTunerTarget {
     );
   }
 
+  String targetLabel({
+    required SheetTunerDisplayMode displayMode,
+    int referencePitchA4 = 440,
+    bool? preferFlats,
+  }) {
+    final display = displayLabel(
+      displayMode: displayMode,
+      referencePitchA4: referencePitchA4,
+      preferFlats: preferFlats,
+    );
+    if (label.isEmpty || display.startsWith(label)) {
+      return display;
+    }
+    return '$label · $display';
+  }
+
   String displayLabel({
     required SheetTunerDisplayMode displayMode,
     int referencePitchA4 = 440,
+    bool? preferFlats,
   }) {
+    final shouldPreferFlats = preferFlats ?? displayMode.preferFlats;
     final written = writtenNote(
       displayMode: displayMode,
       referencePitchA4: referencePitchA4,
     );
     final concert = concertNote(referencePitchA4: referencePitchA4);
     if (displayMode.transposeSemitones == 0) {
-      return written.labelWith(preferFlats: displayMode.preferFlats);
+      return written.labelWith(preferFlats: shouldPreferFlats);
     }
-    return '${written.labelWith(preferFlats: displayMode.preferFlats)}'
+    return '${written.labelWith(preferFlats: shouldPreferFlats)}'
         ' · Concert ${concert.labelWith(preferFlats: true)}';
   }
+}
 
-  String targetLabel({
-    required SheetTunerDisplayMode displayMode,
-    int referencePitchA4 = 440,
-  }) {
-    final display = displayLabel(
-      displayMode: displayMode,
-      referencePitchA4: referencePitchA4,
-    );
-    if (label.isEmpty || display.startsWith(label)) {
-      return display;
+class SheetTunerCustomPreset {
+  const SheetTunerCustomPreset({
+    required this.id,
+    required this.name,
+    required this.displayMode,
+    required this.detectionProfile,
+    required this.targets,
+    required this.updatedAt,
+  });
+
+  factory SheetTunerCustomPreset.fromJson(Object? value) {
+    if (value is! Map) {
+      return SheetTunerCustomPreset.invalid;
     }
-    return '$label · $display';
+    final id = value['id'] is String ? (value['id'] as String).trim() : '';
+    final name = value['name'] is String
+        ? (value['name'] as String).trim()
+        : '';
+    final targets = SheetTunerTarget.decodeList(value['targets']);
+    final updatedAt = value['updatedAt'] is String
+        ? DateTime.tryParse(value['updatedAt'] as String)
+        : null;
+    if (id.isEmpty || name.isEmpty || targets.isEmpty) {
+      return SheetTunerCustomPreset.invalid;
+    }
+    return SheetTunerCustomPreset(
+      id: id,
+      name: name,
+      displayMode: SheetTunerDisplayMode.fromJson(value['displayMode']),
+      detectionProfile: SheetTunerDetectionProfile.fromJson(
+        value['detectionProfile'],
+      ),
+      targets: targets,
+      updatedAt: updatedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  static final invalid = SheetTunerCustomPreset(
+    id: '',
+    name: '',
+    displayMode: SheetTunerDisplayMode.concert,
+    detectionProfile: SheetTunerDetectionProfile.chromatic,
+    targets: const <SheetTunerTarget>[],
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(0),
+  );
+
+  final String id;
+  final String name;
+  final SheetTunerDisplayMode displayMode;
+  final SheetTunerDetectionProfile detectionProfile;
+  final List<SheetTunerTarget> targets;
+  final DateTime updatedAt;
+
+  bool get isValid => id.isNotEmpty && name.isNotEmpty && targets.isNotEmpty;
+
+  bool hasTarget(int? midiNumber) {
+    return midiNumber != null &&
+        targets.any((target) => target.concertMidiNumber == midiNumber);
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'name': name,
+      'displayMode': displayMode.toJson(),
+      'detectionProfile': detectionProfile.toJson(),
+      'targets': targets
+          .map((target) => target.toJson())
+          .toList(growable: false),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  static List<SheetTunerCustomPreset> decodeList(Object? value) {
+    if (value is! List) {
+      return const <SheetTunerCustomPreset>[];
+    }
+    return normalizeList(value.map(SheetTunerCustomPreset.fromJson));
+  }
+
+  static List<SheetTunerCustomPreset> normalizeList(
+    Iterable<SheetTunerCustomPreset> presets, {
+    int maxPresets = 12,
+  }) {
+    final seen = <String>{};
+    final normalized = <SheetTunerCustomPreset>[];
+    for (final preset in presets) {
+      if (!preset.isValid || !seen.add(preset.id)) {
+        continue;
+      }
+      normalized.add(
+        SheetTunerCustomPreset(
+          id: preset.id,
+          name: preset.name.trim(),
+          displayMode: preset.displayMode,
+          detectionProfile: preset.detectionProfile,
+          targets: SheetTunerTarget.normalizeList(preset.targets),
+          updatedAt: preset.updatedAt,
+        ),
+      );
+      if (normalized.length >= maxPresets) {
+        break;
+      }
+    }
+    return List<SheetTunerCustomPreset>.unmodifiable(normalized);
   }
 }
 
@@ -654,11 +920,19 @@ class SheetTunerDisplayedPitch {
 
   String get primaryLabel => writtenNote.label;
 
+  String primaryLabelWith({required bool preferFlats}) {
+    return writtenNote.labelWith(preferFlats: preferFlats);
+  }
+
   String get detailLabel {
+    return detailLabelWith(preferFlats: displayMode.preferFlats);
+  }
+
+  String detailLabelWith({required bool preferFlats}) {
     if (displayMode.transposeSemitones == 0) {
-      return 'Concert ${concertNote.labelWith(preferFlats: displayMode.preferFlats)} · ${_formatCents(centsOffset)}';
+      return 'Concert ${concertNote.labelWith(preferFlats: preferFlats)} · ${_formatCents(centsOffset)}';
     }
-    return 'Written ${writtenNote.labelWith(preferFlats: displayMode.preferFlats)} · Concert ${concertNote.labelWith(preferFlats: true)} · '
+    return 'Written ${writtenNote.labelWith(preferFlats: preferFlats)} · Concert ${concertNote.labelWith(preferFlats: true)} · '
         '${_formatCents(centsOffset)}';
   }
 
@@ -722,6 +996,16 @@ enum SheetTunerFeedbackBand {
   permissionDenied,
   unavailable,
   error,
+}
+
+enum SheetTunerLedState {
+  off,
+  lowConfidence,
+  veryFlat,
+  flat,
+  center,
+  sharp,
+  verySharp,
 }
 
 class SheetTunerFeedback {
@@ -837,6 +1121,141 @@ class SheetTunerFeedback {
   bool get isSharp =>
       band == SheetTunerFeedbackBand.slightlySharp ||
       band == SheetTunerFeedbackBand.verySharp;
+
+  SheetTunerLedState get ledState {
+    return switch (band) {
+      SheetTunerFeedbackBand.lowConfidence => SheetTunerLedState.lowConfidence,
+      SheetTunerFeedbackBand.veryFlat => SheetTunerLedState.veryFlat,
+      SheetTunerFeedbackBand.slightlyFlat => SheetTunerLedState.flat,
+      SheetTunerFeedbackBand.inTune => SheetTunerLedState.center,
+      SheetTunerFeedbackBand.slightlySharp => SheetTunerLedState.sharp,
+      SheetTunerFeedbackBand.verySharp => SheetTunerLedState.verySharp,
+      _ => SheetTunerLedState.off,
+    };
+  }
+}
+
+enum SheetTunerInputPowerBand { idle, silent, weak, steady, strong }
+
+class SheetTunerInputPower {
+  const SheetTunerInputPower({
+    required this.band,
+    required this.value,
+    required this.label,
+  });
+
+  factory SheetTunerInputPower.fromState({
+    required SheetTunerInputStatus inputStatus,
+    required SheetTunerReading? reading,
+  }) {
+    if (inputStatus == SheetTunerInputStatus.idle) {
+      return const SheetTunerInputPower(
+        band: SheetTunerInputPowerBand.idle,
+        value: 0,
+        label: '대기',
+      );
+    }
+    if (reading == null) {
+      return const SheetTunerInputPower(
+        band: SheetTunerInputPowerBand.silent,
+        value: 0,
+        label: '소리가 너무 작습니다',
+      );
+    }
+    final value = reading.signalLevel.clamp(0.0, 1.0).toDouble();
+    if (value < 0.7) {
+      return SheetTunerInputPower(
+        band: SheetTunerInputPowerBand.weak,
+        value: value,
+        label: '입력이 약합니다',
+      );
+    }
+    if (value < 0.88) {
+      return SheetTunerInputPower(
+        band: SheetTunerInputPowerBand.steady,
+        value: value,
+        label: '입력 안정',
+      );
+    }
+    return SheetTunerInputPower(
+      band: SheetTunerInputPowerBand.strong,
+      value: value,
+      label: '입력 충분',
+    );
+  }
+
+  final SheetTunerInputPowerBand band;
+  final double value;
+  final String label;
+}
+
+class SheetTunerReferenceCalibrationSuggestion {
+  const SheetTunerReferenceCalibrationSuggestion({
+    required this.suggestedReferencePitchA4,
+    required this.averageReferenceFrequency,
+    required this.sampleCount,
+    required this.centsDelta,
+  });
+
+  final int suggestedReferencePitchA4;
+  final double averageReferenceFrequency;
+  final int sampleCount;
+  final double centsDelta;
+
+  String get label {
+    final direction = centsDelta >= 0 ? '높게' : '낮게';
+    return 'A4 $suggestedReferencePitchA4 Hz 제안 · '
+        '${centsDelta.abs().toStringAsFixed(1)} cents $direction';
+  }
+}
+
+class SheetTunerReferenceCalibration {
+  const SheetTunerReferenceCalibration._();
+
+  static SheetTunerReferenceCalibrationSuggestion? suggest({
+    required Iterable<SheetTunerReading> readings,
+    int currentReferencePitchA4 = 440,
+    int minSamples = 4,
+    double maxSpreadHz = 1.2,
+  }) {
+    final references = readings
+        .where(
+          (reading) => reading.note.name == 'A' && reading.signalLevel >= 0.75,
+        )
+        .map((reading) {
+          return reading.frequency *
+              math.pow(2, (69 - reading.note.midiNumber) / 12).toDouble();
+        })
+        .where((frequency) => frequency.isFinite && frequency > 0)
+        .toList(growable: false);
+    if (references.length < minSamples) {
+      return null;
+    }
+    final min = references.reduce(math.min);
+    final max = references.reduce(math.max);
+    if (max - min > maxSpreadHz) {
+      return null;
+    }
+    final average =
+        references.reduce((previous, current) => previous + current) /
+        references.length;
+    final suggested = SheetTunerSettings.clampReferencePitch(average.round());
+    final current = SheetTunerSettings.clampReferencePitch(
+      currentReferencePitchA4,
+    );
+    if (suggested == current) {
+      return null;
+    }
+    return SheetTunerReferenceCalibrationSuggestion(
+      suggestedReferencePitchA4: suggested,
+      averageReferenceFrequency: average,
+      sampleCount: references.length,
+      centsDelta: SheetTunerPitch.centsFromTarget(
+        frequency: average,
+        targetFrequency: current.toDouble(),
+      ),
+    );
+  }
 }
 
 class SheetTunerFeedbackStabilizer {

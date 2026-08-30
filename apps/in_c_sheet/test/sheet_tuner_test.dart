@@ -129,6 +129,29 @@ void main() {
     expect(displayed.detailLabel, contains('cents'));
   });
 
+  test('notation preference controls enharmonic labels', () {
+    final concertBb = SheetTunerPitch.detect(frequency: 466.16);
+    final displayed = SheetTunerPitch.displayPitch(
+      reading: concertBb!,
+      displayMode: SheetTunerDisplayMode.concert,
+    );
+
+    expect(displayed.primaryLabelWith(preferFlats: false), 'A#4');
+    expect(displayed.primaryLabelWith(preferFlats: true), 'Bb4');
+    expect(
+      SheetTunerNotationPreference.flats.preferFlatsFor(
+        SheetTunerDisplayMode.concert,
+      ),
+      isTrue,
+    );
+    expect(
+      SheetTunerNotationPreference.instrumentDefault.preferFlatsFor(
+        SheetTunerDisplayMode.bbTrumpet,
+      ),
+      isTrue,
+    );
+  });
+
   test('calculates positive and negative cents offsets', () {
     final sharp = SheetTunerPitch.detect(frequency: 445);
     final flat = SheetTunerPitch.detect(frequency: 435);
@@ -209,6 +232,72 @@ void main() {
     expect(decoded.displayMode, SheetTunerDisplayMode.guitar);
     expect(decoded.detectionProfile, SheetTunerDetectionProfile.guitarBass);
     expect(decoded.targetConcertMidiNumber, 38);
+  });
+
+  test('persists notation and custom tuner presets', () {
+    final customPreset = SheetTunerCustomPreset(
+      id: 'custom-guitar-half-down',
+      name: '기타 반음 낮춤',
+      displayMode: SheetTunerDisplayMode.guitar,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+      targets: const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'Eb2', concertMidiNumber: 39),
+        SheetTunerTarget(label: 'Ab2', concertMidiNumber: 44),
+        SheetTunerTarget(label: 'Db3', concertMidiNumber: 49),
+      ],
+      updatedAt: DateTime.utc(2026, 8, 30),
+    );
+    final settings = SheetTunerSettings(
+      referencePitchA4: 441,
+      tuningMode: SheetTunerMode.target,
+      tuningPreset: SheetTunerPreset.manual,
+      displayMode: SheetTunerDisplayMode.guitar,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+      notationPreference: SheetTunerNotationPreference.flats,
+      targetConcertMidiNumber: 39,
+      customPresetId: customPreset.id,
+      customTargets: customPreset.targets,
+      customPresets: <SheetTunerCustomPreset>[customPreset],
+    );
+
+    final decoded = SheetTunerCodec.decode(SheetTunerCodec.encode(settings));
+
+    expect(decoded.notationPreference, SheetTunerNotationPreference.flats);
+    expect(decoded.customPresetId, customPreset.id);
+    expect(decoded.customTargets.map((target) => target.concertMidiNumber), [
+      39,
+      44,
+      49,
+    ]);
+    expect(decoded.customPresets.single.name, '기타 반음 낮춤');
+    expect(
+      decoded.customPresets.single.displayMode,
+      SheetTunerDisplayMode.guitar,
+    );
+  });
+
+  test('repairs malformed custom tuner settings without losing defaults', () {
+    final decoded = SheetTunerSettings.fromJson(<String, Object?>{
+      'referencePitchA4': 440,
+      'notationPreference': 'unknown',
+      'customPresetId': 'missing',
+      'customTargets': <Object?>[
+        <String, Object?>{'label': 'A4', 'concertMidiNumber': 69},
+        <String, Object?>{'label': 'duplicate', 'concertMidiNumber': 69},
+        <String, Object?>{'label': 'bad', 'concertMidiNumber': 200},
+      ],
+      'customPresets': <Object?>[
+        <String, Object?>{'id': '', 'name': 'bad', 'targets': <Object?>[]},
+      ],
+    });
+
+    expect(
+      decoded.notationPreference,
+      SheetTunerNotationPreference.instrumentDefault,
+    );
+    expect(decoded.customPresetId, isNull);
+    expect(decoded.customTargets.single.concertMidiNumber, 69);
+    expect(decoded.customPresets, isEmpty);
   });
 
   test('falls back to default tuner settings for malformed JSON', () {
@@ -537,6 +626,64 @@ void main() {
     expect(flat.isFlat, isTrue);
     expect(verySharp.band, SheetTunerFeedbackBand.verySharp);
     expect(verySharp.isSharp, isTrue);
+  });
+
+  test('feedback exposes LED and input power states', () {
+    final low = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.5),
+      centsOffset: 0,
+    );
+    final center = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.9),
+      centsOffset: 0,
+    );
+    final sharp = SheetTunerFeedback.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 448, signalLevel: 0.9),
+      centsOffset: 31,
+    );
+    final weakPower = SheetTunerInputPower.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.5),
+    );
+    final steadyPower = SheetTunerInputPower.fromState(
+      inputStatus: SheetTunerInputStatus.listening,
+      reading: SheetTunerPitch.detect(frequency: 440, signalLevel: 0.8),
+    );
+
+    expect(low.ledState, SheetTunerLedState.lowConfidence);
+    expect(center.ledState, SheetTunerLedState.center);
+    expect(sharp.ledState, SheetTunerLedState.verySharp);
+    expect(weakPower.band, SheetTunerInputPowerBand.weak);
+    expect(steadyPower.band, SheetTunerInputPowerBand.steady);
+  });
+
+  test('suggests A4 calibration from stable A readings only', () {
+    final readings = <SheetTunerReading>[
+      for (final frequency in <double>[442.0, 442.2, 441.9, 442.1])
+        SheetTunerPitch.detect(frequency: frequency, signalLevel: 0.92)!,
+    ];
+    final suggestion = SheetTunerReferenceCalibration.suggest(
+      readings: readings,
+      currentReferencePitchA4: 440,
+    );
+    final unstable = SheetTunerReferenceCalibration.suggest(
+      readings: <SheetTunerReading>[
+        SheetTunerPitch.detect(frequency: 440, signalLevel: 0.92)!,
+        SheetTunerPitch.detect(frequency: 443, signalLevel: 0.92)!,
+        SheetTunerPitch.detect(frequency: 445, signalLevel: 0.92)!,
+        SheetTunerPitch.detect(frequency: 448, signalLevel: 0.92)!,
+      ],
+      currentReferencePitchA4: 440,
+    );
+
+    expect(suggestion, isNotNull);
+    expect(suggestion!.suggestedReferencePitchA4, 442);
+    expect(suggestion.sampleCount, 4);
+    expect(suggestion.centsDelta, greaterThan(0));
+    expect(unstable, isNull);
   });
 
   test(

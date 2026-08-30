@@ -1176,6 +1176,7 @@ void main() {
         referencePitchA4: 442,
         displayMode: SheetTunerDisplayMode.bbTrumpet,
         detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+        notationPreference: SheetTunerNotationPreference.flats,
       ),
     );
 
@@ -1187,6 +1188,10 @@ void main() {
     expect(
       controller.tunerSettings.detectionProfile,
       SheetTunerDetectionProfile.bbTrumpet,
+    );
+    expect(
+      controller.tunerSettings.notationPreference,
+      SheetTunerNotationPreference.flats,
     );
     expect((await store.loadTunerSettings()).referencePitchA4, 442);
     expect(

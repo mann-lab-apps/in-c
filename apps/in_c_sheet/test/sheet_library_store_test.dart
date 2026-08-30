@@ -86,9 +86,25 @@ void main() {
       ),
     );
     await store.saveTunerSettings(
-      const SheetTunerSettings(
+      SheetTunerSettings(
         referencePitchA4: 442,
         displayMode: SheetTunerDisplayMode.bbTrumpet,
+        notationPreference: SheetTunerNotationPreference.flats,
+        customTargets: const <SheetTunerTarget>[
+          SheetTunerTarget(label: 'Bb4', concertMidiNumber: 70),
+        ],
+        customPresets: <SheetTunerCustomPreset>[
+          SheetTunerCustomPreset(
+            id: 'custom-brass',
+            name: 'Brass warm-up',
+            displayMode: SheetTunerDisplayMode.bbTrumpet,
+            detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+            targets: const <SheetTunerTarget>[
+              SheetTunerTarget(label: 'Bb4', concertMidiNumber: 70),
+            ],
+            updatedAt: DateTime.utc(2026, 8, 30),
+          ),
+        ],
       ),
     );
     await store.saveToneSettings(
@@ -132,6 +148,11 @@ void main() {
     expect(loadedMetronomeSettings.meter, SheetMetronomeMeter.sixEight);
     expect(loadedTunerSettings.referencePitchA4, 442);
     expect(loadedTunerSettings.displayMode, SheetTunerDisplayMode.bbTrumpet);
+    expect(
+      loadedTunerSettings.notationPreference,
+      SheetTunerNotationPreference.flats,
+    );
+    expect(loadedTunerSettings.customPresets.single.name, 'Brass warm-up');
     expect(loadedToneSettings.rootConcertMidiNumber, 57);
     expect(loadedToneSettings.droneMode, SheetToneDroneMode.fifth);
     expect(loadedToneSettings.volumePercent, 40);
@@ -471,12 +492,29 @@ void main() {
         meter: SheetMetronomeMeter.threeFour,
       ),
     );
+    final customTunerPreset = SheetTunerCustomPreset(
+      id: 'custom-sax',
+      name: 'Sax section',
+      displayMode: SheetTunerDisplayMode.altoSax,
+      detectionProfile: SheetTunerDetectionProfile.highInstrument,
+      targets: const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G', concertMidiNumber: 46),
+        SheetTunerTarget(label: 'C', concertMidiNumber: 51),
+      ],
+      updatedAt: DateTime.utc(2026, 8, 30),
+    );
     await store.saveTunerSettings(
-      const SheetTunerSettings(
+      SheetTunerSettings(
         referencePitchA4: 441,
+        tuningMode: SheetTunerMode.target,
+        tuningPreset: SheetTunerPreset.manual,
         displayMode: SheetTunerDisplayMode.altoSax,
         detectionProfile: SheetTunerDetectionProfile.highInstrument,
-        targetConcertMidiNumber: 70,
+        notationPreference: SheetTunerNotationPreference.flats,
+        targetConcertMidiNumber: 46,
+        customPresetId: customTunerPreset.id,
+        customTargets: customTunerPreset.targets,
+        customPresets: <SheetTunerCustomPreset>[customTunerPreset],
       ),
     );
     await store.saveToneSettings(
@@ -579,6 +617,11 @@ void main() {
     expect(backup.favoriteAnnotationPreset?.toolName, 'highlighter');
     expect(backup.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
     expect(backup.toneSettings.volumePercent, 30);
+    expect(backup.tunerSettings.customPresets.single.name, 'Sax section');
+    expect(
+      backup.tunerSettings.notationPreference,
+      SheetTunerNotationPreference.flats,
+    );
     expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
     expect(backup.globalViewerSettings.halfPageTurn, isTrue);
     expect(
@@ -633,24 +676,25 @@ void main() {
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});
     expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
-    expect((await restoreStore.loadTunerSettings()).referencePitchA4, 441);
+    final restoredTunerSettings = await restoreStore.loadTunerSettings();
+    expect(restoredTunerSettings.referencePitchA4, 441);
     expect((await restoreStore.loadToneSettings()).rootConcertMidiNumber, 60);
     expect(
       (await restoreStore.loadToneSettings()).droneMode,
       SheetToneDroneMode.fifthOctave,
     );
+    expect(restoredTunerSettings.displayMode, SheetTunerDisplayMode.altoSax);
     expect(
-      (await restoreStore.loadTunerSettings()).displayMode,
-      SheetTunerDisplayMode.altoSax,
-    );
-    expect(
-      (await restoreStore.loadTunerSettings()).detectionProfile,
+      restoredTunerSettings.detectionProfile,
       SheetTunerDetectionProfile.highInstrument,
     );
+    expect(restoredTunerSettings.targetConcertMidiNumber, 46);
     expect(
-      (await restoreStore.loadTunerSettings()).targetConcertMidiNumber,
-      70,
+      restoredTunerSettings.notationPreference,
+      SheetTunerNotationPreference.flats,
     );
+    expect(restoredTunerSettings.customPresetId, 'custom-sax');
+    expect(restoredTunerSettings.customPresets.single.name, 'Sax section');
     expect(
       (await restoreStore.loadFavoriteAnnotationPreset())?.toolName,
       'highlighter',

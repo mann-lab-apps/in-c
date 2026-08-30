@@ -13230,6 +13230,8 @@ class _TunerSheetState extends State<_TunerSheet> {
   late double _demoFrequency;
   StreamSubscription<SheetTunerState>? _inputSubscription;
   SheetTunerState _state = SheetTunerState.idle;
+  final List<SheetTunerReading> _recentCalibrationReadings =
+      <SheetTunerReading>[];
   bool _isTonePlaying = false;
   SheetTonePlaybackResult? _lastTonePlaybackResult;
 
@@ -13245,6 +13247,9 @@ class _TunerSheetState extends State<_TunerSheet> {
       if (mounted) {
         setState(() {
           _state = state;
+          if (state.isListening && state.reading != null) {
+            _rememberCalibrationReading(state.reading!);
+          }
         });
       }
     });
@@ -13275,15 +13280,30 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
+  Future<void> _setNotationPreference(
+    SheetTunerNotationPreference notationPreference,
+  ) async {
+    final nextSettings = _settings.copyWith(
+      notationPreference: notationPreference,
+    );
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
   Future<void> _setDisplayMode(SheetTunerDisplayMode displayMode) async {
+    final previousTargets = _activeTuningTargetsFor(_settings);
     final nextSettings = _settings.copyWith(
       tuningPreset: SheetTunerPreset.manual,
       displayMode: displayMode,
       detectionProfile: _recommendedDetectionProfile(displayMode),
+      customTargets: previousTargets,
       clearTargetConcertMidiNumber: !_hasTargetForMode(
         displayMode,
         _settings.targetConcertMidiNumber,
       ),
+      clearCustomPresetId: true,
     );
     _feedbackStabilizer.reset();
     setState(() {
@@ -13347,6 +13367,8 @@ class _TunerSheetState extends State<_TunerSheet> {
       detectionProfile: tuningPreset.detectionProfile,
       targetConcertMidiNumber: targetConcertMidiNumber,
       clearTargetConcertMidiNumber: !usePresetTargets,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
     );
     _feedbackStabilizer.reset();
     setState(() {
@@ -13439,12 +13461,211 @@ class _TunerSheetState extends State<_TunerSheet> {
     await widget.onSettingsChanged(nextSettings);
   }
 
+  Future<void> _addCurrentReadingAsCustomTarget(
+    SheetTunerReading? reading,
+  ) async {
+    if (reading == null) {
+      _showTunerMessage('먼저 추가할 음을 잡아주세요.');
+      return;
+    }
+    final targets = SheetTunerTarget.normalizeList(<SheetTunerTarget>[
+      ..._activeTuningTargetsFor(_settings),
+      SheetTunerTarget(
+        label: reading.note.labelWith(preferFlats: _preferFlats),
+        concertMidiNumber: reading.note.midiNumber,
+      ),
+    ]);
+    final nextSettings = _settings.copyWith(
+      tuningMode: SheetTunerMode.target,
+      tuningPreset: SheetTunerPreset.manual,
+      targetConcertMidiNumber: reading.note.midiNumber,
+      customTargets: targets,
+      clearCustomPresetId: true,
+    );
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+    _showTunerMessage(
+      '${reading.note.labelWith(preferFlats: _preferFlats)} 타겟을 추가했습니다.',
+    );
+  }
+
+  Future<void> _removeCustomTarget(int midiNumber) async {
+    final targets = _activeTuningTargetsFor(_settings)
+        .where((target) => target.concertMidiNumber != midiNumber)
+        .toList(growable: false);
+    final normalized = SheetTunerTarget.normalizeList(targets);
+    final removedActiveTarget = _settings.targetConcertMidiNumber == midiNumber;
+    final nextTarget = removedActiveTarget && normalized.isNotEmpty
+        ? normalized.first.concertMidiNumber
+        : _settings.targetConcertMidiNumber;
+    final nextSettings = _settings.copyWith(
+      tuningMode: normalized.isEmpty
+          ? SheetTunerMode.chromatic
+          : _settings.tuningMode,
+      tuningPreset: normalized.isEmpty
+          ? SheetTunerPreset.chromatic
+          : SheetTunerPreset.manual,
+      targetConcertMidiNumber: nextTarget,
+      customTargets: normalized,
+      clearTargetConcertMidiNumber: normalized.isEmpty,
+      clearCustomPresetId: true,
+    );
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _saveCustomPreset() async {
+    final targets = _activeTuningTargetsFor(_settings);
+    if (targets.isEmpty) {
+      _showTunerMessage('저장할 타겟 음이 없습니다.');
+      return;
+    }
+    final controller = TextEditingController(
+      text:
+          _currentCustomPreset?.name ??
+          '내 튜닝 ${_settings.customPresets.length + 1}',
+    );
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('커스텀 프리셋 저장'),
+          content: TextField(
+            controller: controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: '프리셋 이름',
+              hintText: '예: 기타 반음 낮춤',
+            ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (value) => Navigator.of(context).pop(value),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(controller.text),
+              child: const Text('저장'),
+            ),
+          ],
+        );
+      },
+    );
+    controller.dispose();
+    if (!mounted) {
+      return;
+    }
+    final trimmedName = name?.trim() ?? '';
+    if (trimmedName.isEmpty) {
+      return;
+    }
+    final previousPreset = _currentCustomPreset;
+    final preset = SheetTunerCustomPreset(
+      id:
+          previousPreset?.id ??
+          'custom-${DateTime.now().microsecondsSinceEpoch}',
+      name: trimmedName,
+      displayMode: _settings.displayMode,
+      detectionProfile: _settings.detectionProfile,
+      targets: SheetTunerTarget.normalizeList(targets),
+      updatedAt: DateTime.now(),
+    );
+    final presets = <SheetTunerCustomPreset>[
+      preset,
+      ..._settings.customPresets.where((stored) => stored.id != preset.id),
+    ];
+    final nextSettings = _settings.copyWith(
+      tuningMode: SheetTunerMode.target,
+      tuningPreset: SheetTunerPreset.manual,
+      targetConcertMidiNumber:
+          preset.hasTarget(_settings.targetConcertMidiNumber)
+          ? _settings.targetConcertMidiNumber
+          : preset.targets.first.concertMidiNumber,
+      customPresetId: preset.id,
+      customTargets: preset.targets,
+      customPresets: presets,
+    );
+    setState(() {
+      _settings = nextSettings;
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+    _showTunerMessage('$trimmedName 프리셋을 저장했습니다.');
+  }
+
+  Future<void> _applyCustomPreset(SheetTunerCustomPreset preset) async {
+    final nextSettings = _settings.copyWith(
+      tuningMode: SheetTunerMode.target,
+      tuningPreset: SheetTunerPreset.manual,
+      displayMode: preset.displayMode,
+      detectionProfile: preset.detectionProfile,
+      targetConcertMidiNumber:
+          preset.hasTarget(_settings.targetConcertMidiNumber)
+          ? _settings.targetConcertMidiNumber
+          : preset.targets.first.concertMidiNumber,
+      customPresetId: preset.id,
+      customTargets: preset.targets,
+    );
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+      if (!_state.isListening) {
+        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
+          SheetTunerPitch.noteFromMidi(
+            nextSettings.targetConcertMidiNumber!,
+            referencePitchA4: nextSettings.referencePitchA4,
+          ).frequency,
+        );
+        _state = _stateWithFrequency(_demoFrequency, isListening: false);
+      }
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _deleteCustomPreset(SheetTunerCustomPreset preset) async {
+    final nextPresets = _settings.customPresets
+        .where((stored) => stored.id != preset.id)
+        .toList(growable: false);
+    final isActive = _settings.customPresetId == preset.id;
+    final nextSettings = _settings.copyWith(
+      customPresets: nextPresets,
+      clearCustomPresetId: isActive,
+      clearCustomTargets: isActive,
+      clearTargetConcertMidiNumber: isActive,
+      tuningMode: isActive ? SheetTunerMode.chromatic : _settings.tuningMode,
+      tuningPreset: isActive
+          ? SheetTunerPreset.chromatic
+          : _settings.tuningPreset,
+    );
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+    _showTunerMessage('${preset.name} 프리셋을 삭제했습니다.');
+  }
+
   Future<void> _setDetectionProfile(
     SheetTunerDetectionProfile detectionProfile,
   ) async {
+    final previousTargets = _activeTuningTargetsFor(_settings);
     final nextSettings = _settings.copyWith(
       tuningPreset: SheetTunerPreset.manual,
       detectionProfile: detectionProfile,
+      customTargets: previousTargets,
+      clearCustomPresetId: true,
     );
     _feedbackStabilizer.reset();
     setState(() {
@@ -13495,6 +13716,65 @@ class _TunerSheetState extends State<_TunerSheet> {
           ? SheetTunerInputStatus.listening
           : SheetTunerInputStatus.idle,
     );
+  }
+
+  bool get _preferFlats {
+    return _settings.notationPreference.preferFlatsFor(_settings.displayMode);
+  }
+
+  SheetTunerCustomPreset? get _currentCustomPreset {
+    for (final preset in _settings.customPresets) {
+      if (preset.id == _settings.customPresetId) {
+        return preset;
+      }
+    }
+    return null;
+  }
+
+  void _rememberCalibrationReading(SheetTunerReading reading) {
+    _recentCalibrationReadings.add(reading);
+    if (_recentCalibrationReadings.length > 12) {
+      _recentCalibrationReadings.removeAt(0);
+    }
+  }
+
+  Future<void> _confirmCalibrationSuggestion(
+    SheetTunerReferenceCalibrationSuggestion suggestion,
+  ) async {
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('A4 기준음 보정'),
+          content: Text(
+            '${suggestion.sampleCount}개 입력을 기준으로 '
+            'A4 ${suggestion.suggestedReferencePitchA4} Hz가 안정적으로 감지됐습니다.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('적용'),
+            ),
+          ],
+        );
+      },
+    );
+    if (!mounted) {
+      return;
+    }
+    if (didConfirm == true) {
+      await _setReferencePitch(suggestion.suggestedReferencePitchA4);
+      _recentCalibrationReadings.clear();
+    }
+  }
+
+  void _showTunerMessage(String message) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -13551,9 +13831,19 @@ class _TunerSheetState extends State<_TunerSheet> {
       reading: reading,
       centsOffset: cents,
     );
+    final inputPower = SheetTunerInputPower.fromState(
+      inputStatus: feedbackInputStatus,
+      reading: reading,
+    );
+    final calibrationSuggestion = SheetTunerReferenceCalibration.suggest(
+      readings: _recentCalibrationReadings,
+      currentReferencePitchA4: _settings.referencePitchA4,
+    );
     final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
     final tuningTargets = _activeTuningTargetsFor(_settings);
+    final isCustomTargets =
+        _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -13691,7 +13981,8 @@ class _TunerSheetState extends State<_TunerSheet> {
               const SizedBox(height: 18),
               Center(
                 child: Text(
-                  displayedPitch?.primaryLabel ?? '--',
+                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
+                      '--',
                   style: theme.textTheme.displayLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: isInTune
@@ -13704,14 +13995,16 @@ class _TunerSheetState extends State<_TunerSheet> {
                 child: Text(
                   reading == null
                       ? '시작하면 마이크로 음을 잡습니다'
-                      : displayedPitch!.detailLabel,
+                      : displayedPitch!.detailLabelWith(
+                          preferFlats: _preferFlats,
+                        ),
                   style: theme.textTheme.labelLarge,
                 ),
               ),
               if (targetNote != null && targetWrittenNote != null)
                 Center(
                   child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _settings.displayMode.preferFlats)}'
+                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
                     ' · Concert ${targetNote.labelWith(preferFlats: true)}',
                     style: theme.textTheme.labelMedium?.copyWith(
                       color: theme.colorScheme.primary,
@@ -13749,6 +14042,10 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ),
               const SizedBox(height: 20),
               _TunerMeter(feedback: feedback),
+              const SizedBox(height: 14),
+              _TunerLedStrip(feedback: feedback),
+              const SizedBox(height: 14),
+              _TunerInputPowerBar(power: inputPower),
               const SizedBox(height: 24),
               Text(
                 _settings.tuningMode == SheetTunerMode.target
@@ -13762,25 +14059,57 @@ class _TunerSheetState extends State<_TunerSheet> {
                 runSpacing: 8,
                 children: [
                   for (final target in tuningTargets)
-                    FilterChip(
-                      selected:
-                          _settings.tuningMode == SheetTunerMode.target &&
-                          _settings.targetConcertMidiNumber ==
-                              target.concertMidiNumber,
-                      label: Text(
-                        target.targetLabel(
-                          displayMode: _settings.displayMode,
-                          referencePitchA4: _settings.referencePitchA4,
+                    if (isCustomTargets)
+                      InputChip(
+                        selected:
+                            _settings.tuningMode == SheetTunerMode.target &&
+                            _settings.targetConcertMidiNumber ==
+                                target.concertMidiNumber,
+                        label: Text(
+                          target.targetLabel(
+                            displayMode: _settings.displayMode,
+                            referencePitchA4: _settings.referencePitchA4,
+                            preferFlats: _preferFlats,
+                          ),
+                        ),
+                        onSelected: (selected) => unawaited(
+                          selected
+                              ? _setTargetConcertMidiNumber(
+                                  target.concertMidiNumber,
+                                )
+                              : _clearTargetConcertMidiNumber(),
+                        ),
+                        onDeleted: () => unawaited(
+                          _removeCustomTarget(target.concertMidiNumber),
+                        ),
+                      )
+                    else
+                      FilterChip(
+                        selected:
+                            _settings.tuningMode == SheetTunerMode.target &&
+                            _settings.targetConcertMidiNumber ==
+                                target.concertMidiNumber,
+                        label: Text(
+                          target.targetLabel(
+                            displayMode: _settings.displayMode,
+                            referencePitchA4: _settings.referencePitchA4,
+                            preferFlats: _preferFlats,
+                          ),
+                        ),
+                        onSelected: (selected) => unawaited(
+                          selected
+                              ? _setTargetConcertMidiNumber(
+                                  target.concertMidiNumber,
+                                )
+                              : _clearTargetConcertMidiNumber(),
                         ),
                       ),
-                      onSelected: (selected) => unawaited(
-                        selected
-                            ? _setTargetConcertMidiNumber(
-                                target.concertMidiNumber,
-                              )
-                            : _clearTargetConcertMidiNumber(),
-                      ),
-                    ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: const Text('현재 음 추가'),
+                    onPressed: () =>
+                        unawaited(_addCurrentReadingAsCustomTarget(reading)),
+                  ),
                   if (_settings.targetConcertMidiNumber != null)
                     ActionChip(
                       avatar: const Icon(Icons.close, size: 18),
@@ -13791,6 +14120,73 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ],
               ),
               const SizedBox(height: 24),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
+                title: Text('고급 설정', style: theme.textTheme.titleMedium),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('표기', style: theme.textTheme.labelLarge),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final notation
+                          in SheetTunerNotationPreference.values)
+                        ChoiceChip(
+                          selected: _settings.notationPreference == notation,
+                          label: Text(notation.label),
+                          onSelected: (_) =>
+                              unawaited(_setNotationPreference(notation)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: _saveCustomPreset,
+                          icon: const Icon(Icons.save_outlined),
+                          label: const Text('커스텀 프리셋 저장'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (_settings.customPresets.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final preset in _settings.customPresets)
+                          InputChip(
+                            selected: preset.id == _settings.customPresetId,
+                            label: Text(preset.name),
+                            onSelected: (_) =>
+                                unawaited(_applyCustomPreset(preset)),
+                            onDeleted: () =>
+                                unawaited(_deleteCustomPreset(preset)),
+                          ),
+                      ],
+                    ),
+                  ],
+                  if (calibrationSuggestion != null) ...[
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () => unawaited(
+                        _confirmCalibrationSuggestion(calibrationSuggestion),
+                      ),
+                      icon: const Icon(Icons.my_location),
+                      label: Text(calibrationSuggestion.label),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 8),
               Text('기준음/드론', style: theme.textTheme.labelLarge),
               const SizedBox(height: 8),
               Wrap(
@@ -13821,6 +14217,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                         target.targetLabel(
                           displayMode: _settings.displayMode,
                           referencePitchA4: _settings.referencePitchA4,
+                          preferFlats: _preferFlats,
                         ),
                       ),
                       onSelected: (_) => unawaited(
@@ -13975,9 +14372,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     final frequencyLabel = frequencies
         .map((frequency) => '${frequency.toStringAsFixed(1)} Hz')
         .join(' / ');
-    final writtenLabel = writtenNote.labelWith(
-      preferFlats: _settings.displayMode.preferFlats,
-    );
+    final writtenLabel = writtenNote.labelWith(preferFlats: _preferFlats);
     final concertLabel = rootNote.labelWith(preferFlats: true);
     return '$writtenLabel'
         ' · Concert $concertLabel · $frequencyLabel';
@@ -14018,12 +14413,21 @@ class _TunerSheetState extends State<_TunerSheet> {
     if (midiNumber == null) {
       return false;
     }
-    return mode.tuningTargets.any(
-      (target) => target.concertMidiNumber == midiNumber,
-    );
+    final targets = _settings.customTargets.isNotEmpty
+        ? _settings.customTargets
+        : mode.tuningTargets;
+    return targets.any((target) => target.concertMidiNumber == midiNumber);
   }
 
   List<SheetTunerTarget> _activeTuningTargetsFor(SheetTunerSettings settings) {
+    for (final preset in settings.customPresets) {
+      if (preset.id == settings.customPresetId) {
+        return preset.targets;
+      }
+    }
+    if (settings.customTargets.isNotEmpty) {
+      return settings.customTargets;
+    }
     if (settings.tuningPreset == SheetTunerPreset.manual) {
       return settings.displayMode.tuningTargets;
     }
@@ -14120,6 +14524,116 @@ class _TunerMeter extends StatelessWidget {
               const Spacer(),
               Text('높음', style: theme.textTheme.labelSmall),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TunerLedStrip extends StatelessWidget {
+  const _TunerLedStrip({required this.feedback});
+
+  final SheetTunerFeedback feedback;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final active = feedback.ledState;
+    final inactiveColor = theme.colorScheme.surfaceContainerHighest;
+    final states = <({SheetTunerLedState state, String label})>[
+      (state: SheetTunerLedState.veryFlat, label: '--'),
+      (state: SheetTunerLedState.flat, label: '-'),
+      (state: SheetTunerLedState.center, label: '0'),
+      (state: SheetTunerLedState.sharp, label: '+'),
+      (state: SheetTunerLedState.verySharp, label: '++'),
+    ];
+
+    return Row(
+      children: [
+        for (final item in states) ...[
+          Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              height: item.state == SheetTunerLedState.center ? 28 : 22,
+              decoration: BoxDecoration(
+                color: active == item.state
+                    ? _ledColor(theme, item.state)
+                    : inactiveColor,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                item.label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: active == item.state
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          if (item.state != SheetTunerLedState.verySharp)
+            const SizedBox(width: 6),
+        ],
+      ],
+    );
+  }
+
+  Color _ledColor(ThemeData theme, SheetTunerLedState state) {
+    return switch (state) {
+      SheetTunerLedState.center => theme.colorScheme.primary,
+      SheetTunerLedState.flat ||
+      SheetTunerLedState.sharp => theme.colorScheme.tertiary,
+      SheetTunerLedState.veryFlat ||
+      SheetTunerLedState.verySharp => theme.colorScheme.error,
+      SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
+      SheetTunerLedState.off => theme.colorScheme.outline,
+    };
+  }
+}
+
+class _TunerInputPowerBar extends StatelessWidget {
+  const _TunerInputPowerBar({required this.power});
+
+  final SheetTunerInputPower power;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final value = power.value.clamp(0.0, 1.0).toDouble();
+    final barColor = switch (power.band) {
+      SheetTunerInputPowerBand.strong ||
+      SheetTunerInputPowerBand.steady => theme.colorScheme.primary,
+      SheetTunerInputPowerBand.weak => theme.colorScheme.tertiary,
+      SheetTunerInputPowerBand.silent => theme.colorScheme.error,
+      SheetTunerInputPowerBand.idle => theme.colorScheme.outline,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Text('입력', style: theme.textTheme.labelSmall),
+            const Spacer(),
+            Text(
+              power.label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            minHeight: 8,
+            value: value,
+            color: barColor,
+            backgroundColor: theme.colorScheme.surfaceContainerHighest,
           ),
         ),
       ],
