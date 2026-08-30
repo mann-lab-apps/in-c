@@ -213,7 +213,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - MobileSheets와 기능 범주는 맞추되, UI와 상호작용을 그대로 복제하지 않는다.
 - 튜너는 핵심 차별점이지만 전용 튜너 앱 수준의 기기별 정확도 보장은 실기기 QA 뒤에 확정한다.
   v1은 chromatic/target tuner, Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, profile별 range/threshold,
-  Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset, custom target/preset, sharp/flat 표기,
-  LED/input bar, target shortcut, A4 저장과 보정 제안, 기준음/드론 연계를 제공한다. Synthetic
+  Guitar standard/Drop D/DADGAD/half-step down/7-string, Bass standard/5-string, Ukulele,
+  Mandolin, Strings/Bb/Eb/F preset, custom target/preset, target lock, sharp/flat 표기,
+  LED/input bar, target shortcut, A4 저장/440-442 quick action/history/보정 제안, adaptive noise
+  floor 1차, 기준음/드론 연계를 제공한다. Synthetic
   audio/time-series 테스트는 통과했으며, Android/iOS 마이크 latency와 외부 마이크 안정성은 별도
   검증한다.

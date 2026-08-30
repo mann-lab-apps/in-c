@@ -13264,8 +13264,14 @@ class _TunerSheetState extends State<_TunerSheet> {
     super.dispose();
   }
 
-  Future<void> _setReferencePitch(int value) async {
-    final nextSettings = _settings.copyWith(referencePitchA4: value);
+  Future<void> _setReferencePitch(
+    int value, {
+    String calibrationSource = 'manual',
+  }) async {
+    final nextSettings = _settings.recordCalibration(
+      referencePitchA4: value,
+      source: calibrationSource,
+    );
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
@@ -13278,6 +13284,16 @@ class _TunerSheetState extends State<_TunerSheet> {
     if (_isTonePlaying) {
       await _playTone();
     }
+  }
+
+  Future<void> _setTargetLockEnabled(bool enabled) async {
+    final nextSettings = _settings.copyWith(targetLockEnabled: enabled);
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
   }
 
   Future<void> _setNotationPreference(
@@ -13767,7 +13783,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       return;
     }
     if (didConfirm == true) {
-      await _setReferencePitch(suggestion.suggestedReferencePitchA4);
+      await _setReferencePitch(
+        suggestion.suggestedReferencePitchA4,
+        calibrationSource: 'suggestion',
+      );
       _recentCalibrationReadings.clear();
     }
   }
@@ -13807,30 +13826,42 @@ class _TunerSheetState extends State<_TunerSheet> {
                 _settings.displayMode.transposeSemitones,
             referencePitchA4: _settings.referencePitchA4,
           );
-    final targetCents = reading == null || targetNote == null
+    final targetLock = SheetTunerTargetLock.evaluate(
+      settings: _settings,
+      reading: reading,
+    );
+    final effectiveReading = targetLock.isRejected ? null : reading;
+    final targetCents = effectiveReading == null || targetNote == null
         ? null
         : SheetTunerPitch.centsFromTarget(
-            frequency: reading.frequency,
+            frequency: effectiveReading.frequency,
             targetFrequency: targetNote.frequency,
           );
-    final displayedPitch = reading == null
+    final displayedPitch = effectiveReading == null
         ? null
         : SheetTunerPitch.displayPitch(
-            reading: reading,
+            reading: effectiveReading,
             displayMode: _settings.displayMode,
             referencePitchA4: _settings.referencePitchA4,
           );
-    final cents = targetCents ?? reading?.centsOffset ?? 0;
+    final cents = targetCents ?? effectiveReading?.centsOffset ?? 0;
     final feedbackInputStatus = _state.isListening
         ? _state.inputStatus
-        : reading == null
+        : effectiveReading == null
         ? SheetTunerInputStatus.idle
         : SheetTunerInputStatus.listening;
-    final feedback = _feedbackStabilizer.add(
+    final baseFeedback = _feedbackStabilizer.add(
       inputStatus: feedbackInputStatus,
-      reading: reading,
+      reading: effectiveReading,
       centsOffset: cents,
     );
+    final feedback = targetLock.isRejected
+        ? const SheetTunerFeedback(
+            band: SheetTunerFeedbackBand.lowConfidence,
+            label: '타겟 음을 기다리는 중',
+            displayCents: 0,
+          )
+        : baseFeedback;
     final inputPower = SheetTunerInputPower.fromState(
       inputStatus: feedbackInputStatus,
       reading: reading,
@@ -13993,8 +14024,10 @@ class _TunerSheetState extends State<_TunerSheet> {
               ),
               Center(
                 child: Text(
-                  reading == null
-                      ? '시작하면 마이크로 음을 잡습니다'
+                  effectiveReading == null
+                      ? targetLock.isRejected
+                            ? '타겟 음을 기다리는 중'
+                            : '시작하면 마이크로 음을 잡습니다'
                       : displayedPitch!.detailLabelWith(
                           preferFlats: _preferFlats,
                         ),
@@ -14027,7 +14060,9 @@ class _TunerSheetState extends State<_TunerSheet> {
                     '${feedback.displayCents >= 0 ? '+' : ''}'
                     '${feedback.displayCents.toStringAsFixed(1)} cents',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: targetLock.isRejected
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -14143,6 +14178,15 @@ class _TunerSheetState extends State<_TunerSheet> {
                               unawaited(_setNotationPreference(notation)),
                         ),
                     ],
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('타겟 잠금'),
+                    subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
+                    value: _settings.targetLockEnabled,
+                    onChanged: (value) =>
+                        unawaited(_setTargetLockEnabled(value)),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -14334,6 +14378,35 @@ class _TunerSheetState extends State<_TunerSheet> {
                   ),
                 ],
               ),
+              const SizedBox(height: 8),
+              Wrap(
+                alignment: WrapAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final quickPitch in <int>[440, 441, 442])
+                    ChoiceChip(
+                      selected: _settings.referencePitchA4 == quickPitch,
+                      label: Text('$quickPitch Hz'),
+                      onSelected: (_) => unawaited(
+                        _setReferencePitch(
+                          quickPitch,
+                          calibrationSource: 'quick',
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              if (_settings.calibrationHistory.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '최근 기준음 ${_settings.calibrationHistory.take(3).map((event) => '${event.referencePitchA4} Hz').join(' · ')}',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               if (!_state.isListening) ...[
                 Text(

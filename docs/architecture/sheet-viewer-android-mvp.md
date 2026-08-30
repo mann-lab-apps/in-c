@@ -469,8 +469,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - 튜너 설정은 앱 전역 `SheetTunerSettings`로 저장한다.
 - 저장 필드는 A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, 음 이름 표기 preference,
-  선택 target MIDI, custom target list, custom preset list다. 기본값은 440Hz / `Chromatic` mode /
-  `Chromatic` preset / `Concert` 표시 / `Chromatic` profile / 악기 기본 표기 / target 없음이다.
+  target lock flag/threshold, 선택 target MIDI, custom target list, custom preset list, A4 calibration
+  history다. 기본값은 440Hz / `Chromatic` mode / `Chromatic` preset / `Concert` 표시 / `Chromatic`
+  profile / 악기 기본 표기 / target lock off / target 없음이다.
   기존 A4/표시/profile/target만 있던 JSON도 기본값으로 decode한다.
 - A4 기준음은 415-466Hz 범위로 clamp한다.
 - 표시 모드는 `Concert`, Bb 악기, Eb 악기, Horn in F, bass clef/low instruments,
@@ -480,16 +481,20 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 감지 profile은 `Chromatic`, `Bb Trumpet`, high winds/brass, low instruments, strings,
   guitar/bass를 제공한다. 표시 모드는 음 이름 표기 방식이고, 감지 profile은 detector range와
   안정화 threshold 정책이다.
-- tuning preset은 Chromatic, Guitar standard, Guitar drop D, Bass standard, Violin, Viola,
-  Cello, Double Bass, Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F를 제공한다. Preset
-  선택 시 권장 표시 모드, 감지 profile, target list를 함께 맞춘다. 사용자가 표시 모드나 감지 profile을
-  직접 바꾸면 `Manual` preset으로 전환한다.
+- tuning preset은 Chromatic, Guitar standard/drop D/DADGAD/half-step down/7-string, Bass
+  standard/5-string, Ukulele standard, Mandolin standard, Violin, Viola, Cello, Double Bass,
+  Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F를 제공한다. Preset 선택 시 권장 표시
+  모드, 감지 profile, target list를 함께 맞춘다. 사용자가 표시 모드나 감지 profile을 직접 바꾸면
+  `Manual` preset으로 전환한다.
 - custom tuning은 현재 target list를 `SheetTunerCustomPreset`으로 저장/적용/삭제한다. Custom
   preset은 id/name/display mode/detection profile/target list/updatedAt을 갖고, invalid/duplicate
   target과 깨진 preset id는 decode 단계에서 non-destructive repair한다. Metadata/full backup은
   `SheetTunerSettings` JSON을 통해 custom preset까지 round-trip한다.
 - 표기 preference는 악기 기본, sharp, flat을 제공한다. Detector는 계속 concert pitch와 MIDI number를
   유지하고, UI label layer에서만 enharmonic 표기를 바꾼다.
+- target lock은 Target mode에서 선택한 target frequency에서 threshold 이상 벗어난 입력을
+  `타겟 음을 기다리는 중` 상태로 표시한다. 기본값은 off이며, 기타/현악처럼 줄 하나를 고정해서 맞출 때
+  사용자가 켤 수 있다.
 - `SheetTunerPitch.detect`는 입력 frequency를 가장 가까운 chromatic note와 cents offset으로
   변환한다. 테스트 기준은 A4 440Hz, A#4 466.16Hz, C4 261.63Hz다.
 - `SheetTunerPitch.centsFromTarget`은 Target mode에서 선택한 concert target frequency 대비 cents를
@@ -498,6 +503,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   autocorrelation으로 pitch를 추정한다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
   concert E3-C6 중심 range를 사용한다. Guitar/Bass, Strings, low/high instrument profile은
   각 악기군의 실제 range에 맞춰 detector frequency range와 RMS/confidence threshold를 분리한다.
+  Instance detector 경로는 최근 저신호 frame에서 adaptive noise floor를 추정해 너무 낮은 입력이나
+  갑작스러운 저신뢰 소음 후보가 note label로 튀지 않도록 1차 guard를 둔다.
 - `SheetTunerInputService`는 `record` 7.1.1의 `AudioRecorder.hasPermission`과
   `AudioRecorder.startStream`을 사용한다. Stream 설정은 `pcm16bits`, mono, 44.1kHz,
   `streamBufferSize: 4096`이다.
@@ -513,17 +520,19 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   note label과 needle이 한두 frame 튀는 것을 줄인다. Pitch detector/stabilizer의 원본 reading은
   별도로 유지한다.
 - `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 너무 작습니다`, `입력이 약합니다`,
-  `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter는 v1.1
-  adaptive noise floor/audio pipeline spike에서 분리한다.
+  `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
+  noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다.
 - `SheetTunerReferenceCalibration`은 안정적인 A 계열 reading이 최소 4개 모였고 spread가 작을 때만
-  A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다.
+  A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다. A4
+  440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
 - 1차 UI는 현재 음 이름, 악기별 표시 profile, 감지 profile, concert pitch 보조 표시,
-  Chromatic/Target mode, tuning preset, target shortcut, custom target 추가/삭제, custom preset
+  Chromatic/Target mode, tuning preset, target shortcut, target lock, custom target 추가/삭제, custom preset
   저장/적용/삭제, target을 기준음/드론 root로 보내는 action, 낮음/정확/높음 cents meter, LED
-  flat/center/sharp strip, 입력강도 bar, A4 기준음 slider, 보정 제안, start/stop, signal/confidence
-  상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
+  flat/center/sharp strip, 입력강도 bar, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
+  signal/confidence 상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을
+  확인할 수 있다.
 - Android에는 `RECORD_AUDIO`, iOS에는 `NSMicrophoneUsageDescription`을 추가했다.
 - permission denied, no signal, audio pipeline unavailable/error 상태는 crash 없이 안내한다.
 - bottom sheet가 닫히면 stream subscription, recorder, detector를 정리한다.

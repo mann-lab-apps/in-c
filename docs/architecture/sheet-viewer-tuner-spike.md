@@ -7,8 +7,9 @@
 튜너는 `record` 7.1.1 기반 raw PCM stream을 붙여 실제 microphone input pipeline 1차까지
 구현했다. V1 전달 전 보강으로 Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 표시 모드와 별개인
 detection profile, Chromatic/Target mode, Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset,
-target 기준 cents 계산, custom tuning preset 저장, sharp/flat 표기 선택, A4 보정 제안,
-상용 튜너형 feedback label/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
+target 기준 cents 계산, custom tuning preset 저장, sharp/flat 표기 선택, A4 보정 제안/history,
+target lock, adaptive noise floor 1차, 상용 튜너형 feedback label/meter/LED/input power 표시를
+추가했다. 이번 단계의 목표는
 상용급 튜너 정확도 보장이 아니라, 연습자가 악보 viewer 안에서 바로 이해할 수 있는 note/cents
 피드백을 crash 없이 받는 것이다.
 
@@ -19,11 +20,13 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - `SheetTunerSettings`
   - A4 기준음 저장.
   - tuning mode는 `Chromatic`과 `Target`을 저장한다.
-  - tuning preset은 Chromatic, Guitar standard, Guitar drop D, Bass standard, Violin, Viola,
-    Cello, Double Bass, Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F, Manual을 저장한다.
+  - tuning preset은 Chromatic, Guitar standard/drop D/DADGAD/half-step down/7-string, Bass
+    standard/5-string, Ukulele standard, Mandolin standard, Violin, Viola, Cello, Double Bass,
+    Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F, Manual을 저장한다.
   - 표시 모드는 `Concert`, Bb/Eb/F 악기, Strings, Guitar/Bass 계열을 저장한다.
   - 감지 profile은 `Chromatic`, `Bb Trumpet`, high/low instruments, strings, guitar/bass를 저장한다.
   - 음 이름 표기는 악기 기본, sharp, flat preference를 저장한다.
+  - target lock on/off와 threshold, A4 calibration history를 저장한다.
   - custom target list와 custom preset list를 저장한다.
   - 표시 모드는 음 이름 표기 방식이고, 감지 profile은 마이크 입력 range/안정화 정책이다.
   - 기본값 440Hz, Chromatic mode/preset, Concert 표시, Chromatic profile, target 없음.
@@ -45,8 +48,9 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - Target mode에서 선택한 concert target frequency 대비 cents를 계산한다.
   - Target이 없거나 invalid frequency면 0으로 안전 처리한다.
 - `SheetTunerPreset`
-  - Guitar standard EADGBE, Guitar drop D DADGBE, Bass standard EADG, Violin/Viola/Cello/
-    Double Bass open strings, Bb/Eb/F 악기 기본 target을 제공한다.
+  - Guitar standard EADGBE, drop D DADGBE, DADGAD, half-step down, 7-string, Bass standard
+    EADG, 5-string bass BEADG, Ukulele GCEA, Mandolin GDAE, Violin/Viola/Cello/Double Bass
+    open strings, Bb/Eb/F 악기 기본 target을 제공한다.
   - Preset 선택 시 권장 표시 모드, detection profile, target list를 함께 맞춘다.
 - `SheetTunerPitchDetector`
   - PCM16 mono sample을 rolling buffer로 모아 autocorrelation 기반 pitch를 추정.
@@ -54,6 +58,8 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - Bb Trumpet profile은 concert E3-C6 중심 range를 사용해 낮은 rumble과 과도한 고역 잡음을
     더 엄격히 제외한다.
   - RMS threshold 아래 입력은 no signal로 처리한다.
+  - Instance detector 경로는 최근 저신호 frame의 RMS median으로 adaptive noise floor를 추정하고,
+    noise floor 대비 낮은 입력이나 갑작스러운 저신뢰 소음 후보를 no signal로 유지한다.
   - 가장 큰 상관 peak만 쓰면 octave/subharmonic으로 내려가는 문제가 있어, 충분히 강한 첫
     local peak를 우선 선택한다.
   - 선택된 local peak의 correlation을 parabolic interpolation에 사용해 peak 보정값이 다른
@@ -86,6 +92,11 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - `SheetTunerReferenceCalibration`
   - 안정적인 A 계열 입력이 최소 4개 쌓이고 spread가 작을 때 A4 보정 제안을 만든다.
   - UI는 자동 보정하지 않고 확인 dialog를 통해 적용한다.
+  - A4 440/441/442Hz quick action과 최근 calibration history를 제공한다.
+- Target lock
+  - Target mode에서 선택한 target frequency와 일정 threshold 이상 떨어진 입력은 `타겟 음을 기다리는 중`
+    상태로 표시한다.
+  - 기본값은 off이며, 기타/현악처럼 특정 줄 하나를 맞추는 흐름에서 사용자가 켠다.
 - Custom tuning
   - 현재 target list를 custom preset으로 저장/적용/삭제한다.
   - 현재 감지된 음을 custom target으로 추가하고, custom target은 chip 삭제로 정리한다.
@@ -95,8 +106,8 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - 공연 모드에서도 진입 가능.
   - 현재 음 이름, Chromatic/Target mode, tuning preset, 표시 모드, 감지 profile, concert pitch
     보조 표시, target 기준 cents meter, target shortcut, target을 기준음/드론 root로 맞추는 action,
-    custom preset 저장/적용/삭제, sharp/flat 표기, A4 기준음 slider, 보정 제안, start/stop,
-    signal/confidence와 입력강도 표시.
+    target lock, custom preset 저장/적용/삭제, sharp/flat 표기, A4 기준음 slider/quick action,
+    보정 제안/history, start/stop, signal/confidence와 입력강도 표시.
   - listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
 - Persistence
   - A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, notation preference,
@@ -135,8 +146,9 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
    확인한다.
 3. Guitar/Bass/Strings/Bb/Eb/F preset별 target list, custom preset, display transpose가 실제 연주자 기대와
    맞는지 확인한다.
-4. cents jitter가 여전히 크면 profile별 smoothing window, adaptive noise floor, attack frame
-   ignore 또는 YIN/MPM 기반 detector를 비교한다.
+4. cents jitter가 여전히 크면 profile별 smoothing window, attack frame ignore 또는 YIN/MPM 기반
+   detector를 비교한다. Adaptive noise floor 1차는 구현됐지만 기기별 마이크 calibration dashboard는
+   v1.1 후보로 둔다.
 5. Android 태블릿과 iPhone Simulator/실기기에서 latency, jitter, permission flow를 확인한다.
 
 ## 제외

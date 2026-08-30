@@ -511,10 +511,19 @@ void main() {
         displayMode: SheetTunerDisplayMode.altoSax,
         detectionProfile: SheetTunerDetectionProfile.highInstrument,
         notationPreference: SheetTunerNotationPreference.flats,
+        targetLockEnabled: true,
+        targetLockThresholdCents: 240,
         targetConcertMidiNumber: 46,
         customPresetId: customTunerPreset.id,
         customTargets: customTunerPreset.targets,
         customPresets: <SheetTunerCustomPreset>[customTunerPreset],
+        calibrationHistory: <SheetTunerCalibrationEvent>[
+          SheetTunerCalibrationEvent(
+            referencePitchA4: 442,
+            source: 'quick',
+            appliedAt: DateTime.utc(2026, 8, 30),
+          ),
+        ],
       ),
     );
     await store.saveToneSettings(
@@ -618,6 +627,12 @@ void main() {
     expect(backup.toneSettings.droneMode, SheetToneDroneMode.fifthOctave);
     expect(backup.toneSettings.volumePercent, 30);
     expect(backup.tunerSettings.customPresets.single.name, 'Sax section');
+    expect(backup.tunerSettings.targetLockEnabled, isTrue);
+    expect(backup.tunerSettings.targetLockThresholdCents, 240);
+    expect(
+      backup.tunerSettings.calibrationHistory.single.referencePitchA4,
+      442,
+    );
     expect(
       backup.tunerSettings.notationPreference,
       SheetTunerNotationPreference.flats,
@@ -692,6 +707,12 @@ void main() {
     expect(
       restoredTunerSettings.notationPreference,
       SheetTunerNotationPreference.flats,
+    );
+    expect(restoredTunerSettings.targetLockEnabled, isTrue);
+    expect(restoredTunerSettings.targetLockThresholdCents, 240);
+    expect(
+      restoredTunerSettings.calibrationHistory.single.referencePitchA4,
+      442,
     );
     expect(restoredTunerSettings.customPresetId, 'custom-sax');
     expect(restoredTunerSettings.customPresets.single.name, 'Sax section');

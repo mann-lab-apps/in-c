@@ -218,7 +218,13 @@ enum SheetTunerPreset {
   chromatic,
   guitarStandard,
   guitarDropD,
+  guitarDadgad,
+  guitarHalfStepDown,
+  guitarSevenString,
   bassStandard,
+  bassFiveString,
+  ukuleleStandard,
+  mandolinStandard,
   violin,
   viola,
   cello,
@@ -234,7 +240,13 @@ enum SheetTunerPreset {
     return switch (value) {
       'guitarStandard' => SheetTunerPreset.guitarStandard,
       'guitarDropD' => SheetTunerPreset.guitarDropD,
+      'guitarDadgad' => SheetTunerPreset.guitarDadgad,
+      'guitarHalfStepDown' => SheetTunerPreset.guitarHalfStepDown,
+      'guitarSevenString' => SheetTunerPreset.guitarSevenString,
       'bassStandard' => SheetTunerPreset.bassStandard,
+      'bassFiveString' => SheetTunerPreset.bassFiveString,
+      'ukuleleStandard' => SheetTunerPreset.ukuleleStandard,
+      'mandolinStandard' => SheetTunerPreset.mandolinStandard,
       'violin' => SheetTunerPreset.violin,
       'viola' => SheetTunerPreset.viola,
       'cello' => SheetTunerPreset.cello,
@@ -254,7 +266,13 @@ enum SheetTunerPreset {
       SheetTunerPreset.chromatic => 'Chromatic',
       SheetTunerPreset.guitarStandard => 'Guitar standard',
       SheetTunerPreset.guitarDropD => 'Guitar drop D',
+      SheetTunerPreset.guitarDadgad => 'Guitar DADGAD',
+      SheetTunerPreset.guitarHalfStepDown => 'Guitar half-step down',
+      SheetTunerPreset.guitarSevenString => '7-string guitar',
       SheetTunerPreset.bassStandard => 'Bass standard',
+      SheetTunerPreset.bassFiveString => '5-string bass',
+      SheetTunerPreset.ukuleleStandard => 'Ukulele standard',
+      SheetTunerPreset.mandolinStandard => 'Mandolin standard',
       SheetTunerPreset.violin => 'Violin',
       SheetTunerPreset.viola => 'Viola',
       SheetTunerPreset.cello => 'Cello',
@@ -271,8 +289,14 @@ enum SheetTunerPreset {
   SheetTunerDisplayMode get displayMode {
     return switch (this) {
       SheetTunerPreset.guitarStandard ||
-      SheetTunerPreset.guitarDropD => SheetTunerDisplayMode.guitar,
-      SheetTunerPreset.bassStandard => SheetTunerDisplayMode.bassGuitar,
+      SheetTunerPreset.guitarDropD ||
+      SheetTunerPreset.guitarDadgad ||
+      SheetTunerPreset.guitarHalfStepDown ||
+      SheetTunerPreset.guitarSevenString => SheetTunerDisplayMode.guitar,
+      SheetTunerPreset.bassStandard ||
+      SheetTunerPreset.bassFiveString => SheetTunerDisplayMode.bassGuitar,
+      SheetTunerPreset.ukuleleStandard ||
+      SheetTunerPreset.mandolinStandard => SheetTunerDisplayMode.concert,
       SheetTunerPreset.violin => SheetTunerDisplayMode.violin,
       SheetTunerPreset.viola => SheetTunerDisplayMode.viola,
       SheetTunerPreset.cello => SheetTunerDisplayMode.cello,
@@ -291,7 +315,14 @@ enum SheetTunerPreset {
     return switch (this) {
       SheetTunerPreset.guitarStandard ||
       SheetTunerPreset.guitarDropD ||
-      SheetTunerPreset.bassStandard => SheetTunerDetectionProfile.guitarBass,
+      SheetTunerPreset.guitarDadgad ||
+      SheetTunerPreset.guitarHalfStepDown ||
+      SheetTunerPreset.guitarSevenString ||
+      SheetTunerPreset.bassStandard ||
+      SheetTunerPreset.bassFiveString ||
+      SheetTunerPreset.ukuleleStandard ||
+      SheetTunerPreset.mandolinStandard =>
+        SheetTunerDetectionProfile.guitarBass,
       SheetTunerPreset.violin ||
       SheetTunerPreset.viola => SheetTunerDetectionProfile.strings,
       SheetTunerPreset.cello ||
@@ -324,11 +355,55 @@ enum SheetTunerPreset {
         SheetTunerTarget(label: 'B3', concertMidiNumber: 59),
         SheetTunerTarget(label: 'E4', concertMidiNumber: 64),
       ],
+      SheetTunerPreset.guitarDadgad => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'D2', concertMidiNumber: 38),
+        SheetTunerTarget(label: 'A2', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D3', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G3', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'A3', concertMidiNumber: 57),
+        SheetTunerTarget(label: 'D4', concertMidiNumber: 62),
+      ],
+      SheetTunerPreset.guitarHalfStepDown => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'Eb2', concertMidiNumber: 39),
+        SheetTunerTarget(label: 'Ab2', concertMidiNumber: 44),
+        SheetTunerTarget(label: 'Db3', concertMidiNumber: 49),
+        SheetTunerTarget(label: 'Gb3', concertMidiNumber: 54),
+        SheetTunerTarget(label: 'Bb3', concertMidiNumber: 58),
+        SheetTunerTarget(label: 'Eb4', concertMidiNumber: 63),
+      ],
+      SheetTunerPreset.guitarSevenString => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'B1', concertMidiNumber: 35),
+        SheetTunerTarget(label: 'E2', concertMidiNumber: 40),
+        SheetTunerTarget(label: 'A2', concertMidiNumber: 45),
+        SheetTunerTarget(label: 'D3', concertMidiNumber: 50),
+        SheetTunerTarget(label: 'G3', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'B3', concertMidiNumber: 59),
+        SheetTunerTarget(label: 'E4', concertMidiNumber: 64),
+      ],
       SheetTunerPreset.bassStandard => const <SheetTunerTarget>[
         SheetTunerTarget(label: 'E1', concertMidiNumber: 28),
         SheetTunerTarget(label: 'A1', concertMidiNumber: 33),
         SheetTunerTarget(label: 'D2', concertMidiNumber: 38),
         SheetTunerTarget(label: 'G2', concertMidiNumber: 43),
+      ],
+      SheetTunerPreset.bassFiveString => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'B0', concertMidiNumber: 23),
+        SheetTunerTarget(label: 'E1', concertMidiNumber: 28),
+        SheetTunerTarget(label: 'A1', concertMidiNumber: 33),
+        SheetTunerTarget(label: 'D2', concertMidiNumber: 38),
+        SheetTunerTarget(label: 'G2', concertMidiNumber: 43),
+      ],
+      SheetTunerPreset.ukuleleStandard => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G4', concertMidiNumber: 67),
+        SheetTunerTarget(label: 'C4', concertMidiNumber: 60),
+        SheetTunerTarget(label: 'E4', concertMidiNumber: 64),
+        SheetTunerTarget(label: 'A4', concertMidiNumber: 69),
+      ],
+      SheetTunerPreset.mandolinStandard => const <SheetTunerTarget>[
+        SheetTunerTarget(label: 'G3', concertMidiNumber: 55),
+        SheetTunerTarget(label: 'D4', concertMidiNumber: 62),
+        SheetTunerTarget(label: 'A4', concertMidiNumber: 69),
+        SheetTunerTarget(label: 'E5', concertMidiNumber: 76),
       ],
       SheetTunerPreset.violin => SheetTunerDisplayMode.violin.tuningTargets,
       SheetTunerPreset.viola => SheetTunerDisplayMode.viola.tuningTargets,
@@ -479,10 +554,13 @@ class SheetTunerSettings {
     this.displayMode = SheetTunerDisplayMode.concert,
     this.detectionProfile = SheetTunerDetectionProfile.chromatic,
     this.notationPreference = SheetTunerNotationPreference.instrumentDefault,
+    this.targetLockEnabled = false,
+    this.targetLockThresholdCents = defaultTargetLockThresholdCents,
     this.targetConcertMidiNumber,
     this.customPresetId,
     this.customTargets = const <SheetTunerTarget>[],
     this.customPresets = const <SheetTunerCustomPreset>[],
+    this.calibrationHistory = const <SheetTunerCalibrationEvent>[],
   });
 
   factory SheetTunerSettings.fromJson(Map<String, Object?>? json) {
@@ -517,14 +595,22 @@ class SheetTunerSettings {
       notationPreference: SheetTunerNotationPreference.fromJson(
         json?['notationPreference'],
       ),
+      targetLockEnabled: json?['targetLockEnabled'] == true,
+      targetLockThresholdCents: _normalizeTargetLockThresholdCents(
+        json?['targetLockThresholdCents'],
+      ),
       targetConcertMidiNumber: targetConcertMidiNumber,
       customPresetId: customPresetId,
       customTargets: customTargets,
       customPresets: customPresets,
+      calibrationHistory: SheetTunerCalibrationEvent.decodeList(
+        json?['calibrationHistory'],
+      ),
     );
   }
 
   static const defaultSettings = SheetTunerSettings(referencePitchA4: 440);
+  static const defaultTargetLockThresholdCents = 350;
 
   final int referencePitchA4;
   final SheetTunerMode tuningMode;
@@ -532,10 +618,13 @@ class SheetTunerSettings {
   final SheetTunerDisplayMode displayMode;
   final SheetTunerDetectionProfile detectionProfile;
   final SheetTunerNotationPreference notationPreference;
+  final bool targetLockEnabled;
+  final int targetLockThresholdCents;
   final int? targetConcertMidiNumber;
   final String? customPresetId;
   final List<SheetTunerTarget> customTargets;
   final List<SheetTunerCustomPreset> customPresets;
+  final List<SheetTunerCalibrationEvent> calibrationHistory;
 
   SheetTunerSettings copyWith({
     int? referencePitchA4,
@@ -544,10 +633,13 @@ class SheetTunerSettings {
     SheetTunerDisplayMode? displayMode,
     SheetTunerDetectionProfile? detectionProfile,
     SheetTunerNotationPreference? notationPreference,
+    bool? targetLockEnabled,
+    int? targetLockThresholdCents,
     int? targetConcertMidiNumber,
     String? customPresetId,
     List<SheetTunerTarget>? customTargets,
     List<SheetTunerCustomPreset>? customPresets,
+    List<SheetTunerCalibrationEvent>? calibrationHistory,
     bool clearTargetConcertMidiNumber = false,
     bool clearCustomPresetId = false,
     bool clearCustomTargets = false,
@@ -580,12 +672,38 @@ class SheetTunerSettings {
       displayMode: displayMode ?? this.displayMode,
       detectionProfile: detectionProfile ?? this.detectionProfile,
       notationPreference: notationPreference ?? this.notationPreference,
+      targetLockEnabled: targetLockEnabled ?? this.targetLockEnabled,
+      targetLockThresholdCents: _normalizeTargetLockThresholdCents(
+        targetLockThresholdCents ?? this.targetLockThresholdCents,
+      ),
       targetConcertMidiNumber: nextTargetConcertMidiNumber,
       customPresetId: nextCustomPresetId,
       customTargets: clearCustomTargets
           ? const <SheetTunerTarget>[]
           : SheetTunerTarget.normalizeList(customTargets ?? this.customTargets),
       customPresets: nextCustomPresets,
+      calibrationHistory: SheetTunerCalibrationEvent.normalizeList(
+        calibrationHistory ?? this.calibrationHistory,
+      ),
+    );
+  }
+
+  SheetTunerSettings recordCalibration({
+    required int referencePitchA4,
+    required String source,
+    DateTime? appliedAt,
+  }) {
+    final clampedReferencePitch = clampReferencePitch(referencePitchA4);
+    final event = SheetTunerCalibrationEvent(
+      referencePitchA4: clampedReferencePitch,
+      source: source,
+      appliedAt: appliedAt ?? DateTime.now(),
+    );
+    return copyWith(
+      referencePitchA4: clampedReferencePitch,
+      calibrationHistory: SheetTunerCalibrationEvent.normalizeList(
+        <SheetTunerCalibrationEvent>[event, ...calibrationHistory],
+      ),
     );
   }
 
@@ -597,6 +715,8 @@ class SheetTunerSettings {
       'displayMode': displayMode.toJson(),
       'detectionProfile': detectionProfile.toJson(),
       'notationPreference': notationPreference.toJson(),
+      'targetLockEnabled': targetLockEnabled,
+      'targetLockThresholdCents': targetLockThresholdCents,
       'targetConcertMidiNumber': targetConcertMidiNumber,
       'customPresetId': customPresetId,
       'customTargets': customTargets
@@ -604,6 +724,9 @@ class SheetTunerSettings {
           .toList(growable: false),
       'customPresets': customPresets
           .map((preset) => preset.toJson())
+          .toList(growable: false),
+      'calibrationHistory': calibrationHistory
+          .map((event) => event.toJson())
           .toList(growable: false),
     };
   }
@@ -630,6 +753,14 @@ class SheetTunerSettings {
     return parsed;
   }
 
+  static int _normalizeTargetLockThresholdCents(Object? value) {
+    final parsed = value is num ? value.round() : int.tryParse('$value');
+    if (parsed == null) {
+      return defaultTargetLockThresholdCents;
+    }
+    return parsed.clamp(100, 700).toInt();
+  }
+
   static String? _normalizeCustomPresetId(
     Object? value,
     List<SheetTunerCustomPreset> presets,
@@ -639,6 +770,103 @@ class SheetTunerSettings {
       return null;
     }
     return presets.any((preset) => preset.id == id) ? id : null;
+  }
+}
+
+class SheetTunerCalibrationEvent {
+  const SheetTunerCalibrationEvent({
+    required this.referencePitchA4,
+    required this.source,
+    required this.appliedAt,
+  });
+
+  factory SheetTunerCalibrationEvent.fromJson(Object? value) {
+    if (value is! Map) {
+      return SheetTunerCalibrationEvent.invalid;
+    }
+    final referencePitchA4 = SheetTunerSettings._normalizeReferencePitch(
+      value['referencePitchA4'],
+    );
+    final source = value['source'] is String
+        ? (value['source'] as String).trim()
+        : '';
+    final appliedAt = value['appliedAt'] is String
+        ? DateTime.tryParse(value['appliedAt'] as String)
+        : null;
+    return SheetTunerCalibrationEvent(
+      referencePitchA4: referencePitchA4,
+      source: source.isEmpty ? 'manual' : source,
+      appliedAt: appliedAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  static final invalid = SheetTunerCalibrationEvent(
+    referencePitchA4: SheetTunerSettings.defaultSettings.referencePitchA4,
+    source: '',
+    appliedAt: DateTime.fromMillisecondsSinceEpoch(0),
+  );
+
+  final int referencePitchA4;
+  final String source;
+  final DateTime appliedAt;
+
+  bool get isValid => source.isNotEmpty;
+
+  String get label {
+    final sourceLabel = switch (source) {
+      'quick' => '빠른 선택',
+      'suggestion' => '보정 제안',
+      _ => '직접 설정',
+    };
+    return 'A4 $referencePitchA4 Hz · $sourceLabel';
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'referencePitchA4': referencePitchA4,
+      'source': source,
+      'appliedAt': appliedAt.toIso8601String(),
+    };
+  }
+
+  static List<SheetTunerCalibrationEvent> decodeList(Object? value) {
+    if (value is! List) {
+      return const <SheetTunerCalibrationEvent>[];
+    }
+    return normalizeList(value.map(SheetTunerCalibrationEvent.fromJson));
+  }
+
+  static List<SheetTunerCalibrationEvent> normalizeList(
+    Iterable<SheetTunerCalibrationEvent> events, {
+    int maxEvents = 8,
+  }) {
+    final seen = <String>{};
+    final normalized = <SheetTunerCalibrationEvent>[];
+    for (final event in events) {
+      if (!event.isValid) {
+        continue;
+      }
+      final source = event.source.trim().isEmpty
+          ? 'manual'
+          : event.source.trim();
+      final key = '${event.referencePitchA4}-$source';
+      if (!seen.add(key)) {
+        continue;
+      }
+      normalized.add(
+        SheetTunerCalibrationEvent(
+          referencePitchA4: SheetTunerSettings.clampReferencePitch(
+            event.referencePitchA4,
+          ),
+          source: source,
+          appliedAt: event.appliedAt,
+        ),
+      );
+      if (normalized.length >= maxEvents) {
+        break;
+      }
+    }
+    return List<SheetTunerCalibrationEvent>.unmodifiable(normalized);
   }
 }
 
@@ -1189,6 +1417,57 @@ class SheetTunerInputPower {
   final String label;
 }
 
+class SheetTunerTargetLockResult {
+  const SheetTunerTargetLockResult({
+    required this.isLocked,
+    required this.accepted,
+    required this.centsFromTarget,
+  });
+
+  static const unlocked = SheetTunerTargetLockResult(
+    isLocked: false,
+    accepted: true,
+    centsFromTarget: null,
+  );
+
+  final bool isLocked;
+  final bool accepted;
+  final double? centsFromTarget;
+
+  bool get isRejected => isLocked && !accepted;
+
+  String get label => isRejected ? '타겟 음을 기다리는 중' : '타겟 음 감지';
+}
+
+class SheetTunerTargetLock {
+  const SheetTunerTargetLock._();
+
+  static SheetTunerTargetLockResult evaluate({
+    required SheetTunerSettings settings,
+    required SheetTunerReading? reading,
+  }) {
+    if (!settings.targetLockEnabled ||
+        settings.tuningMode != SheetTunerMode.target ||
+        settings.targetConcertMidiNumber == null ||
+        reading == null) {
+      return SheetTunerTargetLockResult.unlocked;
+    }
+    final target = SheetTunerPitch.noteFromMidi(
+      settings.targetConcertMidiNumber!,
+      referencePitchA4: settings.referencePitchA4,
+    );
+    final centsFromTarget = SheetTunerPitch.centsFromTarget(
+      frequency: reading.frequency,
+      targetFrequency: target.frequency,
+    );
+    return SheetTunerTargetLockResult(
+      isLocked: true,
+      accepted: centsFromTarget.abs() <= settings.targetLockThresholdCents,
+      centsFromTarget: centsFromTarget,
+    );
+  }
+}
+
 class SheetTunerReferenceCalibrationSuggestion {
   const SheetTunerReferenceCalibrationSuggestion({
     required this.suggestedReferencePitchA4,
@@ -1458,17 +1737,22 @@ class SheetTunerPitchDetector {
     double? maxFrequency,
     double? minRms,
     double? minConfidence,
+    this.useAdaptiveNoiseFloor = true,
+    SheetTunerAdaptiveNoiseGate? adaptiveNoiseGate,
   }) : minFrequency = minFrequency ?? detectionProfile.minFrequency,
        maxFrequency = maxFrequency ?? detectionProfile.maxFrequency,
        minRms = minRms ?? detectionProfile.minRms,
-       minConfidence = minConfidence ?? detectionProfile.minConfidence;
+       minConfidence = minConfidence ?? detectionProfile.minConfidence,
+       _adaptiveNoiseGate = adaptiveNoiseGate ?? SheetTunerAdaptiveNoiseGate();
 
   final int sampleRate;
   final int windowSize;
+  final bool useAdaptiveNoiseFloor;
   double minFrequency;
   double maxFrequency;
   double minRms;
   double minConfidence;
+  final SheetTunerAdaptiveNoiseGate _adaptiveNoiseGate;
   final List<double> _buffer = <double>[];
 
   void configureForProfile(SheetTunerDetectionProfile profile) {
@@ -1504,19 +1788,40 @@ class SheetTunerPitchDetector {
       return null;
     }
 
-    return detectSamples(
+    final frameRms = SheetTunerAdaptiveNoiseGate.rms(samples);
+    final effectiveMinRms = useAdaptiveNoiseFloor
+        ? _adaptiveNoiseGate.adaptiveMinRms(minRms)
+        : minRms;
+    final reading = detectSamples(
       _buffer,
       sampleRate: sampleRate,
       referencePitchA4: referencePitchA4,
       minFrequency: minFrequency,
       maxFrequency: maxFrequency,
-      minRms: minRms,
+      minRms: effectiveMinRms,
       minConfidence: minConfidence,
     );
+    final shouldReject =
+        useAdaptiveNoiseFloor &&
+        reading != null &&
+        _adaptiveNoiseGate.shouldRejectCandidate(
+          rms: frameRms,
+          confidence: reading.signalLevel,
+          baseMinRms: minRms,
+        );
+    if (useAdaptiveNoiseFloor) {
+      _adaptiveNoiseGate.observeFrame(
+        rms: frameRms,
+        baseMinRms: minRms,
+        confidence: reading?.signalLevel,
+      );
+    }
+    return shouldReject ? null : reading;
   }
 
   void reset() {
     _buffer.clear();
+    _adaptiveNoiseGate.reset();
   }
 
   static SheetTunerReading? detectSamples(
@@ -1668,6 +1973,100 @@ class SheetTunerPitchDetector {
     }
     final adjustment = 0.5 * (previous - next) / denominator;
     return lag + adjustment.clamp(-0.5, 0.5);
+  }
+}
+
+class SheetTunerAdaptiveNoiseGate {
+  SheetTunerAdaptiveNoiseGate({
+    this.historySize = 24,
+    this.noiseMultiplier = 3.2,
+    this.maxAdaptiveMinRms = 0.06,
+    this.lowConfidenceNoiseThreshold = 0.5,
+    this.suddenNoiseMultiplier = 8,
+  });
+
+  final int historySize;
+  final double noiseMultiplier;
+  final double maxAdaptiveMinRms;
+  final double lowConfidenceNoiseThreshold;
+  final double suddenNoiseMultiplier;
+  final List<double> _noiseHistory = <double>[];
+
+  double get noiseFloorRms {
+    if (_noiseHistory.isEmpty) {
+      return 0;
+    }
+    final sorted = _noiseHistory.toList()..sort();
+    final middle = sorted.length ~/ 2;
+    if (sorted.length.isOdd) {
+      return sorted[middle];
+    }
+    return (sorted[middle - 1] + sorted[middle]) / 2;
+  }
+
+  double adaptiveMinRms(double baseMinRms) {
+    final floor = noiseFloorRms;
+    if (floor <= 0) {
+      return baseMinRms;
+    }
+    return math
+        .max(baseMinRms, floor * noiseMultiplier)
+        .clamp(baseMinRms, maxAdaptiveMinRms)
+        .toDouble();
+  }
+
+  bool shouldRejectCandidate({
+    required double rms,
+    required double confidence,
+    required double baseMinRms,
+  }) {
+    final floor = noiseFloorRms;
+    if (rms < adaptiveMinRms(baseMinRms)) {
+      return true;
+    }
+    if (floor <= 0) {
+      return false;
+    }
+    return confidence < lowConfidenceNoiseThreshold &&
+        rms > floor * suddenNoiseMultiplier;
+  }
+
+  void observeFrame({
+    required double rms,
+    required double baseMinRms,
+    double? confidence,
+  }) {
+    final floor = noiseFloorRms;
+    final isLowSignal =
+        rms <= math.max(baseMinRms * 1.8, adaptiveMinRms(baseMinRms) * 0.9);
+    final isUnreliableNoise =
+        confidence != null &&
+        confidence < lowConfidenceNoiseThreshold &&
+        (floor <= 0 || rms <= math.max(baseMinRms * 3, floor * 4));
+    if (!isLowSignal && !isUnreliableNoise) {
+      return;
+    }
+    _noiseHistory.add(rms);
+    if (_noiseHistory.length > historySize) {
+      _noiseHistory.removeRange(0, _noiseHistory.length - historySize);
+    }
+  }
+
+  void reset() {
+    _noiseHistory.clear();
+  }
+
+  static double rms(List<double> samples) {
+    if (samples.isEmpty) {
+      return 0;
+    }
+    final mean = samples.reduce((a, b) => a + b) / samples.length;
+    var sumSquares = 0.0;
+    for (final sample in samples) {
+      final centered = sample - mean;
+      sumSquares += centered * centered;
+    }
+    return math.sqrt(sumSquares / samples.length);
   }
 }
 

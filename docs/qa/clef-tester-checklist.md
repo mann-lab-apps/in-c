@@ -22,13 +22,16 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열어 Chromatic/Target mode, Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset을 전환한다.
-9. 조용한 상태, 440Hz reference tone, 실제 악기 입력에서 target shortcut, sharp/flat 표기, LED,
-   입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 상태를 확인한다.
-10. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
-11. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
-12. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
-13. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
+8. 튜너를 열어 Chromatic/Target mode, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset을 전환한다.
+9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 target shortcut,
+   sharp/flat 표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
+   `맞았습니다` 상태를 확인한다.
+10. Target mode에서 target lock을 켜고 다른 줄/음을 넣었을 때 `타겟 음을 기다리는 중`으로 안정적으로
+   표시되는지 확인한다.
+11. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
+12. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
+13. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
+14. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
 
 ## 선택 테스트
 
@@ -60,8 +63,9 @@
 
 ## Known Issues
 
-- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Preset/target/custom preset, sharp/flat
-  표기, LED/input bar, A4 보정 제안은 자동 테스트로 확인했다. 실제 악기 기준 정확도, latency, 외부
+- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Preset/target/custom preset, target lock,
+  sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
+  floor 1차는 자동 테스트로 확인했다. 실제 악기 기준 정확도, latency, 외부
   마이크 안정성은 Android/iOS 실기기 검증 중이다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.

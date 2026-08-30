@@ -339,6 +339,10 @@ void main() {
   test('tuning presets provide practical target lists and profiles', () {
     final dropDTargets = SheetTunerPreset.guitarDropD.targets;
     final violinTargets = SheetTunerPreset.violin.targets;
+    final dadgadTargets = SheetTunerPreset.guitarDadgad.targets;
+    final bassFiveTargets = SheetTunerPreset.bassFiveString.targets;
+    final ukuleleTargets = SheetTunerPreset.ukuleleStandard.targets;
+    final mandolinTargets = SheetTunerPreset.mandolinStandard.targets;
 
     expect(
       SheetTunerPreset.guitarDropD.displayMode,
@@ -365,6 +369,119 @@ void main() {
     ]);
     expect(SheetTunerPreset.violin.hasTarget(69), isTrue);
     expect(SheetTunerPreset.violin.hasTarget(70), isFalse);
+    expect(dadgadTargets.map((target) => target.concertMidiNumber), <int>[
+      38,
+      45,
+      50,
+      55,
+      57,
+      62,
+    ]);
+    expect(
+      SheetTunerPreset.guitarHalfStepDown.targets.map((target) => target.label),
+      <String>['Eb2', 'Ab2', 'Db3', 'Gb3', 'Bb3', 'Eb4'],
+    );
+    expect(
+      SheetTunerPreset.guitarSevenString.targets.map(
+        (target) => target.concertMidiNumber,
+      ),
+      <int>[35, 40, 45, 50, 55, 59, 64],
+    );
+    expect(bassFiveTargets.map((target) => target.concertMidiNumber), <int>[
+      23,
+      28,
+      33,
+      38,
+      43,
+    ]);
+    expect(ukuleleTargets.map((target) => target.concertMidiNumber), <int>[
+      67,
+      60,
+      64,
+      69,
+    ]);
+    expect(mandolinTargets.map((target) => target.concertMidiNumber), <int>[
+      55,
+      62,
+      69,
+      76,
+    ]);
+    expect(
+      SheetTunerPreset.ukuleleStandard.detectionProfile,
+      SheetTunerDetectionProfile.guitarBass,
+    );
+  });
+
+  test('calibration history and target lock settings round-trip safely', () {
+    final settings =
+        const SheetTunerSettings(
+          referencePitchA4: 440,
+          tuningMode: SheetTunerMode.target,
+          targetConcertMidiNumber: 69,
+          targetLockEnabled: true,
+          targetLockThresholdCents: 275,
+        ).recordCalibration(
+          referencePitchA4: 442,
+          source: 'quick',
+          appliedAt: DateTime.utc(2026, 8, 30, 10),
+        );
+
+    final decoded = SheetTunerCodec.decode(SheetTunerCodec.encode(settings));
+    final repaired = SheetTunerSettings.fromJson(<String, Object?>{
+      'targetLockEnabled': true,
+      'targetLockThresholdCents': 40,
+      'calibrationHistory': <Object?>[
+        <String, Object?>{
+          'referencePitchA4': 500,
+          'source': 'suggestion',
+          'appliedAt': '2026-08-30T10:00:00.000Z',
+        },
+        <String, Object?>{'referencePitchA4': 441, 'source': ''},
+      ],
+    });
+
+    expect(decoded.referencePitchA4, 442);
+    expect(decoded.targetLockEnabled, isTrue);
+    expect(decoded.targetLockThresholdCents, 275);
+    expect(decoded.calibrationHistory.single.referencePitchA4, 442);
+    expect(decoded.calibrationHistory.single.source, 'quick');
+    expect(repaired.targetLockThresholdCents, 100);
+    expect(repaired.calibrationHistory.first.referencePitchA4, 466);
+    expect(repaired.calibrationHistory.first.source, 'suggestion');
+    expect(repaired.calibrationHistory.last.source, 'manual');
+  });
+
+  test('target lock accepts near target and rejects distant input', () {
+    const locked = SheetTunerSettings(
+      referencePitchA4: 440,
+      tuningMode: SheetTunerMode.target,
+      targetConcertMidiNumber: 69,
+      targetLockEnabled: true,
+      targetLockThresholdCents: 250,
+    );
+    final nearA = SheetTunerPitch.detect(frequency: _frequencyAtCents(440, 18));
+    final distantE = SheetTunerPitch.detect(frequency: 329.63);
+    final unlocked = locked.copyWith(targetLockEnabled: false);
+
+    final accepted = SheetTunerTargetLock.evaluate(
+      settings: locked,
+      reading: nearA,
+    );
+    final rejected = SheetTunerTargetLock.evaluate(
+      settings: locked,
+      reading: distantE,
+    );
+    final bypassed = SheetTunerTargetLock.evaluate(
+      settings: unlocked,
+      reading: distantE,
+    );
+
+    expect(accepted.accepted, isTrue);
+    expect(accepted.centsFromTarget, closeTo(18, 1.5));
+    expect(rejected.isRejected, isTrue);
+    expect(rejected.label, '타겟 음을 기다리는 중');
+    expect(bypassed.accepted, isTrue);
+    expect(bypassed.isLocked, isFalse);
   });
 
   test('detection profiles filter practical frequency ranges', () {
@@ -524,6 +641,48 @@ void main() {
     expect(reading!.note.label, 'A4');
     expect(reading.frequency, closeTo(440, 2.5));
   });
+
+  test('adaptive noise gate learns low-signal frames conservatively', () {
+    final gate = SheetTunerAdaptiveNoiseGate(
+      historySize: 4,
+      noiseMultiplier: 3,
+      maxAdaptiveMinRms: 0.05,
+    );
+
+    for (final rms in <double>[0.012, 0.014, 0.013, 0.015]) {
+      gate.observeFrame(rms: rms, baseMinRms: 0.01);
+    }
+
+    expect(gate.noiseFloorRms, closeTo(0.0135, 0.0001));
+    expect(gate.adaptiveMinRms(0.01), closeTo(0.0405, 0.0001));
+    expect(
+      gate.shouldRejectCandidate(rms: 0.02, confidence: 0.8, baseMinRms: 0.01),
+      isTrue,
+    );
+    expect(
+      gate.shouldRejectCandidate(rms: 0.06, confidence: 0.8, baseMinRms: 0.01),
+      isFalse,
+    );
+  });
+
+  test(
+    'adaptive detector suppresses sudden low-confidence noise candidates',
+    () {
+      final gate = SheetTunerAdaptiveNoiseGate(historySize: 4);
+      for (final rms in <double>[0.01, 0.011, 0.012, 0.011]) {
+        gate.observeFrame(rms: rms, baseMinRms: 0.01);
+      }
+
+      expect(
+        gate.shouldRejectCandidate(
+          rms: 0.12,
+          confidence: 0.35,
+          baseMinRms: 0.01,
+        ),
+        isTrue,
+      );
+    },
+  );
 
   test('stabilizer smooths frequency jitter with median reading', () {
     final stabilizer = SheetTunerReadingStabilizer(maxHistory: 5);
