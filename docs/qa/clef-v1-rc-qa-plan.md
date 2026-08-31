@@ -301,7 +301,7 @@ flutter build ios --release --no-codesign
 2026-08-30 실기기 1차 QA 반영 기록:
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
-- 사용자가 설치한 앱 버전은 당시 `1.0.0+4`로 확인했고, 이후 튜너 보강분 내부테스트 빌드는
+- 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너 보강분 내부테스트 빌드는
   `1.0.0+10`으로 준비했다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
@@ -336,3 +336,18 @@ flutter build ios --release --no-codesign
 - Clef v1 release blocker는 현재 repo만으로 닫을 수 있는 코드 미완료가 아니라 Android/iOS 실기기,
   S Pen, Bluetooth/USB 페달, cloud provider, 실제 CamScanner/object-stream 샘플, 튜너 마이크
   정확도/latency QA로 남아 있다.
+
+2026-08-31 실기기 QA 제외 RC closeout 기록:
+
+- classical discovery dirty 변경을 RC 검증에 섞지 않기 위해 clean temp worktree
+  `/private/tmp/clef-sim-qa-dev`에서 Clef viewer hunk만 적용해 검증했다.
+- `clef_rc_tablet_api35` emulator에서 앱 `1.0.0+10` 테스트 정보 표시, 홈 카드 식별 정보,
+  `short-score.pdf` content URI import/render, 세로 viewer toolbar 좌우 swipe, 마지막 page의
+  `곡 끝` 안내, 튜너 bottom sheet 진입을 확인했다.
+- ADB의 직접 `file://` intent는 Android scoped storage 권한으로 거부되므로 제품 QA 기준에서는
+  file picker/share sheet의 `content://` import를 사용한다.
+- clean temp worktree 기준 `dart format lib/main.dart`, `flutter analyze`,
+  `flutter test test/sheet_viewer_input_test.dart test/sheet_auto_scroll_test.dart`,
+  `flutter build apk --debug`, `git diff --check`가 통과했다.
+- 이번 closeout은 release AAB를 새로 만들지 않았다. Clef viewer toolbar/page edge 변경을 내부테스트에
+  배포하려면 다음 release build에서 versionCode를 올려 AAB/APK를 생성한다.

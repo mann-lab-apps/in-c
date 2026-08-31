@@ -9323,7 +9323,9 @@ setlist=$setlistLabel
             setlistId: widget.setlistId!,
             scoreId: currentScore.id,
           );
-    final isCompactViewer = MediaQuery.sizeOf(context).width < 720;
+    final viewerWidth = MediaQuery.sizeOf(context).width;
+    final isCompactViewer = viewerWidth < 720;
+    final usesScrollableViewerToolbar = viewerWidth < 1100;
     final viewerMargin = switch (_pageScale) {
       _SheetViewerPageScale.fitPage => 14.0,
       _SheetViewerPageScale.fitWidth => 6.0,
@@ -10051,9 +10053,23 @@ setlist=$setlistLabel
 
     return Scaffold(
       appBar: AppBar(
-        title: isCompactViewer ? null : appBarTitle,
-        actions: isCompactViewer
-            ? <Widget>[_ScrollableAppBarActions(children: appBarActions)]
+        automaticallyImplyLeading: !usesScrollableViewerToolbar,
+        title: usesScrollableViewerToolbar ? null : appBarTitle,
+        actions: usesScrollableViewerToolbar
+            ? <Widget>[
+                _ScrollableAppBarActions(
+                  children: [
+                    IconButton(
+                      tooltip: '뒤로',
+                      onPressed: () {
+                        Navigator.of(context).maybePop();
+                      },
+                      icon: const BackButtonIcon(),
+                    ),
+                    ...appBarActions,
+                  ],
+                ),
+              ]
             : appBarActions,
       ),
       body: Focus(
@@ -12088,9 +12104,8 @@ class _ViewerControls extends StatelessWidget {
             children: [
               IconButton(
                 tooltip: '이전 페이지',
-                onPressed: canGoPrevious ? onPrevious : null,
-                color: Colors.white,
-                disabledColor: Colors.white38,
+                onPressed: onPrevious,
+                color: canGoPrevious ? Colors.white : Colors.white38,
                 iconSize: isPerformanceMode ? 34 : 24,
                 icon: const Icon(Icons.chevron_left),
               ),
@@ -12122,9 +12137,8 @@ class _ViewerControls extends StatelessWidget {
               ),
               IconButton(
                 tooltip: '다음 페이지',
-                onPressed: canGoNext ? onNext : null,
-                color: Colors.white,
-                disabledColor: Colors.white38,
+                onPressed: onNext,
+                color: canGoNext ? Colors.white : Colors.white38,
                 iconSize: isPerformanceMode ? 34 : 24,
                 icon: const Icon(Icons.chevron_right),
               ),

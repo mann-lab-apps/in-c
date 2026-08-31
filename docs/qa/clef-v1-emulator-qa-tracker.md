@@ -16,9 +16,9 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - System image: Android 15 API 35, Google APIs Play Store, arm64-v8a
 - Flutter device id: `emulator-5554`
 - 앱 id: `com.mannlab.clef`
-- 현재 검증 build: `1.0.0+6` release APK/AAB
+- 현재 검증 build: `1.0.0+10` debug APK(clean temp worktree), release AAB 내부테스트 준비 완료
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
-- 최근 전체 QA 실행: 2026-08-29 16:30-16:36 KST, `clef_rc_tablet_api35`
+- 최근 전체 QA 실행: 2026-08-31 15:20-15:35 KST, `clef_rc_tablet_api35`
 
 ## 사전 준비
 
@@ -71,7 +71,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | ID | 영역 | 에뮬레이터에서 할 일 | 샘플/입력 | 통과 기준 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | EMU-001 | 설치/업데이트 | `adb install -r`로 release APK 덮어 설치 | `app-release.apk` | 기존 library metadata가 유지되고 앱이 실행됨 | 통과 |
-| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+6` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 재확인 필요 |
+| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+10` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
 | EMU-003 | 첫 화면 | 빈 라이브러리/기존 라이브러리 상태 확인 | 앱 첫 화면 | 검색, 필터, import CTA, 테스트 정보 진입이 보임 | 통과 |
 | EMU-004 | PDF import | system picker로 PDF 가져오기 | IMSLP, `short-score.pdf` | import 실패 없이 viewer 진입 | 통과 |
 | EMU-005 | 비PDF import 실패 | PDF picker/공유에서 비PDF 선택 시도 | `.txt` 또는 이미지 파일 | crash 없이 unsupported 안내 | 예정 |
@@ -81,6 +81,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-009 | PDF page render | 첫/마지막 page와 빠른 이동 | IMSLP 4-page PDF | toolbar `N/4`와 화면이 일치, blank 없음 | 통과 |
 | EMU-010 | 대형 PDF render | 90-page fixture 열기 | `long-scan-like-score.pdf` | 첫 render, page jump, scroll 중 crash 없음 | 통과 |
 | EMU-011 | 보기 모드 | 1-page/two-page/vertical 전환 | any PDF | 전환 후 현재 page와 layout 유지 | 예정 |
+| EMU-011-1 | 세로 toolbar overflow | Pixel Tablet portrait에서 상단 toolbar 좌우 swipe | `short-score.pdf` | `필기 모드`, `페이지 정리`, `공연 설정`, `공연 모드`, page label 접근 | 통과 |
 | EMU-012 | scale/display | fit page, fit width, fullscreen, dark/invert | any PDF | 악보가 프레임 밖으로 사라지지 않음 | 예정 |
 | EMU-013 | half-page | landscape half-page 이동 | any PDF | half-page anchor와 마지막 page 저장이 자연스러움 | 예정 |
 | EMU-014 | 라이브러리 카드 | viewer exit 후 card subtitle 확인 | imported PDF | `마지막 N쪽` 문구와 최근 열기 시간이 보임 | 통과 |
@@ -111,11 +112,11 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-039 | annotated PDF export | 필기 포함 PDF 공유 | annotated score | 원본 수정 없이 rendered stamp copy 생성 | 예정 |
 | EMU-040 | export unsupported | standard annotation mode 또는 한글 text fallback | Korean text annotation | unsupported/fallback 안내가 명확함 | 예정 |
 | EMU-041 | large annotation | 10k stroke fixture 성격의 큰 annotation score | generated metadata/test fixture | summary 안내와 저장/복원 crash 없음 | 예정 |
-| EMU-042 | keyboard page turn | `adb shell input keyevent` 또는 hardware keyboard | DPAD/Page/Space keys | mapped action이 page/score 이동으로 실행 | 수동 재확인 |
+| EMU-042 | keyboard page turn | `adb shell input keyevent` 또는 hardware keyboard | DPAD/Page/Space keys | mapped action이 page/score 이동으로 실행 | 통과(에뮬레이터 focus 조건 주의) |
 | EMU-043 | unknown inputId | diagnostic log에서 custom mapping 저장 | unknown key path | 저장한 inputId가 action으로 실행 | 예정 |
 | EMU-044 | global defaults | viewer/action 기본값 변경 후 새 score import | settings UI | 새 score에만 기본값 적용, 기존 score 불변 | 예정 |
 | EMU-045 | metronome | BPM/meter/start/stop/sound toggle | metronome sheet | visual tick과 state 저장 | 예정 |
-| EMU-046 | tuner UI | profile/display/reference pitch 전환 | tuner sheet | Concert/Bb/Eb/F/Strings/Guitar/Bass label 정상 | 예정 |
+| EMU-046 | tuner UI | profile/display/reference pitch 전환 | tuner sheet | Concert/Bb/Eb/F/Strings/Guitar/Bass label 정상 | 통과(실마이크 제외) |
 | EMU-047 | tone/drone | 기준음/5도/옥타브 drone start/stop | Android native channel | UI state와 stop 동작 정상. latency 평가는 실기기 | 예정 |
 | EMU-048 | local audio | linked MP3/M4A/WAV import/play/stop | small audio files | MediaPlayer sheet 진입과 오류 안내 정상 | 예정 |
 | EMU-049 | backup metadata | metadata export/import | score with metadata | custom field, page metadata, pedal mapping 보존 | 예정 |
@@ -184,8 +185,8 @@ v1.1 spike 여부:
 - logcat 원인: `PdfTextSearcher`가 `PdfViewerController` ready 전에 생성되어 null check crash 발생.
 - 수정 후 같은 에뮬레이터에서 해당 PDF가 viewer에 렌더링되고 `PdfViewer: Loaded page 4 of 4` 로그가 찍혔다.
 - 라이브러리 카드의 `1쪽` 문구는 총 page count가 아니라 마지막 열린 page 의미라 오해 가능성이 있어
-  `마지막 1쪽` 문구로 보강했고, `1.0.0+4` release APK 설치 후 화면에서 확인했다.
-- `1.0.0+4` release APK 설치 후 같은 IMSLP PDF를 다시 열었고 viewer toolbar는 `1/4`를 표시했다.
+  `마지막 1쪽` 문구로 보강했고, 당시 release APK 설치 후 화면에서 확인했다.
+- 당시 release APK 설치 후 같은 IMSLP PDF를 다시 열었고 viewer toolbar는 `1/4`를 표시했다.
 - 2026-08-29 16:30-16:36 KST 전체 QA에서 `dart run tool/rc_release_check.dart`와
   `flutter test --reporter compact`가 통과했다. Flutter test는 251개 테스트 통과.
 - release APK를 `clef_rc_tablet_api35`에 설치하고 IMSLP PDF, `long-scan-like-score.pdf`를 Downloads에서
@@ -195,21 +196,43 @@ v1.1 spike 여부:
 - `long-scan-like-score.pdf`에서 `zzzzz` 검색은 crash 없이 `결과 없음 - 스캔 PDF는 텍스트가 없을 수
   있습니다.` 및 스캔 악보 본문 검색 미지원 안내를 표시했다.
 - 앱 force-stop 후 재실행해도 라이브러리 2곡, 최근 카드, 마지막 page 문구가 보존됐다.
-- 테스트 정보 sheet에서 앱 `1.0.0+4`, `Beta test build`, 악보 수, 필기 요약, 외부 필기 저장소,
+- 테스트 정보 sheet에서 당시 앱 version, `Beta test build`, 악보 수, 필기 요약, 외부 필기 저장소,
   custom pedal 요약이 표시됐다.
 - 재시작 후 앱 프로세스 logcat에는 Flutter exception/crash가 없었다. 초기 render에서 Android
   `Skipped frames` 경고 1건은 관찰됐고 실기기 성능 QA에서 재확인한다.
 - ADB `KEYCODE_DPAD_RIGHT`/`KEYCODE_PAGE_DOWN` 입력은 당시 focus 상태에서 page label 변화가
   확인되지 않았다. 이후 viewer key event 소비 경로를 보강했으므로 다음 emulator/실기기 QA에서
   PDF 내부 스크롤 없이 페이지 단위 이동하는지 재확인한다.
-- 2026-08-29 사용자 실기기 QA에서 Play 설치 앱의 테스트 정보가 `1.0.0+4`로 표시됐다. 원인은 앱
-  내부 테스트 정보 상수와 `pubspec.yaml` build number가 분리되어 있던 점으로 확인했고, 새 QA build
-  `1.0.0+6`에서 둘을 맞췄다. Play 설치 후 테스트 정보에서 `1.0.0+6` 표시를 재확인한다.
+- 2026-08-29 사용자 실기기 QA에서 Play 설치 앱의 테스트 정보와 `pubspec.yaml` build number가
+  분리되어 있던 점을 확인했다. 현재 QA 기준 build `1.0.0+10`에서는 두 값을 맞췄고 에뮬레이터
+  테스트 정보에서 재확인했다.
 - 같은 사용자 QA에서 직접 스캔 PDF는 아니지만 IMSLP PDF 정상 출력, page turn/jump, 마지막 page
   저장은 통과로 기록했다.
 - 같은 사용자 QA에서 형광펜이 얇을 때 원형 cap이 연속으로 겹쳐 보여 부자연스럽고, 지우개 삭제가
-  undo로 복원되지 않는 문제가 발견됐다. `1.0.0+6`에서 highlighter를 continuous path로 렌더링하고
+  undo로 복원되지 않는 문제가 발견됐다. 후속 build에서 highlighter를 continuous path로 렌더링하고
   eraser 삭제 undo/redo 모델 테스트를 추가했다.
+
+## 2026-08-31 실기기 QA 제외 RC closeout 기록
+
+- classical discovery dirty 변경을 피하기 위해 `/private/tmp/clef-sim-qa-dev` clean temp worktree에서
+  Clef viewer hunk만 적용해 에뮬레이터 검증을 진행했다.
+- `clef_rc_tablet_api35`에 debug APK를 설치했고 테스트 정보에서 앱 `1.0.0+10`, `Beta test build`가
+  표시되는 것을 확인했다.
+- `short-score.pdf`를 Downloads에 주입한 뒤 `content://media/external/file/...` read grant로 열어
+  viewer 렌더링을 확인했다. 회색 blank 고정은 재현되지 않았다.
+- 직접 `file://` 경로를 ADB intent로 여는 방식은 Android scoped storage 권한으로 거부됐다. 제품
+  기준 import/share 경로는 file picker 또는 share sheet의 `content://` URI로 둔다.
+- Pixel Tablet portrait에서 viewer AppBar action 영역이 `HorizontalScrollView`로 노출되고, 좌우
+  swipe 후 `필기 모드`, `페이지 정리`, `공연 설정`, `공연 모드`, `1/3` page label까지 접근됐다.
+- 마지막 page의 다음 버튼을 누르면 비활성 dead button이 아니라 dimmed button이 눌리고 `곡 끝`
+  snackbar가 표시됐다. 첫 page의 이전 입력은 같은 정책으로 `곡 처음`을 표시한다.
+- 홈 화면은 큰 `Clef` 제목 없이 시작했고, metadata가 비어 있는 최근 카드도 파일명, source filename,
+  최근 연 시간, `마지막 1쪽`으로 구분 가능했다.
+- 튜너 bottom sheet는 crash 없이 열렸고 Chromatic/Target, preset, A4, calibration history,
+  target lock, 기준음/드론 진입점이 표시됐다. 실제 마이크 정확도와 latency는 실기기 QA로 남긴다.
+- `dart format lib/main.dart`, `flutter analyze`, `flutter test test/sheet_viewer_input_test.dart
+  test/sheet_auto_scroll_test.dart`, `flutter build apk --debug`, `git diff --check`가 clean temp
+  worktree에서 통과했다.
 
 ## 내부테스트 업로드 전 확인
 

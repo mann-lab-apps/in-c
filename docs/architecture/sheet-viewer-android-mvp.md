@@ -912,3 +912,11 @@ Clef 악보/음표 아이콘으로 교체했다. 앱 내 피드백 템플릿에�
 두 값이 어긋나면 실패하는 local consistency check를 추가했다. 현재 dirty 작업트리의
 classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악보 뷰어 범위가 아니라 별도
 후속 기능 후보로 분리하며, RC 검증/빌드에는 섞지 않는다.
+
+2026-08-31 실기기 QA 제외 RC closeout에서는 clean temp worktree에 Clef viewer hunk만 적용해
+`clef_rc_tablet_api35` emulator에서 앱 `1.0.0+10`, content URI PDF import/render, portrait toolbar
+horizontal scroll, page edge `곡 끝` 안내, 홈 카드 식별 정보, 튜너 bottom sheet 진입을 확인했다.
+직접 `file://` intent는 Android scoped storage 권한상 실패하므로 제품 import 경로는 picker/share
+sheet의 `content://` URI를 기준으로 한다. 같은 temp worktree에서 `flutter analyze`, targeted
+viewer/auto-scroll tests, debug APK build가 통과했다. 실제 S Pen, 페달, 마이크 튜너 정확도,
+CamScanner object-stream, cloud provider는 실기기/외부 샘플 QA로 유지한다.
