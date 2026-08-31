@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  isNoteInputToggleShortcut,
   isRedoShortcut,
   isRestShortcut,
   isSlurShortcut,
@@ -26,7 +27,7 @@ describe('keyboard input routing', () => {
   ])(
     '[rest-to-note.korean-input] [note-input.korean-note-and-rest-keys] maps physical %s to %s regardless of the active layout',
     (code, key, pitch) => {
-    expect(resolvePitchShortcut(keyEvent({ code, key }))).toBe(pitch)
+      expect(resolvePitchShortcut(keyEvent({ code, key }))).toBe(pitch)
     }
   )
 
@@ -35,13 +36,21 @@ describe('keyboard input routing', () => {
   })
 
   it.each([
-    ['Digit1', '!', 'whole'],
-    ['Digit2', '@', 'half'],
-    ['Digit3', '#', 'quarter'],
+    ['Digit1', '!', '64th'],
+    ['Digit2', '@', '32nd'],
+    ['Digit3', '#', '16th'],
     ['Digit4', '$', 'eighth'],
-    ['Digit5', '%', '16th']
+    ['Digit5', '%', 'quarter'],
+    ['Digit6', '^', 'half'],
+    ['Digit7', '&', 'whole'],
+    ['Numpad5', '5', 'quarter']
   ])('[note-input.korean-editing-keys] maps physical %s to %s duration regardless of the logical key', (code, key, duration) => {
     expect(resolveDurationShortcut(keyEvent({ code, key }))).toBe(duration)
+  })
+
+  it('leaves unsupported duration slots unbound until the score model supports them', () => {
+    expect(resolveDurationShortcut(keyEvent({ code: 'Digit8', key: '8' }))).toBeUndefined()
+    expect(resolveDurationShortcut(keyEvent({ code: 'Digit9', key: '9' }))).toBeUndefined()
   })
 
   it('maps physical punctuation keys to dot edits', () => {
@@ -49,10 +58,19 @@ describe('keyboard input routing', () => {
     expect(resolveDotShortcut(keyEvent({ code: 'Comma', key: ',' }))).toBe(-1)
   })
 
-  it('maps physical command keys for rest, tuplet, tie, slur, undo, and redo', () => {
+  it('maps physical command keys for note input, rest, tuplet, tie, slur, undo, and redo', () => {
+    expect(isNoteInputToggleShortcut(keyEvent({ code: 'KeyN', key: 'ㅜ' }))).toBe(true)
     expect(isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ' }))).toBe(true)
-    expect(isTupletShortcut(keyEvent({ code: 'Digit9', key: '9' }))).toBe(true)
-    expect(isTupletShortcut(keyEvent({ code: 'Numpad9', key: '9' }))).toBe(true)
+    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: ')' }))).toBe(true)
+    expect(isRestShortcut(keyEvent({ code: 'Numpad0', key: '0' }))).toBe(true)
+    expect(
+      isTupletShortcut(keyEvent({ code: 'Digit3', key: '3', metaKey: true }))
+    ).toBe(true)
+    expect(
+      isTupletShortcut(keyEvent({ code: 'Numpad3', key: '3', ctrlKey: true }))
+    ).toBe(true)
+    expect(isTupletShortcut(keyEvent({ code: 'Digit9', key: '9' }))).toBe(false)
+    expect(isTupletShortcut(keyEvent({ code: 'Digit3', key: '3' }))).toBe(false)
     expect(isTieShortcut(keyEvent({ code: 'KeyT', key: 'ㅅ' }))).toBe(true)
     expect(isSlurShortcut(keyEvent({ code: 'KeyS', key: 'ㄴ' }))).toBe(true)
     expect(
@@ -90,6 +108,14 @@ describe('keyboard input routing', () => {
     ).toBeUndefined()
     expect(
       isRestShortcut(keyEvent({ code: 'KeyR', key: 'ㄱ', isComposing: true }))
+    ).toBe(false)
+    expect(
+      isNoteInputToggleShortcut(
+        keyEvent({ code: 'KeyN', key: 'n', isComposing: true })
+      )
+    ).toBe(false)
+    expect(
+      isRestShortcut(keyEvent({ code: 'Digit0', key: '0', shiftKey: true }))
     ).toBe(false)
     expect(
       isSlurShortcut(keyEvent({ code: 'KeyS', key: 's', metaKey: true }))

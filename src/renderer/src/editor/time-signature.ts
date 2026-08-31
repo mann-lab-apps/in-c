@@ -29,7 +29,7 @@ export function buildTimeSignatureCommand(
 ): ScoreCommand | undefined {
   const location =
     selection.type === 'measure'
-      ? locateMeasure(score, selection.measureId)
+      ? locateMeasure(score, selection.measureId, selection.address)
       : locateFocusedEvent(score, selection)
 
   if (!location) {
@@ -75,7 +75,13 @@ export function buildTimeSignatureCommand(
 function locateFocusedEvent(score: Score, selection: EditorSelection) {
   const eventId = getSelectionFocusEventId(selection)
 
-  return eventId ? locateEvent(score, eventId) : undefined
+  return eventId
+    ? locateEvent(
+        score,
+        eventId,
+        selection.type === 'measure' ? undefined : selection.address
+      )
+    : undefined
 }
 
 function applyTimeSignatureToMeasure(

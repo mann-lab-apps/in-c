@@ -13,11 +13,20 @@ const pitchByCode: Partial<Record<string, PitchStep>> = {
 }
 
 const durationByCode: Partial<Record<string, DurationValue>> = {
-  Digit1: 'whole',
-  Digit2: 'half',
-  Digit3: 'quarter',
+  Digit1: '64th',
+  Digit2: '32nd',
+  Digit3: '16th',
   Digit4: 'eighth',
-  Digit5: '16th'
+  Digit5: 'quarter',
+  Digit6: 'half',
+  Digit7: 'whole',
+  Numpad1: '64th',
+  Numpad2: '32nd',
+  Numpad3: '16th',
+  Numpad4: 'eighth',
+  Numpad5: 'quarter',
+  Numpad6: 'half',
+  Numpad7: 'whole'
 }
 
 export type PitchKeyboardAction = 'edit-selection' | 'enter-note'
@@ -29,6 +38,7 @@ export interface PitchShortcutEvent {
   isComposing: boolean
   key: string
   metaKey: boolean
+  shiftKey?: boolean
 }
 
 export function isTextEditingTarget(target: EventTarget | null): boolean {
@@ -111,18 +121,38 @@ export function isRestShortcut(event: PitchShortcutEvent): boolean {
     !event.metaKey &&
     !event.isComposing &&
     event.key !== 'Process' &&
-    (event.code === 'KeyR' || event.key === 'r' || event.key === 'R')
+    !event.shiftKey &&
+    (event.code === 'Digit0' ||
+      event.code === 'Numpad0' ||
+      event.key === '0' ||
+      event.code === 'KeyR' ||
+      event.key === 'r' ||
+      event.key === 'R')
   )
 }
 
-export function isTupletShortcut(event: PitchShortcutEvent): boolean {
+export function isNoteInputToggleShortcut(event: PitchShortcutEvent): boolean {
   return (
     !event.altKey &&
     !event.ctrlKey &&
     !event.metaKey &&
     !event.isComposing &&
     event.key !== 'Process' &&
-    (event.code === 'Digit9' || event.code === 'Numpad9' || event.key === '9')
+    !event.shiftKey &&
+    event.code === 'KeyN'
+  )
+}
+
+export function isTupletShortcut(event: PitchShortcutEvent): boolean {
+  const usesCommandKey = event.metaKey || event.ctrlKey
+
+  return (
+    usesCommandKey &&
+    !event.altKey &&
+    !event.isComposing &&
+    event.key !== 'Process' &&
+    !event.shiftKey &&
+    (event.code === 'Digit3' || event.code === 'Numpad3' || event.key === '3')
   )
 }
 
@@ -203,15 +233,19 @@ function hasCommandModifier(event: PitchShortcutEvent): boolean {
 function durationByKey(key: string): DurationValue | undefined {
   switch (key) {
     case '1':
-      return 'whole'
+      return '64th'
     case '2':
-      return 'half'
+      return '32nd'
     case '3':
-      return 'quarter'
+      return '16th'
     case '4':
       return 'eighth'
     case '5':
-      return '16th'
+      return 'quarter'
+    case '6':
+      return 'half'
+    case '7':
+      return 'whole'
     default:
       return undefined
   }

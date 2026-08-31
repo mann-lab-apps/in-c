@@ -457,7 +457,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        key: '2'
+        code: 'Digit6',
+        key: '6'
       })
     )
   `)
@@ -489,7 +490,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        key: '2'
+        code: 'Digit6',
+        key: '6'
       })
     )
   `)
@@ -520,7 +522,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        key: '3'
+        code: 'Digit5',
+        key: '5'
       })
     )
   `)
@@ -561,7 +564,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        key: '3'
+        code: 'Digit5',
+        key: '5'
       })
     )
   `)
@@ -728,8 +732,9 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit9',
-        key: '9'
+        code: 'Digit3',
+        ctrlKey: true,
+        key: '3'
       })
     )
   `)
@@ -822,8 +827,9 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit9',
-        key: '9'
+        code: 'Digit3',
+        ctrlKey: true,
+        key: '3'
       })
     )
   `)
@@ -845,8 +851,9 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit9',
-        key: '9'
+        code: 'Digit3',
+        ctrlKey: true,
+        key: '3'
       })
     )
   `)
@@ -1041,8 +1048,8 @@ async function verifyKeyboardRouting(window) {
     noteDeleteAbsorbsPrevious.eventCount !== initialEventCount ||
     noteDeleteAbsorbsPrevious.selectedEvent !== 'm4-a4' ||
     noteDeleteAbsorbsPrevious.status !== '음표를 지웠습니다.' ||
-    !tripletButton.ariaLabel?.includes('단축키 9') ||
-    tripletButton.shortcut !== '9' ||
+    !tripletButton.ariaLabel?.includes('단축키 ⌘/Ctrl+3') ||
+    tripletButton.shortcut !== '⌘/Ctrl+3' ||
     tripletButton.editCount !== '1회 수정' ||
     tripletButton.eventCount !== initialEventCount + 1 ||
     tripletButton.hasProgress ||

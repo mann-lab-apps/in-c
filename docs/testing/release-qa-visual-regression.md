@@ -46,6 +46,8 @@ Electron screenshot snapshot은 `scripts/verify-notation-snapshots.cjs`로 실�
 
 - viewport: desktop 1400px, compact 960px.
 - snapshot 대상: 첫 system 상단, tempo/rehearsal/fermata, dynamics/hairpin/slur 영역.
+- screenshot PNG는 실패 분석 artifact로 남기지만, bitmap 캡처 크기는 OS/Electron
+  환경에 따라 흔들릴 수 있으므로 baseline 비교 대상에서 제외한다.
 - baseline 갱신: 의도한 시각 변화가 있을 때만 `npm run verify:notation-snapshots:update`.
 - pixel diff는 font/rendering 차이에 민감하므로 현재 blocker는 metric diff다. 실제 PNG는
   실패 조사 artifact로 사용한다.

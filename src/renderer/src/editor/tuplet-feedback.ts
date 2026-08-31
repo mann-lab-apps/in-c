@@ -21,7 +21,7 @@ export function describeTupletToggleFailure(
     return '셋잇단음표를 만들거나 해제할 음표 또는 쉼표를 선택해 주세요.'
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return '선택한 이벤트를 찾을 수 없습니다.'

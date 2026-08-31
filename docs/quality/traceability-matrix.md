@@ -15,6 +15,7 @@
 
 | 기능/요구사항 | GitHub 이슈 | 검증 | 문서 근거 | 현재 상태 |
 | --- | --- | --- | --- | --- |
+| project/file lifecycle, autosave, recovery, recent files, unsaved-change guard | V1 Slice I local | `npm test -- src/renderer/src/editor/file-lifecycle.test.ts src/renderer/src/App.test.tsx` | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#document-lifecycle) | 지원, packaged app smoke는 별도 |
 | 새 악보 생성, metadata, tempo 기본값 | #106, #44, #100 closed | `npm run verify:e2e`, `npm run test:components` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/score-setup.feature) | 지원 |
 | 단성부 음표/쉼표 입력 | #22, #40, #48, #70, #76 closed | `npm run verify:e2e`, `npm test` | [Agent Workflow](../product/agent-workflow.md), [Acceptance](../product/acceptance/note-input.feature) | 지원 |
 | 음가 변경, dots, range copy/paste/delete | #42, #25, #97, #146, #202, #204 closed | `npm run verify:e2e`, `npm test` | [Manual QA](../releases/manual-score-completion-qa.md), [Acceptance](../product/acceptance/rhythm-duration.feature), [Acceptance](../product/acceptance/range-selection.feature) | 지원 |

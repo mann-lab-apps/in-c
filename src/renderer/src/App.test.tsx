@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?raw'
 import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
 import { parseMusicXml } from '../../musicxml'
+import { unsavedScoreChangesMessage } from './editor/file-lifecycle'
 import { demoScore } from './notation/demo-score'
 
 vi.mock('./notation/NotationPreview', () => ({
@@ -488,6 +489,62 @@ describe('App component shell', () => {
         fileName: selectedFile.fileName
       })
     })
+  })
+
+  it('file-lifecycle.cancelled-unsaved-import keeps the current score open', async () => {
+    window.confirm = vi.fn(() => false)
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({
+      filePath: '/scores/imported.musicxml',
+      fileName: 'imported.musicxml',
+      contents: recentMusicXml
+    })
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: '새 악보 만들기' })).getByRole(
+        'button',
+        { name: '만들기' }
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML 가져오기' }))
+
+    expect(window.confirm).toHaveBeenCalledWith(unsavedScoreChangesMessage)
+    expect(window.inC.musicXml.open).not.toHaveBeenCalled()
+    expect(screen.getByText('제목 없는 악보')).toBeInTheDocument()
+  })
+
+  it('file-lifecycle.opened-recent-score-is-clean-until-edited', async () => {
+    const selectedFile = {
+      filePath: '/scores/sketch.musicxml',
+      fileName: 'sketch.musicxml',
+      openedAt: '2026-07-19T00:00:00.000Z'
+    }
+    vi.mocked(window.inC.recentMusicXml.list).mockResolvedValue([selectedFile])
+    vi.mocked(window.inC.recentMusicXml.open).mockResolvedValue({
+      ...selectedFile,
+      contents: recentMusicXml
+    })
+    vi.mocked(window.inC.recentMusicXml.add).mockResolvedValue([selectedFile])
+
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /sketch\.musicxml/ })
+    )
+    expect(await screen.findByText('MusicXML Sketch')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '새 악보 만들기' }))
+
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole('dialog', { name: '새 악보 만들기' })
+    ).toBeInTheDocument()
   })
 
   it('import-export.save-existing-musicxml overwrites the opened recent file path', async () => {
@@ -1513,7 +1570,7 @@ describe('App component shell', () => {
 
     fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
     const quarterButton = screen.getByRole('button', {
-      name: /4분음표/
+      name: '4분음표, 단축키 5'
     })
     expect(quarterButton).not.toBeDisabled()
     fireEvent.click(quarterButton)
@@ -1526,7 +1583,7 @@ describe('App component shell', () => {
     })
   })
 
-  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter with Digit3', async () => {
+  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter with Digit5', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
     render(<App />)
@@ -1539,8 +1596,8 @@ describe('App component shell', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'note-a4 선택' }))
     fireEvent.keyDown(window, {
-      code: 'Digit3',
-      key: '3'
+      code: 'Digit5',
+      key: '5'
     })
 
     await waitFor(() => {
@@ -1619,6 +1676,28 @@ describe('App component shell', () => {
       'data-measure-id',
       'measure-1'
     )
+  })
+
+  it('keyboard.navigation-first keeps plain vertical arrows from editing pitch', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
+    const preview = screen.getByTestId('notation-preview')
+    const initialPitches = preview.getAttribute('data-event-pitches')
+
+    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    expect(preview).toHaveAttribute('data-event-pitches', initialPitches)
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
+    )
+
+    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' })
+
+    await waitFor(() => {
+      expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D04')
+    })
   })
 
   it('layout.dynamics adds mf to the selected measure preview', async () => {
@@ -1798,7 +1877,7 @@ describe('App component shell', () => {
       name: '8분음표, 단축키 4'
     })
     const quarterDuration = within(durationPalette).getByRole('button', {
-      name: '4분음표, 단축키 3'
+      name: '4분음표, 단축키 5'
     })
 
     expect(within(inspector).queryByLabelText('선택 이벤트 음가')).not.toBeInTheDocument()

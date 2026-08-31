@@ -61,7 +61,8 @@ import {
   type Articulation,
   type TempoEvent,
   type TempoMarking,
-  type TimeSignature
+  type TimeSignature,
+  type VoiceAddress
 } from '../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../musicxml'
 import {
@@ -78,6 +79,8 @@ import {
   buildRangeRestCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
+  createEventSelection,
+  createMeasureSelection,
   createRangeSelection,
   createDuration,
   durationLabels,
@@ -96,6 +99,11 @@ import {
   buildRemoveMeasure,
   resolveActiveMeasureId
 } from './editor/measure-management'
+import {
+  markBeforeUnloadWhenUnsaved,
+  shouldReplaceCurrentScore,
+  type OpenScoreOptions
+} from './editor/file-lifecycle'
 import { buildKeySignatureCommand } from './editor/key-signature'
 import {
   createNewScore,
@@ -123,6 +131,7 @@ import {
 import { describeTupletToggleFailure } from './editor/tuplet-feedback'
 import {
   isRedoShortcut,
+  isNoteInputToggleShortcut,
   isRestShortcut,
   isSlurShortcut,
   isTextEditingTarget,
@@ -148,25 +157,29 @@ import { resolvePrintLayoutPlan } from './notation/print-layout'
 import { useScorePlayback } from './playback/useScorePlayback'
 
 const durations: DurationValue[] = [
-  'whole',
-  'half',
-  'quarter',
+  '64th',
+  '32nd',
+  '16th',
   'eighth',
-  '16th'
+  'quarter',
+  'half',
+  'whole'
 ]
 const durationShortcuts: Partial<Record<DurationValue, string>> = {
-  whole: '1',
-  half: '2',
-  quarter: '3',
+  '64th': '1',
+  '32nd': '2',
+  '16th': '3',
   eighth: '4',
-  '16th': '5'
+  quarter: '5',
+  half: '6',
+  whole: '7'
 }
 const tripletPreset = {
   actualNotes: 3,
   durationValue: 'eighth',
   label: '셋잇단음표',
   normalNotes: 2,
-  shortcut: '9'
+  shortcut: '⌘/Ctrl+3'
 } satisfies {
   actualNotes: number
   durationValue: DurationValue
@@ -508,14 +521,20 @@ export const App = () => {
     () => {
       const eventId = getSelectionFocusEventId(selection)
 
-      return eventId ? locateEvent(score, eventId) : undefined
+      return eventId
+        ? locateEvent(
+            score,
+            eventId,
+            selection.type === 'measure' ? undefined : selection.address
+          )
+        : undefined
     },
     [score, selection]
   )
   const measureLocation = useMemo(
     () =>
       selection.type === 'measure'
-        ? locateMeasure(score, selection.measureId)
+        ? locateMeasure(score, selection.measureId, selection.address)
         : undefined,
     [score, selection]
   )
@@ -718,6 +737,24 @@ export const App = () => {
     }
   }, [autosaveRevision, recoverySnapshot, score])
 
+  useEffect(() => {
+    if (isFixtureMode()) {
+      return
+    }
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      markBeforeUnloadWhenUnsaved(event, {
+        autosaveRevision
+      })
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [autosaveRevision])
+
   const recoverAutosave = useCallback(() => {
     if (!recoverySnapshot) {
       return
@@ -881,9 +918,19 @@ export const App = () => {
   )
 
   const openNewScoreWizard = useCallback(() => {
+    if (
+      !isFixtureMode() &&
+      !shouldReplaceCurrentScore(
+        { autosaveRevision },
+        window.confirm.bind(window)
+      )
+    ) {
+      return
+    }
+
     setMetadataEdit(undefined)
     setNewScoreDraft(createDefaultNewScoreDraft(playback.tempo))
-  }, [playback.tempo])
+  }, [autosaveRevision, playback.tempo])
 
   const cancelNewScoreWizard = useCallback(() => {
     setNewScoreDraft(undefined)
@@ -1049,6 +1096,40 @@ export const App = () => {
     },
     [eventLocation, executeCommand, noteInputState, score, selection]
   )
+
+  const toggleNoteInputMode = useCallback(() => {
+    if (noteInputState) {
+      setMode('select')
+      setNoteInputState(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: '음표 입력을 종료했습니다.'
+      })
+      return
+    }
+
+    const inputState = createInputState(
+      score,
+      selection,
+      createDuration(durationValue),
+      'note'
+    )
+
+    if (!inputState) {
+      setFileStatus({
+        tone: 'error',
+        message: '음표 입력을 시작할 위치를 선택해 주세요.'
+      })
+      return
+    }
+
+    setMode('note')
+    setNoteInputState(inputState)
+    setFileStatus({
+      tone: 'neutral',
+      message: '음표 입력'
+    })
+  }, [durationValue, noteInputState, score, selection])
 
   const changeDots = useCallback(
     (direction: -1 | 1) => {
@@ -1354,7 +1435,8 @@ export const App = () => {
 
         setSelection({
           type: 'event',
-          eventId: input.eventId
+          eventId: input.eventId,
+          address: inputState.target
         })
         if (inputState.tupletInput) {
           setFileStatus({
@@ -1418,7 +1500,8 @@ export const App = () => {
 
       setSelection({
         type: 'event',
-        eventId: input.eventId
+        eventId: input.eventId,
+        address: inputState.target
       })
       if (inputState.tupletInput) {
         setFileStatus({
@@ -1528,7 +1611,8 @@ export const App = () => {
         result.score,
         selection.type === 'range'
           ? selection.eventIds[selection.eventIds.length - 1]
-          : selection.eventId
+          : selection.eventId,
+        selection.address
       )
     )
     setFileStatus({
@@ -1600,10 +1684,7 @@ export const App = () => {
     setNoteInputState(undefined)
 
     if ('editedEventId' in command && command.editedEventId) {
-      setSelection({
-        type: 'event',
-        eventId: command.editedEventId
-      })
+      setSelection(createEventSelection(score, command.editedEventId))
     }
 
     setFileStatus({
@@ -1790,10 +1871,7 @@ export const App = () => {
     setMode('select')
     setNoteInputState(undefined)
     setPendingSlurAnchorEventId(undefined)
-    setSelection({
-      type: 'measure',
-      measureId
-    })
+    setSelection(createMeasureSelection(score, measureId))
     setMeasureContextMenu({
       measureId,
       x: Math.max(
@@ -1805,7 +1883,7 @@ export const App = () => {
         Math.min(position.y, window.innerHeight - MEASURE_CONTEXT_MENU_HEIGHT - 8)
       )
     })
-  }, [])
+  }, [score])
 
   const closeMeasureContextMenu = useCallback(() => {
     setMeasureContextMenu(undefined)
@@ -2244,6 +2322,28 @@ export const App = () => {
     [replaceSelectedNote]
   )
 
+  const addChordPitchStep = useCallback(
+    (step: PitchStep) => {
+      replaceSelectedNote((note) => {
+        const pitches = normalizeChordPitches(note)
+        const pitch: Pitch = {
+          step,
+          octave: note.pitch.octave
+        }
+
+        if (pitches.some((candidate) => samePitch(candidate, pitch))) {
+          return note
+        }
+
+        return {
+          ...note,
+          pitches: [...pitches, pitch].sort(comparePitch)
+        }
+      }, '화음 구성음을 추가했습니다.')
+    },
+    [replaceSelectedNote]
+  )
+
   const removeChordTone = useCallback(
     (pitchLabel: string) => {
       replaceSelectedNote((note) => {
@@ -2370,13 +2470,15 @@ export const App = () => {
       }
 
       if (options?.moveNext && eventLocation) {
-        const eventId = getAdjacentNoteEventId(score, eventLocation.event.id, 1)
+        const eventId = getAdjacentNoteEventId(
+          score,
+          eventLocation.event.id,
+          1,
+          eventLocation.address
+        )
 
         if (eventId) {
-          setSelection({
-            type: 'event',
-            eventId
-          })
+          setSelection(createEventSelection(score, eventId))
         }
       }
     },
@@ -2628,7 +2730,11 @@ export const App = () => {
     }
 
     if (selection.type === 'event') {
-      const currentLocation = locateEvent(score, selection.eventId)
+      const currentLocation = locateEvent(
+        score,
+        selection.eventId,
+        selection.address
+      )
 
       if (!currentLocation || currentLocation.event.type !== 'note') {
         setFileStatus({
@@ -2658,7 +2764,8 @@ export const App = () => {
       const rangeSelection = createRangeSelection(
         score,
         pendingSlurAnchorEventId,
-        selection.eventId
+        selection.eventId,
+        selection.address
       )
 
       if (!rangeSelection || rangeSelection.type !== 'range') {
@@ -2777,10 +2884,7 @@ export const App = () => {
         if (direction === -1 && eventId) {
           setMode('select')
           setNoteInputState(undefined)
-          setSelection({
-            type: 'event',
-            eventId
-          })
+          setSelection(createEventSelection(score, eventId))
         }
 
         return
@@ -2792,7 +2896,12 @@ export const App = () => {
         return
       }
 
-      const eventId = getAdjacentEventId(score, currentEventId, direction)
+      const eventId = getAdjacentEventId(
+        score,
+        currentEventId,
+        direction,
+        selection.type === 'measure' ? undefined : selection.address
+      )
 
       if (eventId) {
         setMode('select')
@@ -2804,42 +2913,39 @@ export const App = () => {
           const rangeSelection = createRangeSelection(
             score,
             anchorEventId,
-            eventId
+            eventId,
+            selection.type === 'measure' ? undefined : selection.address
           )
 
           setSelection(
-            rangeSelection ?? {
-              type: 'event',
-              eventId
-            }
+            rangeSelection ?? createEventSelection(score, eventId)
           )
         } else {
           if (pendingSlurAnchorEventId) {
             const rangeSelection = createRangeSelection(
               score,
               pendingSlurAnchorEventId,
-              eventId
+              eventId,
+              selection.type === 'measure' ? undefined : selection.address
             )
 
             setSelection(
-              rangeSelection ?? {
-                type: 'event',
-                eventId
-              }
+              rangeSelection ?? createEventSelection(score, eventId)
             )
             return
           }
 
-          setSelection({
-            type: 'event',
-            eventId
-          })
+          setSelection(createEventSelection(score, eventId))
         }
         return
       }
 
       if (direction === 1 && !extendRange) {
-        const location = locateEvent(score, currentEventId)
+        const location = locateEvent(
+          score,
+          currentEventId,
+          selection.type === 'measure' ? undefined : selection.address
+        )
         const edit = location
           ? buildInsertMeasureAfter(
               score,
@@ -2874,10 +2980,7 @@ export const App = () => {
     if (eventId) {
       setMode('select')
       setNoteInputState(undefined)
-      setSelection({
-        type: 'event',
-        eventId
-      })
+      setSelection(createEventSelection(score, eventId))
       return
     }
 
@@ -2922,22 +3025,21 @@ export const App = () => {
             ? selection.anchorEventId
             : getSelectionFocusEventId(selection)
         const rangeSelection = anchorEventId
-          ? createRangeSelection(score, anchorEventId, eventId)
+          ? createRangeSelection(
+              score,
+              anchorEventId,
+              eventId,
+              selection.type === 'measure' ? undefined : selection.address
+            )
           : undefined
 
         setSelection(
-          rangeSelection ?? {
-            type: 'event',
-            eventId
-          }
+          rangeSelection ?? createEventSelection(score, eventId)
         )
         return
       }
 
-      setSelection({
-        type: 'event',
-        eventId
-      })
+      setSelection(createEventSelection(score, eventId))
     },
     [score, selection]
   )
@@ -2954,18 +3056,16 @@ export const App = () => {
     setMeasureContextMenu(undefined)
     setActiveLyricVerse(activeVerse)
     setToolbarCategory('lyrics')
-    setSelection({
-      type: 'event',
-      eventId
-    })
-  }, [])
+    setSelection(createEventSelection(score, eventId))
+  }, [score])
 
   const selectEventRange = useCallback(
     (anchorEventId: string, focusEventId: string) => {
       const rangeSelection = createRangeSelection(
         score,
         anchorEventId,
-        focusEventId
+        focusEventId,
+        selection.type === 'measure' ? undefined : selection.address
       )
 
       if (rangeSelection) {
@@ -2975,7 +3075,7 @@ export const App = () => {
         setSelection(rangeSelection)
       }
     },
-    [score]
+    [score, selection]
   )
 
   const selectMeasure = useCallback((measureId: string) => {
@@ -2983,43 +3083,74 @@ export const App = () => {
     setNoteInputState(undefined)
     setPendingSlurAnchorEventId(undefined)
     setMeasureContextMenu(undefined)
-    setSelection({
-      type: 'measure',
-      measureId
-    })
-  }, [])
+    setSelection(createMeasureSelection(score, measureId))
+  }, [score])
 
-  const openScore = useCallback((nextScore: Score, message: string) => {
-    const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
-    const firstEvent = firstMeasure?.voices[0]?.events[0]
+  const openScore = useCallback(
+    (
+      nextScore: Score,
+      message: string,
+      options: OpenScoreOptions = {}
+    ) => {
+      const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
+      const firstEvent = firstMeasure?.voices[0]?.events[0]
 
-    setScore(nextScore)
-    setAutosaveRevision((revision) => revision + 1)
-    setUndoStack([])
-    setRedoStack([])
-    setMode('select')
-    setNoteInputState(undefined)
-    setPendingSlurAnchorEventId(undefined)
-    setRecoverySnapshot(undefined)
-    setStartScreenVisible(false)
-    setSelection(
-      firstEvent
-        ? {
-            type: 'event',
-            eventId: firstEvent.id
-          }
-        : {
-            type: 'measure',
-            measureId: firstMeasure?.id ?? 'measure-1'
-          }
-    )
-    setFileStatus({
-      tone: 'neutral',
-      message
-    })
-  }, [])
+      setScore(nextScore)
+      setAutosaveRevision((revision) =>
+        options.markDirty === false ? 0 : revision + 1
+      )
+      setUndoStack([])
+      setRedoStack([])
+      setMode('select')
+      setNoteInputState(undefined)
+      setPendingSlurAnchorEventId(undefined)
+      setRecoverySnapshot(undefined)
+      setStartScreenVisible(false)
+      setSelection(
+        firstEvent
+          ? {
+              type: 'event',
+              eventId: firstEvent.id,
+              address: {
+                partId: nextScore.parts[0]!.id,
+                staffId: nextScore.parts[0]!.staves[0]!.id,
+                measureId: firstMeasure!.id,
+                voiceId: firstMeasure!.voices[0]!.id
+              }
+            }
+          : {
+              type: 'measure',
+              measureId: firstMeasure?.id ?? 'measure-1',
+              address:
+                firstMeasure && nextScore.parts[0]?.staves[0]
+                  ? {
+                      partId: nextScore.parts[0].id,
+                      staffId: nextScore.parts[0].staves[0].id,
+                      measureId: firstMeasure.id,
+                      voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
+                    }
+                  : undefined
+            }
+      )
+      setFileStatus({
+        tone: 'neutral',
+        message
+      })
+    },
+    []
+  )
 
   const importMusicXml = useCallback(async () => {
+    if (
+      !isFixtureMode() &&
+      !shouldReplaceCurrentScore(
+        { autosaveRevision },
+        window.confirm.bind(window)
+      )
+    ) {
+      return
+    }
+
     try {
       const file = await window.inC.musicXml.open()
 
@@ -3030,7 +3161,9 @@ export const App = () => {
       const importedScore = parseMusicXml(file.contents)
 
       setMissingRecentFilePath(undefined)
-      openScore(importedScore, `${file.fileName}을 가져왔습니다.`)
+      openScore(importedScore, `${file.fileName}을 가져왔습니다.`, {
+        markDirty: false
+      })
       currentMusicXmlFileRef.current = {
         filePath: file.filePath,
         fileName: file.fileName
@@ -3057,10 +3190,20 @@ export const App = () => {
         message: getErrorMessage(error)
       })
     }
-  }, [openScore])
+  }, [autosaveRevision, openScore])
 
   const openRecentMusicXml = useCallback(
     async (file: RecentMusicXmlFile) => {
+      if (
+        !isFixtureMode() &&
+        !shouldReplaceCurrentScore(
+          { autosaveRevision },
+          window.confirm.bind(window)
+        )
+      ) {
+        return
+      }
+
       try {
         const openedFile = await window.inC.recentMusicXml.open({
           filePath: file.filePath
@@ -3068,7 +3211,9 @@ export const App = () => {
         const importedScore = parseMusicXml(openedFile.contents)
 
         setMissingRecentFilePath(undefined)
-        openScore(importedScore, `${openedFile.fileName}을 다시 열었습니다.`)
+        openScore(importedScore, `${openedFile.fileName}을 다시 열었습니다.`, {
+          markDirty: false
+        })
         currentMusicXmlFileRef.current = {
           filePath: openedFile.filePath,
           fileName: openedFile.fileName
@@ -3102,7 +3247,7 @@ export const App = () => {
         })
       }
     },
-    [openScore]
+    [autosaveRevision, openScore]
   )
 
   const removeMissingRecentMusicXml = useCallback(async () => {
@@ -3314,6 +3459,12 @@ export const App = () => {
         return
       }
 
+      if (isNoteInputToggleShortcut(event)) {
+        event.preventDefault()
+        toggleNoteInputMode()
+        return
+      }
+
       const duration = resolveDurationShortcut(event)
 
       if (duration) {
@@ -3323,6 +3474,11 @@ export const App = () => {
       }
 
       const pitch = resolvePitchShortcut(event)
+      const addsChordPitch =
+        pitch &&
+        event.shiftKey &&
+        !noteInputState &&
+        eventLocation?.event.type === 'note'
       const pitchAction = pitch
         ? noteInputState
           ? 'enter-note'
@@ -3332,6 +3488,12 @@ export const App = () => {
               eventLocation?.event.type === 'rest'
             )
         : undefined
+
+      if (addsChordPitch) {
+        event.preventDefault()
+        addChordPitchStep(pitch)
+        return
+      }
 
       if (pitch && pitchAction) {
         event.preventDefault()
@@ -3412,14 +3574,18 @@ export const App = () => {
         case 'ArrowUp':
         case 'ArrowDown':
           event.preventDefault()
-          movePitch(
-            event.shiftKey
-              ? 'octave'
-              : event.altKey
-                ? 'chromatic'
-                : 'diatonic',
-            event.key === 'ArrowUp' ? 1 : -1
-          )
+          if ((event.metaKey || event.ctrlKey) && event.altKey) {
+            movePitch('octave', event.key === 'ArrowUp' ? 1 : -1)
+          } else if (event.altKey && event.shiftKey) {
+            movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
+          } else if (event.altKey) {
+            movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
+          } else if (eventLocation?.event.type === 'note') {
+            setFileStatus({
+              tone: 'neutral',
+              message: '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
+            })
+          }
           break
         case 'Escape':
           if (measureContextMenu) {
@@ -3446,6 +3612,7 @@ export const App = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    addChordPitchStep,
     changeDuration,
     changeDots,
     changePitchStep,
@@ -3473,6 +3640,7 @@ export const App = () => {
     toggleTie,
     toggleTuplet,
     toolbarCategory,
+    toggleNoteInputMode,
     undo
   ])
 
@@ -5241,50 +5409,66 @@ export const App = () => {
 function resolveSelectionAfterClear(
   previousScore: Score,
   nextScore: Score,
-  eventId: string
+  eventId: string,
+  address?: VoiceAddress
 ): EditorSelection {
-  const clearedEvent = locateEvent(nextScore, eventId)?.event
+  const clearedLocation = locateEvent(nextScore, eventId, address)
+  const clearedEvent = clearedLocation?.event
 
   if (
+    clearedLocation &&
     clearedEvent?.type === 'rest' &&
     (clearedEvent.fullMeasure || clearedEvent.duration.tuplet)
   ) {
     return {
       type: 'event',
-      eventId
+      eventId,
+      address: clearedLocation.address
     }
   }
 
-  const nextEventId = getAdjacentEventId(previousScore, eventId, 1)
+  const nextEventId = getAdjacentEventId(previousScore, eventId, 1, address)
 
-  if (nextEventId && locateEvent(nextScore, nextEventId)) {
+  if (nextEventId) {
+    const nextLocation = locateEvent(nextScore, nextEventId, address)
+
+    if (nextLocation) {
+      return {
+        type: 'event',
+        eventId: nextEventId,
+        address: nextLocation.address
+      }
+    }
+  }
+
+  const previousEventId = getAdjacentEventId(previousScore, eventId, -1, address)
+
+  if (previousEventId) {
+    const previousLocation = locateEvent(nextScore, previousEventId, address)
+
+    if (previousLocation) {
+      return {
+        type: 'event',
+        eventId: previousEventId,
+        address: previousLocation.address
+      }
+    }
+  }
+
+  if (clearedLocation) {
     return {
       type: 'event',
-      eventId: nextEventId
+      eventId,
+      address: clearedLocation.address
     }
   }
 
-  const previousEventId = getAdjacentEventId(previousScore, eventId, -1)
-
-  if (previousEventId && locateEvent(nextScore, previousEventId)) {
-    return {
-      type: 'event',
-      eventId: previousEventId
-    }
-  }
-
-  if (locateEvent(nextScore, eventId)) {
-    return {
-      type: 'event',
-      eventId
-    }
-  }
-
-  const previousLocation = locateEvent(previousScore, eventId)
+  const previousLocation = locateEvent(previousScore, eventId, address)
 
   return {
     type: 'measure',
-    measureId: previousLocation?.address.measureId ?? 'measure-1'
+    measureId: previousLocation?.address.measureId ?? 'measure-1',
+    address: previousLocation?.address
   }
 }
 
@@ -5416,16 +5600,35 @@ function createInitialSelection(score: Score): EditorSelection {
   return preferred
     ? {
         type: 'event',
-        eventId: preferred.event.id
+        eventId: preferred.event.id,
+        address: preferred.address
       }
     : firstEvent
       ? {
           type: 'event',
-          eventId: firstEvent.id
+          eventId: firstEvent.id,
+          address:
+            firstMeasure && score.parts[0]?.staves[0]
+              ? {
+                  partId: score.parts[0].id,
+                  staffId: score.parts[0].staves[0].id,
+                  measureId: firstMeasure.id,
+                  voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
+                }
+              : undefined
         }
       : {
           type: 'measure',
-          measureId: firstMeasure?.id ?? 'measure-1'
+          measureId: firstMeasure?.id ?? 'measure-1',
+          address:
+            firstMeasure && score.parts[0]?.staves[0]
+              ? {
+                  partId: score.parts[0].id,
+                  staffId: score.parts[0].staves[0].id,
+                  measureId: firstMeasure.id,
+                  voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
+                }
+              : undefined
         }
 }
 
@@ -5438,7 +5641,11 @@ function createInputState(
   const focusedEventId = getSelectionFocusEventId(selection)
 
   if (focusedEventId) {
-    const location = locateEvent(score, focusedEventId)
+    const location = locateEvent(
+      score,
+      focusedEventId,
+      selection.type === 'measure' ? undefined : selection.address
+    )
 
     return location
       ? createNoteInputState({
@@ -5464,7 +5671,7 @@ function createInputState(
     return undefined
   }
 
-  const location = locateMeasure(score, selection.measureId)
+  const location = locateMeasure(score, selection.measureId, selection.address)
 
   return location
     ? createNoteInputState({
@@ -5480,7 +5687,11 @@ function getEventIdBeforeInputCursor(
   score: Score,
   inputState: NoteInputState
 ): string | undefined {
-  const location = locateMeasure(score, inputState.target.measureId)
+  const location = locateMeasure(
+    score,
+    inputState.target.measureId,
+    inputState.target
+  )
   const previousEvent = location?.events
     .filter((event) => event.position.tick < inputState.tick)
     .at(-1)
@@ -5524,7 +5735,7 @@ function describeDurationEditSuccess(
     return `음가를 ${label}로 바꿨습니다.`
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return `음가를 ${label}로 바꿨습니다.`
@@ -5550,7 +5761,7 @@ function describeDurationEditFailure(
     return '음가를 바꿀 음표나 쉼표를 선택해 주세요.'
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return '선택한 음표나 쉼표를 찾을 수 없습니다.'
@@ -6131,18 +6342,19 @@ function sortLyricsByNumber(lyrics: LyricSyllable[]): LyricSyllable[] {
 function getAdjacentNoteEventId(
   score: Score,
   eventId: string,
-  direction: -1 | 1
+  direction: -1 | 1,
+  address?: VoiceAddress
 ): string | undefined {
-  let nextEventId = getAdjacentEventId(score, eventId, direction)
+  let nextEventId = getAdjacentEventId(score, eventId, direction, address)
 
   while (nextEventId) {
-    const location = locateEvent(score, nextEventId)
+    const location = locateEvent(score, nextEventId, address)
 
     if (location?.event.type === 'note') {
       return nextEventId
     }
 
-    nextEventId = getAdjacentEventId(score, nextEventId, direction)
+    nextEventId = getAdjacentEventId(score, nextEventId, direction, address)
   }
 
   return undefined

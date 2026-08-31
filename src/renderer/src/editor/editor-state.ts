@@ -33,16 +33,19 @@ export type EditorSelection =
   | {
       type: 'event'
       eventId: string
+      address?: VoiceAddress
     }
   | {
       type: 'measure'
       measureId: string
+      address?: VoiceAddress
     }
   | {
       type: 'range'
       anchorEventId: string
       focusEventId: string
       eventIds: string[]
+      address?: VoiceAddress
     }
 
 export interface EventLocation {
@@ -81,7 +84,15 @@ export const durationLabels: Record<DurationValue, string> = {
   '64th': '64분음표'
 }
 
-export function locateEvent(score: Score, eventId: string): EventLocation | undefined {
+export function locateEvent(
+  score: Score,
+  eventId: string,
+  address?: VoiceAddress
+): EventLocation | undefined {
+  if (address) {
+    return locateEventAtAddress(score, eventId, address)
+  }
+
   for (const part of score.parts) {
     for (const staff of part.staves) {
       for (const measure of staff.measures) {
@@ -112,8 +123,13 @@ export function locateEvent(score: Score, eventId: string): EventLocation | unde
 
 export function locateMeasure(
   score: Score,
-  measureId: string
+  measureId: string,
+  address?: VoiceAddress
 ): MeasureLocation | undefined {
+  if (address) {
+    return locateMeasureAtAddress(score, measureId, address)
+  }
+
   for (const part of score.parts) {
     for (const staff of part.staves) {
       const measure = staff.measures.find((candidate) => candidate.id === measureId)
@@ -138,13 +154,131 @@ export function locateMeasure(
   return undefined
 }
 
+function locateEventAtAddress(
+  score: Score,
+  eventId: string,
+  address: VoiceAddress
+): EventLocation | undefined {
+  const location = locateMeasureAtAddress(score, address.measureId, address)
+  const eventIndex = location?.events.findIndex((event) => event.id === eventId)
+
+  if (location && eventIndex !== undefined && eventIndex !== -1) {
+    return {
+      address: location.address,
+      event: location.events[eventIndex],
+      eventIndex,
+      measure: location.measure,
+      measureNumber: location.measureNumber
+    }
+  }
+
+  const part = score.parts.find((candidate) => candidate.id === address.partId)
+  const staff = part?.staves.find((candidate) => candidate.id === address.staffId)
+
+  if (!part || !staff) {
+    return undefined
+  }
+
+  for (const measure of staff.measures) {
+    const voice = measure.voices.find(
+      (candidate) => candidate.id === address.voiceId
+    )
+    const events = sortVoiceEvents(voice?.events ?? [])
+    const nextEventIndex = events.findIndex((event) => event.id === eventId)
+
+    if (voice && nextEventIndex !== -1) {
+      return {
+        address: {
+          partId: part.id,
+          staffId: staff.id,
+          measureId: measure.id,
+          voiceId: voice.id
+        },
+        event: events[nextEventIndex],
+        eventIndex: nextEventIndex,
+        measure,
+        measureNumber: measure.number
+      }
+    }
+  }
+
+  return undefined
+}
+
+function locateMeasureAtAddress(
+  score: Score,
+  measureId: string,
+  address: VoiceAddress
+): MeasureLocation | undefined {
+  const part = score.parts.find((candidate) => candidate.id === address.partId)
+  const staff = part?.staves.find((candidate) => candidate.id === address.staffId)
+  const measure = staff?.measures.find((candidate) => candidate.id === measureId)
+  const voice =
+    measure?.voices.find((candidate) => candidate.id === address.voiceId) ??
+    measure?.voices[0]
+
+  if (!measure || !voice) {
+    return undefined
+  }
+
+  return {
+    address: {
+      partId: part!.id,
+      staffId: staff!.id,
+      measureId: measure.id,
+      voiceId: voice.id
+    },
+    measure,
+    measureNumber: measure.number,
+    events: sortVoiceEvents(voice.events)
+  }
+}
+
+export function createEventSelection(
+  score: Score,
+  eventId: string
+): EditorSelection {
+  const location = locateEvent(score, eventId)
+
+  return location
+    ? {
+        type: 'event',
+        eventId,
+        address: location.address
+      }
+    : {
+        type: 'event',
+        eventId
+      }
+}
+
+export function createMeasureSelection(
+  score: Score,
+  measureId: string,
+  address?: VoiceAddress
+): EditorSelection {
+  const location = locateMeasure(score, measureId, address)
+
+  return location
+    ? {
+        type: 'measure',
+        measureId,
+        address: location.address
+      }
+    : {
+        type: 'measure',
+        measureId
+      }
+}
+
 export function createRangeSelection(
   score: Score,
   anchorEventId: string,
-  focusEventId: string
+  focusEventId: string,
+  address?: VoiceAddress
 ): EditorSelection | undefined {
-  const anchor = locateEvent(score, anchorEventId)
-  const focus = locateEvent(score, focusEventId)
+  const anchor = locateEvent(score, anchorEventId, address)
+  const focus = locateEvent(score, focusEventId, address ?? anchor?.address)
 
   if (!anchor || !focus || !sameVoiceAddress(anchor.address, focus.address)) {
     return undefined
@@ -165,13 +299,15 @@ export function createRangeSelection(
   return selectedEventIds.length === 1
     ? {
         type: 'event',
-        eventId: focusEventId
+        eventId: focusEventId,
+        address: focus.address
       }
     : {
         type: 'range',
         anchorEventId,
         focusEventId,
-        eventIds: selectedEventIds
+        eventIds: selectedEventIds,
+        address: anchor.address
       }
 }
 
@@ -362,7 +498,7 @@ export function buildNoteEntryCommand(
   createId: () => string
 ): ScoreCommand | undefined {
   if (selection.type === 'event') {
-    const location = locateEvent(score, selection.eventId)
+    const location = locateEvent(score, selection.eventId, selection.address)
 
     if (!location) {
       return undefined
@@ -393,7 +529,7 @@ export function buildNoteEntryCommand(
     return undefined
   }
 
-  const location = locateMeasure(score, selection.measureId)
+  const location = locateMeasure(score, selection.measureId, selection.address)
 
   if (!location) {
     return undefined
@@ -441,7 +577,7 @@ export function buildRestEntryCommand(
   createId: () => string
 ): ScoreCommand | undefined {
   if (selection.type === 'event') {
-    const location = locateEvent(score, selection.eventId)
+    const location = locateEvent(score, selection.eventId, selection.address)
 
     if (!location) {
       return undefined
@@ -464,7 +600,7 @@ export function buildRestEntryCommand(
     return undefined
   }
 
-  const location = locateMeasure(score, selection.measureId)
+  const location = locateMeasure(score, selection.measureId, selection.address)
 
   if (!location) {
     return undefined
@@ -499,7 +635,7 @@ export function buildDurationCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return undefined
@@ -807,7 +943,7 @@ export function buildDotCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return undefined
@@ -847,7 +983,7 @@ export function buildTupletGroupCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
   const voice = location?.measure.voices.find(
     (candidate) => candidate.id === location.address.voiceId
   )
@@ -1034,7 +1170,7 @@ export function buildDeleteCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return undefined
@@ -1132,9 +1268,12 @@ function buildRangeDeleteCommand(
 export function getAdjacentEventId(
   score: Score,
   eventId: string,
-  direction: -1 | 1
+  direction: -1 | 1,
+  address?: VoiceAddress
 ): string | undefined {
-  const eventIds = getScoreEventIds(score)
+  const eventIds = address
+    ? getVoiceEventIds(score, address)
+    : getScoreEventIds(score)
   const currentIndex = eventIds.indexOf(eventId)
 
   if (currentIndex === -1) {
@@ -1223,10 +1362,10 @@ function locateSameMeasureRange(
       measure: Measure
       voice: Measure['voices'][number]
       events: VoiceEvent[]
-    }
+  }
   | undefined {
   const locations = selection.eventIds.map((eventId) =>
-    locateEvent(score, eventId)
+    locateEvent(score, eventId, selection.address)
   )
 
   if (locations.some((location) => !location)) {
@@ -1291,7 +1430,7 @@ function locateSelectionRange(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return undefined

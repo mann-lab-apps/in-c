@@ -31,7 +31,7 @@ export function buildPitchStepCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location) {
     return undefined
@@ -172,7 +172,7 @@ export function buildPitchMovementCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location || location.event.type !== 'note') {
     return undefined
@@ -241,7 +241,7 @@ export function buildAccidentalCommand(
     return undefined
   }
 
-  const location = locateEvent(score, selection.eventId)
+  const location = locateEvent(score, selection.eventId, selection.address)
 
   if (!location || location.event.type !== 'note') {
     return undefined

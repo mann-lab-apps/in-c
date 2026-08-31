@@ -14,6 +14,7 @@ import {
   createTimePosition,
   createVoice,
   validateMeasureRhythm,
+  type PitchStep,
   type Score,
   type VoiceEvent
 } from '../../../score-core'
@@ -28,6 +29,7 @@ import {
   buildRangeRestCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
+  createEventSelection,
   createRangeSelection,
   getAdjacentEventId,
   getSelectedEventIds,
@@ -57,14 +59,98 @@ describe('editor state', () => {
     })
   })
 
+  it('score-addressing.locates duplicate event ids by explicit voice address', () => {
+    const score = scoreWithDuplicateEventIds()
+    const celloAddress = {
+      partId: 'cello',
+      staffId: 'cello-staff',
+      measureId: 'measure-1',
+      voiceId: 'voice-1'
+    }
+
+    expect(locateEvent(score, 'shared')?.address.partId).toBe('violin')
+    expect(locateEvent(score, 'shared', celloAddress)).toMatchObject({
+      address: celloAddress,
+      event: {
+        id: 'shared',
+        type: 'note',
+        pitch: {
+          step: 'G'
+        }
+      }
+    })
+  })
+
+  it('score-addressing.keeps duration edits scoped to the addressed voice', () => {
+    const score = scoreWithDuplicateEventIds()
+    const celloAddress = {
+      partId: 'cello',
+      staffId: 'cello-staff',
+      measureId: 'measure-1',
+      voiceId: 'voice-1'
+    }
+    const command = buildDurationCommand(
+      score,
+      {
+        type: 'event',
+        eventId: 'shared',
+        address: celloAddress
+      },
+      createDuration('eighth'),
+      () => 'released-rest'
+    )
+    const result = applyScoreCommand(score, command!)
+
+    expect(
+      locateEvent(result.score, 'shared', celloAddress)?.event.duration.value
+    ).toBe('eighth')
+    expect(
+      locateEvent(result.score, 'shared', {
+        partId: 'violin',
+        staffId: 'violin-staff',
+        measureId: 'measure-1',
+        voiceId: 'voice-1'
+      })?.event.duration.value
+    ).toBe('quarter')
+  })
+
+  it('score-addressing.moves adjacent selection inside the active voice address', () => {
+    const score = scoreWithDuplicateEventIds()
+    const violinSelection = createEventSelection(score, 'shared')
+    const celloAddress = {
+      partId: 'cello',
+      staffId: 'cello-staff',
+      measureId: 'measure-1',
+      voiceId: 'voice-1'
+    }
+
+    expect(violinSelection).toMatchObject({
+      type: 'event',
+      address: {
+        partId: 'violin',
+        staffId: 'violin-staff',
+        voiceId: 'voice-1'
+      }
+    })
+    expect(getAdjacentEventId(score, 'shared', 1, violinSelection.address)).toBe(
+      'violin-next'
+    )
+    expect(getAdjacentEventId(score, 'shared', 1, celloAddress)).toBe('cello-next')
+  })
+
   it('creates an ordered event range selection in one voice', () => {
     const selection = createRangeSelection(demoScore, 'note-g4', 'note-c5')
 
-    expect(selection).toEqual({
+    expect(selection).toMatchObject({
       type: 'range',
       anchorEventId: 'note-g4',
       focusEventId: 'note-c5',
-      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5']
+      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5'],
+      address: {
+        partId: 'piano',
+        staffId: 'piano-staff',
+        voiceId: 'voice-1'
+      }
     })
     expect(getSelectedEventIds(selection!)).toEqual([
       'note-g4',
@@ -75,18 +161,28 @@ describe('editor state', () => {
   })
 
   it('keeps range selection ordered when extending backward', () => {
-    expect(createRangeSelection(demoScore, 'note-c5', 'note-g4')).toEqual({
+    expect(createRangeSelection(demoScore, 'note-c5', 'note-g4')).toMatchObject({
       type: 'range',
       anchorEventId: 'note-c5',
       focusEventId: 'note-g4',
-      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5']
+      eventIds: ['note-g4', 'note-a4', 'note-b4', 'note-c5'],
+      address: {
+        partId: 'piano',
+        staffId: 'piano-staff',
+        voiceId: 'voice-1'
+      }
     })
   })
 
   it('collapses a one-event range back to an event selection', () => {
-    expect(createRangeSelection(demoScore, 'note-g4', 'note-g4')).toEqual({
+    expect(createRangeSelection(demoScore, 'note-g4', 'note-g4')).toMatchObject({
       type: 'event',
-      eventId: 'note-g4'
+      eventId: 'note-g4',
+      address: {
+        partId: 'piano',
+        staffId: 'piano-staff',
+        voiceId: 'voice-1'
+      }
     })
   })
 
@@ -1278,16 +1374,88 @@ function scoreWith(events: VoiceEvent[]): Score {
   })
 }
 
+function scoreWithDuplicateEventIds(): Score {
+  return createScore({
+    parts: [
+      createPart({
+        id: 'violin',
+        name: 'Violin',
+        staves: [
+          createStaff({
+            id: 'violin-staff',
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                voices: [
+                  createVoice({
+                    events: [
+                      noteWithPitch('shared', 0, 'quarter', 'C'),
+                      noteWithPitch(
+                        'violin-next',
+                        TICKS_PER_QUARTER,
+                        'quarter',
+                        'D'
+                      ),
+                      rest('violin-rest', TICKS_PER_QUARTER * 2, 'half')
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      }),
+      createPart({
+        id: 'cello',
+        name: 'Cello',
+        staves: [
+          createStaff({
+            id: 'cello-staff',
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                voices: [
+                  createVoice({
+                    events: [
+                      noteWithPitch('shared', 0, 'quarter', 'G'),
+                      noteWithPitch(
+                        'cello-next',
+                        TICKS_PER_QUARTER,
+                        'quarter',
+                        'A'
+                      ),
+                      rest('cello-rest', TICKS_PER_QUARTER * 2, 'half')
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
 function note(
   id: string,
   tick: number,
   value: Parameters<typeof createDuration>[0]
 ) {
+  return noteWithPitch(id, tick, value, 'C')
+}
+
+function noteWithPitch(
+  id: string,
+  tick: number,
+  value: Parameters<typeof createDuration>[0],
+  step: PitchStep
+) {
   return createNote({
     id,
     position: createTimePosition(tick),
     pitch: {
-      step: 'C',
+      step,
       octave: 4
     },
     duration: createDuration(value)

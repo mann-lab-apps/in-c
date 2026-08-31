@@ -88,18 +88,13 @@ async function readSnapshot(window, width) {
   }
 }
 
-function withoutArtifactPaths(snapshot) {
+function comparableNotationMetrics(snapshot) {
   return Object.fromEntries(
-    Object.entries(snapshot).map(([width, metrics]) => [
-      width,
-      {
-        ...metrics,
-        screenshot: {
-          height: metrics.screenshot.height,
-          width: metrics.screenshot.width
-        }
-      }
-    ])
+    Object.entries(snapshot).map(([width, metrics]) => {
+      const { screenshot, ...notationMetrics } = metrics
+
+      return [width, notationMetrics]
+    })
   )
 }
 
@@ -137,7 +132,7 @@ async function main() {
       960: await readSnapshot(window, 960),
       1400: await readSnapshot(window, 1400)
     }
-    const comparable = withoutArtifactPaths(snapshot)
+    const comparable = comparableNotationMetrics(snapshot)
 
     if (shouldUpdate) {
       fs.mkdirSync(path.dirname(baselinePath), { recursive: true })
@@ -151,7 +146,9 @@ async function main() {
       return
     }
 
-    const expected = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
+    const expected = comparableNotationMetrics(
+      JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
+    )
     const diff = diffSnapshots(expected, comparable)
 
     if (diff) {

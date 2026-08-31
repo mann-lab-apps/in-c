@@ -12,6 +12,7 @@ import {
 } from '../../../score-core'
 import {
   getSelectionFocusEventId,
+  locateEvent,
   locateMeasure,
   type EditorSelection
 } from './editor-state'
@@ -24,8 +25,14 @@ export function buildKeySignatureCommand(
   const measureId =
     selection.type === 'measure'
       ? selection.measureId
-      : findSelectedEventMeasureId(score, getSelectionFocusEventId(selection))
-  const location = measureId ? locateMeasure(score, measureId) : undefined
+      : findSelectedEventMeasureId(
+          score,
+          getSelectionFocusEventId(selection),
+          selection
+        )
+  const location = measureId
+    ? locateMeasure(score, measureId, selection.address)
+    : undefined
 
   if (!location) {
     return undefined
@@ -66,10 +73,20 @@ export function buildKeySignatureCommand(
 
 function findSelectedEventMeasureId(
   score: Score,
-  eventId: string | undefined
+  eventId: string | undefined,
+  selection?: EditorSelection
 ): string | undefined {
   if (!eventId) {
     return undefined
+  }
+
+  const location =
+    selection?.type === 'event' || selection?.type === 'range'
+      ? locateEvent(score, eventId, selection.address)
+      : locateEvent(score, eventId)
+
+  if (location) {
+    return location.address.measureId
   }
 
   for (const part of score.parts) {

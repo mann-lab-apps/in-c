@@ -82,6 +82,17 @@
 | 사용자 영향 | 실제 production release 전에는 별도 smoke evidence가 필요하다. |
 | 문서 근거 | [Release Readiness Checklist](release-readiness-checklist.md#deployment-and-rollback), [Production Playbook](../operations/production-playbook.md) |
 
+## Packaged Desktop Smoke Is Still Required
+
+| 항목 | 내용 |
+| --- | --- |
+| 유형 | 릴리즈 검증 미실행 |
+| 연결 이슈 | V1 Slice Q 또는 release candidate QA |
+| 제한 | renderer 단위 테스트로 파일 lifecycle guard, autosave, recent file behavior를 확인했지만, macOS/Windows packaged app에서 실제 file dialog, quit dialog, save/open/export 흐름은 아직 별도 smoke가 필요하다. |
+| 사용자 영향 | 개발 환경에서는 데이터 손실 방지 경로가 검증됐지만, 공개 V1 후보로 부르기 전에는 설치된 앱에서 새 악보 작성 -> 저장 -> 재실행 -> 열기 -> PDF/MusicXML/MIDI export를 확인해야 한다. |
+| 현재 가능 | 새 악보/열기/최근 파일 전환 전 unsaved-change guard, clean open state, beforeunload guard. |
+| 문서 근거 | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#document-lifecycle), [Traceability Matrix](traceability-matrix.md#notation-editor) |
+
 ## Manual QA Is Still Required For Release Candidates
 
 | 항목 | 내용 |
