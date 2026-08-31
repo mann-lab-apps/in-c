@@ -55,6 +55,21 @@ GA는 결론을 내려주는 도구가 아니다. 무슨 일이 일어났는지�
 | `feedback_open` | Columns 피드백 UI를 열 때 | `content_type`, `content_slug`, `content_title`, `location` | Events by `content_slug` | 공개 콘텐츠 메타만 전송 |
 | `feedback_submit` | Columns 피드백 선택지를 제출할 때 | `content_type`, `content_slug`, `content_title`, `answer`, `location` | Events by `answer` and `content_slug` | 미리 정의한 선택지 값만 전송 |
 
+## in C App Local Events
+
+클래식 디스커버리 앱의 이벤트는 GA4 전송이 아니라 local-first 상태 저장,
+추천 개선, 공연 promotion reporting을 위한 내부 로그로 시작한다.
+
+| Event | Trigger | Required Properties | Reporting Rule |
+| --- | --- | --- | --- |
+| `external_platform_click` | YouTube, Spotify, Apple Music, Melon 등 외부 플랫폼 이동 | `providerId`, `linkId`, `linkType`, `fallback`, `url` | direct link와 search fallback을 분리 집계한다. |
+| `recommendation_click` | 추천 shelf 작품 클릭 | `shelfId` | 추천 이유와 shelf 성능을 본다. |
+| `promotion_impression` | sponsored 공연 card 노출 | promotion id | 화면 rebuild로 중복 집계되지 않아야 한다. |
+| `promotion_click` | sponsored 공연 card 또는 공연 상세 진입 클릭 | promotion id | 예매처 이동과 분리해서 본다. |
+| `promotion_dismiss` | sponsored 공연 card 숨김 | promotion id | 이후 우선순위 하락에 사용한다. |
+| `concert_save` | 공연 저장 | concert id | 저장률은 aggregate만 광고주에게 제공한다. |
+| `ticket_destination_click` | 예매처 destination 이동 | `concertId`, optional `destinationId`, optional `url` | 광고주는 개인 raw event가 아니라 집계 리포트만 본다. |
+
 ## Deferred Events
 
 | Event Candidate | Reason |

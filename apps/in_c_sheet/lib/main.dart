@@ -9,6 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'classical_discovery_app.dart';
+import 'classical_discovery_controller.dart';
+import 'classical_discovery_store.dart';
 import 'pdf_link_policy.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
@@ -43,8 +46,17 @@ Future<void> main() async {
 
   final controller = SheetLibraryController(store: SheetLibraryStore());
   await controller.load();
+  final discoveryController = ClassicalDiscoveryController(
+    store: ClassicalDiscoveryStore(),
+  );
+  await discoveryController.load();
 
-  runApp(InCSheetApp(controller: controller));
+  runApp(
+    InCSheetApp(
+      controller: controller,
+      discoveryController: discoveryController,
+    ),
+  );
 }
 
 Future<int> _readPdfFileRange(
@@ -65,9 +77,14 @@ Future<int> _readPdfFileRange(
 }
 
 class InCSheetApp extends StatelessWidget {
-  const InCSheetApp({required this.controller, super.key});
+  const InCSheetApp({
+    required this.controller,
+    required this.discoveryController,
+    super.key,
+  });
 
   final SheetLibraryController controller;
+  final ClassicalDiscoveryController discoveryController;
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +99,23 @@ class InCSheetApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xfffbfbf7),
         useMaterial3: true,
       ),
-      home: SheetLibraryScreen(controller: controller),
+      home: SheetLibraryScreen(
+        controller: controller,
+        discoveryController: discoveryController,
+      ),
     );
   }
 }
 
 class SheetLibraryScreen extends StatefulWidget {
-  const SheetLibraryScreen({required this.controller, super.key});
+  const SheetLibraryScreen({
+    required this.controller,
+    required this.discoveryController,
+    super.key,
+  });
 
   final SheetLibraryController controller;
+  final ClassicalDiscoveryController discoveryController;
 
   @override
   State<SheetLibraryScreen> createState() => _SheetLibraryScreenState();
@@ -205,6 +230,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       showDragHandle: true,
       builder: (context) =>
           _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
+    );
+  }
+
+  Future<void> _openClassicalDiscovery() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) =>
+            ClassicalDiscoveryAppShell(controller: widget.discoveryController),
+      ),
     );
   }
 
@@ -1015,6 +1049,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ? Text('${_bulkSelectedScoreIds.length}개 선택')
             : null,
         actions: [
+          IconButton(
+            tooltip: '클래식 듣기',
+            onPressed: _openClassicalDiscovery,
+            icon: const Icon(Icons.album_outlined),
+          ),
           IconButton(
             tooltip: _isBulkSelecting ? '선택 취소' : '여러 악보 선택',
             onPressed: _toggleBulkSelectionMode,
