@@ -302,7 +302,7 @@ flutter build ios --release --no-codesign
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
 - 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너 보강분 내부테스트 빌드는
-  `1.0.0+10`, 최종 RC 후보는 `1.0.0+11`로 준비했다.
+  `1.0.0+10`, `1.0.0+11`, 최종 RC 후보는 `1.0.0+12`로 준비했다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -321,7 +321,7 @@ flutter build ios --release --no-codesign
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 repo version은 `1.0.0+11`이다.
+- 현재 repo version은 `1.0.0+12`이다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
