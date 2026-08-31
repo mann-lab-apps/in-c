@@ -1,7 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Clef app icon">
   <rect width="512" height="512" rx="112" fill="#103437"/>
-  <rect x="102" y="72" width="296" height="368" rx="34" fill="#f8f4e8"/>
-  <path fill="#dde7d0" d="M139 110h222c14 0 25 11 25 25v271H139z"/>
-  <path stroke="#103437" stroke-width="14" stroke-linecap="round" d="M164 171h172M164 228h172M164 285h172M164 342h172"/>
-  <path fill="#2f8c8f" d="M283 129c-10 0-18 8-18 17v146c-14-8-31-12-49-12-46 0-82 24-82 56s36 56 82 56 82-24 82-56V195c37 24 59 59 59 99 0 31-13 59-34 83-6 7-6 18 1 25 8 8 22 7 29-2 27-33 42-70 42-109 0-66-37-121-97-153v-6c0-7-7-13-15-13z"/>
+  <path fill="#9fd5b9" d="M151 101h48c11 0 20 9 20 20s-9 20-20 20h-5v230h5c11 0 20 9 20 20s-9 20-20 20h-48c-11 0-20-9-20-20s9-20 20-20h5V141h-5c-11 0-20-9-20-20s9-20 20-20z"/>
+  <path fill="#f8f4e8" d="M132 86h48c11 0 20 9 20 20s-9 20-20 20h-5v260h5c11 0 20 9 20 20s-9 20-20 20h-48c-11 0-20-9-20-20s9-20 20-20h5V126h-5c-11 0-20-9-20-20s9-20 20-20z"/>
+  <path fill="none" stroke="#9fd5b9" stroke-width="43" stroke-linecap="round" stroke-linejoin="round" d="M359 153c-62-52-148-14-148 62 0 62 76 76 114 38M359 359c-62 52-148 14-148-62 0-62 76-76 114-38"/>
+  <path fill="none" stroke="#f8f4e8" stroke-width="43" stroke-linecap="round" stroke-linejoin="round" d="M340 134c-62-52-148-14-148 62 0 62 76 76 114 38M340 378c-62 52-148 14-148-62 0-62 76-76 114-38"/>
+  <circle cx="392" cy="196" r="24" fill="#f8f4e8"/>
+  <circle cx="392" cy="316" r="24" fill="#f8f4e8"/>
 </svg>

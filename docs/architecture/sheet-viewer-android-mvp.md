@@ -903,8 +903,8 @@ acceptance criteria를 먼저 고정해야 하는 후속 spike다.
 
 2026-08-30 실기기 1차 QA 이후에는 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장이 Android
 내부 테스트 설치본에서 합격선임을 문서화했다. MobileSheets 비교에서 확인한 방향키 방식 페이지
-넘김과 곡 처음/끝 안내를 기준으로 viewer key event 소비 경로를 보강했고, legacy launcher PNG를
-Clef 악보/음표 아이콘으로 교체했다. 앱 내 피드백 템플릿에는 어색한 한글 문구/표시 기록 필드를
+넘김과 곡 처음/끝 안내를 기준으로 viewer key event 소비 경로를 보강했고, launcher/adaptive icon을
+Clef C음자리표 아이콘으로 교체했다. 앱 내 피드백 템플릿에는 어색한 한글 문구/표시 기록 필드를
 추가해 한국어 UX polish를 RC QA 항목으로 수집한다.
 
 2026-08-31 RC 잔여 안정화에서는 내부테스트 handoff version을 `1.0.0+10`으로 고정하고,
