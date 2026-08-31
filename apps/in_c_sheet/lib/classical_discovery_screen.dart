@@ -123,6 +123,7 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
         onOpenWork: _openWork,
         onOpenLink: _openLink,
         onOpenTicket: _openTicket,
+        onOpenConcert: _openPromotionConcert,
       ),
       1 => _DiscoverView(controller: controller, onOpenWork: _openWork),
       2 => _MyMusicView(
@@ -164,7 +165,16 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
 
   Future<void> _openLink(ClassicalWork work, ExternalLink link) async {
     await controller.recordProviderClick(work, link);
-    await _launchUrl(link.url);
+    final opened = await _launchUrl(link.url);
+    if (opened || link.linkType == 'listen_search') {
+      return;
+    }
+    final fallback = _fallbackSearchLinkFor(work, except: link.id);
+    if (fallback == null) {
+      return;
+    }
+    await controller.recordProviderClick(work, fallback, fallback: true);
+    await _launchUrl(fallback.url);
   }
 
   Future<void> _openTicket(ClassicalPromotionView view) async {
@@ -173,16 +183,34 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
     await _launchUrl(view.concert.ticketUrl);
   }
 
-  Future<void> _launchUrl(String value) async {
+  Future<void> _openPromotionConcert(ClassicalPromotionView view) async {
+    await controller.recordPromotionClick(view.promotion.id);
+    await _openConcert(view.concert);
+  }
+
+  Future<void> _openConcert(ClassicalConcert concert) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => ClassicalConcertDetailScreen(
+          controller: controller,
+          concert: concert,
+        ),
+      ),
+    );
+  }
+
+  Future<bool> _launchUrl(String value) async {
     final uri = Uri.tryParse(value);
     if (uri == null ||
         !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (!mounted) {
-        return;
+        return false;
       }
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('링크를 열지 못했습니다.')));
+      return false;
     }
+    return true;
   }
 
   Future<void> _showPlatformSheet() async {
@@ -743,6 +771,8 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
                         view: view,
                         controller: controller,
                         onTicket: () => _openTicket(context, view),
+                        onOpenConcert: () =>
+                            _openPromotionConcert(context, view),
                       ),
                   ],
                 ],
@@ -759,7 +789,19 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    await _launch(context, link.url);
+    final opened = await _launch(context, link.url);
+    if (opened || link.linkType == 'listen_search') {
+      return;
+    }
+    final fallback = _fallbackSearchLinkFor(work, except: link.id);
+    if (fallback == null) {
+      return;
+    }
+    await controller.recordProviderClick(work, fallback, fallback: true);
+    if (!context.mounted) {
+      return;
+    }
+    await _launch(context, fallback.url);
   }
 
   Future<void> _openTicket(
@@ -773,6 +815,120 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     }
     await _launch(context, view.concert.ticketUrl);
   }
+
+  Future<void> _openPromotionConcert(
+    BuildContext context,
+    ClassicalPromotionView view,
+  ) async {
+    await controller.recordPromotionClick(view.promotion.id);
+    if (!context.mounted) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => ClassicalConcertDetailScreen(
+          controller: controller,
+          concert: view.concert,
+        ),
+      ),
+    );
+  }
+}
+
+class ClassicalConcertDetailScreen extends StatelessWidget {
+  const ClassicalConcertDetailScreen({
+    required this.controller,
+    required this.concert,
+    super.key,
+  });
+
+  final ClassicalDiscoveryController controller;
+  final ClassicalConcert concert;
+
+  @override
+  Widget build(BuildContext context) {
+    final works = concert.programWorkIds
+        .map(controller.workById)
+        .whereType<ClassicalWork>()
+        .toList(growable: false);
+    final destinations = _sortedTicketDestinations(concert);
+    return Scaffold(
+      appBar: AppBar(title: Text(concert.title)),
+      body: SafeArea(
+        child: _PageFrame(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            children: [
+              _IntroBand(
+                title: concert.title,
+                subtitle:
+                    '${_formatDateTime(concert.startsAt)} · ${concert.venue}',
+              ),
+              const SizedBox(height: 12),
+              _Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _SectionTitle(title: '연주'),
+                    const SizedBox(height: 8),
+                    Text(concert.performers.join(', ')),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        for (final tag in concert.instrumentTags)
+                          Chip(label: Text(tag)),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              const _SectionTitle(title: '프로그램'),
+              const SizedBox(height: 8),
+              if (works.isEmpty)
+                _Panel(child: Text(concert.programRawText))
+              else
+                for (final work in works)
+                  _WorkListTile(
+                    work: work,
+                    onTap: () {
+                      Navigator.of(context).push<void>(
+                        MaterialPageRoute<void>(
+                          builder: (context) => ClassicalWorkDetailScreen(
+                            controller: controller,
+                            work: work,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+              const SizedBox(height: 16),
+              const _SectionTitle(title: '예매처'),
+              const SizedBox(height: 8),
+              for (final destination in destinations)
+                _LinkTile(
+                  icon: Icons.confirmation_number_outlined,
+                  title: destination.label,
+                  subtitle: destination.url,
+                  onTap: () async {
+                    await controller.recordTicketDestinationClick(
+                      concert.id,
+                      destination: destination,
+                    );
+                    if (!context.mounted) {
+                      return;
+                    }
+                    await _launch(context, destination.url);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _TodayView extends StatelessWidget {
@@ -781,12 +937,14 @@ class _TodayView extends StatelessWidget {
     required this.onOpenWork,
     required this.onOpenLink,
     required this.onOpenTicket,
+    required this.onOpenConcert,
   });
 
   final ClassicalDiscoveryController controller;
   final ValueChanged<ClassicalWork> onOpenWork;
   final Future<void> Function(ClassicalWork work, ExternalLink link) onOpenLink;
   final Future<void> Function(ClassicalPromotionView view) onOpenTicket;
+  final Future<void> Function(ClassicalPromotionView view) onOpenConcert;
 
   @override
   Widget build(BuildContext context) {
@@ -820,6 +978,7 @@ class _TodayView extends StatelessWidget {
                 view: view,
                 controller: controller,
                 onTicket: () => onOpenTicket(view),
+                onOpenConcert: () => onOpenConcert(view),
               ),
           ],
           const SizedBox(height: 16),
@@ -1112,7 +1271,7 @@ class _WorkHero extends StatelessWidget {
                           _showMomentPreview(context, moment, links),
                         ),
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('30초 듣기 열기'),
+                  label: const Text('30초 듣기'),
                 ),
                 OutlinedButton.icon(
                   onPressed: work.listeningMoments.length < 2
@@ -1125,7 +1284,7 @@ class _WorkHero extends StatelessWidget {
                           ),
                         ),
                   icon: const Icon(Icons.timelapse),
-                  label: const Text('3분 듣기 열기'),
+                  label: const Text('3분 듣기'),
                 ),
                 IconButton.filledTonal(
                   tooltip: state.saved ? '저장 해제' : '작품 저장',
@@ -1160,7 +1319,7 @@ class _WorkHero extends StatelessWidget {
               FilledButton.tonalIcon(
                 onPressed: () => onOpenLink(links.first),
                 icon: const Icon(Icons.open_in_new),
-                label: Text('${links.first.label}에서 전체 듣기'),
+                label: Text(_listenCtaLabel(links.first)),
               ),
           ],
         ),
@@ -1311,7 +1470,7 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
                   onPressed: () =>
                       unawaited(_openPreferred(context, preferred)),
                   icon: const Icon(Icons.open_in_new),
-                  label: Text('${preferred.label}에서 열기'),
+                  label: Text(_listenCtaLabel(preferred)),
                 ),
               ),
             if (widget.links.length > 1) ...[
@@ -1324,7 +1483,7 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
                     OutlinedButton.icon(
                       onPressed: () => unawaited(_openPreferred(context, link)),
                       icon: const Icon(Icons.open_in_new),
-                      label: Text(link.label),
+                      label: Text(_listenCtaLabel(link)),
                     ),
                 ],
               ),
@@ -1520,7 +1679,7 @@ class _ExternalLinksWrap extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: () => onOpenLink(link),
             icon: const Icon(Icons.open_in_new),
-            label: Text(link.label),
+            label: Text(_listenCtaLabel(link)),
           ),
       ],
     );
@@ -1650,11 +1809,13 @@ class _PromotionCard extends StatelessWidget {
     required this.view,
     required this.controller,
     required this.onTicket,
+    this.onOpenConcert,
   });
 
   final ClassicalPromotionView view;
   final ClassicalDiscoveryController controller;
   final VoidCallback onTicket;
+  final VoidCallback? onOpenConcert;
 
   @override
   Widget build(BuildContext context) {
@@ -1662,54 +1823,62 @@ class _PromotionCard extends StatelessWidget {
     return Card(
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Chip(
-                  label: Text(view.promotion.sponsorLabel),
-                  visualDensity: VisualDensity.compact,
-                ),
-                const Spacer(),
-                IconButton(
-                  tooltip: view.isSaved ? '공연 저장 해제' : '공연 저장',
-                  onPressed: () =>
-                      unawaited(controller.toggleSaveConcert(view.concert.id)),
-                  icon: Icon(
-                    view.isSaved ? Icons.bookmark : Icons.bookmark_add_outlined,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: onOpenConcert,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Chip(
+                    label: Text(view.promotion.sponsorLabel),
+                    visualDensity: VisualDensity.compact,
                   ),
-                ),
-                IconButton(
-                  tooltip: '관심 없음',
-                  onPressed: () =>
-                      unawaited(controller.dismissPromotion(view.promotion.id)),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            Text(
-              view.concert.title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
+                  const Spacer(),
+                  IconButton(
+                    tooltip: view.isSaved ? '공연 저장 해제' : '공연 저장',
+                    onPressed: () => unawaited(
+                      controller.toggleSaveConcert(view.concert.id),
+                    ),
+                    icon: Icon(
+                      view.isSaved
+                          ? Icons.bookmark
+                          : Icons.bookmark_add_outlined,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: '관심 없음',
+                    onPressed: () => unawaited(
+                      controller.dismissPromotion(view.promotion.id),
+                    ),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${_formatDateTime(view.concert.startsAt)} · ${view.concert.venue}',
-              style: theme.textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 6),
-            Text(view.concert.performers.join(', ')),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              onPressed: onTicket,
-              icon: const Icon(Icons.confirmation_number_outlined),
-              label: const Text('예매처 보기'),
-            ),
-          ],
+              Text(
+                view.concert.title,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '${_formatDateTime(view.concert.startsAt)} · ${view.concert.venue}',
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(view.concert.performers.join(', ')),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onTicket,
+                icon: const Icon(Icons.confirmation_number_outlined),
+                label: const Text('예매처 보기'),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2117,16 +2286,59 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-Future<void> _launch(BuildContext context, String value) async {
+Future<bool> _launch(BuildContext context, String value) async {
   final uri = Uri.tryParse(value);
   if (uri == null ||
       !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     if (!context.mounted) {
-      return;
+      return false;
     }
     ScaffoldMessenger.of(context)
         .showSnackBar(const SnackBar(content: Text('링크를 열지 못했습니다.')));
+    return false;
   }
+  return true;
+}
+
+ExternalLink? _fallbackSearchLinkFor(ClassicalWork work, {String? except}) {
+  final candidates = work.externalLinks
+      .where((link) => link.id != except)
+      .where((link) => link.linkType == 'listen_search')
+      .toList(growable: false);
+  if (candidates.isEmpty) {
+    return null;
+  }
+  candidates.sort((a, b) {
+    final aScore = a.platformId == 'youtube' ? 0 : 1;
+    final bScore = b.platformId == 'youtube' ? 0 : 1;
+    final byProvider = aScore.compareTo(bScore);
+    return byProvider != 0 ? byProvider : a.label.compareTo(b.label);
+  });
+  return candidates.first;
+}
+
+String _listenCtaLabel(ExternalLink link) {
+  if (link.linkType == 'listen_search') {
+    return '${link.label}에서 검색';
+  }
+  return '${link.label}에서 전체 듣기';
+}
+
+List<TicketDestination> _sortedTicketDestinations(ClassicalConcert concert) {
+  final destinations = concert.ticketDestinations.isEmpty
+      ? <TicketDestination>[
+          TicketDestination(
+            id: '${concert.id}-ticket',
+            label: '예매처',
+            url: concert.ticketUrl,
+          ),
+        ]
+      : [...concert.ticketDestinations];
+  destinations.sort((a, b) {
+    final byPriority = a.displayPriority.compareTo(b.displayPriority);
+    return byPriority != 0 ? byPriority : a.label.compareTo(b.label);
+  });
+  return List<TicketDestination>.unmodifiable(destinations);
 }
 
 String _formatDuration(int seconds) {

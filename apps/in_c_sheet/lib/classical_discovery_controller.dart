@@ -122,7 +122,19 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   Set<String> get interestedInstruments {
-    return savedWorks.map((work) => work.instrumentation).toSet();
+    return <String>{
+      ..._state.preferredInstruments,
+      ...savedWorks.map((work) => work.instrumentation),
+      ..._instrumentCuriosityTags,
+    };
+  }
+
+  Set<String> get _instrumentCuriosityTags {
+    return <String>{
+      for (final reaction in _state.reactions)
+        if (reaction.type == 'instrument')
+          if (workById(reaction.workId) case final work?) work.instrumentation,
+    };
   }
 
   Future<void> load() async {
@@ -341,6 +353,23 @@ class ClassicalDiscoveryController extends ChangeNotifier {
               .take(8)
               .toList(growable: false),
         ),
+      if (_instrumentCuriosityTags.isNotEmpty)
+        RecommendationShelf(
+          id: 'instrument-curiosity',
+          title: '궁금해진 소리로 이어 듣기',
+          reason: '악기가 궁금했던 작품에서 이어집니다.',
+          source: 'reaction',
+          works: _works
+              .where(
+                (work) =>
+                    _instrumentCuriosityTags.contains(work.instrumentation) &&
+                    !_state.reactions.any(
+                      (reaction) => reaction.workId == work.id,
+                    ),
+              )
+              .take(8)
+              .toList(growable: false),
+        ),
       if (_state.preferredMoodTags.isNotEmpty ||
           _state.preferredContextTags.isNotEmpty)
         RecommendationShelf(
@@ -528,10 +557,15 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       momentId: momentId,
       occurredAt: now,
     );
+    final repeatDueAt = switch (type) {
+      'liked' => now.add(const Duration(days: 3)),
+      'repeat' || 'instrument' || 'unsure' => now.add(const Duration(days: 1)),
+      _ => now.add(const Duration(days: 1)),
+    };
     final nextWorkState = current.copyWith(
       firstListenedAt: current.firstListenedAt ?? now,
       lastListenedAt: now,
-      repeatDueAt: now.add(const Duration(days: 1)),
+      repeatDueAt: repeatDueAt,
       updatedAt: now,
       reactionCounts: reactionCounts,
     );
@@ -616,8 +650,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   Future<void> recordProviderClick(
     ClassicalWork work,
-    ExternalLink link,
-  ) async {
+    ExternalLink link, {
+    bool fallback = false,
+  }) async {
     await _setState(
       _state.copyWith(
         events: _withEvent(
@@ -628,6 +663,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           properties: <String, String>{
             'providerId': link.platformId,
             'linkId': link.id,
+            'linkType': link.linkType,
+            'fallback': fallback.toString(),
+            'url': link.url,
           },
         ),
       ),
@@ -705,14 +743,21 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
-  Future<void> recordTicketDestinationClick(String concertId) async {
+  Future<void> recordTicketDestinationClick(
+    String concertId, {
+    TicketDestination? destination,
+  }) async {
     await _setState(
       _state.copyWith(
         events: _withEvent(
           'ticket_destination_click',
           'concert',
           concertId,
-          properties: <String, String>{'concertId': concertId},
+          properties: <String, String>{
+            'concertId': concertId,
+            if (destination != null) 'destinationId': destination.id,
+            if (destination != null) 'url': destination.url,
+          },
         ),
       ),
     );

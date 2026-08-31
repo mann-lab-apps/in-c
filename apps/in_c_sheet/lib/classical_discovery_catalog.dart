@@ -1421,7 +1421,14 @@ ClassicalWork _work({
   required List<String> relatedWorkIds,
   required List<String> concertIds,
 }) {
-  final searchQuery = '$composerOriginal $titleOriginal';
+  final searchQuery = _searchQueryForWork(
+    titleKo: titleKo,
+    titleOriginal: titleOriginal,
+    composerKo: composerKo,
+    composerOriginal: composerOriginal,
+    catalogNumber: catalogNumber,
+    aliases: aliases,
+  );
   return ClassicalWork(
     id: id,
     titleKo: titleKo,
@@ -1508,21 +1515,21 @@ List<ExternalLink> _externalLinks(String workId, String query) {
       platformId: 'youtube',
       label: 'YouTube',
       url: _youtubeSearch(query),
-      linkType: 'listen',
+      linkType: 'listen_search',
     ),
     ExternalLink(
       id: '$workId-spotify',
       platformId: 'spotify',
       label: 'Spotify',
       url: _spotifySearch(query),
-      linkType: 'listen',
+      linkType: 'listen_search',
     ),
     ExternalLink(
       id: '$workId-apple',
       platformId: 'apple-music',
       label: 'Apple Music',
       url: 'https://music.apple.com/search?term=${Uri.encodeComponent(query)}',
-      linkType: 'listen',
+      linkType: 'listen_search',
     ),
     ExternalLink(
       id: '$workId-melon',
@@ -1533,6 +1540,29 @@ List<ExternalLink> _externalLinks(String workId, String query) {
       linkType: 'listen_search',
     ),
   ];
+}
+
+String _searchQueryForWork({
+  required String titleKo,
+  required String titleOriginal,
+  required String composerKo,
+  required String composerOriginal,
+  required String catalogNumber,
+  required List<String> aliases,
+}) {
+  final terms = <String>[
+    composerOriginal,
+    titleOriginal,
+    if (catalogNumber.isNotEmpty) catalogNumber,
+    composerKo,
+    titleKo,
+    ...aliases.take(2),
+  ];
+  return terms
+      .map((term) => term.trim())
+      .where((term) => term.isNotEmpty)
+      .toSet()
+      .join(' ');
 }
 
 String _youtubeSearch(String query) {

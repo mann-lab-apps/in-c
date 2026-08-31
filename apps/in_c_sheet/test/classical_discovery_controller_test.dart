@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/classical_admin_commands.dart';
 import 'package:in_c_sheet/classical_concert_import.dart';
@@ -308,8 +309,56 @@ void main() {
       );
       expect(controller.state.events[1].eventType, 'external_platform_click');
       expect(controller.state.events[1].properties['providerId'], 'youtube');
+      expect(
+        controller.state.events[1].properties['linkType'],
+        'listen_search',
+      );
+      expect(controller.state.events[1].properties['fallback'], 'false');
+      expect(
+        controller.state.events[1].properties['url'],
+        startsWith('https://'),
+      );
     },
   );
+
+  test('external provider fallback click is marked separately', () async {
+    final controller = _controller();
+    await controller.load();
+    final work = controller.workById('bach-air')!;
+
+    await controller.recordProviderClick(
+      work,
+      work.externalLinks.first,
+      fallback: true,
+    );
+
+    expect(controller.state.events.first.eventType, 'external_platform_click');
+    expect(controller.state.events.first.properties['fallback'], 'true');
+    expect(
+      controller.state.events.first.properties['linkType'],
+      'listen_search',
+    );
+  });
+
+  test('instrument curiosity reaction creates a Discover shelf', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.addReaction(
+      'bach-air',
+      'instrument',
+      momentId: 'bach-air-30s',
+    );
+
+    final shelf = controller.discoverShelves().firstWhere(
+      (item) => item.id == 'instrument-curiosity',
+    );
+
+    expect(controller.interestedInstruments, contains('현악합주'));
+    expect(shelf.title, '궁금해진 소리로 이어 듣기');
+    expect(shelf.works.map((work) => work.id), isNot(contains('bach-air')));
+    expect(shelf.works.every((work) => work.instrumentation == '현악합주'), isTrue);
+  });
 
   test('recommendation clicks are stored with shelf context', () async {
     final controller = _controller();
@@ -593,7 +642,7 @@ void main() {
 
     await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('30초 듣기 열기').first);
+    await tester.tap(find.text('30초 듣기').first);
     await tester.pumpAndSettle();
 
     expect(find.text('처음 붙잡을 30초'), findsOneWidget);
@@ -601,6 +650,38 @@ void main() {
       controller.state.events.first.eventType,
       'listening_moment_preview_open',
     );
+  });
+
+  testWidgets('sponsored concert card opens concert detail from Today', (
+    tester,
+  ) async {
+    final moonlightIndex = ClassicalDiscoveryCatalog.works.indexWhere(
+      (work) => work.id == 'beethoven-moonlight',
+    );
+    final controller = _controller(
+      clock: () => DateTime(2026).add(Duration(days: moonlightIndex)),
+    );
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('이 작품을 실제로 들을 수 있는 공연'),
+      500,
+      scrollable: find.byWidgetPredicate(
+        (widget) =>
+            widget is Scrollable && widget.axisDirection == AxisDirection.down,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('피아노로 시작하는 클래식 나이트').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('프로그램'), findsOneWidget);
+    expect(controller.state.events.first.eventType, 'promotion_click');
   });
 }
 

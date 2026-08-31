@@ -5,10 +5,15 @@
 ## Product
 
 - Today에서 오늘의 작품, 30초/3분 listening moment, 저장, reaction, 외부 플랫폼 열기가 동작한다.
+- `악기가 궁금함` reaction이 관심 편성으로 이어져 Discover 추천을 바꾼다.
+- 외부 플랫폼 click event는 provider, link type, fallback 여부, URL을 기록한다.
+- 검색 기반 플랫폼 link는 `전체 듣기`가 아니라 `검색` CTA로 표시한다.
 - Work Detail에서 작품명, 원어명, 작곡가, 시대, 편성, 길이, 악장, 작품 번호, 추천 shelf가 보인다.
 - Discover에서 mood, 악기, 작곡가, 시대, 입문, 공연 전 shelf가 동작한다.
 - My Music에서 저장 작품, 다시 들을 작품, reaction history, 선호 플랫폼 설정이 동작한다.
 - Concerts에서 관심 작품/작곡가/악기/지역 기반 공연과 sponsored 공연 card가 보인다.
+- Today와 Work Detail의 sponsored 공연 card는 click event 기록 후 Concert Detail로 진입한다.
+- Concert Detail에서 프로그램 작품과 예매처 destination을 확인할 수 있다.
 - 공연 card는 첫 청취 CTA보다 위에 노출되지 않는다.
 - Sponsored 표기는 명확하며 일반 추천 공연과 구분된다.
 
