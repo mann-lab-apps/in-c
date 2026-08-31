@@ -313,8 +313,9 @@ flutter build ios --release --no-codesign
 - 한국어 버전을 원하는 사용자 요구가 있으므로 앱 내 피드백 템플릿과 QA 기록에 어색한 한글
   문구/표시 항목을 추가했다.
 - Android legacy launcher PNG를 Flutter 기본 아이콘에서 Clef 악보/음표 아이콘으로 교체했다.
-- Store/launcher 표시 이름은 단독 `Clef`가 기존 음악 교육 앱들과 겹칠 수 있어 `Clef Sheet`로 구분한다.
-  패키지명과 내부 프로젝트명은 배포 연속성을 위해 `com.mannlab.clef` / Clef를 유지한다.
+- Store/launcher 표시 이름은 현재 `Clef`를 유지한다. 단독 `Clef`, `in Clef`, `in C - Clef` 등
+  이름 후보는 기존 음악 앱과의 구분 가능성을 보고 출시 전 별도 결정한다. 패키지명과 내부
+  프로젝트명은 배포 연속성을 위해 `com.mannlab.clef` / Clef를 유지한다.
 
 2026-08-31 튜너 실기기 QA 준비 기록:
 
