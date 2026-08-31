@@ -2861,6 +2861,19 @@ class _QuickAccessGroup {
   final List<SheetScore> scores;
 }
 
+String _scoreIdentitySubtitle(SheetScore score) {
+  final sourceName = score.sourceFileDisplayName.trim();
+  final parts = <String>[
+    if (score.composer.trim().isNotEmpty) score.composer.trim(),
+    if (sourceName.isNotEmpty && sourceName != score.title.trim())
+      '파일 · $sourceName',
+  ];
+  if (parts.isEmpty && sourceName.isNotEmpty) {
+    return '파일 · $sourceName';
+  }
+  return parts.isEmpty ? '파일 정보 없음' : parts.join(' · ');
+}
+
 class _QuickAccessScoreChip extends StatelessWidget {
   const _QuickAccessScoreChip({required this.score, required this.onOpen});
 
@@ -2870,10 +2883,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final sourceName = score.sourceFileDisplayName;
-    final subtitle = score.composer.isEmpty
-        ? '파일 · $sourceName'
-        : score.composer;
+    final subtitle = _scoreIdentitySubtitle(score);
     final openedLabel = score.lastOpenedAt == null
         ? '마지막 ${score.lastPage}쪽'
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
@@ -3224,10 +3234,7 @@ class _ScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sourceName = score.sourceFileDisplayName;
-    final subtitle = score.composer.isEmpty
-        ? '파일 · $sourceName'
-        : score.composer;
+    final subtitle = _scoreIdentitySubtitle(score);
     final organization = <String>[
       if (score.collection.isNotEmpty) score.collection,
       if (score.group.isNotEmpty) score.group,
@@ -3878,9 +3885,7 @@ class _ScorePickerSheet extends StatelessWidget {
                     return ListTile(
                       leading: const Icon(Icons.description_outlined),
                       title: Text(score.title),
-                      subtitle: Text(
-                        score.composer.isEmpty ? '작곡가 미입력' : score.composer,
-                      ),
+                      subtitle: Text(_scoreIdentitySubtitle(score)),
                       onTap: () => Navigator.of(context).pop(score),
                     );
                   },
