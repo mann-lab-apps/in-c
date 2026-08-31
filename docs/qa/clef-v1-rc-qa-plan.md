@@ -302,7 +302,7 @@ flutter build ios --release --no-codesign
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
 - 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너 보강분 내부테스트 빌드는
-  `1.0.0+10`으로 준비했다.
+  `1.0.0+10`, 최종 RC 후보는 `1.0.0+11`로 준비했다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -313,12 +313,14 @@ flutter build ios --release --no-codesign
 - 한국어 버전을 원하는 사용자 요구가 있으므로 앱 내 피드백 템플릿과 QA 기록에 어색한 한글
   문구/표시 항목을 추가했다.
 - Android legacy launcher PNG를 Flutter 기본 아이콘에서 Clef 악보/음표 아이콘으로 교체했다.
+- Store/launcher 표시 이름은 단독 `Clef`가 기존 음악 교육 앱들과 겹칠 수 있어 `Clef Sheet`로 구분한다.
+  패키지명과 내부 프로젝트명은 배포 연속성을 위해 `com.mannlab.clef` / Clef를 유지한다.
 
 2026-08-31 튜너 실기기 QA 준비 기록:
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 repo version은 `1.0.0+10`이다.
+- 현재 repo version은 `1.0.0+11`이다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.

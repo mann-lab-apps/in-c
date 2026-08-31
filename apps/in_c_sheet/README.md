@@ -1,6 +1,6 @@
-# Clef
+# Clef Sheet
 
-`Clef` is an Android-first sheet music viewer and practice tool prototype.
+`Clef Sheet` is an Android-first sheet music viewer and practice tool prototype.
 
 The current V1 beta focuses on the MobileSheets-style foundation plus rehearsal
 helpers:
@@ -22,7 +22,7 @@ helpers:
 Included:
 
 - Android-first Flutter app with iOS TestFlight smoke-test support
-- Android adaptive and legacy launcher icons for RC internal testing
+- Android adaptive, themed, and legacy launcher icons for RC internal testing
 - local PDF/image copies in the app documents directory
 - `SharedPreferences` metadata persistence, automatic metadata snapshots, and ZIP full backup
 - `pdfrx` PDF rendering

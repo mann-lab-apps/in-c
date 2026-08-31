@@ -72,7 +72,7 @@ class InCSheetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Clef',
+      title: 'Clef Sheet',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -2531,7 +2531,7 @@ pageMetadataScores=$pageMetadataCount
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef 테스트 정보',
+                  'Clef Sheet 테스트 정보',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -2540,7 +2540,7 @@ pageMetadataScores=$pageMetadataCount
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(label: '앱', value: 'Clef'),
+          _InfoRow(label: '앱', value: 'Clef Sheet'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: 'Beta test build'),
           _InfoRow(label: '악보', value: '${scores.length}개'),

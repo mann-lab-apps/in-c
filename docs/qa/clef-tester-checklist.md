@@ -6,6 +6,7 @@
 
 - v1 RC 전체 실행 순서와 기록 양식은 `docs/qa/clef-v1-rc-qa-plan.md`를 먼저 확인한다.
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
+- 설치 후 런처/앱 이름이 `Clef Sheet`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
