@@ -627,8 +627,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   정보를 확인할 수 있다.
 - `테스트 정보`는 Flutter 기본 `Clipboard`로 피드백 템플릿을 복사한다. 템플릿에는 앱
   version/build, 기기/OS, PDF 종류/페이지 수, 재현 단계, 기대/실제 결과, 오류 문구가 포함된다.
-- version/build는 1차에서 `pubspec.yaml`의 `1.0.0+1`과 맞춘 compile-time constant로 표시한다.
-  package metadata 자동 읽기는 후속으로 분리한다.
+- version/build는 `pubspec.yaml`의 현재 RC version과 맞춘 compile-time constant로 표시한다. 2026-08-31
+  기준 내부테스트 handoff version은 `1.0.0+10`이며, `tool/rc_release_check.dart`가
+  `pubspec.yaml`과 앱 내 `_clefAppVersion` 불일치를 검사한다. package metadata 자동 읽기는
+  후속으로 분리한다.
 - 빈 라이브러리 화면은 PDF/JPG/PNG 가져오기 진입점과 테스트 항목 진입점을 제공한다.
 - 검색어 또는 즐겨찾기/태그 필터 때문에 목록이 비면 `검색/필터 초기화` 액션을 제공한다.
 - 주요 실패 문구는 테스터가 그대로 전달할 수 있게 다음 행동을 포함한다.
@@ -904,3 +906,9 @@ acceptance criteria를 먼저 고정해야 하는 후속 spike다.
 넘김과 곡 처음/끝 안내를 기준으로 viewer key event 소비 경로를 보강했고, legacy launcher PNG를
 Clef 악보/음표 아이콘으로 교체했다. 앱 내 피드백 템플릿에는 어색한 한글 문구/표시 기록 필드를
 추가해 한국어 UX polish를 RC QA 항목으로 수집한다.
+
+2026-08-31 RC 잔여 안정화에서는 내부테스트 handoff version을 `1.0.0+10`으로 고정하고,
+`pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`을 맞췄다. `rc_release_check.dart`에는
+두 값이 어긋나면 실패하는 local consistency check를 추가했다. 현재 dirty 작업트리의
+classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악보 뷰어 범위가 아니라 별도
+후속 기능 후보로 분리하며, RC 검증/빌드에는 섞지 않는다.

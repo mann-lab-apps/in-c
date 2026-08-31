@@ -324,3 +324,15 @@ flutter build ios --release --no-codesign
   튜너 정확도 비교표로 이어서 기록한다.
 - 내부테스트 업로드 대상 AAB는
   `apps/in_c_sheet/build/app/outputs/bundle/release/clef-1.0.0+10-release.aab`이다.
+
+2026-08-31 RC 잔여 안정화/작업트리 분리 기록:
+
+- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`을 `1.0.0+10`으로 맞췄다.
+- `tool/rc_release_check.dart`는 이제 두 version 값이 다르면 실패한다.
+- 현재 작업트리에 남아 있는 `classical_discovery_*`, `classical_concert_import.dart`,
+  `classical_admin_commands.dart`, `classical_promotion_reporting.dart`, `classical_discovery_app.dart`,
+  `classical_discovery_repository.dart`, `main.dart`의 클래식 탐색 진입점, `url_launcher` 직접 의존성은
+  Clef v1 RC 악보 뷰어 안정화 범위가 아니라 별도 classical discovery 후속 기능 후보로 둔다.
+- Clef v1 release blocker는 현재 repo만으로 닫을 수 있는 코드 미완료가 아니라 Android/iOS 실기기,
+  S Pen, Bluetooth/USB 페달, cloud provider, 실제 CamScanner/object-stream 샘플, 튜너 마이크
+  정확도/latency QA로 남아 있다.

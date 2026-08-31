@@ -47,7 +47,7 @@ Future<void> main() async {
       'rg',
       <String>[
         '-n',
-        '현재 로컬 환경에서는|PATH에 없어|실행하지 못|command not found|아직 고도화 전|후속 V1|실제 페이지 회전 live 렌더링과 per-instance crop/rotation override|cloud file import\\.',
+        '현재 로컬 환경에서는|PATH에 없어|실행하지 못|command not found|아직 고도화 전|후속 V1|repo의 현재 버전은 `1\\.0\\.0\\+[0-9]+`|실제 페이지 회전 live 렌더링과 per-instance crop/rotation override|cloud file import\\.',
         ..._clefDocs,
       ],
       successExitCodes: <int>{1},
@@ -60,11 +60,19 @@ Future<void> main() async {
     ),
   ];
 
-  final failures = <_CheckResult>[];
+  final failures = <String>[];
+  final versionFailure = _verifyAppVersionConsistency();
+  if (versionFailure != null) {
+    failures.add(versionFailure);
+  }
+
   for (final check in checks) {
     final result = await check.run();
     if (!result.didPass) {
-      failures.add(result);
+      failures.add(
+        '${result.check.name}: exit ${result.exitCode} '
+        'for `${result.check.displayCommand}`',
+      );
     }
   }
 
@@ -75,12 +83,43 @@ Future<void> main() async {
 
   stderr.writeln('\nClef RC release checklist failed:');
   for (final failure in failures) {
-    stderr.writeln(
-      '- ${failure.check.name}: exit ${failure.exitCode} '
-      'for `${failure.check.displayCommand}`',
-    );
+    stderr.writeln('- $failure');
   }
   exitCode = 1;
+}
+
+String? _verifyAppVersionConsistency() {
+  const name = 'App version consistency';
+  stdout.writeln('\n==> $name');
+  stdout.writeln(
+    r'$ compare pubspec.yaml version with lib/main.dart _clefAppVersion',
+  );
+
+  final pubspecVersion = RegExp(
+    r'^version:\s*([^\s]+)',
+    multiLine: true,
+  ).firstMatch(File('pubspec.yaml').readAsStringSync())?.group(1);
+  final appVersion = RegExp(r"const String _clefAppVersion = '([^']+)';")
+      .firstMatch(File('lib/main.dart').readAsStringSync())
+      ?.group(1);
+
+  if (pubspecVersion == null) {
+    stdout.writeln('FAIL missing pubspec.yaml version');
+    return '$name: missing pubspec.yaml version';
+  }
+  if (appVersion == null) {
+    stdout.writeln('FAIL missing lib/main.dart _clefAppVersion');
+    return '$name: missing lib/main.dart _clefAppVersion';
+  }
+  if (pubspecVersion != appVersion) {
+    stdout.writeln(
+      'FAIL pubspec.yaml=$pubspecVersion lib/main.dart=$appVersion',
+    );
+    return '$name: pubspec.yaml=$pubspecVersion lib/main.dart=$appVersion';
+  }
+
+  stdout.writeln('PASS $pubspecVersion');
+  return null;
 }
 
 class _Check {
