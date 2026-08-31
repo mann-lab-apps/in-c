@@ -47,7 +47,10 @@ flutter build ios --release --no-codesign
 - 앱 버전: `1.0.0+10`.
 - dirty workspace의 classical discovery/pubspec 변경은 이번 튜너 빌드 범위가 아니므로 커밋하지 않고,
   release 산출물은 clean worktree에서 생성해 빌드에 섞이지 않게 한다.
-- Android 내부테스트 업로드 대상: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
+- Android 내부테스트 업로드 대상:
+  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-1.0.0+10-release.aab`.
+- 2026-08-31 `adb devices -l` 기준 연결된 Android 기기는 없어서 튜너 실마이크 QA는 아직 미실행이다.
+  이번 기록은 로컬 자동 검증과 QA handoff 기준으로만 해석한다.
 
 ## 준비물
 
@@ -171,6 +174,34 @@ Audio/tuner:
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
+
+Tuner 정확도 비교:
+
+```text
+기준 앱:
+기기/OS:
+설치 build:
+마이크/입력원:
+주변 환경: 조용함 / 보통 / 시끄러움
+A4 기준: 440 / 441 / 442 Hz
+
+음 / 악기:
+Clef note:
+Clef cents:
+기준 앱 note:
+기준 앱 cents:
+차이:
+반응 속도: 빠름 / 보통 / 느림
+note label 튐: 없음 / 가끔 / 자주
+LED/input bar 읽기 쉬움: 예 / 아니오
+비고:
+```
+
+튜너 통과 기준:
+
+- v1 통과 후보: 기준 앱 대비 대체로 +/-5 cents 안팎이고 note label이 안정적이다.
+- high: +/-10 cents 이상 차이가 반복되거나 반응이 연주 전 조율에 답답하다.
+- blocker: 실제 입력에서 다른 음으로 자주 튀거나 튜너 sheet 진입/종료가 crash 또는 resource 오류를 낸다.
 
 ## Triage 기준
 
