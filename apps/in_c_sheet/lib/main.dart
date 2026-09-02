@@ -35,7 +35,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+13';
+const String _clefAppVersion = '1.0.0+14';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1766,26 +1766,30 @@ Future<String?> _showTextEntryDialog({
   try {
     return await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
+      builder: (dialogContext) {
+        void close(String? value) {
+          FocusScope.of(dialogContext).unfocus();
+          Navigator.of(dialogContext).pop(value);
+        }
+
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: textController,
+            autofocus: true,
+            decoration: InputDecoration(labelText: label),
+            textInputAction: TextInputAction.done,
+            onSubmitted: close,
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(textController.text),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(onPressed: () => close(null), child: const Text('취소')),
+            FilledButton(
+              onPressed: () => close(textController.text),
+              child: const Text('저장'),
+            ),
+          ],
+        );
+      },
     );
   } finally {
     textController.dispose();
@@ -2370,64 +2374,76 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilteredEmpty = hasQuery || hasFilter;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasQuery ? Icons.search_off : Icons.library_music_outlined,
-              size: 58,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 18),
-            Text(
-              isFilteredEmpty ? '조건에 맞는 악보가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            if (isFilteredEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 18),
-              OutlinedButton.icon(
-                onPressed: onClearPressed,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text('검색/필터 초기화'),
-              ),
-            ] else ...[
-              const SizedBox(height: 8),
-              Text(
-                'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 10,
-                runSpacing: 10,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  FilledButton.icon(
-                    onPressed: onImportPressed,
-                    icon: const Icon(Icons.add_to_photos_outlined),
-                    label: const Text('악보 추가'),
+                  Icon(
+                    hasQuery ? Icons.search_off : Icons.library_music_outlined,
+                    size: 58,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  OutlinedButton.icon(
-                    onPressed: onTesterInfoPressed,
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: const Text('테스트 항목'),
+                  const SizedBox(height: 18),
+                  Text(
+                    isFilteredEmpty
+                        ? '조건에 맞는 악보가 없습니다.'
+                        : '악보를 추가해 테스트를 시작하세요.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
+                  if (isFilteredEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
+                    OutlinedButton.icon(
+                      onPressed: onClearPressed,
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: const Text('검색/필터 초기화'),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: onImportPressed,
+                          icon: const Icon(Icons.add_to_photos_outlined),
+                          label: const Text('악보 추가'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: onTesterInfoPressed,
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('테스트 항목'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
-            ],
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -2654,9 +2670,11 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 72,
+            width: 116,
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
@@ -3299,76 +3317,83 @@ class _ScoreTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!isSelecting)
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
-                          onPressed: () => onFavorite(score),
-                          constraints: const BoxConstraints.tightFor(
-                            width: 40,
-                            height: 40,
-                          ),
-                          icon: Icon(
-                            score.isFavorite ? Icons.star : Icons.star_border,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: score.isPinned ? '고정 해제' : '고정',
-                          onPressed: () => onPin(score),
-                          constraints: const BoxConstraints.tightFor(
-                            width: 40,
-                            height: 40,
-                          ),
-                          icon: Icon(
-                            score.isPinned
-                                ? Icons.push_pin
-                                : Icons.push_pin_outlined,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: PopupMenuButton<_ScoreTileAction>(
-                            tooltip: '더보기',
-                            icon: const Icon(Icons.more_vert),
-                            iconSize: 22,
-                            padding: EdgeInsets.zero,
-                            onSelected: (action) {
-                              switch (action) {
-                                case _ScoreTileAction.edit:
-                                  onEdit(score);
-                                case _ScoreTileAction.share:
-                                  onShare(score);
-                              }
-                            },
-                            itemBuilder: (context) => const [
-                              PopupMenuItem<_ScoreTileAction>(
-                                value: _ScoreTileAction.edit,
-                                child: ListTile(
-                                  leading: Icon(Icons.edit_outlined),
-                                  title: Text('악보 정보 편집'),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                              PopupMenuItem<_ScoreTileAction>(
-                                value: _ScoreTileAction.share,
-                                child: ListTile(
-                                  leading: Icon(Icons.ios_share),
-                                  title: Text('PDF 공유'),
-                                  contentPadding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (!isSelecting) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
+                        onPressed: () => onFavorite(score),
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        iconSize: 21,
+                        icon: Icon(
+                          score.isFavorite ? Icons.star : Icons.star_border,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: score.isPinned ? '고정 해제' : '고정',
+                        onPressed: () => onPin(score),
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        iconSize: 21,
+                        icon: Icon(
+                          score.isPinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: PopupMenuButton<_ScoreTileAction>(
+                          tooltip: '더보기',
+                          icon: const Icon(Icons.more_vert),
+                          iconSize: 21,
+                          padding: EdgeInsets.zero,
+                          onSelected: (action) {
+                            switch (action) {
+                              case _ScoreTileAction.edit:
+                                onEdit(score);
+                              case _ScoreTileAction.share:
+                                onShare(score);
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem<_ScoreTileAction>(
+                              value: _ScoreTileAction.edit,
+                              child: ListTile(
+                                leading: Icon(Icons.edit_outlined),
+                                title: Text('악보 정보 편집'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            PopupMenuItem<_ScoreTileAction>(
+                              value: _ScoreTileAction.share,
+                              child: ListTile(
+                                leading: Icon(Icons.ios_share),
+                                title: Text('PDF 공유'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (organization.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(

@@ -627,8 +627,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   정보를 확인할 수 있다.
 - `테스트 정보`는 Flutter 기본 `Clipboard`로 피드백 템플릿을 복사한다. 템플릿에는 앱
   version/build, 기기/OS, PDF 종류/페이지 수, 재현 단계, 기대/실제 결과, 오류 문구가 포함된다.
-- version/build는 `pubspec.yaml`의 현재 RC version과 맞춘 compile-time constant로 표시한다. 2026-08-31
-  기준 내부테스트 handoff version은 `1.0.0+10`이며, `tool/rc_release_check.dart`가
+- version/build는 `pubspec.yaml`의 현재 RC version과 맞춘 compile-time constant로 표시한다. 2026-09-02
+  기준 최종 UI polish 내부테스트 후보 version은 `1.0.0+14`이며, `tool/rc_release_check.dart`가
   `pubspec.yaml`과 앱 내 `_clefAppVersion` 불일치를 검사한다. package metadata 자동 읽기는
   후속으로 분리한다.
 - 빈 라이브러리 화면은 PDF/JPG/PNG 가져오기 진입점과 테스트 항목 진입점을 제공한다.
@@ -907,14 +907,24 @@ acceptance criteria를 먼저 고정해야 하는 후속 spike다.
 Clef C음자리표 아이콘으로 교체했다. 앱 내 피드백 템플릿에는 어색한 한글 문구/표시 기록 필드를
 추가해 한국어 UX polish를 RC QA 항목으로 수집한다.
 
-2026-08-31 RC 잔여 안정화에서는 내부테스트 handoff version을 `1.0.0+10`으로 고정하고,
+2026-08-31 RC 잔여 안정화에서는 내부테스트 handoff version을 당시 `1.0.0+10`으로 고정하고,
 `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`을 맞췄다. `rc_release_check.dart`에는
 두 값이 어긋나면 실패하는 local consistency check를 추가했다. 현재 dirty 작업트리의
 classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악보 뷰어 범위가 아니라 별도
 후속 기능 후보로 분리하며, RC 검증/빌드에는 섞지 않는다.
 
+2026-09-02 최종 UI polish에서는 현재 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
+`Clef & Staff`로 유지했다. 렌더링 프리셋 아이콘은 메트로놈과 구분되도록 `균형`/`대형 PDF`를 각각
+balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar/기타
+줄 선택을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
+명시하고, 일반 라이브러리 화면의 `악보 추가` CTA는 상단 action 하나로 정리했다. dev 병합분의
+classical discovery 파일은 보존하지만 Clef & Staff RC 홈 surface에는 진입점을 노출하지 않는다. 이후
+에뮬레이터 재확인에서 홈 카드 제목이 action icon과 같은 줄에서 좁아지는 문제와 text entry dialog
+teardown assertion을 발견해, 카드 action icon을 별도 줄로 내리고 dialog close 전에 keyboard focus를
+해제하도록 보강했다.
+
 2026-08-31 실기기 QA 제외 RC closeout에서는 clean temp worktree에 Clef viewer hunk만 적용해
-`clef_rc_tablet_api35` emulator에서 앱 `1.0.0+10`, content URI PDF import/render, portrait toolbar
+`clef_rc_tablet_api35` emulator에서 이전 내부테스트 빌드의 content URI PDF import/render, portrait toolbar
 horizontal scroll, page edge `곡 끝` 안내, 홈 카드 식별 정보, 튜너 bottom sheet 진입을 확인했다.
 직접 `file://` intent는 Android scoped storage 권한상 실패하므로 제품 import 경로는 picker/share
 sheet의 `content://` URI를 기준으로 한다. 같은 temp worktree에서 `flutter analyze`, targeted

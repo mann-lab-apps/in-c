@@ -16,7 +16,7 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - System image: Android 15 API 35, Google APIs Play Store, arm64-v8a
 - Flutter device id: `emulator-5554`
 - 앱 id: `com.mannlab.clef`
-- 현재 검증 build: `1.0.0+10` debug APK(clean temp worktree), release AAB 내부테스트 준비 완료
+- 현재 검증 build: `1.0.0+14` RC 후보. 이전 `1.0.0+10` debug/release 검증 기록은 아래 history로 둔다.
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
 - 최근 전체 QA 실행: 2026-08-31 15:20-15:35 KST, `clef_rc_tablet_api35`
 
@@ -71,7 +71,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | ID | 영역 | 에뮬레이터에서 할 일 | 샘플/입력 | 통과 기준 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | EMU-001 | 설치/업데이트 | `adb install -r`로 release APK 덮어 설치 | `app-release.apk` | 기존 library metadata가 유지되고 앱이 실행됨 | 통과 |
-| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+10` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
+| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+14` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
 | EMU-003 | 첫 화면 | 빈 라이브러리/기존 라이브러리 상태 확인 | 앱 첫 화면 | 검색, 필터, import CTA, 테스트 정보 진입이 보임 | 통과 |
 | EMU-004 | PDF import | system picker로 PDF 가져오기 | IMSLP, `short-score.pdf` | import 실패 없이 viewer 진입 | 통과 |
 | EMU-005 | 비PDF import 실패 | PDF picker/공유에서 비PDF 선택 시도 | `.txt` 또는 이미지 파일 | crash 없이 unsupported 안내 | 예정 |
@@ -87,6 +87,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-014 | 라이브러리 카드 | viewer exit 후 card subtitle 확인 | imported PDF | `마지막 N쪽` 문구와 최근 열기 시간이 보임 | 통과 |
 | EMU-015 | metadata edit | 제목/작곡가/태그/컬렉션/그룹/별점/custom field 수정 | imported score | 저장 후 검색/필터에서 다시 찾을 수 있음 | 예정 |
 | EMU-016 | 라이브러리 분리 | 새 library profile 생성/전환/비우기 | library switcher | profile별 score 저장소가 분리되고 파일 삭제 오해 없음 | 예정 |
+| EMU-016-1 | 라이브러리 중복 이름 | 기존 library profile 이름을 다시 입력 | library switcher | 새 라이브러리가 조용히 생략되지 않고 중복 안내와 `열기` action 표시 | 예정 |
 | EMU-017 | 즐겨찾기/고정 | favorite/pin toggles | score card | quick access와 필터가 반영됨 | 예정 |
 | EMU-018 | 세트리스트 기본 | setlist 생성, score 추가, 순서 변경, 첫 곡 열기 | 2개 이상 score | 시작 page/memo/duration이 viewer 진입에 반영 | 예정 |
 | EMU-019 | 세트리스트 복제 | setlist duplicate | setlist with score settings | score duration/transition/override 보존 | 예정 |
@@ -204,8 +205,8 @@ v1.1 spike 여부:
   확인되지 않았다. 이후 viewer key event 소비 경로를 보강했으므로 다음 emulator/실기기 QA에서
   PDF 내부 스크롤 없이 페이지 단위 이동하는지 재확인한다.
 - 2026-08-29 사용자 실기기 QA에서 Play 설치 앱의 테스트 정보와 `pubspec.yaml` build number가
-  분리되어 있던 점을 확인했다. 현재 QA 기준 build `1.0.0+10`에서는 두 값을 맞췄고 에뮬레이터
-  테스트 정보에서 재확인했다.
+  분리되어 있던 점을 확인했다. 당시 `1.0.0+10` build에서 두 값을 맞췄고 에뮬레이터 테스트 정보에서
+  재확인했다.
 - 같은 사용자 QA에서 직접 스캔 PDF는 아니지만 IMSLP PDF 정상 출력, page turn/jump, 마지막 page
   저장은 통과로 기록했다.
 - 같은 사용자 QA에서 형광펜이 얇을 때 원형 cap이 연속으로 겹쳐 보여 부자연스럽고, 지우개 삭제가
@@ -216,7 +217,7 @@ v1.1 spike 여부:
 
 - classical discovery dirty 변경을 피하기 위해 `/private/tmp/clef-sim-qa-dev` clean temp worktree에서
   Clef viewer hunk만 적용해 에뮬레이터 검증을 진행했다.
-- `clef_rc_tablet_api35`에 debug APK를 설치했고 테스트 정보에서 앱 `1.0.0+10`, `Beta test build`가
+- `clef_rc_tablet_api35`에 이전 debug APK를 설치했고 테스트 정보에서 앱 버전과 `Beta test build`가
   표시되는 것을 확인했다.
 - `short-score.pdf`를 Downloads에 주입한 뒤 `content://media/external/file/...` read grant로 열어
   viewer 렌더링을 확인했다. 회색 blank 고정은 재현되지 않았다.
@@ -224,6 +225,17 @@ v1.1 spike 여부:
   기준 import/share 경로는 file picker 또는 share sheet의 `content://` URI로 둔다.
 - Pixel Tablet portrait에서 viewer AppBar action 영역이 `HorizontalScrollView`로 노출되고, 좌우
   swipe 후 `필기 모드`, `페이지 정리`, `공연 설정`, `공연 모드`, `1/3` page label까지 접근됐다.
+
+## 2026-09-02 최종 UI polish 확인 대상
+
+- `1.0.0+14` RC 후보에서 런처/테스트 정보 앱 이름이 `Clef & Staff`로 표시되는지 확인한다.
+- 홈 일반 상태에서는 상단 `악보 추가` action만 보이고, 우하단 FAB는 일괄 선택 모드의 `일괄 편집`으로만
+  나타나는지 확인한다.
+- dev 병합분의 classical discovery 진입점은 Clef & Staff RC 홈 상단에 노출되지 않는지 확인한다.
+- 렌더링 프리셋 `균형`은 balance 아이콘, `대형 PDF`는 PDF 아이콘으로 보여 메트로놈과 구분되는지 확인한다.
+- 튜너 bottom sheet 진입 즉시 마이크 권한/입력 상태가 시작되고, 음정/meter/입력 bar/기타 줄 선택이
+  튜닝 설정보다 먼저 보이는지 확인한다.
+- library profile 중복 이름 입력 시 `이미 있습니다` 안내와 `열기` action이 표시되는지 확인한다.
 - 마지막 page의 다음 버튼을 누르면 비활성 dead button이 아니라 dimmed button이 눌리고 `곡 끝`
   snackbar가 표시됐다. 첫 page의 이전 입력은 같은 정책으로 `곡 처음`을 표시한다.
 - 홈 화면은 큰 `Clef` 제목 없이 시작했고, metadata가 비어 있는 최근 카드도 파일명, source filename,
@@ -233,6 +245,23 @@ v1.1 spike 여부:
 - `dart format lib/main.dart`, `flutter analyze`, `flutter test test/sheet_viewer_input_test.dart
   test/sheet_auto_scroll_test.dart`, `flutter build apk --debug`, `git diff --check`가 clean temp
   worktree에서 통과했다.
+
+2026-09-02 최종 UI polish 에뮬레이터 재확인:
+
+- `1.0.0+14` debug APK를 `clef_rc_tablet_api35`에 설치해 C음자리표 기반 splash icon을 확인했다.
+- 홈 상단에는 `여러 악보 선택`, `세트리스트`, `테스트 정보`, `전역 보기/입력 기본값`, `백업/복원`,
+  `악보 추가`만 남고, classical discovery의 `클래식 듣기` 진입점은 노출되지 않았다.
+- 일반 홈 카드에서 제목과 action icon이 같은 줄에서 경쟁하지 않도록 action icon을 별도 줄로 내려,
+  metadata가 비어 있어도 title/source filename/recent/last page가 끊김 없이 식별됐다.
+- `테스트 정보` bottom sheet에서 앱 `Clef & Staff`, version `1.0.0+14`가 표시되고 긴 라벨이
+  단어 중간에서 잘리지 않았다.
+- viewer toolbar는 `튜너`, `렌더링 프로필`, `페이지 정리`, `공연 모드`, `3/3` page label까지
+  접근 가능했고, fixture PDF가 회색 blank 없이 렌더링됐다.
+- 튜너는 첫 진입 시 `Clef & Staff` 마이크 권한 prompt를 띄우고, 허용 후 큰 시작 버튼 없이
+  `소리가 너무 작습니다`, note/meter/input bar/target 정보를 첫 화면에 표시했다.
+- 새 라이브러리 생성 dialog 저장 시 keyboard focus를 해제한 뒤 닫도록 보강했다. duplicate snackbar
+  화면 끝까지의 자동 재현은 Android keyboard stylus tutorial overlay 때문에 중단됐으나,
+  duplicate detection과 `열기` action 경로는 `sheet_library_controller_test.dart`와 코드 경로로 유지한다.
 
 ## 내부테스트 업로드 전 확인
 
