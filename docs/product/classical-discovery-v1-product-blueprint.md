@@ -1098,3 +1098,36 @@ V1은 "작게 검증하는 앱"이 아니라 "무료로 배포 가능한 클래�
 
 이 여섯 가지가 살아 있으면 in C는 단순 유틸앱이 아니라, 실제 사용자 flow와 광고 BM을 가진
 상용 서비스의 형태를 갖춘다.
+
+## Public V1 RC 판정
+
+Public V1은 Soft Launch 가능 상태와 분리해서 판단한다.
+
+- Founder Quality READY: founder first exposure pool 30개가 첫 노출 가능한 품질인지 본다.
+- Soft Launch friendly users YES: 20-50명에게 보낼 수 있는지 본다.
+- Public V1 Closeout READY: 공개 스토어 배포 후보로 고정해도 되는지 본다.
+
+Public V1 release-ready YES 조건은 Catalog Ops의 Public V1 Closeout evidence와 일치해야 한다.
+
+- release catalog 300개 이상
+- validation error 0
+- founder first exposure pool ready
+- first 3 minutes funnel smoke PASS
+- safe external platform fallback PASS
+- approved-only direct/preview policy PASS
+- sponsored disclosure PASS
+- app identity/store metadata verification PASS
+- launch feedback blocker 0
+- privacy copy consistency PASS
+- Clef regression PASS
+
+남은 direct link 검수, preview legal review, KOPIS production mapping, signing/provisioning은
+code blocker가 아니라 content ops / production verification / legal review GAP으로 분류한다.
+단, 그 GAP이 첫 3분 핵심 사용자 흐름을 막으면 Public V1 release-ready는 NO다.
+
+현재 Android/iOS 표시 이름과 first-pass launcher icon은 `in C`로 적용되어 있다. 다만 Flutter shell이
+Clef applicationId/bundle id를 쓰는 경우에는 기능이 통과하더라도 app identity/store metadata
+verification을 완료하기 전까지 Public V1 release-ready YES로 보지 않는다. in C 직접 진입 QA build는
+`--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다.
+초기 사용자 feedback은 `feedback_submit` event로 남기고, link/concert/retention blocker가 반복되면
+product quality GAP으로 승격한다.

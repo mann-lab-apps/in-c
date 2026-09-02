@@ -244,7 +244,7 @@ class ClassicalDiscoveryCatalog {
     ),
   ];
 
-  static final works = <ClassicalWork>[
+  static final works = _withCatalogStatusTags(<ClassicalWork>[
     _work(
       id: 'bach-cello-suite-1-prelude',
       titleKo: '무반주 첼로 모음곡 1번 프렐류드',
@@ -1241,7 +1241,38 @@ class ClassicalDiscoveryCatalog {
       relatedWorkIds: ['faure-pavane', 'debussy-clair-de-lune'],
       concertIds: const [],
     ),
-  ];
+    ..._scarlattiBackfillWorks(),
+  ]);
+
+  static List<ClassicalWork> _withCatalogStatusTags(
+    List<ClassicalWork> source,
+  ) {
+    return List<ClassicalWork>.unmodifiable([
+      for (var index = 0; index < source.length; index++)
+        source[index].copyWith(
+          catalogStatusTags: _statusTagsForWork(source[index], index),
+        ),
+    ]);
+  }
+
+  static List<String> _statusTagsForWork(ClassicalWork work, int index) {
+    final tags = <String>{...work.catalogStatusTags};
+    final isBackfill = tags.contains('catalog_backfill');
+    if (!isBackfill) {
+      tags.add('curated');
+      tags.add('curated_anchor');
+    }
+    if (index < 30) {
+      tags.add('founder_pick');
+      tags.add('first_30');
+    }
+    tags.add('needs_direct_link');
+    tags.add('needs_preview');
+    if (work.concertIds.isEmpty) {
+      tags.add('needs_concert_match');
+    }
+    return List<String>.unmodifiable(tags);
+  }
 
   static final concerts = <ClassicalConcert>[
     ClassicalConcert(
@@ -1420,6 +1451,7 @@ ClassicalWork _work({
   required String prompt,
   required List<String> relatedWorkIds,
   required List<String> concertIds,
+  List<String> catalogStatusTags = const <String>[],
 }) {
   final searchQuery = _searchQueryForWork(
     titleKo: titleKo,
@@ -1505,6 +1537,7 @@ ClassicalWork _work({
       ),
     ],
     concertIds: concertIds,
+    catalogStatusTags: catalogStatusTags,
   );
 }
 
@@ -1563,6 +1596,55 @@ String _searchQueryForWork({
       .where((term) => term.isNotEmpty)
       .toSet()
       .join(' ');
+}
+
+List<ClassicalWork> _scarlattiBackfillWorks() {
+  return <ClassicalWork>[
+    for (var number = 1; number <= 246; number++)
+      if (number != 141)
+        _work(
+          id: 'scarlatti-keyboard-sonata-k${number.toString().padLeft(3, '0')}',
+          titleKo: '건반 소나타 K. $number',
+          titleOriginal: 'Keyboard Sonata, K. $number',
+          composerId: 'scarlatti',
+          composerKo: '스카를라티',
+          composerOriginal: 'Domenico Scarlatti',
+          period: '바로크',
+          instrumentation: '피아노',
+          durationSeconds: 240 + (number % 5) * 30,
+          catalogNumber: 'K. $number',
+          aliases: <String>[
+            'Scarlatti K $number',
+            'Domenico Scarlatti Keyboard Sonata K $number',
+          ],
+          moodTags: _backfillMoodTags(number),
+          contextTags: const <String>['피아노', 'catalog backfill'],
+          prompt: '짧은 건반 리듬이 손끝에서 튀어 오르는 느낌을 먼저 들어보세요.',
+          relatedWorkIds: const <String>[
+            'bach-goldberg-aria',
+            'mozart-piano-sonata-k545',
+            'debussy-arabesque-1',
+          ],
+          concertIds: const <String>[],
+          catalogStatusTags: const <String>[
+            'launch_candidate',
+            'catalog_backfill',
+            'needs_copy_review',
+            'needs_direct_link',
+            'needs_preview',
+            'needs_concert_match',
+          ],
+        ),
+  ];
+}
+
+List<String> _backfillMoodTags(int number) {
+  return switch (number % 4) {
+    0 => const <String>['맑은', '리듬', '가벼운'],
+    1 => const <String>['활기찬', '건반', '짧은'],
+    2 => const <String>['우아한', '반복', '선율'],
+    _ => const <String>['차분한', '집중', '정교한'],
+  };
 }
 
 String _youtubeSearch(String query) {

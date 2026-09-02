@@ -87,8 +87,12 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (savedDue.isNotEmpty) {
       return savedDue.first;
     }
+    final founderPool = _works
+        .where((work) => work.catalogStatusTags.contains('founder_pick'))
+        .toList(growable: false);
+    final pool = founderPool.isEmpty ? _works : founderPool;
     final day = _clock().difference(DateTime(2026)).inDays;
-    return _works[day.abs() % _works.length];
+    return pool[day.abs() % pool.length];
   }
 
   List<ClassicalWork> get savedWorks {
@@ -325,7 +329,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         reason: '검색어 없이 바로 시작하기 좋습니다.',
         source: 'starter',
         works: _works
-            .where((work) => work.contextTags.contains('처음 듣기'))
+            .where(
+              (work) =>
+                  work.catalogStatusTags.contains('founder_pick') ||
+                  work.contextTags.contains('처음 듣기'),
+            )
             .take(8)
             .toList(growable: false),
       ),
@@ -757,6 +765,29 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             'concertId': concertId,
             if (destination != null) 'destinationId': destination.id,
             if (destination != null) 'url': destination.url,
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> submitFeedback({
+    required String category,
+    String message = '',
+    String entityType = 'app',
+    String entityId = 'in-c',
+  }) async {
+    final trimmedMessage = message.trim();
+    await _setState(
+      _state.copyWith(
+        events: _withEvent(
+          'feedback_submit',
+          entityType,
+          entityId,
+          context: category,
+          properties: <String, String>{
+            'category': category,
+            if (trimmedMessage.isNotEmpty) 'message': trimmedMessage,
           },
         ),
       ),

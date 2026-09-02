@@ -171,6 +171,7 @@ class ClassicalWork {
     required this.relatedWorkIds,
     required this.scoreLinks,
     required this.concertIds,
+    this.catalogStatusTags = const <String>[],
   });
 
   final String id;
@@ -194,6 +195,7 @@ class ClassicalWork {
   final List<String> relatedWorkIds;
   final List<ExternalLink> scoreLinks;
   final List<String> concertIds;
+  final List<String> catalogStatusTags;
 
   String get displayTitle => '$titleKo · $composerNameKo';
   ListeningMoment? get primaryMoment =>
@@ -302,6 +304,41 @@ class ClassicalWork {
       return a.label.compareTo(b.label);
     });
     return List<ExternalLink>.unmodifiable(links);
+  }
+
+  ClassicalWork copyWith({
+    List<ListeningMoment>? listeningMoments,
+    List<ExternalLink>? externalLinks,
+    List<ClassicalRecording>? recordings,
+    List<String>? relatedWorkIds,
+    List<ExternalLink>? scoreLinks,
+    List<String>? concertIds,
+    List<String>? catalogStatusTags,
+  }) {
+    return ClassicalWork(
+      id: id,
+      titleKo: titleKo,
+      titleOriginal: titleOriginal,
+      composerId: composerId,
+      composerNameKo: composerNameKo,
+      composerNameOriginal: composerNameOriginal,
+      period: period,
+      instrumentation: instrumentation,
+      durationSeconds: durationSeconds,
+      catalogNumber: catalogNumber,
+      movements: movements,
+      moodTags: moodTags,
+      contextTags: contextTags,
+      difficultyForListening: difficultyForListening,
+      aliases: aliases,
+      listeningMoments: listeningMoments ?? this.listeningMoments,
+      externalLinks: externalLinks ?? this.externalLinks,
+      recordings: recordings ?? this.recordings,
+      relatedWorkIds: relatedWorkIds ?? this.relatedWorkIds,
+      scoreLinks: scoreLinks ?? this.scoreLinks,
+      concertIds: concertIds ?? this.concertIds,
+      catalogStatusTags: catalogStatusTags ?? this.catalogStatusTags,
+    );
   }
 }
 

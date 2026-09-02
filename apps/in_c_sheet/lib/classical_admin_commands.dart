@@ -228,6 +228,12 @@ class AdminCatalogCommandReducer {
       relatedWorkIds: _csv(fields['relatedWorkIds']),
       scoreLinks: const <ExternalLink>[],
       concertIds: _csv(fields['concertIds']),
+      catalogStatusTags: const [
+        'launch_candidate',
+        'needs_direct_link',
+        'needs_preview',
+        'needs_concert_match',
+      ],
     );
     return AdminCatalogCommandResult(
       catalog: _copyCatalog(catalog, works: [...catalog.works, work]),
@@ -501,6 +507,7 @@ ClassicalWork _copyWork(
   List<String>? relatedWorkIds,
   List<ExternalLink>? scoreLinks,
   List<String>? concertIds,
+  List<String>? catalogStatusTags,
 }) {
   return ClassicalWork(
     id: work.id,
@@ -525,6 +532,7 @@ ClassicalWork _copyWork(
     relatedWorkIds: relatedWorkIds ?? work.relatedWorkIds,
     scoreLinks: scoreLinks ?? work.scoreLinks,
     concertIds: concertIds ?? work.concertIds,
+    catalogStatusTags: catalogStatusTags ?? work.catalogStatusTags,
   );
 }
 

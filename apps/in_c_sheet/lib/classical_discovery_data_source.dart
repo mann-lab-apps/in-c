@@ -90,6 +90,7 @@ ClassicalWork _workFromJson(Map<String, Object?> json) {
     relatedWorkIds: _strings(json['relatedWorkIds']),
     scoreLinks: _maps(json['scoreLinks']).map(_linkFromJson).toList(),
     concertIds: _strings(json['concertIds']),
+    catalogStatusTags: _strings(json['catalogStatusTags']),
   );
 }
 
