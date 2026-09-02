@@ -54,6 +54,11 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
                 icon: const Icon(Icons.location_on_outlined),
               ),
               IconButton(
+                tooltip: '의견 보내기',
+                onPressed: _showFeedbackSheet,
+                icon: const Icon(Icons.feedback_outlined),
+              ),
+              IconButton(
                 tooltip: 'Catalog Ops',
                 onPressed: _openCatalogOps,
                 icon: const Icon(Icons.fact_check_outlined),
@@ -287,6 +292,15 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
       await controller.setRegion(selected);
     }
   }
+
+  Future<void> _showFeedbackSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _FeedbackSheet(controller: controller),
+    );
+  }
 }
 
 class ClassicalCatalogOpsScreen extends StatelessWidget {
@@ -348,6 +362,198 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Soft Launch Readiness'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  (
+                    'friendly users',
+                    summary.softLaunchReadiness.friendlyUsersReady
+                        ? 'YES'
+                        : 'NO',
+                  ),
+                  (
+                    'status',
+                    _readinessLabel(summary.softLaunchReadiness.status),
+                  ),
+                  ('summary', summary.softLaunchReadiness.summary),
+                  (
+                    'founder ready',
+                    '${summary.founderReadyCount}/${summary.founderPickCount}',
+                  ),
+                  (
+                    'first 3 minutes',
+                    summary.firstThreeMinuteFunnelComplete ? 'PASS' : 'GAP',
+                  ),
+                ],
+              ),
+              for (final item in summary.softLaunchReadiness.gateItems.where(
+                (item) => !item.passes,
+              ))
+                _Panel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.flag_outlined),
+                    title: Text(item.label),
+                    subtitle: Text(
+                      '${item.current}/${item.target} · ${item.nextAction}',
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Public V1 Closeout'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  (
+                    'release-ready',
+                    summary.publicV1Closeout.releaseReady ? 'YES' : 'NO',
+                  ),
+                  ('status', _readinessLabel(summary.publicV1Closeout.status)),
+                  ('summary', summary.publicV1Closeout.summary),
+                  (
+                    'GAP 분류',
+                    'code ${summary.publicV1Closeout.codeBlockerCount} · '
+                        'content ${summary.publicV1Closeout.contentOpsGapCount} · '
+                        'verification ${summary.publicV1Closeout.productionVerificationGapCount} · '
+                        'legal ${summary.publicV1Closeout.legalReviewGapCount} · '
+                        'quality ${summary.publicV1Closeout.productQualityGapCount}',
+                  ),
+                  ('evidence', summary.publicV1Closeout.evidenceText),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Release Catalog Lock'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('release catalog', '${summary.releaseCatalogCount} works'),
+                  ('verified direct', '${summary.directReadyWorkCount} works'),
+                  (
+                    'safe fallback',
+                    '${summary.safeSearchFallbackWorkCount} works',
+                  ),
+                  (
+                    'approved preview',
+                    '${summary.approvedPreviewWorkCount} works',
+                  ),
+                  (
+                    'founder preview',
+                    '${summary.founderApprovedPreviewCount}/${summary.founderPickCount} approved',
+                  ),
+                  ('app identity GAP', '${summary.appIdentityGapCount}'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'App Identity'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('current app', summary.appIdentityReadiness.appName),
+                  ('target app', summary.appIdentityReadiness.targetAppName),
+                  (
+                    'current Android id',
+                    summary.appIdentityReadiness.androidApplicationId,
+                  ),
+                  (
+                    'target Android id',
+                    summary.appIdentityReadiness.targetAndroidApplicationId,
+                  ),
+                  ('current iOS id', summary.appIdentityReadiness.iosBundleId),
+                  (
+                    'target iOS id',
+                    summary.appIdentityReadiness.targetIosBundleId,
+                  ),
+                  ('current version', summary.appIdentityReadiness.version),
+                  (
+                    'target version',
+                    summary.appIdentityReadiness.targetVersion,
+                  ),
+                  ('subtitle', summary.appIdentityReadiness.storeSubtitle),
+                  (
+                    'description',
+                    summary.appIdentityReadiness.shortDescription,
+                  ),
+                  ('icon', summary.appIdentityReadiness.iconStatus),
+                  ('privacy', summary.appIdentityReadiness.privacyCopyStatus),
+                  (
+                    'permissions',
+                    summary.appIdentityReadiness.permissionSummary,
+                  ),
+                  (
+                    'production GAP',
+                    summary.appIdentityReadiness.gaps.isEmpty
+                        ? '없음'
+                        : summary.appIdentityReadiness.gaps.join('\n'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Launch Feedback'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('feedback', '${summary.feedbackSummary.totalCount}'),
+                  ('blocker', '${summary.feedbackSummary.blockerCount}'),
+                  ('export', summary.feedbackSummary.exportText),
+                ],
+              ),
+              for (final item in summary.feedbackSummary.items.take(5))
+                _Panel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.feedback_outlined),
+                    title: Text('${item.category} · ${item.priority}'),
+                    subtitle: Text(
+                      item.latestMessage.isEmpty
+                          ? '${item.count}건'
+                          : '${item.count}건 · ${item.latestMessage}',
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'KOPIS Production'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('mode', summary.kopisProductionReadiness.mode),
+                  (
+                    'status',
+                    summary.kopisProductionReadiness.statuses
+                        .map((status) => status.name)
+                        .join(', '),
+                  ),
+                  ('summary', summary.kopisProductionReadiness.summary),
+                  (
+                    'production GAP',
+                    summary.kopisProductionReadiness.gaps.join('\n'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Review Queues'),
+              const SizedBox(height: 8),
+              _OpsQueuePreview(
+                title: 'Founder Pick Review',
+                items: summary.founderReviewQueue,
+                emptyMessage: 'Founder first exposure issue가 없습니다.',
+              ),
+              _OpsQueuePreview(
+                title: 'Direct Link Review',
+                items: summary.directLinkReviewQueue,
+                emptyMessage: '검증 대기 중인 direct link GAP이 없습니다.',
+              ),
+              _OpsQueuePreview(
+                title: 'Preview Review',
+                items: summary.previewReviewQueue,
+                emptyMessage: '검증 대기 중인 preview GAP이 없습니다.',
+              ),
+              _OpsQueuePreview(
+                title: 'Concert Match Review',
+                items: summary.concertMatchReviewQueue,
+                emptyMessage: '검증 대기 중인 concert match GAP이 없습니다.',
               ),
               const SizedBox(height: 12),
               _SectionTitle(title: 'Works Coverage'),
@@ -464,6 +670,110 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _FeedbackSheet extends StatefulWidget {
+  const _FeedbackSheet({required this.controller});
+
+  final ClassicalDiscoveryController controller;
+
+  @override
+  State<_FeedbackSheet> createState() => _FeedbackSheetState();
+}
+
+class _FeedbackSheetState extends State<_FeedbackSheet> {
+  String _category = 'product_quality';
+  final TextEditingController _messageController = TextEditingController();
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 20 + bottomInset),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '의견 보내기',
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '불편한 지점만 짧게 남겨주세요.',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 16),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final item in const <({String id, String label})>[
+                  (id: 'product_quality', label: '앱 느낌'),
+                  (id: 'link_issue', label: '듣기 링크'),
+                  (id: 'concert_issue', label: '공연 정보'),
+                  (id: 'copy_issue', label: '문구'),
+                  (id: 'retention_issue', label: '다시 열 이유'),
+                  (id: 'crash_or_blocker', label: '멈춤/오류'),
+                ])
+                  ChoiceChip(
+                    label: Text(item.label),
+                    selected: _category == item.id,
+                    onSelected: (_) => setState(() => _category = item.id),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _messageController,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: '내용',
+                hintText: '예: 오늘 화면에서 뭘 눌러야 할지 애매했어요.',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('취소'),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: _submit,
+                  icon: const Icon(Icons.send_outlined),
+                  label: const Text('보내기'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _submit() async {
+    await widget.controller.submitFeedback(
+      category: _category,
+      message: _messageController.text,
+    );
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('의견을 남겼습니다.')));
   }
 }
 
@@ -1271,7 +1581,7 @@ class _WorkHero extends StatelessWidget {
                           _showMomentPreview(context, moment, links),
                         ),
                   icon: const Icon(Icons.play_arrow),
-                  label: const Text('30초 듣기'),
+                  label: const Text('30초 포인트 보기'),
                 ),
                 OutlinedButton.icon(
                   onPressed: work.listeningMoments.length < 2
@@ -1284,7 +1594,7 @@ class _WorkHero extends StatelessWidget {
                           ),
                         ),
                   icon: const Icon(Icons.timelapse),
-                  label: const Text('3분 듣기'),
+                  label: const Text('3분 가이드 보기'),
                 ),
                 IconButton.filledTonal(
                   tooltip: state.saved ? '저장 해제' : '작품 저장',
@@ -1574,15 +1884,17 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
   }
 
   String? _previewUrlFor(ExternalLink? preferred) {
-    if (preferred?.previewUrl?.isNotEmpty == true) {
-      return preferred!.previewUrl;
+    if (preferred != null) {
+      final review = const ClassicalLinkReviewPolicy().reviewProviderPreview(
+        platformId: preferred.platformId,
+        label: preferred.label,
+        link: preferred,
+      );
+      if (review.status == ClassicalPreviewReviewStatus.approvedPreview) {
+        return review.previewUrl;
+      }
     }
-    final recording = widget.work.recordings
-        .where(
-          (recording) => recording.id == widget.moment.recommendedRecordingId,
-        )
-        .firstOrNull;
-    return recording?.previewUrl;
+    return null;
   }
 }
 
@@ -2232,6 +2544,56 @@ class _OpsSummaryPanel extends StatelessWidget {
   }
 }
 
+class _OpsQueuePreview extends StatelessWidget {
+  const _OpsQueuePreview({
+    required this.title,
+    required this.items,
+    required this.emptyMessage,
+  });
+
+  final String title;
+  final List<ClassicalOpsQueueItem> items;
+  final String emptyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$title · ${items.length}',
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          if (items.isEmpty)
+            Text(emptyMessage)
+          else
+            for (final item in items.take(3))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${item.title} · ${item.composer}',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    Text('${item.status} · ${item.reason}'),
+                    Text(
+                      item.nextCommand,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ],
+                ),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PageFrame extends StatelessWidget {
   const _PageFrame({required this.child});
 
@@ -2322,6 +2684,14 @@ String _listenCtaLabel(ExternalLink link) {
     return '${link.label}에서 검색';
   }
   return '${link.label}에서 전체 듣기';
+}
+
+String _readinessLabel(ClassicalReadinessStatus status) {
+  return switch (status) {
+    ClassicalReadinessStatus.ready => 'READY',
+    ClassicalReadinessStatus.needsContentOps => 'CONTENT OPS GAP',
+    ClassicalReadinessStatus.blocked => 'BLOCKED',
+  };
 }
 
 List<TicketDestination> _sortedTicketDestinations(ClassicalConcert concert) {

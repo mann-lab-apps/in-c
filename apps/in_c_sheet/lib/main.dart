@@ -9,6 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'classical_discovery_app.dart';
+import 'classical_discovery_controller.dart';
+import 'classical_discovery_store.dart';
 import 'pdf_link_policy.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
@@ -36,6 +39,9 @@ import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
 const String _clefAppVersion = '1.0.0+14';
+const bool _launchInCDiscoveryHome = bool.fromEnvironment(
+  'IN_C_DISCOVERY_HOME',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +49,15 @@ Future<void> main() async {
 
   final controller = SheetLibraryController(store: SheetLibraryStore());
   await controller.load();
+  final discoveryController = ClassicalDiscoveryController(
+    store: ClassicalDiscoveryStore(),
+  );
+  await discoveryController.load();
+
+  if (_launchInCDiscoveryHome) {
+    runApp(ClassicalDiscoveryApp(controller: discoveryController));
+    return;
+  }
 
   runApp(InCSheetApp(controller: controller));
 }

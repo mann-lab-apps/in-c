@@ -172,6 +172,56 @@ class KopisConcertParser {
 class ConcertProgramMatcher {
   const ConcertProgramMatcher();
 
+  List<ConcertProgramMatchCandidate> matchCandidates({
+    required String programRawText,
+    required List<ClassicalWork> works,
+  }) {
+    final raw = normalizeDiscoveryText(programRawText);
+    if (raw.isEmpty) {
+      return const <ConcertProgramMatchCandidate>[];
+    }
+    final candidates = <ConcertProgramMatchCandidate>[];
+    for (final work in works) {
+      final titleMatch = _titleCandidates(work).any(raw.contains);
+      final composerMatch = _composerCandidates(work).any(raw.contains);
+      final catalog = normalizeDiscoveryText(work.catalogNumber);
+      final catalogMatch = catalog.isNotEmpty && raw.contains(catalog);
+      final tokenMatch = _titleTokens(work).any(raw.contains);
+      if (titleMatch) {
+        candidates.add(
+          ConcertProgramMatchCandidate(
+            workId: work.id,
+            title: work.titleKo,
+            confidence: ConcertProgramMatchConfidence.high,
+            reason: 'title/alias exact text match',
+          ),
+        );
+      } else if (composerMatch && (catalogMatch || tokenMatch)) {
+        candidates.add(
+          ConcertProgramMatchCandidate(
+            workId: work.id,
+            title: work.titleKo,
+            confidence: ConcertProgramMatchConfidence.medium,
+            reason: catalogMatch
+                ? 'composer and catalog number match'
+                : 'composer and title token match',
+          ),
+        );
+      } else if (composerMatch) {
+        candidates.add(
+          ConcertProgramMatchCandidate(
+            workId: work.id,
+            title: work.titleKo,
+            confidence: ConcertProgramMatchConfidence.low,
+            reason: 'composer only match; manual review required',
+          ),
+        );
+      }
+    }
+    candidates.sort((a, b) => b.confidence.index.compareTo(a.confidence.index));
+    return List<ConcertProgramMatchCandidate>.unmodifiable(candidates);
+  }
+
   List<String> matchWorkIds({
     required String programRawText,
     required List<ClassicalWork> works,
@@ -190,27 +240,33 @@ class ConcertProgramMatcher {
   }
 
   bool _matchesWork(String raw, ClassicalWork work) {
-    final titleCandidates = <String>[
+    if (_titleCandidates(work).any(raw.contains)) {
+      return true;
+    }
+
+    final catalog = normalizeDiscoveryText(work.catalogNumber);
+    if (catalog.isEmpty) {
+      return _composerCandidates(work).any(raw.contains) &&
+          _titleTokens(work).any(raw.contains);
+    }
+    return _composerCandidates(work).any(raw.contains) &&
+        (raw.contains(catalog) || _titleTokens(work).any(raw.contains));
+  }
+
+  Iterable<String> _titleCandidates(ClassicalWork work) {
+    return <String>[
       work.titleKo,
       work.titleOriginal,
       ...work.aliases,
     ].map(normalizeDiscoveryText).where((value) => value.length >= 4);
-    if (titleCandidates.any(raw.contains)) {
-      return true;
-    }
+  }
 
-    final composerCandidates = <String>[
+  Iterable<String> _composerCandidates(ClassicalWork work) {
+    return <String>[
       work.composerNameKo,
       work.composerNameOriginal,
       ..._tokens(work.composerNameOriginal),
     ].map(normalizeDiscoveryText).where((value) => value.length >= 3);
-    final catalog = normalizeDiscoveryText(work.catalogNumber);
-    if (catalog.isEmpty) {
-      return composerCandidates.any(raw.contains) &&
-          _titleTokens(work).any(raw.contains);
-    }
-    return composerCandidates.any(raw.contains) &&
-        (raw.contains(catalog) || _titleTokens(work).any(raw.contains));
   }
 
   Iterable<String> _titleTokens(ClassicalWork work) sync* {
@@ -232,3 +288,19 @@ class ConcertProgramMatcher {
         .where((token) => token.isNotEmpty);
   }
 }
+
+class ConcertProgramMatchCandidate {
+  const ConcertProgramMatchCandidate({
+    required this.workId,
+    required this.title,
+    required this.confidence,
+    required this.reason,
+  });
+
+  final String workId;
+  final String title;
+  final ConcertProgramMatchConfidence confidence;
+  final String reason;
+}
+
+enum ConcertProgramMatchConfidence { low, medium, high }
