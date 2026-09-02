@@ -2786,13 +2786,13 @@ class _QuickAccessBand extends StatelessWidget {
 
     final theme = Theme.of(context);
     return SizedBox(
-      height: 116,
+      height: 148,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
           final group = groups[groupIndex];
           return SizedBox(
-            width: 310,
+            width: 350,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -2888,7 +2888,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
         ? '마지막 ${score.lastPage}쪽'
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
     return SizedBox(
-      width: 156,
+      width: 176,
       child: Material(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -3282,12 +3282,16 @@ class _ScoreTile extends StatelessWidget {
                     ),
                   ),
                   if (!isSelecting)
-                    Wrap(
-                      spacing: 0,
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         IconButton(
                           tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
                           onPressed: () => onFavorite(score),
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
                           icon: Icon(
                             score.isFavorite ? Icons.star : Icons.star_border,
                           ),
@@ -3295,21 +3299,51 @@ class _ScoreTile extends StatelessWidget {
                         IconButton(
                           tooltip: score.isPinned ? '고정 해제' : '고정',
                           onPressed: () => onPin(score),
+                          constraints: const BoxConstraints.tightFor(
+                            width: 40,
+                            height: 40,
+                          ),
                           icon: Icon(
                             score.isPinned
                                 ? Icons.push_pin
                                 : Icons.push_pin_outlined,
                           ),
                         ),
-                        IconButton(
-                          tooltip: '악보 정보 편집',
-                          onPressed: () => onEdit(score),
-                          icon: const Icon(Icons.edit_outlined),
-                        ),
-                        IconButton(
-                          tooltip: 'PDF 공유',
-                          onPressed: () => onShare(score),
-                          icon: const Icon(Icons.ios_share),
+                        SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: PopupMenuButton<_ScoreTileAction>(
+                            tooltip: '더보기',
+                            icon: const Icon(Icons.more_vert),
+                            iconSize: 22,
+                            padding: EdgeInsets.zero,
+                            onSelected: (action) {
+                              switch (action) {
+                                case _ScoreTileAction.edit:
+                                  onEdit(score);
+                                case _ScoreTileAction.share:
+                                  onShare(score);
+                              }
+                            },
+                            itemBuilder: (context) => const [
+                              PopupMenuItem<_ScoreTileAction>(
+                                value: _ScoreTileAction.edit,
+                                child: ListTile(
+                                  leading: Icon(Icons.edit_outlined),
+                                  title: Text('악보 정보 편집'),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                              PopupMenuItem<_ScoreTileAction>(
+                                value: _ScoreTileAction.share,
+                                child: ListTile(
+                                  leading: Icon(Icons.ios_share),
+                                  title: Text('PDF 공유'),
+                                  contentPadding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
@@ -3341,6 +3375,8 @@ class _ScoreTile extends StatelessWidget {
     );
   }
 }
+
+enum _ScoreTileAction { edit, share }
 
 class SheetSetlistsScreen extends StatefulWidget {
   const SheetSetlistsScreen({required this.controller, super.key});
@@ -5135,13 +5171,17 @@ setlist=$setlistLabel
     return PdfRect(left, top, right, bottom);
   }
 
-  Future<void> _goToRelativePage(int delta) async {
+  Future<void> _goToRelativePage(
+    int delta, {
+    bool allowHalfPageTurn = true,
+  }) async {
     if (!_pdfController.isReady) {
       return;
     }
     _stopAutoScroll(showMessage: false);
 
-    if (_usesHalfPageTurnForRelativePage &&
+    if (allowHalfPageTurn &&
+        _usesHalfPageTurnForRelativePage &&
         await _goToRelativeHalfPage(delta)) {
       _showPageControlsTemporarily();
       return;
@@ -8913,7 +8953,7 @@ setlist=$setlistLabel
       _ => null,
     };
     if (delta != null) {
-      unawaited(_handlePedalPageTurn(delta));
+      unawaited(_handlePedalPageTurn(delta, allowHalfPageTurn: false));
       return null;
     }
     switch (intent.action) {
@@ -8931,16 +8971,19 @@ setlist=$setlistLabel
     return null;
   }
 
-  Future<void> _handlePedalPageTurn(int delta) async {
+  Future<void> _handlePedalPageTurn(
+    int delta, {
+    bool allowHalfPageTurn = true,
+  }) async {
     await _pageTurnGuard.run(() async {
       if (!_pdfController.isReady ||
           !_pedalMapping.movesAcrossSetlistBoundary ||
           widget.setlistId == null ||
           _canGoToRelativePage(delta)) {
-        await _goToRelativePage(delta);
+        await _goToRelativePage(delta, allowHalfPageTurn: allowHalfPageTurn);
         return;
       }
-      if (_canGoToRelativeHalfPage(delta)) {
+      if (allowHalfPageTurn && _canGoToRelativeHalfPage(delta)) {
         _stopAutoScroll(showMessage: false);
         if (await _goToRelativeHalfPage(delta)) {
           _showPageControlsTemporarily();
@@ -10556,10 +10599,24 @@ class _ViewerDisplayEffectWrapper extends StatelessWidget {
   }
 }
 
-class _ScrollableAppBarActions extends StatelessWidget {
+class _ScrollableAppBarActions extends StatefulWidget {
   const _ScrollableAppBarActions({required this.children});
 
   final List<Widget> children;
+
+  @override
+  State<_ScrollableAppBarActions> createState() =>
+      _ScrollableAppBarActionsState();
+}
+
+class _ScrollableAppBarActionsState extends State<_ScrollableAppBarActions> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10570,10 +10627,37 @@ class _ScrollableAppBarActions extends StatelessWidget {
     return SizedBox(
       width: availableWidth,
       height: kToolbarHeight,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(mainAxisSize: MainAxisSize.min, children: children),
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: false,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final child in widget.children)
+                _AppBarActionSlot(child: child),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _AppBarActionSlot extends StatelessWidget {
+  const _AppBarActionSlot({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final minWidth = child is Center ? 72.0 : kToolbarHeight;
+    return SizedBox(
+      width: minWidth,
+      height: kToolbarHeight,
+      child: Center(child: child),
     );
   }
 }
@@ -13894,6 +13978,9 @@ class _TunerSheetState extends State<_TunerSheet> {
     final tuningTargets = _activeTuningTargetsFor(_settings);
     final isCustomTargets =
         _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
+    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
+        ? SheetTunerStringTarget.fromTargets(tuningTargets)
+        : const <SheetTunerStringTarget>[];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -14028,6 +14115,19 @@ class _TunerSheetState extends State<_TunerSheet> {
                   }
                 },
               ),
+              if (stringTargets.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _TunerStringTargetPanel(
+                  title: _settings.tuningPreset.stringTargetPanelLabel,
+                  stringTargets: stringTargets,
+                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
+                  referencePitchA4: _settings.referencePitchA4,
+                  preferFlats: _preferFlats,
+                  onSelected: (target) => unawaited(
+                    _setTargetConcertMidiNumber(target.concertMidiNumber),
+                  ),
+                ),
+              ],
               const SizedBox(height: 18),
               Center(
                 child: Text(
@@ -14683,6 +14783,172 @@ class _TunerLedStrip extends StatelessWidget {
       SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
       SheetTunerLedState.off => theme.colorScheme.outline,
     };
+  }
+}
+
+class _TunerStringTargetPanel extends StatelessWidget {
+  const _TunerStringTargetPanel({
+    required this.title,
+    required this.stringTargets,
+    required this.selectedConcertMidiNumber,
+    required this.referencePitchA4,
+    required this.preferFlats,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<SheetTunerStringTarget> stringTargets;
+  final int? selectedConcertMidiNumber;
+  final int referencePitchA4;
+  final bool preferFlats;
+  final ValueChanged<SheetTunerTarget> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.55,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.linear_scale, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '6 -> 1',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 720
+                    ? math.min(stringTargets.length, 4)
+                    : constraints.maxWidth >= 460
+                    ? math.min(stringTargets.length, 3)
+                    : 2;
+                final spacing = 8.0;
+                final width =
+                    (constraints.maxWidth - (spacing * (columns - 1))) /
+                    columns;
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (final stringTarget in stringTargets)
+                      SizedBox(
+                        width: width,
+                        child: _TunerStringTargetButton(
+                          stringTarget: stringTarget,
+                          selected:
+                              selectedConcertMidiNumber ==
+                              stringTarget.target.concertMidiNumber,
+                          referencePitchA4: referencePitchA4,
+                          preferFlats: preferFlats,
+                          onSelected: onSelected,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TunerStringTargetButton extends StatelessWidget {
+  const _TunerStringTargetButton({
+    required this.stringTarget,
+    required this.selected,
+    required this.referencePitchA4,
+    required this.preferFlats,
+    required this.onSelected,
+  });
+
+  final SheetTunerStringTarget stringTarget;
+  final bool selected;
+  final int referencePitchA4;
+  final bool preferFlats;
+  final ValueChanged<SheetTunerTarget> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final target = stringTarget.target;
+    final pitch = SheetTunerPitch.noteFromMidi(
+      target.concertMidiNumber,
+      referencePitchA4: referencePitchA4,
+    );
+    return Material(
+      color: selected
+          ? theme.colorScheme.primaryContainer
+          : theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onSelected(target),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${stringTarget.stringNumber}번줄',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                pitch.labelWith(preferFlats: preferFlats),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: selected
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                '${pitch.frequency.toStringAsFixed(1)} Hz',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
