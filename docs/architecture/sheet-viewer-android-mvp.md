@@ -4,7 +4,7 @@
 
 ## 구현 방향
 
-제품명은 `Clef`로 둔다. 구현 위치는 `apps/in_c_sheet`를 유지하고 Android 전용 Flutter 앱으로
+제품명은 `Clef & Staff`로 둔다. 구현 위치는 `apps/in_c_sheet`를 유지하고 Android 전용 Flutter 앱으로
 시작한다. 기존 `in_c_click`,
 `in_c_chime`와 같은 앱 포트폴리오 구조를 따르되, PDF 렌더링은 Flutter widget만으로
 직접 만들지 않고 `pdfrx`를 사용한다. `pdfrx`는 PDFium 기반이고 PDF viewing,

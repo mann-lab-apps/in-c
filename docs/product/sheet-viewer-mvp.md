@@ -170,7 +170,7 @@ Android 태블릿 연주자는 MobileSheets급 기본 악보 뷰어 기능을 �
 
 ## 현재 구현 상태
 
-제품명은 `Clef`다. 2026-08-28 기준으로 `apps/in_c_sheet` Android Flutter 앱에서 Clef v1 RC 후보의
+제품명은 `Clef & Staff`다. 2026-08-28 기준으로 `apps/in_c_sheet` Android Flutter 앱에서 Clef v1 RC 후보의
 import/library/viewer/annotation/performance/backup 흐름을 구현했고, Homebrew Flutter `3.47.2`/Dart
 `3.13.2`로 `dart format lib test`, `flutter analyze`, `flutter test`를 통과했다.
 

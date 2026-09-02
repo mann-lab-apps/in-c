@@ -72,7 +72,7 @@ class InCSheetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Clef',
+      title: 'Clef & Staff',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -436,7 +436,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${imported.length}개 PDF를 Clef 라이브러리에 추가했습니다.')),
+      SnackBar(
+        content: Text('${imported.length}개 PDF를 Clef & Staff 라이브러리에 추가했습니다.'),
+      ),
     );
     await _openScore(imported.first);
   }
@@ -2386,7 +2388,7 @@ class _EmptyLibrary extends StatelessWidget {
             ] else ...[
               const SizedBox(height: 8),
               Text(
-                'PDF 또는 JPG/PNG 이미지를 가져와 Clef 라이브러리에 등록할 수 있습니다.',
+                'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall,
               ),
@@ -2531,7 +2533,7 @@ pageMetadataScores=$pageMetadataCount
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef 테스트 정보',
+                  'Clef & Staff 테스트 정보',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -2540,7 +2542,7 @@ pageMetadataScores=$pageMetadataCount
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(label: '앱', value: 'Clef'),
+          _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: 'Beta test build'),
           _InfoRow(label: '악보', value: '${scores.length}개'),
@@ -14588,7 +14590,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       ),
       SheetTunerInputStatus.permissionDenied => (
         icon: Icons.mic_off_outlined,
-        label: '설정에서 Clef 마이크 권한을 허용해주세요',
+        label: '설정에서 Clef & Staff 마이크 권한을 허용해주세요',
       ),
       SheetTunerInputStatus.audioPipelineUnavailable => (
         icon: Icons.error_outline,
