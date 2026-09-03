@@ -2837,7 +2837,7 @@ class _QuickAccessBand extends StatelessWidget {
 
     final theme = Theme.of(context);
     return SizedBox(
-      height: 148,
+      height: 208,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
@@ -2940,6 +2940,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
     return SizedBox(
       width: 176,
+      height: 144,
       child: Material(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -2964,7 +2965,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall,
                 ),
-                const Spacer(),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     if (score.isPinned)
@@ -3221,16 +3222,19 @@ class _ScoreGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isWide) {
       return ListView.separated(
-        itemBuilder: (context, index) => _ScoreTile(
-          score: scores[index],
-          onOpen: onOpen,
-          onFavorite: onFavorite,
-          onPin: onPin,
-          isSelecting: isSelecting,
-          isSelected: selectedIds.contains(scores[index].id),
-          onSelectionChanged: onSelectionChanged,
-          onEdit: onEdit,
-          onShare: onShare,
+        itemBuilder: (context, index) => SizedBox(
+          height: 196,
+          child: _ScoreTile(
+            score: scores[index],
+            onOpen: onOpen,
+            onFavorite: onFavorite,
+            onPin: onPin,
+            isSelecting: isSelecting,
+            isSelected: selectedIds.contains(scores[index].id),
+            onSelectionChanged: onSelectionChanged,
+            onEdit: onEdit,
+            onShare: onShare,
+          ),
         ),
         separatorBuilder: (context, index) => const SizedBox(height: 10),
         itemCount: scores.length,
@@ -3240,7 +3244,7 @@ class _ScoreGrid extends StatelessWidget {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
-        mainAxisExtent: 150,
+        mainAxisExtent: 196,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -3419,7 +3423,7 @@ class _ScoreTile extends StatelessWidget {
                       ?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ],
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 footerParts.join(' · '),
                 maxLines: 1,
