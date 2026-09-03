@@ -8,17 +8,17 @@
 - App name: in C
 - Subtitle: 오늘 하나씩 여는 클래식
 - Version: 1.0.0+14 RC
-- Android Public V1 applicationId: `com.mannlab.clef`
+- Android Public V1 applicationId: `com.mannlab.inc`
 - iOS Public V1 bundle id: `com.mannlab.inc.clef`
-- Standalone in C applicationId/bundle id: deferred to V1.1 migration review
+- Android package requirement: Play Console expects `com.mannlab.inc`
 - Support contact placeholder: `support@mannlab.app`
 - Category: Music / Entertainment
 - Age rating assumption: 4+ / Everyone. in C does not host audio, does not include public posting, and does not expose user-generated public content.
 - Permission summary: external link-out and local-first preferences only for in C discovery; no microphone, camera, or location permission is required by this surface.
 
-Public V1은 기존 Clef lineage applicationId/bundle id를 유지하고, 사용자-facing display name, icon,
-store copy, 직접 진입 build flag를 `in C`로 고정한다. 독립 `com.mannlab.inc` applicationId/bundle id는
-signing, migration, store listing 영향 검토 후 V1.1에서 분리한다.
+Public V1 Android build는 Play Console에 등록된 `com.mannlab.inc` package name을 사용한다. 사용자-facing
+display name, icon, store copy, 직접 진입 build flag는 `in C`로 고정한다. iOS bundle id는 현재
+`com.mannlab.inc.clef`로 남아 있으며 TestFlight signing/provisioning 정리 후 별도 확인한다.
 
 ## Short Description
 

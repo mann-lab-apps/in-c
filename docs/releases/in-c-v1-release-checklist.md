@@ -58,16 +58,15 @@
 ## App Identity Target
 
 - current display name: `in C`
-- Public V1 Android applicationId: `com.mannlab.clef`
+- Public V1 Android applicationId: `com.mannlab.inc`
 - Public V1 iOS bundle id: `com.mannlab.inc.clef`
-- standalone in C applicationId/bundle id: V1.1 migration review로 이월
 - target display name: `in C`
 - target subtitle: `오늘 하나씩 여는 클래식`
 - first-pass launcher icon: `apps/in_c_sheet/assets/brand/in-c-soft-launch-icon.svg`
 - Android/iOS launcher PNG resources: first-pass generated, device review required.
 - QA build can open the discovery app directly with `--dart-define=IN_C_DISCOVERY_HOME=true`.
-- Public V1은 기존 Clef lineage bundle/application id를 유지하는 결정으로 잠근다.
-- 독립 `com.mannlab.inc` 분리는 signing, migration, store listing 위험 때문에 Public V1 범위에서 제외한다.
+- Public V1 Android build는 Play Console package requirement인 `com.mannlab.inc`로 잠근다.
+- Clef sheet-reader continuity는 regression suite로 보호한다.
 
 ## Store Metadata
 
@@ -107,19 +106,18 @@
 - iOS TestFlight upload: NOT RUN, signing/provisioning required.
 - 2026-09-03 repeat QA: targeted/full tests, analyze, Android debug/release/AAB, iOS no-codesign,
   and iOS simulator install/launch smoke all PASS.
-- Public V1 app identity decision: keep Clef lineage applicationId/bundle id for this release; standalone
-  in C identity moves to V1.1 migration review.
+- Public V1 app identity decision: Android package is `com.mannlab.inc`; iOS bundle id remains
+  `com.mannlab.inc.clef` until signing/provisioning is resolved.
 
 ## 2026-09-03 Public V1 Closeout Snapshot
 
-- App identity decision: PASS, Public V1 keeps `com.mannlab.clef` / `com.mannlab.inc.clef` with `in C`
-  display name, icon, store copy, and direct discovery entry.
-- Standalone identity migration: V1.1 follow-up, not a Public V1 blocker.
+- App identity decision: PASS, Public V1 Android uses `com.mannlab.inc` with `in C` display name, icon,
+  store copy, and direct discovery entry.
 - Public copy review gate: PASS, store-facing copy is checked for internal terms such as CTA, surface,
   funnel, Catalog Ops, fake direct, and fake preview.
 - Catalog Ops now shows Public V1 GAP action rows with priority, owner, next action, and evidence requirement.
 - Android install smoke retry: PASS, direct emulator launch attached `emulator-5554`; release APK install and
-  `com.mannlab.clef/.MainActivity` launch succeeded.
+  `com.mannlab.inc/.MainActivity` launch succeeded.
 - Android smoke screenshots: Today, Work Detail, Discover, My Music, Concerts, Preview, and external link-out
   captured under `apps/in_c_sheet/build/`.
 - External link-out smoke: PASS with environment note. The app handed YouTube search fallback to Chrome without

@@ -34,14 +34,14 @@ Soft Launch에서 나온 반복 문제는 다음 category로 분류한다.
 Public V1 release-ready YES는 critical code blocker와 critical product quality GAP이 0이고,
 Catalog Ops Closeout의 release-ready가 YES일 때만 사용한다.
 
-Public V1 app identity는 기존 Clef lineage applicationId/bundle id를 유지하고, 사용자-facing display
-name, icon, store copy, 직접 진입 build flag를 `in C`로 고정하는 것으로 결정한다. 독립 in C
-applicationId/bundle id는 signing, migration, store listing 영향 검토 후 V1.1에서 다룬다.
+Public V1 Android app identity는 Play Console package requirement인 `com.mannlab.inc`로 고정한다.
+사용자-facing display name, icon, store copy, 직접 진입 build flag는 `in C`로 유지한다. iOS bundle id는
+signing/provisioning 정리 후 별도 확인한다.
 
 ## 2026-09-03 Public V1 Evidence
 
 - Android release APK install: PASS on `emulator-5554`.
-- Android launch: PASS with `com.mannlab.clef/.MainActivity`.
+- Android launch: PASS with `com.mannlab.inc/.MainActivity`.
 - Android screenshot capture: PASS for Today, Work Detail, Discover, My Music, Concerts, Preview, external link-out.
 - Android external link-out: PASS with environment note. Chrome opened first-run setup after the app handed off
   YouTube search fallback.

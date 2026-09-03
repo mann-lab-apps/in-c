@@ -38,10 +38,9 @@ Public V1 release-ready YES는 Catalog Ops의 Public V1 Closeout evidence 기준
 
 ## Current Identity Note
 
-현재 Android/iOS 표시 이름은 `in C`이고 first-pass launcher icon이 적용되어 있다. Public V1은 기존
-Clef lineage applicationId/bundle id를 유지하고, 사용자-facing 앱 이름, 아이콘, store copy, 직접 진입
-build flag를 `in C`로 고정한다. 독립 `com.mannlab.inc` applicationId/bundle id 분리는 signing,
-migration, store listing 영향 검토 후 V1.1에서 다룬다.
+현재 Android/iOS 표시 이름은 `in C`이고 first-pass launcher icon이 적용되어 있다. Public V1 Android build는
+Play Console package requirement인 `com.mannlab.inc`를 사용하고, 사용자-facing 앱 이름, 아이콘, store copy,
+직접 진입 build flag를 `in C`로 고정한다. iOS bundle id는 signing/provisioning 정리 후 별도 확인한다.
 
 ## 2026-09-02 Build Note
 
@@ -62,7 +61,7 @@ copy는 CTA/surface/funnel/Catalog Ops/fake URL 같은 내부 용어가 store-fa
 gate로 확인한다.
 
 Android install smoke는 direct emulator launch 후 PASS다. `emulator-5554` Android 15에서 release APK
-install과 `com.mannlab.clef/.MainActivity` launch가 성공했고, Today, Preview, external link-out, Work
+install과 `com.mannlab.inc/.MainActivity` launch가 성공했고, Today, Preview, external link-out, Work
 Detail, Discover, My Music, Concerts screenshot evidence를 `apps/in_c_sheet/build/` 아래에 남겼다.
 
 `flutter build ipa --dart-define=IN_C_DISCOVERY_HOME=true`는 archive 단계까지 진행된 뒤 codesign에서 실패했다.

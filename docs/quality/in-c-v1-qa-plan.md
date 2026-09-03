@@ -23,8 +23,7 @@
 - Public V1 Closeout evidence export만 보고 release-ready YES/NO 이유를 설명할 수 있는지 확인한다.
 - App Identity 섹션에서 app name, Android applicationId, iOS bundle id, version, icon/privacy 상태와
   Public V1 identity decision이 보이는지 확인한다.
-- Public V1은 Clef lineage applicationId/bundle id 유지로 결정되어 있으며, 독립 in C bundle id는
-  V1.1 migration review로 분리되어 있는지 확인한다.
+- Public V1 Android applicationId가 Play Console 요구사항인 `com.mannlab.inc`와 일치하는지 확인한다.
 - Launch Feedback 섹션에서 `feedback_submit` category별 count, priority, export text가 보이는지 확인한다.
 - release catalog count가 300개 미만이면 content ops GAP으로 남고 Public V1 READY가 되지 않아야 한다.
 - listening moment 부족, 외부 link 부족, 악보 link 부족 값이 0인지 확인한다.
@@ -41,8 +40,7 @@
 - current display name은 Android/iOS 모두 `in C`로 보이는지 확인한다.
 - first-pass launcher icon이 Android/iOS 홈 화면과 앱 전환 화면에서 흐리거나 과하게 복잡하지 않은지 확인한다.
 - in C 직접 진입 QA build는 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다.
-- 현재 shell의 Android applicationId는 `com.mannlab.clef`, iOS bundle id는 `com.mannlab.inc.clef`이며
-  Public V1은 이 identity를 유지하는 것으로 잠근다.
+- 현재 shell의 Android applicationId는 `com.mannlab.inc`, iOS bundle id는 `com.mannlab.inc.clef`이다.
 - Android debug build smoke를 실행한다.
 - Android release build와 iOS no-codesign build를 실행한다.
 - Play Console 준비 전 Android App Bundle build를 실행한다.
@@ -57,7 +55,7 @@
   - device: `emulator-5554`
   - OS: Android 15
   - install: `adb install -r build/app/outputs/flutter-apk/app-release.apk` PASS
-  - launch: `adb shell am start -n com.mannlab.clef/.MainActivity` PASS
+  - launch: `adb shell am start -n com.mannlab.inc/.MainActivity` PASS
   - captured: Today, Work Detail, Discover, My Music, Concerts, Preview, external link-out
 - 2026-09-03 기준 external link-out은 Chrome first-run setup 화면까지 열렸고 앱 crash는 없었다. 실제 검색
   결과 도달은 테스트 기기의 외부 앱 초기 설정 상태에 의존한다.

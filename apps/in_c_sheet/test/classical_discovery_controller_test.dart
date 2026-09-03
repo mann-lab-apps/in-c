@@ -511,18 +511,18 @@ void main() {
     );
     expect(
       summary.appIdentityReadiness.androidApplicationId,
-      'com.mannlab.clef',
+      'com.mannlab.inc',
     );
     expect(summary.appIdentityReadiness.targetAppName, 'in C');
     expect(
       summary.appIdentityReadiness.targetAndroidApplicationId,
-      'com.mannlab.clef',
+      'com.mannlab.inc',
     );
     expect(summary.appIdentityReadiness.identityDecisionAccepted, isTrue);
     expect(summary.appIdentityReadiness.isVerified, isTrue);
     expect(
       summary.appIdentityReadiness.releaseDecision,
-      contains('Clef lineage'),
+      contains('com.mannlab.inc'),
     );
     expect(summary.kopisProductionReadiness.productionReady, isFalse);
     expect(

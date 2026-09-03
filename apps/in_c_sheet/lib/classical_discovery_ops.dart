@@ -392,11 +392,11 @@ class ClassicalAppIdentityReadiness {
   factory ClassicalAppIdentityReadiness.currentFlutterShell() {
     return const ClassicalAppIdentityReadiness(
       appName: 'in C',
-      androidApplicationId: 'com.mannlab.clef',
+      androidApplicationId: 'com.mannlab.inc',
       iosBundleId: 'com.mannlab.inc.clef',
       version: '1.0.0+14',
       targetAppName: 'in C',
-      targetAndroidApplicationId: 'com.mannlab.clef',
+      targetAndroidApplicationId: 'com.mannlab.inc',
       targetIosBundleId: 'com.mannlab.inc.clef',
       targetVersion: '1.0.0+14 RC; bump build number for public submission',
       storeSubtitle: '오늘 하나씩 여는 클래식',
@@ -405,8 +405,8 @@ class ClassicalAppIdentityReadiness {
           'first-pass in C icon applied; device and store review still needed',
       privacyCopyStatus: 'in-app policy copy and docs are present',
       permissionSummary: 'local-first storage, external link-out, no hosted audio, no advertiser raw events',
-      releaseDecision: 'Public V1 accepts the existing Clef lineage applicationId/bundle id with in C display name, icon, store copy, and direct discovery entry.',
-      nextIdentityPlan: 'A standalone com.mannlab.inc applicationId/bundle id is deferred to a V1.1 migration after signing and store migration risk review.',
+      releaseDecision: 'Public V1 uses the Play Console package name com.mannlab.inc with in C display name, icon, store copy, and direct discovery entry.',
+      nextIdentityPlan: 'Clef sheet-reader continuity remains covered by regression tests; a separate Clef package migration is outside the in C Public V1 release.',
       identityDecisionAccepted: true,
       gaps: <String>[],
     );
