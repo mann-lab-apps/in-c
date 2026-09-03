@@ -521,6 +521,9 @@
 | 9 | `curl -I http://127.0.0.1:4173/chromatics.html` | Pass | local Chromatics landing returned HTTP 200 and `Content-Type: text/html` |
 | 10 | `curl -s http://127.0.0.1:4173/download-manifest.json` | Pass | local manifest returns active macOS/Windows downloads and Linux `available: false` post-V1 entry |
 | 11 | Browser visual smoke | Not run | Browser control tool was unavailable in this session; rely on build/content/SEO/HTTP smoke before GitHub Pages deploy |
+| 12 | `git push origin HEAD:main` | Pass | pushed V1 web landing release commit to `main`, triggering GitHub Pages `Site` workflow |
+| 13 | `gh run watch 33732194542 --repo mann-lab-apps/in-c --exit-status` | Pass | GitHub Actions `Site` workflow built and deployed GitHub Pages successfully |
+| 14 | `npm run verify:site-production` | Pass | production pages, fallback redirect, legacy `/in-c/`, robots/sitemap, canonical URL, download manifest/release links, and TLS certificate passed at `https://in-c.mannlab.app` |
 
 ## Not Run In This Package
 
