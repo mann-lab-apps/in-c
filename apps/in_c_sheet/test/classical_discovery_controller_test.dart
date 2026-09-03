@@ -496,7 +496,7 @@ void main() {
     expect(summary.appIdentityReadiness.appName, 'in C');
     expect(
       summary.appIdentityReadiness.iconStatus,
-      contains('first-pass in C icon applied'),
+      contains('Darezzo C clef icon applied'),
     );
     expect(
       summary.appIdentityReadiness.androidApplicationId,
