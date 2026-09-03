@@ -33,3 +33,9 @@ in C는 클래식 음원 스트리밍 서비스가 아니라 작품 발견과 �
 - 주요 이벤트는 listening moment start/complete/cancel, preview play/pause/error, save, reaction, recommendation click, promotion impression/click/dismiss, ticket destination click이다.
 - 출시 직후에는 app open, Today view, external platform click, My Music view, concert detail view, feedback submit을 launch week summary로 집계한다.
 - 공개 출시 전 privacy notice와 앱 스토어 데이터 수집 고지를 최신 구현에 맞춰 확인한다.
+
+## Store Disclosure
+
+- Store metadata와 screenshot은 `docs/product/in-c-store-metadata-public-v1-draft.md`를 기준으로 준비한다.
+- 스토어 문구는 in C가 음원을 직접 제공하지 않고 외부 플랫폼으로 연결한다는 점을 숨기지 않는다.
+- Catalog Ops, 내부 운영 용어, fake direct link, fake preview URL은 사용자-facing 스토어 이미지에 노출하지 않는다.

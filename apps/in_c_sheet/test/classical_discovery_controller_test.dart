@@ -494,6 +494,7 @@ void main() {
     expect(summary.publicV1Closeout.evidenceText, contains('Public V1'));
     expect(summary.appIdentityReadiness.isVerified, isFalse);
     expect(summary.appIdentityReadiness.appName, 'in C');
+    expect(summary.appIdentityReadiness.version, '1.0.0+14');
     expect(
       summary.appIdentityReadiness.iconStatus,
       contains('first-pass in C icon applied'),
@@ -516,6 +517,22 @@ void main() {
     expect(summary.directReadyWorkCount, 0);
     expect(summary.founderApprovedPreviewCount, 0);
     expect(summary.safeSearchFallbackWorkCount, summary.workCount);
+    expect(summary.storeMetadataReadiness.appName, 'in C');
+    expect(
+      summary.storeMetadataReadiness.excludedScreenshotSurfaces,
+      contains('fake direct link'),
+    );
+    expect(summary.storeMetadataReadiness.isVerified, isFalse);
+    expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isTrue);
+    expect(summary.buildQaReadiness.isVerified, isFalse);
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Store metadata production verification gaps'),
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Install/launch smoke: PASS'),
+    );
   });
 
   test(

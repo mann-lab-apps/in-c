@@ -1131,3 +1131,6 @@ verification을 완료하기 전까지 Public V1 release-ready YES로 보지 않
 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다.
 초기 사용자 feedback은 `feedback_submit` event로 남기고, link/concert/retention blocker가 반복되면
 product quality GAP으로 승격한다.
+
+Store metadata 초안은 `docs/product/in-c-store-metadata-public-v1-draft.md`에 둔다. 스토어 스크린샷은
+Today, Work Detail, Discover, My Music, Concerts를 후보로 삼고 Catalog Ops와 내부 운영 용어는 노출하지 않는다.

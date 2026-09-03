@@ -69,13 +69,24 @@
 - QA build can open the discovery app directly with `--dart-define=IN_C_DISCOVERY_HOME=true`.
 - current bundle/application id가 target과 다르면 Public V1 release-ready YES가 되면 안 된다.
 
+## Store Metadata
+
+- metadata draft: `docs/product/in-c-store-metadata-public-v1-draft.md`
+- app name: `in C`
+- subtitle: `오늘 하나씩 여는 클래식`
+- short description: `작품 중심으로 클래식을 발견하고 듣기와 공연으로 이어집니다.`
+- screenshot candidates: Today, Work Detail, Discover, My Music, Concerts
+- screenshot exclusions: Catalog Ops, fake direct link, fake preview URL, internal ops terms
+- remaining GAP: App Store Connect / Play Console length and policy review.
+
 ## Verification
 
 - `flutter test`
 - `flutter analyze`
 - `flutter build apk --debug`
-- 가능하면 `flutter build apk --release`
-- 가능하면 `flutter build ios --no-codesign`
+- `flutter build apk --release`
+- 가능하면 `flutter build appbundle --release`
+- `flutter build ios --no-codesign`
 - 주요 화면 smoke test: Today -> Work Detail -> 추천 확장 -> 저장 -> My Music -> Concerts -> 예매처 link-out
 - 기존 Clef 악보앱 주요 흐름 smoke test
 
@@ -89,9 +100,13 @@
 - Flutter analyze: PASS
 - Android debug APK build: PASS, `build/app/outputs/flutter-apk/app-debug.apk`
 - Android release APK build: PASS, `build/app/outputs/flutter-apk/app-release.apk`
+- Android App Bundle build: PASS, `build/app/outputs/bundle/release/app-release.aab`
 - Android install smoke: NOT RUN, local Android emulator did not attach to `adb devices`.
 - iOS no-codesign device build: PASS, `build/ios/iphoneos/Runner.app`
 - iOS simulator build/install/launch smoke: PASS on iPhone 17 Pro simulator.
+- iOS TestFlight upload: NOT RUN, signing/provisioning required.
+- 2026-09-03 repeat QA: targeted/full tests, analyze, Android debug/release/AAB, iOS no-codesign,
+  and iOS simulator install/launch smoke all PASS.
 - Current blocker for Public V1 app identity: Android applicationId and iOS bundle id still use Clef lineage.
 
 ## Public V1 Release Candidate Gate

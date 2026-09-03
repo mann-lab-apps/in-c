@@ -39,11 +39,16 @@
 - in C 직접 진입 QA build는 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다.
 - 현재 shell의 Android applicationId는 `com.mannlab.clef`, iOS bundle id는 `com.mannlab.inc.clef`이므로 Public V1 제출 전 production verification GAP으로 남긴다.
 - Android debug build smoke를 실행한다.
-- 가능하면 Android release build와 iOS no-codesign build를 실행한다.
+- Android release build와 iOS no-codesign build를 실행한다.
+- Play Console 준비 전 Android App Bundle build를 실행한다.
 - signing/provisioning 문제는 code blocker가 아니라 production verification GAP으로 분리한다.
 - 2026-09-02 기준 Android debug/release APK와 iOS no-codesign build는 PASS다.
 - 2026-09-02 기준 iOS simulator install/launch smoke는 PASS다.
 - 2026-09-02 기준 Android install smoke는 로컬 AVD가 `adb devices`에 붙지 않아 NOT RUN이다.
+- 2026-09-03 기준 Store Metadata 초안은 `docs/product/in-c-store-metadata-public-v1-draft.md`에 둔다.
+- 2026-09-03 기준 Android debug/release APK, Android App Bundle, iOS no-codesign, iOS simulator
+  install/launch smoke는 PASS다.
+- 2026-09-03 기준 Android install smoke는 ADB device list가 비어 있어 NOT RUN이다.
 
 ## Regression
 

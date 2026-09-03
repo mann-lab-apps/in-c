@@ -491,6 +491,78 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              _SectionTitle(title: 'Store Metadata'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('app name', summary.storeMetadataReadiness.appName),
+                  ('subtitle', summary.storeMetadataReadiness.subtitle),
+                  (
+                    'short description',
+                    summary.storeMetadataReadiness.shortDescription,
+                  ),
+                  (
+                    'keywords',
+                    summary.storeMetadataReadiness.keywords.join(', '),
+                  ),
+                  (
+                    'screenshots',
+                    summary.storeMetadataReadiness.screenshotSurfaces.join(
+                      ', ',
+                    ),
+                  ),
+                  (
+                    'exclude',
+                    summary.storeMetadataReadiness.excludedScreenshotSurfaces
+                        .join(', '),
+                  ),
+                  ('privacy', summary.storeMetadataReadiness.privacySummary),
+                  ('support', summary.storeMetadataReadiness.supportContact),
+                  (
+                    'production GAP',
+                    summary.storeMetadataReadiness.gaps.isEmpty
+                        ? '없음'
+                        : summary.storeMetadataReadiness.gaps.join('\n'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Build QA'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('entry flag', summary.buildQaReadiness.inCEntryFlag),
+                  (
+                    'Android debug APK',
+                    summary.buildQaReadiness.androidDebugApk,
+                  ),
+                  (
+                    'Android release APK',
+                    summary.buildQaReadiness.androidReleaseApk,
+                  ),
+                  ('Android AAB', summary.buildQaReadiness.androidAppBundle),
+                  (
+                    'Android install',
+                    summary.buildQaReadiness.androidInstallSmoke,
+                  ),
+                  (
+                    'iOS no-codesign',
+                    summary.buildQaReadiness.iosNoCodesignBuild,
+                  ),
+                  (
+                    'iOS simulator',
+                    summary.buildQaReadiness.iosSimulatorInstallLaunchSmoke,
+                  ),
+                  ('TestFlight', summary.buildQaReadiness.iosTestFlightUpload),
+                  (
+                    'production GAP',
+                    summary.buildQaReadiness.gaps.isEmpty
+                        ? '없음'
+                        : summary.buildQaReadiness.gaps.join('\n'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               _SectionTitle(title: 'Launch Feedback'),
               const SizedBox(height: 8),
               _OpsSummaryPanel(

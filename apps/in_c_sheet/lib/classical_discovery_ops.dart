@@ -389,11 +389,11 @@ class ClassicalAppIdentityReadiness {
       appName: 'in C',
       androidApplicationId: 'com.mannlab.clef',
       iosBundleId: 'com.mannlab.inc.clef',
-      version: '1.0.0+12',
+      version: '1.0.0+14',
       targetAppName: 'in C',
       targetAndroidApplicationId: 'com.mannlab.inc',
       targetIosBundleId: 'com.mannlab.inc',
-      targetVersion: '1.0.0+1 or later release build',
+      targetVersion: '1.0.0+14 RC; bump build number for public submission',
       storeSubtitle: '오늘 하나씩 여는 클래식',
       shortDescription: '작품 중심으로 클래식을 발견하고, 듣기와 공연으로 이어집니다.',
       iconStatus:
@@ -421,6 +421,120 @@ class ClassicalAppIdentityReadiness {
   final String privacyCopyStatus;
   final String permissionSummary;
   final List<String> gaps;
+
+  int get gapCount => gaps.length;
+  bool get isVerified => gaps.isEmpty;
+}
+
+class ClassicalStoreMetadataReadiness {
+  const ClassicalStoreMetadataReadiness({
+    required this.appName,
+    required this.subtitle,
+    required this.shortDescription,
+    required this.fullDescription,
+    required this.keywords,
+    required this.privacySummary,
+    required this.supportContact,
+    required this.screenshotSurfaces,
+    required this.excludedScreenshotSurfaces,
+    required this.gaps,
+  });
+
+  factory ClassicalStoreMetadataReadiness.publicV1Draft() {
+    return const ClassicalStoreMetadataReadiness(
+      appName: 'in C',
+      subtitle: '오늘 하나씩 여는 클래식',
+      shortDescription: '작품 중심으로 클래식을 발견하고 듣기와 공연으로 이어집니다.',
+      fullDescription: 'in C는 클래식 음원을 직접 제공하지 않고, 오늘 들어볼 작품을 고른 뒤 YouTube, Spotify, Apple Music, Melon 같은 외부 플랫폼으로 이어주는 클래식 디스커버리 앱입니다. 작품, 작곡가, 악기, 시대, 분위기, 공연 정보를 따라 다음 작품을 찾고 My Music에 저장해 다시 들을 루틴을 만들 수 있습니다.',
+      keywords: <String>[
+        'classical music',
+        '클래식',
+        '작곡가',
+        '공연',
+        '음악추천',
+        '오케스트라',
+      ],
+      privacySummary: 'local-first preferences and aggregate event reporting only; no hosted audio and no advertiser raw events.',
+      supportContact: 'support@mannlab.app',
+      screenshotSurfaces: <String>[
+        'Today',
+        'Work Detail',
+        'Discover',
+        'My Music',
+        'Concerts',
+      ],
+      excludedScreenshotSurfaces: <String>[
+        'Catalog Ops',
+        'fake direct link',
+        'fake preview URL',
+        'internal funnel/surface terminology',
+      ],
+      gaps: <String>[
+        'Store metadata copy needs final App Store Connect / Play Console review.',
+        'Screenshots need device capture without internal ops surfaces.',
+      ],
+    );
+  }
+
+  final String appName;
+  final String subtitle;
+  final String shortDescription;
+  final String fullDescription;
+  final List<String> keywords;
+  final String privacySummary;
+  final String supportContact;
+  final List<String> screenshotSurfaces;
+  final List<String> excludedScreenshotSurfaces;
+  final List<String> gaps;
+
+  int get gapCount => gaps.length;
+  bool get isVerified => gaps.isEmpty;
+}
+
+class ClassicalBuildQaReadiness {
+  const ClassicalBuildQaReadiness({
+    required this.androidDebugApk,
+    required this.androidReleaseApk,
+    required this.androidAppBundle,
+    required this.androidInstallSmoke,
+    required this.iosNoCodesignBuild,
+    required this.iosSimulatorInstallLaunchSmoke,
+    required this.iosTestFlightUpload,
+    required this.inCEntryFlag,
+    required this.gaps,
+  });
+
+  factory ClassicalBuildQaReadiness.latestLocalEvidence() {
+    return const ClassicalBuildQaReadiness(
+      androidDebugApk: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
+      androidReleaseApk: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
+      androidAppBundle:
+          'PASS · build/app/outputs/bundle/release/app-release.aab',
+      androidInstallSmoke: 'NOT RUN · local AVD did not attach to adb devices',
+      iosNoCodesignBuild: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
+      iosSimulatorInstallLaunchSmoke: 'PASS · iPhone 17 Pro simulator',
+      iosTestFlightUpload: 'NOT RUN · signing/provisioning required',
+      inCEntryFlag: '--dart-define=IN_C_DISCOVERY_HOME=true',
+      gaps: <String>[
+        'Android device/emulator install smoke is still required.',
+        'iOS TestFlight upload requires signing/provisioning verification.',
+      ],
+    );
+  }
+
+  final String androidDebugApk;
+  final String androidReleaseApk;
+  final String androidAppBundle;
+  final String androidInstallSmoke;
+  final String iosNoCodesignBuild;
+  final String iosSimulatorInstallLaunchSmoke;
+  final String iosTestFlightUpload;
+  final String inCEntryFlag;
+  final List<String> gaps;
+
+  bool get hasInstallLaunchSmoke =>
+      androidInstallSmoke.startsWith('PASS') ||
+      iosSimulatorInstallLaunchSmoke.startsWith('PASS');
 
   int get gapCount => gaps.length;
   bool get isVerified => gaps.isEmpty;
@@ -493,6 +607,8 @@ class ClassicalCatalogOpsSummary {
     required this.firstThreeMinuteFunnelComplete,
     required this.appIdentityGapCount,
     required this.appIdentityReadiness,
+    required this.storeMetadataReadiness,
+    required this.buildQaReadiness,
     required this.feedbackSummary,
     required this.kopisProductionReadiness,
     required this.founderReviewQueue,
@@ -572,6 +688,9 @@ class ClassicalCatalogOpsSummary {
     );
     final appIdentityReadiness =
         ClassicalAppIdentityReadiness.currentFlutterShell();
+    final storeMetadataReadiness =
+        ClassicalStoreMetadataReadiness.publicV1Draft();
+    final buildQaReadiness = ClassicalBuildQaReadiness.latestLocalEvidence();
     final feedbackSummary = _feedbackSummary(recentEvents);
     final kopisProductionReadiness =
         ClassicalKopisProductionReadiness.currentConfig();
@@ -702,6 +821,33 @@ class ClassicalCatalogOpsSummary {
             'Store readiness summary에 production verification GAP이 없습니다.',
       ),
       _gate(
+        id: 'store-metadata',
+        label: 'store metadata and screenshot draft',
+        current: storeMetadataReadiness.gapCount == 0 ? 1 : 0,
+        target: 1,
+        category: ClassicalGapCategory.productionVerification,
+        owner: 'release/marketing',
+        nextAction: '스토어 문구와 스크린샷 후보를 실제 제출 화면 기준으로 검수합니다.',
+        evidenceRequirement:
+            'Store metadata와 screenshot 후보에 내부 용어와 fake URL이 없습니다.',
+      ),
+      _gate(
+        id: 'build-install-qa',
+        label: 'release build and install smoke',
+        current: buildQaReadiness.isVerified
+            ? 2
+            : buildQaReadiness.hasInstallLaunchSmoke
+            ? 1
+            : 0,
+        target: 2,
+        category: ClassicalGapCategory.productionVerification,
+        owner: 'release/qa',
+        nextAction:
+            'Android install smoke, AAB build, iOS TestFlight upload을 검증합니다.',
+        evidenceRequirement:
+            'Android/iOS build와 최소 하나 이상의 install/launch smoke가 제출 기준으로 통과합니다.',
+      ),
+      _gate(
         id: 'approved-preview',
         label: 'approved preview policy',
         current: founderApprovedPreviewCount,
@@ -791,6 +937,9 @@ class ClassicalCatalogOpsSummary {
             .where((work) => work.concertIds.isNotEmpty)
             .length,
         appIdentityGaps: appIdentityReadiness.gapCount,
+        storeMetadataGaps: storeMetadataReadiness.gapCount,
+        buildQaGaps: buildQaReadiness.gapCount,
+        installLaunchSmoke: buildQaReadiness.hasInstallLaunchSmoke,
         feedbackBlockers: feedbackSummary.blockerCount,
       ),
     );
@@ -853,6 +1002,8 @@ class ClassicalCatalogOpsSummary {
       firstThreeMinuteFunnelComplete: firstThreeMinuteFunnelComplete,
       appIdentityGapCount: appIdentityGapCount,
       appIdentityReadiness: appIdentityReadiness,
+      storeMetadataReadiness: storeMetadataReadiness,
+      buildQaReadiness: buildQaReadiness,
       feedbackSummary: feedbackSummary,
       kopisProductionReadiness: kopisProductionReadiness,
       founderReviewQueue: List<ClassicalOpsQueueItem>.unmodifiable(
@@ -902,6 +1053,8 @@ class ClassicalCatalogOpsSummary {
   final bool firstThreeMinuteFunnelComplete;
   final int appIdentityGapCount;
   final ClassicalAppIdentityReadiness appIdentityReadiness;
+  final ClassicalStoreMetadataReadiness storeMetadataReadiness;
+  final ClassicalBuildQaReadiness buildQaReadiness;
   final ClassicalFeedbackSummary feedbackSummary;
   final ClassicalKopisProductionReadiness kopisProductionReadiness;
   final List<ClassicalOpsQueueItem> founderReviewQueue;
@@ -1253,6 +1406,9 @@ List<String> _evidenceRows({
   required int approvedPreviewWorkCount,
   required int concertLinkedWorkCount,
   required int appIdentityGaps,
+  required int storeMetadataGaps,
+  required int buildQaGaps,
+  required bool installLaunchSmoke,
   required int feedbackBlockers,
 }) {
   return <String>[
@@ -1265,6 +1421,9 @@ List<String> _evidenceRows({
     'Approved preview works: $approvedPreviewWorkCount',
     'Concert-linked works: $concertLinkedWorkCount',
     'App identity production verification gaps: $appIdentityGaps',
+    'Store metadata production verification gaps: $storeMetadataGaps',
+    'Build QA production verification gaps: $buildQaGaps',
+    'Install/launch smoke: ${installLaunchSmoke ? 'PASS' : 'GAP'}',
     'Launch feedback blockers: $feedbackBlockers',
     for (final item in publicGateItems)
       '${item.label}: ${item.passes ? 'PASS' : 'GAP'} '

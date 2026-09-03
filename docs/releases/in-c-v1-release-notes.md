@@ -43,3 +43,9 @@ Public V1 release-ready YES는 Catalog Ops의 Public V1 Closeout evidence 기준
 ## 2026-09-02 Build Note
 
 in C 직접 진입 QA build는 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다. Android debug/release APK와 iOS no-codesign build는 통과했고, iOS simulator install/launch smoke도 통과했다. Android install smoke는 로컬 AVD가 `adb devices`에 붙지 않아 아직 실행하지 못했다.
+
+## 2026-09-03 RC Note
+
+Store metadata 초안은 `docs/product/in-c-store-metadata-public-v1-draft.md`에 고정한다. Catalog Ops는
+app identity, store metadata, build/install QA를 별도 production verification GAP으로 보여준다.
+Android App Bundle은 통과했다. Android install smoke와 iOS TestFlight upload는 아직 Public V1 제출 전 확인해야 한다.

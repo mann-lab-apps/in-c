@@ -31,5 +31,6 @@ Soft Launch에서 나온 반복 문제는 다음 category로 분류한다.
 Public V1 release-ready YES는 critical code blocker와 critical product quality GAP이 0이고,
 Catalog Ops Closeout의 release-ready가 YES일 때만 사용한다.
 
-현재 app identity는 Clef shell 값으로 남아 있을 수 있다. 이 경우 앱이 동작해도 공개 제출 전에는
-production verification GAP으로 남기고 Public V1 release-ready YES로 올리지 않는다.
+현재 display name과 first-pass icon은 `in C`로 적용되어 있다. Android applicationId와 iOS bundle id는
+Clef lineage 값이므로 앱이 동작해도 공개 제출 전에는 production verification GAP으로 남기고
+Public V1 release-ready YES로 올리지 않는다.
