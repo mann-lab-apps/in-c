@@ -12,6 +12,7 @@ import {
   createTimePosition,
   createVoice,
   durationToTicks,
+  sortVoiceEvents,
   validateTieRelations,
   validateMeasureRhythm,
   validateVoiceTuplets,
@@ -24,6 +25,7 @@ import {
   type GraceNote,
   type HairpinType,
   type KeySignature,
+  type Measure,
   type Pitch,
   type Score,
   type TimeSignature,
@@ -47,6 +49,26 @@ interface MeasureState {
   divisions: number
   keySignature: KeySignature
   timeSignature: TimeSignature
+}
+
+interface PartMeasureState {
+  clefs: Map<number, Clef>
+  divisions: number
+  keySignature: KeySignature
+  staffCount: number
+  timeSignature: TimeSignature
+}
+
+export interface MusicXmlImportWarning {
+  code: 'unsupported-direction' | 'unsupported-notation'
+  message: string
+  measureNumber?: number
+  eventIndex?: number
+  path: string
+}
+
+export interface MusicXmlImportReport {
+  warnings: MusicXmlImportWarning[]
 }
 
 const parser = new XMLParser({
@@ -73,6 +95,25 @@ const defaultMeasureState: MeasureState = {
 }
 
 export function parseMusicXml(xml: string): Score {
+  return parseMusicXmlDocument(parseMusicXmlString(xml))
+}
+
+export function parseMusicXmlWithReport(xml: string): {
+  score: Score
+  report: MusicXmlImportReport
+} {
+  const document = parseMusicXmlString(xml)
+  const root = readNode(document, 'score-partwise')
+
+  return {
+    score: parseMusicXmlDocument(document),
+    report: {
+      warnings: collectUnsupportedMusicXmlWarnings(root)
+    }
+  }
+}
+
+function parseMusicXmlString(xml: string): XmlNode {
   let document: XmlNode
 
   try {
@@ -81,21 +122,85 @@ export function parseMusicXml(xml: string): Score {
     throw new Error(`MusicXML 문서를 읽을 수 없습니다: ${getErrorMessage(error)}`)
   }
 
+  return document
+}
+
+function parseMusicXmlDocument(document: XmlNode): Score {
   const root = readNode(document, 'score-partwise')
   const parts = toArray(root.part as XmlNode | XmlNode[] | undefined)
-
-  if (parts.length !== 1) {
-    throw new Error('MVP에서는 단일 part MusicXML만 가져올 수 있습니다.')
-  }
-
-  const partNode = parts[0]
-  const partId = readOptionalString(partNode, '@_id') ?? 'part-1'
   const partList = readOptionalNode(root, 'part-list')
   const scoreParts = toArray(
     partList?.['score-part'] as XmlNode | XmlNode[] | undefined
   )
+  const parsedParts = parts.map((partNode, partIndex) =>
+    parseMusicXmlPart(partNode, scoreParts, {
+      partIndex,
+      preserveLegacyIds: parts.length === 1
+    })
+  )
+  const primaryMeasureNodes = toArray(
+    parts[0]?.measure as XmlNode | XmlNode[] | undefined
+  )
+  const primaryMeasures = parsedParts[0]?.staves[0]?.measures ?? []
+
+  const title =
+    readOptionalString(root, 'work', 'work-title') ??
+    readOptionalString(root, 'movement-title') ??
+    'Imported score'
+  const composer = readComposer(root)
+  const tempo = readTempoMarking(primaryMeasureNodes)
+  const tempoEvents = readTempoEvents(primaryMeasureNodes)
+  const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes)
+  const harmonies = readHarmonies(primaryMeasureNodes)
+  const rehearsalMarks = readRehearsalMarks(primaryMeasureNodes)
+  const staffTexts = readStaffTexts(primaryMeasureNodes)
+  const systemTexts = readSystemTexts(primaryMeasureNodes)
+  const expressionTexts = readExpressionTexts(primaryMeasureNodes)
+  const dynamics = readDynamics(primaryMeasureNodes)
+  const hairpins = readHairpins(primaryMeasureNodes, primaryMeasures)
+  const slurs = readSlurs(primaryMeasureNodes, primaryMeasures)
+  const octaveShifts = readOctaveShifts(primaryMeasureNodes, primaryMeasures)
+
+  const score = createScore({
+    id: 'musicxml-score',
+    title,
+    composer,
+    tempo,
+    tempoEvents,
+    rhythmFeel,
+    octaveShifts,
+    harmonies,
+    rehearsalMarks,
+    staffTexts,
+    systemTexts,
+    expressionTexts,
+    dynamics,
+    hairpins,
+    slurs,
+    parts: parsedParts
+  })
+  const tieErrors = validateTieRelations(score)
+
+  if (tieErrors.length > 0) {
+    throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${tieErrors.join(', ')}`)
+  }
+
+  return score
+}
+
+function parseMusicXmlPart(
+  partNode: XmlNode,
+  scoreParts: XmlNode[],
+  options: {
+    partIndex: number
+    preserveLegacyIds: boolean
+  }
+): Score['parts'][number] {
+  const partId =
+    readOptionalString(partNode, '@_id') ?? `part-${options.partIndex + 1}`
   const scorePart =
-    scoreParts.find((candidate) => candidate['@_id'] === partId) ?? scoreParts[0]
+    scoreParts.find((candidate) => candidate['@_id'] === partId) ??
+    scoreParts[options.partIndex]
   const partName = scorePart
     ? readOptionalString(scorePart, 'part-name') ?? 'MusicXML Part'
     : 'MusicXML Part'
@@ -110,34 +215,38 @@ export function parseMusicXml(xml: string): Score {
     throw new Error('MusicXML에 measure가 없습니다.')
   }
 
-  let state = structuredClone(defaultMeasureState)
+  let state = createPartMeasureState()
   let eventCounter = 0
-  const measures = measureNodes.map((measureNode, measureIndex) => {
+  const measuresByStaff = new Map<number, Measure[]>()
+
+  measureNodes.forEach((measureNode, measureIndex) => {
     const attributes = readOptionalNode(measureNode, 'attributes')
 
     if (attributes) {
-      validateSingleStaff(attributes)
-      state = readMeasureState(attributes, state)
-    }
-
-    if ('backup' in measureNode || 'forward' in measureNode) {
-      throw new Error('MVP에서는 여러 성부 또는 backup/forward를 지원하지 않습니다.')
+      state = readPartMeasureState(attributes, state)
     }
 
     const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
-    let positionTick = 0
-    const events: VoiceEvent[] = []
-    const rhythmicNoteNodes: XmlNode[] = []
-    let pendingGraceNotes: GraceNote[] = []
+    const positionTicksByVoice = new Map<string, number>()
+    const eventsByVoice = new Map<string, VoiceEvent[]>()
+    const rhythmicNoteNodesByVoice = new Map<string, XmlNode[]>()
+    const pendingGraceNotesByVoice = new Map<string, GraceNote[]>()
 
     for (const noteNode of noteNodes) {
+      const staffNumber = readStaffNumber(noteNode, state.staffCount)
+      const voiceId = readVoiceId(noteNode)
+      const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
+
       if ('grace' in noteNode) {
-        pendingGraceNotes = [...pendingGraceNotes, readGraceNote(noteNode)]
+        pendingGraceNotesByVoice.set(voiceKey, [
+          ...(pendingGraceNotesByVoice.get(voiceKey) ?? []),
+          readGraceNote(noteNode)
+        ])
         continue
       }
 
       if ('chord' in noteNode) {
-        const previousEvent = events.at(-1)
+        const previousEvent = eventsByVoice.get(voiceKey)?.at(-1)
 
         if (!previousEvent || previousEvent.type !== 'note') {
           throw new Error('MusicXML chord note에 대응하는 앞 음표가 없습니다.')
@@ -149,15 +258,25 @@ export function parseMusicXml(xml: string): Score {
       }
 
       eventCounter += 1
-      const event = readVoiceEvent(noteNode, eventCounter, positionTick)
+      const positionTick = positionTicksByVoice.get(voiceKey) ?? 0
+      const event = withImportedEventId(
+        readVoiceEvent(noteNode, eventCounter, positionTick),
+        createImportedEventId(
+          partId,
+          staffNumber,
+          eventCounter,
+          options.preserveLegacyIds && state.staffCount === 1
+        )
+      )
       const xmlDurationTicks = readMusicXmlDurationTicks(
         noteNode,
         state.divisions
       )
+      const pendingGraceNotes = pendingGraceNotesByVoice.get(voiceKey) ?? []
 
       if (event.type === 'note' && pendingGraceNotes.length > 0) {
         event.graceNotes = pendingGraceNotes
-        pendingGraceNotes = []
+        pendingGraceNotesByVoice.delete(voiceKey)
       }
 
       if (
@@ -169,130 +288,127 @@ export function parseMusicXml(xml: string): Score {
         )
       }
 
-      positionTick += xmlDurationTicks
-      events.push(event)
-      rhythmicNoteNodes.push(noteNode)
+      positionTicksByVoice.set(voiceKey, positionTick + xmlDurationTicks)
+      eventsByVoice.set(voiceKey, [
+        ...(eventsByVoice.get(voiceKey) ?? []),
+        event
+      ])
+      rhythmicNoteNodesByVoice.set(voiceKey, [
+        ...(rhythmicNoteNodesByVoice.get(voiceKey) ?? []),
+        noteNode
+      ])
     }
 
-    if (pendingGraceNotes.length > 0) {
+    if ([...pendingGraceNotesByVoice.values()].some((notes) => notes.length > 0)) {
       throw new Error('MusicXML grace note를 연결할 실제 note가 없습니다.')
     }
+
     const measureNumber =
       readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
-    const measureId = `measure-${measureNumber}`
     const isPickup = readOptionalString(measureNode, '@_implicit') === 'yes'
+    const actualDurationTicks = Math.max(0, ...positionTicksByVoice.values())
 
-    if (isPickup && positionTick === 0) {
+    if (isPickup && actualDurationTicks === 0) {
       throw new Error('MusicXML 못갖춘마디의 duration은 0보다 커야 합니다.')
     }
 
-    const normalizedEvents =
-      events.length > 0
-        ? events
-        : [
+    for (let staffNumber = 1; staffNumber <= state.staffCount; staffNumber += 1) {
+      const measureId = createImportedMeasureId(
+        partId,
+        staffNumber,
+        measureNumber,
+        options.preserveLegacyIds && state.staffCount === 1
+      )
+      const voiceEntries = [...eventsByVoice.entries()]
+        .filter(([voiceKey]) => voiceKey.startsWith(`${staffNumber}:`))
+        .map(([voiceKey, events]) => [
+          readVoiceIdFromMusicXmlVoiceKey(voiceKey),
+          events
+        ] as const)
+
+      if (voiceEntries.length === 0) {
+        voiceEntries.push([
+          'voice-1',
+          [
             createFullMeasureRest({
               id: `${measureId}-full-measure-rest`
             })
           ]
-    const tuplets = readTupletGroups(
-      rhythmicNoteNodes,
-      normalizedEvents,
-      measureId
-    )
+        ])
+      }
 
-    const measure = createMeasure({
-      id: measureId,
-      number: measureNumber,
-      timing: isPickup
-        ? {
-            type: 'pickup',
-            durationTicks: positionTick
-          }
-        : {
-            type: 'regular'
-          },
-      clef: { ...state.clef },
-      keySignature: { ...state.keySignature },
-      timeSignature: { ...state.timeSignature },
-      repeat: readRepeatMark(measureNode),
-      volta: readVoltaMark(measureNode),
-      voices: [
-        createVoice({
-          id: 'voice-1',
-          events: normalizedEvents,
-          tuplets
-        })
-      ]
-    })
-    const rhythm = validateMeasureRhythm(measure)
-    const tupletErrors = validateVoiceTuplets(measure.voices[0])
+      const voices = voiceEntries
+        .sort(([left], [right]) => compareVoiceIds(left, right))
+        .map(([voiceId, events]) => {
+          const normalizedEvents = sortVoiceEvents(events)
+          const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
 
-    if (!rhythm.isExact) {
-      throw new Error(
-        `MusicXML measure ${measureNumber}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
-      )
-    }
-
-    if (tupletErrors.length > 0) {
-      throw new Error(
-        `MusicXML measure ${measureNumber}의 tuplet 관계가 올바르지 않습니다: ${tupletErrors.join(', ')}`
-      )
-    }
-
-    return measure
-  })
-
-  const title =
-    readOptionalString(root, 'work', 'work-title') ??
-    readOptionalString(root, 'movement-title') ??
-    'Imported score'
-  const composer = readComposer(root)
-  const tempo = readTempoMarking(measureNodes)
-  const tempoEvents = readTempoEvents(measureNodes)
-  const rhythmFeel = readRhythmFeelMarking(measureNodes)
-  const harmonies = readHarmonies(measureNodes)
-  const rehearsalMarks = readRehearsalMarks(measureNodes)
-  const staffTexts = readStaffTexts(measureNodes)
-  const dynamics = readDynamics(measureNodes)
-  const hairpins = readHairpins(measureNodes, measures)
-  const slurs = readSlurs(measureNodes, measures)
-  const octaveShifts = readOctaveShifts(measureNodes, measures)
-
-  const score = createScore({
-    id: 'musicxml-score',
-    title,
-    composer,
-    tempo,
-    tempoEvents,
-    rhythmFeel,
-    octaveShifts,
-    harmonies,
-    rehearsalMarks,
-    staffTexts,
-    dynamics,
-    hairpins,
-    slurs,
-    parts: [
-      createPart({
-        id: partId,
-        name: partName,
-        abbreviation,
-        staves: [
-          createStaff({
-            id: `${partId}-staff-1`,
-            measures
+          return createVoice({
+            id: voiceId,
+            events: normalizedEvents,
+            tuplets: readTupletGroups(
+              rhythmicNoteNodesByVoice.get(voiceKey) ?? [],
+              normalizedEvents,
+              measureId
+            )
           })
-        ]
+        })
+
+      const measure = createMeasure({
+        id: measureId,
+        number: measureNumber,
+        timing: isPickup
+          ? {
+              type: 'pickup',
+              durationTicks: actualDurationTicks
+            }
+          : {
+              type: 'regular'
+            },
+        clef: { ...(state.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
+        keySignature: { ...state.keySignature },
+        timeSignature: { ...state.timeSignature },
+        repeat: readRepeatMark(measureNode),
+        volta: readVoltaMark(measureNode),
+        voices
       })
-    ]
+      const rhythm = validateMeasureRhythm(measure)
+      const tupletErrors = measure.voices.flatMap((voice) =>
+        validateVoiceTuplets(voice)
+      )
+
+      if (!rhythm.isExact) {
+        throw new Error(
+          `MusicXML measure ${measureNumber}의 리듬 정합성이 올바르지 않습니다: ${rhythm.status}`
+        )
+      }
+
+      if (tupletErrors.length > 0) {
+        throw new Error(
+          `MusicXML measure ${measureNumber}의 tuplet 관계가 올바르지 않습니다: ${tupletErrors.join(', ')}`
+        )
+      }
+
+      measuresByStaff.set(staffNumber, [
+        ...(measuresByStaff.get(staffNumber) ?? []),
+        measure
+      ])
+    }
   })
-  const tieErrors = validateTieRelations(score)
 
-  if (tieErrors.length > 0) {
-    throw new Error(`MusicXML 타이 관계가 올바르지 않습니다: ${tieErrors.join(', ')}`)
-  }
+  return createPart({
+    id: partId,
+    name: partName,
+    abbreviation,
+    staves: Array.from({ length: state.staffCount }, (_, index) => {
+      const staffNumber = index + 1
 
-  return score
+      return createStaff({
+        id: `${partId}-staff-${staffNumber}`,
+        measures: measuresByStaff.get(staffNumber) ?? []
+      })
+    })
+  })
 }
 
 function readTempoMarking(measureNodes: XmlNode[]): Score['tempo'] {
@@ -525,7 +641,12 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
 
         const words = readOptionalString(directionType, 'words')
 
-        if (!words || parseRhythmFeelText(words)) {
+        if (
+          !words ||
+          parseRhythmFeelText(words) ||
+          isSystemTextDirection(direction) ||
+          isExpressionTextDirection(direction, directionType)
+        ) {
           return []
         }
 
@@ -541,6 +662,99 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
   })
 
   return texts.length > 0 ? texts : undefined
+}
+
+function readSystemTexts(measureNodes: XmlNode[]): Score['systemTexts'] {
+  const texts = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      if (!isSystemTextDirection(direction)) {
+        return []
+      }
+
+      const directionTypes = readDirectionTypes(direction)
+
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        const words = readOptionalString(directionType, 'words')
+
+        if (!words || parseRhythmFeelText(words)) {
+          return []
+        }
+
+        return [
+          {
+            id: `${measureId}-system-text-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            text: words
+          }
+        ]
+      })
+    })
+  })
+
+  return texts.length > 0 ? texts : undefined
+}
+
+function readExpressionTexts(
+  measureNodes: XmlNode[]
+): Score['expressionTexts'] {
+  const texts = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const directionTypes = readDirectionTypes(direction)
+
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        const words = readOptionalString(directionType, 'words')
+
+        if (
+          !words ||
+          parseRhythmFeelText(words) ||
+          !isExpressionTextDirection(direction, directionType)
+        ) {
+          return []
+        }
+
+        return [
+          {
+            id: `${measureId}-expression-text-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            tick: readOptionalInteger(direction, 'offset') ?? 0,
+            text: words
+          }
+        ]
+      })
+    })
+  })
+
+  return texts.length > 0 ? texts : undefined
+}
+
+function isSystemTextDirection(direction: XmlNode): boolean {
+  return readOptionalString(direction, '@_system') === 'yes'
+}
+
+function isExpressionTextDirection(
+  direction: XmlNode,
+  directionType: XmlNode
+): boolean {
+  const wordsNode = readOptionalNode(directionType, 'words')
+
+  return (
+    readOptionalString(direction, '@_placement') === 'below' &&
+    readOptionalString(wordsNode ?? {}, '@_font-style') === 'italic'
+  )
 }
 
 function readHarmonies(measureNodes: XmlNode[]): Score['harmonies'] {
@@ -616,8 +830,20 @@ function readHarmonyPitch(
   }
 }
 
+const supportedDynamicValues = [
+  'ppp',
+  'pp',
+  'p',
+  'mp',
+  'mf',
+  'f',
+  'ff',
+  'fff',
+  'sfz'
+] as const satisfies readonly DynamicValue[]
+
 function readDynamics(measureNodes: XmlNode[]): Score['dynamics'] {
-  const allowedDynamics = new Set<DynamicValue>(['p', 'mp', 'mf', 'f'])
+  const allowedDynamics = new Set<DynamicValue>(supportedDynamicValues)
   const dynamics = measureNodes.flatMap((measureNode, measureIndex) => {
     const measureNumber =
       readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
@@ -983,18 +1209,6 @@ function readVoiceEvent(
   eventIndex: number,
   positionTick: number
 ): VoiceEvent {
-  const voice = readOptionalString(node, 'voice')
-
-  if (voice && voice !== '1') {
-    throw new Error('MVP에서는 voice 1만 지원합니다.')
-  }
-
-  const staff = readOptionalInteger(node, 'staff')
-
-  if (staff !== undefined && staff !== 1) {
-    throw new Error('MVP에서는 staff 1만 지원합니다.')
-  }
-
   const duration = readDuration(node)
   const id = `event-${eventIndex}`
 
@@ -1026,6 +1240,27 @@ function readVoiceEvent(
     lyrics: readLyrics(node),
     ornaments: readOrnaments(node)
   })
+}
+
+function readVoiceId(node: XmlNode): string {
+  const voice = readOptionalString(node, 'voice') ?? '1'
+
+  if (!/^\d+$/.test(voice) || Number(voice) <= 0) {
+    throw new Error(`지원하지 않는 voice 값입니다: ${voice}`)
+  }
+
+  return `voice-${Number(voice)}`
+}
+
+function compareVoiceIds(left: string, right: string): number {
+  return readVoiceIdNumber(left) - readVoiceIdNumber(right) ||
+    left.localeCompare(right)
+}
+
+function readVoiceIdNumber(voiceId: string): number {
+  const match = /^voice-(\d+)$/.exec(voiceId)
+
+  return match ? Number(match[1]) : Number.MAX_SAFE_INTEGER
 }
 
 function readPitch(node: XmlNode): Pitch {
@@ -1184,7 +1419,7 @@ function readArticulations(node: XmlNode): Articulation[] | undefined {
     return undefined
   }
 
-  const values = (['staccato', 'accent'] as const).filter(
+  const values = (['staccato', 'accent', 'tenuto', 'marcato'] as const).filter(
     (articulation) => articulation in articulations
   )
 
@@ -1314,17 +1549,43 @@ function readTupletNotationTypes(node: XmlNode): Set<string | undefined> {
   )
 }
 
-function readMeasureState(
+function createPartMeasureState(): PartMeasureState {
+  return {
+    clefs: new Map([[1, { ...defaultMeasureState.clef }]]),
+    divisions: defaultMeasureState.divisions,
+    keySignature: { ...defaultMeasureState.keySignature },
+    staffCount: 1,
+    timeSignature: { ...defaultMeasureState.timeSignature }
+  }
+}
+
+function readPartMeasureState(
   attributes: XmlNode,
-  previous: MeasureState
-): MeasureState {
-  const clefNode = readOptionalNode(attributes, 'clef')
+  previous: PartMeasureState
+): PartMeasureState {
+  const staffCount = readStaffCount(attributes, previous.staffCount)
+  const clefNodes = toArray(attributes.clef as XmlNode | XmlNode[] | undefined)
   const keyNode = readOptionalNode(attributes, 'key')
   const timeNode = readOptionalNode(attributes, 'time')
+  const clefs = new Map(previous.clefs)
+
+  clefNodes.forEach((clefNode, index) => {
+    const staffNumber =
+      readOptionalInteger(clefNode, '@_number') ?? (clefNodes.length > 1 ? index + 1 : 1)
+    validateStaffNumber(staffNumber, staffCount)
+    clefs.set(staffNumber, readClef(clefNode))
+  })
+
+  for (let staffNumber = 1; staffNumber <= staffCount; staffNumber += 1) {
+    if (!clefs.has(staffNumber)) {
+      clefs.set(staffNumber, { ...defaultMeasureState.clef })
+    }
+  }
 
   return {
-    clef: clefNode ? readClef(clefNode) : previous.clef,
+    clefs,
     divisions: readDivisions(attributes, previous.divisions),
+    staffCount,
     keySignature: keyNode ? readKeySignature(keyNode) : previous.keySignature,
     timeSignature: timeNode ? readTimeSignature(timeNode) : previous.timeSignature
   }
@@ -1387,11 +1648,65 @@ function readTimeSignature(node: XmlNode): TimeSignature {
   }
 }
 
-function validateSingleStaff(attributes: XmlNode): void {
-  const staves = readOptionalInteger(attributes, 'staves')
+function readStaffCount(attributes: XmlNode, previous: number): number {
+  const staffCount = readOptionalInteger(attributes, 'staves') ?? previous
 
-  if (staves !== undefined && staves !== 1) {
-    throw new Error('MVP에서는 단일 staff MusicXML만 가져올 수 있습니다.')
+  if (staffCount <= 0) {
+    throw new Error(`MusicXML staves는 1 이상이어야 합니다: ${staffCount}`)
+  }
+
+  return staffCount
+}
+
+function readStaffNumber(node: XmlNode, staffCount: number): number {
+  const staffNumber = readOptionalInteger(node, 'staff') ?? 1
+
+  validateStaffNumber(staffNumber, staffCount)
+  return staffNumber
+}
+
+function validateStaffNumber(staffNumber: number, staffCount: number): void {
+  if (staffNumber < 1 || staffNumber > staffCount) {
+    throw new Error(
+      `MusicXML staff ${staffNumber}는 선언된 staff 수 ${staffCount} 범위를 벗어납니다.`
+    )
+  }
+}
+
+function musicXmlVoiceKey(staffNumber: number, voiceId: string): string {
+  return `${staffNumber}:${voiceId}`
+}
+
+function readVoiceIdFromMusicXmlVoiceKey(voiceKey: string): string {
+  return voiceKey.slice(voiceKey.indexOf(':') + 1)
+}
+
+function createImportedMeasureId(
+  partId: string,
+  staffNumber: number,
+  measureNumber: number,
+  preserveLegacyId: boolean
+): string {
+  return preserveLegacyId
+    ? `measure-${measureNumber}`
+    : `${partId}-staff-${staffNumber}-measure-${measureNumber}`
+}
+
+function createImportedEventId(
+  partId: string,
+  staffNumber: number,
+  eventNumber: number,
+  preserveLegacyId: boolean
+): string {
+  return preserveLegacyId
+    ? `event-${eventNumber}`
+    : `${partId}-staff-${staffNumber}-event-${eventNumber}`
+}
+
+function withImportedEventId(event: VoiceEvent, id: string): VoiceEvent {
+  return {
+    ...event,
+    id
   }
 }
 
@@ -1510,6 +1825,159 @@ function readOptionalNumber(node: XmlNode, key: string): number | undefined {
 
 function normalizeTempo(value: number): number {
   return Math.min(240, Math.max(40, Math.round(value)))
+}
+
+function collectUnsupportedMusicXmlWarnings(
+  root: XmlNode
+): MusicXmlImportWarning[] {
+  const warnings: MusicXmlImportWarning[] = []
+  const parts = toArray(root.part as XmlNode | XmlNode[] | undefined)
+
+  parts.forEach((partNode) => {
+    const measureNodes = toArray(
+      partNode.measure as XmlNode | XmlNode[] | undefined
+    )
+
+    measureNodes.forEach((measureNode, measureIndex) => {
+      const measureNumber =
+        readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+      const noteNodes = toArray(
+        measureNode.note as XmlNode | XmlNode[] | undefined
+      )
+      const directions = toArray(
+        measureNode.direction as XmlNode | XmlNode[] | undefined
+      )
+
+      noteNodes.forEach((noteNode, noteIndex) => {
+        warnings.push(
+          ...collectUnsupportedNoteWarnings(
+            noteNode,
+            measureNumber,
+            noteIndex + 1
+          )
+        )
+      })
+
+      directions.forEach((direction, directionIndex) => {
+        warnings.push(
+          ...collectUnsupportedDirectionWarnings(
+            direction,
+            measureNumber,
+            directionIndex + 1
+          )
+        )
+      })
+    })
+  })
+
+  return dedupeWarnings(warnings)
+}
+
+function collectUnsupportedNoteWarnings(
+  noteNode: XmlNode,
+  measureNumber: number,
+  eventIndex: number
+): MusicXmlImportWarning[] {
+  const warnings: MusicXmlImportWarning[] = []
+  const notations = readOptionalNode(noteNode, 'notations')
+
+  if (!notations) {
+    return warnings
+  }
+
+  if (readOptionalNode(notations, 'technical')) {
+    warnings.push({
+      code: 'unsupported-notation',
+      message: 'technical playing instructions are not imported yet.',
+      measureNumber,
+      eventIndex,
+      path: `measure[${measureNumber}].note[${eventIndex}].notations.technical`
+    })
+  }
+
+  const articulations = readOptionalNode(notations, 'articulations')
+  const supportedArticulations = new Set([
+    'accent',
+    'breath-mark',
+    'caesura',
+    'marcato',
+    'staccato',
+    'tenuto'
+  ])
+
+  Object.keys(articulations ?? {})
+    .filter((key) => !key.startsWith('@_') && !supportedArticulations.has(key))
+    .forEach((key) => {
+      warnings.push({
+        code: 'unsupported-notation',
+        message: `${key} articulation is not imported yet.`,
+        measureNumber,
+        eventIndex,
+        path: `measure[${measureNumber}].note[${eventIndex}].notations.articulations.${key}`
+      })
+    })
+
+  const ornaments = readOptionalNode(notations, 'ornaments')
+  const supportedOrnaments = new Set(['mordent', 'tremolo', 'trill', 'turn'])
+
+  Object.keys(ornaments ?? {})
+    .filter((key) => !key.startsWith('@_') && !supportedOrnaments.has(key))
+    .forEach((key) => {
+      warnings.push({
+        code: 'unsupported-notation',
+        message: `${key} ornament is not imported yet.`,
+        measureNumber,
+        eventIndex,
+        path: `measure[${measureNumber}].note[${eventIndex}].notations.ornaments.${key}`
+      })
+    })
+
+  return warnings
+}
+
+function collectUnsupportedDirectionWarnings(
+  direction: XmlNode,
+  measureNumber: number,
+  directionIndex: number
+): MusicXmlImportWarning[] {
+  const supportedDirectionTypes = new Set([
+    'dynamics',
+    'metronome',
+    'octave-shift',
+    'rehearsal',
+    'wedge',
+    'words'
+  ])
+
+  return readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
+    Object.keys(directionType)
+      .filter((key) => !key.startsWith('@_') && !supportedDirectionTypes.has(key))
+      .map((key) => ({
+        code: 'unsupported-direction' as const,
+        message: `${key} direction is not imported yet.`,
+        measureNumber,
+        path: `measure[${measureNumber}].direction[${directionIndex}].direction-type[${
+          typeIndex + 1
+        }].${key}`
+      }))
+  )
+}
+
+function dedupeWarnings(
+  warnings: MusicXmlImportWarning[]
+): MusicXmlImportWarning[] {
+  const seen = new Set<string>()
+
+  return warnings.filter((warning) => {
+    const key = `${warning.code}:${warning.path}:${warning.message}`
+
+    if (seen.has(key)) {
+      return false
+    }
+
+    seen.add(key)
+    return true
+  })
 }
 
 function readText(node: XmlNode): string | undefined {

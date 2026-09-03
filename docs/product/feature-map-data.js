@@ -66,6 +66,71 @@ window.FEATURE_MAP = [
         ]
       },
       {
+        id: "professional-score-structure",
+        title: "전문 악보 구조",
+        items: [
+          {
+            name: "multi-part 총보",
+            status: "부분 지원",
+            acceptance: [
+              "docs/product/acceptance/score-setup.feature",
+              "docs/product/acceptance/import-export.feature"
+            ],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/architecture/clef-v1-library-organization.md"
+            ]
+          },
+          {
+            name: "multi-staff instrument와 grand staff",
+            status: "부분 지원",
+            acceptance: [
+              "docs/product/acceptance/score-setup.feature",
+              "docs/product/acceptance/note-input.feature",
+              "docs/product/acceptance/clef-change.feature",
+              "docs/product/acceptance/layout-rendering.feature",
+              "docs/product/acceptance/import-export.feature"
+            ],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/architecture/clef-v1-library-organization.md"
+            ]
+          },
+          {
+            name: "same-staff multi-voice 입력과 전환",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/product/chromatics-v1-blocker-backlog.md",
+              "docs/quality/known-limitations.md"
+            ]
+          },
+          {
+            name: "part extraction 또는 live part view",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/product/chromatics-v1-blocker-backlog.md",
+              "docs/quality/known-limitations.md"
+            ]
+          },
+          {
+            name: "score validation",
+            status: "부분 지원",
+            acceptance: [
+              "docs/product/acceptance/rhythm-duration.feature",
+              "docs/product/acceptance/tuplets.feature"
+            ],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/architecture/rhythmic-timeline.md"
+            ]
+          }
+        ]
+      },
+      {
         id: "note-input",
         title: "입력",
         items: [
@@ -147,6 +212,18 @@ window.FEATURE_MAP = [
               "docs/product/acceptance/rest-to-note.feature"
             ],
             docs: ["docs/brand/korean-product-language.md"]
+          },
+          {
+            name: "전문 사보앱 호환 duration shortcut",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: ["docs/product/chromatics-desktop-v1.md"]
+          },
+          {
+            name: "modifier 기반 pitch transform",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: ["docs/product/chromatics-desktop-v1.md"]
           }
         ]
       }
@@ -237,6 +314,24 @@ window.FEATURE_MAP = [
             status: "미지원",
             acceptance: ["docs/product/acceptance/range-selection.feature"],
             docs: ["docs/architecture/measure-selection.md"]
+          },
+          {
+            name: "diatonic/chromatic/octave transpose",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/architecture/pitch-context.md"
+            ]
+          },
+          {
+            name: "enharmonic respell",
+            status: "미지원",
+            acceptance: ["docs/product/acceptance/note-input.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/architecture/pitch-context.md"
+            ]
           }
         ]
       },
@@ -303,9 +398,12 @@ window.FEATURE_MAP = [
           },
           {
             name: "페이지 크기, 여백, PDF 페이지 설정",
-            status: "미지원",
+            status: "부분 지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
-            docs: ["docs/architecture/measure-systems.md"]
+            docs: [
+              "docs/architecture/measure-systems.md",
+              "docs/product/chromatics-v1-blocker-backlog.md"
+            ]
           },
           {
             name: "마디 기준 리허설 마크",
@@ -369,7 +467,7 @@ window.FEATURE_MAP = [
           },
           {
             name: "테누토, 마르카토 등 확장 아티큘레이션",
-            status: "미지원",
+            status: "지원",
             acceptance: [
               "docs/product/acceptance/layout-rendering.feature",
               "docs/product/acceptance/note-input.feature"
@@ -393,9 +491,27 @@ window.FEATURE_MAP = [
           },
           {
             name: "system text와 expression text",
-            status: "미지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/layout-rendering.feature"],
-            docs: []
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/product/chromatics-v1-blocker-backlog.md"
+            ]
+          },
+          {
+            name: "first/second endings",
+            status: "지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: ["docs/product/chromatics-desktop-v1.md"]
+          },
+          {
+            name: "전문 engraving collision avoidance",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/layout-rendering.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/testing/notation-snapshot-baseline.json"
+            ]
           }
         ]
       }
@@ -441,9 +557,13 @@ window.FEATURE_MAP = [
           },
           {
             name: "마디 중간 템포 변경과 tempo map 재생",
-            status: "미지원",
+            status: "지원",
             acceptance: ["docs/product/acceptance/playback.feature"],
-            docs: ["docs/research/single-voice-mvp-requirements.md"]
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/product/chromatics-v1-blocker-backlog.md",
+              "docs/research/single-voice-mvp-requirements.md"
+            ]
           },
           {
             name: "타이와 셋잇단음표 playback 반영",
@@ -455,7 +575,25 @@ window.FEATURE_MAP = [
             name: "재생 커서와 편집 선택 동기화",
             status: "부분 지원",
             acceptance: ["docs/product/acceptance/playback.feature"],
-            docs: ["docs/testing/single-voice-mvp-regression.md"]
+            docs: [
+              "docs/product/chromatics-v1-blocker-backlog.md",
+              "docs/testing/single-voice-mvp-regression.md"
+            ]
+          },
+          {
+            name: "part별 mixer mute/solo/volume",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/playback.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/product/chromatics-v1-blocker-backlog.md"
+            ]
+          },
+          {
+            name: "dynamics와 hairpin playback",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/playback.feature"],
+            docs: ["docs/product/chromatics-desktop-v1.md"]
           }
         ]
       },
@@ -504,6 +642,32 @@ window.FEATURE_MAP = [
             status: "보류",
             acceptance: [],
             docs: ["docs/architecture/project-file.md"]
+          },
+          {
+            name: "MIDI 내보내기",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/import-export.feature"],
+            docs: ["docs/product/chromatics-desktop-v1.md"]
+          },
+          {
+            name: "지원하지 않는 MusicXML 기능 경고",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/import-export.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/quality/external-musicxml-fixture-qa.md",
+              "docs/musicxml-mvp.md"
+            ]
+          },
+          {
+            name: "외부 사보앱 MusicXML fixture 검증",
+            status: "부분 지원",
+            acceptance: ["docs/product/acceptance/import-export.feature"],
+            docs: [
+              "docs/product/chromatics-desktop-v1.md",
+              "docs/quality/external-musicxml-fixture-qa.md",
+              "docs/quality/musicxml-external-sample-candidates.md"
+            ]
           },
           {
             name: "최근 파일 진입점",

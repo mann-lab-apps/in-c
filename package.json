@@ -24,6 +24,8 @@
     "verify:notation-snapshots": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs",
     "verify:notation-snapshots:update": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --update",
     "verify:visual-regression": "npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts && npm run verify:notation-snapshots",
+    "verify:musicxml-fixtures": "npm test -- src/musicxml/musicxml.test.ts -t external-app-fixture-qa",
+    "verify:midi-fixtures": "npm test -- src/renderer/src/midi/serialize-midi.test.ts -t \"V1 QA fixture\"",
     "typecheck": "tsc --noEmit",
     "clean:release": "node -e \"require('fs').rmSync('release',{recursive:true,force:true})\"",
     "package": "npm run clean:release && npm run build && electron-builder --publish never",
@@ -83,6 +85,7 @@
     "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.music",
+      "identity": null,
       "icon": "build/icon.icns",
       "target": [
         {

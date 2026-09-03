@@ -698,6 +698,61 @@ h2 {
   gap: 4px;
 }
 
+.part-mixer {
+  display: flex;
+  flex: 1 1 520px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.part-mixer__row {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto auto minmax(180px, 240px);
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 4px 8px;
+  border: 1px solid #d3cdbf;
+  border-radius: 6px;
+  background: rgba(255, 253, 248, 0.72);
+}
+
+.part-mixer__name {
+  overflow: hidden;
+  color: #202326;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.part-mixer__toggle,
+.part-mixer__volume {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #4a555c;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.part-mixer__toggle input {
+  margin: 0;
+}
+
+.part-mixer__volume input {
+  width: 112px;
+  accent-color: #47616c;
+}
+
+.part-mixer__volume output {
+  min-width: 38px;
+  color: #202326;
+  text-align: right;
+}
+
 .file-actions button {
   display: inline-flex;
   align-items: center;
@@ -967,6 +1022,66 @@ h2 {
   font-weight: 700;
 }
 
+.musicxml-report {
+  display: grid;
+  gap: 8px;
+  padding: 10px 24px;
+  border-bottom: 1px solid #dfc9a5;
+  background: #fff8e8;
+  color: #3d3428;
+  font-size: 0.78rem;
+}
+
+.start-screen .musicxml-report {
+  max-width: 920px;
+  padding: 12px 16px;
+  border: 1px solid #dfc9a5;
+  border-radius: 8px;
+}
+
+.musicxml-report__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+
+.musicxml-report__header strong {
+  color: #8a4b1f;
+}
+
+.musicxml-report__header span {
+  color: #675b4c;
+  font-weight: 700;
+}
+
+.musicxml-report__list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.musicxml-report__list li {
+  display: grid;
+  grid-template-columns: minmax(148px, 0.28fr) minmax(220px, 0.42fr) 1fr;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+
+.musicxml-report__list code {
+  overflow-wrap: anywhere;
+  color: #4f4638;
+  font-size: 0.76rem;
+}
+
+.musicxml-report__meta {
+  color: #8a4b1f;
+  font-weight: 800;
+}
+
 .score-page {
   width: min(900px, calc(100% - 64px));
   min-height: 560px;
@@ -1018,6 +1133,12 @@ h2 {
   font-size: 0.9rem;
 }
 
+.score-part-title {
+  color: #2f3a40;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
 .metadata-input {
   min-height: 30px;
   padding: 2px 8px;
@@ -1052,6 +1173,13 @@ h2 {
 .notation-measure.is-selected {
   fill: rgba(180, 61, 47, 0.06);
   stroke: #b43d2f;
+}
+
+.notation-staff-label {
+  fill: #5d594f;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
 }
 
 .measure-context-layer {
@@ -1095,6 +1223,21 @@ h2 {
 
 .notation-event {
   cursor: pointer;
+}
+
+.notation-event--passive-staff {
+  cursor: pointer;
+}
+
+.notation-range-selection-layer {
+  pointer-events: none;
+}
+
+.notation-range-selection-band {
+  fill: rgba(180, 61, 47, 0.08);
+  stroke: rgba(180, 61, 47, 0.32);
+  stroke-dasharray: 6 4;
+  stroke-width: 1.5;
 }
 
 .notation-event.is-selected {
@@ -1170,6 +1313,21 @@ h2 {
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
+}
+
+.notation-system-text {
+  fill: #111827;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.notation-expression-text {
+  fill: #111827;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  pointer-events: none;
 }
 
 .notation-harmony-mark {
@@ -1688,6 +1846,23 @@ h2 {
     display: none;
   }
 
+  .part-mixer__row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .part-mixer__volume {
+    grid-column: 1 / -1;
+  }
+
+  .part-mixer__volume input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .musicxml-report__list li {
+    grid-template-columns: 1fr;
+  }
+
   .promo-dialog {
     grid-template-columns: 1fr;
     padding: 24px;
@@ -1728,7 +1903,8 @@ h2 {
   .selection-toolbar,
   .toolbar,
   .playback-strip,
-  .editor-status {
+  .editor-status,
+  .musicxml-report {
     display: none;
   }
 
@@ -1776,6 +1952,11 @@ h2 {
     line-height: 1.2;
   }
 
+  .score-part-title {
+    font-size: 8pt;
+    line-height: 1.2;
+  }
+
   .notation-preview {
     overflow: visible;
   }
@@ -1793,8 +1974,13 @@ h2 {
   }
 
   .notation-event,
+  .notation-range-selection-layer,
   .notation-measure {
     cursor: default;
+  }
+
+  .notation-range-selection-layer {
+    display: none;
   }
 
   .notation-event.is-selected,

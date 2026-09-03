@@ -24,6 +24,7 @@ import {
 const builder = new XMLBuilder({
   format: true,
   ignoreAttributes: false,
+  preserveOrder: true,
   suppressEmptyNode: true
 })
 const defaultRhythmFeelText = {
@@ -32,12 +33,6 @@ const defaultRhythmFeelText = {
 } as const satisfies Record<RhythmFeelMarking['unit'], string>
 
 export function serializeMusicXml(score: Score): string {
-  if (score.parts.length !== 1 || score.parts[0].staves.length !== 1) {
-    throw new Error('MVP 내보내기는 단일 part와 단일 staff만 지원합니다.')
-  }
-
-  const part = score.parts[0]
-  const staff = part.staves[0]
   const tieErrors = validateTieRelations(score)
   const slurBoundaries = createSlurBoundaries(score)
 
@@ -45,30 +40,32 @@ export function serializeMusicXml(score: Score): string {
     throw new Error(`잘못된 타이 관계가 있습니다: ${tieErrors.join(', ')}`)
   }
 
-  staff.measures.forEach(validateMeasure)
+  score.parts.forEach((part) => {
+    validatePartStructure(part)
+    part.staves.forEach((staff) => staff.measures.forEach(validateMeasure))
+  })
 
-  const document = {
-    '?xml': {
+  const document = [
+    xmlElement('?xml', {
       '@_version': '1.0',
       '@_encoding': 'UTF-8'
-    },
-    'score-partwise': {
-      '@_version': '4.0',
-      work: {
+    }),
+    xmlElement('score-partwise', [
+      xmlElement('work', {
         'work-title': score.title
-      },
+      }),
       ...(score.composer
-        ? {
-            identification: {
+        ? [
+            xmlElement('identification', {
               creator: {
                 '@_type': 'composer',
                 '#text': score.composer
               }
-            }
-          }
-        : {}),
-      'part-list': {
-        'score-part': {
+            })
+          ]
+        : []),
+      xmlElement('part-list', {
+        'score-part': score.parts.map((part) => ({
           '@_id': part.id,
           'part-name': part.name,
           ...(part.abbreviation
@@ -76,61 +73,218 @@ export function serializeMusicXml(score: Score): string {
                 'part-abbreviation': part.abbreviation
               }
             : {})
-        }
-      },
-      part: {
-        '@_id': part.id,
-        measure: staff.measures.map((measure) => {
-          const voice = measure.voices[0]
-          const tupletBoundaries = createTupletBoundaries(voice)
-          const directions = buildMeasureDirections(score, measure)
-          const barlines = buildMeasureBarlines(measure)
-          const harmonies = buildMeasureHarmonies(score, measure)
-
-          return {
-            '@_number': measure.number,
-            ...(measure.timing.type === 'pickup'
-              ? {
-                  '@_implicit': 'yes'
-                }
-              : {}),
-            attributes: buildAttributes(measure),
-            ...(directions.length > 0
-              ? {
-                  direction: directions
-                }
-              : {}),
-            ...(harmonies.length > 0
-              ? {
-                  harmony: harmonies
-                }
-              : {}),
-            note: sortVoiceEvents(voice.events).flatMap((event) =>
-              buildNoteElements(
-                event,
-                measure,
-                voice,
-                tupletBoundaries.get(event.id),
-                slurBoundaries.get(event.id)
-              )
-            ),
-            ...(barlines.length > 0
-              ? {
-                  barline: barlines
-                }
-              : {})
+        }))
+      }),
+      ...score.parts.map((part) =>
+        xmlElement(
+          'part',
+          buildPartMeasureElements(score, part, slurBoundaries),
+          {
+            '@_id': part.id
           }
-        })
-      }
-    }
-  }
+        )
+      )
+    ], {
+      '@_version': '4.0'
+    })
+  ]
 
   return builder.build(document)
 }
 
+function validatePartStructure(part: Score['parts'][number]): void {
+  if (part.staves.length === 0) {
+    throw new Error(`part ${part.id}에 staff가 없습니다.`)
+  }
+
+  const measureCount = part.staves[0].measures.length
+
+  if (measureCount === 0) {
+    throw new Error(`part ${part.id}에 measure가 없습니다.`)
+  }
+
+  part.staves.forEach((staff) => {
+    if (staff.measures.length !== measureCount) {
+      throw new Error(
+        `part ${part.id}의 staff ${staff.id} measure 수가 일치하지 않습니다.`
+      )
+    }
+  })
+}
+
+export interface MusicXmlExportWarning {
+  code: 'unsupported-layout'
+  message: string
+  path: string
+  measureId?: string
+}
+
+export interface MusicXmlExportReport {
+  warnings: MusicXmlExportWarning[]
+}
+
+export function serializeMusicXmlWithReport(score: Score): {
+  contents: string
+  report: MusicXmlExportReport
+} {
+  return {
+    contents: serializeMusicXml(score),
+    report: {
+      warnings: collectUnsupportedMusicXmlExportWarnings(score)
+    }
+  }
+}
+
+function collectUnsupportedMusicXmlExportWarnings(
+  score: Score
+): MusicXmlExportWarning[] {
+  const warnings: MusicXmlExportWarning[] = []
+
+  for (const [index, measureId] of (
+    score.layout?.systemBreakBeforeMeasureIds ?? []
+  ).entries()) {
+    warnings.push({
+      code: 'unsupported-layout',
+      message:
+        'manual system break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+      path: `score.layout.systemBreakBeforeMeasureIds[${index}]`,
+      measureId
+    })
+  }
+
+  for (const [index, measureId] of (
+    score.layout?.pageBreakBeforeMeasureIds ?? []
+  ).entries()) {
+    warnings.push({
+      code: 'unsupported-layout',
+      message:
+        'manual page break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+      path: `score.layout.pageBreakBeforeMeasureIds[${index}]`,
+      measureId
+    })
+  }
+
+  if (score.layout?.pageSetup) {
+    warnings.push({
+      code: 'unsupported-layout',
+      message:
+        'PDF page setup is not exported to MusicXML yet; MusicXML consumers may use their own page settings.',
+      path: 'score.layout.pageSetup'
+    })
+  }
+
+  return warnings
+}
+
+function buildPartMeasureElements(
+  score: Score,
+  part: Score['parts'][number],
+  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+) {
+  const primaryStaff = part.staves[0]
+
+  return primaryStaff.measures.map((_measure, measureIndex) =>
+    buildMeasureElement(
+      score,
+      part.staves.map((staff) => staff.measures[measureIndex]),
+      slurBoundaries
+    )
+  )
+}
+
+function buildMeasureElement(
+  score: Score,
+  measures: Measure[],
+  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+) {
+  const primaryMeasure = measures[0]
+  const directions = buildMeasureDirections(score, primaryMeasure)
+  const barlines = buildMeasureBarlines(primaryMeasure)
+  const harmonies = buildMeasureHarmonies(score, primaryMeasure)
+
+  return xmlElement(
+    'measure',
+    [
+      xmlElement('attributes', buildAttributes(measures)),
+      ...directions.map((direction) => xmlElement('direction', direction)),
+      ...harmonies.map((harmony) => xmlElement('harmony', harmony)),
+      ...buildStaffPlaybackElements(measures, slurBoundaries),
+      ...barlines.map((barline) => xmlElement('barline', barline))
+    ],
+    {
+      '@_number': primaryMeasure.number,
+      ...(primaryMeasure.timing.type === 'pickup'
+        ? {
+            '@_implicit': 'yes'
+          }
+        : {})
+    }
+  )
+}
+
+function buildStaffPlaybackElements(
+  measures: Measure[],
+  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+) {
+  const cursor = {
+    currentCursorTicks: 0
+  }
+
+  return measures.flatMap((measure, staffIndex) =>
+    buildMeasurePlaybackElements(
+      measure,
+      slurBoundaries,
+      measures.length > 1 ? staffIndex + 1 : undefined,
+      cursor
+    )
+  )
+}
+
+function buildMeasurePlaybackElements(
+  measure: Measure,
+  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  staffNumber: number | undefined,
+  cursor: {
+    currentCursorTicks: number
+  }
+) {
+  const tupletBoundariesByVoice = new Map(
+    measure.voices.map((voice) => [voice.id, createTupletBoundaries(voice)])
+  )
+
+  return sortScoreVoices(measure.voices).flatMap((voice, voiceIndex) => {
+    const voiceEvents = sortVoiceEvents(voice.events)
+    const voiceElements = voiceEvents.flatMap((event) =>
+      buildNoteElements(
+        event,
+        measure,
+        voice,
+        readMusicXmlVoiceNumber(voice.id),
+        staffNumber,
+        tupletBoundariesByVoice.get(voice.id)?.get(event.id),
+        slurBoundaries.get(event.id)
+      ).map((noteElement) => xmlElement('note', noteElement))
+    )
+    const voiceEndTick = readVoiceEndTick(measure, voice)
+    const prefix =
+      (voiceIndex > 0 || staffNumber !== undefined) &&
+      cursor.currentCursorTicks > 0
+        ? [
+            xmlElement('backup', {
+              duration: cursor.currentCursorTicks
+            })
+          ]
+        : []
+
+    cursor.currentCursorTicks = voiceEndTick
+
+    return [...prefix, ...voiceElements]
+  })
+}
+
 function buildMeasureHarmonies(score: Score, measure: Measure) {
   return (score.harmonies ?? [])
-    .filter((harmony) => harmony.measureId === measure.id)
+    .filter((harmony) => matchesMeasureReference(harmony.measureId, measure))
     .map((harmony) => ({
       ...(harmony.root
         ? {
@@ -175,7 +329,7 @@ function buildMeasureHarmonies(score: Score, measure: Measure) {
 
 function buildMeasureDirections(score: Score, measure: Measure) {
   const tempoEventDirections = (score.tempoEvents ?? [])
-    .filter((event) => event.measureId === measure.id)
+    .filter((event) => matchesMeasureReference(event.measureId, measure))
     .map((event) => buildTempoDirection(event, event.tick))
   const octaveShiftDirections = (score.octaveShifts ?? []).flatMap((shift) => {
     const directions = []
@@ -214,16 +368,26 @@ function buildMeasureDirections(score: Score, measure: Measure) {
     ...tempoEventDirections,
     ...octaveShiftDirections,
     ...(score.rehearsalMarks ?? [])
-      .filter((mark) => mark.measureId === measure.id)
+      .filter((mark) => matchesMeasureReference(mark.measureId, measure))
       .map((mark) => buildRehearsalDirection(mark.text)),
     ...(score.staffTexts ?? [])
-      .filter((text) => text.measureId === measure.id)
+      .filter((text) => matchesMeasureReference(text.measureId, measure))
       .map((text) => buildStaffTextDirection(text.text)),
+    ...(score.systemTexts ?? [])
+      .filter((text) => matchesMeasureReference(text.measureId, measure))
+      .map((text) => buildSystemTextDirection(text.text)),
+    ...(score.expressionTexts ?? [])
+      .filter((text) => matchesMeasureReference(text.measureId, measure))
+      .map((text) => buildExpressionTextDirection(text.text, text.tick)),
     ...(score.dynamics ?? [])
-      .filter((dynamic) => dynamic.measureId === measure.id)
+      .filter((dynamic) => matchesMeasureReference(dynamic.measureId, measure))
       .map((dynamic) => buildDynamicDirection(dynamic.value)),
     ...hairpinDirections
   ]
+}
+
+function matchesMeasureReference(measureId: string, measure: Measure): boolean {
+  return measureId === measure.id || measureId === `measure-${measure.number}`
 }
 
 function buildRhythmFeelDirection(rhythmFeel: RhythmFeelMarking) {
@@ -315,6 +479,36 @@ function buildStaffTextDirection(text: string) {
   }
 }
 
+function buildSystemTextDirection(text: string) {
+  return {
+    '@_placement': 'above',
+    '@_system': 'yes',
+    'direction-type': {
+      words: {
+        '#text': text,
+        '@_font-weight': 'bold'
+      }
+    }
+  }
+}
+
+function buildExpressionTextDirection(text: string, tick: number) {
+  return {
+    '@_placement': 'below',
+    'direction-type': {
+      words: {
+        '#text': text,
+        '@_font-style': 'italic'
+      }
+    },
+    ...(tick > 0
+      ? {
+          offset: tick
+        }
+      : {})
+  }
+}
+
 function buildDynamicDirection(value: string) {
   return {
     '@_placement': 'below',
@@ -397,33 +591,44 @@ function measureHasEvent(measure: Measure, eventId: string): boolean {
   )
 }
 
-function buildAttributes(measure: Measure) {
-  const clef = clefToMusicXml(measure.clef)
+function buildAttributes(measures: Measure[]) {
+  const primaryMeasure = measures[0]
+  const clefs = measures.map((measure) => clefToMusicXml(measure.clef))
 
   return {
     divisions,
     key: {
-      fifths: measure.keySignature.fifths,
-      ...(measure.keySignature.mode
+      fifths: primaryMeasure.keySignature.fifths,
+      ...(primaryMeasure.keySignature.mode
         ? {
-            mode: measure.keySignature.mode
+            mode: primaryMeasure.keySignature.mode
           }
         : {})
     },
     time: {
-      beats: measure.timeSignature.beats,
-      'beat-type': measure.timeSignature.beatType
+      beats: primaryMeasure.timeSignature.beats,
+      'beat-type': primaryMeasure.timeSignature.beatType
     },
-    staves: 1,
-    clef: {
-      sign: clef.sign,
-      line: clef.line,
-      ...(clef.octaveChange !== undefined
-        ? {
-            'clef-octave-change': clef.octaveChange
-          }
-        : {})
-    }
+    staves: measures.length,
+    clef:
+      measures.length === 1
+        ? buildClefAttributes(clefs[0])
+        : clefs.map((clef, index) => ({
+            '@_number': index + 1,
+            ...buildClefAttributes(clef)
+          }))
+  }
+}
+
+function buildClefAttributes(clef: ReturnType<typeof clefToMusicXml>) {
+  return {
+    sign: clef.sign,
+    line: clef.line,
+    ...(clef.octaveChange !== undefined
+      ? {
+          'clef-octave-change': clef.octaveChange
+        }
+      : {})
   }
 }
 
@@ -431,6 +636,8 @@ function buildNoteElements(
   event: VoiceEvent,
   measure: Measure,
   voice: Voice,
+  voiceNumber: number,
+  staffNumber: number | undefined,
   tupletBoundary?: {
     start?: boolean
     stop?: boolean
@@ -452,18 +659,42 @@ function buildNoteElements(
       measure,
       voice,
       notePitches[0],
+      voiceNumber,
+      staffNumber,
       false,
       tupletBoundary,
       slurBoundary
     )
     const chordNotes = notePitches.slice(1).map((pitch) =>
-      buildNote(event, measure, voice, pitch, true)
+      buildNote(event, measure, voice, pitch, voiceNumber, staffNumber, true)
     )
 
     return [...graceNotes, mainNote, ...chordNotes]
   }
 
-  return [buildNote(event, measure, voice, undefined, false, tupletBoundary)]
+  return [
+    buildNote(
+      event,
+      measure,
+      voice,
+      undefined,
+      voiceNumber,
+      staffNumber,
+      false,
+      tupletBoundary
+    )
+  ]
+}
+
+function readVoiceEndTick(measure: Measure, voice: Voice): number {
+  return sortVoiceEvents(voice.events).reduce(
+    (endTick, event) =>
+      Math.max(
+        endTick,
+        event.position.tick + voiceEventDurationTicks(event, measure)
+      ),
+    0
+  )
 }
 
 function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number]) {
@@ -491,6 +722,8 @@ function buildNote(
   measure: Measure,
   voice: Voice,
   pitch: Pitch | undefined,
+  voiceNumber: number,
+  staffNumber: number | undefined,
   isChordTone: boolean,
   tupletBoundary?: {
     start?: boolean
@@ -607,8 +840,13 @@ function buildNote(
     duration: isFullMeasureRest
       ? voiceEventDurationTicks(event, measure)
       : durationToTicks(event.duration),
-    voice: 1,
+    voice: voiceNumber,
     type: event.duration.value,
+    ...(staffNumber !== undefined
+      ? {
+          staff: staffNumber
+        }
+      : {}),
     ...(event.duration.tuplet
       ? {
           'time-modification': {
@@ -767,14 +1005,10 @@ function sortLyricsByNumber(
 }
 
 function validateMeasure(measure: Measure): void {
-  if (measure.voices.length !== 1) {
-    throw new Error(
-      `MVP 내보내기는 measure ${measure.number}의 단일 voice만 지원합니다.`
-    )
-  }
-
   const rhythm = validateMeasureRhythm(measure)
-  const tupletErrors = validateVoiceTuplets(measure.voices[0])
+  const tupletErrors = measure.voices.flatMap((voice) =>
+    validateVoiceTuplets(voice)
+  )
 
   if (!rhythm.isExact) {
     throw new Error(
@@ -787,4 +1021,108 @@ function validateMeasure(measure: Measure): void {
       `measure ${measure.number}의 tuplet 관계가 올바르지 않습니다: ${tupletErrors.join(', ')}`
     )
   }
+}
+
+function sortScoreVoices(voices: Voice[]): Voice[] {
+  return [...voices].sort(
+    (left, right) =>
+      readMusicXmlVoiceNumber(left.id) - readMusicXmlVoiceNumber(right.id) ||
+      left.id.localeCompare(right.id)
+  )
+}
+
+function xmlElement(
+  name: string,
+  value: unknown,
+  attributes: Record<string, unknown> = {}
+) {
+  const content = readXmlElementContent(value)
+  const attrs = {
+    ...content.attributes,
+    ...attributes
+  }
+  const element: Record<string, unknown> = {
+    [name]: content.children
+  }
+
+  if (Object.keys(attrs).length > 0) {
+    element[':@'] = attrs
+  }
+
+  return element
+}
+
+function readXmlElementContent(value: unknown): {
+  attributes: Record<string, unknown>
+  children: unknown[]
+} {
+  if (value === undefined || value === null || value === '') {
+    return {
+      attributes: {},
+      children: []
+    }
+  }
+
+  if (Array.isArray(value)) {
+    return {
+      attributes: {},
+      children: value
+    }
+  }
+
+  if (typeof value !== 'object') {
+    return {
+      attributes: {},
+      children: [
+        {
+          '#text': value
+        }
+      ]
+    }
+  }
+
+  const attributes: Record<string, unknown> = {}
+  const children: unknown[] = []
+
+  Object.entries(value as Record<string, unknown>).forEach(([key, childValue]) => {
+    if (childValue === undefined || childValue === null) {
+      return
+    }
+
+    if (key.startsWith('@_')) {
+      attributes[key] = childValue
+      return
+    }
+
+    if (key === '#text') {
+      children.push({
+        '#text': childValue
+      })
+      return
+    }
+
+    if (Array.isArray(childValue)) {
+      childValue.forEach((item) => {
+        if (item === undefined || item === null) {
+          return
+        }
+
+        children.push(xmlElement(key, item))
+      })
+      return
+    }
+
+    children.push(xmlElement(key, childValue))
+  })
+
+  return {
+    attributes,
+    children
+  }
+}
+
+function readMusicXmlVoiceNumber(voiceId: string): number {
+  const match = /^voice-(\d+)$/.exec(voiceId)
+
+  return match ? Number(match[1]) : 1
 }

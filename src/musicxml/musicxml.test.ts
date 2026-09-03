@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
@@ -16,8 +16,8 @@ import {
   createVoice,
   validateMeasureRhythm
 } from '../score-core'
-import { parseMusicXml } from './parse'
-import { serializeMusicXml } from './serialize'
+import { parseMusicXml, parseMusicXmlWithReport } from './parse'
+import { serializeMusicXml, serializeMusicXmlWithReport } from './serialize'
 
 const fixture = readFileSync(
   resolve('src/musicxml/fixtures/single-part-treble.musicxml'),
@@ -36,6 +36,36 @@ const compositionCatalog = JSON.parse(
     assets?: {
       musicxml?: string
     }
+  }>
+}
+const externalFixtureRoot = resolve('src/musicxml/fixtures/external-apps')
+const externalFixtureManifest = JSON.parse(
+  readFileSync(resolve(externalFixtureRoot, 'manifest.json'), 'utf8')
+) as {
+  fixtures: Array<{
+    id: string
+    sourceApp: string
+    origin: 'compatibility-seed' | 'app-export'
+    collectionStatus: 'seed-placeholder' | 'app-export-collected'
+    exportSettings: string
+    evidence: string
+    path: string
+    expectedPartNames: string[]
+    expectedStaffCounts: number[]
+    expectedClefs: string[]
+    expectedEventPitches: string[]
+    expectedDynamics: string[]
+    expectedArticulations: string[]
+    expectedVoiceCounts?: number[]
+    expectedWarnings: string[]
+    expectedWarningPaths: string[]
+  }>
+  requiredAppExports: Array<{
+    sourceApp: string
+    collectionStatus: 'manual-collection-required' | 'collected'
+    targetFixtureId: string
+    exportSettings: string
+    evidence: string
   }>
 }
 
@@ -203,6 +233,113 @@ describe('MusicXML MVP', () => {
     })
     expect(score.hairpins?.[0].startEventId).toBeTruthy()
     expect(score.hairpins?.[0].endEventId).toBeTruthy()
+  })
+
+  it('import-export.external-app-fixture-qa parses representative notation app MusicXML fixtures', () => {
+    expect(externalFixtureManifest.fixtures.map((entry) => entry.sourceApp).sort()).toEqual([
+      'Dorico',
+      'Finale',
+      'MuseScore',
+      'Sibelius'
+    ])
+    expect(
+      externalFixtureManifest.requiredAppExports.map((entry) => entry.sourceApp).sort()
+    ).toEqual(['Dorico', 'Finale', 'MuseScore', 'Sibelius'])
+
+    const collectedAppExports = new Set(
+      externalFixtureManifest.fixtures
+        .filter((entry) => entry.origin === 'app-export')
+        .map((entry) => entry.sourceApp)
+    )
+
+    for (const requiredExport of externalFixtureManifest.requiredAppExports) {
+      expect(requiredExport.targetFixtureId, requiredExport.sourceApp).toBeTruthy()
+      expect(requiredExport.exportSettings.trim(), requiredExport.sourceApp).not.toBe('')
+      expect(requiredExport.evidence, requiredExport.sourceApp).toMatch(
+        /^docs\/quality\/external-musicxml-fixture-qa\.md#/
+      )
+      if (!collectedAppExports.has(requiredExport.sourceApp)) {
+        expect(requiredExport.collectionStatus, requiredExport.sourceApp).toBe(
+          'manual-collection-required'
+        )
+      }
+    }
+
+    for (const fixtureEntry of externalFixtureManifest.fixtures) {
+      const fixturePath = resolve(externalFixtureRoot, fixtureEntry.path)
+      const xml = readFileSync(fixturePath, 'utf8')
+      const { score, report } = parseMusicXmlWithReport(xml)
+      const roundTrip = parseMusicXml(serializeMusicXml(score))
+
+      expect(dirname(fixturePath)).toBe(externalFixtureRoot)
+      expect(fixtureEntry.exportSettings.trim(), fixtureEntry.id).not.toBe('')
+      expect(fixtureEntry.evidence, fixtureEntry.id).toMatch(
+        /^docs\/quality\/external-musicxml-fixture-qa\.md#/
+      )
+      expect(fixtureEntry.collectionStatus, fixtureEntry.id).toBe(
+        fixtureEntry.origin === 'app-export' ? 'app-export-collected' : 'seed-placeholder'
+      )
+      if (fixtureEntry.origin === 'compatibility-seed') {
+        expect(xml, fixtureEntry.id).toContain(
+          `<software>${fixtureEntry.sourceApp} compatibility seed</software>`
+        )
+      } else {
+        expect(xml, fixtureEntry.id).not.toContain('compatibility seed')
+      }
+      expect(score.parts.map((part) => part.name), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedPartNames
+      )
+      expect(score.parts.map((part) => part.staves.length), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedStaffCounts
+      )
+      expect(readScoreClefs(score), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedClefs
+      )
+      expect(readScoreEventPitches(score), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedEventPitches
+      )
+      expect(readScoreDynamics(score), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedDynamics
+      )
+      expect(readScoreArticulations(score), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedArticulations
+      )
+      expect(
+        score.parts.flatMap((part) =>
+          part.staves.flatMap((staff) =>
+            staff.measures.map((measure) => validateMeasureRhythm(measure).status)
+          )
+        ),
+        fixtureEntry.id
+      ).toEqual(
+        score.parts.flatMap((part) =>
+          part.staves.flatMap((staff) => staff.measures.map(() => 'exact'))
+        )
+      )
+      if (fixtureEntry.expectedVoiceCounts) {
+        expect(readScoreVoiceCounts(score), fixtureEntry.id).toEqual(
+          fixtureEntry.expectedVoiceCounts
+        )
+      }
+      expect([...new Set(report.warnings.map((warning) => warning.code))].sort()).toEqual(
+        fixtureEntry.expectedWarnings.slice().sort()
+      )
+      expect(report.warnings.map((warning) => warning.path).sort()).toEqual(
+        fixtureEntry.expectedWarningPaths.slice().sort()
+      )
+      expect(roundTrip.parts.map((part) => part.name), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedPartNames
+      )
+      expect(readScoreClefs(roundTrip), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedClefs
+      )
+      expect(readScoreDynamics(roundTrip), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedDynamics
+      )
+      expect(readScoreArticulations(roundTrip), fixtureEntry.id).toEqual(
+        fixtureEntry.expectedArticulations
+      )
+    }
   })
 
   it('exports and re-imports the supported subset', () => {
@@ -406,6 +543,103 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('layout.system-text exports and re-imports system-level text words', () => {
+    const score = createScore({
+      title: 'System Text Sketch',
+      systemTexts: [
+        {
+          id: 'system-text-1',
+          measureId: 'measure-1',
+          text: 'Chorus'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('system="yes"')
+    expect(exported).toContain('<words font-weight="bold">Chorus</words>')
+    expect(roundTrip.systemTexts).toEqual([
+      {
+        id: 'measure-1-system-text-1',
+        measureId: 'measure-1',
+        text: 'Chorus'
+      }
+    ])
+    expect(roundTrip.staffTexts).toBeUndefined()
+  })
+
+  it('layout.expression-text exports and re-imports tick-positioned expression words', () => {
+    const score = createScore({
+      title: 'Expression Text Sketch',
+      expressionTexts: [
+        {
+          id: 'expression-text-1',
+          measureId: 'measure-1',
+          tick: TICKS_PER_QUARTER,
+          text: 'espressivo'
+        }
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<words font-style="italic">espressivo</words>')
+    expect(exported).toContain(`<offset>${TICKS_PER_QUARTER}</offset>`)
+    expect(roundTrip.expressionTexts).toEqual([
+      {
+        id: 'measure-1-expression-text-1',
+        measureId: 'measure-1',
+        tick: TICKS_PER_QUARTER,
+        text: 'espressivo'
+      }
+    ])
+    expect(roundTrip.staffTexts).toBeUndefined()
+  })
+
+  it('import-export.export-unsupported-musicxml-report warns about layout data not preserved by MusicXML', () => {
+    const { contents, report } = serializeMusicXmlWithReport(
+      createScore({
+        title: 'Layout Export Warning Sketch',
+        layout: {
+          systemBreakBeforeMeasureIds: ['measure-2'],
+          pageBreakBeforeMeasureIds: ['measure-3'],
+          pageSetup: {
+            pageSize: 'letter',
+            orientation: 'landscape',
+            pageMarginMm: 12,
+            staffSizePercent: 90,
+            systemSpacingPercent: 120
+          }
+        }
+      })
+    )
+
+    expect(contents).toContain('<score-partwise')
+    expect(report.warnings).toEqual([
+      {
+        code: 'unsupported-layout',
+        message:
+          'manual system break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+        path: 'score.layout.systemBreakBeforeMeasureIds[0]',
+        measureId: 'measure-2'
+      },
+      {
+        code: 'unsupported-layout',
+        message:
+          'manual page break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+        path: 'score.layout.pageBreakBeforeMeasureIds[0]',
+        measureId: 'measure-3'
+      },
+      {
+        code: 'unsupported-layout',
+        message:
+          'PDF page setup is not exported to MusicXML yet; MusicXML consumers may use their own page settings.',
+        path: 'score.layout.pageSetup'
+      }
+    ])
+  })
+
   it('layout.dynamics exports and re-imports dynamic markings in the same measure', () => {
     const score = createScore({
       title: 'Dynamic Sketch',
@@ -428,6 +662,58 @@ describe('MusicXML MVP', () => {
         value: 'mf'
       }
     ])
+  })
+
+  it('layout.dynamics imports and exports common professional dynamic markings without warnings', () => {
+    const xml = fixture.replace(
+      '</attributes>',
+      `</attributes>
+      <direction placement="below">
+        <direction-type>
+          <dynamics>
+            <pp/>
+          </dynamics>
+        </direction-type>
+      </direction>
+      <direction placement="below">
+        <direction-type>
+          <dynamics>
+            <ff/>
+          </dynamics>
+        </direction-type>
+      </direction>
+      <direction placement="below">
+        <direction-type>
+          <dynamics>
+            <sfz/>
+          </dynamics>
+        </direction-type>
+      </direction>`
+    )
+    const { score, report } = parseMusicXmlWithReport(xml)
+    const roundTrip = serializeMusicXml(score)
+
+    expect(score.dynamics).toEqual([
+      {
+        id: 'measure-1-dynamic-1',
+        measureId: 'measure-1',
+        value: 'pp'
+      },
+      {
+        id: 'measure-1-dynamic-2',
+        measureId: 'measure-1',
+        value: 'ff'
+      },
+      {
+        id: 'measure-1-dynamic-3',
+        measureId: 'measure-1',
+        value: 'sfz'
+      }
+    ])
+    expect(report.warnings).toHaveLength(0)
+    expect(roundTrip).toContain('<pp/>')
+    expect(roundTrip).toContain('<ff/>')
+    expect(roundTrip).toContain('<sfz/>')
   })
 
   it('layout.hairpin-musicxml-round-trip exports and re-imports hairpin wedges', () => {
@@ -506,7 +792,7 @@ describe('MusicXML MVP', () => {
                           id: 'note-articulated',
                           position: createTimePosition(0),
                           pitch: { step: 'C', octave: 4 },
-                          articulations: ['staccato', 'accent']
+                          articulations: ['staccato', 'accent', 'tenuto', 'marcato']
                         }),
                         createRest({
                           id: 'rest-fill',
@@ -529,9 +815,11 @@ describe('MusicXML MVP', () => {
 
     expect(exported).toContain('<staccato/>')
     expect(exported).toContain('<accent/>')
+    expect(exported).toContain('<tenuto/>')
+    expect(exported).toContain('<marcato/>')
     expect(event).toMatchObject({
       type: 'note',
-      articulations: ['staccato', 'accent']
+      articulations: ['staccato', 'accent', 'tenuto', 'marcato']
     })
   })
 
@@ -1057,6 +1345,68 @@ describe('MusicXML MVP', () => {
     ])
   })
 
+  it('import-export.unsupported-musicxml-report reports imported-but-unsupported notation from external apps', () => {
+    const xml = fixture.replace(
+      '<type>quarter</type>',
+      `<type>quarter</type>
+        <notations>
+          <articulations>
+            <detached-legato/>
+          </articulations>
+          <technical>
+            <up-bow/>
+          </technical>
+          <ornaments>
+            <inverted-turn/>
+          </ornaments>
+        </notations>`
+    ).replace(
+      '</attributes>',
+      `</attributes>
+      <direction>
+        <direction-type>
+          <pedal type="start"/>
+        </direction-type>
+      </direction>`
+    )
+    const { score, report } = parseMusicXmlWithReport(xml)
+
+    expect(score.parts[0].staves[0].measures[0].voices[0].events[0]).toMatchObject({
+      type: 'note',
+      pitch: { step: 'C', octave: 4 }
+    })
+    expect(report.warnings).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        code: 'unsupported-notation',
+        message: 'detached-legato articulation is not imported yet.',
+        measureNumber: 1,
+        eventIndex: 1,
+        path: 'measure[1].note[1].notations.articulations.detached-legato'
+      }),
+      expect.objectContaining({
+        code: 'unsupported-notation',
+        message: 'technical playing instructions are not imported yet.',
+        measureNumber: 1,
+        eventIndex: 1,
+        path: 'measure[1].note[1].notations.technical'
+      }),
+      expect.objectContaining({
+        code: 'unsupported-notation',
+        message: 'inverted-turn ornament is not imported yet.',
+        measureNumber: 1,
+        eventIndex: 1,
+        path: 'measure[1].note[1].notations.ornaments.inverted-turn'
+      }),
+      expect.objectContaining({
+        code: 'unsupported-direction',
+        message: 'pedal direction is not imported yet.',
+        measureNumber: 1,
+        path: 'measure[1].direction[1].direction-type[1].pedal'
+      })
+    ]))
+    expect(report.warnings).toHaveLength(4)
+  })
+
   it('rejects MusicXML hairpins that never stop', () => {
     const xml = fixture.replace(
       '</attributes>',
@@ -1093,25 +1443,50 @@ describe('MusicXML MVP', () => {
     ).toThrow('MusicXML 정수 값이 올바르지 않습니다: duration')
   })
 
-  it('rejects note-level staff assignments outside the supported single staff', () => {
+  it('rejects note-level staff assignments outside declared staves', () => {
     const xml = fixture.replace(
       '<voice>1</voice>',
       `<voice>1</voice>
         <staff>2</staff>`
     )
 
-    expect(() => parseMusicXml(xml)).toThrow('staff 1만 지원합니다')
+    expect(() => parseMusicXml(xml)).toThrow('선언된 staff 수 1 범위를 벗어납니다')
   })
 
-  it('rejects multiple parts instead of silently dropping data', () => {
-    const invalid = fixture.replace(
+  it('imports multiple parts instead of silently dropping data', () => {
+    const multiPart = fixture.replace(
       '</score-partwise>',
       '<part id="P2"><measure number="1"/></part></score-partwise>'
     )
+    const score = parseMusicXml(multiPart)
 
-    expect(() => parseMusicXml(invalid)).toThrow(
-      '단일 part MusicXML만 가져올 수 있습니다'
-    )
+    expect(score.parts).toHaveLength(2)
+    expect(score.parts[0].staves[0].measures).toHaveLength(1)
+    expect(score.parts[1]).toMatchObject({
+      id: 'P2',
+      name: 'MusicXML Part',
+      staves: [
+        {
+          id: 'P2-staff-1',
+          measures: [
+            {
+              id: 'P2-staff-1-measure-1',
+              voices: [
+                {
+                  events: [
+                    {
+                      id: 'P2-staff-1-measure-1-full-measure-rest',
+                      type: 'rest',
+                      fullMeasure: true
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    })
   })
 
   it('rejects rhythmically incomplete measures during import and export', () => {
@@ -1473,22 +1848,439 @@ describe('MusicXML MVP', () => {
     ])
   })
 
-  it('import-export.reject-time-movement rejects MusicXML backup and forward instead of importing ambiguous time order', () => {
-    const backupXml = fixture.replace(
-      '</measure>',
-      '<backup><duration>1</duration></backup></measure>'
-    )
-    const forwardXml = fixture.replace(
-      '</measure>',
-      '<forward><duration>1</duration></forward></measure>'
-    )
+  it('import-export.import-multi-voice parses same-staff voice streams with MusicXML backup markers', () => {
+    const multiVoiceXml = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Two Voice Sketch</work-title></work>
+  <part-list>
+    <score-part id="P1"><part-name>Piano</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>5</octave></pitch>
+        <duration>1</duration>
+        <voice>1</voice>
+        <type>quarter</type>
+      </note>
+      <note>
+        <pitch><step>D</step><octave>5</octave></pitch>
+        <duration>3</duration>
+        <voice>1</voice>
+        <type>half</type>
+        <dot/>
+      </note>
+      <backup><duration>4</duration></backup>
+      <note>
+        <pitch><step>E</step><octave>4</octave></pitch>
+        <duration>2</duration>
+        <voice>2</voice>
+        <type>half</type>
+      </note>
+      <note>
+        <pitch><step>G</step><octave>4</octave></pitch>
+        <duration>2</duration>
+        <voice>2</voice>
+        <type>half</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`
 
-    expect(() => parseMusicXml(backupXml)).toThrow(
-      'backup/forward를 지원하지 않습니다'
+    const score = parseMusicXml(multiVoiceXml)
+    const measure = score.parts[0].staves[0].measures[0]
+
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(measure.voices).toHaveLength(2)
+    expect(measure.voices.map((voice) => voice.id)).toEqual(['voice-1', 'voice-2'])
+    expect(measure.voices[0].events).toMatchObject([
+      {
+        type: 'note',
+        position: { tick: 0 },
+        pitch: { step: 'C', octave: 5 }
+      },
+      {
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER },
+        pitch: { step: 'D', octave: 5 },
+        duration: { value: 'half', dots: 1 }
+      }
+    ])
+    expect(measure.voices[1].events).toMatchObject([
+      {
+        type: 'note',
+        position: { tick: 0 },
+        pitch: { step: 'E', octave: 4 }
+      },
+      {
+        type: 'note',
+        position: { tick: TICKS_PER_QUARTER * 2 },
+        pitch: { step: 'G', octave: 4 }
+      }
+    ])
+  })
+
+  it('exports and re-imports same-staff multi-voice measures', () => {
+    const score = createScore({
+      title: 'Two Voice Export',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'v1-n1',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 5 }
+                        }),
+                        createNote({
+                          id: 'v1-n2',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          pitch: { step: 'D', octave: 5 },
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    }),
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createNote({
+                          id: 'v2-n1',
+                          position: createTimePosition(0),
+                          pitch: { step: 'E', octave: 4 },
+                          duration: createDuration('half')
+                        }),
+                        createNote({
+                          id: 'v2-n2',
+                          position: createTimePosition(TICKS_PER_QUARTER * 2),
+                          pitch: { step: 'G', octave: 4 },
+                          duration: createDuration('half')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const exported = serializeMusicXml(score)
+    const roundTripMeasure =
+      parseMusicXml(exported).parts[0].staves[0].measures[0]
+
+    expect(exported).toContain('<voice>1</voice>')
+    expect(exported).toContain('<voice>2</voice>')
+    expect(exported).toMatch(
+      /<voice>1<\/voice>[\s\S]*<backup>[\s\S]*<duration>53760<\/duration>[\s\S]*<\/backup>[\s\S]*<voice>2<\/voice>/
     )
-    expect(() => parseMusicXml(forwardXml)).toThrow(
-      'backup/forward를 지원하지 않습니다'
+    expect(roundTripMeasure.voices).toHaveLength(2)
+    expect(roundTripMeasure.voices[0].events).toHaveLength(2)
+    expect(roundTripMeasure.voices[1].events).toHaveLength(2)
+    expect(validateMeasureRhythm(roundTripMeasure).isExact).toBe(true)
+  })
+
+  it('import-export.round-trip-grand-staff-structure score-setup.create-grand-staff-score exports and re-imports grand staff structure', () => {
+    const score = createScore({
+      title: 'Grand Staff Round Trip',
+      parts: [
+        createPart({
+          id: 'part-1',
+          name: 'Piano',
+          abbreviation: 'Pno.',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({
+                  id: 'part-1-staff-1-measure-1',
+                  clef: { sign: 'G', line: 2 }
+                }),
+                createMeasure({
+                  id: 'part-1-staff-1-measure-2',
+                  number: 2,
+                  clef: { sign: 'G', line: 2 }
+                })
+              ]
+            }),
+            createStaff({
+              id: 'staff-2',
+              measures: [
+                createMeasure({
+                  id: 'part-1-staff-2-measure-1',
+                  clef: { sign: 'F', line: 4 }
+                }),
+                createMeasure({
+                  id: 'part-1-staff-2-measure-2',
+                  number: 2,
+                  clef: { sign: 'F', line: 4 }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<staves>2</staves>')
+    expect(exported).toContain('<staff>1</staff>')
+    expect(exported).toContain('<staff>2</staff>')
+    expect(roundTrip.parts).toHaveLength(1)
+    expect(roundTrip.parts[0]).toMatchObject({
+      id: 'part-1',
+      name: 'Piano',
+      abbreviation: 'Pno.'
+    })
+    expect(roundTrip.parts[0].staves).toHaveLength(2)
+    expect(roundTrip.parts[0].staves.map((staff) => staff.id)).toEqual([
+      'part-1-staff-1',
+      'part-1-staff-2'
+    ])
+    expect(
+      roundTrip.parts[0].staves.map((staff) => staff.measures[0].clef)
+    ).toEqual([
+      { sign: 'G', line: 2, octaveChange: undefined },
+      { sign: 'F', line: 4, octaveChange: undefined }
+    ])
+    expect(
+      roundTrip.parts[0].staves.map((staff) => staff.measures.length)
+    ).toEqual([2, 2])
+    expect(
+      roundTrip.parts[0].staves[1].measures[0].voices[0].events[0].id
+    ).toBe('part-1-staff-2-event-2')
+  })
+
+  it('import-export.round-trip-grand-staff-basic-events preserves lower staff notes', () => {
+    const score = createScore({
+      title: 'Grand Staff Notes',
+      parts: [
+        createPart({
+          id: 'part-1',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({
+                  id: 'part-1-staff-1-measure-1',
+                  clef: { sign: 'G', line: 2 }
+                })
+              ]
+            }),
+            createStaff({
+              id: 'staff-2',
+              measures: [
+                createMeasure({
+                  id: 'part-1-staff-2-measure-1',
+                  clef: { sign: 'F', line: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'bass-c',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 3 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+    const lowerStaffEvent =
+      roundTrip.parts[0].staves[1].measures[0].voices[0].events[0]
+
+    expect(exported).toMatch(
+      /<type>whole<\/type>[\s\S]*<staff>2<\/staff>/
     )
+    expect(lowerStaffEvent).toMatchObject({
+      type: 'note',
+      pitch: {
+        step: 'C',
+        octave: 3
+      },
+      position: {
+        tick: 0
+      },
+      duration: {
+        value: 'whole'
+      }
+    })
+  })
+
+  it('import-export.round-trip-multi-part-structure score-setup.create-ensemble-score exports and re-imports multi-part structure', () => {
+    const score = createScore({
+      title: 'Quartet Round Trip',
+      parts: [
+        createPart({
+          id: 'violin-1',
+          name: 'Violin I',
+          abbreviation: 'Vln. I',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({ id: 'violin-1-staff-1-measure-1' })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'viola',
+          name: 'Viola',
+          abbreviation: 'Vla.',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({
+                  id: 'viola-staff-1-measure-1',
+                  clef: { sign: 'C', line: 3 }
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          name: 'Cello',
+          abbreviation: 'Vc.',
+          staves: [
+            createStaff({
+              id: 'staff-1',
+              measures: [
+                createMeasure({
+                  id: 'cello-staff-1-measure-1',
+                  clef: { sign: 'F', line: 4 }
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const exported = serializeMusicXml(score)
+    const roundTrip = parseMusicXml(exported)
+
+    expect(exported).toContain('<score-part id="violin-1">')
+    expect(exported).toContain('<part id="viola">')
+    expect(exported).toContain('<part id="cello">')
+    expect(roundTrip.parts.map((part) => part.id)).toEqual([
+      'violin-1',
+      'viola',
+      'cello'
+    ])
+    expect(roundTrip.parts.map((part) => part.name)).toEqual([
+      'Violin I',
+      'Viola',
+      'Cello'
+    ])
+    expect(
+      roundTrip.parts.map((part) => part.staves[0].measures[0].clef)
+    ).toEqual([
+      { sign: 'G', line: 2, octaveChange: undefined },
+      { sign: 'C', line: 3, octaveChange: undefined },
+      { sign: 'F', line: 4, octaveChange: undefined }
+    ])
+  })
+
+  it('import-export.round-trip-multi-part-basic-events preserves notes in separate parts', () => {
+    const score = createScore({
+      title: 'Part Notes Round Trip',
+      parts: [
+        createPart({
+          id: 'violin',
+          name: 'Violin',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'violin-note',
+                          pitch: { step: 'E', octave: 5 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          name: 'Cello',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  clef: { sign: 'F', line: 4 },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'cello-note',
+                          pitch: { step: 'C', octave: 3 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+
+    const roundTrip = parseMusicXml(serializeMusicXml(score))
+
+    expect(
+      roundTrip.parts.map(
+        (part) => part.staves[0].measures[0].voices[0].events[0]
+      )
+    ).toMatchObject([
+      {
+        id: 'violin-staff-1-event-1',
+        type: 'note',
+        pitch: { step: 'E', octave: 5 }
+      },
+      {
+        id: 'cello-staff-1-event-1',
+        type: 'note',
+        pitch: { step: 'C', octave: 3 }
+      }
+    ])
   })
 
   it('preserves multiple augmentation dots across MusicXML round trips', () => {
@@ -1890,3 +2682,55 @@ describe('MusicXML MVP', () => {
     })
   })
 })
+
+function readScoreClefs(score: ReturnType<typeof parseMusicXml>): string[] {
+  return score.parts.flatMap((part) =>
+    part.staves.map((staff) => {
+      const clef = staff.measures[0].clef
+
+      return `${clef.sign}${clef.line}`
+    })
+  )
+}
+
+function readScoreEventPitches(score: ReturnType<typeof parseMusicXml>): string[] {
+  return score.parts.flatMap((part) =>
+    part.staves.flatMap((staff) =>
+      staff.measures.flatMap((measure) =>
+        measure.voices.flatMap((voice) =>
+          voice.events.flatMap((event) =>
+            event.type === 'note'
+              ? [`${event.pitch.step}${event.pitch.octave}`]
+              : []
+          )
+        )
+      )
+    )
+  )
+}
+
+function readScoreDynamics(score: ReturnType<typeof parseMusicXml>): string[] {
+  return (score.dynamics ?? []).map((dynamic) => dynamic.value)
+}
+
+function readScoreArticulations(score: ReturnType<typeof parseMusicXml>): string[] {
+  return score.parts.flatMap((part) =>
+    part.staves.flatMap((staff) =>
+      staff.measures.flatMap((measure) =>
+        measure.voices.flatMap((voice) =>
+          voice.events.flatMap((event) =>
+            event.type === 'note' ? event.articulations ?? [] : []
+          )
+        )
+      )
+    )
+  )
+}
+
+function readScoreVoiceCounts(score: ReturnType<typeof parseMusicXml>): number[] {
+  return score.parts.flatMap((part) =>
+    part.staves.flatMap((staff) =>
+      staff.measures.map((measure) => measure.voices.length)
+    )
+  )
+}

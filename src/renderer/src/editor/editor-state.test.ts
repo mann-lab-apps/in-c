@@ -81,6 +81,30 @@ describe('editor state', () => {
     })
   })
 
+  it('score-addressing.selects duplicate event ids by same-staff voice address', () => {
+    const score = scoreWithSameStaffDuplicateEventIds()
+    const voiceTwoAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-2'
+    }
+
+    expect(createEventSelection(score, 'shared-note', voiceTwoAddress)).toEqual({
+      type: 'event',
+      eventId: 'shared-note',
+      address: voiceTwoAddress
+    })
+    expect(
+      locateEvent(score, 'shared-note', voiceTwoAddress)?.event
+    ).toMatchObject({
+      id: 'shared-note',
+      pitch: {
+        step: 'G'
+      }
+    })
+  })
+
   it('score-addressing.keeps duration edits scoped to the addressed voice', () => {
     const score = scoreWithDuplicateEventIds()
     const celloAddress = {
@@ -1113,6 +1137,121 @@ describe('editor state', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('range-editing.same-staff-voice-delete keeps range deletion scoped to voice 2', () => {
+    const score = scoreWithSameStaffVoices()
+    const voiceTwoAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-2'
+    }
+    const selection = createRangeSelection(
+      score,
+      'v2-note-1',
+      'v2-note-2',
+      voiceTwoAddress
+    )
+    const command = buildDeleteCommand(score, selection!)
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voiceOne = measure.voices.find((voice) => voice.id === 'voice-1')
+    const voiceTwo = measure.voices.find((voice) => voice.id === 'voice-2')
+
+    expect(selection).toMatchObject({
+      type: 'range',
+      address: voiceTwoAddress,
+      eventIds: ['v2-note-1', 'v2-note-2']
+    })
+    expect(command).toMatchObject({
+      type: 'voice-events.replace',
+      target: voiceTwoAddress
+    })
+    expect(voiceOne?.events.map((event) => event.id)).toEqual([
+      'v1-note-1',
+      'v1-note-2',
+      'v1-rest'
+    ])
+    expect(voiceTwo?.events).toMatchObject([
+      {
+        id: 'v2-note-1',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'whole' }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('range-editing.same-staff-voice-copy-paste targets the addressed voice', () => {
+    const score = scoreWithSameStaffVoices()
+    const voiceOneAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-1'
+    }
+    const voiceTwoAddress = {
+      ...voiceOneAddress,
+      voiceId: 'voice-2'
+    }
+    const source = createRangeSelection(
+      score,
+      'v1-note-1',
+      'v1-note-2',
+      voiceOneAddress
+    )
+    const target = createRangeSelection(
+      score,
+      'v2-note-1',
+      'v2-note-2',
+      voiceTwoAddress
+    )
+    const clipboard = buildRangeClipboard(score, source!)
+    const command = buildRangePasteCommand(
+      score,
+      target!,
+      clipboard!,
+      idSequence('voice-2-paste')
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voiceOne = measure.voices.find((voice) => voice.id === 'voice-1')
+    const voiceTwo = measure.voices.find((voice) => voice.id === 'voice-2')
+
+    expect(command).toMatchObject({
+      type: 'voice-events.replace',
+      target: voiceTwoAddress,
+      editedEventId: 'voice-2-paste-1'
+    })
+    expect(voiceOne?.events.map((event) => event.id)).toEqual([
+      'v1-note-1',
+      'v1-note-2',
+      'v1-rest'
+    ])
+    expect(voiceTwo?.events).toMatchObject([
+      {
+        id: 'voice-2-paste-1',
+        type: 'note',
+        pitch: { step: 'C' },
+        position: { tick: 0 }
+      },
+      {
+        id: 'voice-2-paste-2',
+        type: 'note',
+        pitch: { step: 'D' },
+        position: { tick: TICKS_PER_QUARTER }
+      },
+      {
+        id: 'v2-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
   it('copies a single whole note and pastes it over a full-measure rest', () => {
     const score = createScore({
       parts: [
@@ -1363,6 +1502,90 @@ function scoreWith(events: VoiceEvent[]): Score {
                 voices: [
                   createVoice({
                     events
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function scoreWithSameStaffVoices(): Score {
+  return createScore({
+    parts: [
+      createPart({
+        id: 'part-1',
+        staves: [
+          createStaff({
+            id: 'staff-1',
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                voices: [
+                  createVoice({
+                    id: 'voice-1',
+                    events: [
+                      noteWithPitch('v1-note-1', 0, 'quarter', 'C'),
+                      noteWithPitch(
+                        'v1-note-2',
+                        TICKS_PER_QUARTER,
+                        'quarter',
+                        'D'
+                      ),
+                      rest('v1-rest', TICKS_PER_QUARTER * 2, 'half')
+                    ]
+                  }),
+                  createVoice({
+                    id: 'voice-2',
+                    events: [
+                      noteWithPitch('v2-note-1', 0, 'quarter', 'G'),
+                      noteWithPitch(
+                        'v2-note-2',
+                        TICKS_PER_QUARTER,
+                        'quarter',
+                        'A'
+                      ),
+                      rest('v2-rest', TICKS_PER_QUARTER * 2, 'half')
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function scoreWithSameStaffDuplicateEventIds(): Score {
+  return createScore({
+    parts: [
+      createPart({
+        id: 'part-1',
+        staves: [
+          createStaff({
+            id: 'staff-1',
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                voices: [
+                  createVoice({
+                    id: 'voice-1',
+                    events: [
+                      noteWithPitch('shared-note', 0, 'quarter', 'C'),
+                      rest('v1-rest', TICKS_PER_QUARTER, 'half')
+                    ]
+                  }),
+                  createVoice({
+                    id: 'voice-2',
+                    events: [
+                      noteWithPitch('shared-note', 0, 'quarter', 'G'),
+                      rest('v2-rest', TICKS_PER_QUARTER, 'half')
+                    ]
                   })
                 ]
               })

@@ -11,12 +11,14 @@ import {
   createScore,
   createStaff,
   createTimePosition,
-  createVoice
+  createVoice,
+  pitchToMidi
 } from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
 import { locateEvent } from './editor-state'
 import {
   buildAccidentalCommand,
+  buildEnharmonicRespellCommand,
   buildPitchMovementCommand,
   buildPitchStepCommand
 } from './pitch-editing'
@@ -166,6 +168,28 @@ describe('pitch editing commands', () => {
       type: 'note',
       pitch: { step: 'F', octave: 5, alter: 0 }
     })
+  })
+
+  it('respells the selected note enharmonically without changing the sounding pitch', () => {
+    const selection = {
+      type: 'event' as const,
+      eventId: 'note-f-sharp-4'
+    }
+    const before = locateEvent(demoScore, selection.eventId)?.event
+    const command = buildEnharmonicRespellCommand(demoScore, selection)
+    const result = applyScoreCommand(demoScore, command!)
+    const after = locateEvent(result.score, selection.eventId)?.event
+
+    expect(after).toMatchObject({
+      type: 'note',
+      pitch: { step: 'G', octave: 4, alter: -1 }
+    })
+    expect(before?.type).toBe('note')
+    expect(after?.type).toBe('note')
+    if (before?.type === 'note' && after?.type === 'note') {
+      expect(pitchToMidi(after.pitch)).toBe(pitchToMidi(before.pitch))
+    }
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(demoScore)
   })
 
   it('note-input.edit-selected-event-in-inspector note-input.apply-accidental applies a sharp without moving or resizing the note', () => {

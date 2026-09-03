@@ -8,6 +8,9 @@
   제품, 배포, 테스트 방식이 바뀌면 이 파일을 업데이트한다.
 - `release-notes-template.md`: 사용자가 읽을 릴리즈 노트 원본. 새 기능, 달라진 점,
   현재 제한, 확인한 내용, 문제 제보 경로를 짧게 정리할 때 사용한다.
+- `chromatics-v1-release-notes-draft.md`: Chromatics Desktop V1 public release
+  candidate 전에 저장 정책과 post-V1 제한 범위를 고정해 두는 게이트 전 초안이다.
+  professional V1 blocker가 남아 있는 동안에는 최종 릴리즈 노트로 게시하지 않는다.
 - `snapshot-template.md`: 릴리즈 전 현황판 실험 초안. 현재 기본 운영으로 쓰지 않고,
   페어 전체 점검을 몇 차례 수행한 뒤 필요한 항목만 다시 승격한다.
 - `.github/ISSUE_TEMPLATE/release_candidate_manual_qa.md`: 릴리즈 후보별 OS, 앱 버전,

@@ -9,7 +9,7 @@
   "signing": {
     "macOS": "미서명 prerelease. Gatekeeper 경고가 표시될 수 있습니다.",
     "Windows": "미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.",
-    "Linux": "미서명 AppImage. 실행 권한을 직접 부여해야 할 수 있습니다."
+    "Linux": "V1 public release target이 아닙니다. Linux package는 post-V1 follow-up입니다."
   },
   "downloads": [
     {
@@ -39,11 +39,11 @@
       "platform": "Linux",
       "label": "Linux",
       "architecture": "x86_64",
-      "format": "AppImage",
-      "available": true,
-      "fileName": "in-C-0.1.0-alpha.9-linux-x86_64.AppImage",
-      "size": "139.6 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.9/in-C-0.1.0-alpha.9-linux-x86_64.AppImage"
+      "format": "Post-V1",
+      "available": false,
+      "fileName": "Linux package post-V1",
+      "size": "후속 공개",
+      "url": ""
     }
   ]
 }

@@ -111,6 +111,87 @@ describe('score-core', () => {
     expect(applyScoreCommand(updated.score, updated.undo).score).toEqual(score)
   })
 
+  it('score-setup.edit-score-structure replaces score parts and returns an undo command', () => {
+    const score = createScore({
+      id: 'ensemble',
+      title: 'Ensemble'
+    })
+    const parts = [
+      createPart({
+        id: 'violin',
+        name: 'Violin',
+        abbreviation: 'Vln.',
+        staves: [
+          createStaff({
+            id: 'violin-staff',
+            measures: [createMeasure({ id: 'violin-measure-1' })]
+          })
+        ]
+      }),
+      createPart({
+        id: 'cello',
+        name: 'Cello',
+        abbreviation: 'Vc.',
+        staves: [
+          createStaff({
+            id: 'cello-staff',
+            measures: [
+              createMeasure({
+                id: 'cello-measure-1',
+                clef: { sign: 'F', line: 4 }
+              })
+            ]
+          })
+        ]
+      })
+    ]
+
+    const result = applyScoreCommand(score, {
+      type: 'score-parts.replace',
+      parts
+    })
+
+    expect(result.score.parts.map((part) => part.id)).toEqual([
+      'violin',
+      'cello'
+    ])
+    expect(result.undo).toEqual({
+      type: 'score-parts.replace',
+      parts: score.parts
+    })
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('rejects score part replacement without editable structure', () => {
+    const score = createScore()
+
+    expect(() =>
+      applyScoreCommand(score, {
+        type: 'score-parts.replace',
+        parts: []
+      })
+    ).toThrow('A score must contain at least one part.')
+
+    expect(() =>
+      applyScoreCommand(score, {
+        type: 'score-parts.replace',
+        parts: [createPart({ id: 'empty', staves: [] })]
+      })
+    ).toThrow('A part must contain at least one staff: empty')
+
+    expect(() =>
+      applyScoreCommand(score, {
+        type: 'score-parts.replace',
+        parts: [
+          createPart({
+            id: 'part',
+            staves: [createStaff({ id: 'empty-staff', measures: [] })]
+          })
+        ]
+      })
+    ).toThrow('A staff must contain at least one measure: empty-staff')
+  })
+
   it('inserts a note and returns a command that undoes the edit', () => {
     const score = withEvents([])
     const note = createNote({
@@ -295,6 +376,61 @@ describe('score-core', () => {
       tempoEvents: undefined
     })
     expect(applyScoreCommand(updated.score, updated.undo).score).toEqual(score)
+  })
+
+  it('updates system and expression text collections with undo', () => {
+    const score = createScore()
+    const withSystemText = applyScoreCommand(score, {
+      type: 'score-system-texts.update',
+      systemTexts: [
+        {
+          id: 'system-text-1',
+          measureId: 'measure-1',
+          text: 'Chorus'
+        }
+      ]
+    })
+    const withExpressionText = applyScoreCommand(withSystemText.score, {
+      type: 'score-expression-texts.update',
+      expressionTexts: [
+        {
+          id: 'expression-text-1',
+          measureId: 'measure-1',
+          tick: 13_440,
+          text: 'espressivo'
+        }
+      ]
+    })
+
+    expect(withSystemText.undo).toEqual({
+      type: 'score-system-texts.update',
+      systemTexts: undefined
+    })
+    expect(withExpressionText.score.systemTexts).toEqual([
+      {
+        id: 'system-text-1',
+        measureId: 'measure-1',
+        text: 'Chorus'
+      }
+    ])
+    expect(withExpressionText.score.expressionTexts).toEqual([
+      {
+        id: 'expression-text-1',
+        measureId: 'measure-1',
+        tick: 13_440,
+        text: 'espressivo'
+      }
+    ])
+    expect(withExpressionText.undo).toEqual({
+      type: 'score-expression-texts.update',
+      expressionTexts: undefined
+    })
+    expect(
+      applyScoreCommand(withExpressionText.score, withExpressionText.undo).score
+    ).toEqual(withSystemText.score)
+    expect(
+      applyScoreCommand(withSystemText.score, withSystemText.undo).score
+    ).toEqual(score)
   })
 
   it('updates octave shift spans with undo', () => {

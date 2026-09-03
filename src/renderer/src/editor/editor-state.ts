@@ -236,9 +236,10 @@ function locateMeasureAtAddress(
 
 export function createEventSelection(
   score: Score,
-  eventId: string
+  eventId: string,
+  address?: VoiceAddress
 ): EditorSelection {
-  const location = locateEvent(score, eventId)
+  const location = locateEvent(score, eventId, address)
 
   return location
     ? {

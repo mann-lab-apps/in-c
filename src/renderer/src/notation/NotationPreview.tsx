@@ -24,14 +24,17 @@ import {
   sortVoiceEvents,
   type Measure,
   type Score,
+  type Staff,
   type TempoMarking,
   type Voice as ScoreVoice,
+  type VoiceAddress,
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
 import {
   createSystemLayout,
-  leadingNotationPadding
+  leadingNotationPadding,
+  type MeasurePlacement
 } from './system-layout'
 import {
   toVexFlowAccidental,
@@ -44,21 +47,50 @@ import {
   resolveHairpinOpenings,
   resolveHairpinSegments
 } from './hairpin-rendering'
+import {
+  countMeasureLyricLines,
+  DYNAMIC_MARK_Y_OFFSET,
+  EXPRESSION_TEXT_Y_OFFSET,
+  HAIRPIN_Y_OFFSET,
+  HARMONY_MARK_Y_OFFSET,
+  REHEARSAL_MARK_Y_OFFSET,
+  resolveAnnotationVerticalExtension,
+  resolveHairpinSpanYOffset,
+  resolveMeasureAnnotationLanes,
+  resolveSlurSideForAnnotationLanes,
+  STAFF_TEXT_Y_OFFSET,
+  SYSTEM_TEXT_Y_OFFSET,
+  type MeasureAnnotationLanes
+} from './annotation-lanes'
 import type { PrintLayoutPlan } from './print-layout'
+import {
+  resolveRangeSelectionBands,
+  type RangeSelectionPoint
+} from './range-selection-bands'
 import { resolveMixedTupletOnsetShifts } from './tuplet-spacing'
-import { resolveNotationEventTone } from './visual-state'
+import { resolveNotationEventTone, sameVoiceLane } from './visual-state'
 
 interface NotationPreviewProps {
   score: Score
   inlineLyricEditor?: InlineLyricEditor
+  selectedEventAddress?: VoiceAddress
   selectedEventId?: string
   selectedEventIds?: string[]
   selectedMeasureId?: string
   playbackEventId?: string
+  playbackEventAddress?: VoiceAddress
   printLayout?: boolean
   printLayoutPlan?: PrintLayoutPlan
-  onSelectEvent: (eventId: string, extendRange?: boolean) => void
-  onSelectEventRange: (anchorEventId: string, focusEventId: string) => void
+  onSelectEvent: (
+    eventId: string,
+    extendRange?: boolean,
+    address?: VoiceAddress
+  ) => void
+  onSelectEventRange: (
+    anchorEventId: string,
+    focusEventId: string,
+    address?: VoiceAddress
+  ) => void
   onSelectLyric: (eventId: string, verse: number) => void
   onSelectMeasure: (measureId: string) => void
   onOpenMeasureContextMenu: (
@@ -87,16 +119,16 @@ interface InlineLyricEditor {
 const MIN_RENDER_WIDTH = 560
 const STABLE_BEAM_MAX_SLOPE = 0.12
 const STABLE_BEAM_SLOPE_COST = 220
-const REHEARSAL_MARK_Y_OFFSET = -62
-const STAFF_TEXT_Y_OFFSET = -24
-const DYNAMIC_MARK_Y_OFFSET = 122
-const HAIRPIN_Y_OFFSET = 126
+const SINGLE_STAFF_SYSTEM_HEIGHT = 154
+const DEFAULT_SYSTEM_TOP = 72
+const STACKED_STAFF_Y_OFFSET = 96
 const MEASURE_STAFF_VERTICAL_PADDING = 18
 const LYRIC_EDITOR_WIDTH = 148
 const LYRIC_EDITOR_HEIGHT = 34
 const LYRIC_EDITOR_BASELINE_OFFSET = 22
 
 interface CursorPoint {
+  measureId?: string
   x: number
   y: number
   noteHeadTopY?: number
@@ -113,6 +145,16 @@ interface SystemBounds {
   y: number
 }
 
+interface MeasureAnnotationMaps {
+  dynamicsByMeasureId: Map<string, NonNullable<Score['dynamics']>[number]>
+  expressionTextsByMeasureId: Map<string, NonNullable<Score['expressionTexts']>>
+  harmoniesByMeasureId: Map<string, NonNullable<Score['harmonies']>>
+  rehearsalMarksByMeasureId: Map<string, NonNullable<Score['rehearsalMarks']>[number]>
+  staffTextsByMeasureId: Map<string, NonNullable<Score['staffTexts']>[number]>
+  systemTextsByMeasureId: Map<string, NonNullable<Score['systemTexts']>>
+  tempoEventsByMeasureId: Map<string, NonNullable<Score['tempoEvents']>>
+}
+
 interface MeasureContextTarget {
   measureId: string
   x1: number
@@ -121,13 +163,49 @@ interface MeasureContextTarget {
   y2: number
 }
 
+interface RenderedStaffTarget {
+  globalStaffIndex: number
+  partId: string
+  partName: string
+  staff: Staff
+  staffId: string
+  staffIndex: number
+}
+
+interface RenderedStaffInteraction {
+  selectedEventAddress?: VoiceAddress
+  selectedEventId?: string
+  selectedEventIdSet: Set<string>
+  playbackEventId?: string
+  playbackEventAddress?: VoiceAddress
+  onSelectEvent: NotationPreviewProps['onSelectEvent']
+  onSelectEventRange: NotationPreviewProps['onSelectEventRange']
+  getDragAnchor: () => DragAnchor | undefined
+  setDragAnchor: (anchor: DragAnchor) => void
+}
+
+interface DragAnchor {
+  address?: VoiceAddress
+  eventId: string
+}
+
+interface RenderedStaffState {
+  boundsByStaffSystemKey: Map<string, SystemBounds>
+  notesByEventId: Map<string, StaveNote>
+  pointsByEventId: Map<string, CursorPoint>
+  staffIndexByEventId: Map<string, number>
+  systemsByEventId: Map<string, number>
+}
+
 export function NotationPreview({
   score,
   inlineLyricEditor,
+  selectedEventAddress,
   selectedEventId,
   selectedEventIds = [],
   selectedMeasureId,
   playbackEventId,
+  playbackEventAddress,
   printLayout = false,
   printLayoutPlan,
   onSelectEvent,
@@ -163,34 +241,59 @@ export function NotationPreview({
 
     container.replaceChildren()
 
-    const measures = score.parts[0]?.staves[0]?.measures ?? []
+    const renderedStaffTargets = createRenderedStaffTargets(score)
+    const renderedPart = score.parts[0]
+    const renderedStaff = renderedPart?.staves[0]
+    const measures = renderedStaff?.measures ?? []
     const effectiveRenderWidth = printLayoutPlan?.renderWidth ?? renderWidth
     const printScale = printLayoutPlan?.scale ?? 1
     const lyricScale = Math.max(0.82, printScale)
+    const annotationMaps = createMeasureAnnotationMaps(score)
+    const annotationLanesByMeasureId = createMeasureAnnotationLaneMap(
+      score,
+      annotationMaps,
+      lyricScale
+    )
+    const annotationExtension = resolveAnnotationVerticalExtension(
+      annotationLanesByMeasureId.values()
+    )
+    const visibleStaffCount = Math.max(1, renderedStaffTargets.length)
+    const systemHeight =
+      (printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT) +
+      (visibleStaffCount - 1) * STACKED_STAFF_Y_OFFSET +
+      annotationExtension.below
     const layout = createSystemLayout(measures, effectiveRenderWidth, {
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
       layout: score.layout,
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
-      systemHeight: printLayoutPlan?.systemHeight,
-      systemTop: printLayoutPlan?.systemTop
+      systemHeight,
+      systemTop:
+        (printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP) +
+        annotationExtension.above
     })
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(effectiveRenderWidth, layout.height)
     const context = renderer.getContext()
     const svg = container.querySelector<SVGSVGElement>('svg')
     let playbackPoint: CursorPoint | undefined
-    const notesByEventId = new Map<string, StaveNote>()
-    const systemsByEventId = new Map<string, number>()
-    const pointsByEventId = new Map<string, CursorPoint>()
-    const boundsBySystemIndex = new Map<number, SystemBounds>()
+    const staffRenderState: RenderedStaffState = {
+      boundsByStaffSystemKey: new Map(),
+      notesByEventId: new Map(),
+      pointsByEventId: new Map(),
+      staffIndexByEventId: new Map(),
+      systemsByEventId: new Map()
+    }
     const selectedEventIdSet = new Set(selectedEventIds)
     const measureContextTargets: MeasureContextTarget[] = []
-    let dragAnchorEventId: string | undefined
+    let dragAnchor: DragAnchor | undefined
     let activeVolta: { number: 1 | 2 } | undefined
+    const primaryMeasureIndexById = new Map(
+      measures.map((measure, index) => [measure.id, index])
+    )
 
     const clearDragAnchor = () => {
-      dragAnchorEventId = undefined
+      dragAnchor = undefined
     }
 
     const openMeasureContextMenuAtPointer = (event: MouseEvent): boolean => {
@@ -263,44 +366,16 @@ export function NotationPreview({
       drawRhythmFeelMarking(svg, score.rhythmFeel, Boolean(score.tempo))
     }
 
-    const rehearsalMarksByMeasureId = new Map(
-      (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
-    )
-    const staffTextsByMeasureId = new Map(
-      (score.staffTexts ?? []).map((text) => [text.measureId, text])
-    )
-    const dynamicsByMeasureId = new Map(
-      (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
-    )
-    const harmoniesByMeasureId = new Map<string, NonNullable<Score['harmonies']>>()
-    const tempoEventsByMeasureId = new Map<string, NonNullable<Score['tempoEvents']>>()
-
-    for (const harmony of score.harmonies ?? []) {
-      harmoniesByMeasureId.set(harmony.measureId, [
-        ...(harmoniesByMeasureId.get(harmony.measureId) ?? []),
-        harmony
-      ])
-    }
-
-    for (const tempoEvent of score.tempoEvents ?? []) {
-      tempoEventsByMeasureId.set(tempoEvent.measureId, [
-        ...(tempoEventsByMeasureId.get(tempoEvent.measureId) ?? []),
-        tempoEvent
-      ])
-    }
-
     layout.placements.forEach((placement, placementIndex) => {
       const { measure } = placement
-      const systemBounds = boundsBySystemIndex.get(placement.systemIndex)
-      boundsBySystemIndex.set(placement.systemIndex, {
-        x1: Math.min(systemBounds?.x1 ?? placement.x, placement.x),
-        x2: Math.max(
-          systemBounds?.x2 ?? placement.x + placement.width,
-          placement.x + placement.width
-        ),
-        noteStartX: systemBounds?.noteStartX,
-        y: placement.y
-      })
+      const primaryStaffTarget = renderedStaffTargets[0]
+      const primaryStaffIndex = primaryStaffTarget?.globalStaffIndex ?? 0
+      updateStaffSystemBounds(
+        staffRenderState.boundsByStaffSystemKey,
+        placement,
+        primaryStaffIndex,
+        placement.y
+      )
       const previousPlacement = layout.placements[placementIndex - 1]
       const previousMeasure =
         previousPlacement?.systemIndex === placement.systemIndex
@@ -375,6 +450,22 @@ export function NotationPreview({
       }
 
       stave.setContext(context).draw()
+
+      if (
+        svg &&
+        primaryStaffTarget &&
+        visibleStaffCount > 1 &&
+        placement.isSystemStart
+      ) {
+        drawStaffLabel(
+          svg,
+          placement.x + 4,
+          placement.y - 12,
+          primaryStaffTarget.partName,
+          primaryStaffTarget
+        )
+      }
+
       const measureStaffTarget = resolveMeasureStaffTarget(
         measure.id,
         placement.x,
@@ -416,14 +507,13 @@ export function NotationPreview({
       )
 
       if (placement.isSystemStart) {
-        const bounds = boundsBySystemIndex.get(placement.systemIndex)
-
-        if (bounds) {
-          boundsBySystemIndex.set(placement.systemIndex, {
-            ...bounds,
-            noteStartX: stave.getNoteStartX()
-          })
-        }
+        updateStaffSystemBounds(
+          staffRenderState.boundsByStaffSystemKey,
+          placement,
+          primaryStaffIndex,
+          placement.y,
+          stave.getNoteStartX()
+        )
       }
       selectionTarget?.setAttribute(
         'data-note-end-x',
@@ -482,28 +572,6 @@ export function NotationPreview({
         )
       }
 
-      const rehearsalMark = rehearsalMarksByMeasureId.get(measure.id)
-
-      if (svg && rehearsalMark) {
-        drawRehearsalMark(
-          svg,
-          placement.x + 14,
-          placement.y + REHEARSAL_MARK_Y_OFFSET,
-          rehearsalMark.text
-        )
-      }
-
-      const staffText = staffTextsByMeasureId.get(measure.id)
-
-      if (svg && staffText) {
-        drawStaffText(
-          svg,
-          placement.x + 14,
-          placement.y + STAFF_TEXT_Y_OFFSET,
-          staffText.text
-        )
-      }
-
       const voices = measure.voices.map((voice) => {
         const events = sortVoiceEvents(voice.events)
         const notes = events.map((event) =>
@@ -513,7 +581,21 @@ export function NotationPreview({
             voice,
             selectedEventIdSet,
             selectedEventId,
-            playbackEventId
+            isPlaybackEventTarget(event.id, measure.id, voice.id, {
+              partId: renderedPart?.id,
+              staffId: renderedStaff?.id,
+              eventId: playbackEventId,
+              address: playbackEventAddress
+            }),
+            renderedPart && renderedStaff
+              ? {
+                  partId: renderedPart.id,
+                  staffId: renderedStaff.id,
+                  measureId: measure.id,
+                  voiceId: voice.id
+                }
+              : undefined,
+            selectedEventAddress
           )
         )
         const measureNotesByEventId = new Map(
@@ -524,8 +606,9 @@ export function NotationPreview({
         )
         notes.forEach((note) => {
           const eventId = note.getAttribute('data-event-id') as string
-          notesByEventId.set(eventId, note)
-          systemsByEventId.set(eventId, placement.systemIndex)
+          staffRenderState.notesByEventId.set(eventId, note)
+          staffRenderState.systemsByEventId.set(eventId, placement.systemIndex)
+          staffRenderState.staffIndexByEventId.set(eventId, primaryStaffIndex)
         })
         const beams = createBeamGroups(measure, voice).map((group) =>
           createStableBeam(
@@ -578,7 +661,8 @@ export function NotationPreview({
           notes,
           scoreTuplets: voice.tuplets,
           tuplets,
-          vexVoice
+          vexVoice,
+          voiceId: voice.id
         }
       })
 
@@ -613,7 +697,7 @@ export function NotationPreview({
 
       let firstEventX: number | undefined
 
-      voices.forEach(({ beams, events, notes, tuplets, vexVoice }) => {
+      voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
         vexVoice.draw(context, stave)
         beams.forEach((beam) => beam.setContext(context).draw())
         tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
@@ -622,6 +706,15 @@ export function NotationPreview({
           const event = events[noteIndex]
           const eventId = note.getAttribute('data-event-id') as string
           const svgElement = note.getSVGElement()
+          const eventAddress =
+            renderedPart && renderedStaff
+              ? {
+                  partId: renderedPart.id,
+                  staffId: renderedStaff.id,
+                  measureId: measure.id,
+                  voiceId
+                }
+              : undefined
 
           if (!svgElement) {
             return
@@ -635,7 +728,14 @@ export function NotationPreview({
               eventId,
               selectedEventIdSet,
               selectedEventId,
-              playbackEventId
+              isPlaybackEventTarget(eventId, measure.id, voiceId, {
+                partId: renderedPart?.id,
+                staffId: renderedStaff?.id,
+                eventId: playbackEventId,
+                address: playbackEventAddress
+              }),
+              eventAddress,
+              selectedEventAddress
             ) === 'selected'
           )
           svgElement.classList.toggle(
@@ -644,17 +744,30 @@ export function NotationPreview({
               eventId,
               selectedEventIdSet,
               selectedEventId,
-              playbackEventId
+              isPlaybackEventTarget(eventId, measure.id, voiceId, {
+                partId: renderedPart?.id,
+                staffId: renderedStaff?.id,
+                eventId: playbackEventId,
+                address: playbackEventAddress
+              }),
+              eventAddress,
+              selectedEventAddress
             ) === 'playback'
           )
           svgElement.setAttribute('data-event-id', eventId)
+          if (eventAddress) {
+            svgElement.setAttribute('data-part-id', eventAddress.partId)
+            svgElement.setAttribute('data-staff-id', eventAddress.staffId)
+            svgElement.setAttribute('data-measure-id', eventAddress.measureId)
+            svgElement.setAttribute('data-voice-id', eventAddress.voiceId)
+          }
 
           if (!isPreviewEventId(eventId)) {
             svgElement.setAttribute('role', 'button')
             svgElement.setAttribute('tabindex', '0')
             svgElement.addEventListener('click', (event) => {
               event.stopPropagation()
-              onSelectEvent(eventId, event.shiftKey)
+              onSelectEvent(eventId, event.shiftKey, eventAddress)
             })
             svgElement.addEventListener('mousedown', (event) => {
               if (event.button !== 0) {
@@ -663,16 +776,22 @@ export function NotationPreview({
 
               event.preventDefault()
               event.stopPropagation()
-              dragAnchorEventId = eventId
-              onSelectEvent(eventId, event.shiftKey)
+              dragAnchor = { address: eventAddress, eventId }
+              onSelectEvent(eventId, event.shiftKey, eventAddress)
             })
             svgElement.addEventListener('mouseenter', (event) => {
-              if (!dragAnchorEventId || event.buttons !== 1) {
+              if (!dragAnchor || event.buttons !== 1) {
+                return
+              }
+
+              if (
+                !dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)
+              ) {
                 return
               }
 
               event.preventDefault()
-              onSelectEventRange(dragAnchorEventId, eventId)
+              onSelectEventRange(dragAnchor.eventId, eventId, eventAddress)
             })
           }
 
@@ -685,14 +804,22 @@ export function NotationPreview({
               : 0
           const eventX = getVisibleNoteX(note) + centeredRestShift
 
-          if (eventId === playbackEventId) {
+          if (
+            isPlaybackEventTarget(eventId, measure.id, voiceId, {
+              partId: renderedPart?.id,
+              staffId: renderedStaff?.id,
+              eventId: playbackEventId,
+              address: playbackEventAddress
+            })
+          ) {
             playbackPoint = {
               x: eventX,
               y: placement.y
             }
           }
 
-          pointsByEventId.set(eventId, {
+          staffRenderState.pointsByEventId.set(eventId, {
+            measureId: measure.id,
             x: eventX,
             y: placement.y,
             ...resolveSlurAnchorMetrics(note)
@@ -762,54 +889,71 @@ export function NotationPreview({
         })
       })
 
-      const dynamic = dynamicsByMeasureId.get(measure.id)
-
-      if (svg && dynamic) {
-        drawDynamicMark(
-          svg,
-          (firstEventX ?? placement.x + 88) - 2,
-          placement.y + DYNAMIC_MARK_Y_OFFSET,
-          dynamic.value,
-          measure.id
-        )
-      }
-
-      if (svg) {
-        for (const tempoEvent of tempoEventsByMeasureId.get(measure.id) ?? []) {
-          drawPositionedTempoMarking(
-            svg,
-            placement.x +
-              18 +
-              (tempoEvent.tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36),
-            placement.y,
-            tempoEvent
-          )
-        }
-
-        for (const harmony of harmoniesByMeasureId.get(measure.id) ?? []) {
-          drawHarmonyMark(
-            svg,
-            placement.x +
-              18 +
-              (harmony.tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36),
-            placement.y,
-            harmony.text
-          )
-        }
-      }
+      drawMeasureAnnotations(
+        svg,
+        placement,
+        measure,
+        placement.y,
+        annotationMaps,
+        annotationLanesByMeasureId,
+        firstEventX
+      )
     })
 
+    for (const placement of layout.placements) {
+      const measureIndex = primaryMeasureIndexById.get(placement.measure.id)
+
+      if (measureIndex === undefined) {
+        continue
+      }
+
+      for (const target of renderedStaffTargets.slice(1)) {
+        const measure = target.staff.measures[measureIndex]
+
+        if (!measure) {
+          continue
+        }
+
+        drawPassiveStaffMeasure(
+          context,
+          svg,
+          placement,
+          target,
+          measure,
+          target.staff.measures[measureIndex - 1],
+          annotationMaps,
+          annotationLanesByMeasureId,
+          {
+            selectedEventAddress,
+            selectedEventId,
+            selectedEventIdSet,
+            playbackEventId,
+            playbackEventAddress,
+            onSelectEvent,
+            onSelectEventRange,
+            getDragAnchor: () => dragAnchor,
+            setDragAnchor: (anchor) => {
+              dragAnchor = anchor
+            }
+          },
+          staffRenderState
+        )
+      }
+    }
+
+    drawRangeSelectionBands(svg, selectedEventIdSet, staffRenderState)
+
     collectTiePairs(score).forEach((pair) => {
-      const firstNote = notesByEventId.get(pair.fromEventId)
-      const lastNote = notesByEventId.get(pair.toEventId)
+      const firstNote = staffRenderState.notesByEventId.get(pair.fromEventId)
+      const lastNote = staffRenderState.notesByEventId.get(pair.toEventId)
 
       if (!firstNote || !lastNote) {
         return
       }
 
       if (
-        systemsByEventId.get(pair.fromEventId) ===
-        systemsByEventId.get(pair.toEventId)
+        staffRenderState.systemsByEventId.get(pair.fromEventId) ===
+        staffRenderState.systemsByEventId.get(pair.toEventId)
       ) {
         drawTie(context, firstNote, lastNote)
       } else {
@@ -820,19 +964,31 @@ export function NotationPreview({
 
     if (svg) {
       ;(score.slurs ?? []).forEach((slur, slurIndex) => {
-        const start = pointsByEventId.get(slur.startEventId)
-        const end = pointsByEventId.get(slur.endEventId)
-        const startSystem = systemsByEventId.get(slur.startEventId)
-        const endSystem = systemsByEventId.get(slur.endEventId)
+        const start = staffRenderState.pointsByEventId.get(slur.startEventId)
+        const end = staffRenderState.pointsByEventId.get(slur.endEventId)
+        const startSystem = staffRenderState.systemsByEventId.get(slur.startEventId)
+        const endSystem = staffRenderState.systemsByEventId.get(slur.endEventId)
+        const staffBounds = resolveEventStaffSystemBounds(
+          staffRenderState,
+          slur.startEventId
+        )
 
         if (
           !start ||
           !end ||
           startSystem === undefined ||
-          endSystem === undefined
+          endSystem === undefined ||
+          !staffBounds
         ) {
           return
         }
+
+        const slurSide = resolveSlurSideForAnnotationLanes(resolveSlurSide(start), [
+          start.measureId
+            ? annotationLanesByMeasureId.get(start.measureId)
+            : undefined,
+          end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
+        ])
 
         drawSlurSegments(
           svg,
@@ -840,18 +996,29 @@ export function NotationPreview({
           end,
           startSystem,
           endSystem,
-          boundsBySystemIndex,
-          slurIndex
+          staffBounds,
+          slurIndex,
+          slurSide
         )
       })
 
       for (const hairpin of score.hairpins ?? []) {
-        const start = pointsByEventId.get(hairpin.startEventId)
-        const end = pointsByEventId.get(hairpin.endEventId)
-        const startSystem = systemsByEventId.get(hairpin.startEventId)
-        const endSystem = systemsByEventId.get(hairpin.endEventId)
+        const start = staffRenderState.pointsByEventId.get(hairpin.startEventId)
+        const end = staffRenderState.pointsByEventId.get(hairpin.endEventId)
+        const startSystem = staffRenderState.systemsByEventId.get(hairpin.startEventId)
+        const endSystem = staffRenderState.systemsByEventId.get(hairpin.endEventId)
+        const staffBounds = resolveEventStaffSystemBounds(
+          staffRenderState,
+          hairpin.startEventId
+        )
 
-        if (!start || !end || startSystem === undefined || endSystem === undefined) {
+        if (
+          !start ||
+          !end ||
+          startSystem === undefined ||
+          endSystem === undefined ||
+          !staffBounds
+        ) {
           continue
         }
 
@@ -862,17 +1029,33 @@ export function NotationPreview({
           hairpin.type,
           startSystem,
           endSystem,
-          boundsBySystemIndex
+          staffBounds,
+          resolveHairpinSpanYOffset([
+            start.measureId
+              ? annotationLanesByMeasureId.get(start.measureId)
+              : undefined,
+            end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
+          ])
         )
       }
 
       for (const octaveShift of score.octaveShifts ?? []) {
-        const start = pointsByEventId.get(octaveShift.startEventId)
-        const end = pointsByEventId.get(octaveShift.endEventId)
-        const startSystem = systemsByEventId.get(octaveShift.startEventId)
-        const endSystem = systemsByEventId.get(octaveShift.endEventId)
+        const start = staffRenderState.pointsByEventId.get(octaveShift.startEventId)
+        const end = staffRenderState.pointsByEventId.get(octaveShift.endEventId)
+        const startSystem = staffRenderState.systemsByEventId.get(octaveShift.startEventId)
+        const endSystem = staffRenderState.systemsByEventId.get(octaveShift.endEventId)
+        const staffBounds = resolveEventStaffSystemBounds(
+          staffRenderState,
+          octaveShift.startEventId
+        )
 
-        if (!start || !end || startSystem === undefined || endSystem === undefined) {
+        if (
+          !start ||
+          !end ||
+          startSystem === undefined ||
+          endSystem === undefined ||
+          !staffBounds
+        ) {
           continue
         }
 
@@ -883,7 +1066,7 @@ export function NotationPreview({
           octaveShift.type,
           startSystem,
           endSystem,
-          boundsBySystemIndex
+          staffBounds
         )
       }
     }
@@ -937,8 +1120,10 @@ export function NotationPreview({
     score,
     inlineLyricEditor,
     playbackEventId,
+    playbackEventAddress,
     printLayout,
     printLayoutPlan,
+    selectedEventAddress,
     selectedEventId,
     selectedEventIds,
     selectedMeasureId
@@ -970,6 +1155,685 @@ function resolveSvgPointer(
     x: svgPoint.x,
     y: svgPoint.y
   }
+}
+
+function createRenderedStaffTargets(score: Score): RenderedStaffTarget[] {
+  return score.parts.flatMap((part) =>
+    part.staves.map((staff, staffIndex) => ({
+      globalStaffIndex: 0,
+      partId: part.id,
+      partName: part.name,
+      staff,
+      staffId: staff.id,
+      staffIndex
+    }))
+  ).map((target, globalStaffIndex) => ({
+    ...target,
+    globalStaffIndex
+  }))
+}
+
+function createStaffSystemKey(systemIndex: number, globalStaffIndex: number): string {
+  return `${systemIndex}:${globalStaffIndex}`
+}
+
+function updateStaffSystemBounds(
+  boundsByStaffSystemKey: Map<string, SystemBounds>,
+  placement: MeasurePlacement,
+  globalStaffIndex: number,
+  staffY: number,
+  noteStartX?: number
+): void {
+  const key = createStaffSystemKey(placement.systemIndex, globalStaffIndex)
+  const bounds = boundsByStaffSystemKey.get(key)
+
+  boundsByStaffSystemKey.set(key, {
+    x1: Math.min(bounds?.x1 ?? placement.x, placement.x),
+    x2: Math.max(
+      bounds?.x2 ?? placement.x + placement.width,
+      placement.x + placement.width
+    ),
+    noteStartX: noteStartX ?? bounds?.noteStartX,
+    y: staffY
+  })
+}
+
+function resolveEventStaffSystemBounds(
+  renderState: RenderedStaffState,
+  eventId: string
+): Map<number, SystemBounds> | undefined {
+  const staffIndex = renderState.staffIndexByEventId.get(eventId)
+
+  if (staffIndex === undefined) {
+    return undefined
+  }
+
+  const bounds = new Map<number, SystemBounds>()
+
+  for (const [key, value] of renderState.boundsByStaffSystemKey) {
+    const [systemIndexText, staffIndexText] = key.split(':')
+
+    if (Number(staffIndexText) === staffIndex) {
+      bounds.set(Number(systemIndexText), value)
+    }
+  }
+
+  return bounds
+}
+
+function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
+  const annotationMaps: MeasureAnnotationMaps = {
+    dynamicsByMeasureId: new Map(
+      (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
+    ),
+    expressionTextsByMeasureId: new Map(),
+    harmoniesByMeasureId: new Map(),
+    rehearsalMarksByMeasureId: new Map(
+      (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
+    ),
+    staffTextsByMeasureId: new Map(
+      (score.staffTexts ?? []).map((text) => [text.measureId, text])
+    ),
+    systemTextsByMeasureId: new Map(),
+    tempoEventsByMeasureId: new Map()
+  }
+
+  for (const harmony of score.harmonies ?? []) {
+    annotationMaps.harmoniesByMeasureId.set(harmony.measureId, [
+      ...(annotationMaps.harmoniesByMeasureId.get(harmony.measureId) ?? []),
+      harmony
+    ])
+  }
+
+  for (const tempoEvent of score.tempoEvents ?? []) {
+    annotationMaps.tempoEventsByMeasureId.set(tempoEvent.measureId, [
+      ...(annotationMaps.tempoEventsByMeasureId.get(tempoEvent.measureId) ?? []),
+      tempoEvent
+    ])
+  }
+
+  for (const systemText of score.systemTexts ?? []) {
+    annotationMaps.systemTextsByMeasureId.set(systemText.measureId, [
+      ...(annotationMaps.systemTextsByMeasureId.get(systemText.measureId) ?? []),
+      systemText
+    ])
+  }
+
+  for (const expressionText of score.expressionTexts ?? []) {
+    annotationMaps.expressionTextsByMeasureId.set(expressionText.measureId, [
+      ...(annotationMaps.expressionTextsByMeasureId.get(expressionText.measureId) ?? []),
+      expressionText
+    ])
+  }
+
+  return annotationMaps
+}
+
+function createMeasureAnnotationLaneMap(
+  score: Score,
+  annotationMaps: MeasureAnnotationMaps,
+  lyricScale: number
+): Map<string, MeasureAnnotationLanes> {
+  const hairpinMeasureIds = collectHairpinMeasureIds(score)
+  const lanesByMeasureId = new Map<string, MeasureAnnotationLanes>()
+
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      for (const measure of staff.measures) {
+        lanesByMeasureId.set(
+          measure.id,
+          resolveMeasureAnnotationLanes({
+            expressionTextCount:
+              annotationMaps.expressionTextsByMeasureId.get(measure.id)?.length,
+            harmonyCount:
+              annotationMaps.harmoniesByMeasureId.get(measure.id)?.length,
+            hasDynamic: annotationMaps.dynamicsByMeasureId.has(measure.id),
+            hasHairpin: hairpinMeasureIds.has(measure.id),
+            hasRehearsalMark:
+              annotationMaps.rehearsalMarksByMeasureId.has(measure.id),
+            hasStaffText: annotationMaps.staffTextsByMeasureId.has(measure.id),
+            lyricLineCount: countMeasureLyricLines(measure),
+            lyricScale,
+            systemTextCount:
+              annotationMaps.systemTextsByMeasureId.get(measure.id)?.length
+          })
+        )
+      }
+    }
+  }
+
+  return lanesByMeasureId
+}
+
+function collectHairpinMeasureIds(score: Score): Set<string> {
+  const measureIdByEventId = new Map<string, string>()
+
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      for (const measure of staff.measures) {
+        for (const voice of measure.voices) {
+          for (const event of voice.events) {
+            measureIdByEventId.set(event.id, measure.id)
+          }
+        }
+      }
+    }
+  }
+
+  return new Set(
+    (score.hairpins ?? []).flatMap((hairpin) =>
+      [hairpin.startEventId, hairpin.endEventId]
+        .map((eventId) => measureIdByEventId.get(eventId))
+        .filter((measureId): measureId is string => Boolean(measureId))
+    )
+  )
+}
+
+function drawRangeSelectionBands(
+  svg: SVGSVGElement | null,
+  selectedEventIds: Set<string>,
+  renderState: RenderedStaffState
+): void {
+  if (!svg || selectedEventIds.size < 2) {
+    return
+  }
+
+  const points: RangeSelectionPoint[] = []
+
+  for (const eventId of selectedEventIds) {
+    const point = renderState.pointsByEventId.get(eventId)
+    const staffIndex = renderState.staffIndexByEventId.get(eventId)
+    const systemIndex = renderState.systemsByEventId.get(eventId)
+
+    if (!point || staffIndex === undefined || systemIndex === undefined) {
+      continue
+    }
+
+    points.push({
+      eventId,
+      noteHeadBeginX: point.noteHeadBeginX,
+      noteHeadBottomY: point.noteHeadBottomY,
+      noteHeadEndX: point.noteHeadEndX,
+      noteHeadTopY: point.noteHeadTopY,
+      staffIndex,
+      systemIndex,
+      x: point.x,
+      y: point.y
+    })
+  }
+
+  if (points.length < 2) {
+    return
+  }
+
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  group.classList.add('notation-range-selection-layer')
+  group.setAttribute('aria-hidden', 'true')
+
+  for (const band of resolveRangeSelectionBands(points)) {
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+    rect.classList.add('notation-range-selection-band')
+    rect.setAttribute('data-system-index', String(band.systemIndex))
+    rect.setAttribute('data-staff-index', String(band.staffIndex))
+    rect.setAttribute('x', String(band.x))
+    rect.setAttribute('y', String(band.y))
+    rect.setAttribute('width', String(band.width))
+    rect.setAttribute('height', String(band.height))
+    rect.setAttribute('rx', '7')
+    group.append(rect)
+  }
+
+  svg.insertBefore(group, svg.firstChild)
+}
+
+function drawMeasureAnnotations(
+  svg: SVGSVGElement | null,
+  placement: MeasurePlacement,
+  measure: Measure,
+  staffY: number,
+  annotationMaps: MeasureAnnotationMaps,
+  annotationLanesByMeasureId: Map<string, MeasureAnnotationLanes>,
+  firstEventX: number | undefined
+): void {
+  if (!svg) {
+    return
+  }
+
+  const lanes =
+    annotationLanesByMeasureId.get(measure.id) ??
+    resolveMeasureAnnotationLanes({
+      lyricLineCount: countMeasureLyricLines(measure)
+    })
+  const rehearsalMark = annotationMaps.rehearsalMarksByMeasureId.get(measure.id)
+
+  if (rehearsalMark) {
+    drawRehearsalMark(
+      svg,
+      placement.x + 14,
+      staffY + (lanes.rehearsalMarkYOffset ?? REHEARSAL_MARK_Y_OFFSET),
+      rehearsalMark.text
+    )
+  }
+
+  for (const [index, systemText] of (
+    annotationMaps.systemTextsByMeasureId.get(measure.id) ?? []
+  ).entries()) {
+    drawSystemText(
+      svg,
+      placement.x + 14,
+      staffY + (lanes.systemTextYOffsets[index] ?? SYSTEM_TEXT_Y_OFFSET),
+      systemText.text,
+      measure.id
+    )
+  }
+
+  const staffText = annotationMaps.staffTextsByMeasureId.get(measure.id)
+
+  if (staffText) {
+    drawStaffText(
+      svg,
+      placement.x + 14,
+      staffY + (lanes.staffTextYOffset ?? STAFF_TEXT_Y_OFFSET),
+      staffText.text,
+      measure.id
+    )
+  }
+
+  const dynamic = annotationMaps.dynamicsByMeasureId.get(measure.id)
+
+  if (dynamic) {
+    drawDynamicMark(
+      svg,
+      (firstEventX ?? placement.x + 88) - 2,
+      staffY + (lanes.dynamicMarkYOffset ?? DYNAMIC_MARK_Y_OFFSET),
+      dynamic.value,
+      measure.id
+    )
+  }
+
+  for (const tempoEvent of annotationMaps.tempoEventsByMeasureId.get(measure.id) ?? []) {
+    drawPositionedTempoMarking(
+      svg,
+      resolveTickX(placement, measure, tempoEvent.tick),
+      staffY,
+      tempoEvent,
+      measure.id
+    )
+  }
+
+  for (const [index, harmony] of (
+    annotationMaps.harmoniesByMeasureId.get(measure.id) ?? []
+  ).entries()) {
+    drawHarmonyMark(
+      svg,
+      resolveTickX(placement, measure, harmony.tick),
+      staffY + (lanes.harmonyMarkYOffsets[index] ?? HARMONY_MARK_Y_OFFSET),
+      harmony.text,
+      measure.id
+    )
+  }
+
+  for (const [index, expressionText] of (
+    annotationMaps.expressionTextsByMeasureId.get(measure.id) ?? []
+  ).entries()) {
+    drawExpressionText(
+      svg,
+      resolveTickX(placement, measure, expressionText.tick),
+      staffY + (lanes.expressionTextYOffsets[index] ?? EXPRESSION_TEXT_Y_OFFSET),
+      expressionText.text,
+      measure.id
+    )
+  }
+}
+
+function resolveTickX(
+  placement: MeasurePlacement,
+  measure: Measure,
+  tick: number
+): number {
+  return (
+    placement.x +
+    18 +
+    (tick / measureDurationTicks(measure)) * Math.max(1, placement.width - 36)
+  )
+}
+
+function drawPassiveStaffMeasure(
+  context: ReturnType<Renderer['getContext']>,
+  svg: SVGSVGElement | null,
+  placement: MeasurePlacement,
+  target: RenderedStaffTarget,
+  measure: Measure,
+  previousMeasure: Measure | undefined,
+  annotationMaps: MeasureAnnotationMaps,
+  annotationLanesByMeasureId: Map<string, MeasureAnnotationLanes>,
+  interaction: RenderedStaffInteraction,
+  renderState: RenderedStaffState
+): void {
+  const y = placement.y + target.globalStaffIndex * STACKED_STAFF_Y_OFFSET
+  const stave = new Stave(placement.x, y, placement.width)
+  const showsClef =
+    placement.isSystemStart ||
+    !previousMeasure ||
+    !sameClef(previousMeasure, measure)
+  const showsKeySignature =
+    placement.isSystemStart ||
+    !previousMeasure ||
+    !sameKeySignature(previousMeasure, measure)
+  const showsTimeSignature =
+    placement.isSystemStart ||
+    !previousMeasure ||
+    !sameTimeSignature(previousMeasure, measure)
+
+  if (measure.repeat?.start) {
+    stave.setBegBarType(BarlineType.REPEAT_BEGIN)
+  }
+
+  if (measure.repeat?.end) {
+    stave.setEndBarType(BarlineType.REPEAT_END)
+  }
+
+  if (showsClef) {
+    stave.addClef(toVexFlowClef(measure.clef))
+  }
+
+  if (showsKeySignature) {
+    stave.addKeySignature(toVexFlowKeySignature(measure.keySignature))
+  }
+
+  if (showsTimeSignature) {
+    stave.addTimeSignature(
+      `${measure.timeSignature.beats}/${measure.timeSignature.beatType}`
+    )
+  }
+
+  stave.setContext(context).draw()
+  updateStaffSystemBounds(
+    renderState.boundsByStaffSystemKey,
+    placement,
+    target.globalStaffIndex,
+    y
+  )
+
+  if (svg && placement.isSystemStart) {
+    drawStaffLabel(
+      svg,
+      placement.x + 4,
+      y - 12,
+      target.staffIndex === 0 ? target.partName : `Staff ${target.staffIndex + 1}`,
+      target
+    )
+  }
+
+  const defaultNoteStartX = stave.getNoteStartX()
+
+  if (showsClef || showsKeySignature || showsTimeSignature) {
+    stave.setNoteStartX(
+      defaultNoteStartX +
+        leadingNotationPadding(measure, {
+          showsClef,
+          showsKeySignature,
+          showsTimeSignature
+        })
+    )
+  }
+
+  if (placement.isSystemStart) {
+    updateStaffSystemBounds(
+      renderState.boundsByStaffSystemKey,
+      placement,
+      target.globalStaffIndex,
+      y,
+      stave.getNoteStartX()
+    )
+  }
+
+  const voices = measure.voices.map((voice) => {
+    const events = sortVoiceEvents(voice.events)
+    const notes = events.map((event) =>
+      createStaveNote(
+        event,
+        measure,
+        voice,
+        interaction.selectedEventIdSet,
+        interaction.selectedEventId,
+        isPlaybackEventTarget(event.id, measure.id, voice.id, {
+          partId: target.partId,
+          staffId: target.staffId,
+          eventId: interaction.playbackEventId,
+          address: interaction.playbackEventAddress
+        }),
+        {
+          partId: target.partId,
+          staffId: target.staffId,
+          measureId: measure.id,
+          voiceId: voice.id
+        },
+        interaction.selectedEventAddress
+      )
+    )
+    const measureNotesByEventId = new Map(
+      notes.map((note) => [
+        note.getAttribute('data-event-id') as string,
+        note
+      ])
+    )
+    const beams = createBeamGroups(measure, voice).map((group) =>
+      createStableBeam(
+        group.eventIds.map((eventId) => {
+          const note = measureNotesByEventId.get(eventId)
+
+          if (!note) {
+            throw new Error(`Beam event not found: ${eventId}`)
+          }
+
+          return note
+        })
+      )
+    )
+    const tuplets = (voice.tuplets ?? []).map((group) => {
+      const groupEvents = group.eventIds.map((eventId) =>
+        events.find((event) => event.id === eventId)
+      )
+      const groupNotes = group.eventIds.map((eventId) => {
+        const note = measureNotesByEventId.get(eventId)
+
+        if (!note) {
+          throw new Error(`Tuplet event not found: ${eventId}`)
+        }
+
+        return note
+      })
+
+      return new VexTuplet(groupNotes, {
+        numNotes: group.actualNotes,
+        notesOccupied: group.normalNotes,
+        bracketed: groupEvents.some(
+          (event) =>
+            event?.type === 'rest' ||
+            (event && !isNotationBeamable(event))
+        ),
+        ratioed: group.actualNotes !== 3 || group.normalNotes !== 2
+      })
+    })
+    const vexVoice = new Voice({
+      numBeats: measure.timeSignature.beats,
+      beatValue: measure.timeSignature.beatType
+    })
+
+    vexVoice.setMode(Voice.Mode.SOFT)
+    vexVoice.addTickables(notes)
+    return {
+      beams,
+      events,
+      notes,
+      scoreTuplets: voice.tuplets,
+      tuplets,
+      vexVoice,
+      voiceId: voice.id
+    }
+  })
+
+  new Formatter()
+    .joinVoices(voices.map(({ vexVoice }) => vexVoice))
+    .formatToStave(
+      voices.map(({ vexVoice }) => vexVoice),
+      stave
+    )
+
+  voices.forEach(({ events, notes, scoreTuplets }) => {
+    const notesByVoiceEventId = new Map(
+      notes.map((note, index) => [events[index].id, note])
+    )
+    const eventXs = new Map(
+      notes.map((note, index) => [events[index].id, getVisibleNoteX(note)])
+    )
+    const onsetShifts = resolveMixedTupletOnsetShifts(
+      events,
+      scoreTuplets,
+      eventXs
+    )
+
+    onsetShifts.forEach((shift, eventId) => {
+      const note = notesByVoiceEventId.get(eventId)
+
+      if (note) {
+        note.setXShift(note.getXShift() + shift)
+      }
+    })
+  })
+
+  let firstEventX: number | undefined
+
+  voices.forEach(({ beams, events, notes, tuplets, vexVoice, voiceId }) => {
+    vexVoice.draw(context, stave)
+    beams.forEach((beam) => beam.setContext(context).draw())
+    tuplets.forEach((tuplet) => tuplet.setContext(context).draw())
+
+    notes.forEach((note, noteIndex) => {
+      const event = events[noteIndex]
+      const svgElement = note.getSVGElement()
+      const eventAddress = {
+        partId: target.partId,
+        staffId: target.staffId,
+        measureId: measure.id,
+        voiceId
+      }
+
+      if (!svgElement) {
+        return
+      }
+
+      svgElement.classList.add('notation-event', 'notation-event--passive-staff')
+      svgElement.classList.toggle('is-preview', isPreviewEventId(event.id))
+      svgElement.classList.toggle(
+        'is-selected',
+        resolveNotationEventTone(
+          event.id,
+          interaction.selectedEventIdSet,
+          interaction.selectedEventId,
+          isPlaybackEventTarget(event.id, measure.id, voiceId, {
+            partId: target.partId,
+            staffId: target.staffId,
+            eventId: interaction.playbackEventId,
+            address: interaction.playbackEventAddress
+          }),
+          eventAddress,
+          interaction.selectedEventAddress
+        ) === 'selected'
+      )
+      svgElement.classList.toggle(
+        'is-playback',
+        resolveNotationEventTone(
+          event.id,
+          interaction.selectedEventIdSet,
+          interaction.selectedEventId,
+          isPlaybackEventTarget(event.id, measure.id, voiceId, {
+            partId: target.partId,
+            staffId: target.staffId,
+            eventId: interaction.playbackEventId,
+            address: interaction.playbackEventAddress
+          }),
+          eventAddress,
+          interaction.selectedEventAddress
+        ) === 'playback'
+      )
+      svgElement.setAttribute('data-event-id', event.id)
+      svgElement.setAttribute('data-part-id', target.partId)
+      svgElement.setAttribute('data-staff-id', target.staffId)
+      svgElement.setAttribute('data-measure-id', measure.id)
+      svgElement.setAttribute('data-voice-id', voiceId)
+      renderState.notesByEventId.set(event.id, note)
+      renderState.systemsByEventId.set(event.id, placement.systemIndex)
+      renderState.staffIndexByEventId.set(event.id, target.globalStaffIndex)
+
+      const centeredRestShift =
+        event.type === 'rest' && event.fullMeasure
+          ? centerFullMeasureRest(svgElement, {
+              x: defaultNoteStartX,
+              width: stave.getNoteEndX() - defaultNoteStartX
+            })
+          : 0
+      const eventX = getVisibleNoteX(note) + centeredRestShift
+
+      renderState.pointsByEventId.set(event.id, {
+        measureId: measure.id,
+        x: eventX,
+        y,
+        ...resolveSlurAnchorMetrics(note)
+      })
+      firstEventX = Math.min(firstEventX ?? eventX, eventX)
+
+      if (isPreviewEventId(event.id)) {
+        return
+      }
+
+      svgElement.setAttribute('role', 'button')
+      svgElement.setAttribute('tabindex', '0')
+      svgElement.addEventListener('click', (mouseEvent) => {
+        mouseEvent.stopPropagation()
+        interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
+      })
+      svgElement.addEventListener('mousedown', (mouseEvent) => {
+        if (mouseEvent.button !== 0) {
+          return
+        }
+
+        mouseEvent.preventDefault()
+        mouseEvent.stopPropagation()
+        interaction.setDragAnchor({ address: eventAddress, eventId: event.id })
+        interaction.onSelectEvent(event.id, mouseEvent.shiftKey, eventAddress)
+      })
+      svgElement.addEventListener('mouseenter', (mouseEvent) => {
+        const dragAnchor = interaction.getDragAnchor()
+
+        if (!dragAnchor || mouseEvent.buttons !== 1) {
+          return
+        }
+
+        if (!dragAnchorMatchesVoiceAddress(dragAnchor, eventAddress)) {
+          return
+        }
+
+        mouseEvent.preventDefault()
+        interaction.onSelectEventRange(
+          dragAnchor.eventId,
+          event.id,
+          eventAddress
+        )
+      })
+    })
+  })
+
+  drawMeasureAnnotations(
+    svg,
+    placement,
+    measure,
+    y,
+    annotationMaps,
+    annotationLanesByMeasureId,
+    firstEventX
+  )
 }
 
 function resolveMeasureStaffTarget(
@@ -1011,13 +1875,17 @@ function drawPositionedTempoMarking(
   svg: SVGSVGElement,
   x: number,
   staffY: number,
-  tempo: TempoMarking
+  tempo: TempoMarking,
+  measureId?: string
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-tempo-marking', 'notation-tempo-marking--positioned')
   if (tempo.transparent) {
     text.classList.add('notation-tempo-marking--transparent')
+  }
+  if (measureId) {
+    text.setAttribute('data-measure-id', measureId)
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(staffY - 42))
@@ -1224,11 +2092,71 @@ function drawStaffText(
   svg: SVGSVGElement,
   x: number,
   y: number,
-  label: string
+  label: string,
+  measureId?: string
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-staff-text')
+  if (measureId) {
+    text.setAttribute('data-measure-id', measureId)
+  }
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawStaffLabel(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string,
+  target: RenderedStaffTarget
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-staff-label')
+  text.setAttribute('data-part-id', target.partId)
+  text.setAttribute('data-staff-id', target.staffId)
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawSystemText(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string,
+  measureId?: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-system-text')
+  if (measureId) {
+    text.setAttribute('data-measure-id', measureId)
+  }
+  text.setAttribute('x', String(x))
+  text.setAttribute('y', String(y))
+  text.textContent = label
+  svg.append(text)
+}
+
+function drawExpressionText(
+  svg: SVGSVGElement,
+  x: number,
+  y: number,
+  label: string,
+  measureId?: string
+): void {
+  const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+
+  text.classList.add('notation-expression-text')
+  if (measureId) {
+    text.setAttribute('data-measure-id', measureId)
+  }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
@@ -1238,14 +2166,18 @@ function drawStaffText(
 function drawHarmonyMark(
   svg: SVGSVGElement,
   x: number,
-  staffY: number,
-  label: string
+  y: number,
+  label: string,
+  measureId?: string
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-harmony-mark')
+  if (measureId) {
+    text.setAttribute('data-measure-id', measureId)
+  }
   text.setAttribute('x', String(x))
-  text.setAttribute('y', String(staffY - 42))
+  text.setAttribute('y', String(y))
   text.textContent = label
   svg.append(text)
 }
@@ -1296,7 +2228,8 @@ function drawHairpinSegments(
   type: string,
   startSystem: number,
   endSystem: number,
-  boundsBySystemIndex: Map<number, SystemBounds>
+  boundsBySystemIndex: Map<number, SystemBounds>,
+  yOffset = HAIRPIN_Y_OFFSET
 ): void {
   for (const segment of resolveHairpinSegments(
     start,
@@ -1312,7 +2245,8 @@ function drawHairpinSegments(
       segment.staffY,
       type,
       segment.isFirst,
-      segment.isLast
+      segment.isLast,
+      yOffset
     )
   }
 }
@@ -1324,12 +2258,13 @@ function drawHairpinSegment(
   staffY: number,
   type: string,
   isFirst: boolean,
-  isLast: boolean
+  isLast: boolean,
+  yOffset = HAIRPIN_Y_OFFSET
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
-  const y = staffY + HAIRPIN_Y_OFFSET
+  const y = staffY + yOffset
   const openings = resolveHairpinOpenings(type, isFirst, isLast)
   const leftOpening = openings.left
   const rightOpening = openings.right
@@ -1427,11 +2362,11 @@ function drawSlurSegments(
   startSystem: number,
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>,
-  slurIndex: number
+  slurIndex: number,
+  side: 'above' | 'below'
 ): void {
   const firstSystem = Math.min(startSystem, endSystem)
   const lastSystem = Math.max(startSystem, endSystem)
-  const side = resolveSlurSide(start)
 
   for (let systemIndex = firstSystem; systemIndex <= lastSystem; systemIndex += 1) {
     const bounds = boundsBySystemIndex.get(systemIndex)
@@ -1572,13 +2507,23 @@ function drawArticulations(
       dot.setAttribute('cy', String(y))
       dot.setAttribute('r', '2.6')
       svg.append(dot)
-    } else if (articulation === 'accent') {
+    } else {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
+      const symbolByArticulation: Record<string, string> = {
+        accent: '>',
+        tenuto: '−',
+        marcato: '^'
+      }
+      const symbol = symbolByArticulation[articulation]
+
+      if (!symbol) {
+        return
+      }
 
       text.classList.add('notation-articulation')
       text.setAttribute('x', String(x))
       text.setAttribute('y', String(y + 4))
-      text.textContent = '>'
+      text.textContent = symbol
       svg.append(text)
     }
   })
@@ -1937,13 +2882,26 @@ function sameTimeSignature(previous: Measure, current: Measure): boolean {
   )
 }
 
+function dragAnchorMatchesVoiceAddress(
+  anchor: DragAnchor,
+  eventAddress?: VoiceAddress
+): boolean {
+  if (!anchor.address || !eventAddress) {
+    return true
+  }
+
+  return sameVoiceLane(anchor.address, eventAddress)
+}
+
 function createStaveNote(
   event: VoiceEvent,
   measure: Measure,
   voice: ScoreVoice,
   selectedEventIds: Set<string>,
   selectedEventId?: string,
-  playbackEventId?: string
+  isPlaybackEvent = false,
+  eventAddress?: VoiceAddress,
+  selectedEventAddress?: VoiceAddress
 ): StaveNote {
   const clef = toVexFlowClef(measure.clef)
   const isRest = event.type === 'rest'
@@ -1970,7 +2928,9 @@ function createStaveNote(
       event.id,
       selectedEventIds,
       selectedEventId,
-      playbackEventId
+      isPlaybackEvent,
+      eventAddress,
+      selectedEventAddress
     )
   ) {
     case 'selected':
@@ -2005,4 +2965,31 @@ function createStaveNote(
   }
 
   return note
+}
+
+function isPlaybackEventTarget(
+  eventId: string,
+  measureId: string,
+  voiceId: string,
+  playback?: {
+    partId?: string
+    staffId?: string
+    eventId?: string
+    address?: VoiceAddress
+  }
+): boolean {
+  if (!playback?.eventId || eventId !== playback.eventId) {
+    return false
+  }
+
+  if (!playback.address) {
+    return true
+  }
+
+  return (
+    (!playback.partId || playback.address.partId === playback.partId) &&
+    (!playback.staffId || playback.address.staffId === playback.staffId) &&
+    playback.address.measureId === measureId &&
+    playback.address.voiceId === voiceId
+  )
 }
