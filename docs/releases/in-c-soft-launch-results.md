@@ -17,6 +17,9 @@
 - concert value: concert detail view, ticket destination click, sponsored dismiss/save
 - feedback: link issue, copy issue, recommendation issue, concert issue, retention issue
 - Catalog Ops Launch Feedback: `feedback_submit` category count, blocker count, latest message, export text
+- Android install smoke: release APK install/launch, Today, preview, link-out, Work Detail, Discover, My Music,
+  Concerts screenshot evidence
+- iOS signing: no-codesign build, simulator install/launch, IPA/TestFlight signing result
 
 ## Public V1 Decision Rule
 
@@ -34,3 +37,24 @@ Catalog Ops Closeout의 release-ready가 YES일 때만 사용한다.
 Public V1 app identity는 기존 Clef lineage applicationId/bundle id를 유지하고, 사용자-facing display
 name, icon, store copy, 직접 진입 build flag를 `in C`로 고정하는 것으로 결정한다. 독립 in C
 applicationId/bundle id는 signing, migration, store listing 영향 검토 후 V1.1에서 다룬다.
+
+## 2026-09-03 Public V1 Evidence
+
+- Android release APK install: PASS on `emulator-5554`.
+- Android launch: PASS with `com.mannlab.clef/.MainActivity`.
+- Android screenshot capture: PASS for Today, Work Detail, Discover, My Music, Concerts, Preview, external link-out.
+- Android external link-out: PASS with environment note. Chrome opened first-run setup after the app handed off
+  YouTube search fallback.
+- iOS no-codesign build: PASS.
+- iOS simulator install/launch: PASS.
+- iOS IPA/TestFlight: GAP. Archive runs, codesign fails because provisioning profile `Clef` does not include the
+  current Apple Distribution certificate.
+
+## Launch Week Hotfix Criteria
+
+- crash/blocker feedback
+- external link-out flow failure
+- save/reaction persistence failure
+- sponsored disclosure missing or placed above first listening CTA
+- repeated Today/onboarding comprehension failure
+- store review rejection

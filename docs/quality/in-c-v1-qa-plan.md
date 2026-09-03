@@ -53,9 +53,16 @@
 - 2026-09-03 기준 Store Metadata 초안은 `docs/product/in-c-store-metadata-public-v1-draft.md`에 둔다.
 - 2026-09-03 기준 Android debug/release APK, Android App Bundle, iOS no-codesign, iOS simulator
   install/launch smoke는 PASS다.
-- 2026-09-03 기준 Android install smoke는 ADB device list가 비어 있어 NOT RUN이다.
-- 2026-09-03 재시도 기준 `clef_rc_tablet_api35` launch command는 성공 종료됐지만 Android device가
-  `adb devices`에 나타나지 않아 install smoke는 계속 environment GAP이다.
+- 2026-09-03 기준 Android install smoke는 direct emulator launch 후 PASS다.
+  - device: `emulator-5554`
+  - OS: Android 15
+  - install: `adb install -r build/app/outputs/flutter-apk/app-release.apk` PASS
+  - launch: `adb shell am start -n com.mannlab.clef/.MainActivity` PASS
+  - captured: Today, Work Detail, Discover, My Music, Concerts, Preview, external link-out
+- 2026-09-03 기준 external link-out은 Chrome first-run setup 화면까지 열렸고 앱 crash는 없었다. 실제 검색
+  결과 도달은 테스트 기기의 외부 앱 초기 설정 상태에 의존한다.
+- 2026-09-03 기준 `flutter build ipa --dart-define=IN_C_DISCOVERY_HOME=true`는 archive 후 codesign에서
+  실패했다. Provisioning profile `Clef`에 현재 Apple Distribution certificate가 포함되어 있지 않다.
 
 ## Regression
 

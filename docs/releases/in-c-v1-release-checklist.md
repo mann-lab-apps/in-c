@@ -101,7 +101,7 @@
 - Android debug APK build: PASS, `build/app/outputs/flutter-apk/app-debug.apk`
 - Android release APK build: PASS, `build/app/outputs/flutter-apk/app-release.apk`
 - Android App Bundle build: PASS, `build/app/outputs/bundle/release/app-release.aab`
-- Android install smoke: NOT RUN, local Android emulator did not attach to `adb devices`.
+- Android install smoke: PASS, `emulator-5554` Android 15 installed and launched the release APK.
 - iOS no-codesign device build: PASS, `build/ios/iphoneos/Runner.app`
 - iOS simulator build/install/launch smoke: PASS on iPhone 17 Pro simulator.
 - iOS TestFlight upload: NOT RUN, signing/provisioning required.
@@ -118,9 +118,14 @@
 - Public copy review gate: PASS, store-facing copy is checked for internal terms such as CTA, surface,
   funnel, Catalog Ops, fake direct, and fake preview.
 - Catalog Ops now shows Public V1 GAP action rows with priority, owner, next action, and evidence requirement.
-- Android install smoke retry: GAP, `clef_rc_tablet_api35` launch command returned successfully but no Android
-  device appeared in `adb devices`.
-- iOS TestFlight upload: GAP, signing/provisioning still required.
+- Android install smoke retry: PASS, direct emulator launch attached `emulator-5554`; release APK install and
+  `com.mannlab.clef/.MainActivity` launch succeeded.
+- Android smoke screenshots: Today, Work Detail, Discover, My Music, Concerts, Preview, and external link-out
+  captured under `apps/in_c_sheet/build/`.
+- External link-out smoke: PASS with environment note. The app handed YouTube search fallback to Chrome without
+  crashing; Chrome showed first-run setup, so final search result display depends on external app setup.
+- iOS IPA/TestFlight: GAP, `flutter build ipa` completed archive then failed codesign because provisioning
+  profile `Clef` does not include the current Apple Distribution certificate.
 
 ## Public V1 Release Candidate Gate
 
@@ -133,6 +138,8 @@
 - sponsored disclosure on all promotion surfaces: PASS
 - app identity summary: verified by accepted Public V1 identity decision
 - public copy smell check: PASS
+- Android install smoke: PASS
+- screenshot capture/review: PASS for Android emulator evidence; final store framing/localization still needs console review
 - launch feedback blockers: 0
 - privacy copy: present and consistent
 - Clef regression suite: PASS

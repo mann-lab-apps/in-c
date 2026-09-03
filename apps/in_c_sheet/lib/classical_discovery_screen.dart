@@ -459,7 +459,12 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                     'founder preview',
                     '${summary.founderApprovedPreviewCount}/${summary.founderPickCount} approved',
                   ),
-                  ('app identity GAP', '${summary.appIdentityGapCount}'),
+                  (
+                    'app identity',
+                    summary.appIdentityReadiness.isVerified
+                        ? 'decision accepted'
+                        : '${summary.appIdentityGapCount} GAP',
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -529,10 +534,25 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                     'keywords',
                     summary.storeMetadataReadiness.keywords.join(', '),
                   ),
+                  ('category', summary.storeMetadataReadiness.category),
+                  (
+                    'age rating',
+                    summary.storeMetadataReadiness.ageRatingAssumption,
+                  ),
+                  (
+                    'permissions',
+                    summary.storeMetadataReadiness.permissionSummary,
+                  ),
                   (
                     'screenshots',
                     summary.storeMetadataReadiness.screenshotSurfaces.join(
                       ', ',
+                    ),
+                  ),
+                  (
+                    'screenshot files',
+                    summary.storeMetadataReadiness.screenshotArtifactPaths.join(
+                      '\n',
                     ),
                   ),
                   (

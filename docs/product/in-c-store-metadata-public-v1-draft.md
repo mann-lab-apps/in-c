@@ -12,6 +12,9 @@
 - iOS Public V1 bundle id: `com.mannlab.inc.clef`
 - Standalone in C applicationId/bundle id: deferred to V1.1 migration review
 - Support contact placeholder: `support@mannlab.app`
+- Category: Music / Entertainment
+- Age rating assumption: 4+ / Everyone. in C does not host audio, does not include public posting, and does not expose user-generated public content.
+- Permission summary: external link-out and local-first preferences only for in C discovery; no microphone, camera, or location permission is required by this surface.
 
 Public V1은 기존 Clef lineage applicationId/bundle id를 유지하고, 사용자-facing display name, icon,
 store copy, 직접 진입 build flag를 `in C`로 고정한다. 독립 `com.mannlab.inc` applicationId/bundle id는
@@ -50,6 +53,24 @@ Apple Music, Melon 같은 외부 플랫폼으로 이어주는 클래식 디스�
 Catalog Ops, fake direct link, fake preview URL, 내부 운영 용어, funnel/surface/CTA 같은 제품 용어는
 스토어 스크린샷에 노출하지 않는다.
 
+## Captured Screenshot Evidence
+
+Android emulator `emulator-5554` / Android 15 / 2560x1600에서 다음 후보를 캡처했다.
+
+- `apps/in_c_sheet/build/store-screenshot-android-today.png`
+- `apps/in_c_sheet/build/store-screenshot-android-work-detail.png`
+- `apps/in_c_sheet/build/store-screenshot-android-discover.png`
+- `apps/in_c_sheet/build/store-screenshot-android-my-music.png`
+- `apps/in_c_sheet/build/store-screenshot-android-concerts.png`
+- `apps/in_c_sheet/build/store-screenshot-android-preview.png`
+
+Link-out smoke evidence:
+
+- `apps/in_c_sheet/build/store-screenshot-android-linkout.png`
+
+Chrome이 초기 설정 화면을 표시했지만, 앱의 외부 link-out 자체는 crash 없이 provider search fallback을 외부
+브라우저로 전달했다. 실제 검색 결과 도달 여부는 테스트 기기의 외부 앱 초기 설정 상태에 의존한다.
+
 ## Public Copy Gate
 
 스토어 제출 문구와 일반 사용자 화면에서는 다음 표현을 사용하지 않는다.
@@ -75,6 +96,5 @@ Catalog Ops, fake direct link, fake preview URL, 내부 운영 용어, funnel/su
 ## Remaining Verification
 
 - App Store Connect / Play Console 문구 길이와 금칙 표현 검토
-- 실제 기기 스크린샷 캡처
-- Android install smoke
+- 실제 스토어 제출용 device frame/locale별 스크린샷 export
 - TestFlight / Internal Test 업로드 가능 여부 확인

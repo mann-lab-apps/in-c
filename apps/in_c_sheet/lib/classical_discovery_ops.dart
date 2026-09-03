@@ -441,9 +441,13 @@ class ClassicalStoreMetadataReadiness {
     required this.shortDescription,
     required this.fullDescription,
     required this.keywords,
+    required this.category,
+    required this.ageRatingAssumption,
+    required this.permissionSummary,
     required this.privacySummary,
     required this.supportContact,
     required this.screenshotSurfaces,
+    required this.screenshotArtifactPaths,
     required this.excludedScreenshotSurfaces,
     required this.gaps,
   });
@@ -462,6 +466,9 @@ class ClassicalStoreMetadataReadiness {
         '음악추천',
         '오케스트라',
       ],
+      category: 'Music / Entertainment',
+      ageRatingAssumption: '4+ / Everyone; no hosted audio, no social posting, no user-generated public content.',
+      permissionSummary: 'External link-out and local-first preferences; no microphone/camera/location permission required for in C discovery.',
       privacySummary: 'local-first preferences and aggregate event reporting only; no hosted audio and no advertiser raw events.',
       supportContact: 'support@mannlab.app',
       screenshotSurfaces: <String>[
@@ -471,6 +478,14 @@ class ClassicalStoreMetadataReadiness {
         'My Music',
         'Concerts',
       ],
+      screenshotArtifactPaths: <String>[
+        'apps/in_c_sheet/build/store-screenshot-android-today.png',
+        'apps/in_c_sheet/build/store-screenshot-android-work-detail.png',
+        'apps/in_c_sheet/build/store-screenshot-android-discover.png',
+        'apps/in_c_sheet/build/store-screenshot-android-my-music.png',
+        'apps/in_c_sheet/build/store-screenshot-android-concerts.png',
+        'apps/in_c_sheet/build/store-screenshot-android-preview.png',
+      ],
       excludedScreenshotSurfaces: <String>[
         'Catalog Ops',
         'fake direct link',
@@ -479,7 +494,6 @@ class ClassicalStoreMetadataReadiness {
       ],
       gaps: <String>[
         'Store metadata copy needs final App Store Connect / Play Console review.',
-        'Screenshots need device capture without internal ops surfaces.',
       ],
     );
   }
@@ -489,9 +503,13 @@ class ClassicalStoreMetadataReadiness {
   final String shortDescription;
   final String fullDescription;
   final List<String> keywords;
+  final String category;
+  final String ageRatingAssumption;
+  final String permissionSummary;
   final String privacySummary;
   final String supportContact;
   final List<String> screenshotSurfaces;
+  final List<String> screenshotArtifactPaths;
   final List<String> excludedScreenshotSurfaces;
   final List<String> gaps;
 
@@ -570,14 +588,13 @@ class ClassicalBuildQaReadiness {
       androidReleaseApk: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
       androidAppBundle:
           'PASS · build/app/outputs/bundle/release/app-release.aab',
-      androidInstallSmoke: 'NOT RUN · local AVD did not attach to adb devices',
+      androidInstallSmoke: 'PASS · emulator-5554 Android 15 release APK install/launch; Today, preview, link-out, Work Detail, Discover, My Music, Concerts screenshots captured',
       iosNoCodesignBuild: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
       iosSimulatorInstallLaunchSmoke: 'PASS · iPhone 17 Pro simulator',
-      iosTestFlightUpload: 'NOT RUN · signing/provisioning required',
+      iosTestFlightUpload: 'BLOCKED · flutter build ipa archives, then fails codesign because provisioning profile "Clef" does not include Apple Distribution certificate',
       inCEntryFlag: '--dart-define=IN_C_DISCOVERY_HOME=true',
       gaps: <String>[
-        'Android device/emulator install smoke is still required.',
-        'iOS TestFlight upload requires signing/provisioning verification.',
+        'iOS TestFlight upload requires provisioning profile/certificate repair.',
       ],
     );
   }

@@ -534,6 +534,11 @@ void main() {
     expect(summary.founderApprovedPreviewCount, 0);
     expect(summary.safeSearchFallbackWorkCount, summary.workCount);
     expect(summary.storeMetadataReadiness.appName, 'in C');
+    expect(summary.storeMetadataReadiness.category, 'Music / Entertainment');
+    expect(
+      summary.storeMetadataReadiness.screenshotArtifactPaths,
+      contains('apps/in_c_sheet/build/store-screenshot-android-today.png'),
+    );
     expect(
       summary.storeMetadataReadiness.excludedScreenshotSurfaces,
       contains('fake direct link'),
@@ -543,6 +548,8 @@ void main() {
     expect(summary.publicCopyReadiness.blockedTerms, contains('funnel'));
     expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isTrue);
     expect(summary.buildQaReadiness.isVerified, isFalse);
+    expect(summary.buildQaReadiness.androidInstallSmoke, startsWith('PASS'));
+    expect(summary.buildQaReadiness.iosTestFlightUpload, contains('BLOCKED'));
     expect(
       summary.publicV1Closeout.evidenceText,
       contains('Store metadata production verification gaps'),
@@ -657,9 +664,13 @@ void main() {
         shortDescription: 'CTA surface 없이 작품을 만납니다.',
         fullDescription: 'Catalog Ops copy should never reach the store.',
         keywords: ['클래식'],
+        category: 'Music',
+        ageRatingAssumption: '4+',
+        permissionSummary: 'no microphone',
         privacySummary: 'no hosted audio',
         supportContact: 'support@mannlab.app',
         screenshotSurfaces: ['Today'],
+        screenshotArtifactPaths: ['build/today.png'],
         excludedScreenshotSurfaces: ['Catalog Ops'],
         gaps: [],
       ),

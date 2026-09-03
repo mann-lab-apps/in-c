@@ -39,3 +39,13 @@ in C는 클래식 음원 스트리밍 서비스가 아니라 작품 발견과 �
 - Store metadata와 screenshot은 `docs/product/in-c-store-metadata-public-v1-draft.md`를 기준으로 준비한다.
 - 스토어 문구는 in C가 음원을 직접 제공하지 않고 외부 플랫폼으로 연결한다는 점을 숨기지 않는다.
 - Catalog Ops, 내부 운영 용어, fake direct link, fake preview URL은 사용자-facing 스토어 이미지에 노출하지 않는다.
+
+## Public V1 Hotfix Triggers
+
+- 앱 crash 또는 launch blocker
+- external platform link-out flow 중단
+- 저장/reaction/local-first persistence 실패
+- sponsored disclosure 누락 또는 첫 청취 CTA 위 노출
+- provider direct/preview URL policy 위반
+- store review rejection
+- onboarding 또는 Today 첫 화면 이해 실패가 반복되는 feedback

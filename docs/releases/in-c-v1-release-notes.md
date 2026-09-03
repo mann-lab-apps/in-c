@@ -45,13 +45,15 @@ migration, store listing 영향 검토 후 V1.1에서 다룬다.
 
 ## 2026-09-02 Build Note
 
-in C 직접 진입 QA build는 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다. Android debug/release APK와 iOS no-codesign build는 통과했고, iOS simulator install/launch smoke도 통과했다. Android install smoke는 로컬 AVD가 `adb devices`에 붙지 않아 아직 실행하지 못했다.
+in C 직접 진입 QA build는 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다. Android debug/release APK,
+release install smoke, Android AAB, iOS no-codesign build, iOS simulator install/launch smoke가 통과했다.
+TestFlight upload는 signing/provisioning GAP으로 남아 있다.
 
 ## 2026-09-03 RC Note
 
 Store metadata 초안은 `docs/product/in-c-store-metadata-public-v1-draft.md`에 고정한다. Catalog Ops는
-app identity, store metadata, build/install QA를 별도 production verification GAP으로 보여준다.
-Android App Bundle은 통과했다. Android install smoke와 iOS TestFlight upload는 아직 Public V1 제출 전 확인해야 한다.
+app identity decision, store metadata, build/install QA를 별도 release gate로 보여준다.
+Android App Bundle과 Android install smoke는 통과했다. iOS TestFlight upload는 아직 Public V1 제출 전 확인해야 한다.
 
 ## 2026-09-03 Public V1 Closeout Note
 
@@ -59,6 +61,10 @@ Catalog Ops Closeout에는 남은 GAP의 priority, owner, next action, evidence 
 copy는 CTA/surface/funnel/Catalog Ops/fake URL 같은 내부 용어가 store-facing 문구에 섞이지 않는지 별도
 gate로 확인한다.
 
-Android install smoke는 `clef_rc_tablet_api35` launch command가 성공 종료됐지만 `adb devices`에 Android
-device가 나타나지 않아 아직 GAP이다. 이는 현재 evidence 기준 local emulator/device environment GAP이며,
-실기기 또는 정상 attach된 AVD에서 다시 확인해야 한다.
+Android install smoke는 direct emulator launch 후 PASS다. `emulator-5554` Android 15에서 release APK
+install과 `com.mannlab.clef/.MainActivity` launch가 성공했고, Today, Preview, external link-out, Work
+Detail, Discover, My Music, Concerts screenshot evidence를 `apps/in_c_sheet/build/` 아래에 남겼다.
+
+`flutter build ipa --dart-define=IN_C_DISCOVERY_HOME=true`는 archive 단계까지 진행된 뒤 codesign에서 실패했다.
+Provisioning profile `Clef`가 현재 Apple Distribution certificate를 포함하지 않아 TestFlight upload는
+계속 signing/provisioning GAP이다.
