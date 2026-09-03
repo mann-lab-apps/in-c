@@ -1116,7 +1116,7 @@ Public V1 release-ready YES 조건은 Catalog Ops의 Public V1 Closeout evidence
 - safe external platform fallback PASS
 - approved-only direct/preview policy PASS
 - sponsored disclosure PASS
-- app identity/store metadata verification PASS
+- app identity decision accepted, store metadata verification PASS
 - launch feedback blocker 0
 - privacy copy consistency PASS
 - Clef regression PASS
@@ -1125,9 +1125,10 @@ Public V1 release-ready YES 조건은 Catalog Ops의 Public V1 Closeout evidence
 code blocker가 아니라 content ops / production verification / legal review GAP으로 분류한다.
 단, 그 GAP이 첫 3분 핵심 사용자 흐름을 막으면 Public V1 release-ready는 NO다.
 
-현재 Android/iOS 표시 이름과 first-pass launcher icon은 `in C`로 적용되어 있다. 다만 Flutter shell이
-Clef applicationId/bundle id를 쓰는 경우에는 기능이 통과하더라도 app identity/store metadata
-verification을 완료하기 전까지 Public V1 release-ready YES로 보지 않는다. in C 직접 진입 QA build는
+현재 Android/iOS 표시 이름과 first-pass launcher icon은 `in C`로 적용되어 있다. Public V1은 기존
+Clef lineage applicationId/bundle id를 유지하고, 사용자-facing 앱 이름, 아이콘, store copy, 직접 진입
+build flag를 `in C`로 고정한다. 독립 `com.mannlab.inc` applicationId/bundle id는 signing, migration,
+store listing 영향 검토 후 V1.1에서 분리한다. in C 직접 진입 QA build는
 `--dart-define=IN_C_DISCOVERY_HOME=true`를 사용한다.
 초기 사용자 feedback은 `feedback_submit` event로 남기고, link/concert/retention blocker가 반복되면
 product quality GAP으로 승격한다.

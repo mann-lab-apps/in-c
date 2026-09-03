@@ -424,6 +424,22 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                   ('evidence', summary.publicV1Closeout.evidenceText),
                 ],
               ),
+              for (final item in summary.publicV1Closeout.gateItems.where(
+                (item) => !item.passes,
+              ))
+                _Panel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.pending_actions_outlined),
+                    title: Text('${item.priority} · ${item.label}'),
+                    subtitle: Text(
+                      '${item.category.name} · ${item.current}/${item.target}\n'
+                      'owner: ${item.owner}\n'
+                      'next: ${item.nextAction}\n'
+                      'evidence: ${item.evidenceRequirement}',
+                    ),
+                  ),
+                ),
               const SizedBox(height: 12),
               _SectionTitle(title: 'Release Catalog Lock'),
               const SizedBox(height: 8),
@@ -483,6 +499,14 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                     summary.appIdentityReadiness.permissionSummary,
                   ),
                   (
+                    'release decision',
+                    summary.appIdentityReadiness.releaseDecision,
+                  ),
+                  (
+                    'next identity plan',
+                    summary.appIdentityReadiness.nextIdentityPlan,
+                  ),
+                  (
                     'production GAP',
                     summary.appIdentityReadiness.gaps.isEmpty
                         ? '없음'
@@ -523,6 +547,27 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                     summary.storeMetadataReadiness.gaps.isEmpty
                         ? '없음'
                         : summary.storeMetadataReadiness.gaps.join('\n'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'Public Copy'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  (
+                    'checked',
+                    summary.publicCopyReadiness.checkedSurfaces.join(', '),
+                  ),
+                  (
+                    'blocked terms',
+                    summary.publicCopyReadiness.blockedTerms.join(', '),
+                  ),
+                  (
+                    'copy GAP',
+                    summary.publicCopyReadiness.issues.isEmpty
+                        ? '없음'
+                        : summary.publicCopyReadiness.issues.join('\n'),
                   ),
                 ],
               ),

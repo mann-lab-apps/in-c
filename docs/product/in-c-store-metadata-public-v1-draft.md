@@ -8,14 +8,14 @@
 - App name: in C
 - Subtitle: 오늘 하나씩 여는 클래식
 - Version: 1.0.0+14 RC
-- Android current applicationId: `com.mannlab.clef`
-- Android target applicationId: `com.mannlab.inc`
-- iOS current bundle id: `com.mannlab.inc.clef`
-- iOS target bundle id: `com.mannlab.inc`
+- Android Public V1 applicationId: `com.mannlab.clef`
+- iOS Public V1 bundle id: `com.mannlab.inc.clef`
+- Standalone in C applicationId/bundle id: deferred to V1.1 migration review
 - Support contact placeholder: `support@mannlab.app`
 
-현재 display name과 first-pass icon은 `in C`로 적용되어 있다. Android applicationId와 iOS bundle id는
-아직 Clef lineage를 사용하므로 Public V1 제출 전 production verification GAP이다.
+Public V1은 기존 Clef lineage applicationId/bundle id를 유지하고, 사용자-facing display name, icon,
+store copy, 직접 진입 build flag를 `in C`로 고정한다. 독립 `com.mannlab.inc` applicationId/bundle id는
+signing, migration, store listing 영향 검토 후 V1.1에서 분리한다.
 
 ## Short Description
 
@@ -50,6 +50,20 @@ Apple Music, Melon 같은 외부 플랫폼으로 이어주는 클래식 디스�
 Catalog Ops, fake direct link, fake preview URL, 내부 운영 용어, funnel/surface/CTA 같은 제품 용어는
 스토어 스크린샷에 노출하지 않는다.
 
+## Public Copy Gate
+
+스토어 제출 문구와 일반 사용자 화면에서는 다음 표현을 사용하지 않는다.
+
+- CTA
+- surface
+- funnel
+- Catalog Ops
+- fake direct link
+- fake preview URL
+- internal ops
+
+운영 화면에서는 필요한 용어를 유지할 수 있지만, 스토어 스크린샷 후보와 첫 사용자 flow에는 노출하지 않는다.
+
 ## Privacy Summary
 
 - 음원 파일을 host/cache/download하지 않는다.
@@ -62,5 +76,5 @@ Catalog Ops, fake direct link, fake preview URL, 내부 운영 용어, funnel/su
 
 - App Store Connect / Play Console 문구 길이와 금칙 표현 검토
 - 실제 기기 스크린샷 캡처
-- Android applicationId / iOS bundle id 최종 분리 여부 결정
+- Android install smoke
 - TestFlight / Internal Test 업로드 가능 여부 확인

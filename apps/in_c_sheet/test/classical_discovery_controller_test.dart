@@ -492,7 +492,17 @@ void main() {
       greaterThan(0),
     );
     expect(summary.publicV1Closeout.evidenceText, contains('Public V1'));
-    expect(summary.appIdentityReadiness.isVerified, isFalse);
+    expect(
+      summary.publicV1Closeout.gateItems
+          .where((item) => !item.passes)
+          .every((item) => item.priority == 'P0' || item.priority == 'P1'),
+      isTrue,
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('P0 · owner release/qa'),
+    );
+    expect(summary.appIdentityReadiness.isVerified, isTrue);
     expect(summary.appIdentityReadiness.appName, 'in C');
     expect(summary.appIdentityReadiness.version, '1.0.0+14');
     expect(
@@ -506,7 +516,13 @@ void main() {
     expect(summary.appIdentityReadiness.targetAppName, 'in C');
     expect(
       summary.appIdentityReadiness.targetAndroidApplicationId,
-      'com.mannlab.inc',
+      'com.mannlab.clef',
+    );
+    expect(summary.appIdentityReadiness.identityDecisionAccepted, isTrue);
+    expect(summary.appIdentityReadiness.isVerified, isTrue);
+    expect(
+      summary.appIdentityReadiness.releaseDecision,
+      contains('Clef lineage'),
     );
     expect(summary.kopisProductionReadiness.productionReady, isFalse);
     expect(
@@ -523,11 +539,17 @@ void main() {
       contains('fake direct link'),
     );
     expect(summary.storeMetadataReadiness.isVerified, isFalse);
+    expect(summary.publicCopyReadiness.isVerified, isTrue);
+    expect(summary.publicCopyReadiness.blockedTerms, contains('funnel'));
     expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isTrue);
     expect(summary.buildQaReadiness.isVerified, isFalse);
     expect(
       summary.publicV1Closeout.evidenceText,
       contains('Store metadata production verification gaps'),
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Public copy product quality gaps: 0'),
     );
     expect(
       summary.publicV1Closeout.evidenceText,
@@ -626,6 +648,27 @@ void main() {
       );
     },
   );
+
+  test('public copy review catches internal product terms', () {
+    final review = ClassicalPublicCopyReadiness.fromStoreMetadata(
+      const ClassicalStoreMetadataReadiness(
+        appName: 'in C',
+        subtitle: '오늘 하나씩 여는 클래식',
+        shortDescription: 'CTA surface 없이 작품을 만납니다.',
+        fullDescription: 'Catalog Ops copy should never reach the store.',
+        keywords: ['클래식'],
+        privacySummary: 'no hosted audio',
+        supportContact: 'support@mannlab.app',
+        screenshotSurfaces: ['Today'],
+        excludedScreenshotSurfaces: ['Catalog Ops'],
+        gaps: [],
+      ),
+    );
+
+    expect(review.isVerified, isFalse);
+    expect(review.issues, contains(contains('CTA')));
+    expect(review.issues, contains(contains('Catalog Ops')));
+  });
 
   test('link review warns when search URL is registered as direct', () {
     const policy = ClassicalLinkReviewPolicy();

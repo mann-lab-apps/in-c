@@ -58,16 +58,16 @@
 ## App Identity Target
 
 - current display name: `in C`
-- current Android applicationId: `com.mannlab.clef`
-- target Android applicationId: `com.mannlab.inc`
-- current iOS bundle id: `com.mannlab.inc.clef`
-- target iOS bundle id: `com.mannlab.inc`
+- Public V1 Android applicationId: `com.mannlab.clef`
+- Public V1 iOS bundle id: `com.mannlab.inc.clef`
+- standalone in C applicationId/bundle id: V1.1 migration review로 이월
 - target display name: `in C`
 - target subtitle: `오늘 하나씩 여는 클래식`
 - first-pass launcher icon: `apps/in_c_sheet/assets/brand/in-c-soft-launch-icon.svg`
 - Android/iOS launcher PNG resources: first-pass generated, device review required.
 - QA build can open the discovery app directly with `--dart-define=IN_C_DISCOVERY_HOME=true`.
-- current bundle/application id가 target과 다르면 Public V1 release-ready YES가 되면 안 된다.
+- Public V1은 기존 Clef lineage bundle/application id를 유지하는 결정으로 잠근다.
+- 독립 `com.mannlab.inc` 분리는 signing, migration, store listing 위험 때문에 Public V1 범위에서 제외한다.
 
 ## Store Metadata
 
@@ -107,7 +107,20 @@
 - iOS TestFlight upload: NOT RUN, signing/provisioning required.
 - 2026-09-03 repeat QA: targeted/full tests, analyze, Android debug/release/AAB, iOS no-codesign,
   and iOS simulator install/launch smoke all PASS.
-- Current blocker for Public V1 app identity: Android applicationId and iOS bundle id still use Clef lineage.
+- Public V1 app identity decision: keep Clef lineage applicationId/bundle id for this release; standalone
+  in C identity moves to V1.1 migration review.
+
+## 2026-09-03 Public V1 Closeout Snapshot
+
+- App identity decision: PASS, Public V1 keeps `com.mannlab.clef` / `com.mannlab.inc.clef` with `in C`
+  display name, icon, store copy, and direct discovery entry.
+- Standalone identity migration: V1.1 follow-up, not a Public V1 blocker.
+- Public copy review gate: PASS, store-facing copy is checked for internal terms such as CTA, surface,
+  funnel, Catalog Ops, fake direct, and fake preview.
+- Catalog Ops now shows Public V1 GAP action rows with priority, owner, next action, and evidence requirement.
+- Android install smoke retry: GAP, `clef_rc_tablet_api35` launch command returned successfully but no Android
+  device appeared in `adb devices`.
+- iOS TestFlight upload: GAP, signing/provisioning still required.
 
 ## Public V1 Release Candidate Gate
 
@@ -118,7 +131,8 @@
 - safe external link fallback: PASS
 - approved-only direct/preview policy: PASS
 - sponsored disclosure on all promotion surfaces: PASS
-- app identity summary: verified
+- app identity summary: verified by accepted Public V1 identity decision
+- public copy smell check: PASS
 - launch feedback blockers: 0
 - privacy copy: present and consistent
 - Clef regression suite: PASS
@@ -130,4 +144,4 @@
 - 검증되지 않은 preview playback
 - Apple Music Classical 전용 deep link
 - KOPIS API key 없는 production remote import
-- Clef 계열 bundle/application id로 in C Public V1 제출
+- standalone `com.mannlab.inc` applicationId/bundle id migration

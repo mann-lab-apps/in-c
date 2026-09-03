@@ -236,6 +236,7 @@ class ClassicalOpsGateItem {
     required this.current,
     required this.target,
     required this.owner,
+    required this.priority,
     required this.nextAction,
     required this.evidenceRequirement,
   });
@@ -247,6 +248,7 @@ class ClassicalOpsGateItem {
   final int current;
   final int target;
   final String owner;
+  final String priority;
   final String nextAction;
   final String evidenceRequirement;
 
@@ -381,6 +383,9 @@ class ClassicalAppIdentityReadiness {
     required this.iconStatus,
     required this.privacyCopyStatus,
     required this.permissionSummary,
+    required this.releaseDecision,
+    required this.nextIdentityPlan,
+    required this.identityDecisionAccepted,
     required this.gaps,
   });
 
@@ -391,8 +396,8 @@ class ClassicalAppIdentityReadiness {
       iosBundleId: 'com.mannlab.inc.clef',
       version: '1.0.0+14',
       targetAppName: 'in C',
-      targetAndroidApplicationId: 'com.mannlab.inc',
-      targetIosBundleId: 'com.mannlab.inc',
+      targetAndroidApplicationId: 'com.mannlab.clef',
+      targetIosBundleId: 'com.mannlab.inc.clef',
       targetVersion: '1.0.0+14 RC; bump build number for public submission',
       storeSubtitle: '오늘 하나씩 여는 클래식',
       shortDescription: '작품 중심으로 클래식을 발견하고, 듣기와 공연으로 이어집니다.',
@@ -400,10 +405,10 @@ class ClassicalAppIdentityReadiness {
           'first-pass in C icon applied; device and store review still needed',
       privacyCopyStatus: 'in-app policy copy and docs are present',
       permissionSummary: 'local-first storage, external link-out, no hosted audio, no advertiser raw events',
-      gaps: <String>[
-        'Store identity still uses Clef lineage bundle/application id.',
-        'First-pass in C icon and store metadata need final device review.',
-      ],
+      releaseDecision: 'Public V1 accepts the existing Clef lineage applicationId/bundle id with in C display name, icon, store copy, and direct discovery entry.',
+      nextIdentityPlan: 'A standalone com.mannlab.inc applicationId/bundle id is deferred to a V1.1 migration after signing and store migration risk review.',
+      identityDecisionAccepted: true,
+      gaps: <String>[],
     );
   }
 
@@ -420,10 +425,13 @@ class ClassicalAppIdentityReadiness {
   final String iconStatus;
   final String privacyCopyStatus;
   final String permissionSummary;
+  final String releaseDecision;
+  final String nextIdentityPlan;
+  final bool identityDecisionAccepted;
   final List<String> gaps;
 
   int get gapCount => gaps.length;
-  bool get isVerified => gaps.isEmpty;
+  bool get isVerified => identityDecisionAccepted && gaps.isEmpty;
 }
 
 class ClassicalStoreMetadataReadiness {
@@ -489,6 +497,58 @@ class ClassicalStoreMetadataReadiness {
 
   int get gapCount => gaps.length;
   bool get isVerified => gaps.isEmpty;
+}
+
+class ClassicalPublicCopyReadiness {
+  const ClassicalPublicCopyReadiness({
+    required this.checkedSurfaces,
+    required this.blockedTerms,
+    required this.issues,
+  });
+
+  factory ClassicalPublicCopyReadiness.fromStoreMetadata(
+    ClassicalStoreMetadataReadiness metadata,
+  ) {
+    const blockedTerms = <String>[
+      'CTA',
+      'surface',
+      'funnel',
+      'fake direct',
+      'fake preview',
+      'Catalog Ops',
+      'internal ops',
+    ];
+    final publicCopy = <String>[
+      metadata.appName,
+      metadata.subtitle,
+      metadata.shortDescription,
+      metadata.fullDescription,
+      metadata.privacySummary,
+    ].join('\n');
+    final issues = blockedTerms
+        .where((term) => publicCopy.toLowerCase().contains(term.toLowerCase()))
+        .map((term) => 'Public copy contains internal term: $term')
+        .toList(growable: false);
+    return ClassicalPublicCopyReadiness(
+      checkedSurfaces: const <String>[
+        'Today',
+        'Work Detail',
+        'Discover',
+        'My Music',
+        'Concerts',
+        'Store Metadata',
+        'Privacy Sheet',
+      ],
+      blockedTerms: blockedTerms,
+      issues: issues,
+    );
+  }
+
+  final List<String> checkedSurfaces;
+  final List<String> blockedTerms;
+  final List<String> issues;
+
+  bool get isVerified => issues.isEmpty;
 }
 
 class ClassicalBuildQaReadiness {
@@ -608,6 +668,7 @@ class ClassicalCatalogOpsSummary {
     required this.appIdentityGapCount,
     required this.appIdentityReadiness,
     required this.storeMetadataReadiness,
+    required this.publicCopyReadiness,
     required this.buildQaReadiness,
     required this.feedbackSummary,
     required this.kopisProductionReadiness,
@@ -690,6 +751,9 @@ class ClassicalCatalogOpsSummary {
         ClassicalAppIdentityReadiness.currentFlutterShell();
     final storeMetadataReadiness =
         ClassicalStoreMetadataReadiness.publicV1Draft();
+    final publicCopyReadiness = ClassicalPublicCopyReadiness.fromStoreMetadata(
+      storeMetadataReadiness,
+    );
     final buildQaReadiness = ClassicalBuildQaReadiness.latestLocalEvidence();
     final feedbackSummary = _feedbackSummary(recentEvents);
     final kopisProductionReadiness =
@@ -832,6 +896,17 @@ class ClassicalCatalogOpsSummary {
             'Store metadata와 screenshot 후보에 내부 용어와 fake URL이 없습니다.',
       ),
       _gate(
+        id: 'public-copy',
+        label: 'public user copy review',
+        current: publicCopyReadiness.isVerified ? 1 : 0,
+        target: 1,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'product/marketing',
+        nextAction: 'Today, My Music, Concerts, store copy에서 내부 용어를 제거합니다.',
+        evidenceRequirement:
+            '사용자-facing 문구에 CTA/surface/funnel/fake URL 같은 내부 용어가 없습니다.',
+      ),
+      _gate(
         id: 'build-install-qa',
         label: 'release build and install smoke',
         current: buildQaReadiness.isVerified
@@ -938,6 +1013,7 @@ class ClassicalCatalogOpsSummary {
             .length,
         appIdentityGaps: appIdentityReadiness.gapCount,
         storeMetadataGaps: storeMetadataReadiness.gapCount,
+        publicCopyGaps: publicCopyReadiness.issues.length,
         buildQaGaps: buildQaReadiness.gapCount,
         installLaunchSmoke: buildQaReadiness.hasInstallLaunchSmoke,
         feedbackBlockers: feedbackSummary.blockerCount,
@@ -1003,6 +1079,7 @@ class ClassicalCatalogOpsSummary {
       appIdentityGapCount: appIdentityGapCount,
       appIdentityReadiness: appIdentityReadiness,
       storeMetadataReadiness: storeMetadataReadiness,
+      publicCopyReadiness: publicCopyReadiness,
       buildQaReadiness: buildQaReadiness,
       feedbackSummary: feedbackSummary,
       kopisProductionReadiness: kopisProductionReadiness,
@@ -1054,6 +1131,7 @@ class ClassicalCatalogOpsSummary {
   final int appIdentityGapCount;
   final ClassicalAppIdentityReadiness appIdentityReadiness;
   final ClassicalStoreMetadataReadiness storeMetadataReadiness;
+  final ClassicalPublicCopyReadiness publicCopyReadiness;
   final ClassicalBuildQaReadiness buildQaReadiness;
   final ClassicalFeedbackSummary feedbackSummary;
   final ClassicalKopisProductionReadiness kopisProductionReadiness;
@@ -1127,9 +1205,31 @@ ClassicalOpsGateItem _gate({
     current: current,
     target: target,
     owner: owner,
+    priority: _gatePriority(
+      category: category,
+      current: current,
+      target: target,
+    ),
     nextAction: nextAction,
     evidenceRequirement: evidenceRequirement,
   );
+}
+
+String _gatePriority({
+  required ClassicalGapCategory category,
+  required int current,
+  required int target,
+}) {
+  if (current >= target) {
+    return 'done';
+  }
+  return switch (category) {
+    ClassicalGapCategory.codeBlocker => 'P0',
+    ClassicalGapCategory.productionVerification => 'P0',
+    ClassicalGapCategory.legalReview => 'P0',
+    ClassicalGapCategory.productQuality => 'P1',
+    ClassicalGapCategory.contentOps => 'P1',
+  };
 }
 
 bool _hasStatus(ClassicalWork work, String tag) {
@@ -1407,6 +1507,7 @@ List<String> _evidenceRows({
   required int concertLinkedWorkCount,
   required int appIdentityGaps,
   required int storeMetadataGaps,
+  required int publicCopyGaps,
   required int buildQaGaps,
   required bool installLaunchSmoke,
   required int feedbackBlockers,
@@ -1422,11 +1523,12 @@ List<String> _evidenceRows({
     'Concert-linked works: $concertLinkedWorkCount',
     'App identity production verification gaps: $appIdentityGaps',
     'Store metadata production verification gaps: $storeMetadataGaps',
+    'Public copy product quality gaps: $publicCopyGaps',
     'Build QA production verification gaps: $buildQaGaps',
     'Install/launch smoke: ${installLaunchSmoke ? 'PASS' : 'GAP'}',
     'Launch feedback blockers: $feedbackBlockers',
     for (final item in publicGateItems)
       '${item.label}: ${item.passes ? 'PASS' : 'GAP'} '
-          '(${item.current}/${item.target}) · owner ${item.owner}',
+          '(${item.current}/${item.target}) · ${item.priority} · owner ${item.owner}',
   ];
 }
