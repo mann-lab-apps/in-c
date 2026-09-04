@@ -1189,6 +1189,7 @@ void main() {
         referencePitchA4: 442,
         displayMode: SheetTunerDisplayMode.bbTrumpet,
         detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+        detectionAlgorithm: SheetTunerPitchDetectionAlgorithm.yin,
         notationPreference: SheetTunerNotationPreference.flats,
       ),
     );
@@ -1203,6 +1204,10 @@ void main() {
       SheetTunerDetectionProfile.bbTrumpet,
     );
     expect(
+      controller.tunerSettings.detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.yin,
+    );
+    expect(
       controller.tunerSettings.notationPreference,
       SheetTunerNotationPreference.flats,
     );
@@ -1214,6 +1219,10 @@ void main() {
     expect(
       (await store.loadTunerSettings()).detectionProfile,
       SheetTunerDetectionProfile.bbTrumpet,
+    );
+    expect(
+      (await store.loadTunerSettings()).detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.yin,
     );
   });
 

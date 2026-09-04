@@ -510,6 +510,7 @@ void main() {
         tuningPreset: SheetTunerPreset.manual,
         displayMode: SheetTunerDisplayMode.altoSax,
         detectionProfile: SheetTunerDetectionProfile.highInstrument,
+        detectionAlgorithm: SheetTunerPitchDetectionAlgorithm.yin,
         notationPreference: SheetTunerNotationPreference.flats,
         targetLockEnabled: true,
         targetLockThresholdCents: 240,
@@ -636,6 +637,10 @@ void main() {
     expect(
       backup.tunerSettings.notationPreference,
       SheetTunerNotationPreference.flats,
+    );
+    expect(
+      backup.tunerSettings.detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.yin,
     );
     expect(backup.globalViewerSettings.displayMode, 'continuousVertical');
     expect(backup.globalViewerSettings.halfPageTurn, isTrue);

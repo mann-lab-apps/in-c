@@ -200,6 +200,7 @@ void main() {
       referencePitchA4: 442,
       displayMode: SheetTunerDisplayMode.altoSax,
       detectionProfile: SheetTunerDetectionProfile.highInstrument,
+      detectionAlgorithm: SheetTunerPitchDetectionAlgorithm.yin,
       targetConcertMidiNumber: 70,
     );
 
@@ -211,6 +212,7 @@ void main() {
     expect(decoded.referencePitchA4, 442);
     expect(decoded.displayMode, SheetTunerDisplayMode.altoSax);
     expect(decoded.detectionProfile, SheetTunerDetectionProfile.highInstrument);
+    expect(decoded.detectionAlgorithm, SheetTunerPitchDetectionAlgorithm.yin);
     expect(decoded.targetConcertMidiNumber, 70);
   });
 
@@ -321,6 +323,25 @@ void main() {
     expect(decoded.tuningPreset, SheetTunerPreset.chromatic);
     expect(decoded.displayMode, SheetTunerDisplayMode.concert);
     expect(decoded.detectionProfile, SheetTunerDetectionProfile.chromatic);
+    expect(
+      decoded.detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.hybrid,
+    );
+  });
+
+  test('decodes detector algorithm with hybrid fallback', () {
+    expect(
+      SheetTunerPitchDetectionAlgorithm.fromJson('autocorrelation'),
+      SheetTunerPitchDetectionAlgorithm.autocorrelation,
+    );
+    expect(
+      SheetTunerPitchDetectionAlgorithm.fromJson('yin'),
+      SheetTunerPitchDetectionAlgorithm.yin,
+    );
+    expect(
+      SheetTunerPitchDetectionAlgorithm.fromJson('unknown'),
+      SheetTunerPitchDetectionAlgorithm.hybrid,
+    );
   });
 
   test('repairs target mode without a saved target', () {
@@ -557,6 +578,20 @@ void main() {
     expect(reading.frequency, closeTo(440, 1.5));
   });
 
+  test('YIN detector resolves fine cents around A4', () {
+    for (final cents in <double>[-10, -5, -1, 1, 5, 10]) {
+      final reading = SheetTunerPitchDetector.detectSamples(
+        _sineSamples(frequency: _frequencyAtCents(440, cents)),
+        sampleRate: 44100,
+        algorithm: SheetTunerPitchDetectionAlgorithm.yin,
+      );
+
+      expect(reading, isNotNull, reason: 'YIN should detect $cents cents');
+      expect(reading!.note.label, 'A4');
+      expect(reading.centsOffset, closeTo(cents, 2));
+    }
+  });
+
   test('detects practical low and high instrument pitches', () {
     final low = SheetTunerPitchDetector.detectSamples(
       _sineSamples(frequency: 82.41, sampleCount: 8192),
@@ -666,6 +701,60 @@ void main() {
     expect(reading, isNotNull);
     expect(reading!.note.label, 'A4');
     expect(reading.frequency, closeTo(440, 2.5));
+  });
+
+  test('hybrid detector keeps plucked low guitar strings near fundamental', () {
+    final lowE = SheetTunerPitchDetector.detectSamples(
+      _pluckedStringSamples(
+        frequency: 82.41,
+        sampleCount: 8192,
+        secondHarmonicGain: 1.1,
+        thirdHarmonicGain: 0.35,
+      ),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+      algorithm: SheetTunerPitchDetectionAlgorithm.hybrid,
+    );
+    final detunedA = SheetTunerPitchDetector.detectSamples(
+      _pluckedStringSamples(
+        frequency: _frequencyAtCents(110, -7),
+        sampleCount: 8192,
+        secondHarmonicGain: 0.8,
+        thirdHarmonicGain: 0.25,
+      ),
+      sampleRate: 44100,
+      detectionProfile: SheetTunerDetectionProfile.guitarBass,
+      algorithm: SheetTunerPitchDetectionAlgorithm.hybrid,
+    );
+
+    expect(lowE, isNotNull);
+    expect(lowE!.note.label, 'E2');
+    expect(lowE.frequency, closeTo(82.41, 1.5));
+    expect(detunedA, isNotNull);
+    expect(detunedA!.note.label, 'A2');
+    expect(detunedA.centsOffset, closeTo(-7, 3));
+  });
+
+  test('detector debug info records confidence and rejection reason', () {
+    final detector = SheetTunerPitchDetector(
+      sampleRate: 44100,
+      windowSize: 4096,
+      adaptiveNoiseGate: SheetTunerAdaptiveNoiseGate(historySize: 4),
+    );
+
+    final warmup = detector.addSamples(_sineSamples(frequency: 440));
+    final debug = detector.lastDebugInfo;
+
+    expect(warmup, isNotNull);
+    expect(debug, isNotNull);
+    expect(debug!.algorithm, SheetTunerPitchDetectionAlgorithm.hybrid);
+    expect(debug.confidence, greaterThan(0.6));
+    expect(debug.rejectionReason, isEmpty);
+    expect(debug.label, contains('엔진 자동'));
+
+    detector.reset();
+    expect(detector.addSamples(const <double>[]), isNull);
+    expect(detector.lastDebugInfo!.rejectionReason, 'empty');
   });
 
   test('adaptive noise gate learns low-signal frames conservatively', () {
@@ -939,6 +1028,26 @@ List<double> _sineSamples({
 }) {
   return List<double>.generate(sampleCount, (index) {
     return math.sin(2 * math.pi * frequency * index / sampleRate) * amplitude;
+  }, growable: false);
+}
+
+List<double> _pluckedStringSamples({
+  required double frequency,
+  int sampleRate = 44100,
+  int sampleCount = 4096,
+  double amplitude = 0.72,
+  double secondHarmonicGain = 0.75,
+  double thirdHarmonicGain = 0.2,
+}) {
+  return List<double>.generate(sampleCount, (index) {
+    final time = index / sampleRate;
+    final attack = (index / 96).clamp(0.0, 1.0).toDouble();
+    final envelope = attack * math.exp(-time * 3.2);
+    final sample =
+        math.sin(2 * math.pi * frequency * time) +
+        (math.sin(2 * math.pi * frequency * 2 * time) * secondHarmonicGain) +
+        (math.sin(2 * math.pi * frequency * 3 * time) * thirdHarmonicGain);
+    return sample * envelope * amplitude / 2.1;
   }, growable: false);
 }
 

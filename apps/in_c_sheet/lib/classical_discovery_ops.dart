@@ -388,21 +388,21 @@ class ClassicalAppIdentityReadiness {
     return const ClassicalAppIdentityReadiness(
       appName: 'in C',
       androidApplicationId: 'com.mannlab.clef',
-      iosBundleId: 'com.mannlab.inc.clef',
-      version: '1.0.0+12',
+      iosBundleId: 'com.mannlab.inc.clefandstaff',
+      version: '1.0.0+15',
       targetAppName: 'in C',
       targetAndroidApplicationId: 'com.mannlab.inc',
-      targetIosBundleId: 'com.mannlab.inc',
-      targetVersion: '1.0.0+1 or later release build',
+      targetIosBundleId: 'com.mannlab.inc.clefandstaff',
+      targetVersion: '1.0.0+15 or later release build',
       storeSubtitle: '오늘 하나씩 여는 클래식',
       shortDescription: '작품 중심으로 클래식을 발견하고, 듣기와 공연으로 이어집니다.',
       iconStatus:
-          'first-pass in C icon applied; device and store review still needed',
+          'Darezzo C clef icon applied; device and store review still needed',
       privacyCopyStatus: 'in-app policy copy and docs are present',
       permissionSummary: 'local-first storage, external link-out, no hosted audio, no advertiser raw events',
       gaps: <String>[
-        'Store identity still uses Clef lineage bundle/application id.',
-        'First-pass in C icon and store metadata need final device review.',
+        'Android application id still uses Clef lineage package id.',
+        'Store metadata still needs final device review.',
       ],
     );
   }

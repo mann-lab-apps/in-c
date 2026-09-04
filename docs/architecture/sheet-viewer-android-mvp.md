@@ -58,7 +58,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 주석/필기 1차: 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개, 색상/두께,
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
-- 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector,
+- 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
   RMS gate/confidence, median smoothing, Chromatic/Target mode, 악기별 tuning preset,
   frequency-to-note/target cents 계산, 상용 튜너형 feedback label/cents meter, A4 기준음 저장,
   viewer bottom sheet.
@@ -468,10 +468,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 튜너 1차 구조
 
 - 튜너 설정은 앱 전역 `SheetTunerSettings`로 저장한다.
-- 저장 필드는 A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, 음 이름 표기 preference,
+- 저장 필드는 A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, 감지 엔진,
+  음 이름 표기 preference,
   target lock flag/threshold, 선택 target MIDI, custom target list, custom preset list, A4 calibration
   history다. 기본값은 440Hz / `Chromatic` mode / `Chromatic` preset / `Concert` 표시 / `Chromatic`
-  profile / 악기 기본 표기 / target lock off / target 없음이다.
+  profile / Hybrid 감지 엔진 / 악기 기본 표기 / target lock off / target 없음이다.
   기존 A4/표시/profile/target만 있던 JSON도 기본값으로 decode한다.
 - A4 기준음은 415-466Hz 범위로 clamp한다.
 - 표시 모드는 `Concert`, Bb 악기, Eb 악기, Horn in F, bass clef/low instruments,
@@ -486,6 +487,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F를 제공한다. Preset 선택 시 권장 표시
   모드, 감지 profile, target list를 함께 맞춘다. 사용자가 표시 모드나 감지 profile을 직접 바꾸면
   `Manual` preset으로 전환한다.
+- V1 튜너 UI는 Chromatic-first다. 첫 화면은 현재 음/cents/meter/input bar와 `크로매틱`/`기타 줄 맞춤`
+  전환을 우선 표시하고, 긴 preset/display/profile/custom/drone/A4 slider 조작은 `세부 설정` 아래로
+  접는다. 기타 줄 맞춤은 standard guitar target을 `6E 5A 4D 3G 2B 1E`로 표시한다.
 - custom tuning은 현재 target list를 `SheetTunerCustomPreset`으로 저장/적용/삭제한다. Custom
   preset은 id/name/display mode/detection profile/target list/updatedAt을 갖고, invalid/duplicate
   target과 깨진 preset id는 decode 단계에서 non-destructive repair한다. Metadata/full backup은
@@ -493,14 +497,16 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 표기 preference는 악기 기본, sharp, flat을 제공한다. Detector는 계속 concert pitch와 MIDI number를
   유지하고, UI label layer에서만 enharmonic 표기를 바꾼다.
 - target lock은 Target mode에서 선택한 target frequency에서 threshold 이상 벗어난 입력을
-  `타겟 음을 기다리는 중` 상태로 표시한다. 기본값은 off이며, 기타/현악처럼 줄 하나를 고정해서 맞출 때
-  사용자가 켤 수 있다.
+  `타겟 음을 기다리는 중` 상태로 표시한다. 기본값은 off이며, 기타 줄 맞춤에서 줄을 선택하면 자동으로
+  켜진다. 문구는 가능한 경우 `1번줄 E4를 기다리는 중`처럼 줄 번호와 target note를 함께 표시한다.
 - `SheetTunerPitch.detect`는 입력 frequency를 가장 가까운 chromatic note와 cents offset으로
   변환한다. 테스트 기준은 A4 440Hz, A#4 466.16Hz, C4 261.63Hz다.
 - `SheetTunerPitch.centsFromTarget`은 Target mode에서 선택한 concert target frequency 대비 cents를
   계산한다. Target이 없으면 Chromatic mode처럼 가장 가까운 note 기준 cents를 사용한다.
 - `SheetTunerPitchDetector`는 PCM16 mono sample을 4096 sample rolling window에 모아
-  autocorrelation으로 pitch를 추정한다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
+  Hybrid/YIN/autocorrelation 엔진으로 pitch를 추정한다. 기본 Hybrid는 autocorrelation과 YIN 후보를
+  비교해 plucked string의 2배음/옥타브 오류와 fine cents 흔들림을 줄이는 쪽을 선택한다. 세부 설정의
+  감지 엔진 dropdown은 실기기 QA 비교용이다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
   concert E3-C6 중심 range를 사용한다. Guitar/Bass, Strings, low/high instrument profile은
   각 악기군의 실제 range에 맞춰 detector frequency range와 RMS/confidence threshold를 분리한다.
   Instance detector 경로는 최근 저신호 frame에서 adaptive noise floor를 추정해 너무 낮은 입력이나
@@ -521,7 +527,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   별도로 유지한다.
 - `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 너무 작습니다`, `입력이 약합니다`,
   `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
-  noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다.
+  noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다. 감지 엔진/RMS/confidence/
+  noise floor/reject reason은 세부 설정의 debug label로 기록할 수 있다.
 - `SheetTunerReferenceCalibration`은 안정적인 A 계열 reading이 최소 4개 모였고 spread가 작을 때만
   A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다. A4
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
@@ -628,7 +635,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `테스트 정보`는 Flutter 기본 `Clipboard`로 피드백 템플릿을 복사한다. 템플릿에는 앱
   version/build, 기기/OS, PDF 종류/페이지 수, 재현 단계, 기대/실제 결과, 오류 문구가 포함된다.
 - version/build는 `pubspec.yaml`의 현재 RC version과 맞춘 compile-time constant로 표시한다. 2026-09-02
-  기준 최종 UI polish 내부테스트 후보 version은 `1.0.0+14`이며, `tool/rc_release_check.dart`가
+  기준 최종 UI polish 내부테스트 후보 version은 `1.0.0+14`였고, 현재 소스 version은
+  `1.0.0+15`이며, `tool/rc_release_check.dart`가
   `pubspec.yaml`과 앱 내 `_clefAppVersion` 불일치를 검사한다. package metadata 자동 읽기는
   후속으로 분리한다.
 - 빈 라이브러리 화면은 PDF/JPG/PNG 가져오기 진입점과 테스트 항목 진입점을 제공한다.
@@ -913,7 +921,7 @@ Clef C음자리표 아이콘으로 교체했다. 앱 내 피드백 템플릿에�
 classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악보 뷰어 범위가 아니라 별도
 후속 기능 후보로 분리하며, RC 검증/빌드에는 섞지 않는다.
 
-2026-09-02 최종 UI polish에서는 현재 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
+2026-09-02 최종 UI polish에서는 당시 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
 `Clef & Staff`로 유지했다. 렌더링 프리셋 아이콘은 메트로놈과 구분되도록 `균형`/`대형 PDF`를 각각
 balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar/기타
 줄 선택을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로

@@ -6,40 +6,21 @@
     android:viewportHeight="108">
     <path
         android:fillColor="@android:color/transparent"
-        android:pathData="M-12,23L23,-12M-5,30L30,-5M2,37L37,2M9,44L44,9M16,51L51,16M23,58L58,23M30,65L65,30M37,72L72,37M44,79L79,44M51,86L86,51M58,93L93,58M65,100L100,65M72,107L107,72M79,114L114,79"
-        android:strokeColor="#8ED0FF"
+        android:pathData="M7,38H101M7,46H101M7,62H101M7,70H101"
+        android:strokeColor="#C7C9C9"
         android:strokeLineCap="round"
-        android:strokeWidth="1.4" />
+        android:strokeWidth="1.8" />
     <path
         android:fillColor="@android:color/transparent"
-        android:pathData="M31,70L31,38"
-        android:strokeColor="#202423"
+        android:pathData="M7,54H101"
+        android:strokeColor="#E8D076"
         android:strokeLineCap="round"
-        android:strokeWidth="6" />
+        android:strokeWidth="1.8" />
     <path
         android:fillColor="@android:color/transparent"
-        android:pathData="M76,36C68,28 55,30 49,39C41,50 45,65 56,72C64,77 73,77 79,70"
+        android:pathData="M39,43C34,38 25,38 19,43C12,49 10,60 16,67C22,75 33,75 39,68"
         android:strokeColor="#202423"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
-        android:strokeWidth="8" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M74,39C67,33 57,34 52,41C46,49 49,61 58,67C64,71 70,71 76,67"
-        android:strokeColor="#FBFCFA"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="2.2" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M18,17H90C94,17 96,20 96,24V84C96,88 93,91 89,91H19C15,91 12,88 12,84V24C12,20 14,17 18,17Z"
-        android:strokeColor="#202423"
-        android:strokeLineJoin="round"
-        android:strokeWidth="1.5" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M17,15H91C95,15 98,18 98,23V85C98,90 95,93 89,93H19C14,93 10,90 10,84V23C10,18 13,15 17,15Z"
-        android:strokeColor="#202423"
-        android:strokeLineJoin="round"
-        android:strokeWidth="0.6" />
+        android:strokeWidth="8.5" />
 </vector>

@@ -54,11 +54,12 @@ flutter build ios --release --no-codesign
 
 2026-09-02 최종 UI polish 내부테스트 준비:
 
-- 현재 RC 후보 앱 버전: `1.0.0+14`.
+- 현재 소스 앱 버전: `1.0.0+15`.
 - 앱 이름/런처 label은 `Clef & Staff`이다.
 - 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
   생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
-- 새 내부테스트 업로드는 `1.0.0+14` release AAB를 사용한다.
+- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+15`이며, 튜너 간결화와 `자동`/`정밀 후보` 감지 엔진
+  변경분을 포함한다.
 
 ## 준비물
 
@@ -175,7 +176,7 @@ iPad/iOS smoke:
 Audio/tuner:
 
 - tuner no-signal behavior, 440/441/442Hz A4 quick action/history, reference tone frequency/cents,
-  instrument profile 표시.
+  instrument profile 표시, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과 감지 진단 label.
 - Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset 전환, Target mode shortcut, target lock
   on/off, 다른 줄/음 입력 시 `타겟 음을 기다리는 중` 표시.
 - 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
@@ -192,6 +193,8 @@ Tuner 정확도 비교:
 마이크/입력원:
 주변 환경: 조용함 / 보통 / 시끄러움
 A4 기준: 440 / 441 / 442 Hz
+Clef 감지 엔진: 자동 / 기존 / 정밀 후보
+Clef 감지 진단: 신호 / 신뢰도 / 노이즈 / 제외 사유
 
 음 / 악기:
 Clef note:
@@ -227,11 +230,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 3. 외부 샘플, 장비, 플랫폼 계정이 없으면 blocker 해제 조건을 적고 v1.1 spike backlog와 연결한다.
 4. 통과한 build 산출물과 실패한 산출물은 `clef-v1-rc-qa-plan.md` 검증 기록에 반영한다.
 
-## 2026-09-02 내부테스트 산출물
+## 2026-09-04 내부테스트 산출물
 
-- 현재 QA 대상: `Clef & Staff` `1.0.0+14`.
-- Play Console 업로드 후보: `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+14-release.aab`.
+- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+15`.
+- 마지막 Play Console 업로드 후보:
+  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+15-release.aab`.
 - 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
 - 파일 크기: 약 67MB.
-- SHA-256: `1398d3d54343695e4712ab4e140e64def4d982895b08b29ecfd057c2d18945b6`.
+- SHA-256: `2c56d917e151829852201614e0ad3dff410f41f93dfe0ec082d438833a236773`.
 - upload key SHA1: `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.

@@ -16,7 +16,8 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - System image: Android 15 API 35, Google APIs Play Store, arm64-v8a
 - Flutter device id: `emulator-5554`
 - 앱 id: `com.mannlab.clef`
-- 현재 검증 build: `1.0.0+14` RC 후보. 이전 `1.0.0+10` debug/release 검증 기록은 아래 history로 둔다.
+- 현재 소스 build: `1.0.0+15` RC 후보. 마지막 에뮬레이터 설치 검증 build는 `1.0.0+14`이며,
+  이전 `1.0.0+10` debug/release 검증 기록은 아래 history로 둔다.
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
 - 최근 전체 QA 실행: 2026-08-31 15:20-15:35 KST, `clef_rc_tablet_api35`
 
@@ -117,7 +118,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-043 | unknown inputId | diagnostic log에서 custom mapping 저장 | unknown key path | 저장한 inputId가 action으로 실행 | 예정 |
 | EMU-044 | global defaults | viewer/action 기본값 변경 후 새 score import | settings UI | 새 score에만 기본값 적용, 기존 score 불변 | 예정 |
 | EMU-045 | metronome | BPM/meter/start/stop/sound toggle | metronome sheet | visual tick과 state 저장 | 예정 |
-| EMU-046 | tuner UI | profile/display/reference pitch 전환 | tuner sheet | Concert/Bb/Eb/F/Strings/Guitar/Bass label 정상 | 통과(실마이크 제외) |
+| EMU-046 | tuner UI | profile/display/reference pitch 전환 | tuner sheet | 크로매틱/기타 줄 맞춤, A4 quick/history, Concert/Bb/Eb/F/Strings/Guitar/Bass label 정상 | 통과(실마이크 제외) |
 | EMU-047 | tone/drone | 기준음/5도/옥타브 drone start/stop | Android native channel | UI state와 stop 동작 정상. latency 평가는 실기기 | 예정 |
 | EMU-048 | local audio | linked MP3/M4A/WAV import/play/stop | small audio files | MediaPlayer sheet 진입과 오류 안내 정상 | 예정 |
 | EMU-049 | backup metadata | metadata export/import | score with metadata | custom field, page metadata, pedal mapping 보존 | 예정 |
@@ -262,6 +263,28 @@ v1.1 spike 여부:
 - 새 라이브러리 생성 dialog 저장 시 keyboard focus를 해제한 뒤 닫도록 보강했다. duplicate snackbar
   화면 끝까지의 자동 재현은 Android keyboard stylus tutorial overlay 때문에 중단됐으나,
   duplicate detection과 `열기` action 경로는 `sheet_library_controller_test.dart`와 코드 경로로 유지한다.
+
+## 2026-09-04 튜너/RC UI 로컬 에뮬레이터 확인
+
+- `/private/tmp/clef-tuner-simplify` worktree의 `1.0.0+15` debug app을 `clef_rc_tablet_api35`
+  Pixel Tablet emulator에서 실행했다.
+- 홈 빈 라이브러리는 큰 `Clef` 제목 없이 시작하고, `악보 추가` CTA와 `테스트 항목` 진입점이 겹치지
+  않았다. 테스트 정보 sheet에서 앱 이름 `Clef & Staff`, version `1.0.0+15`, build `Beta test build`가
+  표시됐다.
+- `short-score.pdf`를 Android DocumentsUI `Downloads` picker에서 선택해 `content://` 경로로
+  import했고, viewer가 회색 blank 없이 열렸다. 직접 `file://` intent는 Android scoped storage
+  제약으로 import 경로 검증 대상에서 제외한다.
+- Pixel Tablet portrait에서 viewer toolbar를 좌우 swipe해 숨겨진 `필기 모드`, `페이지 정리`,
+  `공연 설정`, `공연 모드`, `1/3` page label에 접근했다.
+- ADB keyevent로 첫 page `곡 처음` snackbar는 focus 조건 때문에 화면상 확정하지 못했다. 동일 정책은
+  code/test 경로로 유지하며 실제 keyboard/pedal 실기기 QA에서 재확인한다.
+- 튜너 bottom sheet는 큰 시작 버튼 없이 바로 열리고, 현재 음/meter/input bar, `크로매틱`,
+  `기타 줄 맞춤`, `6E 5A 4D 3G 2B 1E` 줄 버튼, A4 440/441/442 quick action이 표시됐다.
+- 튜너 상세 설정의 감지 엔진은 사용자-facing label을 `자동`, `기존`, `정밀 후보`로 낮춰 표시하고,
+  감지 진단도 `엔진`/`신호`/`신뢰도`/`노이즈` 중심으로 표시한다.
+  내부 저장 key는 기존 `hybrid`, `autocorrelation`, `yin`을 유지한다.
+- 실마이크 pitch 정확도, latency, 소음 환경 안정성은 emulator로 판단하지 않고 Android 실기기 QA에
+  남긴다.
 
 ## 내부테스트 업로드 전 확인
 

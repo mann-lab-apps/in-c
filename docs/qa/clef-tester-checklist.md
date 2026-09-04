@@ -8,7 +8,8 @@
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
 - 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
-- 현재 RC 후보는 `1.0.0+14`이다.
+- 현재 소스 RC 후보는 `1.0.0+15`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
+  함께 기록한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
 - iPad/TestFlight와 Android 태블릿/APK를 모두 테스트할 수 있으면 화면 크기별 표시 차이를 함께 기록한다.
@@ -25,19 +26,21 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열었을 때 시작 버튼 없이 음정/meter/입력 bar가 먼저 보이는지 확인하고,
-   Chromatic/Target mode, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset을 전환한다.
-9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 target shortcut,
-   sharp/flat 표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
+8. 튜너를 열었을 때 시작 버튼 없이 현재 음/meter/입력 bar가 먼저 보이고, 첫 선택지가 `크로매틱`과
+   `기타 줄 맞춤` 중심인지 확인한다.
+9. 기타 줄 맞춤에서 `6E 5A 4D 3G 2B 1E` 버튼이 바로 보이고, 줄을 선택하면 해당 줄 기준으로 cents와
+   target lock 문구가 표시되는지 확인한다.
+10. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
+   표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
    `맞았습니다` 상태를 확인한다.
-10. Target mode에서 target lock을 켜고 다른 줄/음을 넣었을 때 `타겟 음을 기다리는 중`으로 안정적으로
-   표시되는지 확인한다.
-11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-12. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
-13. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
-14. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
-15. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
-16. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
+11. `세부 설정` 아래에서 Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, custom target/preset
+   저장/적용/삭제, target lock on/off가 접근 가능한지 확인한다.
+12. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
+13. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
+14. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
+15. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
+16. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
+17. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
     라이브러리에 진입하는지 확인한다.
 
 ## 선택 테스트
@@ -70,11 +73,12 @@
 
 ## Known Issues
 
-- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Preset/target/custom preset, target lock,
+- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Chromatic-first 첫 화면, 기타 `6E 5A 4D
+  3G 2B 1E` 빠른 줄 선택, 세부 설정 접힘, preset/target/custom preset, target lock,
   sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
-  floor 1차는 자동 테스트로 확인했다. 실제 악기 기준 정확도, latency, 외부
-  마이크 안정성은 Android/iOS 실기기 검증 중이다.
-- 2026-09-02 기준 현재 RC 후보는 `1.0.0+14`이다. 실제 마이크 정확도/latency QA는 아직
+  floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+  실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
+- 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+15`이다. 실제 마이크 정확도/latency QA는 아직
   기록되지 않았다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
