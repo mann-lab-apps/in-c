@@ -5,7 +5,8 @@
 ## 결론
 
 튜너는 `record` 7.1.1 기반 raw PCM stream을 붙여 실제 microphone input pipeline 1차까지
-구현했다. V1 전달 전 보강으로 Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 표시 모드와 별개인
+구현했다. V1 전달 전 보강으로 Chromatic-first 첫 화면, 기타 빠른 줄 맞춤,
+Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 표시 모드와 별개인
 detection profile, Chromatic/Target mode, Guitar standard/Drop D/Bass/Strings/Bb/Eb/F preset,
 target 기준 cents 계산, custom tuning preset 저장, sharp/flat 표기 선택, A4 보정 제안/history,
 target lock, adaptive noise floor 1차, 상용 튜너형 feedback label/meter/LED/input power 표시를
@@ -96,7 +97,8 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - Target lock
   - Target mode에서 선택한 target frequency와 일정 threshold 이상 떨어진 입력은 `타겟 음을 기다리는 중`
     상태로 표시한다.
-  - 기본값은 off이며, 기타/현악처럼 특정 줄 하나를 맞추는 흐름에서 사용자가 켠다.
+  - 기본값은 off이며, `기타 줄 맞춤`에서 줄을 선택하면 자동으로 켜진다.
+  - 기타 줄 target은 `1번줄 E4를 기다리는 중`처럼 줄 번호와 음을 함께 보여준다.
 - Custom tuning
   - 현재 target list를 custom preset으로 저장/적용/삭제한다.
   - 현재 감지된 음을 custom target으로 추가하고, custom target은 chip 삭제로 정리한다.
@@ -104,10 +106,13 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - Viewer 튜너 UI
   - AppBar 또는 overflow menu에서 진입.
   - 공연 모드에서도 진입 가능.
-  - 현재 음 이름, Chromatic/Target mode, tuning preset, 표시 모드, 감지 profile, concert pitch
-    보조 표시, target 기준 cents meter, target shortcut, target을 기준음/드론 root로 맞추는 action,
-    target lock, custom preset 저장/적용/삭제, sharp/flat 표기, A4 기준음 slider/quick action,
-    보정 제안/history, start/stop, signal/confidence와 입력강도 표시.
+  - 첫 화면은 현재 음 이름, cents, meter, LED, input bar, 낮음/정확/높음 feedback,
+    `크로매틱`/`기타 줄 맞춤` 전환, A4 quick action만 전면에 둔다.
+  - 기타 줄 맞춤은 standard guitar target을 `6E 5A 4D 3G 2B 1E` 형태로 보여주고, 줄을 선택하면
+    target lock을 켜서 다른 줄 입력을 기다림 상태로 둔다.
+  - tuning preset, 표시 모드, 감지 profile, target shortcut, target을 기준음/드론 root로 맞추는 action,
+    target lock 상세, custom preset 저장/적용/삭제, sharp/flat 표기, A4 기준음 slider,
+    보정 제안/history는 `세부 설정` 아래에 둔다.
   - listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을 확인할 수 있다.
 - Persistence
   - A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, notation preference,
