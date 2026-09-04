@@ -2278,9 +2278,19 @@ describe('App component shell', () => {
       })
     })
     expect(
-      await screen.findByText(
-        /percussion-policy\.mid로 MIDI를 내보냈습니다\. MIDI 경고 1개: part\[1\]\.staff\[1\]\.measure\[1\]\.clef: Percussion notation is not interpreted in V1 MIDI export; notes on this staff were skipped\./
-      )
+      await screen.findByText((_, element) => {
+        const text = element?.textContent ?? ''
+
+        return (
+          element?.children.length === 0 &&
+          text.includes('percussion-policy.mid로 MIDI를 내보냈습니다.') &&
+          text.includes('MIDI 경고 1개') &&
+          text.includes('part[1].staff[1].measure[1].clef') &&
+          text.includes(
+            'Percussion notation is not interpreted in V1 MIDI export; notes on this staff were skipped.'
+          )
+        )
+      })
     ).toBeInTheDocument()
   })
 
