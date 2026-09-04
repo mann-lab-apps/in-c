@@ -17,6 +17,15 @@ import { parseMusicXml } from '../../musicxml'
 import { unsavedScoreChangesMessage } from './editor/file-lifecycle'
 import { demoScore } from './notation/demo-score'
 
+const withPercussionClef = (musicXml: string) =>
+  musicXml.replace(
+    /<clef>\s*<sign>G<\/sign>\s*<line>2<\/line>\s*<\/clef>/,
+    `<clef>
+          <sign>percussion</sign>
+          <line>2</line>
+        </clef>`
+  )
+
 const twoPartMusicXmlWithPrimaryAnnotations = `<?xml version="1.0" encoding="UTF-8"?>
 <score-partwise version="3.1">
   <work>
@@ -2248,12 +2257,7 @@ describe('App component shell', () => {
     vi.mocked(window.inC.musicXml.open).mockResolvedValue({
       filePath: '/scores/percussion.musicxml',
       fileName: 'percussion.musicxml',
-      contents: recentMusicXml.replace(
-        `<sign>G</sign>
-          <line>2</line>`,
-        `<sign>percussion</sign>
-          <line>2</line>`
-      )
+      contents: withPercussionClef(recentMusicXml)
     })
     vi.mocked(window.inC.midi.save).mockResolvedValue({
       fileName: 'percussion-policy.mid'
