@@ -13,6 +13,10 @@ Chromatics V1은 여러 플랫폼 제품군이 아니라 데스크탑 중심 사
 
 ## Reference Baseline
 
+- 상용 V1 범위 재정의를 위한 공식 문서 기반 gap matrix는
+  `docs/product/chromatics-commercial-v1-reference-gap-matrix.md`를 기준으로 한다.
+  이 문서는 개인용/public alpha 수준이 아니라 commercial release candidate 기준의
+  기능 판정을 보완한다.
 - MuseScore Studio: 데스크탑 무료 사보앱 기준선. duration-before-pitch,
   A-G 입력, 숫자 음가, MusicXML/MIDI/PDF export, parts, voices, palette,
   cloud score publishing을 갖춘다.

@@ -325,6 +325,44 @@ h2 {
   box-shadow: 0 1px 2px rgba(20, 23, 26, 0.08);
 }
 
+.editor-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 24px;
+  border-bottom: 1px solid #d3cdbf;
+  color: #59646a;
+  background: #ebe7dc;
+  font-size: 0.74rem;
+}
+
+.editor-context-strip div {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(199, 192, 179, 0.72);
+  border-radius: 6px;
+  background: rgba(255, 253, 248, 0.62);
+}
+
+.editor-context-strip span {
+  color: #6d777c;
+  font-weight: 700;
+}
+
+.editor-context-strip strong {
+  overflow: hidden;
+  max-width: 280px;
+  color: #202326;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .toolbar-tabs__promo {
   position: relative;
   display: block;
@@ -530,29 +568,30 @@ h2 {
 }
 
 .selection-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  align-items: start;
+  gap: 8px;
+  padding: 8px 24px;
   border-bottom: 1px solid #d3cdbf;
-  background: #f5f1e8;
+  background: #f3efe5;
 }
 
 .inspector-properties {
-  display: flex;
-  flex: 1 1 100%;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 10px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px 10px;
   min-width: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  padding: 8px;
+  border: 1px solid rgba(199, 192, 179, 0.7);
+  border-radius: 6px;
+  background: rgba(255, 253, 248, 0.7);
 }
 
 .inspector-properties h3 {
+  align-self: center;
   margin: 0;
   padding-right: 2px;
   color: #2a3136;
@@ -560,11 +599,10 @@ h2 {
 }
 
 .inspector-properties__grid {
-  display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, max-content));
+  align-items: start;
+  gap: 6px 8px;
   min-width: 0;
 }
 
@@ -574,6 +612,7 @@ h2 {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  min-height: 30px;
 }
 
 .inspector-properties label > span,
@@ -585,7 +624,7 @@ h2 {
 
 .inspector-properties select,
 .inspector-properties button {
-  min-height: 32px;
+  min-height: 30px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   color: #283035;
@@ -593,9 +632,9 @@ h2 {
 }
 
 .inspector-properties input {
-  min-height: 32px;
-  width: min(140px, 100%);
-  padding: 0 8px;
+  min-height: 30px;
+  width: min(112px, 100%);
+  padding: 0 7px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   color: #283035;
@@ -610,8 +649,8 @@ h2 {
 
 .inspector-properties select {
   width: auto;
-  max-width: 150px;
-  padding: 0 8px;
+  max-width: 136px;
+  padding: 0 7px;
 }
 
 .inspector-properties__buttons {
@@ -624,8 +663,8 @@ h2 {
 .inspector-properties__buttons button,
 .inspector-properties__buttons output {
   display: inline-grid;
-  min-height: 32px;
-  padding: 0 8px;
+  min-height: 30px;
+  padding: 0 7px;
   font-weight: 700;
   place-items: center;
 }
@@ -667,9 +706,9 @@ h2 {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  min-height: 68px;
-  padding: 14px 24px;
+  gap: 8px;
+  min-height: 50px;
+  padding: 8px 24px;
   border-bottom: 1px solid #d3cdbf;
   background: rgba(255, 255, 255, 0.58);
   backdrop-filter: blur(16px);
@@ -680,7 +719,7 @@ h2 {
   flex: 1 1 720px;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -1725,6 +1764,7 @@ h2 {
   }
 
   .toolbar-tabs,
+  .editor-context-strip,
   .selection-toolbar,
   .toolbar,
   .playback-strip,

@@ -774,6 +774,19 @@ describe('App component shell', () => {
         .filter((button) => button.hasAttribute('aria-pressed'))
         .map((button) => button.textContent)
     ).toEqual(['파일', '악보', '음표', '가사', '재생'])
+    const contextStrip = screen.getByRole('region', {
+      name: '현재 작업 컨텍스트'
+    })
+    expect(within(contextStrip).getByText('작업')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('입력')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('대상')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('음가')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('재생')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('음표')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('선택')).toBeInTheDocument()
+    expect(within(contextStrip).getByText(/보표 1 · 성부 1/)).toBeInTheDocument()
+    expect(within(contextStrip).getByText('4분음표')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('정지')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '파일' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '음표' })).toHaveAttribute(
       'aria-pressed',
@@ -795,6 +808,7 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('위치별 빠르기 BPM')).not.toBeVisible()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
+    expect(within(contextStrip).getByText('가사')).toBeInTheDocument()
     expect(screen.getByLabelText('가사 절')).toBeVisible()
     const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
     const lyricInput = within(preview).getByLabelText('선택 음표 가사')
@@ -879,6 +893,7 @@ describe('App component shell', () => {
     expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '악보' }))
+    expect(within(contextStrip).getByText('악보')).toBeInTheDocument()
     expect(screen.getByLabelText('조표')).toBeVisible()
     expect(screen.getByLabelText('박자표')).toBeVisible()
     expect(screen.getByLabelText('음자리표')).toBeVisible()
@@ -905,6 +920,7 @@ describe('App component shell', () => {
     expect(tempoVisibilityToggle).not.toBeChecked()
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '파일' }))
+    expect(within(contextStrip).getByText('파일')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('새 악보 만들기')).toBeInTheDocument()
     expect(within(workspace).getByLabelText('MusicXML 가져오기')).toBeInTheDocument()
 
@@ -917,12 +933,14 @@ describe('App component shell', () => {
     fireEvent.click(within(newScoreDialog).getByRole('button', { name: '취소' }))
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '재생' }))
+    expect(within(contextStrip).getAllByText('재생').length).toBeGreaterThan(0)
     expect(within(workspace).getByRole('button', { name: '재생' })).toBeVisible()
     screen
       .getAllByLabelText('빠르기')
       .forEach((element) => expect(element).not.toBeVisible())
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '음표' }))
+    expect(within(contextStrip).getByText('음표')).toBeInTheDocument()
     expect(
       within(workspace).queryByRole('button', { name: '재생' })
     ).not.toBeInTheDocument()
@@ -1482,7 +1500,7 @@ describe('App component shell', () => {
     render(<App />)
 
     expect(screen.getAllByText('4분음표').length).toBeGreaterThan(0)
-    expect(screen.getByText('정지')).toBeInTheDocument()
+    expect(screen.getAllByText('정지').length).toBeGreaterThan(0)
     expect(screen.queryByText(/A-G로 선택한/)).not.toBeInTheDocument()
     expect(screen.getByTestId('notation-preview')).toBeInTheDocument()
   })

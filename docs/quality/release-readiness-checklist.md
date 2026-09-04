@@ -20,7 +20,9 @@
 | 보류 | 핵심 테스트 실패, data/security/production risk 미해소, blocker issue open | blocker issue 처리 후 재판정 |
 
 현재 판정: **조건부 가능**. backend, Windows dev advisory, multi-voice/multi-part advanced
-authoring, production smoke는 제한 또는 별도 검증 항목으로 남긴다.
+authoring, production smoke는 제한 또는 별도 검증 항목으로 남긴다. Commercial V1 기준으로는
+toolbar information architecture 첫 slice가 들어갔지만, 전문 사보앱 수준의 최종 UI
+분리는 아직 release blocker로 남는다.
 
 ## Core Checklist
 
@@ -41,7 +43,8 @@ authoring, production smoke는 제한 또는 별도 검증 항목으로 남긴�
 | --- | --- | --- |
 | `npm run typecheck` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | `npm test` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
-| `npm run test:components` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
+| `npm run test:components` | Pass | [Evidence Log](evidence-log.md#2026-09-04-commercial-v1-toolbar-information-architecture-slice) |
+| Commercial V1 toolbar context | Partial | 현재 작업/입력/part-staff-voice/음가/재생 상태 context strip과 compact panel layout 첫 slice 완료. 최종 palette/inspector/work mode 분리는 남음. |
 | `npm run verify:e2e` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | `npm run verify:visual-regression` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
 | packaged app smoke | Not run | [패키지 앱 운영체제별 smoke matrix](package-app-smoke-matrix.md) |
