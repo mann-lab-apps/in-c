@@ -623,6 +623,35 @@ const installPreloadStub = () => {
   }
 }
 
+const installLocalStorageStub = () => {
+  try {
+    if (window.localStorage) {
+      return
+    }
+  } catch {
+    // jsdom can expose localStorage as unavailable for opaque origins.
+  }
+
+  const store = new Map<string, string>()
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      clear: () => store.clear(),
+      getItem: (key: string) => store.get(key) ?? null,
+      key: (index: number) => Array.from(store.keys())[index] ?? null,
+      removeItem: (key: string) => {
+        store.delete(key)
+      },
+      setItem: (key: string, value: string) => {
+        store.set(key, String(value))
+      },
+      get length() {
+        return store.size
+      }
+    }
+  })
+}
+
 describe('App component shell', () => {
   afterEach(() => {
     cleanup()
@@ -644,6 +673,7 @@ describe('App component shell', () => {
     playbackMockState.stop.mockReset()
     window.history.replaceState({}, '', '/')
     window.confirm = vi.fn(() => true)
+    installLocalStorageStub()
     window.localStorage.clear()
     installPreloadStub()
   })
@@ -2055,7 +2085,7 @@ describe('App component shell', () => {
     expect(within(mixer).getByText('45%')).toBeInTheDocument()
   })
 
-  it('promotion.concert-posters renders toolbar posters from the preload API response', async () => {
+  it('promotion.concert-posters does not render the deprecated toolbar banner', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     vi.mocked(window.inC.promotions.getConcertPosters).mockResolvedValue({
       posters: [
@@ -2076,46 +2106,13 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    const promoGroup = await screen.findByRole('group', {
-      name: '공연 포스터 보기'
-    })
-    const posterButtons = within(promoGroup).getAllByRole('button', {
-      name: '테스트 공연 포스터 포스터 크게 보기'
-    })
-
-    expect(posterButtons).toHaveLength(30)
-    fireEvent.click(posterButtons[0])
-
-    expect(
-      screen.getByRole('dialog', { name: '공연 포스터' })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole('heading', { name: '테스트 공연 포스터' })
-    ).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '공연 보기' })).toHaveAttribute(
-      'href',
-      'https://in-c.mannlab.app/concerts.html'
+    await waitFor(() =>
+      expect(window.inC.promotions.getConcertPosters).not.toHaveBeenCalled()
     )
-  })
-
-  it('promotion.concert-posters keeps the toolbar banner visible when the API is empty', async () => {
-    window.history.replaceState({}, '', '/?fixture=demo')
-    vi.mocked(window.inC.promotions.getConcertPosters).mockResolvedValue({
-      posters: []
-    })
-
-    const { App } = await import('./App')
-    render(<App />)
-
-    const promoGroup = await screen.findByRole('group', {
+    expect(screen.queryByRole('group', {
       name: '공연 포스터 보기'
-    })
-
-    expect(
-      within(promoGroup).getAllByRole('button', {
-        name: /포스터 크게 보기/
-      })
-    ).toHaveLength(30)
+    })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: '공연 포스터' })).not.toBeInTheDocument()
   })
 
   it('clef.change-selected-measure changes only the selected measure clef and reports the result', async () => {
