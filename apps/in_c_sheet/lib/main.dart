@@ -9,6 +9,9 @@ import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'classical_discovery_app.dart';
+import 'classical_discovery_controller.dart';
+import 'classical_discovery_store.dart';
 import 'pdf_link_policy.dart';
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
@@ -35,7 +38,10 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+12';
+const String _clefAppVersion = '1.0.0+14';
+const bool _launchInCDiscoveryHome = bool.fromEnvironment(
+  'IN_C_DISCOVERY_HOME',
+);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +49,15 @@ Future<void> main() async {
 
   final controller = SheetLibraryController(store: SheetLibraryStore());
   await controller.load();
+  final discoveryController = ClassicalDiscoveryController(
+    store: ClassicalDiscoveryStore(),
+  );
+  await discoveryController.load();
+
+  if (_launchInCDiscoveryHome) {
+    runApp(ClassicalDiscoveryApp(controller: discoveryController));
+    return;
+  }
 
   runApp(InCSheetApp(controller: controller));
 }
@@ -72,7 +87,7 @@ class InCSheetApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Clef',
+      title: 'Clef & Staff',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
@@ -272,6 +287,20 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || name == null) {
           return;
         }
+        final duplicate = controller.libraryProfileByName(name);
+        if (duplicate != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('"${duplicate.name}" 라이브러리가 이미 있습니다.'),
+              action: SnackBarAction(
+                label: '열기',
+                onPressed: () =>
+                    unawaited(controller.switchLibraryProfile(duplicate.id)),
+              ),
+            ),
+          );
+          return;
+        }
         await controller.createLibraryProfile(name);
       case _LibraryProfileActionType.rename:
         final name = await _showTextEntryDialog(
@@ -290,6 +319,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (didRename && mounted) {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')));
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('같은 이름의 라이브러리가 이미 있습니다.')),
+          );
         }
       case _LibraryProfileActionType.delete:
         final didConfirm = await showDialog<bool>(
@@ -436,7 +469,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${imported.length}개 PDF를 Clef 라이브러리에 추가했습니다.')),
+      SnackBar(
+        content: Text('${imported.length}개 PDF를 Clef & Staff 라이브러리에 추가했습니다.'),
+      ),
     );
     await _openScore(imported.first);
   }
@@ -1101,7 +1136,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ],
           ),
           IconButton(
-            tooltip: 'PDF 가져오기',
+            tooltip: '악보 추가',
             onPressed: controller.isImporting ? null : _showImportOptions,
             icon: controller.isImporting
                 ? const SizedBox.square(
@@ -1112,15 +1147,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: controller.isImporting
-            ? null
-            : _isBulkSelecting
-            ? _showBulkEdit
-            : _showImportOptions,
-        icon: Icon(_isBulkSelecting ? Icons.edit_note : Icons.add),
-        label: Text(_isBulkSelecting ? '일괄 편집' : '악보 추가'),
-      ),
+      floatingActionButton: _isBulkSelecting
+          ? FloatingActionButton.extended(
+              onPressed: _showBulkEdit,
+              icon: const Icon(Icons.edit_note),
+              label: const Text('일괄 편집'),
+            )
+          : null,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -1748,26 +1781,30 @@ Future<String?> _showTextEntryDialog({
   try {
     return await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: textController,
-          autofocus: true,
-          decoration: InputDecoration(labelText: label),
-          textInputAction: TextInputAction.done,
-          onSubmitted: (value) => Navigator.of(context).pop(value),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
+      builder: (dialogContext) {
+        void close(String? value) {
+          FocusScope.of(dialogContext).unfocus();
+          Navigator.of(dialogContext).pop(value);
+        }
+
+        return AlertDialog(
+          title: Text(title),
+          content: TextField(
+            controller: textController,
+            autofocus: true,
+            decoration: InputDecoration(labelText: label),
+            textInputAction: TextInputAction.done,
+            onSubmitted: close,
           ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(textController.text),
-            child: const Text('저장'),
-          ),
-        ],
-      ),
+          actions: [
+            TextButton(onPressed: () => close(null), child: const Text('취소')),
+            FilledButton(
+              onPressed: () => close(textController.text),
+              child: const Text('저장'),
+            ),
+          ],
+        );
+      },
     );
   } finally {
     textController.dispose();
@@ -2352,64 +2389,76 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilteredEmpty = hasQuery || hasFilter;
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              hasQuery ? Icons.search_off : Icons.library_music_outlined,
-              size: 58,
-              color: Theme.of(context).colorScheme.primary,
-            ),
-            const SizedBox(height: 18),
-            Text(
-              isFilteredEmpty ? '조건에 맞는 악보가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            if (isFilteredEmpty) ...[
-              const SizedBox(height: 8),
-              Text(
-                '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 18),
-              OutlinedButton.icon(
-                onPressed: onClearPressed,
-                icon: const Icon(Icons.filter_alt_off_outlined),
-                label: const Text('검색/필터 초기화'),
-              ),
-            ] else ...[
-              const SizedBox(height: 8),
-              Text(
-                'PDF 또는 JPG/PNG 이미지를 가져와 Clef 라이브러리에 등록할 수 있습니다.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-              const SizedBox(height: 18),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 10,
-                runSpacing: 10,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 360),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  FilledButton.icon(
-                    onPressed: onImportPressed,
-                    icon: const Icon(Icons.add_to_photos_outlined),
-                    label: const Text('악보 추가'),
+                  Icon(
+                    hasQuery ? Icons.search_off : Icons.library_music_outlined,
+                    size: 58,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
-                  OutlinedButton.icon(
-                    onPressed: onTesterInfoPressed,
-                    icon: const Icon(Icons.fact_check_outlined),
-                    label: const Text('테스트 항목'),
+                  const SizedBox(height: 18),
+                  Text(
+                    isFilteredEmpty
+                        ? '조건에 맞는 악보가 없습니다.'
+                        : '악보를 추가해 테스트를 시작하세요.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w900),
                   ),
+                  if (isFilteredEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
+                    OutlinedButton.icon(
+                      onPressed: onClearPressed,
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: const Text('검색/필터 초기화'),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        FilledButton.icon(
+                          onPressed: onImportPressed,
+                          icon: const Icon(Icons.add_to_photos_outlined),
+                          label: const Text('악보 추가'),
+                        ),
+                        OutlinedButton.icon(
+                          onPressed: onTesterInfoPressed,
+                          icon: const Icon(Icons.fact_check_outlined),
+                          label: const Text('테스트 항목'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
-            ],
-          ],
+            ),
+          ),
         ),
       ),
     );
@@ -2531,7 +2580,7 @@ pageMetadataScores=$pageMetadataCount
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef 테스트 정보',
+                  'Clef & Staff 테스트 정보',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -2540,7 +2589,7 @@ pageMetadataScores=$pageMetadataCount
             ],
           ),
           const SizedBox(height: 12),
-          _InfoRow(label: '앱', value: 'Clef'),
+          _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: 'Beta test build'),
           _InfoRow(label: '악보', value: '${scores.length}개'),
@@ -2636,9 +2685,11 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 72,
+            width: 116,
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
@@ -2786,13 +2837,13 @@ class _QuickAccessBand extends StatelessWidget {
 
     final theme = Theme.of(context);
     return SizedBox(
-      height: 116,
+      height: 148,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
           final group = groups[groupIndex];
           return SizedBox(
-            width: 310,
+            width: 350,
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -2888,7 +2939,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
         ? '마지막 ${score.lastPage}쪽'
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
     return SizedBox(
-      width: 156,
+      width: 176,
       child: Material(
         color: theme.colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(8),
@@ -3281,42 +3332,83 @@ class _ScoreTile extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (!isSelecting)
-                    Wrap(
-                      spacing: 0,
-                      children: [
-                        IconButton(
-                          tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
-                          onPressed: () => onFavorite(score),
-                          icon: Icon(
-                            score.isFavorite ? Icons.star : Icons.star_border,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: score.isPinned ? '고정 해제' : '고정',
-                          onPressed: () => onPin(score),
-                          icon: Icon(
-                            score.isPinned
-                                ? Icons.push_pin
-                                : Icons.push_pin_outlined,
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: '악보 정보 편집',
-                          onPressed: () => onEdit(score),
-                          icon: const Icon(Icons.edit_outlined),
-                        ),
-                        IconButton(
-                          tooltip: 'PDF 공유',
-                          onPressed: () => onShare(score),
-                          icon: const Icon(Icons.ios_share),
-                        ),
-                      ],
-                    ),
                 ],
               ),
               const SizedBox(height: 8),
               Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+              if (!isSelecting) ...[
+                const SizedBox(height: 4),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        tooltip: score.isFavorite ? '즐겨찾기 해제' : '즐겨찾기',
+                        onPressed: () => onFavorite(score),
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        iconSize: 21,
+                        icon: Icon(
+                          score.isFavorite ? Icons.star : Icons.star_border,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: score.isPinned ? '고정 해제' : '고정',
+                        onPressed: () => onPin(score),
+                        constraints: const BoxConstraints.tightFor(
+                          width: 36,
+                          height: 36,
+                        ),
+                        iconSize: 21,
+                        icon: Icon(
+                          score.isPinned
+                              ? Icons.push_pin
+                              : Icons.push_pin_outlined,
+                        ),
+                      ),
+                      SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: PopupMenuButton<_ScoreTileAction>(
+                          tooltip: '더보기',
+                          icon: const Icon(Icons.more_vert),
+                          iconSize: 21,
+                          padding: EdgeInsets.zero,
+                          onSelected: (action) {
+                            switch (action) {
+                              case _ScoreTileAction.edit:
+                                onEdit(score);
+                              case _ScoreTileAction.share:
+                                onShare(score);
+                            }
+                          },
+                          itemBuilder: (context) => const [
+                            PopupMenuItem<_ScoreTileAction>(
+                              value: _ScoreTileAction.edit,
+                              child: ListTile(
+                                leading: Icon(Icons.edit_outlined),
+                                title: Text('악보 정보 편집'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                            PopupMenuItem<_ScoreTileAction>(
+                              value: _ScoreTileAction.share,
+                              child: ListTile(
+                                leading: Icon(Icons.ios_share),
+                                title: Text('PDF 공유'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (organization.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 Text(
@@ -3341,6 +3433,8 @@ class _ScoreTile extends StatelessWidget {
     );
   }
 }
+
+enum _ScoreTileAction { edit, share }
 
 class SheetSetlistsScreen extends StatefulWidget {
   const SheetSetlistsScreen({required this.controller, super.key});
@@ -4317,8 +4411,8 @@ _SheetPedalMapping _pedalMappingFromSettings(SheetViewerSettings settings) {
 }
 
 enum _SheetRenderProfile {
-  balanced('균형', Icons.speed_outlined),
-  largePdf('대형 PDF', Icons.memory_outlined);
+  balanced('균형', Icons.balance_outlined),
+  largePdf('대형 PDF', Icons.picture_as_pdf_outlined);
 
   const _SheetRenderProfile(this.label, this.icon);
 
@@ -5135,13 +5229,17 @@ setlist=$setlistLabel
     return PdfRect(left, top, right, bottom);
   }
 
-  Future<void> _goToRelativePage(int delta) async {
+  Future<void> _goToRelativePage(
+    int delta, {
+    bool allowHalfPageTurn = true,
+  }) async {
     if (!_pdfController.isReady) {
       return;
     }
     _stopAutoScroll(showMessage: false);
 
-    if (_usesHalfPageTurnForRelativePage &&
+    if (allowHalfPageTurn &&
+        _usesHalfPageTurnForRelativePage &&
         await _goToRelativeHalfPage(delta)) {
       _showPageControlsTemporarily();
       return;
@@ -8913,7 +9011,7 @@ setlist=$setlistLabel
       _ => null,
     };
     if (delta != null) {
-      unawaited(_handlePedalPageTurn(delta));
+      unawaited(_handlePedalPageTurn(delta, allowHalfPageTurn: false));
       return null;
     }
     switch (intent.action) {
@@ -8931,16 +9029,19 @@ setlist=$setlistLabel
     return null;
   }
 
-  Future<void> _handlePedalPageTurn(int delta) async {
+  Future<void> _handlePedalPageTurn(
+    int delta, {
+    bool allowHalfPageTurn = true,
+  }) async {
     await _pageTurnGuard.run(() async {
       if (!_pdfController.isReady ||
           !_pedalMapping.movesAcrossSetlistBoundary ||
           widget.setlistId == null ||
           _canGoToRelativePage(delta)) {
-        await _goToRelativePage(delta);
+        await _goToRelativePage(delta, allowHalfPageTurn: allowHalfPageTurn);
         return;
       }
-      if (_canGoToRelativeHalfPage(delta)) {
+      if (allowHalfPageTurn && _canGoToRelativeHalfPage(delta)) {
         _stopAutoScroll(showMessage: false);
         if (await _goToRelativeHalfPage(delta)) {
           _showPageControlsTemporarily();
@@ -10556,10 +10657,24 @@ class _ViewerDisplayEffectWrapper extends StatelessWidget {
   }
 }
 
-class _ScrollableAppBarActions extends StatelessWidget {
+class _ScrollableAppBarActions extends StatefulWidget {
   const _ScrollableAppBarActions({required this.children});
 
   final List<Widget> children;
+
+  @override
+  State<_ScrollableAppBarActions> createState() =>
+      _ScrollableAppBarActionsState();
+}
+
+class _ScrollableAppBarActionsState extends State<_ScrollableAppBarActions> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -10570,10 +10685,37 @@ class _ScrollableAppBarActions extends StatelessWidget {
     return SizedBox(
       width: availableWidth,
       height: kToolbarHeight,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(mainAxisSize: MainAxisSize.min, children: children),
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: false,
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final child in widget.children)
+                _AppBarActionSlot(child: child),
+            ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+class _AppBarActionSlot extends StatelessWidget {
+  const _AppBarActionSlot({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final minWidth = child is Center ? 72.0 : kToolbarHeight;
+    return SizedBox(
+      width: minWidth,
+      height: kToolbarHeight,
+      child: Center(child: child),
     );
   }
 }
@@ -13273,6 +13415,11 @@ class _TunerSheetState extends State<_TunerSheet> {
       }
     });
     _demoFrequency = _settings.referencePitchA4.toDouble();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(_inputService.start(settings: _settings));
+      }
+    });
   }
 
   @override
@@ -13891,9 +14038,19 @@ class _TunerSheetState extends State<_TunerSheet> {
     );
     final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
+    final statusMessage = switch (_state.inputStatus) {
+      SheetTunerInputStatus.idle ||
+      SheetTunerInputStatus.permissionDenied ||
+      SheetTunerInputStatus.audioPipelineUnavailable ||
+      SheetTunerInputStatus.error => status.label,
+      _ => feedback.label,
+    };
     final tuningTargets = _activeTuningTargetsFor(_settings);
     final isCustomTargets =
         _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
+    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
+        ? SheetTunerStringTarget.fromTargets(tuningTargets)
+        : const <SheetTunerStringTarget>[];
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -13915,10 +14072,10 @@ class _TunerSheetState extends State<_TunerSheet> {
                       ),
                     ),
                   ),
-                  FilledButton.icon(
+                  IconButton.filledTonal(
                     onPressed: _toggleListening,
                     icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
-                    label: Text(_state.isListening ? '정지' : '시작'),
+                    tooltip: _state.isListening ? '마이크 끄기' : '마이크 켜기',
                   ),
                 ],
               ),
@@ -13942,7 +14099,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          feedback.label,
+                          statusMessage,
                           style: theme.textTheme.labelLarge,
                         ),
                       ),
@@ -13950,8 +14107,166 @@ class _TunerSheetState extends State<_TunerSheet> {
                   ),
                 ),
               ),
-              const SizedBox(height: 22),
-              Text('튜닝 모드', style: theme.textTheme.labelLarge),
+              const SizedBox(height: 18),
+              Center(
+                child: Text(
+                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
+                      '--',
+                  style: theme.textTheme.displayLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: isInTune
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              Center(
+                child: Text(
+                  effectiveReading == null
+                      ? targetLock.isRejected
+                            ? '타겟 음을 기다리는 중'
+                            : '소리를 내면 음을 잡습니다'
+                      : displayedPitch!.detailLabelWith(
+                          preferFlats: _preferFlats,
+                        ),
+                  style: theme.textTheme.labelLarge,
+                ),
+              ),
+              if (targetNote != null && targetWrittenNote != null)
+                Center(
+                  child: Text(
+                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
+                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              Center(
+                child: Text(
+                  '표시 ${_settings.displayMode.label} · 감지 ${_settings.detectionProfile.label}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (reading != null)
+                Center(
+                  child: Text(
+                    '${reading.frequency.toStringAsFixed(2)} Hz · '
+                    '${feedback.displayCents >= 0 ? '+' : ''}'
+                    '${feedback.displayCents.toStringAsFixed(1)} cents',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: targetLock.isRejected
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              if (reading != null)
+                Center(
+                  child: Text(
+                    '신호 ${(reading.signalLevel * 100).round()}%',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              const SizedBox(height: 20),
+              _TunerMeter(feedback: feedback),
+              const SizedBox(height: 14),
+              _TunerLedStrip(feedback: feedback),
+              const SizedBox(height: 14),
+              _TunerInputPowerBar(power: inputPower),
+              if (stringTargets.isNotEmpty) ...[
+                const SizedBox(height: 18),
+                _TunerStringTargetPanel(
+                  title: _settings.tuningPreset.stringTargetPanelLabel,
+                  stringTargets: stringTargets,
+                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
+                  referencePitchA4: _settings.referencePitchA4,
+                  preferFlats: _preferFlats,
+                  onSelected: (target) => unawaited(
+                    _setTargetConcertMidiNumber(target.concertMidiNumber),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              Text(
+                _settings.tuningMode == SheetTunerMode.target
+                    ? '타겟 음'
+                    : '빠른 타겟',
+                style: theme.textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final target in tuningTargets)
+                    if (isCustomTargets)
+                      InputChip(
+                        selected:
+                            _settings.tuningMode == SheetTunerMode.target &&
+                            _settings.targetConcertMidiNumber ==
+                                target.concertMidiNumber,
+                        label: Text(
+                          target.targetLabel(
+                            displayMode: _settings.displayMode,
+                            referencePitchA4: _settings.referencePitchA4,
+                            preferFlats: _preferFlats,
+                          ),
+                        ),
+                        onSelected: (selected) => unawaited(
+                          selected
+                              ? _setTargetConcertMidiNumber(
+                                  target.concertMidiNumber,
+                                )
+                              : _clearTargetConcertMidiNumber(),
+                        ),
+                        onDeleted: () => unawaited(
+                          _removeCustomTarget(target.concertMidiNumber),
+                        ),
+                      )
+                    else
+                      FilterChip(
+                        selected:
+                            _settings.tuningMode == SheetTunerMode.target &&
+                            _settings.targetConcertMidiNumber ==
+                                target.concertMidiNumber,
+                        label: Text(
+                          target.targetLabel(
+                            displayMode: _settings.displayMode,
+                            referencePitchA4: _settings.referencePitchA4,
+                            preferFlats: _preferFlats,
+                          ),
+                        ),
+                        onSelected: (selected) => unawaited(
+                          selected
+                              ? _setTargetConcertMidiNumber(
+                                  target.concertMidiNumber,
+                                )
+                              : _clearTargetConcertMidiNumber(),
+                        ),
+                      ),
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 18),
+                    label: const Text('현재 음 추가'),
+                    onPressed: () =>
+                        unawaited(_addCurrentReadingAsCustomTarget(reading)),
+                  ),
+                  if (_settings.targetConcertMidiNumber != null)
+                    ActionChip(
+                      avatar: const Icon(Icons.close, size: 18),
+                      label: const Text('타겟 해제'),
+                      onPressed: () =>
+                          unawaited(_clearTargetConcertMidiNumber()),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Text('튜닝 설정', style: theme.textTheme.labelLarge),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -14028,152 +14343,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                   }
                 },
               ),
-              const SizedBox(height: 18),
-              Center(
-                child: Text(
-                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
-                      '--',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isInTune
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Center(
-                child: Text(
-                  effectiveReading == null
-                      ? targetLock.isRejected
-                            ? '타겟 음을 기다리는 중'
-                            : '시작하면 마이크로 음을 잡습니다'
-                      : displayedPitch!.detailLabelWith(
-                          preferFlats: _preferFlats,
-                        ),
-                  style: theme.textTheme.labelLarge,
-                ),
-              ),
-              if (targetNote != null && targetWrittenNote != null)
-                Center(
-                  child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
-                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              Center(
-                child: Text(
-                  '표시 ${_settings.displayMode.label} · 감지 ${_settings.detectionProfile.label}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${feedback.displayCents >= 0 ? '+' : ''}'
-                    '${feedback.displayCents.toStringAsFixed(1)} cents',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: targetLock.isRejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '신호 ${(reading.signalLevel * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              _TunerMeter(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerLedStrip(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerInputPowerBar(power: inputPower),
-              const SizedBox(height: 24),
-              Text(
-                _settings.tuningMode == SheetTunerMode.target
-                    ? '타겟 음'
-                    : '빠른 타겟',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final target in tuningTargets)
-                    if (isCustomTargets)
-                      InputChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
-                        onDeleted: () => unawaited(
-                          _removeCustomTarget(target.concertMidiNumber),
-                        ),
-                      )
-                    else
-                      FilterChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
-                      ),
-                  ActionChip(
-                    avatar: const Icon(Icons.add, size: 18),
-                    label: const Text('현재 음 추가'),
-                    onPressed: () =>
-                        unawaited(_addCurrentReadingAsCustomTarget(reading)),
-                  ),
-                  if (_settings.targetConcertMidiNumber != null)
-                    ActionChip(
-                      avatar: const Icon(Icons.close, size: 18),
-                      label: const Text('타겟 해제'),
-                      onPressed: () =>
-                          unawaited(_clearTargetConcertMidiNumber()),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
@@ -14474,10 +14644,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     SheetTunerInputStatus status,
   ) {
     return switch (status) {
-      SheetTunerInputStatus.idle => (
-        icon: Icons.tune,
-        label: '대기 · 시작하면 마이크 입력을 분석합니다',
-      ),
+      SheetTunerInputStatus.idle => (icon: Icons.tune, label: '마이크 준비 중'),
       SheetTunerInputStatus.listening => (
         icon: Icons.mic,
         label: '마이크 입력 수신 중',
@@ -14488,7 +14655,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       ),
       SheetTunerInputStatus.permissionDenied => (
         icon: Icons.mic_off_outlined,
-        label: '설정에서 Clef 마이크 권한을 허용해주세요',
+        label: '설정에서 Clef & Staff 마이크 권한을 허용해주세요',
       ),
       SheetTunerInputStatus.audioPipelineUnavailable => (
         icon: Icons.error_outline,
@@ -14683,6 +14850,172 @@ class _TunerLedStrip extends StatelessWidget {
       SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
       SheetTunerLedState.off => theme.colorScheme.outline,
     };
+  }
+}
+
+class _TunerStringTargetPanel extends StatelessWidget {
+  const _TunerStringTargetPanel({
+    required this.title,
+    required this.stringTargets,
+    required this.selectedConcertMidiNumber,
+    required this.referencePitchA4,
+    required this.preferFlats,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<SheetTunerStringTarget> stringTargets;
+  final int? selectedConcertMidiNumber;
+  final int referencePitchA4;
+  final bool preferFlats;
+  final ValueChanged<SheetTunerTarget> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.55,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.linear_scale, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  title,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '6 -> 1',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 720
+                    ? math.min(stringTargets.length, 4)
+                    : constraints.maxWidth >= 460
+                    ? math.min(stringTargets.length, 3)
+                    : 2;
+                final spacing = 8.0;
+                final width =
+                    (constraints.maxWidth - (spacing * (columns - 1))) /
+                    columns;
+                return Wrap(
+                  spacing: spacing,
+                  runSpacing: spacing,
+                  children: [
+                    for (final stringTarget in stringTargets)
+                      SizedBox(
+                        width: width,
+                        child: _TunerStringTargetButton(
+                          stringTarget: stringTarget,
+                          selected:
+                              selectedConcertMidiNumber ==
+                              stringTarget.target.concertMidiNumber,
+                          referencePitchA4: referencePitchA4,
+                          preferFlats: preferFlats,
+                          onSelected: onSelected,
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TunerStringTargetButton extends StatelessWidget {
+  const _TunerStringTargetButton({
+    required this.stringTarget,
+    required this.selected,
+    required this.referencePitchA4,
+    required this.preferFlats,
+    required this.onSelected,
+  });
+
+  final SheetTunerStringTarget stringTarget;
+  final bool selected;
+  final int referencePitchA4;
+  final bool preferFlats;
+  final ValueChanged<SheetTunerTarget> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final target = stringTarget.target;
+    final pitch = SheetTunerPitch.noteFromMidi(
+      target.concertMidiNumber,
+      referencePitchA4: referencePitchA4,
+    );
+    return Material(
+      color: selected
+          ? theme.colorScheme.primaryContainer
+          : theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onSelected(target),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${stringTarget.stringNumber}번줄',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                pitch.labelWith(preferFlats: preferFlats),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: selected
+                      ? theme.colorScheme.onPrimaryContainer
+                      : theme.colorScheme.onSurface,
+                ),
+              ),
+              Text(
+                '${pitch.frequency.toStringAsFixed(1)} Hz',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

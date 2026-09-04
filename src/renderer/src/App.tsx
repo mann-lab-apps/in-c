@@ -669,6 +669,19 @@ export const App = () => {
   const activeTimeSignatureId = activeTimeSignature
     ? resolveTimeSignaturePresetId(activeTimeSignature)
     : timeSignaturePresets[2].id
+  const activeToolbarCategoryLabel =
+    toolbarCategories.find((category) => category.id === toolbarCategory)
+      ?.label ?? '음표'
+  const activeScopeLabel = resolveActiveScopeLabel(score, activeAddress)
+  const inputModeLabel = noteInputState
+    ? noteInputState.mode === 'rest'
+      ? '쉼표 입력'
+      : '음표 입력'
+    : mode === 'rest'
+      ? '쉼표 준비'
+      : mode === 'note'
+        ? '음표 준비'
+        : '선택'
   const activeTempoDefaultBeat = resolveDefaultTempoBeatForTimeSignature(
     activeTimeSignature ?? timeSignaturePresets[2].value
   )
@@ -4764,6 +4777,32 @@ export const App = () => {
       </nav>
 
       <section
+        className="editor-context-strip"
+        aria-label="현재 작업 컨텍스트"
+      >
+        <div>
+          <span>작업</span>
+          <strong>{activeToolbarCategoryLabel}</strong>
+        </div>
+        <div>
+          <span>입력</span>
+          <strong>{inputModeLabel}</strong>
+        </div>
+        <div>
+          <span>대상</span>
+          <strong>{activeScopeLabel}</strong>
+        </div>
+        <div>
+          <span>음가</span>
+          <strong>{durationLabels[activeDurationValue]}</strong>
+        </div>
+        <div>
+          <span>재생</span>
+          <strong>{playbackStatusLabels[playback.status]}</strong>
+        </div>
+      </section>
+
+      <section
         className="selection-toolbar"
         aria-label="음표 편집"
         hidden={toolbarCategory !== 'note'}
@@ -8656,6 +8695,31 @@ function parsePdfTargetPages(value: PdfTargetPagesValue): number | undefined {
   const pageCount = Number(value)
 
   return Number.isInteger(pageCount) && pageCount >= 1 ? pageCount : undefined
+}
+
+function resolveActiveScopeLabel(
+  score: Score,
+  address: VoiceAddress | undefined
+): string {
+  if (!address) {
+    return '선택 없음'
+  }
+
+  const partIndex = score.parts.findIndex((part) => part.id === address.partId)
+  const part = partIndex >= 0 ? score.parts[partIndex] : undefined
+  const staff = part?.staves.find((candidate) => candidate.id === address.staffId)
+  const staffIndex =
+    part?.staves.findIndex((candidate) => candidate.id === address.staffId) ?? -1
+  const measure = staff?.measures.find(
+    (candidate) => candidate.id === address.measureId
+  )
+  const voiceIndex =
+    measure?.voices.findIndex((voice) => voice.id === address.voiceId) ?? -1
+  const partLabel = part?.name ?? `Part ${partIndex + 1}`
+  const staffLabel = staffIndex >= 0 ? `보표 ${staffIndex + 1}` : '보표 ?'
+  const voiceLabel = voiceIndex >= 0 ? `성부 ${voiceIndex + 1}` : '성부 ?'
+
+  return `${partLabel} · ${staffLabel} · ${voiceLabel}`
 }
 
 function waitForNextPaint(): Promise<void> {

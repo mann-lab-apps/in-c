@@ -27,6 +27,17 @@
 | 사용자 영향 | 이 항목들이 미완성인 상태라면 Chromatics는 내부/비공개 QA 후보일 수는 있어도 전문 V1 public release 후보가 아니다. |
 | 문서 근거 | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#current-gap-against-professional-v1), [Feature Map](../product/feature-map.md) |
 
+## Commercial V1 Toolbar Information Architecture Is Partial
+
+| 항목 | 내용 |
+| --- | --- |
+| 유형 | 부분 지원 |
+| 연결 이슈 | Commercial V1 UX information architecture slice |
+| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했지만, Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 최종 상용 V1 정보 구조는 아직 완성되지 않았다. |
+| 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태를 파악하기 쉬워졌지만, 전문 사보앱 수준의 palette/inspector/work mode 체계로 보려면 추가 정리가 필요하다. |
+| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 상단 context strip에서 확인할 수 있고, 탭별 도구 패널은 더 compact하게 렌더링된다. |
+| 문서 근거 | [Commercial V1 Reference Gap Matrix](../product/chromatics-commercial-v1-reference-gap-matrix.md#commercial-v1에서-반드시-줄여야-할-blocker) |
+
 ## Backend Is Not Live
 
 | 항목 | 내용 |

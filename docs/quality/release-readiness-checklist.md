@@ -25,7 +25,9 @@ unpacked packaged smoke는 최신 pass 상태이며, 제품 owner가 실제 수�
 기반 packaged app save/open/export, PDF/MIDI 외부 앱 열기, playback/mixer 청감 QA,
 installer/DMG, Windows packaged smoke evidence가 채워진 뒤 판정한다. 이 항목은 professional
 V1 blocker이므로 public V1 known limitation으로 옮기지 않는다. Linux는 V1 public release
-target이 아니라 post-V1 follow-up target이다.
+target이 아니라 post-V1 follow-up target이다. Commercial V1 기준으로는 toolbar information
+architecture 첫 slice가 들어갔지만, 전문 사보앱 수준의 최종 UI 분리는 아직 release
+blocker로 남는다.
 
 ## Core Checklist
 
@@ -47,6 +49,7 @@ target이 아니라 post-V1 follow-up target이다.
 | `npm run typecheck` | Pass | [Evidence Log](evidence-log.md#2026-09-03-pdf-page-setup-renderer-contract-run) |
 | `npm test` | Pass | Latest sweep: [Evidence Log](evidence-log.md#2026-09-03-automatable-v1-gate-sweep) |
 | `npm run test:components` | Pass | [Evidence Log](evidence-log.md#2026-07-15-run) |
+| Commercial V1 toolbar context | Partial | 현재 작업/입력/part-staff-voice/음가/재생 상태 context strip과 compact panel layout 첫 slice 완료. 최종 palette/inspector/work mode 분리는 남음. Latest evidence: [Evidence Log](evidence-log.md#2026-09-04-commercial-v1-toolbar-information-architecture-slice) |
 | `npm run verify:e2e` | Pass | Latest sweep: [Evidence Log](evidence-log.md#2026-09-03-automatable-v1-gate-sweep) |
 | `npm run verify:visual-regression` | Pass | Latest sweep: [Evidence Log](evidence-log.md#2026-09-03-automatable-v1-gate-sweep); collision and dense lane evidence: [Evidence Log](evidence-log.md#2026-09-03-engraving-collision-span-lane-run), [Evidence Log](evidence-log.md#2026-09-03-engraving-dense-upper-annotation-lane-run) |
 | `npm run verify:musicxml-fixtures` | Partial | Compatibility seed fixture QA, manifest metadata gate, supported notation expectation, and warning path snapshot pass; real MuseScore/Dorico/Sibelius/Finale app-export fixture collection remains required in [External MusicXML Fixture QA](external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc). Latest automated evidence: [Evidence Log](evidence-log.md#2026-09-03-automatable-v1-gate-sweep) |

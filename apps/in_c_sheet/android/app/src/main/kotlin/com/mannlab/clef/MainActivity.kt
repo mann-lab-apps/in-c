@@ -1,4 +1,4 @@
-package com.mannlab.clef
+package com.mannlab.inc
 
 import android.content.Intent
 import android.media.AudioFormat

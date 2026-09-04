@@ -331,6 +331,44 @@ h2 {
   box-shadow: 0 1px 2px rgba(20, 23, 26, 0.08);
 }
 
+.editor-context-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 6px 20px;
+  border-bottom: 1px solid #d3cdbf;
+  color: #59646a;
+  background: #ebe7dc;
+  font-size: 0.74rem;
+}
+
+.editor-context-strip div {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(199, 192, 179, 0.72);
+  border-radius: 6px;
+  background: rgba(255, 253, 248, 0.62);
+}
+
+.editor-context-strip span {
+  color: #6d777c;
+  font-weight: 700;
+}
+
+.editor-context-strip strong {
+  overflow: hidden;
+  max-width: 280px;
+  color: #202326;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .selection-toolbar {
   display: flex;
   flex-wrap: nowrap;
@@ -1542,6 +1580,7 @@ h2 {
   }
 
   .toolbar-tabs,
+  .editor-context-strip,
   .selection-toolbar,
   .toolbar,
   .playback-strip,

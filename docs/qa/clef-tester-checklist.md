@@ -1,4 +1,4 @@
-# Clef 외부 테스터 체크리스트
+# Clef & Staff 외부 테스터 체크리스트
 
 작성일: 2026-08-26
 
@@ -6,8 +6,9 @@
 
 - v1 RC 전체 실행 순서와 기록 양식은 `docs/qa/clef-v1-rc-qa-plan.md`를 먼저 확인한다.
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
-- 설치 후 런처/앱 이름이 `Clef`로 보이는지 확인한다.
+- 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
+- 현재 RC 후보는 `1.0.0+14`이다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
 - iPad/TestFlight와 Android 태블릿/APK를 모두 테스트할 수 있으면 화면 크기별 표시 차이를 함께 기록한다.
@@ -24,7 +25,8 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열어 Chromatic/Target mode, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset을 전환한다.
+8. 튜너를 열었을 때 시작 버튼 없이 음정/meter/입력 bar가 먼저 보이는지 확인하고,
+   Chromatic/Target mode, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset을 전환한다.
 9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 target shortcut,
    sharp/flat 표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
    `맞았습니다` 상태를 확인한다.
@@ -35,6 +37,8 @@
 13. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
 14. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
 15. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
+16. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
+    라이브러리에 진입하는지 확인한다.
 
 ## 선택 테스트
 
@@ -70,10 +74,12 @@
   sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
   floor 1차는 자동 테스트로 확인했다. 실제 악기 기준 정확도, latency, 외부
   마이크 안정성은 Android/iOS 실기기 검증 중이다.
-- 2026-08-31 기준 `1.0.0+10` 튜너 보강분 AAB는 준비됐지만, ADB에 연결된 Android 기기가 없어
-  실제 마이크 QA는 아직 기록되지 않았다.
+- 2026-09-02 기준 현재 RC 후보는 `1.0.0+14`이다. 실제 마이크 정확도/latency QA는 아직
+  기록되지 않았다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
+- 카메라로 종이 악보를 직접 촬영해 PDF로 만드는 내장 스캐너는 v1 범위가 아니다. v1에서는 이미
+  만들어진 PDF/JPG/PNG를 가져오고, JPG/PNG 여러 장을 PDF 악보로 묶는 흐름을 확인한다.
 - 필기 포함 PDF 공유는 편집 가능한 PDF annotation embed가 아니라 새 PDF 사본에 stamp하는 방식이다.
 - crop/rotation/page hide는 원본 PDF를 바꾸지 않는 앱 metadata/display 중심 기능이다.
 - URL link 제거는 synthetic link PDF fixture 기준으로 검증되어 있다. 실제 CamScanner/object stream

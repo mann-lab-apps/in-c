@@ -301,8 +301,8 @@ flutter build ios --release --no-codesign
 2026-08-30 실기기 1차 QA 반영 기록:
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
-- 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너 보강분 내부테스트 빌드는
-  `1.0.0+10`, `1.0.0+11`, 최종 RC 후보는 `1.0.0+12`로 준비했다.
+- 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI 보강분은
+  `1.0.0+14` RC 후보로 준비한다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -312,25 +312,26 @@ flutter build ios --release --no-codesign
   완료하지 않았다. 실제 link annotation/object stream 샘플 확보 후 blocker를 닫는다.
 - 한국어 버전을 원하는 사용자 요구가 있으므로 앱 내 피드백 템플릿과 QA 기록에 어색한 한글
   문구/표시 항목을 추가했다.
-- Android launcher/adaptive/themed icon을 Flutter 기본 아이콘에서 Clef C음자리표 아이콘으로 교체했다.
-- Store/launcher 표시 이름은 현재 `Clef`를 유지한다. 단독 `Clef`, `in Clef`, `in C - Clef` 등
-  이름 후보는 기존 음악 앱과의 구분 가능성을 보고 출시 전 별도 결정한다. 패키지명과 내부
-  프로젝트명은 배포 연속성을 위해 `com.mannlab.clef` / Clef를 유지한다.
+- Android launcher/adaptive/themed icon을 Flutter 기본 아이콘에서 Clef & Staff C음자리표/오선
+  아이콘으로 교체했다.
+- Store/launcher 표시 이름은 `Clef & Staff`로 정했다. 단독 `Clef`, `in Clef`, `in C - Clef` 등
+  후보는 기존 음악 앱과의 구분 가능성과 악보앱 브랜딩 기준에서 제외했다. 패키지명과 내부
+  프로젝트명은 배포 연속성을 위해 `com.mannlab.clef` / Clef 계열을 유지한다.
 
 2026-08-31 튜너 실기기 QA 준비 기록:
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 repo version은 `1.0.0+12`이다.
+- 현재 repo version은 `1.0.0+14`이다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
-- 내부테스트 업로드 대상 AAB는
-  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-1.0.0+10-release.aab`이다.
+- 이전 튜너 보강분 내부테스트 AAB는 `1.0.0+10`으로 만들었고, 최종 UI polish 재배포 대상은
+  `1.0.0+14` release AAB로 새로 만든다.
 
 2026-08-31 RC 잔여 안정화/작업트리 분리 기록:
 
-- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`을 `1.0.0+10`으로 맞췄다.
+- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`을 같은 값으로 맞춘다.
 - `tool/rc_release_check.dart`는 이제 두 version 값이 다르면 실패한다.
 - 현재 작업트리에 남아 있는 `classical_discovery_*`, `classical_concert_import.dart`,
   `classical_admin_commands.dart`, `classical_promotion_reporting.dart`, `classical_discovery_app.dart`,
@@ -344,7 +345,7 @@ flutter build ios --release --no-codesign
 
 - classical discovery dirty 변경을 RC 검증에 섞지 않기 위해 clean temp worktree
   `/private/tmp/clef-sim-qa-dev`에서 Clef viewer hunk만 적용해 검증했다.
-- `clef_rc_tablet_api35` emulator에서 앱 `1.0.0+10` 테스트 정보 표시, 홈 카드 식별 정보,
+- `clef_rc_tablet_api35` emulator에서 이전 내부테스트 빌드의 테스트 정보 표시, 홈 카드 식별 정보,
   `short-score.pdf` content URI import/render, 세로 viewer toolbar 좌우 swipe, 마지막 page의
   `곡 끝` 안내, 튜너 bottom sheet 진입을 확인했다.
 - ADB의 직접 `file://` intent는 Android scoped storage 권한으로 거부되므로 제품 QA 기준에서는
@@ -354,3 +355,27 @@ flutter build ios --release --no-codesign
   `flutter build apk --debug`, `git diff --check`가 통과했다.
 - 이번 closeout은 release AAB를 새로 만들지 않았다. Clef viewer toolbar/page edge 변경을 내부테스트에
   배포하려면 다음 release build에서 versionCode를 올려 AAB/APK를 생성한다.
+
+2026-09-02 최종 UI/QA polish 기록:
+
+- `fdc40fc fix: polish Clef tuner and library actions`에서 렌더링 프리셋 `균형`/`대형 PDF` 아이콘을
+  메트로놈과 구분하고, 튜너 첫 화면을 음정/meter/입력 bar/줄 선택 중심으로 재정렬했다.
+- 튜너 bottom sheet는 진입 직후 마이크 입력을 시작하고, 큰 `시작` 버튼 대신 작은 마이크 toggle만 둔다.
+- 라이브러리 생성 시 기존 이름과 중복되면 조용히 실패하지 않고 `이미 있습니다` 안내와 `열기` action을
+  표시한다.
+- 일반 라이브러리 화면의 `악보 추가` 진입점은 상단 action 하나로 정리하고, 빈 상태 안내 CTA와 일괄
+  선택 모드의 `일괄 편집` FAB만 예외로 유지한다.
+- dev 병합분에 포함된 classical discovery 코드는 별도 앱/후속 surface로 보존하되, Clef & Staff RC
+  홈 상단에는 `클래식 듣기` 진입점을 노출하지 않는다.
+- 홈 카드 action icon은 제목과 같은 줄에서 경쟁하지 않도록 별도 줄로 내려 metadata가 비어 있는
+  악보도 title/source filename/recent/last page로 식별되게 했다.
+- 라이브러리 이름 입력 dialog는 저장/취소/submitted 전에 keyboard focus를 해제해 emulator에서
+  발견된 Flutter dialog teardown assertion을 방지한다.
+- 카메라 기반 직접 스캐너는 v1 구현 범위가 아니며 Later/v1.1 후보로 유지한다. v1은 PDF/JPG/PNG
+  import와 이미지 묶기 PDF 변환, 스캔된 PDF 처리에 집중한다.
+- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`은 `1.0.0+14`로 맞췄다.
+- `flutter build appbundle --release`로 `1.0.0+14` release AAB를 생성했다. Play Console 업로드 후보는
+  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+14-release.aab`이며,
+  SHA-256은 `1398d3d54343695e4712ab4e140e64def4d982895b08b29ecfd057c2d18945b6`이다. release
+  signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
+  일치한다.

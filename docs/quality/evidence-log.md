@@ -525,6 +525,27 @@
 | 13 | `gh run watch 33732194542 --repo mann-lab-apps/in-c --exit-status` | Pass | GitHub Actions `Site` workflow built and deployed GitHub Pages successfully |
 | 14 | `npm run verify:site-production` | Pass | production pages, fallback redirect, legacy `/in-c/`, robots/sitemap, canonical URL, download manifest/release links, and TLS certificate passed at `https://in-c.mannlab.app` |
 
+## 2026-09-04 Commercial V1 Reference Scope Run
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | 공식 문서 조사 | Pass | MuseScore Studio Handbook, Dorico Pro 6.2 Help, Avid Sibelius Documentation/What's New를 기준으로 commercial V1 feature surface 분석 |
+| 2 | `docs/product/chromatics-commercial-v1-reference-gap-matrix.md` 작성 | Pass | 사용자 기대 V1 기능을 Commercial V1 Required / V1 Polish / Post-V1 / Out of Scope로 분류 |
+| 3 | `docs/product/chromatics-desktop-v1.md` 연결 | Pass | 기존 V1 문서의 Reference Baseline에서 commercial V1 gap matrix를 참조하도록 보강 |
+| 4 | 앱/사이트 빌드 및 전체 테스트 | Not run | 코드 변경이 없는 제품 문서 변경 |
+| 5 | `git diff --check` | Pass | whitespace error 없음 |
+
+## 2026-09-04 Commercial V1 Toolbar Information Architecture Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm run test:components` | Fail, then Pass | 첫 실행에서 context strip의 `재생`/`정지` 텍스트가 기존 상태 텍스트와 중복되어 테스트 조회가 모호했다. 테스트를 컨테이너 범위/복수 조회로 조정한 뒤 46 tests passed. |
+| 2 | `npm run typecheck` | Pass | `tsc --noEmit` 성공 |
+| 3 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 4 | `npm test` | Pass | 29 files / 363 tests passed |
+| 5 | Browser visual smoke | Not run | 세션에 Browser skill 문서는 있었지만 필요한 Node browser-control tool이 노출되지 않아 직접 스크린샷 검증은 수행하지 못했다. 수동 visual QA 필요. |
+| 6 | `git diff --check` | Pass | whitespace error 없음 |
+
 ## Not Run In This Package
 
 | 항목 | 이유 | 후속 기준 |

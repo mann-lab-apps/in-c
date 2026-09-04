@@ -277,6 +277,19 @@ void main() {
     expect(controller.scores.single.id, 'default-score');
   });
 
+  test('finds duplicate library profile names before create UX', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final profile = await store.createLibraryProfile('Recital');
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(controller.libraryProfileByName(' recital ')?.id, profile.id);
+    expect(controller.libraryProfileByName('RECITAL')?.id, profile.id);
+    expect(controller.libraryProfileByName('Lessons'), isNull);
+    expect(controller.libraryProfileByName('   '), isNull);
+  });
+
   test(
     'switches between linked score parts without editing originals',
     () async {
