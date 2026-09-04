@@ -58,8 +58,8 @@ flutter build ios --release --no-codesign
 - 앱 이름/런처 label은 `Clef & Staff`이다.
 - 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
   생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
-- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+14`이며, 튜너 간결화 변경분을 배포하려면
-  `1.0.0+15` 이상의 새 release AAB를 사용한다.
+- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+14`이며, 튜너 간결화와 Hybrid/YIN 감지 엔진
+  변경분을 배포하려면 `1.0.0+15` 이상의 새 release AAB를 사용한다.
 
 ## 준비물
 
@@ -176,7 +176,7 @@ iPad/iOS smoke:
 Audio/tuner:
 
 - tuner no-signal behavior, 440/441/442Hz A4 quick action/history, reference tone frequency/cents,
-  instrument profile 표시.
+  instrument profile 표시, 세부 설정의 감지 엔진(`Hybrid`, `Autocorrelation`, `YIN`)과 감지 진단 label.
 - Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset 전환, Target mode shortcut, target lock
   on/off, 다른 줄/음 입력 시 `타겟 음을 기다리는 중` 표시.
 - 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
@@ -193,6 +193,8 @@ Tuner 정확도 비교:
 마이크/입력원:
 주변 환경: 조용함 / 보통 / 시끄러움
 A4 기준: 440 / 441 / 442 Hz
+Clef 감지 엔진: Hybrid / Autocorrelation / YIN
+Clef 감지 진단: rms / confidence / noise / reject
 
 음 / 악기:
 Clef note:

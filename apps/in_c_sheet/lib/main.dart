@@ -13890,6 +13890,23 @@ class _TunerSheetState extends State<_TunerSheet> {
     await widget.onSettingsChanged(nextSettings);
   }
 
+  Future<void> _setDetectionAlgorithm(
+    SheetTunerPitchDetectionAlgorithm detectionAlgorithm,
+  ) async {
+    final nextSettings = _settings.copyWith(
+      detectionAlgorithm: detectionAlgorithm,
+    );
+    _feedbackStabilizer.reset();
+    setState(() {
+      _settings = nextSettings;
+      if (!_state.isListening) {
+        _state = _stateWithFrequency(_demoFrequency, isListening: false);
+      }
+    });
+    _inputService.updateSettings(nextSettings);
+    await widget.onSettingsChanged(nextSettings);
+  }
+
   void _setDemoFrequency(double value) {
     if (_state.isListening) {
       return;
@@ -14128,6 +14145,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       inputStatus: feedbackInputStatus,
       reading: reading,
     );
+    final detectionDebugInfo = _inputService.detectionDebugInfo;
     final calibrationSuggestion = SheetTunerReferenceCalibration.suggest(
       readings: _recentCalibrationReadings,
       currentReferencePitchA4: _settings.referencePitchA4,
@@ -14484,6 +14502,49 @@ class _TunerSheetState extends State<_TunerSheet> {
                       }
                     },
                   ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<SheetTunerPitchDetectionAlgorithm>(
+                    initialValue: _settings.detectionAlgorithm,
+                    decoration: const InputDecoration(
+                      labelText: '감지 엔진',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SheetTunerPitchDetectionAlgorithm.values
+                        .map(
+                          (algorithm) =>
+                              DropdownMenuItem<
+                                SheetTunerPitchDetectionAlgorithm
+                              >(value: algorithm, child: Text(algorithm.label)),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        unawaited(_setDetectionAlgorithm(value));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _settings.detectionAlgorithm.description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (detectionDebugInfo != null) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '감지 진단 ${detectionDebugInfo.label}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerLeft,

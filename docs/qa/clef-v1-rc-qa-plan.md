@@ -113,11 +113,12 @@ v1.1 spike 여부:
 - Android 태블릿의 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장은 2026-08-30 1차 QA에서
   확인했다. S Pen, Bluetooth/USB 페달, cloud provider, CamScanner link annotation, audio latency,
   iPad smoke는 별도 실기기/샘플 QA가 필요하다.
-- 튜너의 sine/noise/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-first로 단순화했고,
+- 튜너의 sine/noise/plucked string/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-first로 단순화했고,
   기타 줄 맞춤은 `6E 5A 4D 3G 2B 1E` 빠른 버튼과 target lock으로 진입한다. 악기별 preset,
   custom target/preset 저장, sharp/flat 표기, target cents, LED/input power 상태,
-  A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold는 자동 테스트와
-  widget smoke test로 검증했다. 실제 악기/기기 마이크 기준 정확도, latency,
+  A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold,
+  Hybrid/YIN/autocorrelation 감지 엔진과 debug label은 자동 테스트와 widget smoke test로 검증했다.
+  실제 악기/기기 마이크 기준 정확도, latency,
   외부 마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
 - 스캔 PDF와 이미지 기반 PDF는 OCR을 지원하지 않으므로 PDF 본문 검색 결과가 없을 수 있다.
   검색 UI는 embedded text 전용 helper와 OCR unsupported 안내를 사용한다.
@@ -375,6 +376,9 @@ flutter build ios --release --no-codesign
   형태로 표시한다.
 - 긴 preset/display/profile/custom target/drone/A4 slider는 `세부 설정` 아래로 내려 첫 화면의 조작
   부담을 줄였다.
+- 상용 튜너급 비교를 위해 세부 설정 아래에 `Hybrid`, `Autocorrelation`, `YIN` 감지 엔진 선택과
+  RMS/confidence/noise floor/reject reason 진단 label을 추가했다. 기본값은 plucked string 회귀와
+  fine cents 비교를 함께 보는 `Hybrid`다.
 - dev 병합분에 포함된 classical discovery 코드는 별도 앱/후속 surface로 보존하되, Clef & Staff RC
   홈 상단에는 `클래식 듣기` 진입점을 노출하지 않는다.
 - 홈 카드 action icon은 제목과 같은 줄에서 경쟁하지 않도록 별도 줄로 내려 metadata가 비어 있는
@@ -389,4 +393,4 @@ flutter build ios --release --no-codesign
   SHA-256은 `1398d3d54343695e4712ab4e140e64def4d982895b08b29ecfd057c2d18945b6`이다. release
   signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
   일치한다.
-- 튜너 간결화 변경분이 포함된 `1.0.0+15` release AAB는 아직 생성하지 않았다.
+- 튜너 간결화 및 Hybrid/YIN 감지 엔진 변경분이 포함된 `1.0.0+15` release AAB는 아직 생성하지 않았다.

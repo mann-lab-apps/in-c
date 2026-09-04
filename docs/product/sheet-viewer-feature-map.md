@@ -95,7 +95,7 @@
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
-| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, autocorrelation detector, RMS gate/confidence, median smoothing, profile별 no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Chromatic-first 첫 화면, Guitar standard 빠른 줄 맞춤(`6E 5A 4D 3G 2B 1E`)과 target lock, Guitar Drop D/DADGAD/half-step down/7-string, Bass/5-string bass, Ukulele, Mandolin, Strings, Bb/Eb/F preset 세부 설정, custom target/preset 저장, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 입력강도 bar, LED flat/center/sharp strip, 소리 작음/잡는 중/낮음/높음/맞음 feedback, needle damping/in-tune hold. synthetic sine/noise/time-series/widget test 통과. 실기기 정확도/latency 검증 필요 |
+| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, median smoothing, profile별 no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Chromatic-first 첫 화면, Guitar standard 빠른 줄 맞춤(`6E 5A 4D 3G 2B 1E`)과 target lock, Guitar Drop D/DADGAD/half-step down/7-string, Bass/5-string bass, Ukulele, Mandolin, Strings, Bb/Eb/F preset 세부 설정, custom target/preset 저장, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 입력강도 bar, LED flat/center/sharp strip, 소리 작음/잡는 중/낮음/높음/맞음 feedback, needle damping/in-tune hold, 감지 엔진/debug label. synthetic sine/noise/plucked string/time-series/widget test 통과. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
@@ -145,12 +145,13 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
   추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
 - 메트로놈. 6차 구현은 visual metronome, BPM/박자 저장, start/stop, accent beat 표시다.
-- 크로매틱/타겟 튜너. `record` 기반 microphone PCM stream, autocorrelation pitch detector, RMS
+- 크로매틱/타겟 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
   gate, confidence, median smoothing, no-signal debounce, octave guard, note hysteresis를 붙였다.
   V1 UX는 Chromatic-first로 현재 음/cents/meter/input bar를 먼저 보여주고, 기타는 `6E 5A 4D 3G
   2B 1E` 빠른 줄 맞춤으로 제공한다. Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 악기별 tuning
   preset, custom tuning target/preset, sharp/flat 표기, A4 보정 제안/history, 기준음/드론 상세 조작은
-  세부 설정 아래로 내렸다. Android 태블릿 실기기 정확도/latency 검증은 후속이다.
+  세부 설정 아래로 내렸다. YIN 후보와 plucked string 회귀 테스트, 감지 debug label은 들어갔지만
+  Android 태블릿 실기기 정확도/latency 검증은 후속이다.
 - PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. `pdf_document` 기반으로
   URL link annotation 제거 뒤 page count를 재검증하고, 비PDF/손상 PDF 실패 시 partial output을
   남기지 않는다. 실제 CamScanner 샘플/compact rewrite 검증은 blocker다.
@@ -219,6 +220,6 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   Guitar standard/Drop D/DADGAD/half-step down/7-string, Bass standard/5-string, Ukulele,
   Mandolin, Strings/Bb/Eb/F preset, custom target/preset, target lock, sharp/flat 표기,
   LED/input bar, target shortcut, A4 저장/440-442 quick action/history/보정 제안, adaptive noise
-  floor 1차, 기준음/드론 연계를 제공한다. Synthetic
-  audio/time-series 테스트는 통과했으며, Android/iOS 마이크 latency와 외부 마이크 안정성은 별도
-  검증한다.
+  floor 1차, Hybrid/YIN detector 비교, 기준음/드론 연계를 제공한다. Synthetic
+  audio/plucked string/time-series 테스트는 통과했으며, Android/iOS 마이크 latency와 외부 마이크
+  안정성은 별도 검증한다.

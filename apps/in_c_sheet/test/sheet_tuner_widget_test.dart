@@ -21,6 +21,8 @@ void main() {
     expect(find.text('튜닝 프리셋'), findsOneWidget);
     expect(find.text('악기/표시 기준'), findsOneWidget);
     expect(find.text('감지 프로필'), findsOneWidget);
+    expect(find.text('감지 엔진'), findsOneWidget);
+    expect(find.text('Hybrid'), findsOneWidget);
   });
 
   testWidgets('guitar quick mode exposes string targets up front', (

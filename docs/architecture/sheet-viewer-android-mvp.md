@@ -58,7 +58,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 주석/필기 1차: 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개, 색상/두께,
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
-- 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector,
+- 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
   RMS gate/confidence, median smoothing, Chromatic/Target mode, 악기별 tuning preset,
   frequency-to-note/target cents 계산, 상용 튜너형 feedback label/cents meter, A4 기준음 저장,
   viewer bottom sheet.
@@ -468,10 +468,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 튜너 1차 구조
 
 - 튜너 설정은 앱 전역 `SheetTunerSettings`로 저장한다.
-- 저장 필드는 A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, 음 이름 표기 preference,
+- 저장 필드는 A4 기준음, tuning mode, tuning preset, 표시 모드, 감지 profile, 감지 엔진,
+  음 이름 표기 preference,
   target lock flag/threshold, 선택 target MIDI, custom target list, custom preset list, A4 calibration
   history다. 기본값은 440Hz / `Chromatic` mode / `Chromatic` preset / `Concert` 표시 / `Chromatic`
-  profile / 악기 기본 표기 / target lock off / target 없음이다.
+  profile / Hybrid 감지 엔진 / 악기 기본 표기 / target lock off / target 없음이다.
   기존 A4/표시/profile/target만 있던 JSON도 기본값으로 decode한다.
 - A4 기준음은 415-466Hz 범위로 clamp한다.
 - 표시 모드는 `Concert`, Bb 악기, Eb 악기, Horn in F, bass clef/low instruments,
@@ -503,7 +504,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `SheetTunerPitch.centsFromTarget`은 Target mode에서 선택한 concert target frequency 대비 cents를
   계산한다. Target이 없으면 Chromatic mode처럼 가장 가까운 note 기준 cents를 사용한다.
 - `SheetTunerPitchDetector`는 PCM16 mono sample을 4096 sample rolling window에 모아
-  autocorrelation으로 pitch를 추정한다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
+  Hybrid/YIN/autocorrelation 엔진으로 pitch를 추정한다. 기본 Hybrid는 autocorrelation과 YIN 후보를
+  비교해 plucked string의 2배음/옥타브 오류와 fine cents 흔들림을 줄이는 쪽을 선택한다. 세부 설정의
+  감지 엔진 dropdown은 실기기 QA 비교용이다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
   concert E3-C6 중심 range를 사용한다. Guitar/Bass, Strings, low/high instrument profile은
   각 악기군의 실제 range에 맞춰 detector frequency range와 RMS/confidence threshold를 분리한다.
   Instance detector 경로는 최근 저신호 frame에서 adaptive noise floor를 추정해 너무 낮은 입력이나
@@ -524,7 +527,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   별도로 유지한다.
 - `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 너무 작습니다`, `입력이 약합니다`,
   `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
-  noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다.
+  noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다. 감지 엔진/RMS/confidence/
+  noise floor/reject reason은 세부 설정의 debug label로 기록할 수 있다.
 - `SheetTunerReferenceCalibration`은 안정적인 A 계열 reading이 최소 4개 모였고 spread가 작을 때만
   A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다. A4
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
