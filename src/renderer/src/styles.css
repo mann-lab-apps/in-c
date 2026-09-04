@@ -297,23 +297,29 @@ h2 {
 
 .toolbar-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 6px;
-  padding: 10px 24px 8px;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 6px 20px 5px;
   border-bottom: 1px solid #d3cdbf;
   background: #f5f1e8;
+  scrollbar-width: thin;
 }
 
 .toolbar-tabs button {
-  min-height: 34px;
-  padding: 0 14px;
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 0 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: #59646a;
   background: transparent;
   cursor: pointer;
+  font-size: 0.86rem;
   font-weight: 800;
+  white-space: nowrap;
 }
 
 .toolbar-tabs button:hover,
@@ -327,40 +333,58 @@ h2 {
 
 .selection-toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 10px;
-  padding: 10px 24px;
+  gap: 0;
+  min-width: 0;
+  min-height: 48px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 20px;
   border-bottom: 1px solid #d3cdbf;
   background: #f5f1e8;
+  scrollbar-width: thin;
 }
 
 .inspector-properties {
   display: flex;
-  flex: 1 1 100%;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px 10px;
+  gap: 8px;
   min-width: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 12px;
   border: 0;
+  border-right: 1px solid #d8d2c5;
   background: transparent;
+  white-space: nowrap;
+}
+
+.inspector-properties:first-child {
+  padding-left: 0;
+}
+
+.inspector-properties:last-child {
+  border-right: 0;
 }
 
 .inspector-properties h3 {
+  flex: 0 0 auto;
   margin: 0;
-  padding-right: 2px;
-  color: #2a3136;
-  font-size: 0.8rem;
+  padding-right: 0;
+  color: #3f4a50;
+  font-size: 0.72rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .inspector-properties__grid {
   display: flex;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   min-width: 0;
 }
 
@@ -368,34 +392,45 @@ h2 {
 .inspector-properties__row {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 
 .inspector-properties label > span,
 .inspector-properties__row > span {
   color: #647076;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .inspector-properties select,
 .inspector-properties button {
-  min-height: 32px;
+  min-height: 28px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   color: #283035;
   background: #fbfaf6;
+  font-size: 0.8rem;
 }
 
 .inspector-properties input {
-  min-height: 32px;
-  width: min(140px, 100%);
-  padding: 0 8px;
+  min-height: 28px;
+  width: min(116px, 100%);
+  padding: 0 7px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   color: #283035;
   background: #fbfaf6;
+  font-size: 0.8rem;
+}
+
+.inspector-properties input[type="number"] {
+  width: 58px;
+}
+
+.inspector-properties input[type="range"] {
+  width: 132px;
+  padding: 0;
 }
 
 .inspector-properties input[type="checkbox"] {
@@ -406,8 +441,8 @@ h2 {
 
 .inspector-properties select {
   width: auto;
-  max-width: 150px;
-  padding: 0 8px;
+  max-width: 132px;
+  padding: 0 26px 0 8px;
 }
 
 .inspector-properties__buttons {
@@ -420,8 +455,9 @@ h2 {
 .inspector-properties__buttons button,
 .inspector-properties__buttons output {
   display: inline-grid;
-  min-height: 32px;
-  padding: 0 8px;
+  min-height: 28px;
+  padding: 0 7px;
+  font-size: 0.8rem;
   font-weight: 700;
   place-items: center;
 }
@@ -441,7 +477,7 @@ h2 {
 
 .inspector-properties__command {
   width: auto;
-  padding: 0 10px;
+  padding: 0 9px;
   font-weight: 700;
 }
 
@@ -454,29 +490,32 @@ h2 {
 
 .workspace {
   display: grid;
-  grid-template-rows: auto auto auto 1fr;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
   min-width: 0;
 }
 
 .toolbar {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  min-height: 68px;
-  padding: 14px 24px;
+  gap: 8px;
+  min-height: 46px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 18px;
   border-bottom: 1px solid #d3cdbf;
   background: rgba(255, 255, 255, 0.58);
   backdrop-filter: blur(16px);
+  scrollbar-width: thin;
 }
 
 .toolbar__group {
   display: flex;
-  flex: 1 1 720px;
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   min-width: 0;
 }
 
@@ -484,8 +523,9 @@ h2 {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding-right: 8px;
+  padding-right: 6px;
   border-right: 1px solid #cbc6ba;
+  white-space: nowrap;
 }
 
 .transport-controls {
@@ -553,10 +593,13 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 10px;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
   border-color: #c7c0b3;
   background: #fbfaf6;
+  font-size: 0.82rem;
+  white-space: nowrap;
 }
 
 .pdf-save-button-wrapper {
@@ -565,18 +608,19 @@ h2 {
 
 .pdf-page-target-control {
   display: inline-flex;
-  min-height: 34px;
+  min-height: 30px;
   align-items: center;
   gap: 6px;
   padding-left: 6px;
   color: #4a555c;
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .pdf-page-target-control input {
-  width: 62px;
-  min-height: 34px;
+  width: 54px;
+  min-height: 30px;
   padding: 0 8px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
@@ -616,7 +660,7 @@ h2 {
 
 .accidental-control button {
   display: inline-grid;
-  width: 34px;
+  width: 30px;
   padding: 0;
   border-radius: 0;
   font-family: Georgia, serif;
@@ -638,7 +682,7 @@ h2 {
 
 .key-signature-control select,
 .time-signature-control select {
-  min-height: 36px;
+  min-height: 30px;
   max-width: 116px;
   padding: 0 28px 0 10px;
   border: 1px solid #c7c0b3;
@@ -651,14 +695,16 @@ h2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  padding: 0 12px;
+  gap: 5px;
+  min-width: 36px;
+  padding: 0 7px;
+  white-space: nowrap;
 }
 
 .dot-control {
   gap: 0;
   overflow: hidden;
-  min-height: 36px;
+  min-height: 30px;
   border: 1px solid #c7c0b3;
   border-radius: 6px;
   background: #fbfaf6;
@@ -666,8 +712,8 @@ h2 {
 
 .dot-control__label {
   display: inline-grid;
-  min-height: 34px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 0 7px;
   border-right: 1px solid #d8d2c5;
   color: #59646a;
   font-size: 0.76rem;
@@ -678,7 +724,7 @@ h2 {
 
 .dot-control button {
   display: inline-grid;
-  width: 34px;
+  width: 30px;
   padding: 0;
   border-radius: 0;
   place-items: center;
@@ -691,8 +737,8 @@ h2 {
 
 .dot-control output {
   display: inline-grid;
-  width: 32px;
-  min-height: 34px;
+  width: 30px;
+  min-height: 28px;
   color: #283035;
   font-size: 0.85rem;
   font-weight: 700;
@@ -701,7 +747,8 @@ h2 {
 
 .icon-button {
   display: inline-grid;
-  width: 36px;
+  width: 30px;
+  min-height: 30px;
   padding: 0;
   place-items: center;
   border-color: #c7c0b3;
@@ -715,12 +762,13 @@ h2 {
 
 .duration-strip .tie-button,
 .duration-strip .tuplet-button {
-  min-width: 108px;
+  min-width: auto;
+  gap: 4px;
   font-weight: 700;
 }
 
 .duration-strip .tie-button {
-  min-width: 82px;
+  min-width: auto;
 }
 
 .tuplet-duration-label {
@@ -731,8 +779,8 @@ h2 {
 
 .shortcut-badge {
   display: inline-grid;
-  min-width: 20px;
-  min-height: 20px;
+  min-width: 18px;
+  min-height: 18px;
   padding: 0 5px;
   border: 1px solid #c7c0b3;
   border-radius: 4px;
@@ -744,7 +792,7 @@ h2 {
 }
 
 .duration-strip > svg {
-  margin: 0 4px 0 2px;
+  margin: 0 2px 0 0;
   color: #647076;
 }
 

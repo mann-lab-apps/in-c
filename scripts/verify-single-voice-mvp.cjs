@@ -237,7 +237,7 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
@@ -431,7 +431,7 @@ async function verifyKeyboardRouting(window) {
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       statusMessage: [...document.querySelectorAll('.editor-status span')]
         .at(-1)?.textContent
     })
@@ -474,7 +474,7 @@ async function verifyKeyboardRouting(window) {
       ),
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       status: document.querySelector('.editor-status span')?.textContent
     })
   `)
@@ -507,7 +507,7 @@ async function verifyKeyboardRouting(window) {
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
@@ -542,7 +542,7 @@ async function verifyKeyboardRouting(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
-        )?.textContent?.trim(),
+        )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
           ?.getAttribute('data-event-id'),
@@ -584,7 +584,7 @@ async function verifyKeyboardRouting(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
-        )?.textContent?.trim(),
+        )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
           ?.getAttribute('data-event-id'),
@@ -896,7 +896,7 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       progress: document.querySelector('.tuplet-progress')?.textContent,
       status: document.querySelector('.editor-status span')?.textContent
     })
@@ -1721,7 +1721,7 @@ async function verifyMetadataEditing(window) {
       ),
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 

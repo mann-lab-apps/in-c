@@ -3914,6 +3914,11 @@ describe('App component shell', () => {
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
+        name: '4분음표, 단축키 5'
+      })
+    ).toHaveTextContent('4')
+    expect(
+      within(durationPalette).getByRole('button', {
         name: '2분음표, 단축키 6'
       })
     ).toBeInTheDocument()

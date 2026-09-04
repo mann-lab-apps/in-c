@@ -207,6 +207,15 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
   half: '6',
   whole: '7'
 }
+const durationToolbarLabels: Record<DurationValue, string> = {
+  '64th': '64',
+  '32nd': '32',
+  '16th': '16',
+  eighth: '8',
+  quarter: '4',
+  half: '2',
+  whole: '온'
+}
 const tripletPreset = {
   actualNotes: 3,
   durationValue: 'eighth',
@@ -6068,13 +6077,13 @@ export const App = () => {
                   title={label}
                   type="button"
                 >
-                  {durationLabels[duration]}
+                  {durationToolbarLabels[duration]}
                 </button>
               )
             })}
 
             <div className="dot-control" aria-label="점음표">
-              <span className="dot-control__label">점음표</span>
+              <span className="dot-control__label" title="점음표">점</span>
               <button
                 aria-label="점 줄이기"
                 disabled={isTupletInput || !canRemoveDot}
@@ -6112,7 +6121,6 @@ export const App = () => {
               ) : (
                 <Link2 aria-hidden="true" size={17} />
               )}
-              <span>타이</span>
               <span className="shortcut-badge">T</span>
             </button>
 
@@ -6132,8 +6140,8 @@ export const App = () => {
               }
               type="button"
             >
-              <span>{tripletPreset.label}</span>
-              <span className="tuplet-duration-label">8분</span>
+              <span aria-hidden="true">3</span>
+              <span className="tuplet-duration-label">8</span>
               <span className="shortcut-badge">{tripletPreset.shortcut}</span>
             </button>
           </div>
