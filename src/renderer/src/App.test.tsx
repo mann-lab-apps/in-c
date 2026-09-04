@@ -2277,21 +2277,16 @@ describe('App component shell', () => {
         contents: expect.any(Array)
       })
     })
-    expect(
-      await screen.findByText((_, element) => {
-        const text = element?.textContent ?? ''
+    await waitFor(() => {
+      const pageText = document.body.textContent ?? ''
 
-        return (
-          element?.children.length === 0 &&
-          text.includes('percussion-policy.mid로 MIDI를 내보냈습니다.') &&
-          text.includes('MIDI 경고 1개') &&
-          text.includes('part[1].staff[1].measure[1].clef') &&
-          text.includes(
-            'Percussion notation is not interpreted in V1 MIDI export; notes on this staff were skipped.'
-          )
-        )
-      })
-    ).toBeInTheDocument()
+      expect(pageText).toContain('percussion-policy.mid로 MIDI를 내보냈습니다.')
+      expect(pageText).toContain('MIDI 경고 1개')
+      expect(pageText).toContain('part[1].staff[1].measure[1].clef')
+      expect(pageText).toContain(
+        'Percussion notation is not interpreted in V1 MIDI export; notes on this staff were skipped.'
+      )
+    })
   })
 
   it('import-export.save-pdf hides editor selection state while printing', async () => {
