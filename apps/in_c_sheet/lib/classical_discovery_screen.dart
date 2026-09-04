@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'classical_discovery_controller.dart';
 import 'classical_discovery_models.dart';
 import 'classical_discovery_ops.dart';
 import 'classical_discovery_validation.dart';
+import 'classical_link_launcher.dart';
 import 'classical_preview_player.dart';
 
 const _reactionLabels = <String, String>{
@@ -170,7 +170,10 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
 
   Future<void> _openLink(ClassicalWork work, ExternalLink link) async {
     await controller.recordProviderClick(work, link);
-    final opened = await _launchUrl(link.url);
+    final opened = await _launchUrl(
+      link.url,
+      surface: ClassicalLinkSurface.listening,
+    );
     if (opened || link.linkType == 'listen_search') {
       return;
     }
@@ -179,13 +182,16 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
       return;
     }
     await controller.recordProviderClick(work, fallback, fallback: true);
-    await _launchUrl(fallback.url);
+    await _launchUrl(fallback.url, surface: ClassicalLinkSurface.listening);
   }
 
   Future<void> _openTicket(ClassicalPromotionView view) async {
     await controller.recordPromotionClick(view.promotion.id);
     await controller.recordTicketDestinationClick(view.concert.id);
-    await _launchUrl(view.concert.ticketUrl);
+    await _launchUrl(
+      view.concert.ticketUrl,
+      surface: ClassicalLinkSurface.ticket,
+    );
   }
 
   Future<void> _openPromotionConcert(ClassicalPromotionView view) async {
@@ -204,18 +210,11 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
     );
   }
 
-  Future<bool> _launchUrl(String value) async {
-    final uri = Uri.tryParse(value);
-    if (uri == null ||
-        !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (!mounted) {
-        return false;
-      }
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('링크를 열지 못했습니다.')));
-      return false;
-    }
-    return true;
+  Future<bool> _launchUrl(
+    String value, {
+    ClassicalLinkSurface surface = ClassicalLinkSurface.listening,
+  }) async {
+    return launchClassicalUrl(context, value, surface: surface);
   }
 
   Future<void> _showPlatformSheet() async {
@@ -1189,7 +1188,11 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
                         icon: Icons.library_books_outlined,
                         title: link.label,
                         subtitle: 'public-domain 자료를 먼저 연결합니다',
-                        onTap: () => _launch(context, link.url),
+                        onTap: () => _launch(
+                          context,
+                          link.url,
+                          surface: ClassicalLinkSurface.reference,
+                        ),
                       ),
                     const SizedBox(height: 16),
                   ],
@@ -1236,7 +1239,11 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    final opened = await _launch(context, link.url);
+    final opened = await _launch(
+      context,
+      link.url,
+      surface: ClassicalLinkSurface.listening,
+    );
     if (opened || link.linkType == 'listen_search') {
       return;
     }
@@ -1248,7 +1255,11 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    await _launch(context, fallback.url);
+    await _launch(
+      context,
+      fallback.url,
+      surface: ClassicalLinkSurface.listening,
+    );
   }
 
   Future<void> _openTicket(
@@ -1260,7 +1271,11 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    await _launch(context, view.concert.ticketUrl);
+    await _launch(
+      context,
+      view.concert.ticketUrl,
+      surface: ClassicalLinkSurface.ticket,
+    );
   }
 
   Future<void> _openPromotionConcert(
@@ -1367,7 +1382,11 @@ class ClassicalConcertDetailScreen extends StatelessWidget {
                     if (!context.mounted) {
                       return;
                     }
-                    await _launch(context, destination.url);
+                    await _launch(
+                      context,
+                      destination.url,
+                      surface: ClassicalLinkSurface.ticket,
+                    );
                   },
                 ),
             ],
@@ -1644,7 +1663,11 @@ class _ConcertsView extends StatelessWidget {
                   if (!context.mounted) {
                     return;
                   }
-                  await _launch(context, concert.ticketUrl);
+                  await _launch(
+                    context,
+                    concert.ticketUrl,
+                    surface: ClassicalLinkSurface.ticket,
+                  );
                 }
               },
             ),
@@ -2785,18 +2808,12 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-Future<bool> _launch(BuildContext context, String value) async {
-  final uri = Uri.tryParse(value);
-  if (uri == null ||
-      !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-    if (!context.mounted) {
-      return false;
-    }
-    ScaffoldMessenger.of(context)
-        .showSnackBar(const SnackBar(content: Text('링크를 열지 못했습니다.')));
-    return false;
-  }
-  return true;
+Future<bool> _launch(
+  BuildContext context,
+  String value, {
+  ClassicalLinkSurface surface = ClassicalLinkSurface.listening,
+}) {
+  return launchClassicalUrl(context, value, surface: surface);
 }
 
 ExternalLink? _fallbackSearchLinkFor(ClassicalWork work, {String? except}) {

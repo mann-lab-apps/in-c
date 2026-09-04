@@ -11,10 +11,54 @@ import 'package:in_c_sheet/classical_discovery_ops.dart';
 import 'package:in_c_sheet/classical_discovery_repository.dart';
 import 'package:in_c_sheet/classical_discovery_store.dart';
 import 'package:in_c_sheet/classical_discovery_validation.dart';
+import 'package:in_c_sheet/classical_link_launcher.dart';
 import 'package:in_c_sheet/classical_promotion_reporting.dart';
 import 'package:in_c_sheet/classical_preview_player.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
+  test(
+    'classical link launcher keeps listening links in app when possible',
+    () {
+      final youtubeSearch = Uri.parse(
+        'https://www.youtube.com/results?search_query=Bach+Air',
+      );
+      final ticketUrl = Uri.parse('https://tickets.example.com/concert');
+
+      expect(
+        preferredClassicalLaunchMode(
+          youtubeSearch,
+          surface: ClassicalLinkSurface.listening,
+        ),
+        LaunchMode.inAppWebView,
+      );
+      expect(
+        preferredClassicalLaunchMode(
+          youtubeSearch,
+          surface: ClassicalLinkSurface.reference,
+        ),
+        LaunchMode.inAppWebView,
+      );
+      expect(
+        preferredClassicalLaunchMode(
+          ticketUrl,
+          surface: ClassicalLinkSurface.ticket,
+        ),
+        LaunchMode.externalApplication,
+      );
+    },
+  );
+
+  test('classical link launcher sends non-http listening links externally', () {
+    expect(
+      preferredClassicalLaunchMode(
+        Uri.parse('spotify:track:123'),
+        surface: ClassicalLinkSurface.listening,
+      ),
+      LaunchMode.externalApplication,
+    );
+  });
+
   test('seed catalog is large enough for a real discovery surface', () {
     expect(ClassicalDiscoveryCatalog.works.length, greaterThanOrEqualTo(300));
     expect(
