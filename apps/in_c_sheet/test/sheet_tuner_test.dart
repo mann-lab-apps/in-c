@@ -750,7 +750,7 @@ void main() {
     expect(debug!.algorithm, SheetTunerPitchDetectionAlgorithm.hybrid);
     expect(debug.confidence, greaterThan(0.6));
     expect(debug.rejectionReason, isEmpty);
-    expect(debug.label, contains('engine Hybrid'));
+    expect(debug.label, contains('엔진 자동'));
 
     detector.reset();
     expect(detector.addSamples(const <double>[]), isNull);

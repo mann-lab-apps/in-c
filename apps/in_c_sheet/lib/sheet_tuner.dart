@@ -572,9 +572,9 @@ enum SheetTunerDetectionProfile {
 }
 
 enum SheetTunerPitchDetectionAlgorithm {
-  hybrid(label: 'Hybrid', description: 'YIN과 autocorrelation 중 더 안정적인 결과를 사용'),
-  autocorrelation(label: 'Autocorrelation', description: '기존 안정 detector'),
-  yin(label: 'YIN', description: 'plucked string과 미세 cents 비교용 후보');
+  hybrid(label: '자동', description: '두 감지 방식 중 더 안정적인 결과를 사용'),
+  autocorrelation(label: '기존', description: '기존 안정 감지 방식'),
+  yin(label: '정밀 후보', description: '미세한 cents 비교를 확인할 때 사용');
 
   const SheetTunerPitchDetectionAlgorithm({
     required this.label,
@@ -1519,15 +1519,15 @@ class SheetTunerDetectionDebugInfo {
 
   String get label {
     final parts = <String>[
-      'engine ${algorithm.label}',
-      'rms ${rms.toStringAsFixed(3)}',
-      'confidence ${(confidence * 100).round()}%',
+      '엔진 ${algorithm.label}',
+      '신호 ${rms.toStringAsFixed(3)}',
+      '신뢰도 ${(confidence * 100).round()}%',
     ];
     if (noiseFloorRms > 0) {
-      parts.add('noise ${noiseFloorRms.toStringAsFixed(3)}');
+      parts.add('노이즈 ${noiseFloorRms.toStringAsFixed(3)}');
     }
     if (rejectionReason.isNotEmpty) {
-      parts.add('reject $rejectionReason');
+      parts.add('제외 $rejectionReason');
     }
     return parts.join(' · ');
   }

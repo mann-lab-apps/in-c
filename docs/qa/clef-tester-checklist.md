@@ -76,7 +76,7 @@
 - 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Chromatic-first 첫 화면, 기타 `6E 5A 4D
   3G 2B 1E` 빠른 줄 선택, 세부 설정 접힘, preset/target/custom preset, target lock,
   sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
-  floor 1차, Hybrid/YIN/autocorrelation 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+  floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
 - 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+15`이다. 실제 마이크 정확도/latency QA는 아직
   기록되지 않았다.

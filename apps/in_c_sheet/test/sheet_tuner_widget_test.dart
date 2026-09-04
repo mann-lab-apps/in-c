@@ -22,7 +22,7 @@ void main() {
     expect(find.text('악기/표시 기준'), findsOneWidget);
     expect(find.text('감지 프로필'), findsOneWidget);
     expect(find.text('감지 엔진'), findsOneWidget);
-    expect(find.text('Hybrid'), findsOneWidget);
+    expect(find.text('자동'), findsOneWidget);
   });
 
   testWidgets('guitar quick mode exposes string targets up front', (
