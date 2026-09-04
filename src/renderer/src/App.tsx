@@ -22,6 +22,7 @@ import {
   FileMusic,
   FilePlus2,
   FileUp,
+  FileVolume,
   Link2,
   Minus,
   Pause,
@@ -29,6 +30,7 @@ import {
   Plus,
   RotateCcw,
   RotateCw,
+  SkipBack,
   Square,
   Unlink2
 } from 'lucide-react'
@@ -36,6 +38,11 @@ import {
 import {
   applyScoreCommand,
   buildTieCommand,
+  createFullMeasureRest,
+  createMeasure,
+  createPart,
+  createStaff,
+  createVoice,
   durationToTicks,
   MAX_AUGMENTATION_DOTS,
   measureDurationTicks,
@@ -44,6 +51,7 @@ import {
   voiceEventDurationTicks,
   type Duration,
   type DurationValue,
+  type DynamicValue,
   type BreathMark,
   type Clef,
   type HairpinType,
@@ -53,18 +61,32 @@ import {
   type Note,
   type OctaveShiftType,
   type Ornament,
+  type Part,
   type Pitch,
   type PitchStep,
   type RhythmFeelMarking,
   type Score,
   type ScoreCommand,
+  type ScorePageSetup,
+  type Staff,
   type Articulation,
   type TempoEvent,
   type TempoMarking,
   type TimeSignature,
   type VoiceAddress
 } from '../../score-core'
-import { parseMusicXml, serializeMusicXml } from '../../musicxml'
+import {
+  parseMusicXml,
+  parseMusicXmlWithReport,
+  serializeMusicXml,
+  serializeMusicXmlWithReport,
+  type MusicXmlExportReport,
+  type MusicXmlImportReport
+} from '../../musicxml'
+import {
+  serializeMidiWithReport,
+  type MidiExportWarning
+} from './midi/serialize-midi'
 import {
   createReleaseTestScore,
   createSingleVoiceMvpScore
@@ -109,9 +131,12 @@ import {
   createNewScore,
   formatTempoMarkingText,
   keySignaturePresets,
+  partPresets,
   resolveDefaultTempoBeatForTimeSignature,
   resolveKeySignaturePreset,
   resolveKeySignaturePresetId,
+  resolvePartPreset,
+  scoreStructurePresets,
   resolveTimeSignaturePreset,
   resolveTimeSignaturePresetId,
   timeSignaturePresets
@@ -124,6 +149,7 @@ import {
 } from './editor/korean-music-terms'
 import {
   buildAccidentalCommand,
+  buildEnharmonicRespellCommand,
   buildPitchMovementCommand,
   buildPitchStepCommand,
   type PitchMovement
@@ -153,8 +179,15 @@ import {
 } from './editor/note-input-state'
 import { demoScore } from './notation/demo-score'
 import { NotationPreview } from './notation/NotationPreview'
-import { resolvePrintLayoutPlan } from './notation/print-layout'
-import { useScorePlayback } from './playback/useScorePlayback'
+import {
+  normalizePrintPageSetup,
+  resolvePrintLayoutPlan
+} from './notation/print-layout'
+import {
+  useScorePlayback,
+  type PlaybackPartMixer,
+  type PlaybackPartMixerMap
+} from './playback/useScorePlayback'
 
 const durations: DurationValue[] = [
   '64th',
@@ -174,6 +207,15 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
   half: '6',
   whole: '7'
 }
+const durationToolbarLabels: Record<DurationValue, string> = {
+  '64th': '64',
+  '32nd': '32',
+  '16th': '16',
+  eighth: '8',
+  quarter: '4',
+  half: '2',
+  whole: '온'
+}
 const tripletPreset = {
   actualNotes: 3,
   durationValue: 'eighth',
@@ -186,123 +228,6 @@ const tripletPreset = {
   label: string
   normalNotes: number
   shortcut: string
-}
-
-const concertsUrl = 'https://in-c.mannlab.app/concerts.html'
-const promoPosterThemes = ['red', 'green', 'gold', 'blue', 'plum'] as const
-
-type PromoPosterTheme = (typeof promoPosterThemes)[number]
-
-interface PromoConcert {
-  id: string
-  title: string
-  theme: PromoPosterTheme
-  meta: string
-  description: string
-  imageUrl?: string
-  imageAlt: string
-  targetUrl: string
-}
-
-const fallbackPromoConcerts: PromoConcert[] = [
-  {
-    id: 'concert:fallback-first-listening-night',
-    title: '첫 감상 모임',
-    theme: 'blue',
-    meta: '공연 포스터 준비 중',
-    description: '공연 포스터 배너 슬롯을 유지하기 위한 기본 안내입니다.',
-    imageAlt: '첫 감상 모임 공연 포스터',
-    targetUrl: concertsUrl
-  },
-  {
-    id: 'concert:fallback-folk-melody-preview',
-    title: '민요 선율 프리뷰',
-    theme: 'green',
-    meta: '공연 프리뷰',
-    description: '작품과 공연을 연결하는 Chromatics 배너 후보입니다.',
-    imageAlt: '민요 선율 프리뷰 공연 포스터',
-    targetUrl: concertsUrl
-  }
-]
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  value !== null && typeof value === 'object'
-
-const isPromoPosterTheme = (value: unknown): value is PromoPosterTheme =>
-  typeof value === 'string' &&
-  promoPosterThemes.includes(value as PromoPosterTheme)
-
-const resolveRemoteUrl = (value: unknown, sourceUrl: string): string | undefined => {
-  if (typeof value !== 'string' || value.trim() === '') {
-    return undefined
-  }
-
-  try {
-    return new URL(value, sourceUrl).href
-  } catch {
-    return value
-  }
-}
-
-const normalizePromoConcert = (
-  value: unknown,
-  sourceUrl: string,
-  index: number
-): PromoConcert | undefined => {
-  if (!isRecord(value) || typeof value.title !== 'string') {
-    return undefined
-  }
-
-  const cta = isRecord(value.cta) ? value.cta : {}
-  const image = isRecord(value.image) ? value.image : {}
-  const imageUrl =
-    resolveRemoteUrl(value.imageUrl, sourceUrl) ??
-    resolveRemoteUrl(image.url, sourceUrl)
-  const title = value.title
-
-  return {
-    id:
-      typeof value.id === 'string' && value.id.trim() !== ''
-        ? value.id
-        : `concert-poster-${index}`,
-    title,
-    theme: isPromoPosterTheme(value.theme)
-      ? value.theme
-      : promoPosterThemes[index % promoPosterThemes.length],
-    meta: typeof value.meta === 'string' ? value.meta : '',
-    description:
-      typeof value.description === 'string'
-        ? value.description
-        : typeof value.body === 'string'
-          ? value.body
-          : '',
-    imageUrl,
-    imageAlt:
-      typeof value.imageAlt === 'string'
-        ? value.imageAlt
-        : typeof image.alt === 'string'
-          ? image.alt
-          : `${title} 공연 포스터`,
-    targetUrl:
-      resolveRemoteUrl(value.targetUrl, sourceUrl) ??
-      resolveRemoteUrl(cta.targetUrl, sourceUrl) ??
-      concertsUrl
-  }
-}
-
-const parsePromoConcerts = (payload: unknown): PromoConcert[] => {
-  const sourceUrl =
-    isRecord(payload) && typeof payload.sourceUrl === 'string'
-      ? payload.sourceUrl
-      : concertsUrl
-  const rawPosters =
-    isRecord(payload) && Array.isArray(payload.posters) ? payload.posters : []
-
-  const posters = rawPosters
-    .map((poster, index) => normalizePromoConcert(poster, sourceUrl, index))
-    .filter((poster): poster is PromoConcert => Boolean(poster))
-
-  return posters.length > 0 ? posters : fallbackPromoConcerts
 }
 
 const eventTypeLabels = {
@@ -340,10 +265,31 @@ type ToolbarCategory = (typeof toolbarCategories)[number]['id']
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
 type PdfTargetPagesValue = string
+type MusicXmlReportWarning =
+  | MusicXmlImportReport['warnings'][number]
+  | MusicXmlExportReport['warnings'][number]
+
+interface MusicXmlReportPanelState {
+  fileName: string
+  kind: 'import' | 'export'
+  warnings: MusicXmlReportWarning[]
+}
+
+type ScoreViewMode = 'score' | 'part'
+
+interface StoredMusicXmlViewState {
+  mode: ScoreViewMode
+  partId?: string
+}
+
+interface AppOpenScoreOptions extends OpenScoreOptions {
+  viewState?: StoredMusicXmlViewState
+}
 
 interface NewScoreDraft {
   title: string
   composer: string
+  templateId: (typeof scoreStructurePresets)[number]['id']
   keySignatureId: string
   timeSignatureId: string
   measureCount: number
@@ -380,6 +326,13 @@ interface MeasureContextMenuState {
   y: number
 }
 
+interface StaffTargetOption {
+  value: string
+  label: string
+  partId: string
+  staffId: string
+}
+
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
   composer: 80
@@ -390,7 +343,76 @@ const MIN_TEMPO_BPM = 40
 const MAX_TEMPO_BPM = 240
 const MEASURE_CONTEXT_MENU_WIDTH = 176
 const MEASURE_CONTEXT_MENU_HEIGHT = 288
-const dynamicValues = ['p', 'mp', 'mf', 'f'] as const
+const dynamicValues = [
+  'ppp',
+  'pp',
+  'p',
+  'mp',
+  'mf',
+  'f',
+  'ff',
+  'fff',
+  'sfz'
+] as const satisfies readonly DynamicValue[]
+const voiceNumbers = [1, 2, 3, 4] as const
+const pageSizeOptions = [
+  { label: 'A4', value: 'a4' },
+  { label: 'Letter', value: 'letter' }
+] as const
+const pageOrientationOptions = [
+  { label: '세로', value: 'portrait' },
+  { label: '가로', value: 'landscape' }
+] as const
+const pageSetupPresets = [
+  {
+    id: 'default-a4',
+    label: '기본 A4',
+    value: {
+      pageSize: 'a4',
+      orientation: 'portrait',
+      pageMarginMm: 8,
+      staffSizePercent: 100,
+      systemSpacingPercent: 100
+    }
+  },
+  {
+    id: 'rehearsal-letter',
+    label: '리허설 Letter',
+    value: {
+      pageSize: 'letter',
+      orientation: 'portrait',
+      pageMarginMm: 10,
+      staffSizePercent: 105,
+      systemSpacingPercent: 115
+    }
+  },
+  {
+    id: 'publication-a4',
+    label: '출판 A4',
+    value: {
+      pageSize: 'a4',
+      orientation: 'portrait',
+      pageMarginMm: 12,
+      staffSizePercent: 95,
+      systemSpacingPercent: 125
+    }
+  },
+  {
+    id: 'compact-parts',
+    label: '컴팩트 파트보',
+    value: {
+      pageSize: 'a4',
+      orientation: 'portrait',
+      pageMarginMm: 6,
+      staffSizePercent: 90,
+      systemSpacingPercent: 90
+    }
+  }
+] as const satisfies ReadonlyArray<{
+  id: string
+  label: string
+  value: Required<ScorePageSetup>
+}>
 const clefPresets = [
   { id: 'treble', label: '높은음자리표', value: { sign: 'G', line: 2 } },
   { id: 'bass', label: '낮은음자리표', value: { sign: 'F', line: 4 } },
@@ -431,6 +453,7 @@ const ornamentOptions = [
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
 const lyricVerseOptions = [1, 2, 3, 4] as const
+const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -450,16 +473,16 @@ export const App = () => {
   const [redoStack, setRedoStack] = useState<EditorHistoryEntry[]>([])
   const [metadataEdit, setMetadataEdit] = useState<MetadataEdit>()
   const [newScoreDraft, setNewScoreDraft] = useState<NewScoreDraft>()
-  const [toolbarPromoConcerts, setToolbarPromoConcerts] = useState<
-    PromoConcert[]
-  >([])
-  const [selectedPromoConcert, setSelectedPromoConcert] =
-    useState<PromoConcert>()
+  const [selectedPartPresetId, setSelectedPartPresetId] = useState('violin')
+  const [scoreViewMode, setScoreViewMode] = useState<ScoreViewMode>('score')
+  const [selectedScoreViewPartId, setSelectedScoreViewPartId] =
+    useState<string>()
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
     useState<PdfTargetPagesValue>('2')
+  const [partMixer, setPartMixer] = useState<PlaybackPartMixerMap>({})
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -467,6 +490,8 @@ export const App = () => {
     tone: 'neutral' | 'error'
     message: string
   }>()
+  const [musicXmlReport, setMusicXmlReport] =
+    useState<MusicXmlReportPanelState>()
   const [autosaveRevision, setAutosaveRevision] = useState(0)
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<AutosaveRecoverySnapshot>()
@@ -478,45 +503,53 @@ export const App = () => {
   >(undefined)
   const [missingRecentFilePath, setMissingRecentFilePath] = useState<string>()
   const autosaveHasLoaded = useRef(false)
-  const playback = useScorePlayback(score)
+  const playback = useScorePlayback(score, partMixer)
   const scoreTempo = score.tempo?.bpm ?? DEFAULT_TEMPO_BPM
-  const toolbarPosterSequence = useMemo(
-    () =>
-      toolbarPromoConcerts.length > 0
-        ? Array.from(
-            { length: Math.max(30, toolbarPromoConcerts.length * 2) },
-            (_, index) =>
-              toolbarPromoConcerts[index % toolbarPromoConcerts.length]
-          )
-        : [],
-    [toolbarPromoConcerts]
+  const pageSetup = useMemo(
+    () => normalizePrintPageSetup(score.layout?.pageSetup),
+    [score.layout?.pageSetup]
   )
+  const updatePartMixer = useCallback(
+    (
+      partId: string,
+      update: (settings: PlaybackPartMixer) => PlaybackPartMixer
+    ) => {
+      setPartMixer((currentMixer) => ({
+        ...currentMixer,
+        [partId]: update(resolvePartMixerSettings(currentMixer[partId]))
+      }))
+    },
+    []
+  )
+  const togglePartMute = useCallback(
+    (partId: string) => {
+      updatePartMixer(partId, (settings) => ({
+        ...settings,
+        muted: !settings.muted
+      }))
+    },
+    [updatePartMixer]
+  )
+  const togglePartSolo = useCallback(
+    (partId: string) => {
+      updatePartMixer(partId, (settings) => ({
+        ...settings,
+        solo: !settings.solo
+      }))
+    },
+    [updatePartMixer]
+  )
+  const changePartVolume = useCallback(
+    (partId: string, value: string) => {
+      const volume = Number(value) / 100
 
-  useEffect(() => {
-    let cancelled = false
-
-    const loadPromoConcerts = async () => {
-      try {
-        const payload = await window.inC.promotions.getConcertPosters()
-        const posters = parsePromoConcerts(payload)
-
-        if (!cancelled) {
-          setToolbarPromoConcerts(posters)
-        }
-      } catch {
-        if (!cancelled) {
-          setToolbarPromoConcerts([])
-        }
-      }
-    }
-
-    void loadPromoConcerts()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
+      updatePartMixer(partId, (settings) => ({
+        ...settings,
+        volume: Number.isFinite(volume) ? volume : settings.volume
+      }))
+    },
+    [updatePartMixer]
+  )
   const eventLocation = useMemo(
     () => {
       const eventId = getSelectionFocusEventId(selection)
@@ -567,6 +600,9 @@ export const App = () => {
   const activeMeasureStaffText = activeMeasureId
     ? score.staffTexts?.find((text) => text.measureId === activeMeasureId)
     : undefined
+  const activeMeasureSystemText = activeMeasureId
+    ? score.systemTexts?.find((text) => text.measureId === activeMeasureId)
+    : undefined
   const activeMeasureDynamic = activeMeasureId
     ? score.dynamics?.find((dynamic) => dynamic.measureId === activeMeasureId)
     : undefined
@@ -578,6 +614,47 @@ export const App = () => {
     noteInputState?.duration.value ??
     eventLocation?.event.duration.value ??
     durationValue
+  const activeVoiceId =
+    noteInputState?.target.voiceId ??
+    eventLocation?.address.voiceId ??
+    measureLocation?.address.voiceId
+  const activeVoiceNumber = parseVoiceNumber(activeVoiceId)
+  const activeAddress =
+    noteInputState?.target ??
+    eventLocation?.address ??
+    measureLocation?.address ??
+    selection.address
+  const staffTargetOptions = useMemo(
+    () => createStaffTargetOptions(score),
+    [score]
+  )
+  const activeStaffTargetValue = resolveActiveStaffTargetValue(
+    activeAddress,
+    staffTargetOptions
+  )
+  const activeStructureTarget = resolveActiveStructureTarget(
+    score,
+    activeAddress
+  )
+  const activeStructurePart = score.parts.find(
+    (part) => part.id === activeStructureTarget?.partId
+  )
+  const activeStructureStaff = activeStructurePart?.staves.find(
+    (staff) => staff.id === activeStructureTarget?.staffId
+  )
+  const livePartViewPartId = useMemo(() => {
+    if (
+      selectedScoreViewPartId &&
+      score.parts.some((part) => part.id === selectedScoreViewPartId)
+    ) {
+      return selectedScoreViewPartId
+    }
+
+    return activeStructureTarget?.partId ?? score.parts[0]?.id
+  }, [activeStructureTarget?.partId, score.parts, selectedScoreViewPartId])
+  const livePartViewPart = score.parts.find(
+    (part) => part.id === livePartViewPartId
+  )
   const activeKeySignature =
     eventLocation?.measure.keySignature ??
     measureLocation?.measure.keySignature ??
@@ -595,11 +672,6 @@ export const App = () => {
   const activeToolbarCategoryLabel =
     toolbarCategories.find((category) => category.id === toolbarCategory)
       ?.label ?? '음표'
-  const activeAddress =
-    noteInputState?.target ??
-    eventLocation?.address ??
-    measureLocation?.address ??
-    selection.address
   const activeScopeLabel = resolveActiveScopeLabel(score, activeAddress)
   const inputModeLabel = noteInputState
     ? noteInputState.mode === 'rest'
@@ -613,6 +685,26 @@ export const App = () => {
   const activeTempoDefaultBeat = resolveDefaultTempoBeatForTimeSignature(
     activeTimeSignature ?? timeSignaturePresets[2].value
   )
+  useEffect(() => {
+    const activePlaybackEvent = playback.activeEvent
+
+    if (playback.status !== 'playing' || !activePlaybackEvent) {
+      return
+    }
+
+    setMode('select')
+    setNoteInputState(undefined)
+    setSelection({
+      type: 'event',
+      eventId: activePlaybackEvent.eventId,
+      address: {
+        partId: activePlaybackEvent.partId,
+        staffId: activePlaybackEvent.staffId,
+        measureId: activePlaybackEvent.measureId,
+        voiceId: activePlaybackEvent.voiceId
+      }
+    })
+  }, [playback.activeEvent, playback.status])
   const addDotCommand =
     noteInputState || selection.type !== 'event'
       ? undefined
@@ -668,6 +760,478 @@ export const App = () => {
       return true
     },
     [noteInputState, score, selection]
+  )
+
+  const switchActiveVoice = useCallback(
+    (voiceNumber: (typeof voiceNumbers)[number]) => {
+      const targetVoiceId = `voice-${voiceNumber}`
+      const location = resolveVoiceSwitchLocation(
+        score,
+        selection,
+        noteInputState
+      )
+
+      if (!location) {
+        setFileStatus({
+          tone: 'error',
+          message: '성부를 전환할 마디를 선택해 주세요.'
+        })
+        return
+      }
+
+      let targetVoice = location.measure.voices.find(
+        (voice) => voice.id === targetVoiceId
+      )
+      const targetAddress = {
+        ...location.address,
+        voiceId: targetVoiceId
+      }
+
+      if (!targetVoice) {
+        if (location.staffMeasures.length === 0) {
+          setFileStatus({
+            tone: 'error',
+            message: '성부를 추가할 보표를 찾지 못했습니다.'
+          })
+          return
+        }
+
+        targetVoice = createVoice({
+          id: targetVoiceId,
+          events: [
+            createFullMeasureRest({
+              id: `${location.measure.id}-${targetVoiceId}-full-measure-rest`
+            })
+          ]
+        })
+
+        const command: ScoreCommand = {
+          type: 'staff-measures.replace',
+          target: {
+            partId: location.address.partId,
+            staffId: location.address.staffId
+          },
+          measures: location.staffMeasures.map((measure) =>
+            measure.id === location.measure.id
+              ? {
+                  ...measure,
+                  voices: [...measure.voices, targetVoice!]
+                }
+              : measure
+          )
+        }
+
+        if (!executeCommand(command)) {
+          return
+        }
+      }
+
+      const targetEvents = sortVoiceEvents(targetVoice.events)
+      const activeTick = noteInputState?.tick ?? location.tick
+      const targetEvent =
+        targetEvents.find((event) => event.position.tick === activeTick) ??
+        targetEvents[0]
+
+      if (noteInputState) {
+        setNoteInputState({
+          ...noteInputState,
+          target: targetAddress,
+          tick: targetEvent?.position.tick ?? 0
+        })
+      }
+
+      setSelection(
+        targetEvent
+          ? {
+              type: 'event',
+              eventId: targetEvent.id,
+              address: targetAddress
+            }
+          : {
+              type: 'measure',
+              measureId: location.measure.id,
+              address: targetAddress
+            }
+      )
+      setMeasureContextMenu(undefined)
+      setToolbarCategory('note')
+      setFileStatus({
+        tone: 'neutral',
+        message: `${voiceNumber}성부로 전환했습니다.`
+      })
+    },
+    [executeCommand, noteInputState, score, selection]
+  )
+
+  const switchActiveStaff = useCallback(
+    (value: string) => {
+      const target = parseStaffTargetValue(value)
+      const location = resolveVoiceSwitchLocation(
+        score,
+        selection,
+        noteInputState
+      )
+
+      if (!target || !location) {
+        setFileStatus({
+          tone: 'error',
+          message: '입력 보표를 전환할 위치를 선택해 주세요.'
+        })
+        return
+      }
+
+      const targetPart = score.parts.find((part) => part.id === target.partId)
+      const targetStaff = targetPart?.staves.find(
+        (staff) => staff.id === target.staffId
+      )
+
+      if (!targetPart || !targetStaff) {
+        setFileStatus({
+          tone: 'error',
+          message: '전환할 보표를 찾지 못했습니다.'
+        })
+        return
+      }
+
+      const targetMeasure =
+        targetStaff.measures[location.measureIndex] ??
+        targetStaff.measures.find(
+          (measure) => measure.number === location.measure.number
+        ) ??
+        targetStaff.measures[0]
+
+      if (!targetMeasure) {
+        setFileStatus({
+          tone: 'error',
+          message: '전환할 마디를 찾지 못했습니다.'
+        })
+        return
+      }
+
+      const targetVoiceId = location.address.voiceId
+      const targetAddress: VoiceAddress = {
+        partId: target.partId,
+        staffId: target.staffId,
+        measureId: targetMeasure.id,
+        voiceId: targetVoiceId
+      }
+      let targetVoice = targetMeasure.voices.find(
+        (voice) => voice.id === targetVoiceId
+      )
+
+      if (!targetVoice) {
+        targetVoice = createVoice({
+          id: targetVoiceId,
+          events: [
+            createFullMeasureRest({
+              id: `${targetMeasure.id}-${targetVoiceId}-full-measure-rest`
+            })
+          ]
+        })
+
+        const command: ScoreCommand = {
+          type: 'staff-measures.replace',
+          target: {
+            partId: target.partId,
+            staffId: target.staffId
+          },
+          measures: targetStaff.measures.map((measure) =>
+            measure.id === targetMeasure.id
+              ? {
+                  ...measure,
+                  voices: [...measure.voices, targetVoice!]
+                }
+              : measure
+          )
+        }
+
+        if (!executeCommand(command)) {
+          return
+        }
+      }
+
+      const targetEvents = sortVoiceEvents(targetVoice.events)
+      const activeTick = noteInputState?.tick ?? location.tick
+      const targetEvent =
+        targetEvents.find((event) => event.position.tick === activeTick) ??
+        targetEvents[0]
+
+      if (noteInputState) {
+        setNoteInputState({
+          ...noteInputState,
+          target: targetAddress,
+          tick: activeTick
+        })
+      }
+
+      setSelection(
+        targetEvent
+          ? {
+              type: 'event',
+              eventId: targetEvent.id,
+              address: targetAddress
+            }
+          : {
+              type: 'measure',
+              measureId: targetMeasure.id,
+              address: targetAddress
+            }
+      )
+      setMeasureContextMenu(undefined)
+      setToolbarCategory('note')
+      setFileStatus({
+        tone: 'neutral',
+        message: `${describeStaffTarget(score, target)}로 전환했습니다.`
+      })
+    },
+    [executeCommand, noteInputState, score, selection]
+  )
+
+  const updateActivePartLabel = useCallback(
+    (field: 'name' | 'abbreviation', value: string) => {
+      if (!activeStructurePart) {
+        return
+      }
+
+      const nextValue = value.trim()
+      const fallbackName = activeStructurePart.name.trim() || 'Part'
+      const nextPart: Part =
+        field === 'name'
+          ? {
+              ...activeStructurePart,
+              name: nextValue || fallbackName
+            }
+          : {
+              ...activeStructurePart,
+              abbreviation: nextValue || undefined
+            }
+
+      if (
+        nextPart.name === activeStructurePart.name &&
+        nextPart.abbreviation === activeStructurePart.abbreviation
+      ) {
+        return
+      }
+
+      const command = buildScorePartsReplaceCommand(
+        score,
+        score.parts.map((part) =>
+          part.id === activeStructurePart.id ? nextPart : part
+        )
+      )
+
+      if (!executeCommand(command)) {
+        return
+      }
+
+      setFileStatus({
+        tone: 'neutral',
+        message: `${nextPart.name} 파트 정보를 수정했습니다.`
+      })
+    },
+    [activeStructurePart, executeCommand, score]
+  )
+
+  const addPartToScore = useCallback(() => {
+    const partPreset = resolvePartPreset(selectedPartPresetId)
+    const partId = createUniqueIdFromBase(
+      partPreset.id,
+      new Set(score.parts.map((part) => part.id))
+    )
+    const duplicateCount = countExistingPartNames(score, partPreset.label)
+    const suffix = duplicateCount > 0 ? ` ${duplicateCount + 1}` : ''
+    const partName = `${partPreset.label}${suffix}`
+    const abbreviation = `${partPreset.abbreviation}${suffix}`
+    const staves = partPreset.staves.map((staffPreset) =>
+      createEmptyStaffFromScore(
+        score,
+        partId,
+        staffPreset.id,
+        staffPreset.clef
+      )
+    )
+    const nextPart = createPart({
+      id: partId,
+      name: partName,
+      abbreviation,
+      staves
+    })
+    const nextParts = [...score.parts, nextPart]
+    const command = buildScorePartsReplaceCommand(score, nextParts)
+
+    if (!executeCommand(command)) {
+      return
+    }
+
+    setNoteInputState(undefined)
+    setSelection(createStaffStartSelection(partId, staves[0]))
+    setToolbarCategory('note')
+    setFileStatus({
+      tone: 'neutral',
+      message: `${partName} 파트를 악기 라이브러리에서 추가했습니다.`
+    })
+  }, [executeCommand, score, selectedPartPresetId])
+
+  const removeActivePart = useCallback(() => {
+    if (!activeStructurePart || score.parts.length <= 1) {
+      setFileStatus({
+        tone: 'error',
+        message: '마지막 남은 파트는 삭제할 수 없습니다.'
+      })
+      return
+    }
+
+    const nextParts = score.parts.filter(
+      (part) => part.id !== activeStructurePart.id
+    )
+    const nextScore = {
+      ...score,
+      parts: nextParts
+    }
+    const command = buildScorePartsReplaceCommand(score, nextParts)
+
+    if (!executeCommand(command)) {
+      return
+    }
+
+    const nextPartIds = new Set(nextParts.map((part) => part.id))
+    setPartMixer((currentMixer) =>
+      Object.fromEntries(
+        Object.entries(currentMixer).filter(([partId]) =>
+          nextPartIds.has(partId)
+        )
+      )
+    )
+    setNoteInputState(undefined)
+    setSelection(createInitialSelection(nextScore))
+    setToolbarCategory('note')
+    setFileStatus({
+      tone: 'neutral',
+      message: `${activeStructurePart.name} 파트를 삭제했습니다.`
+    })
+  }, [activeStructurePart, executeCommand, score])
+
+  const addStaffToActivePart = useCallback(() => {
+    if (!activeStructurePart) {
+      return
+    }
+
+    const staffId = createUniqueNumberedId(
+      'staff',
+      new Set(activeStructurePart.staves.map((staff) => staff.id))
+    )
+    const clef =
+      activeStructurePart.staves.length === 1
+        ? ({ sign: 'F', line: 4 } as const)
+        : ({ sign: 'G', line: 2 } as const)
+    const staff = createEmptyStaffFromScore(
+      score,
+      activeStructurePart.id,
+      staffId,
+      clef
+    )
+    const nextParts = score.parts.map((part) =>
+      part.id === activeStructurePart.id
+        ? {
+            ...part,
+            staves: [...part.staves, staff]
+          }
+        : part
+    )
+    const command = buildScorePartsReplaceCommand(score, nextParts)
+
+    if (!executeCommand(command)) {
+      return
+    }
+
+    setNoteInputState(undefined)
+    setSelection(createStaffStartSelection(activeStructurePart.id, staff))
+    setToolbarCategory('note')
+    setFileStatus({
+      tone: 'neutral',
+      message: `${activeStructurePart.name}에 보표를 추가했습니다.`
+    })
+  }, [activeStructurePart, executeCommand, score])
+
+  const removeActiveStaff = useCallback(() => {
+    if (!activeStructurePart || !activeStructureStaff) {
+      return
+    }
+
+    if (activeStructurePart.staves.length <= 1) {
+      setFileStatus({
+        tone: 'error',
+        message: '파트에는 보표가 하나 이상 필요합니다.'
+      })
+      return
+    }
+
+    const nextParts = score.parts.map((part) =>
+      part.id === activeStructurePart.id
+        ? {
+            ...part,
+            staves: part.staves.filter(
+              (staff) => staff.id !== activeStructureStaff.id
+            )
+          }
+        : part
+    )
+    const command = buildScorePartsReplaceCommand(score, nextParts)
+
+    if (!executeCommand(command)) {
+      return
+    }
+
+    const nextPart = nextParts.find((part) => part.id === activeStructurePart.id)
+    const nextStaff = nextPart?.staves[0]
+    const nextScore = {
+      ...score,
+      parts: nextParts
+    }
+
+    setNoteInputState(undefined)
+    setSelection(
+      nextPart && nextStaff
+        ? createStaffStartSelection(nextPart.id, nextStaff)
+        : createInitialSelection(nextScore)
+    )
+    setToolbarCategory('note')
+    setFileStatus({
+      tone: 'neutral',
+      message: `${activeStructurePart.name} 보표를 삭제했습니다.`
+    })
+  }, [activeStructurePart, activeStructureStaff, executeCommand, score])
+
+  const changeActiveStaffClef = useCallback(
+    (clefId: string) => {
+      const preset = clefPresets.find((candidate) => candidate.id === clefId)
+
+      if (!preset || !activeStructureTarget || !activeStructureStaff) {
+        return
+      }
+
+      const command: ScoreCommand = {
+        type: 'staff-measures.replace',
+        target: {
+          partId: activeStructureTarget.partId,
+          staffId: activeStructureTarget.staffId
+        },
+        measures: activeStructureStaff.measures.map((measure) => ({
+          ...measure,
+          clef: preset.value
+        }))
+      }
+
+      if (!executeCommand(command)) {
+        return
+      }
+
+      setFileStatus({
+        tone: 'neutral',
+        message: `${describeStaffTarget(score, activeStructureTarget)} 음자리표를 바꿨습니다.`
+      })
+    },
+    [activeStructureStaff, activeStructureTarget, executeCommand, score]
   )
 
   useEffect(() => {
@@ -968,6 +1532,7 @@ export const App = () => {
     const nextScore = createNewScore({
       title: newScoreDraft.title,
       composer: newScoreDraft.composer,
+      templateId: newScoreDraft.templateId,
       partName: '멜로디',
       partAbbreviation: 'Mel.',
       keySignature,
@@ -1268,6 +1833,22 @@ export const App = () => {
     },
     [executeCommand, score, selection]
   )
+
+  const respellEnharmonically = useCallback(() => {
+    if (
+      executeCommand(buildEnharmonicRespellCommand(score, selection))
+    ) {
+      setFileStatus({
+        tone: 'neutral',
+        message: '이명동음으로 바꿨습니다.'
+      })
+    } else {
+      setFileStatus({
+        tone: 'error',
+        message: '이명동음으로 바꿀 음표를 선택해 주세요.'
+      })
+    }
+  }, [executeCommand, score, selection])
 
   const changePitchStep = useCallback(
     (step: PitchStep) => {
@@ -1701,8 +2282,18 @@ export const App = () => {
     setRedoStack([])
     setNoteInputState(undefined)
 
-    if ('editedEventId' in command && command.editedEventId) {
-      setSelection(createEventSelection(score, command.editedEventId))
+    if (command.type === 'voice-events.replace' && command.editedEventId) {
+      const pastedLocation = locateEvent(
+        result.score,
+        command.editedEventId,
+        command.target
+      )
+
+      setSelection({
+        type: 'event',
+        eventId: command.editedEventId,
+        address: pastedLocation?.address ?? command.target
+      })
     }
 
     setFileStatus({
@@ -2037,6 +2628,47 @@ export const App = () => {
     score.layout
   ])
 
+  const updatePageSetup = useCallback(
+    (patch: Partial<Required<ScorePageSetup>>) => {
+      const nextPageSetup = normalizePrintPageSetup({
+        ...pageSetup,
+        ...patch
+      })
+      const layout = {
+        ...score.layout,
+        pageSetup: nextPageSetup
+      }
+
+      if (
+        executeCommand({
+          type: 'score-layout.update',
+          layout
+        })
+      ) {
+        setFileStatus({
+          tone: 'neutral',
+          message: 'PDF 페이지 설정을 갱신했습니다.'
+        })
+      }
+    },
+    [executeCommand, pageSetup, score.layout]
+  )
+
+  const applyPageSetupPreset = useCallback(
+    (presetId: string) => {
+      const preset = pageSetupPresets.find(
+        (candidate) => candidate.id === presetId
+      )
+
+      if (!preset) {
+        return
+      }
+
+      updatePageSetup(preset.value)
+    },
+    [updatePageSetup]
+  )
+
   const updateActiveRehearsalMark = useCallback(
     (value: string) => {
       if (!activeMeasureId) {
@@ -2113,6 +2745,105 @@ export const App = () => {
       })
     },
     [activeMeasureId, executeCommand, score.staffTexts]
+  )
+
+  const updateActiveSystemText = useCallback(
+    (value: string) => {
+      if (!activeMeasureId) {
+        return
+      }
+
+      const text = value.trim()
+      const currentTexts = score.systemTexts ?? []
+      const existingText = currentTexts.find(
+        (systemText) => systemText.measureId === activeMeasureId
+      )
+
+      if ((existingText?.text ?? '') === text) {
+        return
+      }
+
+      const otherTexts = currentTexts.filter(
+        (systemText) => systemText.measureId !== activeMeasureId
+      )
+      const systemTexts =
+        text.length > 0
+          ? [
+              ...otherTexts,
+              {
+                id: existingText?.id ?? `system-text-${crypto.randomUUID()}`,
+                measureId: activeMeasureId,
+                text
+              }
+            ]
+          : otherTexts
+
+      executeCommand({
+        type: 'score-system-texts.update',
+        systemTexts: systemTexts.length > 0 ? systemTexts : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: text.length > 0 ? '시스템 텍스트를 갱신했습니다.' : '시스템 텍스트를 삭제했습니다.'
+      })
+    },
+    [activeMeasureId, executeCommand, score.systemTexts]
+  )
+
+  const updateActiveExpressionText = useCallback(
+    (value: string) => {
+      const targetMeasureId = eventLocation?.measure.id ?? activeMeasureId
+      const targetTick =
+        eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+
+      if (!targetMeasureId) {
+        return
+      }
+
+      const text = value.trim()
+      const currentTexts = score.expressionTexts ?? []
+      const existingText = currentTexts.find(
+        (expressionText) =>
+          expressionText.measureId === targetMeasureId &&
+          expressionText.tick === targetTick
+      )
+
+      if ((existingText?.text ?? '') === text) {
+        return
+      }
+
+      const otherTexts = currentTexts.filter(
+        (expressionText) => expressionText.id !== existingText?.id
+      )
+      const expressionTexts =
+        text.length > 0
+          ? [
+              ...otherTexts,
+              {
+                id: existingText?.id ?? `expression-text-${crypto.randomUUID()}`,
+                measureId: targetMeasureId,
+                tick: targetTick,
+                text
+              }
+            ]
+          : otherTexts
+
+      executeCommand({
+        type: 'score-expression-texts.update',
+        expressionTexts: expressionTexts.length > 0 ? expressionTexts : undefined
+      })
+      setFileStatus({
+        tone: 'neutral',
+        message: text.length > 0 ? '표현 텍스트를 갱신했습니다.' : '표현 텍스트를 삭제했습니다.'
+      })
+    },
+    [
+      activeMeasureId,
+      eventLocation,
+      executeCommand,
+      noteInputState?.tick,
+      score.expressionTexts
+    ]
   )
 
   const updateActiveDynamic = useCallback(
@@ -2986,6 +3717,37 @@ export const App = () => {
     [executeCommand, noteInputState, pendingSlurAnchorEventId, score, selection]
   )
 
+  const moveSelectionVertically = useCallback(
+    (direction: -1 | 1): boolean => {
+      if (noteInputState) {
+        return false
+      }
+
+      const currentEventId = getSelectionFocusEventId(selection)
+
+      if (!currentEventId) {
+        return false
+      }
+
+      const target = resolveVerticalEventSelection(
+        score,
+        currentEventId,
+        direction,
+        selection.type === 'measure' ? undefined : selection.address
+      )
+
+      if (!target) {
+        return false
+      }
+
+      setMode('select')
+      setNoteInputState(undefined)
+      setSelection(createEventSelection(score, target.eventId, target.address))
+      return true
+    },
+    [noteInputState, score, selection]
+  )
+
   const moveToNextLyricNote = useCallback(() => {
     const currentEventId = getSelectionFocusEventId(selection)
 
@@ -3031,7 +3793,11 @@ export const App = () => {
   )
 
   const selectEvent = useCallback(
-    (eventId: string, extendRange = false) => {
+    (
+      eventId: string,
+      extendRange = false,
+      address?: VoiceAddress
+    ) => {
       setMode('select')
       setNoteInputState(undefined)
       setMeasureContextMenu(undefined)
@@ -3047,17 +3813,18 @@ export const App = () => {
               score,
               anchorEventId,
               eventId,
-              selection.type === 'measure' ? undefined : selection.address
+              address ??
+                (selection.type === 'measure' ? undefined : selection.address)
             )
           : undefined
 
         setSelection(
-          rangeSelection ?? createEventSelection(score, eventId)
+          rangeSelection ?? createEventSelection(score, eventId, address)
         )
         return
       }
 
-      setSelection(createEventSelection(score, eventId))
+      setSelection(createEventSelection(score, eventId, address))
     },
     [score, selection]
   )
@@ -3078,12 +3845,16 @@ export const App = () => {
   }, [score])
 
   const selectEventRange = useCallback(
-    (anchorEventId: string, focusEventId: string) => {
+    (
+      anchorEventId: string,
+      focusEventId: string,
+      address?: VoiceAddress
+    ) => {
       const rangeSelection = createRangeSelection(
         score,
         anchorEventId,
         focusEventId,
-        selection.type === 'measure' ? undefined : selection.address
+        address ?? (selection.type === 'measure' ? undefined : selection.address)
       )
 
       if (rangeSelection) {
@@ -3108,10 +3879,14 @@ export const App = () => {
     (
       nextScore: Score,
       message: string,
-      options: OpenScoreOptions = {}
+      options: AppOpenScoreOptions = {}
     ) => {
       const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
       const firstEvent = firstMeasure?.voices[0]?.events[0]
+      const scoreViewState = resolveStoredMusicXmlViewState(
+        nextScore,
+        options.viewState
+      )
 
       setScore(nextScore)
       setAutosaveRevision((revision) =>
@@ -3124,6 +3899,11 @@ export const App = () => {
       setPendingSlurAnchorEventId(undefined)
       setRecoverySnapshot(undefined)
       setStartScreenVisible(false)
+      setMusicXmlReport(undefined)
+      setScoreViewMode(scoreViewState.mode)
+      setSelectedScoreViewPartId(
+        scoreViewState.mode === 'part' ? scoreViewState.partId : undefined
+      )
       setSelection(
         firstEvent
           ? {
@@ -3176,12 +3956,26 @@ export const App = () => {
         return
       }
 
-      const importedScore = parseMusicXml(file.contents)
+      const { report, score: importedScore } = parseMusicXmlWithReport(
+        file.contents
+      )
+      const viewState = readStoredMusicXmlViewState(
+        file.filePath,
+        importedScore
+      )
 
       setMissingRecentFilePath(undefined)
-      openScore(importedScore, `${file.fileName}을 가져왔습니다.`, {
-        markDirty: false
-      })
+      openScore(
+        importedScore,
+        describeMusicXmlImportResult(file.fileName, report),
+        {
+          markDirty: false,
+          viewState
+        }
+      )
+      setMusicXmlReport(
+        createMusicXmlReportPanelState('import', file.fileName, report)
+      )
       currentMusicXmlFileRef.current = {
         filePath: file.filePath,
         fileName: file.fileName
@@ -3226,12 +4020,26 @@ export const App = () => {
         const openedFile = await window.inC.recentMusicXml.open({
           filePath: file.filePath
         })
-        const importedScore = parseMusicXml(openedFile.contents)
+        const { report, score: importedScore } = parseMusicXmlWithReport(
+          openedFile.contents
+        )
+        const viewState = readStoredMusicXmlViewState(
+          openedFile.filePath,
+          importedScore
+        )
 
         setMissingRecentFilePath(undefined)
-        openScore(importedScore, `${openedFile.fileName}을 다시 열었습니다.`, {
-          markDirty: false
-        })
+        openScore(
+          importedScore,
+          describeMusicXmlImportResult(openedFile.fileName, report, true),
+          {
+            markDirty: false,
+            viewState
+          }
+        )
+        setMusicXmlReport(
+          createMusicXmlReportPanelState('import', openedFile.fileName, report)
+        )
         currentMusicXmlFileRef.current = {
           filePath: openedFile.filePath,
           fileName: openedFile.fileName
@@ -3305,7 +4113,7 @@ export const App = () => {
         return
       }
 
-      const contents = serializeMusicXml(score)
+      const { contents, report } = serializeMusicXmlWithReport(score)
       assertMusicXmlSaveSafe(score, contents)
       const currentMusicXmlFile = currentMusicXmlFileRef.current
       const result = await window.inC.musicXml.save({
@@ -3328,6 +4136,10 @@ export const App = () => {
         filePath: result.filePath,
         fileName: result.fileName
       }
+      writeStoredMusicXmlViewState(
+        result.filePath,
+        createCurrentMusicXmlViewState(scoreViewMode, livePartViewPartId)
+      )
 
       try {
         await window.inC.autosave.clear()
@@ -3360,15 +4172,18 @@ export const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: `${result.fileName}을 MusicXML로 내보냈습니다.`
+        message: describeMusicXmlExportResult(result.fileName, report)
       })
+      setMusicXmlReport(
+        createMusicXmlReportPanelState('export', result.fileName, report)
+      )
     } catch (error) {
       setFileStatus({
         tone: 'error',
         message: getErrorMessage(error)
       })
     }
-  }, [noteInputState?.tupletInput, score])
+  }, [livePartViewPartId, noteInputState?.tupletInput, score, scoreViewMode])
 
   const savePdf = useCallback(async () => {
     if (!parsePdfTargetPages(pdfTargetPages)) {
@@ -3384,7 +4199,11 @@ export const App = () => {
       await waitForNextPaint()
 
       const result = await window.inC.pdf.save({
-        suggestedName: `${toFileName(score.title)}.pdf`
+        suggestedName: `${toFileName(
+          scoreViewMode === 'part' && livePartViewPart
+            ? `${score.title}-${livePartViewPart.name}`
+            : score.title
+        )}.pdf`
       })
 
       if (!result) {
@@ -3403,7 +4222,31 @@ export const App = () => {
     } finally {
       setPdfExporting(false)
     }
-  }, [pdfTargetPages, score.title])
+  }, [livePartViewPart, pdfTargetPages, score.title, scoreViewMode])
+
+  const saveMidi = useCallback(async () => {
+    try {
+      const midiReport = serializeMidiWithReport(score)
+      const result = await window.inC.midi.save({
+        suggestedName: `${toFileName(score.title)}.mid`,
+        contents: Array.from(midiReport.bytes)
+      })
+
+      if (!result) {
+        return
+      }
+
+      setFileStatus({
+        tone: 'neutral',
+        message: describeMidiExportResult(result.fileName, midiReport.warnings)
+      })
+    } catch (error) {
+      setFileStatus({
+        tone: 'error',
+        message: getErrorMessage(error)
+      })
+    }
+  }, [score])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -3480,6 +4323,20 @@ export const App = () => {
       if (isNoteInputToggleShortcut(event)) {
         event.preventDefault()
         toggleNoteInputMode()
+        return
+      }
+
+      const voiceShortcut = resolveVoiceShortcut(event, activeVoiceNumber)
+
+      if (voiceShortcut) {
+        event.preventDefault()
+        switchActiveVoice(voiceShortcut)
+        return
+      }
+
+      if (!event.altKey && !usesCommandKey && event.code === 'KeyJ') {
+        event.preventDefault()
+        respellEnharmonically()
         return
       }
 
@@ -3598,6 +4455,16 @@ export const App = () => {
             movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
           } else if (event.altKey) {
             movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
+          } else if (
+            moveSelectionVertically(event.key === 'ArrowUp' ? -1 : 1)
+          ) {
+            setFileStatus({
+              tone: 'neutral',
+              message:
+                event.key === 'ArrowUp'
+                  ? '위 보표로 이동했습니다.'
+                  : '아래 보표로 이동했습니다.'
+            })
           } else if (eventLocation?.event.type === 'note') {
             setFileStatus({
               tone: 'neutral',
@@ -3631,6 +4498,7 @@ export const App = () => {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     addChordPitchStep,
+    activeVoiceNumber,
     changeDuration,
     changeDots,
     changePitchStep,
@@ -3643,7 +4511,9 @@ export const App = () => {
     moveActiveLyricVerse,
     movePitch,
     moveSelection,
+    moveSelectionVertically,
     moveToNextLyricNote,
+    respellEnharmonically,
     mode,
     eventLocation,
     measureContextMenu,
@@ -3654,6 +4524,7 @@ export const App = () => {
     pendingSlurAnchorEventId,
     redo,
     saveMusicXml,
+    switchActiveVoice,
     toggleSlur,
     toggleTie,
     toggleTuplet,
@@ -3676,14 +4547,28 @@ export const App = () => {
         : score,
     [noteInputState, score]
   )
+  const displayScore = useMemo(
+    () =>
+      scoreViewMode === 'part' && livePartViewPartId
+        ? createLivePartViewScore(previewScore, livePartViewPartId)
+        : previewScore,
+    [livePartViewPartId, previewScore, scoreViewMode]
+  )
+  const printScore = useMemo(
+    () =>
+      scoreViewMode === 'part' && livePartViewPartId
+        ? createLivePartViewScore(score, livePartViewPartId)
+        : score,
+    [livePartViewPartId, score, scoreViewMode]
+  )
   const pdfTargetPageCount = parsePdfTargetPages(pdfTargetPages)
   const pdfTargetPagesInvalid = !pdfTargetPageCount
   const pdfTargetPagesTooltip = pdfTargetPagesInvalid
     ? 'PDF 장수는 1 이상이어야 합니다.'
     : 'PDF 변환'
   const printLayoutPlan = useMemo(
-    () => resolvePrintLayoutPlan(score, pdfTargetPageCount ?? 1),
-    [pdfTargetPageCount, score]
+    () => resolvePrintLayoutPlan(printScore, pdfTargetPageCount ?? 1),
+    [pdfTargetPageCount, printScore]
   )
   const canEditPitch = eventLocation?.event.type === 'note'
   const selectedNoteArticulations =
@@ -3725,6 +4610,9 @@ export const App = () => {
         preset.value.sign === measureLocation?.measure.clef.sign &&
         preset.value.line === measureLocation?.measure.clef.line
     )?.id ?? 'treble'
+  const activeStaffClefId = resolveClefPresetId(
+    activeStructureStaff?.measures[0]?.clef
+  )
   const selectedNote =
     eventLocation?.event.type === 'note' ? eventLocation.event : undefined
   const selectedChordPitches = selectedNote
@@ -3746,6 +4634,13 @@ export const App = () => {
           tempoEvent.measureId === activeMeasureId && tempoEvent.tick === activeTick
       )
     : undefined
+  const activeExpressionText = activeMeasureId
+    ? score.expressionTexts?.find(
+        (expressionText) =>
+          expressionText.measureId === activeMeasureId &&
+          expressionText.tick === activeTick
+      )
+    : undefined
 
   return (
     <main
@@ -3755,7 +4650,7 @@ export const App = () => {
     >
       {pdfExporting ? (
         <style>
-          {`@page { size: A4; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
+          {`@page { size: ${printLayoutPlan.pageCssSize}; margin: ${printLayoutPlan.pageMarginMm}mm; background: #ffffff; }`}
         </style>
       ) : null}
       {startScreenVisible ? (
@@ -3862,6 +4757,7 @@ export const App = () => {
                 {fileStatus.message}
               </p>
             ) : null}
+            <MusicXmlReportPanel report={musicXmlReport} />
           </div>
         </section>
       ) : (
@@ -3878,42 +4774,6 @@ export const App = () => {
             {category.label}
           </button>
         ))}
-        {toolbarPosterSequence.length > 0 ? (
-          <div
-            aria-label="공연 포스터 보기"
-            className={`toolbar-tabs__promo${
-              selectedPromoConcert ? ' is-detail-open' : ''
-            }`}
-            role="group"
-          >
-            <span className="toolbar-tabs__promo-rail">
-              {toolbarPosterSequence.map((concert, slot) => (
-                <button
-                  aria-label={`${concert.title} 포스터 크게 보기`}
-                  className={`toolbar-tabs__promo-poster toolbar-tabs__promo-poster--${concert.theme}`}
-                  key={`${concert.id}-${slot}`}
-                  onClick={() => setSelectedPromoConcert(concert)}
-                  type="button"
-                >
-                  {concert.imageUrl ? (
-                    <img
-                      alt=""
-                      className="toolbar-tabs__promo-image"
-                      decoding="async"
-                      loading="lazy"
-                      src={concert.imageUrl}
-                    />
-                  ) : (
-                    <>
-                      <span className="toolbar-tabs__promo-staff" />
-                      <span className="toolbar-tabs__promo-note" />
-                    </>
-                  )}
-                </button>
-              ))}
-            </span>
-          </div>
-        ) : null}
       </nav>
 
       <section
@@ -3947,6 +4807,45 @@ export const App = () => {
         aria-label="음표 편집"
         hidden={toolbarCategory !== 'note'}
       >
+        <section className="inspector-properties" aria-label="성부">
+          <h3>성부</h3>
+          <label className="inspector-properties__row">
+            <span>입력 보표</span>
+            <select
+              aria-label="입력 보표"
+              disabled={staffTargetOptions.length <= 1}
+              onChange={(event) => switchActiveStaff(event.target.value)}
+              value={activeStaffTargetValue}
+            >
+              {staffTargetOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <div className="inspector-properties__row">
+            <span>입력 성부</span>
+            <div className="inspector-properties__buttons">
+              {voiceNumbers.map((voiceNumber) => (
+                <button
+                  aria-label={`${voiceNumber}성부`}
+                  aria-pressed={activeVoiceNumber === voiceNumber}
+                  className={
+                    activeVoiceNumber === voiceNumber ? 'is-active' : undefined
+                  }
+                  key={voiceNumber}
+                  onClick={() => switchActiveVoice(voiceNumber)}
+                  title={`성부 ${voiceNumber} 전환 (Cmd/Ctrl+Alt+${voiceNumber})`}
+                  type="button"
+                >
+                  {voiceNumber}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
           <section className="inspector-properties" aria-label="선택 속성">
             <h3>속성</h3>
             {eventLocation ? (
@@ -3961,7 +4860,9 @@ export const App = () => {
                     >
                       -
                     </button>
-                    <output>{eventLocation.event.duration.dots}</output>
+                    <output aria-label="선택 이벤트 점 개수">
+                      {eventLocation.event.duration.dots}
+                    </output>
                     <button
                       disabled={!canAddDot}
                       onClick={() => changeDots(1)}
@@ -4038,7 +4939,7 @@ export const App = () => {
                 <div className="inspector-properties__row">
                   <span>{koreanMusicTerms.expressiveSymbols}</span>
                   <div className="inspector-properties__buttons">
-                    {articulationTermOptions.map(({ label, value }) => (
+                    {articulationTermOptions.map(({ label, symbol, value }) => (
                       <button
                         aria-label={label}
                         aria-pressed={selectedNoteArticulations.has(value)}
@@ -4052,7 +4953,7 @@ export const App = () => {
                         onClick={() => toggleArticulation(value)}
                         type="button"
                       >
-                        {value === 'staccato' ? '•' : '>'}
+                        {symbol}
                       </button>
                     ))}
                   </div>
@@ -4431,6 +5332,260 @@ export const App = () => {
           </div>
         </section>
 
+        <section className="inspector-properties" aria-label="파트와 보표">
+          <h3>파트/보표</h3>
+          <div className="inspector-properties__grid">
+            <label>
+              <span>보기</span>
+              <select
+                aria-label="악보 보기"
+                onChange={(event) =>
+                  setScoreViewMode(event.target.value as ScoreViewMode)
+                }
+                value={scoreViewMode}
+              >
+                <option value="score">총보</option>
+                <option value="part">파트보</option>
+              </select>
+            </label>
+
+            <label>
+              <span>파트보</span>
+              <select
+                aria-label="파트보 선택"
+                disabled={scoreViewMode !== 'part'}
+                onChange={(event) =>
+                  setSelectedScoreViewPartId(event.target.value)
+                }
+                value={livePartViewPartId ?? ''}
+              >
+                {score.parts.map((part) => (
+                  <option key={part.id} value={part.id}>
+                    {part.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>현재</span>
+              <output aria-label="현재 파트와 보표">
+                {activeStructureTarget
+                  ? describeStaffTarget(score, activeStructureTarget)
+                  : '파트 없음'}
+              </output>
+            </label>
+
+            <label>
+              <span>파트명</span>
+              <input
+                aria-label="현재 파트 이름"
+                defaultValue={activeStructurePart?.name ?? ''}
+                disabled={!activeStructurePart}
+                key={`${activeStructurePart?.id ?? 'none'}-${
+                  activeStructurePart?.name ?? ''
+                }-part-name`}
+                maxLength={80}
+                onBlur={(event) =>
+                  updateActivePartLabel('name', event.currentTarget.value)
+                }
+                type="text"
+              />
+            </label>
+
+            <label>
+              <span>약어</span>
+              <input
+                aria-label="현재 파트 약어"
+                defaultValue={activeStructurePart?.abbreviation ?? ''}
+                disabled={!activeStructurePart}
+                key={`${activeStructurePart?.id ?? 'none'}-${
+                  activeStructurePart?.abbreviation ?? ''
+                }-part-abbreviation`}
+                maxLength={24}
+                onBlur={(event) =>
+                  updateActivePartLabel(
+                    'abbreviation',
+                    event.currentTarget.value
+                  )
+                }
+                type="text"
+              />
+            </label>
+
+            <label>
+              <span>음자리표</span>
+              <select
+                aria-label="현재 보표 음자리표"
+                disabled={!activeStructureStaff}
+                onChange={(event) => changeActiveStaffClef(event.target.value)}
+                value={activeStaffClefId}
+              >
+                {clefPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>추가할 악기</span>
+              <select
+                aria-label="추가할 악기"
+                onChange={(event) => setSelectedPartPresetId(event.target.value)}
+                value={selectedPartPresetId}
+              >
+                {partPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button onClick={addPartToScore} type="button">
+              파트 추가
+            </button>
+            <button
+              disabled={!activeStructurePart || score.parts.length <= 1}
+              onClick={removeActivePart}
+              type="button"
+            >
+              파트 삭제
+            </button>
+            <button
+              disabled={!activeStructurePart}
+              onClick={addStaffToActivePart}
+              type="button"
+            >
+              보표 추가
+            </button>
+            <button
+              disabled={
+                !activeStructurePart || activeStructurePart.staves.length <= 1
+              }
+              onClick={removeActiveStaff}
+              type="button"
+            >
+              보표 삭제
+            </button>
+          </div>
+        </section>
+
+        <section className="inspector-properties" aria-label="PDF 페이지 설정">
+          <h3>PDF 설정</h3>
+          <div className="inspector-properties__grid">
+            <label>
+              <span>프리셋</span>
+              <select
+                aria-label="PDF 설정 프리셋"
+                onChange={(event) => applyPageSetupPreset(event.target.value)}
+                value={resolvePageSetupPresetId(pageSetup)}
+              >
+                <option value="custom">사용자 설정</option>
+                {pageSetupPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>용지</span>
+              <select
+                aria-label="PDF 용지"
+                onChange={(event) =>
+                  updatePageSetup({
+                    pageSize: event.target.value as Required<ScorePageSetup>['pageSize']
+                  })
+                }
+                value={pageSetup.pageSize}
+              >
+                {pageSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>방향</span>
+              <select
+                aria-label="PDF 방향"
+                onChange={(event) =>
+                  updatePageSetup({
+                    orientation: event.target
+                      .value as Required<ScorePageSetup>['orientation']
+                  })
+                }
+                value={pageSetup.orientation}
+              >
+                {pageOrientationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>여백</span>
+              <input
+                aria-label="PDF 여백 mm"
+                max={30}
+                min={3}
+                onChange={(event) =>
+                  updatePageSetup({
+                    pageMarginMm: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={1}
+                type="number"
+                value={pageSetup.pageMarginMm}
+              />
+            </label>
+
+            <label>
+              <span>보표 크기</span>
+              <input
+                aria-label="PDF 보표 크기"
+                max={125}
+                min={75}
+                onChange={(event) =>
+                  updatePageSetup({
+                    staffSizePercent: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={5}
+                type="range"
+                value={pageSetup.staffSizePercent}
+              />
+              <output>{pageSetup.staffSizePercent}%</output>
+            </label>
+
+            <label>
+              <span>시스템 간격</span>
+              <input
+                aria-label="PDF 시스템 간격"
+                max={140}
+                min={80}
+                onChange={(event) =>
+                  updatePageSetup({
+                    systemSpacingPercent: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={5}
+                type="range"
+                value={pageSetup.systemSpacingPercent}
+              />
+              <output>{pageSetup.systemSpacingPercent}%</output>
+            </label>
+          </div>
+        </section>
+
           {activeMeasureId ? (
             <section className="inspector-properties" aria-label="마디 텍스트">
               <h3>마디 표시</h3>
@@ -4487,6 +5642,58 @@ export const App = () => {
               </label>
 
               <label>
+                <span>시스템 텍스트</span>
+                <input
+                  aria-label="시스템 텍스트"
+                  defaultValue={activeMeasureSystemText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureSystemText?.text ?? ''
+                  }-system-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveSystemText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureSystemText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Chorus"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>표현 텍스트</span>
+                <input
+                  aria-label="표현 텍스트"
+                  defaultValue={activeExpressionText?.text ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${
+                    activeExpressionText?.text ?? ''
+                  }-expression-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveExpressionText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeExpressionText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="espressivo"
+                  type="text"
+                />
+              </label>
+
+              <label>
                 <span>{koreanMusicTerms.dynamics}</span>
                 <select
                   aria-label={koreanMusicTerms.dynamics}
@@ -4503,9 +5710,9 @@ export const App = () => {
               </label>
 
               <label>
-                <span>음자리표</span>
+                <span>마디 음자리표</span>
                 <select
-                  aria-label="음자리표"
+                  aria-label="선택 마디 음자리표"
                   onChange={(event) => changeClef(event.target.value)}
                   value={activeClefId}
                 >
@@ -4613,6 +5820,15 @@ export const App = () => {
                   <span>PDF 변환</span>
                 </button>
               </span>
+              <button
+                aria-label="MIDI 내보내기"
+                onClick={saveMidi}
+                title="현재 악보를 MIDI 파일로 내보내기"
+                type="button"
+              >
+                <FileVolume aria-hidden="true" size={17} />
+                <span>MIDI</span>
+              </button>
               <label className="pdf-page-target-control">
                 <span>PDF 장수</span>
                 <input
@@ -4862,6 +6078,18 @@ export const App = () => {
               <ChevronsUp aria-hidden="true" size={18} />
             </button>
 
+            <button
+              aria-label="이명동음으로 바꾸기"
+              className="icon-button"
+              disabled={!canEditPitch}
+              hidden={toolbarCategory !== 'note'}
+              onClick={respellEnharmonically}
+              title="이명동음으로 바꾸기, 단축키 J"
+              type="button"
+            >
+              <RotateCw aria-hidden="true" size={18} />
+            </button>
+
           </div>
 
           <div
@@ -4888,13 +6116,13 @@ export const App = () => {
                   title={label}
                   type="button"
                 >
-                  {durationLabels[duration]}
+                  {durationToolbarLabels[duration]}
                 </button>
               )
             })}
 
             <div className="dot-control" aria-label="점음표">
-              <span className="dot-control__label">점음표</span>
+              <span className="dot-control__label" title="점음표">점</span>
               <button
                 aria-label="점 줄이기"
                 disabled={isTupletInput || !canRemoveDot}
@@ -4932,7 +6160,6 @@ export const App = () => {
               ) : (
                 <Link2 aria-hidden="true" size={17} />
               )}
-              <span>타이</span>
               <span className="shortcut-badge">T</span>
             </button>
 
@@ -4952,8 +6179,8 @@ export const App = () => {
               }
               type="button"
             >
-              <span>{tripletPreset.label}</span>
-              <span className="tuplet-duration-label">8분</span>
+              <span aria-hidden="true">3</span>
+              <span className="tuplet-duration-label">8</span>
               <span className="shortcut-badge">{tripletPreset.shortcut}</span>
             </button>
           </div>
@@ -4962,6 +6189,18 @@ export const App = () => {
 
         <div className="playback-strip" hidden={toolbarCategory !== 'playback'}>
           <div className="transport-controls" aria-label="재생 컨트롤">
+            <button
+              aria-label="처음으로"
+              className="icon-button"
+              disabled={
+                playback.status === 'stopped' && playback.positionBeat === 0
+              }
+              onClick={playback.jumpToStart}
+              title="처음으로"
+              type="button"
+            >
+              <SkipBack aria-hidden="true" size={17} />
+            </button>
             <button
               aria-label="재생"
               className="icon-button"
@@ -4993,6 +6232,51 @@ export const App = () => {
               <Square aria-hidden="true" size={17} />
             </button>
           </div>
+          <section className="part-mixer" aria-label="파트 믹서">
+            {score.parts.map((part) => {
+              const settings = resolvePartMixerSettings(partMixer[part.id])
+              const volumePercent = Math.round(settings.volume * 100)
+
+              return (
+                <div className="part-mixer__row" key={part.id}>
+                  <span className="part-mixer__name">{part.name}</span>
+                  <label className="part-mixer__toggle">
+                    <input
+                      aria-label={`${part.name} 음소거`}
+                      checked={settings.muted}
+                      onChange={() => togglePartMute(part.id)}
+                      type="checkbox"
+                    />
+                    <span>뮤트</span>
+                  </label>
+                  <label className="part-mixer__toggle">
+                    <input
+                      aria-label={`${part.name} 솔로`}
+                      checked={settings.solo}
+                      onChange={() => togglePartSolo(part.id)}
+                      type="checkbox"
+                    />
+                    <span>솔로</span>
+                  </label>
+                  <label className="part-mixer__volume">
+                    <span>볼륨</span>
+                    <input
+                      aria-label={`${part.name} 볼륨`}
+                      max={150}
+                      min={0}
+                      onChange={(event) =>
+                        changePartVolume(part.id, event.target.value)
+                      }
+                      step={5}
+                      type="range"
+                      value={volumePercent}
+                    />
+                    <output>{volumePercent}%</output>
+                  </label>
+                </div>
+              )
+            })}
+          </section>
         </div>
 
         <div className="editor-status" aria-live="polite">
@@ -5002,6 +6286,11 @@ export const App = () => {
             </span>
           ) : null}
           <span>{durationLabels[durationValue]}</span>
+          <span>
+            {scoreViewMode === 'part' && livePartViewPart
+              ? `파트보: ${livePartViewPart.name}`
+              : '총보'}
+          </span>
           {noteInputState?.tupletInput ? (
             <span className="tuplet-progress">
               {tripletPreset.label} {tupletProgress}
@@ -5027,7 +6316,27 @@ export const App = () => {
           ) : null}
         </div>
 
-        <div className="score-page" aria-label="악보 페이지">
+        <MusicXmlReportPanel report={musicXmlReport} />
+
+        <div
+          className="score-page"
+          aria-label="악보 페이지"
+          data-part-id={
+            scoreViewMode === 'part' && livePartViewPart
+              ? livePartViewPart.id
+              : undefined
+          }
+          data-pdf-page-margin-mm={printLayoutPlan.pageSetup.pageMarginMm}
+          data-pdf-page-orientation={printLayoutPlan.pageSetup.orientation}
+          data-pdf-page-size={printLayoutPlan.pageSetup.pageSize}
+          data-pdf-staff-size-percent={
+            printLayoutPlan.pageSetup.staffSizePercent
+          }
+          data-pdf-system-spacing-percent={
+            printLayoutPlan.pageSetup.systemSpacingPercent
+          }
+          data-view-mode={scoreViewMode}
+        >
           <div className="score-title">
             {metadataEdit?.field === 'title' ? (
               <input
@@ -5060,6 +6369,16 @@ export const App = () => {
                 {score.title}
               </button>
             )}
+
+            {scoreViewMode === 'part' && livePartViewPart ? (
+              <div
+                className="score-part-title"
+                aria-label="파트보 제목"
+                data-part-id={livePartViewPart.id}
+              >
+                {livePartViewPart.name}
+              </div>
+            ) : null}
 
             {metadataEdit?.field === 'composer' ? (
               <input
@@ -5114,10 +6433,25 @@ export const App = () => {
             onSelectLyric={selectLyric}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
-            score={pdfExporting ? score : previewScore}
+            score={pdfExporting ? printScore : displayScore}
             playbackEventId={pdfExporting ? undefined : playback.activeEventId}
+            playbackEventAddress={
+              !pdfExporting && playback.activeEvent
+                ? {
+                    partId: playback.activeEvent.partId,
+                    staffId: playback.activeEvent.staffId,
+                    measureId: playback.activeEvent.measureId,
+                    voiceId: playback.activeEvent.voiceId
+                  }
+                : undefined
+            }
             printLayout={pdfExporting}
             printLayoutPlan={pdfExporting ? printLayoutPlan : undefined}
+            selectedEventAddress={
+              pdfExporting || selection.type === 'measure'
+                ? undefined
+                : selection.address
+            }
             selectedEventId={pdfExporting ? undefined : selectedEventId}
             selectedEventIds={pdfExporting ? [] : selectedEventIds}
             selectedMeasureId={pdfExporting ? undefined : selectedMeasureId}
@@ -5199,61 +6533,6 @@ export const App = () => {
         </div>
       ) : null}
 
-      {selectedPromoConcert ? (
-        <div
-          className="modal-backdrop"
-          onClick={() => setSelectedPromoConcert(undefined)}
-          role="presentation"
-        >
-          <section
-            aria-label="공연 포스터"
-            className="promo-dialog"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-          >
-            <button
-              className="promo-dialog__close"
-              onClick={() => setSelectedPromoConcert(undefined)}
-              type="button"
-            >
-              닫기
-            </button>
-            <div
-              className={`promo-dialog__poster promo-dialog__poster--${selectedPromoConcert.theme}`}
-              aria-hidden="true"
-            >
-              {selectedPromoConcert.imageUrl ? (
-                <img
-                  alt={selectedPromoConcert.imageAlt}
-                  className="promo-dialog__poster-image"
-                  decoding="async"
-                  src={selectedPromoConcert.imageUrl}
-                />
-              ) : (
-                <>
-                  <span className="promo-dialog__staff" />
-                  <span className="promo-dialog__note" />
-                </>
-              )}
-            </div>
-            <div className="promo-dialog__copy">
-              <p className="promo-dialog__eyebrow">Concert Poster</p>
-              <h2>{selectedPromoConcert.title}</h2>
-              <p className="promo-dialog__meta">{selectedPromoConcert.meta}</p>
-              <p>{selectedPromoConcert.description}</p>
-              <a
-                className="primary-action"
-                href={selectedPromoConcert.targetUrl}
-                rel="noreferrer"
-                target="_blank"
-              >
-                공연 보기
-              </a>
-            </div>
-          </section>
-        </div>
-      ) : null}
-
       {newScoreDraft ? (
         <div className="modal-backdrop" role="presentation">
           <form
@@ -5297,6 +6576,27 @@ export const App = () => {
                   }
                   value={newScoreDraft.composer}
                 />
+              </label>
+
+              <label>
+                <span>악보 구성</span>
+                <select
+                  aria-label="악보 구성"
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      templateId: event.target
+                        .value as NewScoreDraft['templateId']
+                    })
+                  }
+                  value={newScoreDraft.templateId}
+                >
+                  {scoreStructurePresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label>
@@ -5528,6 +6828,7 @@ function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
   return {
     title: '제목 없는 악보',
     composer: 'in-C',
+    templateId: 'solo-melody',
     keySignatureId: 'c-major',
     timeSignatureId: '4-4',
     measureCount: 8,
@@ -5723,8 +7024,697 @@ function createInputState(
         tick: location.events[0]?.position.tick ?? 0,
         duration,
         mode
-      })
+    })
     : undefined
+}
+
+function resolveVoiceSwitchLocation(
+  score: Score,
+  selection: EditorSelection,
+  noteInputState: NoteInputState | undefined
+):
+  | {
+      address: VoiceAddress
+      measure: Measure
+      measureIndex: number
+      staffMeasures: Measure[]
+      tick: number
+    }
+  | undefined {
+  if (noteInputState) {
+    const location = locateMeasure(
+      score,
+      noteInputState.target.measureId,
+      noteInputState.target
+    )
+
+    return location
+      ? {
+          address: location.address,
+          measure: location.measure,
+          measureIndex: findMeasureIndex(score, location.address),
+          staffMeasures: findStaffMeasures(score, location.address) ?? [],
+          tick: noteInputState.tick
+        }
+      : undefined
+  }
+
+  const focusedEventId = getSelectionFocusEventId(selection)
+
+  if (focusedEventId) {
+    const location = locateEvent(
+      score,
+      focusedEventId,
+      selection.type === 'measure' ? undefined : selection.address
+    )
+
+    return location
+      ? {
+          address: location.address,
+          measure: location.measure,
+          measureIndex: findMeasureIndex(score, location.address),
+          staffMeasures: findStaffMeasures(score, location.address) ?? [],
+          tick: location.event.position.tick
+        }
+      : undefined
+  }
+
+  if (selection.type !== 'measure') {
+    return undefined
+  }
+
+  const location = locateMeasure(score, selection.measureId, selection.address)
+
+  return location
+    ? {
+        address: location.address,
+        measure: location.measure,
+        measureIndex: findMeasureIndex(score, location.address),
+        staffMeasures: findStaffMeasures(score, location.address) ?? [],
+        tick: location.events[0]?.position.tick ?? 0
+      }
+    : undefined
+}
+
+function resolveActiveStructureTarget(
+  score: Score,
+  address: VoiceAddress | undefined
+): { partId: string; staffId: string } | undefined {
+  if (address) {
+    const part = score.parts.find((candidate) => candidate.id === address.partId)
+    const staff = part?.staves.find(
+      (candidate) => candidate.id === address.staffId
+    )
+
+    if (part && staff) {
+      return {
+        partId: part.id,
+        staffId: staff.id
+      }
+    }
+  }
+
+  const firstPart = score.parts[0]
+  const firstStaff = firstPart?.staves[0]
+
+  return firstPart && firstStaff
+    ? {
+        partId: firstPart.id,
+        staffId: firstStaff.id
+      }
+    : undefined
+}
+
+function createEmptyStaffFromScore(
+  score: Score,
+  partId: string,
+  staffId: string,
+  clef: Clef
+): Staff {
+  const referenceMeasures =
+    score.parts[0]?.staves[0]?.measures ?? [createMeasure()]
+
+  return createStaff({
+    id: staffId,
+    measures: referenceMeasures.map((measure, index) =>
+      createMeasure({
+        id: `${partId}-${staffId}-measure-${index + 1}`,
+        number: measure.number,
+        timing: measure.timing,
+        timeSignature: measure.timeSignature,
+        keySignature: measure.keySignature,
+        clef
+      })
+    )
+  })
+}
+
+function createStaffStartSelection(partId: string, staff: Staff): EditorSelection {
+  const measure = staff.measures[0]
+  const voice = measure?.voices[0]
+  const event = voice?.events[0]
+  const address =
+    measure && voice
+      ? {
+          partId,
+          staffId: staff.id,
+          measureId: measure.id,
+          voiceId: voice.id
+        }
+      : undefined
+
+  return event
+    ? {
+        type: 'event',
+        eventId: event.id,
+        address
+      }
+    : {
+        type: 'measure',
+        measureId: measure?.id ?? 'measure-1',
+        address
+      }
+}
+
+function createUniqueNumberedId(
+  prefix: string,
+  usedIds: Set<string>,
+  startIndex = 1
+): string {
+  let index = Math.max(1, startIndex)
+  let id = `${prefix}-${index}`
+
+  while (usedIds.has(id)) {
+    index += 1
+    id = `${prefix}-${index}`
+  }
+
+  return id
+}
+
+function createUniqueIdFromBase(baseId: string, usedIds: Set<string>): string {
+  if (!usedIds.has(baseId)) {
+    return baseId
+  }
+
+  let index = 2
+  let id = `${baseId}-${index}`
+
+  while (usedIds.has(id)) {
+    index += 1
+    id = `${baseId}-${index}`
+  }
+
+  return id
+}
+
+function countExistingPartNames(score: Score, baseName: string): number {
+  return score.parts.filter(
+    (part) => part.name === baseName || part.name.startsWith(`${baseName} `)
+  ).length
+}
+
+function buildScorePartsReplaceCommand(
+  score: Score,
+  parts: Part[]
+): ScoreCommand {
+  const commands: ScoreCommand[] = [
+    {
+      type: 'score-parts.replace',
+      parts
+    }
+  ]
+  const measureIds = collectPartMeasureIds(parts)
+  const eventIds = collectPartEventIds(parts)
+
+  addFilteredCommand(commands, score.tempoEvents, (tempoEvents) => ({
+    type: 'score-tempo-events.update',
+    tempoEvents
+  }), (tempoEvent) => measureIds.has(tempoEvent.measureId))
+  addFilteredCommand(commands, score.rehearsalMarks, (rehearsalMarks) => ({
+    type: 'score-rehearsal-marks.update',
+    rehearsalMarks
+  }), (mark) => measureIds.has(mark.measureId))
+  addFilteredCommand(commands, score.staffTexts, (staffTexts) => ({
+    type: 'score-staff-texts.update',
+    staffTexts
+  }), (text) => measureIds.has(text.measureId))
+  addFilteredCommand(commands, score.systemTexts, (systemTexts) => ({
+    type: 'score-system-texts.update',
+    systemTexts
+  }), (text) => measureIds.has(text.measureId))
+  addFilteredCommand(commands, score.expressionTexts, (expressionTexts) => ({
+    type: 'score-expression-texts.update',
+    expressionTexts
+  }), (text) => measureIds.has(text.measureId))
+  addFilteredCommand(commands, score.dynamics, (dynamics) => ({
+    type: 'score-dynamics.update',
+    dynamics
+  }), (dynamic) => measureIds.has(dynamic.measureId))
+  addFilteredCommand(commands, score.harmonies, (harmonies) => ({
+    type: 'score-harmonies.update',
+    harmonies
+  }), (harmony) => measureIds.has(harmony.measureId))
+  addFilteredCommand(commands, score.octaveShifts, (octaveShifts) => ({
+    type: 'score-octave-shifts.update',
+    octaveShifts
+  }), (shift) => eventIds.has(shift.startEventId) && eventIds.has(shift.endEventId))
+  addFilteredCommand(commands, score.hairpins, (hairpins) => ({
+    type: 'score-hairpins.update',
+    hairpins
+  }), (hairpin) =>
+    eventIds.has(hairpin.startEventId) && eventIds.has(hairpin.endEventId)
+  )
+  addFilteredCommand(commands, score.slurs, (slurs) => ({
+    type: 'score-slurs.update',
+    slurs
+  }), (slur) => eventIds.has(slur.startEventId) && eventIds.has(slur.endEventId))
+
+  const nextLayout = filterLayoutForMeasureIds(score.layout, measureIds)
+
+  if (JSON.stringify(nextLayout) !== JSON.stringify(score.layout)) {
+    commands.push({
+      type: 'score-layout.update',
+      layout: nextLayout
+    })
+  }
+
+  return commands.length === 1
+    ? commands[0]
+    : {
+        type: 'score.batch',
+        commands
+      }
+}
+
+function addFilteredCommand<T>(
+  commands: ScoreCommand[],
+  source: T[] | undefined,
+  createCommand: (items: T[] | undefined) => ScoreCommand,
+  predicate: (item: T) => boolean
+): void {
+  if (!source) {
+    return
+  }
+
+  const filtered = source.filter(predicate)
+
+  if (filtered.length !== source.length) {
+    commands.push(createCommand(filtered.length > 0 ? filtered : undefined))
+  }
+}
+
+function collectPartMeasureIds(parts: Part[]): Set<string> {
+  return new Set(
+    parts.flatMap((part) =>
+      part.staves.flatMap((staff) =>
+        staff.measures.map((measure) => measure.id)
+      )
+    )
+  )
+}
+
+function collectPartMeasureNumbers(parts: Part[]): Set<number> {
+  return new Set(
+    parts.flatMap((part) =>
+      part.staves.flatMap((staff) =>
+        staff.measures.map((measure) => measure.number)
+      )
+    )
+  )
+}
+
+function collectPartEventIds(parts: Part[]): Set<string> {
+  return new Set(
+    parts.flatMap((part) =>
+      part.staves.flatMap((staff) =>
+        staff.measures.flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) => event.id)
+          )
+        )
+      )
+    )
+  )
+}
+
+function filterLayoutForMeasureIds(
+  layout: Score['layout'],
+  measureIds: Set<string>
+): Score['layout'] {
+  if (!layout) {
+    return undefined
+  }
+
+  const systemBreakBeforeMeasureIds =
+    layout.systemBreakBeforeMeasureIds?.filter((measureId) =>
+      measureIds.has(measureId)
+    )
+  const pageBreakBeforeMeasureIds = layout.pageBreakBeforeMeasureIds?.filter(
+    (measureId) => measureIds.has(measureId)
+  )
+  const nextLayout: Score['layout'] = {
+    pageSetup: layout.pageSetup,
+    systemBreakBeforeMeasureIds:
+      systemBreakBeforeMeasureIds && systemBreakBeforeMeasureIds.length > 0
+        ? systemBreakBeforeMeasureIds
+        : undefined,
+    pageBreakBeforeMeasureIds:
+      pageBreakBeforeMeasureIds && pageBreakBeforeMeasureIds.length > 0
+        ? pageBreakBeforeMeasureIds
+        : undefined
+  }
+
+  return nextLayout.pageSetup ||
+    nextLayout.systemBreakBeforeMeasureIds ||
+    nextLayout.pageBreakBeforeMeasureIds
+    ? nextLayout
+    : undefined
+}
+
+function createLivePartViewScore(score: Score, partId: string): Score {
+  const part = score.parts.find((candidate) => candidate.id === partId)
+
+  if (!part) {
+    return score
+  }
+
+  const measureIds = collectPartMeasureIds([part])
+  const measureNumbers = collectPartMeasureNumbers([part])
+  const eventIds = collectPartEventIds([part])
+  const isPrimaryPart = score.parts[0]?.id === part.id
+  const matchesGlobalMeasure = (measureId: string) =>
+    matchesPartViewMeasureReference(measureId, measureIds, measureNumbers, true)
+  const matchesStaffMeasure = (measureId: string) =>
+    matchesPartViewMeasureReference(
+      measureId,
+      measureIds,
+      measureNumbers,
+      isPrimaryPart
+    )
+
+  return {
+    ...score,
+    parts: [part],
+    tempoEvents: score.tempoEvents?.filter((tempoEvent) =>
+      matchesGlobalMeasure(tempoEvent.measureId)
+    ),
+    octaveShifts: score.octaveShifts?.filter(
+      (shift) =>
+        eventIds.has(shift.startEventId) && eventIds.has(shift.endEventId)
+    ),
+    harmonies: score.harmonies?.filter((harmony) =>
+      matchesStaffMeasure(harmony.measureId)
+    ),
+    rehearsalMarks: score.rehearsalMarks?.filter((mark) =>
+      matchesGlobalMeasure(mark.measureId)
+    ),
+    staffTexts: score.staffTexts?.filter((text) =>
+      matchesStaffMeasure(text.measureId)
+    ),
+    systemTexts: score.systemTexts?.filter((text) =>
+      matchesGlobalMeasure(text.measureId)
+    ),
+    expressionTexts: score.expressionTexts?.filter((text) =>
+      matchesStaffMeasure(text.measureId)
+    ),
+    dynamics: score.dynamics?.filter((dynamic) =>
+      matchesStaffMeasure(dynamic.measureId)
+    ),
+    hairpins: score.hairpins?.filter(
+      (hairpin) =>
+        eventIds.has(hairpin.startEventId) && eventIds.has(hairpin.endEventId)
+    ),
+    slurs: score.slurs?.filter(
+      (slur) =>
+        eventIds.has(slur.startEventId) && eventIds.has(slur.endEventId)
+    ),
+    layout: filterLayoutForMeasureIds(score.layout, measureIds)
+  }
+}
+
+function matchesPartViewMeasureReference(
+  measureId: string,
+  measureIds: Set<string>,
+  measureNumbers: Set<number>,
+  includeGenericMeasureReferences: boolean
+): boolean {
+  if (measureIds.has(measureId)) {
+    return true
+  }
+
+  if (!includeGenericMeasureReferences) {
+    return false
+  }
+
+  const genericMeasureNumber = readGenericMeasureReference(measureId)
+
+  return (
+    genericMeasureNumber !== undefined &&
+    measureNumbers.has(genericMeasureNumber)
+  )
+}
+
+function readGenericMeasureReference(measureId: string): number | undefined {
+  const match = /^measure-(\d+)$/.exec(measureId)
+
+  if (!match) {
+    return undefined
+  }
+
+  return Number.parseInt(match[1]!, 10)
+}
+
+function createStaffTargetOptions(score: Score): StaffTargetOption[] {
+  return score.parts.flatMap((part) =>
+    part.staves.map((staff, staffIndex) => ({
+      value: encodeStaffTargetValue(part.id, staff.id),
+      label:
+        part.staves.length === 1
+          ? part.name
+          : `${part.name} 보표 ${staffIndex + 1}`,
+      partId: part.id,
+      staffId: staff.id
+    }))
+  )
+}
+
+function encodeStaffTargetValue(partId: string, staffId: string): string {
+  return `${encodeURIComponent(partId)}:${encodeURIComponent(staffId)}`
+}
+
+function parseStaffTargetValue(
+  value: string
+): { partId: string; staffId: string } | undefined {
+  const separatorIndex = value.indexOf(':')
+
+  if (separatorIndex < 0) {
+    return undefined
+  }
+
+  try {
+    return {
+      partId: decodeURIComponent(value.slice(0, separatorIndex)),
+      staffId: decodeURIComponent(value.slice(separatorIndex + 1))
+    }
+  } catch {
+    return undefined
+  }
+}
+
+function resolveActiveStaffTargetValue(
+  address: VoiceAddress | undefined,
+  options: StaffTargetOption[]
+): string {
+  const fallback = options[0]?.value ?? ''
+
+  if (!address) {
+    return fallback
+  }
+
+  return (
+    options.find(
+      (option) =>
+        option.partId === address.partId && option.staffId === address.staffId
+    )?.value ?? fallback
+  )
+}
+
+function describeStaffTarget(
+  score: Score,
+  target: { partId: string; staffId: string }
+): string {
+  const part = score.parts.find((candidate) => candidate.id === target.partId)
+  const staffIndex =
+    part?.staves.findIndex((staff) => staff.id === target.staffId) ?? -1
+
+  if (!part) {
+    return '입력 보표'
+  }
+
+  return part.staves.length === 1 || staffIndex < 0
+    ? part.name
+    : `${part.name} 보표 ${staffIndex + 1}`
+}
+
+function findMeasureIndex(score: Score, address: VoiceAddress): number {
+  return (
+    findStaffMeasures(score, address)?.findIndex(
+      (measure) => measure.id === address.measureId
+    ) ?? -1
+  )
+}
+
+function findStaffMeasures(
+  score: Score,
+  address: VoiceAddress
+): Measure[] | undefined {
+  return score.parts
+    .find((part) => part.id === address.partId)
+    ?.staves.find((staff) => staff.id === address.staffId)
+    ?.measures
+}
+
+function resolveVerticalEventSelection(
+  score: Score,
+  eventId: string,
+  direction: -1 | 1,
+  address?: VoiceAddress
+): { address: VoiceAddress; eventId: string } | undefined {
+  const location = locateEvent(score, eventId, address)
+
+  if (!location) {
+    return undefined
+  }
+
+  const measureIndex = findMeasureIndex(score, location.address)
+  const lanes = createVoiceLanes(score, measureIndex)
+  const currentLaneIndex = lanes.findIndex(
+    (lane) =>
+      lane.address.partId === location.address.partId &&
+      lane.address.staffId === location.address.staffId &&
+      lane.address.voiceId === location.address.voiceId
+  )
+
+  if (measureIndex < 0 || currentLaneIndex < 0) {
+    return undefined
+  }
+
+  for (
+    let laneIndex = currentLaneIndex + direction;
+    laneIndex >= 0 && laneIndex < lanes.length;
+    laneIndex += direction
+  ) {
+    const lane = lanes[laneIndex]
+    const events = sortVoiceEvents(lane.voice.events)
+
+    if (events.length === 0) {
+      continue
+    }
+
+    const targetEvent = findNearestEventAtTick(events, location.event.position.tick)
+
+    return {
+      address: {
+        ...lane.address,
+        measureId: lane.measure.id
+      },
+      eventId: targetEvent.id
+    }
+  }
+
+  return undefined
+}
+
+function createVoiceLanes(
+  score: Score,
+  measureIndex: number
+): Array<{
+  address: Omit<VoiceAddress, 'measureId'>
+  measure: Measure
+  voice: Measure['voices'][number]
+}> {
+  if (measureIndex < 0) {
+    return []
+  }
+
+  return score.parts.flatMap((part) =>
+    part.staves.flatMap((staff) => {
+      const measure = staff.measures[measureIndex]
+
+      if (!measure) {
+        return []
+      }
+
+      return measure.voices.map((voice) => ({
+        address: {
+          partId: part.id,
+          staffId: staff.id,
+          voiceId: voice.id
+        },
+        measure,
+        voice
+      }))
+    })
+  )
+}
+
+function findNearestEventAtTick(
+  events: Measure['voices'][number]['events'],
+  tick: number
+): Measure['voices'][number]['events'][number] {
+  return events.reduce((nearest, event) =>
+    Math.abs(event.position.tick - tick) <
+    Math.abs(nearest.position.tick - tick)
+      ? event
+      : nearest
+  )
+}
+
+function parseVoiceNumber(voiceId: string | undefined): number {
+  const match = voiceId ? /^voice-(\d+)$/.exec(voiceId) : undefined
+
+  return match ? Number(match[1]) : 1
+}
+
+function resolveClefPresetId(clef: Clef | undefined): string {
+  return (
+    clefPresets.find(
+      (preset) =>
+        preset.value.sign === clef?.sign && preset.value.line === clef.line
+    )?.id ?? 'treble'
+  )
+}
+
+function resolvePageSetupPresetId(setup: Required<ScorePageSetup>): string {
+  return (
+    pageSetupPresets.find((preset) => samePageSetup(preset.value, setup))?.id ??
+    'custom'
+  )
+}
+
+function samePageSetup(
+  left: Required<ScorePageSetup>,
+  right: Required<ScorePageSetup>
+): boolean {
+  return (
+    left.pageSize === right.pageSize &&
+    left.orientation === right.orientation &&
+    left.pageMarginMm === right.pageMarginMm &&
+    left.staffSizePercent === right.staffSizePercent &&
+    left.systemSpacingPercent === right.systemSpacingPercent
+  )
+}
+
+function resolveVoiceShortcut(
+  event: KeyboardEvent,
+  activeVoiceNumber: number
+): (typeof voiceNumbers)[number] | undefined {
+  const usesCommandKey = event.metaKey || event.ctrlKey
+
+  if (usesCommandKey && event.altKey && !event.shiftKey) {
+    const digit = /^Digit([1-4])$/.exec(event.code)?.[1]
+
+    if (digit) {
+      return Number(digit) as (typeof voiceNumbers)[number]
+    }
+  }
+
+  if (!usesCommandKey && !event.altKey && event.code === 'KeyV') {
+    const currentVoiceNumber = voiceNumbers.includes(
+      activeVoiceNumber as (typeof voiceNumbers)[number]
+    )
+      ? (activeVoiceNumber as (typeof voiceNumbers)[number])
+      : 1
+    const currentIndex = voiceNumbers.indexOf(currentVoiceNumber)
+    const offset = event.shiftKey ? -1 : 1
+    const nextIndex =
+      (currentIndex + offset + voiceNumbers.length) % voiceNumbers.length
+
+    return voiceNumbers[nextIndex]
+  }
+
+  return undefined
 }
 
 function getEventIdBeforeInputCursor(
@@ -6186,6 +8176,15 @@ function createSaveSignature(score: Score): string {
       measure: measureReferences.get(text.measureId),
       text: text.text
     })),
+    systemTexts: (score.systemTexts ?? []).map((text) => ({
+      measure: measureReferences.get(text.measureId),
+      text: text.text
+    })),
+    expressionTexts: (score.expressionTexts ?? []).map((text) => ({
+      measure: measureReferences.get(text.measureId),
+      tick: text.tick,
+      text: text.text
+    })),
     dynamics: (score.dynamics ?? []).map((dynamic) => ({
       measure: measureReferences.get(dynamic.measureId),
       value: dynamic.value
@@ -6453,6 +8452,243 @@ function toFileName(title: string): string {
     .replace(/^-|-$/g, '')
 
   return normalized || 'untitled-score'
+}
+
+function createCurrentMusicXmlViewState(
+  mode: ScoreViewMode,
+  partId?: string
+): StoredMusicXmlViewState {
+  return mode === 'part' && partId
+    ? {
+        mode,
+        partId
+      }
+    : {
+        mode: 'score'
+      }
+}
+
+function readStoredMusicXmlViewState(
+  filePath: string,
+  score: Score
+): StoredMusicXmlViewState {
+  try {
+    const item = window.localStorage.getItem(musicXmlViewStateStorageKey)
+    const stored = item ? JSON.parse(item) : undefined
+    const state =
+      stored &&
+      typeof stored === 'object' &&
+      !Array.isArray(stored) &&
+      filePath in stored
+        ? parseStoredMusicXmlViewState(
+            (stored as Record<string, unknown>)[filePath]
+          )
+        : undefined
+
+    return resolveStoredMusicXmlViewState(score, state)
+  } catch {
+    return { mode: 'score' }
+  }
+}
+
+function writeStoredMusicXmlViewState(
+  filePath: string,
+  state: StoredMusicXmlViewState
+): void {
+  try {
+    const item = window.localStorage.getItem(musicXmlViewStateStorageKey)
+    const stored = item ? JSON.parse(item) : undefined
+    const next =
+      stored && typeof stored === 'object' && !Array.isArray(stored)
+        ? { ...(stored as Record<string, unknown>) }
+        : {}
+
+    next[filePath] = state
+    window.localStorage.setItem(
+      musicXmlViewStateStorageKey,
+      JSON.stringify(next)
+    )
+  } catch {
+    // Local view preferences must never block MusicXML saves.
+  }
+}
+
+function parseStoredMusicXmlViewState(
+  value: unknown
+): StoredMusicXmlViewState | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const mode = (value as { mode?: unknown }).mode
+  const partId = (value as { partId?: unknown }).partId
+
+  if (mode === 'part' && typeof partId === 'string') {
+    return { mode, partId }
+  }
+
+  if (mode === 'score') {
+    return { mode }
+  }
+
+  return undefined
+}
+
+function resolveStoredMusicXmlViewState(
+  score: Score,
+  state?: StoredMusicXmlViewState
+): StoredMusicXmlViewState {
+  if (
+    state?.mode === 'part' &&
+    state.partId &&
+    score.parts.some((part) => part.id === state.partId)
+  ) {
+    return state
+  }
+
+  return { mode: 'score' }
+}
+
+function createMusicXmlReportPanelState(
+  kind: MusicXmlReportPanelState['kind'],
+  fileName: string,
+  report: MusicXmlImportReport | MusicXmlExportReport
+): MusicXmlReportPanelState | undefined {
+  if (report.warnings.length === 0) {
+    return undefined
+  }
+
+  return {
+    fileName,
+    kind,
+    warnings: report.warnings
+  }
+}
+
+function MusicXmlReportPanel({
+  report
+}: {
+  report?: MusicXmlReportPanelState
+}) {
+  if (!report) {
+    return null
+  }
+
+  const title =
+    report.kind === 'import'
+      ? `MusicXML 가져오기 경고 ${report.warnings.length}개`
+      : `MusicXML 내보내기 경고 ${report.warnings.length}개`
+
+  return (
+    <section className="musicxml-report" aria-label="MusicXML 경고 상세">
+      <header className="musicxml-report__header">
+        <strong>{title}</strong>
+        <span>{report.fileName}</span>
+      </header>
+      <ul className="musicxml-report__list">
+        {report.warnings.map((warning, index) => (
+          <li key={`${warning.path}-${index}`}>
+            <span className="musicxml-report__meta">
+              {formatMusicXmlWarningMeta(warning)}
+            </span>
+            <code>{warning.path}</code>
+            <span>{warning.message}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
+function formatMusicXmlWarningMeta(warning: MusicXmlReportWarning): string {
+  const details: string[] = [warning.code]
+
+  if ('measureNumber' in warning && warning.measureNumber !== undefined) {
+    details.push(`M${warning.measureNumber}`)
+  }
+
+  if ('eventIndex' in warning && warning.eventIndex !== undefined) {
+    details.push(`event ${warning.eventIndex}`)
+  }
+
+  if ('measureId' in warning && warning.measureId) {
+    details.push(warning.measureId)
+  }
+
+  return details.join(' · ')
+}
+
+function describeMusicXmlImportResult(
+  fileName: string,
+  report: MusicXmlImportReport,
+  reopened = false
+): string {
+  const baseMessage = reopened
+    ? `${fileName}을 다시 열었습니다.`
+    : `${fileName}을 가져왔습니다.`
+
+  if (report.warnings.length === 0) {
+    return baseMessage
+  }
+
+  const samples = report.warnings
+    .slice(0, 2)
+    .map((warning) => `${warning.path}: ${warning.message}`)
+  const remainingCount = report.warnings.length - samples.length
+  const remainingMessage =
+    remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
+
+  return `${baseMessage} MusicXML 경고 ${report.warnings.length}개: ${samples.join('; ')}${remainingMessage}`
+}
+
+function describeMusicXmlExportResult(
+  fileName: string,
+  report: MusicXmlExportReport
+): string {
+  const baseMessage = `${fileName}을 MusicXML로 내보냈습니다.`
+
+  if (report.warnings.length === 0) {
+    return baseMessage
+  }
+
+  const samples = report.warnings
+    .slice(0, 2)
+    .map((warning) => `${warning.path}: ${warning.message}`)
+  const remainingCount = report.warnings.length - samples.length
+  const remainingMessage =
+    remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
+
+  return `${baseMessage} MusicXML 내보내기 경고 ${report.warnings.length}개: ${samples.join('; ')}${remainingMessage}`
+}
+
+function describeMidiExportResult(
+  fileName: string,
+  warnings: MidiExportWarning[]
+): string {
+  const baseMessage = `${fileName}로 MIDI를 내보냈습니다.`
+
+  if (warnings.length === 0) {
+    return baseMessage
+  }
+
+  const samples = warnings
+    .slice(0, 2)
+    .map((warning) => `${warning.path}: ${warning.message}`)
+  const remainingCount = warnings.length - samples.length
+  const remainingMessage =
+    remainingCount > 0 ? ` 외 ${remainingCount}개` : ''
+
+  return `${baseMessage} MIDI 경고 ${warnings.length}개: ${samples.join('; ')}${remainingMessage}`
+}
+
+function resolvePartMixerSettings(
+  settings: PlaybackPartMixer | undefined
+): PlaybackPartMixer {
+  return {
+    muted: settings?.muted ?? false,
+    solo: settings?.solo ?? false,
+    volume: Math.min(1.5, Math.max(0, settings?.volume ?? 1))
+  }
 }
 
 function parsePdfTargetPages(value: PdfTargetPagesValue): number | undefined {

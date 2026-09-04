@@ -237,7 +237,7 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
@@ -431,7 +431,7 @@ async function verifyKeyboardRouting(window) {
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       statusMessage: [...document.querySelectorAll('.editor-status span')]
         .at(-1)?.textContent
     })
@@ -474,7 +474,7 @@ async function verifyKeyboardRouting(window) {
       ),
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       status: document.querySelector('.editor-status span')?.textContent
     })
   `)
@@ -507,7 +507,7 @@ async function verifyKeyboardRouting(window) {
       eventCount: document.querySelectorAll('.notation-event').length,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
@@ -542,7 +542,7 @@ async function verifyKeyboardRouting(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
-        )?.textContent?.trim(),
+        )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
           ?.getAttribute('data-event-id'),
@@ -584,7 +584,7 @@ async function verifyKeyboardRouting(window) {
         eventCount: document.querySelectorAll('.notation-event').length,
         pressedDuration: document.querySelector(
           '.duration-strip button[aria-pressed="true"]'
-        )?.textContent?.trim(),
+        )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
         selectedEvent: document
           .querySelector('.notation-event.is-selected')
           ?.getAttribute('data-event-id'),
@@ -896,7 +896,7 @@ async function verifyKeyboardRouting(window) {
         ?.textContent,
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim(),
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim(),
       progress: document.querySelector('.tuplet-progress')?.textContent,
       status: document.querySelector('.editor-status span')?.textContent
     })
@@ -1721,7 +1721,7 @@ async function verifyMetadataEditing(window) {
       ),
       pressedDuration: document.querySelector(
         '.duration-strip button[aria-pressed="true"]'
-      )?.textContent?.trim()
+      )?.getAttribute('aria-label')?.split(',')[0]?.trim()
     })
   `)
 
@@ -1946,6 +1946,325 @@ async function verifyNewScoreWizard(window) {
   }
 
   return result
+}
+
+async function verifyGrandStaffPreview(window) {
+  // score-setup.create-grand-staff-score
+  // layout.multi-staff-notation-object-anchoring
+  await loadFixture(window)
+
+  await executeMetadataStep(
+    window,
+    'open grand staff new score wizard',
+    `
+    document.querySelector('button[aria-label="새 악보 만들기"]')?.click()
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 150))
+  await executeMetadataStep(
+    window,
+    'fill grand staff new score wizard',
+    `
+    const setInputValue = (input, value) => {
+      if (!input) {
+        throw new Error('Grand staff input not found.')
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value'
+      ).set
+      setter.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+    }
+    const setSelectValue = (select, value) => {
+      if (!select) {
+        throw new Error('Grand staff select not found.')
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        'value'
+      ).set
+      setter.call(select, value)
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+    const labels = [...document.querySelectorAll('.new-score-form label')]
+    const field = (name) =>
+      labels.find((label) => label.textContent?.includes(name))
+        ?.querySelector('input, select')
+
+    setInputValue(field('제목'), 'Grand Staff Smoke')
+    setSelectValue(field('악보 구성'), 'piano-grand-staff')
+    setInputValue(field('마디 수'), '3')
+    document
+      .querySelector('form[aria-label="새 악보 만들기"]')
+      ?.dispatchEvent(new SubmitEvent('submit', { bubbles: true, cancelable: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 450))
+
+  const result = await window.webContents.executeJavaScript(`
+    (() => {
+      const staffLabels = [
+        ...document.querySelectorAll('.notation-staff-label')
+      ].map((label) => ({
+        text: label.textContent?.trim(),
+        partId: label.getAttribute('data-part-id'),
+        staffId: label.getAttribute('data-staff-id'),
+        y: Number(label.getAttribute('y'))
+      }))
+      const passiveEvents = [
+        ...document.querySelectorAll('.notation-event--passive-staff')
+      ].map((event) => ({
+        eventId: event.getAttribute('data-event-id'),
+        partId: event.getAttribute('data-part-id'),
+        staffId: event.getAttribute('data-staff-id')
+      }))
+      const svg = document.querySelector('.notation-preview svg')
+
+      return {
+        title: document
+          .querySelector('button[aria-label="악보 제목 수정"]')
+          ?.textContent?.trim(),
+        measureCount: document.querySelectorAll('.notation-measure').length,
+        eventCount: document.querySelectorAll('.notation-event').length,
+        passiveEventCount: passiveEvents.length,
+        lowerStaffEventCount: passiveEvents.filter(
+          (event) => event.partId === 'part-1' && event.staffId === 'staff-2'
+        ).length,
+        staffLabels,
+        svgHeight: Number(svg?.getAttribute('height')),
+        status: [...document.querySelectorAll('.editor-status span')]
+          .map((value) => value.textContent?.trim())
+          .at(-1)
+      }
+    })()
+  `)
+
+  const labelTexts = result.staffLabels.map((label) => label.text)
+  const staffKeys = result.staffLabels.map(
+    (label) => `${label.partId}:${label.staffId}`
+  )
+
+  if (
+    result.title !== 'Grand Staff Smoke' ||
+    result.measureCount !== 3 ||
+    result.eventCount !== 6 ||
+    result.passiveEventCount !== 3 ||
+    result.lowerStaffEventCount !== 3 ||
+    !labelTexts.includes('Piano') ||
+    !labelTexts.includes('Staff 2') ||
+    !staffKeys.includes('part-1:staff-1') ||
+    !staffKeys.includes('part-1:staff-2') ||
+    result.svgHeight < 250 ||
+    result.status !== '새 악보를 만들었습니다.'
+  ) {
+    throw new Error(
+      `Grand staff preview verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  await executeMetadataStep(
+    window,
+    'select grand staff lower staff event',
+    `
+    const lowerStaffEvent = document.querySelector(
+      '.notation-event--passive-staff[data-part-id="part-1"][data-staff-id="staff-2"]'
+    )
+
+    if (!lowerStaffEvent) {
+      throw new Error('Lower staff event not found.')
+    }
+
+    lowerStaffEvent.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const selectedLowerStaff = await window.webContents.executeJavaScript(`
+    (() => {
+      const selected = document.querySelector('.notation-event.is-selected')
+
+      return {
+        eventId: selected?.getAttribute('data-event-id'),
+        partId: selected?.getAttribute('data-part-id'),
+        staffId: selected?.getAttribute('data-staff-id')
+      }
+    })()
+  `)
+
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyN',
+        key: 'n'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 150))
+
+  await window.webContents.executeJavaScript(`
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        bubbles: true,
+        code: 'KeyC',
+        key: 'c'
+      })
+    )
+  `)
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  const lowerStaffInput = await window.webContents.executeJavaScript(`
+    (() => {
+      const selected = document.querySelector('.notation-event.is-selected')
+      const lowerStaffEvents = [
+        ...document.querySelectorAll(
+          '.notation-event[data-part-id="part-1"][data-staff-id="staff-2"]'
+        )
+      ]
+      const selectedEventId = selected?.getAttribute('data-event-id')
+
+      return {
+        editCount: [...document.querySelectorAll('.editor-status span')]
+          .find((span) => span.textContent?.endsWith('회 수정'))
+          ?.textContent?.trim(),
+        eventCount: document.querySelectorAll('.notation-event').length,
+        lowerStaffEventCount: lowerStaffEvents.length,
+        selectedEventId,
+        selectedPartId: selected?.getAttribute('data-part-id'),
+        selectedStaffId: selected?.getAttribute('data-staff-id'),
+        selectedIsLowerStaff: lowerStaffEvents.some(
+          (event) => event.getAttribute('data-event-id') === selectedEventId
+        ),
+        status: [...document.querySelectorAll('.editor-status span')]
+          .map((value) => value.textContent?.trim())
+          .at(-1)
+      }
+    })()
+  `)
+
+  if (
+    selectedLowerStaff.partId !== 'part-1' ||
+    selectedLowerStaff.staffId !== 'staff-2' ||
+    lowerStaffInput.editCount === '0회 수정' ||
+    lowerStaffInput.eventCount < 6 ||
+    lowerStaffInput.lowerStaffEventCount < 3 ||
+    lowerStaffInput.selectedPartId !== 'part-1' ||
+    lowerStaffInput.selectedStaffId !== 'staff-2' ||
+    !lowerStaffInput.selectedIsLowerStaff
+  ) {
+    throw new Error(
+      `Grand staff lower staff input verification failed: ${JSON.stringify({
+        selectedLowerStaff,
+        lowerStaffInput
+      })}`
+    )
+  }
+
+  await executeMetadataStep(
+    window,
+    'add lower staff anchored text',
+    `
+    const setInputByLabel = (label, value) => {
+      const input = document.querySelector(\`input[aria-label="\${label}"]\`)
+
+      if (!input) {
+        throw new Error(\`Input not found: \${label}\`)
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        'value'
+      ).set
+      input.focus()
+      setter.call(input, value)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+      input.blur()
+    }
+
+    setInputByLabel('보표 글자', 'lower dolce')
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  await executeMetadataStep(
+    window,
+    'add lower staff anchored dynamic',
+    `
+    const setSelectByLabel = (label, value) => {
+      const select = document.querySelector(\`select[aria-label="\${label}"]\`)
+
+      if (!select) {
+        throw new Error(\`Select not found: \${label}\`)
+      }
+
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLSelectElement.prototype,
+        'value'
+      ).set
+      setter.call(select, value)
+      select.dispatchEvent(new Event('change', { bubbles: true }))
+    }
+
+    setSelectByLabel('셈여림', 'mf')
+  `
+  )
+  await new Promise((resolve) => setTimeout(resolve, 300))
+
+  const lowerStaffAnnotations = await window.webContents.executeJavaScript(`
+    (() => {
+      const lowerMeasureId = 'part-1-staff-2-measure-1'
+      const lowerStaffLabelY = Number(
+        document
+          .querySelector('.notation-staff-label[data-staff-id="staff-2"]')
+          ?.getAttribute('y')
+      )
+      const read = (selector) => {
+        const element = document.querySelector(selector)
+
+        return element
+          ? {
+              measureId: element.getAttribute('data-measure-id'),
+              text: element.textContent?.trim(),
+              y: Number(element.getAttribute('y'))
+            }
+          : undefined
+      }
+
+      return {
+        dynamic: read(
+          '.notation-dynamic-mark[data-measure-id="' + lowerMeasureId + '"]'
+        ),
+        lowerStaffLabelY,
+        staffText: read(
+          '.notation-staff-text[data-measure-id="' + lowerMeasureId + '"]'
+        )
+      }
+    })()
+  `)
+
+  if (
+    lowerStaffAnnotations.staffText?.text !== 'lower dolce' ||
+    lowerStaffAnnotations.dynamic?.text !== 'mf' ||
+    !lowerStaffAnnotations.staffText ||
+    !lowerStaffAnnotations.dynamic ||
+    lowerStaffAnnotations.staffText.y <= 100 ||
+    lowerStaffAnnotations.dynamic.y <= lowerStaffAnnotations.lowerStaffLabelY
+  ) {
+    throw new Error(
+      `Grand staff annotation anchoring verification failed: ${JSON.stringify(lowerStaffAnnotations)}`
+    )
+  }
+
+  return {
+    ...result,
+    selectedLowerStaff,
+    lowerStaffInput,
+    lowerStaffAnnotations
+  }
 }
 
 async function verifyKeySignatureControl(window) {
@@ -2370,6 +2689,7 @@ app.whenReady().then(async () => {
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
   const newScore = await verifyNewScoreWizard(window)
+  const grandStaffPreview = await verifyGrandStaffPreview(window)
   const keySignature = await verifyKeySignatureControl(window)
   const timeSignature = await verifyTimeSignatureControl(window)
   const measureDeletion = await verifyMeasureDeletion(window)
@@ -2415,6 +2735,7 @@ app.whenReady().then(async () => {
         ties,
         fileActions,
         newScore,
+        grandStaffPreview,
         keySignature,
         timeSignature,
         measureDeletion,

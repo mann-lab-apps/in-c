@@ -1,4 +1,4 @@
-import type { Score } from '../../../score-core'
+import type { Score, ScorePageSetup } from '../../../score-core'
 import { createSystemLayout } from './system-layout'
 
 export type PrintPageTarget = 'auto' | number
@@ -10,8 +10,10 @@ export interface PrintLayoutPlan {
   label: string
   overflowedTarget: boolean
   pageCount: number
+  pageCssSize: string
   pageHeight: number
   pageMarginMm: number
+  pageSetup: Required<ScorePageSetup>
   renderWidth: number
   scale: number
   systemHeight: number
@@ -21,8 +23,16 @@ export interface PrintLayoutPlan {
 
 interface PrintLayoutCandidate extends Omit<
   PrintLayoutPlan,
-  'estimatedPageCount' | 'overflowedTarget' | 'pageCount' | 'targetPages'
+  | 'estimatedPageCount'
+  | 'overflowedTarget'
+  | 'pageCount'
+  | 'pageCssSize'
+  | 'pageSetup'
+  | 'targetPages'
 > {}
+
+type NormalizedPrintLayoutCandidate = PrintLayoutCandidate &
+  Pick<PrintLayoutPlan, 'pageCssSize' | 'pageSetup'>
 
 const PAGE_COUNT_GUARD_HEIGHT = 36
 const FORCED_SEARCH_ITERATIONS = 12
@@ -32,6 +42,15 @@ const MIN_FORCED_SYSTEM_HEIGHT = 108
 const MIN_FORCED_SYSTEM_TOP = 42
 const A4_WIDTH_MM = 210
 const A4_HEIGHT_MM = 297
+const LETTER_WIDTH_MM = 215.9
+const LETTER_HEIGHT_MM = 279.4
+const DEFAULT_PAGE_SETUP: Required<ScorePageSetup> = {
+  pageSize: 'a4',
+  orientation: 'portrait',
+  pageMarginMm: 8,
+  staffSizePercent: 100,
+  systemSpacingPercent: 100
+}
 
 export const printLayoutCandidates: PrintLayoutCandidate[] = [
   {
@@ -84,8 +103,9 @@ export function resolvePrintLayoutPlan(
   score: Score,
   targetPages: PrintPageTarget
 ): PrintLayoutPlan {
+  const pageSetup = normalizePrintPageSetup(score.layout?.pageSetup)
   const evaluated = printLayoutCandidates.map((candidate) =>
-    evaluatePrintLayoutCandidate(score, candidate)
+    evaluatePrintLayoutCandidate(score, candidate, pageSetup)
   )
 
   if (targetPages === 'auto') {
@@ -102,14 +122,23 @@ export function resolvePrintLayoutPlan(
 
   const tightestCandidate = printLayoutCandidates.at(-1) ?? printLayoutCandidates[0]
 
-  return resolveForcedPrintLayoutPlan(score, tightestCandidate, targetPages)
+  return resolveForcedPrintLayoutPlan(
+    score,
+    tightestCandidate,
+    targetPages,
+    pageSetup
+  )
 }
 
 function evaluatePrintLayoutCandidate(
   score: Score,
-  candidate: PrintLayoutCandidate
+  candidate: PrintLayoutCandidate,
+  pageSetup: Required<ScorePageSetup>
 ): PrintLayoutPlan {
-  const normalizedCandidate = normalizePrintLayoutCandidate(candidate)
+  const normalizedCandidate = normalizePrintLayoutCandidate(
+    candidate,
+    pageSetup
+  )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const layout = createSystemLayout(measures, normalizedCandidate.renderWidth, {
     compactSpacing: normalizedCandidate.compactSpacing,
@@ -135,11 +164,13 @@ function evaluatePrintLayoutCandidate(
 function resolveForcedPrintLayoutPlan(
   score: Score,
   baseCandidate: PrintLayoutCandidate,
-  targetPages: number
+  targetPages: number,
+  pageSetup: Required<ScorePageSetup>
 ): PrintLayoutPlan {
   const mostCompactPlan = evaluatePrintLayoutCandidate(
     score,
-    createForcedPrintLayoutCandidate(baseCandidate, MIN_FORCED_SCALE)
+    createForcedPrintLayoutCandidate(baseCandidate, MIN_FORCED_SCALE),
+    pageSetup
   )
 
   if (mostCompactPlan.pageCount > targetPages) {
@@ -154,7 +185,8 @@ function resolveForcedPrintLayoutPlan(
     const scale = (compactScale + looseScale) / 2
     const plan = evaluatePrintLayoutCandidate(
       score,
-      createForcedPrintLayoutCandidate(baseCandidate, scale)
+      createForcedPrintLayoutCandidate(baseCandidate, scale),
+      pageSetup
     )
 
     if (plan.pageCount <= targetPages) {
@@ -190,10 +222,7 @@ function createForcedPrintLayoutCandidate(
     compactSpacing: true,
     id: 'forced',
     label: `강제 맞춤 ${Math.round(scale * 100)}%`,
-    pageHeight: resolvePdfPageHeight(
-      Math.round(baseCandidate.renderWidth / scale),
-      pageMarginMm
-    ),
+    pageHeight: 0,
     pageMarginMm,
     renderWidth: Math.round(baseCandidate.renderWidth / scale),
     scale: roundToThousandth(scale),
@@ -203,19 +232,109 @@ function createForcedPrintLayoutCandidate(
 }
 
 function normalizePrintLayoutCandidate(
-  candidate: PrintLayoutCandidate
-): PrintLayoutCandidate {
+  candidate: PrintLayoutCandidate,
+  pageSetup: Required<ScorePageSetup>
+): NormalizedPrintLayoutCandidate {
+  const pageSize = resolvePageSizeMm(pageSetup)
+  const contentWidthMm = pageSize.width - pageSetup.pageMarginMm * 2
+  const baseContentWidthMm = A4_WIDTH_MM - candidate.pageMarginMm * 2
+  const staffScale = pageSetup.staffSizePercent / 100
+  const systemSpacingScale = pageSetup.systemSpacingPercent / 100
+  const renderWidth = Math.round(
+    candidate.renderWidth * (contentWidthMm / baseContentWidthMm) / staffScale
+  )
+
   return {
     ...candidate,
-    pageHeight: resolvePdfPageHeight(candidate.renderWidth, candidate.pageMarginMm)
+    pageCssSize: formatPrintPageCssSize(pageSetup),
+    pageHeight: resolvePdfPageHeight(
+      renderWidth,
+      pageSetup.pageMarginMm,
+      pageSize
+    ),
+    pageMarginMm: pageSetup.pageMarginMm,
+    pageSetup,
+    renderWidth,
+    scale: roundToThousandth(candidate.scale * staffScale),
+    systemHeight: Math.round(candidate.systemHeight * systemSpacingScale),
+    systemTop: Math.round(candidate.systemTop * systemSpacingScale)
   }
 }
 
-function resolvePdfPageHeight(renderWidth: number, pageMarginMm: number): number {
-  const contentWidthMm = A4_WIDTH_MM - pageMarginMm * 2
-  const contentHeightMm = A4_HEIGHT_MM - pageMarginMm * 2
+function resolvePdfPageHeight(
+  renderWidth: number,
+  pageMarginMm: number,
+  pageSize: { width: number; height: number }
+): number {
+  const contentWidthMm = pageSize.width - pageMarginMm * 2
+  const contentHeightMm = pageSize.height - pageMarginMm * 2
 
   return Math.floor(renderWidth * (contentHeightMm / contentWidthMm))
+}
+
+export function normalizePrintPageSetup(
+  setup: ScorePageSetup | undefined
+): Required<ScorePageSetup> {
+  return {
+    pageSize: setup?.pageSize === 'letter' ? 'letter' : 'a4',
+    orientation: setup?.orientation === 'landscape' ? 'landscape' : 'portrait',
+    pageMarginMm: clampNumber(
+      setup?.pageMarginMm,
+      3,
+      30,
+      DEFAULT_PAGE_SETUP.pageMarginMm
+    ),
+    staffSizePercent: clampNumber(
+      setup?.staffSizePercent,
+      75,
+      125,
+      DEFAULT_PAGE_SETUP.staffSizePercent
+    ),
+    systemSpacingPercent: clampNumber(
+      setup?.systemSpacingPercent,
+      80,
+      140,
+      DEFAULT_PAGE_SETUP.systemSpacingPercent
+    )
+  }
+}
+
+export function formatPrintPageCssSize(
+  setup: Required<ScorePageSetup>
+): string {
+  const pageSize = setup.pageSize === 'letter' ? 'Letter' : 'A4'
+
+  return `${pageSize} ${setup.orientation}`
+}
+
+function resolvePageSizeMm(setup: Required<ScorePageSetup>): {
+  width: number
+  height: number
+} {
+  const base =
+    setup.pageSize === 'letter'
+      ? { width: LETTER_WIDTH_MM, height: LETTER_HEIGHT_MM }
+      : { width: A4_WIDTH_MM, height: A4_HEIGHT_MM }
+
+  return setup.orientation === 'landscape'
+    ? {
+        width: base.height,
+        height: base.width
+      }
+    : base
+}
+
+function clampNumber(
+  value: number | undefined,
+  min: number,
+  max: number,
+  fallback: number
+): number {
+  if (!Number.isFinite(value)) {
+    return fallback
+  }
+
+  return Math.min(max, Math.max(min, Math.round(value!)))
 }
 
 function withTargetPageResult(

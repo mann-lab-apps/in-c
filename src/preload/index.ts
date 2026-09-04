@@ -3,6 +3,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
 const savePdfChannel = 'pdf:save'
+const saveMidiChannel = 'midi:save'
 const readAutosaveChannel = 'autosave:read'
 const writeAutosaveChannel = 'autosave:write'
 const clearAutosaveChannel = 'autosave:clear'
@@ -43,8 +44,20 @@ const api = {
       } | null>
   },
   pdf: {
-    save: (input: { suggestedName: string }) =>
+    save: (input: { filePath?: string; suggestedName: string }) =>
       ipcRenderer.invoke(savePdfChannel, input) as Promise<{
+        filePath?: string
+        fileName: string
+      } | null>
+  },
+  midi: {
+    save: (input: {
+      filePath?: string
+      suggestedName: string
+      contents: number[]
+    }) =>
+      ipcRenderer.invoke(saveMidiChannel, input) as Promise<{
+        filePath?: string
         fileName: string
       } | null>
   },

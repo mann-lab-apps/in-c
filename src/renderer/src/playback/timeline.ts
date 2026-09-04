@@ -9,6 +9,7 @@ import {
   transposeDiatonic,
   voiceEventDurationTicks,
   type Duration,
+  type DynamicValue,
   type Note,
   type Score,
   type TempoMarking
@@ -16,11 +17,16 @@ import {
 
 const DEFAULT_VELOCITY = 0.16
 const DYNAMIC_VELOCITY = {
+  ppp: 0.06,
+  pp: 0.075,
   p: 0.09,
   mp: 0.12,
   mf: DEFAULT_VELOCITY,
-  f: 0.22
-} as const
+  f: 0.22,
+  ff: 0.235,
+  fff: 0.24,
+  sfz: 0.24
+} as const satisfies Record<DynamicValue, number>
 const HAIRPIN_DELTA = 0.08
 const MIN_VELOCITY = 0.06
 const MAX_VELOCITY = 0.24
@@ -58,9 +64,25 @@ export interface PlaybackTimeline {
   totalBeats: number
 }
 
+type StaffMeasures = NonNullable<
+  Score['parts'][number]['staves'][number]['measures']
+>
+
+interface RepeatPlaybackPlanEntry {
+  measureIndex: number
+  outputBeat: number
+  pass: number
+}
+
+interface RepeatPlaybackPlan {
+  entries: RepeatPlaybackPlanEntry[]
+  totalBeats: number
+}
+
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
   const events: PlaybackEvent[] = []
   let totalBeats = 0
+  const scoreRepeatPlaybackPlan = createScoreRepeatPlaybackPlan(score)
 
   for (const part of score.parts) {
     for (const staff of part.staves) {
@@ -68,7 +90,8 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
         score,
         part.id,
         staff.id,
-        staff.measures
+        staff.measures,
+        scoreRepeatPlaybackPlan
       )
 
       events.push(...staffTimeline.events)
@@ -81,7 +104,7 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
       score,
       events.sort((left, right) => left.startBeat - right.startBeat)
     ),
-    tempoEvents: createPlaybackTempoEvents(score),
+    tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan),
     totalBeats
   }
 }
@@ -90,12 +113,13 @@ function createStaffPlaybackEvents(
   score: Score,
   partId: string,
   staffId: string,
-  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>
+  measures: StaffMeasures,
+  scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
 ): PlaybackTimeline {
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
   let expressionBeatOffset = 0
-  let previousStartsTie = false
+  const pendingTieEventByVoiceId = new Map<string, PlaybackEvent>()
 
   for (const measure of measures) {
     for (const voice of measure.voices) {
@@ -132,23 +156,31 @@ function createStaffPlaybackEvents(
           velocityStart: resolveMeasureVelocity(score, measure.id),
           velocityEnd: resolveMeasureVelocity(score, measure.id)
         }
-        const previous = events.at(-1)
-
-        if (
+        const pendingTieEvent = pendingTieEventByVoiceId.get(voice.id)
+        const continuesPendingTie =
           event.type === 'note' &&
           event.ties?.stop &&
-          previousStartsTie &&
-          previous &&
-          previous?.frequency === playbackEvent.frequency &&
-          previous.startBeat + previous.durationBeats === playbackEvent.startBeat
-        ) {
-          previous.durationBeats += playbackEvent.durationBeats
-          previous.velocityEnd = playbackEvent.velocityEnd
+          pendingTieEvent &&
+          pendingTieEvent.frequency === playbackEvent.frequency &&
+          pendingTieEvent.startBeat + pendingTieEvent.durationBeats ===
+            playbackEvent.startBeat
+
+        if (continuesPendingTie) {
+          pendingTieEvent.durationBeats += playbackEvent.durationBeats
+          pendingTieEvent.velocityEnd = playbackEvent.velocityEnd
         } else {
           events.push(playbackEvent)
         }
 
-        previousStartsTie = event.type === 'note' && Boolean(event.ties?.start)
+        if (event.type === 'note' && event.ties?.start) {
+          pendingTieEventByVoiceId.set(
+            voice.id,
+            continuesPendingTie ? pendingTieEvent : playbackEvent
+          )
+        } else {
+          pendingTieEventByVoiceId.delete(voice.id)
+        }
+
         expressionBeatOffset += durationBeats - notatedDurationBeats
       }
     }
@@ -156,7 +188,12 @@ function createStaffPlaybackEvents(
     scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
-  const repeatedTimeline = applyRepeatPlayback(events, measures, scoreBeat)
+  const repeatedTimeline = applyRepeatPlayback(
+    events,
+    measures,
+    scoreBeat,
+    scoreRepeatPlaybackPlan
+  )
 
   return {
     events: repeatedTimeline.events,
@@ -167,17 +204,81 @@ function createStaffPlaybackEvents(
 
 function applyRepeatPlayback(
   events: PlaybackEvent[],
-  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
-  totalBeats: number
+  measures: StaffMeasures,
+  totalBeats: number,
+  repeatPlaybackPlan = createRepeatPlaybackPlan(measures)
 ): { events: PlaybackEvent[]; totalBeats: number } {
   const measureStartBeats = createStaffMeasureStartBeatMap(measures)
+  const nextEvents = repeatPlaybackPlan.entries.flatMap((entry) => {
+    const measure = measures[entry.measureIndex]
+
+    if (!measure) {
+      return []
+    }
+
+    const sourceBeat = measureStartBeats.get(measure.id) ?? 0
+    const beatOffset = entry.outputBeat - sourceBeat
+
+    return events
+      .filter((event) => event.measureId === measure.id)
+      .map((event) => ({
+        ...event,
+        startBeat: event.startBeat + beatOffset
+      }))
+  })
+
+  return {
+    events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
+    totalBeats: repeatPlaybackPlan.totalBeats || totalBeats
+  }
+}
+
+function createScoreRepeatPlaybackPlan(
+  score: Score
+): RepeatPlaybackPlan | undefined {
+  const staves = score.parts.flatMap((part) => part.staves)
+  const canonicalStaff = staves.find((staff) =>
+    hasRepeatPlaybackMarks(staff.measures)
+  )
+
+  if (!canonicalStaff) {
+    return undefined
+  }
+
+  const canonicalDurations = canonicalStaff.measures.map(measureDurationTicks)
+  const canApplyScoreWidePlan = staves.every((staff) =>
+    staff.measures.length === canonicalStaff.measures.length &&
+    staff.measures.every(
+      (measure, index) =>
+        measureDurationTicks(measure) === canonicalDurations[index]
+    )
+  )
+
+  return canApplyScoreWidePlan
+    ? createRepeatPlaybackPlan(canonicalStaff.measures)
+    : undefined
+}
+
+function hasRepeatPlaybackMarks(measures: StaffMeasures): boolean {
+  return measures.some(
+    (measure) => measure.repeat?.start || measure.repeat?.end || measure.volta
+  )
+}
+
+function createRepeatPlaybackPlan(measures: StaffMeasures): RepeatPlaybackPlan {
   const voltaNumberByMeasureId = createMeasureVoltaNumberMap(measures)
-  const nextEvents: PlaybackEvent[] = []
+  const entries: RepeatPlaybackPlanEntry[] = []
   let repeatStartIndex = 0
   let outputBeat = 0
   let repeatPass = 1
 
-  const appendMeasure = (measure: (typeof measures)[number], pass: number) => {
+  const appendMeasure = (measureIndex: number, pass: number) => {
+    const measure = measures[measureIndex]
+
+    if (!measure) {
+      return
+    }
+
     if (
       shouldSkipVoltaMeasure(
         voltaNumberByMeasureId.get(measure.id),
@@ -187,17 +288,11 @@ function applyRepeatPlayback(
       return
     }
 
-    const sourceBeat = measureStartBeats.get(measure.id) ?? 0
-    const beatOffset = outputBeat - sourceBeat
-
-    nextEvents.push(
-      ...events
-        .filter((event) => event.measureId === measure.id)
-        .map((event) => ({
-          ...event,
-          startBeat: event.startBeat + beatOffset
-        }))
-    )
+    entries.push({
+      measureIndex,
+      outputBeat,
+      pass
+    })
     outputBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
   }
 
@@ -209,7 +304,7 @@ function applyRepeatPlayback(
       repeatPass = 1
     }
 
-    appendMeasure(measure, repeatPass)
+    appendMeasure(measureIndex, repeatPass)
 
     if (!measure.repeat?.end) {
       continue
@@ -225,7 +320,7 @@ function applyRepeatPlayback(
         repeatedMeasureIndex <= measureIndex;
         repeatedMeasureIndex += 1
       ) {
-        appendMeasure(measures[repeatedMeasureIndex], repeatedPass)
+        appendMeasure(repeatedMeasureIndex, repeatedPass)
       }
     }
 
@@ -234,8 +329,8 @@ function applyRepeatPlayback(
   }
 
   return {
-    events: nextEvents.sort((left, right) => left.startBeat - right.startBeat),
-    totalBeats: outputBeat || totalBeats
+    entries,
+    totalBeats: outputBeat
   }
 }
 
@@ -255,7 +350,7 @@ function shouldSkipVoltaMeasure(
 }
 
 function createMeasureVoltaNumberMap(
-  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  measures: StaffMeasures
 ): Map<string, 1 | 2> {
   const voltaNumbers = new Map<string, 1 | 2>()
   let activeVoltaNumber: 1 | 2 | undefined
@@ -284,7 +379,7 @@ function createMeasureVoltaNumberMap(
 }
 
 function hasLaterVoltaEnd(
-  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  measures: StaffMeasures,
   startIndex: number,
   number: 1 | 2
 ): boolean {
@@ -298,7 +393,7 @@ function hasLaterVoltaEnd(
 }
 
 function createStaffMeasureStartBeatMap(
-  measures: NonNullable<Score['parts'][number]['staves'][number]['measures']>,
+  measures: StaffMeasures
 ): Map<string, number> {
   const startBeats = new Map<string, number>()
   let beat = 0
@@ -350,8 +445,12 @@ function eventTrillFrequency(
   })
 }
 
-function createPlaybackTempoEvents(score: Score): PlaybackTempoEvent[] {
+function createPlaybackTempoEvents(
+  score: Score,
+  scoreRepeatPlaybackPlan?: RepeatPlaybackPlan
+): PlaybackTempoEvent[] {
   const measureStarts = createMeasureStartBeatMap(score)
+  const measureIndices = createMeasureIndexMap(score)
   const tempoEvents: PlaybackTempoEvent[] = []
 
   for (const event of score.tempoEvents ?? []) {
@@ -361,27 +460,79 @@ function createPlaybackTempoEvents(score: Score): PlaybackTempoEvent[] {
       continue
     }
 
-    tempoEvents.push({
-      id: event.id,
-      measureId: event.measureId,
-      startBeat: measureStart + event.tick / TICKS_PER_QUARTER,
-      bpm: event.bpm,
-      quarterBpm: tempoMarkingToQuarterBpm(event),
-      text: event.text
-    })
+    if (!scoreRepeatPlaybackPlan) {
+      tempoEvents.push({
+        id: event.id,
+        measureId: event.measureId,
+        startBeat: measureStart + event.tick / TICKS_PER_QUARTER,
+        bpm: event.bpm,
+        quarterBpm: tempoMarkingToQuarterBpm(event),
+        text: event.text
+      })
+      continue
+    }
+
+    const measureIndex = measureIndices.get(event.measureId)
+
+    if (measureIndex === undefined) {
+      continue
+    }
+
+    for (const entry of scoreRepeatPlaybackPlan.entries) {
+      if (entry.measureIndex !== measureIndex) {
+        continue
+      }
+
+      const isOriginalOccurrence =
+        entry.pass === 1 && entry.outputBeat === measureStart
+
+      tempoEvents.push({
+        id: isOriginalOccurrence
+          ? event.id
+          : `${event.id}-repeat-${entry.pass}-${entry.outputBeat}`,
+        measureId: event.measureId,
+        startBeat: entry.outputBeat + event.tick / TICKS_PER_QUARTER,
+        bpm: event.bpm,
+        quarterBpm: tempoMarkingToQuarterBpm(event),
+        text: event.text
+      })
+    }
   }
 
   return tempoEvents.sort((left, right) => left.startBeat - right.startBeat)
 }
 
-function createMeasureStartBeatMap(score: Score): Map<string, number> {
-  const measures = score.parts[0]?.staves[0]?.measures ?? []
-  const measureStarts = new Map<string, number>()
-  let scoreBeat = 0
+function createMeasureIndexMap(score: Score): Map<string, number> {
+  const measureIndices = new Map<string, number>()
 
-  for (const measure of measures) {
-    measureStarts.set(measure.id, scoreBeat)
-    scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      for (let index = 0; index < staff.measures.length; index += 1) {
+        if (!measureIndices.has(staff.measures[index].id)) {
+          measureIndices.set(staff.measures[index].id, index)
+        }
+      }
+    }
+  }
+
+  return measureIndices
+}
+
+function createMeasureStartBeatMap(score: Score): Map<string, number> {
+  const measureStarts = new Map<string, number>()
+
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      let scoreBeat = 0
+
+      for (const measure of staff.measures) {
+        if (!measureStarts.has(measure.id)) {
+          measureStarts.set(measure.id, scoreBeat)
+        }
+
+        scoreBeat += measureDurationTicks(measure) / TICKS_PER_QUARTER
+      }
+    }
   }
 
   return measureStarts

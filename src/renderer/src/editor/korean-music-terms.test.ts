@@ -18,6 +18,8 @@ describe('korean music UI terms', () => {
       fermata: '페르마타',
       staccato: '스타카토',
       accent: '악센트',
+      tenuto: '테누토',
+      marcato: '마르카토',
       breathMark: '숨표',
       caesura: '중지표'
     })
@@ -26,7 +28,15 @@ describe('korean music UI terms', () => {
   it('uses Korean labels for symbol option controls', () => {
     expect(articulationTermOptions.map((option) => option.label)).toEqual([
       '스타카토',
-      '악센트'
+      '악센트',
+      '테누토',
+      '마르카토'
+    ])
+    expect(articulationTermOptions.map((option) => option.symbol)).toEqual([
+      '•',
+      '>',
+      '−',
+      '^'
     ])
     expect(breathMarkTermOptions.map((option) => option.label)).toEqual([
       '숨표',

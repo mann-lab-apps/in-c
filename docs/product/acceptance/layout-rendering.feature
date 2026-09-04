@@ -69,6 +69,21 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 같은 마디에서 페이지 나누기를 다시 실행한다
     Then 수동 page break는 해제되고 자동 줄바꿈 규칙이 다시 적용된다
 
+  @scenario-layout-page-setup
+  Scenario: PDF page setup을 출력 레이아웃에 반영한다
+    Given 편집 가능한 악보가 열려 있다
+    When 사용자가 PDF 용지, 방향, 여백, 보표 크기, 시스템 간격을 변경한다
+    Then score layout에는 page setup 값이 저장된다
+    And PDF 변환 layout plan은 선택한 page setup을 사용한다
+    And PDF 출력 CSS에는 선택한 용지와 방향, 여백이 반영된다
+
+  @scenario-layout-live-part-view
+  Scenario: 총보에서 개별 파트보를 열람하고 출력 대상으로 선택한다
+    Given 여러 part가 있는 앙상블 악보가 열려 있다
+    When 사용자가 보기 모드를 파트보로 바꾸고 Cello part를 선택한다
+    Then 악보 미리보기는 Cello part만 표시한다
+    And PDF 변환은 선택한 part view를 출력 대상으로 사용한다
+
   @scenario-layout-rehearsal-mark
   Scenario: 선택한 마디에 리허설 마크를 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
@@ -86,6 +101,24 @@ Feature: 악보를 읽기 좋게 배치하기
     And 텍스트 입력 중에는 음표 입력 단축키가 실행되지 않는다
     And MusicXML로 내보냈다가 다시 가져와도 스태프 텍스트가 유지된다
 
+  @scenario-layout-system-text
+  Scenario: 선택한 마디에 시스템 텍스트를 입력한다
+    Given 여러 마디가 있는 단성부 악보가 열려 있다
+    And 마디가 선택되어 있다
+    When 사용자가 시스템 텍스트 "Chorus"를 입력한다
+    Then 선택한 마디 위에는 system-level "Chorus" 텍스트가 표시된다
+    And 텍스트 입력 중에는 음표 입력 단축키가 실행되지 않는다
+    And MusicXML로 내보냈다가 다시 가져와도 시스템 텍스트가 유지된다
+
+  @scenario-layout-expression-text
+  Scenario: 선택한 위치에 표현 텍스트를 입력한다
+    Given 여러 마디가 있는 단성부 악보가 열려 있다
+    And 마디 안의 이벤트가 선택되어 있다
+    When 사용자가 표현 텍스트 "espressivo"를 입력한다
+    Then 선택한 tick 아래에는 "espressivo" 텍스트가 표시된다
+    And 텍스트 입력 중에는 음표 입력 단축키가 실행되지 않는다
+    And MusicXML로 내보냈다가 다시 가져와도 표현 텍스트와 tick 위치가 유지된다
+
   @scenario-layout-dynamics
   Scenario: 선택한 마디에 다이내믹을 입력한다
     Given 여러 마디가 있는 단성부 악보가 열려 있다
@@ -93,6 +126,14 @@ Feature: 악보를 읽기 좋게 배치하기
     When 사용자가 다이내믹 "mf"를 선택한다
     Then 선택한 마디 아래에는 "mf" 다이내믹이 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 다이내믹이 유지된다
+
+  @scenario-layout-multi-staff-notation-object-anchoring
+  Scenario: multi-staff 악보의 선택한 staff에 표기 객체를 붙인다
+    Given 피아노 grand staff 악보가 열려 있다
+    And 낮은음자리표 staff의 이벤트가 선택되어 있다
+    When 사용자가 보표 글자, 표현 텍스트, 코드 심벌, 다이내믹을 입력한다
+    Then 각 표기 객체는 낮은음자리표 staff의 measure id에 저장된다
+    And 미리보기 SVG에는 낮은음자리표 staff 위치에 보표 글자와 다이내믹이 표시된다
 
   @scenario-layout-hairpin-toggle
   Scenario: 선택 범위에 헤어핀을 입력하고 해제한다
@@ -121,6 +162,8 @@ Feature: 악보를 읽기 좋게 배치하기
     Then 선택한 음표 위에는 스타카토 점이 표시된다
     When 사용자가 악센트를 켠다
     Then 선택한 음표 위에는 악센트 표시가 함께 표시된다
+    When 사용자가 테누토와 마르카토를 켠다
+    Then 선택한 음표 위에는 테누토와 마르카토 표시가 함께 표시된다
     And MusicXML로 내보냈다가 다시 가져와도 아티큘레이션이 유지된다
 
   @scenario-layout-fermata

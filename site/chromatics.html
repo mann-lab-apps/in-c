@@ -3,16 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Chromatics | 단성부 악보 편집기 | in C</title>
+    <title>Chromatics Desktop V1 | 전문 악보 작업을 위한 데스크탑 사보앱 | in C</title>
     <meta
       name="description"
-      content="Chromatics는 in C 안에서 단성부 악보를 만들고 MusicXML로 연결하는 무료 악보 편집기입니다."
+      content="Chromatics Desktop V1은 총보와 파트보를 작성하고 MusicXML, PDF, MIDI로 내보내는 Mac/Windows 데스크탑 사보앱입니다."
     />
     <link rel="canonical" href="https://in-c.mannlab.app/chromatics.html" />
-    <meta property="og:title" content="Chromatics | 단성부 악보 편집기" />
+    <meta property="og:title" content="Chromatics Desktop V1" />
     <meta
       property="og:description"
-      content="단성부 악보 입력, 기본 리듬 표기, MusicXML 가져오기와 내보내기를 먼저 검증합니다."
+      content="총보와 파트보를 만들고 MusicXML, PDF, MIDI로 주고받는 Mac/Windows 데스크탑 사보앱입니다."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://in-c.mannlab.app/chromatics.html" />
@@ -21,10 +21,10 @@
     <meta property="og:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta property="og:image:alt" content="in C 앱 아이콘" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Chromatics | 단성부 악보 편집기" />
+    <meta name="twitter:title" content="Chromatics Desktop V1" />
     <meta
       name="twitter:description"
-      content="단성부 악보 입력, 기본 리듬 표기, MusicXML 가져오기와 내보내기를 먼저 검증합니다."
+      content="전문적인 악보 작업을 위한 Mac/Windows 데스크탑 사보앱입니다."
     />
     <meta name="twitter:image" content="https://in-c.mannlab.app/social-preview.png" />
     <meta name="twitter:image:alt" content="in C 앱 아이콘" />
@@ -50,11 +50,12 @@
     <main id="top">
       <section class="hero hero--chromatics" aria-labelledby="hero-title">
         <div class="hero__content">
-          <p class="eyebrow">Chromatics 편집기</p>
+          <p class="eyebrow">Chromatics Desktop V1</p>
           <h1 id="hero-title">Chromatics</h1>
           <p class="hero__lead">
-            in C 안에서 단성부 악보를 열고 편집하는 무료 창작 표면입니다. 지금은 MusicXML로 이어지는
-            작은 사보 흐름을 먼저 안정화하고 있습니다.
+            총보와 파트보를 만들고, MusicXML/PDF/MIDI로 주고받는 데스크탑 사보앱입니다.
+            Mac과 Windows에서 실제 작곡, 편곡, 수업, 리허설 workflow를 빠르게 시작할 수 있게
+            V1 범위의 핵심 편집 흐름을 묶었습니다.
           </p>
           <div class="hero__actions">
             <a
@@ -62,9 +63,9 @@
               data-primary-download
               href="#download"
             >
-              in C 앱 다운로드
+              Chromatics 다운로드
             </a>
-            <a class="button button--secondary" href="#features">편집 범위 보기</a>
+            <a class="button button--secondary" href="#features">V1 기능 보기</a>
           </div>
           <dl class="release-strip" aria-label="릴리즈 상태">
             <div>
@@ -73,11 +74,11 @@
             </div>
             <div>
               <dt>버전</dt>
-              <dd data-release-version>v0.1.0-alpha.9</dd>
+              <dd data-release-version>v0.1.0-alpha.14</dd>
             </div>
             <div>
               <dt>출시일</dt>
-              <dd data-release-date>2026-08-31</dd>
+              <dd data-release-date>2026-09-04</dd>
             </div>
           </dl>
         </div>
@@ -86,28 +87,40 @@
             src="./assets/app-preview.svg"
             width="1440"
             height="900"
-            alt="단성부 악보와 빨간 편집 커서가 놓인 Chromatics 미리보기"
+            alt="악보 편집 화면과 빨간 편집 커서가 놓인 Chromatics 미리보기"
           />
         </figure>
       </section>
 
       <section id="features" class="section" aria-labelledby="features-title">
         <div class="section__header">
-          <p class="eyebrow">편집 범위</p>
-          <h2 id="features-title">단성부 악보 작성에 집중합니다</h2>
+          <p class="eyebrow">V1 기능</p>
+          <h2 id="features-title">전문 악보 작업의 기본기를 갖췄습니다</h2>
         </div>
         <div class="feature-grid">
           <article>
-            <h3>음표와 쉼표 입력</h3>
-            <p>악보를 처음 다루는 사람도 시작하기 쉽게 입력 흐름을 다듬습니다.</p>
+            <h3>빠른 음표 입력</h3>
+            <p>숫자 음가, A-G 입력, 쉼표, 타이, 셋잇단음표, range 편집을 키보드 중심으로 다룹니다.</p>
           </article>
           <article>
-            <h3>기본 리듬 표기</h3>
-            <p>점음표, 타이, 셋잇단음표와 자동 빔을 단성부 범위에서 다룹니다.</p>
+            <h3>총보와 파트보</h3>
+            <p>피아노 grand staff와 2-4 part ensemble을 만들고, 선택한 part view를 PDF 출력 대상으로 사용할 수 있습니다.</p>
           </article>
           <article>
-            <h3>MusicXML 흐름</h3>
-            <p>간단한 악보를 가져오고 내보내며 다른 사보 도구와 연결할 수 있습니다.</p>
+            <h3>교환 포맷</h3>
+            <p>MusicXML을 primary save로 사용하고, PDF와 MIDI export로 수업·리허설·외부 도구 연결을 지원합니다.</p>
+          </article>
+          <article>
+            <h3>표기와 레이아웃</h3>
+            <p>셈여림, 가사, 코드 심벌, slur, hairpin, rehearsal mark, page setup preset을 V1 흐름에 연결했습니다.</p>
+          </article>
+          <article>
+            <h3>재생과 믹서</h3>
+            <p>tempo map, repeat, tie/tuplet timing, part별 mute/solo/volume을 확인하며 악보를 점검할 수 있습니다.</p>
+          </article>
+          <article>
+            <h3>예측 가능한 편집</h3>
+            <p>plain arrow navigation, modifier transpose, J enharmonic respell, undoable command 흐름으로 실수 비용을 낮췄습니다.</p>
           </article>
         </div>
       </section>
@@ -115,9 +128,9 @@
       <section id="download" class="section section--download" aria-labelledby="download-title">
         <div class="section__header">
           <p class="eyebrow">다운로드</p>
-          <h2 id="download-title">운영체제별 설치 파일</h2>
+          <h2 id="download-title">Mac과 Windows에서 시작하세요</h2>
           <p>
-            초기 공개 버전입니다. 설치 전 파일 이름과 체크섬을 확인해 주세요.
+            V1 공개 빌드는 GitHub Releases에서 배포합니다. 설치 전 파일 이름과 체크섬을 확인해 주세요.
           </p>
         </div>
         <div class="download-grid" data-downloads aria-live="polite">
@@ -128,29 +141,29 @@
               <a
                 class="button button--secondary"
                 data-track-event="download_platform"
-                data-track-file="in-C-0.1.0-alpha.9-mac-universal.dmg"
+                data-track-file="in-C-0.1.0-alpha.14-mac-universal.dmg"
                 data-track-platform="macos"
-                href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.9/in-C-0.1.0-alpha.9-mac-universal.dmg"
+                href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/in-C-0.1.0-alpha.14-mac-universal.dmg"
               >
                 macOS
               </a>
               <a
                 class="button button--secondary"
                 data-track-event="download_platform"
-                data-track-file="in-C-0.1.0-alpha.9-windows-x64-setup.exe"
+                data-track-file="in-C-0.1.0-alpha.14-windows-x64-setup.exe"
                 data-track-platform="windows"
-                href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.9/in-C-0.1.0-alpha.9-windows-x64-setup.exe"
+                href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/in-C-0.1.0-alpha.14-windows-x64-setup.exe"
               >
                 Windows
               </a>
               <a
                 class="button button--secondary"
                 data-track-event="download_platform"
-                data-track-file="in-C-0.1.0-alpha.9-linux-x86_64.AppImage"
+                data-track-file="in-C-0.1.0-alpha.14-linux-x86_64.AppImage"
                 data-track-platform="linux"
-                href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.9/in-C-0.1.0-alpha.9-linux-x86_64.AppImage"
+                href="https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.14"
               >
-                Linux
+                릴리즈 노트
               </a>
             </div>
           </article>
@@ -161,7 +174,7 @@
             data-checksums
             data-track-event="checksum_link"
             data-track-location="download"
-            href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.9/SHA256SUMS.txt"
+            href="https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/SHA256SUMS.txt"
           >
             SHA256SUMS.txt
           </a>에서 확인합니다.
@@ -178,15 +191,15 @@
 
       <section id="limits" class="section section--split" aria-labelledby="limits-title">
         <div>
-          <p class="eyebrow">MVP 안내</p>
-          <h2 id="limits-title">정식 배포 전 안내</h2>
+          <p class="eyebrow">릴리즈 안내</p>
+          <h2 id="limits-title">수동 QA와 후속 확장을 분리합니다</h2>
         </div>
         <ul class="limit-list">
-          <li>Chromatics는 현재 MVP 단계로, 단선율 악보 편집과 MusicXML 흐름을 우선 검증하고 있습니다.</li>
-          <li>화음, 코드 심벌, 가사, 장식음 같은 확장 기능은 정식 배포 전까지 계속 다듬습니다.</li>
-          <li>일부 기보 렌더링과 재생 표현은 아직 안정화 중입니다.</li>
-          <li>정식 배포 전 빌드는 운영체제 보안 경고나 미서명 안내가 표시될 수 있습니다.</li>
-          <li>문제가 보이면 재현 순서와 화면 캡처를 남겨 주세요.</li>
+          <li>수동 악보 완성 QA, 외부 사보앱 MusicXML fixture, PDF/MIDI 앱 열기 확인은 릴리즈 후보마다 계속 기록합니다.</li>
+          <li>Linux package, scan/OCR, VST, 실시간 협업, 고급 tab/percussion은 V1 이후 확장으로 둡니다.</li>
+          <li>V1은 MusicXML을 primary save로 사용하며, Chromatics 전용 프로젝트 포맷은 후속 migration에서 다룹니다.</li>
+          <li>미서명 prerelease 빌드는 macOS Gatekeeper 또는 Windows SmartScreen 안내가 표시될 수 있습니다.</li>
+          <li>문제가 보이면 악보 파일, 운영체제, 앱 버전, 재현 순서를 함께 남겨 주세요.</li>
         </ul>
       </section>
     </main>

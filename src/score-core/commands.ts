@@ -1,6 +1,7 @@
 import type {
   CommandResult,
   Measure,
+  Part,
   Score,
   ScoreCommand,
   StaffAddress,
@@ -27,6 +28,10 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreRehearsalMarks(score, command.rehearsalMarks)
     case 'score-staff-texts.update':
       return updateScoreStaffTexts(score, command.staffTexts)
+    case 'score-system-texts.update':
+      return updateScoreSystemTexts(score, command.systemTexts)
+    case 'score-expression-texts.update':
+      return updateScoreExpressionTexts(score, command.expressionTexts)
     case 'score-dynamics.update':
       return updateScoreDynamics(score, command.dynamics)
     case 'score-hairpins.update':
@@ -37,6 +42,8 @@ export function applyScoreCommand(score: Score, command: ScoreCommand): CommandR
       return updateScoreHarmonies(score, command.harmonies)
     case 'score-layout.update':
       return updateScoreLayout(score, command.layout)
+    case 'score-parts.replace':
+      return replaceScoreParts(score, command.parts)
     case 'voice-event.insert':
       return insertVoiceEvent(score, command.target, command.event, command.index)
     case 'voice-event.remove':
@@ -199,6 +206,38 @@ function updateScoreStaffTexts(
   }
 }
 
+function updateScoreSystemTexts(
+  score: Score,
+  systemTexts: Score['systemTexts']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      systemTexts
+    },
+    undo: {
+      type: 'score-system-texts.update',
+      systemTexts: score.systemTexts
+    }
+  }
+}
+
+function updateScoreExpressionTexts(
+  score: Score,
+  expressionTexts: Score['expressionTexts']
+): CommandResult {
+  return {
+    score: {
+      ...score,
+      expressionTexts
+    },
+    undo: {
+      type: 'score-expression-texts.update',
+      expressionTexts: score.expressionTexts
+    }
+  }
+}
+
 function updateScoreRehearsalMarks(
   score: Score,
   rehearsalMarks: Score['rehearsalMarks']
@@ -262,6 +301,35 @@ function updateScoreMetadata(
       type: 'score-metadata.update',
       title: score.title,
       composer: score.composer
+    }
+  }
+}
+
+function replaceScoreParts(score: Score, parts: Part[]): CommandResult {
+  if (parts.length === 0) {
+    throw new Error('A score must contain at least one part.')
+  }
+
+  parts.forEach((part) => {
+    if (part.staves.length === 0) {
+      throw new Error(`A part must contain at least one staff: ${part.id}`)
+    }
+
+    part.staves.forEach((staff) => {
+      if (staff.measures.length === 0) {
+        throw new Error(`A staff must contain at least one measure: ${staff.id}`)
+      }
+    })
+  })
+
+  return {
+    score: {
+      ...score,
+      parts
+    },
+    undo: {
+      type: 'score-parts.replace',
+      parts: score.parts
     }
   }
 }

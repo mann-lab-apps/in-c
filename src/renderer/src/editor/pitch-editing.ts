@@ -4,6 +4,7 @@ import {
   nearestPitch,
   resolveNotePitch,
   sortVoiceEvents,
+  pitchToMidi,
   transposeChromatic,
   transposeDiatonic,
   transposeOctave,
@@ -21,6 +22,8 @@ import {
 } from './editor-state'
 
 export type PitchMovement = 'diatonic' | 'chromatic' | 'octave'
+
+const pitchSteps: PitchStep[] = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
 
 export function buildPitchStepCommand(
   score: Score,
@@ -232,6 +235,50 @@ export function buildPitchMovementCommand(
   })
 }
 
+export function buildEnharmonicRespellCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = location.measure.voices.find(
+    (candidate) => candidate.id === location.address.voiceId
+  )
+
+  if (!voice) {
+    return undefined
+  }
+
+  const currentPitch = resolveNotePitch(
+    location.measure,
+    voice,
+    location.event
+  )
+  const pitch = resolveEnharmonicRespelling(currentPitch)
+
+  if (!pitch) {
+    return undefined
+  }
+
+  return buildRhythmEditCommand(score, {
+    target: location.address,
+    eventId: location.event.id,
+    createId: createEventId,
+    event: {
+      ...location.event,
+      pitch
+    }
+  })
+}
+
 export function buildAccidentalCommand(
   score: Score,
   selection: EditorSelection,
@@ -259,6 +306,81 @@ export function buildAccidentalCommand(
       }
     }
   })
+}
+
+function resolveEnharmonicRespelling(pitch: Pitch): Pitch | undefined {
+  const targetMidi = pitchToMidi(pitch)
+  const candidates = [-1, 0, 1]
+    .flatMap((octaveOffset) =>
+      pitchSteps.flatMap((step) =>
+        ([-2, -1, 0, 1, 2] as const).map((alter) => ({
+          step,
+          octave: pitch.octave + octaveOffset,
+          alter
+        }))
+      )
+    )
+    .filter(
+      (candidate) =>
+        pitchToMidi(candidate) === targetMidi &&
+        !samePitchSpelling(candidate, pitch)
+    )
+    .sort((left, right) => {
+      const directionScore =
+        preferredEnharmonicDirectionScore(left, pitch) -
+        preferredEnharmonicDirectionScore(right, pitch)
+
+      return (
+        directionScore ||
+        Math.abs(left.alter) - Math.abs(right.alter) ||
+        Math.abs(left.octave - pitch.octave) -
+          Math.abs(right.octave - pitch.octave)
+      )
+    })
+
+  return candidates[0]
+}
+
+function preferredEnharmonicDirectionScore(
+  candidate: Pitch,
+  source: Pitch
+): number {
+  const direction = diatonicDistance(candidate, source)
+  const sourceAlter = source.alter ?? 0
+
+  if (sourceAlter > 0 && direction > 0) {
+    return 0
+  }
+
+  if (sourceAlter < 0 && direction < 0) {
+    return 0
+  }
+
+  if (sourceAlter === 0 && direction < 0) {
+    return 0
+  }
+
+  if (direction !== 0) {
+    return 1
+  }
+
+  return 2
+}
+
+function diatonicDistance(left: Pitch, right: Pitch): number {
+  return (
+    left.octave * pitchSteps.length +
+    pitchSteps.indexOf(left.step) -
+    (right.octave * pitchSteps.length + pitchSteps.indexOf(right.step))
+  )
+}
+
+function samePitchSpelling(left: Pitch, right: Pitch): boolean {
+  return (
+    left.step === right.step &&
+    left.octave === right.octave &&
+    (left.alter ?? 0) === (right.alter ?? 0)
+  )
 }
 
 function createEventId(): string {

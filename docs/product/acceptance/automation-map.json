@@ -175,7 +175,7 @@
     {
       "feature": "docs/product/acceptance/range-selection.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #457에서 같은 마디 범위 삭제, 여러 마디 삭제 거부, 같은 길이 복사·붙여넣기, 다른 길이 붙여넣기 거부, 쉼표 변환과 안전하지 않은 변환 거부를 기존 자동 테스트에 연결한다. 키보드·드래그 선택은 제외한다.",
+      "notes": "이슈 #457에서 같은 마디 범위 삭제, 여러 마디 삭제 거부, 같은 길이 복사·붙여넣기, 다른 길이 붙여넣기 거부, 쉼표 변환과 안전하지 않은 변환 거부를 기존 자동 테스트에 연결한다. Same-staff voice 범위 삭제와 붙여넣기는 core editor-state 테스트에 연결한다. 키보드·드래그 선택은 제외한다.",
       "scenarios": [
         {
           "id": "range-editing.delete-same-measure",
@@ -195,6 +195,21 @@
           "id": "range-editing.copy-paste-same-length",
           "tag": "@scenario-range-editing-copy-paste-same-length",
           "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.same-staff-voice-delete",
+          "tag": "@scenario-range-editing-same-staff-voice-delete",
+          "tests": [
+            "src/renderer/src/editor/editor-state.test.ts"
+          ]
+        },
+        {
+          "id": "range-editing.same-staff-voice-copy-paste",
+          "tag": "@scenario-range-editing-same-staff-voice-copy-paste",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
             "src/renderer/src/editor/editor-state.test.ts"
           ]
         },
@@ -224,7 +239,7 @@
     {
       "feature": "docs/product/acceptance/import-export.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 이슈 #591에서 못갖춘마디의 가져오기, 왕복, 잘못된 길이 거부를 연결한다. 이슈 #618에서 사용자가 실행하는 MusicXML 저장과 앱 내부 자동저장·복구의 구분을 연결한다. @discussion 이미지 내보내기는 제외한다.",
+      "notes": "이슈 #461에서 MusicXML 가져오기·저장 흐름을 연결하고, 이슈 #488에서 PDF 저장 요청과 성공·취소·실패 안내를 연결한다. 이슈 #591에서 못갖춘마디의 가져오기, 왕복, 잘못된 길이 거부를 연결한다. 이슈 #618에서 사용자가 실행하는 MusicXML 저장과 앱 내부 자동저장·복구의 구분을 연결한다. Unsupported MusicXML import warning/report 첫 슬라이스는 parser report와 App 상태 메시지 테스트에 연결한다. Export-side report 첫 슬라이스는 MusicXML이 보존하지 못하는 앱 layout 데이터를 serializer report와 저장 완료 안내에 연결한다. Professional V1 구조 프리셋의 grand staff/multi-part MusicXML round-trip 첫 슬라이스는 parser/serializer 테스트에 연결한다. MIDI export는 tempo map/note event와 multi-part track/channel/program 분리를 serializer 테스트에 연결한다. External app fixture QA 첫 슬라이스는 MuseScore/Finale/Sibelius/Dorico compatibility seed manifest와 `verify:musicxml-fixtures`에 연결한다. @discussion 이미지 내보내기는 제외한다.",
       "scenarios": [
         {
           "id": "import-export.import-valid-single-voice",
@@ -234,8 +249,59 @@
           ]
         },
         {
-          "id": "import-export.reject-time-movement",
-          "tag": "@scenario-import-export-reject-time-movement",
+          "id": "import-export.import-multi-voice",
+          "tag": "@scenario-import-export-import-multi-voice",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-grand-staff-structure",
+          "tag": "@scenario-import-export-round-trip-grand-staff-structure",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-grand-staff-basic-events",
+          "tag": "@scenario-import-export-round-trip-grand-staff-basic-events",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-multi-part-structure",
+          "tag": "@scenario-import-export-round-trip-multi-part-structure",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.round-trip-multi-part-basic-events",
+          "tag": "@scenario-import-export-round-trip-multi-part-basic-events",
+          "tests": [
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "import-export.unsupported-musicxml-report",
+          "tag": "@scenario-import-export-unsupported-musicxml-report",
+          "tests": [
+            "src/musicxml/musicxml.test.ts",
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "import-export.export-unsupported-musicxml-report",
+          "tag": "@scenario-import-export-export-unsupported-musicxml-report",
+          "tests": [
+            "src/musicxml/musicxml.test.ts",
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "import-export.external-app-fixture-qa",
+          "tag": "@scenario-import-export-external-app-fixture-qa",
           "tests": [
             "src/musicxml/musicxml.test.ts"
           ]
@@ -292,6 +358,14 @@
           ]
         },
         {
+          "id": "import-export.export-midi",
+          "tag": "@scenario-import-export-export-midi",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/midi/serialize-midi.test.ts"
+          ]
+        },
+        {
           "id": "import-export.report-pdf-result",
           "tag": "@scenario-import-export-report-pdf-result",
           "tests": [
@@ -303,13 +377,54 @@
     {
       "feature": "docs/product/acceptance/score-setup.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #463에서 새 악보 생성, 박자표·조표 변경, 마디를 넘치는 박자표 변경 거부를 기존 자동 테스트에 연결한다. 제목·작곡가 입력 안내와 마디 선택 안내는 제외한다.",
+      "notes": "이슈 #463에서 새 악보 생성, 박자표·조표 변경, 마디를 넘치는 박자표 변경 거부를 기존 자동 테스트에 연결한다. Professional V1 구조 프리셋 첫 슬라이스는 새 악보 마법사의 piano grand staff와 2-4 part ensemble 생성 테스트에 연결한다. 악보 탭의 part/staff 구조 편집 첫 슬라이스는 App 화면 테스트와 score-core parts replace 테스트에 연결한다. 악기 라이브러리 기반 part 생성 첫 슬라이스는 App 화면 테스트의 preset name/abbr/staff clef 검증에 연결한다. 제목·작곡가 입력 안내와 마디 선택 안내는 제외한다.",
       "scenarios": [
         {
           "id": "score-setup.create-with-selected-settings",
           "tag": "@scenario-score-setup-create-with-selected-settings",
           "tests": [
             "src/testing/single-voice-mvp-regression.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.create-grand-staff-score",
+          "tag": "@scenario-score-setup-create-grand-staff-score",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/editor/new-score.test.ts",
+            "src/musicxml/musicxml.test.ts",
+            "scripts/verify-single-voice-mvp.cjs"
+          ]
+        },
+        {
+          "id": "score-setup.create-ensemble-score",
+          "tag": "@scenario-score-setup-create-ensemble-score",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/editor/new-score.test.ts",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.edit-active-part-label",
+          "tag": "@scenario-score-setup-edit-active-part-label",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "score-setup.edit-score-structure",
+          "tag": "@scenario-score-setup-edit-score-structure",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/score-core/score-core.test.ts"
+          ]
+        },
+        {
+          "id": "score-setup.add-instrument-library-part",
+          "tag": "@scenario-score-setup-add-instrument-library-part",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
           ]
         },
         {
@@ -331,7 +446,7 @@
     {
       "feature": "docs/product/acceptance/note-input.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #469에서 핵심 음표 입력과 편집을 연결하고, 이슈 #504에서 Inspector의 음가·점·샤프·쉼표 변환을 연결한다. 이슈 #607에서 임시표 적용, 마디 문맥, MusicXML 왕복을 기존 자동 테스트에 연결한다. 이슈 #610에서 마디 경계를 넘는 음표의 분할·타이·실행 취소를 연결한다. 아티큘레이션 시나리오는 제외한다.",
+      "notes": "이슈 #469에서 핵심 음표 입력과 편집을 연결하고, 이슈 #504에서 Inspector의 음가·점·샤프·쉼표 변환을 연결한다. 이슈 #607에서 임시표 적용, 마디 문맥, MusicXML 왕복을 기존 자동 테스트에 연결한다. 이슈 #610에서 마디 경계를 넘는 음표의 분할·타이·실행 취소를 연결한다. Same-staff voice 전환과 grand staff/ensemble 입력 보표 전환 첫 슬라이스는 App 화면 테스트에 연결한다. 아티큘레이션 시나리오는 제외한다.",
       "scenarios": [
         {
           "id": "note-input.enter-selected-duration",
@@ -386,6 +501,34 @@
           ]
         },
         {
+          "id": "note-input.switch-same-staff-voice",
+          "tag": "@scenario-note-input-switch-same-staff-voice",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "note-input.cycle-same-staff-voice",
+          "tag": "@scenario-note-input-cycle-same-staff-voice",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "note-input.switch-staff-target",
+          "tag": "@scenario-note-input-switch-staff-target",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "note-input.switch-part-target",
+          "tag": "@scenario-note-input-switch-part-target",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
           "id": "note-input.advance-cursor",
           "tag": "@scenario-note-input-advance-cursor",
           "tests": [
@@ -425,7 +568,7 @@
     {
       "feature": "docs/product/acceptance/playback.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 이슈 #617에서 전역 빠르기의 화면 표시, 재생 기준, MusicXML 보존을 연결한다. 재생 제어와 @discussion 시나리오는 제외한다.",
+      "notes": "이슈 #467에서 타이·셋잇단음표의 재생 길이, 헤어핀의 음량 변화, 페르마타의 시간 지연을 기존 자동 테스트에 연결한다. 이슈 #617에서 전역 빠르기의 화면 표시, 재생 기준, MusicXML 보존을 연결한다. Tempo map playback은 positioned tempo event의 beat mapping, beat/seconds 변환, scheduler 예약 시간 테스트에 연결한다. Playback cursor와 selection sync 첫 슬라이스는 App/notation/playback 테스트에 연결한다. Part별 mixer 첫 슬라이스는 App mixer UI와 playback gain 정책 테스트에 연결한다. 재생 제어 시나리오는 제외한다.",
       "scenarios": [
         {
           "id": "playback.global-tempo",
@@ -434,6 +577,14 @@
             "src/renderer/src/App.test.tsx",
             "src/renderer/src/playback/timeline.test.ts",
             "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "playback.tempo-map",
+          "tag": "@scenario-playback-tempo-map",
+          "tests": [
+            "src/renderer/src/playback/timeline.test.ts",
+            "src/renderer/src/playback/useScorePlayback.test.ts"
           ]
         },
         {
@@ -456,13 +607,30 @@
           "tests": [
             "src/renderer/src/playback/timeline.test.ts"
           ]
+        },
+        {
+          "id": "playback.cursor-selection-sync",
+          "tag": "@scenario-playback-cursor-selection-sync",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/notation/visual-state.test.ts",
+            "src/renderer/src/playback/timeline.test.ts"
+          ]
+        },
+        {
+          "id": "playback.part-mixer",
+          "tag": "@scenario-playback-part-mixer",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/playback/useScorePlayback.test.ts"
+          ]
         }
       ]
     },
     {
       "feature": "docs/product/acceptance/layout-rendering.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 이슈 #492에서 선택한 마디의 스태프 텍스트 입력·표시·입력 중 단축키 차단·MusicXML 유지를 연결한다. 이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 연결한다. 이슈 #602에서 헤어핀 입력·해제, system 분할 표시, MusicXML 왕복을 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치와 헤어핀 재생 해석은 제외한다.",
+      "notes": "이슈 #473에서 수동 system/page break의 추가·해제와 배치 결과를 연결하고, 이슈 #490에서 선택한 마디의 리허설 마크 입력·표시·MusicXML 유지를 연결한다. 이슈 #492에서 선택한 마디의 스태프 텍스트 입력·표시·입력 중 단축키 차단·MusicXML 유지를 연결한다. 시스템 텍스트와 표현 텍스트 첫 슬라이스는 App 입력/표시/단축키 차단과 MusicXML 왕복 테스트에 연결한다. 이슈 #494의 다이내믹과 이슈 #498의 페르마타·숨표·중지표 입력, 해제, 화면 표시, MusicXML 유지를 연결한다. 이슈 #602에서 헤어핀 입력·해제, system 분할 표시, MusicXML 왕복을 연결한다. Page setup 첫 슬라이스는 PDF page setup UI와 print layout planner 테스트에 연결한다. Live part view 첫 슬라이스는 선택 part 프리뷰와 PDF 출력 대상 선택 App 테스트에 연결한다. Multi-staff notation object anchoring 첫 슬라이스는 lower staff measure id 저장 App 테스트와 Electron SVG staff text/dynamic smoke에 연결한다. 자동 줄바꿈, 빔 묶음, 오선 밖 음표 배치와 헤어핀 재생 해석은 제외한다.",
       "scenarios": [
         {
           "id": "layout.manual-system-break",
@@ -476,6 +644,21 @@
           "tag": "@scenario-layout-manual-page-break",
           "tests": [
             "src/renderer/src/notation/system-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.page-setup",
+          "tag": "@scenario-layout-page-setup",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/renderer/src/notation/print-layout.test.ts"
+          ]
+        },
+        {
+          "id": "layout.live-part-view",
+          "tag": "@scenario-layout-live-part-view",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
           ]
         },
         {
@@ -495,11 +678,35 @@
           ]
         },
         {
+          "id": "layout.system-text",
+          "tag": "@scenario-layout-system-text",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.expression-text",
+          "tag": "@scenario-layout-expression-text",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
           "id": "layout.dynamics",
           "tag": "@scenario-layout-dynamics",
           "tests": [
             "src/renderer/src/App.test.tsx",
             "src/musicxml/musicxml.test.ts"
+          ]
+        },
+        {
+          "id": "layout.multi-staff-notation-object-anchoring",
+          "tag": "@scenario-layout-multi-staff-notation-object-anchoring",
+          "tests": [
+            "src/renderer/src/App.test.tsx",
+            "scripts/verify-single-voice-mvp.cjs"
           ]
         },
         {
@@ -734,11 +941,18 @@
     {
       "feature": "docs/product/acceptance/clef-change.feature",
       "strategy": "vitest-scenario-id",
-      "notes": "이슈 #516에서 선택 마디의 음자리표 변경, 음높이의 오선 위치 변화, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. 새로운 음자리표 기능과 제품 동작 변경은 제외한다.",
+      "notes": "이슈 #516에서 선택 마디의 음자리표 변경, 음높이의 오선 위치 변화, MusicXML 왕복 유지를 기존 자동 테스트에 연결한다. Professional V1 staff clef 선택 첫 슬라이스는 악보 탭의 현재 보표 전체 clef 변경 App 테스트에 연결한다.",
       "scenarios": [
         {
           "id": "clef.change-selected-measure",
           "tag": "@scenario-clef-change-selected-measure",
+          "tests": [
+            "src/renderer/src/App.test.tsx"
+          ]
+        },
+        {
+          "id": "clef.change-current-staff",
+          "tag": "@scenario-clef-change-current-staff",
           "tests": [
             "src/renderer/src/App.test.tsx"
           ]

@@ -199,6 +199,8 @@ export function createScore(input?: {
   harmonies?: Score['harmonies']
   rehearsalMarks?: Score['rehearsalMarks']
   staffTexts?: Score['staffTexts']
+  systemTexts?: Score['systemTexts']
+  expressionTexts?: Score['expressionTexts']
   dynamics?: Score['dynamics']
   hairpins?: Score['hairpins']
   slurs?: Score['slurs']
@@ -216,6 +218,8 @@ export function createScore(input?: {
     harmonies: input?.harmonies,
     rehearsalMarks: input?.rehearsalMarks,
     staffTexts: input?.staffTexts,
+    systemTexts: input?.systemTexts,
+    expressionTexts: input?.expressionTexts,
     dynamics: input?.dynamics,
     hairpins: input?.hairpins,
     slurs: input?.slurs,

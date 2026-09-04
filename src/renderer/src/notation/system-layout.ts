@@ -563,7 +563,7 @@ function sparseMeasureWidth(
   rhythmWeight: number,
   spacing: LayoutSpacing
 ): number {
-  const events = measure.voices[0]?.events ?? []
+  const events = measure.voices.flatMap((voice) => voice.events)
   const isFullRestOnly =
     events.length === 1 &&
     events[0].type === 'rest' &&
@@ -580,7 +580,7 @@ function sparseMeasureWidth(
 }
 
 function measureSpacingWeight(measure: Measure): number {
-  const events = measure.voices[0]?.events ?? []
+  const events = measure.voices.flatMap((voice) => voice.events)
 
   if (events.length === 0) {
     return 1
