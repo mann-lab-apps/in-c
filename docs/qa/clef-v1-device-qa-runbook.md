@@ -58,8 +58,8 @@ flutter build ios --release --no-codesign
 - 앱 이름/런처 label은 `Clef & Staff`이다.
 - 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
   생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
-- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+14`이며, 튜너 간결화와 `자동`/`정밀 후보` 감지 엔진
-  변경분을 배포하려면 `1.0.0+15` 이상의 새 release AAB를 사용한다.
+- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+15`이며, 튜너 간결화와 `자동`/`정밀 후보` 감지 엔진
+  변경분을 포함한다.
 
 ## 준비물
 
@@ -230,12 +230,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 3. 외부 샘플, 장비, 플랫폼 계정이 없으면 blocker 해제 조건을 적고 v1.1 spike backlog와 연결한다.
 4. 통과한 build 산출물과 실패한 산출물은 `clef-v1-rc-qa-plan.md` 검증 기록에 반영한다.
 
-## 2026-09-02 내부테스트 산출물
+## 2026-09-04 내부테스트 산출물
 
 - 현재 소스 QA 대상: `Clef & Staff` `1.0.0+15`.
 - 마지막 Play Console 업로드 후보:
-  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+14-release.aab`.
+  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+15-release.aab`.
 - 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
 - 파일 크기: 약 67MB.
-- SHA-256: `1398d3d54343695e4712ab4e140e64def4d982895b08b29ecfd057c2d18945b6`.
+- SHA-256: `2c56d917e151829852201614e0ad3dff410f41f93dfe0ec082d438833a236773`.
 - upload key SHA1: `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
