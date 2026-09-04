@@ -8,7 +8,7 @@
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
 - 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
-- 현재 소스 RC 후보는 `1.0.0+15`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
+- 현재 소스 RC 후보는 `1.0.0+16`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
   함께 기록한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
@@ -78,7 +78,7 @@
   sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
   floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
-- 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+15`이다. 실제 마이크 정확도/latency QA는 아직
+- 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+16`이다. 실제 마이크 정확도/latency QA는 아직
   기록되지 않았다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.

@@ -16,7 +16,7 @@ Android 실기기 QA 전에 macOS 로컬 Android Emulator에서 Codex가 직접 
 - System image: Android 15 API 35, Google APIs Play Store, arm64-v8a
 - Flutter device id: `emulator-5554`
 - 앱 id: `com.mannlab.clef`
-- 현재 소스 build: `1.0.0+15` RC 후보. 마지막 에뮬레이터 설치 검증 build는 `1.0.0+14`이며,
+- 현재 소스 build: `1.0.0+16` RC 후보. 마지막 에뮬레이터 설치 검증 build는 `1.0.0+15`이며,
   이전 `1.0.0+10` debug/release 검증 기록은 아래 history로 둔다.
 - 확인한 외부 샘플: 사용자가 제공한 IMSLP Bach Minuet PDF, 4 pages, 약 101 KB
 - 최근 전체 QA 실행: 2026-08-31 15:20-15:35 KST, `clef_rc_tablet_api35`
