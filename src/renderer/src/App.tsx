@@ -254,11 +254,27 @@ interface MetadataEdit {
 }
 
 const toolbarCategories = [
-  { id: 'file', label: '파일' },
-  { id: 'measure', label: '악보' },
-  { id: 'note', label: '음표' },
-  { id: 'lyrics', label: '가사' },
-  { id: 'playback', label: '재생' }
+  { id: 'measure', label: 'Score Setup', caption: '악보 설정', legacyLabel: '악보' },
+  { id: 'note', label: 'Note Input', caption: '음표 입력', legacyLabel: '음표' },
+  {
+    id: 'notation',
+    label: 'Notation Objects',
+    caption: '기호/텍스트',
+    legacyLabel: '표기'
+  },
+  {
+    id: 'lyrics',
+    label: 'Lyrics/Chords',
+    caption: '가사/코드',
+    legacyLabel: '가사'
+  },
+  { id: 'playback', label: 'Playback', caption: '재생', legacyLabel: '재생' },
+  {
+    id: 'file',
+    label: 'Export/Page Setup',
+    caption: '파일/출력',
+    legacyLabel: '파일'
+  }
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
@@ -4765,13 +4781,15 @@ export const App = () => {
       <nav className="toolbar-tabs" aria-label="편집 도구 카테고리">
         {toolbarCategories.map((category) => (
           <button
+            aria-label={category.legacyLabel}
             aria-pressed={toolbarCategory === category.id}
             className={toolbarCategory === category.id ? 'is-active' : undefined}
             key={category.id}
             onClick={() => setToolbarCategory(category.id)}
             type="button"
           >
-            {category.label}
+            <span>{category.label}</span>
+            <small>{category.caption}</small>
           </button>
         ))}
       </nav>
@@ -4995,31 +5013,6 @@ export const App = () => {
                       </div>
                     ) : null}
 
-                    <label>
-                      <span>코드 심벌</span>
-                      <input
-                        aria-label="코드 심벌"
-                        defaultValue={activeHarmony?.text ?? ''}
-                        key={`${activeMeasureId}-${activeTick}-${
-                          activeHarmony?.text ?? ''
-                        }-harmony`}
-                        maxLength={24}
-                        onBlur={(event) =>
-                          updateHarmonyText(event.currentTarget.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                            event.currentTarget.blur()
-                          } else if (event.key === 'Escape') {
-                            event.currentTarget.value = activeHarmony?.text ?? ''
-                            event.currentTarget.blur()
-                          }
-                        }}
-                        placeholder="Cmaj7/G"
-                        type="text"
-                      />
-                    </label>
-
                     <div className="inspector-properties__row">
                       <span>트레몰로</span>
                       <div className="inspector-properties__buttons">
@@ -5202,7 +5195,377 @@ export const App = () => {
             </p>
           )}
         </section>
+        {selectedNote ? (
+          <section className="inspector-properties" aria-label="코드 심벌 속성">
+            <h3>코드</h3>
+            <label>
+              <span>코드 심벌</span>
+              <input
+                aria-label="코드 심벌"
+                defaultValue={activeHarmony?.text ?? ''}
+                key={`${activeMeasureId}-${activeTick}-${
+                  activeHarmony?.text ?? ''
+                }-harmony`}
+                maxLength={24}
+                onBlur={(event) => updateHarmonyText(event.currentTarget.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                    event.currentTarget.blur()
+                  } else if (event.key === 'Escape') {
+                    event.currentTarget.value = activeHarmony?.text ?? ''
+                    event.currentTarget.blur()
+                  }
+                }}
+                placeholder="Cmaj7/G"
+                type="text"
+              />
+            </label>
+          </section>
+        ) : null}
       </section>
+
+      {toolbarCategory === 'notation' ? (
+      <section className="selection-toolbar" aria-label="표기 객체 편집">
+        {eventLocation ? (
+          <section className="inspector-properties" aria-label="음표 기호">
+            <h3>음표 기호</h3>
+            <div className="inspector-properties__grid">
+              <div className="inspector-properties__row">
+                <span>정지 기호</span>
+                <div className="inspector-properties__buttons">
+                  <button
+                    aria-label="Notation fermata"
+                    aria-pressed={selectedEventHasFermata}
+                    className={selectedEventHasFermata ? 'is-active' : undefined}
+                    onClick={toggleFermata}
+                    type="button"
+                  >
+                    𝄐
+                  </button>
+                  {breathMarkTermOptions.map(({ label, symbol, value }) => (
+                    <button
+                      aria-label={`Notation ${label}`}
+                      aria-pressed={selectedEventBreathMark === value}
+                      className={
+                        selectedEventBreathMark === value ? 'is-active' : undefined
+                      }
+                      key={value}
+                      onClick={() => toggleBreathMark(value)}
+                      type="button"
+                    >
+                      {symbol}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="inspector-properties__row">
+                <span>{koreanMusicTerms.expressiveSymbols}</span>
+                <div className="inspector-properties__buttons">
+                  {articulationTermOptions.map(({ label, symbol, value }) => (
+                    <button
+                      aria-label={`Notation ${label}`}
+                      aria-pressed={selectedNoteArticulations.has(value)}
+                      className={
+                        selectedNoteArticulations.has(value)
+                          ? 'is-active'
+                          : undefined
+                      }
+                      disabled={eventLocation.event.type !== 'note'}
+                      key={value}
+                      onClick={() => toggleArticulation(value)}
+                      type="button"
+                    >
+                      {symbol}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {selectedNote ? (
+                <>
+                  <div className="inspector-properties__row">
+                    <span>트레몰로</span>
+                    <div className="inspector-properties__buttons">
+                      {([0, 1, 2, 3] as const).map((marks) => (
+                        <button
+                          aria-pressed={(selectedNote.tremolo?.marks ?? 0) === marks}
+                          className={
+                            (selectedNote.tremolo?.marks ?? 0) === marks
+                              ? 'is-active'
+                              : undefined
+                          }
+                          key={marks}
+                          onClick={() => toggleTremoloMarks(marks)}
+                          type="button"
+                        >
+                          {marks === 0 ? '없음' : `${marks}줄`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="inspector-properties__row">
+                    <span>장식음</span>
+                    <div className="inspector-properties__buttons">
+                      {ornamentOptions.map(([value, label]) => (
+                        <button
+                          aria-pressed={selectedNote.ornaments?.includes(value)}
+                          className={
+                            selectedNote.ornaments?.includes(value)
+                              ? 'is-active'
+                              : undefined
+                          }
+                          key={value}
+                          onClick={() => toggleOrnament(value)}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <button
+                        aria-pressed={Boolean(selectedNote.graceNotes?.length)}
+                        className={
+                          selectedNote.graceNotes?.length ? 'is-active' : undefined
+                        }
+                        onClick={toggleGraceNote}
+                        type="button"
+                      >
+                        grace
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </section>
+        ) : null}
+
+        {selection.type === 'range' ? (
+          <section className="inspector-properties" aria-label="범위 기호 팔레트">
+            <h3>범위 기호</h3>
+            <div className="inspector-properties__row">
+              <span>헤어핀</span>
+              <div className="inspector-properties__buttons">
+                <button
+                  aria-label="Notation crescendo hairpin"
+                  onClick={() => toggleHairpin('crescendo')}
+                  type="button"
+                >
+                  &lt;
+                </button>
+                <button
+                  aria-label="Notation diminuendo hairpin"
+                  onClick={() => toggleHairpin('diminuendo')}
+                  type="button"
+                >
+                  &gt;
+                </button>
+              </div>
+            </div>
+            <button
+              aria-label="Notation slur toggle"
+              className="inspector-properties__command"
+              onClick={toggleSlur}
+              title="슬러 추가 또는 해제 (S)"
+              type="button"
+            >
+              슬러
+              <span className="shortcut-badge">S</span>
+            </button>
+            <div className="inspector-properties__row">
+              <span>옥타브</span>
+              <div className="inspector-properties__buttons">
+                {octaveShiftOptions.map(([value, label]) => (
+                  <button
+                    key={value}
+                    onClick={() => toggleOctaveShift(value)}
+                    type="button"
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : null}
+
+        {activeMeasureId ? (
+          <section className="inspector-properties" aria-label="마디 표기 객체">
+            <h3>마디 표시</h3>
+            <div className="inspector-properties__grid">
+              <label>
+                <span>Rehearsal</span>
+                <input
+                  aria-label="Notation rehearsal mark"
+                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureRehearsalMark?.text ?? ''
+                  }-notation`}
+                  maxLength={12}
+                  onBlur={(event) =>
+                    updateActiveRehearsalMark(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureRehearsalMark?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="A"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>Staff text</span>
+                <input
+                  aria-label="Notation staff text"
+                  defaultValue={activeMeasureStaffText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureStaffText?.text ?? ''
+                  }-staff-text-notation`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveStaffText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureStaffText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="dolce"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>System text</span>
+                <input
+                  aria-label="Notation system text"
+                  defaultValue={activeMeasureSystemText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureSystemText?.text ?? ''
+                  }-system-text-notation`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveSystemText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureSystemText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Chorus"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>Expression</span>
+                <input
+                  aria-label="Notation expression text"
+                  defaultValue={activeExpressionText?.text ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${
+                    activeExpressionText?.text ?? ''
+                  }-expression-text-notation`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveExpressionText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeExpressionText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="espressivo"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>Dynamics</span>
+                <select
+                  aria-label="Notation dynamics"
+                  onChange={(event) => updateActiveDynamic(event.target.value)}
+                  value={activeMeasureDynamic?.value ?? ''}
+                >
+                  <option value="">없음</option>
+                  {dynamicValues.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="inspector-properties__row">
+                <span>도돌이표</span>
+                <div className="inspector-properties__buttons">
+                  <button
+                    aria-pressed={Boolean(measureLocation?.measure.repeat?.start)}
+                    className={
+                      measureLocation?.measure.repeat?.start
+                        ? 'is-active'
+                        : undefined
+                    }
+                    onClick={toggleRepeatStart}
+                    type="button"
+                  >
+                    시작
+                  </button>
+                  <button
+                    aria-pressed={Boolean(measureLocation?.measure.repeat?.end)}
+                    className={
+                      measureLocation?.measure.repeat?.end
+                        ? 'is-active'
+                        : undefined
+                    }
+                    onClick={toggleRepeatEnd}
+                    type="button"
+                  >
+                    끝
+                  </button>
+                </div>
+              </div>
+
+              <label>
+                <span>Times</span>
+                <input
+                  aria-label="Notation repeat count"
+                  max={8}
+                  min={2}
+                  onChange={(event) =>
+                    changeRepeatTimes(Number.parseInt(event.target.value, 10))
+                  }
+                  type="number"
+                  value={measureLocation?.measure.repeat?.times ?? 2}
+                />
+              </label>
+            </div>
+          </section>
+        ) : (
+          <p className="inspector-properties__empty">
+            음표, 쉼표, 마디를 선택하면 표기 객체 팔레트가 표시됩니다.
+          </p>
+        )}
+      </section>
+      ) : null}
 
       <section
         className="selection-toolbar"
@@ -5473,119 +5836,6 @@ export const App = () => {
           </div>
         </section>
 
-        <section className="inspector-properties" aria-label="PDF 페이지 설정">
-          <h3>PDF 설정</h3>
-          <div className="inspector-properties__grid">
-            <label>
-              <span>프리셋</span>
-              <select
-                aria-label="PDF 설정 프리셋"
-                onChange={(event) => applyPageSetupPreset(event.target.value)}
-                value={resolvePageSetupPresetId(pageSetup)}
-              >
-                <option value="custom">사용자 설정</option>
-                {pageSetupPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>용지</span>
-              <select
-                aria-label="PDF 용지"
-                onChange={(event) =>
-                  updatePageSetup({
-                    pageSize: event.target.value as Required<ScorePageSetup>['pageSize']
-                  })
-                }
-                value={pageSetup.pageSize}
-              >
-                {pageSizeOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>방향</span>
-              <select
-                aria-label="PDF 방향"
-                onChange={(event) =>
-                  updatePageSetup({
-                    orientation: event.target
-                      .value as Required<ScorePageSetup>['orientation']
-                  })
-                }
-                value={pageSetup.orientation}
-              >
-                {pageOrientationOptions.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              <span>여백</span>
-              <input
-                aria-label="PDF 여백 mm"
-                max={30}
-                min={3}
-                onChange={(event) =>
-                  updatePageSetup({
-                    pageMarginMm: Number.parseInt(event.target.value, 10)
-                  })
-                }
-                step={1}
-                type="number"
-                value={pageSetup.pageMarginMm}
-              />
-            </label>
-
-            <label>
-              <span>보표 크기</span>
-              <input
-                aria-label="PDF 보표 크기"
-                max={125}
-                min={75}
-                onChange={(event) =>
-                  updatePageSetup({
-                    staffSizePercent: Number.parseInt(event.target.value, 10)
-                  })
-                }
-                step={5}
-                type="range"
-                value={pageSetup.staffSizePercent}
-              />
-              <output>{pageSetup.staffSizePercent}%</output>
-            </label>
-
-            <label>
-              <span>시스템 간격</span>
-              <input
-                aria-label="PDF 시스템 간격"
-                max={140}
-                min={80}
-                onChange={(event) =>
-                  updatePageSetup({
-                    systemSpacingPercent: Number.parseInt(event.target.value, 10)
-                  })
-                }
-                step={5}
-                type="range"
-                value={pageSetup.systemSpacingPercent}
-              />
-              <output>{pageSetup.systemSpacingPercent}%</output>
-            </label>
-          </div>
-        </section>
-
           {activeMeasureId ? (
             <section className="inspector-properties" aria-label="마디 텍스트">
               <h3>마디 표시</h3>
@@ -5769,6 +6019,126 @@ export const App = () => {
               </label>
             </section>
           ) : null}
+      </section>
+
+      <section
+        className="selection-toolbar"
+        aria-label="출력과 페이지 설정"
+        hidden={toolbarCategory !== 'file'}
+      >
+        <section className="inspector-properties" aria-label="PDF 페이지 설정">
+          <h3>PDF 설정</h3>
+          <div className="inspector-properties__grid">
+            <label>
+              <span>프리셋</span>
+              <select
+                aria-label="PDF 설정 프리셋"
+                onChange={(event) => applyPageSetupPreset(event.target.value)}
+                value={resolvePageSetupPresetId(pageSetup)}
+              >
+                <option value="custom">사용자 설정</option>
+                {pageSetupPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>용지</span>
+              <select
+                aria-label="PDF 용지"
+                onChange={(event) =>
+                  updatePageSetup({
+                    pageSize: event.target
+                      .value as Required<ScorePageSetup>['pageSize']
+                  })
+                }
+                value={pageSetup.pageSize}
+              >
+                {pageSizeOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>방향</span>
+              <select
+                aria-label="PDF 방향"
+                onChange={(event) =>
+                  updatePageSetup({
+                    orientation: event.target
+                      .value as Required<ScorePageSetup>['orientation']
+                  })
+                }
+                value={pageSetup.orientation}
+              >
+                {pageOrientationOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>여백</span>
+              <input
+                aria-label="PDF 여백 mm"
+                max={30}
+                min={3}
+                onChange={(event) =>
+                  updatePageSetup({
+                    pageMarginMm: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={1}
+                type="number"
+                value={pageSetup.pageMarginMm}
+              />
+            </label>
+
+            <label>
+              <span>보표 크기</span>
+              <input
+                aria-label="PDF 보표 크기"
+                max={125}
+                min={75}
+                onChange={(event) =>
+                  updatePageSetup({
+                    staffSizePercent: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={5}
+                type="range"
+                value={pageSetup.staffSizePercent}
+              />
+              <output>{pageSetup.staffSizePercent}%</output>
+            </label>
+
+            <label>
+              <span>시스템 간격</span>
+              <input
+                aria-label="PDF 시스템 간격"
+                max={140}
+                min={80}
+                onChange={(event) =>
+                  updatePageSetup({
+                    systemSpacingPercent: Number.parseInt(event.target.value, 10)
+                  })
+                }
+                step={5}
+                type="range"
+                value={pageSetup.systemSpacingPercent}
+              />
+              <output>{pageSetup.systemSpacingPercent}%</output>
+            </label>
+          </div>
+        </section>
       </section>
 
       <section className="workspace" aria-label="악보 편집기">

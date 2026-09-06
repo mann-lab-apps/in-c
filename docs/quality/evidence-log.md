@@ -546,6 +546,16 @@
 | 5 | Browser visual smoke | Not run | 세션에 Browser skill 문서는 있었지만 필요한 Node browser-control tool이 노출되지 않아 직접 스크린샷 검증은 수행하지 못했다. 수동 visual QA 필요. |
 | 6 | `git diff --check` | Pass | whitespace error 없음 |
 
+## 2026-09-06 Commercial V1 Toolbar Work Mode Follow-up Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm run test:components` | Fail, then Pass | 첫 실행에서 hidden/duplicate notation object controls가 `보표 글자`, `연습표`, `셈여림` 등 기존 label 조회와 충돌했다. Notation Objects 팔레트를 조건부 렌더링으로 바꾸고 코드 심벌/PDF 설정 테스트 동선을 새 탭 구조에 맞춘 뒤 78 tests passed. |
+| 2 | `npm run typecheck` | Pass | `ToolbarCategory`에 `notation` mode를 추가하고 Lyrics/Chords, Export/Page Setup, Notation Objects panel wiring 타입 계약 확인 |
+| 3 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 4 | `git diff --check` | Pass | whitespace error 없음 |
+| 5 | Browser/manual visual smoke | Not run | 이번 slice는 App component regression으로 고정했다. 실제 화면 난잡도, overflow, 버튼 밀도는 release candidate 전 수동 visual QA로 남긴다. |
+
 ## Not Run In This Package
 
 | 항목 | 이유 | 후속 기준 |

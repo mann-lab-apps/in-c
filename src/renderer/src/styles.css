@@ -309,9 +309,14 @@ h2 {
 }
 
 .toolbar-tabs button {
+  display: inline-flex;
   flex: 0 0 auto;
-  min-height: 30px;
-  padding: 0 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 108px;
+  padding: 5px 12px;
   border: 1px solid transparent;
   border-radius: 6px;
   color: #59646a;
@@ -320,6 +325,22 @@ h2 {
   font-size: 0.86rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.toolbar-tabs button span,
+.toolbar-tabs button small {
+  display: block;
+  max-width: 148px;
+  overflow: hidden;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+}
+
+.toolbar-tabs button small {
+  margin-top: 2px;
+  color: #738087;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .toolbar-tabs button:hover,

@@ -33,9 +33,9 @@
 | --- | --- |
 | 유형 | 부분 지원 |
 | 연결 이슈 | Commercial V1 UX information architecture slice |
-| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했지만, Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 최종 상용 V1 정보 구조는 아직 완성되지 않았다. |
-| 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태를 파악하기 쉬워졌지만, 전문 사보앱 수준의 palette/inspector/work mode 체계로 보려면 추가 정리가 필요하다. |
-| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 상단 context strip에서 확인할 수 있고, 탭별 도구 패널은 더 compact하게 렌더링된다. |
+| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-06에 상단 work mode를 `Score Setup`, `Note Input`, `Notation Objects`, `Lyrics/Chords`, `Playback`, `Export/Page Setup`으로 재정리했지만, 최종 상용 V1 palette/inspector polish와 실제 화면 visual QA는 아직 완료되지 않았다. |
+| 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태, 코드/가사, 표기 객체, PDF 출력 설정의 위치를 파악하기 쉬워졌지만, 전문 사보앱 수준의 최종 도구 체계로 보려면 잔여 중복 컨트롤 정리와 수동 화면 QA가 필요하다. |
+| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 상단 context strip에서 확인할 수 있고, chord symbol은 Lyrics/Chords, PDF page setup은 Export/Page Setup, rehearsal/staff/system/expression text와 dynamics/repeat/articulation/span object 계열은 Notation Objects 팔레트에서 접근 가능하다. |
 | 문서 근거 | [Commercial V1 Reference Gap Matrix](../product/chromatics-commercial-v1-reference-gap-matrix.md#commercial-v1에서-반드시-줄여야-할-blocker) |
 
 ## Backend Is Not Live

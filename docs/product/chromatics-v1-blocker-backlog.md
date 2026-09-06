@@ -216,6 +216,13 @@ post-V1 확장뿐이다.
   `1=64th`, `2=32nd`, `3=16th`, `4=eighth`, `5=quarter`, `6=half`, `7=whole`을 사용하고,
   plain `9`는 더 이상 triplet 또는 duration shortcut으로 동작하지 않는다. Triplet은
   `Cmd/Ctrl+3`만 active shortcut으로 노출한다.
+- Commercial V1 toolbar information architecture 후속 slice를 추가했다. 상단 탭은
+  `Score Setup`, `Note Input`, `Notation Objects`, `Lyrics/Chords`, `Playback`,
+  `Export/Page Setup` 작업 모드로 보이고, 코드 심벌 입력은 `Lyrics/Chords`, PDF page setup은
+  `Export/Page Setup`, rehearsal/staff/system/expression text, dynamics, repeat,
+  articulation, slur/hairpin 계열은 `Notation Objects` 전용 팔레트에서도 조작할 수 있다.
+  App component test는 새 탭 구조, 탭 전환 context strip, code symbol 위치, PDF 설정 경로를
+  회귀 검증한다.
 - Lyrics/chord symbols App workflow export/reopen 검증 첫 슬라이스를 추가했다. `release-test`
   fixture에서 코드 심벌과 선택 음표 가사, syllabic, melisma를 편집하고 MusicXML로 저장한 뒤 최근
   파일에서 다시 열어 가사와 코드 심벌이 프리뷰에 복원되는지 App 테스트로 확인한다.

@@ -123,7 +123,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | Packaging | Windows packaged app | Commercial V1 Required | 미실행 | installer/smoke/signing policy 필요 |
 | Packaging | Linux support | V1 Polish | 정책 필요 | 지원/미지원 명확화 |
 | Release | evidence log and release gates | Commercial V1 Required | 문서 있음 | 최신 실행 결과, manual Pass/Fail/Not run 정리 |
-| UX | toolbar/ribbon/palette organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가함 | 상용 V1 전 Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup을 더 명확히 분리해야 함 |
+| UX | toolbar/ribbon/palette organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-06 후속 slice로 상단 작업 모드를 `Score Setup`, `Note Input`, `Notation Objects`, `Lyrics/Chords`, `Playback`, `Export/Page Setup`으로 재명명하고 코드/PDF/notation object 표면을 일부 재배치함 | 상용 V1 전 남은 note/score 잔여 컨트롤 정리, palette/inspector 세부 polish, 실제 화면 visual QA가 필요함 |
 | UX | discoverability, shortcuts, command help | V1 Polish | 일부 shortcut migration | shortcut reference/preferences 필요 |
 | UX | accessibility and localization | V1 Polish | 확인 필요 | 최소 keyboard focus/label QA |
 
@@ -132,7 +132,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 1. **전문 사보 UI 재정리**
    현재 기능이 많아졌지만 상단 controls가 한꺼번에 노출되어 난잡하다. MuseScore의 palette/properties, Dorico의 mode/panel, Sibelius의 ribbon/keypad처럼 기능을 작업 맥락별로 나눠야 한다. Commercial V1에서는 최소한 Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 정보 구조를 다시 잡아야 한다.
 
-   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 아직 category naming, notation object palette, export/page setup 분리는 남아 있으므로 Commercial V1 UI blocker 전체가 완료된 것은 아니다.
+   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 2026-09-06 후속 slice에서는 visible work mode를 `Score Setup`, `Note Input`, `Notation Objects`, `Lyrics/Chords`, `Playback`, `Export/Page Setup`으로 바꾸고, chord symbol은 Lyrics/Chords, PDF page setup은 Export/Page Setup, rehearsal/text/dynamics/repeat/articulation/span object 계열은 Notation Objects 팔레트에서 접근 가능하게 했다. 아직 note/score 탭에 남은 일부 중복 표면 정리와 실제 화면 visual QA는 남아 있으므로 Commercial V1 UI blocker 전체가 완료된 것은 아니다.
 
 2. **same-staff multi-voice production polish**
    같은 보표 다성부는 "있다"가 아니라 rests, stems, selection, copy/paste, playback, MusicXML, collision까지 한 workflow로 통과해야 한다.
