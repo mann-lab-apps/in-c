@@ -26,10 +26,10 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열었을 때 시작 버튼 없이 현재 음/pitch history chart/meter/입력 bar가 먼저 보이고, 기타 줄 맞춤이나 악기별
+8. 튜너를 열었을 때 시작 버튼 없이 확대된 pitch history chart 안에 현재 음/cents/frequency/signal이 먼저 보이고, 기타 줄 맞춤이나 악기별
    preset 선택 없이 가장 가까운 음을 바로 표시하는지 확인한다.
 9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
-   표기, pitch history의 왼쪽 시작/최신 `현재` marker/낮음·높음 방향, note 변경 시 선 끊김, LED, 입력 bar, `소리가 작거나 주변 소음이 큽니다`,
+   표기, pitch history의 최신 값 왼쪽 고정/오래된 값 오른쪽 흐름/낮음·높음 방향, note 변경 시 선 끊김, `소리가 작거나 주변 소음이 큽니다`,
    `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 상태를 확인한다.
 10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
@@ -71,11 +71,12 @@
 ## Known Issues
 
 - 튜너의 synthetic sine/noise/time-series/pitch history 테스트는 통과했다. v1 UI는 Chromatic-only 첫 화면,
-  세부 설정 접힘, pitch history chart, sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
+  세부 설정 접힘, 확대된 pitch history chart, sharp/flat 표기, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
   floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, `자동`/`기존`/`정밀 후보`
   감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
-  Pitch history chart는 저장/백업 대상이 아닌 화면 내 임시 상태이며, 최근 약 2초의 cents 흐름을 왼쪽부터
-  쌓고 최신 sample을 `현재` marker로 보여준다. Meter 하단의 중복 `낮음/정확/높음` label은 제거했다.
+  Pitch history chart는 저장/백업 대상이 아닌 화면 내 임시 상태이며, 최신 sample을 왼쪽에 고정하고
+  오래된 sample을 오른쪽으로 흘려 보여준다. 중앙선 label은 `0` 대신 현재 가장 가까운 음으로 표시하고,
+  별도 meter/LED/input bar는 제거했다.
   기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
 - 2026-09-06 기준 현재 소스 RC 후보는 `1.0.0+18`이다. 실제 마이크 정확도/latency QA는 아직

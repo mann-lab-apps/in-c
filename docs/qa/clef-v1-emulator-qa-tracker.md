@@ -234,7 +234,7 @@ v1.1 spike 여부:
   나타나는지 확인한다.
 - dev 병합분의 classical discovery 진입점은 Clef & Staff RC 홈 상단에 노출되지 않는지 확인한다.
 - 렌더링 프리셋 `균형`은 balance 아이콘, `대형 PDF`는 PDF 아이콘으로 보여 메트로놈과 구분되는지 확인한다.
-- 튜너 bottom sheet 진입 즉시 마이크 권한/입력 상태가 시작되고, 음정/meter/input bar가 튜닝 설정보다
+- 튜너 bottom sheet 진입 즉시 마이크 권한/입력 상태가 시작되고, 확대된 pitch history chart가 튜닝 설정보다
   먼저 보이는지 확인한다. 기타 줄 맞춤/악기별 preset은 보이지 않아야 한다.
 - library profile 중복 이름 입력 시 `이미 있습니다` 안내와 `열기` action이 표시되는지 확인한다.
 - 마지막 page의 다음 버튼을 누르면 비활성 dead button이 아니라 dimmed button이 눌리고 `곡 끝`
@@ -259,7 +259,7 @@ v1.1 spike 여부:
 - viewer toolbar는 `튜너`, `렌더링 프로필`, `페이지 정리`, `공연 모드`, `3/3` page label까지
   접근 가능했고, fixture PDF가 회색 blank 없이 렌더링됐다.
 - 튜너는 첫 진입 시 `Clef & Staff` 마이크 권한 prompt를 띄우고, 허용 후 큰 시작 버튼 없이
-  `소리가 너무 작습니다`, note/meter/input bar/target 정보를 첫 화면에 표시했다.
+  `소리가 너무 작습니다`, note/cents/frequency/signal 정보를 chart 안에 표시했다.
 - 새 라이브러리 생성 dialog 저장 시 keyboard focus를 해제한 뒤 닫도록 보강했다. duplicate snackbar
   화면 끝까지의 자동 재현은 Android keyboard stylus tutorial overlay 때문에 중단됐으나,
   duplicate detection과 `열기` action 경로는 `sheet_library_controller_test.dart`와 코드 경로로 유지한다.
@@ -278,7 +278,7 @@ v1.1 spike 여부:
   `공연 설정`, `공연 모드`, `1/3` page label에 접근했다.
 - ADB keyevent로 첫 page `곡 처음` snackbar는 focus 조건 때문에 화면상 확정하지 못했다. 동일 정책은
   code/test 경로로 유지하며 실제 keyboard/pedal 실기기 QA에서 재확인한다.
-- 튜너 bottom sheet는 큰 시작 버튼 없이 바로 열리고, 현재 음/meter/input bar와 A4 440/441/442 quick
+- 튜너 bottom sheet는 큰 시작 버튼 없이 바로 열리고, 확대된 pitch history chart와 A4 440/441/442 quick
   action이 표시됐다. 기타 줄 맞춤/악기별 preset/custom target/target lock은 v1 UI에서 제외했다.
 - 튜너 상세 설정의 감지 엔진은 사용자-facing label을 `자동`, `기존`, `정밀 후보`로 낮춰 표시하고,
   감지 진단도 `엔진`/`신호`/`신뢰도`/`노이즈` 중심으로 표시한다.

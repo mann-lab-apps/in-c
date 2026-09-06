@@ -180,7 +180,7 @@ Audio/tuner:
   감지 진단 label.
 - 기타 줄 맞춤, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, Target mode shortcut,
   target lock은 v1 UI에서 보이지 않는지 확인한다.
-- 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
+- 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
@@ -205,7 +205,7 @@ Clef cents:
 차이:
 반응 속도: 빠름 / 보통 / 느림
 note label 튐: 없음 / 가끔 / 자주
-LED/input bar 읽기 쉬움: 예 / 아니오
+Pitch history chart 읽기 쉬움: 예 / 아니오
 비고:
 ```
 

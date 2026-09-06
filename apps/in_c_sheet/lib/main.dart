@@ -13412,6 +13412,8 @@ Widget buildTunerPitchHistoryChartForTest({
   List<SheetTunerPitchHistorySample> samples =
       const <SheetTunerPitchHistorySample>[],
   String currentNoteLabel = 'A4',
+  String detailLabel = 'Concert A4',
+  String? readingLabel,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -13421,6 +13423,8 @@ Widget buildTunerPitchHistoryChartForTest({
           child: _TunerPitchHistoryChart(
             samples: samples,
             currentNoteLabel: currentNoteLabel,
+            detailLabel: detailLabel,
+            readingLabel: readingLabel,
           ),
         ),
       ),
@@ -13740,16 +13744,11 @@ class _TunerSheetState extends State<_TunerSheet> {
       centsOffset: cents,
     );
     final feedback = baseFeedback;
-    final inputPower = SheetTunerInputPower.fromState(
-      inputStatus: feedbackInputStatus,
-      reading: reading,
-    );
     final detectionDebugInfo = _inputService.detectionDebugInfo;
     final calibrationSuggestion = SheetTunerReferenceCalibration.suggest(
       readings: _recentCalibrationReadings,
       currentReferencePitchA4: _settings.referencePitchA4,
     );
-    final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
     final statusMessage = switch (_state.inputStatus) {
       SheetTunerInputStatus.idle ||
@@ -13759,10 +13758,9 @@ class _TunerSheetState extends State<_TunerSheet> {
       _ => feedback.label,
     };
     final pitchHistorySamples = _pitchHistory.samples;
-    final pitchHistoryNoteLabel =
-        pitchHistorySamples.any((sample) => sample.hasPitch)
-        ? displayedPitch?.primaryLabelWith(preferFlats: _preferFlats)
-        : null;
+    final pitchHistoryNoteLabel = displayedPitch?.primaryLabelWith(
+      preferFlats: _preferFlats,
+    );
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -13819,59 +13817,21 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ),
               ),
               const SizedBox(height: 18),
-              Center(
-                child: Text(
-                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
-                      '--',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isInTune
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Center(
-                child: Text(
-                  effectiveReading == null
-                      ? '소리를 내면 가장 가까운 음을 표시합니다'
-                      : displayedPitch!.detailLabelWith(
-                          preferFlats: _preferFlats,
-                        ),
-                  style: theme.textTheme.labelLarge,
-                ),
-              ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${feedback.displayCents >= 0 ? '+' : ''}'
-                    '${feedback.displayCents.toStringAsFixed(1)} cents',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '신호 ${(reading.signalLevel * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 16),
               _TunerPitchHistoryChart(
                 samples: pitchHistorySamples,
                 currentNoteLabel: pitchHistoryNoteLabel,
+                detailLabel: effectiveReading == null
+                    ? '소리를 내면 가장 가까운 음을 표시합니다'
+                    : displayedPitch!.detailLabelWith(
+                        preferFlats: _preferFlats,
+                      ),
+                readingLabel: reading == null
+                    ? null
+                    : '${reading.frequency.toStringAsFixed(2)} Hz · '
+                          '${feedback.displayCents >= 0 ? '+' : ''}'
+                          '${feedback.displayCents.toStringAsFixed(1)} cents · '
+                          '신호 ${(reading.signalLevel * 100).round()}%',
               ),
-              const SizedBox(height: 20),
-              _TunerMeter(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerLedStrip(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerInputPowerBar(power: inputPower),
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -14241,12 +14201,16 @@ class _TunerPitchHistoryChart extends StatelessWidget {
   const _TunerPitchHistoryChart({
     required this.samples,
     required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
   });
 
   static const Duration _historyWindow = Duration(milliseconds: 2200);
 
   final List<SheetTunerPitchHistorySample> samples;
   final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -14260,11 +14224,13 @@ class _TunerPitchHistoryChart extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: SizedBox(
-          height: 128,
+          height: 284,
           child: CustomPaint(
             painter: _TunerPitchHistoryPainter(
               samples: samples,
               currentNoteLabel: currentNoteLabel,
+              detailLabel: detailLabel,
+              readingLabel: readingLabel,
               colors: theme.colorScheme,
               textStyle: theme.textTheme.labelSmall,
               historyWindow: _historyWindow,
@@ -14280,19 +14246,23 @@ class _TunerPitchHistoryPainter extends CustomPainter {
   _TunerPitchHistoryPainter({
     required this.samples,
     required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
     required this.colors,
     required this.textStyle,
     required this.historyWindow,
   });
 
   static const double _maxCents = 50;
-  static const double _paddingLeft = 30;
+  static const double _paddingLeft = 70;
   static const double _paddingRight = 18;
-  static const double _paddingTop = 16;
-  static const double _paddingBottom = 22;
+  static const double _paddingTop = 56;
+  static const double _paddingBottom = 26;
 
   final List<SheetTunerPitchHistorySample> samples;
   final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
   final ColorScheme colors;
   final TextStyle? textStyle;
   final Duration historyWindow;
@@ -14311,6 +14281,7 @@ class _TunerPitchHistoryPainter extends CustomPainter {
 
     _paintGrid(canvas, chart);
     _paintLabels(canvas, chart);
+    _paintCurrentSummary(canvas, size);
     _paintHistory(canvas, chart);
   }
 
@@ -14334,6 +14305,15 @@ class _TunerPitchHistoryPainter extends CustomPainter {
       final x = chart.left + (chart.width * index / 4);
       canvas.drawLine(Offset(x, chart.top), Offset(x, chart.bottom), gridPaint);
     }
+
+    final originPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.38)
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(chart.left, chart.top),
+      Offset(chart.left, chart.bottom),
+      originPaint,
+    );
   }
 
   void _paintLabels(ui.Canvas canvas, Rect chart) {
@@ -14342,24 +14322,63 @@ class _TunerPitchHistoryPainter extends CustomPainter {
       fontWeight: FontWeight.w700,
     );
     _paintText(canvas, '높음', Offset(4, chart.top - 2), labelStyle);
-    _paintText(canvas, '0', Offset(10, _yForCents(chart, 0) - 8), labelStyle);
     _paintText(canvas, '낮음', Offset(4, chart.bottom - 12), labelStyle);
 
     final noteLabel = currentNoteLabel;
-    if (noteLabel != null && noteLabel.isNotEmpty) {
-      final painter = _textPainter(
-        noteLabel,
-        labelStyle?.copyWith(
-          color: colors.onSurface,
-          fontWeight: FontWeight.w900,
-        ),
-      );
-      painter.layout();
-      painter.paint(
-        canvas,
-        Offset(chart.right - painter.width, chart.bottom + 4),
-      );
+    final centerLabel = noteLabel == null || noteLabel.isEmpty
+        ? '--'
+        : noteLabel;
+    final painter = _textPainter(
+      centerLabel,
+      labelStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 24,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    painter.layout(maxWidth: chart.left - 8);
+    painter.paint(
+      canvas,
+      Offset(4, _yForCents(chart, 0) - (painter.height / 2)),
+    );
+  }
+
+  void _paintCurrentSummary(ui.Canvas canvas, Size size) {
+    final noteLabel = currentNoteLabel == null || currentNoteLabel!.isEmpty
+        ? '--'
+        : currentNoteLabel!;
+    final notePainter = _textPainter(
+      noteLabel,
+      textStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 34,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    notePainter.layout(maxWidth: size.width * 0.42);
+    notePainter.paint(canvas, const Offset(14, 10));
+
+    final detailPainter = _textPainter(
+      detailLabel,
+      textStyle?.copyWith(
+        color: colors.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+    final summaryWidth = math.max(0.0, size.width - notePainter.width - 44);
+    detailPainter.layout(maxWidth: summaryWidth);
+    detailPainter.paint(canvas, Offset(notePainter.width + 24, 12));
+
+    final reading = readingLabel;
+    if (reading == null || reading.isEmpty) {
+      return;
     }
+    final readingPainter = _textPainter(
+      reading,
+      textStyle?.copyWith(color: colors.onSurfaceVariant),
+    );
+    readingPainter.layout(maxWidth: summaryWidth);
+    readingPainter.paint(canvas, Offset(notePainter.width + 24, 30));
   }
 
   void _paintHistory(ui.Canvas canvas, Rect chart) {
@@ -14368,14 +14387,14 @@ class _TunerPitchHistoryPainter extends CustomPainter {
       return;
     }
 
-    final start = samples.first.timestampMillis;
+    final newest = samples.last.timestampMillis;
     final windowMillis = math.max(1, historyWindow.inMilliseconds);
     final segments = SheetTunerPitchHistoryBuffer.segmentsFor(samples);
     SheetTunerPitchHistorySample? latestPitchedSample;
 
     Offset positionFor(SheetTunerPitchHistorySample sample) {
-      final elapsed = sample.timestampMillis - start;
-      final progress = (elapsed / windowMillis).clamp(0.0, 1.0);
+      final age = newest - sample.timestampMillis;
+      final progress = (age / windowMillis).clamp(0.0, 1.0);
       final x = chart.left + (chart.width * progress);
       return Offset(x, _yForCents(chart, sample.centsOffset));
     }
@@ -14409,13 +14428,12 @@ class _TunerPitchHistoryPainter extends CustomPainter {
 
     final latest = latestPitchedSample;
     if (latest != null) {
-      _paintCurrentMarker(canvas, chart, positionFor(latest), latest);
+      _paintLatestMarker(canvas, positionFor(latest), latest);
     }
   }
 
-  void _paintCurrentMarker(
+  void _paintLatestMarker(
     ui.Canvas canvas,
-    Rect chart,
     Offset center,
     SheetTunerPitchHistorySample sample,
   ) {
@@ -14432,20 +14450,6 @@ class _TunerPitchHistoryPainter extends CustomPainter {
       canvas.drawCircle(center, 6, fill);
       canvas.drawCircle(center, 6, stroke);
     }
-
-    final labelStyle = textStyle?.copyWith(
-      color: colors.onSurfaceVariant,
-      fontWeight: FontWeight.w800,
-    );
-    final painter = _textPainter('현재', labelStyle);
-    painter.layout();
-    final x = (center.dx + 8)
-        .clamp(chart.left, chart.right - painter.width)
-        .toDouble();
-    final y = (center.dy - painter.height - 8)
-        .clamp(chart.top, chart.bottom - painter.height)
-        .toDouble();
-    painter.paint(canvas, Offset(x, y));
   }
 
   void _paintCenterMarker(ui.Canvas canvas, Offset center) {
@@ -14509,180 +14513,11 @@ class _TunerPitchHistoryPainter extends CustomPainter {
   bool shouldRepaint(covariant _TunerPitchHistoryPainter oldDelegate) {
     return oldDelegate.samples != samples ||
         oldDelegate.currentNoteLabel != currentNoteLabel ||
+        oldDelegate.detailLabel != detailLabel ||
+        oldDelegate.readingLabel != readingLabel ||
         oldDelegate.colors != colors ||
         oldDelegate.textStyle != textStyle ||
         oldDelegate.historyWindow != historyWindow;
-  }
-}
-
-class _TunerMeter extends StatelessWidget {
-  const _TunerMeter({required this.feedback});
-
-  final SheetTunerFeedback feedback;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final clamped = feedback.displayCents.clamp(-50.0, 50.0).toDouble();
-    final alignmentX = clamped / 50.0;
-    final markerColor = switch (feedback.band) {
-      SheetTunerFeedbackBand.inTune => theme.colorScheme.primary,
-      SheetTunerFeedbackBand.slightlyFlat ||
-      SheetTunerFeedbackBand.slightlySharp => theme.colorScheme.tertiary,
-      SheetTunerFeedbackBand.veryFlat ||
-      SheetTunerFeedbackBand.verySharp => theme.colorScheme.error,
-      SheetTunerFeedbackBand.lowConfidence => theme.colorScheme.secondary,
-      _ => theme.colorScheme.outline,
-    };
-
-    return Column(
-      children: [
-        SizedBox(
-          height: 54,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Container(
-                width: 3,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Align(
-                alignment: Alignment(alignmentX, 0),
-                child: Container(
-                  width: feedback.hasPitch ? 18 : 10,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _TunerLedStrip extends StatelessWidget {
-  const _TunerLedStrip({required this.feedback});
-
-  final SheetTunerFeedback feedback;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final active = feedback.ledState;
-    final inactiveColor = theme.colorScheme.surfaceContainerHighest;
-    final states = <({SheetTunerLedState state, String label})>[
-      (state: SheetTunerLedState.veryFlat, label: '--'),
-      (state: SheetTunerLedState.flat, label: '-'),
-      (state: SheetTunerLedState.center, label: '0'),
-      (state: SheetTunerLedState.sharp, label: '+'),
-      (state: SheetTunerLedState.verySharp, label: '++'),
-    ];
-
-    return Row(
-      children: [
-        for (final item in states) ...[
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: item.state == SheetTunerLedState.center ? 28 : 22,
-              decoration: BoxDecoration(
-                color: active == item.state
-                    ? _ledColor(theme, item.state)
-                    : inactiveColor,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                item.label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: active == item.state
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-          if (item.state != SheetTunerLedState.verySharp)
-            const SizedBox(width: 6),
-        ],
-      ],
-    );
-  }
-
-  Color _ledColor(ThemeData theme, SheetTunerLedState state) {
-    return switch (state) {
-      SheetTunerLedState.center => theme.colorScheme.primary,
-      SheetTunerLedState.flat ||
-      SheetTunerLedState.sharp => theme.colorScheme.tertiary,
-      SheetTunerLedState.veryFlat ||
-      SheetTunerLedState.verySharp => theme.colorScheme.error,
-      SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
-      SheetTunerLedState.off => theme.colorScheme.outline,
-    };
-  }
-}
-
-class _TunerInputPowerBar extends StatelessWidget {
-  const _TunerInputPowerBar({required this.power});
-
-  final SheetTunerInputPower power;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final value = power.value.clamp(0.0, 1.0).toDouble();
-    final barColor = switch (power.band) {
-      SheetTunerInputPowerBand.strong ||
-      SheetTunerInputPowerBand.steady => theme.colorScheme.primary,
-      SheetTunerInputPowerBand.weak => theme.colorScheme.tertiary,
-      SheetTunerInputPowerBand.silent => theme.colorScheme.error,
-      SheetTunerInputPowerBand.idle => theme.colorScheme.outline,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text('입력', style: theme.textTheme.labelSmall),
-            const Spacer(),
-            Text(
-              power.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            minHeight: 8,
-            value: value,
-            color: barColor,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          ),
-        ),
-      ],
-    );
   }
 }
 

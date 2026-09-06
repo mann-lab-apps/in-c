@@ -61,7 +61,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
   RMS gate/confidence, safe low-amplitude normalization, adaptive noise floor, clipping penalty,
   median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
-  상용 튜너형 feedback label/pitch history chart/cents meter, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
+  상용 튜너형 feedback label/확대된 pitch history chart, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
   기존 저장값과 backup 호환을 위해 model/codec에만 유지한다.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
   5도, 옥타브 drone을 재생한다.
@@ -478,7 +478,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - A4 기준음은 415-466Hz 범위로 clamp한다.
 - 표시 모드, 감지 profile, tuning preset, custom tuning field는 이전 구현과 metadata/full backup
   호환을 위해 `SheetTunerSettings` codec에 유지한다.
-- V1 튜너 UI는 Chromatic-only다. 첫 화면은 현재 음/cents/pitch history chart/meter/input bar를 우선 표시하고,
+- V1 튜너 UI는 Chromatic-only다. 첫 화면은 확대된 pitch history chart 안에서 현재 음/cents/frequency/signal을 우선 표시하고,
   기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 사용자-facing UI에서
   제외한다. 튜너 진입 시 이전 저장값이 target/preset 상태여도 Chromatic mode, Concert 표시,
   Chromatic profile로 정규화한다.
@@ -529,8 +529,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
-- 1차 UI는 현재 음 이름, concert pitch 표시, 왼쪽 시작/최신 marker pitch history chart와 cents meter, LED flat/center/sharp strip,
-  입력강도 bar, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
+- 1차 UI는 현재 음 이름, concert pitch 표시, 최신 값을 왼쪽에 고정하고 오래된 값을 오른쪽으로 흘려보내는
+  pitch history chart, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
   signal/confidence 상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을
   확인할 수 있다.
 - Android에는 `RECORD_AUDIO`, iOS에는 `NSMicrophoneUsageDescription`을 추가했다.
@@ -753,7 +753,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 31. 자동 스크롤 중 하단 페이지 버튼, Space/Arrow key 입력, 보기 모드 변경을 하면 자동
     스크롤이 정지하는지 확인한다.
 32. viewer를 나갔다 다시 열어 곡별 자동 스크롤 설정이 복원되는지 확인한다.
-33. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, note/cents meter가 갱신되는지 확인한다.
+33. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, pitch history chart의 note/cents 요약이 갱신되는지 확인한다.
 34. 튜너 start를 눌러 microphone permission prompt와 listening/no signal/error 상태가 crash 없이
     표시되는지 확인한다.
 35. `ArrowRight`, `PageDown`, `Space`로 다음 페이지가 이동하는지 확인한다.
@@ -917,7 +917,7 @@ classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악�
 
 2026-09-02 최종 UI polish에서는 당시 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
 `Clef & Staff`로 유지했다. 렌더링 프리셋 아이콘은 메트로놈과 구분되도록 `균형`/`대형 PDF`를 각각
-balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar 중심의
+balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 확대된 pitch history chart 중심의
 Chromatic-only 흐름을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
 명시하고, 일반 라이브러리 화면의 `악보 추가` CTA는 상단 action 하나로 정리했다. dev 병합분의
 classical discovery 파일은 보존하지만 Clef & Staff RC 홈 surface에는 진입점을 노출하지 않는다. 이후

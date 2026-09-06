@@ -1,4 +1,4 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
@@ -15,6 +15,8 @@ void main() {
       expect(_pitchHistoryChartFinder(), findsOneWidget);
       expect(find.text('세부 설정'), findsOneWidget);
       expect(find.text('정확'), findsNothing);
+      expect(find.text('++'), findsNothing);
+      expect(find.byType(Slider), findsNothing);
       expect(find.text('튜닝 프리셋'), findsNothing);
       expect(find.text('기타 줄 맞춤'), findsNothing);
       expect(find.text('6E'), findsNothing);

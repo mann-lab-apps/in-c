@@ -71,7 +71,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 2. 튜너 진입 시 microphone permission prompt가 뜨는지 확인한다.
 3. 권한 허용 후 상태가 `마이크 입력 수신 중` 또는 `소리가 작거나 안정적이지 않습니다`로 바뀌는지
    확인한다.
-4. 첫 화면이 chromatic-only로 현재 음, frequency, cents, signal, meter/input bar를 바로 보여주는지
+4. 첫 화면이 chromatic-only로 확대된 pitch history chart 안에 현재 음, frequency, cents, signal을 바로 보여주는지
    확인한다.
 5. 440Hz reference tone을 입력해 A4, frequency, cents, signal이 갱신되는지 확인한다.
 6. 기타 줄 맞춤, 악기별 preset, custom target, target lock이 v1 UI에 보이지 않는지 확인한다.
@@ -86,7 +86,7 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 - 440Hz 또는 튜닝 앱 reference tone 입력 시 A4 근처 탐지 여부.
 - 기타 줄 맞춤/악기별 preset/target lock이 v1 UI에서 제외되어 있는지 여부.
 - note label 깜빡임 정도.
-- cents meter 흔들림 정도.
+- pitch history chart와 cents 요약 흔들림 정도.
 - start/stop/bottom sheet close 후 microphone indicator가 꺼지는지 여부.
 
 ## 하드웨어 키/Bluetooth 페달
