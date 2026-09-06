@@ -53,7 +53,7 @@
 | 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
-| 14 | 튜너 | 첫 화면은 Chromatic-first로 현재 음, cents, LED/meter/input bar, 낮음/정확/높음 feedback을 바로 보여준다. `기타 줄 맞춤`은 `6E 5A 4D 3G 2B 1E` 빠른 버튼과 target lock으로 동작하고, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, custom target/preset, sharp/flat 표기, A4 history/보정 제안은 `세부 설정` 아래에서 확인한다. | 입력음, 크로매틱 기본 표시, 기타 줄 버튼, target lock 문구, preset/custom preset 이름, 표시 note, cents 흔들림, 입력 bar, LED 상태, feedback 문구 |
+| 14 | 튜너 | 첫 화면은 Chromatic-only로 현재 음, cents, LED/meter/input bar, 낮음/정확/높음 feedback을 바로 보여준다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 전면 UX에서 제외하고, A4 quick/history/보정 제안, sharp/flat 표기, 감지 엔진, 기준음/드론만 세부 설정에서 확인한다. | 입력음, 크로매틱 기본 표시, cents 흔들림, 입력 bar, LED 상태, feedback 문구, A4 기준, 감지 엔진 |
 | 14-1 | 기준음/드론 | Android에서 기준음/5도/옥타브 drone이 재생/정지되고 A4 기준 변경이 주파수에 반영된다. | root note, drone mode, volume, latency/끊김, iOS 표시 문구 |
 | 14-2 | 로컬 오디오 | MP3/M4A/WAV linked file이 가져와지고 파트/버전 sheet에서 재생/정지된다. | 파일 확장자, codec 실패 여부, latency/끊김, iOS 표시 문구 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
@@ -113,10 +113,9 @@ v1.1 spike 여부:
 - Android 태블릿의 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장은 2026-08-30 1차 QA에서
   확인했다. S Pen, Bluetooth/USB 페달, cloud provider, CamScanner link annotation, audio latency,
   iPad smoke는 별도 실기기/샘플 QA가 필요하다.
-- 튜너의 sine/noise/plucked string/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-first로 단순화했고,
-  기타 줄 맞춤은 `6E 5A 4D 3G 2B 1E` 빠른 버튼과 target lock으로 진입한다. 악기별 preset,
-  custom target/preset 저장, sharp/flat 표기, target cents, LED/input power 상태,
-  A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold,
+- 튜너의 sine/noise/plucked string/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-only로
+  단순화했고, 기타 줄 맞춤/악기별 preset/custom target/target lock은 v1 전면 UX에서 제외했다.
+  sharp/flat 표기, LED/input power 상태, A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold,
   `자동`/`기존`/`정밀 후보` 감지 엔진과 debug label은 자동 테스트와 widget smoke test로 검증했다.
   실제 악기/기기 마이크 기준 정확도, latency,
   외부 마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
@@ -371,11 +370,10 @@ flutter build ios --release --no-codesign
 
 2026-09-04 튜너 UX 간결화 기록:
 
-- 튜너 첫 화면은 `크로매틱`과 `기타 줄 맞춤`만 전면 선택지로 둔다.
-- `기타 줄 맞춤`은 기본 standard guitar target과 target lock을 켜고, 줄 버튼을 `6E 5A 4D 3G 2B 1E`
-  형태로 표시한다.
-- 긴 preset/display/profile/custom target/drone/A4 slider는 `세부 설정` 아래로 내려 첫 화면의 조작
-  부담을 줄였다.
+- 튜너 첫 화면은 `크로매틱` 단일 흐름으로 둔다. 사용자가 소리를 내면 가장 가까운 음과 cents,
+  meter/input bar를 바로 보여주며, 기타 줄 맞춤/악기별 preset/custom target/target lock은
+  선택지 과다로 v1 UI에서 제외했다.
+- 감지 엔진, sharp/flat 표기, 기준음/드론, A4 slider는 `세부 설정` 아래에 둔다.
 - 상용 튜너급 비교를 위해 세부 설정 아래에 `자동`, `기존`, `정밀 후보` 감지 엔진 선택과
   신호/신뢰도/노이즈/제외 사유 진단 label을 추가했다. 기본값은 plucked string 회귀와
   fine cents 비교를 함께 보는 `자동`이다.

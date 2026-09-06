@@ -13424,7 +13424,7 @@ class _TunerSheetState extends State<_TunerSheet> {
   @override
   void initState() {
     super.initState();
-    _settings = widget.initialSettings;
+    _settings = _chromaticOnlySettings(widget.initialSettings);
     _toneSettings = widget.initialToneSettings;
     _inputService = SheetTunerInputService();
     _tonePlayer = SheetTonePlayer();
@@ -13441,10 +13441,40 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
     _demoFrequency = _settings.referencePitchA4.toDouble();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.autoStartInput) {
+      if (!mounted) {
+        return;
+      }
+      if (_needsChromaticOnlyNormalization(widget.initialSettings)) {
+        unawaited(widget.onSettingsChanged(_settings));
+      }
+      if (widget.autoStartInput) {
         unawaited(_inputService.start(settings: _settings));
       }
     });
+  }
+
+  SheetTunerSettings _chromaticOnlySettings(SheetTunerSettings settings) {
+    return settings.copyWith(
+      tuningMode: SheetTunerMode.chromatic,
+      tuningPreset: SheetTunerPreset.chromatic,
+      displayMode: SheetTunerDisplayMode.concert,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+      targetLockEnabled: false,
+      clearTargetConcertMidiNumber: true,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
+    );
+  }
+
+  bool _needsChromaticOnlyNormalization(SheetTunerSettings settings) {
+    return settings.tuningMode != SheetTunerMode.chromatic ||
+        settings.tuningPreset != SheetTunerPreset.chromatic ||
+        settings.displayMode != SheetTunerDisplayMode.concert ||
+        settings.detectionProfile != SheetTunerDetectionProfile.chromatic ||
+        settings.targetLockEnabled ||
+        settings.targetConcertMidiNumber != null ||
+        settings.customPresetId != null ||
+        settings.customTargets.isNotEmpty;
   }
 
   @override
@@ -13477,16 +13507,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  Future<void> _setTargetLockEnabled(bool enabled) async {
-    final nextSettings = _settings.copyWith(targetLockEnabled: enabled);
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   Future<void> _setNotationPreference(
     SheetTunerNotationPreference notationPreference,
   ) async {
@@ -13496,104 +13516,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setDisplayMode(SheetTunerDisplayMode displayMode) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: displayMode,
-      detectionProfile: _recommendedDetectionProfile(displayMode),
-      customTargets: previousTargets,
-      clearTargetConcertMidiNumber: !_hasTargetForMode(
-        displayMode,
-        _settings.targetConcertMidiNumber,
-      ),
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          _demoFrequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningMode(SheetTunerMode tuningMode) async {
-    final targets = _activeTuningTargetsFor(_settings);
-    final targetConcertMidiNumber = tuningMode == SheetTunerMode.target
-        ? _settings.targetConcertMidiNumber ??
-              (targets.isEmpty ? null : targets.first.concertMidiNumber)
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: tuningMode,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      clearTargetConcertMidiNumber: tuningMode == SheetTunerMode.chromatic,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening && targetConcertMidiNumber != null) {
-        final targetNote = SheetTunerPitch.noteFromMidi(
-          targetConcertMidiNumber,
-          referencePitchA4: nextSettings.referencePitchA4,
-        );
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningPreset(SheetTunerPreset tuningPreset) async {
-    final usePresetTargets =
-        tuningPreset != SheetTunerPreset.chromatic &&
-        tuningPreset != SheetTunerPreset.manual;
-    final targets = tuningPreset.targets;
-    final targetConcertMidiNumber = usePresetTargets
-        ? tuningPreset.hasTarget(_settings.targetConcertMidiNumber)
-              ? _settings.targetConcertMidiNumber
-              : targets.first.concertMidiNumber
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: usePresetTargets
-          ? SheetTunerMode.target
-          : SheetTunerMode.chromatic,
-      tuningPreset: tuningPreset,
-      displayMode: tuningPreset.displayMode,
-      detectionProfile: tuningPreset.detectionProfile,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      targetLockEnabled: usePresetTargets ? _settings.targetLockEnabled : false,
-      clearTargetConcertMidiNumber: !usePresetTargets,
-      clearCustomPresetId: true,
-      clearCustomTargets: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = targetConcertMidiNumber == null
-            ? nextSettings.detectionProfile.clampFrequency(_demoFrequency)
-            : nextSettings.detectionProfile.clampFrequency(
-                SheetTunerPitch.noteFromMidi(
-                  targetConcertMidiNumber,
-                  referencePitchA4: nextSettings.referencePitchA4,
-                ).frequency,
-              );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
     await widget.onSettingsChanged(nextSettings);
   }
 
@@ -13633,263 +13555,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
   }
 
-  Future<void> _setTargetConcertMidiNumber(int midiNumber) async {
-    final targetNote = SheetTunerPitch.noteFromMidi(
-      midiNumber,
-      referencePitchA4: _settings.referencePitchA4,
-    );
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      targetConcertMidiNumber: midiNumber,
-      targetLockEnabled:
-          _settings.tuningPreset.usesStringTargetPanel ||
-          _settings.targetLockEnabled,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = _settings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _clearTargetConcertMidiNumber() async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.chromatic,
-      clearTargetConcertMidiNumber: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _addCurrentReadingAsCustomTarget(
-    SheetTunerReading? reading,
-  ) async {
-    if (reading == null) {
-      _showTunerMessage('먼저 추가할 음을 잡아주세요.');
-      return;
-    }
-    final targets = SheetTunerTarget.normalizeList(<SheetTunerTarget>[
-      ..._activeTuningTargetsFor(_settings),
-      SheetTunerTarget(
-        label: reading.note.labelWith(preferFlats: _preferFlats),
-        concertMidiNumber: reading.note.midiNumber,
-      ),
-    ]);
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber: reading.note.midiNumber,
-      customTargets: targets,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage(
-      '${reading.note.labelWith(preferFlats: _preferFlats)} 타겟을 추가했습니다.',
-    );
-  }
-
-  Future<void> _removeCustomTarget(int midiNumber) async {
-    final targets = _activeTuningTargetsFor(_settings)
-        .where((target) => target.concertMidiNumber != midiNumber)
-        .toList(growable: false);
-    final normalized = SheetTunerTarget.normalizeList(targets);
-    final removedActiveTarget = _settings.targetConcertMidiNumber == midiNumber;
-    final nextTarget = removedActiveTarget && normalized.isNotEmpty
-        ? normalized.first.concertMidiNumber
-        : _settings.targetConcertMidiNumber;
-    final nextSettings = _settings.copyWith(
-      tuningMode: normalized.isEmpty
-          ? SheetTunerMode.chromatic
-          : _settings.tuningMode,
-      tuningPreset: normalized.isEmpty
-          ? SheetTunerPreset.chromatic
-          : SheetTunerPreset.manual,
-      targetConcertMidiNumber: nextTarget,
-      customTargets: normalized,
-      clearTargetConcertMidiNumber: normalized.isEmpty,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _saveCustomPreset() async {
-    final targets = _activeTuningTargetsFor(_settings);
-    if (targets.isEmpty) {
-      _showTunerMessage('저장할 타겟 음이 없습니다.');
-      return;
-    }
-    final controller = TextEditingController(
-      text:
-          _currentCustomPreset?.name ??
-          '내 튜닝 ${_settings.customPresets.length + 1}',
-    );
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('커스텀 프리셋 저장'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: '프리셋 이름',
-              hintText: '예: 기타 반음 낮춤',
-            ),
-            textInputAction: TextInputAction.done,
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    if (!mounted) {
-      return;
-    }
-    final trimmedName = name?.trim() ?? '';
-    if (trimmedName.isEmpty) {
-      return;
-    }
-    final previousPreset = _currentCustomPreset;
-    final preset = SheetTunerCustomPreset(
-      id:
-          previousPreset?.id ??
-          'custom-${DateTime.now().microsecondsSinceEpoch}',
-      name: trimmedName,
-      displayMode: _settings.displayMode,
-      detectionProfile: _settings.detectionProfile,
-      targets: SheetTunerTarget.normalizeList(targets),
-      updatedAt: DateTime.now(),
-    );
-    final presets = <SheetTunerCustomPreset>[
-      preset,
-      ..._settings.customPresets.where((stored) => stored.id != preset.id),
-    ];
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-      customPresets: presets,
-    );
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('$trimmedName 프리셋을 저장했습니다.');
-  }
-
-  Future<void> _applyCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: preset.displayMode,
-      detectionProfile: preset.detectionProfile,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          SheetTunerPitch.noteFromMidi(
-            nextSettings.targetConcertMidiNumber!,
-            referencePitchA4: nextSettings.referencePitchA4,
-          ).frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _deleteCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextPresets = _settings.customPresets
-        .where((stored) => stored.id != preset.id)
-        .toList(growable: false);
-    final isActive = _settings.customPresetId == preset.id;
-    final nextSettings = _settings.copyWith(
-      customPresets: nextPresets,
-      clearCustomPresetId: isActive,
-      clearCustomTargets: isActive,
-      clearTargetConcertMidiNumber: isActive,
-      tuningMode: isActive ? SheetTunerMode.chromatic : _settings.tuningMode,
-      tuningPreset: isActive
-          ? SheetTunerPreset.chromatic
-          : _settings.tuningPreset,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('${preset.name} 프리셋을 삭제했습니다.');
-  }
-
-  Future<void> _setDetectionProfile(
-    SheetTunerDetectionProfile detectionProfile,
-  ) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      detectionProfile: detectionProfile,
-      customTargets: previousTargets,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = detectionProfile.clampFrequency(_demoFrequency);
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   Future<void> _setDetectionAlgorithm(
     SheetTunerPitchDetectionAlgorithm detectionAlgorithm,
   ) async {
@@ -13926,47 +13591,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     await _inputService.start(settings: _settings);
   }
 
-  Future<void> _setChromaticQuickTuner() async {
-    await _setTuningPreset(SheetTunerPreset.chromatic);
-  }
-
-  Future<void> _setGuitarQuickTuner() async {
-    final guitarTargets = SheetTunerPreset.guitarStandard.targets;
-    final retainedTarget =
-        _settings.targetConcertMidiNumber != null &&
-            SheetTunerPreset.guitarStandard.hasTarget(
-              _settings.targetConcertMidiNumber,
-            )
-        ? _settings.targetConcertMidiNumber!
-        : guitarTargets.last.concertMidiNumber;
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.guitarStandard,
-      displayMode: SheetTunerDisplayMode.guitar,
-      detectionProfile: SheetTunerDetectionProfile.guitarBass,
-      targetConcertMidiNumber: retainedTarget,
-      targetLockEnabled: true,
-      clearCustomPresetId: true,
-      clearCustomTargets: true,
-    );
-    final targetNote = SheetTunerPitch.noteFromMidi(
-      retainedTarget,
-      referencePitchA4: nextSettings.referencePitchA4,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   SheetTunerState _stateWithFrequency(
     double frequency, {
     required bool isListening,
@@ -13989,15 +13613,6 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   bool get _preferFlats {
     return _settings.notationPreference.preferFlatsFor(_settings.displayMode);
-  }
-
-  SheetTunerCustomPreset? get _currentCustomPreset {
-    for (final preset in _settings.customPresets) {
-      if (preset.id == _settings.customPresetId) {
-        return preset;
-      }
-    }
-    return null;
   }
 
   void _rememberCalibrationReading(SheetTunerReading reading) {
@@ -14044,28 +13659,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  void _showTunerMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  String _targetWaitingLabel(SheetTunerNote? targetWrittenNote) {
-    if (targetWrittenNote == null) {
-      return '타겟 음을 기다리는 중';
-    }
-    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
-        ? SheetTunerStringTarget.fromTargets(_activeTuningTargetsFor(_settings))
-        : const <SheetTunerStringTarget>[];
-    for (final stringTarget in stringTargets) {
-      if (stringTarget.target.concertMidiNumber ==
-          _settings.targetConcertMidiNumber) {
-        return '${stringTarget.stringNumber}번줄 '
-            '${targetWrittenNote.labelWith(preferFlats: _preferFlats)}를 기다리는 중';
-      }
-    }
-    return '${targetWrittenNote.labelWith(preferFlats: _preferFlats)}를 기다리는 중';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -14080,50 +13673,16 @@ class _TunerSheetState extends State<_TunerSheet> {
     final reading = _state.isListening
         ? _state.reading
         : _state.reading ?? demoReading;
-    final isTargetMode =
-        _settings.tuningMode == SheetTunerMode.target &&
-        _settings.targetConcertMidiNumber != null;
-    final targetNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber!,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetWrittenNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber! +
-                _settings.displayMode.transposeSemitones,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetLock = SheetTunerTargetLock.evaluate(
-      settings: _settings,
-      reading: reading,
-    );
-    final tuningTargets = _activeTuningTargetsFor(_settings);
-    final isCustomTargets =
-        _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
-    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
-        ? SheetTunerStringTarget.fromTargets(tuningTargets)
-        : const <SheetTunerStringTarget>[];
-    final isGuitarQuickMode =
-        _settings.tuningPreset == SheetTunerPreset.guitarStandard;
-    final targetWaitingLabel = _targetWaitingLabel(targetWrittenNote);
-    final effectiveReading = targetLock.isRejected ? null : reading;
-    final targetCents = effectiveReading == null || targetNote == null
-        ? null
-        : SheetTunerPitch.centsFromTarget(
-            frequency: effectiveReading.frequency,
-            targetFrequency: targetNote.frequency,
-          );
+    final tuningTargets = _activeTuningTargetsFor();
+    final effectiveReading = reading;
     final displayedPitch = effectiveReading == null
         ? null
         : SheetTunerPitch.displayPitch(
             reading: effectiveReading,
-            displayMode: _settings.displayMode,
+            displayMode: SheetTunerDisplayMode.concert,
             referencePitchA4: _settings.referencePitchA4,
           );
-    final cents = targetCents ?? effectiveReading?.centsOffset ?? 0;
+    final cents = effectiveReading?.centsOffset ?? 0;
     final feedbackInputStatus = _state.isListening
         ? _state.inputStatus
         : effectiveReading == null
@@ -14134,13 +13693,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       reading: effectiveReading,
       centsOffset: cents,
     );
-    final feedback = targetLock.isRejected
-        ? SheetTunerFeedback(
-            band: SheetTunerFeedbackBand.lowConfidence,
-            label: targetWaitingLabel,
-            displayCents: 0,
-          )
-        : baseFeedback;
+    final feedback = baseFeedback;
     final inputPower = SheetTunerInputPower.fromState(
       inputStatus: feedbackInputStatus,
       reading: reading,
@@ -14186,30 +13739,6 @@ class _TunerSheetState extends State<_TunerSheet> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment<bool>(
-                    value: false,
-                    icon: Icon(Icons.graphic_eq),
-                    label: Text('크로매틱'),
-                  ),
-                  ButtonSegment<bool>(
-                    value: true,
-                    icon: Icon(Icons.linear_scale),
-                    label: Text('기타 줄 맞춤'),
-                  ),
-                ],
-                selected: <bool>{isGuitarQuickMode},
-                onSelectionChanged: (selection) {
-                  final useGuitar = selection.single;
-                  unawaited(
-                    useGuitar
-                        ? _setGuitarQuickTuner()
-                        : _setChromaticQuickTuner(),
-                  );
-                },
-              ),
               const SizedBox(height: 18),
               DecoratedBox(
                 decoration: BoxDecoration(
@@ -14254,26 +13783,13 @@ class _TunerSheetState extends State<_TunerSheet> {
               Center(
                 child: Text(
                   effectiveReading == null
-                      ? targetLock.isRejected
-                            ? targetWaitingLabel
-                            : '소리를 내면 음을 잡습니다'
+                      ? '소리를 내면 가장 가까운 음을 표시합니다'
                       : displayedPitch!.detailLabelWith(
                           preferFlats: _preferFlats,
                         ),
                   style: theme.textTheme.labelLarge,
                 ),
               ),
-              if (targetNote != null && targetWrittenNote != null)
-                Center(
-                  child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
-                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
               if (reading != null)
                 Center(
                   child: Text(
@@ -14281,9 +13797,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                     '${feedback.displayCents >= 0 ? '+' : ''}'
                     '${feedback.displayCents.toStringAsFixed(1)} cents',
                     style: theme.textTheme.labelMedium?.copyWith(
-                      color: targetLock.isRejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
+                      color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -14302,19 +13816,6 @@ class _TunerSheetState extends State<_TunerSheet> {
               _TunerLedStrip(feedback: feedback),
               const SizedBox(height: 14),
               _TunerInputPowerBar(power: inputPower),
-              if (stringTargets.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _TunerStringTargetPanel(
-                  title: '기타 줄 맞춤',
-                  stringTargets: stringTargets,
-                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
-                  referencePitchA4: _settings.referencePitchA4,
-                  preferFlats: _preferFlats,
-                  onSelected: (target) => unawaited(
-                    _setTargetConcertMidiNumber(target.concertMidiNumber),
-                  ),
-                ),
-              ],
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -14346,163 +13847,9 @@ class _TunerSheetState extends State<_TunerSheet> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      _settings.tuningMode == SheetTunerMode.target
-                          ? '타겟 음'
-                          : '빠른 타겟',
-                      style: theme.textTheme.labelLarge,
-                    ),
+                    child: Text('감지', style: theme.textTheme.labelLarge),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final target in tuningTargets)
-                        if (isCustomTargets)
-                          InputChip(
-                            selected:
-                                _settings.tuningMode == SheetTunerMode.target &&
-                                _settings.targetConcertMidiNumber ==
-                                    target.concertMidiNumber,
-                            label: Text(
-                              target.targetLabel(
-                                displayMode: _settings.displayMode,
-                                referencePitchA4: _settings.referencePitchA4,
-                                preferFlats: _preferFlats,
-                              ),
-                            ),
-                            onSelected: (selected) => unawaited(
-                              selected
-                                  ? _setTargetConcertMidiNumber(
-                                      target.concertMidiNumber,
-                                    )
-                                  : _clearTargetConcertMidiNumber(),
-                            ),
-                            onDeleted: () => unawaited(
-                              _removeCustomTarget(target.concertMidiNumber),
-                            ),
-                          )
-                        else
-                          FilterChip(
-                            selected:
-                                _settings.tuningMode == SheetTunerMode.target &&
-                                _settings.targetConcertMidiNumber ==
-                                    target.concertMidiNumber,
-                            label: Text(
-                              target.targetLabel(
-                                displayMode: _settings.displayMode,
-                                referencePitchA4: _settings.referencePitchA4,
-                                preferFlats: _preferFlats,
-                              ),
-                            ),
-                            onSelected: (selected) => unawaited(
-                              selected
-                                  ? _setTargetConcertMidiNumber(
-                                      target.concertMidiNumber,
-                                    )
-                                  : _clearTargetConcertMidiNumber(),
-                            ),
-                          ),
-                      ActionChip(
-                        avatar: const Icon(Icons.add, size: 18),
-                        label: const Text('현재 음 추가'),
-                        onPressed: () => unawaited(
-                          _addCurrentReadingAsCustomTarget(reading),
-                        ),
-                      ),
-                      if (_settings.targetConcertMidiNumber != null)
-                        ActionChip(
-                          avatar: const Icon(Icons.close, size: 18),
-                          label: const Text('타겟 해제'),
-                          onPressed: () =>
-                              unawaited(_clearTargetConcertMidiNumber()),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('프리셋/프로필', style: theme.textTheme.labelLarge),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final mode in SheetTunerMode.values)
-                        ChoiceChip(
-                          selected: _settings.tuningMode == mode,
-                          label: Text(mode.label),
-                          onSelected: (_) => unawaited(_setTuningMode(mode)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerPreset>(
-                    initialValue: _settings.tuningPreset,
-                    decoration: const InputDecoration(
-                      labelText: '튜닝 프리셋',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerPreset.values
-                        .map(
-                          (preset) => DropdownMenuItem<SheetTunerPreset>(
-                            value: preset,
-                            child: Text(preset.label),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setTuningPreset(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerDisplayMode>(
-                    initialValue: _settings.displayMode,
-                    decoration: const InputDecoration(
-                      labelText: '악기/표시 기준',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerDisplayMode.values
-                        .map(
-                          (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
-                            value: mode,
-                            child: Text('${mode.label} · ${mode.familyLabel}'),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setDisplayMode(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerDetectionProfile>(
-                    initialValue: _settings.detectionProfile,
-                    decoration: const InputDecoration(
-                      labelText: '감지 프로필',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerDetectionProfile.values
-                        .map(
-                          (profile) =>
-                              DropdownMenuItem<SheetTunerDetectionProfile>(
-                                value: profile,
-                                child: Text(profile.label),
-                              ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setDetectionProfile(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
                   DropdownButtonFormField<SheetTunerPitchDetectionAlgorithm>(
                     initialValue: _settings.detectionAlgorithm,
                     decoration: const InputDecoration(
@@ -14565,45 +13912,6 @@ class _TunerSheetState extends State<_TunerSheet> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('타겟 잠금'),
-                    subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
-                    value: _settings.targetLockEnabled,
-                    onChanged: (value) =>
-                        unawaited(_setTargetLockEnabled(value)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saveCustomPreset,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('커스텀 프리셋 저장'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_settings.customPresets.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final preset in _settings.customPresets)
-                          InputChip(
-                            selected: preset.id == _settings.customPresetId,
-                            label: Text(preset.name),
-                            onSelected: (_) =>
-                                unawaited(_applyCustomPreset(preset)),
-                            onDeleted: () =>
-                                unawaited(_deleteCustomPreset(preset)),
-                          ),
-                      ],
-                    ),
-                  ],
                   if (calibrationSuggestion != null) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -14868,52 +14176,8 @@ class _TunerSheetState extends State<_TunerSheet> {
     };
   }
 
-  bool _hasTargetForMode(SheetTunerDisplayMode mode, int? midiNumber) {
-    if (midiNumber == null) {
-      return false;
-    }
-    final targets = _settings.customTargets.isNotEmpty
-        ? _settings.customTargets
-        : mode.tuningTargets;
-    return targets.any((target) => target.concertMidiNumber == midiNumber);
-  }
-
-  List<SheetTunerTarget> _activeTuningTargetsFor(SheetTunerSettings settings) {
-    for (final preset in settings.customPresets) {
-      if (preset.id == settings.customPresetId) {
-        return preset.targets;
-      }
-    }
-    if (settings.customTargets.isNotEmpty) {
-      return settings.customTargets;
-    }
-    if (settings.tuningPreset == SheetTunerPreset.manual) {
-      return settings.displayMode.tuningTargets;
-    }
-    return settings.tuningPreset.targets;
-  }
-
-  SheetTunerDetectionProfile _recommendedDetectionProfile(
-    SheetTunerDisplayMode mode,
-  ) {
-    return switch (mode) {
-      SheetTunerDisplayMode.bbTrumpet => SheetTunerDetectionProfile.bbTrumpet,
-      SheetTunerDisplayMode.bbClarinet ||
-      SheetTunerDisplayMode.tenorSax ||
-      SheetTunerDisplayMode.altoSax ||
-      SheetTunerDisplayMode.baritoneSax ||
-      SheetTunerDisplayMode.frenchHorn =>
-        SheetTunerDetectionProfile.highInstrument,
-      SheetTunerDisplayMode.bassClef ||
-      SheetTunerDisplayMode.cello ||
-      SheetTunerDisplayMode.doubleBass =>
-        SheetTunerDetectionProfile.lowInstrument,
-      SheetTunerDisplayMode.violin ||
-      SheetTunerDisplayMode.viola => SheetTunerDetectionProfile.strings,
-      SheetTunerDisplayMode.guitar ||
-      SheetTunerDisplayMode.bassGuitar => SheetTunerDetectionProfile.guitarBass,
-      SheetTunerDisplayMode.concert => SheetTunerDetectionProfile.chromatic,
-    };
+  List<SheetTunerTarget> _activeTuningTargetsFor() {
+    return SheetTunerPreset.chromatic.targets;
   }
 }
 
@@ -15050,174 +14314,6 @@ class _TunerLedStrip extends StatelessWidget {
       SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
       SheetTunerLedState.off => theme.colorScheme.outline,
     };
-  }
-}
-
-class _TunerStringTargetPanel extends StatelessWidget {
-  const _TunerStringTargetPanel({
-    required this.title,
-    required this.stringTargets,
-    required this.selectedConcertMidiNumber,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final String title;
-  final List<SheetTunerStringTarget> stringTargets;
-  final int? selectedConcertMidiNumber;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.55,
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.linear_scale, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '6 -> 1',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 720
-                    ? math.min(stringTargets.length, 4)
-                    : constraints.maxWidth >= 460
-                    ? math.min(stringTargets.length, 3)
-                    : 2;
-                final spacing = 8.0;
-                final width =
-                    (constraints.maxWidth - (spacing * (columns - 1))) /
-                    columns;
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (final stringTarget in stringTargets)
-                      SizedBox(
-                        width: width,
-                        child: _TunerStringTargetButton(
-                          stringTarget: stringTarget,
-                          selected:
-                              selectedConcertMidiNumber ==
-                              stringTarget.target.concertMidiNumber,
-                          referencePitchA4: referencePitchA4,
-                          preferFlats: preferFlats,
-                          onSelected: onSelected,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TunerStringTargetButton extends StatelessWidget {
-  const _TunerStringTargetButton({
-    required this.stringTarget,
-    required this.selected,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final SheetTunerStringTarget stringTarget;
-  final bool selected;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final target = stringTarget.target;
-    final pitch = SheetTunerPitch.noteFromMidi(
-      target.concertMidiNumber,
-      referencePitchA4: referencePitchA4,
-    );
-    final stringNoteLabel = target.label.replaceAll(RegExp(r'[0-9]'), '');
-    return Material(
-      color: selected
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onSelected(target),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${stringTarget.stringNumber}$stringNoteLabel',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: selected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${stringTarget.stringNumber}번줄 · '
-                '${pitch.labelWith(preferFlats: preferFlats)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                '${pitch.frequency.toStringAsFixed(1)} Hz',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 

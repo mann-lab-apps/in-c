@@ -26,21 +26,18 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열었을 때 시작 버튼 없이 현재 음/meter/입력 bar가 먼저 보이고, 첫 선택지가 `크로매틱`과
-   `기타 줄 맞춤` 중심인지 확인한다.
-9. 기타 줄 맞춤에서 `6E 5A 4D 3G 2B 1E` 버튼이 바로 보이고, 줄을 선택하면 해당 줄 기준으로 cents와
-   target lock 문구가 표시되는지 확인한다.
-10. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
+8. 튜너를 열었을 때 시작 버튼 없이 현재 음/meter/입력 bar가 먼저 보이고, 기타 줄 맞춤이나 악기별
+   preset 선택 없이 가장 가까운 음을 바로 표시하는지 확인한다.
+9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
    표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
    `맞았습니다` 상태를 확인한다.
-11. `세부 설정` 아래에서 Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, custom target/preset
-   저장/적용/삭제, target lock on/off가 접근 가능한지 확인한다.
-12. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-13. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
-14. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
-15. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
-16. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
-17. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
+10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
+   확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
+11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
+12. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
+13. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
+14. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
+15. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
     라이브러리에 진입하는지 확인한다.
 
 ## 선택 테스트
@@ -73,10 +70,10 @@
 
 ## Known Issues
 
-- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Chromatic-first 첫 화면, 기타 `6E 5A 4D
-  3G 2B 1E` 빠른 줄 선택, 세부 설정 접힘, preset/target/custom preset, target lock,
-  sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
+- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. v1 UI는 Chromatic-only 첫 화면,
+  세부 설정 접힘, sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
   floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+  기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
 - 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+16`이다. 실제 마이크 정확도/latency QA는 아직
   기록되지 않았다.

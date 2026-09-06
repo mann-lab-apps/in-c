@@ -118,7 +118,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | EMU-043 | unknown inputId | diagnostic log에서 custom mapping 저장 | unknown key path | 저장한 inputId가 action으로 실행 | 예정 |
 | EMU-044 | global defaults | viewer/action 기본값 변경 후 새 score import | settings UI | 새 score에만 기본값 적용, 기존 score 불변 | 예정 |
 | EMU-045 | metronome | BPM/meter/start/stop/sound toggle | metronome sheet | visual tick과 state 저장 | 예정 |
-| EMU-046 | tuner UI | profile/display/reference pitch 전환 | tuner sheet | 크로매틱/기타 줄 맞춤, A4 quick/history, Concert/Bb/Eb/F/Strings/Guitar/Bass label 정상 | 통과(실마이크 제외) |
+| EMU-046 | tuner UI | chromatic/reference pitch 전환 | tuner sheet | Chromatic-only 첫 화면, A4 quick/history, 감지 엔진, 기준음/드론 정상. 기타 줄 맞춤/악기별 preset은 v1 UI에서 제외 | 통과(실마이크 제외) |
 | EMU-047 | tone/drone | 기준음/5도/옥타브 drone start/stop | Android native channel | UI state와 stop 동작 정상. latency 평가는 실기기 | 예정 |
 | EMU-048 | local audio | linked MP3/M4A/WAV import/play/stop | small audio files | MediaPlayer sheet 진입과 오류 안내 정상 | 예정 |
 | EMU-049 | backup metadata | metadata export/import | score with metadata | custom field, page metadata, pedal mapping 보존 | 예정 |
@@ -234,15 +234,15 @@ v1.1 spike 여부:
   나타나는지 확인한다.
 - dev 병합분의 classical discovery 진입점은 Clef & Staff RC 홈 상단에 노출되지 않는지 확인한다.
 - 렌더링 프리셋 `균형`은 balance 아이콘, `대형 PDF`는 PDF 아이콘으로 보여 메트로놈과 구분되는지 확인한다.
-- 튜너 bottom sheet 진입 즉시 마이크 권한/입력 상태가 시작되고, 음정/meter/입력 bar/기타 줄 선택이
-  튜닝 설정보다 먼저 보이는지 확인한다.
+- 튜너 bottom sheet 진입 즉시 마이크 권한/입력 상태가 시작되고, 음정/meter/input bar가 튜닝 설정보다
+  먼저 보이는지 확인한다. 기타 줄 맞춤/악기별 preset은 보이지 않아야 한다.
 - library profile 중복 이름 입력 시 `이미 있습니다` 안내와 `열기` action이 표시되는지 확인한다.
 - 마지막 page의 다음 버튼을 누르면 비활성 dead button이 아니라 dimmed button이 눌리고 `곡 끝`
   snackbar가 표시됐다. 첫 page의 이전 입력은 같은 정책으로 `곡 처음`을 표시한다.
 - 홈 화면은 큰 `Clef` 제목 없이 시작했고, metadata가 비어 있는 최근 카드도 파일명, source filename,
   최근 연 시간, `마지막 1쪽`으로 구분 가능했다.
-- 튜너 bottom sheet는 crash 없이 열렸고 Chromatic/Target, preset, A4, calibration history,
-  target lock, 기준음/드론 진입점이 표시됐다. 실제 마이크 정확도와 latency는 실기기 QA로 남긴다.
+- 튜너 bottom sheet는 crash 없이 열렸고 Chromatic-only 첫 화면, A4, calibration history, 감지 엔진,
+  기준음/드론 진입점이 표시됐다. 실제 마이크 정확도와 latency는 실기기 QA로 남긴다.
 - `dart format lib/main.dart`, `flutter analyze`, `flutter test test/sheet_viewer_input_test.dart
   test/sheet_auto_scroll_test.dart`, `flutter build apk --debug`, `git diff --check`가 clean temp
   worktree에서 통과했다.
@@ -278,8 +278,8 @@ v1.1 spike 여부:
   `공연 설정`, `공연 모드`, `1/3` page label에 접근했다.
 - ADB keyevent로 첫 page `곡 처음` snackbar는 focus 조건 때문에 화면상 확정하지 못했다. 동일 정책은
   code/test 경로로 유지하며 실제 keyboard/pedal 실기기 QA에서 재확인한다.
-- 튜너 bottom sheet는 큰 시작 버튼 없이 바로 열리고, 현재 음/meter/input bar, `크로매틱`,
-  `기타 줄 맞춤`, `6E 5A 4D 3G 2B 1E` 줄 버튼, A4 440/441/442 quick action이 표시됐다.
+- 튜너 bottom sheet는 큰 시작 버튼 없이 바로 열리고, 현재 음/meter/input bar와 A4 440/441/442 quick
+  action이 표시됐다. 기타 줄 맞춤/악기별 preset/custom target/target lock은 v1 UI에서 제외했다.
 - 튜너 상세 설정의 감지 엔진은 사용자-facing label을 `자동`, `기존`, `정밀 후보`로 낮춰 표시하고,
   감지 진단도 `엔진`/`신호`/`신뢰도`/`노이즈` 중심으로 표시한다.
   내부 저장 key는 기존 `hybrid`, `autocorrelation`, `yin`을 유지한다.

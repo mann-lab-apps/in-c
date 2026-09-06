@@ -175,10 +175,11 @@ iPad/iOS smoke:
 
 Audio/tuner:
 
-- tuner no-signal behavior, 440/441/442Hz A4 quick action/history, reference tone frequency/cents,
-  instrument profile 표시, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과 감지 진단 label.
-- Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset 전환, Target mode shortcut, target lock
-  on/off, 다른 줄/음 입력 시 `타겟 음을 기다리는 중` 표시.
+- tuner no-signal behavior, 가장 가까운 chromatic note/cents 표시, 440/441/442Hz A4 quick
+  action/history, reference tone frequency/cents, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과
+  감지 진단 label.
+- 기타 줄 맞춤, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, Target mode shortcut,
+  target lock은 v1 UI에서 보이지 않는지 확인한다.
 - 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
