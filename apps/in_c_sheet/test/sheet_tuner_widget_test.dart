@@ -14,6 +14,7 @@ void main() {
       expect(find.text('A4 440 Hz'), findsOneWidget);
       expect(_pitchHistoryChartFinder(), findsOneWidget);
       expect(find.text('세부 설정'), findsOneWidget);
+      expect(find.text('정확'), findsNothing);
       expect(find.text('튜닝 프리셋'), findsNothing);
       expect(find.text('기타 줄 맞춤'), findsNothing);
       expect(find.text('6E'), findsNothing);

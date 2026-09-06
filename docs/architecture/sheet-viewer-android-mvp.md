@@ -529,7 +529,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
-- 1차 UI는 현재 음 이름, concert pitch 표시, 낮음/정확/높음 pitch history chart와 cents meter, LED flat/center/sharp strip,
+- 1차 UI는 현재 음 이름, concert pitch 표시, 왼쪽 시작/최신 marker pitch history chart와 cents meter, LED flat/center/sharp strip,
   입력강도 bar, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
   signal/confidence 상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을
   확인할 수 있다.

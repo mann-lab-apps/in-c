@@ -53,7 +53,7 @@
 | 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
-| 14 | 튜너 | 첫 화면은 Chromatic-only로 현재 음, cents, pitch history chart, LED/meter/input bar, 낮음/정확/높음 feedback을 바로 보여준다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 전면 UX에서 제외하고, A4 quick/history/보정 제안, sharp/flat 표기, 감지 엔진, 기준음/드론만 세부 설정에서 확인한다. | 입력음, 크로매틱 기본 표시, cents 흔들림, pitch history 방향/끊김, 입력 bar, LED 상태, feedback 문구, A4 기준, 감지 엔진 |
+| 14 | 튜너 | 첫 화면은 Chromatic-only로 현재 음, cents, pitch history chart, LED/meter/input bar, 짧은 feedback 문구를 바로 보여준다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 전면 UX에서 제외하고, A4 quick/history/보정 제안, sharp/flat 표기, 감지 엔진, 기준음/드론만 세부 설정에서 확인한다. | 입력음, 크로매틱 기본 표시, cents 흔들림, pitch history 왼쪽 시작/최신 마커/끊김, 입력 bar, LED 상태, feedback 문구, A4 기준, 감지 엔진 |
 | 14-1 | 기준음/드론 | Android에서 기준음/5도/옥타브 drone이 재생/정지되고 A4 기준 변경이 주파수에 반영된다. | root note, drone mode, volume, latency/끊김, iOS 표시 문구 |
 | 14-2 | 로컬 오디오 | MP3/M4A/WAV linked file이 가져와지고 파트/버전 sheet에서 재생/정지된다. | 파일 확장자, codec 실패 여부, latency/끊김, iOS 표시 문구 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
@@ -382,7 +382,9 @@ flutter build ios --release --no-codesign
 - 약한 입력이 noise floor보다 충분히 큰 경우에만 detector 분석 frame을 정규화하고, clipping frame은
   confidence를 낮추며, 저음의 3배음 후보는 직전 stable reading을 기준으로 제한적으로 접는다.
 - pitch history chart는 저장/백업 대상이 아닌 화면 내 임시 상태다. 최근 약 2초의 cents 흐름을
-  0/±25/±50 cents 기준선으로 보여주고, no signal 또는 note 변경 시 선을 끊는다.
+  0/±25/±50 cents 기준선으로 보여주고, 왼쪽을 시작점으로 두며 최신 sample은 `현재` marker로 강조한다.
+  no signal 또는 note 변경 시 선을 끊는다. Meter 하단의 중복 `낮음/정확/높음` label은 chart 해석과
+  섞이지 않도록 제거했다.
 - dev 병합분에 포함된 classical discovery 코드는 별도 앱/후속 surface로 보존하되, Clef & Staff RC
   홈 상단에는 `클래식 듣기` 진입점을 노출하지 않는다.
 - 홈 카드 action icon은 제목과 같은 줄에서 경쟁하지 않도록 별도 줄로 내려 metadata가 비어 있는

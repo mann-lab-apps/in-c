@@ -123,10 +123,11 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - Viewer 튜너 UI
   - AppBar 또는 overflow menu에서 진입.
   - 공연 모드에서도 진입 가능.
-  - 첫 화면은 현재 음 이름, cents, pitch history chart, meter, LED, input bar, 낮음/정확/높음 feedback, A4 quick action만
+  - 첫 화면은 현재 음 이름, cents, pitch history chart, meter, LED, input bar, 짧은 feedback 문구, A4 quick action만
     전면에 둔다.
   - pitch history chart는 최근 cents 흐름을 ±50 cents 범위에서 그리고, 0/±25/±50 기준선과
-    낮음/높음 label로 조율 방향을 보여준다. 신뢰도가 낮은 sample은 흐리게 표시한다.
+    낮음/높음 label로 조율 방향을 보여준다. 왼쪽을 시작점으로 두고 최신 sample은 `현재` marker로
+    강조한다. 신뢰도가 낮은 sample은 흐리게 표시한다.
   - 기타 줄 맞춤, tuning preset, 표시 모드, 감지 profile, target shortcut, target lock 상세,
     custom preset 저장/적용/삭제는 v1 UI에서 제외한다.
   - 감지 엔진, sharp/flat 표기, 기준음/드론, A4 기준음 slider, 보정 제안/history는 `세부 설정` 아래에 둔다.

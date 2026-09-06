@@ -14243,6 +14243,8 @@ class _TunerPitchHistoryChart extends StatelessWidget {
     required this.currentNoteLabel,
   });
 
+  static const Duration _historyWindow = Duration(milliseconds: 2200);
+
   final List<SheetTunerPitchHistorySample> samples;
   final String? currentNoteLabel;
 
@@ -14265,6 +14267,7 @@ class _TunerPitchHistoryChart extends StatelessWidget {
               currentNoteLabel: currentNoteLabel,
               colors: theme.colorScheme,
               textStyle: theme.textTheme.labelSmall,
+              historyWindow: _historyWindow,
             ),
           ),
         ),
@@ -14279,6 +14282,7 @@ class _TunerPitchHistoryPainter extends CustomPainter {
     required this.currentNoteLabel,
     required this.colors,
     required this.textStyle,
+    required this.historyWindow,
   });
 
   static const double _maxCents = 50;
@@ -14291,6 +14295,7 @@ class _TunerPitchHistoryPainter extends CustomPainter {
   final String? currentNoteLabel;
   final ColorScheme colors;
   final TextStyle? textStyle;
+  final Duration historyWindow;
 
   @override
   void paint(ui.Canvas canvas, Size size) {
@@ -14363,15 +14368,15 @@ class _TunerPitchHistoryPainter extends CustomPainter {
       return;
     }
 
-    final oldest = samples.first.timestampMillis;
-    final newest = samples.last.timestampMillis;
-    final span = math.max(1, newest - oldest);
+    final start = samples.first.timestampMillis;
+    final windowMillis = math.max(1, historyWindow.inMilliseconds);
     final segments = SheetTunerPitchHistoryBuffer.segmentsFor(samples);
     SheetTunerPitchHistorySample? latestPitchedSample;
 
     Offset positionFor(SheetTunerPitchHistorySample sample) {
-      final ageX = (sample.timestampMillis - oldest) / span;
-      final x = chart.left + (chart.width * ageX.clamp(0.0, 1.0));
+      final elapsed = sample.timestampMillis - start;
+      final progress = (elapsed / windowMillis).clamp(0.0, 1.0);
+      final x = chart.left + (chart.width * progress);
       return Offset(x, _yForCents(chart, sample.centsOffset));
     }
 
@@ -14403,9 +14408,44 @@ class _TunerPitchHistoryPainter extends CustomPainter {
     }
 
     final latest = latestPitchedSample;
-    if (latest != null && latest.band == SheetTunerFeedbackBand.inTune) {
-      _paintCenterMarker(canvas, positionFor(latest));
+    if (latest != null) {
+      _paintCurrentMarker(canvas, chart, positionFor(latest), latest);
     }
+  }
+
+  void _paintCurrentMarker(
+    ui.Canvas canvas,
+    Rect chart,
+    Offset center,
+    SheetTunerPitchHistorySample sample,
+  ) {
+    if (sample.band == SheetTunerFeedbackBand.inTune) {
+      _paintCenterMarker(canvas, center);
+    } else {
+      final fill = Paint()
+        ..color = colors.surface
+        ..style = PaintingStyle.fill;
+      final stroke = Paint()
+        ..color = _colorForBand(sample.band, sample.signalLevel)
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
+      canvas.drawCircle(center, 6, fill);
+      canvas.drawCircle(center, 6, stroke);
+    }
+
+    final labelStyle = textStyle?.copyWith(
+      color: colors.onSurfaceVariant,
+      fontWeight: FontWeight.w800,
+    );
+    final painter = _textPainter('현재', labelStyle);
+    painter.layout();
+    final x = (center.dx + 8)
+        .clamp(chart.left, chart.right - painter.width)
+        .toDouble();
+    final y = (center.dy - painter.height - 8)
+        .clamp(chart.top, chart.bottom - painter.height)
+        .toDouble();
+    painter.paint(canvas, Offset(x, y));
   }
 
   void _paintCenterMarker(ui.Canvas canvas, Offset center) {
@@ -14470,7 +14510,8 @@ class _TunerPitchHistoryPainter extends CustomPainter {
     return oldDelegate.samples != samples ||
         oldDelegate.currentNoteLabel != currentNoteLabel ||
         oldDelegate.colors != colors ||
-        oldDelegate.textStyle != textStyle;
+        oldDelegate.textStyle != textStyle ||
+        oldDelegate.historyWindow != historyWindow;
   }
 }
 
@@ -14527,18 +14568,6 @@ class _TunerMeter extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Text('낮음', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('정확', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('높음', style: theme.textTheme.labelSmall),
             ],
           ),
         ),
