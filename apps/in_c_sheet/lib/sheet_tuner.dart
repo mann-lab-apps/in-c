@@ -1446,6 +1446,149 @@ class SheetTunerFeedback {
   }
 }
 
+class SheetTunerPitchHistorySample {
+  const SheetTunerPitchHistorySample({
+    required this.timestampMillis,
+    required this.noteMidiNumber,
+    required this.centsOffset,
+    required this.signalLevel,
+    required this.band,
+  });
+
+  factory SheetTunerPitchHistorySample.fromReading({
+    required DateTime timestamp,
+    required SheetTunerReading? reading,
+    required SheetTunerFeedback feedback,
+  }) {
+    if (reading == null || !feedback.hasPitch) {
+      return SheetTunerPitchHistorySample.gap(timestamp: timestamp);
+    }
+    return SheetTunerPitchHistorySample(
+      timestampMillis: timestamp.millisecondsSinceEpoch,
+      noteMidiNumber: reading.note.midiNumber,
+      centsOffset: feedback.displayCents,
+      signalLevel: reading.signalLevel.clamp(0.0, 1.0).toDouble(),
+      band: feedback.band,
+    );
+  }
+
+  factory SheetTunerPitchHistorySample.gap({required DateTime timestamp}) {
+    return SheetTunerPitchHistorySample(
+      timestampMillis: timestamp.millisecondsSinceEpoch,
+      noteMidiNumber: null,
+      centsOffset: 0,
+      signalLevel: 0,
+      band: SheetTunerFeedbackBand.noSignal,
+    );
+  }
+
+  final int timestampMillis;
+  final int? noteMidiNumber;
+  final double centsOffset;
+  final double signalLevel;
+  final SheetTunerFeedbackBand band;
+
+  bool get hasPitch => noteMidiNumber != null;
+  bool get isLowConfidence => band == SheetTunerFeedbackBand.lowConfidence;
+}
+
+class SheetTunerPitchHistorySegment {
+  const SheetTunerPitchHistorySegment(this.samples);
+
+  final List<SheetTunerPitchHistorySample> samples;
+
+  int? get noteMidiNumber =>
+      samples.isEmpty ? null : samples.first.noteMidiNumber;
+}
+
+class SheetTunerPitchHistoryBuffer {
+  SheetTunerPitchHistoryBuffer({
+    this.window = const Duration(milliseconds: 2200),
+    this.maxSamples = 96,
+  });
+
+  final Duration window;
+  final int maxSamples;
+  final List<SheetTunerPitchHistorySample> _samples =
+      <SheetTunerPitchHistorySample>[];
+
+  List<SheetTunerPitchHistorySample> get samples =>
+      List<SheetTunerPitchHistorySample>.unmodifiable(_samples);
+
+  void add({
+    required DateTime timestamp,
+    required SheetTunerReading? reading,
+    required SheetTunerFeedback feedback,
+  }) {
+    _samples.add(
+      SheetTunerPitchHistorySample.fromReading(
+        timestamp: timestamp,
+        reading: reading,
+        feedback: feedback,
+      ),
+    );
+    _trim(timestamp);
+  }
+
+  void addGap({required DateTime timestamp}) {
+    _samples.add(SheetTunerPitchHistorySample.gap(timestamp: timestamp));
+    _trim(timestamp);
+  }
+
+  void reset() {
+    _samples.clear();
+  }
+
+  List<SheetTunerPitchHistorySegment> segments() {
+    return segmentsFor(samples);
+  }
+
+  static List<SheetTunerPitchHistorySegment> segmentsFor(
+    List<SheetTunerPitchHistorySample> samples,
+  ) {
+    final segments = <SheetTunerPitchHistorySegment>[];
+    var current = <SheetTunerPitchHistorySample>[];
+    int? currentNoteMidiNumber;
+
+    void flush() {
+      if (current.isNotEmpty) {
+        segments.add(
+          SheetTunerPitchHistorySegment(
+            List<SheetTunerPitchHistorySample>.unmodifiable(current),
+          ),
+        );
+        current = <SheetTunerPitchHistorySample>[];
+      }
+      currentNoteMidiNumber = null;
+    }
+
+    for (final sample in samples) {
+      if (!sample.hasPitch) {
+        flush();
+        continue;
+      }
+      if (currentNoteMidiNumber != null &&
+          currentNoteMidiNumber != sample.noteMidiNumber) {
+        flush();
+      }
+      currentNoteMidiNumber = sample.noteMidiNumber;
+      current.add(sample);
+    }
+    flush();
+    return List<SheetTunerPitchHistorySegment>.unmodifiable(segments);
+  }
+
+  void _trim(DateTime now) {
+    final cutoff = now.subtract(window).millisecondsSinceEpoch;
+    while (_samples.isNotEmpty && _samples.first.timestampMillis < cutoff) {
+      _samples.removeAt(0);
+    }
+    while (_samples.length > maxSamples) {
+      _samples.removeAt(0);
+    }
+  }
+}
+
 enum SheetTunerInputPowerBand { idle, silent, weak, steady, strong }
 
 class SheetTunerInputPower {

@@ -95,7 +95,7 @@
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
 | 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
-| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 입력강도 bar, LED flat/center/sharp strip, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, needle damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock은 선택지 과다로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
+| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, pitch history chart, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 입력강도 bar, LED flat/center/sharp strip, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, needle damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock은 선택지 과다로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
@@ -148,7 +148,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
   gate, confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing,
   no-signal debounce, octave/저음 3배음 guard, note hysteresis를 붙였다.
-  V1 UX는 Chromatic-only로 현재 음/cents/meter/input bar를 먼저 보여준다. 기타 줄 맞춤,
+  V1 UX는 Chromatic-only로 현재 음/cents/pitch history chart/meter/input bar를 먼저 보여준다. 기타 줄 맞춤,
   Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 악기별 tuning preset, custom tuning target/preset,
   target lock은 선택지 과다로 v1 UI에서 제외하고, sharp/flat 표기, A4 보정 제안/history,
   기준음/드론 상세 조작은 세부 설정 아래로 내렸다. YIN 후보와 plucked string 회귀 테스트,
@@ -218,7 +218,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - PDF link annotation 제거는 사용자가 확인한 사본에만 적용한다.
 - MobileSheets와 기능 범주는 맞추되, UI와 상호작용을 그대로 복제하지 않는다.
 - 튜너는 핵심 차별점이지만 전용 튜너 앱 수준의 기기별 정확도 보장은 실기기 QA 뒤에 확정한다.
-  v1은 chromatic tuner, sharp/flat 표기, LED/input bar, A4 저장/440-442 quick action/history/보정 제안,
+  v1은 chromatic tuner, pitch history chart, sharp/flat 표기, LED/input bar, A4 저장/440-442 quick action/history/보정 제안,
   adaptive noise floor 1차, weak signal normalization, clipping penalty, Hybrid/YIN detector 비교, 기준음/드론 연계를 제공한다. 기타 줄 맞춤,
   악기별 preset, custom target/preset, target lock은 v1 UI에서 제외했다. Synthetic
   audio/plucked string/time-series 테스트는 통과했으며, Android/iOS 마이크 latency와 외부 마이크

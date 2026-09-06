@@ -61,7 +61,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
   RMS gate/confidence, safe low-amplitude normalization, adaptive noise floor, clipping penalty,
   median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
-  상용 튜너형 feedback label/cents meter, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
+  상용 튜너형 feedback label/pitch history chart/cents meter, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
   기존 저장값과 backup 호환을 위해 model/codec에만 유지한다.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
   5도, 옥타브 drone을 재생한다.
@@ -478,7 +478,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - A4 기준음은 415-466Hz 범위로 clamp한다.
 - 표시 모드, 감지 profile, tuning preset, custom tuning field는 이전 구현과 metadata/full backup
   호환을 위해 `SheetTunerSettings` codec에 유지한다.
-- V1 튜너 UI는 Chromatic-only다. 첫 화면은 현재 음/cents/meter/input bar를 우선 표시하고,
+- V1 튜너 UI는 Chromatic-only다. 첫 화면은 현재 음/cents/pitch history chart/meter/input bar를 우선 표시하고,
   기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 사용자-facing UI에서
   제외한다. 튜너 진입 시 이전 저장값이 target/preset 상태여도 Chromatic mode, Concert 표시,
   Chromatic profile로 정규화한다.
@@ -516,6 +516,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `SheetTunerFeedbackStabilizer`는 UI 표시용 cents를 damping하고, in-tune 상태는 짧게 hold해서
   note label과 needle이 한두 frame 튀는 것을 줄인다. Pitch detector/stabilizer의 원본 reading은
   별도로 유지한다.
+- `SheetTunerPitchHistoryBuffer`는 최근 약 2.2초의 pitch sample만 ephemeral UI state로 유지한다.
+  sample은 timestamp, note MIDI, cents offset, signal level, feedback band를 담고, no signal/null
+  reading 또는 note 변경에서는 segment를 끊어 다른 음 기준의 cents가 한 선으로 이어지지 않게 한다.
+  A4 기준음, 감지 엔진, start/stop 변경 시 reset하며 저장/백업 모델에는 포함하지 않는다.
 - `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 작거나 주변 소음이 큽니다`, `입력이 약합니다`,
   `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
   noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다. 감지 엔진/RMS/confidence/
@@ -525,7 +529,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
-- 1차 UI는 현재 음 이름, concert pitch 표시, 낮음/정확/높음 cents meter, LED flat/center/sharp strip,
+- 1차 UI는 현재 음 이름, concert pitch 표시, 낮음/정확/높음 pitch history chart와 cents meter, LED flat/center/sharp strip,
   입력강도 bar, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
   signal/confidence 상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을
   확인할 수 있다.
@@ -672,7 +676,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 튜너 고도화: runtime microphone permission request, raw PCM stream, RMS/confidence gate,
   safe low-amplitude normalization, adaptive noise floor, clipping penalty, median smoothing,
   no-signal debounce, octave/저음 3배음 guard, note hysteresis, Chromatic-only UI,
-  feedback label/meter, needle damping/in-tune hold는 1차 구현했다. Target/preset 모델은 호환성만 유지한다.
+  feedback label/pitch history chart/meter, needle damping/in-tune hold는 1차 구현했다. Target/preset 모델은 호환성만 유지한다.
   Android 태블릿 실기기 pitch 정확도, latency, adaptive noise floor/YIN/MPM 비교, 외부 microphone
   동작은 후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.

@@ -9,7 +9,7 @@
 A4 보정 제안/history, adaptive noise floor 1차, safe low-amplitude normalization,
 clipping confidence penalty, Hybrid/YIN/autocorrelation 감지 엔진 선택,
 plucked string/저음 3배음 안정화 회귀, 감지 confidence/noise floor/clipping 진단,
-상용 튜너형 feedback label/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
+상용 튜너형 feedback label/pitch history chart/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
 상용급 튜너 정확도 보장이 아니라, 연습자가 악보 viewer 안에서 바로 이해할 수 있는 note/cents
 피드백을 crash 없이 받는 것이다.
 
@@ -98,6 +98,12 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - In-tune dead zone에서는 표시 cents를 0으로 고정한다.
   - 표시용 needle damping과 짧은 in-tune hold로 label/needle이 과하게 흔들리지 않게 한다.
   - feedback band를 LED flat/center/sharp strip으로 변환해 한눈에 볼 수 있게 한다.
+- `SheetTunerPitchHistoryBuffer`
+  - 최근 약 2.2초의 reading을 저장 모델과 분리된 ephemeral UI state로만 유지한다.
+  - sample은 timestamp, note MIDI, cents offset, signal level, feedback band를 가진다.
+  - no signal/null reading은 gap sample로 기록하고, note MIDI가 바뀌면 segment를 끊어 서로 다른 음의
+    cents 기준이 이어져 보이지 않게 한다.
+  - A4 기준음 변경, 감지 엔진 변경, 튜너 start/stop에서는 history를 reset한다.
 - `SheetTunerInputPower`
   - confidence 기반 입력강도 bar를 제공한다. 현재는 amplitude overload meter가 아니라 안정도
     표시이며, adaptive noise floor estimate와 rejection reason은 감지 진단으로만 노출한다.
@@ -117,8 +123,10 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
 - Viewer 튜너 UI
   - AppBar 또는 overflow menu에서 진입.
   - 공연 모드에서도 진입 가능.
-  - 첫 화면은 현재 음 이름, cents, meter, LED, input bar, 낮음/정확/높음 feedback, A4 quick action만
+  - 첫 화면은 현재 음 이름, cents, pitch history chart, meter, LED, input bar, 낮음/정확/높음 feedback, A4 quick action만
     전면에 둔다.
+  - pitch history chart는 최근 cents 흐름을 ±50 cents 범위에서 그리고, 0/±25/±50 기준선과
+    낮음/높음 label로 조율 방향을 보여준다. 신뢰도가 낮은 sample은 흐리게 표시한다.
   - 기타 줄 맞춤, tuning preset, 표시 모드, 감지 profile, target shortcut, target lock 상세,
     custom preset 저장/적용/삭제는 v1 UI에서 제외한다.
   - 감지 엔진, sharp/flat 표기, 기준음/드론, A4 기준음 slider, 보정 제안/history는 `세부 설정` 아래에 둔다.

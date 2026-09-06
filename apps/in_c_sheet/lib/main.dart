@@ -13407,12 +13407,34 @@ Widget buildTunerSheetForTest({
   );
 }
 
+@visibleForTesting
+Widget buildTunerPitchHistoryChartForTest({
+  List<SheetTunerPitchHistorySample> samples =
+      const <SheetTunerPitchHistorySample>[],
+  String currentNoteLabel = 'A4',
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 360,
+          child: _TunerPitchHistoryChart(
+            samples: samples,
+            currentNoteLabel: currentNoteLabel,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _TunerSheetState extends State<_TunerSheet> {
   late SheetTunerSettings _settings;
   late SheetToneSettings _toneSettings;
   late final SheetTunerInputService _inputService;
   late final SheetTonePlayer _tonePlayer;
   late final SheetTunerFeedbackStabilizer _feedbackStabilizer;
+  late final SheetTunerPitchHistoryBuffer _pitchHistory;
   late double _demoFrequency;
   StreamSubscription<SheetTunerState>? _inputSubscription;
   SheetTunerState _state = SheetTunerState.idle;
@@ -13429,10 +13451,12 @@ class _TunerSheetState extends State<_TunerSheet> {
     _inputService = SheetTunerInputService();
     _tonePlayer = SheetTonePlayer();
     _feedbackStabilizer = SheetTunerFeedbackStabilizer();
+    _pitchHistory = SheetTunerPitchHistoryBuffer();
     _inputSubscription = _inputService.states.listen((state) {
       if (mounted) {
         setState(() {
           _state = state;
+          _recordPitchHistory(state);
           if (state.isListening && state.reading != null) {
             _rememberCalibrationReading(state.reading!);
           }
@@ -13496,6 +13520,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
@@ -13564,6 +13589,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
@@ -13585,9 +13611,11 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   Future<void> _toggleListening() async {
     if (_state.isListening) {
+      setState(_pitchHistory.reset);
       await _inputService.stop();
       return;
     }
+    setState(_pitchHistory.reset);
     await _inputService.start(settings: _settings);
   }
 
@@ -13620,6 +13648,24 @@ class _TunerSheetState extends State<_TunerSheet> {
     if (_recentCalibrationReadings.length > 12) {
       _recentCalibrationReadings.removeAt(0);
     }
+  }
+
+  void _recordPitchHistory(SheetTunerState state) {
+    if (!state.isListening) {
+      _pitchHistory.reset();
+      return;
+    }
+    final reading = state.reading;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: state.inputStatus,
+      reading: reading,
+      centsOffset: reading?.centsOffset ?? 0,
+    );
+    _pitchHistory.add(
+      timestamp: DateTime.now(),
+      reading: reading,
+      feedback: feedback,
+    );
   }
 
   Future<void> _confirmCalibrationSuggestion(
@@ -13712,6 +13758,11 @@ class _TunerSheetState extends State<_TunerSheet> {
       SheetTunerInputStatus.error => status.label,
       _ => feedback.label,
     };
+    final pitchHistorySamples = _pitchHistory.samples;
+    final pitchHistoryNoteLabel =
+        pitchHistorySamples.any((sample) => sample.hasPitch)
+        ? displayedPitch?.primaryLabelWith(preferFlats: _preferFlats)
+        : null;
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -13810,6 +13861,11 @@ class _TunerSheetState extends State<_TunerSheet> {
                     ),
                   ),
                 ),
+              const SizedBox(height: 16),
+              _TunerPitchHistoryChart(
+                samples: pitchHistorySamples,
+                currentNoteLabel: pitchHistoryNoteLabel,
+              ),
               const SizedBox(height: 20),
               _TunerMeter(feedback: feedback),
               const SizedBox(height: 14),
@@ -14178,6 +14234,243 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   List<SheetTunerTarget> _activeTuningTargetsFor() {
     return SheetTunerPreset.chromatic.targets;
+  }
+}
+
+class _TunerPitchHistoryChart extends StatelessWidget {
+  const _TunerPitchHistoryChart({
+    required this.samples,
+    required this.currentNoteLabel,
+  });
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '최근 음정 변화 그래프',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(
+          height: 128,
+          child: CustomPaint(
+            painter: _TunerPitchHistoryPainter(
+              samples: samples,
+              currentNoteLabel: currentNoteLabel,
+              colors: theme.colorScheme,
+              textStyle: theme.textTheme.labelSmall,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TunerPitchHistoryPainter extends CustomPainter {
+  _TunerPitchHistoryPainter({
+    required this.samples,
+    required this.currentNoteLabel,
+    required this.colors,
+    required this.textStyle,
+  });
+
+  static const double _maxCents = 50;
+  static const double _paddingLeft = 30;
+  static const double _paddingRight = 18;
+  static const double _paddingTop = 16;
+  static const double _paddingBottom = 22;
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+  final ColorScheme colors;
+  final TextStyle? textStyle;
+
+  @override
+  void paint(ui.Canvas canvas, Size size) {
+    final chart = Rect.fromLTRB(
+      _paddingLeft,
+      _paddingTop,
+      size.width - _paddingRight,
+      size.height - _paddingBottom,
+    );
+    if (chart.width <= 0 || chart.height <= 0) {
+      return;
+    }
+
+    _paintGrid(canvas, chart);
+    _paintLabels(canvas, chart);
+    _paintHistory(canvas, chart);
+  }
+
+  void _paintGrid(ui.Canvas canvas, Rect chart) {
+    final gridPaint = Paint()
+      ..color = colors.outlineVariant.withValues(alpha: 0.62)
+      ..strokeWidth = 1;
+    final centerPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.74)
+      ..strokeWidth = 1.5;
+
+    for (final cents in const <double>[-50, -25, 0, 25, 50]) {
+      final y = _yForCents(chart, cents);
+      canvas.drawLine(
+        Offset(chart.left, y),
+        Offset(chart.right, y),
+        cents == 0 ? centerPaint : gridPaint,
+      );
+    }
+    for (var index = 1; index < 4; index += 1) {
+      final x = chart.left + (chart.width * index / 4);
+      canvas.drawLine(Offset(x, chart.top), Offset(x, chart.bottom), gridPaint);
+    }
+  }
+
+  void _paintLabels(ui.Canvas canvas, Rect chart) {
+    final labelStyle = textStyle?.copyWith(
+      color: colors.onSurfaceVariant,
+      fontWeight: FontWeight.w700,
+    );
+    _paintText(canvas, '높음', Offset(4, chart.top - 2), labelStyle);
+    _paintText(canvas, '0', Offset(10, _yForCents(chart, 0) - 8), labelStyle);
+    _paintText(canvas, '낮음', Offset(4, chart.bottom - 12), labelStyle);
+
+    final noteLabel = currentNoteLabel;
+    if (noteLabel != null && noteLabel.isNotEmpty) {
+      final painter = _textPainter(
+        noteLabel,
+        labelStyle?.copyWith(
+          color: colors.onSurface,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+      painter.layout();
+      painter.paint(
+        canvas,
+        Offset(chart.right - painter.width, chart.bottom + 4),
+      );
+    }
+  }
+
+  void _paintHistory(ui.Canvas canvas, Rect chart) {
+    final pitchedSamples = samples.where((sample) => sample.hasPitch).toList();
+    if (pitchedSamples.isEmpty) {
+      return;
+    }
+
+    final oldest = samples.first.timestampMillis;
+    final newest = samples.last.timestampMillis;
+    final span = math.max(1, newest - oldest);
+    final segments = SheetTunerPitchHistoryBuffer.segmentsFor(samples);
+    SheetTunerPitchHistorySample? latestPitchedSample;
+
+    Offset positionFor(SheetTunerPitchHistorySample sample) {
+      final ageX = (sample.timestampMillis - oldest) / span;
+      final x = chart.left + (chart.width * ageX.clamp(0.0, 1.0));
+      return Offset(x, _yForCents(chart, sample.centsOffset));
+    }
+
+    for (final segment in segments) {
+      final segmentSamples = segment.samples;
+      if (segmentSamples.isEmpty) {
+        continue;
+      }
+      latestPitchedSample = segmentSamples.last;
+      if (segmentSamples.length == 1) {
+        final sample = segmentSamples.single;
+        canvas.drawCircle(
+          positionFor(sample),
+          2.8,
+          Paint()..color = _colorForBand(sample.band, sample.signalLevel),
+        );
+        continue;
+      }
+      for (var index = 1; index < segmentSamples.length; index += 1) {
+        final previous = segmentSamples[index - 1];
+        final current = segmentSamples[index];
+        final paint = Paint()
+          ..color = _colorForBand(current.band, current.signalLevel)
+          ..strokeWidth = current.isLowConfidence ? 1.4 : 2.6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(positionFor(previous), positionFor(current), paint);
+      }
+    }
+
+    final latest = latestPitchedSample;
+    if (latest != null && latest.band == SheetTunerFeedbackBand.inTune) {
+      _paintCenterMarker(canvas, positionFor(latest));
+    }
+  }
+
+  void _paintCenterMarker(ui.Canvas canvas, Offset center) {
+    final markerPaint = Paint()
+      ..color = colors.primary
+      ..style = PaintingStyle.fill;
+    final checkPaint = Paint()
+      ..color = colors.onPrimary
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, 9, markerPaint);
+    final check = Path()
+      ..moveTo(center.dx - 4, center.dy)
+      ..lineTo(center.dx - 1, center.dy + 3)
+      ..lineTo(center.dx + 5, center.dy - 4);
+    canvas.drawPath(check, checkPaint);
+  }
+
+  Color _colorForBand(SheetTunerFeedbackBand band, double signalLevel) {
+    final base = switch (band) {
+      SheetTunerFeedbackBand.inTune => colors.primary,
+      SheetTunerFeedbackBand.slightlyFlat ||
+      SheetTunerFeedbackBand.veryFlat => colors.tertiary,
+      SheetTunerFeedbackBand.slightlySharp ||
+      SheetTunerFeedbackBand.verySharp => colors.error,
+      SheetTunerFeedbackBand.lowConfidence => colors.secondary,
+      _ => colors.outline,
+    };
+    final opacity = band == SheetTunerFeedbackBand.lowConfidence
+        ? 0.38
+        : (0.44 + (signalLevel.clamp(0.0, 1.0) * 0.5));
+    return base.withValues(alpha: opacity.clamp(0.28, 0.94));
+  }
+
+  double _yForCents(Rect chart, double cents) {
+    final clamped = cents.clamp(-_maxCents, _maxCents).toDouble();
+    final normalized = clamped / _maxCents;
+    return chart.center.dy - (normalized * chart.height / 2);
+  }
+
+  void _paintText(
+    ui.Canvas canvas,
+    String text,
+    Offset offset,
+    TextStyle? style,
+  ) {
+    final painter = _textPainter(text, style);
+    painter.layout();
+    painter.paint(canvas, offset);
+  }
+
+  TextPainter _textPainter(String text, TextStyle? style) {
+    return TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TunerPitchHistoryPainter oldDelegate) {
+    return oldDelegate.samples != samples ||
+        oldDelegate.currentNoteLabel != currentNoteLabel ||
+        oldDelegate.colors != colors ||
+        oldDelegate.textStyle != textStyle;
   }
 }
 

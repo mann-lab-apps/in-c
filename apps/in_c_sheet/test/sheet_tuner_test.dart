@@ -1124,6 +1124,121 @@ void main() {
     },
   );
 
+  test('pitch history buffer keeps only recent samples', () {
+    final buffer = SheetTunerPitchHistoryBuffer(
+      window: const Duration(milliseconds: 1000),
+      maxSamples: 4,
+    );
+    final start = DateTime.fromMillisecondsSinceEpoch(10000);
+
+    for (var index = 0; index < 6; index += 1) {
+      final reading = SheetTunerPitch.detect(
+        frequency: 440.0 + index,
+        signalLevel: 0.9,
+      )!;
+      buffer.add(
+        timestamp: start.add(Duration(milliseconds: index * 300)),
+        reading: reading,
+        feedback: SheetTunerFeedback.fromState(
+          inputStatus: SheetTunerInputStatus.listening,
+          reading: reading,
+          centsOffset: reading.centsOffset,
+        ),
+      );
+    }
+
+    expect(buffer.samples, hasLength(4));
+    expect(buffer.samples.first.timestampMillis, 10600);
+    expect(buffer.samples.last.timestampMillis, 11500);
+  });
+
+  test('pitch history splits segments on no signal and note changes', () {
+    final buffer = SheetTunerPitchHistoryBuffer();
+    final start = DateTime.fromMillisecondsSinceEpoch(20000);
+
+    void add(double frequency, int offset) {
+      final reading = SheetTunerPitch.detect(
+        frequency: frequency,
+        signalLevel: 0.9,
+      )!;
+      buffer.add(
+        timestamp: start.add(Duration(milliseconds: offset)),
+        reading: reading,
+        feedback: SheetTunerFeedback.fromState(
+          inputStatus: SheetTunerInputStatus.listening,
+          reading: reading,
+          centsOffset: reading.centsOffset,
+        ),
+      );
+    }
+
+    add(440, 0);
+    add(441, 100);
+    buffer.addGap(timestamp: start.add(const Duration(milliseconds: 200)));
+    add(440, 300);
+    add(466.16, 400);
+
+    final segments = buffer.segments();
+
+    expect(segments, hasLength(3));
+    expect(segments[0].samples, hasLength(2));
+    expect(segments[0].noteMidiNumber, 69);
+    expect(segments[1].noteMidiNumber, 69);
+    expect(segments[2].noteMidiNumber, 70);
+  });
+
+  test('pitch history records low confidence pitch but gaps null readings', () {
+    final buffer = SheetTunerPitchHistoryBuffer();
+    final start = DateTime.fromMillisecondsSinceEpoch(30000);
+    final weakReading = SheetTunerPitch.detect(
+      frequency: 440,
+      signalLevel: 0.45,
+    )!;
+
+    buffer.add(
+      timestamp: start,
+      reading: weakReading,
+      feedback: SheetTunerFeedback.fromState(
+        inputStatus: SheetTunerInputStatus.listening,
+        reading: weakReading,
+        centsOffset: weakReading.centsOffset,
+      ),
+    );
+    buffer.add(
+      timestamp: start.add(const Duration(milliseconds: 100)),
+      reading: null,
+      feedback: SheetTunerFeedback.fromState(
+        inputStatus: SheetTunerInputStatus.noSignal,
+        reading: null,
+        centsOffset: 0,
+      ),
+    );
+
+    expect(buffer.samples.first.hasPitch, isTrue);
+    expect(buffer.samples.first.isLowConfidence, isTrue);
+    expect(buffer.samples.last.hasPitch, isFalse);
+    expect(buffer.segments(), hasLength(1));
+  });
+
+  test('pitch history reset clears ephemeral tuning context', () {
+    final buffer = SheetTunerPitchHistoryBuffer();
+    final reading = SheetTunerPitch.detect(frequency: 440, signalLevel: 0.9)!;
+    buffer.add(
+      timestamp: DateTime.fromMillisecondsSinceEpoch(40000),
+      reading: reading,
+      feedback: SheetTunerFeedback.fromState(
+        inputStatus: SheetTunerInputStatus.listening,
+        reading: reading,
+        centsOffset: reading.centsOffset,
+      ),
+    );
+
+    buffer.reset();
+
+    expect(buffer.samples, isEmpty);
+    expect(buffer.segments(), isEmpty);
+  });
+
   test('stabilizer holds note near a boundary with hysteresis', () {
     final stabilizer = SheetTunerReadingStabilizer(
       maxHistory: 1,
