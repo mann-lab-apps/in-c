@@ -304,7 +304,7 @@ flutter build ios --release --no-codesign
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
 - 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI/pitch
-  history chart 보강분은 현재 `1.0.0+17` RC 후보로 준비한다.
+  history chart 보강분은 현재 `1.0.0+18` RC 후보로 준비한다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -324,14 +324,14 @@ flutter build ios --release --no-codesign
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 소스 version은 `1.0.0+17`이다.
+- 현재 소스 version은 `1.0.0+18`이다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
 - 이전 튜너 보강분 내부테스트 AAB는 `1.0.0+10`으로 만들었고, 최종 UI polish AAB는
   `1.0.0+14`로 만들었다. Play Console에서 `1.0.0+15` versionCode가 이미 사용된 것으로
   확인되어 튜너 간결화 변경분은 `1.0.0+16` release AAB에 반영했고, pitch history chart
-  변경분은 `1.0.0+17` release AAB에 반영했다.
+  변경분은 `1.0.0+18` release AAB에 반영했다.
 
 2026-08-31 RC 잔여 안정화/작업트리 분리 기록:
 
@@ -393,9 +393,9 @@ flutter build ios --release --no-codesign
   발견된 Flutter dialog teardown assertion을 방지한다.
 - 카메라 기반 직접 스캐너는 v1 구현 범위가 아니며 Later/v1.1 후보로 유지한다. v1은 PDF/JPG/PNG
   import와 이미지 묶기 PDF 변환, 스캔된 PDF 처리에 집중한다.
-- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`은 현재 소스 기준 `1.0.0+17`으로 맞췄다.
-- `flutter build appbundle --release`로 `1.0.0+17` release AAB를 생성했다. Play Console 업로드 후보는
-  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+17-release.aab`이며,
-  SHA-256은 `4349067e444c549eafe92112931246733740f69e195162f572d467961da7aee6`이다. release
+- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`은 현재 소스 기준 `1.0.0+18`으로 맞췄다.
+- `flutter build appbundle --release`로 `1.0.0+18` release AAB를 생성했다. Play Console 업로드 후보는
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+18-release.aab`이며,
+  SHA-256은 `16b8b1eb08d41a9e85292f3cb6557fb8fdb4f68a9a28e5a13fb0e72c6c42905c`이다. release
   signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
   일치한다.

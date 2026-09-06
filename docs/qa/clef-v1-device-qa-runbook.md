@@ -54,11 +54,11 @@ flutter build ios --release --no-codesign
 
 2026-09-02 최종 UI polish 내부테스트 준비:
 
-- 현재 소스 앱 버전: `1.0.0+17`.
+- 현재 소스 앱 버전: `1.0.0+18`.
 - 앱 이름/런처 label은 `Clef & Staff`이다.
 - 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
   생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
-- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+17`이며, 튜너 간결화, 입력 안정화, pitch history
+- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+18`이며, 튜너 간결화, 입력 안정화, pitch history
   chart 변경분을 포함한다.
 
 ## 준비물
@@ -233,10 +233,10 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 
 ## 2026-09-06 내부테스트 산출물
 
-- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+17`.
+- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+18`.
 - 마지막 Play Console 업로드 후보:
-  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+17-release.aab`.
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+18-release.aab`.
 - 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
 - 파일 크기: 약 67MB.
-- SHA-256: `4349067e444c549eafe92112931246733740f69e195162f572d467961da7aee6`.
+- SHA-256: `16b8b1eb08d41a9e85292f3cb6557fb8fdb4f68a9a28e5a13fb0e72c6c42905c`.
 - upload key SHA1: `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
