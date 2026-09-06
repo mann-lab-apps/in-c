@@ -115,7 +115,8 @@ v1.1 spike 여부:
   iPad smoke는 별도 실기기/샘플 QA가 필요하다.
 - 튜너의 sine/noise/plucked string/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-only로
   단순화했고, 기타 줄 맞춤/악기별 preset/custom target/target lock은 v1 전면 UX에서 제외했다.
-  sharp/flat 표기, LED/input power 상태, A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold,
+  sharp/flat 표기, LED/input power 상태, A4 quick/history/보정 제안, adaptive noise floor 1차,
+  weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
   `자동`/`기존`/`정밀 후보` 감지 엔진과 debug label은 자동 테스트와 widget smoke test로 검증했다.
   실제 악기/기기 마이크 기준 정확도, latency,
   외부 마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
@@ -361,7 +362,7 @@ flutter build ios --release --no-codesign
 2026-09-02 최종 UI/QA polish 기록:
 
 - `fdc40fc fix: polish Clef tuner and library actions`에서 렌더링 프리셋 `균형`/`대형 PDF` 아이콘을
-  메트로놈과 구분하고, 튜너 첫 화면을 음정/meter/입력 bar/줄 선택 중심으로 재정렬했다.
+  메트로놈과 구분하고, 튜너 첫 화면을 음정/meter/입력 bar 중심으로 재정렬했다.
 - 튜너 bottom sheet는 진입 직후 마이크 입력을 시작하고, 큰 `시작` 버튼 대신 작은 마이크 toggle만 둔다.
 - 라이브러리 생성 시 기존 이름과 중복되면 조용히 실패하지 않고 `이미 있습니다` 안내와 `열기` action을
   표시한다.
@@ -377,6 +378,8 @@ flutter build ios --release --no-codesign
 - 상용 튜너급 비교를 위해 세부 설정 아래에 `자동`, `기존`, `정밀 후보` 감지 엔진 선택과
   신호/신뢰도/노이즈/제외 사유 진단 label을 추가했다. 기본값은 plucked string 회귀와
   fine cents 비교를 함께 보는 `자동`이다.
+- 약한 입력이 noise floor보다 충분히 큰 경우에만 detector 분석 frame을 정규화하고, clipping frame은
+  confidence를 낮추며, 저음의 3배음 후보는 직전 stable reading을 기준으로 제한적으로 접는다.
 - dev 병합분에 포함된 classical discovery 코드는 별도 앱/후속 surface로 보존하되, Clef & Staff RC
   홈 상단에는 `클래식 듣기` 진입점을 노출하지 않는다.
 - 홈 카드 action icon은 제목과 같은 줄에서 경쟁하지 않도록 별도 줄로 내려 metadata가 비어 있는

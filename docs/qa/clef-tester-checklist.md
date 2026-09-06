@@ -29,7 +29,7 @@
 8. 튜너를 열었을 때 시작 버튼 없이 현재 음/meter/입력 bar가 먼저 보이고, 기타 줄 맞춤이나 악기별
    preset 선택 없이 가장 가까운 음을 바로 표시하는지 확인한다.
 9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
-   표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
+   표기, LED, 입력 bar, `소리가 작거나 주변 소음이 큽니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
    `맞았습니다` 상태를 확인한다.
 10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
@@ -72,7 +72,8 @@
 
 - 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. v1 UI는 Chromatic-only 첫 화면,
   세부 설정 접힘, sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
-  floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+  floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, `자동`/`기존`/`정밀 후보`
+  감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
   기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
 - 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+16`이다. 실제 마이크 정확도/latency QA는 아직

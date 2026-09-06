@@ -6,9 +6,10 @@
 
 튜너는 `record` 7.1.1 기반 raw PCM stream을 붙여 실제 microphone input pipeline 1차까지
 구현했다. V1 전달 전 보강으로 Chromatic-only 첫 화면, sharp/flat 표기 선택,
-A4 보정 제안/history, adaptive noise floor 1차, Hybrid/YIN/autocorrelation 감지 엔진 선택,
-plucked string 안정화 회귀, 감지 confidence/noise floor 진단, 상용 튜너형 feedback
-label/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
+A4 보정 제안/history, adaptive noise floor 1차, safe low-amplitude normalization,
+clipping confidence penalty, Hybrid/YIN/autocorrelation 감지 엔진 선택,
+plucked string/저음 3배음 안정화 회귀, 감지 confidence/noise floor/clipping 진단,
+상용 튜너형 feedback label/meter/LED/input power 표시를 추가했다. 이번 단계의 목표는
 상용급 튜너 정확도 보장이 아니라, 연습자가 악보 viewer 안에서 바로 이해할 수 있는 note/cents
 피드백을 crash 없이 받는 것이다.
 
@@ -63,14 +64,16 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - 기본 Chromatic profile은 44.1kHz, 4096 sample window, 70-1200Hz 탐지 범위다.
   - Bb Trumpet profile은 concert E3-C6 중심 range를 사용해 낮은 rumble과 과도한 고역 잡음을
     더 엄격히 제외한다.
-  - RMS threshold 아래 입력은 no signal로 처리한다.
+  - RMS threshold 아래 입력은 no signal로 처리하되, instance detector에서 학습한 noise floor보다
+    충분히 큰 약한 입력은 분석 frame에 한해 안전하게 정규화한다.
   - Instance detector 경로는 최근 저신호 frame의 RMS median으로 adaptive noise floor를 추정하고,
     noise floor 대비 낮은 입력이나 갑작스러운 저신뢰 소음 후보를 no signal로 유지한다.
+  - clipping 비율이 높은 frame은 confidence를 낮춰 완전히 안정적인 입력처럼 표시하지 않는다.
   - 가장 큰 상관 peak만 쓰면 octave/subharmonic으로 내려가는 문제가 있어, 충분히 강한 첫
     local peak를 우선 선택한다.
   - 선택된 local peak의 correlation을 parabolic interpolation에 사용해 peak 보정값이 다른
     peak의 correlation에 끌려가지 않게 했다.
-  - 마지막 frame의 감지 엔진, RMS, confidence, noise floor, rejection reason을 debug label로
+  - 마지막 frame의 감지 엔진, RMS, confidence, noise floor, clipping ratio, rejection reason을 debug label로
     제공해 실기기 QA에서 상용 튜너 비교 결과와 함께 기록할 수 있다.
 - `SheetTunerInputService`
   - `AudioRecorder.hasPermission`으로 runtime microphone permission을 확인/요청한다.
@@ -84,12 +87,13 @@ Android 태블릿 실기기에서 pitch 정확도, latency, 소음 환경 안정
   - note boundary 근처에서는 이전 안정 note를 잠깐 유지하는 hysteresis를 적용해 label
     깜빡임을 줄인다.
   - 직전 안정 reading에서 크게 벗어나는 짧은 octave jump는 같은 pitch class 안에서 한 octave
-    접어 안정화한다.
+    접어 안정화한다. 저음 안정음이 이미 잡힌 상태에서는 작은 스피커/기타 저음의 3배음 후보도
+    제한적으로 fundamental 쪽으로 접되, 실제 고음 입력을 낮은 음으로 오인하지 않도록 저음 조건을 둔다.
   - no signal은 4 frame debounce 후 표시해 순간적인 입력 끊김이 note label 깜빡임으로 바로
     이어지지 않게 한다.
   - permission denied, unsupported/error, no signal 상태를 UI가 분리해서 표시할 수 있게 한다.
 - `SheetTunerFeedback` / `SheetTunerFeedbackStabilizer`
-  - input status, confidence, cents를 `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`,
+  - input status, confidence, cents를 `소리가 작거나 주변 소음이 큽니다`, `음을 잡는 중`, `조금 낮아요`,
     `조금 높아요`, `맞았습니다` 상태로 변환한다.
   - In-tune dead zone에서는 표시 cents를 0으로 고정한다.
   - 표시용 needle damping과 짧은 in-tune hold로 label/needle이 과하게 흔들리지 않게 한다.

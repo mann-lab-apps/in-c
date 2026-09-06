@@ -59,7 +59,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
 - 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
-  RMS gate/confidence, median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
+  RMS gate/confidence, safe low-amplitude normalization, adaptive noise floor, clipping penalty,
+  median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
   상용 튜너형 feedback label/cents meter, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
   기존 저장값과 backup 호환을 위해 model/codec에만 유지한다.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
@@ -497,25 +498,28 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   감지 엔진 dropdown은 실기기 QA 비교용이다. V1 UI는 Chromatic profile만 노출하며 기본 range는
   70-1200Hz다.
   Instance detector 경로는 최근 저신호 frame에서 adaptive noise floor를 추정해 너무 낮은 입력이나
-  갑작스러운 저신뢰 소음 후보가 note label로 튀지 않도록 1차 guard를 둔다.
+  갑작스러운 저신뢰 소음 후보가 note label로 튀지 않도록 1차 guard를 둔다. Noise floor보다 충분히
+  큰 약한 입력은 detector 분석 frame에서만 안전하게 정규화하고, clipping 비율이 높은 frame은
+  confidence를 낮춰 완전히 안정적인 입력처럼 보이지 않게 한다.
 - `SheetTunerInputService`는 `record` 7.1.1의 `AudioRecorder.hasPermission`과
   `AudioRecorder.startStream`을 사용한다. Stream 설정은 `pcm16bits`, mono, 44.1kHz,
   `streamBufferSize: 4096`이다.
 - `SheetTunerReadingStabilizer`는 최근 5개 reading의 median frequency를 사용하고, 낮은
   confidence reading을 무시하며, profile별 no signal debounce 후 표시한다. 짧은 octave
-  jump는 직전 안정 reading 근처로 접고, boundary 근처 note hysteresis로 label 깜빡임을
-  줄인다.
-- `SheetTunerFeedback`은 input status와 reading confidence/cents를 `소리가 너무 작습니다`,
+  jump는 직전 안정 reading 근처로 접고, 저음에서 3배음 후보가 직전 안정음의 harmonic으로 보이면
+  제한적으로 fundamental 쪽으로 접는다. 실제 고음 입력을 낮은 음으로 오인하지 않도록 저음 안정음
+  조건을 두며, boundary 근처 note hysteresis로 label 깜빡임을 줄인다.
+- `SheetTunerFeedback`은 input status와 reading confidence/cents를 `소리가 작거나 주변 소음이 큽니다`,
   `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 같은 performance-facing 상태로
   변환한다. In-tune dead zone 안에서는 표시 cents를 0으로 잡아 needle이 과하게 떨려 보이지 않게
   한다.
 - `SheetTunerFeedbackStabilizer`는 UI 표시용 cents를 damping하고, in-tune 상태는 짧게 hold해서
   note label과 needle이 한두 frame 튀는 것을 줄인다. Pitch detector/stabilizer의 원본 reading은
   별도로 유지한다.
-- `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 너무 작습니다`, `입력이 약합니다`,
+- `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 작거나 주변 소음이 큽니다`, `입력이 약합니다`,
   `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
   noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다. 감지 엔진/RMS/confidence/
-  noise floor/reject reason은 세부 설정의 debug label로 기록할 수 있다.
+  noise floor/clipping ratio/reject reason은 세부 설정의 debug label로 기록할 수 있다.
 - `SheetTunerReferenceCalibration`은 안정적인 A 계열 reading이 최소 4개 모였고 spread가 작을 때만
   A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다. A4
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
@@ -666,7 +670,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   기본 필기 layer visibility/export 포함 flag, text edit/delete와 page rect 기반 overlay도 구현했다.
   palm rejection 실기기 튜닝, 다중 layer keying, PDF embed/export 별도 spike는 남아 있다.
 - 튜너 고도화: runtime microphone permission request, raw PCM stream, RMS/confidence gate,
-  median smoothing, no-signal debounce, octave guard, note hysteresis, Chromatic-only UI,
+  safe low-amplitude normalization, adaptive noise floor, clipping penalty, median smoothing,
+  no-signal debounce, octave/저음 3배음 guard, note hysteresis, Chromatic-only UI,
   feedback label/meter, needle damping/in-tune hold는 1차 구현했다. Target/preset 모델은 호환성만 유지한다.
   Android 태블릿 실기기 pitch 정확도, latency, adaptive noise floor/YIN/MPM 비교, 외부 microphone
   동작은 후속 검증이 필요하다.
@@ -908,8 +913,8 @@ classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악�
 
 2026-09-02 최종 UI polish에서는 당시 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
 `Clef & Staff`로 유지했다. 렌더링 프리셋 아이콘은 메트로놈과 구분되도록 `균형`/`대형 PDF`를 각각
-balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar/기타
-줄 선택을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
+balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar 중심의
+Chromatic-only 흐름을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
 명시하고, 일반 라이브러리 화면의 `악보 추가` CTA는 상단 action 하나로 정리했다. dev 병합분의
 classical discovery 파일은 보존하지만 Clef & Staff RC 홈 surface에는 진입점을 노출하지 않는다. 이후
 에뮬레이터 재확인에서 홈 카드 제목이 action icon과 같은 줄에서 좁아지는 문제와 text entry dialog
