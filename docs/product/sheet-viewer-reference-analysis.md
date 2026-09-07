@@ -240,12 +240,11 @@ MobileSheets, Piascore, forScore의 공식 도움말, 스토어 설명, 공개 �
 
 ## 2026-09-07 MobileSheets 에뮬레이터 정밀 확인
 
-확인일: 2026-09-07. Clef & Staff worktree는 `dev` at `bf8277a` 기준이고,
-Android AVD `clef_rc_tablet_api35`에서 Google Play의 MobileSheets Trial 페이지를
-열어 보았다. AVD는 Google 계정 로그인이 되어 있지 않아 Play Store가 로그인 화면에서
-멈췄고, MobileSheets 앱 내부 UX는 직접 실행하지 못했다. 따라서 아래 판단은
-공식 사이트, 최신 Google Play 설명, 공식 PDF 매뉴얼, Zubersoft 포럼 답변 기반이며,
-"직접 앱 실행" 근거와 "공식 문서" 근거를 분리해 해석한다.
+확인일: 2026-09-07. 1차 조사는 공식 사이트, 최신 Google Play 설명, 공식 PDF 매뉴얼,
+Zubersoft 포럼 답변 기반으로 정리했다. 이후 MobileSheets Trial 설치본을
+Android AVD `clef_rc_tablet_api35`에서 직접 실행해 다중 선택, 세트리스트,
+viewer overlay, metronome, annotation, settings 흐름을 재확인했다. 직접 실행 기준
+상세 분석은 `docs/product/clef-mobilesheets-hands-on-analysis.md`에 분리했다.
 
 ### 레퍼런스 해석
 
