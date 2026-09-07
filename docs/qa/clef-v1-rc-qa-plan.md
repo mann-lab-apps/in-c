@@ -187,8 +187,18 @@ source of truth로 둔다.
 - 실제 HID key capture wizard 기반 페달 설정.
 - 저지연 metronome/audio/iOS playback parity.
 - Page별 live rotation rendering과 overlay/link/search coordinate regression.
+- Viewer mini tuner/metronome panel과 metronome rhythm/subdivision/tap tempo UX.
 - Cloud sync/account/server 저장과 OS background scheduler 기반 주기적 전체 백업은 v1.1 또는 Later
   scope 결정 spike로 유지.
+
+2026-09-07 경쟁앱 UX 리서치 기반 후속 분류:
+
+- v1 hotfix 후보: 다중 선택 강조, 선택 악보의 bulk setlist 추가, setlist drag reorder, page tap zone
+  hint, viewer paper/white 배경 기본값, Android metronome tick sound 재현/오류 안내.
+- v1.1 후보: 최근 목록에 최근 setlist 노출, metronome rhythm/subdivision/accent pattern, tap tempo,
+  score/setlist별 metronome 설정.
+- spike 후보: 악보 위 mini tuner/metronome floating panel, 저지연 audio engine, 복잡한 rhythm
+  pattern editor와 viewer overlay architecture.
 
 ## 릴리즈 노트 초안
 
