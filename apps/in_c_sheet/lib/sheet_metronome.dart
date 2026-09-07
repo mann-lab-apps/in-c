@@ -5,11 +5,15 @@ class SheetMetronomeSettings {
     required this.bpm,
     required this.meter,
     this.soundEnabled = false,
+    this.accentEnabled = true,
+    this.subdivision = SheetMetronomeSubdivision.none,
   });
 
   factory SheetMetronomeSettings.fromJson(Map<String, Object?>? json) {
     final meterValue = json?['meter'];
     final soundEnabledValue = json?['soundEnabled'];
+    final accentEnabledValue = json?['accentEnabled'];
+    final subdivisionValue = json?['subdivision'];
     return SheetMetronomeSettings(
       bpm: _normalizeBpm(json?['bpm']),
       meter: SheetMetronomeMeter.fromId(
@@ -18,6 +22,14 @@ class SheetMetronomeSettings {
       soundEnabled: soundEnabledValue is bool
           ? soundEnabledValue
           : defaultSettings.soundEnabled,
+      accentEnabled: accentEnabledValue is bool
+          ? accentEnabledValue
+          : defaultSettings.accentEnabled,
+      subdivision: SheetMetronomeSubdivision.fromId(
+        subdivisionValue is String
+            ? subdivisionValue
+            : defaultSettings.subdivision.id,
+      ),
     );
   }
 
@@ -29,20 +41,32 @@ class SheetMetronomeSettings {
   final int bpm;
   final SheetMetronomeMeter meter;
   final bool soundEnabled;
+  final bool accentEnabled;
+  final SheetMetronomeSubdivision subdivision;
 
   Duration get beatDuration {
     return Duration(milliseconds: (60000 / bpm).round());
+  }
+
+  Duration get pulseDuration {
+    return Duration(
+      milliseconds: (60000 / bpm / subdivision.pulsesPerBeat).round(),
+    );
   }
 
   SheetMetronomeSettings copyWith({
     int? bpm,
     SheetMetronomeMeter? meter,
     bool? soundEnabled,
+    bool? accentEnabled,
+    SheetMetronomeSubdivision? subdivision,
   }) {
     return SheetMetronomeSettings(
       bpm: clampBpm(bpm ?? this.bpm),
       meter: meter ?? this.meter,
       soundEnabled: soundEnabled ?? this.soundEnabled,
+      accentEnabled: accentEnabled ?? this.accentEnabled,
+      subdivision: subdivision ?? this.subdivision,
     );
   }
 
@@ -51,6 +75,8 @@ class SheetMetronomeSettings {
       'bpm': bpm,
       'meter': meter.id,
       'soundEnabled': soundEnabled,
+      'accentEnabled': accentEnabled,
+      'subdivision': subdivision.id,
     };
   }
 
@@ -85,22 +111,57 @@ enum SheetMetronomeMeter {
   }
 }
 
+enum SheetMetronomeSubdivision {
+  none('없음', 1),
+  eighth('8분', 2),
+  triplet('3연', 3),
+  sixteenth('16분', 4);
+
+  const SheetMetronomeSubdivision(this.label, this.pulsesPerBeat);
+
+  final String label;
+  final int pulsesPerBeat;
+
+  String get id => name;
+
+  static SheetMetronomeSubdivision fromId(String id) {
+    return SheetMetronomeSubdivision.values.firstWhere(
+      (subdivision) => subdivision.id == id,
+      orElse: () => SheetMetronomeSubdivision.none,
+    );
+  }
+}
+
 class SheetMetronomeBeat {
   const SheetMetronomeBeat({
     required this.beatIndex,
     required this.beatsPerBar,
+    this.subdivisionIndex = 0,
+    this.pulsesPerBeat = 1,
   });
 
   final int beatIndex;
   final int beatsPerBar;
+  final int subdivisionIndex;
+  final int pulsesPerBeat;
 
   int get beatNumber => beatIndex + 1;
-  bool get isAccent => beatIndex == 0;
+  bool get isBeatStart => subdivisionIndex == 0;
+  bool get isAccent => beatIndex == 0 && isBeatStart;
 
   SheetMetronomeBeat next() {
+    if (subdivisionIndex + 1 < pulsesPerBeat) {
+      return SheetMetronomeBeat(
+        beatIndex: beatIndex,
+        beatsPerBar: beatsPerBar,
+        subdivisionIndex: subdivisionIndex + 1,
+        pulsesPerBeat: pulsesPerBeat,
+      );
+    }
     return SheetMetronomeBeat(
       beatIndex: (beatIndex + 1) % beatsPerBar,
       beatsPerBar: beatsPerBar,
+      pulsesPerBeat: pulsesPerBeat,
     );
   }
 }

@@ -24,7 +24,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 라이브러리 목록, 검색, 최근 열기/즐겨찾기 표시, 정렬/필터.
 - V1 Polish quick access: 라이브러리 상단에서 고정, 즐겨찾기, 최근 연 악보를 별도 rail로 노출.
 - 세트리스트 생성, 이름 변경, 삭제.
-- 세트리스트 악보 검색 추가, 제거, 위/아래 순서 이동.
+- 세트리스트 악보 검색 추가, 일괄 선택 bulk add, 제거, drag reorder, 위/아래 순서 이동.
 - 세트리스트 첫 곡 바로 열기.
 - PDF viewer 화면.
 - 이전/다음 페이지 이동.
@@ -57,7 +57,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   수행하지 않는다.
 - 주석/필기 1차: 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개, 색상/두께,
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
-- 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
+- 메트로놈 1차: BPM, 박자, subdivision, Tap tempo, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
   RMS gate/confidence, safe low-amplitude normalization, adaptive noise floor, clipping penalty,
   median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
@@ -342,6 +342,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 세트리스트는 `SheetSetlist` 별도 모델로 저장한다.
 - 세트리스트는 ordered score id list이며, 앱 load 시 삭제된 score 참조를 제거한다.
 - 세트리스트에 악보를 추가할 때 제목, 작곡가, 태그, 메모 검색을 사용한다.
+- 라이브러리 일괄 선택 상태에서는 선택한 악보를 기존 또는 새 세트리스트에 한 번에 추가할 수 있고,
+  이미 들어간 악보는 중복으로 넣지 않는다.
+- 세트리스트 상세에서는 drag handle 기반 순서 변경과 위/아래 버튼을 모두 제공한다.
+- 세트리스트를 열면 `lastOpenedAt`을 저장하고 홈 quick access의 `최근 세트리스트` rail에 표시한다.
 - 세트리스트 목록/상세에서 첫 곡을 바로 열 수 있다.
 - 세트리스트 안에서 viewer를 열면 같은 setlist context를 유지하고, AppBar의 이전/다음 곡
   버튼으로 곡 단위 이동을 지원한다. viewer title 아래에는 `세트리스트 이름 · 2/8` 형식의
@@ -438,9 +442,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 연주 보조/외부 입력 1차 구조
 
 - 메트로놈 설정은 앱 전역 `SheetMetronomeSettings`로 저장한다.
-- 저장 필드는 BPM과 박자다. BPM은 40-240 범위로 clamp한다.
+- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision이다. BPM은 40-240 범위로 clamp한다.
 - 지원 박자는 `2/4`, `3/4`, `4/4`, `6/8`이다.
-- 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다.
+- subdivision은 없음, 8분, 3연, 16분을 제공한다. Tap tempo는 최근 tap 간격으로 BPM을 갱신한다.
+- 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다. bottom sheet에서
+  악보 위 고정형 mini panel로 축소할 수 있다.
 - 현재 구현은 visual metronome이다. 첫 박은 accent color로 표시하고, 현재 beat와 마지막 beat
   시각을 보여준다.
 - 메트로놈 tick은 기본 OFF `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
@@ -720,59 +726,63 @@ link handling, page layout customization, page manipulation 관련 확장 지점
    경로에서 열리는지 확인한다.
 7. viewer에서 현재 페이지를 북마크하고, 북마크 목록에서 rename/delete와 페이지 이동을
    확인한다.
-8. 세트리스트를 만들고 검색으로 악보를 2개 이상 추가한다.
-9. 세트리스트 상세 화면에서 악보 순서를 위/아래 버튼으로 바꾼다.
+8. 악보 여러 개를 일괄 선택하고 기존 또는 새 세트리스트에 한 번에 추가한다.
+9. 세트리스트 상세 화면에서 악보 순서를 drag handle과 위/아래 버튼으로 바꾼다.
 10. 세트리스트 목록/상세의 첫 곡 열기 버튼으로 viewer에 진입한다.
 11. viewer AppBar에서 세트리스트 이름과 현재 순서가 보이는지 확인한다.
 12. viewer AppBar의 이전/다음 곡 버튼으로 이동한다.
-13. 보기 모드를 1페이지/세로 스크롤로 전환하고 페이지 이동이 유지되는지 확인한다.
-14. 공연 모드를 켜서 관리 action이 숨겨지고 페이지 컨트롤이 커지는지 확인한다.
-15. iPhone 폭에서 북마크 목록, 보기 모드, PDF 링크 표시, 공연 모드가 overflow menu에
+13. 홈으로 돌아와 `최근 세트리스트` rail에 방금 연 세트리스트가 표시되는지 확인한다.
+14. 보기 모드를 1페이지/세로 스크롤로 전환하고 페이지 이동이 유지되는지 확인한다.
+15. 공연 모드를 켜서 관리 action이 숨겨지고 페이지 컨트롤이 커지는지 확인한다.
+16. iPhone 폭에서 북마크 목록, 보기 모드, PDF 링크 표시, 공연 모드가 overflow menu에
     묶이는지 확인한다.
-16. 일반 모드 하단 페이지 컨트롤이 자동으로 사라지고 화면 터치 시 다시 표시되는지 확인한다.
-17. 넓은 화면에서 보기 모드를 `2페이지`로 전환하고 첫 페이지 단독, 이후 2장 spread가
+17. 일반 모드 하단 페이지 컨트롤이 자동으로 사라지고 화면 터치 시 다시 표시되는지 확인한다.
+18. 첫 진입 tap zone hint가 `이전`/`메뉴`/`다음`을 설명하고, 하단 control과 mini panel tap이
+    page turn으로 중복 처리되지 않는지 확인한다.
+19. 넓은 화면에서 보기 모드를 `2페이지`로 전환하고 첫 페이지 단독, 이후 2장 spread가
     배치되는지 확인한다.
-18. 좁은 화면에서 `2페이지` 보기 항목이 비활성화되는지 확인한다.
-19. `반 페이지 넘김`을 켜고 하단 이전/다음 버튼이 페이지 안 viewport와 페이지 경계를
+20. 좁은 화면에서 `2페이지` 보기 항목이 비활성화되는지 확인한다.
+21. `반 페이지 넘김`을 켜고 하단 이전/다음 버튼이 페이지 안 viewport와 페이지 경계를
     오가는지 확인한다.
-20. 보기 모드와 반 페이지 넘김을 변경한 뒤 viewer를 나갔다 다시 열어 곡별 설정이 복원되는지
+22. 보기 모드와 반 페이지 넘김을 변경한 뒤 viewer를 나갔다 다시 열어 곡별 설정이 복원되는지
     확인한다.
-21. 페이지 정리 메뉴에서 현재 페이지를 숨기고 이전/다음 이동이 숨김 페이지를 건너뛰는지
+23. 페이지 정리 메뉴에서 현재 페이지를 숨기고 이전/다음 이동이 숨김 페이지를 건너뛰는지
     확인한다.
-22. 숨김 페이지 관리에서 숨김을 해제하고 해당 페이지로 이동하는지 확인한다.
-23. 현재 페이지 회전 metadata를 여러 번 저장해 90/180/270/기본 방향으로 순환하는지 확인한다.
-24. 자르기 표시에서 위/아래/왼쪽/오른쪽 margin을 조정하고 화면에서 여백이 가려지는지 확인한다.
-25. 보기 옵션에서 어두운 배경/색상 반전을 선택하고 곡을 다시 열어 설정이 복원되는지 확인한다.
-26. PDF 링크 제거 사본 만들기를 실행해 원본 보존 안내 dialog와 진행 표시를 확인한다.
-27. 링크 fixture에서는 제거 사본으로 교체되고, 링크가 없는 PDF에서는 변경 없이 안내되는지
+24. 숨김 페이지 관리에서 숨김을 해제하고 해당 페이지로 이동하는지 확인한다.
+25. 현재 페이지 회전 metadata를 여러 번 저장해 90/180/270/기본 방향으로 순환하는지 확인한다.
+26. 자르기 표시에서 위/아래/왼쪽/오른쪽 margin을 조정하고 화면에서 여백이 가려지는지 확인한다.
+27. 보기 옵션에서 어두운 배경/색상 반전을 선택하고 곡을 다시 열어 설정이 복원되는지 확인한다.
+28. PDF 링크 제거 사본 만들기를 실행해 원본 보존 안내 dialog와 진행 표시를 확인한다.
+29. 링크 fixture에서는 제거 사본으로 교체되고, 링크가 없는 PDF에서는 변경 없이 안내되는지
     확인한다.
-28. viewer에서 메트로놈을 열고 BPM, 박자, 시작/정지, accent beat 표시를 확인한다.
-29. viewer에서 자동 스크롤을 열고 duration, 시작/끝 페이지를 조정한 뒤 시작한다.
-30. 자동 스크롤이 세로 스크롤 보기로 전환되어 진행되고, 페이지 끝 또는 endPage에서 정지하는지
+30. viewer에서 메트로놈을 열고 BPM, 박자, subdivision, 첫 박 강조, Tap tempo, 시작/정지,
+    mini panel 전환을 확인한다.
+31. viewer에서 자동 스크롤을 열고 duration, 시작/끝 페이지를 조정한 뒤 시작한다.
+32. 자동 스크롤이 세로 스크롤 보기로 전환되어 진행되고, 페이지 끝 또는 endPage에서 정지하는지
     확인한다.
-31. 자동 스크롤 중 하단 페이지 버튼, Space/Arrow key 입력, 보기 모드 변경을 하면 자동
+33. 자동 스크롤 중 하단 페이지 버튼, Space/Arrow key 입력, 보기 모드 변경을 하면 자동
     스크롤이 정지하는지 확인한다.
-32. viewer를 나갔다 다시 열어 곡별 자동 스크롤 설정이 복원되는지 확인한다.
-33. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, pitch history chart의 note/cents 요약이 갱신되는지 확인한다.
-34. 튜너 start를 눌러 microphone permission prompt와 listening/no signal/error 상태가 crash 없이
+34. viewer를 나갔다 다시 열어 곡별 자동 스크롤 설정이 복원되는지 확인한다.
+35. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, pitch history chart의 note/cents 요약이 갱신되는지 확인한다.
+36. 튜너 start를 눌러 microphone permission prompt와 listening/no signal/error 상태가 crash 없이
     표시되는지 확인한다.
-35. `ArrowRight`, `PageDown`, `Space`로 다음 페이지가 이동하는지 확인한다.
-36. `ArrowLeft`, `PageUp`, `Shift+Space`로 이전 페이지가 이동하는지 확인한다.
-37. 공연 모드에서 자동 스크롤/메트로놈/튜너 진입점과 키보드/페달 페이지 넘김이 유지되는지
+37. `ArrowRight`, `PageDown`, `Space`로 다음 페이지가 이동하는지 확인한다.
+38. `ArrowLeft`, `PageUp`, `Shift+Space`로 이전 페이지가 이동하는지 확인한다.
+39. 공연 모드에서 자동 스크롤/메트로놈/튜너 진입점과 키보드/페달 페이지 넘김이 유지되는지
     확인한다.
-38. viewer에서 필기 모드를 켜고 펜/형광펜으로 stroke를 남긴 뒤 페이지를 나갔다 다시 열어
+40. viewer에서 필기 모드를 켜고 펜/형광펜으로 stroke를 남긴 뒤 페이지를 나갔다 다시 열어
     복원되는지 확인한다.
-39. 텍스트 도구로 page를 탭해 텍스트 주석을 추가하고, 기존 텍스트를 다시 탭해 수정/삭제가
+41. 텍스트 도구로 page를 탭해 텍스트 주석을 추가하고, 기존 텍스트를 다시 탭해 수정/삭제가
     되는지 확인한다.
-40. 지우개로 stroke 단위 삭제가 되는지 확인한다.
-41. 색상, 두께, 마지막 필기 취소가 stroke/text 모두에 적용되는지 확인한다.
-42. 확대/이동 후 필기 stroke와 텍스트가 PDF page와 함께 움직이는지 확인한다.
-43. 2페이지 보기와 세로 스크롤에서 각 page에 남긴 annotation이 해당 page 위에만 표시되는지
+42. 지우개로 stroke 단위 삭제가 되는지 확인한다.
+43. 색상, 두께, 마지막 필기 취소가 stroke/text 모두에 적용되는지 확인한다.
+44. 확대/이동 후 필기 stroke와 텍스트가 PDF page와 함께 움직이는지 확인한다.
+45. 2페이지 보기와 세로 스크롤에서 각 page에 남긴 annotation이 해당 page 위에만 표시되는지
     확인한다.
-44. 필기/텍스트가 있는 악보에서 `필기 포함 PDF 공유`를 실행하고, 공유된 PDF 사본에 stroke/text가
+46. 필기/텍스트가 있는 악보에서 `필기 포함 PDF 공유`를 실행하고, 공유된 PDF 사본에 stroke/text가
     보이는지 확인한다.
-45. 한글 텍스트 주석이 포함된 악보를 `필기 포함 PDF 공유`할 때 확인 안내가 표시되는지 확인한다.
-46. 필기가 없는 악보에서 `필기 포함 PDF 공유`가 원본 공유로 fallback하는지 확인한다.
+47. 한글 텍스트 주석이 포함된 악보를 `필기 포함 PDF 공유`할 때 확인 안내가 표시되는지 확인한다.
+48. 필기가 없는 악보에서 `필기 포함 PDF 공유`가 원본 공유로 fallback하는지 확인한다.
 
 2026-08-21 2차 구현 검증 시점에도 연결된 Android emulator/device가 없어 수동 실행 검증은
 진행하지 못했다. `flutter build apk --debug`, `flutter build appbundle`, `flutter build apk`로

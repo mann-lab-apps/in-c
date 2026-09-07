@@ -6,6 +6,7 @@ void main() {
   test('SheetSetlist encodes and decodes records', () {
     final createdAt = DateTime.parse('2026-08-20T10:00:00.000');
     final updatedAt = DateTime.parse('2026-08-20T10:05:00.000');
+    final lastOpenedAt = DateTime.parse('2026-08-20T10:07:00.000');
     final setlist = SheetSetlist(
       id: 'setlist-1',
       title: 'Recital',
@@ -17,6 +18,7 @@ void main() {
       scoreNotes: const <String, String>{'score-1': 'Check transition.'},
       scoreDurations: const <String, int>{'score-1': 180, 'score-2': 210},
       transitionSeconds: 12,
+      lastOpenedAt: lastOpenedAt,
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'twoPage',
         halfPageTurn: true,
@@ -42,6 +44,7 @@ void main() {
       'score-2': 210,
     });
     expect(decoded.single.transitionSeconds, 12);
+    expect(decoded.single.lastOpenedAt, lastOpenedAt);
     expect(decoded.single.totalEstimatedSeconds, 402);
     expect(decoded.single.viewerSettingsOverride?.displayMode, 'twoPage');
     expect(decoded.single.viewerSettingsOverride?.halfPageTurn, isTrue);

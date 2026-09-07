@@ -1696,6 +1696,84 @@ void main() {
     expect(context?.positionLabel, '2/2');
   });
 
+  test('bulk adds scores to setlist and skips duplicates', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.addScoresToSetlist(
+      controller.setlists.single,
+      <SheetScore>[
+        controller.scores[0],
+        controller.scores[1],
+        controller.scores[2],
+      ],
+    );
+
+    expect(result.addedCount, 2);
+    expect(result.skippedDuplicateCount, 1);
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+  });
+
+  test(
+    'tracks recently opened setlists separately from recent scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'older',
+          title: 'Older',
+          scoreIds: const <String>[],
+          createdAt: now,
+          updatedAt: now,
+        ),
+        SheetSetlist(
+          id: 'newer',
+          title: 'Newer',
+          scoreIds: const <String>[],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      await controller.markSetlistOpened(controller.setlistById('older'));
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      await controller.markSetlistOpened(controller.setlistById('newer'));
+
+      expect(controller.recentSetlists.map((setlist) => setlist.id), <String>[
+        'newer',
+        'older',
+      ]);
+      expect((await store.loadSetlists()).first.lastOpenedAt, isNotNull);
+    },
+  );
+
   test('updates setlist rehearsal mode settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

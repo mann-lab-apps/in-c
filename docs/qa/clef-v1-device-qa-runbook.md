@@ -182,6 +182,10 @@ Audio/tuner:
   target lock은 v1 UI에서 보이지 않는지 확인한다.
 - 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
+- 메트로놈 BPM/박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, tick sound, viewer mini
+  panel 전환과 장시간 사용 중 page turn/tap zone 충돌 여부.
+- 다중 선택 bulk setlist add, 세트리스트 drag reorder, 최근 세트리스트 rail, tap zone hint,
+  paper/white viewer background가 실제 태블릿 화면에서 이해되는지.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
 

@@ -34,10 +34,12 @@
 10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
 11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-12. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
-13. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
-14. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
-15. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
+12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 첫 박 강조, Tap tempo, start/stop을 확인한다.
+13. 메트로놈/튜너 sheet의 작은 창 버튼으로 악보 위 mini panel을 띄우고 닫을 수 있는지 확인한다.
+14. viewer 첫 진입에서 왼쪽 `이전`, 가운데 `메뉴`, 오른쪽 `다음` tap zone 안내가 보이는지 확인한다.
+15. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
+16. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
+17. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
     라이브러리에 진입하는지 확인한다.
 
 ## 선택 테스트
@@ -45,28 +47,32 @@
 시간이 있으면 아래 항목을 추가로 확인한다.
 
 1. JPG/PNG 이미지를 PDF 악보로 묶어 등록한다.
-2. 세트리스트를 만들고 악보를 추가/정렬한 뒤 첫 곡을 연다.
-3. PDF 공유와 필기 포함 PDF 공유를 실행한다.
-4. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
-5. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
-6. metadata 백업과 PDF 포함 전체 백업을 생성한다.
-7. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
-8. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
+2. 여러 악보를 일괄 선택해 기존 또는 새 세트리스트에 한 번에 추가한다. 이미 들어간 악보가 있으면
+   중복 skip 안내가 이해되는지 확인한다.
+3. 세트리스트 상세에서 drag handle로 순서를 바꾸고, 위/아래 버튼도 보조로 동작하는지 확인한다.
+4. 세트리스트를 열었다가 홈으로 돌아와 `최근 세트리스트` rail에 표시되는지 확인한다.
+5. PDF 공유와 필기 포함 PDF 공유를 실행한다.
+6. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
+7. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
+8. metadata 백업과 PDF 포함 전체 백업을 생성한다.
+9. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
+10. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
+11. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
    PDF가 조금씩 스크롤되지 않는지 확인한다. 첫 page에서 이전, 마지막 page에서 다음을 누르면
    `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
-9. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
-10. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
-11. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
-12. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
-13. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
-14. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
-15. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
-16. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
-17. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
-18. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
-19. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
-20. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
-21. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
+12. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
+13. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
+14. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
+15. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
+16. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
+17. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
+18. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
+19. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
+20. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
+21. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
+22. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
+23. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
+24. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
 
 ## Known Issues
 
@@ -96,6 +102,10 @@
 - 방향키 방식 페달은 위/왼쪽이 이전 page, 아래/오른쪽이 다음 page로 동작해야 한다.
 - 첫 page에서 이전, 마지막 page에서 다음을 누르면 버튼이 죽은 것처럼 보이지 않고 `곡 처음` 또는
   `곡 끝` 안내가 짧게 표시되어야 한다.
+- 2026-09-07 연주자 피드백으로 다중 선택 강조, bulk setlist 추가, setlist drag reorder,
+  최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
+  고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
+  장시간 사용성을 다시 확인한다.
 - OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
   embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.

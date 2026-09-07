@@ -409,3 +409,19 @@ flutter build ios --release --no-codesign
   SHA-256은 `16b8b1eb08d41a9e85292f3cb6557fb8fdb4f68a9a28e5a13fb0e72c6c42905c`이다. release
   signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
   일치한다.
+
+2026-09-07 연주자 피드백 v1 hotfix 기록:
+
+- 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 일괄 선택 AppBar에서 선택 악보를 기존/새
+  세트리스트에 한 번에 추가할 수 있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를
+  안내한다.
+- 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼을 보조 수단으로 유지한다.
+- 세트리스트를 열면 마지막 연 시간을 저장하고 홈 quick access에 `최근 세트리스트` rail로 표시한다.
+- viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone hint를 보여준다. 하단 page control과 mini panel tap은
+  page turn으로 중복 처리하지 않는다.
+- 일반 viewer 배경은 paper/white 계열로 조정해 PDF 주변 여백이 악보와 덜 이질적으로 보이게 했다.
+- 메트로놈은 2/4, 3/4, 4/4, 6/8 박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo를 제공한다.
+  소리 문제는 system click 경로와 안내 문구를 보강했지만 실제 Android/iOS audio route는 실기기 QA가
+  필요하다.
+- 튜너/메트로놈은 악보 위 우상단 고정형 mini panel로 축소할 수 있다. drag/resize, 악보 가장자리
+  visible pulse, per-score tempo 저장, count-in, 복잡한 accent pattern은 v1.1/Later로 분리한다.
