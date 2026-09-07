@@ -238,6 +238,61 @@ MobileSheets, Piascore, forScore의 공식 도움말, 스토어 설명, 공개 �
 - viewer background와 tap zone hint는 작은 UI 변경으로 첫 사용 혼동을 줄일 가능성이 커서 RC 직전
   polish 가치가 높다.
 
+## 2026-09-07 MobileSheets 에뮬레이터 정밀 확인
+
+확인일: 2026-09-07. Clef & Staff worktree는 `dev` at `bf8277a` 기준이고,
+Android AVD `clef_rc_tablet_api35`에서 Google Play의 MobileSheets Trial 페이지를
+열어 보았다. AVD는 Google 계정 로그인이 되어 있지 않아 Play Store가 로그인 화면에서
+멈췄고, MobileSheets 앱 내부 UX는 직접 실행하지 못했다. 따라서 아래 판단은
+공식 사이트, 최신 Google Play 설명, 공식 PDF 매뉴얼, Zubersoft 포럼 답변 기반이며,
+"직접 앱 실행" 근거와 "공식 문서" 근거를 분리해 해석한다.
+
+### 레퍼런스 해석
+
+MobileSheets는 오래된 Android 악보앱 문법을 넓고 깊게 쌓은 제품이다. UI는 전통적인
+library tab, action bar, overlay, quick action box, settings 중심이고 기능 수가 매우 많다.
+Clef & Staff는 이를 그대로 복제하기보다, 연주자가 바로 막힌 흐름부터 가져오고 복잡한
+관리/동기화/외부장비 기능은 점진적으로 따라가는 편이 맞다.
+
+| 영역 | MobileSheets 확인 내용 | Clef 현재 상태 | Gap | 추천 처리 | 우선순위 |
+| --- | --- | --- | --- | --- | --- |
+| 홈/라이브러리 | 기본 tab에 Recent, Songs, Setlists, Collections 등이 있고 Recent는 최근 곡과 세트리스트를 함께 로드 대상으로 보여준다. | 홈 최근 악보와 최근 세트리스트 rail을 분리해 제공한다. | 대형 라이브러리용 alphabet jump, saved filter, custom group은 없다. | v1은 지금 구조 유지. v1.1에서 collection/filter를 검토한다. | v1 유지, v1.1 |
+| 다중 선택 | long press로 multi-selection mode에 진입하고 checkbox와 action bar가 선택 작업을 보여준다. | 선택 카드 강조, checkbox, 선택 수 app bar가 있다. | 태블릿에서 선택 상태가 충분히 강한지는 실사용 확인 필요. | 선택 색/체크 크기만 hotfix 가능. | v1 QA |
+| 세트리스트 추가 | 선택된 여러 곡을 Setlist/Collection에 추가하고, 선택 곡으로 새 setlist를 만들 수 있다. | bulk setlist add와 새/기존 세트리스트 선택이 있다. | 중복 처리와 완료 안내가 MobileSheets만큼 세밀한지는 QA 필요. | 중복 skip count와 완료 snackbar를 유지한다. | v1 QA |
+| 세트리스트 순서 | manual sort에서 순번 직접 입력, drag, drag and drop을 모두 지원한다. | drag handle reorder와 위/아래 보조 버튼이 있다. | 직접 순번 입력은 없다. | v1은 drag+button으로 충분. 긴 세트리스트가 쌓이면 직접 순번 입력을 v1.1로 검토한다. | v1 유지 |
+| 페이지 보기 | 1페이지, 2페이지, half page, vertical scrolling, scaling을 지원한다. | 1페이지, 2페이지, half page, vertical/auto scroll, fit preset이 있다. | MobileSheets의 display setting 깊이는 더 크다. | 현재 RC 범위 유지. 곡별 display preset 저장은 v1.1. | v1 유지, v1.1 |
+| 터치 페이지 넘김 | 좌/우 측면 tap은 이전/다음, 중앙 tap은 overlay, corner/top/bottom은 configurable action으로 설명된다. | 첫 진입 tap zone hint와 좌/우/중앙 정책이 있다. | 사용자가 한 번에 이해하는지 확인 필요. | hint copy와 한 번 더 보기 진입점만 polish한다. | v1 QA |
+| 페달/키보드 | PageUp/PageDown 같은 key command를 보내는 페달을 전제로 하며, swipe emulation 페달은 한계가 있다고 포럼에서 답변한다. | 방향키/PageUp/PageDown 등을 page turn으로 consume한다. | 특정 페달이 swipe/mouse를 보내면 앱에서 구분하기 어렵다. | v1은 key 기반 보장. HID capture wizard와 swipe-emulating pedal 진단은 v1.1 spike. | v1 QA, spike |
+| 메트로놈 | beat sound, first accent, count-in/stop, silent visual indicator, display mode를 제공한다. | tempo, 박자, subdivision, accent, tap tempo, mini panel, visual/tick sound가 있다. | 실제 Android audio route에서 소리가 안 나는 보고가 있다. | 소리 실패 안내와 visual-only fallback을 우선 확인한다. per-score tempo/count-in은 v1.1. | v1 hotfix/QA |
+| 튜너 | 공식 MobileSheets 자료에서 chromatic tuner는 확인되지 않았다. | Chromatic-only tuner, pitch history chart, input stabilization이 있다. | 전용 튜너앱만큼의 실기기 정확도/latency 근거는 부족하다. | 악보앱 차별점으로 유지하되 실기기 QA로 정확도 판단. | v1 QA |
+| 미니 도구 | song display는 metronome/audio player 같은 window/control을 포함하고 quick action box는 performance mode에서도 접근 가능하다. | 악보 위 고정형 tuner/metronome mini panel이 있다. | 이동/접기/크기 조절은 없다. | v1은 고정형으로 제한. movable overlay architecture는 spike. | v1 유지, spike |
+| 파일/import | local, cloud, external app, batch import, CSV/PDF bookmark import가 있다. 원본 crop은 수정하지 않는다고 설명한다. | PDF/image import, 원본 보존, link sanitizer, backup/restore가 있다. | direct cloud browser, batch directory import, CSV songbook split은 없다. | 직접 스캐너/OCR/cloud folder/direct SAF는 v1.1 이후. | v1.1/Later |
+| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text, undo/redo, local annotation layer가 있다. | stamp/layer/favorite/S Pen pressure QA가 없다. | S Pen 실기기 QA 후 v1.1 annotation polish로 이동. | QA, v1.1 |
+
+### 친구 피드백 9개별 처리 판단
+
+| 피드백 | MobileSheets 레퍼런스 | Clef 처리 상태 | 불분명한 부분 | 다음 판단 |
+| --- | --- | --- | --- | --- |
+| 여러 악보 선택 표시 | checkbox와 action bar 기반 multi-selection mode가 명확하다. | v1 hotfix 반영. | 실제 손가락 조작에서 선택 강조가 충분한지. | 실기기에서 카드 강조만 확인. |
+| 여러 악보를 세트리스트에 일괄 추가 | selected songs action에 Add to Setlist와 Create Setlist From Songs가 있다. | v1 hotfix 반영. | 중복 추가 허용/skip 정책이 연주자 기대와 맞는지. | Clef는 중복 skip 안내로 간결 유지. |
+| 세트리스트 순서 drag reorder | drag, 직접 순번 입력, drag and drop을 모두 제공한다. | drag handle과 위/아래 버튼 반영. | 긴 목록에서 drag hit target. | 직접 순번 입력은 v1.1 후보. |
+| 최근 목록에 세트리스트 표시 | Recent가 song/setlist를 함께 표시한다고 매뉴얼에 나온다. | 최근 세트리스트 rail 반영. | 개별 악보와 세트리스트 구분 가독성. | 카드 label/badge 실기기 확인. |
+| 메트로놈 소리 | beat sound와 silent visual mode가 분리되어 있다. | sound toggle과 visual metronome 있음. | 사용자가 소리 안 남을 보고. | v1 hotfix/실기기 최우선 확인. |
+| 메트로놈 리듬 설정 | accent/count-in/stop/page change after measures까지 있다. | 2/4, 3/4, 4/4, 6/8, subdivision, accent, tap tempo 반영. | per-score 저장과 count-in은 미구현. | v1.1에서 곡별 tempo/count-in. |
+| 메트로놈/튜너 미니 패널 | quick action box와 song display windows를 제공한다. | 고정형 mini panel 반영. | 악보 가림, 장시간 audio lifecycle. | v1은 고정형 QA, 이동형은 spike. |
+| 악보 터치 넘김이 헷갈림 | 좌/우/중앙/corner touch zone이 문서화되어 있다. | tap zone hint 반영. | 첫 사용자에게 충분히 보이는지. | 실기기 첫 실행 QA. |
+| 화면 여백이 이질적 | display/scaling/crop 중심으로 해결한다. | paper/white 계열 배경 반영. | PDF별 흰 여백/종이색 취향 차이. | v1은 현재 기본값 유지. |
+
+### 구현 우선순위 메모
+
+- 이미 v1 hotfix로 반영된 요구사항은 기능 확장을 다시 열기보다 실제 태블릿 QA에서
+  손가락 조작, 가독성, 안내 문구만 확인한다.
+- MobileSheets의 강점은 "기능 수"보다 "전통적인 악보앱 사용자가 기대하는 빠른 경로"다.
+  Clef & Staff의 다음 구현도 큰 메뉴를 늘리기보다 선택 후 action, setlist, page turn,
+  quick tool 접근성을 먼저 다듬는다.
+- 직접 실행 확인이 막힌 부분은 Play Store 계정/구매/Trial 설치가 가능한 기기에서 다시
+  캡처한다. 서드파티 APK 다운로드는 조사 근거로 쓰지 않는다.
+
 ## Android 구현 리스크
 
 ### PDF 렌더링
@@ -296,6 +351,8 @@ V1에서 백업/복원 포맷을 정의한다.
 - Piascore App Store: https://apps.apple.com/us/app/piascore-smart-music-score/id406141702
 - Piascore Manual: https://piascore.com/manual/
 - MobileSheets 공식 사이트: https://www.zubersoft.com/mobilesheets/
+- MobileSheets Manual Index: https://www.zubersoft.com/mobilesheets/manual/
+- MobileSheets User Guide PDF: https://www.zubersoft.download/manuals/MobileSheets.pdf
 - MobileSheets Library/Setlists: https://www.zubersoft.com/mobilesheets/features/
 - MobileSheets Display: https://www.zubersoft.com/mobilesheets/features/display/
 - MobileSheets Annotations: https://www.zubersoft.com/mobilesheets/features/annotations/
@@ -304,8 +361,13 @@ V1에서 백업/복원 포맷을 정의한다.
 - MobileSheets MIDI: https://www.zubersoft.com/mobilesheets/features/midi/
 - MobileSheets Collaboration: https://www.zubersoft.com/mobilesheets/features/collaboration/
 - MobileSheets Google Play: https://play.google.com/store/apps/details?id=com.zubersoft.mobilesheetspro
+- MobileSheets Trial Google Play: https://play.google.com/store/apps/details?id=com.zubersoft.mobilesheetsfree
 - MobileSheets setlist reorder forum: https://www.zubersoft.com/mobilesheets/forum/thread-13095.html
+- MobileSheets manual sort forum: https://zubersoft.com/mobilesheets/forum/thread-8626.html
 - MobileSheets recent/setlist forum: https://www.zubersoft.com/mobilesheets/forum/thread-11045.html
+- MobileSheets quick action/metronome forum: https://www.zubersoft.com/mobilesheets/forum/thread-3183-post-23236.html
+- MobileSheets pedal page turner forum: https://zubersoft.com/mobilesheets/forum/thread-12010.html
+- MobileSheets auto-scroll forum: https://www.zubersoft.com/mobilesheets/forum/thread-7914-post-35123.html
 - Piascore tuner help: https://help.piascore.com/hc/en-us/articles/360000656532-How-to-use-tuner
 - Piascore Tuner App Store: https://apps.apple.com/us/app/tuner-by-piascore/id635644097
 - forScore Basics: https://forscore.co/documentation/basics/
