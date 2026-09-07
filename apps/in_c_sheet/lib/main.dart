@@ -39,7 +39,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+19';
+const String _clefAppVersion = '1.0.0+20';
 const bool _launchInCDiscoveryHome = bool.fromEnvironment(
   'IN_C_DISCOVERY_HOME',
 );
@@ -1272,7 +1272,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide ? 28 : 16,
                     12,
                     isWide ? 28 : 16,
-                    96,
+                    isWide ? 24 : 96,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -3179,7 +3179,7 @@ class _RecentSetlistsBand extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             SizedBox(
-              height: 104,
+              height: 132,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemBuilder: (context, index) {
@@ -3199,6 +3199,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                           padding: const EdgeInsets.all(10),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Row(
                                 children: [
@@ -3212,7 +3213,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 10),
                               Text(
                                 setlist.title,
                                 maxLines: 1,
@@ -3221,7 +3222,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              const Spacer(),
+                              const SizedBox(height: 18),
                               Text(
                                 openedLabel,
                                 maxLines: 1,

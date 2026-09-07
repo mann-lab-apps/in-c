@@ -4,6 +4,8 @@ import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
+import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -42,6 +44,54 @@ void main() {
 
     expect(controller.setlists, hasLength(1));
     expect(controller.setlists.single.title, '새 세트리스트');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('home renders recent setlists without overflow', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'clef short score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/clef-short-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'setlist-1',
+        title: '새 세트리스트',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('최근 세트리스트'), findsOneWidget);
+    expect(find.text('새 세트리스트'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
