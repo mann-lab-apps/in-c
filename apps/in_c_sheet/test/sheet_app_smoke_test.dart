@@ -95,6 +95,53 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('recent quick access scores participate in bulk selection', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'clef short score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/clef-short-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('여러 악보 선택'));
+    await tester.pumpAndSettle();
+    expect(find.text('0개 선택'), findsOneWidget);
+
+    await tester.tap(find.text('clef short score').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('1개 선택'), findsOneWidget);
+    expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('metronome sheet exposes hotfix rhythm controls', (tester) async {
     await tester.pumpWidget(
       buildMetronomeSheetForTest(

@@ -71,9 +71,9 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 
 | 피드백 | MobileSheets 방식 | Clef 현재 반영 | 남은 문제 | 추천 액션 | v1/v1.1/Later |
 | --- | --- | --- | --- | --- | --- |
-| 여러 악보 선택 표시 | long press 후 checkbox와 선택 수 app bar로 명확히 표시. | 반영됨. | tablet에서 card 선택 상태가 멀리서 충분히 보이는지. | 실기기 QA 후 색/체크 크기만 조정. | v1 QA |
+| 여러 악보 선택 표시 | long press 후 checkbox와 선택 수 app bar로 명확히 표시. | 반영됨. 후속 hotfix에서 `최근` quick access 카드도 선택 모드에 참여하게 했다. | 실제 Android 태블릿 손가락 조작에서 강조가 충분한지. | 실기기 QA 후 색/체크 크기만 추가 조정. | v1 QA |
 | 여러 악보 세트리스트 추가 | 선택 overflow에서 `Create Setlist from Songs`. | 반영됨. | action 발견성, 중복 skip copy. | 현재 유지. 안내 문구만 QA. | v1 QA |
-| 세트리스트 drag reorder | edit mode에서 큰 drag handle과 split layout. | 반영됨. | 긴 목록 drag feel 미검증. | handle hit area QA. 직접 순번 입력은 보류. | v1 QA, v1.1 |
+| 세트리스트 drag reorder | edit mode에서 큰 drag handle과 split layout. | 반영됨. 후속 hotfix에서 handle hit area를 44dp로 키웠다. | 긴 목록 drag feel 미검증. | 실제 손가락 drag QA. 직접 순번 입력은 보류. | v1 QA, v1.1 |
 | 최근 목록 세트리스트 | Recent에 setlist와 song이 함께 표시. | 반영됨. | Clef rail/card 구분 가독성. | 곡 수 badge와 최근 연 시간 확인. | v1 QA |
 | 메트로놈 소리 | Audio and Visual mode, sound FX, volume, start button 제공. | 반영됨. | 실제 기기에서 소리 안 남 보고. | audio route/volume/visual fallback 실기기 최우선 확인. | v1 QA/hotfix |
 | 메트로놈 리듬 설정 | time signature, subdivision, accent first beat, tap tempo 제공. | 반영됨. | count-in/per-score tempo 저장 없음. | v1은 충분. 곡별 tempo/count-in은 v1.1. | v1.1 |

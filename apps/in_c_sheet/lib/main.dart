@@ -1334,6 +1334,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               .take(8)
                               .toList(growable: false),
                           onOpen: _openScore,
+                          isSelecting: _isBulkSelecting,
+                          selectedIds: _bulkSelectedScoreIds,
+                          onSelectionChanged: _toggleBulkScoreSelection,
                         ),
                         if (controller.recentSetlists.isNotEmpty) ...[
                           const SizedBox(height: 10),
@@ -2958,12 +2961,18 @@ class _QuickAccessBand extends StatelessWidget {
     required this.favoriteScores,
     required this.recentScores,
     required this.onOpen,
+    required this.isSelecting,
+    required this.selectedIds,
+    required this.onSelectionChanged,
   });
 
   final List<SheetScore> pinnedScores;
   final List<SheetScore> favoriteScores;
   final List<SheetScore> recentScores;
   final ValueChanged<SheetScore> onOpen;
+  final bool isSelecting;
+  final Set<String> selectedIds;
+  final ValueChanged<SheetScore> onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -3029,6 +3038,9 @@ class _QuickAccessBand extends StatelessWidget {
                           return _QuickAccessScoreChip(
                             score: score,
                             onOpen: onOpen,
+                            isSelecting: isSelecting,
+                            isSelected: selectedIds.contains(score.id),
+                            onSelectionChanged: onSelectionChanged,
                           );
                         },
                         separatorBuilder: (context, index) =>
@@ -3075,10 +3087,19 @@ String _scoreIdentitySubtitle(SheetScore score) {
 }
 
 class _QuickAccessScoreChip extends StatelessWidget {
-  const _QuickAccessScoreChip({required this.score, required this.onOpen});
+  const _QuickAccessScoreChip({
+    required this.score,
+    required this.onOpen,
+    required this.isSelecting,
+    required this.isSelected,
+    required this.onSelectionChanged,
+  });
 
   final SheetScore score;
   final ValueChanged<SheetScore> onOpen;
+  final bool isSelecting;
+  final bool isSelected;
+  final ValueChanged<SheetScore> onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -3091,51 +3112,78 @@ class _QuickAccessScoreChip extends StatelessWidget {
       width: 176,
       height: 144,
       child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+            : theme.colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            width: isSelected ? 2 : 0,
+          ),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => onOpen(score),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  score.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const SizedBox(height: 8),
-                Row(
+          onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(10, 10, isSelecting ? 34 : 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (score.isPinned)
-                      const Icon(Icons.push_pin, size: 14)
-                    else if (score.isFavorite)
-                      const Icon(Icons.star, size: 14)
-                    else
-                      const Icon(Icons.history, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        openedLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall,
-                      ),
+                    Text(
+                      score.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (score.isPinned)
+                          const Icon(Icons.push_pin, size: 14)
+                        else if (score.isFavorite)
+                          const Icon(Icons.star, size: 14)
+                        else
+                          const Icon(Icons.history, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            openedLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              if (isSelecting)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outline,
+                    size: 24,
+                    semanticLabel: isSelected ? '선택됨' : '선택 안 됨',
+                  ),
+                ),
+            ],
           ),
         ),
       ),
@@ -4242,7 +4290,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       leading: SizedBox(
-                        width: 72,
+                        width: 92,
                         child: Row(
                           children: [
                             CircleAvatar(child: Text('${index + 1}')),
@@ -4252,9 +4300,20 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                               label: '끌어서 순서 변경',
                               child: ReorderableDragStartListener(
                                 index: index,
-                                child: const Tooltip(
+                                child: Tooltip(
                                   message: '끌어서 순서 변경',
-                                  child: Icon(Icons.drag_handle),
+                                  child: SizedBox(
+                                    width: 44,
+                                    height: 44,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.drag_handle,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

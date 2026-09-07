@@ -106,6 +106,10 @@
   최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
   고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
   장시간 사용성을 다시 확인한다.
+- 다중 선택 모드에서는 일반 목록뿐 아니라 `최근` quick access 악보 카드도 선택 상태로 바뀌어야 한다.
+  선택된 카드는 check icon, primary border, 강조 배경이 보이고 viewer로 열리지 않아야 한다.
+- 세트리스트 상세의 drag handle은 손가락으로 바로 잡을 수 있을 정도의 터치 영역으로 보이며, 위/아래
+  버튼은 보조 이동 경로로 남아 있어야 한다.
 - OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
   embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.

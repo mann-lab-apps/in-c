@@ -440,6 +440,11 @@ flutter build ios --release --no-codesign
   카드 높이를 조정했고, `home renders recent setlists without overflow` widget regression을 추가했다.
 - Debug emulator build/install 기준 홈 카드, 최근 악보, 최근 세트리스트가 metadata 미입력 상태에서도
   title/source filename/recent/page 또는 곡 수로 구분된다.
+- 2026-09-07 후속 emulator 확인에서 다중 선택 모드 중 `최근` quick access 악보 카드가 선택이 아니라
+  viewer open으로 빠지는 흐름을 발견해, quick access 카드도 선택 모드에서는 check/border/background로
+  선택 상태를 표시하고 bulk setlist 대상에 포함되도록 수정했다. `recent quick access scores participate
+  in bulk selection` widget regression을 추가했다.
+- 세트리스트 상세의 drag handle은 tablet 손가락 조작을 고려해 44dp hit area와 primary 색상을 적용했다.
 - `flutter build appbundle --release`로 `1.0.0+20` release AAB를 생성했다. Play Console 업로드 후보는
   `apps/in_c_sheet/releases/clef-and-staff-1.0.0+20-release.aab`이며,
   SHA-256은 `ca67319a8d4613ceda52af3473b8826831efc279ee6e8056b86a709207d8e346`이다. release
