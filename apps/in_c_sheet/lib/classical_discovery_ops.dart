@@ -535,6 +535,12 @@ class ClassicalPublicCopyReadiness {
       'fake preview',
       'Catalog Ops',
       'internal ops',
+      'AI 추천',
+      '당신을 위한',
+      '취향 분석',
+      '개인화 추천',
+      'streak',
+      'XP',
     ];
     final publicCopy = <String>[
       metadata.appName,
@@ -652,6 +658,71 @@ class ClassicalKopisProductionReadiness {
   bool get productionReady => gapCount == 0;
 }
 
+class ClassicalFounderQualityGate {
+  const ClassicalFounderQualityGate({
+    required this.testedUserCount,
+    required this.dailyStepTapCount,
+    required this.reasonAcceptedCount,
+    required this.linkOutCount,
+    required this.reactionCount,
+    required this.mapUnderstandingCount,
+    required this.comebackReasonCount,
+  });
+
+  factory ClassicalFounderQualityGate.fromEvents(List<DiscoveryEvent> events) {
+    final probes = events
+        .where(
+          (event) =>
+              event.eventType == 'feedback_submit' &&
+              (event.context == 'founder_quality' ||
+                  event.properties['category'] == 'founder_quality'),
+        )
+        .toList(growable: false);
+    final byUser = <String, DiscoveryEvent>{};
+    for (final event in probes) {
+      final userId = event.properties['testerId']?.trim().isNotEmpty == true
+          ? event.properties['testerId']!
+          : event.id;
+      byUser[userId] = event;
+    }
+    final unique = byUser.values.toList(growable: false);
+    return ClassicalFounderQualityGate(
+      testedUserCount: unique.length,
+      dailyStepTapCount: _probeTrueCount(unique, 'dailyStepTapped'),
+      reasonAcceptedCount: _probeTrueCount(unique, 'reasonAccepted'),
+      linkOutCount: _probeTrueCount(unique, 'openedFullListen'),
+      reactionCount: _probeTrueCount(unique, 'leftReaction'),
+      mapUnderstandingCount: _probeTrueCount(unique, 'understoodListeningMap'),
+      comebackReasonCount: _probeTrueCount(unique, 'wouldReturnTomorrow'),
+    );
+  }
+
+  final int testedUserCount;
+  final int dailyStepTapCount;
+  final int reasonAcceptedCount;
+  final int linkOutCount;
+  final int reactionCount;
+  final int mapUnderstandingCount;
+  final int comebackReasonCount;
+
+  bool get ready =>
+      testedUserCount >= 5 &&
+      dailyStepTapCount >= 3 &&
+      reasonAcceptedCount >= 3 &&
+      linkOutCount >= 3 &&
+      reactionCount >= 3 &&
+      mapUnderstandingCount >= 3 &&
+      comebackReasonCount >= 3;
+
+  String get exportText {
+    return 'Founder Quality: ${ready ? 'YES' : 'NO'} · '
+        'tested $testedUserCount/5 · daily $dailyStepTapCount · '
+        'reason $reasonAcceptedCount · link-out $linkOutCount · '
+        'reaction $reactionCount · map $mapUnderstandingCount · '
+        'comeback $comebackReasonCount';
+  }
+}
+
 class ClassicalCatalogOpsSummary {
   const ClassicalCatalogOpsSummary({
     required this.catalog,
@@ -688,6 +759,17 @@ class ClassicalCatalogOpsSummary {
     required this.publicCopyReadiness,
     required this.buildQaReadiness,
     required this.feedbackSummary,
+    required this.founderQualityGate,
+    required this.listeningMapNodeCount,
+    required this.founderMapCoverageCount,
+    required this.worksWithMapNodeCount,
+    required this.worksWithUnlockPathCount,
+    required this.worksWithConqueredCriteriaCount,
+    required this.orphanMapNodeCount,
+    required this.brokenMapPrerequisiteCount,
+    required this.beginnerPathCoverageCount,
+    required this.listeningMapCopyCoverageCount,
+    required this.minimumRecommendedWorksPerMapNode,
     required this.kopisProductionReadiness,
     required this.founderReviewQueue,
     required this.directLinkReviewQueue,
@@ -773,6 +855,61 @@ class ClassicalCatalogOpsSummary {
     );
     final buildQaReadiness = ClassicalBuildQaReadiness.latestLocalEvidence();
     final feedbackSummary = _feedbackSummary(recentEvents);
+    final founderQualityGate = ClassicalFounderQualityGate.fromEvents(
+      recentEvents,
+    );
+    final mapNodes = _opsListeningMapNodes(catalog.works);
+    final mapEdges = _opsListeningMapEdges();
+    final mapNodeIds = mapNodes.map((node) => node.id).toSet();
+    final workMapNodeIds = <String, Set<String>>{
+      for (final work in catalog.works) work.id: _opsMapNodeIdsForWork(work),
+    };
+    final coveredMapNodeIds = workMapNodeIds.values
+        .expand((ids) => ids)
+        .toSet();
+    final founderMapCoverageCount = founderPicks
+        .where(
+          (work) => (workMapNodeIds[work.id] ?? const <String>{}).isNotEmpty,
+        )
+        .length;
+    final worksWithMapNodeCount = workMapNodeIds.values
+        .where((ids) => ids.isNotEmpty)
+        .length;
+    final worksWithUnlockPathCount = catalog.works
+        .where(
+          (work) => (workMapNodeIds[work.id] ?? const <String>{}).any(
+            (id) => mapEdges.any((edge) => edge.fromNodeId == id),
+          ),
+        )
+        .length;
+    final worksWithConqueredCriteriaCount = catalog.works
+        .where(
+          (work) =>
+              work.primaryMoment != null &&
+              work.externalLinks.isNotEmpty &&
+              work.listeningMoments.isNotEmpty,
+        )
+        .length;
+    final orphanMapNodeCount = mapNodeIds.difference(coveredMapNodeIds).length;
+    final brokenMapPrerequisiteCount = mapNodes
+        .expand((node) => node.prerequisiteNodeIds)
+        .where((id) => !mapNodeIds.contains(id))
+        .length;
+    final beginnerPathCoverageCount = catalog.works
+        .where(
+          (work) =>
+              work.difficultyForListening <= 2 &&
+              _opsMapNodeIdsForWork(work).isNotEmpty,
+        )
+        .length;
+    final listeningMapCopyCoverageCount = mapNodes
+        .where(_hasPublicListeningMapCopy)
+        .length;
+    final minimumRecommendedWorksPerMapNode = mapNodes.isEmpty
+        ? 0
+        : mapNodes
+              .map((node) => node.recommendedWorkIds.length)
+              .reduce((a, b) => a < b ? a : b);
     final kopisProductionReadiness =
         ClassicalKopisProductionReadiness.currentConfig();
     final appIdentityGapCount = appIdentityReadiness.gapCount;
@@ -971,6 +1108,38 @@ class ClassicalCatalogOpsSummary {
         evidenceRequirement:
             'link issue / concert issue / retention issue blocker가 없어야 합니다.',
       ),
+      _gate(
+        id: 'founder-quality',
+        label: '5 user founder quality gate',
+        current: founderQualityGate.ready ? 1 : 0,
+        target: 1,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'founder/product',
+        nextAction: '5명 테스트에서 첫 1분 행동과 내일 재방문 이유를 관찰합니다.',
+        evidenceRequirement: '5명 중 3명 이상이 Daily step, 추천 이유, link-out, reaction, 내일 재방문 이유를 통과해야 합니다.',
+      ),
+      _gate(
+        id: 'listening-map-founder-30',
+        label: 'founder_pick listening map coverage',
+        current: founderMapCoverageCount,
+        target: 30,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'product/content ops',
+        nextAction: 'Founder Pick 30개를 감상지도 node와 next path에 연결합니다.',
+        evidenceRequirement:
+            'Founder Pick 30개가 모두 Listening Map node를 가져야 합니다.',
+      ),
+      _gate(
+        id: 'listening-map-copy',
+        label: 'listening map copy coverage',
+        current: listeningMapCopyCoverageCount,
+        target: mapNodes.length,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'product/content ops',
+        nextAction: '감상지도 node마다 사용자가 이해할 수 있는 짧은 안내문을 채웁니다.',
+        evidenceRequirement:
+            '모든 Listening Map node에 title, description, public copy가 있어야 합니다.',
+      ),
     ];
     final publicReady = publicGateItems.every((item) => item.passes);
     final publicReport = ClassicalPublicV1CloseoutReport(
@@ -982,11 +1151,13 @@ class ClassicalCatalogOpsSummary {
           ? 'Public V1 release candidate로 고정할 수 있습니다.'
           : 'Public V1 RC 이전에 content ops / verification GAP이 남아 있습니다.',
       includedFeatures: const <String>[
-        'Today 작품 중심 discovery',
+        '오늘 30초 Daily listening step',
+        '좋아하는 음악에서 시작하는 감상지도',
+        '열린 길/다시 알아본 길/내 곡이 된 작품/다음 길',
+        'Next Three 감상 확장',
         '30초/3분 listening guide',
         '외부 플랫폼 link-out/search fallback',
-        '저장/reaction 기반 My Music 루틴',
-        '작품/작곡가/악기 기반 추천 shelf',
+        '저장/reaction 기반 My Music continuity',
         '관련 공연/sponsored card와 aggregate reporting',
       ],
       excludedFeatures: const <String>[
@@ -1034,6 +1205,7 @@ class ClassicalCatalogOpsSummary {
         buildQaGaps: buildQaReadiness.gapCount,
         installLaunchSmoke: buildQaReadiness.hasInstallLaunchSmoke,
         feedbackBlockers: feedbackSummary.blockerCount,
+        founderQualityGate: founderQualityGate,
       ),
     );
 
@@ -1099,6 +1271,17 @@ class ClassicalCatalogOpsSummary {
       publicCopyReadiness: publicCopyReadiness,
       buildQaReadiness: buildQaReadiness,
       feedbackSummary: feedbackSummary,
+      founderQualityGate: founderQualityGate,
+      listeningMapNodeCount: mapNodes.length,
+      founderMapCoverageCount: founderMapCoverageCount,
+      worksWithMapNodeCount: worksWithMapNodeCount,
+      worksWithUnlockPathCount: worksWithUnlockPathCount,
+      worksWithConqueredCriteriaCount: worksWithConqueredCriteriaCount,
+      orphanMapNodeCount: orphanMapNodeCount,
+      brokenMapPrerequisiteCount: brokenMapPrerequisiteCount,
+      beginnerPathCoverageCount: beginnerPathCoverageCount,
+      listeningMapCopyCoverageCount: listeningMapCopyCoverageCount,
+      minimumRecommendedWorksPerMapNode: minimumRecommendedWorksPerMapNode,
       kopisProductionReadiness: kopisProductionReadiness,
       founderReviewQueue: List<ClassicalOpsQueueItem>.unmodifiable(
         founderIssues,
@@ -1151,6 +1334,17 @@ class ClassicalCatalogOpsSummary {
   final ClassicalPublicCopyReadiness publicCopyReadiness;
   final ClassicalBuildQaReadiness buildQaReadiness;
   final ClassicalFeedbackSummary feedbackSummary;
+  final ClassicalFounderQualityGate founderQualityGate;
+  final int listeningMapNodeCount;
+  final int founderMapCoverageCount;
+  final int worksWithMapNodeCount;
+  final int worksWithUnlockPathCount;
+  final int worksWithConqueredCriteriaCount;
+  final int orphanMapNodeCount;
+  final int brokenMapPrerequisiteCount;
+  final int beginnerPathCoverageCount;
+  final int listeningMapCopyCoverageCount;
+  final int minimumRecommendedWorksPerMapNode;
   final ClassicalKopisProductionReadiness kopisProductionReadiness;
   final List<ClassicalOpsQueueItem> founderReviewQueue;
   final List<ClassicalOpsQueueItem> directLinkReviewQueue;
@@ -1286,6 +1480,213 @@ bool _hasFirstThreeMinuteFunnel(List<DiscoveryEvent> events) {
       eventTypes.contains('work_save') &&
       eventTypes.contains('reaction_add') &&
       eventTypes.contains('recommendation_click');
+}
+
+List<ListeningMapNode> _opsListeningMapNodes(List<ClassicalWork> works) {
+  ListeningMapNode node(
+    String id,
+    String title,
+    String axis,
+    int level, {
+    List<String> prerequisiteNodeIds = const <String>[],
+  }) {
+    final primary = works
+        .where((work) => _opsMapNodeIdsForWork(work).contains(id))
+        .take(10)
+        .map((work) => work.id)
+        .toList(growable: false);
+    final recommended = primary.isNotEmpty
+        ? primary
+        : works
+              .where((work) => level <= 1 || work.difficultyForListening >= 2)
+              .where((work) => work.primaryMoment != null)
+              .take(6)
+              .map((work) => work.id)
+              .toList(growable: false);
+    return ListeningMapNode(
+      id: id,
+      title: title,
+      description: title,
+      axis: axis,
+      level: level,
+      prerequisiteNodeIds: prerequisiteNodeIds,
+      recommendedWorkIds: recommended,
+      anchorWorkIds: recommended.take(3).toList(growable: false),
+      unlockedByTags: const <String>[],
+      userFacingCopy: '$title 쪽으로 다음 작품을 열 수 있습니다.',
+    );
+  }
+
+  return <ListeningMapNode>[
+    node('melody-entry', '선율이 먼저 들리는 길', '선율형', 1),
+    node(
+      'melody-familiar',
+      '긴 선율을 따라가는 길',
+      '선율형',
+      2,
+      prerequisiteNodeIds: const ['melody-entry'],
+    ),
+    node('color-entry', '악기 색이 들리는 길', '색채형', 1),
+    node(
+      'color-familiar',
+      '소리의 결을 따라가는 길',
+      '색채형',
+      2,
+      prerequisiteNodeIds: const ['color-entry'],
+    ),
+    node('rhythm-entry', '몸이 먼저 반응하는 길', '리듬형', 1),
+    node(
+      'rhythm-familiar',
+      '반복과 변형이 보이는 길',
+      '리듬형',
+      2,
+      prerequisiteNodeIds: const ['rhythm-entry'],
+    ),
+    node('dramatic-entry', '장면이 바뀌는 길', '극적형', 1),
+    node(
+      'dramatic-familiar',
+      '큰 흐름을 따라가는 길',
+      '극적형',
+      2,
+      prerequisiteNodeIds: const ['dramatic-entry'],
+    ),
+    node('tension-entry', '긴장이 쌓이는 길', '긴장형', 1),
+    node('form-entry', '주제가 돌아오는 길', '구조형', 1),
+    node(
+      'form-familiar',
+      '구조가 보이는 길',
+      '구조형',
+      2,
+      prerequisiteNodeIds: const ['form-entry'],
+    ),
+    node('instrument-color', '좋아하는 악기로 넓히는 길', '악기형', 1),
+  ];
+}
+
+bool _hasPublicListeningMapCopy(ListeningMapNode node) {
+  final copy = [node.title, node.description, node.userFacingCopy].join(' ');
+  if (node.title.trim().isEmpty ||
+      node.description.trim().isEmpty ||
+      node.userFacingCopy.trim().isEmpty) {
+    return false;
+  }
+  return !_opsContainsAny(copy, ['AI', 'CTA', 'funnel', 'surface', 'coverage']);
+}
+
+List<ListeningMapEdge> _opsListeningMapEdges() {
+  return const <ListeningMapEdge>[
+    ListeningMapEdge(
+      fromNodeId: 'melody-entry',
+      toNodeId: 'melody-familiar',
+      reason: '선율을 잡으면 긴 선율로 이어집니다.',
+      difficultyStep: 1,
+    ),
+    ListeningMapEdge(
+      fromNodeId: 'melody-entry',
+      toNodeId: 'color-entry',
+      reason: '선율 뒤의 소리 색으로 넓힙니다.',
+      difficultyStep: 1,
+    ),
+    ListeningMapEdge(
+      fromNodeId: 'color-entry',
+      toNodeId: 'color-familiar',
+      reason: '소리 색을 더 깊게 듣습니다.',
+      difficultyStep: 1,
+    ),
+    ListeningMapEdge(
+      fromNodeId: 'rhythm-entry',
+      toNodeId: 'rhythm-familiar',
+      reason: '움직임에서 반복과 변형으로 갑니다.',
+      difficultyStep: 1,
+    ),
+    ListeningMapEdge(
+      fromNodeId: 'dramatic-entry',
+      toNodeId: 'dramatic-familiar',
+      reason: '장면 전환에서 큰 흐름으로 갑니다.',
+      difficultyStep: 1,
+    ),
+    ListeningMapEdge(
+      fromNodeId: 'form-entry',
+      toNodeId: 'form-familiar',
+      reason: '주제의 귀환을 더 길게 따라갑니다.',
+      difficultyStep: 1,
+    ),
+  ];
+}
+
+Set<String> _opsMapNodeIdsForWork(ClassicalWork work) {
+  final primaryAxis = _opsPrimaryAxisForWork(work);
+  final text = [
+    work.titleKo,
+    work.titleOriginal,
+    work.instrumentation,
+    work.period,
+    ...work.moodTags,
+    ...work.contextTags,
+  ].join(' ');
+  return <String>{
+    _opsEntryNodeIdForAxis(primaryAxis),
+    if (work.difficultyForListening >= 2)
+      _opsFamiliarNodeIdForAxis(primaryAxis),
+    if (work.instrumentation.isNotEmpty) 'instrument-color',
+    if (_opsContainsAny(text, ['긴장', '어두', '비극', '불안', '폭풍', '단조']))
+      'tension-entry',
+  };
+}
+
+String _opsPrimaryAxisForWork(ClassicalWork work) {
+  final text = [
+    work.titleKo,
+    work.titleOriginal,
+    work.instrumentation,
+    work.period,
+    ...work.moodTags,
+    ...work.contextTags,
+  ].join(' ');
+  if (_opsContainsAny(text, ['색채', '인상', '관현악', '목관', '현악', '분위기'])) {
+    return '색채형';
+  }
+  if (_opsContainsAny(text, ['춤', '리듬', '행진', '스케르초', '반복', '활기'])) {
+    return '리듬형';
+  }
+  if (_opsContainsAny(text, ['긴장', '어두', '비극', '불안', '폭풍', '단조'])) {
+    return '긴장형';
+  }
+  if (_opsContainsAny(text, ['극적', '클라이맥스', '협주곡', '오페라', '서사', '웅장'])) {
+    return '극적형';
+  }
+  if (_opsContainsAny(text, ['푸가', '변주', '소나타', '교향곡', '사중주', '구조'])) {
+    return '구조형';
+  }
+  return '선율형';
+}
+
+String _opsEntryNodeIdForAxis(String axis) {
+  return switch (axis) {
+    '색채형' => 'color-entry',
+    '리듬형' => 'rhythm-entry',
+    '극적형' => 'dramatic-entry',
+    '긴장형' => 'tension-entry',
+    '구조형' => 'form-entry',
+    _ => 'melody-entry',
+  };
+}
+
+String _opsFamiliarNodeIdForAxis(String axis) {
+  return switch (axis) {
+    '색채형' => 'color-familiar',
+    '리듬형' => 'rhythm-familiar',
+    '극적형' => 'dramatic-familiar',
+    '구조형' => 'form-familiar',
+    _ => 'melody-familiar',
+  };
+}
+
+bool _opsContainsAny(String value, List<String> needles) {
+  final normalized = normalizeDiscoveryText(value);
+  return needles.any(
+    (needle) => normalized.contains(normalizeDiscoveryText(needle)),
+  );
 }
 
 List<ClassicalOpsQueueItem> _directLinkReviewQueue(List<ClassicalWork> works) {
@@ -1432,6 +1833,12 @@ bool _hasHumanPromptQuality(ClassicalWork work) {
     '기능',
     '버튼',
     '개인화',
+    '추천',
+    '분석',
+    '당신',
+    'AI',
+    'streak',
+    'XP',
   ];
   if (blockedWords.any(prompt.contains)) {
     return false;
@@ -1489,6 +1896,12 @@ ClassicalFeedbackSummary _feedbackSummary(List<DiscoveryEvent> events) {
   );
 }
 
+int _probeTrueCount(List<DiscoveryEvent> events, String propertyName) {
+  return events
+      .where((event) => event.properties[propertyName] == 'true')
+      .length;
+}
+
 String _feedbackPriority(String category, int count) {
   const blockerCategories = <String>{
     'link_issue',
@@ -1528,6 +1941,7 @@ List<String> _evidenceRows({
   required int buildQaGaps,
   required bool installLaunchSmoke,
   required int feedbackBlockers,
+  required ClassicalFounderQualityGate founderQualityGate,
 }) {
   return <String>[
     'Soft Launch: ${softLaunchReport.friendlyUsersReady ? 'YES' : 'NO'} '
@@ -1544,6 +1958,7 @@ List<String> _evidenceRows({
     'Build QA production verification gaps: $buildQaGaps',
     'Install/launch smoke: ${installLaunchSmoke ? 'PASS' : 'GAP'}',
     'Launch feedback blockers: $feedbackBlockers',
+    founderQualityGate.exportText,
     for (final item in publicGateItems)
       '${item.label}: ${item.passes ? 'PASS' : 'GAP'} '
           '(${item.current}/${item.target}) · ${item.priority} · owner ${item.owner}',

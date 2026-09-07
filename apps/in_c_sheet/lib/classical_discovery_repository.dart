@@ -53,6 +53,18 @@ class DiscoveryStateMerger {
       ...local.reactions,
       ...remote.reactions,
     ], (reaction) => reaction.id);
+    final tasteIntakeItems = _dedupeById<TasteIntakeItem>([
+      ...local.tasteIntakeItems,
+      ...remote.tasteIntakeItems,
+    ], (item) => item.id)..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final previewRoutes = _dedupeById<ConcertPreviewRoute>([
+      ...local.previewRoutes,
+      ...remote.previewRoutes,
+    ], (route) => route.id)..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final postConcertReflections = _dedupeById<PostConcertReflection>(
+      [...local.postConcertReflections, ...remote.postConcertReflections],
+      (reflection) => reflection.id,
+    )..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
     final events = _dedupeById<DiscoveryEvent>(
       [...local.events, ...remote.events],
       (event) => event.id,
@@ -66,7 +78,12 @@ class DiscoveryStateMerger {
 
     return preferenceSource.copyWith(
       workStates: Map<String, UserWorkState>.unmodifiable(workStates),
+      tasteIntakeItems: tasteIntakeItems.take(80).toList(growable: false),
       reactions: reactions.take(160).toList(growable: false),
+      previewRoutes: previewRoutes.take(40).toList(growable: false),
+      postConcertReflections: postConcertReflections
+          .take(160)
+          .toList(growable: false),
       events: events.take(400).toList(growable: false),
       savedConcertIds: <String>{
         ...local.savedConcertIds,

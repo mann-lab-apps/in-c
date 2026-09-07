@@ -9,6 +9,7 @@ import 'package:in_c_sheet/classical_discovery_data_source.dart';
 import 'package:in_c_sheet/classical_discovery_models.dart';
 import 'package:in_c_sheet/classical_discovery_ops.dart';
 import 'package:in_c_sheet/classical_discovery_repository.dart';
+import 'package:in_c_sheet/classical_discovery_screen.dart';
 import 'package:in_c_sheet/classical_discovery_store.dart';
 import 'package:in_c_sheet/classical_discovery_validation.dart';
 import 'package:in_c_sheet/classical_link_launcher.dart';
@@ -195,6 +196,7 @@ void main() {
         preferredInstruments: {'피아노'},
         preferredPlatformId: 'spotify',
         region: '부산',
+        tasteInputs: const ['월광', 'Interstellar OST'],
       );
       final reloaded = _controller(store: store);
       await reloaded.load();
@@ -202,11 +204,74 @@ void main() {
       expect(reloaded.state.onboardingCompleted, isTrue);
       expect(reloaded.preferredPlatformId, 'spotify');
       expect(reloaded.region, '부산');
+      expect(reloaded.tasteIntakeItems.length, 2);
+      expect(
+        reloaded.tasteIntakeItems.map((item) => item.matchedWorkId),
+        contains('beethoven-moonlight'),
+      );
       expect(
         reloaded.discoverShelves().map((shelf) => shelf.id),
         containsAll(['preferred-instruments', 'preferred-context']),
       );
       expect(reloaded.state.events.first.eventType, 'onboarding_complete');
+    },
+  );
+
+  test(
+    'taste intake creates listening coordinates from matched and free text',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      await controller.addTasteIntakeInputs(['라흐 피협 2', '영화음악']);
+
+      expect(controller.tasteIntakeItems.length, 2);
+      expect(
+        controller.tasteIntakeItems.map((item) => item.matchedWorkId),
+        contains('rachmaninoff-piano-concerto-2'),
+      );
+      expect(controller.tasteAxisScores(), isNotEmpty);
+      expect(controller.listeningLevelSnapshot().level, isNotEmpty);
+      expect(controller.state.events.first.eventType, 'taste_intake_add');
+    },
+  );
+
+  test(
+    'next three recommendations split immediate stretch and later lanes',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      await controller.addTasteIntakeInputs(['라흐 피협 2', '밤의 피아노']);
+      await controller.addReaction('rachmaninoff-piano-concerto-2', 'liked');
+
+      final recommendations = controller.nextThreeRecommendations();
+
+      expect(recommendations.map((item) => item.lane), [
+        'immediate',
+        'stretch',
+        'later',
+      ]);
+      expect(
+        recommendations.map((item) => item.work.id).toSet().length,
+        recommendations.length,
+      );
+      expect(recommendations.every((item) => item.reason.isNotEmpty), isTrue);
+    },
+  );
+
+  test(
+    'unsure reaction keeps the next recommendations close to anchors',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      await controller.addReaction('mahler-adagietto', 'unsure');
+
+      final immediate = controller.nextThreeRecommendations().first;
+
+      expect(immediate.lane, 'immediate');
+      expect(immediate.work.difficultyForListening, lessThanOrEqualTo(3));
     },
   );
 
@@ -227,6 +292,255 @@ void main() {
     await controller.load();
 
     expect(controller.todayWork.catalogStatusTags, contains('founder_pick'));
+  });
+
+  test(
+    'daily listening step gives a small founder pick on first use',
+    () async {
+      final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+      await controller.load();
+
+      final step = controller.dailyListeningStep();
+
+      expect(step.title, '오늘 30초만');
+      expect(step.work.catalogStatusTags, contains('founder_pick'));
+      expect(step.work.difficultyForListening, lessThanOrEqualTo(2));
+      expect(step.estimatedSeconds, inInclusiveRange(15, 180));
+      expect(step.reason, contains('부담'));
+    },
+  );
+
+  test(
+    'daily listening step follows saved unopened works before broad browsing',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      await controller.toggleSaveWork('chopin-nocturne-op9-2');
+
+      final step = controller.dailyListeningStep();
+
+      expect(step.work.id, 'chopin-nocturne-op9-2');
+      expect(step.reason, contains('저장'));
+    },
+  );
+
+  test('daily step reason uses taste intake evidence', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.addTasteIntakeInputs(['영화음악']);
+
+    final step = controller.dailyListeningStep();
+    expect(step.reason, contains('영화음악'));
+    expect(step.nextEffect, contains('다음 세 작품'));
+    expect(step.tasteEvidenceLabel, '영화음악');
+  });
+
+  test('unmatched taste input still previews a useful first reward', () async {
+    final controller = _controller();
+    await controller.load();
+
+    final preview = controller.previewTasteStart(['새벽 산책 음악']);
+
+    expect(preview, isNotNull);
+    expect(preview!.items.single.sourceType, 'free_text');
+    expect(preview.dailyStep.title, '오늘은 이 30초부터');
+    expect(preview.dailyStep.reason, contains('새벽 산책 음악'));
+    expect(preview.nextThree, isNotEmpty);
+  });
+
+  test('taste intake opens initial listening map node', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.addTasteIntakeInputs(['영화음악']);
+
+    final progress = controller.listeningMapProgress();
+    expect(progress.openedCount, greaterThan(0));
+    expect(progress.currentNode, isNotNull);
+    expect(progress.currentNode!.axis, '극적형');
+    expect(progress.summaryCopy, contains('열'));
+  });
+
+  test('daily step completion updates listening map progress', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    final step = controller.dailyListeningStep();
+
+    await controller.completeMoment(step.work.id, step.moment.id);
+
+    final progress = controller.listeningMapProgress();
+    expect(progress.userState.openedNodeIds, isNotEmpty);
+    expect(
+      progress.userState.capturedMomentIds,
+      contains('${step.work.id}:${step.moment.id}'),
+    );
+    expect(progress.rewardCopy, contains('오늘 들은 지점'));
+  });
+
+  test('reaction updates axis familiarity', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    final step = controller.dailyListeningStep();
+
+    await controller.addReaction(
+      step.work.id,
+      'liked',
+      momentId: step.moment.id,
+    );
+    await controller.completeMoment(step.work.id, step.moment.id);
+
+    final progress = controller.listeningMapProgress();
+    expect(progress.familiarCount, greaterThan(0));
+  });
+
+  test('unsure reaction marks unfamiliar area without conquest', () async {
+    final controller = _controller();
+    await controller.load();
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+
+    await controller.addReaction(work.id, 'unsure');
+    await controller.toggleSaveWork(work.id);
+    await controller.recordProviderClick(work, work.externalLinks.first);
+
+    final progress = controller.listeningMapProgress();
+    expect(progress.unfamiliarNodes, isNotEmpty);
+    expect(
+      progress.conqueredWorks.where((item) => item.id == work.id),
+      isEmpty,
+    );
+  });
+
+  test('save full listen and reaction creates conquered candidate', () async {
+    final controller = _controller();
+    await controller.load();
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+
+    await controller.toggleSaveWork(work.id);
+    await controller.recordProviderClick(work, work.externalLinks.first);
+    await controller.addReaction(work.id, 'liked');
+
+    final progress = controller.listeningMapProgress();
+    expect(progress.conqueredWorks.map((item) => item.id), contains(work.id));
+    expect(progress.conqueredCount, greaterThan(0));
+  });
+
+  test('work detail map role exposes node and next path', () async {
+    final controller = _controller();
+    await controller.load();
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+
+    final role = controller.listeningMapRoleForWork(work);
+
+    expect(role.primaryNode.title, isNotEmpty);
+    expect(role.roleCopy, contains(work.titleKo));
+    expect(role.nextPath, isNotEmpty);
+  });
+
+  test('discover shelves dedupe by listening map path', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.addTasteIntakeInputs(['영화음악']);
+    await controller.addReaction('beethoven-symphony-5', 'liked');
+
+    final ids = <String>[];
+    for (final shelf in controller.discoverShelves()) {
+      ids.addAll(shelf.works.map((work) => work.id));
+    }
+
+    expect(ids.toSet().length, ids.length);
+    expect(
+      controller.discoverShelves().map((shelf) => shelf.id),
+      contains('map-next-path'),
+    );
+  });
+
+  test('daily listening step becomes completed after a reaction', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    final step = controller.dailyListeningStep();
+
+    await controller.addReaction(
+      step.work.id,
+      'liked',
+      momentId: step.moment.id,
+    );
+
+    final completed = controller.dailyListeningStep(
+      now: DateTime(2026, 9, 1, 22),
+    );
+    expect(completed.work.id, step.work.id);
+    expect(completed.isCompleted, isTrue);
+    expect(completed.title, '오늘은 충분해요');
+  });
+
+  test('daily continuity counts one completion per day gently', () async {
+    var now = DateTime(2026, 9, 1, 9);
+    final controller = _controller(clock: () => now);
+    await controller.load();
+    final firstStep = controller.dailyListeningStep(now: now);
+    await controller.completeMoment(firstStep.work.id, firstStep.moment.id);
+    await controller.addReaction(
+      firstStep.work.id,
+      'liked',
+      momentId: firstStep.moment.id,
+    );
+
+    now = DateTime(2026, 9, 2, 9);
+    final secondStep = controller.dailyListeningStep(now: now);
+    await controller.recordProviderClick(
+      secondStep.work,
+      secondStep.work.externalLinks.first,
+    );
+
+    final summary = controller.continuitySummary(now: DateTime(2026, 9, 2, 22));
+    expect(summary.weeklyCompletedDays, 2);
+    expect(summary.currentRunDays, 2);
+    expect(summary.completedToday, isTrue);
+    expect(summary.recoveryCopy, isNot(contains('실패')));
+  });
+
+  test(
+    'continuity recovery keeps yesterday progress without punishment',
+    () async {
+      var now = DateTime(2026, 9, 1, 9);
+      final controller = _controller(clock: () => now);
+      await controller.load();
+      final step = controller.dailyListeningStep(now: now);
+      await controller.completeMoment(step.work.id, step.moment.id);
+
+      now = DateTime(2026, 9, 2, 9);
+      final summary = controller.continuitySummary(now: now);
+
+      expect(summary.completedToday, isFalse);
+      expect(summary.currentRunDays, 1);
+      expect(summary.headline, contains('이번 주'));
+      expect(summary.recoveryCopy, contains('어제'));
+    },
+  );
+
+  test('reminder preference persists as local-first placeholder', () async {
+    final store = _MemoryDiscoveryStore();
+    final controller = _controller(store: store);
+    await controller.load();
+
+    await controller.setReminderPreference(
+      ReminderPreference.defaultPreference.copyWith(
+        enabled: true,
+        timeLabel: '21:00',
+        message: '어제 저장한 작품, 첫 선율만 다시 들어볼까요?',
+      ),
+    );
+    final reloaded = _controller(store: store);
+    await reloaded.load();
+
+    expect(reloaded.reminderPreference.enabled, isTrue);
+    expect(reloaded.reminderPreference.timeLabel, '21:00');
+    expect(reloaded.reminderPreference.deliveryStatus, 'local-preference-only');
+    expect(reloaded.state.notificationPreferences, contains('today_work'));
+    expect(reloaded.state.events.first.eventType, 'reminder_preference_set');
   });
 
   test(
@@ -486,6 +800,42 @@ void main() {
     expect(controller.state.events.first.context, 'starter');
   });
 
+  test('work passport derives listening stamps from user actions', () async {
+    final controller = _controller();
+    await controller.load();
+    final work = controller.workById('bach-air')!;
+    final moment = work.primaryMoment!;
+
+    await controller.recordMomentPreviewOpen(work.id, moment.id);
+    await controller.completeMoment(work.id, moment.id);
+    await controller.recordProviderClick(work, work.externalLinks.first);
+    await controller.toggleSaveWork(work.id);
+    await controller.addReaction(work.id, 'liked', momentId: moment.id);
+
+    final stamps = controller.workPassportFor(work.id);
+
+    expect(stamps.map((stamp) => stamp.label), contains('처음 만남'));
+    expect(stamps.map((stamp) => stamp.label), contains('전체 듣기로 이동'));
+    expect(stamps.map((stamp) => stamp.label), contains('좋았다고 남김'));
+    expect(
+      controller.listeningTimeline().map((stamp) => stamp.workId),
+      contains(work.id),
+    );
+  });
+
+  test('revisit queue includes saved unopened and unsure works', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.toggleSaveWork('bach-air');
+    await controller.addReaction('mahler-adagietto', 'unsure');
+
+    final queueIds = controller.revisitQueue.map((work) => work.id);
+
+    expect(queueIds, contains('bach-air'));
+    expect(queueIds, contains('mahler-adagietto'));
+  });
+
   test('concert program matcher finds seed program works from raw text', () {
     const matcher = ConcertProgramMatcher();
 
@@ -503,6 +853,93 @@ void main() {
         reason: 'programRawText should match ${concert.id}',
       );
     }
+  });
+
+  test('creates a 10 minute preview route from a seeded concert', () async {
+    final store = _MemoryDiscoveryStore();
+    final controller = _controller(store: store);
+    await controller.load();
+
+    final route = await controller.createPreviewRouteFromConcert(
+      'concert-baroque-night',
+    );
+
+    expect(route, isNotNull);
+    expect(route!.sourceType, ConcertPreviewRouteSourceType.seededConcert);
+    expect(route.programWorkIds.length, inInclusiveRange(2, 4));
+    expect(route.listeningMomentIds, isNotEmpty);
+    expect(route.totalPreviewMinutes, lessThanOrEqualTo(10));
+    expect(route.completionState, ConcertPreviewRouteCompletionState.ready);
+    expect(controller.latestPreviewRoute!.id, route.id);
+    expect(
+      controller.state.events.first.eventType,
+      'concert_preview_route_create',
+    );
+  });
+
+  test(
+    'pasted program route excludes low confidence composer-only matches',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      final draft = controller.previewProgramText('J. S. Bach recital');
+      final route = await controller.createPreviewRouteFromProgram(
+        rawProgramText: 'J. S. Bach recital',
+      );
+
+      expect(draft.candidates, isNotEmpty);
+      expect(
+        draft.candidates.map((candidate) => candidate.confidence),
+        contains(ConcertProgramMatchConfidence.low),
+      );
+      expect(draft.routeReadyCandidates, isEmpty);
+      expect(route.programWorkIds, isEmpty);
+      expect(route.completionState, ConcertPreviewRouteCompletionState.draft);
+    },
+  );
+
+  test(
+    'saved but unopened queue clears after external platform click',
+    () async {
+      final controller = _controller();
+      await controller.load();
+      final work = controller.workById('bach-air')!;
+
+      await controller.toggleSaveWork(work.id);
+      expect(controller.savedButUnopenedWorks.map((item) => item.id), [
+        work.id,
+      ]);
+
+      await controller.recordProviderClick(work, work.externalLinks.first);
+
+      expect(controller.savedButUnopenedWorks, isEmpty);
+    },
+  );
+
+  test('post-concert reflection updates diary and taste map', () async {
+    final controller = _controller();
+    await controller.load();
+
+    await controller.addPostConcertReflection(
+      concertId: 'concert-baroque-night',
+      workId: 'bach-air',
+      reactionType: 'liked',
+      instrument: '현악합주',
+      note: '선율이 기억났어요',
+    );
+    await controller.addReaction('bach-air', 'repeat');
+    await controller.addReaction('bach-cello-suite-1-prelude', 'liked');
+
+    expect(controller.postConcertReflections.single.workId, 'bach-air');
+    expect(
+      controller.state.events.map((event) => event.eventType),
+      contains('post_concert_reflection_add'),
+    );
+    expect(
+      controller.tasteMapInsights().map((insight) => insight.title).join(' '),
+      contains('형'),
+    );
   });
 
   test('ops summary calculates coverage for V1 readiness screen', () {
@@ -679,6 +1116,94 @@ void main() {
       contains('Launch feedback blockers: 3'),
     );
   });
+
+  test('founder quality gate requires 5 testers and 3 comeback reasons', () {
+    DiscoveryEvent probe(String testerId, bool passed) {
+      return _event(
+        'feedback_submit',
+        'app',
+        'in-c',
+        id: 'founder-quality-$testerId',
+        context: 'founder_quality',
+        properties: {
+          'category': 'founder_quality',
+          'testerId': testerId,
+          'dailyStepTapped': passed.toString(),
+          'reasonAccepted': passed.toString(),
+          'openedFullListen': passed.toString(),
+          'leftReaction': passed.toString(),
+          'understoodListeningMap': passed.toString(),
+          'wouldReturnTomorrow': passed.toString(),
+        },
+      );
+    }
+
+    final summary = ClassicalCatalogOpsSummary.fromCatalog(
+      catalog: const SeedClassicalCatalogDataSource().loadCatalog(),
+      recentEvents: [
+        probe('u1', true),
+        probe('u2', true),
+        probe('u3', true),
+        probe('u4', false),
+        probe('u5', false),
+      ],
+    );
+
+    expect(summary.founderQualityGate.ready, isTrue);
+    expect(summary.founderQualityGate.testedUserCount, 5);
+    expect(summary.founderQualityGate.mapUnderstandingCount, 3);
+    expect(summary.founderQualityGate.comebackReasonCount, 3);
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Founder Quality: YES'),
+    );
+  });
+
+  test('founder pick 30 has listening map coverage', () {
+    final summary = ClassicalCatalogOpsSummary.fromCatalog(
+      catalog: const SeedClassicalCatalogDataSource().loadCatalog(),
+      recentEvents: const [],
+    );
+
+    expect(summary.listeningMapNodeCount, greaterThanOrEqualTo(8));
+    expect(summary.founderMapCoverageCount, 30);
+    expect(summary.worksWithMapNodeCount, summary.workCount);
+    expect(
+      summary.listeningMapCopyCoverageCount,
+      summary.listeningMapNodeCount,
+    );
+    expect(summary.minimumRecommendedWorksPerMapNode, greaterThan(0));
+    expect(
+      summary.publicV1Closeout.gateItems
+          .firstWhere((item) => item.id == 'listening-map-founder-30')
+          .passes,
+      isTrue,
+    );
+    expect(
+      summary.publicV1Closeout.gateItems
+          .firstWhere((item) => item.id == 'listening-map-copy')
+          .passes,
+      isTrue,
+    );
+  });
+
+  test(
+    'catalog ops detects broken prerequisite refs in listening map shape',
+    () {
+      final summary = ClassicalCatalogOpsSummary.fromCatalog(
+        catalog: const SeedClassicalCatalogDataSource().loadCatalog(),
+        recentEvents: const [],
+      );
+
+      expect(summary.orphanMapNodeCount, greaterThanOrEqualTo(0));
+      expect(
+        summary.orphanMapNodeCount,
+        lessThan(summary.listeningMapNodeCount),
+      );
+      expect(summary.brokenMapPrerequisiteCount, 0);
+      expect(summary.beginnerPathCoverageCount, greaterThan(0));
+    },
+  );
 
   test(
     'link review policy separates safe search fallback from direct links',
@@ -908,11 +1433,52 @@ void main() {
           updatedAt: oldTime,
         ),
       },
+      tasteIntakeItems: [
+        TasteIntakeItem(
+          id: 'taste-local',
+          label: 'G선상의 아리아',
+          rawInput: 'Bach Air',
+          matchedWorkId: 'bach-air',
+          matchedComposerId: 'bach',
+          sourceType: 'catalog_match',
+          confidence: 92,
+          createdAt: oldTime,
+        ),
+      ],
+      previewRoutes: [
+        ConcertPreviewRoute(
+          id: 'same-route',
+          sourceType: ConcertPreviewRouteSourceType.seededConcert,
+          concertId: 'concert-baroque-night',
+          routeTitle: '바흐 10분 프리뷰',
+          programWorkIds: const ['bach-air'],
+          listeningMomentIds: const ['bach-air-30s'],
+          totalPreviewMinutes: 1,
+          hallListeningNotes: const ['G선상의 아리아: 첫 선율'],
+          completionState: ConcertPreviewRouteCompletionState.ready,
+          createdAt: oldTime,
+          updatedAt: oldTime,
+        ),
+      ],
+      postConcertReflections: [
+        PostConcertReflection(
+          id: 'reflection-local',
+          concertId: 'concert-baroque-night',
+          workId: 'bach-air',
+          reactionType: 'liked',
+          occurredAt: oldTime,
+        ),
+      ],
       events: [_event('work_view', 'work', 'bach-air', id: 'same-event')],
     );
     final remote = UserDiscoveryState.defaultState.copyWith(
       preferredPlatformId: 'spotify',
       preferencesUpdatedAt: newTime,
+      reminderPreference: ReminderPreference.defaultPreference.copyWith(
+        enabled: true,
+        timeLabel: '21:00',
+        updatedAt: newTime,
+      ),
       workStates: {
         'bach-air': UserWorkState(
           workId: 'bach-air',
@@ -921,15 +1487,59 @@ void main() {
           updatedAt: newTime,
         ),
       },
+      tasteIntakeItems: [
+        TasteIntakeItem(
+          id: 'taste-remote',
+          label: '월광 소나타',
+          rawInput: '월광',
+          matchedWorkId: 'beethoven-moonlight',
+          matchedComposerId: 'beethoven',
+          sourceType: 'catalog_match',
+          confidence: 100,
+          createdAt: newTime,
+        ),
+      ],
       dismissedPromotionIds: {'promo-piano-evening'},
+      previewRoutes: [
+        ConcertPreviewRoute(
+          id: 'same-route',
+          sourceType: ConcertPreviewRouteSourceType.seededConcert,
+          concertId: 'concert-baroque-night',
+          routeTitle: '바흐 10분 프리뷰',
+          programWorkIds: const ['bach-air', 'bach-cello-suite-1-prelude'],
+          listeningMomentIds: const ['bach-air-30s'],
+          totalPreviewMinutes: 2,
+          hallListeningNotes: const ['G선상의 아리아: 첫 선율'],
+          completionState: ConcertPreviewRouteCompletionState.completed,
+          createdAt: oldTime,
+          updatedAt: newTime,
+        ),
+      ],
+      postConcertReflections: [
+        PostConcertReflection(
+          id: 'reflection-local',
+          concertId: 'concert-baroque-night',
+          workId: 'bach-air',
+          reactionType: 'liked',
+          occurredAt: oldTime,
+        ),
+      ],
       events: [_event('work_view', 'work', 'bach-air', id: 'same-event')],
     );
 
     final merged = const DiscoveryStateMerger().merge(local, remote);
 
     expect(merged.preferredPlatformId, 'spotify');
+    expect(merged.reminderPreference.enabled, isTrue);
+    expect(merged.reminderPreference.timeLabel, '21:00');
     expect(merged.stateForWork('bach-air').saved, isTrue);
     expect(merged.dismissedPromotionIds, contains('promo-piano-evening'));
+    expect(merged.tasteIntakeItems.map((item) => item.id), [
+      'taste-remote',
+      'taste-local',
+    ]);
+    expect(merged.previewRoutes.single.programWorkIds, contains('bach-air'));
+    expect(merged.postConcertReflections.length, 1);
     expect(merged.events.length, 1);
   });
 
@@ -1053,7 +1663,110 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('in C'), findsOneWidget);
-    expect(find.text('Today'), findsOneWidget);
+    expect(find.text('Preview'), findsOneWidget);
+    expect(find.text('오늘 30초'), findsOneWidget);
+    expect(find.text('오늘 30초만'), findsOneWidget);
+  });
+
+  testWidgets('My Music empty state shows listening map start copy', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Music'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('내 감상지도'), findsWidgets);
+    expect(find.text('아직 지도는 비어 있어요'), findsOneWidget);
+    expect(find.textContaining('좋아하는 음악 하나'), findsOneWidget);
+  });
+
+  testWidgets('My Music non-empty state shows current listening position', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+    await controller.addTasteIntakeInputs(['영화음악']);
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('My Music'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('내 감상지도'), findsWidgets);
+    expect(find.textContaining('열린 길'), findsWidgets);
+    expect(find.textContaining('장면이 바뀌는 길'), findsWidgets);
+    expect(find.text('오늘 이어갈 하나'), findsOneWidget);
+  });
+
+  testWidgets('Work Detail shows listening map role and next path', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ClassicalWorkDetailScreen(controller: controller, work: work),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('감상지도에서'), findsOneWidget);
+    expect(find.textContaining('놓인 작품입니다'), findsOneWidget);
+    expect(find.text('다음에 이어질 작품'), findsOneWidget);
+  });
+
+  testWidgets('onboarding taste input shows first reward immediately', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('taste-intake-field')),
+      '영화음악',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('이 입력이면'), findsOneWidget);
+    expect(find.text('오늘은 이 30초부터'), findsOneWidget);
+    expect(find.textContaining('영화음악'), findsWidgets);
+    expect(find.textContaining('다음 세 작품'), findsWidgets);
+  });
+
+  testWidgets('program paste flow previews match candidates from home', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(900, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView).first, const Offset(0, -260));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('open-program-paste-sheet')));
+    await tester.pumpAndSettle();
+    expect(find.text('공연 프로그램 붙여넣기'), findsOneWidget);
+    await tester.enterText(
+      find.byType(TextField).last,
+      'Bach Cello Suite No. 1 Prelude\nBach Air',
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('매칭 후보'), findsOneWidget);
+    expect(find.text('G선상의 아리아'), findsWidgets);
   });
 
   testWidgets('moment preview sheet opens before external listening', (
