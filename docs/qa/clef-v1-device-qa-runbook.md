@@ -54,12 +54,12 @@ flutter build ios --release --no-codesign
 
 2026-09-02 최종 UI polish 내부테스트 준비:
 
-- 현재 소스 앱 버전: `1.0.0+16`.
+- 현재 소스 앱 버전: `1.0.0+20`.
 - 앱 이름/런처 label은 `Clef & Staff`이다.
 - 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
   생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
-- 마지막으로 생성한 내부테스트 AAB는 `1.0.0+16`이며, 튜너 간결화와 `자동`/`정밀 후보` 감지 엔진
-  변경분을 포함한다.
+- 최신 내부테스트 AAB 후보는 `1.0.0+20`이며, 튜너 간결화, 입력 안정화, pitch history chart,
+  앱 label, 세트리스트 dialog 안정화, 최근 세트리스트 overflow hotfix를 포함한다.
 
 ## 준비물
 
@@ -175,12 +175,17 @@ iPad/iOS smoke:
 
 Audio/tuner:
 
-- tuner no-signal behavior, 440/441/442Hz A4 quick action/history, reference tone frequency/cents,
-  instrument profile 표시, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과 감지 진단 label.
-- Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset 전환, Target mode shortcut, target lock
-  on/off, 다른 줄/음 입력 시 `타겟 음을 기다리는 중` 표시.
-- 실제 악기 입력 시 note/cents 흔들림, LED/input bar 상태, 소음 환경에서 note label 튐 여부.
+- tuner no-signal behavior, 가장 가까운 chromatic note/cents 표시, 440/441/442Hz A4 quick
+  action/history, reference tone frequency/cents, 세부 설정의 감지 엔진(`자동`, `기존`, `정밀 후보`)과
+  감지 진단 label.
+- 기타 줄 맞춤, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, Target mode shortcut,
+  target lock은 v1 UI에서 보이지 않는지 확인한다.
+- 실제 악기 입력 시 note/cents 흔들림, pitch history chart 흐름, 소음 환경에서 note label 튐 여부.
 - reference tone/drone 재생/정지, volume, A4 변경 반영, latency 체감.
+- 메트로놈 BPM/박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, tick sound, viewer mini
+  panel 전환과 장시간 사용 중 page turn/tap zone 충돌 여부.
+- 다중 선택 bulk setlist add, 세트리스트 drag reorder, 최근 세트리스트 rail, tap zone hint,
+  paper/white viewer background가 실제 태블릿 화면에서 이해되는지.
 - sheet 닫기/다시 열기 후 microphone stream/resource 정리 여부.
 - MP3/M4A/WAV codec 성공/실패와 표시 문구.
 
@@ -204,7 +209,7 @@ Clef cents:
 차이:
 반응 속도: 빠름 / 보통 / 느림
 note label 튐: 없음 / 가끔 / 자주
-LED/input bar 읽기 쉬움: 예 / 아니오
+Pitch history chart 읽기 쉬움: 예 / 아니오
 비고:
 ```
 
@@ -230,12 +235,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 3. 외부 샘플, 장비, 플랫폼 계정이 없으면 blocker 해제 조건을 적고 v1.1 spike backlog와 연결한다.
 4. 통과한 build 산출물과 실패한 산출물은 `clef-v1-rc-qa-plan.md` 검증 기록에 반영한다.
 
-## 2026-09-04 내부테스트 산출물
+## 2026-09-07 내부테스트 산출물
 
-- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+16`.
-- 마지막 Play Console 업로드 후보:
-  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+16-release.aab`.
+- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+20`.
+- 최신 Play Console 업로드 후보:
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+20-release.aab`.
 - 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
-- 파일 크기: 약 67MB.
-- SHA-256: `3e0a11d6cc47e13a0982ea0f388095f8faa9f68d3665dcf2fd6e2dca0d5b103e`.
+- 파일 크기: 약 68MB.
+- SHA-256: `ca67319a8d4613ceda52af3473b8826831efc279ee6e8056b86a709207d8e346`.
 - upload key SHA1: `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.

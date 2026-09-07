@@ -39,7 +39,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+16';
+const String _clefAppVersion = '1.0.0+20';
 const bool _launchInCDiscoveryHome = bool.fromEnvironment(
   'IN_C_DISCOVERY_HOME',
 );
@@ -196,6 +196,70 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     );
   }
 
+  Future<void> _showBulkSetlistAdd() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('세트리스트에 넣을 악보를 선택하세요.')));
+      return;
+    }
+    final selectedScores = controller.scores
+        .where((score) => _bulkSelectedScoreIds.contains(score.id))
+        .toList(growable: false);
+    if (selectedScores.isEmpty) {
+      return;
+    }
+
+    final target = await _selectSetlistForBulkAdd(selectedScores.length);
+    if (!mounted || target == null) {
+      return;
+    }
+
+    final result = await controller.addScoresToSetlist(target, selectedScores);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+
+    final skippedLabel = result.skippedDuplicateCount == 0
+        ? ''
+        : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel'
+        : '"${target.title}"에 이미 모두 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<SheetSetlist?> _selectSetlistForBulkAdd(int scoreCount) async {
+    final action = await showModalBottomSheet<_BulkSetlistTargetAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _BulkSetlistTargetSheet(
+        setlists: controller.setlists,
+        scoreCount: scoreCount,
+      ),
+    );
+    if (!mounted || action == null) {
+      return null;
+    }
+    if (action.createNew) {
+      final title = await _showTextEntryDialog(
+        context: context,
+        title: '새 세트리스트 만들기',
+        label: '이름',
+        initialValue: '새 세트리스트',
+      );
+      if (!mounted || title == null) {
+        return null;
+      }
+      return controller.createSetlist(title);
+    }
+    return action.setlist;
+  }
+
   Future<void> _importPdf() async {
     final score = await controller.importPdf();
     if (!mounted || score == null) {
@@ -257,6 +321,39 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       case null:
         return;
     }
+  }
+
+  Future<void> _openRecentSetlist(SheetSetlist setlist) async {
+    await controller.markSetlistOpened(setlist);
+    final scores = controller.scoresForSetlist(setlist);
+    if (!mounted) {
+      return;
+    }
+    if (scores.isEmpty) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => SheetSetlistDetailScreen(
+            controller: controller,
+            setlistId: setlist.id,
+          ),
+        ),
+      );
+      return;
+    }
+    final score = scores.first;
+    await controller.markOpened(score);
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetViewerScreen(
+          controller: controller,
+          scoreId: score.id,
+          setlistId: setlist.id,
+        ),
+      ),
+    );
   }
 
   Future<void> _showLibrarySwitcher() async {
@@ -1058,6 +1155,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               _isBulkSelecting ? Icons.close : Icons.checklist_rtl_outlined,
             ),
           ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보를 세트리스트에 추가',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _showBulkSetlistAdd,
+              icon: const Icon(Icons.playlist_add_check),
+            ),
           IconButton(
             tooltip: '세트리스트',
             onPressed: () {
@@ -1167,7 +1272,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide ? 28 : 16,
                     12,
                     isWide ? 28 : 16,
-                    96,
+                    isWide ? 24 : 96,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1216,7 +1321,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                       if (!controller.isLoading &&
                           (controller.pinnedScores.isNotEmpty ||
                               controller.favoriteScores.isNotEmpty ||
-                              controller.recentScores.isNotEmpty)) ...[
+                              controller.recentScores.isNotEmpty ||
+                              controller.recentSetlists.isNotEmpty)) ...[
                         _QuickAccessBand(
                           pinnedScores: controller.pinnedScores
                               .take(8)
@@ -1229,6 +1335,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               .toList(growable: false),
                           onOpen: _openScore,
                         ),
+                        if (controller.recentSetlists.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _RecentSetlistsBand(
+                            setlists: controller.recentSetlists
+                                .take(8)
+                                .toList(growable: false),
+                            onOpen: _openRecentSetlist,
+                          ),
+                        ],
                         const SizedBox(height: 14),
                       ],
                       Expanded(
@@ -1778,37 +1893,70 @@ Future<String?> _showTextEntryDialog({
   required String label,
   required String initialValue,
 }) async {
-  final textController = TextEditingController(text: initialValue);
-  try {
-    return await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        void close(String? value) {
-          FocusScope.of(dialogContext).unfocus();
-          Navigator.of(dialogContext).pop(value);
-        }
+  return showDialog<String>(
+    context: context,
+    builder: (dialogContext) => _TextEntryDialog(
+      title: title,
+      label: label,
+      initialValue: initialValue,
+    ),
+  );
+}
 
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            decoration: InputDecoration(labelText: label),
-            textInputAction: TextInputAction.done,
-            onSubmitted: close,
-          ),
-          actions: [
-            TextButton(onPressed: () => close(null), child: const Text('취소')),
-            FilledButton(
-              onPressed: () => close(textController.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
+class _TextEntryDialog extends StatefulWidget {
+  const _TextEntryDialog({
+    required this.title,
+    required this.label,
+    required this.initialValue,
+  });
+
+  final String title;
+  final String label;
+  final String initialValue;
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _close(String? value) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _textController,
+        autofocus: true,
+        decoration: InputDecoration(labelText: widget.label),
+        textInputAction: TextInputAction.done,
+        onSubmitted: _close,
+      ),
+      actions: [
+        TextButton(onPressed: () => _close(null), child: const Text('취소')),
+        FilledButton(
+          onPressed: () => _close(_textController.text),
+          child: const Text('저장'),
+        ),
+      ],
     );
-  } finally {
-    textController.dispose();
   }
 }
 
@@ -2995,6 +3143,110 @@ class _QuickAccessScoreChip extends StatelessWidget {
   }
 }
 
+class _RecentSetlistsBand extends StatelessWidget {
+  const _RecentSetlistsBand({required this.setlists, required this.onOpen});
+
+  final List<SheetSetlist> setlists;
+  final ValueChanged<SheetSetlist> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.queue_music, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  '최근 세트리스트',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 132,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  final setlist = setlists[index];
+                  final openedLabel = setlist.lastOpenedAt == null
+                      ? '${setlist.scoreIds.length}곡'
+                      : '${_formatShortDate(setlist.lastOpenedAt!)} · ${setlist.scoreIds.length}곡';
+                  return SizedBox(
+                    width: 188,
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => onOpen(setlist),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.queue_music, size: 16),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '세트리스트',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                setlist.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Text(
+                                openedLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemCount: setlists.length,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _BulkEditInput {
   const _BulkEditInput({
     required this.addTags,
@@ -3194,6 +3446,83 @@ class _NullableBoolControl extends StatelessWidget {
 
 enum _NullableBoolChoice { unchanged, enabled, disabled }
 
+class _BulkSetlistTargetAction {
+  const _BulkSetlistTargetAction.existing(this.setlist) : createNew = false;
+
+  const _BulkSetlistTargetAction.create() : createNew = true, setlist = null;
+
+  final bool createNew;
+  final SheetSetlist? setlist;
+}
+
+class _BulkSetlistTargetSheet extends StatelessWidget {
+  const _BulkSetlistTargetSheet({
+    required this.setlists,
+    required this.scoreCount,
+  });
+
+  final List<SheetSetlist> setlists;
+  final int scoreCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.playlist_add_check),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$scoreCount개 악보를 세트리스트에 추가',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.add),
+            title: const Text('새 세트리스트 만들기'),
+            subtitle: const Text('이름을 정한 뒤 선택한 악보를 바로 추가합니다.'),
+            onTap: () =>
+                Navigator.of(context)
+                    .pop(const _BulkSetlistTargetAction.create()),
+          ),
+          const Divider(),
+          if (setlists.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('아직 세트리스트가 없습니다. 새 세트리스트를 만들어 추가하세요.'),
+            )
+          else
+            for (final setlist in setlists)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.queue_music),
+                title: Text(
+                  setlist.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('${setlist.scoreIds.length}곡'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_BulkSetlistTargetAction.existing(setlist)),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ScoreGrid extends StatelessWidget {
   const _ScoreGrid({
     required this.scores,
@@ -3290,6 +3619,7 @@ class _ScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final subtitle = _scoreIdentitySubtitle(score);
     final organization = <String>[
       if (score.collection.isNotEmpty) score.collection,
@@ -3305,9 +3635,20 @@ class _ScoreTile extends StatelessWidget {
       '마지막 ${score.lastPage}쪽',
     ];
 
+    final selectedColor = theme.colorScheme.primaryContainer.withValues(
+      alpha: 0.52,
+    );
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      color: isSelected ? selectedColor : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
@@ -3318,7 +3659,12 @@ class _ScoreTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.description_outlined),
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.description_outlined,
+                    color: isSelected ? theme.colorScheme.primary : null,
+                  ),
                   if (isSelecting) ...[
                     Checkbox(
                       value: isSelected,
@@ -3420,8 +3766,9 @@ class _ScoreTile extends StatelessWidget {
                   organization,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
               const SizedBox(height: 8),
@@ -3429,7 +3776,7 @@ class _ScoreTile extends StatelessWidget {
                 footerParts.join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: theme.textTheme.bodySmall,
               ),
             ],
           ),
@@ -3563,6 +3910,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     }
 
     final score = scores.first;
+    await controller.markSetlistOpened(setlist);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -3777,10 +4125,12 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           .showSnackBar(const SnackBar(content: Text('세트리스트에 악보가 없습니다.')));
       return;
     }
+    await controller.markSetlistOpened(setlist);
     await _openScore(scores.first);
   }
 
   Future<void> _openScore(SheetScore score) async {
+    await controller.markSetlistOpened(setlist);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -3869,70 +4219,101 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       body: SafeArea(
         child: scores.isEmpty
             ? const Center(child: Text('이 세트리스트에 악보가 없습니다.'))
-            : ListView.separated(
+            : ReorderableListView.builder(
+                buildDefaultDragHandles: false,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                itemBuilder: (context, index) {
-                  final score = scores[index];
-                  return ListTile(
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    leading: CircleAvatar(child: Text('${index + 1}')),
-                    title: Text(
-                      score.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      currentSetlist.rehearsalMode
-                          ? '${currentSetlist.scoreStartPages[score.id] ?? score.lastPage}'
-                                '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
-                                '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
-                          : '${score.lastPage}쪽부터 열기 · 총 ${_formatDuration(currentSetlist.totalEstimatedSeconds)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () => _openScore(score),
-                    trailing: Wrap(
-                      spacing: 0,
-                      children: [
-                        IconButton(
-                          tooltip: '위로',
-                          onPressed: index == 0
-                              ? null
-                              : () => controller.moveScoreInSetlist(
-                                  currentSetlist,
-                                  index,
-                                  index - 1,
-                                ),
-                          icon: const Icon(Icons.keyboard_arrow_up),
-                        ),
-                        IconButton(
-                          tooltip: '아래로',
-                          onPressed: index == scores.length - 1
-                              ? null
-                              : () => controller.moveScoreInSetlist(
-                                  currentSetlist,
-                                  index,
-                                  index + 1,
-                                ),
-                          icon: const Icon(Icons.keyboard_arrow_down),
-                        ),
-                        IconButton(
-                          tooltip: '제거',
-                          onPressed: () => controller.removeScoreFromSetlist(
-                            currentSetlist,
-                            score,
-                          ),
-                          icon: const Icon(Icons.remove_circle_outline),
-                        ),
-                      ],
+                onReorderItem: (oldIndex, newIndex) {
+                  unawaited(
+                    controller.moveScoreInSetlist(
+                      currentSetlist,
+                      oldIndex,
+                      newIndex,
                     ),
                   );
                 },
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final score = scores[index];
+                  return Padding(
+                    key: ValueKey('${currentSetlist.id}-${score.id}'),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      tileColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      leading: SizedBox(
+                        width: 72,
+                        child: Row(
+                          children: [
+                            CircleAvatar(child: Text('${index + 1}')),
+                            const SizedBox(width: 6),
+                            Semantics(
+                              button: true,
+                              label: '끌어서 순서 변경',
+                              child: ReorderableDragStartListener(
+                                index: index,
+                                child: const Tooltip(
+                                  message: '끌어서 순서 변경',
+                                  child: Icon(Icons.drag_handle),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      title: Text(
+                        score.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        currentSetlist.rehearsalMode
+                            ? '${currentSetlist.scoreStartPages[score.id] ?? score.lastPage}'
+                                  '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
+                                  '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
+                            : '${score.lastPage}쪽부터 열기 · 총 ${_formatDuration(currentSetlist.totalEstimatedSeconds)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => _openScore(score),
+                      trailing: Wrap(
+                        spacing: 0,
+                        children: [
+                          IconButton(
+                            tooltip: '위로',
+                            onPressed: index == 0
+                                ? null
+                                : () => controller.moveScoreInSetlist(
+                                    currentSetlist,
+                                    index,
+                                    index - 1,
+                                  ),
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                          ),
+                          IconButton(
+                            tooltip: '아래로',
+                            onPressed: index == scores.length - 1
+                                ? null
+                                : () => controller.moveScoreInSetlist(
+                                    currentSetlist,
+                                    index,
+                                    index + 1,
+                                  ),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                          ),
+                          IconButton(
+                            tooltip: '제거',
+                            onPressed: () => controller.removeScoreFromSetlist(
+                              currentSetlist,
+                              score,
+                            ),
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
                 itemCount: scores.length,
               ),
       ),
@@ -4556,6 +4937,8 @@ enum _ViewerMenuAction {
   togglePerformanceMode,
 }
 
+enum _ViewerMiniTool { metronome, tuner }
+
 enum _AnnotationToolbarTool {
   pen('펜', Icons.edit_outlined),
   highlighter('형광펜', Icons.brush_outlined),
@@ -4782,6 +5165,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   bool _didLoadPdfOutline = false;
   String? _viewerFileStatusPath;
   Future<SheetViewerFileStatus>? _viewerFileStatusFuture;
+  bool _showTapZoneHint = true;
+  Offset? _tapZonePointerDown;
+  DateTime? _tapZonePointerDownAt;
+  _ViewerMiniTool? _miniTool;
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
 
@@ -4935,7 +5322,7 @@ setlist=$setlistLabel
     return switch (_displayEffect) {
       _SheetViewerDisplayEffect.dark => const Color(0xff171918),
       _SheetViewerDisplayEffect.inverted => const Color(0xff101010),
-      _ => const Color(0xff313332),
+      _ => const Color(0xfffbfbf7),
     };
   }
 
@@ -5012,6 +5399,69 @@ setlist=$setlistLabel
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _handleViewerPointerDown(PointerDownEvent event) {
+    _keyboardFocusNode.requestFocus();
+    _showPageControlsTemporarily();
+    _tapZonePointerDown = event.localPosition;
+    _tapZonePointerDownAt = DateTime.now();
+  }
+
+  void _handleViewerPointerUp(PointerUpEvent event) {
+    final down = _tapZonePointerDown;
+    final downAt = _tapZonePointerDownAt;
+    _tapZonePointerDown = null;
+    _tapZonePointerDownAt = null;
+    if (down == null ||
+        downAt == null ||
+        _isAnnotationMode ||
+        _showPdfLinks ||
+        _isSanitizingPdfLinks ||
+        _isApplyingPageTransform) {
+      return;
+    }
+    if (DateTime.now().difference(downAt) > const Duration(milliseconds: 420)) {
+      return;
+    }
+    if ((event.localPosition - down).distance > 18) {
+      return;
+    }
+
+    final size = MediaQuery.sizeOf(context);
+    final reservedBottomHeight = _isPerformanceMode ? 116.0 : 150.0;
+    if (event.localPosition.dy > size.height - reservedBottomHeight) {
+      setState(() {
+        _showTapZoneHint = false;
+        _showPageControls = true;
+      });
+      _schedulePageControlsAutoHide();
+      return;
+    }
+
+    if (_miniTool != null &&
+        event.localPosition.dx > size.width - 340 &&
+        event.localPosition.dy < 180) {
+      setState(() => _showTapZoneHint = false);
+      return;
+    }
+
+    final width = size.width;
+    if (event.localPosition.dx < width * 0.34) {
+      setState(() => _showTapZoneHint = false);
+      unawaited(_handlePedalPageTurn(-1, allowHalfPageTurn: false));
+      return;
+    }
+    if (event.localPosition.dx > width * 0.66) {
+      setState(() => _showTapZoneHint = false);
+      unawaited(_handlePedalPageTurn(1, allowHalfPageTurn: false));
+      return;
+    }
+    setState(() {
+      _showTapZoneHint = false;
+      _showPageControls = true;
+    });
+    _schedulePageControlsAutoHide();
   }
 
   PdfTextSearcher _ensureTextSearcher() {
@@ -8980,21 +9430,25 @@ setlist=$setlistLabel
   }
 
   Future<void> _showMetronome() async {
-    await showModalBottomSheet<void>(
+    final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _MetronomeSheet(
         initialSettings: widget.controller.metronomeSettings,
         onSettingsChanged: widget.controller.updateMetronomeSettings,
+        onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
     if (mounted) {
+      if (showMiniPanel == true) {
+        setState(() => _miniTool = _ViewerMiniTool.metronome);
+      }
       _keyboardFocusNode.requestFocus();
     }
   }
 
   Future<void> _showTuner() async {
-    await showModalBottomSheet<void>(
+    final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _TunerSheet(
@@ -9002,9 +9456,13 @@ setlist=$setlistLabel
         initialToneSettings: widget.controller.toneSettings,
         onSettingsChanged: widget.controller.updateTunerSettings,
         onToneSettingsChanged: widget.controller.updateToneSettings,
+        onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
     if (mounted) {
+      if (showMiniPanel == true) {
+        setState(() => _miniTool = _ViewerMiniTool.tuner);
+      }
       _keyboardFocusNode.requestFocus();
     }
   }
@@ -10201,10 +10659,8 @@ setlist=$setlistLabel
             child: SafeArea(
               child: Listener(
                 behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) {
-                  _keyboardFocusNode.requestFocus();
-                  _showPageControlsTemporarily();
-                },
+                onPointerDown: _handleViewerPointerDown,
+                onPointerUp: _handleViewerPointerUp,
                 child: Stack(
                   children: [
                     FutureBuilder<SheetViewerFileStatus>(
@@ -10558,6 +11014,27 @@ setlist=$setlistLabel
                           ),
                         ),
                       ),
+                    if (_showTapZoneHint &&
+                        !_isAnnotationMode &&
+                        !_isPerformanceMode)
+                      const Positioned.fill(child: _TapZoneHintOverlay()),
+                    if (_miniTool != null && !_isAnnotationMode)
+                      Positioned(
+                        top: isCompactViewer ? 12 : 20,
+                        right: isCompactViewer ? 8 : 20,
+                        child: _ViewerMiniToolPanel(
+                          tool: _miniTool!,
+                          metronomeSettings:
+                              widget.controller.metronomeSettings,
+                          onMetronomeSettingsChanged:
+                              widget.controller.updateMetronomeSettings,
+                          onOpenTuner: () {
+                            setState(() => _miniTool = null);
+                            unawaited(_showTuner());
+                          },
+                          onClose: () => setState(() => _miniTool = null),
+                        ),
+                      ),
                     if (_isPerformanceMode)
                       Positioned(
                         left: isCompactViewer ? 8 : 16,
@@ -10659,6 +11136,327 @@ class _ViewerDisplayEffectWrapper extends StatelessWidget {
       ),
       _ => child,
     };
+  }
+}
+
+class _TapZoneHintOverlay extends StatelessWidget {
+  const _TapZoneHintOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final zoneColor = theme.colorScheme.primary.withValues(alpha: 0.08);
+    final lineColor = theme.colorScheme.primary.withValues(alpha: 0.28);
+    return IgnorePointer(
+      child: ColoredBox(
+        color: Colors.transparent,
+        child: Row(
+          children: [
+            Expanded(
+              child: _TapZoneHintPane(
+                color: zoneColor,
+                borderColor: lineColor,
+                icon: Icons.chevron_left,
+                label: '이전',
+              ),
+            ),
+            Expanded(
+              child: _TapZoneHintPane(
+                color: Colors.white.withValues(alpha: 0.38),
+                borderColor: lineColor,
+                icon: Icons.touch_app_outlined,
+                label: '메뉴',
+              ),
+            ),
+            Expanded(
+              child: _TapZoneHintPane(
+                color: zoneColor,
+                borderColor: lineColor,
+                icon: Icons.chevron_right,
+                label: '다음',
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TapZoneHintPane extends StatelessWidget {
+  const _TapZoneHintPane({
+    required this.color,
+    required this.borderColor,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color color;
+  final Color borderColor;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        border: Border.symmetric(
+          vertical: BorderSide(color: borderColor, width: 0.6),
+        ),
+      ),
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerMiniToolPanel extends StatefulWidget {
+  const _ViewerMiniToolPanel({
+    required this.tool,
+    required this.metronomeSettings,
+    required this.onMetronomeSettingsChanged,
+    required this.onOpenTuner,
+    required this.onClose,
+  });
+
+  final _ViewerMiniTool tool;
+  final SheetMetronomeSettings metronomeSettings;
+  final Future<void> Function(SheetMetronomeSettings settings)
+  onMetronomeSettingsChanged;
+  final VoidCallback onOpenTuner;
+  final VoidCallback onClose;
+
+  @override
+  State<_ViewerMiniToolPanel> createState() => _ViewerMiniToolPanelState();
+}
+
+class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
+  Timer? _timer;
+  late SheetMetronomeBeat _beat;
+  bool _isRunning = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _beat = _initialBeat(widget.metronomeSettings);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ViewerMiniToolPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.metronomeSettings != widget.metronomeSettings ||
+        oldWidget.tool != widget.tool) {
+      _beat = _initialBeat(widget.metronomeSettings);
+      if (_isRunning) {
+        _restartTimer();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  SheetMetronomeBeat _initialBeat(SheetMetronomeSettings settings) {
+    return SheetMetronomeBeat(
+      beatIndex: 0,
+      beatsPerBar: settings.meter.beatsPerBar,
+      pulsesPerBeat: settings.subdivision.pulsesPerBeat,
+    );
+  }
+
+  void _toggleRunning() {
+    if (_isRunning) {
+      _timer?.cancel();
+      setState(() => _isRunning = false);
+      return;
+    }
+    setState(() {
+      _isRunning = true;
+      _beat = _initialBeat(widget.metronomeSettings);
+    });
+    _playTick();
+    _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      widget.metronomeSettings.pulseDuration,
+      (_) => _advanceBeat(),
+    );
+  }
+
+  void _advanceBeat() {
+    if (!mounted) {
+      return;
+    }
+    setState(() => _beat = _beat.next());
+    _playTick();
+  }
+
+  void _playTick() {
+    if (!widget.metronomeSettings.soundEnabled || !_beat.isBeatStart) {
+      return;
+    }
+    unawaited(SystemSound.play(SystemSoundType.click));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      elevation: 8,
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+          child: widget.tool == _ViewerMiniTool.metronome
+              ? _buildMetronome(context)
+              : _buildTuner(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetronome(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = widget.metronomeSettings;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.speed, size: 18),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '${settings.bpm} BPM · ${settings.meter.label}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '닫기',
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: _toggleRunning,
+              icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
+              label: Text(_isRunning ? '정지' : '시작'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: List<Widget>.generate(settings.meter.beatsPerBar, (
+                  index,
+                ) {
+                  final isCurrent = index == _beat.beatIndex;
+                  final isAccent = index == 0 && settings.accentEnabled;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 100),
+                    width: isCurrent ? 16 : 11,
+                    height: isCurrent ? 16 : 11,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isCurrent
+                          ? (isAccent
+                                ? theme.colorScheme.primary
+                                : theme.colorScheme.tertiary)
+                          : theme.colorScheme.surfaceContainerHighest,
+                    ),
+                  );
+                }),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTuner(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.tune, size: 18),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '크로매틱 튜너',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '닫기',
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '상세 화면에서 현재 음과 pitch history를 봅니다.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.tonalIcon(
+            onPressed: widget.onOpenTuner,
+            icon: const Icon(Icons.open_in_full),
+            label: const Text('튜너 열기'),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -13377,6 +14175,7 @@ class _TunerSheet extends StatefulWidget {
     required this.onSettingsChanged,
     required this.onToneSettingsChanged,
     this.autoStartInput = true,
+    this.onShowMiniPanel,
   });
 
   final SheetTunerSettings initialSettings;
@@ -13384,6 +14183,7 @@ class _TunerSheet extends StatefulWidget {
   final Future<void> Function(SheetTunerSettings settings) onSettingsChanged;
   final Future<void> Function(SheetToneSettings settings) onToneSettingsChanged;
   final bool autoStartInput;
+  final VoidCallback? onShowMiniPanel;
 
   @override
   State<_TunerSheet> createState() => _TunerSheetState();
@@ -13407,12 +14207,38 @@ Widget buildTunerSheetForTest({
   );
 }
 
+@visibleForTesting
+Widget buildTunerPitchHistoryChartForTest({
+  List<SheetTunerPitchHistorySample> samples =
+      const <SheetTunerPitchHistorySample>[],
+  String currentNoteLabel = 'A4',
+  String detailLabel = 'Concert A4',
+  String? readingLabel,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 360,
+          child: _TunerPitchHistoryChart(
+            samples: samples,
+            currentNoteLabel: currentNoteLabel,
+            detailLabel: detailLabel,
+            readingLabel: readingLabel,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _TunerSheetState extends State<_TunerSheet> {
   late SheetTunerSettings _settings;
   late SheetToneSettings _toneSettings;
   late final SheetTunerInputService _inputService;
   late final SheetTonePlayer _tonePlayer;
   late final SheetTunerFeedbackStabilizer _feedbackStabilizer;
+  late final SheetTunerPitchHistoryBuffer _pitchHistory;
   late double _demoFrequency;
   StreamSubscription<SheetTunerState>? _inputSubscription;
   SheetTunerState _state = SheetTunerState.idle;
@@ -13424,15 +14250,17 @@ class _TunerSheetState extends State<_TunerSheet> {
   @override
   void initState() {
     super.initState();
-    _settings = widget.initialSettings;
+    _settings = _chromaticOnlySettings(widget.initialSettings);
     _toneSettings = widget.initialToneSettings;
     _inputService = SheetTunerInputService();
     _tonePlayer = SheetTonePlayer();
     _feedbackStabilizer = SheetTunerFeedbackStabilizer();
+    _pitchHistory = SheetTunerPitchHistoryBuffer();
     _inputSubscription = _inputService.states.listen((state) {
       if (mounted) {
         setState(() {
           _state = state;
+          _recordPitchHistory(state);
           if (state.isListening && state.reading != null) {
             _rememberCalibrationReading(state.reading!);
           }
@@ -13441,10 +14269,40 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
     _demoFrequency = _settings.referencePitchA4.toDouble();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.autoStartInput) {
+      if (!mounted) {
+        return;
+      }
+      if (_needsChromaticOnlyNormalization(widget.initialSettings)) {
+        unawaited(widget.onSettingsChanged(_settings));
+      }
+      if (widget.autoStartInput) {
         unawaited(_inputService.start(settings: _settings));
       }
     });
+  }
+
+  SheetTunerSettings _chromaticOnlySettings(SheetTunerSettings settings) {
+    return settings.copyWith(
+      tuningMode: SheetTunerMode.chromatic,
+      tuningPreset: SheetTunerPreset.chromatic,
+      displayMode: SheetTunerDisplayMode.concert,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+      targetLockEnabled: false,
+      clearTargetConcertMidiNumber: true,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
+    );
+  }
+
+  bool _needsChromaticOnlyNormalization(SheetTunerSettings settings) {
+    return settings.tuningMode != SheetTunerMode.chromatic ||
+        settings.tuningPreset != SheetTunerPreset.chromatic ||
+        settings.displayMode != SheetTunerDisplayMode.concert ||
+        settings.detectionProfile != SheetTunerDetectionProfile.chromatic ||
+        settings.targetLockEnabled ||
+        settings.targetConcertMidiNumber != null ||
+        settings.customPresetId != null ||
+        settings.customTargets.isNotEmpty;
   }
 
   @override
@@ -13466,6 +14324,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
@@ -13477,16 +14336,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  Future<void> _setTargetLockEnabled(bool enabled) async {
-    final nextSettings = _settings.copyWith(targetLockEnabled: enabled);
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   Future<void> _setNotationPreference(
     SheetTunerNotationPreference notationPreference,
   ) async {
@@ -13496,104 +14345,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setDisplayMode(SheetTunerDisplayMode displayMode) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: displayMode,
-      detectionProfile: _recommendedDetectionProfile(displayMode),
-      customTargets: previousTargets,
-      clearTargetConcertMidiNumber: !_hasTargetForMode(
-        displayMode,
-        _settings.targetConcertMidiNumber,
-      ),
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          _demoFrequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningMode(SheetTunerMode tuningMode) async {
-    final targets = _activeTuningTargetsFor(_settings);
-    final targetConcertMidiNumber = tuningMode == SheetTunerMode.target
-        ? _settings.targetConcertMidiNumber ??
-              (targets.isEmpty ? null : targets.first.concertMidiNumber)
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: tuningMode,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      clearTargetConcertMidiNumber: tuningMode == SheetTunerMode.chromatic,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening && targetConcertMidiNumber != null) {
-        final targetNote = SheetTunerPitch.noteFromMidi(
-          targetConcertMidiNumber,
-          referencePitchA4: nextSettings.referencePitchA4,
-        );
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningPreset(SheetTunerPreset tuningPreset) async {
-    final usePresetTargets =
-        tuningPreset != SheetTunerPreset.chromatic &&
-        tuningPreset != SheetTunerPreset.manual;
-    final targets = tuningPreset.targets;
-    final targetConcertMidiNumber = usePresetTargets
-        ? tuningPreset.hasTarget(_settings.targetConcertMidiNumber)
-              ? _settings.targetConcertMidiNumber
-              : targets.first.concertMidiNumber
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: usePresetTargets
-          ? SheetTunerMode.target
-          : SheetTunerMode.chromatic,
-      tuningPreset: tuningPreset,
-      displayMode: tuningPreset.displayMode,
-      detectionProfile: tuningPreset.detectionProfile,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      targetLockEnabled: usePresetTargets ? _settings.targetLockEnabled : false,
-      clearTargetConcertMidiNumber: !usePresetTargets,
-      clearCustomPresetId: true,
-      clearCustomTargets: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = targetConcertMidiNumber == null
-            ? nextSettings.detectionProfile.clampFrequency(_demoFrequency)
-            : nextSettings.detectionProfile.clampFrequency(
-                SheetTunerPitch.noteFromMidi(
-                  targetConcertMidiNumber,
-                  referencePitchA4: nextSettings.referencePitchA4,
-                ).frequency,
-              );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
     await widget.onSettingsChanged(nextSettings);
   }
 
@@ -13633,263 +14384,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
   }
 
-  Future<void> _setTargetConcertMidiNumber(int midiNumber) async {
-    final targetNote = SheetTunerPitch.noteFromMidi(
-      midiNumber,
-      referencePitchA4: _settings.referencePitchA4,
-    );
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      targetConcertMidiNumber: midiNumber,
-      targetLockEnabled:
-          _settings.tuningPreset.usesStringTargetPanel ||
-          _settings.targetLockEnabled,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = _settings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _clearTargetConcertMidiNumber() async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.chromatic,
-      clearTargetConcertMidiNumber: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _addCurrentReadingAsCustomTarget(
-    SheetTunerReading? reading,
-  ) async {
-    if (reading == null) {
-      _showTunerMessage('먼저 추가할 음을 잡아주세요.');
-      return;
-    }
-    final targets = SheetTunerTarget.normalizeList(<SheetTunerTarget>[
-      ..._activeTuningTargetsFor(_settings),
-      SheetTunerTarget(
-        label: reading.note.labelWith(preferFlats: _preferFlats),
-        concertMidiNumber: reading.note.midiNumber,
-      ),
-    ]);
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber: reading.note.midiNumber,
-      customTargets: targets,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage(
-      '${reading.note.labelWith(preferFlats: _preferFlats)} 타겟을 추가했습니다.',
-    );
-  }
-
-  Future<void> _removeCustomTarget(int midiNumber) async {
-    final targets = _activeTuningTargetsFor(_settings)
-        .where((target) => target.concertMidiNumber != midiNumber)
-        .toList(growable: false);
-    final normalized = SheetTunerTarget.normalizeList(targets);
-    final removedActiveTarget = _settings.targetConcertMidiNumber == midiNumber;
-    final nextTarget = removedActiveTarget && normalized.isNotEmpty
-        ? normalized.first.concertMidiNumber
-        : _settings.targetConcertMidiNumber;
-    final nextSettings = _settings.copyWith(
-      tuningMode: normalized.isEmpty
-          ? SheetTunerMode.chromatic
-          : _settings.tuningMode,
-      tuningPreset: normalized.isEmpty
-          ? SheetTunerPreset.chromatic
-          : SheetTunerPreset.manual,
-      targetConcertMidiNumber: nextTarget,
-      customTargets: normalized,
-      clearTargetConcertMidiNumber: normalized.isEmpty,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _saveCustomPreset() async {
-    final targets = _activeTuningTargetsFor(_settings);
-    if (targets.isEmpty) {
-      _showTunerMessage('저장할 타겟 음이 없습니다.');
-      return;
-    }
-    final controller = TextEditingController(
-      text:
-          _currentCustomPreset?.name ??
-          '내 튜닝 ${_settings.customPresets.length + 1}',
-    );
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('커스텀 프리셋 저장'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: '프리셋 이름',
-              hintText: '예: 기타 반음 낮춤',
-            ),
-            textInputAction: TextInputAction.done,
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    if (!mounted) {
-      return;
-    }
-    final trimmedName = name?.trim() ?? '';
-    if (trimmedName.isEmpty) {
-      return;
-    }
-    final previousPreset = _currentCustomPreset;
-    final preset = SheetTunerCustomPreset(
-      id:
-          previousPreset?.id ??
-          'custom-${DateTime.now().microsecondsSinceEpoch}',
-      name: trimmedName,
-      displayMode: _settings.displayMode,
-      detectionProfile: _settings.detectionProfile,
-      targets: SheetTunerTarget.normalizeList(targets),
-      updatedAt: DateTime.now(),
-    );
-    final presets = <SheetTunerCustomPreset>[
-      preset,
-      ..._settings.customPresets.where((stored) => stored.id != preset.id),
-    ];
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-      customPresets: presets,
-    );
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('$trimmedName 프리셋을 저장했습니다.');
-  }
-
-  Future<void> _applyCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: preset.displayMode,
-      detectionProfile: preset.detectionProfile,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          SheetTunerPitch.noteFromMidi(
-            nextSettings.targetConcertMidiNumber!,
-            referencePitchA4: nextSettings.referencePitchA4,
-          ).frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _deleteCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextPresets = _settings.customPresets
-        .where((stored) => stored.id != preset.id)
-        .toList(growable: false);
-    final isActive = _settings.customPresetId == preset.id;
-    final nextSettings = _settings.copyWith(
-      customPresets: nextPresets,
-      clearCustomPresetId: isActive,
-      clearCustomTargets: isActive,
-      clearTargetConcertMidiNumber: isActive,
-      tuningMode: isActive ? SheetTunerMode.chromatic : _settings.tuningMode,
-      tuningPreset: isActive
-          ? SheetTunerPreset.chromatic
-          : _settings.tuningPreset,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('${preset.name} 프리셋을 삭제했습니다.');
-  }
-
-  Future<void> _setDetectionProfile(
-    SheetTunerDetectionProfile detectionProfile,
-  ) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      detectionProfile: detectionProfile,
-      customTargets: previousTargets,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = detectionProfile.clampFrequency(_demoFrequency);
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   Future<void> _setDetectionAlgorithm(
     SheetTunerPitchDetectionAlgorithm detectionAlgorithm,
   ) async {
@@ -13899,6 +14393,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
@@ -13920,51 +14415,12 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   Future<void> _toggleListening() async {
     if (_state.isListening) {
+      setState(_pitchHistory.reset);
       await _inputService.stop();
       return;
     }
+    setState(_pitchHistory.reset);
     await _inputService.start(settings: _settings);
-  }
-
-  Future<void> _setChromaticQuickTuner() async {
-    await _setTuningPreset(SheetTunerPreset.chromatic);
-  }
-
-  Future<void> _setGuitarQuickTuner() async {
-    final guitarTargets = SheetTunerPreset.guitarStandard.targets;
-    final retainedTarget =
-        _settings.targetConcertMidiNumber != null &&
-            SheetTunerPreset.guitarStandard.hasTarget(
-              _settings.targetConcertMidiNumber,
-            )
-        ? _settings.targetConcertMidiNumber!
-        : guitarTargets.last.concertMidiNumber;
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.guitarStandard,
-      displayMode: SheetTunerDisplayMode.guitar,
-      detectionProfile: SheetTunerDetectionProfile.guitarBass,
-      targetConcertMidiNumber: retainedTarget,
-      targetLockEnabled: true,
-      clearCustomPresetId: true,
-      clearCustomTargets: true,
-    );
-    final targetNote = SheetTunerPitch.noteFromMidi(
-      retainedTarget,
-      referencePitchA4: nextSettings.referencePitchA4,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
   }
 
   SheetTunerState _stateWithFrequency(
@@ -13991,20 +14447,29 @@ class _TunerSheetState extends State<_TunerSheet> {
     return _settings.notationPreference.preferFlatsFor(_settings.displayMode);
   }
 
-  SheetTunerCustomPreset? get _currentCustomPreset {
-    for (final preset in _settings.customPresets) {
-      if (preset.id == _settings.customPresetId) {
-        return preset;
-      }
-    }
-    return null;
-  }
-
   void _rememberCalibrationReading(SheetTunerReading reading) {
     _recentCalibrationReadings.add(reading);
     if (_recentCalibrationReadings.length > 12) {
       _recentCalibrationReadings.removeAt(0);
     }
+  }
+
+  void _recordPitchHistory(SheetTunerState state) {
+    if (!state.isListening) {
+      _pitchHistory.reset();
+      return;
+    }
+    final reading = state.reading;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: state.inputStatus,
+      reading: reading,
+      centsOffset: reading?.centsOffset ?? 0,
+    );
+    _pitchHistory.add(
+      timestamp: DateTime.now(),
+      reading: reading,
+      feedback: feedback,
+    );
   }
 
   Future<void> _confirmCalibrationSuggestion(
@@ -14044,28 +14509,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  void _showTunerMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  String _targetWaitingLabel(SheetTunerNote? targetWrittenNote) {
-    if (targetWrittenNote == null) {
-      return '타겟 음을 기다리는 중';
-    }
-    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
-        ? SheetTunerStringTarget.fromTargets(_activeTuningTargetsFor(_settings))
-        : const <SheetTunerStringTarget>[];
-    for (final stringTarget in stringTargets) {
-      if (stringTarget.target.concertMidiNumber ==
-          _settings.targetConcertMidiNumber) {
-        return '${stringTarget.stringNumber}번줄 '
-            '${targetWrittenNote.labelWith(preferFlats: _preferFlats)}를 기다리는 중';
-      }
-    }
-    return '${targetWrittenNote.labelWith(preferFlats: _preferFlats)}를 기다리는 중';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -14080,50 +14523,16 @@ class _TunerSheetState extends State<_TunerSheet> {
     final reading = _state.isListening
         ? _state.reading
         : _state.reading ?? demoReading;
-    final isTargetMode =
-        _settings.tuningMode == SheetTunerMode.target &&
-        _settings.targetConcertMidiNumber != null;
-    final targetNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber!,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetWrittenNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber! +
-                _settings.displayMode.transposeSemitones,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetLock = SheetTunerTargetLock.evaluate(
-      settings: _settings,
-      reading: reading,
-    );
-    final tuningTargets = _activeTuningTargetsFor(_settings);
-    final isCustomTargets =
-        _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
-    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
-        ? SheetTunerStringTarget.fromTargets(tuningTargets)
-        : const <SheetTunerStringTarget>[];
-    final isGuitarQuickMode =
-        _settings.tuningPreset == SheetTunerPreset.guitarStandard;
-    final targetWaitingLabel = _targetWaitingLabel(targetWrittenNote);
-    final effectiveReading = targetLock.isRejected ? null : reading;
-    final targetCents = effectiveReading == null || targetNote == null
-        ? null
-        : SheetTunerPitch.centsFromTarget(
-            frequency: effectiveReading.frequency,
-            targetFrequency: targetNote.frequency,
-          );
+    final tuningTargets = _activeTuningTargetsFor();
+    final effectiveReading = reading;
     final displayedPitch = effectiveReading == null
         ? null
         : SheetTunerPitch.displayPitch(
             reading: effectiveReading,
-            displayMode: _settings.displayMode,
+            displayMode: SheetTunerDisplayMode.concert,
             referencePitchA4: _settings.referencePitchA4,
           );
-    final cents = targetCents ?? effectiveReading?.centsOffset ?? 0;
+    final cents = effectiveReading?.centsOffset ?? 0;
     final feedbackInputStatus = _state.isListening
         ? _state.inputStatus
         : effectiveReading == null
@@ -14134,23 +14543,12 @@ class _TunerSheetState extends State<_TunerSheet> {
       reading: effectiveReading,
       centsOffset: cents,
     );
-    final feedback = targetLock.isRejected
-        ? SheetTunerFeedback(
-            band: SheetTunerFeedbackBand.lowConfidence,
-            label: targetWaitingLabel,
-            displayCents: 0,
-          )
-        : baseFeedback;
-    final inputPower = SheetTunerInputPower.fromState(
-      inputStatus: feedbackInputStatus,
-      reading: reading,
-    );
+    final feedback = baseFeedback;
     final detectionDebugInfo = _inputService.detectionDebugInfo;
     final calibrationSuggestion = SheetTunerReferenceCalibration.suggest(
       readings: _recentCalibrationReadings,
       currentReferencePitchA4: _settings.referencePitchA4,
     );
-    final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
     final statusMessage = switch (_state.inputStatus) {
       SheetTunerInputStatus.idle ||
@@ -14159,6 +14557,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       SheetTunerInputStatus.error => status.label,
       _ => feedback.label,
     };
+    final pitchHistorySamples = _pitchHistory.samples;
+    final pitchHistoryNoteLabel = displayedPitch?.primaryLabelWith(
+      preferFlats: _preferFlats,
+    );
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -14179,36 +14581,18 @@ class _TunerSheetState extends State<_TunerSheet> {
                       ),
                     ),
                   ),
+                  if (widget.onShowMiniPanel != null)
+                    IconButton(
+                      onPressed: widget.onShowMiniPanel,
+                      icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                      tooltip: '악보 위에 작게 띄우기',
+                    ),
                   IconButton.filledTonal(
                     onPressed: _toggleListening,
                     icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
                     tooltip: _state.isListening ? '마이크 끄기' : '마이크 켜기',
                   ),
                 ],
-              ),
-              const SizedBox(height: 14),
-              SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment<bool>(
-                    value: false,
-                    icon: Icon(Icons.graphic_eq),
-                    label: Text('크로매틱'),
-                  ),
-                  ButtonSegment<bool>(
-                    value: true,
-                    icon: Icon(Icons.linear_scale),
-                    label: Text('기타 줄 맞춤'),
-                  ),
-                ],
-                selected: <bool>{isGuitarQuickMode},
-                onSelectionChanged: (selection) {
-                  final useGuitar = selection.single;
-                  unawaited(
-                    useGuitar
-                        ? _setGuitarQuickTuner()
-                        : _setChromaticQuickTuner(),
-                  );
-                },
               ),
               const SizedBox(height: 18),
               DecoratedBox(
@@ -14239,82 +14623,21 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ),
               ),
               const SizedBox(height: 18),
-              Center(
-                child: Text(
-                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
-                      '--',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isInTune
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
+              _TunerPitchHistoryChart(
+                samples: pitchHistorySamples,
+                currentNoteLabel: pitchHistoryNoteLabel,
+                detailLabel: effectiveReading == null
+                    ? '소리를 내면 가장 가까운 음을 표시합니다'
+                    : displayedPitch!.detailLabelWith(
+                        preferFlats: _preferFlats,
+                      ),
+                readingLabel: reading == null
+                    ? null
+                    : '${reading.frequency.toStringAsFixed(2)} Hz · '
+                          '${feedback.displayCents >= 0 ? '+' : ''}'
+                          '${feedback.displayCents.toStringAsFixed(1)} cents · '
+                          '신호 ${(reading.signalLevel * 100).round()}%',
               ),
-              Center(
-                child: Text(
-                  effectiveReading == null
-                      ? targetLock.isRejected
-                            ? targetWaitingLabel
-                            : '소리를 내면 음을 잡습니다'
-                      : displayedPitch!.detailLabelWith(
-                          preferFlats: _preferFlats,
-                        ),
-                  style: theme.textTheme.labelLarge,
-                ),
-              ),
-              if (targetNote != null && targetWrittenNote != null)
-                Center(
-                  child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
-                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${feedback.displayCents >= 0 ? '+' : ''}'
-                    '${feedback.displayCents.toStringAsFixed(1)} cents',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: targetLock.isRejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '신호 ${(reading.signalLevel * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              _TunerMeter(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerLedStrip(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerInputPowerBar(power: inputPower),
-              if (stringTargets.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _TunerStringTargetPanel(
-                  title: '기타 줄 맞춤',
-                  stringTargets: stringTargets,
-                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
-                  referencePitchA4: _settings.referencePitchA4,
-                  preferFlats: _preferFlats,
-                  onSelected: (target) => unawaited(
-                    _setTargetConcertMidiNumber(target.concertMidiNumber),
-                  ),
-                ),
-              ],
               const SizedBox(height: 16),
               Wrap(
                 alignment: WrapAlignment.center,
@@ -14346,163 +14669,9 @@ class _TunerSheetState extends State<_TunerSheet> {
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
-                    child: Text(
-                      _settings.tuningMode == SheetTunerMode.target
-                          ? '타겟 음'
-                          : '빠른 타겟',
-                      style: theme.textTheme.labelLarge,
-                    ),
+                    child: Text('감지', style: theme.textTheme.labelLarge),
                   ),
                   const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final target in tuningTargets)
-                        if (isCustomTargets)
-                          InputChip(
-                            selected:
-                                _settings.tuningMode == SheetTunerMode.target &&
-                                _settings.targetConcertMidiNumber ==
-                                    target.concertMidiNumber,
-                            label: Text(
-                              target.targetLabel(
-                                displayMode: _settings.displayMode,
-                                referencePitchA4: _settings.referencePitchA4,
-                                preferFlats: _preferFlats,
-                              ),
-                            ),
-                            onSelected: (selected) => unawaited(
-                              selected
-                                  ? _setTargetConcertMidiNumber(
-                                      target.concertMidiNumber,
-                                    )
-                                  : _clearTargetConcertMidiNumber(),
-                            ),
-                            onDeleted: () => unawaited(
-                              _removeCustomTarget(target.concertMidiNumber),
-                            ),
-                          )
-                        else
-                          FilterChip(
-                            selected:
-                                _settings.tuningMode == SheetTunerMode.target &&
-                                _settings.targetConcertMidiNumber ==
-                                    target.concertMidiNumber,
-                            label: Text(
-                              target.targetLabel(
-                                displayMode: _settings.displayMode,
-                                referencePitchA4: _settings.referencePitchA4,
-                                preferFlats: _preferFlats,
-                              ),
-                            ),
-                            onSelected: (selected) => unawaited(
-                              selected
-                                  ? _setTargetConcertMidiNumber(
-                                      target.concertMidiNumber,
-                                    )
-                                  : _clearTargetConcertMidiNumber(),
-                            ),
-                          ),
-                      ActionChip(
-                        avatar: const Icon(Icons.add, size: 18),
-                        label: const Text('현재 음 추가'),
-                        onPressed: () => unawaited(
-                          _addCurrentReadingAsCustomTarget(reading),
-                        ),
-                      ),
-                      if (_settings.targetConcertMidiNumber != null)
-                        ActionChip(
-                          avatar: const Icon(Icons.close, size: 18),
-                          label: const Text('타겟 해제'),
-                          onPressed: () =>
-                              unawaited(_clearTargetConcertMidiNumber()),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text('프리셋/프로필', style: theme.textTheme.labelLarge),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final mode in SheetTunerMode.values)
-                        ChoiceChip(
-                          selected: _settings.tuningMode == mode,
-                          label: Text(mode.label),
-                          onSelected: (_) => unawaited(_setTuningMode(mode)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerPreset>(
-                    initialValue: _settings.tuningPreset,
-                    decoration: const InputDecoration(
-                      labelText: '튜닝 프리셋',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerPreset.values
-                        .map(
-                          (preset) => DropdownMenuItem<SheetTunerPreset>(
-                            value: preset,
-                            child: Text(preset.label),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setTuningPreset(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerDisplayMode>(
-                    initialValue: _settings.displayMode,
-                    decoration: const InputDecoration(
-                      labelText: '악기/표시 기준',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerDisplayMode.values
-                        .map(
-                          (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
-                            value: mode,
-                            child: Text('${mode.label} · ${mode.familyLabel}'),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setDisplayMode(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<SheetTunerDetectionProfile>(
-                    initialValue: _settings.detectionProfile,
-                    decoration: const InputDecoration(
-                      labelText: '감지 프로필',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: SheetTunerDetectionProfile.values
-                        .map(
-                          (profile) =>
-                              DropdownMenuItem<SheetTunerDetectionProfile>(
-                                value: profile,
-                                child: Text(profile.label),
-                              ),
-                        )
-                        .toList(growable: false),
-                    onChanged: (value) {
-                      if (value != null) {
-                        unawaited(_setDetectionProfile(value));
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 12),
                   DropdownButtonFormField<SheetTunerPitchDetectionAlgorithm>(
                     initialValue: _settings.detectionAlgorithm,
                     decoration: const InputDecoration(
@@ -14565,45 +14734,6 @@ class _TunerSheetState extends State<_TunerSheet> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('타겟 잠금'),
-                    subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
-                    value: _settings.targetLockEnabled,
-                    onChanged: (value) =>
-                        unawaited(_setTargetLockEnabled(value)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saveCustomPreset,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('커스텀 프리셋 저장'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_settings.customPresets.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final preset in _settings.customPresets)
-                          InputChip(
-                            selected: preset.id == _settings.customPresetId,
-                            label: Text(preset.name),
-                            onSelected: (_) =>
-                                unawaited(_applyCustomPreset(preset)),
-                            onDeleted: () =>
-                                unawaited(_deleteCustomPreset(preset)),
-                          ),
-                      ],
-                    ),
-                  ],
                   if (calibrationSuggestion != null) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -14868,403 +14998,332 @@ class _TunerSheetState extends State<_TunerSheet> {
     };
   }
 
-  bool _hasTargetForMode(SheetTunerDisplayMode mode, int? midiNumber) {
-    if (midiNumber == null) {
-      return false;
+  List<SheetTunerTarget> _activeTuningTargetsFor() {
+    return SheetTunerPreset.chromatic.targets;
+  }
+}
+
+class _TunerPitchHistoryChart extends StatelessWidget {
+  const _TunerPitchHistoryChart({
+    required this.samples,
+    required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
+  });
+
+  static const Duration _historyWindow = Duration(milliseconds: 2200);
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '최근 음정 변화 그래프',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(
+          height: 284,
+          child: CustomPaint(
+            painter: _TunerPitchHistoryPainter(
+              samples: samples,
+              currentNoteLabel: currentNoteLabel,
+              detailLabel: detailLabel,
+              readingLabel: readingLabel,
+              colors: theme.colorScheme,
+              textStyle: theme.textTheme.labelSmall,
+              historyWindow: _historyWindow,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TunerPitchHistoryPainter extends CustomPainter {
+  _TunerPitchHistoryPainter({
+    required this.samples,
+    required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
+    required this.colors,
+    required this.textStyle,
+    required this.historyWindow,
+  });
+
+  static const double _maxCents = 50;
+  static const double _paddingLeft = 70;
+  static const double _paddingRight = 18;
+  static const double _paddingTop = 56;
+  static const double _paddingBottom = 26;
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
+  final ColorScheme colors;
+  final TextStyle? textStyle;
+  final Duration historyWindow;
+
+  @override
+  void paint(ui.Canvas canvas, Size size) {
+    final chart = Rect.fromLTRB(
+      _paddingLeft,
+      _paddingTop,
+      size.width - _paddingRight,
+      size.height - _paddingBottom,
+    );
+    if (chart.width <= 0 || chart.height <= 0) {
+      return;
     }
-    final targets = _settings.customTargets.isNotEmpty
-        ? _settings.customTargets
-        : mode.tuningTargets;
-    return targets.any((target) => target.concertMidiNumber == midiNumber);
+
+    _paintGrid(canvas, chart);
+    _paintLabels(canvas, chart);
+    _paintCurrentSummary(canvas, size);
+    _paintHistory(canvas, chart);
   }
 
-  List<SheetTunerTarget> _activeTuningTargetsFor(SheetTunerSettings settings) {
-    for (final preset in settings.customPresets) {
-      if (preset.id == settings.customPresetId) {
-        return preset.targets;
+  void _paintGrid(ui.Canvas canvas, Rect chart) {
+    final gridPaint = Paint()
+      ..color = colors.outlineVariant.withValues(alpha: 0.62)
+      ..strokeWidth = 1;
+    final centerPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.74)
+      ..strokeWidth = 1.5;
+
+    for (final cents in const <double>[-50, -25, 0, 25, 50]) {
+      final y = _yForCents(chart, cents);
+      canvas.drawLine(
+        Offset(chart.left, y),
+        Offset(chart.right, y),
+        cents == 0 ? centerPaint : gridPaint,
+      );
+    }
+    for (var index = 1; index < 4; index += 1) {
+      final x = chart.left + (chart.width * index / 4);
+      canvas.drawLine(Offset(x, chart.top), Offset(x, chart.bottom), gridPaint);
+    }
+
+    final originPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.38)
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(chart.left, chart.top),
+      Offset(chart.left, chart.bottom),
+      originPaint,
+    );
+  }
+
+  void _paintLabels(ui.Canvas canvas, Rect chart) {
+    final labelStyle = textStyle?.copyWith(
+      color: colors.onSurfaceVariant,
+      fontWeight: FontWeight.w700,
+    );
+    _paintText(canvas, '높음', Offset(4, chart.top - 2), labelStyle);
+    _paintText(canvas, '낮음', Offset(4, chart.bottom - 12), labelStyle);
+
+    final noteLabel = currentNoteLabel;
+    final centerLabel = noteLabel == null || noteLabel.isEmpty
+        ? '--'
+        : noteLabel;
+    final painter = _textPainter(
+      centerLabel,
+      labelStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 24,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    painter.layout(maxWidth: chart.left - 8);
+    painter.paint(
+      canvas,
+      Offset(4, _yForCents(chart, 0) - (painter.height / 2)),
+    );
+  }
+
+  void _paintCurrentSummary(ui.Canvas canvas, Size size) {
+    final noteLabel = currentNoteLabel == null || currentNoteLabel!.isEmpty
+        ? '--'
+        : currentNoteLabel!;
+    final notePainter = _textPainter(
+      noteLabel,
+      textStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 34,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    notePainter.layout(maxWidth: size.width * 0.42);
+    notePainter.paint(canvas, const Offset(14, 10));
+
+    final detailPainter = _textPainter(
+      detailLabel,
+      textStyle?.copyWith(
+        color: colors.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+    final summaryWidth = math.max(0.0, size.width - notePainter.width - 44);
+    detailPainter.layout(maxWidth: summaryWidth);
+    detailPainter.paint(canvas, Offset(notePainter.width + 24, 12));
+
+    final reading = readingLabel;
+    if (reading == null || reading.isEmpty) {
+      return;
+    }
+    final readingPainter = _textPainter(
+      reading,
+      textStyle?.copyWith(color: colors.onSurfaceVariant),
+    );
+    readingPainter.layout(maxWidth: summaryWidth);
+    readingPainter.paint(canvas, Offset(notePainter.width + 24, 30));
+  }
+
+  void _paintHistory(ui.Canvas canvas, Rect chart) {
+    final pitchedSamples = samples.where((sample) => sample.hasPitch).toList();
+    if (pitchedSamples.isEmpty) {
+      return;
+    }
+
+    final newest = samples.last.timestampMillis;
+    final windowMillis = math.max(1, historyWindow.inMilliseconds);
+    final segments = SheetTunerPitchHistoryBuffer.segmentsFor(samples);
+    SheetTunerPitchHistorySample? latestPitchedSample;
+
+    Offset positionFor(SheetTunerPitchHistorySample sample) {
+      final age = newest - sample.timestampMillis;
+      final progress = (age / windowMillis).clamp(0.0, 1.0);
+      final x = chart.left + (chart.width * progress);
+      return Offset(x, _yForCents(chart, sample.centsOffset));
+    }
+
+    for (final segment in segments) {
+      final segmentSamples = segment.samples;
+      if (segmentSamples.isEmpty) {
+        continue;
+      }
+      latestPitchedSample = segmentSamples.last;
+      if (segmentSamples.length == 1) {
+        final sample = segmentSamples.single;
+        canvas.drawCircle(
+          positionFor(sample),
+          2.8,
+          Paint()..color = _colorForBand(sample.band, sample.signalLevel),
+        );
+        continue;
+      }
+      for (var index = 1; index < segmentSamples.length; index += 1) {
+        final previous = segmentSamples[index - 1];
+        final current = segmentSamples[index];
+        final paint = Paint()
+          ..color = _colorForBand(current.band, current.signalLevel)
+          ..strokeWidth = current.isLowConfidence ? 1.4 : 2.6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(positionFor(previous), positionFor(current), paint);
       }
     }
-    if (settings.customTargets.isNotEmpty) {
-      return settings.customTargets;
+
+    final latest = latestPitchedSample;
+    if (latest != null) {
+      _paintLatestMarker(canvas, positionFor(latest), latest);
     }
-    if (settings.tuningPreset == SheetTunerPreset.manual) {
-      return settings.displayMode.tuningTargets;
-    }
-    return settings.tuningPreset.targets;
   }
 
-  SheetTunerDetectionProfile _recommendedDetectionProfile(
-    SheetTunerDisplayMode mode,
+  void _paintLatestMarker(
+    ui.Canvas canvas,
+    Offset center,
+    SheetTunerPitchHistorySample sample,
   ) {
-    return switch (mode) {
-      SheetTunerDisplayMode.bbTrumpet => SheetTunerDetectionProfile.bbTrumpet,
-      SheetTunerDisplayMode.bbClarinet ||
-      SheetTunerDisplayMode.tenorSax ||
-      SheetTunerDisplayMode.altoSax ||
-      SheetTunerDisplayMode.baritoneSax ||
-      SheetTunerDisplayMode.frenchHorn =>
-        SheetTunerDetectionProfile.highInstrument,
-      SheetTunerDisplayMode.bassClef ||
-      SheetTunerDisplayMode.cello ||
-      SheetTunerDisplayMode.doubleBass =>
-        SheetTunerDetectionProfile.lowInstrument,
-      SheetTunerDisplayMode.violin ||
-      SheetTunerDisplayMode.viola => SheetTunerDetectionProfile.strings,
-      SheetTunerDisplayMode.guitar ||
-      SheetTunerDisplayMode.bassGuitar => SheetTunerDetectionProfile.guitarBass,
-      SheetTunerDisplayMode.concert => SheetTunerDetectionProfile.chromatic,
-    };
+    if (sample.band == SheetTunerFeedbackBand.inTune) {
+      _paintCenterMarker(canvas, center);
+    } else {
+      final fill = Paint()
+        ..color = colors.surface
+        ..style = PaintingStyle.fill;
+      final stroke = Paint()
+        ..color = _colorForBand(sample.band, sample.signalLevel)
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
+      canvas.drawCircle(center, 6, fill);
+      canvas.drawCircle(center, 6, stroke);
+    }
   }
-}
 
-class _TunerMeter extends StatelessWidget {
-  const _TunerMeter({required this.feedback});
+  void _paintCenterMarker(ui.Canvas canvas, Offset center) {
+    final markerPaint = Paint()
+      ..color = colors.primary
+      ..style = PaintingStyle.fill;
+    final checkPaint = Paint()
+      ..color = colors.onPrimary
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, 9, markerPaint);
+    final check = Path()
+      ..moveTo(center.dx - 4, center.dy)
+      ..lineTo(center.dx - 1, center.dy + 3)
+      ..lineTo(center.dx + 5, center.dy - 4);
+    canvas.drawPath(check, checkPaint);
+  }
 
-  final SheetTunerFeedback feedback;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final clamped = feedback.displayCents.clamp(-50.0, 50.0).toDouble();
-    final alignmentX = clamped / 50.0;
-    final markerColor = switch (feedback.band) {
-      SheetTunerFeedbackBand.inTune => theme.colorScheme.primary,
+  Color _colorForBand(SheetTunerFeedbackBand band, double signalLevel) {
+    final base = switch (band) {
+      SheetTunerFeedbackBand.inTune => colors.primary,
       SheetTunerFeedbackBand.slightlyFlat ||
-      SheetTunerFeedbackBand.slightlySharp => theme.colorScheme.tertiary,
-      SheetTunerFeedbackBand.veryFlat ||
-      SheetTunerFeedbackBand.verySharp => theme.colorScheme.error,
-      SheetTunerFeedbackBand.lowConfidence => theme.colorScheme.secondary,
-      _ => theme.colorScheme.outline,
+      SheetTunerFeedbackBand.veryFlat => colors.tertiary,
+      SheetTunerFeedbackBand.slightlySharp ||
+      SheetTunerFeedbackBand.verySharp => colors.error,
+      SheetTunerFeedbackBand.lowConfidence => colors.secondary,
+      _ => colors.outline,
     };
+    final opacity = band == SheetTunerFeedbackBand.lowConfidence
+        ? 0.38
+        : (0.44 + (signalLevel.clamp(0.0, 1.0) * 0.5));
+    return base.withValues(alpha: opacity.clamp(0.28, 0.94));
+  }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 54,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Container(
-                width: 3,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Align(
-                alignment: Alignment(alignmentX, 0),
-                child: Container(
-                  width: feedback.hasPitch ? 18 : 10,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Text('낮음', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('정확', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('높음', style: theme.textTheme.labelSmall),
-            ],
-          ),
-        ),
-      ],
+  double _yForCents(Rect chart, double cents) {
+    final clamped = cents.clamp(-_maxCents, _maxCents).toDouble();
+    final normalized = clamped / _maxCents;
+    return chart.center.dy - (normalized * chart.height / 2);
+  }
+
+  void _paintText(
+    ui.Canvas canvas,
+    String text,
+    Offset offset,
+    TextStyle? style,
+  ) {
+    final painter = _textPainter(text, style);
+    painter.layout();
+    painter.paint(canvas, offset);
+  }
+
+  TextPainter _textPainter(String text, TextStyle? style) {
+    return TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
     );
   }
-}
-
-class _TunerLedStrip extends StatelessWidget {
-  const _TunerLedStrip({required this.feedback});
-
-  final SheetTunerFeedback feedback;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final active = feedback.ledState;
-    final inactiveColor = theme.colorScheme.surfaceContainerHighest;
-    final states = <({SheetTunerLedState state, String label})>[
-      (state: SheetTunerLedState.veryFlat, label: '--'),
-      (state: SheetTunerLedState.flat, label: '-'),
-      (state: SheetTunerLedState.center, label: '0'),
-      (state: SheetTunerLedState.sharp, label: '+'),
-      (state: SheetTunerLedState.verySharp, label: '++'),
-    ];
-
-    return Row(
-      children: [
-        for (final item in states) ...[
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: item.state == SheetTunerLedState.center ? 28 : 22,
-              decoration: BoxDecoration(
-                color: active == item.state
-                    ? _ledColor(theme, item.state)
-                    : inactiveColor,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                item.label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: active == item.state
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-          if (item.state != SheetTunerLedState.verySharp)
-            const SizedBox(width: 6),
-        ],
-      ],
-    );
-  }
-
-  Color _ledColor(ThemeData theme, SheetTunerLedState state) {
-    return switch (state) {
-      SheetTunerLedState.center => theme.colorScheme.primary,
-      SheetTunerLedState.flat ||
-      SheetTunerLedState.sharp => theme.colorScheme.tertiary,
-      SheetTunerLedState.veryFlat ||
-      SheetTunerLedState.verySharp => theme.colorScheme.error,
-      SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
-      SheetTunerLedState.off => theme.colorScheme.outline,
-    };
-  }
-}
-
-class _TunerStringTargetPanel extends StatelessWidget {
-  const _TunerStringTargetPanel({
-    required this.title,
-    required this.stringTargets,
-    required this.selectedConcertMidiNumber,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final String title;
-  final List<SheetTunerStringTarget> stringTargets;
-  final int? selectedConcertMidiNumber;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.55,
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.linear_scale, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '6 -> 1',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 720
-                    ? math.min(stringTargets.length, 4)
-                    : constraints.maxWidth >= 460
-                    ? math.min(stringTargets.length, 3)
-                    : 2;
-                final spacing = 8.0;
-                final width =
-                    (constraints.maxWidth - (spacing * (columns - 1))) /
-                    columns;
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (final stringTarget in stringTargets)
-                      SizedBox(
-                        width: width,
-                        child: _TunerStringTargetButton(
-                          stringTarget: stringTarget,
-                          selected:
-                              selectedConcertMidiNumber ==
-                              stringTarget.target.concertMidiNumber,
-                          referencePitchA4: referencePitchA4,
-                          preferFlats: preferFlats,
-                          onSelected: onSelected,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TunerStringTargetButton extends StatelessWidget {
-  const _TunerStringTargetButton({
-    required this.stringTarget,
-    required this.selected,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final SheetTunerStringTarget stringTarget;
-  final bool selected;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final target = stringTarget.target;
-    final pitch = SheetTunerPitch.noteFromMidi(
-      target.concertMidiNumber,
-      referencePitchA4: referencePitchA4,
-    );
-    final stringNoteLabel = target.label.replaceAll(RegExp(r'[0-9]'), '');
-    return Material(
-      color: selected
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onSelected(target),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${stringTarget.stringNumber}$stringNoteLabel',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: selected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${stringTarget.stringNumber}번줄 · '
-                '${pitch.labelWith(preferFlats: preferFlats)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(
-                '${pitch.frequency.toStringAsFixed(1)} Hz',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TunerInputPowerBar extends StatelessWidget {
-  const _TunerInputPowerBar({required this.power});
-
-  final SheetTunerInputPower power;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final value = power.value.clamp(0.0, 1.0).toDouble();
-    final barColor = switch (power.band) {
-      SheetTunerInputPowerBand.strong ||
-      SheetTunerInputPowerBand.steady => theme.colorScheme.primary,
-      SheetTunerInputPowerBand.weak => theme.colorScheme.tertiary,
-      SheetTunerInputPowerBand.silent => theme.colorScheme.error,
-      SheetTunerInputPowerBand.idle => theme.colorScheme.outline,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text('입력', style: theme.textTheme.labelSmall),
-            const Spacer(),
-            Text(
-              power.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            minHeight: 8,
-            value: value,
-            color: barColor,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          ),
-        ),
-      ],
-    );
+  bool shouldRepaint(covariant _TunerPitchHistoryPainter oldDelegate) {
+    return oldDelegate.samples != samples ||
+        oldDelegate.currentNoteLabel != currentNoteLabel ||
+        oldDelegate.detailLabel != detailLabel ||
+        oldDelegate.readingLabel != readingLabel ||
+        oldDelegate.colors != colors ||
+        oldDelegate.textStyle != textStyle ||
+        oldDelegate.historyWindow != historyWindow;
   }
 }
 
@@ -15272,14 +15331,31 @@ class _MetronomeSheet extends StatefulWidget {
   const _MetronomeSheet({
     required this.initialSettings,
     required this.onSettingsChanged,
+    required this.onShowMiniPanel,
   });
 
   final SheetMetronomeSettings initialSettings;
   final Future<void> Function(SheetMetronomeSettings settings)
   onSettingsChanged;
+  final VoidCallback onShowMiniPanel;
 
   @override
   State<_MetronomeSheet> createState() => _MetronomeSheetState();
+}
+
+@visibleForTesting
+Widget buildMetronomeSheetForTest({
+  SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _MetronomeSheet(
+        initialSettings: settings,
+        onSettingsChanged: (_) async {},
+        onShowMiniPanel: () {},
+      ),
+    ),
+  );
 }
 
 class _MetronomeSheetState extends State<_MetronomeSheet> {
@@ -15288,6 +15364,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   Timer? _timer;
   bool _isRunning = false;
   DateTime? _lastBeatAt;
+  final List<DateTime> _tapTempoMarks = <DateTime>[];
 
   @override
   void initState() {
@@ -15296,6 +15373,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     _beat = SheetMetronomeBeat(
       beatIndex: 0,
       beatsPerBar: _settings.meter.beatsPerBar,
+      pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
     );
   }
 
@@ -15320,7 +15398,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     final nextSettings = _settings.copyWith(meter: meter);
     setState(() {
       _settings = nextSettings;
-      _beat = SheetMetronomeBeat(beatIndex: 0, beatsPerBar: meter.beatsPerBar);
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
       _lastBeatAt = null;
     });
     await widget.onSettingsChanged(nextSettings);
@@ -15337,6 +15419,61 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     await widget.onSettingsChanged(nextSettings);
   }
 
+  Future<void> _setAccentEnabled(bool enabled) async {
+    final nextSettings = _settings.copyWith(accentEnabled: enabled);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _setSubdivision(SheetMetronomeSubdivision subdivision) async {
+    final nextSettings = _settings.copyWith(subdivision: subdivision);
+    setState(() {
+      _settings = nextSettings;
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: subdivision.pulsesPerBeat,
+      );
+      _lastBeatAt = null;
+    });
+    await widget.onSettingsChanged(nextSettings);
+    if (_isRunning) {
+      _restartTimer();
+    }
+  }
+
+  Future<void> _tapTempo() async {
+    final now = DateTime.now();
+    _tapTempoMarks.removeWhere(
+      (mark) => now.difference(mark) > const Duration(seconds: 3),
+    );
+    _tapTempoMarks.add(now);
+    if (_tapTempoMarks.length < 2) {
+      setState(() {});
+      return;
+    }
+    if (_tapTempoMarks.length > 5) {
+      _tapTempoMarks.removeAt(0);
+    }
+
+    final intervals = <int>[];
+    for (var index = 1; index < _tapTempoMarks.length; index++) {
+      intervals.add(
+        _tapTempoMarks[index]
+            .difference(_tapTempoMarks[index - 1])
+            .inMilliseconds,
+      );
+    }
+    final averageMs =
+        intervals.reduce((sum, value) => sum + value) / intervals.length;
+    if (averageMs <= 0) {
+      return;
+    }
+    await _setBpm((60000 / averageMs).round());
+  }
+
   void _toggleRunning() {
     if (_isRunning) {
       _timer?.cancel();
@@ -15351,6 +15488,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       _beat = SheetMetronomeBeat(
         beatIndex: 0,
         beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
       );
       _lastBeatAt = DateTime.now();
     });
@@ -15360,7 +15498,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   void _restartTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(_settings.beatDuration, (_) => _advanceBeat());
+    _timer = Timer.periodic(_settings.pulseDuration, (_) => _advanceBeat());
   }
 
   void _advanceBeat() {
@@ -15376,7 +15514,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   }
 
   void _playTick() {
-    if (!_settings.soundEnabled) {
+    if (!_settings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
     unawaited(SystemSound.play(SystemSoundType.click));
@@ -15392,9 +15530,8 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          shrinkWrap: true,
           children: [
             Row(
               children: [
@@ -15407,6 +15544,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
+                ),
+                IconButton(
+                  onPressed: widget.onShowMiniPanel,
+                  icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                  tooltip: '악보 위에 작게 띄우기',
                 ),
                 FilledButton.icon(
                   onPressed: _toggleRunning,
@@ -15448,6 +15590,12 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   icon: const Icon(Icons.remove),
                 ),
                 const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: _tapTempo,
+                  icon: const Icon(Icons.touch_app_outlined),
+                  label: const Text('Tap tempo'),
+                ),
+                const SizedBox(width: 16),
                 IconButton.filledTonal(
                   tooltip: 'BPM 올리기',
                   onPressed: () => _setBpm(_settings.bpm + 1),
@@ -15456,6 +15604,13 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               ],
             ),
             const SizedBox(height: 18),
+            Text(
+              '박자',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -15470,6 +15625,28 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   )
                   .toList(growable: false),
             ),
+            const SizedBox(height: 16),
+            Text(
+              '나눔',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: SheetMetronomeSubdivision.values
+                  .map(
+                    (subdivision) => ChoiceChip(
+                      label: Text(subdivision.label),
+                      selected: subdivision == _settings.subdivision,
+                      onSelected: (_) => _setSubdivision(subdivision),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
             const SizedBox(height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -15477,7 +15654,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 index,
               ) {
                 final isCurrent = index == _beat.beatIndex;
-                final isAccent = index == 0;
+                final isAccent = index == 0 && _settings.accentEnabled;
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   width: isCurrent ? 30 : 22,
@@ -15503,17 +15680,29 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             const SizedBox(height: 12),
             Center(
               child: Text(
-                _beat.isAccent ? '강박 · $beatTime' : '보통박 · $beatTime',
+                _beat.isAccent && _settings.accentEnabled
+                    ? '강박 · $beatTime'
+                    : _beat.isBeatStart
+                    ? '보통박 · $beatTime'
+                    : '나눔박 · $beatTime',
                 style: theme.textTheme.labelMedium,
               ),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.radio_button_checked),
+              title: const Text('첫 박 강조'),
+              subtitle: const Text('시각 표시에서 첫 박을 더 크게 보여줍니다.'),
+              value: _settings.accentEnabled,
+              onChanged: _setAccentEnabled,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.volume_up_outlined),
               title: const Text('tick 소리'),
               subtitle: const Text(
-                '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
+                '소리가 들리지 않으면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.',
               ),
               value: _settings.soundEnabled,
               onChanged: _setSoundEnabled,

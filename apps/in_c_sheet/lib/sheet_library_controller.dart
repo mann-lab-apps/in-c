@@ -19,6 +19,18 @@ import 'sheet_setlist.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
+class SheetSetlistBulkAddResult {
+  const SheetSetlistBulkAddResult({
+    required this.addedCount,
+    required this.skippedDuplicateCount,
+  });
+
+  final int addedCount;
+  final int skippedDuplicateCount;
+
+  bool get didAddAny => addedCount > 0;
+}
+
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
 
@@ -104,6 +116,14 @@ class SheetLibraryController extends ChangeNotifier {
         .toList();
     scores.sort(_recentScoreCompare);
     return List<SheetScore>.unmodifiable(scores);
+  }
+
+  List<SheetSetlist> get recentSetlists {
+    final setlists = _setlists
+        .where((setlist) => setlist.lastOpenedAt != null)
+        .toList();
+    setlists.sort(_recentSetlistCompare);
+    return List<SheetSetlist>.unmodifiable(setlists);
   }
 
   List<String> get allTags {
@@ -1808,6 +1828,37 @@ class SheetLibraryController extends ChangeNotifier {
     await _replaceSetlist(setlist.appendScore(score.id, DateTime.now()));
   }
 
+  Future<SheetSetlistBulkAddResult> addScoresToSetlist(
+    SheetSetlist setlist,
+    Iterable<SheetScore> scores,
+  ) async {
+    final existingScoreIds = setlist.scoreIds.toSet();
+    final nextScoreIds = setlist.scoreIds.toList();
+    var skippedDuplicateCount = 0;
+
+    for (final score in scores) {
+      if (existingScoreIds.add(score.id)) {
+        nextScoreIds.add(score.id);
+      } else {
+        skippedDuplicateCount += 1;
+      }
+    }
+
+    final addedCount = nextScoreIds.length - setlist.scoreIds.length;
+    if (addedCount > 0) {
+      await _replaceSetlist(
+        setlist.copyWith(
+          scoreIds: List<String>.unmodifiable(nextScoreIds),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+    return SheetSetlistBulkAddResult(
+      addedCount: addedCount,
+      skippedDuplicateCount: skippedDuplicateCount,
+    );
+  }
+
   Future<void> removeScoreFromSetlist(
     SheetSetlist setlist,
     SheetScore score,
@@ -1822,6 +1873,12 @@ class SheetLibraryController extends ChangeNotifier {
   ) async {
     await _replaceSetlist(
       setlist.moveScore(fromIndex, toIndex, DateTime.now()),
+    );
+  }
+
+  Future<void> markSetlistOpened(SheetSetlist setlist) async {
+    await _replaceSetlist(
+      setlist.copyWith(lastOpenedAt: DateTime.now(), updatedAt: DateTime.now()),
     );
   }
 
@@ -2219,6 +2276,16 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   int _recentScoreCompare(SheetScore a, SheetScore b) {
+    final aOpened = a.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bOpened = b.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final openedCompare = bOpened.compareTo(aOpened);
+    if (openedCompare != 0) {
+      return openedCompare;
+    }
+    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+  }
+
+  int _recentSetlistCompare(SheetSetlist a, SheetSetlist b) {
     final aOpened = a.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
     final bOpened = b.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
     final openedCompare = bOpened.compareTo(aOpened);

@@ -216,7 +216,7 @@ import/library/viewer/annotation/performance/backup 흐름을 구현했고, Home
 - 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 OFF tick sound toggle.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector, median
   smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
-  cents meter, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
+  확대된 pitch history chart, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
   visual tuner fallback.
 - 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space/Enter/Tab/Media key 기반 이전/다음
   페이지 넘김, 방향키 방식 페달의 PDF 내부 미세 스크롤 방지, 곡 처음/끝 경계 안내.

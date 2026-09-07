@@ -26,7 +26,7 @@
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그 필터 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 2차 구현: ordered score list, 생성/이름 변경/삭제, 검색 추가, 제거/순서 이동, 첫 곡 열기 |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 일괄 선택 bulk add, 제거, drag reorder/위아래 이동, 첫 곡 열기, 최근 세트리스트 rail |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기 |
@@ -94,8 +94,8 @@
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, 공연 preset template 생성/적용/삭제, 장비 profile metadata, metadata/full backup round-trip |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
-| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 19차 구현: visual metronome, BPM/박자 저장, 기본 OFF system click tick toggle. 저지연 audio/accent sound는 후속 |
-| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, median smoothing, profile별 no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note/cents 계산, Chromatic-first 첫 화면, Guitar standard 빠른 줄 맞춤(`6E 5A 4D 3G 2B 1E`)과 target lock, Guitar Drop D/DADGAD/half-step down/7-string, Bass/5-string bass, Ukulele, Mandolin, Strings, Bb/Eb/F preset 세부 설정, custom target/preset 저장, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 입력강도 bar, LED flat/center/sharp strip, 소리 작음/잡는 중/낮음/높음/맞음 feedback, needle damping/in-tune hold, 감지 엔진/debug label. synthetic sine/noise/plucked string/time-series/widget test 통과. 실기기 정확도/latency 검증 필요 |
+| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual metronome, BPM/박자 저장, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, 기본 OFF system click tick toggle, viewer mini panel. 저지연 audio/accent sound asset은 후속 |
+| 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, 확대된 pitch history chart 안의 현재 음/frequency/cents/signal 요약, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock과 별도 LED/input bar는 선택지·해석 부담으로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
@@ -137,20 +137,23 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   건너뛰는 방식이다.
 - 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
   확인한다.
-- 세트리스트, 세트리스트 연속 넘김. 2차 구현은 검색 추가, 첫 곡 열기, viewer context
-  표시, 명시적 이전/다음 곡 이동이다.
+- 세트리스트, 세트리스트 연속 넘김. 검색 추가, 일괄 선택 bulk add, drag reorder/위아래 이동,
+  첫 곡 열기, 최근 세트리스트 rail, viewer context 표시, 명시적 이전/다음 곡 이동이다.
 - 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제다.
 - 펜, 형광펜, 텍스트, 지우개, 색상/두께, 자동 저장. 7차 구현은 원본 PDF를 수정하지 않는
   normalized stroke overlay이며, 현재 페이지 마지막 stroke undo를 제공한다. 8차 보강에서
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
   추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
-- 메트로놈. 6차 구현은 visual metronome, BPM/박자 저장, start/stop, accent beat 표시다.
-- 크로매틱/타겟 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
-  gate, confidence, median smoothing, no-signal debounce, octave guard, note hysteresis를 붙였다.
-  V1 UX는 Chromatic-first로 현재 음/cents/meter/input bar를 먼저 보여주고, 기타는 `6E 5A 4D 3G
-  2B 1E` 빠른 줄 맞춤으로 제공한다. Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 악기별 tuning
-  preset, custom tuning target/preset, sharp/flat 표기, A4 보정 제안/history, 기준음/드론 상세 조작은
-  세부 설정 아래로 내렸다. YIN 후보와 plucked string 회귀 테스트, 감지 debug label은 들어갔지만
+- 메트로놈. visual metronome, BPM/박자 저장, start/stop, 첫 박 강조, subdivision, Tap tempo,
+  기본 OFF tick 소리, viewer mini panel을 제공한다.
+- 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
+  gate, confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing,
+  no-signal debounce, octave/저음 3배음 guard, note hysteresis를 붙였다.
+  V1 UX는 Chromatic-only로 현재 음/cents/frequency/signal을 확대된 pitch history chart 안에서 먼저 보여준다. 기타 줄 맞춤,
+  Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, 악기별 tuning preset, custom tuning target/preset,
+  target lock은 선택지 과다로 v1 UI에서 제외하고, sharp/flat 표기, A4 보정 제안/history,
+  기준음/드론 상세 조작은 세부 설정 아래로 내렸다. YIN 후보와 plucked string 회귀 테스트,
+  감지 debug label은 들어갔지만
   Android 태블릿 실기기 정확도/latency 검증은 후속이다.
 - PDF link annotation 탐지, 표시, 탭 비활성화, URL link 제거 사본 생성. `pdf_document` 기반으로
   URL link annotation 제거 뒤 page count를 재검증하고, 비PDF/손상 PDF 실패 시 partial output을
@@ -216,10 +219,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - PDF link annotation 제거는 사용자가 확인한 사본에만 적용한다.
 - MobileSheets와 기능 범주는 맞추되, UI와 상호작용을 그대로 복제하지 않는다.
 - 튜너는 핵심 차별점이지만 전용 튜너 앱 수준의 기기별 정확도 보장은 실기기 QA 뒤에 확정한다.
-  v1은 chromatic/target tuner, Concert/Bb/Eb/F/Strings/Guitar/Bass 표시, profile별 range/threshold,
-  Guitar standard/Drop D/DADGAD/half-step down/7-string, Bass standard/5-string, Ukulele,
-  Mandolin, Strings/Bb/Eb/F preset, custom target/preset, target lock, sharp/flat 표기,
-  LED/input bar, target shortcut, A4 저장/440-442 quick action/history/보정 제안, adaptive noise
-  floor 1차, Hybrid/YIN detector 비교, 기준음/드론 연계를 제공한다. Synthetic
+  v1은 chromatic tuner, 확대된 pitch history chart, sharp/flat 표기, A4 저장/440-442 quick action/history/보정 제안,
+  adaptive noise floor 1차, weak signal normalization, clipping penalty, Hybrid/YIN detector 비교, 기준음/드론 연계를 제공한다. 기타 줄 맞춤,
+  악기별 preset, custom target/preset, target lock은 v1 UI에서 제외했다. Synthetic
   audio/plucked string/time-series 테스트는 통과했으며, Android/iOS 마이크 latency와 외부 마이크
   안정성은 별도 검증한다.

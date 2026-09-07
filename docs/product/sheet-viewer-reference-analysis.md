@@ -199,6 +199,45 @@ macOS, iOS, Android, Windows 지원을 명시하고, Google Play 설명은 Andro
 | 동기화 | 페이지 전환 동기화 | library sync, leader/follower, cloud/Wi-Fi | Later. MVP는 로컬 안정성 우선 |
 | PDF 링크 정리 | 직접 확인 필요 | 직접 확인되지 않음 | link annotation 탐지/비활성화/제거 사본 |
 
+## 2026-09-07 연주자 요구사항 UX 비교
+
+확인일: 2026-09-07. Android 내부테스트 사용자 1명이 하루 사용 후 남긴 요구사항을
+MobileSheets, Piascore, forScore의 공식 도움말, 스토어 설명, 공개 매뉴얼/포럼 답변 기준으로
+대조했다. 직접 실행 확인이 아닌 항목은 문서/공개 자료 기반 판단으로 표시한다.
+
+| 요구사항 | MobileSheets 방식 | Piascore 방식 | 기타 참고 | Clef 현재 상태 | 추천 처리 | 우선순위 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 다중 선택 표시 | group/setlist 편집에서 추가된 곡을 파란색 highlight로 구분한다는 매뉴얼 기록이 있다. | 세트리스트 생성 시 악보 선택 흐름이 있지만 선택 표시 세부 UX는 공식 문서만으로 제한적이다. | forScore는 edit mode에서 선택/체크와 bulk action을 iOS 기본 패턴으로 제공한다. | v1 hotfix에서 선택 카드의 배경, border, check icon, AppBar 선택 수를 더 강하게 표시했다. | 실기기에서 손가락/스타일러스 터치 시 선택 상태가 충분히 보이는지 확인한다. | v1 반영, QA |
+| bulk setlist 추가 | setlist/group 편집에서 검색/필터된 곡을 추가하고, 공개 매뉴얼에는 add all filtered songs 흐름이 있다. | 세트리스트 생성 후 악보 선택 흐름을 제공한다. | forScore setlist editor는 오른쪽 라이브러리 목록에서 곡을 추가하고, checkmark로 현재 목록 전체를 추가할 수 있다. | v1 hotfix에서 일괄 선택 AppBar에 `선택 악보를 세트리스트에 추가` action을 추가했다. 기존/새 세트리스트 선택과 중복 skip 안내를 제공한다. | 긴 목록에서 bulk add 후 snackbar copy와 duplicate skip count를 QA한다. | v1 반영, QA |
+| setlist reorder | setlist edit 화면에서 drag/drop, reorder icon, 직접 순번 입력을 지원한다는 공식 포럼/매뉴얼 근거가 있다. | 세트리스트 순서 편집을 제공한다. | forScore는 Drag and Drop 또는 Edit mode reorder handle로 순서를 바꾼다. | v1 hotfix에서 세트리스트 상세에 drag handle 기반 reorder를 추가했다. 기존 위/아래 버튼은 보조 수단으로 유지한다. | 긴 세트리스트에서 drag handle hit target과 스크롤 중 reorder 충돌을 QA한다. | v1 반영, QA |
+| 최근 목록 setlist | Recent tab은 최근 연 곡 중심이고, 최근 곡 선택으로 setlist 생성 흐름이 forum에서 확인된다. 최근 목록에 setlist 자체를 섞는지는 직접 확인 필요. | 자료 기준으로 최근 목록과 setlist 통합 여부는 직접 확인 필요. | forScore는 setlists를 별도 메뉴로 강하게 노출한다. | v1 hotfix에서 홈 quick access에 `최근 세트리스트` rail을 추가하고, 마지막으로 연 시간과 곡 수 badge를 표시한다. | 세트리스트 첫 곡 열기/상세 열기 후 최근 rail 정렬을 QA한다. | v1 반영, QA |
+| metronome sound | metronome beat sound effect, first beat accent, count-in/stop, silent visual indicators를 제공한다. | metronome은 visual/silent mode와 tempo 조절을 제공한다. | forScore는 Audible, Visible, Both mode를 제공하고 visible mode는 악보 가장자리 pulse로 방해를 줄인다. | visual metronome과 tick sound toggle이 있지만 사용자가 Android 태블릿에서 소리가 안 난다고 보고했다. | sound fallback/volume/audio route/error 안내를 재현하고, 실패 시 visual-only로 명확히 표시한다. | v1 hotfix |
+| rhythm/subdivision | beat sound, accent, count-in/stop, page change after measures를 제공한다. | 기본 tempo/metronome 조작 중심이다. | forScore는 BPM, time signature, count-in, autoturn을 per-score로 저장한다. | v1 hotfix에서 2/4, 3/4, 4/4, 6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo를 추가했다. | per-score tempo 저장, count-in, complex accent pattern은 후속으로 둔다. | v1 반영, Later |
+| mini tuner/metronome | quick action box와 song overlay, 계속 표시 가능한 audio player 설정이 있다. | music tools는 modal/panel 성격으로 보이며 악보 위 지속 미니 패널은 직접 확인 필요. | forScore는 Metronome/Pitch/Tuner 같은 utilities panel과 악보 가장자리 visible pulse를 제공한다. | v1 hotfix에서 viewer 우상단에 고정형 mini metronome/tuner panel을 추가했다. drag/resize 없는 최소 패널이다. | 장시간 사용, page tap zone, 공연 모드와의 충돌은 실기기 QA한다. movable/resizable overlay는 spike로 유지한다. | v1 반영, spike |
+| page tap hint | tap/pedal/smart button/link point 등 입력 action이 다양하고 performance mode로 오작동을 줄인다. | 화면 우측 탭, swipe, performance mode를 문서화한다. | forScore basics는 화면 좌/우/중앙 tap zone을 색상 overlay로 명확히 설명한다. | v1 hotfix에서 viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone overlay를 표시한다. 하단 control/mini panel tap은 페이지 이동으로 중복 처리하지 않는다. | 첫 사용자가 한 번 보고 이해하는지 QA한다. | v1 반영, QA |
+| viewer background | display/scaling/crop 기능을 제공한다. 배경색 기본값은 자료만으로 직접 확인 필요. | page display와 margin 조절을 제공한다. | forScore는 standard/best fit/zoomed display option과 page-fit 정책을 제공한다. | v1 hotfix에서 일반 viewer 배경을 paper/white 계열로 낮췄다. dark/sepia/inverted 설정은 유지한다. | 실제 PDF 여백과 앱 배경의 이질감이 줄었는지 태블릿에서 QA한다. | v1 반영, QA |
+
+### 우선순위 제안
+
+- v1 hotfix 반영: 다중 선택 강조, bulk setlist 추가, setlist drag reorder, 최근 세트리스트 rail,
+  page tap zone hint, viewer 배경 기본값 조정, 메트로놈 subdivision/Tap tempo/첫 박 강조,
+  고정형 mini metronome/tuner panel.
+- 남은 QA: 실제 Android/iOS audio route에서 metronome sound가 들리는지, mini panel이 연주 중
+  악보를 가리지 않는지, tap zone이 첫 사용자에게 충분히 발견되는지 확인한다.
+- v1.1/Later: per-score tempo 저장, count-in, complex accent pattern, movable/resizable tool
+  overlay, setlist ordering polish.
+
+### 제품 판단
+
+- 다중 선택, bulk add, drag reorder는 MobileSheets/forScore 모두에서 확인되는 악보앱 기본 기대치다.
+  실제 연주자가 바로 막힌 흐름이므로 Clef도 v1 hotfix로 가져가는 편이 좋다.
+- metronome sound는 기능 확장이 아니라 "켜도 들리지 않는다"는 품질 이슈로 다뤄야 한다. 상용 앱들은
+  audible/visible mode를 분리하므로, Clef도 소리 실패 시 visual-only 상태를 명확히 알려야 한다.
+- mini tuner/metronome은 RC에서 고정형 panel까지만 넣었다. movable/resizable overlay, 악보 가장자리
+  visible pulse, 장시간 audio lifecycle은 v1.1 spike에서 설계한다.
+- viewer background와 tap zone hint는 작은 UI 변경으로 첫 사용 혼동을 줄일 가능성이 커서 RC 직전
+  polish 가치가 높다.
+
 ## Android 구현 리스크
 
 ### PDF 렌더링
@@ -265,4 +304,13 @@ V1에서 백업/복원 포맷을 정의한다.
 - MobileSheets MIDI: https://www.zubersoft.com/mobilesheets/features/midi/
 - MobileSheets Collaboration: https://www.zubersoft.com/mobilesheets/features/collaboration/
 - MobileSheets Google Play: https://play.google.com/store/apps/details?id=com.zubersoft.mobilesheetspro
+- MobileSheets setlist reorder forum: https://www.zubersoft.com/mobilesheets/forum/thread-13095.html
+- MobileSheets recent/setlist forum: https://www.zubersoft.com/mobilesheets/forum/thread-11045.html
+- Piascore tuner help: https://help.piascore.com/hc/en-us/articles/360000656532-How-to-use-tuner
+- Piascore Tuner App Store: https://apps.apple.com/us/app/tuner-by-piascore/id635644097
+- forScore Basics: https://forscore.co/documentation/basics/
+- forScore Setlists: https://forscore.co/documentation/setlists/
+- forScore Metronome: https://forscore.co/documentation/metronome/
+- forScore Page Turners & Shortcuts: https://forscore.co/documentation/page-turners/
+- forScore Buttons: https://forscore.co/buttons/
 - Android PdfRenderer: https://developer.android.com/reference/android/graphics/pdf/PdfRenderer

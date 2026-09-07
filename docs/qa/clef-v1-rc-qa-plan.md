@@ -53,7 +53,7 @@
 | 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
-| 14 | 튜너 | 첫 화면은 Chromatic-first로 현재 음, cents, LED/meter/input bar, 낮음/정확/높음 feedback을 바로 보여준다. `기타 줄 맞춤`은 `6E 5A 4D 3G 2B 1E` 빠른 버튼과 target lock으로 동작하고, Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, custom target/preset, sharp/flat 표기, A4 history/보정 제안은 `세부 설정` 아래에서 확인한다. | 입력음, 크로매틱 기본 표시, 기타 줄 버튼, target lock 문구, preset/custom preset 이름, 표시 note, cents 흔들림, 입력 bar, LED 상태, feedback 문구 |
+| 14 | 튜너 | 첫 화면은 Chromatic-only로 확대된 pitch history chart 안에 현재 음, cents, frequency, signal 요약과 짧은 feedback 문구를 바로 보여준다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock, 별도 LED/input bar는 v1 전면 UX에서 제외하고, A4 quick/history/보정 제안, sharp/flat 표기, 감지 엔진, 기준음/드론만 세부 설정에서 확인한다. | 입력음, 크로매틱 기본 표시, cents 흔들림, 최신 값 왼쪽 고정/오래된 값 오른쪽 흐름, note 변경 시 선 끊김, feedback 문구, A4 기준, 감지 엔진 |
 | 14-1 | 기준음/드론 | Android에서 기준음/5도/옥타브 drone이 재생/정지되고 A4 기준 변경이 주파수에 반영된다. | root note, drone mode, volume, latency/끊김, iOS 표시 문구 |
 | 14-2 | 로컬 오디오 | MP3/M4A/WAV linked file이 가져와지고 파트/버전 sheet에서 재생/정지된다. | 파일 확장자, codec 실패 여부, latency/끊김, iOS 표시 문구 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
@@ -113,10 +113,10 @@ v1.1 spike 여부:
 - Android 태블릿의 IMSLP PDF 렌더링, 페이지 이동, 마지막 페이지 저장은 2026-08-30 1차 QA에서
   확인했다. S Pen, Bluetooth/USB 페달, cloud provider, CamScanner link annotation, audio latency,
   iPad smoke는 별도 실기기/샘플 QA가 필요하다.
-- 튜너의 sine/noise/plucked string/time-series synthetic test는 통과했다. 첫 화면은 Chromatic-first로 단순화했고,
-  기타 줄 맞춤은 `6E 5A 4D 3G 2B 1E` 빠른 버튼과 target lock으로 진입한다. 악기별 preset,
-  custom target/preset 저장, sharp/flat 표기, target cents, LED/input power 상태,
-  A4 quick/history/보정 제안, adaptive noise floor 1차, feedback damping/hold,
+- 튜너의 sine/noise/plucked string/time-series/pitch history synthetic test는 통과했다. 첫 화면은 Chromatic-only로
+  단순화했고, 기타 줄 맞춤/악기별 preset/custom target/target lock은 v1 전면 UX에서 제외했다.
+  확대된 pitch history chart, sharp/flat 표기, A4 quick/history/보정 제안, adaptive noise floor 1차,
+  weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
   `자동`/`기존`/`정밀 후보` 감지 엔진과 debug label은 자동 테스트와 widget smoke test로 검증했다.
   실제 악기/기기 마이크 기준 정확도, latency,
   외부 마이크 안정성은 Android/iOS 실기기 QA에서 판단한다.
@@ -187,8 +187,18 @@ source of truth로 둔다.
 - 실제 HID key capture wizard 기반 페달 설정.
 - 저지연 metronome/audio/iOS playback parity.
 - Page별 live rotation rendering과 overlay/link/search coordinate regression.
+- Viewer mini tuner/metronome panel과 metronome rhythm/subdivision/tap tempo UX.
 - Cloud sync/account/server 저장과 OS background scheduler 기반 주기적 전체 백업은 v1.1 또는 Later
   scope 결정 spike로 유지.
+
+2026-09-07 경쟁앱 UX 리서치 기반 후속 분류:
+
+- v1 hotfix 후보: 다중 선택 강조, 선택 악보의 bulk setlist 추가, setlist drag reorder, page tap zone
+  hint, viewer paper/white 배경 기본값, Android metronome tick sound 재현/오류 안내.
+- v1.1 후보: 최근 목록에 최근 setlist 노출, metronome rhythm/subdivision/accent pattern, tap tempo,
+  score/setlist별 metronome 설정.
+- spike 후보: 악보 위 mini tuner/metronome floating panel, 저지연 audio engine, 복잡한 rhythm
+  pattern editor와 viewer overlay architecture.
 
 ## 릴리즈 노트 초안
 
@@ -303,8 +313,8 @@ flutter build ios --release --no-codesign
 2026-08-30 실기기 1차 QA 반영 기록:
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
-- 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI 보강분은
-  현재 `1.0.0+16` RC 후보로 준비한다.
+- 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI/pitch
+  history chart/연주자 피드백 보강분은 현재 `1.0.0+20` RC 후보로 준비한다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -324,13 +334,15 @@ flutter build ios --release --no-codesign
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 소스 version은 `1.0.0+16`이다.
+- 현재 소스 version은 `1.0.0+20`이다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
 - 이전 튜너 보강분 내부테스트 AAB는 `1.0.0+10`으로 만들었고, 최종 UI polish AAB는
   `1.0.0+14`로 만들었다. Play Console에서 `1.0.0+15` versionCode가 이미 사용된 것으로
-  확인되어 현재 튜너 간결화 변경분은 `1.0.0+16` release AAB에 반영했다.
+  확인되어 튜너 간결화 변경분은 `1.0.0+16` release AAB에 반영했고, pitch history chart
+  변경분은 `1.0.0+18` release AAB에 반영했다. 이후 연주자 피드백 hotfix와 앱 label 정정은
+  `1.0.0+20` release AAB에 반영했다.
 
 2026-08-31 RC 잔여 안정화/작업트리 분리 기록:
 
@@ -362,7 +374,7 @@ flutter build ios --release --no-codesign
 2026-09-02 최종 UI/QA polish 기록:
 
 - `fdc40fc fix: polish Clef tuner and library actions`에서 렌더링 프리셋 `균형`/`대형 PDF` 아이콘을
-  메트로놈과 구분하고, 튜너 첫 화면을 음정/meter/입력 bar/줄 선택 중심으로 재정렬했다.
+  메트로놈과 구분하고, 튜너 첫 화면을 음정 중심으로 재정렬했다.
 - 튜너 bottom sheet는 진입 직후 마이크 입력을 시작하고, 큰 `시작` 버튼 대신 작은 마이크 toggle만 둔다.
 - 라이브러리 생성 시 기존 이름과 중복되면 조용히 실패하지 않고 `이미 있습니다` 안내와 `열기` action을
   표시한다.
@@ -371,14 +383,19 @@ flutter build ios --release --no-codesign
 
 2026-09-04 튜너 UX 간결화 기록:
 
-- 튜너 첫 화면은 `크로매틱`과 `기타 줄 맞춤`만 전면 선택지로 둔다.
-- `기타 줄 맞춤`은 기본 standard guitar target과 target lock을 켜고, 줄 버튼을 `6E 5A 4D 3G 2B 1E`
-  형태로 표시한다.
-- 긴 preset/display/profile/custom target/drone/A4 slider는 `세부 설정` 아래로 내려 첫 화면의 조작
-  부담을 줄였다.
+- 튜너 첫 화면은 `크로매틱` 단일 흐름으로 둔다. 사용자가 소리를 내면 가장 가까운 음과 cents,
+  최근 pitch history chart를 바로 보여주며, 기타 줄 맞춤/악기별 preset/custom target/target lock은
+  선택지 과다로 v1 UI에서 제외했다.
+- 감지 엔진, sharp/flat 표기, 기준음/드론, A4 slider는 `세부 설정` 아래에 둔다.
 - 상용 튜너급 비교를 위해 세부 설정 아래에 `자동`, `기존`, `정밀 후보` 감지 엔진 선택과
   신호/신뢰도/노이즈/제외 사유 진단 label을 추가했다. 기본값은 plucked string 회귀와
   fine cents 비교를 함께 보는 `자동`이다.
+- 약한 입력이 noise floor보다 충분히 큰 경우에만 detector 분석 frame을 정규화하고, clipping frame은
+  confidence를 낮추며, 저음의 3배음 후보는 직전 stable reading을 기준으로 제한적으로 접는다.
+- pitch history chart는 저장/백업 대상이 아닌 화면 내 임시 상태다. 최근 약 2초의 cents 흐름을
+  0/±25/±50 cents 기준선으로 보여주고, 최신 sample은 왼쪽에 고정하며 오래된 sample은 오른쪽으로 흐르게 한다.
+  중앙선 label은 `0` 대신 현재 가장 가까운 음으로 표시한다. no signal 또는 note 변경 시 선을 끊는다.
+  별도 meter/LED/input bar는 chart 해석과 섞이지 않도록 제거했다.
 - dev 병합분에 포함된 classical discovery 코드는 별도 앱/후속 surface로 보존하되, Clef & Staff RC
   홈 상단에는 `클래식 듣기` 진입점을 노출하지 않는다.
 - 홈 카드 action icon은 제목과 같은 줄에서 경쟁하지 않도록 별도 줄로 내려 metadata가 비어 있는
@@ -387,9 +404,46 @@ flutter build ios --release --no-codesign
   발견된 Flutter dialog teardown assertion을 방지한다.
 - 카메라 기반 직접 스캐너는 v1 구현 범위가 아니며 Later/v1.1 후보로 유지한다. v1은 PDF/JPG/PNG
   import와 이미지 묶기 PDF 변환, 스캔된 PDF 처리에 집중한다.
-- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`은 현재 소스 기준 `1.0.0+16`으로 맞췄다.
-- `flutter build appbundle --release`로 `1.0.0+16` release AAB를 생성했다. Play Console 업로드 후보는
-  `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+16-release.aab`이며,
-  SHA-256은 `3e0a11d6cc47e13a0982ea0f388095f8faa9f68d3665dcf2fd6e2dca0d5b103e`이다. release
+- `pubspec.yaml` version과 앱 내 테스트 정보 `_clefAppVersion`은 당시 소스 기준 `1.0.0+18`으로 맞췄다.
+- `flutter build appbundle --release`로 `1.0.0+18` release AAB를 생성했다. Play Console 업로드 후보는
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+18-release.aab`이며,
+  SHA-256은 `16b8b1eb08d41a9e85292f3cb6557fb8fdb4f68a9a28e5a13fb0e72c6c42905c`이다. release
   signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
   일치한다.
+
+2026-09-07 연주자 피드백 v1 hotfix 기록:
+
+- 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 일괄 선택 AppBar에서 선택 악보를 기존/새
+  세트리스트에 한 번에 추가할 수 있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를
+  안내한다.
+- 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼을 보조 수단으로 유지한다.
+- 세트리스트를 열면 마지막 연 시간을 저장하고 홈 quick access에 `최근 세트리스트` rail로 표시한다.
+- viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone hint를 보여준다. 하단 page control과 mini panel tap은
+  page turn으로 중복 처리하지 않는다.
+- 일반 viewer 배경은 paper/white 계열로 조정해 PDF 주변 여백이 악보와 덜 이질적으로 보이게 했다.
+- 메트로놈은 2/4, 3/4, 4/4, 6/8 박자, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo를 제공한다.
+  소리 문제는 system click 경로와 안내 문구를 보강했지만 실제 Android/iOS audio route는 실기기 QA가
+  필요하다.
+- 튜너/메트로놈은 악보 위 우상단 고정형 mini panel로 축소할 수 있다. drag/resize, 악보 가장자리
+  visible pulse, per-score tempo 저장, count-in, 복잡한 accent pattern은 v1.1/Later로 분리한다.
+
+2026-09-07 연주자 피드백 최종 hotfix 확인:
+
+- 현재 소스 version과 앱 내 테스트 정보는 `1.0.0+20`이다.
+- Android 앱 label resource를 `Clef & Staff`로 정정했다. `com.mannlab.clef` 패키지를 실행해도
+  emulator task label이 `in C`로 보이던 문제를 제거했다.
+- `clef_rc_tablet_api35` emulator에서 `com.mannlab.clef/.MainActivity`가 foreground이고 task label이
+  `Clef & Staff`인 것을 확인했다.
+- 여러 악보 선택 후 새 세트리스트를 저장할 때 emulator에서 발견된 Flutter dialog teardown assertion을
+  막기 위해 텍스트 입력 dialog가 자체 controller lifecycle을 갖도록 정리했다.
+- 홈 `최근 세트리스트` rail은 wide/tablet landscape에서 bottom overflow 없이 보이도록 bottom padding과
+  카드 높이를 조정했고, `home renders recent setlists without overflow` widget regression을 추가했다.
+- Debug emulator build/install 기준 홈 카드, 최근 악보, 최근 세트리스트가 metadata 미입력 상태에서도
+  title/source filename/recent/page 또는 곡 수로 구분된다.
+- `flutter build appbundle --release`로 `1.0.0+20` release AAB를 생성했다. Play Console 업로드 후보는
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.0+20-release.aab`이며,
+  SHA-256은 `ca67319a8d4613ceda52af3473b8826831efc279ee6e8056b86a709207d8e346`이다. release
+  signing upload key SHA1은 Play Console 요구 지문 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`와
+  일치한다.
+- 실제 메트로놈 audio route, 튜너 마이크 정확도/latency, Bluetooth/USB 페달 방향키, S Pen, 실제
+  CamScanner/object-stream 샘플은 계속 실기기/외부 샘플 QA로 남긴다.

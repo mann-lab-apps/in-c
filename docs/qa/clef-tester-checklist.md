@@ -8,7 +8,7 @@
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
 - 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
-- 현재 소스 RC 후보는 `1.0.0+16`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
+- 현재 소스 RC 후보는 `1.0.0+20`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
   함께 기록한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
@@ -26,18 +26,17 @@
 5. 펜 또는 형광펜으로 짧게 필기하고 앱을 다시 열어 복원되는지 확인한다.
 6. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 7. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다.
-8. 튜너를 열었을 때 시작 버튼 없이 현재 음/meter/입력 bar가 먼저 보이고, 첫 선택지가 `크로매틱`과
-   `기타 줄 맞춤` 중심인지 확인한다.
-9. 기타 줄 맞춤에서 `6E 5A 4D 3G 2B 1E` 버튼이 바로 보이고, 줄을 선택하면 해당 줄 기준으로 cents와
-   target lock 문구가 표시되는지 확인한다.
-10. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
-   표기, LED, 입력 bar, `소리가 너무 작습니다`, `음을 잡는 중`, `조금 낮아요`, `조금 높아요`,
-   `맞았습니다` 상태를 확인한다.
-11. `세부 설정` 아래에서 Guitar/Bass/Ukulele/Mandolin/Strings/Bb/Eb/F preset, custom target/preset
-   저장/적용/삭제, target lock on/off가 접근 가능한지 확인한다.
-12. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-13. 튜너에서 현재 음을 target으로 추가하고 custom preset을 저장/적용/삭제한다.
-14. 메트로놈을 열어 BPM/박자를 바꾸고 start/stop을 확인한다.
+8. 튜너를 열었을 때 시작 버튼 없이 확대된 pitch history chart 안에 현재 음/cents/frequency/signal이 먼저 보이고, 기타 줄 맞춤이나 악기별
+   preset 선택 없이 가장 가까운 음을 바로 표시하는지 확인한다.
+9. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
+   표기, pitch history의 최신 값 왼쪽 고정/오래된 값 오른쪽 흐름/낮음·높음 방향, note 변경 시 선 끊김, `소리가 작거나 주변 소음이 큽니다`,
+   `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 상태를 확인한다.
+10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
+   확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
+11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
+12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 첫 박 강조, Tap tempo, start/stop을 확인한다.
+13. 메트로놈/튜너 sheet의 작은 창 버튼으로 악보 위 mini panel을 띄우고 닫을 수 있는지 확인한다.
+14. viewer 첫 진입에서 왼쪽 `이전`, 가운데 `메뉴`, 오른쪽 `다음` tap zone 안내가 보이는지 확인한다.
 15. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
 16. `테스트 정보`에서 `피드백 템플릿 복사`를 눌러 양식이 복사되는지 확인한다.
 17. 새 라이브러리를 만들 때 기존 이름을 다시 입력하면 중복 안내가 뜨고 `열기` action으로 기존
@@ -48,37 +47,45 @@
 시간이 있으면 아래 항목을 추가로 확인한다.
 
 1. JPG/PNG 이미지를 PDF 악보로 묶어 등록한다.
-2. 세트리스트를 만들고 악보를 추가/정렬한 뒤 첫 곡을 연다.
-3. PDF 공유와 필기 포함 PDF 공유를 실행한다.
-4. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
-5. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
-6. metadata 백업과 PDF 포함 전체 백업을 생성한다.
-7. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
-8. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
+2. 여러 악보를 일괄 선택해 기존 또는 새 세트리스트에 한 번에 추가한다. 이미 들어간 악보가 있으면
+   중복 skip 안내가 이해되는지 확인한다.
+3. 세트리스트 상세에서 drag handle로 순서를 바꾸고, 위/아래 버튼도 보조로 동작하는지 확인한다.
+4. 세트리스트를 열었다가 홈으로 돌아와 `최근 세트리스트` rail에 표시되는지 확인한다.
+5. PDF 공유와 필기 포함 PDF 공유를 실행한다.
+6. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
+7. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
+8. metadata 백업과 PDF 포함 전체 백업을 생성한다.
+9. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
+10. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
+11. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
    PDF가 조금씩 스크롤되지 않는지 확인한다. 첫 page에서 이전, 마지막 page에서 다음을 누르면
    `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
-9. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
-10. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
-11. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
-12. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
-13. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
-14. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
-15. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
-16. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
-17. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
-18. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
-19. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
-20. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
-21. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
+12. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
+13. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
+14. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
+15. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
+16. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
+17. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
+18. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
+19. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
+20. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
+21. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
+22. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
+23. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
+24. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
 
 ## Known Issues
 
-- 튜너의 synthetic sine/noise/time-series 테스트는 통과했다. Chromatic-first 첫 화면, 기타 `6E 5A 4D
-  3G 2B 1E` 빠른 줄 선택, 세부 설정 접힘, preset/target/custom preset, target lock,
-  sharp/flat 표기, LED/input bar, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
-  floor 1차, `자동`/`기존`/`정밀 후보` 감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+- 튜너의 synthetic sine/noise/time-series/pitch history 테스트는 통과했다. v1 UI는 Chromatic-only 첫 화면,
+  세부 설정 접힘, 확대된 pitch history chart, sharp/flat 표기, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
+  floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, `자동`/`기존`/`정밀 후보`
+  감지 엔진, plucked string 회귀는 자동 테스트로 확인했다.
+  Pitch history chart는 저장/백업 대상이 아닌 화면 내 임시 상태이며, 최신 sample을 왼쪽에 고정하고
+  오래된 sample을 오른쪽으로 흘려 보여준다. 중앙선 label은 `0` 대신 현재 가장 가까운 음으로 표시하고,
+  별도 meter/LED/input bar는 제거했다.
+  기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
-- 2026-09-04 기준 현재 소스 RC 후보는 `1.0.0+16`이다. 실제 마이크 정확도/latency QA는 아직
+- 2026-09-07 기준 현재 소스 RC 후보는 `1.0.0+20`이다. 실제 마이크 정확도/latency QA는 아직
   기록되지 않았다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
@@ -95,6 +102,10 @@
 - 방향키 방식 페달은 위/왼쪽이 이전 page, 아래/오른쪽이 다음 page로 동작해야 한다.
 - 첫 page에서 이전, 마지막 page에서 다음을 누르면 버튼이 죽은 것처럼 보이지 않고 `곡 처음` 또는
   `곡 끝` 안내가 짧게 표시되어야 한다.
+- 2026-09-07 연주자 피드백으로 다중 선택 강조, bulk setlist 추가, setlist drag reorder,
+  최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
+  고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
+  장시간 사용성을 다시 확인한다.
 - OCR, 실제 HID key capture wizard, SQLite/file-backed annotation migration, PDF 표준 annotation
   embed는 v1.1 이후 후속 범위다.
 - cloud sync/account/server 저장은 없다.

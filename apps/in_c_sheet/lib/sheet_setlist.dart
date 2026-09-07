@@ -15,6 +15,7 @@ class SheetSetlist {
     this.scoreDurations = const <String, int>{},
     this.transitionSeconds = 0,
     this.viewerSettingsOverride,
+    this.lastOpenedAt,
   });
 
   factory SheetSetlist.fromJson(Map<String, Object?> json) {
@@ -44,6 +45,7 @@ class SheetSetlist {
       viewerSettingsOverride: _viewerSettingsFromJson(
         json['viewerSettingsOverride'],
       ),
+      lastOpenedAt: _optionalDateFromJson(json['lastOpenedAt']),
     );
   }
 
@@ -94,6 +96,7 @@ class SheetSetlist {
   final Map<String, int> scoreDurations;
   final int transitionSeconds;
   final SheetViewerSettings? viewerSettingsOverride;
+  final DateTime? lastOpenedAt;
 
   int get totalScoreDurationSeconds {
     var total = 0;
@@ -121,6 +124,8 @@ class SheetSetlist {
     int? transitionSeconds,
     SheetViewerSettings? viewerSettingsOverride,
     bool clearViewerSettingsOverride = false,
+    DateTime? lastOpenedAt,
+    bool clearLastOpenedAt = false,
   }) {
     return SheetSetlist(
       id: id,
@@ -138,6 +143,9 @@ class SheetSetlist {
       viewerSettingsOverride: clearViewerSettingsOverride
           ? null
           : viewerSettingsOverride ?? this.viewerSettingsOverride,
+      lastOpenedAt: clearLastOpenedAt
+          ? null
+          : lastOpenedAt ?? this.lastOpenedAt,
     );
   }
 
@@ -226,6 +234,7 @@ class SheetSetlist {
       'transitionSeconds': transitionSeconds,
       if (viewerSettingsOverride != null)
         'viewerSettingsOverride': viewerSettingsOverride!.toJson(),
+      if (lastOpenedAt != null) 'lastOpenedAt': lastOpenedAt!.toIso8601String(),
     };
   }
 
@@ -289,6 +298,13 @@ DateTime _dateFromJson(Object? value, {DateTime? fallback}) {
     }
   }
   return fallback ?? DateTime.fromMillisecondsSinceEpoch(0);
+}
+
+DateTime? _optionalDateFromJson(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  return DateTime.tryParse(value);
 }
 
 bool _boolFromJson(Object? value, {required bool fallback}) {

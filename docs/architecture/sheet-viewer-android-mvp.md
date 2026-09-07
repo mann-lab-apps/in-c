@@ -24,7 +24,7 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 라이브러리 목록, 검색, 최근 열기/즐겨찾기 표시, 정렬/필터.
 - V1 Polish quick access: 라이브러리 상단에서 고정, 즐겨찾기, 최근 연 악보를 별도 rail로 노출.
 - 세트리스트 생성, 이름 변경, 삭제.
-- 세트리스트 악보 검색 추가, 제거, 위/아래 순서 이동.
+- 세트리스트 악보 검색 추가, 일괄 선택 bulk add, 제거, drag reorder, 위/아래 순서 이동.
 - 세트리스트 첫 곡 바로 열기.
 - PDF viewer 화면.
 - 이전/다음 페이지 이동.
@@ -57,11 +57,12 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   수행하지 않는다.
 - 주석/필기 1차: 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개, 색상/두께,
   page별 annotation 저장, undo/redo, favorite tool preset, page overlay 기반 좌표 정합성 보강.
-- 메트로놈 1차: BPM, 박자, start/stop, accent beat visual 표시.
+- 메트로놈 1차: BPM, 박자, subdivision, Tap tempo, start/stop, accent beat visual 표시.
 - 튜너 1차: `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector,
-  RMS gate/confidence, median smoothing, Chromatic/Target mode, 악기별 tuning preset,
-  frequency-to-note/target cents 계산, 상용 튜너형 feedback label/cents meter, A4 기준음 저장,
-  viewer bottom sheet.
+  RMS gate/confidence, safe low-amplitude normalization, adaptive noise floor, clipping penalty,
+  median smoothing, Chromatic-only UI, frequency-to-note/cents 계산,
+  상용 튜너형 feedback label/확대된 pitch history chart, A4 기준음 저장, viewer bottom sheet. Target/preset 필드는
+  기존 저장값과 backup 호환을 위해 model/codec에만 유지한다.
 - 기준음/드론 1차: 튜너 A4 기준을 공유하고 Android native `AudioTrack` sine tone으로 기준음,
   5도, 옥타브 drone을 재생한다.
 - 로컬 오디오 플레이어 1차: linked audio file을 앱 저장소에 복사하고 Android native
@@ -341,6 +342,10 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - 세트리스트는 `SheetSetlist` 별도 모델로 저장한다.
 - 세트리스트는 ordered score id list이며, 앱 load 시 삭제된 score 참조를 제거한다.
 - 세트리스트에 악보를 추가할 때 제목, 작곡가, 태그, 메모 검색을 사용한다.
+- 라이브러리 일괄 선택 상태에서는 선택한 악보를 기존 또는 새 세트리스트에 한 번에 추가할 수 있고,
+  이미 들어간 악보는 중복으로 넣지 않는다.
+- 세트리스트 상세에서는 drag handle 기반 순서 변경과 위/아래 버튼을 모두 제공한다.
+- 세트리스트를 열면 `lastOpenedAt`을 저장하고 홈 quick access의 `최근 세트리스트` rail에 표시한다.
 - 세트리스트 목록/상세에서 첫 곡을 바로 열 수 있다.
 - 세트리스트 안에서 viewer를 열면 같은 setlist context를 유지하고, AppBar의 이전/다음 곡
   버튼으로 곡 단위 이동을 지원한다. viewer title 아래에는 `세트리스트 이름 · 2/8` 형식의
@@ -437,9 +442,11 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 ## 연주 보조/외부 입력 1차 구조
 
 - 메트로놈 설정은 앱 전역 `SheetMetronomeSettings`로 저장한다.
-- 저장 필드는 BPM과 박자다. BPM은 40-240 범위로 clamp한다.
+- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision이다. BPM은 40-240 범위로 clamp한다.
 - 지원 박자는 `2/4`, `3/4`, `4/4`, `6/8`이다.
-- 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다.
+- subdivision은 없음, 8분, 3연, 16분을 제공한다. Tap tempo는 최근 tap 간격으로 BPM을 갱신한다.
+- 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다. bottom sheet에서
+  악보 위 고정형 mini panel로 축소할 수 있다.
 - 현재 구현은 visual metronome이다. 첫 박은 accent color로 표시하고, 현재 beat와 마지막 beat
   시각을 보여준다.
 - 메트로놈 tick은 기본 OFF `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
@@ -475,30 +482,18 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   profile / Hybrid 감지 엔진 / 악기 기본 표기 / target lock off / target 없음이다.
   기존 A4/표시/profile/target만 있던 JSON도 기본값으로 decode한다.
 - A4 기준음은 415-466Hz 범위로 clamp한다.
-- 표시 모드는 `Concert`, Bb 악기, Eb 악기, Horn in F, bass clef/low instruments,
-  violin/viola/cello/double bass, guitar/bass guitar를 제공한다. 감지된 frequency는 계속
-  concert pitch로 계산하고, 표시 layer에서 written pitch로 transpose한다. 혼동을 줄이기 위해
-  written pitch와 concert pitch를 함께 표시한다.
-- 감지 profile은 `Chromatic`, `Bb Trumpet`, high winds/brass, low instruments, strings,
-  guitar/bass를 제공한다. 표시 모드는 음 이름 표기 방식이고, 감지 profile은 detector range와
-  안정화 threshold 정책이다.
-- tuning preset은 Chromatic, Guitar standard/drop D/DADGAD/half-step down/7-string, Bass
-  standard/5-string, Ukulele standard, Mandolin standard, Violin, Viola, Cello, Double Bass,
-  Bb Trumpet, Bb Clarinet, Alto Sax, Tenor Sax, Horn in F를 제공한다. Preset 선택 시 권장 표시
-  모드, 감지 profile, target list를 함께 맞춘다. 사용자가 표시 모드나 감지 profile을 직접 바꾸면
-  `Manual` preset으로 전환한다.
-- V1 튜너 UI는 Chromatic-first다. 첫 화면은 현재 음/cents/meter/input bar와 `크로매틱`/`기타 줄 맞춤`
-  전환을 우선 표시하고, 긴 preset/display/profile/custom/drone/A4 slider 조작은 `세부 설정` 아래로
-  접는다. 기타 줄 맞춤은 standard guitar target을 `6E 5A 4D 3G 2B 1E`로 표시한다.
-- custom tuning은 현재 target list를 `SheetTunerCustomPreset`으로 저장/적용/삭제한다. Custom
-  preset은 id/name/display mode/detection profile/target list/updatedAt을 갖고, invalid/duplicate
-  target과 깨진 preset id는 decode 단계에서 non-destructive repair한다. Metadata/full backup은
-  `SheetTunerSettings` JSON을 통해 custom preset까지 round-trip한다.
+- 표시 모드, 감지 profile, tuning preset, custom tuning field는 이전 구현과 metadata/full backup
+  호환을 위해 `SheetTunerSettings` codec에 유지한다.
+- V1 튜너 UI는 Chromatic-only다. 첫 화면은 확대된 pitch history chart 안에서 현재 음/cents/frequency/signal을 우선 표시하고,
+  기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 사용자-facing UI에서
+  제외한다. 튜너 진입 시 이전 저장값이 target/preset 상태여도 Chromatic mode, Concert 표시,
+  Chromatic profile로 정규화한다.
+- 감지 엔진, sharp/flat 표기, 기준음/드론, A4 slider/history/보정 제안은 `세부 설정` 아래로 접는다.
+- custom tuning은 codec/model과 backup round-trip 호환만 유지하고 v1 UI에서는 생성/적용/삭제를
+  노출하지 않는다.
 - 표기 preference는 악기 기본, sharp, flat을 제공한다. Detector는 계속 concert pitch와 MIDI number를
   유지하고, UI label layer에서만 enharmonic 표기를 바꾼다.
-- target lock은 Target mode에서 선택한 target frequency에서 threshold 이상 벗어난 입력을
-  `타겟 음을 기다리는 중` 상태로 표시한다. 기본값은 off이며, 기타 줄 맞춤에서 줄을 선택하면 자동으로
-  켜진다. 문구는 가능한 경우 `1번줄 E4를 기다리는 중`처럼 줄 번호와 target note를 함께 표시한다.
+- target lock은 codec/model과 기존 테스트 호환을 위해 남아 있지만, v1 UI에서는 노출하지 않는다.
 - `SheetTunerPitch.detect`는 입력 frequency를 가장 가까운 chromatic note와 cents offset으로
   변환한다. 테스트 기준은 A4 440Hz, A#4 466.16Hz, C4 261.63Hz다.
 - `SheetTunerPitch.centsFromTarget`은 Target mode에서 선택한 concert target frequency 대비 cents를
@@ -506,38 +501,42 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 - `SheetTunerPitchDetector`는 PCM16 mono sample을 4096 sample rolling window에 모아
   Hybrid/YIN/autocorrelation 엔진으로 pitch를 추정한다. 기본 Hybrid는 autocorrelation과 YIN 후보를
   비교해 plucked string의 2배음/옥타브 오류와 fine cents 흔들림을 줄이는 쪽을 선택한다. 세부 설정의
-  감지 엔진 dropdown은 실기기 QA 비교용이다. Chromatic profile은 70-1200Hz, Bb Trumpet profile은
-  concert E3-C6 중심 range를 사용한다. Guitar/Bass, Strings, low/high instrument profile은
-  각 악기군의 실제 range에 맞춰 detector frequency range와 RMS/confidence threshold를 분리한다.
+  감지 엔진 dropdown은 실기기 QA 비교용이다. V1 UI는 Chromatic profile만 노출하며 기본 range는
+  70-1200Hz다.
   Instance detector 경로는 최근 저신호 frame에서 adaptive noise floor를 추정해 너무 낮은 입력이나
-  갑작스러운 저신뢰 소음 후보가 note label로 튀지 않도록 1차 guard를 둔다.
+  갑작스러운 저신뢰 소음 후보가 note label로 튀지 않도록 1차 guard를 둔다. Noise floor보다 충분히
+  큰 약한 입력은 detector 분석 frame에서만 안전하게 정규화하고, clipping 비율이 높은 frame은
+  confidence를 낮춰 완전히 안정적인 입력처럼 보이지 않게 한다.
 - `SheetTunerInputService`는 `record` 7.1.1의 `AudioRecorder.hasPermission`과
   `AudioRecorder.startStream`을 사용한다. Stream 설정은 `pcm16bits`, mono, 44.1kHz,
   `streamBufferSize: 4096`이다.
 - `SheetTunerReadingStabilizer`는 최근 5개 reading의 median frequency를 사용하고, 낮은
   confidence reading을 무시하며, profile별 no signal debounce 후 표시한다. 짧은 octave
-  jump는 직전 안정 reading 근처로 접고, boundary 근처 note hysteresis로 label 깜빡임을
-  줄인다.
-- `SheetTunerFeedback`은 input status와 reading confidence/cents를 `소리가 너무 작습니다`,
+  jump는 직전 안정 reading 근처로 접고, 저음에서 3배음 후보가 직전 안정음의 harmonic으로 보이면
+  제한적으로 fundamental 쪽으로 접는다. 실제 고음 입력을 낮은 음으로 오인하지 않도록 저음 안정음
+  조건을 두며, boundary 근처 note hysteresis로 label 깜빡임을 줄인다.
+- `SheetTunerFeedback`은 input status와 reading confidence/cents를 `소리가 작거나 주변 소음이 큽니다`,
   `음을 잡는 중`, `조금 낮아요`, `조금 높아요`, `맞았습니다` 같은 performance-facing 상태로
   변환한다. In-tune dead zone 안에서는 표시 cents를 0으로 잡아 needle이 과하게 떨려 보이지 않게
   한다.
 - `SheetTunerFeedbackStabilizer`는 UI 표시용 cents를 damping하고, in-tune 상태는 짧게 hold해서
   note label과 needle이 한두 frame 튀는 것을 줄인다. Pitch detector/stabilizer의 원본 reading은
   별도로 유지한다.
-- `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 너무 작습니다`, `입력이 약합니다`,
+- `SheetTunerPitchHistoryBuffer`는 최근 약 2.2초의 pitch sample만 ephemeral UI state로 유지한다.
+  sample은 timestamp, note MIDI, cents offset, signal level, feedback band를 담고, no signal/null
+  reading 또는 note 변경에서는 segment를 끊어 다른 음 기준의 cents가 한 선으로 이어지지 않게 한다.
+  A4 기준음, 감지 엔진, start/stop 변경 시 reset하며 저장/백업 모델에는 포함하지 않는다.
+- `SheetTunerInputPower`는 reading confidence를 `대기`, `소리가 작거나 주변 소음이 큽니다`, `입력이 약합니다`,
   `입력 안정`, `입력 충분`으로 변환해 입력강도 bar에 표시한다. 실제 RMS/overload meter와 기기별
   noise calibration dashboard는 v1.1 audio pipeline spike에서 분리한다. 감지 엔진/RMS/confidence/
-  noise floor/reject reason은 세부 설정의 debug label로 기록할 수 있다.
+  noise floor/clipping ratio/reject reason은 세부 설정의 debug label로 기록할 수 있다.
 - `SheetTunerReferenceCalibration`은 안정적인 A 계열 reading이 최소 4개 모였고 spread가 작을 때만
   A4 보정 제안을 만든다. UI는 제안을 자동 적용하지 않고 사용자가 확인한 뒤 A4 값을 바꾼다. A4
   440/441/442Hz quick action과 최근 calibration history는 같은 `SheetTunerSettings` JSON으로 저장한다.
 - viewer AppBar와 좁은 화면 overflow menu에 튜너 진입점을 제공한다.
 - 튜너는 viewer bottom sheet로 열리며, 공연 모드에서도 열 수 있다.
-- 1차 UI는 현재 음 이름, 악기별 표시 profile, 감지 profile, concert pitch 보조 표시,
-  Chromatic/Target mode, tuning preset, target shortcut, target lock, custom target 추가/삭제, custom preset
-  저장/적용/삭제, target을 기준음/드론 root로 보내는 action, 낮음/정확/높음 cents meter, LED
-  flat/center/sharp strip, 입력강도 bar, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
+- 1차 UI는 현재 음 이름, concert pitch 표시, 최신 값을 왼쪽에 고정하고 오래된 값을 오른쪽으로 흘려보내는
+  pitch history chart, A4 기준음 slider와 quick action, 보정 제안/history, start/stop,
   signal/confidence 상태를 제공한다. Listening이 아닐 때는 테스트 주파수 slider로 visual tuner 계산을
   확인할 수 있다.
 - Android에는 `RECORD_AUDIO`, iOS에는 `NSMicrophoneUsageDescription`을 추가했다.
@@ -681,8 +680,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   기본 필기 layer visibility/export 포함 flag, text edit/delete와 page rect 기반 overlay도 구현했다.
   palm rejection 실기기 튜닝, 다중 layer keying, PDF embed/export 별도 spike는 남아 있다.
 - 튜너 고도화: runtime microphone permission request, raw PCM stream, RMS/confidence gate,
-  median smoothing, no-signal debounce, octave guard, note hysteresis, Chromatic/Target mode,
-  악기별 preset, target cents, feedback label/meter, needle damping/in-tune hold는 1차 구현했다.
+  safe low-amplitude normalization, adaptive noise floor, clipping penalty, median smoothing,
+  no-signal debounce, octave/저음 3배음 guard, note hysteresis, Chromatic-only UI,
+  feedback label/pitch history chart/meter, needle damping/in-tune hold는 1차 구현했다. Target/preset 모델은 호환성만 유지한다.
   Android 태블릿 실기기 pitch 정확도, latency, adaptive noise floor/YIN/MPM 비교, 외부 microphone
   동작은 후속 검증이 필요하다.
 - 메트로놈 오디오: timer/audio latency, tick sound asset/package, background 정책 확인 필요.
@@ -726,59 +726,63 @@ link handling, page layout customization, page manipulation 관련 확장 지점
    경로에서 열리는지 확인한다.
 7. viewer에서 현재 페이지를 북마크하고, 북마크 목록에서 rename/delete와 페이지 이동을
    확인한다.
-8. 세트리스트를 만들고 검색으로 악보를 2개 이상 추가한다.
-9. 세트리스트 상세 화면에서 악보 순서를 위/아래 버튼으로 바꾼다.
+8. 악보 여러 개를 일괄 선택하고 기존 또는 새 세트리스트에 한 번에 추가한다.
+9. 세트리스트 상세 화면에서 악보 순서를 drag handle과 위/아래 버튼으로 바꾼다.
 10. 세트리스트 목록/상세의 첫 곡 열기 버튼으로 viewer에 진입한다.
 11. viewer AppBar에서 세트리스트 이름과 현재 순서가 보이는지 확인한다.
 12. viewer AppBar의 이전/다음 곡 버튼으로 이동한다.
-13. 보기 모드를 1페이지/세로 스크롤로 전환하고 페이지 이동이 유지되는지 확인한다.
-14. 공연 모드를 켜서 관리 action이 숨겨지고 페이지 컨트롤이 커지는지 확인한다.
-15. iPhone 폭에서 북마크 목록, 보기 모드, PDF 링크 표시, 공연 모드가 overflow menu에
+13. 홈으로 돌아와 `최근 세트리스트` rail에 방금 연 세트리스트가 표시되는지 확인한다.
+14. 보기 모드를 1페이지/세로 스크롤로 전환하고 페이지 이동이 유지되는지 확인한다.
+15. 공연 모드를 켜서 관리 action이 숨겨지고 페이지 컨트롤이 커지는지 확인한다.
+16. iPhone 폭에서 북마크 목록, 보기 모드, PDF 링크 표시, 공연 모드가 overflow menu에
     묶이는지 확인한다.
-16. 일반 모드 하단 페이지 컨트롤이 자동으로 사라지고 화면 터치 시 다시 표시되는지 확인한다.
-17. 넓은 화면에서 보기 모드를 `2페이지`로 전환하고 첫 페이지 단독, 이후 2장 spread가
+17. 일반 모드 하단 페이지 컨트롤이 자동으로 사라지고 화면 터치 시 다시 표시되는지 확인한다.
+18. 첫 진입 tap zone hint가 `이전`/`메뉴`/`다음`을 설명하고, 하단 control과 mini panel tap이
+    page turn으로 중복 처리되지 않는지 확인한다.
+19. 넓은 화면에서 보기 모드를 `2페이지`로 전환하고 첫 페이지 단독, 이후 2장 spread가
     배치되는지 확인한다.
-18. 좁은 화면에서 `2페이지` 보기 항목이 비활성화되는지 확인한다.
-19. `반 페이지 넘김`을 켜고 하단 이전/다음 버튼이 페이지 안 viewport와 페이지 경계를
+20. 좁은 화면에서 `2페이지` 보기 항목이 비활성화되는지 확인한다.
+21. `반 페이지 넘김`을 켜고 하단 이전/다음 버튼이 페이지 안 viewport와 페이지 경계를
     오가는지 확인한다.
-20. 보기 모드와 반 페이지 넘김을 변경한 뒤 viewer를 나갔다 다시 열어 곡별 설정이 복원되는지
+22. 보기 모드와 반 페이지 넘김을 변경한 뒤 viewer를 나갔다 다시 열어 곡별 설정이 복원되는지
     확인한다.
-21. 페이지 정리 메뉴에서 현재 페이지를 숨기고 이전/다음 이동이 숨김 페이지를 건너뛰는지
+23. 페이지 정리 메뉴에서 현재 페이지를 숨기고 이전/다음 이동이 숨김 페이지를 건너뛰는지
     확인한다.
-22. 숨김 페이지 관리에서 숨김을 해제하고 해당 페이지로 이동하는지 확인한다.
-23. 현재 페이지 회전 metadata를 여러 번 저장해 90/180/270/기본 방향으로 순환하는지 확인한다.
-24. 자르기 표시에서 위/아래/왼쪽/오른쪽 margin을 조정하고 화면에서 여백이 가려지는지 확인한다.
-25. 보기 옵션에서 어두운 배경/색상 반전을 선택하고 곡을 다시 열어 설정이 복원되는지 확인한다.
-26. PDF 링크 제거 사본 만들기를 실행해 원본 보존 안내 dialog와 진행 표시를 확인한다.
-27. 링크 fixture에서는 제거 사본으로 교체되고, 링크가 없는 PDF에서는 변경 없이 안내되는지
+24. 숨김 페이지 관리에서 숨김을 해제하고 해당 페이지로 이동하는지 확인한다.
+25. 현재 페이지 회전 metadata를 여러 번 저장해 90/180/270/기본 방향으로 순환하는지 확인한다.
+26. 자르기 표시에서 위/아래/왼쪽/오른쪽 margin을 조정하고 화면에서 여백이 가려지는지 확인한다.
+27. 보기 옵션에서 어두운 배경/색상 반전을 선택하고 곡을 다시 열어 설정이 복원되는지 확인한다.
+28. PDF 링크 제거 사본 만들기를 실행해 원본 보존 안내 dialog와 진행 표시를 확인한다.
+29. 링크 fixture에서는 제거 사본으로 교체되고, 링크가 없는 PDF에서는 변경 없이 안내되는지
     확인한다.
-28. viewer에서 메트로놈을 열고 BPM, 박자, 시작/정지, accent beat 표시를 확인한다.
-29. viewer에서 자동 스크롤을 열고 duration, 시작/끝 페이지를 조정한 뒤 시작한다.
-30. 자동 스크롤이 세로 스크롤 보기로 전환되어 진행되고, 페이지 끝 또는 endPage에서 정지하는지
+30. viewer에서 메트로놈을 열고 BPM, 박자, subdivision, 첫 박 강조, Tap tempo, 시작/정지,
+    mini panel 전환을 확인한다.
+31. viewer에서 자동 스크롤을 열고 duration, 시작/끝 페이지를 조정한 뒤 시작한다.
+32. 자동 스크롤이 세로 스크롤 보기로 전환되어 진행되고, 페이지 끝 또는 endPage에서 정지하는지
     확인한다.
-31. 자동 스크롤 중 하단 페이지 버튼, Space/Arrow key 입력, 보기 모드 변경을 하면 자동
+33. 자동 스크롤 중 하단 페이지 버튼, Space/Arrow key 입력, 보기 모드 변경을 하면 자동
     스크롤이 정지하는지 확인한다.
-32. viewer를 나갔다 다시 열어 곡별 자동 스크롤 설정이 복원되는지 확인한다.
-33. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, note/cents meter가 갱신되는지 확인한다.
-34. 튜너 start를 눌러 microphone permission prompt와 listening/no signal/error 상태가 crash 없이
+34. viewer를 나갔다 다시 열어 곡별 자동 스크롤 설정이 복원되는지 확인한다.
+35. viewer에서 튜너를 열고 A4 기준음, 테스트 주파수, pitch history chart의 note/cents 요약이 갱신되는지 확인한다.
+36. 튜너 start를 눌러 microphone permission prompt와 listening/no signal/error 상태가 crash 없이
     표시되는지 확인한다.
-35. `ArrowRight`, `PageDown`, `Space`로 다음 페이지가 이동하는지 확인한다.
-36. `ArrowLeft`, `PageUp`, `Shift+Space`로 이전 페이지가 이동하는지 확인한다.
-37. 공연 모드에서 자동 스크롤/메트로놈/튜너 진입점과 키보드/페달 페이지 넘김이 유지되는지
+37. `ArrowRight`, `PageDown`, `Space`로 다음 페이지가 이동하는지 확인한다.
+38. `ArrowLeft`, `PageUp`, `Shift+Space`로 이전 페이지가 이동하는지 확인한다.
+39. 공연 모드에서 자동 스크롤/메트로놈/튜너 진입점과 키보드/페달 페이지 넘김이 유지되는지
     확인한다.
-38. viewer에서 필기 모드를 켜고 펜/형광펜으로 stroke를 남긴 뒤 페이지를 나갔다 다시 열어
+40. viewer에서 필기 모드를 켜고 펜/형광펜으로 stroke를 남긴 뒤 페이지를 나갔다 다시 열어
     복원되는지 확인한다.
-39. 텍스트 도구로 page를 탭해 텍스트 주석을 추가하고, 기존 텍스트를 다시 탭해 수정/삭제가
+41. 텍스트 도구로 page를 탭해 텍스트 주석을 추가하고, 기존 텍스트를 다시 탭해 수정/삭제가
     되는지 확인한다.
-40. 지우개로 stroke 단위 삭제가 되는지 확인한다.
-41. 색상, 두께, 마지막 필기 취소가 stroke/text 모두에 적용되는지 확인한다.
-42. 확대/이동 후 필기 stroke와 텍스트가 PDF page와 함께 움직이는지 확인한다.
-43. 2페이지 보기와 세로 스크롤에서 각 page에 남긴 annotation이 해당 page 위에만 표시되는지
+42. 지우개로 stroke 단위 삭제가 되는지 확인한다.
+43. 색상, 두께, 마지막 필기 취소가 stroke/text 모두에 적용되는지 확인한다.
+44. 확대/이동 후 필기 stroke와 텍스트가 PDF page와 함께 움직이는지 확인한다.
+45. 2페이지 보기와 세로 스크롤에서 각 page에 남긴 annotation이 해당 page 위에만 표시되는지
     확인한다.
-44. 필기/텍스트가 있는 악보에서 `필기 포함 PDF 공유`를 실행하고, 공유된 PDF 사본에 stroke/text가
+46. 필기/텍스트가 있는 악보에서 `필기 포함 PDF 공유`를 실행하고, 공유된 PDF 사본에 stroke/text가
     보이는지 확인한다.
-45. 한글 텍스트 주석이 포함된 악보를 `필기 포함 PDF 공유`할 때 확인 안내가 표시되는지 확인한다.
-46. 필기가 없는 악보에서 `필기 포함 PDF 공유`가 원본 공유로 fallback하는지 확인한다.
+47. 한글 텍스트 주석이 포함된 악보를 `필기 포함 PDF 공유`할 때 확인 안내가 표시되는지 확인한다.
+48. 필기가 없는 악보에서 `필기 포함 PDF 공유`가 원본 공유로 fallback하는지 확인한다.
 
 2026-08-21 2차 구현 검증 시점에도 연결된 Android emulator/device가 없어 수동 실행 검증은
 진행하지 못했다. `flutter build apk --debug`, `flutter build appbundle`, `flutter build apk`로
@@ -923,8 +927,8 @@ classical discovery 파일과 `url_launcher` 직접 의존성은 Clef v1 RC 악�
 
 2026-09-02 최종 UI polish에서는 당시 RC 후보 version을 `1.0.0+14`로 올리고, 앱 이름/런처 label을
 `Clef & Staff`로 유지했다. 렌더링 프리셋 아이콘은 메트로놈과 구분되도록 `균형`/`대형 PDF`를 각각
-balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 음정/meter/입력 bar/기타
-줄 선택을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
+balance/PDF 아이콘으로 분리했다. 튜너는 진입 직후 마이크 입력을 시작하고 확대된 pitch history chart 중심의
+Chromatic-only 흐름을 설정 영역보다 먼저 보여준다. 라이브러리 중복 이름 생성은 snackbar와 `열기` action으로
 명시하고, 일반 라이브러리 화면의 `악보 추가` CTA는 상단 action 하나로 정리했다. dev 병합분의
 classical discovery 파일은 보존하지만 Clef & Staff RC 홈 surface에는 진입점을 노출하지 않는다. 이후
 에뮬레이터 재확인에서 홈 카드 제목이 action icon과 같은 줄에서 좁아지는 문제와 text entry dialog

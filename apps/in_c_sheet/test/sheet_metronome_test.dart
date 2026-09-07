@@ -18,6 +18,8 @@ void main() {
     expect(low.bpm, 40);
     expect(low.meter, SheetMetronomeMeter.fourFour);
     expect(low.soundEnabled, isFalse);
+    expect(low.accentEnabled, isTrue);
+    expect(low.subdivision, SheetMetronomeSubdivision.none);
     expect(high.bpm, 240);
     expect(high.meter, SheetMetronomeMeter.sixEight);
     expect(decimal.bpm, 132);
@@ -28,6 +30,8 @@ void main() {
       bpm: 132,
       meter: SheetMetronomeMeter.threeFour,
       soundEnabled: true,
+      accentEnabled: false,
+      subdivision: SheetMetronomeSubdivision.triplet,
     );
 
     final decoded = SheetMetronomeCodec.decode(
@@ -37,6 +41,9 @@ void main() {
     expect(decoded.bpm, 132);
     expect(decoded.meter, SheetMetronomeMeter.threeFour);
     expect(decoded.soundEnabled, isTrue);
+    expect(decoded.accentEnabled, isFalse);
+    expect(decoded.subdivision, SheetMetronomeSubdivision.triplet);
+    expect(decoded.pulseDuration.inMilliseconds, 152);
   });
 
   test('falls back to default settings for malformed JSON', () {
@@ -55,24 +62,34 @@ void main() {
       'bpm': 'fast',
       'meter': 6,
       'soundEnabled': 'yes',
+      'accentEnabled': 'no',
+      'subdivision': 'tiny',
     });
 
     expect(settings.bpm, SheetMetronomeSettings.defaultSettings.bpm);
     expect(settings.meter, SheetMetronomeSettings.defaultSettings.meter);
     expect(settings.soundEnabled, isFalse);
+    expect(settings.accentEnabled, isTrue);
+    expect(settings.subdivision, SheetMetronomeSubdivision.none);
   });
 
-  test('cycles beat sequence and marks first beat as accent', () {
-    const first = SheetMetronomeBeat(beatIndex: 0, beatsPerBar: 3);
+  test('cycles beat and subdivision sequence', () {
+    const first = SheetMetronomeBeat(
+      beatIndex: 0,
+      beatsPerBar: 3,
+      pulsesPerBeat: 2,
+    );
     final second = first.next();
     final third = second.next();
-    final wrapped = third.next();
+    final fourth = third.next();
 
     expect(first.isAccent, isTrue);
     expect(second.isAccent, isFalse);
-    expect(second.beatNumber, 2);
-    expect(third.beatNumber, 3);
-    expect(wrapped.beatNumber, 1);
-    expect(wrapped.isAccent, isTrue);
+    expect(second.beatNumber, 1);
+    expect(second.subdivisionIndex, 1);
+    expect(third.beatNumber, 2);
+    expect(third.subdivisionIndex, 0);
+    expect(fourth.beatNumber, 2);
+    expect(fourth.subdivisionIndex, 1);
   });
 }
