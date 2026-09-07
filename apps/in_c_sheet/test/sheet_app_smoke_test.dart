@@ -22,6 +22,29 @@ void main() {
     expect(find.byTooltip('클래식 듣기'), findsNothing);
   });
 
+  testWidgets('setlist creation dialog closes cleanly', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('세트리스트'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('새 세트리스트'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('세트리스트 만들기'), findsOneWidget);
+
+    await tester.tap(find.text('저장'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists, hasLength(1));
+    expect(controller.setlists.single.title, '새 세트리스트');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('metronome sheet exposes hotfix rhythm controls', (tester) async {
     await tester.pumpWidget(
       buildMetronomeSheetForTest(
