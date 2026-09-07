@@ -11,6 +11,14 @@ The strongest pivot is:
 
 This uses the existing catalog/recommendation/concert infrastructure but changes the first promise from "find a classical work" to "show where my ear can go next."
 
+The intentionally sharper first-use version is:
+
+> 좋아하는 음악을 클래식 감상 언어로 바꾸고, 오늘 들을 30초와 다음 세 길을 여는 앱.
+
+Fast classical guessing can be a separate acquisition app later. In C should only borrow the smallest useful part:
+an optional 10-second ear-opening question that records what the user heard first. It should not use scores, rankings,
+speed competition, or correct/incorrect framing.
+
 ## Position Comparison
 
 | Position | 장점 | 약점 | 기존 앱 대비 차별점 | 단일 사용자 가치 | 리텐션 가능성 | V1 핵심 화면 | 버려야 할 기능 |
@@ -53,7 +61,8 @@ Week 2 comeback:
 
 Core loop:
 
-좋아하는 음악 입력 -> 감상 좌표 -> 오늘 30초 Daily step -> reaction/save/link-out -> Next Three -> 작품 여권 -> 다음 Daily step
+좋아하는 음악 입력 -> 감상 시작점 -> 오늘 30초 Daily step -> 귀 트임 단서 ->
+reaction/save/link-out -> Next Three -> 작품 여권 -> 다음 Daily step
 
 Killer surface:
 

@@ -6,6 +6,10 @@ build/*
 !build/icon.png
 !build/icon.icns
 release/
+/releases/
+apps/*/releases/
+*.aab
+*.apk
 .vite/
 .DS_Store
 apps/*/ios/profiles/

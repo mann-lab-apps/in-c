@@ -4,8 +4,8 @@
 
 1. 앱을 처음 실행하고 "좋아하는 음악에서 시작" onboarding sheet가 뜨는지 확인한다.
 2. 좋아하는 곡/작곡가/OST/분위기를 1-3개 입력하거나 건너뛴다.
-3. 입력 직후 onboarding 안에서 오늘 30초 후보와 다음 세 작품이 즉시 보이는지 확인한다.
-4. Preview 첫 화면에서 `오늘 30초만` Daily step이 가장 먼저 보이는지 확인한다.
+3. 입력 직후 onboarding 안에서 오늘의 한 곡 후보와 다음 세 작품이 즉시 보이는지 확인한다.
+4. Today 첫 화면에서 `오늘의 한 곡` Daily Pick과 30초 primary action이 가장 먼저 보이는지 확인한다.
 5. Daily step의 30초 point를 열고 reaction 또는 전체 듣기 link-out을 실행한다.
 6. 오늘 완료 상태가 생기고 방금 잡은 포인트와 감상지도 변화가 보이는지 확인한다.
 7. Next Three가 바로 맞을 작품 / 한 걸음 확장 / 나중에 열릴 작품으로 보이는지 확인한다.
@@ -24,7 +24,10 @@
 15. Concert Detail에서 10분 프리뷰 생성과 공연 후 30초 회고 저장을 확인한다.
 16. promotion card를 save/dismiss하고 우선순위가 낮아지는지 확인한다.
 17. 의견 보내기에서 link issue/product quality/crash blocker 의견을 남기고 Catalog Ops Launch Feedback에 집계되는지 확인한다.
-18. 5명 Founder Quality 결과를 `feedback_submit` evidence로 넣었을 때 Catalog Ops gate가 YES/NO를 정확히 계산하는지 확인한다.
+18. Catalog Ops의 Founder Test Mode 관찰표를 기준으로 5명 테스트를 기록한다.
+19. 5명 Founder Quality 결과를 `feedback_submit` evidence로 넣었을 때 Catalog Ops gate가 YES/NO를 정확히 계산하는지 확인한다.
+20. 7일 Daily Pick 시뮬레이션에서 첫 3일은 가까운 추천, 4-7일 중 surprise 최대 1회, `아직 모르겠음` 직후 recovery 추천이 유지되는지 확인한다.
+21. iOS local notification permission, schedule, cancel, notification open event가 기록되는지 확인한다.
 
 ## Catalog QA
 
@@ -44,6 +47,7 @@
 - Public V1 Closeout의 미통과 gate가 priority, owner, next action, evidence requirement를 함께 보여주는지 확인한다.
 - Public Copy 섹션에서 사용자-facing copy가 CTA/surface/funnel/Catalog Ops/fake URL 같은 내부 용어를 포함하지 않는지 확인한다.
 - Listening Map 지표에서 founder map coverage, orphan node, broken prerequisite, beginner path coverage가 보이는지 확인한다.
+- Founder Test Mode 섹션에서 첫 1분 행동, 추천 이유 납득, 전체 듣기, reaction, 감상지도 이해, 재방문 이유 관찰 항목이 보이는지 확인한다.
 
 ## Store And Build QA
 
@@ -55,6 +59,7 @@
 - Android debug build smoke를 실행한다.
 - Android release build와 iOS no-codesign build를 실행한다.
 - Play Console 준비 전 Android App Bundle build를 실행한다.
+- AAB/APK 같은 빌드 산출물은 repo에 커밋하지 않고 `releases/` 또는 `apps/*/releases/` 로컬 보관 후 GitHub Release/스토어 업로드에만 사용한다.
 - signing/provisioning 문제는 code blocker가 아니라 production verification GAP으로 분리한다.
 - 2026-09-02 기준 Android debug/release APK와 iOS no-codesign build는 PASS다.
 - 2026-09-02 기준 iOS simulator install/launch smoke는 PASS다.
@@ -99,12 +104,15 @@
 - app identity readiness summary
 - public copy smell check
 - founder quality gate: 5 users / 3 comeback reasons
+- first-use wow gate: 5 users / 4 personal recommendation acceptance
 - Public V1 GAP action priority/owner/evidence summary
 - search alias and catalog number matching
 - taste intake free text and shorthand matching
+- taste translation start point / listen-for / next direction
 - taste axis score generation
 - listening level snapshot generation
 - daily listening step founder fallback, saved-unopened priority, unsure recovery
+- ear-opening answer event and listening map clue
 - daily completion after reaction, full listen, or moment complete
 - gentle continuity summary weekly count and recovery copy
 - Next Three immediate/stretch/later lanes

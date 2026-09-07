@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import 'classical_daily_notification.dart';
 import 'classical_discovery_catalog.dart';
 import 'classical_concert_import.dart';
 import 'classical_discovery_data_source.dart';
@@ -66,16 +67,21 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     List<ClassicalConcert>? concerts,
     List<ConcertPromotion>? promotions,
     ClassicalDiscoveryClock? clock,
+    ClassicalDailyNotificationGateway? notificationGateway,
   }) : _composers = composers ?? ClassicalDiscoveryCatalog.composers,
        _works = works ?? ClassicalDiscoveryCatalog.works,
        _concerts = concerts ?? ClassicalDiscoveryCatalog.concerts,
        _promotions = promotions ?? ClassicalDiscoveryCatalog.promotions,
-       _clock = clock ?? DateTime.now;
+       _clock = clock ?? DateTime.now,
+       _notificationGateway =
+           notificationGateway ??
+           const MethodChannelClassicalDailyNotificationGateway();
 
   factory ClassicalDiscoveryController.fromDataSource({
     required ClassicalDiscoveryStore store,
     required ClassicalCatalogDataSource dataSource,
     ClassicalDiscoveryClock? clock,
+    ClassicalDailyNotificationGateway? notificationGateway,
   }) {
     final catalog = dataSource.loadCatalog();
     return ClassicalDiscoveryController(
@@ -85,6 +91,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       concerts: catalog.concerts,
       promotions: catalog.promotions,
       clock: clock,
+      notificationGateway: notificationGateway,
     );
   }
 
@@ -94,6 +101,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   final List<ClassicalConcert> _concerts;
   final List<ConcertPromotion> _promotions;
   final ClassicalDiscoveryClock _clock;
+  final ClassicalDailyNotificationGateway _notificationGateway;
 
   UserDiscoveryState _state = UserDiscoveryState.defaultState;
   bool _isLoading = true;
@@ -119,6 +127,16 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   List<TasteIntakeItem> get tasteIntakeItems =>
       List<TasteIntakeItem>.unmodifiable(_state.tasteIntakeItems);
   ReminderPreference get reminderPreference => _state.reminderPreference;
+  List<DailyPick> get dailyPickHistory {
+    final picks = <DailyPick>[dailyPick(), ..._state.dailyPicks];
+    final byId = <String, DailyPick>{};
+    for (final pick in picks) {
+      byId[pick.id] = pick;
+    }
+    final result = byId.values.toList()
+      ..sort((a, b) => b.date.compareTo(a.date));
+    return List<DailyPick>.unmodifiable(result);
+  }
 
   ClassicalWork get todayWork {
     final savedDue = repeatDueWorks();
@@ -226,6 +244,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     notifyListeners();
     _state = await store.loadState();
     _isLoading = false;
+    await consumePendingDailyPickNotification();
     notifyListeners();
   }
 
@@ -329,11 +348,16 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
     final work = nextThree.firstOrNull?.work ?? anchor ?? _easyFounderWork(now);
     final moment = work.primaryMoment ?? work.listeningMoments.first;
+    final translation = _tasteTranslationFor(
+      items: items,
+      axis: axis,
+      work: work,
+    );
     final step = DailyListeningStep(
       work: work,
       moment: moment,
       title: '오늘은 이 30초부터',
-      prompt: moment.prompt,
+      prompt: translation.listenFor,
       reason: _tasteBasedDailyReason(items.first, axis),
       nextEffect: '반응을 남기면 다음 세 작품이 이 시작점에서 조금 더 가까워집니다.',
       estimatedSeconds: (moment.endSeconds - moment.startSeconds)
@@ -344,13 +368,35 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       completionState: 'preview',
       dueDate: _dateOnly(now),
       tasteEvidenceLabel: items.first.label,
+      translation: translation,
     );
     return TasteStartPreview(
       items: items,
       axis: axis,
+      translation: translation,
       dailyStep: step,
       nextThree: nextThree,
     );
+  }
+
+  TasteTranslation? currentTasteTranslation() {
+    if (_state.tasteIntakeItems.isEmpty) {
+      return null;
+    }
+    final items = _state.tasteIntakeItems.take(3).toList(growable: false);
+    final axis = _primaryAxisForTasteItems(items);
+    final anchor = items
+        .map(
+          (item) =>
+              item.matchedWorkId == null ? null : workById(item.matchedWorkId!),
+        )
+        .whereType<ClassicalWork>()
+        .firstOrNull;
+    final work =
+        nextThreeRecommendations(anchor: anchor).firstOrNull?.work ??
+        anchor ??
+        _easyFounderWork(_clock());
+    return _tasteTranslationFor(items: items, axis: axis, work: work);
   }
 
   List<TasteAxisScore> tasteAxisScores() {
@@ -408,6 +454,15 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       };
       for (final entry in _axisWeightsForWork(work).entries) {
         add(entry.key, entry.value * multiplier, reaction.occurredAt);
+      }
+    }
+
+    for (final event in _state.events.where(
+      (event) => event.eventType == 'ear_opening_answer',
+    )) {
+      final axis = event.properties['axis'];
+      if (axis != null && axis.isNotEmpty) {
+        add(axis, 2, event.occurredAt);
       }
     }
 
@@ -548,11 +603,438 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
     final fallbackLater =
         later ?? pick('later', (work) => !usedWorkIds.contains(work.id));
-    return [
-      immediate,
-      stretch,
-      fallbackLater,
-    ].whereType<ProgressiveRecommendation>().toList(growable: false);
+    return _withProgressiveFallbacks(
+      [
+        immediate,
+        stretch,
+        fallbackLater,
+      ].whereType<ProgressiveRecommendation>().toList(growable: true),
+      candidates: candidates,
+      usedWorkIds: usedWorkIds,
+      axis: axis,
+      sourceEvidence: _sourceEvidenceFor(axis),
+      targetDifficulty: targetDifficulty,
+    );
+  }
+
+  DailyPick dailyPick({DateTime? now}) {
+    final effectiveNow = now ?? _clock();
+    final date = _dateOnly(effectiveNow);
+    final stored = _state.dailyPicks
+        .where((pick) => _isSameLocalDay(pick.date, date))
+        .firstOrNull;
+    return _withDerivedDailyPickCompletion(
+      stored ?? _buildDailyPick(date: date, now: effectiveNow),
+      effectiveNow,
+    );
+  }
+
+  Future<DailyPick> ensureDailyPick({
+    DateTime? now,
+    bool openedFromNotification = false,
+  }) async {
+    final effectiveNow = now ?? _clock();
+    final date = _dateOnly(effectiveNow);
+    final existing = _state.dailyPicks
+        .where((pick) => _isSameLocalDay(pick.date, date))
+        .firstOrNull;
+    final pick = _withDerivedDailyPickCompletion(
+      (existing ?? _buildDailyPick(date: date, now: effectiveNow)).copyWith(
+        openedFromNotification:
+            openedFromNotification ||
+            (existing?.openedFromNotification ?? false),
+      ),
+      effectiveNow,
+    );
+    final nextPicks = <DailyPick>[
+      pick,
+      ..._state.dailyPicks.where((item) => item.id != pick.id),
+    ].take(30).toList(growable: false);
+    await _setState(
+      _state.copyWith(
+        dailyPicks: nextPicks,
+        events: openedFromNotification
+            ? _withEvent(
+                'daily_pick_notification_open',
+                'work',
+                pick.workId,
+                context: pick.id,
+                properties: <String, String>{
+                  'dailyPickId': pick.id,
+                  'date': _dateKey(pick.date),
+                },
+              )
+            : _state.events,
+      ),
+    );
+    return pick;
+  }
+
+  Future<void> configureDailyPickReminder({
+    required bool enabled,
+    String? timeLabel,
+    String? message,
+  }) async {
+    final now = _clock();
+    final base = _state.reminderPreference.copyWith(
+      enabled: enabled,
+      timeLabel: timeLabel,
+      message: message,
+      updatedAt: now,
+    );
+    if (!enabled) {
+      await _notificationGateway.cancelDailyPick();
+      final nextPrefs = <String>{..._state.notificationPreferences}
+        ..remove('today_work');
+      await _setState(
+        _state.copyWith(
+          reminderPreference: base.copyWith(
+            deliveryStatus: 'local-notification-cancelled',
+          ),
+          notificationPreferences: nextPrefs,
+          preferencesUpdatedAt: now,
+          events: _withEvents([
+            _eventRecord(
+              'daily_pick_notification_cancel',
+              'user',
+              'local',
+              at: now,
+            ),
+          ]),
+        ),
+      );
+      return;
+    }
+
+    final permissionStatus = await _notificationGateway.requestPermission();
+    final granted =
+        permissionStatus == 'granted' ||
+        permissionStatus == 'provisional' ||
+        permissionStatus == 'authorized';
+    final events = <DiscoveryEvent>[
+      _eventRecord(
+        'notification_permission_request',
+        'user',
+        'local',
+        at: now,
+        properties: <String, String>{'status': permissionStatus},
+      ),
+      _eventRecord(
+        granted
+            ? 'notification_permission_granted'
+            : 'notification_permission_denied',
+        'user',
+        'local',
+        at: now,
+        properties: <String, String>{'status': permissionStatus},
+      ),
+    ];
+
+    if (!granted) {
+      final nextPrefs = <String>{..._state.notificationPreferences}
+        ..remove('today_work');
+      await _setState(
+        _state.copyWith(
+          reminderPreference: base.copyWith(
+            enabled: false,
+            deliveryStatus: permissionStatus == 'unsupported'
+                ? 'unsupported'
+                : 'permission-denied',
+          ),
+          notificationPreferences: nextPrefs,
+          preferencesUpdatedAt: now,
+          events: _withEvents(events),
+        ),
+      );
+      return;
+    }
+
+    final pick = await ensureDailyPick(now: now);
+    final time = _parseReminderTime(base.timeLabel);
+    final request = DailyPickNotificationRequest(
+      pick: pick,
+      title: '오늘 한 곡만 열어볼까요?',
+      body: base.message,
+      hour: time.hour,
+      minute: time.minute,
+    );
+    var deliveryStatus = 'local-notification-scheduled';
+    try {
+      await _notificationGateway.scheduleDailyPick(request);
+      events.add(
+        _eventRecord(
+          'daily_pick_notification_scheduled',
+          'work',
+          pick.workId,
+          context: pick.id,
+          at: now,
+          properties: <String, String>{
+            'dailyPickId': pick.id,
+            'timeLabel': base.timeLabel,
+          },
+        ),
+      );
+    } catch (_) {
+      deliveryStatus = 'schedule-failed';
+      events.add(
+        _eventRecord(
+          'daily_pick_notification_error',
+          'work',
+          pick.workId,
+          context: pick.id,
+          at: now,
+          properties: <String, String>{'timeLabel': base.timeLabel},
+        ),
+      );
+    }
+
+    final nextPrefs = <String>{..._state.notificationPreferences}
+      ..add('today_work');
+    await _setState(
+      _state.copyWith(
+        reminderPreference: base.copyWith(deliveryStatus: deliveryStatus),
+        notificationPreferences: nextPrefs,
+        preferencesUpdatedAt: now,
+        events: _withEvents(events),
+      ),
+    );
+  }
+
+  Future<void> consumePendingDailyPickNotification() async {
+    final payload = await _notificationGateway.consumeLaunchPayload();
+    if (payload == null || payload.trim().isEmpty) {
+      return;
+    }
+    await ensureDailyPick(openedFromNotification: true);
+  }
+
+  DailyPick _buildDailyPick({required DateTime date, required DateTime now}) {
+    final axis = tasteAxisScores().firstOrNull?.axis ?? '선율형';
+    final targetDifficulty = _targetDifficultyFor(
+      listeningLevelSnapshot().level,
+    );
+    final savedWork = savedButUnopenedWorks
+        .where((work) => work.primaryMoment != null)
+        .firstOrNull;
+    final unsureWork = _recentUnsureAnchor(now);
+    final pickType = savedWork != null
+        ? 'revisit'
+        : unsureWork != null
+        ? 'recovery'
+        : _shouldUseSurprisePick(date, now)
+        ? 'surprise'
+        : _state.dailyPicks.length.isEven
+        ? 'close_step'
+        : 'gentle_expansion';
+    final anchor = _bestTasteAnchor();
+    final usedWorkIds = <String>{
+      ..._state.dailyPicks.take(14).map((pick) => pick.workId),
+    };
+    final candidates = _scoreProgressiveCandidates(
+      axis: axis,
+      targetDifficulty: targetDifficulty,
+      anchor: anchor,
+      usedWorkIds: usedWorkIds,
+    );
+    final work =
+        savedWork ??
+        unsureWork ??
+        _pickDailyWork(
+          candidates: candidates,
+          pickType: pickType,
+          axis: axis,
+          anchor: anchor,
+          targetDifficulty: targetDifficulty,
+        ) ??
+        _easyFounderWork(now);
+    final moment = work.primaryMoment ?? work.listeningMoments.first;
+    final sourceEvidence = _dailyPickSourceEvidence(axis);
+    return DailyPick(
+      id: 'daily-pick-${_dateKey(date)}',
+      date: date,
+      workId: work.id,
+      momentId: moment.id,
+      pickType: pickType,
+      reason: _dailyPickReasonFor(
+        work,
+        pickType: pickType,
+        axis: axis,
+        sourceEvidence: sourceEvidence,
+      ),
+      listenFor: _translationListenFor(axis, work),
+      whyNow: _dailyPickWhyNowFor(pickType),
+      sourceEvidence: sourceEvidence,
+      distanceLabel: _dailyPickDistanceLabel(pickType),
+      createdAt: now,
+    );
+  }
+
+  ClassicalWork? _pickDailyWork({
+    required List<({ClassicalWork work, int score})> candidates,
+    required String pickType,
+    required String axis,
+    required ClassicalWork? anchor,
+    required int targetDifficulty,
+  }) {
+    bool isClose(ClassicalWork work) =>
+        !_isFounderColdStartMismatch(work) &&
+        work.difficultyForListening <= targetDifficulty + 1;
+
+    bool isGentleExpansion(ClassicalWork work) =>
+        !_isFounderColdStartMismatch(work) &&
+        work.difficultyForListening <= targetDifficulty + 2 &&
+        (anchor == null ||
+            work.composerId != anchor.composerId ||
+            work.period != anchor.period ||
+            work.instrumentation != anchor.instrumentation);
+
+    bool isSurprise(ClassicalWork work) =>
+        !_isFounderColdStartMismatch(work) &&
+        work.difficultyForListening <= targetDifficulty + 2 &&
+        _axisWeightsForWork(work).keys
+            .any((candidateAxis) => candidateAxis != axis) &&
+        (anchor == null ||
+            work.period != anchor.period ||
+            work.instrumentation != anchor.instrumentation);
+
+    final predicate = switch (pickType) {
+      'surprise' => isSurprise,
+      'gentle_expansion' => isGentleExpansion,
+      _ => isClose,
+    };
+    return candidates.map((item) => item.work).where(predicate).firstOrNull ??
+        candidates
+            .map((item) => item.work)
+            .where((work) => !_isFounderColdStartMismatch(work))
+            .firstOrNull ??
+        candidates.firstOrNull?.work;
+  }
+
+  bool _shouldUseSurprisePick(DateTime date, DateTime now) {
+    if (_hasRecentUnsure(now)) {
+      return false;
+    }
+    final createdDays = _state.dailyPicks.length;
+    if (createdDays < 3) {
+      return false;
+    }
+    final recentSurpriseCount = _state.dailyPicks
+        .where((pick) => date.difference(pick.date).inDays.abs() < 7)
+        .where((pick) => pick.pickType == 'surprise')
+        .length;
+    return recentSurpriseCount == 0 && createdDays % 5 == 3;
+  }
+
+  bool _hasRecentUnsure(DateTime now) {
+    return _state.reactions.any(
+      (reaction) =>
+          reaction.type == 'unsure' &&
+          now.difference(reaction.occurredAt).inDays <= 1,
+    );
+  }
+
+  String _dailyPickSourceEvidence(String axis) {
+    final label = _dailyTasteEvidenceLabel();
+    if (label.isNotEmpty) {
+      return '$label에서 출발해 ${_axisNoun(axis)} 쪽으로 한 걸음 잡았습니다.';
+    }
+    return _sourceEvidenceFor(axis);
+  }
+
+  String _dailyPickReasonFor(
+    ClassicalWork work, {
+    required String pickType,
+    required String axis,
+    required String sourceEvidence,
+  }) {
+    if (pickType == 'surprise') {
+      return '예상보다 살짝 옆길이지만, ${_axisNoun(axis)}이 ${work.titleKo}에서도 이어집니다.';
+    }
+    if (pickType == 'revisit') {
+      return '저장해둔 작품을 오늘은 한 지점만 다시 열어봅니다.';
+    }
+    if (pickType == 'recovery') {
+      return '낯설었던 뒤라, 오늘은 더 가까운 입구로 낮춰 잡았습니다.';
+    }
+    if (_hasFounderMelodyTaste()) {
+      return '선율이 먼저 들어오는 취향이면, ${work.titleKo}는 오늘 한 줄만 잡기 좋습니다.';
+    }
+    return sourceEvidence;
+  }
+
+  String _dailyPickWhyNowFor(String pickType) {
+    return switch (pickType) {
+      'surprise' => '반응을 남기면 의외였는지, 다음에도 열릴 길인지 구분합니다.',
+      'revisit' => '전체 듣기로 넘어가면 저장함이 아니라 오늘의 기록으로 남습니다.',
+      'recovery' => '좋음이나 아직 모르겠음을 남기면 내일은 더 알맞은 거리로 조정합니다.',
+      'gentle_expansion' => '오늘 반응에 따라 내일은 같은 감각을 다른 시대나 악기로 옮깁니다.',
+      _ => '오늘 반응이 내일의 한 곡 거리를 조금 바꿉니다.',
+    };
+  }
+
+  String _dailyPickDistanceLabel(String pickType) {
+    return switch (pickType) {
+      'surprise' => '의외의 우회로',
+      'revisit' => '다시 들어볼 때',
+      'recovery' => '아주 가까움',
+      'gentle_expansion' => '한 걸음 확장',
+      _ => '아주 가까움',
+    };
+  }
+
+  DailyPick _withDerivedDailyPickCompletion(DailyPick pick, DateTime now) {
+    if (pick.completedAt != null) {
+      return pick;
+    }
+    final completions = <DateTime>[
+      for (final reaction in _state.reactions)
+        if (reaction.workId == pick.workId &&
+            _isSameLocalDay(reaction.occurredAt, pick.date))
+          reaction.occurredAt,
+      for (final event in _state.events)
+        if (event.entityType == 'work' &&
+            event.entityId == pick.workId &&
+            _isDailyCompletionEvent(event) &&
+            _isSameLocalDay(event.occurredAt, pick.date))
+          event.occurredAt,
+    ]..sort();
+    if (completions.isEmpty) {
+      return pick;
+    }
+    return pick.copyWith(completedAt: completions.first);
+  }
+
+  List<DailyPick> _dailyPicksWithCompletion(
+    String workId, {
+    required DateTime completedAt,
+  }) {
+    final pick = dailyPick(now: completedAt);
+    if (pick.workId != workId) {
+      return _state.dailyPicks;
+    }
+    final completed = pick.copyWith(
+      completedAt: pick.completedAt ?? completedAt,
+    );
+    return <DailyPick>[
+      completed,
+      ..._state.dailyPicks.where((item) => item.id != completed.id),
+    ].take(30).toList(growable: false);
+  }
+
+  ({int hour, int minute}) _parseReminderTime(String timeLabel) {
+    final parts = timeLabel.split(':');
+    if (parts.length != 2) {
+      return (hour: 9, minute: 0);
+    }
+    final hour = int.tryParse(parts[0]) ?? 9;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return (hour: hour.clamp(0, 23), minute: minute.clamp(0, 59));
+  }
+
+  String _dateKey(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
   }
 
   DailyListeningStep dailyListeningStep({DateTime? now}) {
@@ -560,6 +1042,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final axis = tasteAxisScores().isEmpty
         ? '선율형'
         : tasteAxisScores().first.axis;
+    final pick = dailyPick(now: effectiveNow);
+    final pickWork = workById(pick.workId);
     final completedWork = _completedWorkOn(effectiveNow);
     final savedWork = savedButUnopenedWorks
         .where((work) => work.primaryMoment != null)
@@ -575,6 +1059,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         : null;
     final work =
         completedWork ??
+        pickWork ??
         savedWork ??
         unsureWork ??
         recommendedWork ??
@@ -585,17 +1070,20 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return DailyListeningStep(
       work: work,
       moment: moment,
-      title: isCompleted ? '오늘은 충분해요' : '오늘 30초만',
-      prompt: moment.prompt,
+      title: isCompleted ? '오늘은 이 한 곡이면 충분해요' : '오늘의 한 곡',
+      prompt: pickWork?.id == work.id ? pick.listenFor : moment.prompt,
       reason: _dailyReasonFor(
         work,
+        dailyPick: pickWork?.id == work.id ? pick : null,
         axis: axis,
         tasteEvidenceLabel: tasteEvidenceLabel,
         hasSavedUnopened: savedWork?.id == work.id,
         isUnsureRecovery: unsureWork?.id == work.id,
         isCompleted: isCompleted,
       ),
-      nextEffect: _dailyNextEffectFor(isCompleted: isCompleted),
+      nextEffect: pickWork?.id == work.id
+          ? pick.whyNow
+          : _dailyNextEffectFor(isCompleted: isCompleted),
       estimatedSeconds: (moment.endSeconds - moment.startSeconds)
           .clamp(15, 180)
           .toInt(),
@@ -604,6 +1092,49 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       completionState: isCompleted ? 'completed' : 'ready',
       dueDate: _dateOnly(effectiveNow),
       tasteEvidenceLabel: tasteEvidenceLabel,
+      translation: currentTasteTranslation(),
+    );
+  }
+
+  EarOpeningPrompt earOpeningPromptFor(DailyListeningStep step) {
+    final axis = step.translation?.axis ?? step.axis;
+    return EarOpeningPrompt(
+      id: 'ear-${step.work.id}-${step.moment.id}',
+      workId: step.work.id,
+      momentId: step.moment.id,
+      title: '귀 트임',
+      question: _earOpeningQuestion(axis),
+      options: _earOpeningOptions(axis),
+      axis: axis,
+      mapClue: _axisNoun(axis),
+      skipCopy: '모르겠으면 그냥 넘어가도 됩니다.',
+    );
+  }
+
+  Future<void> recordEarOpeningAnswer(
+    EarOpeningPrompt prompt,
+    String answer,
+  ) async {
+    final trimmed = answer.trim();
+    if (trimmed.isEmpty) {
+      return;
+    }
+    await _setState(
+      _state.copyWith(
+        events: _withEvent(
+          'ear_opening_answer',
+          'work',
+          prompt.workId,
+          context: prompt.momentId,
+          properties: <String, String>{
+            'question': prompt.question,
+            'answer': trimmed,
+            'axis': prompt.axis,
+            'mapClue': prompt.mapClue,
+            'surface': 'daily',
+          },
+        ),
+      ),
     );
   }
 
@@ -674,6 +1205,22 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           stampType: 'saved',
           label: '다시 들으려고 저장',
           occurredAt: savedAt,
+        ),
+      );
+    }
+    for (final pick in _state.dailyPicks) {
+      if (pick.workId != workId) {
+        continue;
+      }
+      stamps.add(
+        WorkPassportStamp(
+          id: pick.id,
+          workId: workId,
+          stampType: 'daily_pick',
+          label: pick.isCompleted ? '오늘의 한 곡 완료' : '오늘의 한 곡으로 만남',
+          momentId: pick.momentId,
+          note: pick.distanceLabel,
+          occurredAt: pick.completedAt ?? pick.createdAt,
         ),
       );
     }
@@ -758,6 +1305,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   List<WorkPassportStamp> listeningTimeline() {
     final workIds = <String>{
       ..._state.workStates.keys,
+      ..._state.dailyPicks.map((pick) => pick.workId),
       ..._state.reactions.map((reaction) => reaction.workId),
       ..._state.previewRoutes.expand((route) => route.programWorkIds),
       ..._state.postConcertReflections.map((reflection) => reflection.workId),
@@ -1437,6 +1985,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       ),
       eventType: 'listening_moment_complete',
       context: momentId,
+      dailyPicks: _dailyPicksWithCompletion(workId, completedAt: now),
     );
   }
 
@@ -1474,6 +2023,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           ..._state.workStates,
           workId: nextWorkState,
         },
+        dailyPicks: _dailyPicksWithCompletion(workId, completedAt: now),
         reactions: <ClassicalReaction>[
           reaction,
           ..._state.reactions,
@@ -1596,9 +2146,12 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     ClassicalWork work,
     ExternalLink link, {
     bool fallback = false,
+    String surface = 'listening',
   }) async {
+    final now = _clock();
     await _setState(
       _state.copyWith(
+        dailyPicks: _dailyPicksWithCompletion(work.id, completedAt: now),
         events: _withEvent(
           'external_platform_click',
           'work',
@@ -1609,6 +2162,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             'linkId': link.id,
             'linkType': link.linkType,
             'fallback': fallback.toString(),
+            'surface': surface,
             'url': link.url,
           },
         ),
@@ -1700,6 +2254,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           properties: <String, String>{
             'concertId': concertId,
             if (destination != null) 'destinationId': destination.id,
+            'surface': 'ticket',
             if (destination != null) 'url': destination.url,
           },
         ),
@@ -1830,6 +2385,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     UserWorkState nextWorkState, {
     required String eventType,
     String? context,
+    List<DailyPick>? dailyPicks,
   }) async {
     await _setState(
       _state.copyWith(
@@ -1837,6 +2393,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           ..._state.workStates,
           nextWorkState.workId: nextWorkState.copyWith(updatedAt: _clock()),
         },
+        dailyPicks: dailyPicks,
         events: _withEvent(
           eventType,
           'work',
@@ -1860,19 +2417,43 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     String? context,
     Map<String, String> properties = const <String, String>{},
   }) {
-    final now = _clock();
     return <DiscoveryEvent>[
-      DiscoveryEvent(
-        id: 'event-${now.microsecondsSinceEpoch}',
-        eventType: eventType,
-        entityType: entityType,
-        entityId: entityId,
+      _eventRecord(
+        eventType,
+        entityType,
+        entityId,
         context: context,
         properties: properties,
-        occurredAt: now,
       ),
       ..._state.events,
     ].take(200).toList(growable: false);
+  }
+
+  List<DiscoveryEvent> _withEvents(List<DiscoveryEvent> events) {
+    return <DiscoveryEvent>[
+      ...events.reversed,
+      ..._state.events,
+    ].take(200).toList(growable: false);
+  }
+
+  DiscoveryEvent _eventRecord(
+    String eventType,
+    String entityType,
+    String entityId, {
+    String? context,
+    Map<String, String> properties = const <String, String>{},
+    DateTime? at,
+  }) {
+    final now = at ?? _clock();
+    return DiscoveryEvent(
+      id: 'event-${now.microsecondsSinceEpoch}-$eventType',
+      eventType: eventType,
+      entityType: entityType,
+      entityId: entityId,
+      context: context,
+      properties: properties,
+      occurredAt: now,
+    );
   }
 
   bool _hasExternalListenClick(String workId) {
@@ -2205,6 +2786,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         'listening_moment_complete' => 2,
         'external_platform_click' => 2,
         'listening_moment_preview_open' => 1,
+        'ear_opening_answer' => 1,
         _ => 0,
       };
       if (evidence > 0) {
@@ -2653,6 +3235,26 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final nicknameMatches = <({bool matched, String workId})>[
       (
         matched:
+            compact.contains('베토벤') &&
+            (compact.contains('교향곡9') ||
+                compact.contains('합창') ||
+                compact.contains('환희') ||
+                compact.contains('ode') ||
+                compact.contains('joy') ||
+                compact.contains('symphony9')),
+        workId: 'beethoven-symphony-9',
+      ),
+      (
+        matched:
+            (compact.contains('드보르작') || compact.contains('dvorak')) &&
+            (compact.contains('교향곡9') ||
+                compact.contains('신세계') ||
+                compact.contains('newworld') ||
+                compact.contains('symphony9')),
+        workId: 'dvorak-new-world',
+      ),
+      (
+        matched:
             compact.contains('라흐') &&
             (compact.contains('피협2') ||
                 compact.contains('피아노협주곡2') ||
@@ -2668,7 +3270,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       (
         matched:
             compact.contains('쇼팽') &&
-            (compact.contains('녹턴') || compact.contains('nocturne')),
+            (compact.contains('녹턴') ||
+                compact.contains('야상곡') ||
+                compact.contains('nocturne') ||
+                compact.contains('op92') ||
+                compact.contains('op9no2')),
         workId: 'chopin-nocturne-op9-2',
       ),
     ];
@@ -2687,6 +3293,16 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   ClassicalComposer? _matchComposer(String input) {
     final normalized = normalizeDiscoveryText(input);
+    bool matchesField(String field) {
+      final candidate = normalizeDiscoveryText(field);
+      if (candidate.isEmpty || normalized.isEmpty) {
+        return false;
+      }
+      return candidate == normalized ||
+          candidate.contains(normalized) ||
+          normalized.contains(candidate);
+    }
+
     for (final composer in _composers) {
       final fields = [
         composer.nameKo,
@@ -2703,9 +3319,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         composer.nameOriginal,
         ...composer.aliases,
       ];
-      if (fields.any(
-        (field) => normalizeDiscoveryText(field).contains(normalized),
-      )) {
+      if (fields.any(matchesField)) {
         return composer;
       }
     }
@@ -2717,6 +3331,114 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       return rawInput;
     }
     return '${rawInput.substring(0, 18)}...';
+  }
+
+  TasteTranslation _tasteTranslationFor({
+    required List<TasteIntakeItem> items,
+    required String axis,
+    required ClassicalWork work,
+  }) {
+    final sourceLabel = items
+        .map(
+          (item) => item.matchedWorkId != null
+              ? item.label
+              : _friendlyTasteLabel(item.rawInput),
+        )
+        .take(2)
+        .join(', ');
+    final hasOnlyFreeText = items.every(
+      (item) => item.sourceType != 'catalog_match',
+    );
+    return TasteTranslation(
+      sourceLabel: sourceLabel,
+      axis: axis,
+      startingPoint: _translationStartingPoint(axis, sourceLabel),
+      familiarFeeling: _translationFamiliarFeeling(axis, sourceLabel),
+      listenFor: _translationListenFor(axis, work),
+      nextDirection: _translationNextDirection(axis),
+      avoidForNow: _translationAvoidForNow(axis),
+      isSoftLanding: hasOnlyFreeText,
+    );
+  }
+
+  String _translationStartingPoint(String axis, String sourceLabel) {
+    final label = sourceLabel.isEmpty ? '좋아하는 음악' : sourceLabel;
+    return switch (axis) {
+      '색채형' => '$label에서 시작하면, 소리의 색이 바뀌는 작품이 먼저 맞습니다.',
+      '리듬형' => '$label에서 시작하면, 몸이 먼저 반응하는 움직임부터 열어봅니다.',
+      '긴장형' => '$label에서 시작하면, 긴장이 쌓였다 풀리는 순간이 좋은 입구입니다.',
+      '구조형' => '$label에서 시작하면, 주제가 돌아오는 길을 잡아보면 좋습니다.',
+      '극적형' => '$label에서 시작하면, 장면이 바뀌는 음악부터 들어볼 만합니다.',
+      _ => '$label에서 시작하면, 선율이 또렷하게 앞으로 나오는 작품이 좋습니다.',
+    };
+  }
+
+  String _translationFamiliarFeeling(String axis, String sourceLabel) {
+    return switch (axis) {
+      '색채형' => '익숙한 건 멜로디보다 분위기와 질감일 수 있어요.',
+      '리듬형' => '익숙한 건 박자보다 몸이 먼저 따라가는 추진력일 수 있어요.',
+      '긴장형' => '익숙한 건 어두움 자체보다 버티다가 풀리는 힘일 수 있어요.',
+      '구조형' => '익숙한 건 지식보다 한 번 나온 생각이 다시 돌아오는 감각일 수 있어요.',
+      '극적형' => '익숙한 건 웅장함보다 화면이 전환되는 듯한 흐름일 수 있어요.',
+      _ => '익숙한 건 이름보다 오래 남는 한 줄의 선율일 수 있어요.',
+    };
+  }
+
+  String _translationListenFor(String axis, ClassicalWork work) {
+    final moment = work.primaryMoment ?? work.listeningMoments.first;
+    final cue = switch (axis) {
+      '색채형' => '악기 색이 살짝 바뀌는 지점',
+      '리듬형' => '반복되는 움직임이 몸에 먼저 닿는 지점',
+      '긴장형' => '소리가 버티다가 풀리는 지점',
+      '구조형' => '앞에서 나온 생각이 다시 보이는 지점',
+      '극적형' => '장면이 바뀌는 듯한 지점',
+      _ => '선율이 앞으로 걸어 나오는 지점',
+    };
+    return '${moment.label}에서는 $cue만 잡아보세요.';
+  }
+
+  String _translationNextDirection(String axis) {
+    return switch (axis) {
+      '색채형' => '다음에는 인상주의 색채나 작은 실내악으로 넓혀봅니다.',
+      '리듬형' => '다음에는 춤곡과 변주곡으로 움직임을 더 따라가봅니다.',
+      '긴장형' => '다음에는 더 선명한 단조 작품으로 깊이를 조금만 넓힙니다.',
+      '구조형' => '다음에는 소나타와 변주처럼 흐름이 보이는 작품으로 갑니다.',
+      '극적형' => '다음에는 협주곡과 관현악의 장면 전환으로 넓혀봅니다.',
+      _ => '다음에는 고전의 문답, 낭만의 긴 호흡, 바로크의 반복처럼 선율을 만드는 장치 하나를 열어봅니다.',
+    };
+  }
+
+  String _translationAvoidForNow(String axis) {
+    return switch (axis) {
+      '색채형' => '처음부터 긴 교향곡 전체를 붙잡으려 하지 않아도 됩니다.',
+      '리듬형' => '작품 번호나 형식 이름을 먼저 외우지 않아도 됩니다.',
+      '긴장형' => '너무 무거운 곡으로 바로 들어가지는 않습니다.',
+      '구조형' => '분석표처럼 듣기보다 돌아오는 느낌 하나만 잡습니다.',
+      '극적형' => '웅장한 곡만 계속 밀어붙이지 않습니다.',
+      _ => '목소리와 무대가 앞서는 긴 작품은 조금 뒤로 두고, 먼저 한 선율을 기억합니다.',
+    };
+  }
+
+  String _earOpeningQuestion(String axis) {
+    return switch (axis) {
+      '색채형' => '처음 먼저 남은 소리는 무엇에 가까웠나요?',
+      '리듬형' => '이 짧은 지점에서 몸이 먼저 반응한 건 무엇이었나요?',
+      '긴장형' => '이 30초는 어디에서 힘이 생겼나요?',
+      '구조형' => '다시 듣는다면 무엇을 따라가고 싶나요?',
+      '극적형' => '장면이 바뀐다고 느낀 순간은 어디에 가까웠나요?',
+      _ => '처음 먼저 들어온 건 무엇이었나요?',
+    };
+  }
+
+  List<String> _earOpeningOptions(String axis) {
+    return switch (axis) {
+      '색채형' => const ['악기 색', '분위기', '낮은 소리', '전체 울림'],
+      '리듬형' => const ['반복', '춤', '속도감', '멈칫하는 순간'],
+      '긴장형' => const ['쌓이는 힘', '풀리는 순간', '어두운 색', '버티는 느낌'],
+      '구조형' => const ['다시 나온 선율', '질문과 대답', '큰 흐름', '멈춘 자리'],
+      '극적형' => const ['장면 전환', '밀려오는 소리', '갑작스러운 변화', '넓어지는 순간'],
+      _ => const ['선율', '리듬', '악기 색', '분위기'],
+    };
   }
 
   List<ProgressiveRecommendation> _previewProgressiveRecommendations({
@@ -2754,11 +3476,54 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       return null;
     }
 
-    return <ProgressiveRecommendation?>[
-      pick('immediate', (work) => work.difficultyForListening <= 2),
-      pick('stretch', (work) => work.difficultyForListening <= 3),
-      pick('later', (work) => work.difficultyForListening >= 2),
-    ].whereType<ProgressiveRecommendation>().toList(growable: false);
+    return _withProgressiveFallbacks(
+      <ProgressiveRecommendation?>[
+        pick('immediate', (work) => work.difficultyForListening <= 2),
+        pick('stretch', (work) => work.difficultyForListening <= 3),
+        pick('later', (work) => work.difficultyForListening >= 2),
+      ].whereType<ProgressiveRecommendation>().toList(growable: true),
+      candidates: candidates,
+      usedWorkIds: usedWorkIds,
+      axis: axis,
+      sourceEvidence: sourceEvidence,
+      targetDifficulty: 1,
+    );
+  }
+
+  List<ProgressiveRecommendation> _withProgressiveFallbacks(
+    List<ProgressiveRecommendation> recommendations, {
+    required List<({ClassicalWork work, int score})> candidates,
+    required Set<String> usedWorkIds,
+    required String axis,
+    required String sourceEvidence,
+    required int targetDifficulty,
+  }) {
+    for (final item in candidates) {
+      if (recommendations.length >= 3) {
+        break;
+      }
+      if (usedWorkIds.contains(item.work.id)) {
+        continue;
+      }
+      final lane = switch (recommendations.length) {
+        0 => 'immediate',
+        1 => 'stretch',
+        _ => 'later',
+      };
+      usedWorkIds.add(item.work.id);
+      recommendations.add(
+        ProgressiveRecommendation(
+          work: item.work,
+          lane: lane,
+          reason: _progressiveReasonFor(item.work, lane, axis),
+          distance: (item.work.difficultyForListening - targetDifficulty).abs(),
+          axis: axis,
+          difficulty: item.work.difficultyForListening,
+          sourceEvidence: sourceEvidence,
+        ),
+      );
+    }
+    return recommendations.take(3).toList(growable: false);
   }
 
   String _primaryAxisForTasteItems(List<TasteIntakeItem> items) {
@@ -2798,7 +3563,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   String _sourceEvidenceForPreview(List<TasteIntakeItem> items, String axis) {
-    final label = items.first.label;
+    final label = _tasteEvidenceLabelFor(items.first);
     return '$label에서 출발해 ${_axisNoun(axis)} 쪽으로 가까운 길을 잡았습니다.';
   }
 
@@ -2806,16 +3571,20 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (_state.tasteIntakeItems.isEmpty) {
       return '';
     }
-    final item = _state.tasteIntakeItems.first;
-    return item.sourceType == 'catalog_match' ? item.label : item.rawInput;
+    return _tasteEvidenceLabelFor(_state.tasteIntakeItems.first);
   }
 
   String _tasteBasedDailyReason(TasteIntakeItem item, String axis) {
-    final label = item.sourceType == 'catalog_match'
-        ? item.label
-        : item.rawInput;
+    final label = _tasteEvidenceLabelFor(item);
     final action = _axisListeningAction(axis);
     return '$label에서 시작했다면, 오늘은 $action 30초만 잡아봅니다.';
+  }
+
+  String _tasteEvidenceLabelFor(TasteIntakeItem item) {
+    if (item.matchedWorkId != null) {
+      return item.label;
+    }
+    return _friendlyTasteLabel(item.rawInput);
   }
 
   String _axisListeningAction(String axis) {
@@ -2958,6 +3727,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   String _dailyReasonFor(
     ClassicalWork work, {
+    DailyPick? dailyPick,
     required String axis,
     required String tasteEvidenceLabel,
     required bool hasSavedUnopened,
@@ -2965,7 +3735,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required bool isCompleted,
   }) {
     if (isCompleted) {
-      return '오늘 기록에 남았습니다. 다음 추천은 이 반응을 기준으로 조금 바뀝니다.';
+      return '오늘은 이 한 곡이면 충분해요. 내일은 여기서 한 발만 더 갑니다.';
+    }
+    if (dailyPick != null) {
+      return dailyPick.reason;
     }
     if (hasSavedUnopened) {
       return '저장만 해둔 작품을 오늘은 30초 지점부터 열어봅니다.';
@@ -3040,7 +3813,28 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (_containsAny(input, ['밴드', '록', '어두', '강한'])) {
       return '긴장형';
     }
-    if (_containsAny(input, ['피아노', '발라드', '멜로디', '선율'])) {
+    if (_containsAny(input, ['푸가', '바흐', '변주', '기법', '의도', '시대'])) {
+      return '구조형';
+    }
+    if (_containsAny(input, [
+      '피아노',
+      '발라드',
+      '멜로디',
+      '선율',
+      '비와이',
+      '알면서도',
+      'viva',
+      '청춘',
+      '밤산책',
+      'sailingaway',
+      '잘가',
+      'glowup',
+      '야상곡',
+      '쇼팽',
+      '산책',
+      '독서',
+      '일하면서',
+    ])) {
       return '선율형';
     }
     if (_containsAny(input, ['앰비언트', '사운드', '분위기', '색'])) {
@@ -3112,6 +3906,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       if (work.concertIds.isNotEmpty) {
         score += 1;
       }
+      score += _personalDiscoveryFitScore(work);
       if (score > 0) {
         scored.add((work: work, score: score));
       }
@@ -3129,6 +3924,16 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   String _progressiveReasonFor(ClassicalWork work, String lane, String axis) {
+    if (_hasFounderMelodyTaste()) {
+      final technique = _eraTechniqueFor(work);
+      return switch (lane) {
+        'immediate' =>
+          '선율이 먼저 들어오는 취향이면, ${work.titleKo}는 일하거나 걸을 때도 한 줄을 잡기 좋습니다.',
+        'stretch' => '${work.period}에서 자주 보이는 $technique만 하나 더 들어봅니다.',
+        'later' => '조금 뒤에는 ${work.composerNameKo}가 선율을 더 길게 끌고 가는 방식을 열어봅니다.',
+        _ => '오늘은 선율 하나만 잡아도 충분한 작품입니다.',
+      };
+    }
     return switch (lane) {
       'immediate' => '${_axisReasonPrefix(axis)} 지금 듣기 좋은 입구에 가깝습니다.',
       'stretch' => '${work.instrumentation}와 ${work.period} 색으로 한 걸음만 넓혀봅니다.',
@@ -3146,6 +3951,117 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       '극적형' => '장면이 그려지는 음악에 반응했어요.',
       _ => '선율이 선명한 작품에 반응했어요.',
     };
+  }
+
+  int _personalDiscoveryFitScore(ClassicalWork work) {
+    if (!_hasFounderMelodyTaste()) {
+      return 0;
+    }
+    var score = 0;
+    final text = [
+      work.titleKo,
+      work.titleOriginal,
+      work.composerNameKo,
+      work.composerNameOriginal,
+      work.period,
+      work.instrumentation,
+      ...work.moodTags,
+      ...work.contextTags,
+      ...work.aliases,
+    ].join(' ');
+
+    if (_containsAny(text, ['선율', '밤', '산책', '집중', '피아노', '차분', '그리운'])) {
+      score += 10;
+    }
+    if (_containsAny(text, ['고전', '소나타', '바로크', '푸가', '변주', '반복', '명료'])) {
+      score += 6;
+    }
+    if (_containsAny(text, ['독서', '일', '공부', '조용', '실내악'])) {
+      score += 4;
+    }
+    if (_isFounderExplicitTasteWork(work.id)) {
+      score += 12;
+    }
+    if (_isFounderColdStartMismatch(work)) {
+      score -= 24;
+    }
+    return score;
+  }
+
+  bool _hasFounderMelodyTaste() {
+    final text = _state.tasteIntakeItems.map((item) => item.rawInput).join(' ');
+    return _containsAny(text, [
+          '비와이',
+          '알면서도',
+          'viva',
+          '청춘',
+          '밤산책',
+          'sailingaway',
+          '잘가',
+          'glowup',
+          '쇼팽',
+          '야상곡',
+          '드보르작',
+          '베토벤',
+          '하이든',
+          '모차르트',
+          '선율',
+          '산책',
+          '독서',
+          '일하면서',
+        ]) ||
+        tasteAxisScores().firstOrNull?.axis == '선율형';
+  }
+
+  bool _isFounderExplicitTasteWork(String workId) {
+    final explicitWorkIds = _state.tasteIntakeItems
+        .map((item) => item.matchedWorkId)
+        .whereType<String>()
+        .toSet();
+    return explicitWorkIds.contains(workId);
+  }
+
+  bool _isFounderColdStartMismatch(ClassicalWork work) {
+    if (_isFounderExplicitTasteWork(work.id)) {
+      return false;
+    }
+    final text = [
+      work.titleKo,
+      work.titleOriginal,
+      work.composerId,
+      work.composerNameKo,
+      work.instrumentation,
+      ...work.contextTags,
+      ...work.aliases,
+    ].join(' ');
+    return _containsAny(text, [
+      '오페라',
+      '성악',
+      '합창',
+      '말러',
+      'mahler',
+      '바그너',
+      'wagner',
+    ]);
+  }
+
+  String _eraTechniqueFor(ClassicalWork work) {
+    if (_containsAny(work.period, ['바로크'])) {
+      return '반복되는 선율과 성부의 겹침';
+    }
+    if (_containsAny(work.period, ['고전'])) {
+      return '질문과 대답처럼 또렷한 문장';
+    }
+    if (_containsAny(work.period, ['낭만'])) {
+      return '길게 숨 쉬는 선율';
+    }
+    if (_containsAny(work.period, ['인상'])) {
+      return '화성 색채가 번지는 방식';
+    }
+    if (_containsAny(work.period, ['근현대', '현대'])) {
+      return '색과 리듬이 바뀌는 순간';
+    }
+    return '선율이 돌아오는 방식';
   }
 
   String _sourceEvidenceFor(String axis) {

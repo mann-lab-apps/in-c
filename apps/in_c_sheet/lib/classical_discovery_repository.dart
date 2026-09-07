@@ -57,6 +57,10 @@ class DiscoveryStateMerger {
       ...local.tasteIntakeItems,
       ...remote.tasteIntakeItems,
     ], (item) => item.id)..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final dailyPicks = _dedupeById<DailyPick>([
+      ...local.dailyPicks,
+      ...remote.dailyPicks,
+    ], (pick) => pick.id)..sort((a, b) => b.date.compareTo(a.date));
     final previewRoutes = _dedupeById<ConcertPreviewRoute>([
       ...local.previewRoutes,
       ...remote.previewRoutes,
@@ -80,6 +84,7 @@ class DiscoveryStateMerger {
       workStates: Map<String, UserWorkState>.unmodifiable(workStates),
       tasteIntakeItems: tasteIntakeItems.take(80).toList(growable: false),
       reactions: reactions.take(160).toList(growable: false),
+      dailyPicks: dailyPicks.take(60).toList(growable: false),
       previewRoutes: previewRoutes.take(40).toList(growable: false),
       postConcertReflections: postConcertReflections
           .take(160)

@@ -170,7 +170,11 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
   }
 
   Future<void> _openLink(ClassicalWork work, ExternalLink link) async {
-    await controller.recordProviderClick(work, link);
+    await controller.recordProviderClick(
+      work,
+      link,
+      surface: ClassicalLinkSurface.listening.name,
+    );
     final opened = await _launchUrl(
       link.url,
       surface: ClassicalLinkSurface.listening,
@@ -182,7 +186,12 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
     if (fallback == null) {
       return;
     }
-    await controller.recordProviderClick(work, fallback, fallback: true);
+    await controller.recordProviderClick(
+      work,
+      fallback,
+      fallback: true,
+      surface: ClassicalLinkSurface.listening.name,
+    );
     await _launchUrl(fallback.url, surface: ClassicalLinkSurface.listening);
   }
 
@@ -708,6 +717,86 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                   ('export', summary.founderQualityGate.exportText),
                 ],
               ),
+              const SizedBox(height: 8),
+              _Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Founder Test Mode',
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(ClassicalFounderQualityGate.decisionRule),
+                    const SizedBox(height: 8),
+                    for (final item
+                        in ClassicalFounderQualityGate.observationChecklist)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.check_circle_outline, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: 'First-Use Wow Gate'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  ('ready', summary.firstUseWowGate.ready ? 'YES' : 'NO'),
+                  ('tested', '${summary.firstUseWowGate.testedUserCount}/5'),
+                  (
+                    'personal',
+                    '${summary.firstUseWowGate.personalRecommendationCount}',
+                  ),
+                  ('hear', '${summary.firstUseWowGate.knewWhatToHearCount}'),
+                  ('path', '${summary.firstUseWowGate.pathFeltNonRandomCount}'),
+                  ('map', '${summary.firstUseWowGate.mapFeltPersonalCount}'),
+                  ('bridge', '${summary.firstUseWowGate.tasteBridgeCount}'),
+                  (
+                    'comeback',
+                    '${summary.firstUseWowGate.comebackReasonCount}',
+                  ),
+                  ('export', summary.firstUseWowGate.exportText),
+                ],
+              ),
+              const SizedBox(height: 8),
+              _Panel(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '첫 사용 임팩트 관찰',
+                      style: Theme.of(context).textTheme.titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(ClassicalFirstUseWowGate.decisionRule),
+                    const SizedBox(height: 8),
+                    for (final item
+                        in ClassicalFirstUseWowGate.observationChecklist)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.visibility_outlined, size: 18),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(item)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               const SizedBox(height: 12),
               _SectionTitle(title: 'KOPIS Production'),
               const SizedBox(height: 8),
@@ -1177,12 +1266,21 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
     if (preview == null) {
       return null;
     }
+    final translation = preview.translation;
     return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('이 입력이면'),
+          const Text('내 감상 시작점'),
           const SizedBox(height: 6),
+          Text(translation.startingPoint),
+          const SizedBox(height: 4),
+          Text(translation.familiarFeeling),
+          if (translation.isSoftLanding) ...[
+            const SizedBox(height: 4),
+            const Text('정확한 곡명이 아니어도 괜찮아요. 먼저 가까운 감각에서 시작합니다.'),
+          ],
+          const SizedBox(height: 10),
           Text(preview.dailyStep.title),
           const SizedBox(height: 4),
           Text(
@@ -1191,7 +1289,9 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
                 ?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 4),
-          Text('${preview.axis} · ${preview.dailyStep.reason}'),
+          Text(translation.listenFor),
+          const SizedBox(height: 4),
+          Text(translation.nextDirection),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
@@ -1209,7 +1309,7 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
           ),
           const SizedBox(height: 8),
           Text(
-            '다음 세 작품: ${preview.nextThree.map((item) => item.work.titleKo).take(3).join(', ')}',
+            '다음 길: ${preview.nextThree.map((item) => item.work.titleKo).take(3).join(', ')}',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ],
@@ -1380,7 +1480,11 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
   }
 
   Future<void> _openLink(BuildContext context, ExternalLink link) async {
-    await controller.recordProviderClick(work, link);
+    await controller.recordProviderClick(
+      work,
+      link,
+      surface: ClassicalLinkSurface.listening.name,
+    );
     if (!context.mounted) {
       return;
     }
@@ -1396,7 +1500,12 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     if (fallback == null) {
       return;
     }
-    await controller.recordProviderClick(work, fallback, fallback: true);
+    await controller.recordProviderClick(
+      work,
+      fallback,
+      fallback: true,
+      surface: ClassicalLinkSurface.listening.name,
+    );
     if (!context.mounted) {
       return;
     }
@@ -1718,6 +1827,7 @@ class _DailyListeningStepPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final dailyPick = controller.dailyPick();
     final links = step.work.linksForPreferredPlatform(
       controller.preferredPlatformId,
     );
@@ -1727,7 +1837,7 @@ class _DailyListeningStepPanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('오늘 30초', style: theme.textTheme.labelLarge),
+              Text('오늘의 한 곡', style: theme.textTheme.labelLarge),
               const Spacer(),
               if (step.isCompleted)
                 const Chip(
@@ -1764,6 +1874,17 @@ class _DailyListeningStepPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(step.prompt),
+          if (step.translation case final translation?) ...[
+            const SizedBox(height: 8),
+            Text(
+              translation.familiarFeeling,
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(translation.nextDirection, style: theme.textTheme.bodySmall),
+          ],
           const SizedBox(height: 10),
           Text(step.reason, style: theme.textTheme.bodySmall),
           const SizedBox(height: 6),
@@ -1773,6 +1894,7 @@ class _DailyListeningStepPanel extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
+              Chip(label: Text(dailyPick.distanceLabel)),
               Chip(label: Text(step.axis)),
               Chip(label: Text('입구 ${step.difficulty}')),
             ],
@@ -1786,18 +1908,23 @@ class _DailyListeningStepPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              key: const ValueKey('daily-listening-step-preview'),
+              onPressed: () => unawaited(_showMomentPreview(context, links)),
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('30초 포인트 보기'),
+            ),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              FilledButton.icon(
-                key: const ValueKey('daily-listening-step-preview'),
-                onPressed: () => unawaited(_showMomentPreview(context, links)),
-                icon: const Icon(Icons.play_arrow),
-                label: const Text('30초 포인트 보기'),
-              ),
               if (links.isNotEmpty)
                 FilledButton.tonalIcon(
+                  key: const ValueKey('daily-listening-step-link-out'),
                   onPressed: () =>
                       unawaited(onOpenLink(step.work, links.first)),
                   icon: const Icon(Icons.open_in_new),
@@ -1809,6 +1936,11 @@ class _DailyListeningStepPanel extends StatelessWidget {
                 label: const Text('작품 보기'),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _EarOpeningPromptPanel(
+            prompt: controller.earOpeningPromptFor(step),
+            onAnswer: controller.recordEarOpeningAnswer,
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -2296,6 +2428,7 @@ class _ContinuitySummaryPanel extends StatelessWidget {
     final summary = controller.continuitySummary();
     final step = controller.dailyListeningStep();
     final reminder = controller.reminderPreference;
+    final dailyHistory = controller.dailyPickHistory.take(5).toList();
     final savedUnopenedCount = controller.savedButUnopenedWorks.length;
     final theme = Theme.of(context);
     return _Panel(
@@ -2337,24 +2470,62 @@ class _ContinuitySummaryPanel extends StatelessWidget {
               subtitle: Text('오늘은 ${step.moment.label}만 열어도 충분합니다.'),
             ),
           ],
+          if (dailyHistory.isNotEmpty) ...[
+            const Divider(),
+            Text(
+              '최근 오늘의 한 곡',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final pick in dailyHistory)
+              _DailyPickHistoryTile(controller: controller, pick: pick),
+          ],
           const Divider(),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             value: reminder.enabled,
             onChanged: (enabled) => unawaited(
-              controller.setReminderPreference(
-                reminder.copyWith(enabled: enabled),
-              ),
+              controller.configureDailyPickReminder(enabled: enabled),
             ),
             title: Text(reminder.message),
             subtitle: Text(
               reminder.enabled
-                  ? '${reminder.timeLabel} · 앱 안 설정만 저장됨'
-                  : '원할 때 저녁 30초 초대 문구만 준비해둡니다.',
+                  ? '${reminder.timeLabel} · ${reminder.deliveryStatus}'
+                  : reminder.deliveryStatus == 'permission-denied'
+                  ? '알림 없이도 Today에서 매일 한 곡을 볼 수 있어요.'
+                  : '원할 때 오늘의 한 곡 초대 문구만 준비해둡니다.',
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _DailyPickHistoryTile extends StatelessWidget {
+  const _DailyPickHistoryTile({required this.controller, required this.pick});
+
+  final ClassicalDiscoveryController controller;
+  final DailyPick pick;
+
+  @override
+  Widget build(BuildContext context) {
+    final work = controller.workById(pick.workId);
+    if (work == null) {
+      return const SizedBox.shrink();
+    }
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(
+        pick.isCompleted
+            ? Icons.check_circle_outline
+            : Icons.radio_button_unchecked,
+      ),
+      title: Text(work.titleKo),
+      subtitle: Text('${pick.distanceLabel} · ${_formatDateTime(pick.date)}'),
+      trailing: Text(pick.pickType == 'surprise' ? '옆길' : '한 곡'),
     );
   }
 }
@@ -2417,6 +2588,61 @@ class _NextThreePanel extends StatelessWidget {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+class _EarOpeningPromptPanel extends StatelessWidget {
+  const _EarOpeningPromptPanel({required this.prompt, required this.onAnswer});
+
+  final EarOpeningPrompt prompt;
+  final Future<void> Function(EarOpeningPrompt prompt, String answer) onAnswer;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withAlpha(130),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.hearing_outlined, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  prompt.title,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(prompt.question),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final option in prompt.options)
+                  ActionChip(
+                    label: Text(option),
+                    onPressed: () => unawaited(onAnswer(prompt, option)),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(prompt.skipCopy, style: theme.textTheme.bodySmall),
+          ],
+        ),
       ),
     );
   }

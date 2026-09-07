@@ -520,6 +520,28 @@ class TasteAxisScore {
   final DateTime? lastUpdatedAt;
 }
 
+class TasteTranslation {
+  const TasteTranslation({
+    required this.sourceLabel,
+    required this.axis,
+    required this.startingPoint,
+    required this.familiarFeeling,
+    required this.listenFor,
+    required this.nextDirection,
+    required this.avoidForNow,
+    required this.isSoftLanding,
+  });
+
+  final String sourceLabel;
+  final String axis;
+  final String startingPoint;
+  final String familiarFeeling;
+  final String listenFor;
+  final String nextDirection;
+  final String avoidForNow;
+  final bool isSoftLanding;
+}
+
 class ListeningLevelSnapshot {
   const ListeningLevelSnapshot({
     required this.level,
@@ -570,6 +592,7 @@ class DailyListeningStep {
     required this.completionState,
     required this.dueDate,
     this.tasteEvidenceLabel = '',
+    this.translation,
   });
 
   final ClassicalWork work;
@@ -584,8 +607,143 @@ class DailyListeningStep {
   final String completionState;
   final DateTime dueDate;
   final String tasteEvidenceLabel;
+  final TasteTranslation? translation;
 
   bool get isCompleted => completionState == 'completed';
+}
+
+class DailyPick {
+  const DailyPick({
+    required this.id,
+    required this.date,
+    required this.workId,
+    required this.momentId,
+    required this.pickType,
+    required this.reason,
+    required this.listenFor,
+    required this.whyNow,
+    required this.sourceEvidence,
+    required this.distanceLabel,
+    required this.createdAt,
+    this.completedAt,
+    this.openedFromNotification = false,
+  });
+
+  factory DailyPick.fromJson(Map<String, Object?> json) {
+    return DailyPick(
+      id: _stringFromJson(json['id']),
+      date:
+          _dateFromJson(json['date']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      workId: _stringFromJson(json['workId']),
+      momentId: _stringFromJson(json['momentId']),
+      pickType: _stringFromJson(json['pickType']).isEmpty
+          ? 'close_step'
+          : _stringFromJson(json['pickType']),
+      reason: _stringFromJson(json['reason']),
+      listenFor: _stringFromJson(json['listenFor']),
+      whyNow: _stringFromJson(json['whyNow']),
+      sourceEvidence: _stringFromJson(json['sourceEvidence']),
+      distanceLabel: _stringFromJson(json['distanceLabel']).isEmpty
+          ? '한 걸음 확장'
+          : _stringFromJson(json['distanceLabel']),
+      createdAt:
+          _dateFromJson(json['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      completedAt: _dateFromJson(json['completedAt']),
+      openedFromNotification: json['openedFromNotification'] == true,
+    );
+  }
+
+  final String id;
+  final DateTime date;
+  final String workId;
+  final String momentId;
+  final String pickType;
+  final String reason;
+  final String listenFor;
+  final String whyNow;
+  final String sourceEvidence;
+  final String distanceLabel;
+  final DateTime createdAt;
+  final DateTime? completedAt;
+  final bool openedFromNotification;
+
+  bool get isCompleted => completedAt != null;
+
+  DailyPick copyWith({
+    String? id,
+    DateTime? date,
+    String? workId,
+    String? momentId,
+    String? pickType,
+    String? reason,
+    String? listenFor,
+    String? whyNow,
+    String? sourceEvidence,
+    String? distanceLabel,
+    DateTime? createdAt,
+    DateTime? completedAt,
+    bool? openedFromNotification,
+  }) {
+    return DailyPick(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      workId: workId ?? this.workId,
+      momentId: momentId ?? this.momentId,
+      pickType: pickType ?? this.pickType,
+      reason: reason ?? this.reason,
+      listenFor: listenFor ?? this.listenFor,
+      whyNow: whyNow ?? this.whyNow,
+      sourceEvidence: sourceEvidence ?? this.sourceEvidence,
+      distanceLabel: distanceLabel ?? this.distanceLabel,
+      createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      openedFromNotification:
+          openedFromNotification ?? this.openedFromNotification,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'date': date.toIso8601String(),
+      'workId': workId,
+      'momentId': momentId,
+      'pickType': pickType,
+      'reason': reason,
+      'listenFor': listenFor,
+      'whyNow': whyNow,
+      'sourceEvidence': sourceEvidence,
+      'distanceLabel': distanceLabel,
+      'createdAt': createdAt.toIso8601String(),
+      'completedAt': completedAt?.toIso8601String(),
+      'openedFromNotification': openedFromNotification,
+    };
+  }
+}
+
+class EarOpeningPrompt {
+  const EarOpeningPrompt({
+    required this.id,
+    required this.workId,
+    required this.momentId,
+    required this.title,
+    required this.question,
+    required this.options,
+    required this.axis,
+    required this.mapClue,
+    required this.skipCopy,
+  });
+
+  final String id;
+  final String workId;
+  final String momentId;
+  final String title;
+  final String question;
+  final List<String> options;
+  final String axis;
+  final String mapClue;
+  final String skipCopy;
 }
 
 class GentleContinuitySummary {
@@ -612,12 +770,14 @@ class TasteStartPreview {
   const TasteStartPreview({
     required this.items,
     required this.axis,
+    required this.translation,
     required this.dailyStep,
     required this.nextThree,
   });
 
   final List<TasteIntakeItem> items;
   final String axis;
+  final TasteTranslation translation;
   final DailyListeningStep dailyStep;
   final List<ProgressiveRecommendation> nextThree;
 }
@@ -1233,6 +1393,7 @@ class UserDiscoveryState {
     required this.workStates,
     required this.tasteIntakeItems,
     required this.reactions,
+    required this.dailyPicks,
     required this.previewRoutes,
     required this.postConcertReflections,
     required this.savedConcertIds,
@@ -1270,6 +1431,10 @@ class UserDiscoveryState {
       reactions: _jsonMapList(json['reactions'])
           .map(ClassicalReaction.fromJson)
           .where((reaction) => reaction.id.isNotEmpty)
+          .toList(growable: false),
+      dailyPicks: _jsonMapList(json['dailyPicks'])
+          .map(DailyPick.fromJson)
+          .where((pick) => pick.id.isNotEmpty && pick.workId.isNotEmpty)
           .toList(growable: false),
       previewRoutes: _jsonMapList(json['previewRoutes'])
           .map(ConcertPreviewRoute.fromJson)
@@ -1315,6 +1480,7 @@ class UserDiscoveryState {
     workStates: <String, UserWorkState>{},
     tasteIntakeItems: <TasteIntakeItem>[],
     reactions: <ClassicalReaction>[],
+    dailyPicks: <DailyPick>[],
     previewRoutes: <ConcertPreviewRoute>[],
     postConcertReflections: <PostConcertReflection>[],
     savedConcertIds: <String>{},
@@ -1334,6 +1500,7 @@ class UserDiscoveryState {
   final Map<String, UserWorkState> workStates;
   final List<TasteIntakeItem> tasteIntakeItems;
   final List<ClassicalReaction> reactions;
+  final List<DailyPick> dailyPicks;
   final List<ConcertPreviewRoute> previewRoutes;
   final List<PostConcertReflection> postConcertReflections;
   final Set<String> savedConcertIds;
@@ -1359,6 +1526,7 @@ class UserDiscoveryState {
     Map<String, UserWorkState>? workStates,
     List<TasteIntakeItem>? tasteIntakeItems,
     List<ClassicalReaction>? reactions,
+    List<DailyPick>? dailyPicks,
     List<ConcertPreviewRoute>? previewRoutes,
     List<PostConcertReflection>? postConcertReflections,
     Set<String>? savedConcertIds,
@@ -1379,6 +1547,7 @@ class UserDiscoveryState {
       workStates: workStates ?? this.workStates,
       tasteIntakeItems: tasteIntakeItems ?? this.tasteIntakeItems,
       reactions: reactions ?? this.reactions,
+      dailyPicks: dailyPicks ?? this.dailyPicks,
       previewRoutes: previewRoutes ?? this.previewRoutes,
       postConcertReflections:
           postConcertReflections ?? this.postConcertReflections,
@@ -1410,6 +1579,9 @@ class UserDiscoveryState {
           .toList(growable: false),
       'reactions': reactions
           .map((reaction) => reaction.toJson())
+          .toList(growable: false),
+      'dailyPicks': dailyPicks
+          .map((pick) => pick.toJson())
           .toList(growable: false),
       'previewRoutes': previewRoutes
           .map((route) => route.toJson())

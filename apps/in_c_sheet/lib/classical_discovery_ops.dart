@@ -669,6 +669,17 @@ class ClassicalFounderQualityGate {
     required this.comebackReasonCount,
   });
 
+  static const observationChecklist = <String>[
+    '첫 1분 안에 Daily 30초를 눌렀는가',
+    '추천 이유를 자기 취향과 연결해서 납득했는가',
+    '전체 듣기로 넘어갔는가',
+    '저장 또는 reaction을 남겼는가',
+    '감상지도의 열린 길/다음 길을 이해했는가',
+    '내일 다시 열 이유를 자기 말로 설명했는가',
+  ];
+
+  static const decisionRule = '5명 중 3명 이상이 핵심 행동을 통과해야 Public V1 후보로 본다.';
+
   factory ClassicalFounderQualityGate.fromEvents(List<DiscoveryEvent> events) {
     final probes = events
         .where(
@@ -723,6 +734,86 @@ class ClassicalFounderQualityGate {
   }
 }
 
+class ClassicalFirstUseWowGate {
+  const ClassicalFirstUseWowGate({
+    required this.testedUserCount,
+    required this.personalRecommendationCount,
+    required this.knewWhatToHearCount,
+    required this.pathFeltNonRandomCount,
+    required this.mapFeltPersonalCount,
+    required this.tasteBridgeCount,
+    required this.comebackReasonCount,
+  });
+
+  static const observationChecklist = <String>[
+    '첫 추천이 내 입력에서 출발한다고 느꼈는가',
+    '30초에서 무엇을 들으면 되는지 알았는가',
+    '다음 세 작품이 랜덤이 아니라 길처럼 보였는가',
+    '감상지도가 내 위치를 보여준다고 느꼈는가',
+    '내 취향에서 클래식으로 이어진다고 말했는가',
+    '내일 다시 열 이유를 말했는가',
+  ];
+
+  static const decisionRule =
+      '5명 중 4명 이상이 첫 추천 이유를 납득하고, 3명 이상이 재방문 이유와 취향 연결감을 말해야 Public V1 후보로 본다.';
+
+  factory ClassicalFirstUseWowGate.fromEvents(List<DiscoveryEvent> events) {
+    final probes = events
+        .where(
+          (event) =>
+              event.eventType == 'feedback_submit' &&
+              (event.context == 'first_use_wow' ||
+                  event.properties['category'] == 'first_use_wow'),
+        )
+        .toList(growable: false);
+    final byUser = <String, DiscoveryEvent>{};
+    for (final event in probes) {
+      final userId = event.properties['testerId']?.trim().isNotEmpty == true
+          ? event.properties['testerId']!
+          : event.id;
+      byUser[userId] = event;
+    }
+    final unique = byUser.values.toList(growable: false);
+    return ClassicalFirstUseWowGate(
+      testedUserCount: unique.length,
+      personalRecommendationCount: _probeTrueCount(
+        unique,
+        'personalRecommendation',
+      ),
+      knewWhatToHearCount: _probeTrueCount(unique, 'knewWhatToHear'),
+      pathFeltNonRandomCount: _probeTrueCount(unique, 'pathFeltNonRandom'),
+      mapFeltPersonalCount: _probeTrueCount(unique, 'mapFeltPersonal'),
+      tasteBridgeCount: _probeTrueCount(unique, 'tasteBridgeFeltNatural'),
+      comebackReasonCount: _probeTrueCount(unique, 'wouldReturnTomorrow'),
+    );
+  }
+
+  final int testedUserCount;
+  final int personalRecommendationCount;
+  final int knewWhatToHearCount;
+  final int pathFeltNonRandomCount;
+  final int mapFeltPersonalCount;
+  final int tasteBridgeCount;
+  final int comebackReasonCount;
+
+  bool get ready =>
+      testedUserCount >= 5 &&
+      personalRecommendationCount >= 4 &&
+      knewWhatToHearCount >= 4 &&
+      pathFeltNonRandomCount >= 3 &&
+      mapFeltPersonalCount >= 3 &&
+      tasteBridgeCount >= 3 &&
+      comebackReasonCount >= 3;
+
+  String get exportText {
+    return 'First-Use Wow: ${ready ? 'YES' : 'NO'} · '
+        'tested $testedUserCount/5 · personal $personalRecommendationCount · '
+        'hear $knewWhatToHearCount · path $pathFeltNonRandomCount · '
+        'map $mapFeltPersonalCount · bridge $tasteBridgeCount · '
+        'comeback $comebackReasonCount';
+  }
+}
+
 class ClassicalCatalogOpsSummary {
   const ClassicalCatalogOpsSummary({
     required this.catalog,
@@ -760,6 +851,7 @@ class ClassicalCatalogOpsSummary {
     required this.buildQaReadiness,
     required this.feedbackSummary,
     required this.founderQualityGate,
+    required this.firstUseWowGate,
     required this.listeningMapNodeCount,
     required this.founderMapCoverageCount,
     required this.worksWithMapNodeCount,
@@ -858,6 +950,7 @@ class ClassicalCatalogOpsSummary {
     final founderQualityGate = ClassicalFounderQualityGate.fromEvents(
       recentEvents,
     );
+    final firstUseWowGate = ClassicalFirstUseWowGate.fromEvents(recentEvents);
     final mapNodes = _opsListeningMapNodes(catalog.works);
     final mapEdges = _opsListeningMapEdges();
     final mapNodeIds = mapNodes.map((node) => node.id).toSet();
@@ -1119,6 +1212,17 @@ class ClassicalCatalogOpsSummary {
         evidenceRequirement: '5명 중 3명 이상이 Daily step, 추천 이유, link-out, reaction, 내일 재방문 이유를 통과해야 합니다.',
       ),
       _gate(
+        id: 'first-use-wow',
+        label: 'first-use discovery wow gate',
+        current: firstUseWowGate.ready ? 1 : 0,
+        target: 1,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'founder/product',
+        nextAction: '5명 테스트에서 첫 추천의 개인화감과 다음 길의 납득감을 관찰합니다.',
+        evidenceRequirement:
+            '5명 중 4명 이상이 첫 추천 이유를 납득하고, 3명 이상이 재방문 이유와 취향 연결감을 말해야 합니다.',
+      ),
+      _gate(
         id: 'listening-map-founder-30',
         label: 'founder_pick listening map coverage',
         current: founderMapCoverageCount,
@@ -1153,6 +1257,8 @@ class ClassicalCatalogOpsSummary {
       includedFeatures: const <String>[
         '오늘 30초 Daily listening step',
         '좋아하는 음악에서 시작하는 감상지도',
+        '내 취향을 클래식 감상 언어로 바꾸는 첫 시작점',
+        '10초 귀 트임 micro interaction',
         '열린 길/다시 알아본 길/내 곡이 된 작품/다음 길',
         'Next Three 감상 확장',
         '30초/3분 listening guide',
@@ -1206,6 +1312,7 @@ class ClassicalCatalogOpsSummary {
         installLaunchSmoke: buildQaReadiness.hasInstallLaunchSmoke,
         feedbackBlockers: feedbackSummary.blockerCount,
         founderQualityGate: founderQualityGate,
+        firstUseWowGate: firstUseWowGate,
       ),
     );
 
@@ -1272,6 +1379,7 @@ class ClassicalCatalogOpsSummary {
       buildQaReadiness: buildQaReadiness,
       feedbackSummary: feedbackSummary,
       founderQualityGate: founderQualityGate,
+      firstUseWowGate: firstUseWowGate,
       listeningMapNodeCount: mapNodes.length,
       founderMapCoverageCount: founderMapCoverageCount,
       worksWithMapNodeCount: worksWithMapNodeCount,
@@ -1335,6 +1443,7 @@ class ClassicalCatalogOpsSummary {
   final ClassicalBuildQaReadiness buildQaReadiness;
   final ClassicalFeedbackSummary feedbackSummary;
   final ClassicalFounderQualityGate founderQualityGate;
+  final ClassicalFirstUseWowGate firstUseWowGate;
   final int listeningMapNodeCount;
   final int founderMapCoverageCount;
   final int worksWithMapNodeCount;
@@ -1942,6 +2051,7 @@ List<String> _evidenceRows({
   required bool installLaunchSmoke,
   required int feedbackBlockers,
   required ClassicalFounderQualityGate founderQualityGate,
+  required ClassicalFirstUseWowGate firstUseWowGate,
 }) {
   return <String>[
     'Soft Launch: ${softLaunchReport.friendlyUsersReady ? 'YES' : 'NO'} '
@@ -1959,6 +2069,7 @@ List<String> _evidenceRows({
     'Install/launch smoke: ${installLaunchSmoke ? 'PASS' : 'GAP'}',
     'Launch feedback blockers: $feedbackBlockers',
     founderQualityGate.exportText,
+    firstUseWowGate.exportText,
     for (final item in publicGateItems)
       '${item.label}: ${item.passes ? 'PASS' : 'GAP'} '
           '(${item.current}/${item.target}) · ${item.priority} · owner ${item.owner}',

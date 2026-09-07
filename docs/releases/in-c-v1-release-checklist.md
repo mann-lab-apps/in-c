@@ -10,11 +10,21 @@
 - founder first exposure pool은 30개 작품 단위로 잠그고, 첫 노출에서 제외할 작품은 catalog에 남기되 Today/Discover starter pool에서 빼야 한다.
 - 첫 실행 onboarding은 관심사 설문이 아니라 좋아하는 음악 수집으로 시작한다.
 - "라흐 피협 2" 같은 축약 입력, 클래식 외 음악/OST/분위기 입력을 안전하게 받는다.
-- Preview 첫 화면에서 "오늘 30초만" Daily listening step이 가장 먼저 보인다.
+- "모차르트 교향곡 40번", "하이든 건반 협주곡 2번"처럼 catalog에 정확한 작품이 없지만 작곡가가 보이는 입력은 fake work match 없이 작곡가/원문 힌트로 처리한다.
+- Today 첫 화면에서 "오늘의 한 곡" Daily Pick이 가장 먼저 보이고, 30초 listening moment가 primary action이다.
+- 같은 날짜의 Daily Pick은 여러 번 열어도 유지되고, 다음 날짜에는 새 pick으로 넘어간다.
+- Daily Pick은 아주 가까움 / 한 걸음 확장 / 의외의 우회로 / 다시 들어볼 때 중 하나의 거리감을 보여준다.
+- 첫 3일은 가까운 추천 중심이며, 4-7일 안 surprise 추천은 최대 1회만 허용된다.
+- `아직 모르겠음` reaction 직후에는 surprise 추천을 하지 않는다.
 - Daily step은 저장했지만 아직 전체 듣기 전인 작품, `아직 모르겠음` 회복용 쉬운 작품, 취향 기반 추천, founder pick 순서로 결정된다.
 - 오늘 reaction, 전체 듣기, listening moment 완료 중 하나가 있으면 Daily step은 완료 상태로 보인다.
 - Daily step reason은 사용자가 넣은 음악/OST/분위기 또는 reaction evidence를 직접 반영한다.
+- 선율-first 사용자에게는 선율, 일/독서/산책 맥락, 시대별 기법 힌트가 추천 이유와 Next Three reason에 반영된다.
+- 오페라/성악 중심 또는 바그너/말러식 확장은 사용자가 명시적으로 좋아한 경우가 아니면 첫 추천에서 뒤로 밀린다.
+- 온보딩 보상은 입력을 감상 시작점, 오늘 들을 지점, 다음 방향으로 즉시 바꿔 보여준다.
+- 10초 귀 트임은 정답/점수/랭킹 없이 내가 먼저 들은 단서만 남긴다.
 - Daily step 완료 후 방금 잡은 포인트와 감상지도 변화가 보인다.
+- Daily Pick 완료 후 My Music에 최근 오늘의 한 곡 history가 보인다.
 - Preview 첫 화면에서 Next Three가 바로 맞을 작품 / 한 걸음 확장 / 나중에 열릴 작품으로 보인다.
 - Preview 첫 화면에서 공연명/프로그램 붙여넣기와 10분 프리뷰 만들기는 보조 행동으로 보인다.
 - seed 공연 또는 붙여넣은 프로그램에서 2-4개 작품 ConcertPreviewRoute가 생성된다.
@@ -41,6 +51,8 @@
 - 사용자는 앱 안에서 product quality, link issue, concert issue, copy issue, retention issue, crash/blocker 의견을 남길 수 있다.
 - feedback은 local event log의 `feedback_submit`으로 기록되고, Catalog Ops에서 blocker 여부를 집계한다.
 - Founder Quality Gate는 5명 테스트 중 3명 이상이 Daily step click, 추천 이유 납득, 전체 듣기, reaction, 감상지도 이해, 다음날 재방문 이유를 통과해야 YES다.
+- Catalog Ops의 Founder Test Mode는 첫 1분 행동, 추천 이유 납득, 전체 듣기, reaction, 감상지도 이해, 재방문 이유 관찰표를 보여준다.
+- First-Use Wow Gate는 5명 중 4명 이상이 첫 추천의 개인화감을 납득하고, 3명 이상이 취향 연결감과 재방문 이유를 말해야 YES다.
 
 ## Catalog
 
@@ -73,7 +85,9 @@
 
 - local-first 상태 저장이 동작한다.
 - ConcertPreviewRoute와 PostConcertReflection은 local-first 상태에 encode/decode된다.
-- ReminderPreference는 local-first로 저장되며 실제 native notification scheduling 전까지 `local-preference-only` 상태로 표시한다.
+- ReminderPreference는 local-first로 저장된다.
+- iOS local notification은 MethodChannel bridge로 permission request, schedule, cancel, notification open event를 처리한다.
+- remote push/APNs 서버 운영은 Public V1 이후 production verification GAP으로 둔다.
 - 로그인/Supabase sync는 conflict-safe codec과 merge 정책을 통과한다.
 - Admin command reducer로 external link, score link, concert program raw text, promotion create/update/pause를 처리할 수 있다.
 - 실제 preview playback은 provider preview URL이 있는 경우에만 시도한다.
@@ -112,6 +126,7 @@
 - `flutter build apk --debug`
 - `flutter build apk --release`
 - 가능하면 `flutter build appbundle --release`
+- AAB/APK 산출물은 git commit에 포함하지 않는다. 로컬 `releases/`와 `apps/*/releases/`는 보관/업로드용이며 `.gitignore` 대상이다.
 - `flutter build ios --no-codesign`
 - 주요 화면 smoke test: Preview -> program paste -> route -> 30초 point -> Work Detail -> 저장 ->
   My Music diary -> Concerts -> Concert Detail -> 예매처 link-out
