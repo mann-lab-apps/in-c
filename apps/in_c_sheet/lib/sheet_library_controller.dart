@@ -200,6 +200,20 @@ class SheetLibraryController extends ChangeNotifier {
     return _stringFacets(_scores.map((score) => score.group));
   }
 
+  List<SheetLibraryFacet> customFieldFacets(String fieldKey) {
+    final normalizedKey = fieldKey.trim().toLowerCase();
+    if (normalizedKey.isEmpty) {
+      return const <SheetLibraryFacet>[];
+    }
+    return _stringFacets(
+      _scores.expand(
+        (score) => score.customFields
+            .where((field) => field.key.trim().toLowerCase() == normalizedKey)
+            .map((field) => field.value),
+      ),
+    );
+  }
+
   List<SheetLibraryFacet> get ratingFacets {
     final facets = <SheetLibraryFacet>[];
     for (var rating = 5; rating >= 1; rating -= 1) {
@@ -2231,6 +2245,24 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateCustomFieldFilter(String fieldKey, String value) async {
+    final normalizedKey = fieldKey.trim();
+    final normalizedValue = value.trim();
+    final filters = <String, String>{
+      ..._libraryViewSettings.customFieldFilters,
+    };
+    if (normalizedKey.isNotEmpty) {
+      if (normalizedValue.isEmpty) {
+        filters.remove(normalizedKey);
+      } else {
+        filters[normalizedKey] = normalizedValue;
+      }
+    }
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(customFieldFilters: filters),
+    );
+  }
+
   Future<void> clearLibrarySearchAndFilters() async {
     _query = '';
     await _updateLibraryViewSettings(
@@ -2240,6 +2272,7 @@ class SheetLibraryController extends ChangeNotifier {
         collectionQuery: '',
         groupQuery: '',
         minimumRating: 0,
+        customFieldFilters: const <String, String>{},
       ),
     );
   }

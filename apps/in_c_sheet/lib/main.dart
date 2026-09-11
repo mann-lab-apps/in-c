@@ -1432,15 +1432,23 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         collectionFacets: controller.collectionFacets,
                         groupFacets: controller.groupFacets,
                         ratingFacets: controller.ratingFacets,
+                        customFieldFacets: <String, List<SheetLibraryFacet>>{
+                          for (final key in _commonCustomMetadataFieldKeys)
+                            key: controller.customFieldFacets(key),
+                        },
                         selectedCollection:
                             controller.libraryViewSettings.collectionQuery,
                         selectedGroup:
                             controller.libraryViewSettings.groupQuery,
                         selectedMinimumRating:
                             controller.libraryViewSettings.minimumRating,
+                        selectedCustomFieldFilters:
+                            controller.libraryViewSettings.customFieldFilters,
                         onCollectionSelected: controller.updateCollectionFilter,
                         onGroupSelected: controller.updateGroupFilter,
                         onRatingSelected: controller.updateMinimumRatingFilter,
+                        onCustomFieldSelected:
+                            controller.updateCustomFieldFilter,
                       ),
                       const SizedBox(height: 14),
                       if (controller.errorMessage != null)
@@ -1844,33 +1852,114 @@ class _LibraryFacetExplorer extends StatelessWidget {
     required this.collectionFacets,
     required this.groupFacets,
     required this.ratingFacets,
+    required this.customFieldFacets,
     required this.selectedCollection,
     required this.selectedGroup,
     required this.selectedMinimumRating,
+    required this.selectedCustomFieldFilters,
     required this.onCollectionSelected,
     required this.onGroupSelected,
     required this.onRatingSelected,
+    required this.onCustomFieldSelected,
   });
 
   final List<SheetLibraryFacet> collectionFacets;
   final List<SheetLibraryFacet> groupFacets;
   final List<SheetLibraryFacet> ratingFacets;
+  final Map<String, List<SheetLibraryFacet>> customFieldFacets;
   final String selectedCollection;
   final String selectedGroup;
   final int selectedMinimumRating;
+  final Map<String, String> selectedCustomFieldFilters;
   final ValueChanged<String> onCollectionSelected;
   final ValueChanged<String> onGroupSelected;
   final ValueChanged<int> onRatingSelected;
+  final void Function(String fieldKey, String value) onCustomFieldSelected;
 
   @override
   Widget build(BuildContext context) {
     final visibleCollectionFacets = collectionFacets.take(6).toList();
     final visibleGroupFacets = groupFacets.take(6).toList();
     final visibleRatingFacets = ratingFacets.take(5).toList();
+    final visibleCustomFieldFacets =
+        <MapEntry<String, List<SheetLibraryFacet>>>[
+          for (final entry in customFieldFacets.entries)
+            if (entry.value.isNotEmpty)
+              MapEntry(entry.key, entry.value.take(6).toList()),
+        ];
     if (visibleCollectionFacets.isEmpty &&
         visibleGroupFacets.isEmpty &&
+        visibleCustomFieldFacets.isEmpty &&
         visibleRatingFacets.isEmpty) {
       return const SizedBox.shrink();
+    }
+
+    final rows = <Widget>[];
+    void addRow(Widget row) {
+      if (rows.isNotEmpty) {
+        rows.add(const SizedBox(height: 8));
+      }
+      rows.add(row);
+    }
+
+    if (visibleCollectionFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '컬렉션',
+          icon: Icons.collections_bookmark_outlined,
+          facets: visibleCollectionFacets,
+          selectedValue: selectedCollection,
+          onSelected: (value) {
+            onCollectionSelected(value == selectedCollection ? '' : value);
+          },
+        ),
+      );
+    }
+    if (visibleGroupFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '그룹',
+          icon: Icons.folder_outlined,
+          facets: visibleGroupFacets,
+          selectedValue: selectedGroup,
+          onSelected: (value) {
+            onGroupSelected(value == selectedGroup ? '' : value);
+          },
+        ),
+      );
+    }
+    for (final entry in visibleCustomFieldFacets) {
+      final selectedValue = selectedCustomFieldFilters[entry.key] ?? '';
+      addRow(
+        _LibraryFacetRow(
+          label: entry.key,
+          icon: _customMetadataFacetIcon(entry.key),
+          facets: entry.value,
+          selectedValue: selectedValue,
+          onSelected: (value) {
+            onCustomFieldSelected(
+              entry.key,
+              value == selectedValue ? '' : value,
+            );
+          },
+        ),
+      );
+    }
+    if (visibleRatingFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '별점',
+          icon: Icons.star_rate_outlined,
+          facets: visibleRatingFacets,
+          selectedValue: selectedMinimumRating == 0
+              ? ''
+              : selectedMinimumRating.toString(),
+          onSelected: (value) {
+            final rating = int.tryParse(value) ?? 0;
+            onRatingSelected(rating == selectedMinimumRating ? 0 : rating);
+          },
+        ),
+      );
     }
 
     return DecoratedBox(
@@ -1883,56 +1972,21 @@ class _LibraryFacetExplorer extends StatelessWidget {
         padding: const EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (visibleCollectionFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '컬렉션',
-                icon: Icons.collections_bookmark_outlined,
-                facets: visibleCollectionFacets,
-                selectedValue: selectedCollection,
-                onSelected: (value) {
-                  onCollectionSelected(
-                    value == selectedCollection ? '' : value,
-                  );
-                },
-              ),
-            if (visibleCollectionFacets.isNotEmpty &&
-                visibleGroupFacets.isNotEmpty)
-              const SizedBox(height: 8),
-            if (visibleGroupFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '그룹',
-                icon: Icons.folder_outlined,
-                facets: visibleGroupFacets,
-                selectedValue: selectedGroup,
-                onSelected: (value) {
-                  onGroupSelected(value == selectedGroup ? '' : value);
-                },
-              ),
-            if ((visibleCollectionFacets.isNotEmpty ||
-                    visibleGroupFacets.isNotEmpty) &&
-                visibleRatingFacets.isNotEmpty)
-              const SizedBox(height: 8),
-            if (visibleRatingFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '별점',
-                icon: Icons.star_rate_outlined,
-                facets: visibleRatingFacets,
-                selectedValue: selectedMinimumRating == 0
-                    ? ''
-                    : selectedMinimumRating.toString(),
-                onSelected: (value) {
-                  final rating = int.tryParse(value) ?? 0;
-                  onRatingSelected(
-                    rating == selectedMinimumRating ? 0 : rating,
-                  );
-                },
-              ),
-          ],
+          children: rows,
         ),
       ),
     );
   }
+}
+
+IconData _customMetadataFacetIcon(String fieldKey) {
+  return switch (fieldKey) {
+    '조성' => Icons.music_note_outlined,
+    '장르' => Icons.category_outlined,
+    '난이도' => Icons.trending_up_outlined,
+    '편성' => Icons.groups_outlined,
+    _ => Icons.tune_outlined,
+  };
 }
 
 class _LibraryFacetRow extends StatelessWidget {

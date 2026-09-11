@@ -21,11 +21,11 @@
 | 범주 | 기능 | 레퍼런스 기준 | 단계 | 난이도 | 주요 의존성/메모 |
 | --- | --- | --- | --- | --- | --- |
 | 라이브러리 | PDF 가져오기 | MobileSheets/Piascore 기본 | MVP | 중간 | 구현됨: Android/iOS file picker와 share import, 로컬 사본 정책, 단일/여러 PDF 가져오기, 가져오며 세트리스트 추가 action |
-| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩을 제공 |
+| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
 | 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
-| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그 필터 |
+| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/컬렉션/그룹/별점 필터. MobileSheets의 Key/Genre/Difficulty 축은 Clef에서 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수 |
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 일괄 선택 bulk add, 여러 PDF 가져오며 세트리스트 추가, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |

@@ -117,6 +117,61 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('home surfaces common custom metadata facets', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final (index, key) in ['D', 'D', 'G'].indexed)
+        SheetScore(
+          id: 'score-$index',
+          title: '악보 $index',
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/score-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+          customFields: <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: key),
+            SheetCustomMetadataField(
+              key: '장르',
+              value: index < 2 ? 'Etude' : 'Sonata',
+            ),
+          ],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('조성'), findsOneWidget);
+    expect(find.text('D 2'), findsOneWidget);
+    expect(find.text('G 1'), findsOneWidget);
+    expect(find.text('장르'), findsOneWidget);
+    expect(find.text('Etude 2'), findsOneWidget);
+
+    await tester.tap(find.text('D 2'));
+    await tester.pumpAndSettle();
+
+    expect(controller.filteredScores, hasLength(2));
+    expect(find.text('2곡 표시 · 전체 3곡'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   test('recent setlist resume picks the last opened score when valid', () {
     final now = DateTime(2026, 9, 7, 10);
     final scores = <SheetScore>[

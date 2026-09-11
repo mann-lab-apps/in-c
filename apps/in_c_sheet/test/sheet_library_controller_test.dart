@@ -1564,6 +1564,7 @@ void main() {
     await controller.updateCollectionFilter('Methods');
     await controller.updateGroupFilter('Warmup');
     await controller.updateMinimumRatingFilter(3);
+    await controller.updateCustomFieldFilter('조성', 'D');
 
     expect(controller.filteredScores, isEmpty);
 
@@ -1575,6 +1576,7 @@ void main() {
     expect(controller.libraryViewSettings.collectionQuery, isEmpty);
     expect(controller.libraryViewSettings.groupQuery, isEmpty);
     expect(controller.libraryViewSettings.minimumRating, 0);
+    expect(controller.libraryViewSettings.customFieldFilters, isEmpty);
     expect(controller.filteredScores.single.title, 'Arban');
   });
 
@@ -1772,6 +1774,10 @@ void main() {
         collection: 'Etudes',
         group: 'Lesson A',
         rating: 3,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'D'),
+          SheetCustomMetadataField(key: '장르', value: 'Etude'),
+        ],
         isFavorite: true,
         importedAt: now,
         lastOpenedAt: now.add(const Duration(minutes: 3)),
@@ -1785,6 +1791,10 @@ void main() {
         collection: 'Recital',
         group: 'Solo',
         rating: 5,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'G'),
+          SheetCustomMetadataField(key: '장르', value: 'Sonata'),
+        ],
         importedAt: now.add(const Duration(minutes: 1)),
       ),
     ]);
@@ -1818,6 +1828,14 @@ void main() {
     expect(controller.filteredScores.single.id, 'score-2');
 
     await controller.updateMinimumRatingFilter(0);
+    await controller.updateCustomFieldFilter('조성', 'D');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateCustomFieldFilter('장르', 'Etude');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateCustomFieldFilter('조성', '');
+    await controller.updateCustomFieldFilter('장르', '');
     await controller.updateLibrarySortMode(SheetLibrarySortMode.rating);
     expect(controller.filteredScores.map((score) => score.id), <String>[
       'score-2',
@@ -1883,6 +1901,10 @@ void main() {
           collection: 'Methods',
           group: 'Warmup',
           rating: 4,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'D'),
+            SheetCustomMetadataField(key: '장르', value: 'Etude'),
+          ],
         ),
         _score(
           now,
@@ -1891,6 +1913,10 @@ void main() {
           collection: 'Methods',
           group: 'Solo',
           rating: 2,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'D'),
+            SheetCustomMetadataField(key: '장르', value: 'Etude'),
+          ],
         ),
         _score(
           now,
@@ -1899,6 +1925,10 @@ void main() {
           collection: 'Recital',
           group: 'Solo',
           rating: 5,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'G'),
+            SheetCustomMetadataField(key: '장르', value: 'Sonata'),
+          ],
         ),
       ]);
 
@@ -1918,6 +1948,18 @@ void main() {
       expect(
         controller.ratingFacets.map((facet) => '${facet.value}:${facet.count}'),
         <String>['5:1', '4:2', '3:2', '2:3', '1:3'],
+      );
+      expect(
+        controller
+            .customFieldFacets('조성')
+            .map((facet) => '${facet.label}:${facet.count}'),
+        <String>['D:2', 'G:1'],
+      );
+      expect(
+        controller
+            .customFieldFacets('장르')
+            .map((facet) => '${facet.label}:${facet.count}'),
+        <String>['Etude:2', 'Sonata:1'],
       );
     },
   );
@@ -2484,6 +2526,8 @@ SheetScore _score(
   String? filePath,
   List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
   SheetMetronomeSettings? metronomeSettings,
+  List<SheetCustomMetadataField> customFields =
+      const <SheetCustomMetadataField>[],
 }) {
   return SheetScore(
     id: id,
@@ -2496,6 +2540,7 @@ SheetScore _score(
     group: group,
     rating: rating,
     linkedFiles: linkedFiles,
+    customFields: customFields,
     importedAt: importedAt ?? now,
     updatedAt: now,
     lastOpenedAt: lastOpenedAt,
