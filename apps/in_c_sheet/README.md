@@ -1,6 +1,6 @@
-# Clef
+# Clef & Staff
 
-`Clef` is an Android-first sheet music viewer and practice tool prototype.
+`Clef & Staff` is an Android-first sheet music viewer and practice tool prototype.
 
 The current V1 beta focuses on the MobileSheets-style foundation plus rehearsal
 helpers:

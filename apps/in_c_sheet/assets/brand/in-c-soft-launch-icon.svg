@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-label="in C soft launch app icon">
+  <rect width="1024" height="1024" fill="#fbfcfa"/>
+  <g stroke="#8ed0ff" stroke-linecap="round">
+    <path d="M-120 196L196 -120" stroke-width="6"/>
+    <path d="M-66 250L250 -66" stroke-width="3"/>
+    <path d="M-8 308L308 -8" stroke-width="6"/>
+    <path d="M52 368L368 52" stroke-width="3"/>
+    <path d="M110 426L426 110" stroke-width="6"/>
+    <path d="M168 484L484 168" stroke-width="3"/>
+    <path d="M226 542L542 226" stroke-width="6"/>
+    <path d="M286 602L602 286" stroke-width="3"/>
+    <path d="M344 660L660 344" stroke-width="6"/>
+    <path d="M402 718L718 402" stroke-width="3"/>
+    <path d="M460 776L776 460" stroke-width="6"/>
+    <path d="M520 836L836 520" stroke-width="3"/>
+    <path d="M578 894L894 578" stroke-width="6"/>
+    <path d="M636 952L952 636" stroke-width="3"/>
+    <path d="M694 1010L1010 694" stroke-width="6"/>
+    <path d="M754 1070L1070 754" stroke-width="3"/>
+    <path d="M812 1128L1128 812" stroke-width="6"/>
+  </g>
+  <path d="M298 680V344" fill="none" stroke="#202423" stroke-width="52" stroke-linecap="round"/>
+  <path d="M724 332C650 258 522 274 458 360C384 459 412 607 513 686C588 744 679 739 742 682" fill="none" stroke="#202423" stroke-width="70" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M704 353C641 294 536 309 484 379C424 459 447 580 529 644C589 691 662 689 715 645" fill="none" stroke="#fbfcfa" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M172 150H852C889 150 910 174 910 208V816C910 852 886 876 850 876H174C140 876 114 852 114 816V210C114 174 136 150 172 150Z" fill="none" stroke="#202423" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M162 136H862C902 136 928 162 928 202V818C928 865 895 896 848 896H178C132 896 96 862 96 816V206C96 165 121 136 162 136Z" fill="none" stroke="#202423" stroke-width="5" stroke-linejoin="round"/>
+</svg>

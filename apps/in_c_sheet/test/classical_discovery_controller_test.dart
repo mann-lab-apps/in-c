@@ -11,12 +11,56 @@ import 'package:in_c_sheet/classical_discovery_ops.dart';
 import 'package:in_c_sheet/classical_discovery_repository.dart';
 import 'package:in_c_sheet/classical_discovery_store.dart';
 import 'package:in_c_sheet/classical_discovery_validation.dart';
+import 'package:in_c_sheet/classical_link_launcher.dart';
 import 'package:in_c_sheet/classical_promotion_reporting.dart';
 import 'package:in_c_sheet/classical_preview_player.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
+  test(
+    'classical link launcher keeps listening links in app when possible',
+    () {
+      final youtubeSearch = Uri.parse(
+        'https://www.youtube.com/results?search_query=Bach+Air',
+      );
+      final ticketUrl = Uri.parse('https://tickets.example.com/concert');
+
+      expect(
+        preferredClassicalLaunchMode(
+          youtubeSearch,
+          surface: ClassicalLinkSurface.listening,
+        ),
+        LaunchMode.inAppWebView,
+      );
+      expect(
+        preferredClassicalLaunchMode(
+          youtubeSearch,
+          surface: ClassicalLinkSurface.reference,
+        ),
+        LaunchMode.inAppWebView,
+      );
+      expect(
+        preferredClassicalLaunchMode(
+          ticketUrl,
+          surface: ClassicalLinkSurface.ticket,
+        ),
+        LaunchMode.externalApplication,
+      );
+    },
+  );
+
+  test('classical link launcher sends non-http listening links externally', () {
+    expect(
+      preferredClassicalLaunchMode(
+        Uri.parse('spotify:track:123'),
+        surface: ClassicalLinkSurface.listening,
+      ),
+      LaunchMode.externalApplication,
+    );
+  });
+
   test('seed catalog is large enough for a real discovery surface', () {
-    expect(ClassicalDiscoveryCatalog.works.length, greaterThanOrEqualTo(50));
+    expect(ClassicalDiscoveryCatalog.works.length, greaterThanOrEqualTo(300));
     expect(
       ClassicalDiscoveryCatalog.works.every(
         (work) =>
@@ -24,6 +68,47 @@ void main() {
             work.titleOriginal.isNotEmpty &&
             work.listeningMoments.isNotEmpty &&
             work.externalLinks.length >= 3,
+      ),
+      isTrue,
+    );
+  });
+
+  test(
+    'catalog backfill expands release size without entering first exposure',
+    () {
+      final backfill = ClassicalDiscoveryCatalog.works
+          .where((work) => work.catalogStatusTags.contains('catalog_backfill'))
+          .toList(growable: false);
+      final founderPicks = ClassicalDiscoveryCatalog.works
+          .where((work) => work.catalogStatusTags.contains('founder_pick'))
+          .toList(growable: false);
+
+      expect(backfill.length, greaterThanOrEqualTo(200));
+      expect(
+        backfill.every(
+          (work) =>
+              work.catalogStatusTags.contains('launch_candidate') &&
+              work.catalogStatusTags.contains('needs_copy_review') &&
+              !work.catalogStatusTags.contains('curated_anchor') &&
+              !work.catalogStatusTags.contains('founder_pick'),
+        ),
+        isTrue,
+      );
+      expect(founderPicks.length, 30);
+    },
+  );
+
+  test('seed catalog marks a locked founder first exposure pool', () {
+    final founderPicks = ClassicalDiscoveryCatalog.works
+        .where((work) => work.catalogStatusTags.contains('founder_pick'))
+        .toList(growable: false);
+
+    expect(founderPicks.length, 30);
+    expect(
+      founderPicks.every(
+        (work) =>
+            work.catalogStatusTags.contains('first_30') &&
+            work.catalogStatusTags.contains('curated_anchor'),
       ),
       isTrue,
     );
@@ -135,6 +220,15 @@ void main() {
     expect(controller.state.events.first.eventType, 'onboarding_skip');
   });
 
+  test('today work prioritizes the founder first exposure pool', () async {
+    final controller = _controller(
+      clock: () => DateTime(2026).add(const Duration(days: 47)),
+    );
+    await controller.load();
+
+    expect(controller.todayWork.catalogStatusTags, contains('founder_pick'));
+  });
+
   test(
     'creates Spotify-like recommendation shelves from work metadata',
     () async {
@@ -177,6 +271,27 @@ void main() {
     expect(state.reactionCounts['liked'], 1);
     expect(controller.state.reactions.single.type, 'liked');
     expect(controller.state.events.first.eventType, 'reaction_add');
+  });
+
+  test('feedback submit is stored as local-first launch evidence', () async {
+    final store = _MemoryDiscoveryStore();
+    final controller = _controller(store: store);
+    await controller.load();
+
+    await controller.submitFeedback(
+      category: 'link_issue',
+      message: 'Spotify 링크가 검색 화면으로만 열려요.',
+    );
+    final reloaded = _controller(store: store);
+    await reloaded.load();
+
+    expect(reloaded.state.events.first.eventType, 'feedback_submit');
+    expect(reloaded.state.events.first.context, 'link_issue');
+    expect(reloaded.state.events.first.properties['category'], 'link_issue');
+    expect(
+      reloaded.state.events.first.properties['message'],
+      contains('Spotify'),
+    );
   });
 
   test('repeat due list is calculated from completed moments', () async {
@@ -414,7 +529,315 @@ void main() {
     expect(summary.concertsWithRawText, summary.concertCount);
     expect(summary.matchedProgramItems, summary.expectedProgramItems);
     expect(summary.recentEventTypes.single, 'work_view');
+    expect(summary.publicV1Closeout.releaseReady, isFalse);
+    expect(summary.publicV1Closeout.productQualityGapCount, greaterThan(0));
+    expect(
+      summary.publicV1Closeout.productionVerificationGapCount,
+      greaterThan(0),
+    );
+    expect(summary.publicV1Closeout.evidenceText, contains('Public V1'));
+    expect(
+      summary.publicV1Closeout.gateItems
+          .where((item) => !item.passes)
+          .every((item) => item.priority == 'P0' || item.priority == 'P1'),
+      isTrue,
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('P0 · owner release/qa'),
+    );
+    expect(summary.appIdentityReadiness.isVerified, isTrue);
+    expect(summary.appIdentityReadiness.appName, 'in C');
+    expect(summary.appIdentityReadiness.version, '1.0.0+14');
+    expect(
+      summary.appIdentityReadiness.iconStatus,
+      contains('first-pass in C icon applied'),
+    );
+    expect(
+      summary.appIdentityReadiness.androidApplicationId,
+      'com.mannlab.inc',
+    );
+    expect(summary.appIdentityReadiness.targetAppName, 'in C');
+    expect(
+      summary.appIdentityReadiness.targetAndroidApplicationId,
+      'com.mannlab.inc',
+    );
+    expect(summary.appIdentityReadiness.identityDecisionAccepted, isTrue);
+    expect(summary.appIdentityReadiness.isVerified, isTrue);
+    expect(
+      summary.appIdentityReadiness.releaseDecision,
+      contains('com.mannlab.inc'),
+    );
+    expect(summary.kopisProductionReadiness.productionReady, isFalse);
+    expect(
+      summary.kopisProductionReadiness.statuses,
+      contains(ClassicalKopisProductionStatus.missingKey),
+    );
+    expect(summary.feedbackSummary.totalCount, 0);
+    expect(summary.directReadyWorkCount, 0);
+    expect(summary.founderApprovedPreviewCount, 0);
+    expect(summary.safeSearchFallbackWorkCount, summary.workCount);
+    expect(summary.storeMetadataReadiness.appName, 'in C');
+    expect(summary.storeMetadataReadiness.category, 'Music / Entertainment');
+    expect(
+      summary.storeMetadataReadiness.screenshotArtifactPaths,
+      contains('apps/in_c_sheet/build/store-screenshot-android-today.png'),
+    );
+    expect(
+      summary.storeMetadataReadiness.excludedScreenshotSurfaces,
+      contains('fake direct link'),
+    );
+    expect(summary.storeMetadataReadiness.isVerified, isFalse);
+    expect(summary.publicCopyReadiness.isVerified, isTrue);
+    expect(summary.publicCopyReadiness.blockedTerms, contains('funnel'));
+    expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isTrue);
+    expect(summary.buildQaReadiness.isVerified, isFalse);
+    expect(summary.buildQaReadiness.androidInstallSmoke, startsWith('PASS'));
+    expect(summary.buildQaReadiness.iosTestFlightUpload, contains('BLOCKED'));
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Store metadata production verification gaps'),
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Public copy product quality gaps: 0'),
+    );
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Install/launch smoke: PASS'),
+    );
   });
+
+  test(
+    'ops summary separates soft launch evidence from public V1 closeout',
+    () {
+      final summary = ClassicalCatalogOpsSummary.fromCatalog(
+        catalog: const SeedClassicalCatalogDataSource().loadCatalog(),
+        recentEvents: [
+          _event(
+            'listening_moment_preview_open',
+            'work',
+            'beethoven-moonlight',
+          ),
+          _event('external_platform_click', 'work', 'beethoven-moonlight'),
+          _event('work_save', 'work', 'beethoven-moonlight'),
+          _event('reaction_add', 'work', 'beethoven-moonlight'),
+          _event('recommendation_click', 'work', 'bach-air'),
+        ],
+      );
+
+      expect(summary.firstThreeMinuteFunnelComplete, isTrue);
+      expect(summary.softLaunchReadiness.founderPickCount, 30);
+      expect(summary.publicV1Closeout.releaseReady, isFalse);
+      expect(summary.publicV1Closeout.contentOpsGapCount, 0);
+      expect(
+        summary.publicV1Closeout.productionVerificationGapCount,
+        greaterThan(0),
+      );
+      expect(summary.publicV1Closeout.legalReviewGapCount, greaterThan(0));
+      expect(
+        summary.publicV1Closeout.excludedFeatures,
+        contains('음원 host/cache/download'),
+      );
+    },
+  );
+
+  test('ops summary treats repeated launch feedback as blockers', () {
+    final summary = ClassicalCatalogOpsSummary.fromCatalog(
+      catalog: const SeedClassicalCatalogDataSource().loadCatalog(),
+      recentEvents: [
+        _event(
+          'feedback_submit',
+          'app',
+          'in-c',
+          context: 'link_issue',
+          properties: {'category': 'link_issue', 'message': '링크가 헷갈림'},
+        ),
+        _event(
+          'feedback_submit',
+          'app',
+          'in-c',
+          context: 'retention_issue',
+          properties: {'category': 'retention_issue', 'message': '다시 열 이유 부족'},
+        ),
+        _event(
+          'feedback_submit',
+          'app',
+          'in-c',
+          context: 'crash_or_blocker',
+          properties: {'category': 'crash_or_blocker', 'message': '멈췄어요'},
+        ),
+      ],
+    );
+
+    expect(summary.feedbackSummary.totalCount, 3);
+    expect(summary.feedbackSummary.blockerCount, 3);
+    expect(summary.feedbackSummary.items.first.priority, 'blocker');
+    expect(summary.publicV1Closeout.productQualityGapCount, greaterThan(0));
+    expect(
+      summary.publicV1Closeout.evidenceText,
+      contains('Launch feedback blockers: 3'),
+    );
+  });
+
+  test(
+    'link review policy separates safe search fallback from direct links',
+    () {
+      final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+      final reviews = const ClassicalLinkReviewPolicy().reviewLinks(work);
+
+      expect(
+        reviews.firstWhere((review) => review.platformId == 'youtube').status,
+        ClassicalProviderLinkStatus.safeSearchFallback,
+      );
+      expect(
+        reviews.any(
+          (review) =>
+              review.status == ClassicalProviderLinkStatus.verifiedDirect,
+        ),
+        isFalse,
+      );
+    },
+  );
+
+  test('public copy review catches internal product terms', () {
+    final review = ClassicalPublicCopyReadiness.fromStoreMetadata(
+      const ClassicalStoreMetadataReadiness(
+        appName: 'in C',
+        subtitle: '오늘 하나씩 여는 클래식',
+        shortDescription: 'CTA surface 없이 작품을 만납니다.',
+        fullDescription: 'Catalog Ops copy should never reach the store.',
+        keywords: ['클래식'],
+        category: 'Music',
+        ageRatingAssumption: '4+',
+        permissionSummary: 'no microphone',
+        privacySummary: 'no hosted audio',
+        supportContact: 'support@mannlab.app',
+        screenshotSurfaces: ['Today'],
+        screenshotArtifactPaths: ['build/today.png'],
+        excludedScreenshotSurfaces: ['Catalog Ops'],
+        gaps: [],
+      ),
+    );
+
+    expect(review.isVerified, isFalse);
+    expect(review.issues, contains(contains('CTA')));
+    expect(review.issues, contains(contains('Catalog Ops')));
+  });
+
+  test('link review warns when search URL is registered as direct', () {
+    const policy = ClassicalLinkReviewPolicy();
+    final review = policy.reviewProviderLink(
+      platformId: 'youtube',
+      label: 'YouTube',
+      link: const ExternalLink(
+        id: 'bad-direct',
+        platformId: 'youtube',
+        label: 'YouTube',
+        url: 'https://www.youtube.com/results?search_query=Bach+Air',
+        linkType: 'listen_direct',
+      ),
+    );
+
+    expect(
+      review.status,
+      ClassicalProviderLinkStatus.searchUrlRegisteredAsDirect,
+    );
+    expect(review.warning, contains('검색 URL'));
+  });
+
+  test('host mismatch direct link is not counted as release-ready direct', () {
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!.copyWith(
+      externalLinks: const [
+        ExternalLink(
+          id: 'bad-spotify',
+          platformId: 'spotify',
+          label: 'Spotify',
+          url: 'https://music.apple.com/album/example',
+          linkType: 'listen_direct',
+        ),
+        ExternalLink(
+          id: 'safe-youtube',
+          platformId: 'youtube',
+          label: 'YouTube',
+          url: 'https://www.youtube.com/results?search_query=Bach+Air',
+          linkType: 'listen_search',
+        ),
+      ],
+    );
+    final catalog = ClassicalCatalogSnapshot(
+      composers: ClassicalDiscoveryCatalog.composers,
+      works: [work],
+      concerts: const [],
+      promotions: const [],
+    );
+
+    final summary = ClassicalCatalogOpsSummary.fromCatalog(
+      catalog: catalog,
+      recentEvents: const [],
+    );
+
+    expect(summary.directReadyWorkCount, 0);
+    expect(
+      summary.directLinkReviewQueue.single.status,
+      contains('hostMismatch'),
+    );
+  });
+
+  test('preview review only approves non-search provider preview links', () {
+    const policy = ClassicalLinkReviewPolicy();
+    final searchPreview = policy.reviewProviderPreview(
+      platformId: 'spotify',
+      label: 'Spotify',
+      link: const ExternalLink(
+        id: 'search-preview',
+        platformId: 'spotify',
+        label: 'Spotify',
+        url: 'https://open.spotify.com/search/Bach%20Air',
+        linkType: 'listen_search',
+        previewUrl: 'https://open.spotify.com/preview/example',
+      ),
+    );
+    final approved = policy.reviewProviderPreview(
+      platformId: 'spotify',
+      label: 'Spotify',
+      link: const ExternalLink(
+        id: 'spotify-direct',
+        platformId: 'spotify',
+        label: 'Spotify',
+        url: 'https://open.spotify.com/track/example',
+        linkType: 'listen_direct',
+        previewUrl: 'https://open.spotify.com/preview/example',
+      ),
+    );
+
+    expect(searchPreview.status, ClassicalPreviewReviewStatus.needsReview);
+    expect(approved.status, ClassicalPreviewReviewStatus.approvedPreview);
+  });
+
+  test(
+    'concert program matcher exposes low confidence manual review matches',
+    () {
+      const matcher = ConcertProgramMatcher();
+      final candidates = matcher.matchCandidates(
+        programRawText: 'J. S. Bach recital',
+        works: ClassicalDiscoveryCatalog.works,
+      );
+
+      expect(candidates, isNotEmpty);
+      expect(
+        candidates.map((candidate) => candidate.confidence),
+        contains(ConcertProgramMatchConfidence.low),
+      );
+      expect(
+        matcher.matchWorkIds(
+          programRawText: 'J. S. Bach recital',
+          works: ClassicalDiscoveryCatalog.works,
+        ),
+        isEmpty,
+      );
+    },
+  );
 
   test('promotion report summary calculates local campaign metrics', () {
     final promotion = ClassicalDiscoveryCatalog.promotions.first;
@@ -642,7 +1065,7 @@ void main() {
 
     await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('30초 듣기').first);
+    await tester.tap(find.text('30초 포인트 보기').first);
     await tester.pumpAndSettle();
 
     expect(find.text('처음 붙잡을 30초'), findsOneWidget);
@@ -650,6 +1073,41 @@ void main() {
       controller.state.events.first.eventType,
       'listening_moment_preview_open',
     );
+  });
+
+  testWidgets('unapproved preview URL does not show playback CTA', (
+    tester,
+  ) async {
+    final work = ClassicalDiscoveryCatalog.workById('bach-air')!.copyWith(
+      externalLinks: const [
+        ExternalLink(
+          id: 'spotify-search-preview',
+          platformId: 'spotify',
+          label: 'Spotify',
+          url: 'https://open.spotify.com/search/Bach%20Air',
+          linkType: 'listen_search',
+          previewUrl: 'https://open.spotify.com/preview/example',
+        ),
+      ],
+    );
+    final controller = ClassicalDiscoveryController(
+      store: _MemoryDiscoveryStore(),
+      works: [work],
+      composers: ClassicalDiscoveryCatalog.composers,
+      concerts: const [],
+      promotions: const [],
+    );
+    await controller.load();
+    await controller.skipOnboarding();
+    await controller.setPreferredPlatform('spotify');
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('30초 포인트 보기').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Preview 재생'), findsNothing);
+    expect(find.text('Spotify에서 검색'), findsWidgets);
   });
 
   testWidgets('sponsored concert card opens concert detail from Today', (
@@ -683,6 +1141,29 @@ void main() {
     expect(find.text('프로그램'), findsOneWidget);
     expect(controller.state.events.first.eventType, 'promotion_click');
   });
+
+  testWidgets('feedback sheet records launch feedback from the app shell', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('의견 보내기'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, '오늘 화면은 괜찮았어요.');
+    await tester.tap(find.text('보내기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.state.events.first.eventType, 'feedback_submit');
+    expect(
+      controller.state.events.first.properties['category'],
+      'product_quality',
+    );
+    expect(find.text('의견을 남겼습니다.'), findsOneWidget);
+  });
 }
 
 ClassicalDiscoveryController _controller({
@@ -712,12 +1193,16 @@ DiscoveryEvent _event(
   String entityType,
   String entityId, {
   String? id,
+  String? context,
+  Map<String, String> properties = const <String, String>{},
 }) {
   return DiscoveryEvent(
     id: id ?? '$eventType-$entityId',
     eventType: eventType,
     entityType: entityType,
     entityId: entityId,
+    context: context,
+    properties: properties,
     occurredAt: DateTime(2026, 8, 31),
   );
 }

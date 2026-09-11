@@ -12,10 +12,26 @@ import {
 } from './timeline'
 
 export type PlaybackStatus = 'stopped' | 'playing' | 'paused'
+export interface PlaybackPartMixer {
+  muted: boolean
+  solo: boolean
+  volume: number
+}
+
+export type PlaybackPartMixerMap = Record<string, PlaybackPartMixer>
+
+export interface PlaybackScheduledEvent {
+  endVelocity: number
+  event: PlaybackEvent
+  frequencies: number[]
+  partGain: number
+  startVelocity: number
+}
 
 const MIN_TEMPO = 40
 const MAX_TEMPO = 240
 const DEFAULT_TEMPO = 120
+const EMPTY_PART_MIXER: PlaybackPartMixerMap = {}
 const TREMOLO_BEAT_INTERVAL = {
   1: 0.5,
   2: 0.25,
@@ -23,7 +39,10 @@ const TREMOLO_BEAT_INTERVAL = {
 } as const
 const TRILL_BEAT_INTERVAL = 0.125
 
-export function useScorePlayback(score: Score) {
+export function useScorePlayback(
+  score: Score,
+  partMixer: PlaybackPartMixerMap = EMPTY_PART_MIXER
+) {
   const timeline = useMemo(() => createPlaybackTimeline(score), [score])
   const [status, setStatus] = useState<PlaybackStatus>('stopped')
   const scoreTempo = normalizeTempo(
@@ -31,7 +50,7 @@ export function useScorePlayback(score: Score) {
   )
   const [tempo, setTempoState] = useState(scoreTempo)
   const [positionBeat, setPositionBeat] = useState(0)
-  const [activeEventId, setActiveEventId] = useState<string | undefined>()
+  const [activeEvent, setActiveEvent] = useState<PlaybackEvent | undefined>()
   const audioContextRef = useRef<AudioContext | undefined>(undefined)
   const sourcesRef = useRef<OscillatorNode[]>([])
   const frameRef = useRef<number | undefined>(undefined)
@@ -40,6 +59,7 @@ export function useScorePlayback(score: Score) {
   const tempoRef = useRef(tempo)
   const timelineRef = useRef(timeline)
   const statusRef = useRef<PlaybackStatus>(status)
+  const partMixerRef = useRef(partMixer)
 
   useEffect(() => {
     tempoRef.current = tempo
@@ -53,6 +73,10 @@ export function useScorePlayback(score: Score) {
   useEffect(() => {
     timelineRef.current = timeline
   }, [timeline])
+
+  useEffect(() => {
+    partMixerRef.current = partMixer
+  }, [partMixer])
 
   useEffect(() => {
     statusRef.current = status
@@ -104,30 +128,18 @@ export function useScorePlayback(score: Score) {
     ) => {
       const now = context.currentTime + 0.03
 
-      sourcesRef.current = timeline.events.flatMap((event: PlaybackEvent) => {
-        if (
-          event.frequency === undefined ||
-          event.startBeat + event.durationBeats <= fromBeat
-        ) {
-          return []
-        }
-
-        const eventStartBeat = Math.max(event.startBeat, fromBeat)
-        const startTime =
-          now + beatDeltaToSeconds(timeline, fromBeat, eventStartBeat, bpm)
-        const endTime =
-          now +
-          beatDeltaToSeconds(
-            timeline,
-            fromBeat,
-            event.startBeat + event.durationBeats,
-            bpm
-          )
-        const startVelocity = resolveEventVelocityAtBeat(event, eventStartBeat)
-        const endVelocity = event.velocityEnd
-        const sustainStart = Math.min(startTime + 0.015, endTime)
-        const releaseStart = Math.max(sustainStart, endTime - 0.04)
-        const frequencies = event.frequencies ?? [event.frequency]
+      sourcesRef.current = resolvePlaybackScheduledEvents(
+        timeline,
+        fromBeat,
+        partMixerRef.current
+      ).flatMap(({ endVelocity, event, frequencies, partGain, startVelocity }) => {
+        const scheduleWindow = resolvePlaybackEventScheduleWindow(
+          timeline,
+          event,
+          fromBeat,
+          bpm,
+          now
+        )
 
         if (event.tremolo?.type === 'single') {
           return scheduleTremoloEvent(
@@ -137,7 +149,8 @@ export function useScorePlayback(score: Score) {
             frequencies,
             fromBeat,
             bpm,
-            now
+            now,
+            partGain
           )
         }
 
@@ -146,11 +159,12 @@ export function useScorePlayback(score: Score) {
             context,
             timeline,
             event,
-            event.frequency,
+            event.frequency!,
             event.trillFrequency,
             fromBeat,
             bpm,
-            now
+            now,
+            partGain
           )
         }
 
@@ -158,12 +172,12 @@ export function useScorePlayback(score: Score) {
           scheduleTone(
             context,
             frequency,
-            startTime,
-            sustainStart,
-            releaseStart,
-            endTime,
-            startVelocity / Math.sqrt(frequencies.length),
-            endVelocity / Math.sqrt(frequencies.length)
+            scheduleWindow.startTime,
+            scheduleWindow.sustainStart,
+            scheduleWindow.releaseStart,
+            scheduleWindow.endTime,
+            startVelocity * partGain,
+            endVelocity * partGain
           )
         )
       })
@@ -179,7 +193,7 @@ export function useScorePlayback(score: Score) {
       if (beat >= currentTimeline.totalBeats) {
         stopSources()
         setPositionBeat(0)
-        setActiveEventId(undefined)
+        setActiveEvent(undefined)
         setStatus('stopped')
         startBeatRef.current = 0
         frameRef.current = undefined
@@ -187,7 +201,7 @@ export function useScorePlayback(score: Score) {
       }
 
       setPositionBeat(beat)
-      setActiveEventId(findPlaybackEvent(currentTimeline, beat)?.eventId)
+      setActiveEvent(findPlaybackEvent(currentTimeline, beat))
       frameRef.current = window.requestAnimationFrame(tick)
     }
 
@@ -227,9 +241,7 @@ export function useScorePlayback(score: Score) {
       setStatus('playing')
       statusRef.current = 'playing'
       setPositionBeat(startBeatRef.current)
-      setActiveEventId(
-        findPlaybackEvent(timelineRef.current, startBeatRef.current)?.eventId
-      )
+      setActiveEvent(findPlaybackEvent(timelineRef.current, startBeatRef.current))
       startTicker()
     },
     [scheduleAudio, startTicker, stopSources]
@@ -249,7 +261,7 @@ export function useScorePlayback(score: Score) {
     stopSources()
     cancelFrame()
     setPositionBeat(beat)
-    setActiveEventId(findPlaybackEvent(timelineRef.current, beat)?.eventId)
+    setActiveEvent(findPlaybackEvent(timelineRef.current, beat))
     setStatus('paused')
     statusRef.current = 'paused'
   }, [cancelFrame, readCurrentBeat, stopSources])
@@ -259,10 +271,28 @@ export function useScorePlayback(score: Score) {
     cancelFrame()
     startBeatRef.current = 0
     setPositionBeat(0)
-    setActiveEventId(undefined)
+    setActiveEvent(undefined)
     setStatus('stopped')
     statusRef.current = 'stopped'
   }, [cancelFrame, stopSources])
+
+  const jumpToStart = useCallback(() => {
+    const wasPlaying = statusRef.current === 'playing'
+
+    stopSources()
+    cancelFrame()
+    startBeatRef.current = 0
+    setPositionBeat(0)
+    setActiveEvent(undefined)
+
+    if (wasPlaying) {
+      void startFromBeat(0, tempoRef.current)
+      return
+    }
+
+    setStatus('stopped')
+    statusRef.current = 'stopped'
+  }, [cancelFrame, startFromBeat, stopSources])
 
   const setTempo = useCallback(
     (nextTempo: number) => {
@@ -287,6 +317,19 @@ export function useScorePlayback(score: Score) {
   )
 
   useEffect(() => {
+    if (statusRef.current !== 'playing') {
+      return
+    }
+
+    const currentBeat = readCurrentBeat()
+
+    stopSources()
+    cancelFrame()
+    startBeatRef.current = currentBeat
+    void startFromBeat(currentBeat, tempoRef.current)
+  }, [cancelFrame, partMixer, readCurrentBeat, startFromBeat, stopSources])
+
+  useEffect(() => {
     stop()
   }, [score, stop])
 
@@ -305,10 +348,12 @@ export function useScorePlayback(score: Score) {
     setTempo,
     positionBeat,
     totalBeats: timeline.totalBeats,
-    activeEventId,
+    activeEvent,
+    activeEventId: activeEvent?.eventId,
     play,
     pause,
-    stop
+    stop,
+    jumpToStart
   }
 }
 
@@ -329,6 +374,40 @@ function resolveEventVelocityAtBeat(event: PlaybackEvent, beat: number): number 
   return event.velocityStart + (event.velocityEnd - event.velocityStart) * ratio
 }
 
+export function resolvePlaybackEventScheduleWindow(
+  timeline: PlaybackTimeline,
+  event: PlaybackEvent,
+  fromBeat: number,
+  bpm: number,
+  now: number
+): {
+  startTime: number
+  sustainStart: number
+  releaseStart: number
+  endTime: number
+} {
+  const eventStartBeat = Math.max(event.startBeat, fromBeat)
+  const startTime =
+    now + beatDeltaToSeconds(timeline, fromBeat, eventStartBeat, bpm)
+  const endTime =
+    now +
+    beatDeltaToSeconds(
+      timeline,
+      fromBeat,
+      event.startBeat + event.durationBeats,
+      bpm
+    )
+  const sustainStart = Math.min(startTime + 0.015, endTime)
+  const releaseStart = Math.max(sustainStart, endTime - 0.04)
+
+  return {
+    startTime,
+    sustainStart,
+    releaseStart,
+    endTime
+  }
+}
+
 function scheduleTremoloEvent(
   context: AudioContext,
   timeline: PlaybackTimeline,
@@ -336,7 +415,8 @@ function scheduleTremoloEvent(
   frequencies: number[],
   fromBeat: number,
   bpm: number,
-  now: number
+  now: number,
+  partGain: number
 ): OscillatorNode[] {
   const eventEndBeat = event.startBeat + event.durationBeats
   const pulseBeats = createTremoloPulseBeats(
@@ -370,7 +450,7 @@ function scheduleTremoloEvent(
       pulseEndTime - 0.012
     )
     const velocity =
-      resolveEventVelocityAtBeat(event, pulseStartBeat) /
+      (resolveEventVelocityAtBeat(event, pulseStartBeat) * partGain) /
       Math.sqrt(frequencies.length)
 
     return frequencies.map((frequency) =>
@@ -413,7 +493,8 @@ function scheduleTrillEvent(
   trillFrequency: number,
   fromBeat: number,
   bpm: number,
-  now: number
+  now: number,
+  partGain: number
 ): OscillatorNode[] {
   const eventEndBeat = event.startBeat + event.durationBeats
   const pulseBeats = createTrillPulseBeats(event.startBeat, eventEndBeat, fromBeat)
@@ -437,7 +518,7 @@ function scheduleTrillEvent(
       pulseSustainStart,
       pulseEndTime - 0.01
     )
-    const velocity = resolveEventVelocityAtBeat(event, pulseStartBeat)
+    const velocity = resolveEventVelocityAtBeat(event, pulseStartBeat) * partGain
     const pulseIndex = Math.floor(
       (pulseStartBeat - event.startBeat) / TRILL_BEAT_INTERVAL
     )
@@ -473,6 +554,65 @@ export function createTrillPulseBeats(
     { length: pulseCount },
     (_, index) => firstBeat + index * TRILL_BEAT_INTERVAL
   ).filter((beat) => beat < endBeat)
+}
+
+export function resolvePartMixerGain(
+  partId: string,
+  partMixer: PlaybackPartMixerMap
+): number {
+  const partSettings = partMixer[partId]
+
+  if (partSettings?.muted) {
+    return 0
+  }
+
+  if (
+    Object.entries(partMixer).some(
+      ([mixerPartId, settings]) => mixerPartId !== partId && settings.solo
+    ) &&
+    !partSettings?.solo
+  ) {
+    return 0
+  }
+
+  return clampVolume(partSettings?.volume ?? 1)
+}
+
+export function resolvePlaybackScheduledEvents(
+  timeline: PlaybackTimeline,
+  fromBeat: number,
+  partMixer: PlaybackPartMixerMap
+): PlaybackScheduledEvent[] {
+  return timeline.events.flatMap((event) => {
+    const partGain = resolvePartMixerGain(event.partId, partMixer)
+
+    if (
+      partGain <= 0 ||
+      event.frequency === undefined ||
+      event.startBeat + event.durationBeats <= fromBeat
+    ) {
+      return []
+    }
+
+    const eventStartBeat = Math.max(event.startBeat, fromBeat)
+    const frequencies = event.frequencies ?? [event.frequency]
+    const frequencyCountScale = Math.sqrt(frequencies.length)
+
+    return [
+      {
+        endVelocity: event.velocityEnd / frequencyCountScale,
+        event,
+        frequencies,
+        partGain,
+        startVelocity:
+          resolveEventVelocityAtBeat(event, eventStartBeat) / frequencyCountScale
+      }
+    ]
+  })
+}
+
+function clampVolume(volume: number): number {
+  return Math.min(1.5, Math.max(0, volume))
 }
 
 function scheduleTone(

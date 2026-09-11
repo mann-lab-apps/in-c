@@ -226,6 +226,53 @@ describe('system layout', () => {
     ).toBeCloseTo(892)
   })
 
+  it('allocates more width when a lower same-staff voice is rhythmically dense', () => {
+    const sparse = createMeasure({
+      id: 'sparse',
+      number: 1
+    })
+    const denseLowerVoice = createMeasure({
+      id: 'dense-lower-voice',
+      number: 2,
+      voices: [
+        createVoice({
+          id: 'voice-1',
+          events: [
+            createNote({
+              id: 'upper-whole',
+              pitch: {
+                step: 'C',
+                octave: 5
+              },
+              duration: createDuration('whole')
+            })
+          ]
+        }),
+        createVoice({
+          id: 'voice-2',
+          events: Array.from({ length: 16 }, (_, index) =>
+            createNote({
+              id: `lower-note-${index}`,
+              position: createTimePosition(
+                index * (TICKS_PER_QUARTER / 4)
+              ),
+              pitch: {
+                step: 'C',
+                octave: 3
+              },
+              duration: createDuration('16th')
+            })
+          )
+        })
+      ]
+    })
+    const layout = createSystemLayout([sparse, denseLowerVoice], 900)
+
+    expect(layout.placements[1].width).toBeGreaterThan(
+      layout.placements[0].width
+    )
+  })
+
   it('reserves extra width for notation symbols at system starts', () => {
     const layout = createSystemLayout(createMeasures(2), 900)
 

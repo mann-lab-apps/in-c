@@ -139,7 +139,7 @@ function verifyDownloadManifest() {
     'checksumsUrl must include releaseTag'
   )
 
-  const requiredPlatforms = new Set(['macOS', 'Windows', 'Linux'])
+  const requiredPlatforms = new Set(['macOS', 'Windows'])
 
   for (const download of source.downloads ?? []) {
     assert(download.id, 'download entry missing id')
@@ -147,6 +147,12 @@ function verifyDownloadManifest() {
     assert(download.fileName, `download ${download.id} missing fileName`)
 
     if (!download.available) {
+      if (download.platform === 'Linux') {
+        assert(
+          /post-v1|후속/i.test(`${download.format} ${download.fileName} ${download.size}`),
+          'Linux unavailable download must be marked as a post-V1 target'
+        )
+      }
       continue
     }
 
@@ -191,6 +197,10 @@ function verifyDownloadManifest() {
       `download manifest must show the unsigned ${platform} notice`
     )
   }
+  assert(
+    /post-v1|후속/i.test(source.signing?.Linux ?? ''),
+    'download manifest must show Linux as a post-V1 target'
+  )
 }
 
 function verifyCompositions() {

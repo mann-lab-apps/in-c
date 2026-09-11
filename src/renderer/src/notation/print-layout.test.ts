@@ -28,6 +28,50 @@ describe('print layout planning', () => {
     })
   })
 
+  it('layout.page-setup applies page size, orientation, margins, staff size, and system spacing', () => {
+    const score = createScore({
+      layout: {
+        pageSetup: {
+          pageSize: 'letter',
+          orientation: 'landscape',
+          pageMarginMm: 12,
+          staffSizePercent: 90,
+          systemSpacingPercent: 120
+        }
+      },
+      parts: [
+        {
+          id: 'part-1',
+          name: 'Part',
+          staves: [
+            {
+              id: 'staff-1',
+              measures: createMeasures(8)
+            }
+          ]
+        }
+      ]
+    })
+    const plan = resolvePrintLayoutPlan(score, 'auto')
+
+    expect(plan).toMatchObject({
+      id: 'balanced',
+      pageCssSize: 'Letter landscape',
+      pageMarginMm: 12,
+      pageSetup: {
+        pageSize: 'letter',
+        orientation: 'landscape',
+        pageMarginMm: 12,
+        staffSizePercent: 90,
+        systemSpacingPercent: 120
+      },
+      scale: 0.9
+    })
+    expect(plan.renderWidth).toBeGreaterThan(900)
+    expect(plan.pageHeight).toBeLessThan(plan.renderWidth)
+    expect(plan.systemHeight).toBeGreaterThan(148)
+  })
+
   it('forces a strict target page count by scaling beyond the tightest candidate', () => {
     const score = createScore({
       parts: [

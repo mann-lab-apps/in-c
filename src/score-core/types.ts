@@ -63,7 +63,7 @@ export interface TimeSignature {
   beatType: number
 }
 
-export type Articulation = 'staccato' | 'accent'
+export type Articulation = 'staccato' | 'accent' | 'tenuto' | 'marcato'
 export type BreathMark = 'breath' | 'caesura'
 
 export interface TremoloMark {
@@ -226,7 +226,29 @@ export interface StaffText {
   text: string
 }
 
-export type DynamicValue = 'p' | 'mp' | 'mf' | 'f'
+export interface SystemText {
+  id: string
+  measureId: MeasureId
+  text: string
+}
+
+export interface ExpressionText {
+  id: string
+  measureId: MeasureId
+  tick: Tick
+  text: string
+}
+
+export type DynamicValue =
+  | 'ppp'
+  | 'pp'
+  | 'p'
+  | 'mp'
+  | 'mf'
+  | 'f'
+  | 'ff'
+  | 'fff'
+  | 'sfz'
 
 export interface DynamicMark {
   id: string
@@ -261,6 +283,8 @@ export interface Score {
   harmonies?: HarmonyMark[]
   rehearsalMarks?: RehearsalMark[]
   staffTexts?: StaffText[]
+  systemTexts?: SystemText[]
+  expressionTexts?: ExpressionText[]
   dynamics?: DynamicMark[]
   hairpins?: Hairpin[]
   slurs?: Slur[]
@@ -271,6 +295,18 @@ export interface Score {
 export interface ScoreLayout {
   systemBreakBeforeMeasureIds?: MeasureId[]
   pageBreakBeforeMeasureIds?: MeasureId[]
+  pageSetup?: ScorePageSetup
+}
+
+export type ScorePageSize = 'a4' | 'letter'
+export type ScorePageOrientation = 'portrait' | 'landscape'
+
+export interface ScorePageSetup {
+  pageSize?: ScorePageSize
+  orientation?: ScorePageOrientation
+  pageMarginMm?: number
+  staffSizePercent?: number
+  systemSpacingPercent?: number
 }
 
 export interface VoiceAddress {
@@ -316,6 +352,14 @@ export type ScoreCommand =
       staffTexts?: StaffText[]
     }
   | {
+      type: 'score-system-texts.update'
+      systemTexts?: SystemText[]
+    }
+  | {
+      type: 'score-expression-texts.update'
+      expressionTexts?: ExpressionText[]
+    }
+  | {
       type: 'score-dynamics.update'
       dynamics?: DynamicMark[]
     }
@@ -334,6 +378,10 @@ export type ScoreCommand =
   | {
       type: 'score-layout.update'
       layout?: ScoreLayout
+    }
+  | {
+      type: 'score-parts.replace'
+      parts: Part[]
     }
   | {
       type: 'voice-event.insert'

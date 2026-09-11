@@ -412,6 +412,32 @@ void main() {
     );
   });
 
+  test('string target panels label guitar strings from low to high', () {
+    final stringTargets = SheetTunerStringTarget.fromTargets(
+      SheetTunerPreset.guitarStandard.targets,
+    );
+
+    expect(SheetTunerPreset.guitarStandard.usesStringTargetPanel, isTrue);
+    expect(SheetTunerPreset.guitarStandard.stringTargetPanelLabel, '기타 줄 선택');
+    expect(stringTargets.map((target) => target.stringNumber), <int>[
+      6,
+      5,
+      4,
+      3,
+      2,
+      1,
+    ]);
+    expect(stringTargets.map((target) => target.target.label), <String>[
+      'E2',
+      'A2',
+      'D3',
+      'G3',
+      'B3',
+      'E4',
+    ]);
+    expect(SheetTunerPreset.chromatic.usesStringTargetPanel, isFalse);
+  });
+
   test('calibration history and target lock settings round-trip safely', () {
     final settings =
         const SheetTunerSettings(

@@ -87,7 +87,7 @@ function parseManifest(raw) {
 
   for (const entry of manifest.downloads) {
     const label = entry.id || entry.platform || 'unknown download'
-    const requiredEntryFields = ['id', 'platform', 'label', 'architecture', 'format', 'fileName', 'url']
+    const requiredEntryFields = ['id', 'platform', 'label', 'architecture', 'format', 'fileName']
 
     for (const field of requiredEntryFields) {
       if (typeof entry[field] !== 'string' || entry[field].length === 0) {
@@ -99,8 +99,18 @@ function parseManifest(raw) {
       throw new Error(`download manifest entry ${label} missing boolean field: available`)
     }
 
-    if (entry.available && !entry.url.includes(`/releases/download/${manifest.releaseTag}/`)) {
-      throw new Error(`download manifest entry ${label} URL does not match release tag ${manifest.releaseTag}`)
+    if (entry.available) {
+      if (typeof entry.url !== 'string' || entry.url.length === 0) {
+        throw new Error(`download manifest entry ${label} missing required string field: url`)
+      }
+      if (!entry.url.includes(`/releases/download/${manifest.releaseTag}/`)) {
+        throw new Error(`download manifest entry ${label} URL does not match release tag ${manifest.releaseTag}`)
+      }
+      continue
+    }
+
+    if (entry.platform === 'Linux' && !/post-v1|후속/i.test(`${entry.format} ${entry.fileName} ${entry.size}`)) {
+      throw new Error('unavailable Linux download must be marked as a post-V1 target')
     }
   }
 

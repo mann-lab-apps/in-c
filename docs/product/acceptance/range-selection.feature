@@ -45,6 +45,24 @@ Feature: 범위를 선택해 편집하기
     And 각 마디의 전체 박자 길이는 변하지 않는다
     And 사용자는 Undo 한 번으로 붙여넣기 전 상태로 돌아갈 수 있다
 
+  @scenario-range-editing-same-staff-voice-delete
+  Scenario: 같은 보표의 특정 성부 범위만 삭제한다
+    Given 같은 보표에 voice 1과 voice 2가 있는 악보가 열려 있다
+    And voice 2의 같은 마디 안 단순 이벤트 범위가 선택되어 있다
+    When 사용자가 Backspace를 누른다
+    Then voice 2의 선택 범위만 쉼표로 정리된다
+    And voice 1의 이벤트는 변하지 않는다
+    And 사용자는 Undo 한 번으로 범위 삭제 전 상태로 돌아갈 수 있다
+
+  @scenario-range-editing-same-staff-voice-copy-paste
+  Scenario: 같은 보표의 지정된 성부 범위에 붙여넣는다
+    Given 같은 보표에 voice 1과 voice 2가 있는 악보가 열려 있다
+    And voice 1의 단순 이벤트 범위가 복사되어 있다
+    When 사용자가 voice 2의 같은 길이 범위를 선택하고 Cmd 또는 Ctrl+V를 누른다
+    Then 복사한 이벤트는 voice 2의 선택 범위만 대체한다
+    And voice 1의 이벤트는 변하지 않는다
+    And 사용자는 Undo 한 번으로 붙여넣기 전 상태로 돌아갈 수 있다
+
   @scenario-range-editing-reject-different-length-paste
   Scenario: 안전하지 않은 범위 붙여넣기는 거부한다
     Given 사용자가 단순 범위를 복사했다

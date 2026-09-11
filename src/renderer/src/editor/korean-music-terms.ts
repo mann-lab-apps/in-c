@@ -9,16 +9,21 @@ export const koreanMusicTerms = {
   fermata: '페르마타',
   staccato: '스타카토',
   accent: '악센트',
+  tenuto: '테누토',
+  marcato: '마르카토',
   breathMark: '숨표',
   caesura: '중지표'
 } as const
 
 export const articulationTermOptions: Array<{
   label: string
+  symbol: string
   value: Articulation
 }> = [
-  { label: koreanMusicTerms.staccato, value: 'staccato' },
-  { label: koreanMusicTerms.accent, value: 'accent' }
+  { label: koreanMusicTerms.staccato, symbol: '•', value: 'staccato' },
+  { label: koreanMusicTerms.accent, symbol: '>', value: 'accent' },
+  { label: koreanMusicTerms.tenuto, symbol: '−', value: 'tenuto' },
+  { label: koreanMusicTerms.marcato, symbol: '^', value: 'marcato' }
 ]
 
 export const breathMarkTermOptions: Array<{

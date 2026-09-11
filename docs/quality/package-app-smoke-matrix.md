@@ -1,19 +1,22 @@
 # 패키지 앱 운영체제별 smoke matrix
 
-macOS, Windows, Linux용 릴리즈 후보가 설치·실행·저장·열기의 기본 흐름을
+macOS와 Windows용 V1 릴리즈 후보가 설치·실행·저장·열기의 기본 흐름을
 막지 않는지 빠르게 확인하는 수동 검증 기준이다. `smoke`는 주요 기능이 바로
 막히지 않는지만 확인하는 검증을 뜻한다. 확인하지 않은 항목은 `미실행`으로 남긴다.
+Linux는 V1 public release target이 아니라 post-V1 follow-up target이며, 별도 Linux
+artifact가 공식 target으로 승격될 때 이 matrix에 포함한다.
 
 ## 인수 기준
 
-- macOS, Windows, Linux에서 확인할 산출물과 준비 조건을 구분할 수 있다.
+- macOS와 Windows에서 확인할 산출물과 준비 조건을 구분할 수 있다.
 - 각 운영체제에서 설치, 첫 실행, MusicXML 저장, 저장 파일 다시 열기를 확인한다.
 - 결과를 `통과`, `실패`, `미실행`으로 판정하고 근거를 남길 수 있다.
 - 미서명 prerelease의 운영체제 경고를 제품 오류와 구분한다.
+- Linux는 V1 후속 정책으로 분리되어 public V1 RC 판정의 필수 OS gate가 아님을 기록한다.
 
 ## 실패 가능한 검증 기준
 
-- 세 운영체제 중 하나라도 확인 절차나 기록 칸이 없으면 실패다.
+- macOS 또는 Windows 중 하나라도 확인 절차나 기록 칸이 없으면 실패다.
 - 실제 배포 산출물과 다른 파일 형식이나 실행 방법을 안내하면 실패다.
 - 저장 성공만 확인하고 저장한 MusicXML을 다시 여는 절차가 없으면 실패다.
 - 버전, 산출물 이름, 결과 근거 없이 `통과`로 기록할 수 있으면 실패다.
@@ -35,7 +38,7 @@ macOS, Windows, Linux용 릴리즈 후보가 설치·실행·저장·열기의 �
 | --- | --- | --- |
 | macOS | universal DMG 또는 ZIP | DMG 앱을 Applications에 복사하거나 ZIP을 푼다. 미서명 경고가 나오면 경고 내용과 Control-click `Open` 사용 여부를 기록한다. |
 | Windows | x64 NSIS installer 또는 portable EXE | installer 설치 또는 portable EXE 실행 방식을 기록한다. SmartScreen 경고가 나오면 경고 내용과 실행 여부를 기록한다. |
-| Linux | x64 AppImage | `chmod +x in-C-*.AppImage`로 실행 권한을 준 뒤 AppImage를 실행한다. 배포판과 데스크톱 환경을 기록한다. |
+| Linux | V1 후속 target | V1 public release target이 아니다. post-V1에서 x64 AppImage를 공식 산출물로 승격하면 `chmod +x in-C-*.AppImage`로 실행 권한을 준 뒤 AppImage를 실행하고 배포판/데스크톱 환경을 기록한다. |
 
 ## 공통 smoke 시나리오
 
@@ -58,7 +61,8 @@ macOS, Windows, Linux용 릴리즈 후보가 설치·실행·저장·열기의 �
 - `실패`: 설치·실행·저장·다시 열기·재실행 중 하나라도 사용자 흐름을 막는다.
 - `미실행`: 확인하지 않았거나 결과 근거가 없다.
 
-한 운영체제라도 `실패` 또는 `미실행`이면 세 운영체제 전체를 `통과`로 기록하지 않는다.
+macOS 또는 Windows 중 하나라도 `실패` 또는 `미실행`이면 V1 desktop package gate를
+`통과`로 기록하지 않는다.
 보안 경고를 거쳐 정상 실행했다면 경고를 known limitation으로 기록하고 제품 동작과
 분리해 판정한다.
 
@@ -75,10 +79,56 @@ macOS, Windows, Linux용 릴리즈 후보가 설치·실행·저장·열기의 �
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | macOS |  | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 |  | 로그 또는 스크린샷 |
 | Windows |  | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 |  |  |
-| Linux |  | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 | 통과/실패/미실행 |  |  |
+| Linux | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 public release target 아님 |
 
 - 전체 판정: 통과 / 실패 / 미실행
 - 보안 경고 또는 운영체제별 차이:
 - 후속 이슈:
 ```
 
+## 패키지 앱 smoke: 2026-09-01
+
+- 앱 버전: 0.1.0-alpha.9
+- 기준 브랜치/commit SHA: dc9bf16
+- 확인자: Codex
+
+| 운영체제/버전 | 산출물 이름 | 설치 | 첫 실행 | 저장 | 다시 열기 | 다시 실행 | 판정 | 근거 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| macOS arm64 | `release/mac-arm64/in-C.app` | 통과 | 통과 | 부분 통과 | 부분 통과 | 미실행 | 부분 통과 | `npm run package:dir`, `npm run verify:package`; `PACKAGED_APP_SMOKE_OK` confirmed app name, preload bridges, start screen/actions, new score workspace/title/notation SVG, smoke-only non-dialog MusicXML file write, recent file reopen, PDF `%PDF`/EOF/page object/MediaBox structure, MIDI type-1 tempo/note track structure with end-of-track markers, and autosave write/read/clear round-trip. |
+| Windows |  | 미실행 | 미실행 | 미실행 | 미실행 | 미실행 | 미실행 |  |
+| Linux | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 public release target 아님. |
+
+- 전체 판정: 미실행
+- 보안 경고 또는 운영체제별 차이: macOS local unpacked package uses unsigned build with `mac.identity: null` for automated smoke; installer/DMG and Windows packages were not verified. Linux is post-V1.
+- 후속 이슈: release candidate에서 실제 file dialog 기반 MusicXML/PDF/MIDI 저장, 사람이 확인하는 PDF/MIDI 산출물 열기, MusicXML 다시 열기, 앱 종료/재실행을 OS별로 확인한다.
+
+## 패키지 앱 smoke: 2026-09-03
+
+- 앱 버전: 0.1.0-alpha.9
+- 기준 브랜치/commit SHA: local V1 blocker worktree
+- 확인자: Codex
+
+| 운영체제/버전 | 산출물 이름 | 설치 | 첫 실행 | 저장 | 다시 열기 | 다시 실행 | 판정 | 근거 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| macOS arm64 | `release/mac-arm64/in-C.app` | 통과 | 통과 | 부분 통과 | 부분 통과 | 미실행 | 부분 통과 | `npm run package:dir`, `npm run verify:package`; `PACKAGED_APP_SMOKE_OK` confirmed app name, preload bridges, start screen/actions, string quartet workspace/title/notation SVG, smoke-only non-dialog MusicXML file write, recent file reopen, score PDF structure, Cello part view page/title metadata, visible event part id, compact parts page setup metadata, PDF target/write/structure, MIDI type-1 tempo/note track structure, and autosave write/read/clear round-trip. |
+| Windows |  | 미실행 | 미실행 | 미실행 | 미실행 | 미실행 | 미실행 |  |
+| Linux | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 후속 | V1 public release target 아님. |
+
+- 전체 판정: 미실행
+- 보안 경고 또는 운영체제별 차이: macOS local unpacked package uses unsigned build with `mac.identity: null` for automated smoke; installer/DMG and Windows packages were not verified. Linux is post-V1.
+- 후속 이슈: release candidate에서 실제 file dialog 기반 MusicXML/PDF/MIDI 저장, 사람이 확인하는 총보/파트보 PDF와 MIDI 산출물 열기, MusicXML 다시 열기, 앱 종료/재실행을 OS별로 확인한다.
+
+## RC 수동/외부 QA availability audit: 2026-09-03
+
+- 환경: macOS 26.6.2 arm64
+- 기준 브랜치/commit SHA: `dc9bf16` plus local V1 blocker worktree changes
+- 확인자: Codex
+
+| 항목 | 결과 | 근거 | 다음 action |
+| --- | --- | --- | --- |
+| macOS packaged artifact | 부분 확인 | `release/mac-arm64/in-C.app` exists, Mach-O arm64 executable, 342M. Automated unpacked smoke is documented above. | 실제 DMG/installer artifact를 만들고 설치/첫 실행/file dialog 저장/열기/재실행을 사람이 확인한다. |
+| 외부 MusicXML 앱 | 미실행 | `/Applications`에서 MuseScore, Dorico, Sibelius, Finale 앱이 발견되지 않음. | 각 앱 또는 실제 export `.musicxml` fixture를 준비해 versioned fixture로 추가한다. |
+| MIDI 외부 앱 | 미실행 | GarageBand 10.4.12가 설치되어 있으나, 사람 조작 GUI 세션으로 MIDI import/listening을 수행하지 않음. | solo/grand staff/ensemble MIDI를 GarageBand 또는 주요 DAW/notation app에서 열고 결과를 기록한다. |
+| PDF viewer 보조 확인 | 자동 보조 확인 | latest available packaged smoke PDF는 `pdfinfo` 기준 A4 1페이지/rotation 0이고 Poppler PNG render에 성공했다. | 실제 file dialog로 총보/파트보 PDF를 저장하고 viewer에서 사람이 visual QA를 수행한다. |
+| Windows packaged smoke | 미실행 | 현재 실행 환경은 macOS arm64이며 Windows artifact/OS session 없음. | Windows x64 installer 또는 portable EXE에서 설치/첫 실행/save/open/export smoke를 수행한다. |
+| Linux release policy | V1 후속 | Chromatics Desktop V1 public release target is macOS and Windows; Linux is post-V1 unless explicitly promoted with an AppImage artifact and OS smoke evidence. | post-V1에서 Linux artifact를 만들면 별도 AppImage smoke matrix를 추가한다. |

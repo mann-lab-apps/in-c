@@ -52,6 +52,14 @@ flutter build ios --release --no-codesign
 - 2026-08-31 `adb devices -l` 기준 연결된 Android 기기는 없어서 튜너 실마이크 QA는 아직 미실행이다.
   이번 기록은 로컬 자동 검증과 QA handoff 기준으로만 해석한다.
 
+2026-09-02 최종 UI polish 내부테스트 준비:
+
+- 현재 RC 후보 앱 버전: `1.0.0+14`.
+- 앱 이름/런처 label은 `Clef & Staff`이다.
+- 추가 확인 대상: 렌더링 프리셋 아이콘 구분, 튜너 첫 화면 자동 시작/핵심 UI 노출, 중복 라이브러리
+  생성 안내, 일반 화면 `악보 추가` 상단 단일 CTA.
+- 새 내부테스트 업로드는 `1.0.0+14` release AAB를 사용한다.
+
 ## 준비물
 
 Repo 포함 fixture:
@@ -218,3 +226,12 @@ LED/input bar 읽기 쉬움: 예 / 아니오
 2. high/medium은 재현 단계와 sample availability를 확인해 RC fix 후보로 분류한다.
 3. 외부 샘플, 장비, 플랫폼 계정이 없으면 blocker 해제 조건을 적고 v1.1 spike backlog와 연결한다.
 4. 통과한 build 산출물과 실패한 산출물은 `clef-v1-rc-qa-plan.md` 검증 기록에 반영한다.
+
+## 2026-09-02 내부테스트 산출물
+
+- 현재 QA 대상: `Clef & Staff` `1.0.0+14`.
+- Play Console 업로드 후보: `apps/in_c_sheet/build/app/outputs/bundle/release/clef-and-staff-1.0.0+14-release.aab`.
+- 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
+- 파일 크기: 약 67MB.
+- SHA-256: `1398d3d54343695e4712ab4e140e64def4d982895b08b29ecfd057c2d18945b6`.
+- upload key SHA1: `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.

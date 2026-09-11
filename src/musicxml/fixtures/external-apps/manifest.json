@@ -1,0 +1,106 @@
+{
+  "fixtures": [
+    {
+      "id": "musescore-grand-staff-basic",
+      "sourceApp": "MuseScore",
+      "origin": "compatibility-seed",
+      "collectionStatus": "seed-placeholder",
+      "exportSettings": "Hand-authored compatibility seed shaped after MuseScore grand staff MusicXML; not a verified MuseScore export.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
+      "path": "musescore-grand-staff-basic.musicxml",
+      "expectedPartNames": ["Piano"],
+      "expectedStaffCounts": [2],
+      "expectedClefs": ["G2", "F4"],
+      "expectedEventPitches": ["C4", "C3"],
+      "expectedDynamics": ["mf"],
+      "expectedArticulations": ["staccato"],
+      "expectedWarnings": [],
+      "expectedWarningPaths": []
+    },
+    {
+      "id": "finale-string-duet-basic",
+      "sourceApp": "Finale",
+      "origin": "compatibility-seed",
+      "collectionStatus": "seed-placeholder",
+      "exportSettings": "Hand-authored compatibility seed shaped after Finale-origin two-part MusicXML; not a verified Finale export.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
+      "path": "finale-string-duet-basic.musicxml",
+      "expectedPartNames": ["Violin", "Cello"],
+      "expectedStaffCounts": [1, 1],
+      "expectedClefs": ["G2", "F4"],
+      "expectedEventPitches": ["E5", "C3"],
+      "expectedDynamics": [],
+      "expectedArticulations": [],
+      "expectedWarnings": [],
+      "expectedWarningPaths": []
+    },
+    {
+      "id": "sibelius-multi-voice-basic",
+      "sourceApp": "Sibelius",
+      "origin": "compatibility-seed",
+      "collectionStatus": "seed-placeholder",
+      "exportSettings": "Hand-authored compatibility seed shaped after Sibelius-style same-staff voices; not a verified Sibelius export.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
+      "path": "sibelius-multi-voice-basic.musicxml",
+      "expectedPartNames": ["Piano"],
+      "expectedStaffCounts": [1],
+      "expectedClefs": ["G2"],
+      "expectedEventPitches": ["C4", "E4"],
+      "expectedVoiceCounts": [2],
+      "expectedDynamics": [],
+      "expectedArticulations": [],
+      "expectedWarnings": [],
+      "expectedWarningPaths": []
+    },
+    {
+      "id": "dorico-unsupported-directions",
+      "sourceApp": "Dorico",
+      "origin": "compatibility-seed",
+      "collectionStatus": "seed-placeholder",
+      "exportSettings": "Hand-authored compatibility seed shaped after Dorico-style unsupported directions; not a verified Dorico export.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#automated-seed-fixtures",
+      "path": "dorico-unsupported-directions.musicxml",
+      "expectedPartNames": ["Viola"],
+      "expectedStaffCounts": [1],
+      "expectedClefs": ["C3"],
+      "expectedEventPitches": ["C4"],
+      "expectedDynamics": [],
+      "expectedArticulations": [],
+      "expectedWarnings": ["unsupported-notation", "unsupported-direction"],
+      "expectedWarningPaths": [
+        "measure[1].direction[1].direction-type[1].pedal",
+        "measure[1].note[1].notations.technical"
+      ]
+    }
+  ],
+  "requiredAppExports": [
+    {
+      "sourceApp": "MuseScore",
+      "collectionStatus": "manual-collection-required",
+      "targetFixtureId": "musescore-grand-staff-app-export",
+      "exportSettings": "MuseScore Studio: export uncompressed MusicXML (.musicxml) from a piano grand staff score using default notation/style settings; record exact app version.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
+    },
+    {
+      "sourceApp": "Dorico",
+      "collectionStatus": "manual-collection-required",
+      "targetFixtureId": "dorico-notation-report-app-export",
+      "exportSettings": "Dorico: export uncompressed MusicXML (.musicxml) from a score containing supported dynamics/articulations and unsupported advanced directions; record exact app version and export options.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
+    },
+    {
+      "sourceApp": "Sibelius",
+      "collectionStatus": "manual-collection-required",
+      "targetFixtureId": "sibelius-multi-voice-app-export",
+      "exportSettings": "Sibelius: export uncompressed MusicXML (.musicxml) from a same-staff multi-voice score using standard MusicXML export settings; record exact app version.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
+    },
+    {
+      "sourceApp": "Finale",
+      "collectionStatus": "manual-collection-required",
+      "targetFixtureId": "finale-ensemble-app-export",
+      "exportSettings": "Finale-origin file: export uncompressed MusicXML (.musicxml) from Finale 27 or a preserved Finale-origin fixture with documented export source/version; record any migration app if Finale is unavailable.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
+    }
+  ]
+}

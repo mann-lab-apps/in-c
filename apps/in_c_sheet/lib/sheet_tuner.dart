@@ -263,26 +263,51 @@ enum SheetTunerPreset {
 
   String get label {
     return switch (this) {
-      SheetTunerPreset.chromatic => 'Chromatic',
-      SheetTunerPreset.guitarStandard => 'Guitar standard',
-      SheetTunerPreset.guitarDropD => 'Guitar drop D',
-      SheetTunerPreset.guitarDadgad => 'Guitar DADGAD',
-      SheetTunerPreset.guitarHalfStepDown => 'Guitar half-step down',
-      SheetTunerPreset.guitarSevenString => '7-string guitar',
-      SheetTunerPreset.bassStandard => 'Bass standard',
-      SheetTunerPreset.bassFiveString => '5-string bass',
-      SheetTunerPreset.ukuleleStandard => 'Ukulele standard',
-      SheetTunerPreset.mandolinStandard => 'Mandolin standard',
-      SheetTunerPreset.violin => 'Violin',
-      SheetTunerPreset.viola => 'Viola',
-      SheetTunerPreset.cello => 'Cello',
-      SheetTunerPreset.doubleBass => 'Double Bass',
-      SheetTunerPreset.bbTrumpet => 'Bb Trumpet',
-      SheetTunerPreset.bbClarinet => 'Bb Clarinet',
-      SheetTunerPreset.altoSax => 'Alto Sax',
-      SheetTunerPreset.tenorSax => 'Tenor Sax',
-      SheetTunerPreset.frenchHorn => 'Horn in F',
-      SheetTunerPreset.manual => 'Manual',
+      SheetTunerPreset.chromatic => '크로매틱',
+      SheetTunerPreset.guitarStandard => '기타 Standard',
+      SheetTunerPreset.guitarDropD => '기타 Drop D',
+      SheetTunerPreset.guitarDadgad => '기타 DADGAD',
+      SheetTunerPreset.guitarHalfStepDown => '기타 반음 낮춤',
+      SheetTunerPreset.guitarSevenString => '7현 기타',
+      SheetTunerPreset.bassStandard => '베이스 Standard',
+      SheetTunerPreset.bassFiveString => '5현 베이스',
+      SheetTunerPreset.ukuleleStandard => '우쿨렐레 Standard',
+      SheetTunerPreset.mandolinStandard => '만돌린 Standard',
+      SheetTunerPreset.violin => '바이올린',
+      SheetTunerPreset.viola => '비올라',
+      SheetTunerPreset.cello => '첼로',
+      SheetTunerPreset.doubleBass => '더블베이스',
+      SheetTunerPreset.bbTrumpet => 'Bb 트럼펫',
+      SheetTunerPreset.bbClarinet => 'Bb 클라리넷',
+      SheetTunerPreset.altoSax => '알토 색소폰',
+      SheetTunerPreset.tenorSax => '테너 색소폰',
+      SheetTunerPreset.frenchHorn => 'F 호른',
+      SheetTunerPreset.manual => '직접 설정',
+    };
+  }
+
+  bool get usesStringTargetPanel {
+    return switch (this) {
+      SheetTunerPreset.guitarStandard ||
+      SheetTunerPreset.guitarDropD ||
+      SheetTunerPreset.guitarDadgad ||
+      SheetTunerPreset.guitarHalfStepDown ||
+      SheetTunerPreset.guitarSevenString ||
+      SheetTunerPreset.bassStandard ||
+      SheetTunerPreset.bassFiveString ||
+      SheetTunerPreset.ukuleleStandard ||
+      SheetTunerPreset.mandolinStandard => true,
+      _ => false,
+    };
+  }
+
+  String get stringTargetPanelLabel {
+    return switch (this) {
+      SheetTunerPreset.bassStandard ||
+      SheetTunerPreset.bassFiveString => '베이스 줄 선택',
+      SheetTunerPreset.ukuleleStandard => '우쿨렐레 줄 선택',
+      SheetTunerPreset.mandolinStandard => '만돌린 줄 선택',
+      _ => '기타 줄 선택',
     };
   }
 
@@ -988,6 +1013,29 @@ class SheetTunerTarget {
     }
     return '${written.labelWith(preferFlats: shouldPreferFlats)}'
         ' · Concert ${concert.labelWith(preferFlats: true)}';
+  }
+}
+
+class SheetTunerStringTarget {
+  const SheetTunerStringTarget({
+    required this.stringNumber,
+    required this.target,
+  });
+
+  final int stringNumber;
+  final SheetTunerTarget target;
+
+  static List<SheetTunerStringTarget> fromTargets(
+    List<SheetTunerTarget> targets,
+  ) {
+    return List<SheetTunerStringTarget>.unmodifiable(
+      List<SheetTunerStringTarget>.generate(targets.length, (index) {
+        return SheetTunerStringTarget(
+          stringNumber: targets.length - index,
+          target: targets[index],
+        );
+      }),
+    );
   }
 }
 

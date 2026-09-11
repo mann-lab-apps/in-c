@@ -97,7 +97,7 @@ describe('playback timeline', () => {
     })
   })
 
-  it('maps positioned tempo events onto the playback timeline', () => {
+  it('playback.tempo-map maps positioned tempo events onto the playback timeline', () => {
     const score = createScore({
       tempoEvents: [
         {
@@ -143,7 +143,58 @@ describe('playback timeline', () => {
     ])
   })
 
-  it('uses tempo events when converting playback beats and seconds', () => {
+  it('playback.tempo-map maps positioned tempo events attached outside the first staff timeline', () => {
+    const score = createScore({
+      tempoEvents: [
+        {
+          id: 'part-2-tempo-change',
+          measureId: 'part-2-measure-2',
+          tick: TICKS_PER_QUARTER,
+          bpm: 84,
+          beatUnit: 'quarter'
+        }
+      ],
+      parts: [
+        createPart({
+          id: 'part-1',
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({ id: 'part-1-measure-1', number: 1 }),
+                createMeasure({ id: 'part-1-measure-2', number: 2 })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'part-2',
+          staves: [
+            createStaff({
+              id: 'part-2-staff-1',
+              measures: [
+                createMeasure({ id: 'part-2-measure-1', number: 1 }),
+                createMeasure({ id: 'part-2-measure-2', number: 2 })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.tempoEvents).toEqual([
+      {
+        id: 'part-2-tempo-change',
+        measureId: 'part-2-measure-2',
+        startBeat: 5,
+        bpm: 84,
+        quarterBpm: 84,
+        text: undefined
+      }
+    ])
+  })
+
+  it('playback.tempo-map uses tempo events when converting playback beats and seconds', () => {
     const timeline = {
       totalBeats: 8,
       tempoEvents: [
@@ -274,6 +325,342 @@ describe('playback timeline', () => {
         .filter((event) => event.frequency !== undefined)
         .map((event) => event.startBeat)
     ).toEqual([0, 4, 8, 12, 16, 20])
+  })
+
+  it('applies repeat expansion score-wide across multiple parts', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'violin',
+          name: 'Violin',
+          staves: [
+            createStaff({
+              id: 'violin-staff',
+              measures: [
+                createMeasure({
+                  id: 'violin-measure-1',
+                  number: 1,
+                  repeat: {
+                    start: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'violin-repeat-start',
+                          pitch: { step: 'C', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'violin-measure-2',
+                  number: 2,
+                  repeat: {
+                    end: true,
+                    times: 3
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'violin-repeat-end',
+                          pitch: { step: 'D', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          name: 'Cello',
+          staves: [
+            createStaff({
+              id: 'cello-staff',
+              measures: [
+                createMeasure({
+                  id: 'cello-measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'cello-repeat-start',
+                          pitch: { step: 'C', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'cello-measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'cello-repeat-end',
+                          pitch: { step: 'D', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.totalBeats).toBe(24)
+    expect(
+      timeline.events
+        .filter((event) => event.partId === 'cello')
+        .map((event) => `${event.eventId}:${event.startBeat}`)
+    ).toEqual([
+      'cello-repeat-start:0',
+      'cello-repeat-end:4',
+      'cello-repeat-start:8',
+      'cello-repeat-end:12',
+      'cello-repeat-start:16',
+      'cello-repeat-end:20'
+    ])
+  })
+
+  it('applies canonical volta playback across grand staff measures', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'piano',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'right-hand',
+              measures: [
+                createMeasure({
+                  id: 'right-measure-1',
+                  number: 1,
+                  repeat: {
+                    start: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'right-start',
+                          pitch: { step: 'C', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'right-measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'right-body',
+                          pitch: { step: 'D', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'right-measure-3',
+                  number: 3,
+                  repeat: {
+                    end: true
+                  },
+                  volta: {
+                    number: 1,
+                    start: true,
+                    end: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'right-first-ending',
+                          pitch: { step: 'E', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'right-measure-4',
+                  number: 4,
+                  volta: {
+                    number: 2,
+                    start: true,
+                    end: true
+                  },
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'right-second-ending',
+                          pitch: { step: 'F', octave: 5 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }),
+            createStaff({
+              id: 'left-hand',
+              measures: [
+                createMeasure({
+                  id: 'left-measure-1',
+                  number: 1,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'left-start',
+                          pitch: { step: 'C', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'left-measure-2',
+                  number: 2,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'left-body',
+                          pitch: { step: 'D', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'left-measure-3',
+                  number: 3,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'left-first-ending',
+                          pitch: { step: 'E', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'left-measure-4',
+                  number: 4,
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'left-second-ending',
+                          pitch: { step: 'F', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.totalBeats).toBe(24)
+    expect(
+      timeline.events
+        .filter((event) => event.staffId === 'left-hand')
+        .map((event) => `${event.eventId}:${event.startBeat}`)
+    ).toEqual([
+      'left-start:0',
+      'left-body:4',
+      'left-first-ending:8',
+      'left-start:12',
+      'left-body:16',
+      'left-second-ending:20'
+    ])
+  })
+
+  it('duplicates tempo events inside score-wide repeated measures', () => {
+    const score = createScore({
+      tempoEvents: [
+        {
+          id: 'repeat-tempo',
+          measureId: 'violin-measure-2',
+          tick: TICKS_PER_QUARTER,
+          bpm: 92,
+          beatUnit: 'quarter'
+        }
+      ],
+      parts: [
+        createPart({
+          id: 'violin',
+          staves: [
+            createStaff({
+              id: 'violin-staff',
+              measures: [
+                createMeasure({
+                  id: 'violin-measure-1',
+                  repeat: {
+                    start: true
+                  }
+                }),
+                createMeasure({
+                  id: 'violin-measure-2',
+                  repeat: {
+                    end: true,
+                    times: 3
+                  }
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          staves: [
+            createStaff({
+              id: 'cello-staff',
+              measures: [
+                createMeasure({ id: 'cello-measure-1' }),
+                createMeasure({ id: 'cello-measure-2' })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(timeline.tempoEvents.map((event) => event.startBeat)).toEqual([
+      5,
+      13,
+      21
+    ])
+    expect(timeline.tempoEvents.map((event) => event.quarterBpm)).toEqual([
+      92,
+      92,
+      92
+    ])
   })
 
   it('places measures after a repeat after the expanded playback section', () => {
@@ -540,7 +927,7 @@ describe('playback timeline', () => {
     expect(timeline.totalBeats).toBe(4)
   })
 
-  it('keeps simultaneous voices addressable on one staff', () => {
+  it('playback.cursor-selection-sync keeps simultaneous voices addressable on one staff', () => {
     const score = createScore({
       parts: [
         createPart({
@@ -595,6 +982,79 @@ describe('playback timeline', () => {
     expect(timeline.events.slice(0, 2).map((event) => event.startBeat)).toEqual([
       0,
       0
+    ])
+  })
+
+  it('playback.cursor-selection-sync preserves grand-staff staff and same-staff voice addresses together', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'piano',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'right-hand',
+              measures: [
+                createMeasure({
+                  id: 'right-measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'right-upper',
+                          pitch: { step: 'E', octave: 5 }
+                        })
+                      ]
+                    }),
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createNote({
+                          id: 'right-lower-voice',
+                          pitch: { step: 'C', octave: 4 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }),
+            createStaff({
+              id: 'left-hand',
+              measures: [
+                createMeasure({
+                  id: 'left-measure-1',
+                  clef: { sign: 'F', line: 4 },
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'left-bass',
+                          pitch: { step: 'C', octave: 3 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(
+      timeline.events.map(
+        (event) =>
+          `${event.eventId}:${event.partId}:${event.staffId}:${event.measureId}:${event.voiceId}:${event.startBeat}`
+      )
+    ).toEqual([
+      'right-upper:piano:right-hand:right-measure-1:voice-1:0',
+      'right-lower-voice:piano:right-hand:right-measure-1:voice-2:0',
+      'left-bass:piano:left-hand:left-measure-1:voice-1:0'
     ])
   })
 
@@ -815,6 +1275,105 @@ describe('playback timeline', () => {
     })
   })
 
+  it('playback.tie-and-triplet-duration keeps cross-measure ties addressable per voice on one staff', () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              measures: [
+                createMeasure({
+                  id: 'measure-1',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createRest({
+                          id: 'upper-rest',
+                          position: createTimePosition(0),
+                          duration: createDuration('half', 1)
+                        }),
+                        createNote({
+                          id: 'upper-tie-start',
+                          position: createTimePosition(TICKS_PER_QUARTER * 3),
+                          pitch: { step: 'C', octave: 5 },
+                          ties: { start: true }
+                        })
+                      ]
+                    }),
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createNote({
+                          id: 'lower-sustained-note',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 3 },
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                }),
+                createMeasure({
+                  id: 'measure-2',
+                  voices: [
+                    createVoice({
+                      id: 'voice-1',
+                      events: [
+                        createNote({
+                          id: 'upper-tie-stop',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 5 },
+                          ties: { stop: true }
+                        }),
+                        createRest({
+                          id: 'upper-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    }),
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createRest({
+                          id: 'lower-fill',
+                          position: createTimePosition(0),
+                          duration: createDuration('whole')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+    const upperTie = timeline.events.find(
+      (event) => event.eventId === 'upper-tie-start'
+    )
+
+    expect(upperTie).toMatchObject({
+      voiceId: 'voice-1',
+      measureId: 'measure-1',
+      startBeat: 3,
+      durationBeats: 2
+    })
+    expect(
+      timeline.events.some((event) => event.eventId === 'upper-tie-stop')
+    ).toBe(false)
+    expect(
+      timeline.events.find((event) => event.eventId === 'lower-sustained-note')
+    ).toMatchObject({
+      voiceId: 'voice-2',
+      startBeat: 0,
+      durationBeats: 4
+    })
+  })
+
   it('playback.tie-and-triplet-duration places triplet events on proportional playback beats', () => {
     const duration = {
       ...createDuration('eighth'),
@@ -878,13 +1437,109 @@ describe('playback timeline', () => {
     })
   })
 
+  it('playback.tie-and-triplet-duration keeps ensemble tuplets on the shared beat grid', () => {
+    const tripletDuration = {
+      ...createDuration('eighth'),
+      tuplet: {
+        actualNotes: 3,
+        normalNotes: 2
+      }
+    }
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'violin',
+          name: 'Violin',
+          staves: [
+            createStaff({
+              id: 'violin-staff',
+              measures: [
+                createMeasure({
+                  id: 'violin-measure-1',
+                  voices: [
+                    createVoice({
+                      events: [
+                        ...Array.from({ length: 3 }, (_, index) =>
+                          createNote({
+                            id: `violin-triplet-${index + 1}`,
+                            position: createTimePosition(
+                              (TICKS_PER_QUARTER / 3) * index
+                            ),
+                            pitch: { step: 'E', octave: 5 },
+                            duration: tripletDuration
+                          })
+                        )
+                      ],
+                      tuplets: [
+                        {
+                          id: 'violin-triplet',
+                          eventIds: [
+                            'violin-triplet-1',
+                            'violin-triplet-2',
+                            'violin-triplet-3'
+                          ],
+                          actualNotes: 3,
+                          normalNotes: 2
+                        }
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        }),
+        createPart({
+          id: 'cello',
+          name: 'Cello',
+          staves: [
+            createStaff({
+              id: 'cello-staff',
+              measures: [
+                createMeasure({
+                  id: 'cello-measure-1',
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'cello-downbeat',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 3 },
+                          duration: createDuration('quarter')
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const timeline = createPlaybackTimeline(score)
+
+    expect(
+      timeline.events
+        .filter((event) => event.partId === 'violin')
+        .map((event) => event.startBeat)
+    ).toEqual([0, 1 / 3, 2 / 3])
+    expect(
+      timeline.events.find((event) => event.eventId === 'cello-downbeat')
+    ).toMatchObject({
+      partId: 'cello',
+      startBeat: 0,
+      durationBeats: 1
+    })
+  })
+
   it('maps dynamic markings to playback velocity', () => {
     const score = createScore({
       dynamics: [
         {
-          id: 'dynamic-p',
+          id: 'dynamic-ff',
           measureId: 'measure-1',
-          value: 'p'
+          value: 'ff'
         }
       ],
       parts: [
@@ -918,8 +1573,8 @@ describe('playback timeline', () => {
     })
     const event = createPlaybackTimeline(score).events[0]
 
-    expect(event.velocityStart).toBeCloseTo(0.09)
-    expect(event.velocityEnd).toBeCloseTo(0.09)
+    expect(event.velocityStart).toBeCloseTo(0.235)
+    expect(event.velocityEnd).toBeCloseTo(0.235)
   })
 
   it.each([

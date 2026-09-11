@@ -6,6 +6,7 @@ import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
 const savePdfChannel = 'pdf:save'
+const saveMidiChannel = 'midi:save'
 const readAutosaveChannel = 'autosave:read'
 const writeAutosaveChannel = 'autosave:write'
 const clearAutosaveChannel = 'autosave:clear'
@@ -31,6 +32,91 @@ interface RecentMusicXmlFile {
   filePath: string
   fileName: string
   openedAt: string
+}
+
+function assertSmokeDirectSavePath(filePath: string, extension: string): void {
+  if (!isSmokeTest) {
+    throw new Error('Direct file path save is only available in smoke tests.')
+  }
+
+  const expectedPath = join(
+    app.getPath('temp'),
+    `in-c-packaged-smoke-${process.pid}.${extension}`
+  )
+
+  if (filePath !== expectedPath) {
+    throw new Error('Smoke test direct save path is outside the allowed target.')
+  }
+}
+
+function validateSmokePdf(pdfData: Buffer): void {
+  const pdfText = pdfData.toString('latin1')
+  const pageMatches = pdfText.match(/\/Type\s*\/Page\b/g) ?? []
+
+  if (pdfData.subarray(0, 4).toString('utf8') !== '%PDF') {
+    throw new Error('Packaged PDF smoke file does not have a PDF header.')
+  }
+
+  if (!pdfText.includes('%%EOF')) {
+    throw new Error('Packaged PDF smoke file does not have an EOF marker.')
+  }
+
+  if (pageMatches.length < 1) {
+    throw new Error('Packaged PDF smoke file does not contain a page object.')
+  }
+
+  if (!pdfText.includes('/MediaBox')) {
+    throw new Error('Packaged PDF smoke file does not contain a page MediaBox.')
+  }
+}
+
+function validateSmokeMidi(midiData: Buffer): void {
+  if (midiData.subarray(0, 4).toString('utf8') !== 'MThd') {
+    throw new Error('Packaged MIDI smoke file does not have a MIDI header.')
+  }
+
+  if (midiData.readUInt32BE(4) !== 6) {
+    throw new Error('Packaged MIDI smoke file has an invalid header length.')
+  }
+
+  if (midiData.readUInt16BE(8) !== 1) {
+    throw new Error('Packaged MIDI smoke file is not Standard MIDI File type 1.')
+  }
+
+  const trackCount = midiData.readUInt16BE(10)
+
+  if (trackCount < 2) {
+    throw new Error('Packaged MIDI smoke file does not contain tempo and note tracks.')
+  }
+
+  if (midiData.readUInt16BE(12) !== 480) {
+    throw new Error('Packaged MIDI smoke file has an unexpected tick division.')
+  }
+
+  let offset = 14
+
+  for (let trackIndex = 0; trackIndex < trackCount; trackIndex += 1) {
+    if (midiData.subarray(offset, offset + 4).toString('utf8') !== 'MTrk') {
+      throw new Error(`Packaged MIDI smoke track ${trackIndex + 1} is missing.`)
+    }
+
+    const trackLength = midiData.readUInt32BE(offset + 4)
+    const trackStart = offset + 8
+    const trackEnd = trackStart + trackLength
+    const track = midiData.subarray(trackStart, trackEnd)
+
+    if (track.subarray(-4).toString('hex') !== '00ff2f00') {
+      throw new Error(
+        `Packaged MIDI smoke track ${trackIndex + 1} is missing end-of-track.`
+      )
+    }
+
+    offset = trackEnd
+  }
+
+  if (offset !== midiData.length) {
+    throw new Error('Packaged MIDI smoke file has trailing or truncated data.')
+  }
 }
 
 ipcMain.handle(openMusicXmlChannel, async () => {
@@ -69,6 +155,7 @@ ipcMain.handle(
     }
   ) => {
     if (input.filePath) {
+      assertSmokeDirectSavePath(input.filePath, 'musicxml')
       await writeMusicXmlFile(input.filePath, input.contents)
       return {
         filePath: input.filePath,
@@ -104,16 +191,81 @@ ipcMain.handle(
   async (
     event,
     input: {
+      filePath?: string
       suggestedName: string
     }
   ) => {
+    const senderWindow = BrowserWindow.fromWebContents(event.sender)
+
+    if (!senderWindow) {
+      throw new Error('PDF를 생성할 창을 찾을 수 없습니다.')
+    }
+
+    if (input.filePath) {
+      assertSmokeDirectSavePath(input.filePath, 'pdf')
+    }
+
+    let outputPath = input.filePath
+
+    if (!outputPath) {
+      const result = await dialog.showSaveDialog({
+        title: 'PDF 변환',
+        defaultPath: input.suggestedName,
+        filters: [
+          {
+            name: 'PDF',
+            extensions: ['pdf']
+          }
+        ]
+      })
+
+      if (result.canceled || !result.filePath) {
+        return null
+      }
+
+      outputPath = result.filePath
+    }
+
+    const pdfData = await senderWindow.webContents.printToPDF({
+      preferCSSPageSize: true,
+      printBackground: false
+    })
+
+    await writeFile(outputPath, pdfData)
+
+    return {
+      filePath: outputPath,
+      fileName: basename(outputPath)
+    }
+  }
+)
+
+ipcMain.handle(
+  saveMidiChannel,
+  async (
+    _event,
+    input: {
+      filePath?: string
+      suggestedName: string
+      contents: number[]
+    }
+  ) => {
+    if (input.filePath) {
+      assertSmokeDirectSavePath(input.filePath, 'mid')
+      await writeFile(input.filePath, Buffer.from(input.contents))
+      return {
+        filePath: input.filePath,
+        fileName: basename(input.filePath)
+      }
+    }
+
     const result = await dialog.showSaveDialog({
-      title: 'PDF 변환',
+      title: 'MIDI 내보내기',
       defaultPath: input.suggestedName,
       filters: [
         {
-          name: 'PDF',
-          extensions: ['pdf']
+          name: 'MIDI',
+          extensions: ['mid', 'midi']
         }
       ]
     })
@@ -122,20 +274,10 @@ ipcMain.handle(
       return null
     }
 
-    const senderWindow = BrowserWindow.fromWebContents(event.sender)
-
-    if (!senderWindow) {
-      throw new Error('PDF를 생성할 창을 찾을 수 없습니다.')
-    }
-
-    const pdfData = await senderWindow.webContents.printToPDF({
-      preferCSSPageSize: true,
-      printBackground: false
-    })
-
-    await writeFile(result.filePath, pdfData)
+    await writeFile(result.filePath, Buffer.from(input.contents))
 
     return {
+      filePath: result.filePath,
       fileName: basename(result.filePath)
     }
   }
@@ -291,48 +433,344 @@ const createWindow = (): void => {
       return
     }
 
+    const smokeMusicXmlPath = join(
+      app.getPath('temp'),
+      `in-c-packaged-smoke-${process.pid}.musicxml`
+    )
+    const smokePdfPath = join(
+      app.getPath('temp'),
+      `in-c-packaged-smoke-${process.pid}.pdf`
+    )
+    const smokeMidiPath = join(
+      app.getPath('temp'),
+      `in-c-packaged-smoke-${process.pid}.mid`
+    )
+    const smokeMusicXmlContents = `<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <work><work-title>Packaged Smoke</work-title></work>
+  <part-list>
+    <score-part id="P1"><part-name>Smoke</part-name></score-part>
+  </part-list>
+  <part id="P1">
+    <measure number="1">
+      <attributes>
+        <divisions>1</divisions>
+        <key><fifths>0</fifths></key>
+        <time><beats>4</beats><beat-type>4</beat-type></time>
+        <clef><sign>G</sign><line>2</line></clef>
+      </attributes>
+      <note>
+        <pitch><step>C</step><octave>4</octave></pitch>
+        <duration>4</duration>
+        <voice>1</voice>
+        <type>whole</type>
+      </note>
+    </measure>
+  </part>
+</score-partwise>`
+    const smokeMidiContents = [
+      0x4d, 0x54, 0x68, 0x64, 0x00, 0x00, 0x00, 0x06,
+      0x00, 0x01, 0x00, 0x02, 0x01, 0xe0, 0x4d, 0x54,
+      0x72, 0x6b, 0x00, 0x00, 0x00, 0x0b, 0x00, 0xff,
+      0x51, 0x03, 0x07, 0xa1, 0x20, 0x00, 0xff, 0x2f,
+      0x00, 0x4d, 0x54, 0x72, 0x6b, 0x00, 0x00, 0x00,
+      0x19, 0x00, 0xff, 0x03, 0x05, 0x53, 0x6d, 0x6f,
+      0x6b, 0x65, 0x00, 0xc0, 0x00, 0x00, 0x90, 0x3c,
+      0x64, 0x83, 0x60, 0x80, 0x3c, 0x00, 0x00, 0xff,
+      0x2f, 0x00
+    ]
+
     try {
       const result = await mainWindow.webContents.executeJavaScript(`
-        ({
-          appName: window.inC?.appName,
-          hasMusicXmlBridge:
+        (async () => {
+          const smokeMusicXmlPath = ${JSON.stringify(smokeMusicXmlPath)}
+          const smokePdfPath = ${JSON.stringify(smokePdfPath)}
+          const smokeMidiPath = ${JSON.stringify(smokeMidiPath)}
+          const smokeMusicXmlContents = ${JSON.stringify(smokeMusicXmlContents)}
+          const smokeMidiContents = ${JSON.stringify(smokeMidiContents)}
+          const appName = window.inC?.appName
+          const hasMusicXmlBridge =
             typeof window.inC?.musicXml?.open === 'function' &&
-            typeof window.inC?.musicXml?.save === 'function',
-          hasPdfBridge: typeof window.inC?.pdf?.save === 'function',
-          hasAutosaveBridge:
+            typeof window.inC?.musicXml?.save === 'function'
+          const hasPdfBridge = typeof window.inC?.pdf?.save === 'function'
+          const hasMidiBridge = typeof window.inC?.midi?.save === 'function'
+          const hasAutosaveBridge =
             typeof window.inC?.autosave?.read === 'function' &&
             typeof window.inC?.autosave?.write === 'function' &&
-            typeof window.inC?.autosave?.clear === 'function',
-          hasRecentBridge:
+            typeof window.inC?.autosave?.clear === 'function'
+          const hasRecentBridge =
             typeof window.inC?.recentMusicXml?.list === 'function' &&
             typeof window.inC?.recentMusicXml?.add === 'function' &&
             typeof window.inC?.recentMusicXml?.open === 'function' &&
-            typeof window.inC?.recentMusicXml?.remove === 'function',
-          hasPromotionsBridge:
-            typeof window.inC?.promotions?.getConcertPosters === 'function',
-          hasStartScreen: Boolean(document.querySelector('.start-screen')),
-          hasStartActions: document.querySelectorAll('.start-action').length >= 3
-        })
+            typeof window.inC?.recentMusicXml?.remove === 'function'
+          const hasPromotionsBridge =
+            typeof window.inC?.promotions?.getConcertPosters === 'function'
+          const hasStartScreen = Boolean(document.querySelector('.start-screen'))
+          const hasStartActions = document.querySelectorAll('.start-action').length >= 3
+
+          document.querySelector('.start-action')?.click()
+          await new Promise((resolve) => setTimeout(resolve, 150))
+
+          const setInputValue = (input, value) => {
+            if (!input) {
+              throw new Error('Packaged smoke new score input not found.')
+            }
+
+            const setter = Object.getOwnPropertyDescriptor(
+              HTMLInputElement.prototype,
+              'value'
+            ).set
+            setter.call(input, value)
+            input.dispatchEvent(new Event('input', { bubbles: true }))
+          }
+          const setSelectValue = (select, value) => {
+            if (!select) {
+              throw new Error('Packaged smoke new score select not found.')
+            }
+
+            const setter = Object.getOwnPropertyDescriptor(
+              HTMLSelectElement.prototype,
+              'value'
+            ).set
+            setter.call(select, value)
+            select.dispatchEvent(new Event('change', { bubbles: true }))
+          }
+          const waitForCondition = async (predicate, message) => {
+            for (let attempt = 0; attempt < 20; attempt += 1) {
+              if (predicate()) {
+                return
+              }
+              await new Promise((resolve) => setTimeout(resolve, 50))
+            }
+            throw new Error(message)
+          }
+          const labels = [...document.querySelectorAll('.new-score-form label')]
+          const field = (name) =>
+            labels.find((label) => label.textContent?.includes(name))
+              ?.querySelector('input, select')
+
+          setInputValue(field('제목'), 'Packaged Smoke Score')
+          setInputValue(field('작곡가'), 'Codex QA')
+          setSelectValue(field('악보 구성'), 'string-quartet')
+          setSelectValue(field('조표'), 'c-major')
+          setSelectValue(field('박자표'), '4-4')
+          setInputValue(field('마디 수'), '4')
+          setInputValue(field('빠르기'), '96')
+          document
+            .querySelector('form[aria-label="새 악보 만들기"]')
+            ?.dispatchEvent(
+              new SubmitEvent('submit', { bubbles: true, cancelable: true })
+            )
+          await new Promise((resolve) => setTimeout(resolve, 300))
+
+          const hasScoreWorkspace = !document.querySelector('.start-screen')
+          const hasScoreTitle = document.body.textContent?.includes(
+            'Packaged Smoke Score'
+          )
+          const hasNotationSvg = Boolean(
+            document.querySelector('.notation-preview svg')
+          )
+
+          const savedMusicXml = await window.inC.musicXml.save({
+            filePath: smokeMusicXmlPath,
+            suggestedName: 'packaged-smoke.musicxml',
+            contents: smokeMusicXmlContents
+          })
+          const recentFiles = await window.inC.recentMusicXml.add({
+            filePath: smokeMusicXmlPath,
+            fileName: 'packaged-smoke.musicxml'
+          })
+          const openedMusicXml = await window.inC.recentMusicXml.open({
+            filePath: smokeMusicXmlPath
+          })
+          const savedPdf = await window.inC.pdf.save({
+            filePath: smokePdfPath,
+            suggestedName: 'packaged-smoke.pdf'
+          })
+          ;[...document.querySelectorAll('.toolbar-tabs button')]
+            .find((button) => button.textContent?.trim() === '악보')
+            ?.click()
+          await new Promise((resolve) => setTimeout(resolve, 100))
+          setSelectValue(
+            document.querySelector('select[aria-label="악보 보기"]'),
+            'part'
+          )
+          await waitForCondition(
+            () =>
+              document.querySelector('select[aria-label="파트보 선택"]')
+                ?.disabled === false,
+            'Packaged smoke part view select did not become enabled.'
+          )
+          setSelectValue(
+            document.querySelector('select[aria-label="파트보 선택"]'),
+            'cello'
+          )
+          setSelectValue(
+            document.querySelector('select[aria-label="PDF 설정 프리셋"]'),
+            'compact-parts'
+          )
+          await waitForCondition(
+            () =>
+              document
+                .querySelector('[aria-label="파트보 제목"]')
+                ?.textContent?.trim() === 'Cello' &&
+              document.body.textContent?.includes('파트보: Cello'),
+            'Packaged smoke Cello part view did not render.'
+          )
+          const partViewPdfTarget = {
+            labels: [...document.querySelectorAll('.notation-staff-label')]
+              .map((label) => ({
+                partId: label.getAttribute('data-part-id'),
+                staffId: label.getAttribute('data-staff-id'),
+                text: label.textContent?.trim()
+              })),
+            pagePartId: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-part-id'),
+            pageViewMode: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-view-mode'),
+            pdfPageMarginMm: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-pdf-page-margin-mm'),
+            pdfPageOrientation: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-pdf-page-orientation'),
+            pdfPageSize: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-pdf-page-size'),
+            pdfStaffSizePercent: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-pdf-staff-size-percent'),
+            pdfSystemSpacingPercent: document
+              .querySelector('[aria-label="악보 페이지"]')
+              ?.getAttribute('data-pdf-system-spacing-percent'),
+            partTitle: document
+              .querySelector('[aria-label="파트보 제목"]')
+              ?.textContent?.trim(),
+            partTitlePartId: document
+              .querySelector('[aria-label="파트보 제목"]')
+              ?.getAttribute('data-part-id'),
+            status: document.body.textContent?.includes('파트보: Cello'),
+            visiblePartIds: [
+              ...new Set(
+                [...document.querySelectorAll('.notation-event')]
+                  .map((event) => event.getAttribute('data-part-id'))
+                  .filter(Boolean)
+              )
+            ]
+          }
+          const savedPartPdf = await window.inC.pdf.save({
+            filePath: smokePdfPath,
+            suggestedName: 'packaged-smoke-cello.pdf'
+          })
+          const savedMidi = await window.inC.midi.save({
+            filePath: smokeMidiPath,
+            suggestedName: 'packaged-smoke.mid',
+            contents: smokeMidiContents
+          })
+          await window.inC.autosave.write({
+            score: { title: 'Packaged Smoke' },
+            title: 'Packaged Smoke'
+          })
+          const autosaveSnapshot = await window.inC.autosave.read()
+          await window.inC.autosave.clear()
+          await window.inC.recentMusicXml.remove({ filePath: smokeMusicXmlPath })
+
+          return {
+            appName,
+            hasMusicXmlBridge,
+            hasPdfBridge,
+            hasMidiBridge,
+            hasAutosaveBridge,
+            hasRecentBridge,
+            hasPromotionsBridge,
+            hasStartScreen,
+            hasStartActions,
+            partViewPdfTarget,
+            hasScoreWorkspace,
+            hasScoreTitle,
+            hasNotationSvg,
+            hasMusicXmlFileWrite:
+              savedMusicXml?.filePath === smokeMusicXmlPath &&
+              savedMusicXml?.fileName === 'in-c-packaged-smoke-${process.pid}.musicxml',
+            hasRecentOpenRoundTrip:
+              recentFiles.some((file) => file.filePath === smokeMusicXmlPath) &&
+              openedMusicXml?.contents === smokeMusicXmlContents,
+            hasPdfFileWrite:
+              savedPdf?.filePath === smokePdfPath &&
+              savedPdf?.fileName === 'in-c-packaged-smoke-${process.pid}.pdf',
+            hasPartViewPdfTarget:
+              partViewPdfTarget.partTitle === 'Cello' &&
+              partViewPdfTarget.partTitlePartId === 'cello' &&
+              partViewPdfTarget.pageViewMode === 'part' &&
+              partViewPdfTarget.pagePartId === 'cello' &&
+              partViewPdfTarget.pdfPageSize === 'a4' &&
+              partViewPdfTarget.pdfPageOrientation === 'portrait' &&
+              partViewPdfTarget.pdfPageMarginMm === '6' &&
+              partViewPdfTarget.pdfStaffSizePercent === '90' &&
+              partViewPdfTarget.pdfSystemSpacingPercent === '90' &&
+              partViewPdfTarget.status === true &&
+              partViewPdfTarget.visiblePartIds.length === 1 &&
+              partViewPdfTarget.visiblePartIds[0] === 'cello',
+            hasPartViewPdfFileWrite:
+              savedPartPdf?.filePath === smokePdfPath &&
+              savedPartPdf?.fileName === 'in-c-packaged-smoke-${process.pid}.pdf',
+            hasMidiFileWrite:
+              savedMidi?.filePath === smokeMidiPath &&
+              savedMidi?.fileName === 'in-c-packaged-smoke-${process.pid}.mid',
+            hasAutosaveRoundTrip:
+              autosaveSnapshot?.metadata?.title === 'Packaged Smoke'
+          }
+        })()
       `)
 
       if (
         result.appName !== 'in-C' ||
         !result.hasMusicXmlBridge ||
         !result.hasPdfBridge ||
+        !result.hasMidiBridge ||
         !result.hasAutosaveBridge ||
         !result.hasRecentBridge ||
         !result.hasPromotionsBridge ||
         !result.hasStartScreen ||
-        !result.hasStartActions
+        !result.hasStartActions ||
+        !result.hasScoreWorkspace ||
+        !result.hasScoreTitle ||
+        !result.hasNotationSvg ||
+        !result.hasMusicXmlFileWrite ||
+        !result.hasRecentOpenRoundTrip ||
+        !result.hasPdfFileWrite ||
+        !result.hasPartViewPdfTarget ||
+        !result.hasPartViewPdfFileWrite ||
+        !result.hasMidiFileWrite ||
+        !result.hasAutosaveRoundTrip
       ) {
         throw new Error(`Packaged renderer check failed: ${JSON.stringify(result)}`)
       }
+
+      const savedContents = await readFile(smokeMusicXmlPath, 'utf8')
+
+      if (savedContents !== smokeMusicXmlContents) {
+        throw new Error('Packaged MusicXML smoke file contents did not round-trip.')
+      }
+
+      const savedPdf = await readFile(smokePdfPath)
+      const savedMidi = await readFile(smokeMidiPath)
+
+      validateSmokePdf(savedPdf)
+
+      validateSmokeMidi(savedMidi)
 
       console.log(`PACKAGED_APP_SMOKE_OK ${JSON.stringify(result)}`)
       app.exit(0)
     } catch (error) {
       console.error(error)
       app.exit(1)
+    } finally {
+      await rm(smokeMusicXmlPath, { force: true })
+      await rm(smokePdfPath, { force: true })
+      await rm(smokeMidiPath, { force: true })
     }
   })
 

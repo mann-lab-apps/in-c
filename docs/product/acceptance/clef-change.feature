@@ -16,6 +16,13 @@ Feature: 선택한 마디의 음자리표를 바꾸고 유지하기
     And 다른 마디의 음자리표는 바뀌지 않는다
     And 변경 결과를 알리는 상태 문구가 보인다
 
+  @scenario-clef-change-current-staff
+  Scenario: 현재 보표 전체의 음자리표를 바꾼다
+    Given 여러 마디가 있는 악보가 열려 있다
+    When 사용자가 악보 탭에서 현재 보표 음자리표를 가온음자리표로 바꾼다
+    Then 현재 보표의 모든 마디 음자리표가 가온음자리표로 바뀐다
+    And 변경 결과를 알리는 상태 문구가 보인다
+
   @scenario-clef-staff-position
   Scenario: 같은 음높이를 음자리표에 맞는 오선 위치에 표시한다
     Given C4 음표가 있는 악보가 있다

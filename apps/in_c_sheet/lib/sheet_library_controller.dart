@@ -69,6 +69,19 @@ class SheetLibraryController extends ChangeNotifier {
   bool get isImporting => _isImporting;
   String? get errorMessage => _errorMessage;
 
+  SheetLibraryProfile? libraryProfileByName(String name) {
+    final normalized = _normalizeOptionalMetadata(name);
+    if (normalized.isEmpty) {
+      return null;
+    }
+    for (final profile in _libraryProfiles) {
+      if (profile.name.toLowerCase() == normalized.toLowerCase()) {
+        return profile;
+      }
+    }
+    return null;
+  }
+
   List<SheetScore> get filteredScores {
     return _libraryViewSettings.apply(_scores, query: _query);
   }

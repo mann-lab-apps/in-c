@@ -81,6 +81,41 @@ Feature: 음표와 쉼표를 입력하기
     Then 선택된 음표 데이터에서 스타카토가 제거된다
     And 쉼표에는 아티큘레이션을 추가할 수 없다
 
+  @scenario-note-input-switch-same-staff-voice
+  Scenario: 같은 보표에서 입력 성부를 전환한다
+    Given voice 1 이벤트가 선택된 편집 가능한 악보가 열려 있다
+    When 사용자가 toolbar에서 "2성부"를 선택한다
+    Then 현재 measure에는 voice 2가 생성된다
+    And 선택 상태와 입력 커서는 voice 2 주소를 가리킨다
+    When 사용자가 음표 입력을 시작하고 "C"를 입력한다
+    Then 새 음표는 voice 2에 입력된다
+
+  @scenario-note-input-cycle-same-staff-voice
+  Scenario: 단축키로 입력 성부를 순환한다
+    Given voice 1 이벤트가 선택된 편집 가능한 악보가 열려 있다
+    When 사용자가 "Cmd/Ctrl+Alt+3"을 누른다
+    Then 입력 성부는 voice 3이 된다
+    When 사용자가 "V"를 누른다
+    Then 입력 성부는 다음 voice로 이동한다
+    When 사용자가 "Shift+V"를 누른다
+    Then 입력 성부는 이전 voice로 이동한다
+
+  @scenario-note-input-switch-staff-target
+  Scenario: grand staff에서 입력 보표를 전환한다
+    Given piano grand staff 악보가 열려 있다
+    When 사용자가 toolbar에서 입력 보표를 하단 staff로 바꾼다
+    Then 선택 상태와 입력 커서는 하단 staff 주소를 가리킨다
+    When 사용자가 음표 입력을 시작하고 "C"를 입력한다
+    Then 새 음표는 하단 staff에 입력된다
+
+  @scenario-note-input-switch-part-target
+  Scenario: 앙상블 악보에서 입력 파트를 전환한다
+    Given 2파트 앙상블 악보가 열려 있다
+    When 사용자가 toolbar에서 입력 보표를 두 번째 part로 바꾼다
+    Then 선택 상태와 입력 커서는 두 번째 part의 staff 주소를 가리킨다
+    When 사용자가 음표 입력을 시작하고 "C"를 입력한다
+    Then 새 음표는 두 번째 part에 입력된다
+
   @scenario-note-input-advance-cursor
   Scenario: 마지막 이벤트 뒤 입력 커서에서 새 음표와 쉼표를 추가한다
     Given 마지막 이벤트가 선택되어 있다

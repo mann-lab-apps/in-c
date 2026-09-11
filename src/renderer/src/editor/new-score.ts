@@ -3,21 +3,29 @@ import {
   createPart,
   createScore,
   createStaff,
+  type Clef,
   type KeySignature,
   type Score,
   type TempoMarking,
   type TimeSignature
 } from '../../../score-core'
 
+export type NewScoreTemplateId =
+  | 'solo-melody'
+  | 'piano-grand-staff'
+  | 'duet'
+  | 'string-quartet'
+
 export interface NewScoreOptions {
   title: string
   composer?: string
-  partName: string
+  partName?: string
   partAbbreviation?: string
   keySignature: KeySignature
   timeSignature: TimeSignature
   measureCount: number
   tempo?: number
+  templateId?: NewScoreTemplateId
 }
 
 export const keySignaturePresets = [
@@ -128,66 +136,243 @@ export const partPresets = [
   {
     id: 'piano',
     label: '피아노',
-    abbreviation: 'Pno.'
+    abbreviation: 'Pno.',
+    staves: [
+      { id: 'staff-1', clef: { sign: 'G', line: 2 } },
+      { id: 'staff-2', clef: { sign: 'F', line: 4 } }
+    ]
   },
   {
     id: 'violin',
     label: '바이올린',
-    abbreviation: 'Vln.'
+    abbreviation: 'Vln.',
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+  },
+  {
+    id: 'viola',
+    label: '비올라',
+    abbreviation: 'Vla.',
+    staves: [{ id: 'staff-1', clef: { sign: 'C', line: 3 } }]
   },
   {
     id: 'cello',
     label: '첼로',
-    abbreviation: 'Vc.'
+    abbreviation: 'Vc.',
+    staves: [{ id: 'staff-1', clef: { sign: 'F', line: 4 } }]
+  },
+  {
+    id: 'double-bass',
+    label: '더블베이스',
+    abbreviation: 'Cb.',
+    staves: [{ id: 'staff-1', clef: { sign: 'F', line: 4 } }]
   },
   {
     id: 'flute',
     label: '플루트',
-    abbreviation: 'Fl.'
+    abbreviation: 'Fl.',
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+  },
+  {
+    id: 'clarinet',
+    label: '클라리넷',
+    abbreviation: 'Cl.',
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
   },
   {
     id: 'voice',
     label: '성악',
-    abbreviation: 'Vox'
+    abbreviation: 'Vox',
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
   },
   {
     id: 'melody',
     label: '멜로디',
-    abbreviation: 'Mel.'
+    abbreviation: 'Mel.',
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
   }
-] as const
+] as const satisfies ReadonlyArray<{
+  id: string
+  label: string
+  abbreviation: string
+  staves: ReadonlyArray<{
+    id: string
+    clef: Clef
+  }>
+}>
+
+export const scoreStructurePresets = [
+  {
+    id: 'solo-melody',
+    label: '솔로 멜로디',
+    parts: [
+      {
+        id: 'part-1',
+        name: '멜로디',
+        abbreviation: 'Mel.',
+        staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+      }
+    ]
+  },
+  {
+    id: 'piano-grand-staff',
+    label: '피아노 grand staff',
+    parts: [
+      {
+        id: 'part-1',
+        name: 'Piano',
+        abbreviation: 'Pno.',
+        staves: [
+          { id: 'staff-1', clef: { sign: 'G', line: 2 } },
+          { id: 'staff-2', clef: { sign: 'F', line: 4 } }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'duet',
+    label: '2파트 앙상블',
+    parts: [
+      {
+        id: 'part-1',
+        name: 'Part 1',
+        abbreviation: 'P1',
+        staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+      },
+      {
+        id: 'part-2',
+        name: 'Part 2',
+        abbreviation: 'P2',
+        staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+      }
+    ]
+  },
+  {
+    id: 'string-quartet',
+    label: '현악 4중주',
+    parts: [
+      {
+        id: 'violin-1',
+        name: 'Violin I',
+        abbreviation: 'Vln. I',
+        staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+      },
+      {
+        id: 'violin-2',
+        name: 'Violin II',
+        abbreviation: 'Vln. II',
+        staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+      },
+      {
+        id: 'viola',
+        name: 'Viola',
+        abbreviation: 'Vla.',
+        staves: [{ id: 'staff-1', clef: { sign: 'C', line: 3 } }]
+      },
+      {
+        id: 'cello',
+        name: 'Cello',
+        abbreviation: 'Vc.',
+        staves: [{ id: 'staff-1', clef: { sign: 'F', line: 4 } }]
+      }
+    ]
+  }
+] as const satisfies ReadonlyArray<{
+  id: NewScoreTemplateId
+  label: string
+  parts: ReadonlyArray<{
+    id: string
+    name: string
+    abbreviation: string
+    staves: ReadonlyArray<{
+      id: string
+      clef: Clef
+    }>
+  }>
+}>
 
 export function createNewScore(options: NewScoreOptions): Score {
   const measureCount = Math.max(1, Math.floor(options.measureCount))
   const tempo = options.tempo ?? 120
-  const measures = Array.from({ length: measureCount }, (_, index) =>
-    createMeasure({
-      id: `measure-${index + 1}`,
-      number: index + 1,
-      keySignature: options.keySignature,
-      timeSignature: options.timeSignature
-    })
+  const template = resolveScoreStructurePreset(
+    options.templateId ?? 'solo-melody'
   )
+  const useLegacySinglePart =
+    !options.templateId || options.templateId === 'solo-melody'
 
   return createScore({
     id: `score-${crypto.randomUUID()}`,
     title: options.title.trim() || '제목 없는 악보',
     composer: options.composer?.trim() || undefined,
     tempo: createTempoMarkingForTimeSignature(tempo, options.timeSignature),
-    parts: [
+    parts: useLegacySinglePart
+      ? [
       createPart({
         id: 'part-1',
-        name: options.partName.trim() || '피아노',
+        name: options.partName?.trim() || template.parts[0].name,
         abbreviation: options.partAbbreviation?.trim() || undefined,
         staves: [
           createStaff({
             id: 'staff-1',
-            measures
+            measures: createTemplateMeasures({
+              measureCount,
+              keySignature: options.keySignature,
+              timeSignature: options.timeSignature,
+              clef: template.parts[0].staves[0].clef,
+              idPrefix: 'staff-1',
+              preserveLegacyMeasureIds: true
+            })
           })
         ]
       })
     ]
+      : template.parts.map((part) =>
+          createPart({
+            id: part.id,
+            name: part.name,
+            abbreviation: part.abbreviation,
+            staves: part.staves.map((staff) =>
+              createStaff({
+                id: staff.id,
+                measures: createTemplateMeasures({
+                  measureCount,
+                  keySignature: options.keySignature,
+                  timeSignature: options.timeSignature,
+                  clef: staff.clef,
+                  idPrefix: `${part.id}-${staff.id}`
+                })
+              })
+            )
+          })
+        )
   })
+}
+
+function createTemplateMeasures({
+  measureCount,
+  keySignature,
+  timeSignature,
+  clef,
+  idPrefix,
+  preserveLegacyMeasureIds = false
+}: {
+  measureCount: number
+  keySignature: KeySignature
+  timeSignature: TimeSignature
+  clef: Clef
+  idPrefix: string
+  preserveLegacyMeasureIds?: boolean
+}) {
+  return Array.from({ length: measureCount }, (_, index) =>
+    createMeasure({
+      id: preserveLegacyMeasureIds
+        ? `measure-${index + 1}`
+        : `${idPrefix}-measure-${index + 1}`,
+      number: index + 1,
+      keySignature,
+      timeSignature,
+      clef
+    })
+  )
 }
 
 export function createTempoMarkingForTimeSignature(
@@ -339,4 +524,13 @@ export function resolveTimeSignaturePresetId(
 
 export function resolvePartPreset(id: string): (typeof partPresets)[number] {
   return partPresets.find((preset) => preset.id === id) ?? partPresets[0]
+}
+
+export function resolveScoreStructurePreset(
+  id: string
+): (typeof scoreStructurePresets)[number] {
+  return (
+    scoreStructurePresets.find((preset) => preset.id === id) ??
+    scoreStructurePresets[0]
+  )
 }
