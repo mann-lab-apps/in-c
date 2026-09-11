@@ -372,6 +372,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('annotation stamp picker exposes music rehearsal marks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildAnnotationToolbarForTest());
+
+    await tester.tap(find.byTooltip('스탬프 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Fine'), findsOneWidget);
+    expect(find.text('D.C.'), findsOneWidget);
+    expect(find.text('D.S.'), findsOneWidget);
+    expect(find.text('Coda'), findsOneWidget);
+    expect(find.text('rit.'), findsOneWidget);
+    expect(find.text('accel.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('import nudge offers immediate score metadata editing', (
     tester,
   ) async {

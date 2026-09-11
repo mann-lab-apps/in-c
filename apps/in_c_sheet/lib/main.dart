@@ -5330,7 +5330,13 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
 enum _AnnotationStamp {
   ok('OK', Icons.check_circle_outline),
   cue('CUE', Icons.flag_outlined),
-  mark('!', Icons.priority_high);
+  mark('!', Icons.priority_high),
+  fine('Fine', Icons.flag_circle_outlined),
+  dc('D.C.', Icons.repeat),
+  ds('D.S.', Icons.repeat_on_outlined),
+  coda('Coda', Icons.adjust),
+  rit('rit.', Icons.slow_motion_video_outlined),
+  accel('accel.', Icons.speed_outlined);
 
   const _AnnotationStamp(this.label, this.icon);
 
@@ -15933,6 +15939,37 @@ Widget buildViewerMiniMetronomePanelForTest({
 @visibleForTesting
 Widget buildTapZoneHintOverlayForTest() {
   return const MaterialApp(home: Scaffold(body: _TapZoneHintOverlay()));
+}
+
+@visibleForTesting
+Widget buildAnnotationToolbarForTest() {
+  return MaterialApp(
+    home: Scaffold(
+      body: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: _AnnotationToolbar(
+          isCompact: false,
+          selectedTool: _AnnotationToolbarTool.stamp,
+          selectedColor: 0xff111111,
+          selectedWidth: 4,
+          selectedStamp: _AnnotationStamp.ok,
+          isLayerVisible: true,
+          includeLayerInExport: true,
+          hasFavoritePreset: true,
+          onToolSelected: (_) {},
+          onColorSelected: (_) {},
+          onWidthChanged: (_) {},
+          onStampSelected: (_) {},
+          onUndo: () {},
+          onRedo: () {},
+          onToggleLayerVisibility: () {},
+          onToggleLayerExport: () {},
+          onSaveFavorite: () {},
+          onApplyFavorite: () {},
+        ),
+      ),
+    ),
+  );
 }
 
 @visibleForTesting
