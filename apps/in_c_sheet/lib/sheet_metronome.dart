@@ -7,6 +7,7 @@ class SheetMetronomeSettings {
     this.soundEnabled = true,
     this.accentEnabled = true,
     this.subdivision = SheetMetronomeSubdivision.none,
+    this.countInBars = 0,
   });
 
   factory SheetMetronomeSettings.fromJson(Map<String, Object?>? json) {
@@ -14,6 +15,7 @@ class SheetMetronomeSettings {
     final soundEnabledValue = json?['soundEnabled'];
     final accentEnabledValue = json?['accentEnabled'];
     final subdivisionValue = json?['subdivision'];
+    final countInBarsValue = json?['countInBars'];
     return SheetMetronomeSettings(
       bpm: _normalizeBpm(json?['bpm']),
       meter: SheetMetronomeMeter.fromId(
@@ -30,6 +32,7 @@ class SheetMetronomeSettings {
             ? subdivisionValue
             : defaultSettings.subdivision.id,
       ),
+      countInBars: _normalizeCountInBars(countInBarsValue),
     );
   }
 
@@ -43,6 +46,7 @@ class SheetMetronomeSettings {
   final bool soundEnabled;
   final bool accentEnabled;
   final SheetMetronomeSubdivision subdivision;
+  final int countInBars;
 
   Duration get beatDuration {
     return Duration(milliseconds: (60000 / bpm).round());
@@ -60,6 +64,7 @@ class SheetMetronomeSettings {
     bool? soundEnabled,
     bool? accentEnabled,
     SheetMetronomeSubdivision? subdivision,
+    int? countInBars,
   }) {
     return SheetMetronomeSettings(
       bpm: clampBpm(bpm ?? this.bpm),
@@ -67,6 +72,7 @@ class SheetMetronomeSettings {
       soundEnabled: soundEnabled ?? this.soundEnabled,
       accentEnabled: accentEnabled ?? this.accentEnabled,
       subdivision: subdivision ?? this.subdivision,
+      countInBars: clampCountInBars(countInBars ?? this.countInBars),
     );
   }
 
@@ -77,16 +83,26 @@ class SheetMetronomeSettings {
       'soundEnabled': soundEnabled,
       'accentEnabled': accentEnabled,
       'subdivision': subdivision.id,
+      'countInBars': countInBars,
     };
   }
 
   static int clampBpm(int bpm) => bpm.clamp(40, 240).toInt();
+
+  static int clampCountInBars(int bars) => bars.clamp(0, 2).toInt();
 
   static int _normalizeBpm(Object? value) {
     if (value is num) {
       return clampBpm(value.round());
     }
     return defaultSettings.bpm;
+  }
+
+  static int _normalizeCountInBars(Object? value) {
+    if (value is num) {
+      return clampCountInBars(value.round());
+    }
+    return defaultSettings.countInBars;
   }
 }
 

@@ -34,7 +34,8 @@
 10. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
 11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 첫 박 강조, Tap tempo, start/stop을 확인한다.
+12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 0/1/2마디 카운트인, 첫 박 강조,
+    Tap tempo, start/stop을 확인한다.
     기본값은 `소리 켬`이어야 하며, `tick 소리`를 끄면 화면 박자 표시만 사용하는 `시각만` 상태로
     이해되는지 확인한다.
 13. 메트로놈/튜너 sheet의 작은 창 버튼으로 악보 위 mini panel을 띄우고 닫을 수 있는지 확인한다.

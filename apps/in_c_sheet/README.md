@@ -12,8 +12,8 @@ helpers:
 - draw pen/highlighter strokes and text annotations as app metadata
 - share PDFs, annotated PDF copies, and full local backups
 - block URL link taps and create URL-link-disabled PDF copies
-- use audible/visual metronome, reference tone/drone, local audio playback, auto scroll,
-  hardware-key page turns, and microphone tuner
+- use audible/visual metronome with count-in, reference tone/drone, local audio
+  playback, auto scroll, hardware-key page turns, and microphone tuner
 - use a chromatic-only tuner with pitch history, A4 calibration, reference tone,
   drone, and weak-signal guidance
 

@@ -20,6 +20,7 @@ void main() {
     expect(low.soundEnabled, isTrue);
     expect(low.accentEnabled, isTrue);
     expect(low.subdivision, SheetMetronomeSubdivision.none);
+    expect(low.countInBars, 0);
     expect(high.bpm, 240);
     expect(high.meter, SheetMetronomeMeter.sixEight);
     expect(decimal.bpm, 132);
@@ -32,6 +33,7 @@ void main() {
       soundEnabled: true,
       accentEnabled: false,
       subdivision: SheetMetronomeSubdivision.triplet,
+      countInBars: 2,
     );
 
     final decoded = SheetMetronomeCodec.decode(
@@ -43,6 +45,7 @@ void main() {
     expect(decoded.soundEnabled, isTrue);
     expect(decoded.accentEnabled, isFalse);
     expect(decoded.subdivision, SheetMetronomeSubdivision.triplet);
+    expect(decoded.countInBars, 2);
     expect(decoded.pulseDuration.inMilliseconds, 152);
   });
 
@@ -74,6 +77,7 @@ void main() {
       'soundEnabled': 'yes',
       'accentEnabled': 'no',
       'subdivision': 'tiny',
+      'countInBars': 8,
     });
 
     expect(settings.bpm, SheetMetronomeSettings.defaultSettings.bpm);
@@ -81,6 +85,26 @@ void main() {
     expect(settings.soundEnabled, isTrue);
     expect(settings.accentEnabled, isTrue);
     expect(settings.subdivision, SheetMetronomeSubdivision.none);
+    expect(settings.countInBars, 2);
+  });
+
+  test('clamps count-in bars and keeps backward compatible default', () {
+    expect(
+      SheetMetronomeSettings.fromJson(const <String, Object?>{
+        'countInBars': -1,
+      }).countInBars,
+      0,
+    );
+    expect(
+      SheetMetronomeSettings.fromJson(const <String, Object?>{
+        'countInBars': 1.6,
+      }).countInBars,
+      2,
+    );
+    expect(
+      SheetMetronomeSettings.fromJson(const <String, Object?>{}).countInBars,
+      SheetMetronomeSettings.defaultSettings.countInBars,
+    );
   });
 
   test('cycles beat and subdivision sequence', () {

@@ -11318,6 +11318,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   Timer? _timer;
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
+  int _countInPulsesLeft = 0;
 
   @override
   void initState() {
@@ -11354,14 +11355,19 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   void _toggleRunning() {
     if (_isRunning) {
       _timer?.cancel();
-      setState(() => _isRunning = false);
+      setState(() {
+        _isRunning = false;
+        _countInPulsesLeft = 0;
+      });
       return;
     }
     setState(() {
       _isRunning = true;
       _beat = _initialBeat(widget.metronomeSettings);
+      _countInPulsesLeft = _countInTotalPulses;
     });
     _playTick();
+    _consumeCountInPulse();
     _restartTimer();
   }
 
@@ -11377,8 +11383,28 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (!mounted) {
       return;
     }
-    setState(() => _beat = _beat.next());
+    setState(() {
+      _beat = _beat.next();
+      _consumeCountInPulse();
+    });
     _playTick();
+  }
+
+  int get _countInTotalPulses =>
+      widget.metronomeSettings.countInBars *
+      widget.metronomeSettings.meter.beatsPerBar *
+      widget.metronomeSettings.subdivision.pulsesPerBeat;
+
+  bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
+
+  void _consumeCountInPulse() {
+    if (_countInPulsesLeft <= 0) {
+      return;
+    }
+    _countInPulsesLeft--;
+    if (_countInPulsesLeft == 0) {
+      _beat = _initialBeat(widget.metronomeSettings);
+    }
   }
 
   void _playTick() {
@@ -11411,6 +11437,11 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   Widget _buildMetronome(BuildContext context) {
     final theme = Theme.of(context);
     final settings = widget.metronomeSettings;
+    final countInLabel = settings.countInBars == 0
+        ? ''
+        : ' · ${settings.countInBars}마디';
+    final countInBeatsLeft =
+        (_countInPulsesLeft / settings.subdivision.pulsesPerBeat).ceil();
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -11421,7 +11452,9 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                '${settings.bpm} BPM · ${settings.meter.label} · ${settings.soundEnabled ? '소리' : '시각'}',
+                _isCountingIn
+                    ? '카운트인 $countInBeatsLeft박'
+                    : '${settings.bpm} BPM · ${settings.meter.label}$countInLabel · ${settings.soundEnabled ? '소리' : '시각'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -15422,6 +15455,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   late SheetMetronomeBeat _beat;
   Timer? _timer;
   bool _isRunning = false;
+  int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
   final List<DateTime> _tapTempoMarks = <DateTime>[];
 
@@ -15503,6 +15537,24 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     }
   }
 
+  Future<void> _setCountInBars(int bars) async {
+    final nextSettings = _settings.copyWith(countInBars: bars);
+    setState(() {
+      _settings = nextSettings;
+      _countInPulsesLeft = _isRunning ? _countInTotalPulses : 0;
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
+      _lastBeatAt = null;
+    });
+    await widget.onSettingsChanged(nextSettings);
+    if (_isRunning) {
+      _restartTimer();
+    }
+  }
+
   Future<void> _tapTempo() async {
     final now = DateTime.now();
     _tapTempoMarks.removeWhere(
@@ -15538,6 +15590,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       _timer?.cancel();
       setState(() {
         _isRunning = false;
+        _countInPulsesLeft = 0;
       });
       return;
     }
@@ -15549,9 +15602,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
         beatsPerBar: _settings.meter.beatsPerBar,
         pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
       );
+      _countInPulsesLeft = _countInTotalPulses;
       _lastBeatAt = DateTime.now();
     });
     _playTick();
+    _consumeCountInPulse();
     _restartTimer();
   }
 
@@ -15567,9 +15622,31 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
     setState(() {
       _beat = _beat.next();
+      _consumeCountInPulse();
       _lastBeatAt = DateTime.now();
     });
     _playTick();
+  }
+
+  int get _countInTotalPulses =>
+      _settings.countInBars *
+      _settings.meter.beatsPerBar *
+      _settings.subdivision.pulsesPerBeat;
+
+  bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
+
+  void _consumeCountInPulse() {
+    if (_countInPulsesLeft <= 0) {
+      return;
+    }
+    _countInPulsesLeft--;
+    if (_countInPulsesLeft == 0) {
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
+    }
   }
 
   void _playTick() {
@@ -15585,6 +15662,15 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     final beatTime = _lastBeatAt == null
         ? '대기'
         : _formatShortDate(_lastBeatAt!);
+    final countInBeatsLeft =
+        (_countInPulsesLeft / _settings.subdivision.pulsesPerBeat).ceil();
+    final beatLabel = _isCountingIn
+        ? '카운트인 $countInBeatsLeft박 남음'
+        : _beat.isAccent && _settings.accentEnabled
+        ? '강박 · $beatTime'
+        : _beat.isBeatStart
+        ? '보통박 · $beatTime'
+        : '나눔박 · $beatTime';
 
     return SafeArea(
       child: Padding(
@@ -15706,6 +15792,28 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   )
                   .toList(growable: false),
             ),
+            const SizedBox(height: 16),
+            Text(
+              '카운트인',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: const <int>[0, 1, 2]
+                  .map(
+                    (bars) => ChoiceChip(
+                      label: Text(bars == 0 ? '없음' : '$bars마디'),
+                      selected: bars == _settings.countInBars,
+                      onSelected: (_) => _setCountInBars(bars),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
             const SizedBox(height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -15737,16 +15845,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               }),
             ),
             const SizedBox(height: 12),
-            Center(
-              child: Text(
-                _beat.isAccent && _settings.accentEnabled
-                    ? '강박 · $beatTime'
-                    : _beat.isBeatStart
-                    ? '보통박 · $beatTime'
-                    : '나눔박 · $beatTime',
-                style: theme.textTheme.labelMedium,
-              ),
-            ),
+            Center(child: Text(beatLabel, style: theme.textTheme.labelMedium)),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,

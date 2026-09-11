@@ -150,6 +150,7 @@ void main() {
           meter: SheetMetronomeMeter.fourFour,
           subdivision: SheetMetronomeSubdivision.eighth,
           soundEnabled: true,
+          countInBars: 1,
         ),
       ),
     );
@@ -158,6 +159,8 @@ void main() {
     expect(find.textContaining('소리 켬'), findsOneWidget);
     expect(find.text('박자'), findsOneWidget);
     expect(find.text('나눔'), findsOneWidget);
+    expect(find.text('카운트인'), findsOneWidget);
+    expect(find.text('1마디'), findsOneWidget);
     expect(find.text('Tap tempo'), findsOneWidget);
     expect(find.byTooltip('악보 위에 작게 띄우기'), findsOneWidget);
     await tester.scrollUntilVisible(
