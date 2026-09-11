@@ -466,6 +466,14 @@ void main() {
   ) async {
     await tester.pumpWidget(buildAnnotationToolbarForTest());
 
+    expect(find.byTooltip('오선'), findsOneWidget);
+    expect(find.byTooltip('격자'), findsOneWidget);
+
+    await tester.scrollUntilVisible(
+      find.byTooltip('스탬프 선택'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.byTooltip('스탬프 선택'));
     await tester.pumpAndSettle();
 

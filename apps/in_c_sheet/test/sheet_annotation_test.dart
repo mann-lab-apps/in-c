@@ -347,6 +347,18 @@ void main() {
       tool: SheetAnnotationTool.rectangle,
       createdAt: createdAt.add(const Duration(seconds: 1)),
     );
+    final staff = _stroke(
+      id: 'staff-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.staff,
+      createdAt: createdAt.add(const Duration(milliseconds: 1500)),
+    );
+    final grid = _stroke(
+      id: 'grid-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.grid,
+      createdAt: createdAt.add(const Duration(milliseconds: 1700)),
+    );
     final crescendo = _stroke(
       id: 'crescendo-1',
       pageNumber: 1,
@@ -371,6 +383,8 @@ void main() {
     final decodedLine = SheetAnnotationStroke.fromJson(line.toJson());
     final decodedArrow = SheetAnnotationStroke.fromJson(arrow.toJson());
     final decodedRectangle = SheetAnnotationStroke.fromJson(rectangle.toJson());
+    final decodedStaff = SheetAnnotationStroke.fromJson(staff.toJson());
+    final decodedGrid = SheetAnnotationStroke.fromJson(grid.toJson());
     final decodedCrescendo = SheetAnnotationStroke.fromJson(crescendo.toJson());
     final decodedDiminuendo = SheetAnnotationStroke.fromJson(
       diminuendo.toJson(),
@@ -379,6 +393,8 @@ void main() {
     expect(decodedLine.tool, SheetAnnotationTool.line);
     expect(decodedArrow.tool, SheetAnnotationTool.arrow);
     expect(decodedRectangle.tool, SheetAnnotationTool.rectangle);
+    expect(decodedStaff.tool, SheetAnnotationTool.staff);
+    expect(decodedGrid.tool, SheetAnnotationTool.grid);
     expect(decodedCrescendo.tool, SheetAnnotationTool.crescendo);
     expect(decodedDiminuendo.tool, SheetAnnotationTool.diminuendo);
     expect(
@@ -390,6 +406,20 @@ void main() {
     );
     expect(
       rectangle.hitTest(
+        const SheetAnnotationPoint(x: 0.1, y: 0.15),
+        tolerance: 0.02,
+      ),
+      isTrue,
+    );
+    expect(
+      staff.hitTest(
+        const SheetAnnotationPoint(x: 0.1, y: 0.15),
+        tolerance: 0.02,
+      ),
+      isTrue,
+    );
+    expect(
+      grid.hitTest(
         const SheetAnnotationPoint(x: 0.1, y: 0.15),
         tolerance: 0.02,
       ),

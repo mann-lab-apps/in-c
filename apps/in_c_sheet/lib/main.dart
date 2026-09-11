@@ -5357,6 +5357,8 @@ enum _AnnotationToolbarTool {
   line('선', Icons.remove),
   arrow('화살표', Icons.call_made),
   rectangle('사각형', Icons.crop_square),
+  staff('오선', Icons.view_headline),
+  grid('격자', Icons.grid_4x4),
   crescendo('크레셴도', Icons.open_in_full),
   diminuendo('디미누엔도', Icons.close_fullscreen),
   stamp('스탬프', Icons.check_circle_outline),
@@ -5383,6 +5385,8 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
       _AnnotationToolbarTool.line => SheetAnnotationTool.line,
       _AnnotationToolbarTool.arrow => SheetAnnotationTool.arrow,
       _AnnotationToolbarTool.rectangle => SheetAnnotationTool.rectangle,
+      _AnnotationToolbarTool.staff => SheetAnnotationTool.staff,
+      _AnnotationToolbarTool.grid => SheetAnnotationTool.grid,
       _AnnotationToolbarTool.crescendo => SheetAnnotationTool.crescendo,
       _AnnotationToolbarTool.diminuendo => SheetAnnotationTool.diminuendo,
       _ => SheetAnnotationTool.pen,
@@ -5394,6 +5398,8 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
       _AnnotationToolbarTool.line ||
       _AnnotationToolbarTool.arrow ||
       _AnnotationToolbarTool.rectangle ||
+      _AnnotationToolbarTool.staff ||
+      _AnnotationToolbarTool.grid ||
       _AnnotationToolbarTool.crescendo ||
       _AnnotationToolbarTool.diminuendo => true,
       _ => false,
@@ -13242,6 +13248,16 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
 
+    if (stroke.tool == SheetAnnotationTool.staff && stroke.points.length >= 2) {
+      _paintStaffGuide(canvas, size, stroke, paint);
+      return;
+    }
+
+    if (stroke.tool == SheetAnnotationTool.grid && stroke.points.length >= 2) {
+      _paintGridGuide(canvas, size, stroke, paint);
+      return;
+    }
+
     if ((stroke.tool == SheetAnnotationTool.crescendo ||
             stroke.tool == SheetAnnotationTool.diminuendo) &&
         stroke.points.length >= 2) {
@@ -13347,6 +13363,79 @@ class _AnnotationPainter extends CustomPainter {
       path.lineTo(last.dx, last.dy);
     }
     canvas.drawPath(path, paint);
+  }
+
+  Rect _shapeRect(Size size, SheetAnnotationStroke stroke) {
+    return Rect.fromPoints(
+      Offset(
+        stroke.points.first.x * size.width,
+        stroke.points.first.y * size.height,
+      ),
+      Offset(
+        stroke.points.last.x * size.width,
+        stroke.points.last.y * size.height,
+      ),
+    );
+  }
+
+  void _paintStaffGuide(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final rect = _shapeRect(size, stroke);
+    final top = math.min(rect.top, rect.bottom);
+    final bottom = math.max(rect.top, rect.bottom);
+    final left = math.min(rect.left, rect.right);
+    final right = math.max(rect.left, rect.right);
+    final height = (bottom - top).abs();
+    final lineGap = height <= 1 ? 6.0 : height / 4;
+    final startY = height <= 1 ? top - (lineGap * 2) : top;
+    final guidePaint = Paint()
+      ..color = paint.color.withValues(alpha: 0.72)
+      ..strokeWidth = paint.strokeWidth.clamp(1.0, 4.0).toDouble()
+      ..strokeCap = StrokeCap.round;
+    for (var index = 0; index < 5; index += 1) {
+      final y = startY + (lineGap * index);
+      canvas.drawLine(Offset(left, y), Offset(right, y), guidePaint);
+    }
+  }
+
+  void _paintGridGuide(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final rect = _shapeRect(size, stroke);
+    final normalized = Rect.fromLTRB(
+      math.min(rect.left, rect.right),
+      math.min(rect.top, rect.bottom),
+      math.max(rect.left, rect.right),
+      math.max(rect.top, rect.bottom),
+    );
+    final guidePaint = Paint()
+      ..color = paint.color.withValues(alpha: 0.44)
+      ..strokeWidth = paint.strokeWidth.clamp(0.8, 2.4).toDouble()
+      ..strokeCap = StrokeCap.square;
+    const divisions = 4;
+    for (var index = 0; index <= divisions; index += 1) {
+      final t = index / divisions;
+      final x = normalized.left + (normalized.width * t);
+      final y = normalized.top + (normalized.height * t);
+      canvas
+        ..drawLine(
+          Offset(x, normalized.top),
+          Offset(x, normalized.bottom),
+          guidePaint,
+        )
+        ..drawLine(
+          Offset(normalized.left, y),
+          Offset(normalized.right, y),
+          guidePaint,
+        );
+    }
   }
 
   Offset _pointOffset(SheetAnnotationPoint point, Size size) {
@@ -13653,12 +13742,10 @@ class _AnnotationToolbar extends StatelessWidget {
           horizontal: isCompact ? 8 : 12,
           vertical: 8,
         ),
-        child: isCompact
-            ? SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: toolbarContent,
-              )
-            : toolbarContent,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: toolbarContent,
+        ),
       ),
     );
   }
@@ -16120,28 +16207,25 @@ Widget buildTapZoneHintOverlayForTest() {
 Widget buildAnnotationToolbarForTest() {
   return MaterialApp(
     home: Scaffold(
-      body: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: _AnnotationToolbar(
-          isCompact: false,
-          selectedTool: _AnnotationToolbarTool.stamp,
-          selectedColor: 0xff111111,
-          selectedWidth: 4,
-          selectedStamp: _AnnotationStamp.ok,
-          isLayerVisible: true,
-          includeLayerInExport: true,
-          hasFavoritePreset: true,
-          onToolSelected: (_) {},
-          onColorSelected: (_) {},
-          onWidthChanged: (_) {},
-          onStampSelected: (_) {},
-          onUndo: () {},
-          onRedo: () {},
-          onToggleLayerVisibility: () {},
-          onToggleLayerExport: () {},
-          onSaveFavorite: () {},
-          onApplyFavorite: () {},
-        ),
+      body: _AnnotationToolbar(
+        isCompact: false,
+        selectedTool: _AnnotationToolbarTool.stamp,
+        selectedColor: 0xff111111,
+        selectedWidth: 4,
+        selectedStamp: _AnnotationStamp.ok,
+        isLayerVisible: true,
+        includeLayerInExport: true,
+        hasFavoritePreset: true,
+        onToolSelected: (_) {},
+        onColorSelected: (_) {},
+        onWidthChanged: (_) {},
+        onStampSelected: (_) {},
+        onUndo: () {},
+        onRedo: () {},
+        onToggleLayerVisibility: () {},
+        onToggleLayerExport: () {},
+        onSaveFavorite: () {},
+        onApplyFavorite: () {},
       ),
     ),
   );

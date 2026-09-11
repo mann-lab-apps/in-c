@@ -18,6 +18,8 @@ enum SheetAnnotationTool {
   line,
   arrow,
   rectangle,
+  staff,
+  grid,
   crescendo,
   diminuendo;
 
@@ -68,6 +70,8 @@ class SheetAnnotationToolPreset {
     'line',
     'arrow',
     'rectangle',
+    'staff',
+    'grid',
     'crescendo',
     'diminuendo',
     'stamp',
@@ -168,6 +172,12 @@ class SheetAnnotationStroke {
       return false;
     }
     if (tool == SheetAnnotationTool.rectangle && points.length >= 2) {
+      return _distanceToRectangle(point, points.first, points.last) <=
+          tolerance;
+    }
+    if ((tool == SheetAnnotationTool.staff ||
+            tool == SheetAnnotationTool.grid) &&
+        points.length >= 2) {
       return _distanceToRectangle(point, points.first, points.last) <=
           tolerance;
     }
