@@ -657,6 +657,31 @@ class SheetLibraryStore {
     return importPdfBytes(bytes: await file.readAsBytes(), fileName: file.name);
   }
 
+  Future<List<SheetScore>> importPdfs() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf'],
+    );
+
+    if (files.isEmpty) {
+      return const <SheetScore>[];
+    }
+
+    final scores = <SheetScore>[];
+    for (final file in files) {
+      if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
+        throw FormatException('Unsupported PDF file: ${file.name}');
+      }
+      scores.add(
+        await importPdfBytes(
+          bytes: await file.readAsBytes(),
+          fileName: file.name,
+        ),
+      );
+    }
+    return List<SheetScore>.unmodifiable(scores);
+  }
+
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
     final resolvedName = fileName ?? file.uri.pathSegments.last;
     if (!SheetFileImportPolicy.isPdfFileName(resolvedName)) {

@@ -230,6 +230,64 @@ void main() {
     },
   );
 
+  test(
+    'batch PDF import adds new scores and suppresses existing duplicates',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(
+        _score(now, id: 'unused-single'),
+        batchScores: <SheetScore>[
+          _score(
+            now,
+            id: 'batch-1',
+            title: 'Etude',
+            filePath: '/tmp/batch-1-etude.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-2',
+            title: 'Prelude',
+            filePath: '/tmp/batch-2-prelude.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-existing',
+            title: 'Recital Part',
+            filePath: '/tmp/batch-existing-recital.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-duplicate',
+            title: 'Etude',
+            filePath: '/tmp/batch-duplicate-etude.pdf',
+          ),
+        ],
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          id: 'score-1',
+          title: 'Recital Part',
+          filePath: '/tmp/score-1-recital.pdf',
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final result = await controller.importPdfs();
+
+      expect(result.importedCount, 2);
+      expect(result.existingCount, 2);
+      expect(result.importedScores.map((score) => score.title), <String>[
+        'Etude',
+        'Prelude',
+      ]);
+      expect(controller.scores, hasLength(3));
+      expect(controller.lastImportOpenedExistingScore, isTrue);
+    },
+  );
+
   test('tracks imported scores that still need metadata review', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -2392,13 +2450,20 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
 }
 
 class _ImportScoreStore extends SheetLibraryStore {
-  _ImportScoreStore(this.score);
+  _ImportScoreStore(this.score, {List<SheetScore>? batchScores})
+    : batchScores = batchScores ?? <SheetScore>[score];
 
   final SheetScore score;
+  final List<SheetScore> batchScores;
 
   @override
   Future<SheetScore?> importPdf() async {
     return score;
+  }
+
+  @override
+  Future<List<SheetScore>> importPdfs() async {
+    return batchScores;
   }
 }
 

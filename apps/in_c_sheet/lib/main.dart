@@ -281,6 +281,47 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await _openScore(score, showImportNudge: !openedExisting);
   }
 
+  Future<void> _importPdfs({bool addToSetlist = false}) async {
+    final result = await controller.importPdfs();
+    if (!mounted || result.isEmpty) {
+      return;
+    }
+    if (addToSetlist) {
+      final target = await _selectSetlistForBulkAdd(result.scores.length);
+      if (!mounted || target == null) {
+        return;
+      }
+      final setlistResult = await controller.addScoresToSetlist(
+        target,
+        result.scores,
+      );
+      if (!mounted) {
+        return;
+      }
+      final added = setlistResult.addedCount;
+      final skipped = setlistResult.skippedDuplicateCount;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            skipped > 0
+                ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
+                : '"${target.title}"에 $added개 악보를 추가했습니다.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final duplicateSuffix = result.existingCount > 0
+        ? ' 기존 악보 ${result.existingCount}개는 다시 만들지 않았습니다.'
+        : '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${result.importedCount}개 PDF를 가져왔습니다.$duplicateSuffix'),
+      ),
+    );
+  }
+
   Future<void> _importImagesAsPdf({bool addToSetlist = false}) async {
     final score = await controller.importImagesAsPdf();
     if (!mounted || score == null) {
@@ -330,38 +371,57 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('PDF 가져오기'),
-              subtitle: const Text('파일 앱, 다운로드, 메신저 저장 PDF'),
-              onTap: () => Navigator.of(context).pop(_LibraryImportAction.pdf),
-            ),
-            ListTile(
-              leading: const Icon(Icons.playlist_add_outlined),
-              title: const Text('PDF 가져와 세트리스트에 추가'),
-              subtitle: const Text('가져온 뒤 기존/새 세트리스트 선택'),
-              onTap: () =>
-                  Navigator.of(context).pop(_LibraryImportAction.pdfToSetlist),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('이미지를 PDF 악보로 묶기'),
-              subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
-              onTap: () =>
-                  Navigator.of(context).pop(_LibraryImportAction.images),
-            ),
-            ListTile(
-              leading: const Icon(Icons.add_photo_alternate_outlined),
-              title: const Text('이미지를 묶어 세트리스트에 추가'),
-              subtitle: const Text('이미지 PDF 생성 뒤 세트리스트 선택'),
-              onTap: () =>
-                  Navigator.of(context)
-                      .pop(_LibraryImportAction.imagesToSetlist),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined),
+                title: const Text('PDF 가져오기'),
+                subtitle: const Text('파일 앱, 다운로드, 메신저 저장 PDF'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.pdf),
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add_outlined),
+                title: const Text('PDF 가져와 세트리스트에 추가'),
+                subtitle: const Text('가져온 뒤 기존/새 세트리스트 선택'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.pdfToSetlist),
+              ),
+              ListTile(
+                leading: const Icon(Icons.library_add_outlined),
+                title: const Text('여러 PDF 가져오기'),
+                subtitle: const Text('여러 파일을 한 번에 라이브러리에 추가'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.pdfs),
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add_check_outlined),
+                title: const Text('여러 PDF를 세트리스트에 추가'),
+                subtitle: const Text('묶음으로 가져온 뒤 공연 순서에 추가'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.pdfsToSetlist),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('이미지를 PDF 악보로 묶기'),
+                subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.images),
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_photo_alternate_outlined),
+                title: const Text('이미지를 묶어 세트리스트에 추가'),
+                subtitle: const Text('이미지 PDF 생성 뒤 세트리스트 선택'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.imagesToSetlist),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -370,6 +430,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         await _importPdf();
       case _LibraryImportAction.pdfToSetlist:
         await _importPdf(addToSetlist: true);
+      case _LibraryImportAction.pdfs:
+        await _importPdfs();
+      case _LibraryImportAction.pdfsToSetlist:
+        await _importPdfs(addToSetlist: true);
       case _LibraryImportAction.images:
         await _importImagesAsPdf();
       case _LibraryImportAction.imagesToSetlist:
@@ -1533,7 +1597,14 @@ enum _LibraryBackupAction {
   importFull,
 }
 
-enum _LibraryImportAction { pdf, pdfToSetlist, images, imagesToSetlist }
+enum _LibraryImportAction {
+  pdf,
+  pdfToSetlist,
+  pdfs,
+  pdfsToSetlist,
+  images,
+  imagesToSetlist,
+}
 
 enum _LibraryProfileActionType { all, select, create, rename, delete }
 

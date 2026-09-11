@@ -31,6 +31,32 @@ class SheetSetlistBulkAddResult {
   bool get didAddAny => addedCount > 0;
 }
 
+class SheetPdfBatchImportResult {
+  const SheetPdfBatchImportResult({
+    required this.importedScores,
+    required this.existingScores,
+  });
+
+  static const empty = SheetPdfBatchImportResult(
+    importedScores: <SheetScore>[],
+    existingScores: <SheetScore>[],
+  );
+
+  final List<SheetScore> importedScores;
+  final List<SheetScore> existingScores;
+
+  List<SheetScore> get scores {
+    return List<SheetScore>.unmodifiable(<SheetScore>[
+      ...importedScores,
+      ...existingScores,
+    ]);
+  }
+
+  int get importedCount => importedScores.length;
+  int get existingCount => existingScores.length;
+  bool get isEmpty => importedScores.isEmpty && existingScores.isEmpty;
+}
+
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
 
@@ -254,6 +280,53 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetPdfBatchImportResult> importPdfs() async {
+    if (_isImporting) {
+      return SheetPdfBatchImportResult.empty;
+    }
+
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final rawScores = await store.importPdfs();
+      if (rawScores.isEmpty) {
+        return SheetPdfBatchImportResult.empty;
+      }
+      final importedScores = <SheetScore>[];
+      final existingScores = <SheetScore>[];
+      for (final rawScore in rawScores) {
+        final score = _withActiveCollection(rawScore);
+        final duplicate =
+            _findLikelyImportedDuplicate(score) ??
+            _findLikelyDuplicateIn(score, importedScores);
+        if (duplicate != null) {
+          existingScores.add(duplicate);
+        } else {
+          importedScores.add(score);
+        }
+      }
+
+      if (importedScores.isNotEmpty) {
+        _scores = <SheetScore>[...importedScores, ..._scores];
+        await store.saveScores(_scores);
+      }
+      _lastImportOpenedExistingScore = existingScores.isNotEmpty;
+      return SheetPdfBatchImportResult(
+        importedScores: List<SheetScore>.unmodifiable(importedScores),
+        existingScores: List<SheetScore>.unmodifiable(existingScores),
+      );
+    } catch (error) {
+      _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
+      return SheetPdfBatchImportResult.empty;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
   Future<SheetScore?> importImagesAsPdf() async {
     if (_isImporting) {
       return null;
@@ -333,6 +406,25 @@ class SheetLibraryController extends ChangeNotifier {
       return null;
     }
     for (final score in _scores) {
+      if (score.id == importedScore.id) {
+        continue;
+      }
+      if (_duplicateImportKey(score) == importedKey) {
+        return score;
+      }
+    }
+    return null;
+  }
+
+  SheetScore? _findLikelyDuplicateIn(
+    SheetScore importedScore,
+    Iterable<SheetScore> candidates,
+  ) {
+    final importedKey = _duplicateImportKey(importedScore);
+    if (importedKey.length < 3) {
+      return null;
+    }
+    for (final score in candidates) {
       if (score.id == importedScore.id) {
         continue;
       }

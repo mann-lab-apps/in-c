@@ -37,7 +37,7 @@
 | 순서 | 영역 | 통과 기준 | 기록할 항목 |
 | --- | --- | --- | --- |
 | 1 | 설치/첫 실행 | 앱이 crash 없이 열리고 테스트 정보가 표시된다. | 설치 방식, 앱 버전/build, 기기/OS |
-| 2 | Import | PDF, JPG/PNG 변환 PDF가 라이브러리에 등록되고 원본 이미지 viewer가 열린다. | 파일 유형, 페이지 수, 파일 크기, 원본 이미지 표시 여부 |
+| 2 | Import | 단일/여러 PDF, JPG/PNG 변환 PDF가 라이브러리에 등록되고 원본 이미지 viewer가 열린다. | 파일 유형, 파일 수, 페이지 수, 파일 크기, 원본 이미지 표시 여부 |
 | 3 | 라이브러리 | 검색/정렬/필터, 즐겨찾기/고정, collection/group/rating/custom field가 유지된다. custom field에는 `조성`/`장르`/`난이도`/`편성` 추천 입력 경로가 있다. | 찾지 못한 필터 조건, 정렬 이상 여부 |
 | 3-1 | 라이브러리 전환 | 기본/추가 라이브러리를 전환하고 이름 변경/비우기가 파일 삭제 없이 동작한다. | 변경한 library profile, 전환 전후 악보 수 |
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop/render profile/반 페이지 정책이 전환된다. | PDF 유형, blank 발생 page, render profile, portrait/landscape half-page anchor, 재현 여부 |
@@ -486,3 +486,5 @@ flutter build ios --release --no-codesign
   실제 사용량을 보고 v1.1에서 판단한다.
 - PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
   MobileSheets식 metadata assignment 필요를 가볍게 처리한다.
+- MobileSheets batch import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기와 여러 PDF를 세트리스트에
+  추가하는 흐름을 추가했다. cloud browser, batch audio, CSV/PDF bookmark import는 후속으로 남긴다.
