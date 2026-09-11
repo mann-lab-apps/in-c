@@ -319,8 +319,14 @@ void main() {
     expect(decoded.points.last.pressure, 1.3);
   });
 
-  test('annotation stroke supports arrow and rectangle tools', () {
+  test('annotation stroke supports line, arrow, and rectangle tools', () {
     final createdAt = DateTime.parse('2026-08-21T10:00:00.000');
+    final line = _stroke(
+      id: 'line-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.line,
+      createdAt: createdAt.subtract(const Duration(seconds: 1)),
+    );
     final arrow = _stroke(
       id: 'arrow-1',
       pageNumber: 1,
@@ -334,11 +340,20 @@ void main() {
       createdAt: createdAt.add(const Duration(seconds: 1)),
     );
 
+    final decodedLine = SheetAnnotationStroke.fromJson(line.toJson());
     final decodedArrow = SheetAnnotationStroke.fromJson(arrow.toJson());
     final decodedRectangle = SheetAnnotationStroke.fromJson(rectangle.toJson());
 
+    expect(decodedLine.tool, SheetAnnotationTool.line);
     expect(decodedArrow.tool, SheetAnnotationTool.arrow);
     expect(decodedRectangle.tool, SheetAnnotationTool.rectangle);
+    expect(
+      line.hitTest(
+        const SheetAnnotationPoint(x: 0.15, y: 0.15),
+        tolerance: 0.02,
+      ),
+      isTrue,
+    );
     expect(
       rectangle.hitTest(
         const SheetAnnotationPoint(x: 0.1, y: 0.15),

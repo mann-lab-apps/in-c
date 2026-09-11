@@ -15,6 +15,7 @@ bool _boolFromJson(Object? value, {required bool fallback}) {
 enum SheetAnnotationTool {
   pen,
   highlighter,
+  line,
   arrow,
   rectangle;
 
@@ -62,6 +63,7 @@ class SheetAnnotationToolPreset {
   static const Set<String> _validToolNames = <String>{
     'pen',
     'highlighter',
+    'line',
     'arrow',
     'rectangle',
     'stamp',

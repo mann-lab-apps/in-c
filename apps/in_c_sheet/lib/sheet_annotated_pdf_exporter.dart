@@ -247,7 +247,8 @@ class SheetAnnotatedPdfExporter {
       content.restore();
       return;
     }
-    if (stroke.tool != SheetAnnotationTool.arrow &&
+    if (stroke.tool != SheetAnnotationTool.line &&
+        stroke.tool != SheetAnnotationTool.arrow &&
         _hasPressureVariation(stroke)) {
       _drawPressureStroke(content, geometry, stroke);
       content.restore();

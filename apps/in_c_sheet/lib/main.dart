@@ -5175,6 +5175,7 @@ enum _ViewerMiniTool { metronome, tuner }
 enum _AnnotationToolbarTool {
   pen('펜', Icons.edit_outlined),
   highlighter('형광펜', Icons.brush_outlined),
+  line('선', Icons.remove),
   arrow('화살표', Icons.call_made),
   rectangle('사각형', Icons.crop_square),
   stamp('스탬프', Icons.check_circle_outline),
@@ -5198,6 +5199,7 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
   SheetAnnotationTool get sheetAnnotationTool {
     return switch (this) {
       _AnnotationToolbarTool.highlighter => SheetAnnotationTool.highlighter,
+      _AnnotationToolbarTool.line => SheetAnnotationTool.line,
       _AnnotationToolbarTool.arrow => SheetAnnotationTool.arrow,
       _AnnotationToolbarTool.rectangle => SheetAnnotationTool.rectangle,
       _ => SheetAnnotationTool.pen,
@@ -9104,7 +9106,8 @@ setlist=$setlistLabel
     if (points.isEmpty) {
       return;
     }
-    if (_annotationTool == _AnnotationToolbarTool.arrow ||
+    if (_annotationTool == _AnnotationToolbarTool.line ||
+        _annotationTool == _AnnotationToolbarTool.arrow ||
         _annotationTool == _AnnotationToolbarTool.rectangle) {
       setState(() {
         _draftAnnotationPoints = <SheetAnnotationPoint>[points.first, point];
@@ -12904,7 +12907,8 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
 
-    if (stroke.tool != SheetAnnotationTool.arrow) {
+    if (stroke.tool != SheetAnnotationTool.line &&
+        stroke.tool != SheetAnnotationTool.arrow) {
       _paintFreehandStroke(canvas, size, stroke, paint, baseStrokeWidth);
       return;
     }

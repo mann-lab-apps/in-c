@@ -192,7 +192,7 @@ macOS, iOS, Android, Windows 지원을 명시하고, Google Play 설명은 Andro
 | 라이브러리 | 태그, 세트리스트, 검색, 제목/작곡가 편집 | 20개+ 필드, 필터, 여러 라이브러리, 백업 | 제목/작곡가/태그/최근 사용부터 |
 | 보기 | 1페이지, 스크롤, 반 페이지, 2페이지 | 1페이지, 2페이지, 반 페이지, 세로 스크롤, scaling | 1/2페이지, 세로, 반 페이지 |
 | 페이지 정리 | 확대/회전, 순서 변경, 숨김, 복제, 점프 | crop, rotate, page ordering, link point | 원본 보존 virtual ordering |
-| 주석 | 펜, 스탬프, 텍스트, 도형, 지우개 | 고급 도구, favorite, stylus, layer | 펜/형광펜/지우개/텍스트/stamp/shape/favorite부터 |
+| 주석 | 펜, 스탬프, 텍스트, 도형, 지우개 | 고급 도구, favorite, stylus, layer | 펜/형광펜/지우개/텍스트/stamp/line/shape/favorite부터 |
 | 공연 | 공연 모드, Bluetooth, sync page turning | 공연 모드, quick action, 세트리스트 | 공연 모드와 페달 기본 지원 |
 | 음악 도구 | 튜너, 메트로놈, 키보드, 녹음, 플레이어 | 메트로놈, 오디오 플레이어 | 튜너+메트로놈 핵심 차별점 |
 | 외부 장치 | Bluetooth page turner, Piascore Air | Bluetooth/USB 페달, MIDI, face gesture | HID 페달부터 시작 |
@@ -266,7 +266,7 @@ Clef & Staff는 이를 그대로 복제하기보다, 연주자가 바로 막힌 
 | 튜너 | 공식 MobileSheets 자료에서 chromatic tuner는 확인되지 않았다. | Chromatic-only tuner, pitch history chart, input stabilization이 있다. | 전용 튜너앱만큼의 실기기 정확도/latency 근거는 부족하다. | 악보앱 차별점으로 유지하되 실기기 QA로 정확도 판단. | v1 QA |
 | 미니 도구 | song display는 metronome/audio player 같은 window/control을 포함하고 quick action box는 performance mode에서도 접근 가능하다. | 악보 위 고정형 tuner/metronome mini panel이 있다. | 이동/접기/크기 조절은 없다. | v1은 고정형으로 제한. movable overlay architecture는 spike. | v1 유지, spike |
 | 파일/import | local, cloud, external app, batch import, CSV/PDF bookmark import가 있다. 원본 crop은 수정하지 않는다고 설명한다. | PDF/image import, 원본 보존, link sanitizer, backup/restore가 있다. | direct cloud browser, batch directory import, CSV songbook split은 없다. | 직접 스캐너/OCR/cloud folder/direct SAF는 v1.1 이후. | v1.1/Later |
-| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text/stamp/arrow/rectangle, undo/redo, favorite tool, 기본 layer 표시/숨김/export flag, stylus pressure metadata가 있다. | S Pen pressure/palm rejection 실기기 QA, 다중 layer/keying, music-specific shape가 남았다. | S Pen 실기기 QA 후 stylus/layer polish를 v1.1로 이동. | QA, v1.1 |
+| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text/stamp/line/arrow/rectangle, undo/redo, favorite tool, 기본 layer 표시/숨김/export flag, stylus pressure metadata가 있다. | S Pen pressure/palm rejection 실기기 QA, 다중 layer/keying, music-specific shape가 남았다. | S Pen 실기기 QA 후 stylus/layer polish를 v1.1로 이동. | QA, v1.1 |
 
 ### 친구 피드백 9개별 처리 판단
 

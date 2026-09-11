@@ -45,7 +45,7 @@
 | 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
-| 8 | 필기/주석 | pen/highlighter/text/shape/stamp, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |
+| 8 | 필기/주석 | pen/highlighter/text/line/shape/stamp, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |
 | 9 | 큰 annotation | 공유/백업 전 annotation 요약 안내가 표시된다. | stroke/text/point 요약, 파일 크기 |
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset/page duration/cue point/pause marker/반복 구간/자동 다음 곡 진행이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration, page별 duration, cue point, pause page, 반복 구간, 다음 곡 전환 |
