@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
+import 'sheet_bookmark_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
@@ -680,6 +681,29 @@ class SheetLibraryStore {
       );
     }
     return List<SheetScore>.unmodifiable(scores);
+  }
+
+  Future<List<SheetBookmark>> importBookmarkCsv({
+    required int pageCount,
+  }) async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['csv', 'txt'],
+    );
+
+    if (files.isEmpty) {
+      return const <SheetBookmark>[];
+    }
+
+    final text = utf8.decode(
+      await files.first.readAsBytes(),
+      allowMalformed: true,
+    );
+    return SheetBookmarkCsvImporter.parse(
+      text,
+      pageCount: pageCount,
+      createdAt: DateTime.now(),
+    );
   }
 
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {

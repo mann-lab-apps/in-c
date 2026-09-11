@@ -27,7 +27,7 @@
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/컬렉션/그룹/별점 필터. MobileSheets의 Key/Genre/Difficulty 축은 Clef에서 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수 |
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 일괄 선택 bulk add, 여러 PDF 가져오며 세트리스트 추가, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
-| 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
+| 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기 |
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
@@ -41,7 +41,7 @@
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
 | 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환 |
-| 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V2 | 중간 | CSV import, page range |
+| 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V2 | 중간 | CSV 북마크 가져오기는 v1에 반영. CSV index 기반 PDF 분할과 여러 곡 자동 생성은 후속 |
 | 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
@@ -141,7 +141,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 세트리스트, 세트리스트 연속 넘김. 검색 추가, 일괄 선택 bulk add, drag reorder/위아래 이동/직접 순서 입력,
   첫 곡 열기, 최근 세트리스트 rail, 마지막 곡 이어보기, viewer context 표시, 명시적 이전/다음 곡
   이동이다.
-- 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제다.
+- 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제, PDF 목차 병합, CSV 북마크
+  가져오기다.
 - 펜, 형광펜, 텍스트, 지우개, 색상/두께, 자동 저장. 7차 구현은 원본 PDF를 수정하지 않는
   normalized stroke overlay이며, 현재 페이지 마지막 stroke undo를 제공한다. 8차 보강에서
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를

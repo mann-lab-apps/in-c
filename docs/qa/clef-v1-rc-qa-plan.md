@@ -43,6 +43,7 @@
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop/render profile/반 페이지 정책이 전환된다. | PDF 유형, blank 발생 page, render profile, portrait/landscape half-page anchor, 재현 여부 |
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
 | 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
+| 5-2 | 북마크 | 현재 페이지 북마크, PDF 목차 병합, CSV 북마크 병합, 목록 이동/이름 변경/삭제가 동작한다. | CSV 형식, 병합 수, 중복 page skip, 이동 page |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
 | 8 | 필기/주석 | pen/highlighter/text/line/shape/stamp/staff/grid, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |
@@ -486,5 +487,6 @@ flutter build ios --release --no-codesign
   흡수했다.
 - PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
   MobileSheets식 metadata assignment 필요를 가볍게 처리한다.
-- MobileSheets batch import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기와 여러 PDF를 세트리스트에
-  추가하는 흐름을 추가했다. cloud browser, batch audio, CSV/PDF bookmark import는 후속으로 남긴다.
+- MobileSheets batch/bookmark import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기, 여러 PDF를
+  세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. cloud browser, batch
+  audio, CSV songbook split은 후속으로 남긴다.

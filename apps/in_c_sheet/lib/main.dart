@@ -5427,6 +5427,7 @@ enum _ViewerMenuAction {
   manageJumpPoints,
   manageRehearsalMarks,
   importPdfOutline,
+  importBookmarkCsv,
   cropPages,
   cropPresets,
   applyPageCrop,
@@ -7255,6 +7256,28 @@ setlist=$setlistLabel
       didMerge
           ? '${_pdfOutlineBookmarks.length}개 PDF 목차 후보를 북마크에 병합했습니다.'
           : '새로 병합할 PDF 목차 항목이 없습니다.',
+    );
+  }
+
+  Future<void> _importCsvBookmarks() async {
+    final pageCount = _pdfController.pageCount;
+    if (pageCount <= 0) {
+      _showSnackBar('PDF 페이지 수를 확인한 뒤 CSV 북마크를 가져올 수 있습니다.');
+      return;
+    }
+    final addedCount = await widget.controller.importBookmarksFromCsv(
+      score,
+      pageCount: pageCount,
+    );
+    final errorMessage = widget.controller.errorMessage;
+    if (errorMessage != null) {
+      _showSnackBar(errorMessage);
+      return;
+    }
+    _showSnackBar(
+      addedCount > 0
+          ? '$addedCount개 CSV 북마크를 추가했습니다.'
+          : '새로 가져올 CSV 북마크가 없습니다.',
     );
   }
 
@@ -10241,6 +10264,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.importPdfOutline:
         await _importPdfOutlineBookmarks();
         return;
+      case _ViewerMenuAction.importBookmarkCsv:
+        await _importCsvBookmarks();
+        return;
       case _ViewerMenuAction.cropPages:
         await _showCropSettings();
         return;
@@ -10786,6 +10812,14 @@ setlist=$setlistLabel
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.importBookmarkCsv,
+              child: ListTile(
+                leading: Icon(Icons.table_rows_outlined),
+                title: Text('CSV 북마크 가져오기'),
+                subtitle: Text('page,label 또는 label,page'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
                 leading: Icon(Icons.rotate_90_degrees_cw_outlined),
@@ -11117,6 +11151,14 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.account_tree_outlined),
                 title: const Text('PDF 목차 가져오기'),
                 subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.importBookmarkCsv,
+              child: ListTile(
+                leading: Icon(Icons.table_rows_outlined),
+                title: Text('CSV 북마크 가져오기'),
+                subtitle: Text('page,label 또는 label,page'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(

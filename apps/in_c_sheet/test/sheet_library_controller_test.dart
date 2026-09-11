@@ -1416,6 +1416,38 @@ void main() {
     );
   });
 
+  test('imports CSV bookmarks and skips existing pages', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = _BookmarkCsvStore(<SheetBookmark>[
+      SheetBookmark(pageNumber: 1, label: 'Intro', createdAt: now),
+      SheetBookmark(pageNumber: 2, label: 'Duplicate', createdAt: now),
+      SheetBookmark(pageNumber: 4, label: 'Coda', createdAt: now),
+    ]);
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 2, label: 'Existing', createdAt: now),
+        ],
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final addedCount = await controller.importBookmarksFromCsv(
+      controller.scores.single,
+      pageCount: 4,
+    );
+
+    expect(addedCount, 2);
+    expect(
+      controller.scores.single.bookmarks.map((bookmark) => bookmark.label),
+      <String>['Intro', 'Existing', 'Coda'],
+    );
+  });
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -2506,6 +2538,19 @@ class _ImportScoreStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> importPdfs() async {
     return batchScores;
+  }
+}
+
+class _BookmarkCsvStore extends SheetLibraryStore {
+  _BookmarkCsvStore(this.bookmarks);
+
+  final List<SheetBookmark> bookmarks;
+
+  @override
+  Future<List<SheetBookmark>> importBookmarkCsv({
+    required int pageCount,
+  }) async {
+    return bookmarks;
   }
 }
 

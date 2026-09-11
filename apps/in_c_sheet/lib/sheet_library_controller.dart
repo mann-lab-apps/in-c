@@ -1672,6 +1672,35 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
+  Future<int> importBookmarksFromCsv(
+    SheetScore score, {
+    required int pageCount,
+  }) async {
+    _errorMessage = null;
+    try {
+      final importedBookmarks = await store.importBookmarkCsv(
+        pageCount: pageCount,
+      );
+      if (importedBookmarks.isEmpty) {
+        return 0;
+      }
+      final currentScore = scoreById(score.id);
+      final beforeCount = currentScore.bookmarks.length;
+      final didMerge = await mergeBookmarksFromOutline(
+        currentScore,
+        importedBookmarks,
+      );
+      if (!didMerge) {
+        return 0;
+      }
+      return scoreById(score.id).bookmarks.length - beforeCount;
+    } catch (_) {
+      _errorMessage = 'CSV 북마크를 가져오지 못했습니다. page,label 형식인지 확인해주세요.';
+      notifyListeners();
+      return 0;
+    }
+  }
+
   Future<bool> addCropPreset(SheetScore score, SheetCropPreset preset) async {
     final nextPageSettings = score.pageSettings.addCropPreset(preset);
     if (identical(nextPageSettings, score.pageSettings)) {
