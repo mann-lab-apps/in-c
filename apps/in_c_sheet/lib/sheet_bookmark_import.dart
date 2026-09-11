@@ -10,7 +10,8 @@ class SheetBookmarkCsvImporter {
   }) {
     final bookmarks = <SheetBookmark>[];
     final seenPages = <int>{};
-    for (final row in _parseCsvRows(input)) {
+    final delimiter = _detectDelimiter(input);
+    for (final row in _parseDelimitedRows(input, delimiter: delimiter)) {
       if (row.every((cell) => _cleanCell(cell).isEmpty)) {
         continue;
       }
@@ -90,7 +91,45 @@ class SheetBookmarkCsvImporter {
         value == '이름';
   }
 
-  static List<List<String>> _parseCsvRows(String input) {
+  static String _detectDelimiter(String input) {
+    var commaCount = 0;
+    var tabCount = 0;
+    var semicolonCount = 0;
+    var quoted = false;
+    for (var index = 0; index < input.length; index += 1) {
+      final char = input[index];
+      if (char == '"') {
+        if (quoted && index + 1 < input.length && input[index + 1] == '"') {
+          index += 1;
+        } else {
+          quoted = !quoted;
+        }
+        continue;
+      }
+      if (!quoted && (char == '\n' || char == '\r')) {
+        break;
+      }
+      if (!quoted && char == ',') {
+        commaCount += 1;
+      } else if (!quoted && char == '\t') {
+        tabCount += 1;
+      } else if (!quoted && char == ';') {
+        semicolonCount += 1;
+      }
+    }
+    if (tabCount > commaCount && tabCount >= semicolonCount) {
+      return '\t';
+    }
+    if (semicolonCount > commaCount) {
+      return ';';
+    }
+    return ',';
+  }
+
+  static List<List<String>> _parseDelimitedRows(
+    String input, {
+    required String delimiter,
+  }) {
     final rows = <List<String>>[];
     var row = <String>[];
     final cell = StringBuffer();
@@ -106,7 +145,7 @@ class SheetBookmarkCsvImporter {
         }
         continue;
       }
-      if (!quoted && char == ',') {
+      if (!quoted && char == delimiter) {
         row.add(cell.toString());
         cell.clear();
         continue;
