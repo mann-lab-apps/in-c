@@ -469,3 +469,5 @@ flutter build ios --release --no-codesign
 - 메트로놈 mini panel은 기존 작은 점 표시 대신 가로 시각 박자 strip을 전면에 두어, Android
   audio route/볼륨 문제로 tick sound가 작거나 들리지 않아도 악보 위에서 현재 박을 눈으로
   따라갈 수 있게 했다. 실제 소리 출력과 latency는 계속 실기기 QA로 확인한다.
+- 페이지 터치 넘김은 첫 진입 overlay에 더해 `터치 영역 다시 보기` action을 제공한다. 사용자가
+  한 번 놓친 뒤에도 왼쪽 이전, 가운데 메뉴, 오른쪽 다음 영역을 다시 확인할 수 있다.

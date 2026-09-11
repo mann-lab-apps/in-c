@@ -48,7 +48,7 @@
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
 | 보기 | 2페이지 보기 | 양쪽 기본 | MVP | 중간 | 4차 구현: 넓은 화면 tablet spread, 첫 페이지 단독 후 2-3 spread |
 | 보기 | 세로 스크롤 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx` 기본 세로 연속 layout, 좁은 화면 기본값 |
-| 보기 | 가로 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: 1페이지 mode에서 가로 page layout |
+| 보기 | 가로 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: 1페이지 mode에서 가로 page layout. 첫 진입 tap zone hint와 `터치 영역 다시 보기` action으로 왼쪽 이전/가운데 메뉴/오른쪽 다음 영역을 안내 |
 | 보기 | 반 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 5차 구현: 곡별 저장, visible viewport 기반 반 페이지 이동, 2페이지 보기와 동시 사용 제한 |
 | 보기 | 확대/축소/이동 | 양쪽 기본 | MVP | 중간 | `pdfrx` 기본 동작. 8차에서 annotation overlay를 page rect 기준으로 보강 |
 | 보기 | 마지막 위치 저장 | 기본 기대 | MVP | 낮음 | per-score setting |

@@ -286,4 +286,13 @@ void main() {
     expect(find.text('정지'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('tap zone hint explains page turn regions', (tester) async {
+    await tester.pumpWidget(buildTapZoneHintOverlayForTest());
+
+    expect(find.text('이전'), findsOneWidget);
+    expect(find.text('메뉴'), findsOneWidget);
+    expect(find.text('다음'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

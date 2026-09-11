@@ -5139,6 +5139,7 @@ enum _ViewerMenuAction {
   pedalMapping,
   renderProfile,
   pageTurnAnimation,
+  showTapZoneHint,
   performanceSettings,
   toggleHalfPageTurn,
   toggleAnnotationMode,
@@ -9793,6 +9794,13 @@ setlist=$setlistLabel
       case _ViewerMenuAction.pageTurnAnimation:
         await _selectPageTurnAnimation();
         return;
+      case _ViewerMenuAction.showTapZoneHint:
+        setState(() {
+          _showTapZoneHint = true;
+          _showPageControls = true;
+        });
+        _schedulePageControlsAutoHide();
+        return;
       case _ViewerMenuAction.performanceSettings:
         await _showPerformanceSettings();
         return;
@@ -10276,6 +10284,13 @@ setlist=$setlistLabel
         ),
       if (!isCompactViewer && !_isPerformanceMode)
         IconButton(
+          tooltip: '터치 영역 다시 보기',
+          onPressed: () =>
+              _handleViewerMenuAction(_ViewerMenuAction.showTapZoneHint),
+          icon: const Icon(Icons.touch_app_outlined),
+        ),
+      if (!isCompactViewer && !_isPerformanceMode)
+        IconButton(
           tooltip: _useHalfPageTurn ? '반 페이지 넘김 끄기' : '반 페이지 넘김',
           onPressed: _displayMode == _SheetViewerDisplayMode.twoPage
               ? null
@@ -10587,6 +10602,14 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(_pageTurnAnimation.icon),
                 title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.showTapZoneHint,
+              child: ListTile(
+                leading: Icon(Icons.touch_app_outlined),
+                title: Text('터치 영역 다시 보기'),
+                subtitle: Text('왼쪽 이전 · 가운데 메뉴 · 오른쪽 다음'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -11399,36 +11422,40 @@ class _TapZoneHintOverlay extends StatelessWidget {
     final theme = Theme.of(context);
     final zoneColor = theme.colorScheme.primary.withValues(alpha: 0.08);
     final lineColor = theme.colorScheme.primary.withValues(alpha: 0.28);
-    return IgnorePointer(
-      child: ColoredBox(
-        color: Colors.transparent,
-        child: Row(
-          children: [
-            Expanded(
-              child: _TapZoneHintPane(
-                color: zoneColor,
-                borderColor: lineColor,
-                icon: Icons.chevron_left,
-                label: '이전',
+    return Semantics(
+      container: true,
+      label: '페이지 터치 영역 안내',
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: Colors.transparent,
+          child: Row(
+            children: [
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: zoneColor,
+                  borderColor: lineColor,
+                  icon: Icons.chevron_left,
+                  label: '이전',
+                ),
               ),
-            ),
-            Expanded(
-              child: _TapZoneHintPane(
-                color: Colors.white.withValues(alpha: 0.38),
-                borderColor: lineColor,
-                icon: Icons.touch_app_outlined,
-                label: '메뉴',
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: Colors.white.withValues(alpha: 0.38),
+                  borderColor: lineColor,
+                  icon: Icons.touch_app_outlined,
+                  label: '메뉴',
+                ),
               ),
-            ),
-            Expanded(
-              child: _TapZoneHintPane(
-                color: zoneColor,
-                borderColor: lineColor,
-                icon: Icons.chevron_right,
-                label: '다음',
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: zoneColor,
+                  borderColor: lineColor,
+                  icon: Icons.chevron_right,
+                  label: '다음',
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -15712,6 +15739,11 @@ Widget buildViewerMiniMetronomePanelForTest({
       ),
     ),
   );
+}
+
+@visibleForTesting
+Widget buildTapZoneHintOverlayForTest() {
+  return const MaterialApp(home: Scaffold(body: _TapZoneHintOverlay()));
 }
 
 class _MetronomeSheetState extends State<_MetronomeSheet> {
