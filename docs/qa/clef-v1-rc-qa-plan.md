@@ -474,3 +474,5 @@ flutter build ios --release --no-codesign
 - MobileSheets의 import wizard식 metadata assignment를 그대로 강제하지 않고, viewer toolbar의
   `악보 정보 편집` 진입점으로 가져온 악보를 보면서 제목/작곡가/태그/컬렉션/그룹/별점/custom
   field를 바로 정리할 수 있게 했다. import-time 전체 wizard는 v1.1 후보로 유지한다.
+- PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
+  MobileSheets식 metadata assignment 필요를 가볍게 처리한다.

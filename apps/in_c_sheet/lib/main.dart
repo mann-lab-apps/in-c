@@ -271,7 +271,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         return;
       }
     }
-    await _openScore(score);
+    await _openScore(score, showImportNudge: true);
   }
 
   Future<void> _importImagesAsPdf({bool addToSetlist = false}) async {
@@ -288,7 +288,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('"${score.title}" 이미지 PDF를 추가했습니다.')),
     );
-    await _openScore(score);
+    await _openScore(score, showImportNudge: true);
   }
 
   Future<void> _addImportedScoreToSetlist(SheetScore score) async {
@@ -620,10 +620,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         content: Text('${imported.length}개 PDF를 Clef & Staff 라이브러리에 추가했습니다.'),
       ),
     );
-    await _openScore(imported.first);
+    await _openScore(imported.first, showImportNudge: true);
   }
 
-  Future<void> _openScore(SheetScore score, {String? setlistId}) async {
+  Future<void> _openScore(
+    SheetScore score, {
+    String? setlistId,
+    bool showImportNudge = false,
+  }) async {
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -635,6 +639,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           controller: controller,
           scoreId: score.id,
           setlistId: setlistId,
+          showImportNudge: showImportNudge,
         ),
       ),
     );
@@ -2550,6 +2555,28 @@ class _ScoreMetadataInput {
   final String note;
   final List<SheetLinkedFile> linkedFiles;
   final List<SheetCustomMetadataField> customFields;
+}
+
+SnackBar _buildImportedScoreNudgeSnackBar({
+  required String title,
+  required VoidCallback onEdit,
+}) {
+  final normalizedTitle = title.trim().isEmpty ? '악보' : title.trim();
+  return SnackBar(
+    content: Text('"$normalizedTitle" 악보를 추가했습니다.'),
+    action: SnackBarAction(label: '정보 편집', onPressed: onEdit),
+  );
+}
+
+@visibleForTesting
+SnackBar buildImportedScoreNudgeSnackBarForTest({
+  required String title,
+  VoidCallback? onEdit,
+}) {
+  return _buildImportedScoreNudgeSnackBar(
+    title: title,
+    onEdit: onEdit ?? () {},
+  );
 }
 
 String _formatShortDate(DateTime value) {
@@ -5371,6 +5398,7 @@ class SheetViewerScreen extends StatefulWidget {
     required this.scoreId,
     this.setlistId,
     this.autoStartScroll = false,
+    this.showImportNudge = false,
     super.key,
   });
 
@@ -5378,6 +5406,7 @@ class SheetViewerScreen extends StatefulWidget {
   final String scoreId;
   final String? setlistId;
   final bool autoStartScroll;
+  final bool showImportNudge;
 
   @override
   State<SheetViewerScreen> createState() => _SheetViewerScreenState();
@@ -5613,6 +5642,9 @@ setlist=$setlistLabel
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
+        if (widget.showImportNudge) {
+          _showImportedScoreNudge();
+        }
       }
     });
   }
@@ -6921,6 +6953,15 @@ setlist=$setlistLabel
       customFields: result.customFields,
     );
     _showSnackBar('악보 정보를 저장했습니다.');
+  }
+
+  void _showImportedScoreNudge() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      _buildImportedScoreNudgeSnackBar(
+        title: score.title,
+        onEdit: () => unawaited(_editCurrentScoreMetadata()),
+      ),
+    );
   }
 
   Future<void> _importPdfOutlineBookmarks() async {

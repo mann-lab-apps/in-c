@@ -310,4 +310,41 @@ void main() {
     expect(find.text('악보 메모'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('import nudge offers immediate score metadata editing', (
+    tester,
+  ) async {
+    var didTapEdit = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => FilledButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  buildImportedScoreNudgeSnackBarForTest(
+                    title: '새 악보',
+                    onEdit: () => didTapEdit = true,
+                  ),
+                );
+              },
+              child: const Text('show'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('show'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('"새 악보" 악보를 추가했습니다.'), findsOneWidget);
+    expect(find.text('정보 편집'), findsOneWidget);
+
+    await tester.tap(find.text('정보 편집'));
+    await tester.pump();
+
+    expect(didTapEdit, isTrue);
+    expect(tester.takeException(), isNull);
+  });
 }
