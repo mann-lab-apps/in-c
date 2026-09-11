@@ -198,6 +198,38 @@ void main() {
     },
   );
 
+  test(
+    'opens existing score instead of duplicating matching PDF import',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(
+        _score(
+          now,
+          id: 'imported-score',
+          title: 'Recital Part',
+          filePath: '/tmp/imported-score-recital-part.pdf',
+        ),
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          id: 'score-1',
+          title: 'Recital Part',
+          filePath: '/tmp/score-1-recital-part.pdf',
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importPdf();
+
+      expect(imported?.id, 'score-1');
+      expect(controller.scores, hasLength(1));
+      expect(controller.lastImportOpenedExistingScore, isTrue);
+    },
+  );
+
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -2355,6 +2387,7 @@ SheetScore _score(
   String collection = '',
   String group = '',
   int rating = 0,
+  String? filePath,
   List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
   SheetMetronomeSettings? metronomeSettings,
 }) {
@@ -2364,7 +2397,7 @@ SheetScore _score(
     composer: composer,
     tags: tags,
     note: '',
-    filePath: '/tmp/$id.pdf',
+    filePath: filePath ?? '/tmp/$id.pdf',
     collection: collection,
     group: group,
     rating: rating,

@@ -58,6 +58,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isImporting = false;
   String? _errorMessage;
+  bool _lastImportOpenedExistingScore = false;
 
   List<SheetScore> get scores => _scores;
   List<SheetSetlist> get setlists => _setlists;
@@ -80,6 +81,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get errorMessage => _errorMessage;
+  bool get lastImportOpenedExistingScore => _lastImportOpenedExistingScore;
 
   SheetLibraryProfile? libraryProfileByName(String name) {
     final normalized = _normalizeOptionalMetadata(name);
@@ -211,6 +213,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -220,6 +223,11 @@ class SheetLibraryController extends ChangeNotifier {
           : _withActiveCollection(importedScore);
       if (score == null) {
         return null;
+      }
+      final duplicate = _findLikelyImportedDuplicate(score);
+      if (duplicate != null) {
+        _lastImportOpenedExistingScore = true;
+        return duplicate;
       }
 
       _scores = <SheetScore>[score, ..._scores];
@@ -241,6 +249,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -273,6 +282,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -303,6 +313,29 @@ class SheetLibraryController extends ChangeNotifier {
 
   List<SheetScoreShareCandidate> shareCandidates(SheetScore score) {
     return store.shareCandidates(score);
+  }
+
+  SheetScore? _findLikelyImportedDuplicate(SheetScore importedScore) {
+    final importedKey = _duplicateImportKey(importedScore);
+    if (importedKey.length < 3) {
+      return null;
+    }
+    for (final score in _scores) {
+      if (score.id == importedScore.id) {
+        continue;
+      }
+      if (_duplicateImportKey(score) == importedKey) {
+        return score;
+      }
+    }
+    return null;
+  }
+
+  String _duplicateImportKey(SheetScore score) {
+    return score.sourceFileDisplayName
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_\-]+'), ' ')
+        .trim();
   }
 
   Future<void> markOpened(SheetScore score) async {

@@ -266,13 +266,19 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted || score == null) {
       return;
     }
+    final openedExisting = controller.lastImportOpenedExistingScore;
+    if (openedExisting) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${score.title}"이 이미 있어 기존 악보를 엽니다.')),
+      );
+    }
     if (addToSetlist) {
       await _addImportedScoreToSetlist(score);
       if (!mounted) {
         return;
       }
     }
-    await _openScore(score, showImportNudge: true);
+    await _openScore(score, showImportNudge: !openedExisting);
   }
 
   Future<void> _importImagesAsPdf({bool addToSetlist = false}) async {
