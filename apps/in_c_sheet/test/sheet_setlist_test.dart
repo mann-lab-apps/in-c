@@ -27,6 +27,7 @@ void main() {
       },
       transitionSeconds: 12,
       lastOpenedAt: lastOpenedAt,
+      lastOpenedScoreId: 'score-2',
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'twoPage',
         halfPageTurn: true,
@@ -59,6 +60,7 @@ void main() {
     expect(decoded.single.scoreMetronomeSettings['score-1']?.countInBars, 1);
     expect(decoded.single.transitionSeconds, 12);
     expect(decoded.single.lastOpenedAt, lastOpenedAt);
+    expect(decoded.single.lastOpenedScoreId, 'score-2');
     expect(decoded.single.totalEstimatedSeconds, 402);
     expect(decoded.single.viewerSettingsOverride?.displayMode, 'twoPage');
     expect(decoded.single.viewerSettingsOverride?.halfPageTurn, isTrue);
@@ -67,6 +69,24 @@ void main() {
       SheetViewerSettings.reversedSetlistPedalMapping,
     );
     expect(decoded.single.viewerSettingsOverride?.autoAdvanceSetlist, isTrue);
+  });
+
+  test('drops stale last opened score ids while decoding', () {
+    final decoded = SheetSetlist.decodeList('''
+[
+  {
+    "id": "setlist-1",
+    "title": "Recital",
+    "scoreIds": ["score-1"],
+    "createdAt": "2026-08-20T10:00:00.000",
+    "updatedAt": "2026-08-20T10:05:00.000",
+    "lastOpenedScoreId": "missing-score"
+  }
+]
+''');
+
+    expect(decoded, hasLength(1));
+    expect(decoded.single.lastOpenedScoreId, isNull);
   });
 
   test('sorts decoded setlists by updated date', () {
@@ -221,6 +241,7 @@ void main() {
         displayMode: 'continuousVertical',
         halfPageTurn: false,
       ),
+      lastOpenedScoreId: 'missing',
     );
 
     final cleaned = setlist.removeMissingScores(<String>{'score-1', 'score-2'});
@@ -232,6 +253,7 @@ void main() {
     expect(cleaned.scoreMetronomeSettings.keys, <String>['score-1']);
     expect(cleaned.scoreMetronomeSettings['score-1']?.bpm, 96);
     expect(cleaned.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(cleaned.lastOpenedScoreId, isNull);
   });
 
   test('removes stale rehearsal metadata even when score ids are clean', () {

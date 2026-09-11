@@ -420,7 +420,8 @@ flutter build ios --release --no-codesign
   안내한다.
 - 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을
   보조 수단으로 유지한다.
-- 세트리스트를 열면 마지막 연 시간을 저장하고 홈 quick access에 `최근 세트리스트` rail로 표시한다.
+- 세트리스트를 열면 마지막 연 시간과 마지막으로 연 곡을 저장하고 홈 quick access에 `최근 세트리스트`
+  rail로 표시한다. 최근 세트리스트를 다시 열면 저장된 곡부터 이어서 시작한다.
 - viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone hint를 보여준다. 하단 page control과 mini panel tap은
   page turn으로 중복 처리하지 않는다.
 - 일반 viewer 배경은 paper/white 계열로 조정해 PDF 주변 여백이 악보와 덜 이질적으로 보이게 했다.

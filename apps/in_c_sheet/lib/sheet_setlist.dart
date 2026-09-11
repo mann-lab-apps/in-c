@@ -18,6 +18,7 @@ class SheetSetlist {
     this.transitionSeconds = 0,
     this.viewerSettingsOverride,
     this.lastOpenedAt,
+    this.lastOpenedScoreId,
   });
 
   factory SheetSetlist.fromJson(Map<String, Object?> json) {
@@ -26,14 +27,16 @@ class SheetSetlist {
       throw const FormatException('Setlist id is required.');
     }
     final createdAt = _dateFromJson(json['createdAt']);
+    final scoreIds = _jsonList(json['scoreIds'])
+        .map(_stringFromJson)
+        .map((scoreId) => scoreId.trim())
+        .where((scoreId) => scoreId.isNotEmpty)
+        .toList(growable: false);
+    final lastOpenedScoreId = _stringFromJson(json['lastOpenedScoreId']).trim();
     return SheetSetlist(
       id: id,
       title: _titleFromJson(json['title']),
-      scoreIds: _jsonList(json['scoreIds'])
-          .map(_stringFromJson)
-          .map((scoreId) => scoreId.trim())
-          .where((scoreId) => scoreId.isNotEmpty)
-          .toList(growable: false),
+      scoreIds: scoreIds,
       createdAt: createdAt,
       updatedAt: _dateFromJson(json['updatedAt'], fallback: createdAt),
       rehearsalMode: _boolFromJson(json['rehearsalMode'], fallback: false),
@@ -51,6 +54,9 @@ class SheetSetlist {
         json['viewerSettingsOverride'],
       ),
       lastOpenedAt: _optionalDateFromJson(json['lastOpenedAt']),
+      lastOpenedScoreId: scoreIds.contains(lastOpenedScoreId)
+          ? lastOpenedScoreId
+          : null,
     );
   }
 
@@ -103,6 +109,7 @@ class SheetSetlist {
   final int transitionSeconds;
   final SheetViewerSettings? viewerSettingsOverride;
   final DateTime? lastOpenedAt;
+  final String? lastOpenedScoreId;
 
   int get totalScoreDurationSeconds {
     var total = 0;
@@ -133,6 +140,8 @@ class SheetSetlist {
     bool clearViewerSettingsOverride = false,
     DateTime? lastOpenedAt,
     bool clearLastOpenedAt = false,
+    String? lastOpenedScoreId,
+    bool clearLastOpenedScoreId = false,
   }) {
     return SheetSetlist(
       id: id,
@@ -155,6 +164,9 @@ class SheetSetlist {
       lastOpenedAt: clearLastOpenedAt
           ? null
           : lastOpenedAt ?? this.lastOpenedAt,
+      lastOpenedScoreId: clearLastOpenedScoreId
+          ? null
+          : lastOpenedScoreId ?? this.lastOpenedScoreId,
     );
   }
 
@@ -188,11 +200,15 @@ class SheetSetlist {
             ),
           ),
         );
+    final cleanedLastOpenedScoreId = cleanedIds.contains(lastOpenedScoreId)
+        ? lastOpenedScoreId
+        : null;
     if (_listEquals(cleaned, scoreIds) &&
         _mapEquals(cleanedStartPages, scoreStartPages) &&
         _mapEquals(cleanedNotes, scoreNotes) &&
         _mapEquals(cleanedDurations, scoreDurations) &&
-        _metronomeMapEquals(cleanedMetronomeSettings, scoreMetronomeSettings)) {
+        _metronomeMapEquals(cleanedMetronomeSettings, scoreMetronomeSettings) &&
+        cleanedLastOpenedScoreId == lastOpenedScoreId) {
       return this;
     }
     return copyWith(
@@ -201,6 +217,8 @@ class SheetSetlist {
       scoreNotes: cleanedNotes,
       scoreDurations: cleanedDurations,
       scoreMetronomeSettings: cleanedMetronomeSettings,
+      lastOpenedScoreId: cleanedLastOpenedScoreId,
+      clearLastOpenedScoreId: cleanedLastOpenedScoreId == null,
       updatedAt: DateTime.now(),
     );
   }
@@ -220,6 +238,7 @@ class SheetSetlist {
       scoreIds: scoreIds
           .where((candidate) => candidate != scoreId)
           .toList(growable: false),
+      clearLastOpenedScoreId: lastOpenedScoreId == scoreId,
       updatedAt: updatedAt,
     );
   }
@@ -257,6 +276,7 @@ class SheetSetlist {
       if (viewerSettingsOverride != null)
         'viewerSettingsOverride': viewerSettingsOverride!.toJson(),
       if (lastOpenedAt != null) 'lastOpenedAt': lastOpenedAt!.toIso8601String(),
+      if (lastOpenedScoreId != null) 'lastOpenedScoreId': lastOpenedScoreId,
     };
   }
 

@@ -1885,18 +1885,22 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final now = DateTime.parse('2026-08-20T10:00:00.000');
       final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now, id: 'score-1', title: 'First'),
+        _score(now, id: 'score-2', title: 'Second'),
+      ]);
       await store.saveSetlists(<SheetSetlist>[
         SheetSetlist(
           id: 'older',
           title: 'Older',
-          scoreIds: const <String>[],
+          scoreIds: const <String>['score-1'],
           createdAt: now,
           updatedAt: now,
         ),
         SheetSetlist(
           id: 'newer',
           title: 'Newer',
-          scoreIds: const <String>[],
+          scoreIds: const <String>['score-2'],
           createdAt: now,
           updatedAt: now,
         ),
@@ -1905,15 +1909,22 @@ void main() {
       final controller = SheetLibraryController(store: store);
       await controller.load();
 
-      await controller.markSetlistOpened(controller.setlistById('older'));
+      await controller.markSetlistOpened(
+        controller.setlistById('older'),
+        scoreId: 'score-1',
+      );
       await Future<void>.delayed(const Duration(milliseconds: 1));
-      await controller.markSetlistOpened(controller.setlistById('newer'));
+      await controller.markSetlistOpened(
+        controller.setlistById('newer'),
+        scoreId: 'score-2',
+      );
 
       expect(controller.recentSetlists.map((setlist) => setlist.id), <String>[
         'newer',
         'older',
       ]);
       expect((await store.loadSetlists()).first.lastOpenedAt, isNotNull);
+      expect((await store.loadSetlists()).first.lastOpenedScoreId, 'score-2');
     },
   );
 

@@ -26,7 +26,7 @@
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그 필터 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 일괄 선택 bulk add, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 일괄 선택 bulk add, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail과 마지막 곡 이어보기 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기 |
@@ -138,7 +138,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
   확인한다.
 - 세트리스트, 세트리스트 연속 넘김. 검색 추가, 일괄 선택 bulk add, drag reorder/위아래 이동/직접 순서 입력,
-  첫 곡 열기, 최근 세트리스트 rail, viewer context 표시, 명시적 이전/다음 곡 이동이다.
+  첫 곡 열기, 최근 세트리스트 rail, 마지막 곡 이어보기, viewer context 표시, 명시적 이전/다음 곡
+  이동이다.
 - 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제다.
 - 펜, 형광펜, 텍스트, 지우개, 색상/두께, 자동 저장. 7차 구현은 원본 PDF를 수정하지 않는
   normalized stroke overlay이며, 현재 페이지 마지막 stroke undo를 제공한다. 8차 보강에서

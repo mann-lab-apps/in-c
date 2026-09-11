@@ -100,6 +100,7 @@ void main() {
         createdAt: now,
         updatedAt: now,
         lastOpenedAt: now,
+        lastOpenedScoreId: 'score-1',
       ),
     ]);
     final controller = SheetLibraryController(store: store);
@@ -110,7 +111,60 @@ void main() {
 
     expect(find.text('최근 세트리스트'), findsOneWidget);
     expect(find.text('새 세트리스트'), findsOneWidget);
+    expect(find.textContaining('이어보기 · clef short score'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  test('recent setlist resume picks the last opened score when valid', () {
+    final now = DateTime(2026, 9, 7, 10);
+    final scores = <SheetScore>[
+      SheetScore(
+        id: 'score-1',
+        title: 'First',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/first.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'score-2',
+        title: 'Second',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/second.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ];
+
+    final setlist = SheetSetlist(
+      id: 'setlist-1',
+      title: '공연 순서',
+      scoreIds: const <String>['score-1', 'score-2'],
+      createdAt: now,
+      updatedAt: now,
+      lastOpenedScoreId: 'score-2',
+    );
+
+    expect(scoreToOpenForSetlistResumeForTest(setlist, scores).id, 'score-2');
+    expect(
+      scoreToOpenForSetlistResumeForTest(
+        setlist.copyWith(lastOpenedScoreId: 'missing'),
+        scores,
+      ).id,
+      'score-1',
+    );
   });
 
   testWidgets('recent quick access scores participate in bulk selection', (

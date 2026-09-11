@@ -1917,9 +1917,21 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
-  Future<void> markSetlistOpened(SheetSetlist setlist) async {
+  Future<void> markSetlistOpened(
+    SheetSetlist setlist, {
+    String? scoreId,
+  }) async {
+    final normalizedScoreId = scoreId?.trim();
     await _replaceSetlist(
-      setlist.copyWith(lastOpenedAt: DateTime.now(), updatedAt: DateTime.now()),
+      setlist.copyWith(
+        lastOpenedAt: DateTime.now(),
+        lastOpenedScoreId:
+            normalizedScoreId != null &&
+                setlist.scoreIds.contains(normalizedScoreId)
+            ? normalizedScoreId
+            : null,
+        updatedAt: DateTime.now(),
+      ),
     );
   }
 

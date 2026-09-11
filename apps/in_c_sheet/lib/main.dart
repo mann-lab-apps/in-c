@@ -373,12 +373,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _openRecentSetlist(SheetSetlist setlist) async {
-    await controller.markSetlistOpened(setlist);
     final scores = controller.scoresForSetlist(setlist);
     if (!mounted) {
       return;
     }
     if (scores.isEmpty) {
+      await controller.markSetlistOpened(setlist);
+      if (!mounted) {
+        return;
+      }
       await Navigator.of(context).push<void>(
         MaterialPageRoute<void>(
           builder: (context) => SheetSetlistDetailScreen(
@@ -389,7 +392,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       );
       return;
     }
-    final score = scores.first;
+    final score = _scoreToOpenForSetlistResume(setlist, scores);
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -1398,6 +1402,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                             setlists: controller.recentSetlists
                                 .take(8)
                                 .toList(growable: false),
+                            scoreById: controller.scoreByIdOrNull,
                             onOpen: _openRecentSetlist,
                           ),
                         ],
@@ -3162,6 +3167,24 @@ String _scoreIdentitySubtitle(SheetScore score) {
   return parts.isEmpty ? '파일 정보 없음' : parts.join(' · ');
 }
 
+SheetScore _scoreToOpenForSetlistResume(
+  SheetSetlist setlist,
+  List<SheetScore> scores,
+) {
+  return scores.firstWhere(
+    (score) => score.id == setlist.lastOpenedScoreId,
+    orElse: () => scores.first,
+  );
+}
+
+@visibleForTesting
+SheetScore scoreToOpenForSetlistResumeForTest(
+  SheetSetlist setlist,
+  List<SheetScore> scores,
+) {
+  return _scoreToOpenForSetlistResume(setlist, scores);
+}
+
 class _QuickAccessScoreChip extends StatelessWidget {
   const _QuickAccessScoreChip({
     required this.score,
@@ -3268,9 +3291,14 @@ class _QuickAccessScoreChip extends StatelessWidget {
 }
 
 class _RecentSetlistsBand extends StatelessWidget {
-  const _RecentSetlistsBand({required this.setlists, required this.onOpen});
+  const _RecentSetlistsBand({
+    required this.setlists,
+    required this.scoreById,
+    required this.onOpen,
+  });
 
   final List<SheetSetlist> setlists;
+  final SheetScore? Function(String id) scoreById;
   final ValueChanged<SheetSetlist> onOpen;
 
   @override
@@ -3311,6 +3339,10 @@ class _RecentSetlistsBand extends StatelessWidget {
                   final openedLabel = setlist.lastOpenedAt == null
                       ? '${setlist.scoreIds.length}곡'
                       : '${_formatShortDate(setlist.lastOpenedAt!)} · ${setlist.scoreIds.length}곡';
+                  final lastOpenedScoreId = setlist.lastOpenedScoreId;
+                  final lastOpenedScore = lastOpenedScoreId == null
+                      ? null
+                      : scoreById(lastOpenedScoreId);
                   return SizedBox(
                     width: 188,
                     child: Material(
@@ -3353,6 +3385,17 @@ class _RecentSetlistsBand extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.labelSmall,
                               ),
+                              if (lastOpenedScore != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '이어보기 · ${lastOpenedScore.title}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -4034,7 +4077,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     }
 
     final score = scores.first;
-    await controller.markSetlistOpened(setlist);
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -4249,12 +4292,12 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           .showSnackBar(const SnackBar(content: Text('세트리스트에 악보가 없습니다.')));
       return;
     }
-    await controller.markSetlistOpened(setlist);
+    await controller.markSetlistOpened(setlist, scoreId: scores.first.id);
     await _openScore(scores.first);
   }
 
   Future<void> _openScore(SheetScore score) async {
-    await controller.markSetlistOpened(setlist);
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -10139,6 +10182,10 @@ setlist=$setlistLabel
       }
     }
 
+    final setlist = widget.controller.setlistByIdOrNull(setlistId);
+    if (setlist != null) {
+      await widget.controller.markSetlistOpened(setlist, scoreId: nextScore.id);
+    }
     await widget.controller.markOpened(nextScore);
     if (!mounted) {
       return;
