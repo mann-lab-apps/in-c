@@ -391,7 +391,9 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('첫 박 강조'), findsOneWidget);
+    expect(find.text('강세 패턴'), findsOneWidget);
+    expect(find.text('1박'), findsOneWidget);
+    expect(find.text('강세 사용'), findsOneWidget);
     expect(find.text('틱 소리'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('소리 크기'),

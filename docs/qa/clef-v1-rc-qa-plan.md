@@ -195,7 +195,7 @@ source of truth로 둔다.
 
 - v1 hotfix 반영됨: 다중 선택 강조, 선택 악보의 bulk setlist 추가, setlist drag reorder,
   최근 세트리스트 rail, page tap zone hint, viewer paper/white 배경 기본값, metronome
-  subdivision/accent/tap tempo, 0/1/2마디 count-in, 악보별 metronome snapshot,
+  subdivision/박별 강세 패턴/tap tempo, 0/1/2마디 count-in, 악보별 metronome snapshot,
   세트리스트별 metronome override,
   고정형 mini tuner/metronome panel, 새 metronome 기본 `소리 켬`, Android native tick volume 및
   `소리`/`시각만` 상태 표시.
@@ -428,7 +428,7 @@ flutter build ios --release --no-codesign
   page turn으로 중복 처리하지 않는다.
 - 일반 viewer 배경은 paper/white 계열로 조정해 PDF 주변 여백이 악보와 덜 이질적으로 보이게 했다.
 - 메트로놈은 2/4, 3/4, 4/4, 6/8 박자, 8분/3연/16분 subdivision, 0/1/2마디 count-in,
-  악보별 metronome snapshot, 세트리스트별 metronome override, 첫 박 강조, Tap tempo, Android native
+  악보별 metronome snapshot, 세트리스트별 metronome override, 박별 강세 패턴, Tap tempo, Android native
   tick volume을 제공한다. 실제 Android audio route와 iOS system click fallback은 실기기 QA가 필요하다.
 - 튜너/메트로놈은 악보 위 우상단 고정형 mini panel로 축소할 수 있다. drag/resize, 악보 가장자리
   visible pulse, 복잡한 cue/accent pattern은 v1.1/Later로 분리한다.

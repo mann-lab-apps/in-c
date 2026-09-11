@@ -21,6 +21,7 @@ void main() {
     expect(low.meter, SheetMetronomeMeter.fourFour);
     expect(low.soundEnabled, isTrue);
     expect(low.accentEnabled, isTrue);
+    expect(low.normalizedAccentBeatIndexes, <int>[0]);
     expect(low.subdivision, SheetMetronomeSubdivision.none);
     expect(low.countInBars, 0);
     expect(
@@ -29,6 +30,7 @@ void main() {
     );
     expect(high.bpm, 240);
     expect(high.meter, SheetMetronomeMeter.sixEight);
+    expect(high.normalizedAccentBeatIndexes, <int>[0, 3]);
     expect(decimal.bpm, 132);
   });
 
@@ -41,6 +43,7 @@ void main() {
       subdivision: SheetMetronomeSubdivision.triplet,
       countInBars: 2,
       volumePercent: 42,
+      accentBeatIndexes: <int>[0, 2],
     );
 
     final decoded = SheetMetronomeCodec.decode(
@@ -54,6 +57,7 @@ void main() {
     expect(decoded.subdivision, SheetMetronomeSubdivision.triplet);
     expect(decoded.countInBars, 2);
     expect(decoded.volumePercent, 42);
+    expect(decoded.normalizedAccentBeatIndexes, <int>[0, 2]);
     expect(decoded.normalizedVolume, 0.42);
     expect(decoded.pulseDuration.inMilliseconds, 152);
   });
@@ -85,6 +89,7 @@ void main() {
       'meter': 6,
       'soundEnabled': 'yes',
       'accentEnabled': 'no',
+      'accentBeatIndexes': <Object?>[-1, '1', 5],
       'subdivision': 'tiny',
       'countInBars': 8,
       'volumePercent': 'loud',
@@ -94,6 +99,7 @@ void main() {
     expect(settings.meter, SheetMetronomeSettings.defaultSettings.meter);
     expect(settings.soundEnabled, isTrue);
     expect(settings.accentEnabled, isTrue);
+    expect(settings.normalizedAccentBeatIndexes, isEmpty);
     expect(settings.subdivision, SheetMetronomeSubdivision.none);
     expect(settings.countInBars, 2);
     expect(
@@ -159,6 +165,41 @@ void main() {
     expect(third.subdivisionIndex, 0);
     expect(fourth.beatNumber, 2);
     expect(fourth.subdivisionIndex, 1);
+  });
+
+  test('supports customizable accent patterns per meter', () {
+    final sixEight = SheetMetronomeSettings.fromJson(<String, Object?>{
+      'meter': 'sixEight',
+    });
+
+    expect(sixEight.normalizedAccentBeatIndexes, <int>[0, 3]);
+    expect(
+      sixEight.isAccentBeat(
+        const SheetMetronomeBeat(beatIndex: 3, beatsPerBar: 6),
+      ),
+      isTrue,
+    );
+    expect(
+      sixEight.isAccentBeat(
+        const SheetMetronomeBeat(beatIndex: 2, beatsPerBar: 6),
+      ),
+      isFalse,
+    );
+
+    final custom = sixEight.copyWith(accentBeatIndexes: <int>[1, 5, 9]);
+    expect(custom.normalizedAccentBeatIndexes, <int>[1, 5]);
+    expect(
+      custom.isAccentBeat(
+        const SheetMetronomeBeat(beatIndex: 0, beatsPerBar: 6),
+      ),
+      isFalse,
+    );
+    expect(
+      custom
+          .copyWith(accentEnabled: false)
+          .isAccentBeat(const SheetMetronomeBeat(beatIndex: 1, beatsPerBar: 6)),
+      isFalse,
+    );
   });
 
   test(

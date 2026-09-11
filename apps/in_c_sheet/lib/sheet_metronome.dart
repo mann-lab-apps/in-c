@@ -9,20 +9,23 @@ class SheetMetronomeSettings {
     this.subdivision = SheetMetronomeSubdivision.none,
     this.countInBars = 0,
     this.volumePercent = 85,
+    this.accentBeatIndexes = const <int>[0],
   });
 
   factory SheetMetronomeSettings.fromJson(Map<String, Object?>? json) {
     final meterValue = json?['meter'];
+    final meter = SheetMetronomeMeter.fromId(
+      meterValue is String ? meterValue : defaultSettings.meter.id,
+    );
     final soundEnabledValue = json?['soundEnabled'];
     final accentEnabledValue = json?['accentEnabled'];
     final subdivisionValue = json?['subdivision'];
     final countInBarsValue = json?['countInBars'];
     final volumePercentValue = json?['volumePercent'];
+    final accentBeatIndexesValue = json?['accentBeatIndexes'];
     return SheetMetronomeSettings(
       bpm: _normalizeBpm(json?['bpm']),
-      meter: SheetMetronomeMeter.fromId(
-        meterValue is String ? meterValue : defaultSettings.meter.id,
-      ),
+      meter: meter,
       soundEnabled: soundEnabledValue is bool
           ? soundEnabledValue
           : defaultSettings.soundEnabled,
@@ -36,6 +39,11 @@ class SheetMetronomeSettings {
       ),
       countInBars: _normalizeCountInBars(countInBarsValue),
       volumePercent: _normalizeVolumePercent(volumePercentValue),
+      accentBeatIndexes: _normalizeAccentBeatIndexes(
+        accentBeatIndexesValue,
+        meter.beatsPerBar,
+        fallback: defaultAccentBeatIndexesFor(meter),
+      ),
     );
   }
 
@@ -51,8 +59,12 @@ class SheetMetronomeSettings {
   final SheetMetronomeSubdivision subdivision;
   final int countInBars;
   final int volumePercent;
+  final List<int> accentBeatIndexes;
 
   double get normalizedVolume => volumePercent.clamp(0, 100) / 100;
+
+  List<int> get normalizedAccentBeatIndexes =>
+      _normalizeAccentBeatIndexes(accentBeatIndexes, meter.beatsPerBar);
 
   Duration get beatDuration {
     return Duration(milliseconds: (60000 / bpm).round());
@@ -64,6 +76,12 @@ class SheetMetronomeSettings {
     );
   }
 
+  bool isAccentBeat(SheetMetronomeBeat beat) {
+    return accentEnabled &&
+        beat.isBeatStart &&
+        normalizedAccentBeatIndexes.contains(beat.beatIndex);
+  }
+
   SheetMetronomeSettings copyWith({
     int? bpm,
     SheetMetronomeMeter? meter,
@@ -72,15 +90,21 @@ class SheetMetronomeSettings {
     SheetMetronomeSubdivision? subdivision,
     int? countInBars,
     int? volumePercent,
+    List<int>? accentBeatIndexes,
   }) {
+    final nextMeter = meter ?? this.meter;
     return SheetMetronomeSettings(
       bpm: clampBpm(bpm ?? this.bpm),
-      meter: meter ?? this.meter,
+      meter: nextMeter,
       soundEnabled: soundEnabled ?? this.soundEnabled,
       accentEnabled: accentEnabled ?? this.accentEnabled,
       subdivision: subdivision ?? this.subdivision,
       countInBars: clampCountInBars(countInBars ?? this.countInBars),
       volumePercent: clampVolumePercent(volumePercent ?? this.volumePercent),
+      accentBeatIndexes: _normalizeAccentBeatIndexes(
+        accentBeatIndexes ?? this.accentBeatIndexes,
+        nextMeter.beatsPerBar,
+      ),
     );
   }
 
@@ -93,6 +117,7 @@ class SheetMetronomeSettings {
       'subdivision': subdivision.id,
       'countInBars': countInBars,
       'volumePercent': volumePercent,
+      'accentBeatIndexes': normalizedAccentBeatIndexes,
     };
   }
 
@@ -102,6 +127,12 @@ class SheetMetronomeSettings {
 
   static int clampVolumePercent(int volumePercent) =>
       volumePercent.clamp(0, 100).toInt();
+
+  static List<int> defaultAccentBeatIndexesFor(SheetMetronomeMeter meter) {
+    return meter == SheetMetronomeMeter.sixEight
+        ? const <int>[0, 3]
+        : const <int>[0];
+  }
 
   static int _normalizeBpm(Object? value) {
     if (value is num) {
@@ -122,6 +153,34 @@ class SheetMetronomeSettings {
       return clampVolumePercent(value.round());
     }
     return defaultSettings.volumePercent;
+  }
+
+  static List<int> _normalizeAccentBeatIndexes(
+    Object? value,
+    int beatsPerBar, {
+    List<int> fallback = const <int>[0],
+  }) {
+    if (beatsPerBar <= 0) {
+      return const <int>[];
+    }
+    if (value is! Iterable) {
+      return List<int>.unmodifiable(
+        fallback.where((index) => index >= 0 && index < beatsPerBar),
+      );
+    }
+
+    final indexes = <int>{};
+    for (final rawIndex in value) {
+      if (rawIndex is! num) {
+        continue;
+      }
+      final index = rawIndex.round();
+      if (index >= 0 && index < beatsPerBar) {
+        indexes.add(index);
+      }
+    }
+    final sorted = indexes.toList()..sort();
+    return List<int>.unmodifiable(sorted);
   }
 }
 

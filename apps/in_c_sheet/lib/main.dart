@@ -11844,7 +11844,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     unawaited(
       _soundPlayer.playClick(
         settings: widget.metronomeSettings,
-        accent: _beat.isAccent,
+        accent: widget.metronomeSettings.isAccentBeat(_beat),
       ),
     );
   }
@@ -12005,10 +12005,12 @@ class _MiniMetronomePulseStrip extends StatelessWidget {
       child: Row(
         children: List<Widget>.generate(settings.meter.beatsPerBar, (index) {
           final isCurrent = isRunning && index == beat.beatIndex;
-          final isAccent = index == 0 && settings.accentEnabled;
+          final isAccent = settings.normalizedAccentBeatIndexes.contains(index);
+          final isActiveAccent =
+              settings.accentEnabled && settings.isAccentBeat(beat);
           final Color activeColor = isCountingIn
               ? colors.secondary
-              : isAccent
+              : isActiveAccent
               ? colors.primary
               : colors.tertiary;
           return Expanded(
@@ -16152,7 +16154,12 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   }
 
   Future<void> _setMeter(SheetMetronomeMeter meter) async {
-    final nextSettings = _settings.copyWith(meter: meter);
+    final nextSettings = _settings.copyWith(
+      meter: meter,
+      accentBeatIndexes: SheetMetronomeSettings.defaultAccentBeatIndexesFor(
+        meter,
+      ),
+    );
     setState(() {
       _settings = nextSettings;
       _beat = SheetMetronomeBeat(
@@ -16186,6 +16193,21 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   Future<void> _setAccentEnabled(bool enabled) async {
     final nextSettings = _settings.copyWith(accentEnabled: enabled);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _toggleAccentBeat(int beatIndex) async {
+    final accents = _settings.normalizedAccentBeatIndexes.toSet();
+    if (accents.contains(beatIndex)) {
+      accents.remove(beatIndex);
+    } else {
+      accents.add(beatIndex);
+    }
+    final nextAccents = accents.toList()..sort();
+    final nextSettings = _settings.copyWith(accentBeatIndexes: nextAccents);
     setState(() {
       _settings = nextSettings;
     });
@@ -16326,7 +16348,10 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       return;
     }
     unawaited(
-      _soundPlayer.playClick(settings: _settings, accent: _beat.isAccent),
+      _soundPlayer.playClick(
+        settings: _settings,
+        accent: _settings.isAccentBeat(_beat),
+      ),
     );
   }
 
@@ -16353,7 +16378,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
         (_countInPulsesLeft / _settings.subdivision.pulsesPerBeat).ceil();
     final beatLabel = _isCountingIn
         ? '카운트인 $countInBeatsLeft박 남음'
-        : _beat.isAccent && _settings.accentEnabled
+        : _settings.isAccentBeat(_beat)
         ? '강박 · $beatTime'
         : _beat.isBeatStart
         ? '보통박 · $beatTime'
@@ -16517,7 +16542,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 index,
               ) {
                 final isCurrent = index == _beat.beatIndex;
-                final isAccent = index == 0 && _settings.accentEnabled;
+                final isAccent = _settings.normalizedAccentBeatIndexes.contains(
+                  index,
+                );
+                final isActiveAccent =
+                    _settings.accentEnabled && _settings.isAccentBeat(_beat);
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   width: isCurrent ? 30 : 22,
@@ -16526,7 +16555,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isCurrent
-                        ? (isAccent
+                        ? (isActiveAccent
                               ? theme.colorScheme.primary
                               : theme.colorScheme.tertiary)
                         : theme.colorScheme.surfaceContainerHighest,
@@ -16543,11 +16572,38 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             const SizedBox(height: 12),
             Center(child: Text(beatLabel, style: theme.textTheme.labelMedium)),
             const SizedBox(height: 8),
+            Text(
+              '강세 패턴',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: List<Widget>.generate(_settings.meter.beatsPerBar, (
+                index,
+              ) {
+                final selected = _settings.normalizedAccentBeatIndexes.contains(
+                  index,
+                );
+                return FilterChip(
+                  label: Text('${index + 1}박'),
+                  selected: selected,
+                  onSelected: _settings.accentEnabled
+                      ? (_) => _toggleAccentBeat(index)
+                      : null,
+                );
+              }),
+            ),
+            const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.radio_button_checked),
-              title: const Text('첫 박 강조'),
-              subtitle: const Text('시각 표시에서 첫 박을 더 크게 보여줍니다.'),
+              title: const Text('강세 사용'),
+              subtitle: const Text('선택한 박을 더 강한 소리와 색으로 표시합니다.'),
               value: _settings.accentEnabled,
               onChanged: _setAccentEnabled,
             ),

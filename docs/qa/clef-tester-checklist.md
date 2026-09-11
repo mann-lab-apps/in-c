@@ -41,7 +41,7 @@
 12. `세부 설정` 아래에서 sharp/flat 표기, 감지 엔진, A4 slider/history, 기준음/드론이 접근 가능한지
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
 13. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
-14. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 0/1/2마디 카운트인, 첫 박 강조,
+14. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 0/1/2마디 카운트인, 박별 강세 패턴,
     Tap tempo, start/stop을 확인한다. 값을 바꾼 뒤 같은 악보를 다시 열었을 때 메트로놈 설정이
     유지되는지 확인한다. 같은 악보를 세트리스트 안에서 열었다면 세트리스트별 값으로 따로 저장되는지
     확인한다.
@@ -123,7 +123,7 @@
 - 첫 page에서 이전, 마지막 page에서 다음을 누르면 버튼이 죽은 것처럼 보이지 않고 `곡 처음` 또는
   `곡 끝` 안내가 짧게 표시되어야 한다.
 - 2026-09-07 연주자 피드백으로 다중 선택 강조, bulk setlist 추가, setlist drag reorder,
-  최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
+  최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/박별 강세 패턴/Tap tempo,
   세트리스트별 metronome override,
   고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
   장시간 사용성을 다시 확인한다.
