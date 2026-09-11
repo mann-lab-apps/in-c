@@ -5675,6 +5675,14 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     return parts.join(' · ');
   }
 
+  String _setlistProgressSubtitle(SheetSetlistPlaybackContext context) {
+    final parts = <String>[context.title, context.positionLabel];
+    if (context.currentDurationSeconds > 0) {
+      parts.add(_formatDuration(context.currentDurationSeconds));
+    }
+    return parts.join(' · ');
+  }
+
   String get _currentPageLabel {
     final hiddenCount = score.pageSettings.hiddenPages.length;
     final pageText = '${_pageNumber ?? score.lastPage}/${_pageCount ?? '-'}';
@@ -11471,6 +11479,25 @@ setlist=$setlistLabel
                         !_isAnnotationMode &&
                         !_isPerformanceMode)
                       const Positioned.fill(child: _TapZoneHintOverlay()),
+                    if (setlistContext != null &&
+                        (usesScrollableViewerToolbar || _isPerformanceMode) &&
+                        !_isAnnotationMode)
+                      Positioned(
+                        left: _isPerformanceMode
+                            ? (isCompactViewer ? 68 : 80)
+                            : 16,
+                        right: isCompactViewer ? 8 : 16,
+                        top: isCompactViewer ? 12 : 16,
+                        child: Align(
+                          alignment: _isPerformanceMode
+                              ? Alignment.topLeft
+                              : Alignment.topCenter,
+                          child: _SetlistProgressBadge(
+                            scoreTitle: currentScore.title,
+                            subtitle: _setlistProgressSubtitle(setlistContext),
+                          ),
+                        ),
+                      ),
                     if (_miniTool != null && !_isAnnotationMode)
                       Positioned(
                         top: isCompactViewer ? 12 : 20,
@@ -13817,6 +13844,61 @@ class _PerformanceQuickActionButton extends StatelessWidget {
   }
 }
 
+class _SetlistProgressBadge extends StatelessWidget {
+  const _SetlistProgressBadge({
+    required this.scoreTitle,
+    required this.subtitle,
+  });
+
+  final String scoreTitle;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      container: true,
+      label: '세트리스트 진행 위치',
+      value: '$scoreTitle, $subtitle',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  scoreTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AutoScrollCueOverlay extends StatelessWidget {
   const _AutoScrollCueOverlay({required this.remainingSeconds});
 
@@ -15957,6 +16039,23 @@ Widget buildViewerMiniMetronomePanelForTest({
           onMetronomeSettingsChanged: (_) async {},
           onOpenTuner: () {},
           onClose: () {},
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildSetlistProgressBadgeForTest({
+  String scoreTitle = 'G선상의 아리아',
+  String subtitle = '공연 순서 · 2/8 · 3분',
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _SetlistProgressBadge(
+          scoreTitle: scoreTitle,
+          subtitle: subtitle,
         ),
       ),
     ),

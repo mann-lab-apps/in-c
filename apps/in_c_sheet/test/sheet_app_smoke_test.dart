@@ -167,6 +167,28 @@ void main() {
     );
   });
 
+  testWidgets('setlist progress badge keeps current score context visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildSetlistProgressBadgeForTest(
+        scoreTitle: 'G선상의 아리아',
+        subtitle: '공연 순서 · 2/8 · 3분',
+      ),
+    );
+
+    expect(find.text('G선상의 아리아'), findsOneWidget);
+    expect(find.text('공연 순서 · 2/8 · 3분'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == '세트리스트 진행 위치',
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('recent quick access scores participate in bulk selection', (
     tester,
   ) async {

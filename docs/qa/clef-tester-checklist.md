@@ -69,28 +69,30 @@
    보조로 동작하는지 확인한다.
 5. 세트리스트 중간 곡을 열었다가 홈으로 돌아와 `최근 세트리스트` rail에 `이어보기` 곡명이 보이고,
    다시 누르면 해당 곡부터 열리는지 확인한다.
-6. PDF 공유와 필기 포함 PDF 공유를 실행한다.
-7. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
-8. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
-9. metadata 백업과 PDF 포함 전체 백업을 생성한다.
-10. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
-11. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
-12. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
+6. 세트리스트로 연 악보에서 좁은 화면 또는 공연 모드에서도 현재 곡명과 `2/8` 같은 진행 배지가
+   보이는지 확인한다.
+7. PDF 공유와 필기 포함 PDF 공유를 실행한다.
+8. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
+9. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
+10. metadata 백업과 PDF 포함 전체 백업을 생성한다.
+11. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
+12. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
+13. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
    PDF가 조금씩 스크롤되지 않는지 확인한다. 첫 page에서 이전, 마지막 page에서 다음을 누르면
    `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
-13. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
-14. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
-15. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
-16. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
-17. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
-18. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
-19. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
-20. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
-21. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
-22. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
-23. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
-24. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
-25. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
+14. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
+15. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
+16. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
+17. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
+18. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
+19. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
+20. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
+21. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
+22. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
+23. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
+24. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
+25. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
+26. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.
 
 ## Known Issues
 
