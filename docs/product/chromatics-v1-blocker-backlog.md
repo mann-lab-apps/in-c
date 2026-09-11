@@ -60,9 +60,9 @@ post-V1 확장뿐이다.
   항목을 표시하는 첫 슬라이스를 추가했다.
 - MIDI export 첫 슬라이스를 추가했다. Renderer에서 playback timeline 기반 Standard MIDI File
   type 1 bytes를 생성하고, tempo track과 note/chord track을 분리해 전역 tempo, positioned tempo
-  event, note on/off, chord pitches를 기록한다. App 파일 메뉴에는 MusicXML/PDF와 구분되는
-  MIDI 내보내기 액션을 추가했고 Electron bridge는 `.mid/.midi` 저장 다이얼로그와 바이너리 파일
-  쓰기를 처리한다.
+  event, note on/off, chord pitches를 기록한다. App export toolbar에는 MusicXML 저장과 구분되는
+  MIDI 내보내기 액션을 두고 Electron bridge는 `.mid/.midi` 저장 다이얼로그와 바이너리 파일 쓰기를
+  처리한다.
 - `npm run verify:visual-regression`이 승인된 Electron 실행 환경에서 clean pass했다. 현재
   notation snapshot baseline은 V1 gate로 사용할 수 있는 상태다.
 - playback part mixer 첫 슬라이스를 추가했다. Playback 탭에서 part별 mute, solo, volume을
@@ -78,10 +78,10 @@ post-V1 확장뿐이다.
   고정한다. String quartet Cello 재생 이벤트 선택은 jump-to-start 후에도 editing selection
   주소를 유지하고 playback cursor만 초기화되는지 App 회귀 테스트로 확인한다.
 - PDF page setup 첫 슬라이스를 추가했다. `ScoreLayout.pageSetup`에 page size, orientation,
-  margin, staff size, system spacing을 저장하고, 악보 탭의 PDF 설정 UI와 print layout planner,
+  margin, staff size, system spacing을 저장하고, export toolbar의 PDF 설정 UI와 print layout planner,
   PDF `@page` CSS가 같은 값을 사용한다. Letter landscape, 여백, 보표 크기, 시스템 간격이
   export layout plan에 반영되는 자동 테스트를 추가했다.
-- PDF page setup preset polish 첫 슬라이스를 추가했다. 악보 탭 PDF 설정은 `기본 A4`,
+- PDF page setup preset polish 첫 슬라이스를 추가했다. export toolbar PDF 설정은 `기본 A4`,
   `리허설 Letter`, `출판 A4`, `컴팩트 파트보` preset을 제공하고, preset 선택 시 page size,
   orientation, margin, staff size, system spacing을 한 번에 적용한다. Preset 값은 export-time
   print layout plan에 반영되는지 App 테스트로 확인한다.
@@ -93,6 +93,11 @@ post-V1 확장뿐이다.
 - system text와 expression text 첫 슬라이스를 추가했다. score-core 모델과 undoable command,
   악보 탭 입력 UI, NotationPreview 표시, MusicXML import/export 왕복, 텍스트 입력 중 notation
   shortcut 차단 테스트를 연결했다.
+- Commercial V1 measure-level notation palette 첫 슬라이스를 추가했다. rehearsal mark,
+  staff/system/expression text, dynamics, repeat/volta, measure clef를 `표기 객체` 탭으로
+  옮기고, Score Setup의 `악보` 탭은 빠르기, 파트/보표, PDF 설정, 조표/박자표 같은 구조 설정
+  중심으로 남겼다. App workflow 테스트는 `표기 객체` 탭에서 rehearsal mark와 `sfz` dynamic을
+  실제 preview에 적용하고, Score Setup에 measure-level notation controls가 남지 않는지 확인한다.
 - tempo map playback을 연결했다. positioned tempo event는 measure/tick에서 score beat로
   변환되고, playback beat/seconds 변환과 scheduler 예약 시간은 tempo map을 기준으로 계산된다.
   첫 staff 밖 measure id에 붙은 tempo event도 timeline에 반영되도록 보강했다.
@@ -191,10 +196,55 @@ post-V1 확장뿐이다.
   warning이 있으면 상태 메시지 아래에 파일명, import/export 방향, warning code, measure/event
   또는 measure id, MusicXML path, message를 표시한다. Warning이 없는 새 악보 open/import/export는
   이전 report를 지운다.
+- MuseScore/Finale reference environment audit harness 첫 슬라이스를 추가했다.
+  `npm run verify:notation-reference-apps`는 로컬 macOS Applications 폴더에서 primary
+  reference app 설치 상태를 확인하고, external MusicXML fixture manifest의 MuseScore/Finale
+  reference role, manual QA status, fixture source policy를 검증한다. 2026-09-11 audit에서
+  MuseScore 4.7.5와 `/Applications/MuseScore 4.app/Contents/MacOS/mscore` executable 후보는
+  확인됐지만, 실제 MuseScore app-export fixture는 아직 수집하지 않았다. Finale는 로컬 미설치라
+  사용자 제공 Finale-origin MusicXML 또는 별도 호환 환경이 필요하다.
+- MuseScore CLI app-export fixture와 import/render smoke 하네스 첫 슬라이스를 추가했다.
+  MuseScore Studio 4.7.5 CLI가 `musescore-grand-staff-basic.musicxml`을 가져와 다시
+  export한 `musescore-4-7-5-cli-grand-staff-export.musicxml`을 versioned app-export fixture로
+  저장했고, `npm run verify:musescore-cli-fixtures`는 이 fixture를 MuseScore CLI로 다시 PDF
+  렌더링해 PDF header/EOF/파일 크기를 검증한다. 이 검증은 MuseScore 축의 자동 evidence를
+  올리지만, GUI-created MuseScore score와 reopen/manual snapshot 완료로 보지는 않는다.
+- MuseScore grand staff lower-staff voice numbering compatibility slice를 추가했다.
+  MuseScore 4.7.5 export는 lower staff의 첫 voice를 MusicXML `<voice>5</voice>`로 기록할 수
+  있으므로, MusicXML import는 multi-staff voice number를 staff-local `voice-1..4`로 normalize한다.
+  External fixture manifest는 MuseScore CLI app-export fixture의 staff별 voice id가
+  `[["voice-1"], ["voice-1"]]`로 들어오는지 자동 검증한다.
 - 실전 dynamics import/export false-positive 감소 첫 슬라이스를 추가했다. `ppp`, `pp`, `p`,
   `mp`, `mf`, `f`, `ff`, `fff`, `sfz`를 `DynamicValue`, 악보 탭 UI, MusicXML import/export,
   playback velocity map에 연결했고, `pp`/`ff`/`sfz` MusicXML이 warning 없이 round-trip되는지
   테스트로 확인한다.
+- Commercial V1 장기 work queue와 verifier를 추가했다.
+  `docs/product/chromatics-commercial-v1-work-queue.md`는 MuseScore/Finale primary reference와
+  Dorico/Sibelius secondary reference 기준으로 남은 blocker를 `Todo`, `Partial`,
+  `Manual QA required`, `Blocked external` 등으로 분리하고, `npm run verify:chromatics-v1-work-queue`는
+  큐의 column/status/category/next action schema를 release gate로 검증한다.
+- Reference app audit harness를 Dorico/Sibelius까지 확장했다. `npm run verify:notation-reference-apps`는
+  MuseScore, Dorico, Sibelius, Finale의 local install 상태, manifest role, required fixture
+  상태와 next action을 한 번에 출력한다.
+- MuseScore CLI app-export fixture 검증을 원본 raw voice value까지 보강했다.
+  `musescore-4-7-5-cli-grand-staff-export.musicxml`은 lower staff 원본 MusicXML `<voice>5</voice>`를
+  포함해야 하며, Chromatics import 결과는 staff-local `voice-1`로 normalize되어야 한다.
+- Selection filter foundation 첫 슬라이스를 추가했다. File command surface에는 `전체`,
+  `음표만`, `쉼표만` event-type selection filter가 있고, context strip은 range selection의
+  filtered count를 표시한다. Filtered delete는 same-staff duplicate event id 상황에서도
+  addressed voice 안에서만 note/rest 대상에 적용된다. 2026-09-11 후속 slice로 filtered
+  copy/paste도 source와 target selection을 addressed voice 안에서 필터링하며, filtered
+  event가 rhythmic gap을 만들면 copy/paste를 거부하도록 고정했다. Lyrics/chord/dynamics
+  같은 object-type fine filters는 Commercial V1 필수 blocker가 아니라 후속 polish 후보로
+  분리한다.
+- Compact desktop work-mode E2E guard를 추가했다. Electron smoke는 960px에서 File,
+  Score Setup, Note Input, Notation Objects, Lyrics/Chords, Export/Page Setup,
+  Playback mode를 순회하며 document/context/text overflow, File과 Export command 분리,
+  Lyrics/Chords chord input 위치, notation object surface, playback controls 노출을
+  확인한다. 사람 기준 compact desktop visual QA는 release candidate 전 manual QA로 남긴다.
+- Commercial V1 save policy verifier를 추가했다. `npm run verify:chromatics-v1-save-policy`는
+  MusicXML primary save, V1 native project format 제외, unsupported layout warning report,
+  release docs/work queue consistency를 자동 확인한다.
 - 저장된 part view workflow 정책 첫 슬라이스를 구현했다. MusicXML 파일 자체는 표준 교환 포맷으로
   유지하고, Chromatics 데스크탑은 파일 경로별 마지막 총보/파트보 선택을 로컬 preference로 기록한다.
   저장 후 같은 MusicXML을 최근 파일에서 다시 열면 유효한 part id의 part view가 복원되고, part가
@@ -219,6 +269,18 @@ post-V1 확장뿐이다.
 - Lyrics/chord symbols App workflow export/reopen 검증 첫 슬라이스를 추가했다. `release-test`
   fixture에서 코드 심벌과 선택 음표 가사, syllabic, melisma를 편집하고 MusicXML로 저장한 뒤 최근
   파일에서 다시 열어 가사와 코드 심벌이 프리뷰에 복원되는지 App 테스트로 확인한다.
+- Commercial V1 Lyrics/Chords input surface 첫 슬라이스를 추가했다. 코드 심벌 input을 `음표`
+  패널에서 빼고 `가사` 탭의 별도 `코드` group에 배치했다. App workflow 테스트는 note 선택 시
+  lyric과 chord symbol이 각각 선택 event/tick에 붙고, measure 선택 시 lyric editor는 비활성
+  안내를 보이며 chord symbol은 선택 마디 tick 0에 붙는 정책을 고정한다.
+- Commercial V1 Export/Page Setup information architecture 첫 슬라이스를 추가했다. `파일` 탭은
+  새 악보, MusicXML 가져오기/저장, 최근 파일/기본 편집 command surface 중심으로 남기고,
+  PDF 변환, MIDI 내보내기, PDF 목표 장수, page size/orientation/margins/staff size/system
+  spacing/preset controls를 `내보내기` 탭으로 분리했다. MusicXML save는 full-score primary
+  save로 유지하고, PDF/MIDI export는 현재 score view(full score 또는 selected part view)를
+  따르도록 고정했다. App regression은 `파일` 탭에 PDF/MIDI export controls가 primary로
+  노출되지 않고, `악보` 탭에 PDF page setup controls가 primary로 남지 않으며, string quartet
+  Viola part view PDF/MIDI export가 part-specific suggested filename을 쓰는지 확인한다.
 - macOS packaged app smoke 첫 검증을 완료했다. `package.json`의 mac build config는
   로컬/프리릴리즈 package gate가 키체인 서명 대기에 걸리지 않도록 `identity: null`을
   명시하고, `npm run package:dir`은 `release/mac-arm64/in-C.app`을 생성한다.
@@ -262,16 +324,16 @@ post-V1 확장뿐이다.
 | 1 | Score model | same-staff multi-voice 입력/전환/편집 완성 | 부분 지원 | 한 staff 안의 voice 1-4를 키보드와 UI로 전환하고, selection/range/copy/paste/delete/playback/MusicXML이 voice address를 잃지 않는다. Voice 1-4 toolbar/shortcut 전환과 note input target 유지, preview click/shift-click/drag callback의 voice address 전달, core range delete/copy/paste의 addressed voice 보존, paste 직후 selection/navigation의 target voice 보존, playback active event의 voice-aware selection/highlight, stop/jump 후 selection 유지 정책, MusicXML voice별 stream import와 표준 backup export, address-scoped range visual highlight 첫 슬라이스, drag range anchor의 voice-lane guard, selected range band visual polish 첫 슬라이스가 완료되었다. 실제 앱 export MusicXML fixture 검증과 warning report, 충돌 없는 engraving UX가 남아 있다. |
 | 2 | Score model | multi-part 총보와 multi-staff/grand staff workflow 완성 | 부분 지원 | 새 악보 wizard 또는 inspector에서 2-4 part ensemble과 piano grand staff를 만들고 편집/저장/재열기/렌더링할 수 있다. 새 악보 마법사 구조 프리셋으로 piano grand staff, 2-part ensemble, string quartet skeleton 생성 첫 슬라이스가 완료되었고, NotationPreview는 multi-staff stacked preview와 추가 staff 이벤트 선택/note input target 보존 첫 슬라이스를 제공한다. MusicXML은 multi-staff/multi-part 구조와 기본 note/rest event round-trip 첫 슬라이스를 지원한다. Note toolbar의 입력 보표 전환 UI는 selection/note input cursor의 part/staff address를 유지한다. 악보 탭 part/staff add/remove/rename 첫 슬라이스와 삭제 reference cleanup, 현재 보표 전체 음자리표 선택, 악기 라이브러리 기반 part 생성, multi-staff notation object anchoring, 외부 사보앱 compatibility seed fixture QA 첫 슬라이스, 4-part ensemble part별 입력 후 MusicXML 저장/최근 파일 재열기 App workflow 검증 첫 슬라이스가 완료되었다. Collision-aware engraving polish, 실제 앱 export fixture QA, packaged app manual QA는 남아 있다. |
 | 3 | Layout | part extraction 또는 live part view 구현 | 부분 지원 | 총보에서 개별 파트보를 열람/출력하고, 총보 변경이 파트보에 반영된다. 악보 탭의 총보/파트보 보기 전환, 선택 part 프리뷰, 파트보 제목, part view PDF 출력 대상 연결 첫 슬라이스가 완료되었다. MusicXML 파일 경로별 마지막 총보/파트보 선택은 로컬 preference로 저장/복원하는 V1 정책 첫 슬라이스가 완료되었다. App 테스트는 string quartet Viola 파트보 PDF export 중 print renderer가 Viola part만 받고 compact parts preset layout을 쓰는지 확인한다. Import-origin 2-part App regression은 첫 part staff-level annotation이 다른 part view/PDF renderer로 새지 않고 rehearsal mark 같은 global annotation은 유지되는지 확인한다. Packaged smoke는 string quartet Cello 파트보로 전환해 score page/part title metadata와 visible event가 Cello part만 가리키는지 확인하고 part view PDF 파일 생성/구조 검증을 통과한다. 독립 파트보 레이아웃의 실제 시각 polish와 file dialog 기반 실제 파트보 PDF visual QA는 남아 있다. |
-| 4 | Layout | page setup/PDF settings 구현 | 부분 지원 | page size, orientation, margins, staff size, system spacing이 UI와 PDF export에 반영된다. ScoreLayout page setup 모델, 악보 탭 PDF 설정 UI, print layout planner, PDF `@page` CSS 반영, V1 page setup preset polish 첫 슬라이스가 완료되었다. Score page DOM은 PDF export renderer가 캡처하는 normalized page setup metadata를 노출하고, App 테스트는 manual Letter landscape, publication A4, compact parts preset이 renderer contract까지 전달되는지 확인한다. Packaged smoke는 새 악보 총보와 Cello part view PDF의 header/EOF/page object/MediaBox 구조를 확인한다. file dialog 기반 실제 PDF visual QA, 저장 파일 round-trip 정책, preview polish는 남아 있다. |
+| 4 | Layout | page setup/PDF settings 구현 | 부분 지원 | page size, orientation, margins, staff size, system spacing이 UI와 PDF export에 반영된다. ScoreLayout page setup 모델, `내보내기` 탭 PDF 설정 UI, print layout planner, PDF `@page` CSS 반영, V1 page setup preset polish 첫 슬라이스가 완료되었다. Score page DOM은 PDF export renderer가 캡처하는 normalized page setup metadata를 노출하고, App 테스트는 manual Letter landscape, publication A4, compact parts preset이 renderer contract까지 전달되는지 확인한다. Export/Page Setup IA slice는 `악보` 탭에서 PDF page setup primary controls를 제거하고 `내보내기` 탭에서 PDF/MIDI export와 page setup을 함께 조작하도록 고정했다. Packaged smoke는 새 악보 총보와 Cello part view PDF의 header/EOF/page object/MediaBox 구조를 확인한다. file dialog 기반 실제 PDF visual QA, 저장 파일 round-trip 정책, preview polish는 남아 있다. |
 | 5 | Layout | professional engraving collision avoidance 강화 | 부분 지원 | lyrics, dynamics, hairpins, slurs, chord symbols, rehearsal marks가 핵심 QA 악보에서 서로 읽을 수 없게 겹치지 않는다. Same-staff voice 2의 rhythmic density를 measure width에 반영하는 첫 슬라이스, measure annotation lane stacking 첫 슬라이스, hairpin span start/end lane y-offset, lower annotation lane이 있는 slur의 above-side avoidance slice, rehearsal mark/chord symbols/staff text dense upper lane spacing과 very-dense rehearsal offset slice가 완료되었다. 실제 solo/grand staff/ensemble QA 악보의 시각 검증과 더 복잡한 cross-system slur/manual PDF engraving polish는 남아 있다. |
 | 6 | Notation objects | system text와 expression text 구현 | 지원 | 입력/편집/렌더링/MusicXML round-trip이 되고 텍스트 입력 중 notation shortcut이 실행되지 않는다. 시스템 텍스트는 measure-level, 표현 텍스트는 tick-level로 저장하고 MusicXML direction words로 왕복한다. 충돌 없는 세부 engraving polish는 blocker 5에서 계속 다룬다. |
 | 7 | Playback | tempo map playback 구현 | 지원 | 마디 중간 tempo event와 score 중간 tempo change가 playback timeline에 반영된다. Positioned tempo event의 beat mapping, beat/seconds 변환, elapsed seconds -> beat 역변환, scheduler start/end time 계산이 자동 테스트로 연결되었다. Text-only rit./accel. curve playback은 post-V1 advanced interpretation으로 남긴다. |
 | 8 | Playback | tie/tuplet/playback repeat 정확도 검증 | 부분 지원 | tie duration, tuplet timing, repeat expansion이 solo/grand staff/ensemble QA 악보에서 기대 beat와 일치한다. 단일 voice tie merge, triplet proportional beat, same-staff multi-voice cross-measure tie merge, ensemble tuplet shared beat grid, score-wide repeat expansion, canonical-staff volta 적용, repeated tempo event 자동 테스트가 완료되었다. Piano grand staff에서 같은 beat의 right-hand voice 1/2와 left-hand voice 1 playback event가 `partId/staffId/measureId/voiceId` 주소를 잃지 않는 회귀 테스트도 추가되었다. Grand staff/ensemble 실제 청감 QA는 남아 있다. |
 | 9 | Playback | playback cursor와 editing selection sync 완성 | 부분 지원 | 재생 중 현재 event가 시각적으로 추적되고, stop/jump 후 selection과 cursor가 예측 가능하게 유지된다. 재생 중 active event -> voice-aware editing selection 동기화와 stop/jump-to-start 후 selection 유지/playback cursor 초기화 정책은 App 테스트로 고정되었다. String quartet Cello playback event에서도 jump-to-start 후 editing selection address는 유지되고 playback cursor만 초기화되는 회귀 테스트가 추가되었다. Grand staff/ensemble 실제 재생 QA와 더 긴 transport workflow 수동 검증은 남아 있다. |
 | 10 | Playback | part별 mixer 구현 | 부분 지원 | part별 mute, solo, volume이 playback scheduler에 반영된다. Playback 탭 part mixer UI와 scheduler gain 정책 첫 슬라이스, string quartet 4-part App workflow의 독립 mute/solo/volume 상태 전달 검증이 완료되었다. Scheduler 후보 계산은 multi-part mute/solo/volume 조합, solo 우선순위, muted part 제외, 재시작 beat의 velocity interpolation을 자동 테스트로 고정한다. Solo/mute 조합의 실제 청감 확인과 packaged/manual playback QA는 남아 있다. MIDI export는 part별 channel/program 분리 첫 슬라이스가 완료되었다. |
-| 11 | Import/export | MIDI export 구현 또는 V1 검증 | 부분 지원 | solo, grand staff, 2-4 part ensemble에서 MIDI export가 생성되고 주요 DAW/notation app에서 열 수 있다. Standard MIDI File type 1 생성, tempo map, note/chord events, Electron save bridge, App menu action, multi-part channel/program 분리, percussion/tab staff 제외와 `unsupported-midi-clef` 경고 정책, macOS arm64 unpacked packaged app의 direct-path MIDI type-1 tempo/note track 구조 smoke, solo/grand staff/string quartet `verify:midi-fixtures` 자동 QA 첫 슬라이스가 완료되었다. 실제 DAW/notation app 열기 검증과 file dialog/manual packaged QA가 남아 있다. |
+| 11 | Import/export | MIDI export 구현 또는 V1 검증 | 부분 지원 | solo, grand staff, 2-4 part ensemble에서 MIDI export가 생성되고 주요 DAW/notation app에서 열 수 있다. Standard MIDI File type 1 생성, tempo map, note/chord events, Electron save bridge, export toolbar action, multi-part channel/program 분리, percussion/tab staff 제외와 `unsupported-midi-clef` 경고 정책, 현재 full score/selected part view를 따르는 MIDI export filename/path policy, macOS arm64 unpacked packaged app의 direct-path MIDI type-1 tempo/note track 구조 smoke, solo/grand staff/string quartet `verify:midi-fixtures` 자동 QA 첫 슬라이스가 완료되었다. 실제 DAW/notation app 열기 검증과 file dialog/manual packaged QA가 남아 있다. |
 | 12 | Import/export | unsupported MusicXML warning/report 구현 | 부분 지원 | 가져오기/내보내기에서 보존하지 못한 표기가 actionable report로 표시되고 조용히 손실되지 않는다. Import report 첫 슬라이스는 unsupported articulation/technical/ornament/direction의 measure, note, MusicXML path를 수집하고 App 상태 메시지로 대표 항목을 보여준다. Export-side report 첫 슬라이스는 MusicXML이 보존하지 못하는 앱 전용 layout 데이터(system/page break, PDF page setup)를 저장 완료 안내에 경고로 표시한다. Import/export 상세 report UI는 파일명, 방향, warning code, measure/event 또는 measure id, MusicXML path, message를 상태 메시지 아래에 보여준다. Dorico compatibility seed fixture가 unsupported notation/direction warning code/path를 검증한다. 실전 dynamics `ppp/pp/p/mp/mf/f/ff/fff/sfz`와 MuseScore seed의 `mf`/staccato는 warning 없이 import/export round-trip되도록 verifier에 고정되었다. 지원 표기의 false positive 제거 범위 확장과 실제 앱 export fixture 기반 report 검증은 남아 있다. |
-| 13 | Import/export | 외부 사보앱 MusicXML fixture 검증 | 부분 지원 | MuseScore, Dorico, Sibelius, Finale-origin fixture의 import/export 결과와 warning이 기록된다. Compatibility seed manifest는 MuseScore grand staff, Finale string duet, Sibelius same-staff multi-voice, Dorico unsupported direction/technical notation을 `npm run verify:musicxml-fixtures`로 검증한다. Fixture manifest는 origin, collection status, export settings, evidence link, expected dynamics, articulations, warning codes, warning paths와 앱별 `manual-collection-required` 상태를 추적한다. Multi-staff imported score-level directions도 MusicXML round-trip에서 빠지지 않도록 serializer measure-reference matching이 보강되었다. 실제 앱에서 export한 versioned fixture 수집, 앱별 import/export result와 warning snapshot, 재가져오기/manual reopen 검증은 남아 있다. |
+| 13 | Import/export | 외부 사보앱 MusicXML fixture 검증 | 부분 지원 | MuseScore, Dorico, Sibelius, Finale-origin fixture의 import/export 결과와 warning이 기록된다. Compatibility seed manifest는 MuseScore grand staff, Finale string duet, Sibelius same-staff multi-voice, Dorico unsupported direction/technical notation을 `npm run verify:musicxml-fixtures`로 검증한다. Fixture manifest는 origin, collection status, export settings, evidence link, expected dynamics, articulations, warning codes, warning paths와 앱별 `manual-collection-required` 상태를 추적한다. Multi-staff imported score-level directions도 MusicXML round-trip에서 빠지지 않도록 serializer measure-reference matching이 보강되었다. MuseScore 4.7.5 CLI app-export fixture는 versioned fixture로 수집했고, raw lower-staff MusicXML `<voice>5</voice>` 입력 조건과 Chromatics staff-local `voice-1` normalize 결과를 함께 검증하며, `npm run verify:musescore-cli-fixtures`는 해당 fixture를 MuseScore CLI로 PDF 렌더링하고 구조를 확인한다. `npm run verify:notation-reference-apps`는 MuseScore/Finale뿐 아니라 Dorico/Sibelius secondary reference install/fixture 상태도 점검한다. Dorico/Sibelius/Finale-origin versioned fixture 수집, MuseScore GUI reopen/manual snapshot, 앱별 import/export result와 warning snapshot 검증은 남아 있다. |
 | 14 | QA | visual regression clean gate | 지원 | `npm run verify:visual-regression`이 clean pass하거나 의도적 baseline update가 기록된다. 2026-09-01 승인된 Electron 실행에서 clean pass했다. |
 | 15 | QA | packaged app smoke | 부분 지원 | macOS/Windows packaged app에서 새 악보 작성, 저장, 재실행, 열기, PDF/MusicXML/MIDI export가 확인된다. macOS arm64 unpacked app은 `npm run package:dir`와 `npm run verify:package`로 preload bridge, 시작 화면, 시작 action, string quartet 새 악보 생성 후 workspace/title/notation SVG 표시, smoke-only non-dialog MusicXML 파일 쓰기, recent file 다시 열기, 총보 PDF와 Cello part view PDF 파일 생성/구조, Cello part view score page/part title metadata, visible event part id, compact parts page setup metadata, MIDI type-1 tempo/note track 구조, autosave round-trip smoke가 통과했다. 실제 file dialog 기반 저장/열기/export 수동 QA, installer/DMG artifact QA, Windows packaged smoke는 남아 있다. |
 

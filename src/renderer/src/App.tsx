@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -23,6 +24,7 @@ import {
   FilePlus2,
   FileUp,
   FileVolume,
+  Keyboard,
   Link2,
   Minus,
   Pause,
@@ -96,8 +98,9 @@ import {
   buildDeleteCommand,
   buildDotCommand,
   buildDurationCommand,
-  buildRangeClipboard,
-  buildRangePasteCommand,
+  buildFilteredDeleteCommand,
+  buildFilteredRangeClipboard,
+  buildFilteredRangePasteCommand,
   buildRangeRestCommand,
   buildRestEntryCommand,
   buildTupletGroupCommand,
@@ -107,13 +110,15 @@ import {
   createDuration,
   durationLabels,
   getAdjacentEventId,
+  getFilteredSelectedEventIds,
   getSelectedEventIds,
   getSelectionFocusEventId,
   locateEvent,
   locateMeasure,
   type EditorMode,
   type EditorSelection,
-  type RangeClipboard
+  type RangeClipboard,
+  type SelectionEventTypeFilter
 } from './editor/editor-state'
 import {
   buildInsertMeasureAfter,
@@ -253,15 +258,28 @@ interface MetadataEdit {
   value: string
 }
 
+type MeasureMarkingClipboard =
+  | {
+      type: 'dynamics'
+      dynamics: NonNullable<Score['dynamics']>
+    }
+  | {
+      type: 'harmonies'
+      harmonies: HarmonyMark[]
+    }
+
 const toolbarCategories = [
   { id: 'file', label: '파일' },
   { id: 'measure', label: '악보' },
   { id: 'note', label: '음표' },
+  { id: 'notation', label: '표기 객체' },
   { id: 'lyrics', label: '가사' },
+  { id: 'export', label: '내보내기' },
   { id: 'playback', label: '재생' }
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
+type SelectionObjectTypeFilter = 'none' | 'dynamics' | 'harmonies'
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
 type PdfTargetPagesValue = string
@@ -453,6 +471,49 @@ const ornamentOptions = [
   ['turn', 'turn']
 ] as const satisfies ReadonlyArray<readonly [Ornament, string]>
 const lyricVerseOptions = [1, 2, 3, 4] as const
+const selectionFilterOptions = [
+  ['notes-and-rests', '전체'],
+  ['notes', '음표만'],
+  ['rests', '쉼표만']
+] as const satisfies ReadonlyArray<readonly [SelectionEventTypeFilter, string]>
+const selectionObjectFilterOptions = [
+  ['none', '없음'],
+  ['dynamics', '셈여림'],
+  ['harmonies', '코드']
+] as const satisfies ReadonlyArray<
+  readonly [SelectionObjectTypeFilter, string]
+>
+const shortcutReferenceSections = [
+  {
+    title: '음표 입력',
+    rows: [
+      ['음가 선택', '1-7'],
+      ['셋잇단음표', tripletPreset.shortcut],
+      ['타이', 'T'],
+      ['슬러', 'S'],
+      ['이명동음 바꾸기', 'J']
+    ]
+  },
+  {
+    title: '성부와 선택',
+    rows: [
+      ['성부 순환', 'V'],
+      ['성부 직접 선택', 'Cmd/Ctrl+Alt+1-4'],
+      ['인접 보표 이동', 'Up/Down'],
+      ['선택 범위 확장', 'Shift+Click']
+    ]
+  },
+  {
+    title: '파일과 편집',
+    rows: [
+      ['MusicXML 저장', 'Cmd/Ctrl+S'],
+      ['실행 취소', 'Cmd/Ctrl+Z'],
+      ['다시 실행', 'Cmd/Ctrl+Shift+Z'],
+      ['복사/붙여넣기', 'Cmd/Ctrl+C / Cmd/Ctrl+V'],
+      ['삭제', 'Delete/Backspace']
+    ]
+  }
+] as const
 const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 
 export const App = () => {
@@ -464,7 +525,13 @@ export const App = () => {
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [activeLyricVerse, setActiveLyricVerse] = useState(1)
+  const [selectionEventTypeFilter, setSelectionEventTypeFilter] =
+    useState<SelectionEventTypeFilter>('notes-and-rests')
+  const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
+    useState<SelectionObjectTypeFilter>('none')
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
+  const [measureMarkingClipboard, setMeasureMarkingClipboard] =
+    useState<MeasureMarkingClipboard>()
   const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
     useState<string>()
   const [measureContextMenu, setMeasureContextMenu] =
@@ -482,6 +549,8 @@ export const App = () => {
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
     useState<PdfTargetPagesValue>('2')
+  const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
+  const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
   const [partMixer, setPartMixer] = useState<PlaybackPartMixerMap>({})
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
@@ -2167,6 +2236,30 @@ export const App = () => {
   }, [eventLocation, executeCommand, score, selection])
 
   const clearSelection = useCallback(() => {
+    if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
+      const command = buildMeasureObjectDeleteCommand(
+        score,
+        selection.measureId,
+        selectionObjectTypeFilter
+      )
+
+      if (!command) {
+        setFileStatus({
+          tone: 'error',
+          message: '선택한 마디에 필터와 일치하는 표기가 없습니다.'
+        })
+        return
+      }
+
+      if (executeCommand(command)) {
+        setFileStatus({
+          tone: 'neutral',
+          message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 지웠습니다.`
+        })
+      }
+      return
+    }
+
     if (
       (selection.type !== 'event' && selection.type !== 'range') ||
       !eventLocation
@@ -2174,15 +2267,21 @@ export const App = () => {
       return
     }
 
-    const command = buildDeleteCommand(score, selection)
+    const command = buildFilteredDeleteCommand(score, selection, {
+      eventTypes: selectionEventTypeFilter
+    })
 
     if (!command) {
       const message =
         selection.type === 'range'
-          ? '같은 마디의 연속 범위만 안정적으로 지울 수 있습니다.'
+          ? selectionEventTypeFilter === 'notes-and-rests'
+            ? '같은 마디의 연속 범위만 안정적으로 지울 수 있습니다.'
+            : '현재 선택 범위에 필터와 일치하는 이벤트가 없습니다.'
           : eventLocation.event.duration.tuplet
             ? '잇단음표 구성음은 아직 따로 지울 수 없습니다.'
-            : '선택한 음표 또는 쉼표를 이 위치에서는 지울 수 없습니다.'
+            : selectionEventTypeFilter === 'notes-and-rests'
+              ? '선택한 음표 또는 쉼표를 이 위치에서는 지울 수 없습니다.'
+              : '선택 필터와 일치하는 이벤트를 선택해 주세요.'
 
       setFileStatus({
         tone: 'error',
@@ -2223,10 +2322,44 @@ export const App = () => {
           ? '쉼표를 지웠습니다.'
           : '음표를 지웠습니다.'
     })
-  }, [eventLocation, noteInputState, score, selection])
+  }, [
+    eventLocation,
+    executeCommand,
+    noteInputState,
+    score,
+    selection,
+    selectionEventTypeFilter,
+    selectionObjectTypeFilter
+  ])
 
   const copySelection = useCallback(() => {
-    const clipboard = buildRangeClipboard(score, selection)
+    if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
+      const clipboard = buildMeasureMarkingClipboard(
+        score,
+        selection.measureId,
+        selectionObjectTypeFilter
+      )
+
+      if (!clipboard) {
+        setFileStatus({
+          tone: 'error',
+          message: '선택한 마디에 필터와 일치하는 표기가 없습니다.'
+        })
+        return
+      }
+
+      setMeasureMarkingClipboard(clipboard)
+      setRangeClipboard(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 복사했습니다.`
+      })
+      return
+    }
+
+    const clipboard = buildFilteredRangeClipboard(score, selection, {
+      eventTypes: selectionEventTypeFilter
+    })
 
     if (!clipboard) {
       setFileStatus({
@@ -2237,13 +2370,34 @@ export const App = () => {
     }
 
     setRangeClipboard(clipboard)
+    setMeasureMarkingClipboard(undefined)
     setFileStatus({
       tone: 'neutral',
-      message: `${clipboard.eventCount}개 이벤트를 복사했습니다.`
+      message:
+        selectionEventTypeFilter === 'notes-and-rests'
+          ? `${clipboard.eventCount}개 이벤트를 복사했습니다.`
+          : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`
     })
-  }, [score, selection])
+  }, [score, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
 
   const pasteSelection = useCallback(() => {
+    if (selection.type === 'measure' && measureMarkingClipboard) {
+      const command = buildMeasureMarkingPasteCommand(
+        score,
+        selection.measureId,
+        measureMarkingClipboard,
+        () => crypto.randomUUID()
+      )
+
+      if (executeCommand(command)) {
+        setFileStatus({
+          tone: 'neutral',
+          message: `${describeSelectionObjectFilter(measureMarkingClipboard.type)} 표기를 붙여넣었습니다.`
+        })
+      }
+      return
+    }
+
     if (!rangeClipboard) {
       setFileStatus({
         tone: 'error',
@@ -2252,11 +2406,12 @@ export const App = () => {
       return
     }
 
-    const command = buildRangePasteCommand(
+    const command = buildFilteredRangePasteCommand(
       score,
       selection,
       rangeClipboard,
-      () => createInputId('event')
+      () => createInputId('event'),
+      { eventTypes: selectionEventTypeFilter }
     )
 
     if (!command) {
@@ -2300,7 +2455,15 @@ export const App = () => {
       tone: 'neutral',
       message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.`
     })
-  }, [noteInputState, rangeClipboard, score, selection])
+  }, [
+    executeCommand,
+    measureMarkingClipboard,
+    noteInputState,
+    rangeClipboard,
+    score,
+    selection,
+    selectionEventTypeFilter
+  ])
 
   const insertMeasure = useCallback((
     measureId: string,
@@ -4226,9 +4389,17 @@ export const App = () => {
 
   const saveMidi = useCallback(async () => {
     try {
-      const midiReport = serializeMidiWithReport(score)
+      const midiScore =
+        scoreViewMode === 'part' && livePartViewPartId
+          ? createLivePartViewScore(score, livePartViewPartId)
+          : score
+      const midiReport = serializeMidiWithReport(midiScore)
       const result = await window.inC.midi.save({
-        suggestedName: `${toFileName(score.title)}.mid`,
+        suggestedName: `${toFileName(
+          scoreViewMode === 'part' && livePartViewPart
+            ? `${score.title}-${livePartViewPart.name}`
+            : score.title
+        )}.mid`,
         contents: Array.from(midiReport.bytes)
       })
 
@@ -4246,7 +4417,7 @@ export const App = () => {
         message: getErrorMessage(error)
       })
     }
-  }, [score])
+  }, [livePartViewPart, livePartViewPartId, score, scoreViewMode])
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -4538,6 +4709,13 @@ export const App = () => {
     () => getSelectedEventIds(selection),
     [selection]
   )
+  const filteredSelectedEventIds = useMemo(
+    () =>
+      getFilteredSelectedEventIds(score, selection, {
+        eventTypes: selectionEventTypeFilter
+      }),
+    [score, selection, selectionEventTypeFilter]
+  )
   const selectedMeasureId =
     selection.type === 'measure' ? selection.measureId : undefined
   const previewScore = useMemo(
@@ -4582,19 +4760,52 @@ export const App = () => {
       ? eventLocation.event.pitch.alter ?? 0
       : undefined
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
+  const measureObjectDeleteCommand =
+    selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
+      ? buildMeasureObjectDeleteCommand(
+          score,
+          selection.measureId,
+          selectionObjectTypeFilter
+        )
+      : undefined
   const clearSelectionLabel =
-    selection.type === 'range'
+    selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
+      ? `선택 마디 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 지우기`
+      : selection.type === 'range'
       ? '선택 범위 지우기'
       : eventLocation?.event.type === 'rest'
       ? '쉼표 지우기'
       : '음표 지우기'
   const canClearSelection =
-    (selection.type === 'event' || selection.type === 'range') &&
-    Boolean(buildDeleteCommand(score, selection))
-  const canCopySelection = Boolean(buildRangeClipboard(score, selection))
+    Boolean(measureObjectDeleteCommand) ||
+    ((selection.type === 'event' || selection.type === 'range') &&
+      Boolean(
+        buildFilteredDeleteCommand(score, selection, {
+          eventTypes: selectionEventTypeFilter
+        })
+      ))
+  const canCopySelection = Boolean(
+    (selection.type === 'measure' &&
+      selectionObjectTypeFilter !== 'none' &&
+      buildMeasureMarkingClipboard(
+        score,
+        selection.measureId,
+        selectionObjectTypeFilter
+      )) ||
+      buildFilteredRangeClipboard(score, selection, {
+        eventTypes: selectionEventTypeFilter
+      })
+  )
   const canPasteSelection = Boolean(
-    rangeClipboard &&
-      buildRangePasteCommand(score, selection, rangeClipboard, previewInputId)
+    (selection.type === 'measure' && measureMarkingClipboard) ||
+      (rangeClipboard &&
+      buildFilteredRangePasteCommand(
+        score,
+        selection,
+        rangeClipboard,
+        previewInputId,
+        { eventTypes: selectionEventTypeFilter }
+      ))
   )
   const canToggleSystemBreak = activeMeasureIndex > 0
   const systemBreakLabel = activeMeasureHasSystemBreak
@@ -4622,6 +4833,81 @@ export const App = () => {
     (lyric) => (lyric.number ?? 1) === activeLyricVerse
   )
   const activeTick = eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+  const selectedProperties = useMemo(() => {
+    if (selection.type === 'event' && eventLocation) {
+      const event = eventLocation.event
+      return {
+        kind: 'event',
+        rows: [
+          ['대상', event.type === 'note' ? '음표' : '쉼표'],
+          ['위치', describeStaffTarget(score, eventLocation.address)],
+          ['마디', `${eventLocation.measure.number}`],
+          ['성부', eventLocation.address.voiceId.replace('voice-', '')],
+          ['틱', `${event.position.tick}`],
+          ['음가', durationLabels[event.duration.value]],
+          [
+            '음높이',
+            event.type === 'note'
+              ? `${event.pitch.step}${event.pitch.alter ? event.pitch.alter : ''}${event.pitch.octave}`
+              : '쉼표'
+          ]
+        ]
+      }
+    }
+
+    if (selection.type === 'measure' && measureLocation) {
+      return {
+        kind: 'measure',
+        rows: [
+          ['대상', '마디'],
+          ['위치', describeStaffTarget(score, measureLocation.address)],
+          ['마디', `${measureLocation.measure.number}`],
+          [
+            '음자리표',
+            `${measureLocation.measure.clef.sign}${measureLocation.measure.clef.line}`
+          ],
+          ['조표', `${measureLocation.measure.keySignature.fifths}`],
+          [
+            '박자',
+            `${measureLocation.measure.timeSignature.beats}/${measureLocation.measure.timeSignature.beatType}`
+          ]
+        ]
+      }
+    }
+
+    if (selection.type === 'range') {
+      return {
+        kind: 'range',
+        rows: [
+          ['대상', '범위'],
+          [
+            '위치',
+            selection.address
+              ? describeStaffTarget(score, selection.address)
+              : '선택 범위'
+          ],
+          [
+            '성부',
+            selection.address ? selection.address.voiceId.replace('voice-', '') : '—'
+          ],
+          ['선택', `${selectedEventIds.length}개 이벤트`],
+          ['필터', describeSelectionFilter(selectionEventTypeFilter)]
+        ]
+      }
+    }
+
+    return {
+      kind: 'none',
+      rows: [['대상', '선택 없음']]
+    }
+  }, [
+    eventLocation,
+    measureLocation,
+    score,
+    selectedEventIds.length,
+    selection,
+    selectionEventTypeFilter
+  ])
   const activeHarmony = activeMeasureId
     ? score.harmonies?.find(
         (harmony) =>
@@ -4799,6 +5085,22 @@ export const App = () => {
         <div>
           <span>재생</span>
           <strong>{playbackStatusLabels[playback.status]}</strong>
+        </div>
+        <div>
+          <span>필터</span>
+          <strong>
+            {
+              selectionFilterOptions.find(
+                ([value]) => value === selectionEventTypeFilter
+              )?.[1]
+            }
+            {selectionObjectTypeFilter !== 'none'
+              ? ` · ${describeSelectionObjectFilter(selectionObjectTypeFilter)}`
+              : ''}
+            {selection.type === 'range'
+              ? ` ${filteredSelectedEventIds.length}/${selectedEventIds.length}`
+              : ''}
+          </strong>
         </div>
       </section>
 
@@ -4995,31 +5297,6 @@ export const App = () => {
                       </div>
                     ) : null}
 
-                    <label>
-                      <span>코드 심벌</span>
-                      <input
-                        aria-label="코드 심벌"
-                        defaultValue={activeHarmony?.text ?? ''}
-                        key={`${activeMeasureId}-${activeTick}-${
-                          activeHarmony?.text ?? ''
-                        }-harmony`}
-                        maxLength={24}
-                        onBlur={(event) =>
-                          updateHarmonyText(event.currentTarget.value)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                            event.currentTarget.blur()
-                          } else if (event.key === 'Escape') {
-                            event.currentTarget.value = activeHarmony?.text ?? ''
-                            event.currentTarget.blur()
-                          }
-                        }}
-                        placeholder="Cmaj7/G"
-                        type="text"
-                      />
-                    </label>
-
                     <div className="inspector-properties__row">
                       <span>트레몰로</span>
                       <div className="inspector-properties__buttons">
@@ -5137,6 +5414,244 @@ export const App = () => {
 
       <section
         className="selection-toolbar"
+        aria-label="표기 객체"
+        hidden={toolbarCategory !== 'notation'}
+      >
+        {activeMeasureId ? (
+          <section className="inspector-properties" aria-label="마디 표기">
+            <h3>마디 표기</h3>
+            <div className="inspector-properties__grid">
+              <label>
+                <span>{koreanMusicTerms.rehearsalMark}</span>
+                <input
+                  aria-label={koreanMusicTerms.rehearsalMark}
+                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureRehearsalMark?.text ?? ''
+                  }`}
+                  maxLength={12}
+                  onBlur={(event) =>
+                    updateActiveRehearsalMark(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureRehearsalMark?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="A"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>{koreanMusicTerms.staffText}</span>
+                <input
+                  aria-label={koreanMusicTerms.staffText}
+                  defaultValue={activeMeasureStaffText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureStaffText?.text ?? ''
+                  }-staff-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveStaffText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureStaffText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="dolce"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>시스템 텍스트</span>
+                <input
+                  aria-label="시스템 텍스트"
+                  defaultValue={activeMeasureSystemText?.text ?? ''}
+                  key={`${activeMeasureId}-${
+                    activeMeasureSystemText?.text ?? ''
+                  }-system-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveSystemText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeMeasureSystemText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Chorus"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>표현 텍스트</span>
+                <input
+                  aria-label="표현 텍스트"
+                  defaultValue={activeExpressionText?.text ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${
+                    activeExpressionText?.text ?? ''
+                  }-expression-text`}
+                  maxLength={80}
+                  onBlur={(event) =>
+                    updateActiveExpressionText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value =
+                        activeExpressionText?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="espressivo"
+                  type="text"
+                />
+              </label>
+
+              <label>
+                <span>{koreanMusicTerms.dynamics}</span>
+                <select
+                  aria-label={koreanMusicTerms.dynamics}
+                  onChange={(event) => updateActiveDynamic(event.target.value)}
+                  value={activeMeasureDynamic?.value ?? ''}
+                >
+                  <option value="">없음</option>
+                  {dynamicValues.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>마디 음자리표</span>
+                <select
+                  aria-label="선택 마디 음자리표"
+                  disabled={!measureLocation}
+                  onChange={(event) => changeClef(event.target.value)}
+                  value={activeClefId}
+                >
+                  {clefPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>
+                      {preset.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </section>
+        ) : (
+          <section className="inspector-properties" aria-label="마디 표기">
+            <h3>마디 표기</h3>
+            <p className="inspector-properties__empty">
+              음표나 마디를 선택하면 마디 단위 표기 항목이 표시됩니다.
+            </p>
+          </section>
+        )}
+
+        {activeMeasureId ? (
+          <section className="inspector-properties" aria-label="반복과 볼타">
+            <h3>반복/볼타</h3>
+            <div className="inspector-properties__row">
+              <span>도돌이표</span>
+              <div className="inspector-properties__buttons">
+                <button
+                  aria-pressed={Boolean(measureLocation?.measure.repeat?.start)}
+                  className={
+                    measureLocation?.measure.repeat?.start
+                      ? 'is-active'
+                      : undefined
+                  }
+                  disabled={!measureLocation}
+                  onClick={toggleRepeatStart}
+                  type="button"
+                >
+                  시작
+                </button>
+                <button
+                  aria-pressed={Boolean(measureLocation?.measure.repeat?.end)}
+                  className={
+                    measureLocation?.measure.repeat?.end
+                      ? 'is-active'
+                      : undefined
+                  }
+                  disabled={!measureLocation}
+                  onClick={toggleRepeatEnd}
+                  type="button"
+                >
+                  끝
+                </button>
+              </div>
+            </div>
+
+            <label>
+              <span>반복 횟수</span>
+              <input
+                aria-label="반복 횟수"
+                disabled={!measureLocation}
+                max={8}
+                min={2}
+                onChange={(event) =>
+                  changeRepeatTimes(Number.parseInt(event.target.value, 10))
+                }
+                type="number"
+                value={measureLocation?.measure.repeat?.times ?? 2}
+              />
+            </label>
+
+            <div className="inspector-properties__row">
+              <span>볼타</span>
+              <div className="inspector-properties__buttons">
+                <button
+                  aria-pressed={measureLocation?.measure.volta?.number === 1}
+                  className={
+                    measureLocation?.measure.volta?.number === 1
+                      ? 'is-active'
+                      : undefined
+                  }
+                  onClick={() => applyVoltaRange(activeMeasureId, 1)}
+                  type="button"
+                >
+                  1번
+                </button>
+                <button
+                  aria-pressed={measureLocation?.measure.volta?.number === 2}
+                  className={
+                    measureLocation?.measure.volta?.number === 2
+                      ? 'is-active'
+                      : undefined
+                  }
+                  onClick={() => applyVoltaRange(activeMeasureId, 2)}
+                  type="button"
+                >
+                  2번
+                </button>
+              </div>
+            </div>
+          </section>
+        ) : null}
+      </section>
+
+      <section
+        className="selection-toolbar"
         aria-label="가사 편집"
         hidden={toolbarCategory !== 'lyrics'}
       >
@@ -5197,8 +5712,57 @@ export const App = () => {
               </label>
             </div>
           ) : (
+              <p className="inspector-properties__empty">
+                음표를 선택하면 가사 입력 항목이 표시됩니다.
+              </p>
+            )}
+        </section>
+
+        <section className="inspector-properties" aria-label="코드 심벌 속성">
+          <h3>코드</h3>
+          {activeMeasureId ? (
+            <div className="inspector-properties__grid">
+              <label>
+                <span>적용 위치</span>
+                <output aria-label="코드 심벌 적용 위치">
+                  {eventLocation
+                    ? `선택 이벤트 tick ${activeTick}`
+                    : selection.type === 'measure'
+                    ? '선택 마디 시작 tick 0'
+                    : noteInputState
+                    ? `입력 커서 tick ${activeTick}`
+                    : `현재 위치 tick ${activeTick}`}
+                </output>
+              </label>
+
+              <label>
+                <span>코드 심벌</span>
+                <input
+                  aria-label="코드 심벌"
+                  defaultValue={activeHarmony?.text ?? ''}
+                  key={`${activeMeasureId}-${activeTick}-${
+                    activeHarmony?.text ?? ''
+                  }-harmony`}
+                  maxLength={24}
+                  onBlur={(event) =>
+                    updateHarmonyText(event.currentTarget.value)
+                  }
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                      event.currentTarget.blur()
+                    } else if (event.key === 'Escape') {
+                      event.currentTarget.value = activeHarmony?.text ?? ''
+                      event.currentTarget.blur()
+                    }
+                  }}
+                  placeholder="Cmaj7/G"
+                  type="text"
+                />
+              </label>
+            </div>
+          ) : (
             <p className="inspector-properties__empty">
-              음표를 선택하면 가사 입력 항목이 표시됩니다.
+              음표나 마디를 선택하면 코드 심벌 입력 항목이 표시됩니다.
             </p>
           )}
         </section>
@@ -5473,6 +6037,13 @@ export const App = () => {
           </div>
         </section>
 
+      </section>
+
+      <section
+        className="selection-toolbar"
+        aria-label="내보내기 설정"
+        hidden={toolbarCategory !== 'export'}
+      >
         <section className="inspector-properties" aria-label="PDF 페이지 설정">
           <h3>PDF 설정</h3>
           <div className="inspector-properties__grid">
@@ -5583,192 +6154,20 @@ export const App = () => {
               />
               <output>{pageSetup.systemSpacingPercent}%</output>
             </label>
+
+            <label className="checkbox-control">
+              <input
+                aria-label="PDF 여백 가이드 표시"
+                checked={showPageMarginGuides}
+                onChange={(event) =>
+                  setShowPageMarginGuides(event.currentTarget.checked)
+                }
+                type="checkbox"
+              />
+              <span>여백 가이드</span>
+            </label>
           </div>
         </section>
-
-          {activeMeasureId ? (
-            <section className="inspector-properties" aria-label="마디 텍스트">
-              <h3>마디 표시</h3>
-              <label>
-                <span>{koreanMusicTerms.rehearsalMark}</span>
-                <input
-                  aria-label={koreanMusicTerms.rehearsalMark}
-                  defaultValue={activeMeasureRehearsalMark?.text ?? ''}
-                  key={`${activeMeasureId}-${
-                    activeMeasureRehearsalMark?.text ?? ''
-                  }`}
-                  maxLength={12}
-                  onBlur={(event) =>
-                    updateActiveRehearsalMark(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeMeasureRehearsalMark?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="A"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>{koreanMusicTerms.staffText}</span>
-                <input
-                  aria-label={koreanMusicTerms.staffText}
-                  defaultValue={activeMeasureStaffText?.text ?? ''}
-                  key={`${activeMeasureId}-${
-                    activeMeasureStaffText?.text ?? ''
-                  }-staff-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveStaffText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeMeasureStaffText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="dolce"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>시스템 텍스트</span>
-                <input
-                  aria-label="시스템 텍스트"
-                  defaultValue={activeMeasureSystemText?.text ?? ''}
-                  key={`${activeMeasureId}-${
-                    activeMeasureSystemText?.text ?? ''
-                  }-system-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveSystemText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeMeasureSystemText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="Chorus"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>표현 텍스트</span>
-                <input
-                  aria-label="표현 텍스트"
-                  defaultValue={activeExpressionText?.text ?? ''}
-                  key={`${activeMeasureId}-${activeTick}-${
-                    activeExpressionText?.text ?? ''
-                  }-expression-text`}
-                  maxLength={80}
-                  onBlur={(event) =>
-                    updateActiveExpressionText(event.currentTarget.value)
-                  }
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
-                      event.currentTarget.blur()
-                    } else if (event.key === 'Escape') {
-                      event.currentTarget.value =
-                        activeExpressionText?.text ?? ''
-                      event.currentTarget.blur()
-                    }
-                  }}
-                  placeholder="espressivo"
-                  type="text"
-                />
-              </label>
-
-              <label>
-                <span>{koreanMusicTerms.dynamics}</span>
-                <select
-                  aria-label={koreanMusicTerms.dynamics}
-                  onChange={(event) => updateActiveDynamic(event.target.value)}
-                  value={activeMeasureDynamic?.value ?? ''}
-                >
-                  <option value="">없음</option>
-                  {dynamicValues.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
-                <span>마디 음자리표</span>
-                <select
-                  aria-label="선택 마디 음자리표"
-                  onChange={(event) => changeClef(event.target.value)}
-                  value={activeClefId}
-                >
-                  {clefPresets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <div className="inspector-properties__row">
-                <span>도돌이표</span>
-                <div className="inspector-properties__buttons">
-                  <button
-                    aria-pressed={Boolean(measureLocation?.measure.repeat?.start)}
-                    className={
-                      measureLocation?.measure.repeat?.start
-                        ? 'is-active'
-                        : undefined
-                    }
-                    onClick={toggleRepeatStart}
-                    type="button"
-                  >
-                    시작
-                  </button>
-                  <button
-                    aria-pressed={Boolean(measureLocation?.measure.repeat?.end)}
-                    className={
-                      measureLocation?.measure.repeat?.end
-                        ? 'is-active'
-                        : undefined
-                    }
-                    onClick={toggleRepeatEnd}
-                    type="button"
-                  >
-                    끝
-                  </button>
-                </div>
-              </div>
-
-              <label>
-                <span>반복 횟수</span>
-                <input
-                  aria-label="반복 횟수"
-                  max={8}
-                  min={2}
-                  onChange={(event) =>
-                    changeRepeatTimes(Number.parseInt(event.target.value, 10))
-                  }
-                  type="number"
-                  value={measureLocation?.measure.repeat?.times ?? 2}
-                />
-              </label>
-            </section>
-          ) : null}
       </section>
 
       <section className="workspace" aria-label="악보 편집기">
@@ -5805,6 +6204,22 @@ export const App = () => {
                 <FileMusic aria-hidden="true" size={17} />
                 <span>저장</span>
               </button>
+              <button
+                aria-label="단축키 도움말"
+                onClick={() => setShortcutHelpOpen(true)}
+                title="핵심 입력과 편집 단축키 보기"
+                type="button"
+              >
+                <Keyboard aria-hidden="true" size={17} />
+                <span>단축키</span>
+              </button>
+            </div>
+
+            <div
+              className="export-actions"
+              aria-label="내보내기 작업"
+              hidden={toolbarCategory !== 'export'}
+            >
               <span className="pdf-save-button-wrapper" title={pdfTargetPagesTooltip}>
                 <button
                   aria-describedby={
@@ -5823,7 +6238,7 @@ export const App = () => {
               <button
                 aria-label="MIDI 내보내기"
                 onClick={saveMidi}
-                title="현재 악보를 MIDI 파일로 내보내기"
+                title="현재 악보 보기 또는 선택 파트보를 MIDI 파일로 내보내기"
                 type="button"
               >
                 <FileVolume aria-hidden="true" size={17} />
@@ -5912,6 +6327,50 @@ export const App = () => {
             >
               <Eraser aria-hidden="true" size={18} />
             </button>
+
+            <label
+              className="selection-filter-control"
+              hidden={toolbarCategory !== 'file'}
+            >
+              <span>선택 필터</span>
+              <select
+                aria-label="선택 필터"
+                onChange={(event) =>
+                  setSelectionEventTypeFilter(
+                    event.currentTarget.value as SelectionEventTypeFilter
+                  )
+                }
+                value={selectionEventTypeFilter}
+              >
+                {selectionFilterOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label
+              className="selection-filter-control"
+              hidden={toolbarCategory !== 'file'}
+            >
+              <span>표기 필터</span>
+              <select
+                aria-label="표기 필터"
+                onChange={(event) =>
+                  setSelectionObjectTypeFilter(
+                    event.currentTarget.value as SelectionObjectTypeFilter
+                  )
+                }
+                value={selectionObjectTypeFilter}
+              >
+                {selectionObjectFilterOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <button
               aria-label="마디 추가"
@@ -6318,6 +6777,56 @@ export const App = () => {
 
         <MusicXmlReportPanel report={musicXmlReport} />
 
+        <div className="docked-workspace" aria-label="도킹 작업 영역">
+          <aside className="docked-palette" aria-label="고정 팔레트">
+            <h3>팔레트</h3>
+            <div className="docked-palette__actions">
+              {toolbarCategories.map((category) => (
+                <button
+                  aria-label={`${category.label} 팔레트 열기`}
+                  aria-pressed={toolbarCategory === category.id}
+                  className={
+                    toolbarCategory === category.id ? 'is-active' : undefined
+                  }
+                  key={category.id}
+                  onClick={() => setToolbarCategory(category.id)}
+                  type="button"
+                >
+                  {category.label}
+                </button>
+              ))}
+            </div>
+            {toolbarCategory === 'notation' ? (
+              <section
+                aria-label="셈여림 팔레트"
+                className="docked-palette__section"
+              >
+                <h4>셈여림</h4>
+                <div className="docked-palette__symbol-grid">
+                  {dynamicValues.map((value) => (
+                    <button
+                      aria-label={`${value} 셈여림 적용`}
+                      aria-pressed={activeMeasureDynamic?.value === value}
+                      className={
+                        activeMeasureDynamic?.value === value
+                          ? 'is-active'
+                          : undefined
+                      }
+                      disabled={!activeMeasureId}
+                      key={value}
+                      onClick={() => updateActiveDynamic(value)}
+                      type="button"
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+          </aside>
+
+          <div className="score-canvas" aria-label="악보 캔버스">
+
         <div
           className="score-page"
           aria-label="악보 페이지"
@@ -6335,7 +6844,15 @@ export const App = () => {
           data-pdf-system-spacing-percent={
             printLayoutPlan.pageSetup.systemSpacingPercent
           }
+          data-show-page-margins={
+            showPageMarginGuides && !pdfExporting ? 'true' : 'false'
+          }
           data-view-mode={scoreViewMode}
+          style={
+            {
+              '--score-page-margin-guide-inset': `${printLayoutPlan.pageSetup.pageMarginMm}mm`
+            } as CSSProperties
+          }
         >
           <div className="score-title">
             {metadataEdit?.field === 'title' ? (
@@ -6457,6 +6974,42 @@ export const App = () => {
             selectedMeasureId={pdfExporting ? undefined : selectedMeasureId}
           />
         </div>
+          </div>
+
+          <aside className="docked-properties" aria-label="속성 도크">
+            <section
+              aria-label="선택 요약"
+              className="selection-properties"
+              data-selection-kind={selectedProperties.kind}
+            >
+              <h3>속성</h3>
+              <dl>
+                {selectedProperties.rows.map(([label, value]) => (
+                  <div className="selection-properties__row" key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <label className="selection-properties__edit">
+                <span>셈여림</span>
+                <select
+                  aria-label="선택 요약 셈여림"
+                  disabled={!activeMeasureId}
+                  onChange={(event) => updateActiveDynamic(event.target.value)}
+                  value={activeMeasureDynamic?.value ?? ''}
+                >
+                  <option value="">없음</option>
+                  {dynamicValues.map((value) => (
+                    <option key={value} value={value}>
+                      {value}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </section>
+          </aside>
+        </div>
       </section>
         </>
       )}
@@ -6547,6 +7100,40 @@ export const App = () => {
             <header>
               <h2>새 악보</h2>
             </header>
+
+            <section aria-label="내장 템플릿" className="new-score-templates">
+              <h3>내장 템플릿</h3>
+              <div className="new-score-template-grid">
+                {scoreStructurePresets.map((preset) => {
+                  const selected = newScoreDraft.templateId === preset.id
+
+                  return (
+                    <button
+                      aria-label={`${preset.label} 템플릿`}
+                      aria-pressed={selected}
+                      className="new-score-template-option"
+                      data-selected={selected ? 'true' : 'false'}
+                      key={preset.id}
+                      onClick={() =>
+                        setNewScoreDraft({
+                          ...newScoreDraft,
+                          templateId: preset.id
+                        })
+                      }
+                      type="button"
+                    >
+                      <span className="new-score-template-option__label">
+                        {preset.label}
+                      </span>
+                      <span className="new-score-template-option__category">
+                        {preset.category}
+                      </span>
+                      <small>{preset.summary}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
 
             <div className="new-score-form">
               <label>
@@ -6698,6 +7285,46 @@ export const App = () => {
               </button>
             </footer>
           </form>
+        </div>
+      ) : null}
+
+      {shortcutHelpOpen ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            aria-label="단축키 도움말"
+            className="shortcut-help-dialog"
+            role="dialog"
+          >
+            <header>
+              <h2>단축키</h2>
+            </header>
+
+            <div className="shortcut-help-sections">
+              {shortcutReferenceSections.map((section) => (
+                <section key={section.title}>
+                  <h3>{section.title}</h3>
+                  <dl>
+                    {section.rows.map(([label, shortcut]) => (
+                      <div key={label}>
+                        <dt>{label}</dt>
+                        <dd>{shortcut}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))}
+            </div>
+
+            <footer className="dialog-actions">
+              <button
+                className="primary-action"
+                onClick={() => setShortcutHelpOpen(false)}
+                type="button"
+              >
+                닫기
+              </button>
+            </footer>
+          </section>
         </div>
       ) : null}
 
@@ -7535,6 +8162,123 @@ function describeStaffTarget(
   return part.staves.length === 1 || staffIndex < 0
     ? part.name
     : `${part.name} 보표 ${staffIndex + 1}`
+}
+
+function describeSelectionFilter(filter: SelectionEventTypeFilter): string {
+  return selectionFilterOptions.find(([value]) => value === filter)?.[1] ?? '전체'
+}
+
+function describeSelectionObjectFilter(
+  filter: SelectionObjectTypeFilter
+): string {
+  return selectionObjectFilterOptions.find(([value]) => value === filter)?.[1] ?? '없음'
+}
+
+function buildMeasureObjectDeleteCommand(
+  score: Score,
+  measureId: string,
+  filter: SelectionObjectTypeFilter
+): ScoreCommand | undefined {
+  if (filter === 'dynamics') {
+    const currentDynamics = score.dynamics ?? []
+    const dynamics = currentDynamics.filter(
+      (dynamic) => dynamic.measureId !== measureId
+    )
+
+    if (dynamics.length === currentDynamics.length) {
+      return undefined
+    }
+
+    return {
+      type: 'score-dynamics.update',
+      dynamics: dynamics.length > 0 ? dynamics : undefined
+    }
+  }
+
+  if (filter === 'harmonies') {
+    const currentHarmonies = score.harmonies ?? []
+    const harmonies = currentHarmonies.filter(
+      (harmony) => harmony.measureId !== measureId
+    )
+
+    if (harmonies.length === currentHarmonies.length) {
+      return undefined
+    }
+
+    return {
+      type: 'score-harmonies.update',
+      harmonies: harmonies.length > 0 ? harmonies : undefined
+    }
+  }
+
+  return undefined
+}
+
+function buildMeasureMarkingClipboard(
+  score: Score,
+  measureId: string,
+  filter: SelectionObjectTypeFilter
+): MeasureMarkingClipboard | undefined {
+  if (filter === 'dynamics') {
+    const dynamics = (score.dynamics ?? []).filter(
+      (dynamic) => dynamic.measureId === measureId
+    )
+
+    return dynamics.length > 0 ? { type: 'dynamics', dynamics } : undefined
+  }
+
+  if (filter === 'harmonies') {
+    const harmonies = (score.harmonies ?? []).filter(
+      (harmony) => harmony.measureId === measureId
+    )
+
+    return harmonies.length > 0 ? { type: 'harmonies', harmonies } : undefined
+  }
+
+  return undefined
+}
+
+function buildMeasureMarkingPasteCommand(
+  score: Score,
+  targetMeasureId: string,
+  clipboard: MeasureMarkingClipboard,
+  createId: () => string
+): ScoreCommand | undefined {
+  if (clipboard.type === 'dynamics') {
+    const otherDynamics = (score.dynamics ?? []).filter(
+      (dynamic) => dynamic.measureId !== targetMeasureId
+    )
+    const dynamics = [
+      ...otherDynamics,
+      ...clipboard.dynamics.map((dynamic) => ({
+        ...dynamic,
+        id: `dynamic-${createId()}`,
+        measureId: targetMeasureId
+      }))
+    ]
+
+    return {
+      type: 'score-dynamics.update',
+      dynamics: dynamics.length > 0 ? dynamics : undefined
+    }
+  }
+
+  const otherHarmonies = (score.harmonies ?? []).filter(
+    (harmony) => harmony.measureId !== targetMeasureId
+  )
+  const harmonies = [
+    ...otherHarmonies,
+    ...clipboard.harmonies.map((harmony) => ({
+      ...harmony,
+      id: `harmony-${createId()}`,
+      measureId: targetMeasureId
+    }))
+  ]
+
+  return {
+    type: 'score-harmonies.update',
+    harmonies: harmonies.length > 0 ? harmonies : undefined
+  }
 }
 
 function findMeasureIndex(score: Score, address: VoiceAddress): number {

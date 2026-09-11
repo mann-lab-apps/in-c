@@ -204,6 +204,8 @@ export const scoreStructurePresets = [
   {
     id: 'solo-melody',
     label: '솔로 멜로디',
+    category: 'Solo',
+    summary: '단일 보표 멜로디',
     parts: [
       {
         id: 'part-1',
@@ -216,6 +218,8 @@ export const scoreStructurePresets = [
   {
     id: 'piano-grand-staff',
     label: '피아노 grand staff',
+    category: 'Keyboard',
+    summary: '오른손/왼손 2보표',
     parts: [
       {
         id: 'part-1',
@@ -231,6 +235,8 @@ export const scoreStructurePresets = [
   {
     id: 'duet',
     label: '2파트 앙상블',
+    category: 'Ensemble',
+    summary: '2개 독립 파트',
     parts: [
       {
         id: 'part-1',
@@ -249,6 +255,8 @@ export const scoreStructurePresets = [
   {
     id: 'string-quartet',
     label: '현악 4중주',
+    category: 'Chamber',
+    summary: '바이올린 I/II, 비올라, 첼로',
     parts: [
       {
         id: 'violin-1',
@@ -279,6 +287,8 @@ export const scoreStructurePresets = [
 ] as const satisfies ReadonlyArray<{
   id: NewScoreTemplateId
   label: string
+  category: string
+  summary: string
   parts: ReadonlyArray<{
     id: string
     name: string

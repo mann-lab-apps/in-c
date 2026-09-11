@@ -22,16 +22,22 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
   `docs/product/chromatics-commercial-v1-reference-gap-matrix.md`를 기준으로 한다.
   이 문서는 개인용/public alpha 수준이 아니라 commercial release candidate 기준의
   기능 판정을 보완한다.
-- MuseScore Studio: 무료 데스크탑 사보앱의 기준선. duration-before-pitch,
+- MuseScore Studio: 무료 현행 데스크탑 사보앱의 primary 기준선. duration-before-pitch,
   A-G 입력, 숫자 음가, MusicXML/MIDI/PDF export, parts, voices, palette,
-  playback/mixer, 기본 engraving을 갖춘다.
-- Dorico: 전문 workflow 기준선. mode-based editing, insert mode, popover,
+  playback/mixer, 기본 engraving을 갖춘다. 2026-09-11 local audit에서
+  MuseScore 4.7.5 설치와 CLI executable 후보를 확인했고, MuseScore CLI가 export한
+  grand staff MusicXML fixture와 `verify:musescore-cli-fixtures` PDF render smoke를
+  추가했다. GUI-created MuseScore score, reopen/manual snapshot, human PDF review는
+  아직 manual QA로 남아 있다.
+- Finale: primary legacy workflow와 MusicXML migration 기준선. Finale는
+  2024-08-26 sunset 되었으므로 현행 경쟁 제품 기준이 아니라 사용자의
+  Finale-style note entry, tool palette, print/export, expression/library 관성과
+  Finale-origin MusicXML migration을 참고한다. 2026-09-11 local audit에서는
+  Finale 설치가 확인되지 않아 사용자 제공 fixture 또는 별도 호환 환경이 필요하다.
+- Dorico: secondary professional workflow 기준선. mode-based editing, insert mode, popover,
   multi-flow/project, automatic engraving, layout/parts가 강하다.
-- Sibelius: 빠른 입력과 실무 편집 기준선. keypad, dynamic parts, magnetic layout,
+- Sibelius: secondary fast-entry/editing 기준선. keypad, dynamic parts, magnetic layout,
   house style, cloud/export workflow의 기대치를 만든다.
-- Finale: legacy professional workflow와 MusicXML migration 기준선. Finale는
-  2024-08-26 sunset 되었으므로 미래 제품 기준은 Dorico/Sibelius/MuseScore 중심으로
-  두되, 자유도 높은 editing, print/export, expression/library 관성은 참고한다.
 - Flat/Noteflight: 웹 협업이 본체인 제품군이다. Chromatics V1에는 full cloud
   editor보다 share/export 호환성만 참고한다.
 
@@ -54,7 +60,8 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 ### Document Lifecycle
 
 - 시작 화면: 새 악보, 최근 파일, MusicXML 열기.
-- 새 악보 wizard: 제목, 작곡가, 악기/파트, 조표, 박자표, 템포, 마디 수.
+- 새 악보 wizard: 제목, 작곡가, 내장 템플릿, 악기/파트, 조표, 박자표,
+  템포, 마디 수.
 - 로컬 저장: V1 primary save는 MusicXML이다. 전용 프로젝트 포맷은 post-V1로
   미루며, MusicXML이 보존하지 못하는 앱 전용 상태는 warning/report와 release
   notes에 명확히 쓴다.
@@ -99,6 +106,9 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
   선택적으로 보존하고, 주소가 있을 때는 해당 part/staff/voice 경로를 우선 탐색한다.
 - range selection과 adjacent navigation은 active voice address를 기준으로
   동작해 multi-part 또는 duplicate event id 상황에서 다른 part로 튀지 않는다.
+- V1 필수 selection filter는 `전체/음표만/쉼표만` event-type 범위로 고정한다.
+  Filtered delete/copy/paste는 selection address를 기준으로 source와 target event를
+  필터링하며, filtered range가 rhythmic gap을 만들면 copy/paste를 거부한다.
 - NotationPreview selection highlight는 event id와 selection address를 함께 비교해
   same-staff multi-voice 또는 duplicate event id 상황에서 다른 voice/staff를 selected
   tone으로 칠하지 않는다.
@@ -108,8 +118,10 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 - note input state는 기존처럼 `target: VoiceAddress`를 보존하며, cursor 복귀와
   selection 생성 경로가 이 address를 유지한다.
 - playback timeline event는 `partId`, `staffId`, `voiceId`, `measureId`를 포함한다.
-- 새 악보 마법사는 solo melody, piano grand staff, 2-part ensemble, string quartet
-  skeleton을 만들고, NotationPreview는 생성된 추가 staff를 stacked staff로 표시한다.
+- 새 악보 마법사는 `내장 템플릿` picker와 `악보 구성` select를 같은
+  `templateId`로 동기화해 solo melody, piano grand staff, 2-part ensemble,
+  string quartet skeleton을 만들고, NotationPreview는 생성된 추가 staff를 stacked
+  staff로 표시한다.
 - 추가 staff SVG event는 `partId/staffId`를 가진 선택 대상으로 동작하며, grand staff
   lower staff에서 note input target이 staff-2에 유지되는 Electron smoke가 있다.
 - Note toolbar의 입력 보표 select는 grand staff와 multi-part score에서 active part/staff를
@@ -127,6 +139,14 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
   part/staff clef, measure skeleton, 기본 note/rest event를 보존한다.
 - MuseScore, Finale, Sibelius, Dorico compatibility seed MusicXML fixture QA는
   part/staff 구조, clef, note event, voice 구조, unsupported warning을 자동 검증한다.
+- `npm run verify:musescore-cli-fixtures`는 설치된 MuseScore Studio 4.7.5 CLI가
+  수집된 MuseScore CLI app-export fixture를 실제 PDF로 렌더링할 수 있는지 검증한다.
+  이는 reference-app import/render smoke이며, GUI reopen/manual snapshot 완료로 보지
+  않는다.
+- MuseScore CLI app-export fixture에서 lower staff note가 MusicXML `<voice>5</voice>`로
+  들어오는 경우를 Chromatics staff-local `voice-1`로 normalize한다. Grand staff import 후
+  voice toolbar/editing target이 V1 voice 1-4 범위 밖으로 튀지 않도록 fixture manifest가
+  staff별 voice id expectation을 검증한다.
 - External app fixture manifest는 각 fixture의 origin, collection status, export settings,
   evidence link를 추적하고, 실제 app-export 파일이 없는 앱은 RC 전
   `manual-collection-required`로 남긴다.
@@ -163,13 +183,84 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 - fermata, breath mark, caesura.
 - rehearsal mark.
 - staff text, system text, expression text.
-- lyrics with syllabic/hyphen/melisma.
-- chord symbols.
 - repeat start/end and repeat count.
 - first/second endings.
 - octave lines.
 - tremolo display and MusicXML preservation.
 - unsupported advanced notation warning.
+
+2026-09-07 measure-level palette slice: rehearsal marks, staff text,
+system text, expression text, dynamics, repeat/volta, and measure clef changes
+are edited from the `표기 객체` toolbar category instead of the structural
+`악보` setup panel. This keeps note-entry and score-setup controls separate from
+measure/tick-level notation objects. Further work is still needed for final
+Commercial V1 work-mode naming, Export/Page Setup command-surface polish, and
+compact desktop visual QA.
+
+2026-09-11 MuseScore Properties parity slice: the editor now shows a compact
+`선택 요약` panel in the right properties dock. It summarizes selected
+event/measure/range context such as target type, part/staff location, voice,
+tick, duration, pitch, clef, key, and time signature. The first editable
+property is active measure dynamics, so users can adjust dynamics from the
+selected-context surface without switching to the notation objects mode. Text
+and harmony editing remain follow-up MuseScore parity items.
+
+2026-09-11 MuseScore palette/workspace parity slice: the score workspace has a
+left `고정 팔레트` dock synchronized with the top work modes and a right `속성 도크`.
+The first persistent notation group is `셈여림 팔레트`, which applies dynamics to
+the active measure from the docked palette while preserving the existing
+`표기 객체` toolbar controls.
+
+2026-09-11 MuseScore selection filter parity slice: the File command surface now
+has a `표기 필터` next to the existing note/rest `선택 필터`. In measure selection,
+`코드` deletes only chord symbols in that measure and `셈여림` deletes only
+dynamics in that measure. Text, lyric, slur/hairpin, and object-aware copy
+filters remain follow-up parity items.
+
+2026-09-11 MuseScore marking copy/paste parity slice: with a measure selected,
+the same `표기 필터` can copy/paste `코드` or `셈여림` markings through a separate
+object clipboard. Pasting replaces only the same marking type in the target
+measure and does not replace the target notes/rests or the other marking type.
+Text, lyric, slur/hairpin, rehearsal/system text, and list-selection marking
+copy remain follow-up parity items.
+
+2026-09-11 shortcut discoverability slice: the File mode exposes a `단축키
+도움말` dialog for core V1 commands. It documents duration shortcuts 1-7,
+triplet `⌘/Ctrl+3`, tie/slur, enharmonic respell, voice switching,
+navigation-first Up/Down, save, undo/redo, copy/paste, and delete. The legacy
+plain `9 = triplet` shortcut is not advertised.
+
+### Lyrics And Chords
+
+- lyrics with syllabic/hyphen/melisma.
+- chord symbols.
+
+2026-09-07 Lyrics/Chords input surface slice: chord symbol input is no longer a
+primary note-entry control. The `가사` toolbar category now has separate lyric
+and chord groups. When a note/rest event is selected, chord symbols attach to
+that event's measure/tick; when a measure is selected, chord symbols attach to
+the selected measure start at tick 0. App regression tests cover note-selected
+lyric/chord entry and measure-selected chord entry.
+
+### Export And Page Setup
+
+2026-09-07 Export/Page Setup information architecture slice: `파일` stays focused
+on file lifecycle actions such as new score, MusicXML import, MusicXML primary
+save, recent-file workflows, and the current undo/redo/copy/paste/delete command
+surface. PDF export, MIDI export, PDF target pages, page size, orientation,
+margins, staff size, system spacing, and page setup presets now live in the
+`내보내기` toolbar category instead of the structural `악보` setup panel.
+
+V1 export policy is fixed as follows: MusicXML save remains full-score primary
+save, while PDF and MIDI export follow the current score view. In full-score view
+they export the score; in selected part view they use the live part score and
+suggest a part-specific filename. Automated App coverage verifies the export
+controls are absent from `파일`, page setup is absent from `악보`, and selected
+Viola part view PDF/MIDI exports use part-specific filenames. Real file-dialog
+save/open and human PDF visual QA remain release-candidate manual checks.
+2026-09-11 MuseScore parity slice adds a non-printing page margin guide toggle
+to `내보내기`, so changing the margin value immediately updates the visible guide
+on the score page while PDF export capture hides the guide.
 
 ### Layout And Engraving
 
@@ -216,6 +307,8 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 - MusicXML import/export.
 - PDF export.
 - MIDI export.
+- MusicXML save is full-score primary save; PDF/MIDI export follows the current
+  full score or selected part view.
 - practical MusicXML fixtures from MuseScore, Dorico, Sibelius, and Finale-origin
   migration files.
 - automated compatibility seed fixtures currently cover representative
@@ -223,6 +316,9 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
   fixtures are collected for RC signoff. The manifest now distinguishes seed
   placeholders from collected app-export fixtures and records the required
   export settings/evidence slots.
+- local MuseScore CLI import/render smoke verifies that the collected
+  MuseScore CLI app-export MusicXML fixture opens in MuseScore Studio and exports
+  to a structurally valid PDF.
 - PNG/SVG export is P1.
 - compressed `.mxl` is P1 unless import compatibility becomes a launch blocker.
 - unsupported MusicXML features produce actionable warnings.
@@ -422,10 +518,11 @@ When a text editor is focused, `Space` is text input, not playback.
 - Page setup has a first PDF-focused implementation for page size, orientation,
   margins, staff size, system spacing, and V1 presets for default A4,
   rehearsal Letter, publication A4, and compact parts. The score page DOM now
-  exposes normalized page setup metadata for the PDF renderer, and App tests
-  verify manual Letter landscape, publication A4, and compact parts preset
-  values reach the export-time renderer contract, but real PDF output QA and
-  preview polish still remain.
+  exposes normalized page setup metadata for the PDF renderer. The editor also
+  has a non-printing page margin guide preview for MuseScore-style page setup
+  inspection, and App tests verify manual Letter landscape, publication A4,
+  compact parts preset, and margin guide values reach the renderer contract
+  without leaking into PDF capture. Real PDF output QA still remains.
 - System text and expression text have a first implementation for input, display,
   shortcut protection, and MusicXML round-trip; collision-aware engraving polish
   remains under the professional engraving blocker.
@@ -471,15 +568,26 @@ When a text editor is focused, `Space` is text input, not playback.
   import/export warning direction, file name, code, location/path, and message,
   but real app-export fixture validation is not complete.
 - Practical app-export MusicXML fixtures from MuseScore, Dorico, Sibelius, and
-  Finale-origin files are required before public release candidate signoff; the
-  current manifest records them as manual collection requirements until real
-  exports are added and verified.
+  Finale-origin files are required before public release candidate signoff. The
+  current manifest includes a MuseScore 4.7.5 CLI app-export grand staff fixture,
+  while Dorico/Sibelius/Finale-origin fixtures and MuseScore GUI/manual snapshot
+  evidence remain open.
+- Commercial V1 follow-up work is tracked in
+  `docs/product/chromatics-commercial-v1-work-queue.md`. `npm run
+  verify:chromatics-v1-work-queue` keeps the queue schema, approved statuses,
+  required categories, and next actions valid so long-running V1 work can resume
+  from the current blocker list instead of a one-off prompt.
 - Native project format is explicitly post-V1. V1 uses MusicXML as the primary
   save format, with autosave/recovery and file-path view preferences kept as
   local app state. Future native-project migration must import existing MusicXML
   first and then restore any local preference state that can be mapped safely.
 - Visual regression baseline is currently clean in the latest verified run, but
   must remain a release gate for every candidate.
+- V1 editing now has a first event-type selection filter slice. The File command
+  surface exposes all/notes-only/rests-only filtering, the context strip shows
+  the current filter and filtered range count, and filtered delete remains scoped
+  to the selected voice address. Copy/paste filter semantics and notation object
+  filters remain Commercial V1 follow-up blockers.
 
 ## V1 Release Gate
 

@@ -450,6 +450,576 @@ class RecommendationShelf {
   final String source;
 }
 
+class TasteIntakeItem {
+  const TasteIntakeItem({
+    required this.id,
+    required this.label,
+    required this.rawInput,
+    required this.sourceType,
+    required this.confidence,
+    required this.createdAt,
+    this.matchedWorkId,
+    this.matchedComposerId,
+  });
+
+  factory TasteIntakeItem.fromJson(Map<String, Object?> json) {
+    return TasteIntakeItem(
+      id: _stringFromJson(json['id']),
+      label: _stringFromJson(json['label']),
+      rawInput: _stringFromJson(json['rawInput']),
+      matchedWorkId: _stringFromJson(json['matchedWorkId']).isEmpty
+          ? null
+          : _stringFromJson(json['matchedWorkId']),
+      matchedComposerId: _stringFromJson(json['matchedComposerId']).isEmpty
+          ? null
+          : _stringFromJson(json['matchedComposerId']),
+      sourceType: _stringFromJson(json['sourceType']).isEmpty
+          ? 'free_text'
+          : _stringFromJson(json['sourceType']),
+      confidence: _intFromJson(json['confidence']),
+      createdAt:
+          _dateFromJson(json['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  final String id;
+  final String label;
+  final String rawInput;
+  final String? matchedWorkId;
+  final String? matchedComposerId;
+  final String sourceType;
+  final int confidence;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'label': label,
+      'rawInput': rawInput,
+      'matchedWorkId': matchedWorkId,
+      'matchedComposerId': matchedComposerId,
+      'sourceType': sourceType,
+      'confidence': confidence,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+}
+
+class TasteAxisScore {
+  const TasteAxisScore({
+    required this.axis,
+    required this.score,
+    required this.evidenceCount,
+    required this.lastUpdatedAt,
+  });
+
+  final String axis;
+  final int score;
+  final int evidenceCount;
+  final DateTime? lastUpdatedAt;
+}
+
+class TasteTranslation {
+  const TasteTranslation({
+    required this.sourceLabel,
+    required this.axis,
+    required this.startingPoint,
+    required this.familiarFeeling,
+    required this.listenFor,
+    required this.nextDirection,
+    required this.avoidForNow,
+    required this.isSoftLanding,
+  });
+
+  final String sourceLabel;
+  final String axis;
+  final String startingPoint;
+  final String familiarFeeling;
+  final String listenFor;
+  final String nextDirection;
+  final String avoidForNow;
+  final bool isSoftLanding;
+}
+
+class ListeningLevelSnapshot {
+  const ListeningLevelSnapshot({
+    required this.level,
+    required this.confidence,
+    required this.strengths,
+    required this.nextGrowthArea,
+    required this.updatedAt,
+  });
+
+  final String level;
+  final int confidence;
+  final List<String> strengths;
+  final String nextGrowthArea;
+  final DateTime? updatedAt;
+}
+
+class ProgressiveRecommendation {
+  const ProgressiveRecommendation({
+    required this.work,
+    required this.lane,
+    required this.reason,
+    required this.distance,
+    required this.axis,
+    required this.difficulty,
+    required this.sourceEvidence,
+  });
+
+  final ClassicalWork work;
+  final String lane;
+  final String reason;
+  final int distance;
+  final String axis;
+  final int difficulty;
+  final String sourceEvidence;
+}
+
+class DailyListeningStep {
+  const DailyListeningStep({
+    required this.work,
+    required this.moment,
+    required this.title,
+    required this.prompt,
+    required this.reason,
+    required this.nextEffect,
+    required this.estimatedSeconds,
+    required this.difficulty,
+    required this.axis,
+    required this.completionState,
+    required this.dueDate,
+    this.tasteEvidenceLabel = '',
+    this.translation,
+  });
+
+  final ClassicalWork work;
+  final ListeningMoment moment;
+  final String title;
+  final String prompt;
+  final String reason;
+  final String nextEffect;
+  final int estimatedSeconds;
+  final int difficulty;
+  final String axis;
+  final String completionState;
+  final DateTime dueDate;
+  final String tasteEvidenceLabel;
+  final TasteTranslation? translation;
+
+  bool get isCompleted => completionState == 'completed';
+}
+
+class DailyPick {
+  const DailyPick({
+    required this.id,
+    required this.date,
+    required this.workId,
+    required this.momentId,
+    required this.pickType,
+    required this.reason,
+    required this.listenFor,
+    required this.whyNow,
+    required this.sourceEvidence,
+    required this.distanceLabel,
+    required this.createdAt,
+    this.completedAt,
+    this.openedFromNotification = false,
+  });
+
+  factory DailyPick.fromJson(Map<String, Object?> json) {
+    return DailyPick(
+      id: _stringFromJson(json['id']),
+      date:
+          _dateFromJson(json['date']) ?? DateTime.fromMillisecondsSinceEpoch(0),
+      workId: _stringFromJson(json['workId']),
+      momentId: _stringFromJson(json['momentId']),
+      pickType: _stringFromJson(json['pickType']).isEmpty
+          ? 'close_step'
+          : _stringFromJson(json['pickType']),
+      reason: _stringFromJson(json['reason']),
+      listenFor: _stringFromJson(json['listenFor']),
+      whyNow: _stringFromJson(json['whyNow']),
+      sourceEvidence: _stringFromJson(json['sourceEvidence']),
+      distanceLabel: _stringFromJson(json['distanceLabel']).isEmpty
+          ? '한 걸음 확장'
+          : _stringFromJson(json['distanceLabel']),
+      createdAt:
+          _dateFromJson(json['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      completedAt: _dateFromJson(json['completedAt']),
+      openedFromNotification: json['openedFromNotification'] == true,
+    );
+  }
+
+  final String id;
+  final DateTime date;
+  final String workId;
+  final String momentId;
+  final String pickType;
+  final String reason;
+  final String listenFor;
+  final String whyNow;
+  final String sourceEvidence;
+  final String distanceLabel;
+  final DateTime createdAt;
+  final DateTime? completedAt;
+  final bool openedFromNotification;
+
+  bool get isCompleted => completedAt != null;
+
+  DailyPick copyWith({
+    String? id,
+    DateTime? date,
+    String? workId,
+    String? momentId,
+    String? pickType,
+    String? reason,
+    String? listenFor,
+    String? whyNow,
+    String? sourceEvidence,
+    String? distanceLabel,
+    DateTime? createdAt,
+    DateTime? completedAt,
+    bool? openedFromNotification,
+  }) {
+    return DailyPick(
+      id: id ?? this.id,
+      date: date ?? this.date,
+      workId: workId ?? this.workId,
+      momentId: momentId ?? this.momentId,
+      pickType: pickType ?? this.pickType,
+      reason: reason ?? this.reason,
+      listenFor: listenFor ?? this.listenFor,
+      whyNow: whyNow ?? this.whyNow,
+      sourceEvidence: sourceEvidence ?? this.sourceEvidence,
+      distanceLabel: distanceLabel ?? this.distanceLabel,
+      createdAt: createdAt ?? this.createdAt,
+      completedAt: completedAt ?? this.completedAt,
+      openedFromNotification:
+          openedFromNotification ?? this.openedFromNotification,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'date': date.toIso8601String(),
+      'workId': workId,
+      'momentId': momentId,
+      'pickType': pickType,
+      'reason': reason,
+      'listenFor': listenFor,
+      'whyNow': whyNow,
+      'sourceEvidence': sourceEvidence,
+      'distanceLabel': distanceLabel,
+      'createdAt': createdAt.toIso8601String(),
+      'completedAt': completedAt?.toIso8601String(),
+      'openedFromNotification': openedFromNotification,
+    };
+  }
+}
+
+class EarOpeningPrompt {
+  const EarOpeningPrompt({
+    required this.id,
+    required this.workId,
+    required this.momentId,
+    required this.title,
+    required this.question,
+    required this.options,
+    required this.axis,
+    required this.mapClue,
+    required this.skipCopy,
+  });
+
+  final String id;
+  final String workId;
+  final String momentId;
+  final String title;
+  final String question;
+  final List<String> options;
+  final String axis;
+  final String mapClue;
+  final String skipCopy;
+}
+
+class GentleContinuitySummary {
+  const GentleContinuitySummary({
+    required this.currentRunDays,
+    required this.weeklyCompletedDays,
+    required this.lastCompletedDate,
+    required this.missedDaysInLastWeek,
+    required this.completedToday,
+    required this.headline,
+    required this.recoveryCopy,
+  });
+
+  final int currentRunDays;
+  final int weeklyCompletedDays;
+  final DateTime? lastCompletedDate;
+  final int missedDaysInLastWeek;
+  final bool completedToday;
+  final String headline;
+  final String recoveryCopy;
+}
+
+class TasteStartPreview {
+  const TasteStartPreview({
+    required this.items,
+    required this.axis,
+    required this.translation,
+    required this.dailyStep,
+    required this.nextThree,
+  });
+
+  final List<TasteIntakeItem> items;
+  final String axis;
+  final TasteTranslation translation;
+  final DailyListeningStep dailyStep;
+  final List<ProgressiveRecommendation> nextThree;
+}
+
+class ReminderPreference {
+  const ReminderPreference({
+    required this.enabled,
+    required this.timeLabel,
+    required this.message,
+    required this.deliveryStatus,
+    this.updatedAt,
+  });
+
+  factory ReminderPreference.fromJson(Map<String, Object?>? json) {
+    if (json == null) {
+      return defaultPreference;
+    }
+    final enabled = json['enabled'] == true;
+    final timeLabel = _stringFromJson(json['timeLabel']).isEmpty
+        ? defaultPreference.timeLabel
+        : _stringFromJson(json['timeLabel']);
+    final message = _stringFromJson(json['message']).isEmpty
+        ? defaultPreference.message
+        : _stringFromJson(json['message']);
+    final deliveryStatus = _stringFromJson(json['deliveryStatus']).isEmpty
+        ? defaultPreference.deliveryStatus
+        : _stringFromJson(json['deliveryStatus']);
+    return ReminderPreference(
+      enabled: enabled,
+      timeLabel: timeLabel,
+      message: message,
+      deliveryStatus: deliveryStatus,
+      updatedAt: _dateFromJson(json['updatedAt']),
+    );
+  }
+
+  static const defaultPreference = ReminderPreference(
+    enabled: false,
+    timeLabel: '20:30',
+    message: '오늘 30초만 열어볼까요?',
+    deliveryStatus: 'local-preference-only',
+  );
+
+  final bool enabled;
+  final String timeLabel;
+  final String message;
+  final String deliveryStatus;
+  final DateTime? updatedAt;
+
+  ReminderPreference copyWith({
+    bool? enabled,
+    String? timeLabel,
+    String? message,
+    String? deliveryStatus,
+    DateTime? updatedAt,
+  }) {
+    return ReminderPreference(
+      enabled: enabled ?? this.enabled,
+      timeLabel: timeLabel ?? this.timeLabel,
+      message: message ?? this.message,
+      deliveryStatus: deliveryStatus ?? this.deliveryStatus,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'enabled': enabled,
+      'timeLabel': timeLabel,
+      'message': message,
+      'deliveryStatus': deliveryStatus,
+      'updatedAt': updatedAt?.toIso8601String(),
+    };
+  }
+}
+
+class ListeningMapNodeStatus {
+  const ListeningMapNodeStatus._();
+
+  static const locked = 'locked';
+  static const suggested = 'suggested';
+  static const opened = 'opened';
+  static const familiar = 'familiar';
+  static const conquered = 'conquered';
+}
+
+class ListeningMapNode {
+  const ListeningMapNode({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.axis,
+    required this.level,
+    required this.prerequisiteNodeIds,
+    required this.recommendedWorkIds,
+    required this.anchorWorkIds,
+    required this.unlockedByTags,
+    required this.userFacingCopy,
+  });
+
+  final String id;
+  final String title;
+  final String description;
+  final String axis;
+  final int level;
+  final List<String> prerequisiteNodeIds;
+  final List<String> recommendedWorkIds;
+  final List<String> anchorWorkIds;
+  final List<String> unlockedByTags;
+  final String userFacingCopy;
+}
+
+class ListeningMapEdge {
+  const ListeningMapEdge({
+    required this.fromNodeId,
+    required this.toNodeId,
+    required this.reason,
+    required this.difficultyStep,
+  });
+
+  final String fromNodeId;
+  final String toNodeId;
+  final String reason;
+  final int difficultyStep;
+}
+
+class UserListeningMapState {
+  const UserListeningMapState({
+    required this.openedNodeIds,
+    required this.familiarNodeIds,
+    required this.conqueredNodeIds,
+    required this.unfamiliarNodeIds,
+    required this.currentNodeId,
+    required this.nextNodeIds,
+    required this.capturedMomentIds,
+    required this.updatedAt,
+  });
+
+  final Set<String> openedNodeIds;
+  final Set<String> familiarNodeIds;
+  final Set<String> conqueredNodeIds;
+  final Set<String> unfamiliarNodeIds;
+  final String? currentNodeId;
+  final List<String> nextNodeIds;
+  final Set<String> capturedMomentIds;
+  final DateTime? updatedAt;
+
+  String statusFor(String nodeId) {
+    if (conqueredNodeIds.contains(nodeId)) {
+      return ListeningMapNodeStatus.conquered;
+    }
+    if (familiarNodeIds.contains(nodeId)) {
+      return ListeningMapNodeStatus.familiar;
+    }
+    if (openedNodeIds.contains(nodeId)) {
+      return ListeningMapNodeStatus.opened;
+    }
+    if (nextNodeIds.contains(nodeId)) {
+      return ListeningMapNodeStatus.suggested;
+    }
+    return ListeningMapNodeStatus.locked;
+  }
+}
+
+class ListeningMapProgress {
+  const ListeningMapProgress({
+    required this.nodes,
+    required this.edges,
+    required this.userState,
+    required this.axisScores,
+    required this.openedCount,
+    required this.familiarCount,
+    required this.conqueredCount,
+    required this.currentNode,
+    required this.nextPath,
+    required this.unfamiliarNodes,
+    required this.conqueredWorks,
+    required this.summaryCopy,
+    required this.rewardCopy,
+  });
+
+  final List<ListeningMapNode> nodes;
+  final List<ListeningMapEdge> edges;
+  final UserListeningMapState userState;
+  final List<TasteAxisScore> axisScores;
+  final int openedCount;
+  final int familiarCount;
+  final int conqueredCount;
+  final ListeningMapNode? currentNode;
+  final List<ListeningMapNode> nextPath;
+  final List<ListeningMapNode> unfamiliarNodes;
+  final List<ClassicalWork> conqueredWorks;
+  final String summaryCopy;
+  final String rewardCopy;
+}
+
+class WorkListeningMapRole {
+  const WorkListeningMapRole({
+    required this.work,
+    required this.primaryNode,
+    required this.relatedNodes,
+    required this.status,
+    required this.roleCopy,
+    required this.capturedPoints,
+    required this.nextPath,
+  });
+
+  final ClassicalWork work;
+  final ListeningMapNode primaryNode;
+  final List<ListeningMapNode> relatedNodes;
+  final String status;
+  final String roleCopy;
+  final List<String> capturedPoints;
+  final List<ProgressiveRecommendation> nextPath;
+}
+
+class WorkPassportStamp {
+  const WorkPassportStamp({
+    required this.id,
+    required this.workId,
+    required this.stampType,
+    required this.label,
+    required this.occurredAt,
+    this.momentId,
+    this.concertId,
+    this.routeId,
+    this.reactionType,
+    this.note = '',
+  });
+
+  final String id;
+  final String workId;
+  final String stampType;
+  final String label;
+  final String? momentId;
+  final String? concertId;
+  final String? routeId;
+  final String? reactionType;
+  final String note;
+  final DateTime occurredAt;
+}
+
 class UserWorkState {
   const UserWorkState({
     required this.workId,
@@ -625,10 +1195,207 @@ class DiscoveryEvent {
   }
 }
 
+enum ConcertPreviewRouteSourceType { seededConcert, pastedProgram, manual }
+
+enum ConcertPreviewRouteCompletionState { draft, ready, completed }
+
+class ConcertPreviewRoute {
+  const ConcertPreviewRoute({
+    required this.id,
+    required this.sourceType,
+    required this.routeTitle,
+    required this.programWorkIds,
+    required this.listeningMomentIds,
+    required this.totalPreviewMinutes,
+    required this.hallListeningNotes,
+    required this.completionState,
+    required this.createdAt,
+    required this.updatedAt,
+    this.concertId,
+    this.date,
+    this.venue,
+    this.rawProgramText = '',
+    this.unmatchedProgramLines = const <String>[],
+  });
+
+  factory ConcertPreviewRoute.fromJson(Map<String, Object?> json) {
+    return ConcertPreviewRoute(
+      id: _stringFromJson(json['id']),
+      sourceType: _routeSourceFromJson(json['sourceType']),
+      routeTitle: _stringFromJson(json['routeTitle']),
+      concertId: _stringFromJson(json['concertId']).isEmpty
+          ? null
+          : _stringFromJson(json['concertId']),
+      date: _dateFromJson(json['date']),
+      venue: _stringFromJson(json['venue']).isEmpty
+          ? null
+          : _stringFromJson(json['venue']),
+      rawProgramText: _stringFromJson(json['rawProgramText']),
+      programWorkIds: _stringListFromJson(json['programWorkIds']),
+      listeningMomentIds: _stringListFromJson(json['listeningMomentIds']),
+      totalPreviewMinutes: _intFromJson(json['totalPreviewMinutes']),
+      hallListeningNotes: _stringListFromJson(json['hallListeningNotes']),
+      unmatchedProgramLines: _stringListFromJson(json['unmatchedProgramLines']),
+      completionState: _routeCompletionFromJson(json['completionState']),
+      createdAt:
+          _dateFromJson(json['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      updatedAt:
+          _dateFromJson(json['updatedAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  final String id;
+  final ConcertPreviewRouteSourceType sourceType;
+  final String? concertId;
+  final String routeTitle;
+  final DateTime? date;
+  final String? venue;
+  final String rawProgramText;
+  final List<String> programWorkIds;
+  final List<String> listeningMomentIds;
+  final int totalPreviewMinutes;
+  final List<String> hallListeningNotes;
+  final List<String> unmatchedProgramLines;
+  final ConcertPreviewRouteCompletionState completionState;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  ConcertPreviewRoute copyWith({
+    List<String>? programWorkIds,
+    List<String>? listeningMomentIds,
+    int? totalPreviewMinutes,
+    List<String>? hallListeningNotes,
+    List<String>? unmatchedProgramLines,
+    ConcertPreviewRouteCompletionState? completionState,
+    DateTime? updatedAt,
+  }) {
+    return ConcertPreviewRoute(
+      id: id,
+      sourceType: sourceType,
+      concertId: concertId,
+      routeTitle: routeTitle,
+      date: date,
+      venue: venue,
+      rawProgramText: rawProgramText,
+      programWorkIds: programWorkIds ?? this.programWorkIds,
+      listeningMomentIds: listeningMomentIds ?? this.listeningMomentIds,
+      totalPreviewMinutes: totalPreviewMinutes ?? this.totalPreviewMinutes,
+      hallListeningNotes: hallListeningNotes ?? this.hallListeningNotes,
+      unmatchedProgramLines:
+          unmatchedProgramLines ?? this.unmatchedProgramLines,
+      completionState: completionState ?? this.completionState,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'sourceType': sourceType.name,
+      'concertId': concertId,
+      'routeTitle': routeTitle,
+      'date': date?.toIso8601String(),
+      'venue': venue,
+      'rawProgramText': rawProgramText,
+      'programWorkIds': programWorkIds,
+      'listeningMomentIds': listeningMomentIds,
+      'totalPreviewMinutes': totalPreviewMinutes,
+      'hallListeningNotes': hallListeningNotes,
+      'unmatchedProgramLines': unmatchedProgramLines,
+      'completionState': completionState.name,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  static ConcertPreviewRouteSourceType _routeSourceFromJson(Object? value) {
+    final name = _stringFromJson(value);
+    for (final type in ConcertPreviewRouteSourceType.values) {
+      if (type.name == name) {
+        return type;
+      }
+    }
+    return ConcertPreviewRouteSourceType.manual;
+  }
+
+  static ConcertPreviewRouteCompletionState _routeCompletionFromJson(
+    Object? value,
+  ) {
+    final name = _stringFromJson(value);
+    for (final state in ConcertPreviewRouteCompletionState.values) {
+      if (state.name == name) {
+        return state;
+      }
+    }
+    return ConcertPreviewRouteCompletionState.draft;
+  }
+}
+
+class PostConcertReflection {
+  const PostConcertReflection({
+    required this.id,
+    required this.workId,
+    required this.reactionType,
+    required this.occurredAt,
+    this.concertId,
+    this.routeId,
+    this.instrument = '',
+    this.note = '',
+  });
+
+  factory PostConcertReflection.fromJson(Map<String, Object?> json) {
+    return PostConcertReflection(
+      id: _stringFromJson(json['id']),
+      concertId: _stringFromJson(json['concertId']).isEmpty
+          ? null
+          : _stringFromJson(json['concertId']),
+      routeId: _stringFromJson(json['routeId']).isEmpty
+          ? null
+          : _stringFromJson(json['routeId']),
+      workId: _stringFromJson(json['workId']),
+      instrument: _stringFromJson(json['instrument']),
+      reactionType: _stringFromJson(json['reactionType']),
+      note: _stringFromJson(json['note']),
+      occurredAt:
+          _dateFromJson(json['occurredAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  final String id;
+  final String? concertId;
+  final String? routeId;
+  final String workId;
+  final String instrument;
+  final String reactionType;
+  final String note;
+  final DateTime occurredAt;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'id': id,
+      'concertId': concertId,
+      'routeId': routeId,
+      'workId': workId,
+      'instrument': instrument,
+      'reactionType': reactionType,
+      'note': note,
+      'occurredAt': occurredAt.toIso8601String(),
+    };
+  }
+}
+
 class UserDiscoveryState {
   const UserDiscoveryState({
     required this.workStates,
+    required this.tasteIntakeItems,
     required this.reactions,
+    required this.dailyPicks,
+    required this.previewRoutes,
+    required this.postConcertReflections,
     required this.savedConcertIds,
     required this.dismissedPromotionIds,
     required this.events,
@@ -640,6 +1407,7 @@ class UserDiscoveryState {
     required this.preferredContextTags,
     required this.preferredInstruments,
     required this.notificationPreferences,
+    required this.reminderPreference,
     this.preferencesUpdatedAt,
   });
 
@@ -656,9 +1424,25 @@ class UserDiscoveryState {
     }
     return UserDiscoveryState(
       workStates: Map<String, UserWorkState>.unmodifiable(states),
+      tasteIntakeItems: _jsonMapList(json['tasteIntakeItems'])
+          .map(TasteIntakeItem.fromJson)
+          .where((item) => item.id.isNotEmpty)
+          .toList(growable: false),
       reactions: _jsonMapList(json['reactions'])
           .map(ClassicalReaction.fromJson)
           .where((reaction) => reaction.id.isNotEmpty)
+          .toList(growable: false),
+      dailyPicks: _jsonMapList(json['dailyPicks'])
+          .map(DailyPick.fromJson)
+          .where((pick) => pick.id.isNotEmpty && pick.workId.isNotEmpty)
+          .toList(growable: false),
+      previewRoutes: _jsonMapList(json['previewRoutes'])
+          .map(ConcertPreviewRoute.fromJson)
+          .where((route) => route.id.isNotEmpty)
+          .toList(growable: false),
+      postConcertReflections: _jsonMapList(json['postConcertReflections'])
+          .map(PostConcertReflection.fromJson)
+          .where((reflection) => reflection.id.isNotEmpty)
           .toList(growable: false),
       savedConcertIds: _stringListFromJson(json['savedConcertIds']).toSet(),
       dismissedPromotionIds: _stringListFromJson(json['dismissedPromotionIds'])
@@ -685,13 +1469,20 @@ class UserDiscoveryState {
       notificationPreferences: _stringListFromJson(
         json['notificationPreferences'],
       ).toSet(),
+      reminderPreference: ReminderPreference.fromJson(
+        _jsonMap(json['reminderPreference']),
+      ),
       preferencesUpdatedAt: _dateFromJson(json['preferencesUpdatedAt']),
     );
   }
 
   static const defaultState = UserDiscoveryState(
     workStates: <String, UserWorkState>{},
+    tasteIntakeItems: <TasteIntakeItem>[],
     reactions: <ClassicalReaction>[],
+    dailyPicks: <DailyPick>[],
+    previewRoutes: <ConcertPreviewRoute>[],
+    postConcertReflections: <PostConcertReflection>[],
     savedConcertIds: <String>{},
     dismissedPromotionIds: <String>{},
     events: <DiscoveryEvent>[],
@@ -703,10 +1494,15 @@ class UserDiscoveryState {
     preferredContextTags: <String>{},
     preferredInstruments: <String>{},
     notificationPreferences: <String>{},
+    reminderPreference: ReminderPreference.defaultPreference,
   );
 
   final Map<String, UserWorkState> workStates;
+  final List<TasteIntakeItem> tasteIntakeItems;
   final List<ClassicalReaction> reactions;
+  final List<DailyPick> dailyPicks;
+  final List<ConcertPreviewRoute> previewRoutes;
+  final List<PostConcertReflection> postConcertReflections;
   final Set<String> savedConcertIds;
   final Set<String> dismissedPromotionIds;
   final List<DiscoveryEvent> events;
@@ -718,6 +1514,7 @@ class UserDiscoveryState {
   final Set<String> preferredContextTags;
   final Set<String> preferredInstruments;
   final Set<String> notificationPreferences;
+  final ReminderPreference reminderPreference;
   final DateTime? preferencesUpdatedAt;
 
   UserWorkState stateForWork(String workId) {
@@ -727,7 +1524,11 @@ class UserDiscoveryState {
 
   UserDiscoveryState copyWith({
     Map<String, UserWorkState>? workStates,
+    List<TasteIntakeItem>? tasteIntakeItems,
     List<ClassicalReaction>? reactions,
+    List<DailyPick>? dailyPicks,
+    List<ConcertPreviewRoute>? previewRoutes,
+    List<PostConcertReflection>? postConcertReflections,
     Set<String>? savedConcertIds,
     Set<String>? dismissedPromotionIds,
     List<DiscoveryEvent>? events,
@@ -739,11 +1540,17 @@ class UserDiscoveryState {
     Set<String>? preferredContextTags,
     Set<String>? preferredInstruments,
     Set<String>? notificationPreferences,
+    ReminderPreference? reminderPreference,
     DateTime? preferencesUpdatedAt,
   }) {
     return UserDiscoveryState(
       workStates: workStates ?? this.workStates,
+      tasteIntakeItems: tasteIntakeItems ?? this.tasteIntakeItems,
       reactions: reactions ?? this.reactions,
+      dailyPicks: dailyPicks ?? this.dailyPicks,
+      previewRoutes: previewRoutes ?? this.previewRoutes,
+      postConcertReflections:
+          postConcertReflections ?? this.postConcertReflections,
       savedConcertIds: savedConcertIds ?? this.savedConcertIds,
       dismissedPromotionIds:
           dismissedPromotionIds ?? this.dismissedPromotionIds,
@@ -757,6 +1564,7 @@ class UserDiscoveryState {
       preferredInstruments: preferredInstruments ?? this.preferredInstruments,
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
+      reminderPreference: reminderPreference ?? this.reminderPreference,
       preferencesUpdatedAt: preferencesUpdatedAt ?? this.preferencesUpdatedAt,
     );
   }
@@ -766,8 +1574,20 @@ class UserDiscoveryState {
       'workStates': workStates.values
           .map((state) => state.toJson())
           .toList(growable: false),
+      'tasteIntakeItems': tasteIntakeItems
+          .map((item) => item.toJson())
+          .toList(growable: false),
       'reactions': reactions
           .map((reaction) => reaction.toJson())
+          .toList(growable: false),
+      'dailyPicks': dailyPicks
+          .map((pick) => pick.toJson())
+          .toList(growable: false),
+      'previewRoutes': previewRoutes
+          .map((route) => route.toJson())
+          .toList(growable: false),
+      'postConcertReflections': postConcertReflections
+          .map((reflection) => reflection.toJson())
           .toList(growable: false),
       'savedConcertIds': savedConcertIds.toList(growable: false),
       'dismissedPromotionIds': dismissedPromotionIds.toList(growable: false),
@@ -782,6 +1602,7 @@ class UserDiscoveryState {
       'notificationPreferences': notificationPreferences.toList(
         growable: false,
       ),
+      'reminderPreference': reminderPreference.toJson(),
       'preferencesUpdatedAt': preferencesUpdatedAt?.toIso8601String(),
     };
   }
