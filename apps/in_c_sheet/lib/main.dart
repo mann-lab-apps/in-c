@@ -4219,6 +4219,39 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     );
   }
 
+  Future<void> _moveScoreToPosition(
+    SheetSetlist currentSetlist,
+    SheetScore score,
+    int currentIndex,
+    int totalCount,
+  ) async {
+    final targetPosition = await showDialog<int>(
+      context: context,
+      builder: (context) => _SetlistOrderDialog(
+        scoreTitle: score.title,
+        initialPosition: currentIndex + 1,
+        totalCount: totalCount,
+      ),
+    );
+    if (targetPosition == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    final targetIndex = targetPosition - 1;
+    if (targetIndex == currentIndex) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
+      return;
+    }
+    await controller.moveScoreInSetlist(
+      currentSetlist,
+      currentIndex,
+      targetIndex,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentSetlist = setlist;
@@ -4293,7 +4326,21 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                         width: 92,
                         child: Row(
                           children: [
-                            CircleAvatar(child: Text('${index + 1}')),
+                            Tooltip(
+                              message: '순서 입력',
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => _moveScoreToPosition(
+                                  currentSetlist,
+                                  score,
+                                  index,
+                                  scores.length,
+                                ),
+                                child: CircleAvatar(
+                                  child: Text('${index + 1}'),
+                                ),
+                              ),
+                            ),
                             const SizedBox(width: 6),
                             Semantics(
                               button: true,
@@ -4376,6 +4423,84 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 itemCount: scores.length,
               ),
       ),
+    );
+  }
+}
+
+class _SetlistOrderDialog extends StatefulWidget {
+  const _SetlistOrderDialog({
+    required this.scoreTitle,
+    required this.initialPosition,
+    required this.totalCount,
+  });
+
+  final String scoreTitle;
+  final int initialPosition;
+  final int totalCount;
+
+  @override
+  State<_SetlistOrderDialog> createState() => _SetlistOrderDialogState();
+}
+
+class _SetlistOrderDialogState extends State<_SetlistOrderDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: '${widget.initialPosition}');
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+    Navigator.of(context).pop(int.parse(_textController.text));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('"${widget.scoreTitle}" 순서 이동'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _textController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          decoration: InputDecoration(
+            labelText: '이동할 순서',
+            helperText: '1부터 ${widget.totalCount} 사이 숫자',
+          ),
+          validator: (value) {
+            final position = int.tryParse(value ?? '');
+            if (position == null ||
+                position < 1 ||
+                position > widget.totalCount) {
+              return '1부터 ${widget.totalCount} 사이로 입력해주세요.';
+            }
+            return null;
+          },
+          onFieldSubmitted: (_) => _submit(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('이동')),
+      ],
     );
   }
 }

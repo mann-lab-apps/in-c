@@ -198,7 +198,7 @@ source of truth로 둔다.
   subdivision/accent/tap tempo, 0/1/2마디 count-in, 악보별 metronome snapshot,
   세트리스트별 metronome override,
   고정형 mini tuner/metronome panel, 새 metronome 기본 `소리 켬` 및 `소리`/`시각만` 상태 표시.
-- v1.1 후보: 직접 순번 입력, import-time setlist
+- v1.1 후보: import-time setlist
   assignment, annotation favorite/tool preset.
 - spike 후보: 움직이고 크기 조절 가능한 floating panel, 저지연 audio engine, 복잡한 rhythm pattern
   editor와 viewer overlay architecture.
@@ -419,7 +419,8 @@ flutter build ios --release --no-codesign
 - 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 일괄 선택 AppBar에서 선택 악보를 기존/새
   세트리스트에 한 번에 추가할 수 있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를
   안내한다.
-- 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼을 보조 수단으로 유지한다.
+- 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을
+  보조 수단으로 유지한다.
 - 세트리스트를 열면 마지막 연 시간을 저장하고 홈 quick access에 `최근 세트리스트` rail로 표시한다.
 - viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone hint를 보여준다. 하단 page control과 mini panel tap은
   page turn으로 중복 처리하지 않는다.
