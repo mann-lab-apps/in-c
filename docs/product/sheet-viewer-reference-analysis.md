@@ -192,7 +192,7 @@ macOS, iOS, Android, Windows 지원을 명시하고, Google Play 설명은 Andro
 | 라이브러리 | 태그, 세트리스트, 검색, 제목/작곡가 편집 | 20개+ 필드, 필터, 여러 라이브러리, 백업 | 제목/작곡가/태그/최근 사용부터 |
 | 보기 | 1페이지, 스크롤, 반 페이지, 2페이지 | 1페이지, 2페이지, 반 페이지, 세로 스크롤, scaling | 1/2페이지, 세로, 반 페이지 |
 | 페이지 정리 | 확대/회전, 순서 변경, 숨김, 복제, 점프 | crop, rotate, page ordering, link point | 원본 보존 virtual ordering |
-| 주석 | 펜, 스탬프, 텍스트, 도형, 지우개 | 고급 도구, favorite, stylus, layer | 펜/형광펜/지우개/텍스트부터 |
+| 주석 | 펜, 스탬프, 텍스트, 도형, 지우개 | 고급 도구, favorite, stylus, layer | 펜/형광펜/지우개/텍스트/stamp/shape/favorite부터 |
 | 공연 | 공연 모드, Bluetooth, sync page turning | 공연 모드, quick action, 세트리스트 | 공연 모드와 페달 기본 지원 |
 | 음악 도구 | 튜너, 메트로놈, 키보드, 녹음, 플레이어 | 메트로놈, 오디오 플레이어 | 튜너+메트로놈 핵심 차별점 |
 | 외부 장치 | Bluetooth page turner, Piascore Air | Bluetooth/USB 페달, MIDI, face gesture | HID 페달부터 시작 |
@@ -212,7 +212,7 @@ MobileSheets, Piascore, forScore의 공식 도움말, 스토어 설명, 공개 �
 | setlist reorder | setlist edit 화면에서 drag/drop, reorder icon, 직접 순번 입력을 지원한다는 공식 포럼/매뉴얼 근거가 있다. | 세트리스트 순서 편집을 제공한다. | forScore는 Drag and Drop 또는 Edit mode reorder handle로 순서를 바꾼다. | v1 hotfix에서 세트리스트 상세에 drag handle 기반 reorder, 위/아래 버튼, 번호 배지 직접 순서 입력을 추가했다. | 긴 세트리스트에서 drag handle hit target과 스크롤 중 reorder 충돌을 QA한다. | v1 반영, QA |
 | 최근 목록 setlist | Recent tab은 최근 연 곡 중심이고, 최근 곡 선택으로 setlist 생성 흐름이 forum에서 확인된다. 최근 목록에 setlist 자체를 섞는지는 직접 확인 필요. | 자료 기준으로 최근 목록과 setlist 통합 여부는 직접 확인 필요. | forScore는 setlists를 별도 메뉴로 강하게 노출한다. | v1 hotfix에서 홈 quick access에 `최근 세트리스트` rail을 추가하고, 마지막으로 연 시간과 곡 수 badge를 표시한다. | 세트리스트 첫 곡 열기/상세 열기 후 최근 rail 정렬을 QA한다. | v1 반영, QA |
 | metronome sound | metronome beat sound effect, first beat accent, count-in/stop, silent visual indicators를 제공한다. | metronome은 visual/silent mode와 tempo 조절을 제공한다. | forScore는 Audible, Visible, Both mode를 제공하고 visible mode는 악보 가장자리 pulse로 방해를 줄인다. | visual metronome과 tick sound toggle이 있지만 사용자가 Android 태블릿에서 소리가 안 난다고 보고했다. | sound fallback/volume/audio route/error 안내를 재현하고, 실패 시 visual-only로 명확히 표시한다. | v1 hotfix |
-| rhythm/subdivision | beat sound, accent, count-in/stop, page change after measures를 제공한다. | 기본 tempo/metronome 조작 중심이다. | forScore는 BPM, time signature, count-in, autoturn을 per-score로 저장한다. | v1 hotfix에서 2/4, 3/4, 4/4, 6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo를 추가했다. | per-score tempo 저장, count-in, complex accent pattern은 후속으로 둔다. | v1 반영, Later |
+| rhythm/subdivision | beat sound, accent, count-in/stop, page change after measures를 제공한다. | tempo, 박자, subdivision, accent, tap tempo, count-in, 악보별 snapshot, 세트리스트별 override를 제공한다. | forScore는 BPM, time signature, count-in, autoturn을 per-score로 저장한다. | v1 hotfix에서 2/4, 3/4, 4/4, 6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, 0/1/2마디 count-in, 악보별/세트리스트별 저장을 추가했다. | complex accent pattern과 autoturn 연동은 후속으로 둔다. | v1 반영, Later |
 | mini tuner/metronome | quick action box와 song overlay, 계속 표시 가능한 audio player 설정이 있다. | music tools는 modal/panel 성격으로 보이며 악보 위 지속 미니 패널은 직접 확인 필요. | forScore는 Metronome/Pitch/Tuner 같은 utilities panel과 악보 가장자리 visible pulse를 제공한다. | v1 hotfix에서 viewer 우상단에 고정형 mini metronome/tuner panel을 추가했다. drag/resize 없는 최소 패널이다. | 장시간 사용, page tap zone, 공연 모드와의 충돌은 실기기 QA한다. movable/resizable overlay는 spike로 유지한다. | v1 반영, spike |
 | page tap hint | tap/pedal/smart button/link point 등 입력 action이 다양하고 performance mode로 오작동을 줄인다. | 화면 우측 탭, swipe, performance mode를 문서화한다. | forScore basics는 화면 좌/우/중앙 tap zone을 색상 overlay로 명확히 설명한다. | v1 hotfix에서 viewer 첫 진입 시 `이전`/`메뉴`/`다음` tap zone overlay를 표시한다. 하단 control/mini panel tap은 페이지 이동으로 중복 처리하지 않는다. | 첫 사용자가 한 번 보고 이해하는지 QA한다. | v1 반영, QA |
 | viewer background | display/scaling/crop 기능을 제공한다. 배경색 기본값은 자료만으로 직접 확인 필요. | page display와 margin 조절을 제공한다. | forScore는 standard/best fit/zoomed display option과 page-fit 정책을 제공한다. | v1 hotfix에서 일반 viewer 배경을 paper/white 계열로 낮췄다. dark/sepia/inverted 설정은 유지한다. | 실제 PDF 여백과 앱 배경의 이질감이 줄었는지 태블릿에서 QA한다. | v1 반영, QA |
@@ -224,7 +224,7 @@ MobileSheets, Piascore, forScore의 공식 도움말, 스토어 설명, 공개 �
   고정형 mini metronome/tuner panel.
 - 남은 QA: 실제 Android/iOS audio route에서 metronome sound가 들리는지, mini panel이 연주 중
   악보를 가리지 않는지, tap zone이 첫 사용자에게 충분히 발견되는지 확인한다.
-- v1.1/Later: per-score tempo 저장, count-in, complex accent pattern, movable/resizable tool
+- v1.1/Later: complex accent pattern, autoturn 연동, movable/resizable tool
   overlay, setlist ordering polish.
 
 ### 제품 판단
@@ -262,11 +262,11 @@ Clef & Staff는 이를 그대로 복제하기보다, 연주자가 바로 막힌 
 | 페이지 보기 | 1페이지, 2페이지, half page, vertical scrolling, scaling을 지원한다. | 1페이지, 2페이지, half page, vertical/auto scroll, fit preset이 있다. | MobileSheets의 display setting 깊이는 더 크다. | 현재 RC 범위 유지. 곡별 display preset 저장은 v1.1. | v1 유지, v1.1 |
 | 터치 페이지 넘김 | 좌/우 측면 tap은 이전/다음, 중앙 tap은 overlay, corner/top/bottom은 configurable action으로 설명된다. | 첫 진입 tap zone hint와 좌/우/중앙 정책이 있다. | 사용자가 한 번에 이해하는지 확인 필요. | hint copy와 한 번 더 보기 진입점만 polish한다. | v1 QA |
 | 페달/키보드 | PageUp/PageDown 같은 key command를 보내는 페달을 전제로 하며, swipe emulation 페달은 한계가 있다고 포럼에서 답변한다. | 방향키/PageUp/PageDown 등을 page turn으로 consume한다. | 특정 페달이 swipe/mouse를 보내면 앱에서 구분하기 어렵다. | v1은 key 기반 보장. HID capture wizard와 swipe-emulating pedal 진단은 v1.1 spike. | v1 QA, spike |
-| 메트로놈 | beat sound, first accent, count-in/stop, silent visual indicator, display mode를 제공한다. | tempo, 박자, subdivision, accent, tap tempo, mini panel, visual/tick sound가 있다. | 실제 Android audio route에서 소리가 안 나는 보고가 있다. | 소리 실패 안내와 visual-only fallback을 우선 확인한다. per-score tempo/count-in은 v1.1. | v1 hotfix/QA |
+| 메트로놈 | beat sound, first accent, count-in/stop, silent visual indicator, display mode를 제공한다. | tempo, 박자, subdivision, accent, tap tempo, count-in, 악보별 snapshot, 세트리스트별 override, mini panel, visual/tick sound가 있다. | 실제 Android audio route에서 소리가 안 나는 보고가 있다. | 소리 실패 안내와 visual-only fallback을 우선 확인한다. complex pattern/autoturn 연동은 v1.1 이후. | v1 hotfix/QA |
 | 튜너 | 공식 MobileSheets 자료에서 chromatic tuner는 확인되지 않았다. | Chromatic-only tuner, pitch history chart, input stabilization이 있다. | 전용 튜너앱만큼의 실기기 정확도/latency 근거는 부족하다. | 악보앱 차별점으로 유지하되 실기기 QA로 정확도 판단. | v1 QA |
 | 미니 도구 | song display는 metronome/audio player 같은 window/control을 포함하고 quick action box는 performance mode에서도 접근 가능하다. | 악보 위 고정형 tuner/metronome mini panel이 있다. | 이동/접기/크기 조절은 없다. | v1은 고정형으로 제한. movable overlay architecture는 spike. | v1 유지, spike |
 | 파일/import | local, cloud, external app, batch import, CSV/PDF bookmark import가 있다. 원본 crop은 수정하지 않는다고 설명한다. | PDF/image import, 원본 보존, link sanitizer, backup/restore가 있다. | direct cloud browser, batch directory import, CSV songbook split은 없다. | 직접 스캐너/OCR/cloud folder/direct SAF는 v1.1 이후. | v1.1/Later |
-| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text, undo/redo, local annotation layer가 있다. | stamp/layer/favorite/S Pen pressure QA가 없다. | S Pen 실기기 QA 후 v1.1 annotation polish로 이동. | QA, v1.1 |
+| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text/stamp/arrow/rectangle, undo/redo, favorite tool, 기본 layer 표시/숨김/export flag, stylus pressure metadata가 있다. | S Pen pressure/palm rejection 실기기 QA, 다중 layer/keying, music-specific shape가 남았다. | S Pen 실기기 QA 후 stylus/layer polish를 v1.1로 이동. | QA, v1.1 |
 
 ### 친구 피드백 9개별 처리 판단
 
@@ -277,7 +277,7 @@ Clef & Staff는 이를 그대로 복제하기보다, 연주자가 바로 막힌 
 | 세트리스트 순서 drag reorder | drag, 직접 순번 입력, drag and drop을 모두 제공한다. | drag handle, 위/아래 버튼, 번호 배지 직접 순서 입력 반영. | 긴 목록에서 drag hit target. | v1 QA. |
 | 최근 목록에 세트리스트 표시 | Recent가 song/setlist를 함께 표시한다고 매뉴얼에 나온다. | 최근 세트리스트 rail 반영. | 개별 악보와 세트리스트 구분 가독성. | 카드 label/badge 실기기 확인. |
 | 메트로놈 소리 | beat sound와 silent visual mode가 분리되어 있다. | sound toggle과 visual metronome 있음. | 사용자가 소리 안 남을 보고. | v1 hotfix/실기기 최우선 확인. |
-| 메트로놈 리듬 설정 | accent/count-in/stop/page change after measures까지 있다. | 2/4, 3/4, 4/4, 6/8, subdivision, accent, tap tempo 반영. | per-score 저장과 count-in은 미구현. | v1.1에서 곡별 tempo/count-in. |
+| 메트로놈 리듬 설정 | accent/count-in/stop/page change after measures까지 있다. | 2/4, 3/4, 4/4, 6/8, subdivision, accent, tap tempo, count-in, 악보별 snapshot, 세트리스트별 override 반영. | complex accent pattern과 autoturn 연동은 미구현. | v1.1에서 pattern/autoturn 연동 검토. |
 | 메트로놈/튜너 미니 패널 | quick action box와 song display windows를 제공한다. | 고정형 mini panel 반영. | 악보 가림, 장시간 audio lifecycle. | v1은 고정형 QA, 이동형은 spike. |
 | 악보 터치 넘김이 헷갈림 | 좌/우/중앙/corner touch zone이 문서화되어 있다. | tap zone hint 반영. | 첫 사용자에게 충분히 보이는지. | 실기기 첫 실행 QA. |
 | 화면 여백이 이질적 | display/scaling/crop 중심으로 해결한다. | paper/white 계열 배경 반영. | PDF별 흰 여백/종이색 취향 차이. | v1은 현재 기본값 유지. |

@@ -198,7 +198,7 @@ source of truth로 둔다.
   subdivision/accent/tap tempo, 0/1/2마디 count-in, 악보별 metronome snapshot,
   세트리스트별 metronome override,
   고정형 mini tuner/metronome panel, 새 metronome 기본 `소리 켬` 및 `소리`/`시각만` 상태 표시.
-- v1.1 후보: annotation favorite/tool preset.
+- v1.1 후보: S Pen/stylus tuning, 다중 annotation layer/keying, music-specific annotation shape.
 - spike 후보: 움직이고 크기 조절 가능한 floating panel, 저지연 audio engine, 복잡한 rhythm pattern
   editor와 viewer overlay architecture.
 
