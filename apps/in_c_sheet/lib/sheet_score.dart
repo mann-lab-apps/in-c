@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'sheet_annotation.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_metronome.dart';
 
 Map<String, Object?>? _asJsonMap(Object? value) {
   if (value is! Map) {
@@ -2232,6 +2233,7 @@ class SheetScore {
     this.annotationStorage = SheetAnnotationStorageReference.inline,
     this.pdfLinkSanitization = SheetPdfLinkSanitization.empty,
     this.autoScrollSettings = SheetAutoScrollSettings.defaultSettings,
+    this.metronomeSettings,
   });
 
   factory SheetScore.fromJson(Map<String, Object?> json) {
@@ -2283,6 +2285,7 @@ class SheetScore {
       autoScrollSettings: SheetAutoScrollSettings.fromJson(
         _asJsonMap(json['autoScrollSettings']),
       ),
+      metronomeSettings: _metronomeSettingsFromJson(json['metronomeSettings']),
     );
   }
 
@@ -2345,6 +2348,7 @@ class SheetScore {
   final SheetAnnotationStorageReference annotationStorage;
   final SheetPdfLinkSanitization pdfLinkSanitization;
   final SheetAutoScrollSettings autoScrollSettings;
+  final SheetMetronomeSettings? metronomeSettings;
 
   String get sourceFileDisplayName {
     final normalizedPath = filePath.trim().replaceAll('\\', '/');
@@ -2408,6 +2412,8 @@ class SheetScore {
     SheetAnnotationStorageReference? annotationStorage,
     SheetPdfLinkSanitization? pdfLinkSanitization,
     SheetAutoScrollSettings? autoScrollSettings,
+    SheetMetronomeSettings? metronomeSettings,
+    bool clearMetronomeSettings = false,
   }) {
     return SheetScore(
       id: id,
@@ -2439,6 +2445,9 @@ class SheetScore {
       annotationStorage: annotationStorage ?? this.annotationStorage,
       pdfLinkSanitization: pdfLinkSanitization ?? this.pdfLinkSanitization,
       autoScrollSettings: autoScrollSettings ?? this.autoScrollSettings,
+      metronomeSettings: clearMetronomeSettings
+          ? null
+          : metronomeSettings ?? this.metronomeSettings,
     );
   }
 
@@ -2469,6 +2478,8 @@ class SheetScore {
       'annotationStorage': annotationStorage.toJson(),
       'pdfLinkSanitization': pdfLinkSanitization.toJson(),
       'autoScrollSettings': autoScrollSettings.toJson(),
+      if (metronomeSettings != null)
+        'metronomeSettings': metronomeSettings!.toJson(),
     };
   }
 
@@ -2547,6 +2558,11 @@ class SheetScore {
     }
     return DateTime.tryParse(value);
   }
+}
+
+SheetMetronomeSettings? _metronomeSettingsFromJson(Object? value) {
+  final map = _asJsonMap(value);
+  return map == null ? null : SheetMetronomeSettings.fromJson(map);
 }
 
 Iterable<Map<String, Object?>> _jsonMaps(Object? value) {

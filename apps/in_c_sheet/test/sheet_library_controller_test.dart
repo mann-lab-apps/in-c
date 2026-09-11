@@ -533,6 +533,63 @@ void main() {
   });
 
   test(
+    'uses score metronome settings and persists updates as score snapshot',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveMetronomeSettings(
+        const SheetMetronomeSettings(
+          bpm: 120,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          metronomeSettings: const SheetMetronomeSettings(
+            bpm: 88,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        controller.metronomeSettingsForScore(controller.scores.single).bpm,
+        88,
+      );
+
+      await controller.updateMetronomeSettingsForScore(
+        controller.scores.single,
+        const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.sixEight,
+          subdivision: SheetMetronomeSubdivision.eighth,
+          countInBars: 2,
+        ),
+      );
+
+      final updatedScore = controller.scores.single;
+      expect(updatedScore.metronomeSettings?.bpm, 96);
+      expect(
+        updatedScore.metronomeSettings?.meter,
+        SheetMetronomeMeter.sixEight,
+      );
+      expect(
+        updatedScore.metronomeSettings?.subdivision,
+        SheetMetronomeSubdivision.eighth,
+      );
+      expect(updatedScore.metronomeSettings?.countInBars, 2);
+      expect(controller.metronomeSettings.bpm, 96);
+      expect((await store.loadScores()).single.metronomeSettings?.bpm, 96);
+      expect((await store.loadMetronomeSettings()).bpm, 96);
+    },
+  );
+
+  test(
     'compacts stale score page data after PDF page count is known',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -2195,6 +2252,7 @@ SheetScore _score(
   String group = '',
   int rating = 0,
   List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
+  SheetMetronomeSettings? metronomeSettings,
 }) {
   return SheetScore(
     id: id,
@@ -2214,5 +2272,6 @@ SheetScore _score(
     isFavorite: isFavorite,
     isPinned: isPinned,
     bookmarks: bookmarks,
+    metronomeSettings: metronomeSettings,
   );
 }

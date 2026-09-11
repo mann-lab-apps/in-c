@@ -68,6 +68,11 @@ void main() {
       bookmarks: <SheetBookmark>[
         SheetBookmark(pageNumber: 2, label: 'Solo', createdAt: now),
       ],
+      metronomeSettings: const SheetMetronomeSettings(
+        bpm: 96,
+        meter: SheetMetronomeMeter.threeFour,
+        countInBars: 1,
+      ),
     );
     final setlist = SheetSetlist(
       id: 'setlist-1',
@@ -143,6 +148,12 @@ void main() {
         .loadFavoriteAnnotationPreset();
 
     expect(loadedScores.single.bookmarks.single.label, 'Solo');
+    expect(loadedScores.single.metronomeSettings?.bpm, 96);
+    expect(
+      loadedScores.single.metronomeSettings?.meter,
+      SheetMetronomeMeter.threeFour,
+    );
+    expect(loadedScores.single.metronomeSettings?.countInBars, 1);
     expect(loadedSetlists.single.scoreIds, <String>['score-1']);
     expect(loadedMetronomeSettings.bpm, 108);
     expect(loadedMetronomeSettings.meter, SheetMetronomeMeter.sixEight);
@@ -193,6 +204,12 @@ void main() {
         cuePoints: <SheetAutoScrollCuePoint>[
           SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
         ],
+      ),
+      metronomeSettings: const SheetMetronomeSettings(
+        bpm: 84,
+        meter: SheetMetronomeMeter.twoFour,
+        subdivision: SheetMetronomeSubdivision.sixteenth,
+        countInBars: 2,
       ),
     );
 
@@ -469,6 +486,12 @@ void main() {
           SheetAutoScrollCuePoint(pageNumber: 3, label: 'A'),
         ],
       ),
+      metronomeSettings: const SheetMetronomeSettings(
+        bpm: 84,
+        meter: SheetMetronomeMeter.twoFour,
+        subdivision: SheetMetronomeSubdivision.sixteenth,
+        countInBars: 2,
+      ),
     );
     final setlist = SheetSetlist(
       id: 'setlist-1',
@@ -617,6 +640,12 @@ void main() {
       3: 75,
     });
     expect(backup.scores.single.autoScrollSettings.cuePoints.single.label, 'A');
+    expect(backup.scores.single.metronomeSettings?.bpm, 84);
+    expect(
+      backup.scores.single.metronomeSettings?.subdivision,
+      SheetMetronomeSubdivision.sixteenth,
+    );
+    expect(backup.scores.single.metronomeSettings?.countInBars, 2);
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
@@ -691,6 +720,9 @@ void main() {
     expect(restoredScore.autoScrollSettings.repeatSections.single.endPage, 4);
     expect(restoredScore.autoScrollSettings.pageDurations, <int, int>{3: 75});
     expect(restoredScore.autoScrollSettings.cuePoints.single.pageNumber, 3);
+    expect(restoredScore.metronomeSettings?.bpm, 84);
+    expect(restoredScore.metronomeSettings?.meter, SheetMetronomeMeter.twoFour);
+    expect(restoredScore.metronomeSettings?.countInBars, 2);
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});

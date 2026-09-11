@@ -212,16 +212,16 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 - 현재 v1 상태: 튜너와 메트로놈은 viewer bottom sheet에서 열리고, 필요할 때 viewer 우상단의 고정형
   mini panel로 축소해 악보 위에 유지할 수 있다. 튜너는 Chromatic-only로 정리했고, 메트로놈은
-  BPM/박자/start-stop/accent visual, 기본 ON tick sound toggle, 8분/3연/16분 subdivision,
-  0/1/2마디 count-in, 첫 박 강조, Tap tempo를 제공한다.
+  BPM/박자/start-stop/accent visual, 악보별 metronome snapshot, 기본 ON tick sound toggle,
+  8분/3연/16분 subdivision, 0/1/2마디 count-in, 첫 박 강조, Tap tempo를 제공한다.
 - 왜 v1.1 spike인지: RC에는 drag/resize 없는 고정형 mini panel까지만 넣었다. 연주자가 악보를 보면서
   튜너/메트로놈을 장시간 켜두려면 movable floating panel 또는 side panel architecture, focus/gesture
   충돌, performance mode, accessibility, audio lifecycle을 함께 결정해야 한다.
 - 결정 필요사항: modal sheet 유지 vs floating mini panel, drag/move/resize 허용 여부, panel collapse
   UX, viewer tap zone과의 충돌 정책, 공연 모드에서 열 수 있는 action 범위, metronome audible/visible
-  mode, per-score tempo/time signature 저장.
+  mode, setlist별 tempo/time signature override 저장.
 - 구현 후보: viewer overlay tool host, movable compact metronome/tuner card, visible metronome border
-  pulse, complex accent pattern presets, score/setlist별 metronome snapshot.
+  pulse, complex accent pattern presets, setlist별 metronome snapshot.
 - 테스트/fixture/실기기 조건: phone/tablet portrait/landscape, 1-page/2-page/scroll/half-page viewer,
   pedal page turn 중 panel focus 유지, Android audio route/volume, TalkBack semantic label, long-running
   battery/latency smoke.

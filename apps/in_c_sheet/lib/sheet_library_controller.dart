@@ -828,6 +828,21 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
+  SheetMetronomeSettings metronomeSettingsForScore(SheetScore score) {
+    return score.metronomeSettings ?? _metronomeSettings;
+  }
+
+  Future<void> updateMetronomeSettingsForScore(
+    SheetScore score,
+    SheetMetronomeSettings settings,
+  ) async {
+    _metronomeSettings = settings;
+    await store.saveMetronomeSettings(settings);
+    await _replace(
+      score.copyWith(metronomeSettings: settings, updatedAt: DateTime.now()),
+    );
+  }
+
   Future<void> updateTunerSettings(SheetTunerSettings settings) async {
     _tunerSettings = settings;
     await store.saveTunerSettings(settings);

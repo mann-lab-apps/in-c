@@ -157,6 +157,7 @@ void main() {
 
     expect(find.text('메트로놈'), findsOneWidget);
     expect(find.textContaining('소리 켬'), findsOneWidget);
+    expect(find.text('이 악보에 저장됩니다'), findsOneWidget);
     expect(find.text('박자'), findsOneWidget);
     expect(find.text('나눔'), findsOneWidget);
     expect(find.text('카운트인'), findsOneWidget);

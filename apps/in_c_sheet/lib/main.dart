@@ -5238,6 +5238,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     );
   }
 
+  SheetMetronomeSettings get _effectiveMetronomeSettings {
+    return widget.controller.metronomeSettingsForScore(score);
+  }
+
   int get _initialViewerPage {
     final setlistId = widget.setlistId;
     if (setlistId == null) {
@@ -5985,7 +5989,7 @@ setlist=$setlistLabel
       builder: (context) => _AutoScrollSheet(
         initialSettings: score.autoScrollSettings,
         rehearsalMarks: score.pageSettings.rehearsalMarks,
-        metronomeBpm: widget.controller.metronomeSettings.bpm,
+        metronomeBpm: _effectiveMetronomeSettings.bpm,
         currentPage: _pageNumber ?? score.lastPage,
         pageCount: pageCount,
         isAutoScrolling: _isAutoScrolling,
@@ -9489,12 +9493,17 @@ setlist=$setlistLabel
   }
 
   Future<void> _showMetronome() async {
+    final currentScore = score;
     final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _MetronomeSheet(
-        initialSettings: widget.controller.metronomeSettings,
-        onSettingsChanged: widget.controller.updateMetronomeSettings,
+        initialSettings: widget.controller.metronomeSettingsForScore(
+          currentScore,
+        ),
+        settingsScopeLabel: '이 악보에 저장됩니다',
+        onSettingsChanged: (settings) => widget.controller
+            .updateMetronomeSettingsForScore(currentScore, settings),
         onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
@@ -11083,10 +11092,12 @@ setlist=$setlistLabel
                         right: isCompactViewer ? 8 : 20,
                         child: _ViewerMiniToolPanel(
                           tool: _miniTool!,
-                          metronomeSettings:
-                              widget.controller.metronomeSettings,
-                          onMetronomeSettingsChanged:
-                              widget.controller.updateMetronomeSettings,
+                          metronomeSettings: _effectiveMetronomeSettings,
+                          onMetronomeSettingsChanged: (settings) =>
+                              widget.controller.updateMetronomeSettingsForScore(
+                                currentScore,
+                                settings,
+                              ),
                           onOpenTuner: () {
                             setState(() => _miniTool = null);
                             unawaited(_showTuner());
@@ -15424,12 +15435,14 @@ class _MetronomeSheet extends StatefulWidget {
     required this.initialSettings,
     required this.onSettingsChanged,
     required this.onShowMiniPanel,
+    this.settingsScopeLabel,
   });
 
   final SheetMetronomeSettings initialSettings;
   final Future<void> Function(SheetMetronomeSettings settings)
   onSettingsChanged;
   final VoidCallback onShowMiniPanel;
+  final String? settingsScopeLabel;
 
   @override
   State<_MetronomeSheet> createState() => _MetronomeSheetState();
@@ -15445,6 +15458,7 @@ Widget buildMetronomeSheetForTest({
         initialSettings: settings,
         onSettingsChanged: (_) async {},
         onShowMiniPanel: () {},
+        settingsScopeLabel: '이 악보에 저장됩니다',
       ),
     ),
   );
@@ -15659,6 +15673,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final beatTime = _lastBeatAt == null
         ? '대기'
         : _formatShortDate(_lastBeatAt!);
@@ -15702,6 +15717,15 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 ),
               ],
             ),
+            if (widget.settingsScopeLabel != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.settingsScopeLabel!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
             Center(
               child: Text(
