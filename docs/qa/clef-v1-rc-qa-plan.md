@@ -38,7 +38,7 @@
 | --- | --- | --- | --- |
 | 1 | 설치/첫 실행 | 앱이 crash 없이 열리고 테스트 정보가 표시된다. | 설치 방식, 앱 버전/build, 기기/OS |
 | 2 | Import | PDF, JPG/PNG 변환 PDF가 라이브러리에 등록되고 원본 이미지 viewer가 열린다. | 파일 유형, 페이지 수, 파일 크기, 원본 이미지 표시 여부 |
-| 3 | 라이브러리 | 검색/정렬/필터, 즐겨찾기/고정, collection/group/rating/custom field가 유지된다. | 찾지 못한 필터 조건, 정렬 이상 여부 |
+| 3 | 라이브러리 | 검색/정렬/필터, 즐겨찾기/고정, collection/group/rating/custom field가 유지된다. custom field에는 `조성`/`장르`/`난이도`/`편성` 추천 입력 경로가 있다. | 찾지 못한 필터 조건, 정렬 이상 여부 |
 | 3-1 | 라이브러리 전환 | 기본/추가 라이브러리를 전환하고 이름 변경/비우기가 파일 삭제 없이 동작한다. | 변경한 library profile, 전환 전후 악보 수 |
 | 4 | 뷰어 기본 | 페이지가 blank 없이 렌더링되고 보기 모드/scale/crop/render profile/반 페이지 정책이 전환된다. | PDF 유형, blank 발생 page, render profile, portrait/landscape half-page anchor, 재현 여부 |
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
@@ -479,5 +479,8 @@ flutter build ios --release --no-codesign
 - MobileSheets의 import wizard식 metadata assignment를 그대로 강제하지 않고, viewer toolbar의
   `악보 정보 편집` 진입점으로 가져온 악보를 보면서 제목/작곡가/태그/컬렉션/그룹/별점/custom
   field를 바로 정리할 수 있게 했다. import-time 전체 wizard는 v1.1 후보로 유지한다.
+- MobileSheets의 Key/Genre/Difficulty metadata 축은 v1에서 전용 schema/filter로 늘리지 않고,
+  `조성`/`장르`/`난이도`/`편성` 추천 사용자 필드 chip으로 빠르게 추가할 수 있게 했다. 전용 facet은
+  실제 사용량을 보고 v1.1에서 판단한다.
 - PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
   MobileSheets식 metadata assignment 필요를 가볍게 처리한다.

@@ -293,6 +293,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('악보 정보 편집'), findsOneWidget);
+    expect(find.text('자주 쓰는 필드'), findsOneWidget);
+    expect(find.text('조성'), findsOneWidget);
+    expect(find.text('장르'), findsOneWidget);
+    expect(find.text('난이도'), findsOneWidget);
+    expect(find.text('편성'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

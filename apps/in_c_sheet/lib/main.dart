@@ -2263,6 +2263,24 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                         ).toList(growable: true);
                       });
                     },
+                    onAddSuggested: (fieldKey) async {
+                      final field = await _showCustomFieldDialog(
+                        context: context,
+                        initialField: SheetCustomMetadataField(
+                          key: fieldKey,
+                          value: '',
+                        ),
+                      );
+                      if (field == null) {
+                        return;
+                      }
+                      setDialogState(() {
+                        customFields.add(field);
+                        customFields = SheetScore.normalizeCustomFields(
+                          customFields,
+                        ).toList(growable: true);
+                      });
+                    },
                     onEdit: (index) async {
                       final field = await _showCustomFieldDialog(
                         context: context,
@@ -2481,18 +2499,27 @@ class _CustomFieldsEditor extends StatelessWidget {
   const _CustomFieldsEditor({
     required this.fields,
     required this.onAdd,
+    required this.onAddSuggested,
     required this.onEdit,
     required this.onRemove,
   });
 
   final List<SheetCustomMetadataField> fields;
   final Future<void> Function() onAdd;
+  final Future<void> Function(String fieldKey) onAddSuggested;
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onRemove;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final existingKeys = fields
+        .map((field) => field.key.trim().toLowerCase())
+        .where((key) => key.isNotEmpty)
+        .toSet();
+    final suggestions = _commonCustomMetadataFieldKeys
+        .where((key) => !existingKeys.contains(key.toLowerCase()))
+        .toList(growable: false);
     return Align(
       alignment: Alignment.centerLeft,
       child: Column(
@@ -2513,6 +2540,24 @@ class _CustomFieldsEditor extends StatelessWidget {
               label: const Text('필드 추가'),
             ),
           ),
+          if (suggestions.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('자주 쓰는 필드', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final key in suggestions)
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 16),
+                    label: Text(key),
+                    onPressed: () => onAddSuggested(key),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           if (fields.isEmpty)
             Text('추가 정보 없음', style: theme.textTheme.bodySmall)
           else
@@ -2552,6 +2597,8 @@ class _CustomFieldsEditor extends StatelessWidget {
     );
   }
 }
+
+const _commonCustomMetadataFieldKeys = <String>['조성', '장르', '난이도', '편성'];
 
 class _ScoreMetadataInput {
   const _ScoreMetadataInput({
