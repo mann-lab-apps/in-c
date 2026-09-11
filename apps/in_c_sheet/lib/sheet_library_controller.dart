@@ -120,6 +120,18 @@ class SheetLibraryController extends ChangeNotifier {
     return List<SheetScore>.unmodifiable(scores);
   }
 
+  List<SheetScore> get scoresNeedingMetadataReview {
+    final scores = _scores.where(_needsMetadataReview).toList();
+    scores.sort((a, b) {
+      final importedCompare = b.importedAt.compareTo(a.importedAt);
+      if (importedCompare != 0) {
+        return importedCompare;
+      }
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+    return List<SheetScore>.unmodifiable(scores);
+  }
+
   List<SheetSetlist> get recentSetlists {
     final setlists = _setlists
         .where((setlist) => setlist.lastOpenedAt != null)
@@ -336,6 +348,16 @@ class SheetLibraryController extends ChangeNotifier {
         .toLowerCase()
         .replaceAll(RegExp(r'[\s_\-]+'), ' ')
         .trim();
+  }
+
+  bool _needsMetadataReview(SheetScore score) {
+    return score.composer.trim().isEmpty &&
+        score.tags.isEmpty &&
+        score.collection.trim().isEmpty &&
+        score.group.trim().isEmpty &&
+        score.rating <= 0 &&
+        score.note.trim().isEmpty &&
+        score.customFields.isEmpty;
   }
 
   Future<void> markOpened(SheetScore score) async {

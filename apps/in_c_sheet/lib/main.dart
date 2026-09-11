@@ -1387,6 +1387,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           (controller.pinnedScores.isNotEmpty ||
                               controller.favoriteScores.isNotEmpty ||
                               controller.recentScores.isNotEmpty ||
+                              controller
+                                  .scoresNeedingMetadataReview
+                                  .isNotEmpty ||
                               controller.recentSetlists.isNotEmpty)) ...[
                         _QuickAccessBand(
                           pinnedScores: controller.pinnedScores
@@ -1398,7 +1401,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           recentScores: controller.recentScores
                               .take(8)
                               .toList(growable: false),
+                          metadataReviewScores: controller
+                              .scoresNeedingMetadataReview
+                              .take(8)
+                              .toList(growable: false),
                           onOpen: _openScore,
+                          onEdit: _editScore,
                           isSelecting: _isBulkSelecting,
                           selectedIds: _bulkSelectedScoreIds,
                           onSelectionChanged: _toggleBulkScoreSelection,
@@ -3048,7 +3056,9 @@ class _QuickAccessBand extends StatelessWidget {
     required this.pinnedScores,
     required this.favoriteScores,
     required this.recentScores,
+    required this.metadataReviewScores,
     required this.onOpen,
+    required this.onEdit,
     required this.isSelecting,
     required this.selectedIds,
     required this.onSelectionChanged,
@@ -3057,7 +3067,9 @@ class _QuickAccessBand extends StatelessWidget {
   final List<SheetScore> pinnedScores;
   final List<SheetScore> favoriteScores;
   final List<SheetScore> recentScores;
+  final List<SheetScore> metadataReviewScores;
   final ValueChanged<SheetScore> onOpen;
+  final ValueChanged<SheetScore> onEdit;
   final bool isSelecting;
   final Set<String> selectedIds;
   final ValueChanged<SheetScore> onSelectionChanged;
@@ -3065,6 +3077,13 @@ class _QuickAccessBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = <_QuickAccessGroup>[
+      if (!isSelecting)
+        _QuickAccessGroup(
+          label: '정리 필요',
+          icon: Icons.edit_note,
+          scores: metadataReviewScores,
+          opensForEdit: true,
+        ),
       _QuickAccessGroup(
         label: '고정',
         icon: Icons.push_pin,
@@ -3125,7 +3144,7 @@ class _QuickAccessBand extends StatelessWidget {
                           final score = group.scores[scoreIndex];
                           return _QuickAccessScoreChip(
                             score: score,
-                            onOpen: onOpen,
+                            onOpen: group.opensForEdit ? onEdit : onOpen,
                             isSelecting: isSelecting,
                             isSelected: selectedIds.contains(score.id),
                             onSelectionChanged: onSelectionChanged,
@@ -3154,11 +3173,13 @@ class _QuickAccessGroup {
     required this.label,
     required this.icon,
     required this.scores,
+    this.opensForEdit = false,
   });
 
   final String label;
   final IconData icon;
   final List<SheetScore> scores;
+  final bool opensForEdit;
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {

@@ -214,6 +214,66 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('home surfaces imported scores that need metadata review', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'clef imported score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/score-1-clef-imported-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'score-2',
+        title: 'metadata ready score',
+        composer: 'Bach',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/score-2-ready.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('정리 필요'), findsOneWidget);
+    expect(find.text('clef imported score'), findsWidgets);
+    expect(find.textContaining('파일 · clef-imported-score'), findsWidgets);
+
+    await tester.tap(find.text('clef imported score').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('악보 정보 편집'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('setlist detail supports direct order entry', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);

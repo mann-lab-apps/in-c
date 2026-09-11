@@ -230,6 +230,35 @@ void main() {
     },
   );
 
+  test('tracks imported scores that still need metadata review', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        id: 'review-1',
+        title: 'Fresh Scan',
+        importedAt: now.add(const Duration(minutes: 2)),
+      ),
+      _score(now, id: 'ready-1', title: 'Edited Score', composer: 'Bach'),
+      _score(
+        now,
+        id: 'review-2',
+        title: 'Untitled PDF',
+        importedAt: now.add(const Duration(minutes: 1)),
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      controller.scoresNeedingMetadataReview.map((score) => score.id),
+      <String>['review-1', 'review-2'],
+    );
+  });
+
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
