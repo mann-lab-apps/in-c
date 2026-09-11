@@ -12127,7 +12127,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '공연 preset template',
+          '공연 보기 프리셋',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w900,
           ),
@@ -12136,7 +12136,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
         TextField(
           controller: _templateNameController,
           decoration: const InputDecoration(
-            labelText: 'Template 이름',
+            labelText: '프리셋 이름',
             prefixIcon: Icon(Icons.bookmark_add_outlined),
           ),
           textInputAction: TextInputAction.next,
@@ -12145,7 +12145,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
         TextField(
           controller: _templateDeviceController,
           decoration: const InputDecoration(
-            labelText: '장비 profile',
+            labelText: '장비 메모',
             prefixIcon: Icon(Icons.devices_other),
           ),
           textInputAction: TextInputAction.done,

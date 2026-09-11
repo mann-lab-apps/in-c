@@ -49,7 +49,7 @@
 | 9 | 큰 annotation | 공유/백업 전 annotation 요약 안내가 표시된다. | stroke/text/point 요약, 파일 크기 |
 | 10 | 세트리스트 | 복제, 곡별 시작 page, memo, duration, 총 시간이 보존된다. | 전환 시간, 총 예상 시간, 겹침 여부 |
 | 11 | 공연/리허설 | 공연 잠금 상태와 허용 action 표시, BPM 기반 자동 스크롤 preset/page duration/cue point/pause marker/반복 구간/자동 다음 곡 진행이 실제 제한과 맞는다. | 잠금 상태, 허용/차단된 action, BPM/preset/duration, page별 duration, cue point, pause page, 반복 구간, 다음 곡 전환 |
-| 11-1 | 공연 preset | 세트리스트별 보기 preset을 켜면 세트리스트로 연 곡에만 override가 적용되고, 곡별 설정은 보존된다. 공연 preset template을 생성, 적용, 삭제해도 우선순위가 유지된다. | override 항목, 일반 열기/세트리스트 열기 차이, template 이름/장비 profile, 복제 setlist 동작 |
+| 11-1 | 공연 보기 프리셋 | 세트리스트별 보기 프리셋을 켜면 세트리스트로 연 곡에만 override가 적용되고, 곡별 설정은 보존된다. 공연 보기 프리셋을 생성, 적용, 삭제해도 우선순위가 유지된다. | override 항목, 일반 열기/세트리스트 열기 차이, 프리셋 이름/장비 메모, 복제 setlist 동작 |
 | 12 | 페달/키보드 | predefined/custom/unknown inputId mapping이 page/score/quick action/no-op에 맞게 동작한다. Arrow/Page/Space/Enter/Tab/Media 입력은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비된다. 곡 처음/끝에서 반대 방향 입력 시 `곡 처음`/`곡 끝` 안내가 표시된다. | 장비명, 입력 key, action, 실패 key, 경계 안내 문구 |
 | 12-1 | 전역 입력 기본값 | 전역 보기/입력 기본값을 바꾼 뒤 새로 가져온 악보에 mapping이 적용된다. | 변경한 기본값, 새 악보 viewer/action 설정, 기존 악보 불변 여부 |
 | 13 | 입력 진단 | viewer 입력 진단에서 logical/physical key, input id, mapped action이 복사되고 unknown key를 직접 설정으로 보낼 수 있다. | diagnostic log, unknown key 여부, 저장한 action |
