@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 
 class SheetSetlist {
@@ -13,6 +14,7 @@ class SheetSetlist {
     this.scoreStartPages = const <String, int>{},
     this.scoreNotes = const <String, String>{},
     this.scoreDurations = const <String, int>{},
+    this.scoreMetronomeSettings = const <String, SheetMetronomeSettings>{},
     this.transitionSeconds = 0,
     this.viewerSettingsOverride,
     this.lastOpenedAt,
@@ -38,6 +40,9 @@ class SheetSetlist {
       scoreStartPages: _intMapFromJson(json['scoreStartPages']),
       scoreNotes: _stringMapFromJson(json['scoreNotes']),
       scoreDurations: _intMapFromJson(json['scoreDurations']),
+      scoreMetronomeSettings: _metronomeSettingsMapFromJson(
+        json['scoreMetronomeSettings'],
+      ),
       transitionSeconds: _intFromJson(
         json['transitionSeconds'],
         fallback: 0,
@@ -94,6 +99,7 @@ class SheetSetlist {
   final Map<String, int> scoreStartPages;
   final Map<String, String> scoreNotes;
   final Map<String, int> scoreDurations;
+  final Map<String, SheetMetronomeSettings> scoreMetronomeSettings;
   final int transitionSeconds;
   final SheetViewerSettings? viewerSettingsOverride;
   final DateTime? lastOpenedAt;
@@ -121,6 +127,7 @@ class SheetSetlist {
     Map<String, int>? scoreStartPages,
     Map<String, String>? scoreNotes,
     Map<String, int>? scoreDurations,
+    Map<String, SheetMetronomeSettings>? scoreMetronomeSettings,
     int? transitionSeconds,
     SheetViewerSettings? viewerSettingsOverride,
     bool clearViewerSettingsOverride = false,
@@ -137,6 +144,8 @@ class SheetSetlist {
       scoreStartPages: scoreStartPages ?? this.scoreStartPages,
       scoreNotes: scoreNotes ?? this.scoreNotes,
       scoreDurations: scoreDurations ?? this.scoreDurations,
+      scoreMetronomeSettings:
+          scoreMetronomeSettings ?? this.scoreMetronomeSettings,
       transitionSeconds: (transitionSeconds ?? this.transitionSeconds)
           .clamp(0, 600)
           .toInt(),
@@ -171,10 +180,19 @@ class SheetSetlist {
         scoreDurations.entries.where((entry) => cleanedIds.contains(entry.key)),
       ),
     );
+    final cleanedMetronomeSettings =
+        Map<String, SheetMetronomeSettings>.unmodifiable(
+          Map<String, SheetMetronomeSettings>.fromEntries(
+            scoreMetronomeSettings.entries.where(
+              (entry) => cleanedIds.contains(entry.key),
+            ),
+          ),
+        );
     if (_listEquals(cleaned, scoreIds) &&
         _mapEquals(cleanedStartPages, scoreStartPages) &&
         _mapEquals(cleanedNotes, scoreNotes) &&
-        _mapEquals(cleanedDurations, scoreDurations)) {
+        _mapEquals(cleanedDurations, scoreDurations) &&
+        _metronomeMapEquals(cleanedMetronomeSettings, scoreMetronomeSettings)) {
       return this;
     }
     return copyWith(
@@ -182,6 +200,7 @@ class SheetSetlist {
       scoreStartPages: cleanedStartPages,
       scoreNotes: cleanedNotes,
       scoreDurations: cleanedDurations,
+      scoreMetronomeSettings: cleanedMetronomeSettings,
       updatedAt: DateTime.now(),
     );
   }
@@ -231,6 +250,9 @@ class SheetSetlist {
       'scoreStartPages': scoreStartPages,
       'scoreNotes': scoreNotes,
       'scoreDurations': scoreDurations,
+      'scoreMetronomeSettings': scoreMetronomeSettings.map(
+        (scoreId, settings) => MapEntry(scoreId, settings.toJson()),
+      ),
       'transitionSeconds': transitionSeconds,
       if (viewerSettingsOverride != null)
         'viewerSettingsOverride': viewerSettingsOverride!.toJson(),
@@ -256,6 +278,22 @@ class SheetSetlist {
     }
     for (final entry in a.entries) {
       if (b[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static bool _metronomeMapEquals(
+    Map<String, SheetMetronomeSettings> a,
+    Map<String, SheetMetronomeSettings> b,
+  ) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (final entry in a.entries) {
+      if (jsonEncode(b[entry.key]?.toJson()) !=
+          jsonEncode(entry.value.toJson())) {
         return false;
       }
     }
@@ -346,4 +384,23 @@ Map<String, String> _stringMapFromJson(Object? value) {
     }
   }
   return Map<String, String>.unmodifiable(result);
+}
+
+Map<String, SheetMetronomeSettings> _metronomeSettingsMapFromJson(
+  Object? value,
+) {
+  final map = _asJsonMap(value);
+  if (map == null) {
+    return const <String, SheetMetronomeSettings>{};
+  }
+  final result = <String, SheetMetronomeSettings>{};
+  for (final entry in map.entries) {
+    final scoreId = entry.key.trim();
+    final settingsJson = _asJsonMap(entry.value);
+    if (scoreId.isEmpty || settingsJson == null) {
+      continue;
+    }
+    result[scoreId] = SheetMetronomeSettings.fromJson(settingsJson);
+  }
+  return Map<String, SheetMetronomeSettings>.unmodifiable(result);
 }

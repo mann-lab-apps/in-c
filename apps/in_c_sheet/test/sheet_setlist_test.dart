@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 
@@ -17,6 +18,13 @@ void main() {
       scoreStartPages: const <String, int>{'score-1': 2},
       scoreNotes: const <String, String>{'score-1': 'Check transition.'},
       scoreDurations: const <String, int>{'score-1': 180, 'score-2': 210},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 92,
+          meter: SheetMetronomeMeter.threeFour,
+          countInBars: 1,
+        ),
+      },
       transitionSeconds: 12,
       lastOpenedAt: lastOpenedAt,
       viewerSettingsOverride: const SheetViewerSettings(
@@ -43,6 +51,12 @@ void main() {
       'score-1': 180,
       'score-2': 210,
     });
+    expect(decoded.single.scoreMetronomeSettings['score-1']?.bpm, 92);
+    expect(
+      decoded.single.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.threeFour,
+    );
+    expect(decoded.single.scoreMetronomeSettings['score-1']?.countInBars, 1);
     expect(decoded.single.transitionSeconds, 12);
     expect(decoded.single.lastOpenedAt, lastOpenedAt);
     expect(decoded.single.totalEstimatedSeconds, 402);
@@ -193,6 +207,16 @@ void main() {
         'missing': 'Drop me',
       },
       scoreDurations: const <String, int>{'score-1': 180, 'missing': 99},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+        'missing': SheetMetronomeSettings(
+          bpm: 144,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      },
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'continuousVertical',
         halfPageTurn: false,
@@ -205,6 +229,8 @@ void main() {
     expect(cleaned.scoreStartPages, <String, int>{'score-1': 2});
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
+    expect(cleaned.scoreMetronomeSettings.keys, <String>['score-1']);
+    expect(cleaned.scoreMetronomeSettings['score-1']?.bpm, 96);
     expect(cleaned.viewerSettingsOverride?.displayMode, 'continuousVertical');
   });
 
@@ -222,6 +248,16 @@ void main() {
         'missing': 'Drop me',
       },
       scoreDurations: const <String, int>{'score-1': 180, 'missing': 99},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 108,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+        'missing': SheetMetronomeSettings(
+          bpm: 132,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      },
     );
 
     final cleaned = setlist.removeMissingScores(<String>{'score-1'});
@@ -230,6 +266,8 @@ void main() {
     expect(cleaned.scoreStartPages, <String, int>{'score-1': 2});
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
+    expect(cleaned.scoreMetronomeSettings.keys, <String>['score-1']);
+    expect(cleaned.scoreMetronomeSettings['score-1']?.bpm, 108);
   });
 
   test('adds and removes scores without duplicating ids', () {

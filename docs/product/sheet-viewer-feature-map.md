@@ -94,7 +94,7 @@
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, 공연 preset template 생성/적용/삭제, 장비 profile metadata, metadata/full backup round-trip |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
-| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, 0/1/2마디 count-in, 기본 ON system click tick toggle, `소리`/`시각만` 상태 표시, viewer mini panel. 세트리스트별 metronome override와 저지연 audio/accent sound asset은 후속 |
+| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 세트리스트별 score metronome override, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 첫 박 강조, Tap tempo, 0/1/2마디 count-in, 기본 ON system click tick toggle, `소리`/`시각만` 상태 표시, viewer mini panel. 저지연 audio/accent sound asset은 후속 |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, 확대된 pitch history chart 안의 현재 음/frequency/cents/signal 요약, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock과 별도 LED/input bar는 선택지·해석 부담으로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
@@ -145,6 +145,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
   추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
 - 메트로놈. visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot,
+  세트리스트별 score metronome override,
   start/stop, 첫 박 강조, subdivision, Tap tempo, 0/1/2마디 count-in, 기본 ON tick 소리,
   `소리`/`시각만` 상태 표시, viewer mini panel을 제공한다.
 - 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS

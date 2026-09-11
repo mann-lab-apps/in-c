@@ -36,7 +36,8 @@
 11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
 12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 0/1/2마디 카운트인, 첫 박 강조,
     Tap tempo, start/stop을 확인한다. 값을 바꾼 뒤 같은 악보를 다시 열었을 때 메트로놈 설정이
-    유지되는지 확인한다.
+    유지되는지 확인한다. 같은 악보를 세트리스트 안에서 열었다면 세트리스트별 값으로 따로 저장되는지
+    확인한다.
     기본값은 `소리 켬`이어야 하며, `tick 소리`를 끄면 화면 박자 표시만 사용하는 `시각만` 상태로
     이해되는지 확인한다.
 13. 메트로놈/튜너 sheet의 작은 창 버튼으로 악보 위 mini panel을 띄우고 닫을 수 있는지 확인한다.
@@ -108,6 +109,7 @@
   `곡 끝` 안내가 짧게 표시되어야 한다.
 - 2026-09-07 연주자 피드백으로 다중 선택 강조, bulk setlist 추가, setlist drag reorder,
   최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
+  세트리스트별 metronome override,
   고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
   장시간 사용성을 다시 확인한다.
 - MobileSheets 비교와 연주자 피드백에 따라 새 metronome settings의 기본값은 `소리 켬`으로 둔다.

@@ -80,6 +80,12 @@ void main() {
       scoreIds: const <String>['score-1'],
       createdAt: now,
       updatedAt: now,
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 104,
+          meter: SheetMetronomeMeter.twoFour,
+        ),
+      },
     );
 
     await store.saveScores(<SheetScore>[score]);
@@ -155,6 +161,11 @@ void main() {
     );
     expect(loadedScores.single.metronomeSettings?.countInBars, 1);
     expect(loadedSetlists.single.scoreIds, <String>['score-1']);
+    expect(loadedSetlists.single.scoreMetronomeSettings['score-1']?.bpm, 104);
+    expect(
+      loadedSetlists.single.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.twoFour,
+    );
     expect(loadedMetronomeSettings.bpm, 108);
     expect(loadedMetronomeSettings.meter, SheetMetronomeMeter.sixEight);
     expect(loadedTunerSettings.referencePitchA4, 442);
@@ -500,6 +511,13 @@ void main() {
       createdAt: now,
       updatedAt: now,
       scoreDurations: const <String, int>{'score-1': 240},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 116,
+          meter: SheetMetronomeMeter.sixEight,
+          countInBars: 1,
+        ),
+      },
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'twoPage',
         halfPageTurn: true,
@@ -649,6 +667,15 @@ void main() {
     expect(backup.setlists.single.scoreDurations, <String, int>{
       'score-1': 240,
     });
+    expect(backup.setlists.single.scoreMetronomeSettings['score-1']?.bpm, 116);
+    expect(
+      backup.setlists.single.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.sixEight,
+    );
+    expect(
+      backup.setlists.single.scoreMetronomeSettings['score-1']?.countInBars,
+      1,
+    );
     expect(
       backup.setlists.single.viewerSettingsOverride?.displayMode,
       'twoPage',
@@ -726,6 +753,11 @@ void main() {
     final restoredSetlist = (await restoreStore.loadSetlists()).single;
     expect(restoredSetlist.title, 'Recital');
     expect(restoredSetlist.scoreDurations, <String, int>{'score-1': 240});
+    expect(restoredSetlist.scoreMetronomeSettings['score-1']?.bpm, 116);
+    expect(
+      restoredSetlist.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.sixEight,
+    );
     expect(restoredSetlist.viewerSettingsOverride?.pageScale, 'fitWidth');
     expect((await restoreStore.loadMetronomeSettings()).bpm, 132);
     final restoredTunerSettings = await restoreStore.loadTunerSettings();

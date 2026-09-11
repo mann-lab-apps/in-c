@@ -187,7 +187,7 @@ source of truth로 둔다.
 - 실제 HID key capture wizard 기반 페달 설정.
 - 저지연 metronome/audio/iOS playback parity.
 - Page별 live rotation rendering과 overlay/link/search coordinate regression.
-- Setlist별 metronome override 저장과 count-in 이후 cue UX.
+- Count-in 이후 cue UX와 advanced metronome pattern.
 - Cloud sync/account/server 저장과 OS background scheduler 기반 주기적 전체 백업은 v1.1 또는 Later
   scope 결정 spike로 유지.
 
@@ -196,8 +196,9 @@ source of truth로 둔다.
 - v1 hotfix 반영됨: 다중 선택 강조, 선택 악보의 bulk setlist 추가, setlist drag reorder,
   최근 세트리스트 rail, page tap zone hint, viewer paper/white 배경 기본값, metronome
   subdivision/accent/tap tempo, 0/1/2마디 count-in, 악보별 metronome snapshot,
+  세트리스트별 metronome override,
   고정형 mini tuner/metronome panel, 새 metronome 기본 `소리 켬` 및 `소리`/`시각만` 상태 표시.
-- v1.1 후보: setlist별 metronome override 저장, 직접 순번 입력, import-time setlist
+- v1.1 후보: 직접 순번 입력, import-time setlist
   assignment, annotation favorite/tool preset.
 - spike 후보: 움직이고 크기 조절 가능한 floating panel, 저지연 audio engine, 복잡한 rhythm pattern
   editor와 viewer overlay architecture.
@@ -424,11 +425,11 @@ flutter build ios --release --no-codesign
   page turn으로 중복 처리하지 않는다.
 - 일반 viewer 배경은 paper/white 계열로 조정해 PDF 주변 여백이 악보와 덜 이질적으로 보이게 했다.
 - 메트로놈은 2/4, 3/4, 4/4, 6/8 박자, 8분/3연/16분 subdivision, 0/1/2마디 count-in,
-  악보별 metronome snapshot, 첫 박 강조, Tap tempo를 제공한다.
+  악보별 metronome snapshot, 세트리스트별 metronome override, 첫 박 강조, Tap tempo를 제공한다.
   소리 문제는 system click 경로와 안내 문구를 보강했지만 실제 Android/iOS audio route는 실기기 QA가
   필요하다.
 - 튜너/메트로놈은 악보 위 우상단 고정형 mini panel로 축소할 수 있다. drag/resize, 악보 가장자리
-  visible pulse, setlist별 tempo override, 복잡한 accent pattern은 v1.1/Later로 분리한다.
+  visible pulse, 복잡한 cue/accent pattern은 v1.1/Later로 분리한다.
 
 2026-09-07 연주자 피드백 최종 hotfix 확인:
 

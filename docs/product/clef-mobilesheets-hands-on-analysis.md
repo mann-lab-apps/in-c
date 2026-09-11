@@ -57,7 +57,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | bulk setlist 추가 | 선택 overflow에 `Create Setlist from Songs`와 `Create Collection from Songs`가 있다. 이름 dialog 후 바로 세트리스트가 생성된다. | 선택 악보를 세트리스트에 추가하는 action과 새/기존 세트리스트 선택이 있다. | Clef는 기존 세트리스트 추가와 중복 skip 안내가 더 앱스럽지만, 발견성은 QA 필요. | 선택 후 setlist bulk action을 명확히 둔다. | collection까지 같은 레벨로 늘리는 복잡도. | 현재 반영 유지. action label이 눈에 들어오는지 확인. | v1 QA |
 | setlist reorder | 세트리스트 상세는 `Load All`과 번호 목록. `EDIT` 진입 시 좌측 현재 세트리스트, 우측 전체 곡 split layout, 큰 drag/reorder handle, 삭제 버튼, save/cancel이 보인다. | drag handle reorder와 위/아래 보조 버튼을 제공한다. | 항목이 하나라 실제 drag feel은 제한적으로만 확인. 직접 순번 입력은 Clef에 없다. | 편집 모드 분리, 큰 reorder handle, save/cancel. | split pane 전체 곡 편집 UI는 v1에는 무겁다. | 긴 setlist가 생기면 handle hit area QA. 직접 순번 입력은 v1.1 후보. | v1 QA, v1.1 |
 | 최근 목록 setlist | Recent 탭에 `TestSetlist`와 개별 곡 `mobilesheets trial store`가 함께 표시된다. 탭 카운트도 `Recent (2)`로 바뀐다. | 홈 최근 악보와 최근 세트리스트 rail을 분리해 제공한다. | MobileSheets는 한 리스트에 섞고, Clef는 구획을 나눈다. 둘 다 가능하지만 Clef는 카드 구분이 더 중요하다. | setlist가 최근 진입점에 반드시 노출되어야 한다. | song/setlist를 무표정한 동일 row로 섞는 방식. | Clef의 최근 세트리스트 rail 유지. 카드 badge/곡 수/최근 연 시간 QA. | v1 QA |
-| 메트로놈 | viewer overlay에서 metronome icon을 누르면 우측 floating panel이 뜬다. Tempo, tap tempo, time signature, subdivision, sound FX, accent first beat, playback mode, volume, start가 한 패널에 있다. | tempo, 박자, subdivision, accent, tap tempo, count-in, 악보별 metronome snapshot, visual/tick sound, viewer mini panel이 있다. | MobileSheets는 설정이 풍부하지만 panel이 크고 무겁다. Clef는 실제 audio route QA와 세트리스트별 tempo override가 남았다. | 악보를 보면서 켜고 조정 가능한 panel, audio/visual mode 구분, count-in, volume, 곡별 저장. | 거대한 설정 panel과 과한 옵션 밀도. | v1은 소리/visual fallback QA. 세트리스트별 override는 v1.1 후보. | v1 QA, v1.1 |
+| 메트로놈 | viewer overlay에서 metronome icon을 누르면 우측 floating panel이 뜬다. Tempo, tap tempo, time signature, subdivision, sound FX, accent first beat, playback mode, volume, start가 한 패널에 있다. | tempo, 박자, subdivision, accent, tap tempo, count-in, 악보별 metronome snapshot, 세트리스트별 tempo override, visual/tick sound, viewer mini panel이 있다. | MobileSheets는 설정이 풍부하지만 panel이 크고 무겁다. Clef는 실제 audio route QA와 advanced cue/pattern UX가 남았다. | 악보를 보면서 켜고 조정 가능한 panel, audio/visual mode 구분, count-in, volume, 곡별/세트리스트별 저장. | 거대한 설정 panel과 과한 옵션 밀도. | v1은 소리/visual fallback QA. advanced cue/pattern은 v1.1 후보. | v1 QA, v1.1 |
 | 튜너 | 앱 UI, 공식 기능 설명, APK 문자열 보조 확인에서 chromatic tuner는 확인되지 않았다. APK에는 audio pitch shift와 MIDI pitch bend 관련 문자열은 있으나 tuner UI 문자열은 잡히지 않았다. | Chromatic-only tuner와 pitch history chart를 제공한다. | MobileSheets 대비 Clef 차별점. 다만 전용 튜너앱급 정확도는 실기기 검증 필요. | 악보앱 안에서 빠르게 여는 간결한 튜너. | 악기별 preset을 다시 늘리는 방향. | Chromatic-only 유지. 실기기 정확도/latency만 QA. | v1 QA |
 | 미니 패널 | viewer overlay 하단에 quick tool bar가 있고, metronome은 악보 위 우측 panel로 계속 떠 있다. | 고정형 tuner/metronome mini panel이 있다. | Clef mini panel이 악보를 가리는지, 페이지 tap과 충돌하는지 QA 필요. | viewer 안 tool panel. | 이동/크기 조절/여러 도구 동시 패널은 복잡하다. | v1은 고정형 유지. movable overlay는 spike. | v1 QA, Spike |
 | page tap hint | viewer는 fullscreen으로 들어가며 중앙 탭 시 상/하 overlay가 나타난다. 좌/우 tap page turn은 1-page 샘플이라 충분히 검증하지 못했다. | tap zone hint와 page edge 안내가 있다. | MobileSheets는 첫 화면에서 explicit tap zone hint가 강하지 않고, 기존 사용자 문법에 기대는 느낌이다. | 중앙 탭 overlay, page count/title, bottom tool bar. | 첫 사용자가 설명 없이 알아서 배우는 방식. | Clef tap zone hint는 유지하는 편이 낫다. | v1 유지 |
@@ -76,7 +76,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | 세트리스트 drag reorder | edit mode에서 큰 drag handle과 split layout. | 반영됨. 후속 hotfix에서 handle hit area를 44dp로 키웠다. | 긴 목록 drag feel 미검증. | 실제 손가락 drag QA. 직접 순번 입력은 보류. | v1 QA, v1.1 |
 | 최근 목록 세트리스트 | Recent에 setlist와 song이 함께 표시. | 반영됨. | Clef rail/card 구분 가독성. | 곡 수 badge와 최근 연 시간 확인. | v1 QA |
 | 메트로놈 소리 | Audio and Visual mode, sound FX, volume, start button 제공. | 반영됨. 새 metronome settings는 기본 `소리 켬`이고, 꺼두면 `시각만` 상태를 표시한다. | 실제 기기 audio route/volume/무음 모드 QA 필요. | 실기기에서 소리와 visual fallback을 최우선 확인. | v1 QA |
-| 메트로놈 리듬 설정 | time signature, subdivision, accent first beat, tap tempo 제공. | 반영됨. 0/1/2마디 count-in과 악보별 metronome snapshot도 추가했다. | 세트리스트별 tempo override 없음. | v1은 충분. 세트리스트별 tempo override는 v1.1. | v1.1 |
+| 메트로놈 리듬 설정 | time signature, subdivision, accent first beat, tap tempo 제공. | 반영됨. 0/1/2마디 count-in, 악보별 metronome snapshot, 세트리스트별 tempo override를 추가했다. | 실제 기기 audio route와 복잡한 cue/pattern UX는 남음. | v1은 충분. advanced cue/pattern은 v1.1. | v1 QA/v1.1 |
 | 미니 튜너/메트로놈 | 악보 위 floating metronome panel. tuner는 확인되지 않음. | 반영됨. | Clef panel이 악보를 가리는지. | 고정형 유지, movable/resize는 spike. | v1 QA/Spike |
 | 터치 페이지 넘김 | 중앙 탭 overlay. touch actions는 설정에서 따로 지정. | 반영됨. | 좌/우 page turn은 1-page 샘플이라 직접 검증 제한. | Clef tap zone hint 유지. | v1 유지 |
 | 화면 여백/배경 | fullscreen viewer는 검은 주변부와 흰 page content. | 반영됨. | PDF마다 paper/white 취향 차이. | Clef 기본 paper/white 유지. | v1 유지 |
@@ -97,7 +97,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
   첫 사용자에게는 화면 밀도와 설정량이 부담스럽다.
 - Clef & Staff v1은 현재 피드백 hotfix 방향이 맞다. v1에서는 카드 식별성, 세트리스트,
   메트로놈 소리, page hint의 실제 태블릿 QA에 집중한다.
-- v1.1은 세트리스트별 tempo override, import-time setlist assignment, display preset, pedal
+- v1.1은 import-time setlist assignment, display preset, pedal
   capture wizard, annotation favorite/tool preset을 우선 검토한다.
 - cloud browser, batch import, CSV songbook split, MIDI, movable overlay, scanner/OCR,
   advanced annotation layer는 Spike 또는 Later로 두는 편이 안전하다.
@@ -109,7 +109,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | Metronome audio route QA | MobileSheets는 playback mode/volume을 명확히 노출하고, 사용자도 소리 안 남을 보고했다. Clef는 기본 `소리 켬`과 `소리`/`시각만` 상태 표시를 적용했다. | 중간 | 실기기 QA |
 | Setlist card/rail 실기기 가독성 polish | MobileSheets Recent에 setlist가 직접 노출된다. Clef는 rail 방식이라 구분성이 중요하다. | 낮음 | v1 QA 후 필요 시 |
 | Setlist reorder handle hit area QA | MobileSheets edit mode의 handle이 크다. | 낮음 | v1 QA 후 필요 시 |
-| Setlist tempo override | MobileSheets metronome은 곡 위 패널에서 상세 설정을 제공한다. Clef는 count-in과 악보별 metronome snapshot까지 추가했고, 세트리스트별 tempo override는 남아 있다. | 중간 | v1.1 |
+| Advanced metronome cue/pattern | MobileSheets metronome은 곡 위 패널에서 상세 설정을 제공한다. Clef는 count-in, 악보별 metronome snapshot, 세트리스트별 tempo override를 추가했다. 복잡한 cue/pattern editor는 아직 없다. | 중간 | v1.1 |
 | Import-time setlist assignment | MobileSheets import wizard에서 setlist/collection 지정 가능. | 중간 | v1.1 |
 | Touch/Pedal capture wizard | MobileSheets Touch & Pedal Settings가 별도 action mapping을 제공한다. | 높음 | Spike |
 | Annotation favorite/tool preset | MobileSheets annotation toolbar는 도구가 많고 favorite 개념이 필요해 보인다. | 중간 | v1.1 |

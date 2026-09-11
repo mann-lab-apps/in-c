@@ -221,7 +221,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   UX, viewer tap zone과의 충돌 정책, 공연 모드에서 열 수 있는 action 범위, metronome audible/visible
   mode, setlist별 tempo/time signature override 저장.
 - 구현 후보: viewer overlay tool host, movable compact metronome/tuner card, visible metronome border
-  pulse, complex accent pattern presets, setlist별 metronome snapshot.
+  pulse, complex accent pattern presets, metronome cue editor.
 - 테스트/fixture/실기기 조건: phone/tablet portrait/landscape, 1-page/2-page/scroll/half-page viewer,
   pedal page turn 중 panel focus 유지, Android audio route/volume, TalkBack semantic label, long-running
   battery/latency smoke.

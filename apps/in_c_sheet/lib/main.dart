@@ -5239,7 +5239,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   }
 
   SheetMetronomeSettings get _effectiveMetronomeSettings {
-    return widget.controller.metronomeSettingsForScore(score);
+    return widget.controller.metronomeSettingsForScore(
+      score,
+      setlistId: widget.setlistId,
+    );
   }
 
   int get _initialViewerPage {
@@ -9500,10 +9503,17 @@ setlist=$setlistLabel
       builder: (context) => _MetronomeSheet(
         initialSettings: widget.controller.metronomeSettingsForScore(
           currentScore,
+          setlistId: widget.setlistId,
         ),
-        settingsScopeLabel: '이 악보에 저장됩니다',
-        onSettingsChanged: (settings) => widget.controller
-            .updateMetronomeSettingsForScore(currentScore, settings),
+        settingsScopeLabel: widget.setlistId == null
+            ? '이 악보에 저장됩니다'
+            : '이 세트리스트에 저장됩니다',
+        onSettingsChanged: (settings) =>
+            widget.controller.updateMetronomeSettingsForScore(
+              currentScore,
+              settings,
+              setlistId: widget.setlistId,
+            ),
         onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
@@ -11097,6 +11107,7 @@ setlist=$setlistLabel
                               widget.controller.updateMetronomeSettingsForScore(
                                 currentScore,
                                 settings,
+                                setlistId: widget.setlistId,
                               ),
                           onOpenTuner: () {
                             setState(() => _miniTool = null);

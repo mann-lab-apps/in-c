@@ -441,15 +441,16 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 연주 보조/외부 입력 1차 구조
 
-- 메트로놈 설정은 앱 전역 `SheetMetronomeSettings`로 저장한다.
-- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision이다. BPM은 40-240 범위로 clamp한다.
+- 메트로놈 설정은 앱 전역 기본값, 악보별 snapshot, 세트리스트별 score override로 저장한다.
+  세트리스트에서 연 악보는 세트리스트 override가 악보 snapshot보다 우선한다.
+- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision, count-in이다. BPM은 40-240 범위로 clamp한다.
 - 지원 박자는 `2/4`, `3/4`, `4/4`, `6/8`이다.
 - subdivision은 없음, 8분, 3연, 16분을 제공한다. Tap tempo는 최근 tap 간격으로 BPM을 갱신한다.
 - 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다. bottom sheet에서
   악보 위 고정형 mini panel로 축소할 수 있다.
 - 현재 구현은 visual metronome이다. 첫 박은 accent color로 표시하고, 현재 beat와 마지막 beat
   시각을 보여준다.
-- 메트로놈 tick은 기본 OFF `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
+- 메트로놈 tick은 기본 ON `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
   low-latency audio package 선택은 별도 검증 후 붙인다.
 - 기준음/드론 설정은 앱 전역 `SheetToneSettings`로 저장한다. root concert MIDI note, drone
   mode, volume percent를 저장하고, 실제 재생은 Android `clef/tone_player` MethodChannel과

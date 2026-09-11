@@ -828,16 +828,39 @@ class SheetLibraryController extends ChangeNotifier {
     notifyListeners();
   }
 
-  SheetMetronomeSettings metronomeSettingsForScore(SheetScore score) {
-    return score.metronomeSettings ?? _metronomeSettings;
+  SheetMetronomeSettings metronomeSettingsForScore(
+    SheetScore score, {
+    String? setlistId,
+  }) {
+    final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
+    return setlist?.scoreMetronomeSettings[score.id] ??
+        score.metronomeSettings ??
+        _metronomeSettings;
   }
 
   Future<void> updateMetronomeSettingsForScore(
     SheetScore score,
-    SheetMetronomeSettings settings,
-  ) async {
+    SheetMetronomeSettings settings, {
+    String? setlistId,
+  }) async {
     _metronomeSettings = settings;
     await store.saveMetronomeSettings(settings);
+    final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
+    if (setlist != null) {
+      await _replaceSetlist(
+        setlist.copyWith(
+          scoreMetronomeSettings:
+              Map<String, SheetMetronomeSettings>.unmodifiable(
+                <String, SheetMetronomeSettings>{
+                  ...setlist.scoreMetronomeSettings,
+                  score.id: settings,
+                },
+              ),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return;
+    }
     await _replace(
       score.copyWith(metronomeSettings: settings, updatedAt: DateTime.now()),
     );
@@ -1822,6 +1845,9 @@ class SheetLibraryController extends ChangeNotifier {
       scoreStartPages: Map<String, int>.unmodifiable(setlist.scoreStartPages),
       scoreNotes: Map<String, String>.unmodifiable(setlist.scoreNotes),
       scoreDurations: Map<String, int>.unmodifiable(setlist.scoreDurations),
+      scoreMetronomeSettings: Map<String, SheetMetronomeSettings>.unmodifiable(
+        setlist.scoreMetronomeSettings,
+      ),
       transitionSeconds: setlist.transitionSeconds,
       viewerSettingsOverride: setlist.viewerSettingsOverride,
     );

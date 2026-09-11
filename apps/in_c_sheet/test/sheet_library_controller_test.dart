@@ -589,6 +589,86 @@ void main() {
     },
   );
 
+  test('uses setlist metronome override before score snapshot', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveMetronomeSettings(
+      const SheetMetronomeSettings(
+        bpm: 120,
+        meter: SheetMetronomeMeter.fourFour,
+      ),
+    );
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        metronomeSettings: const SheetMetronomeSettings(
+          bpm: 88,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      ),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-1': SheetMetronomeSettings(
+            bpm: 72,
+            meter: SheetMetronomeMeter.twoFour,
+          ),
+        },
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final score = controller.scoreById('score-1');
+    expect(controller.metronomeSettingsForScore(score).bpm, 88);
+    expect(
+      controller.metronomeSettingsForScore(score, setlistId: 'setlist-1').bpm,
+      72,
+    );
+
+    await controller.updateMetronomeSettingsForScore(
+      score,
+      const SheetMetronomeSettings(
+        bpm: 96,
+        meter: SheetMetronomeMeter.sixEight,
+        subdivision: SheetMetronomeSubdivision.eighth,
+        countInBars: 1,
+      ),
+      setlistId: 'setlist-1',
+    );
+
+    expect(controller.scoreById('score-1').metronomeSettings?.bpm, 88);
+    final updatedSetlist = controller.setlistById('setlist-1');
+    expect(updatedSetlist.scoreMetronomeSettings['score-1']?.bpm, 96);
+    expect(
+      updatedSetlist.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.sixEight,
+    );
+    expect(
+      updatedSetlist.scoreMetronomeSettings['score-1']?.subdivision,
+      SheetMetronomeSubdivision.eighth,
+    );
+    expect(updatedSetlist.scoreMetronomeSettings['score-1']?.countInBars, 1);
+    expect(controller.metronomeSettings.bpm, 96);
+    expect((await store.loadScores()).single.metronomeSettings?.bpm, 88);
+    expect(
+      (await store.loadSetlists())
+          .single
+          .scoreMetronomeSettings['score-1']
+          ?.bpm,
+      96,
+    );
+    expect((await store.loadMetronomeSettings()).bpm, 96);
+  });
+
   test(
     'compacts stale score page data after PDF page count is known',
     () async {
@@ -1738,6 +1818,12 @@ void main() {
         scoreIds: const <String>['score-1', 'score-2'],
         createdAt: now,
         updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-2': SheetMetronomeSettings(
+            bpm: 108,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        },
       ),
     ]);
 
@@ -1851,6 +1937,12 @@ void main() {
         scoreIds: const <String>['score-1', 'score-2'],
         createdAt: now,
         updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-2': SheetMetronomeSettings(
+            bpm: 108,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        },
       ),
     ]);
 
@@ -1891,6 +1983,7 @@ void main() {
 
     final duplicate = await controller.duplicateSetlist(updated);
     expect(duplicate.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(duplicate.scoreMetronomeSettings['score-2']?.bpm, 108);
 
     await controller.updateSetlistRehearsalSettings(
       updated,
