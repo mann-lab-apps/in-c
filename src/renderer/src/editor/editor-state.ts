@@ -29,6 +29,12 @@ import {
 
 export type EditorMode = 'select' | 'note' | 'rest'
 
+export type SelectionEventTypeFilter = 'notes' | 'rests' | 'notes-and-rests'
+
+export interface SelectionFilter {
+  eventTypes?: SelectionEventTypeFilter
+}
+
 export type EditorSelection =
   | {
       type: 'event'
@@ -338,13 +344,39 @@ export function getSelectedEventIds(selection: EditorSelection): string[] {
   return []
 }
 
+export function getFilteredSelectedEventIds(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionFilter
+): string[] {
+  const eventIds = getSelectedEventIds(selection)
+
+  if (!filter.eventTypes || filter.eventTypes === 'notes-and-rests') {
+    return eventIds.filter((eventId) =>
+      Boolean(locateEvent(score, eventId, selection.address))
+    )
+  }
+
+  return eventIds.filter((eventId) => {
+    const location = locateEvent(score, eventId, selection.address)
+
+    if (!location) {
+      return false
+    }
+
+    return filter.eventTypes === 'notes'
+      ? location.event.type === 'note'
+      : location.event.type === 'rest'
+  })
+}
+
 export function buildRangeClipboard(
   score: Score,
   selection: EditorSelection
 ): RangeClipboard | undefined {
   const range = locateSelectionRange(score, selection)
 
-  if (!range || !isSimpleRange(range.events)) {
+  if (!range || !isSimpleRange(range.events) || !isContiguousRange(range.events)) {
     return undefined
   }
 
@@ -359,6 +391,18 @@ export function buildRangeClipboard(
       event
     }))
   }
+}
+
+export function buildFilteredRangeClipboard(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionFilter
+): RangeClipboard | undefined {
+  const filteredSelection = filterSelectionEvents(score, selection, filter)
+
+  return filteredSelection
+    ? buildRangeClipboard(score, filteredSelection)
+    : undefined
 }
 
 export function buildRangePasteCommand(
@@ -420,6 +464,20 @@ export function buildRangePasteCommand(
     events: nextEvents,
     editedEventId: pastedEvents[0]?.id
   }
+}
+
+export function buildFilteredRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: RangeClipboard,
+  createId: () => string,
+  filter: SelectionFilter
+): ScoreCommand | undefined {
+  const filteredSelection = filterSelectionEvents(score, selection, filter)
+
+  return filteredSelection
+    ? buildRangePasteCommand(score, filteredSelection, clipboard, createId)
+    : undefined
 }
 
 export function buildRangeRestCommand(
@@ -1184,6 +1242,73 @@ export function buildDeleteCommand(
   )
 }
 
+export function buildFilteredDeleteCommand(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionFilter
+): ScoreCommand | undefined {
+  if (!filter.eventTypes || filter.eventTypes === 'notes-and-rests') {
+    return buildDeleteCommand(score, selection)
+  }
+
+  const filteredEventIds = getFilteredSelectedEventIds(score, selection, filter)
+
+  if (filteredEventIds.length === 0) {
+    return undefined
+  }
+
+  if (selection.type === 'event') {
+    return buildDeleteCommand(score, selection)
+  }
+
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  if (filter.eventTypes === 'notes') {
+    return buildRangeRestCommand(score, {
+      ...selection,
+      eventIds: filteredEventIds
+    })
+  }
+
+  return buildRangeDeleteCommand(score, {
+    ...selection,
+    eventIds: filteredEventIds
+  })
+}
+
+function filterSelectionEvents(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionFilter
+): EditorSelection | undefined {
+  if (!filter.eventTypes || filter.eventTypes === 'notes-and-rests') {
+    return selection
+  }
+
+  const filteredEventIds = getFilteredSelectedEventIds(score, selection, filter)
+
+  if (filteredEventIds.length === 0) {
+    return undefined
+  }
+
+  if (selection.type === 'event') {
+    return filteredEventIds.includes(selection.eventId) ? selection : undefined
+  }
+
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  return {
+    ...selection,
+    anchorEventId: filteredEventIds[0],
+    focusEventId: filteredEventIds[filteredEventIds.length - 1],
+    eventIds: filteredEventIds
+  }
+}
+
 function buildRangeDeleteCommand(
   score: Score,
   selection: Extract<EditorSelection, { type: 'range' }>
@@ -1467,6 +1592,21 @@ function isSimpleRange(
     }
 
     return !event.ties?.start && !event.ties?.stop
+  })
+}
+
+function isContiguousRange(events: VoiceEvent[]): boolean {
+  if (events.length === 0) {
+    return false
+  }
+
+  let tick = events[0].position.tick
+
+  return events.every((event) => {
+    const isContiguous = event.position.tick === tick
+
+    tick = eventEndTick(event)
+    return isContiguous
   })
 }
 

@@ -234,7 +234,7 @@ function parseMusicXmlPart(
 
     for (const noteNode of noteNodes) {
       const staffNumber = readStaffNumber(noteNode, state.staffCount)
-      const voiceId = readVoiceId(noteNode)
+      const voiceId = readVoiceId(noteNode, staffNumber, state.staffCount)
       const voiceKey = musicXmlVoiceKey(staffNumber, voiceId)
 
       if ('grace' in noteNode) {
@@ -1242,14 +1242,24 @@ function readVoiceEvent(
   })
 }
 
-function readVoiceId(node: XmlNode): string {
+function readVoiceId(
+  node: XmlNode,
+  staffNumber = 1,
+  staffCount = 1
+): string {
   const voice = readOptionalString(node, 'voice') ?? '1'
 
   if (!/^\d+$/.test(voice) || Number(voice) <= 0) {
     throw new Error(`지원하지 않는 voice 값입니다: ${voice}`)
   }
 
-  return `voice-${Number(voice)}`
+  const voiceNumber = Number(voice)
+  const staffLocalVoiceNumber =
+    staffCount > 1 && staffNumber > 1 && voiceNumber > 4
+      ? ((voiceNumber - 1) % 4) + 1
+      : voiceNumber
+
+  return `voice-${staffLocalVoiceNumber}`
 }
 
 function compareVoiceIds(left: string, right: string): number {

@@ -33,9 +33,9 @@
 | --- | --- |
 | 유형 | 부분 지원 |
 | 연결 이슈 | Commercial V1 UX information architecture slice |
-| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했지만, Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 최종 상용 V1 정보 구조는 아직 완성되지 않았다. |
-| 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태를 파악하기 쉬워졌지만, 전문 사보앱 수준의 palette/inspector/work mode 체계로 보려면 추가 정리가 필요하다. |
-| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 상단 context strip에서 확인할 수 있고, 탭별 도구 패널은 더 compact하게 렌더링된다. |
+| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07에 measure-level notation objects를 `표기 객체` 탭으로 분리했으며, chord symbol input을 `가사` 탭의 별도 코드 group으로 옮겼고, PDF/MIDI export와 PDF page setup controls를 `내보내기` 탭으로 분리했다. 2026-09-11에는 Electron E2E가 960px compact desktop에서 모든 work mode를 순회하며 command placement와 overflow를 자동 점검하도록 보강했고, MuseScore Properties parity 첫 조각으로 우측 `속성 도크`의 `선택 요약`과 active measure dynamics 편집을 추가했으며, 좌측 `고정 팔레트`와 notation-mode `셈여림 팔레트`, File mode `단축키 도움말` dialog, measure selection용 `표기 필터`를 노출했다. 다만 text/harmony 같은 추가 editable Properties inspector, text/lyric/slur/hairpin object filter, rehearsal/system text and list-selection object copy, user-configurable dock layout, 사람이 실제 화면 밀도/naming을 보는 compact desktop visual QA는 아직 완료되지 않았다. |
+| 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태, 마디 단위 표기 객체 위치, 가사/코드 입력 위치, 출력/페이지 설정 위치를 파악하기 쉬워졌지만, 전문 사보앱 수준의 최종 palette/inspector/work mode 체계로 보려면 release candidate 전 사람 기준 시각 QA가 필요하다. |
+| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태, 선택 필터를 상단 context strip에서 확인할 수 있고, 좌측 `고정 팔레트`에서 같은 work mode를 열 수 있다. 선택된 event/measure/range의 위치, 성부, 음가, 박자 같은 핵심 속성은 우측 `속성 도크`의 `선택 요약`에서 확인한다. active measure dynamics는 `선택 요약`과 좌측 `셈여림 팔레트`에서도 바로 편집할 수 있고, rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef는 `표기 객체` 탭에서 조작한다. File command surface의 `표기 필터`는 measure selection에서 `코드` 또는 `셈여림`만 골라 삭제하거나 별도 object clipboard로 복사/붙여넣기 할 수 있다. Score Setup의 `악보` 탭은 빠르기와 파트/보표 같은 구조 설정 중심으로 남아 있다. 코드 심벌은 `음표` 탭이 아니라 `가사` 탭의 코드 group에서 입력하며, note/rest 선택은 해당 event tick, measure 선택은 tick 0에 붙는다. `내보내기` 탭은 PDF 변환, MIDI 내보내기, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset controls와 page margin guide preview를 제공한다. MusicXML save는 full-score primary save이고, PDF/MIDI export는 현재 full score 또는 selected part view를 따른다. E2E compact guard는 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, document/context/text overflow를 확인한다. |
 | 문서 근거 | [Commercial V1 Reference Gap Matrix](../product/chromatics-commercial-v1-reference-gap-matrix.md#commercial-v1에서-반드시-줄여야-할-blocker) |
 
 ## Backend Is Not Live
@@ -56,7 +56,7 @@
 | 연결 이슈 | #93 |
 | 제한 | 같은 staff 안에서 여러 독립 voice를 완전하게 입력/전환/편집하는 UX가 남아 있다. |
 | 사용자 영향 | 복잡한 피아노/합창/대위적 악보 작성은 제한된다. Professional V1 public release 전에는 해결해야 한다. |
-| 현재 가능 | 단성부, chord notes, voice 1-4 toolbar/shortcut 전환, note input target 유지, same-staff voice 2 range delete/copy/paste, playback active event voice-aware selection/highlight, stop/jump 후 selection 유지 정책, address-scoped range visual highlight 첫 슬라이스, drag range anchor voice-lane guard, selected range band visual polish 첫 슬라이스, MusicXML voice stream import와 backup export 첫 슬라이스. |
+| 현재 가능 | 단성부, chord notes, voice 1-4 toolbar/shortcut 전환, note input target 유지, same-staff voice 2 range delete/copy/paste, `전체/음표만/쉼표만` 선택 필터와 addressed voice scoped filtered delete/copy/paste, playback active event voice-aware selection/highlight, stop/jump 후 selection 유지 정책, address-scoped range visual highlight 첫 슬라이스, drag range anchor voice-lane guard, selected range band visual polish 첫 슬라이스, MusicXML voice stream import와 backup export 첫 슬라이스. |
 | 문서 근거 | [Risk R-002](risk-register.md#r-002-multi-voice-editing-is-not-complete), [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#score-model) |
 
 ## Multi-Part Ensemble Editing Is Not Complete
@@ -67,7 +67,7 @@
 | 연결 이슈 | #94 |
 | 제한 | 고급 표기가 포함된 저장/재열기, 출력까지 완성하는 workflow가 남아 있다. |
 | 사용자 영향 | 합주보/앙상블 score authoring은 아직 안정 지원으로 보지 않는다. Professional V1 public release 전에는 해결해야 한다. |
-| 현재 가능 | 단일 part 중심 workflow, 새 악보 마법사의 piano grand staff/2-part/string quartet skeleton 생성, piano grand staff/multi-part stacked preview 첫 슬라이스, 추가 staff 이벤트 선택과 note input target 보존 첫 슬라이스, note toolbar의 입력 보표 전환 UI, plain `Up/Down`의 인접 part/staff/voice lane navigation 첫 슬라이스, `J` 이명동음 respell과 modifier 기반 diatonic/chromatic/octave transpose 회귀 검증, 악보 탭의 part/staff add/remove/rename 첫 슬라이스와 삭제 reference cleanup, 현재 보표 전체 음자리표 선택 첫 슬라이스, 악기 라이브러리 기반 part 생성 첫 슬라이스, multi-staff notation object anchoring 첫 슬라이스, MusicXML multi-staff/multi-part 구조와 기본 note/rest event round-trip, string quartet part별 입력 후 MusicXML 저장/최근 파일 재열기 App workflow 자동 검증 첫 슬라이스, multi-part playback addressing 일부. |
+| 현재 가능 | 단일 part 중심 workflow, 새 악보 마법사의 `내장 템플릿` picker와 piano grand staff/2-part/string quartet skeleton 생성, piano grand staff/multi-part stacked preview 첫 슬라이스, 추가 staff 이벤트 선택과 note input target 보존 첫 슬라이스, note toolbar의 입력 보표 전환 UI, plain `Up/Down`의 인접 part/staff/voice lane navigation 첫 슬라이스, `J` 이명동음 respell과 modifier 기반 diatonic/chromatic/octave transpose 회귀 검증, 악보 탭의 part/staff add/remove/rename 첫 슬라이스와 삭제 reference cleanup, 현재 보표 전체 음자리표 선택 첫 슬라이스, 악기 라이브러리 기반 part 생성 첫 슬라이스, multi-staff notation object anchoring 첫 슬라이스, MusicXML multi-staff/multi-part 구조와 기본 note/rest event round-trip, string quartet part별 입력 후 MusicXML 저장/최근 파일 재열기 App workflow 자동 검증 첫 슬라이스, multi-part playback addressing 일부. |
 | 문서 근거 | [Risk R-003](risk-register.md#r-003-multi-part-ensemble-editing-is-not-complete), [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#score-model) |
 
 ## Part Extraction Or Live Part View Is Partial
@@ -87,9 +87,9 @@
 | --- | --- |
 | 유형 | 미완성 기능 |
 | 연결 이슈 | 필요 시 신규 이슈 |
-| 제한 | 페이지 크기, 방향, 여백, 보표 크기, 시스템 간격의 file dialog 기반 실제 PDF 출력 visual QA와 저장 파일 round-trip/preview polish가 아직 완료되지 않았다. |
+| 제한 | 페이지 크기, 방향, 여백, 보표 크기, 시스템 간격의 file dialog 기반 실제 PDF 출력 visual QA와 저장 파일 round-trip polish가 아직 완료되지 않았다. |
 | 사용자 영향 | 출력물 설정은 조절할 수 있지만, 실제 PDF 결과와 packaged app 출력에서 수업/리허설/소규모 출판 품질을 아직 충분히 입증하지 못했다. Professional V1 public release 전에는 해결해야 한다. |
-| 현재 가능 | PDF 변환 흐름, 기본 렌더링, 악보 탭 PDF page setup UI, default A4/rehearsal Letter/publication A4/compact parts preset 첫 구현, print layout planner 반영, PDF export renderer가 캡처하는 score page DOM의 normalized page setup metadata, manual Letter landscape/publication A4/compact parts preset renderer contract App 검증, packaged app 새 악보 총보 PDF와 Cello part view PDF 구조 및 compact parts page setup metadata smoke. |
+| 현재 가능 | PDF 변환 흐름, 기본 렌더링, `내보내기` 탭 PDF page setup UI, default A4/rehearsal Letter/publication A4/compact parts preset 첫 구현, print layout planner 반영, PDF export renderer가 캡처하는 score page DOM의 normalized page setup metadata, manual Letter landscape/publication A4/compact parts preset renderer contract App 검증, MuseScore parity page margin guide preview toggle, export capture 중 margin guide 숨김 App regression, packaged app 새 악보 총보 PDF와 Cello part view PDF 구조 및 compact parts page setup metadata smoke. |
 | 문서 근거 | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#layout-and-engraving), [Feature Map](../product/feature-map.md) |
 
 ## Native Project Format Is Post-V1
@@ -99,7 +99,7 @@
 | 유형 | 명시적 제품 정책 |
 | 제한 | Chromatics V1은 별도 전용 프로젝트 파일 포맷을 제공하지 않고 MusicXML을 primary save로 사용한다. |
 | 사용자 영향 | MusicXML이 표현하지 못하는 일부 Chromatics 전용 layout/view 상태는 파일 자체에 들어가지 않으며, 저장/내보내기 warning과 release notes에서 안내한다. |
-| 현재 가능 | MusicXML 저장/열기/최근 파일, autosave/recovery snapshot, 파일 경로별 part view preference, MusicXML export-side warning report. |
+| 현재 가능 | MusicXML 저장/열기/최근 파일, autosave/recovery snapshot, 파일 경로별 part view preference, MusicXML export-side warning report, `npm run verify:chromatics-v1-save-policy` 기반 release docs/export warning/work queue 정책 일관성 검증. |
 | migration path | post-V1 전용 프로젝트 포맷을 도입하면 기존 MusicXML을 먼저 import하고, 안전하게 매핑 가능한 로컬 preference만 migration한다. MusicXML에서 보존되지 않은 layout 데이터는 warning report를 기준으로 사용자가 재설정하도록 안내한다. |
 | 문서 근거 | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#document-lifecycle), [V1 Blocker Backlog](../product/chromatics-v1-blocker-backlog.md#v1-polish-after-blockers) |
 
@@ -154,10 +154,20 @@
 | --- | --- |
 | 유형 | 미완성 기능 |
 | 연결 이슈 | 필요 시 신규 이슈 |
-| 제한 | 실제 MuseScore/Dorico/Sibelius/Finale export-origin fixture 검증과 지원 표기 false positive warning 제거 범위 확장이 아직 부족하다. |
+| 제한 | 실제 MuseScore/Dorico/Sibelius/Finale export-origin fixture 검증과 지원 표기 false positive warning 제거 범위 확장이 아직 부족하다. 2026-09-11 audit에서 MuseScore 4.7.5는 로컬 설치가 확인됐고 MuseScore CLI app-export fixture와 import/render smoke는 추가됐지만, MuseScore GUI-created source score와 reopen/manual snapshot은 아직 수집하지 않았다. Finale는 로컬에 설치되어 있지 않아 Finale-origin migration fixture가 필요하다. |
 | 사용자 영향 | 외부 사보앱에서 가져온 파일의 손실 여부를 사용자가 신뢰하기 어렵다. Professional V1 public release 전에는 해결해야 한다. |
-| 현재 가능 | MVP subset과 최근 notation extension round-trip 테스트, MusicXML multi-staff/multi-part 구조와 기본 note/rest event round-trip, multi-staff imported score-level direction의 MusicXML 재저장 보존, import-side unsupported notation/direction warning report 첫 구현, export-side app layout data warning report 첫 구현, import/export 상세 report UI 첫 구현, `pp/ff/sfz` dynamics warning-free import/export 검증, MuseScore seed의 `mf` dynamic/staccato articulation warning-free import/export 검증, Dorico seed의 unsupported warning code/path snapshot 검증, MuseScore/Finale/Sibelius/Dorico compatibility seed fixture QA, fixture manifest의 origin/status/export setting/evidence/dynamics/articulation/warning path gate와 앱별 manual collection requirement 추적. |
+| 현재 가능 | MVP subset과 최근 notation extension round-trip 테스트, MusicXML multi-staff/multi-part 구조와 기본 note/rest event round-trip, multi-staff imported score-level direction의 MusicXML 재저장 보존, import-side unsupported notation/direction warning report 첫 구현, export-side app layout data warning report 첫 구현, import/export 상세 report UI 첫 구현, `pp/ff/sfz` dynamics warning-free import/export 검증, MuseScore seed의 `mf` dynamic/staccato articulation warning-free import/export 검증, Dorico seed의 unsupported warning code/path snapshot 검증, MuseScore/Finale/Sibelius/Dorico compatibility seed fixture QA, MuseScore 4.7.5 CLI app-export fixture 수집과 warning-free round-trip 검증, MuseScore lower-staff raw `<voice>5</voice>` 입력 조건과 Chromatics staff-local `voice-1` normalize 결과 fixture 검증, fixture manifest의 origin/status/export setting/evidence/dynamics/articulation/warning path/reference role/manual QA status gate와 앱별 manual collection requirement 추적, `npm run verify:notation-reference-apps` 기반 MuseScore/Dorico/Sibelius/Finale local environment audit, `npm run verify:musescore-cli-fixtures` 기반 MuseScore 4.7.5 CLI import/render smoke. |
 | 문서 근거 | [Chromatics Desktop V1](../product/chromatics-desktop-v1.md#import-and-export), [External MusicXML Fixture QA](external-musicxml-fixture-qa.md), [MusicXML MVP](../musicxml-mvp.md) |
+
+## Commercial V1 Work Queue Is Active
+
+| 항목 | 내용 |
+| --- | --- |
+| 유형 | 릴리즈 운영 장치 |
+| 제한 | 큐는 blocker 추적과 자동화 가능한 다음 작업 선정을 돕지만, 큐 통과가 Commercial V1 완료 판정은 아니다. |
+| 사용자 영향 | 다음 작업자가 매번 새 프롬프트로 범위를 다시 추측하지 않고, MuseScore/Finale/Dorico/Sibelius 기준 남은 work item과 manual blocker를 바로 이어갈 수 있다. |
+| 현재 가능 | `docs/product/chromatics-commercial-v1-work-queue.md`가 11개 blocker row와 다음 action을 유지하고, `npm run verify:chromatics-v1-work-queue`가 table schema, approved status values, required categories, non-empty next actions를 검증한다. |
+| 문서 근거 | [Commercial V1 Work Queue](../product/chromatics-commercial-v1-work-queue.md) |
 
 ## Production Deployment Smoke Is Separate
 

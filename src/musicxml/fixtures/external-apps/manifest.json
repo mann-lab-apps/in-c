@@ -18,6 +18,26 @@
       "expectedWarningPaths": []
     },
     {
+      "id": "musescore-4-7-5-cli-grand-staff-export",
+      "sourceApp": "MuseScore",
+      "origin": "app-export",
+      "collectionStatus": "app-export-collected",
+      "exportSettings": "MuseScore Studio 4.7.5 CLI: imported musescore-grand-staff-basic.musicxml with factory settings/default MusicXML font and exported uncompressed MusicXML via -F --musicxml-use-default-font -o.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#2026-09-11-musescore-cli-app-export-fixture",
+      "path": "musescore-4-7-5-cli-grand-staff-export.musicxml",
+      "expectedPartNames": ["Piano"],
+      "expectedStaffCounts": [2],
+      "expectedClefs": ["G2", "F4"],
+      "expectedEventPitches": ["C4", "C3"],
+      "expectedVoiceCounts": [1, 1],
+      "expectedVoiceIdsByStaff": [["voice-1"], ["voice-1"]],
+      "expectedRawVoiceValuesByStaff": [["1"], ["5"]],
+      "expectedDynamics": ["mf"],
+      "expectedArticulations": ["staccato"],
+      "expectedWarnings": [],
+      "expectedWarningPaths": []
+    },
+    {
       "id": "finale-string-duet-basic",
       "sourceApp": "Finale",
       "origin": "compatibility-seed",
@@ -76,30 +96,42 @@
   "requiredAppExports": [
     {
       "sourceApp": "MuseScore",
-      "collectionStatus": "manual-collection-required",
-      "targetFixtureId": "musescore-grand-staff-app-export",
-      "exportSettings": "MuseScore Studio: export uncompressed MusicXML (.musicxml) from a piano grand staff score using default notation/style settings; record exact app version.",
-      "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
+      "referenceRole": "primary-current-free-market-reference",
+      "collectionStatus": "collected",
+      "targetFixtureId": "musescore-4-7-5-cli-grand-staff-export",
+      "exportSettings": "MuseScore Studio 4.7.5 CLI: uncompressed MusicXML (.musicxml) exported from a piano grand staff seed imported by MuseScore with factory/default MusicXML font settings; GUI-created MuseScore score and reopen snapshot remain manual QA.",
+      "manualQaStatus": "manual-gui-required",
+      "fixtureSourcePolicy": "MuseScore CLI app-export fixture is accepted as automated import/export compatibility evidence; GUI-created source score, visual reopen snapshot, and manual PDF review remain RC signoff tasks.",
+      "evidence": "docs/quality/external-musicxml-fixture-qa.md#2026-09-11-musescore-cli-app-export-fixture"
     },
     {
       "sourceApp": "Dorico",
+      "referenceRole": "secondary-commercial-reference",
       "collectionStatus": "manual-collection-required",
       "targetFixtureId": "dorico-notation-report-app-export",
       "exportSettings": "Dorico: export uncompressed MusicXML (.musicxml) from a score containing supported dynamics/articulations and unsupported advanced directions; record exact app version and export options.",
+      "manualQaStatus": "manual-gui-required",
+      "fixtureSourcePolicy": "Use a real Dorico export when available; secondary reference fixtures remain required before public RC unless scope is explicitly changed.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
     },
     {
       "sourceApp": "Sibelius",
+      "referenceRole": "secondary-commercial-reference",
       "collectionStatus": "manual-collection-required",
       "targetFixtureId": "sibelius-multi-voice-app-export",
       "exportSettings": "Sibelius: export uncompressed MusicXML (.musicxml) from a same-staff multi-voice score using standard MusicXML export settings; record exact app version.",
+      "manualQaStatus": "manual-gui-required",
+      "fixtureSourcePolicy": "Use a real Sibelius export when available; secondary reference fixtures remain required before public RC unless scope is explicitly changed.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
     },
     {
       "sourceApp": "Finale",
+      "referenceRole": "primary-legacy-finale-style-migration-reference",
       "collectionStatus": "manual-collection-required",
       "targetFixtureId": "finale-ensemble-app-export",
       "exportSettings": "Finale-origin file: export uncompressed MusicXML (.musicxml) from Finale 27 or a preserved Finale-origin fixture with documented export source/version; record any migration app if Finale is unavailable.",
+      "manualQaStatus": "manual-gui-or-user-fixture-required",
+      "fixtureSourcePolicy": "Finale is a legacy workflow/migration reference; accept a documented Finale-origin MusicXML export or user-provided migration fixture when Finale cannot run locally.",
       "evidence": "docs/quality/external-musicxml-fixture-qa.md#real-app-export-fixtures-required-before-public-rc"
     }
   ]

@@ -546,6 +546,187 @@
 | 5 | Browser visual smoke | Not run | 세션에 Browser skill 문서는 있었지만 필요한 Node browser-control tool이 노출되지 않아 직접 스크린샷 검증은 수행하지 못했다. 수동 visual QA 필요. |
 | 6 | `git diff --check` | Pass | whitespace error 없음 |
 
+## 2026-09-07 Commercial V1 Measure-Level Notation Palette Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level\|playback.global-tempo\|rehearsal\|staff-text\|system-text\|expression-text\|dynamics"` | Pass | 7 tests passed. Score Setup에서 measure-level notation controls가 빠지고 `표기 객체` 탭에서 rehearsal mark, staff/system/expression text, dynamics workflow가 동작하는지 확인했다. |
+| 2 | `npm run typecheck` | Pass | `notation` toolbar category, measure-level notation palette, repeat/volta controls 타입 계약 확인 |
+| 3 | `npm test -- src/renderer/src/App.test.tsx` | Pass | 79 tests passed. App workflow regression 통과 |
+| 4 | `npm test` | Pass | 33 files / 446 tests passed |
+| 5 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 6 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed |
+| 7 | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 8 | `node scripts/verify-site-content.mjs` | Fail, then Pass | 첫 실행에서 stale `out/site/download-manifest.json`가 source manifest와 달라 실패했다. `npm run site:build` 후 content manifest/product relation/feature map path 검증 통과 |
+| 9 | `git diff --check` | Pass | whitespace error 없음 |
+| 10 | Browser/manual visual smoke | Not run | 자동 App regression은 palette 위치와 입력 동작을 고정하지만, 실제 compact desktop 화면 밀도/overflow와 PDF visual QA는 release candidate 전 수동 확인으로 남긴다. |
+
+## 2026-09-07 Commercial V1 Lyrics-Chords Input Surface Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm test -- src/renderer/src/App.test.tsx -t "palette.lyrics-chords\|lyrics.chords\|playback.global-tempo\|notation extension\|multi-staff-notation-object"` | Fail, then Pass | 첫 실행에서 기존 테스트가 `가사` 탭에서 chord symbol input이 숨겨진다고 기대했고, 새 test double의 harmony element attribute 기대도 맞지 않았다. 새 V1 정책에 맞춰 Lyrics/Chords의 lyric/chord group 표시, note-selected tick, measure-selected tick 0 anchoring을 고정한 뒤 5 tests passed. |
+| 2 | `npm run typecheck` | Pass | moved chord-symbol panel and Lyrics/Chords conditional rendering typecheck |
+| 3 | `npm test -- src/renderer/src/App.test.tsx` | Pass | 80 tests passed. App workflow regression 통과 |
+| 4 | `npm test` | Pass | 33 files / 447 tests passed |
+| 5 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 6 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed |
+| 7 | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 8 | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 9 | `git diff --check` | Pass | whitespace error 없음 |
+| 10 | Browser/manual visual smoke | Not run | 자동 App regression은 입력 표면과 anchoring 정책을 고정하지만, 실제 compact desktop visual QA와 keyboard shortcut discoverability 검토는 release candidate 전 수동 확인으로 남긴다. |
+
+## 2026-09-07 Commercial V1 Export Page Setup Information Architecture Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm test -- src/renderer/src/App.test.tsx -t "live-part-view\|global-tempo\|save-pdf\|export-midi\|page-setup\|report-pdf\|measure-level-notation\|lyrics-chords"` | Pass | 15 tests passed. `파일` 탭에서 PDF/MIDI primary controls를 제거하고, `내보내기` 탭에서 PDF/MIDI export, PDF target pages, page setup preset/settings가 보이는지 확인했다. String quartet Viola part view PDF/MIDI suggested filename도 part-specific으로 고정했다. |
+| 2 | `npm run typecheck` | Pass | `export` toolbar category, export actions, selected part MIDI export path typecheck |
+| 3 | `npm test -- src/renderer/src/App.test.tsx` | Pass | 80 tests passed. App workflow regression 통과 |
+| 4 | `npm test` | Pass | 33 files / 447 tests passed |
+| 5 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 6 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed |
+| 7 | `npm run verify:midi-fixtures` | Pass | V1 QA fixture 3 tests passed |
+| 8 | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 9 | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 10 | `git diff --check` | Pass | whitespace error 없음 |
+| 11 | Browser/manual visual smoke | Not run | 자동 App regression은 command placement와 export state policy를 고정하지만, 실제 file dialog save/open, PDF viewer visual QA, compact desktop visual QA는 release candidate 전 수동 확인으로 남긴다. |
+
+## 2026-09-11 MuseScore Finale Reference Environment And Fixture Harness Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | 공식 문서 확인 | Pass | MuseScore Studio Handbook의 parts/export/palettes/UI/CLI 문서와 MakeMusic Finale sunset/support/Simple Entry 문서를 기준으로 MuseScore를 current/free primary reference, Finale를 legacy workflow/migration primary reference로 재정의했다. |
+| 2 | `git status --short --branch` | Pass | current branch `feature/in-c-public-v1-rc`; unrelated Flutter/site/classical quiz changes are present and were not reverted. |
+| 3 | `node --version` / `npm --version` | Pass | Node v22.22.0, npm 10.9.4 |
+| 4 | `/Applications` reference app audit | Pass | `/Applications/MuseScore 4.app` 발견. Finale app은 `/Applications`와 user Applications audit에서 발견되지 않았다. |
+| 5 | `npm run verify:notation-reference-apps` | Pass | MuseScore role `primary-current-free-market-reference`, local status installed, version 4.7.5, executable `/Applications/MuseScore 4.app/Contents/MacOS/mscore`; Finale role `primary-legacy-finale-style-migration-reference`, local status not installed. Both required app-export fixtures remain `manual-collection-required`. |
+| 6 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed. Manifest now validates required MuseScore/Finale reference roles, manual QA status, and fixture source policy fields in addition to fixture expectations. |
+| 7 | `npm run typecheck` | Pass | `tsc --noEmit` 성공 |
+| 8 | `npm test` | Pass | 33 files / 447 tests passed |
+| 9 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 10 | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 11 | `git diff --check` | Pass | whitespace error 없음 |
+| 12 | MuseScore real app-export fixture collection | Not run | MuseScore is installed, but no GUI/CLI export of a real MuseScore-origin score was performed in this package. Collect `musescore-grand-staff-app-export.musicxml` before public RC. |
+| 13 | Finale-origin fixture collection | Not run | Finale is not installed locally. Install a compatible Finale environment or provide a documented Finale-origin MusicXML migration fixture before public RC. |
+
+## 2026-09-11 MuseScore CLI App Export Fixture Collection Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `/Applications/MuseScore\ 4.app/Contents/MacOS/mscore --version` | Pass | MuseScore CLI returned `MuseScore4 4.7.5`. |
+| 2 | `/Applications/MuseScore\ 4.app/Contents/MacOS/mscore -F --musicxml-use-default-font -o /tmp/musescore-4-7-5-cli-grand-staff-export.musicxml src/musicxml/fixtures/external-apps/musescore-grand-staff-basic.musicxml` | Pass | MuseScore Studio 4.7.5 CLI exported uncompressed MusicXML. The generated file is versioned as `src/musicxml/fixtures/external-apps/musescore-4-7-5-cli-grand-staff-export.musicxml`. |
+| 3 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed. Manifest now includes the MuseScore 4.7.5 CLI app-export fixture and verifies part/staff/clef/voice/note/dynamic/articulation/warning expectations. A follow-up run also verifies MuseScore lower-staff `<voice>5</voice>` imports as Chromatics staff-local `voice-1`. |
+| 4 | `npm run verify:notation-reference-apps` | Pass | MuseScore required fixture status is now `collected`; Finale remains `manual-collection-required`. |
+| 5 | `npm run verify:musescore-cli-fixtures` | Fail, then Pass | Running multiple MuseScore CLI conversions back-to-back exposed intermittent local MuseScore 4.7.5 `SIGABRT` / `mutex lock failed` instability. The verifier now defaults to the collected app-export fixture, records attempts, and retries up to three times. Final run passed after one retry and produced a structurally valid PDF. |
+| 6 | `npm run typecheck` | Pass | `tsc --noEmit` 성공 |
+| 7 | `npm test` | Pass | 33 files / 447 tests passed |
+| 8 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 9 | `npm run verify:midi-fixtures` | Pass | V1 QA fixture 3 tests passed |
+| 10 | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 11 | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 12 | `git diff --check` | Pass | whitespace error 없음 |
+| 13 | MuseScore GUI/manual snapshot | Not run | CLI app-export fixture is collected, but GUI-created source score, reopen/manual snapshot, and human PDF review remain public RC manual QA. |
+| 14 | Finale-origin fixture collection | Not run | Finale is not installed locally. Install a compatible Finale environment or provide a documented Finale-origin MusicXML migration fixture before public RC. |
+
+## 2026-09-11 Commercial V1 Long-Running Work Queue Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `git status --short --branch` | Pass | current branch `feature/in-c-public-v1-rc`; unrelated Flutter/site/classic quiz changes are present and were not reverted. |
+| 2 | `git log --oneline -5` | Pass | Latest commits include `da3103e`, `02043a8`, merge `27ceab6`, Chromatics toolbar `07794f1`, and site download `d6b820f`. |
+| 3 | `node --version` / `npm --version` | Pass | Node v22.22.0, npm 10.9.4 |
+| 4 | `npm run verify:chromatics-v1-work-queue` | Pass | Added `docs/product/chromatics-commercial-v1-work-queue.md` and a verifier requiring approved queue columns/status values, at least 8 rows, required blocker categories, and non-empty next actions. Current queue has 11 rows; automatable next rows include multi-voice workflow, selection filters, compact UI QA, and native-format/save-policy decision. |
+| 5 | `npm run verify:notation-reference-apps` | Pass | Expanded the audit from MuseScore/Finale to MuseScore, Dorico, Sibelius, and Finale. MuseScore Studio 4.7.5 is installed and has collected CLI app-export evidence; Dorico/Sibelius/Finale are not installed locally and remain external/manual fixture blockers. |
+| 6 | `npm run verify:musicxml-fixtures` | Pass | external-app-fixture-qa 1 test passed. The MuseScore CLI fixture now also asserts the raw app-export lower staff voice value `5` while Chromatics imports it as staff-local `voice-1`. |
+| 7 | `npm run typecheck` | Pass | `tsc --noEmit` 성공 |
+| 8 | `npm run verify:midi-fixtures` | Pass | V1 QA fixture 3 tests passed. MIDI fixture verifier still guards solo melody, piano grand staff, and string quartet export structure. |
+| 9 | `npm test` | Pass | 33 files / 447 tests passed |
+| 10 | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 11 | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 12 | `git diff --check` | Pass | whitespace error 없음 |
+| 13 | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 14 | `npm run verify:musescore-cli-fixtures` | Pass | MuseScore Studio 4.7.5 rendered the collected app-export fixture to a structurally valid PDF on attempt 1; output bytes 19869. |
+
+## 2026-09-11 Queue-Driven Selection Filter And Save Policy Run
+
+| 순서 | Queue ID | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- | --- |
+| 1 | 시작 점검 | `git status --short --branch`, `git log --oneline -5`, `node --version`, `npm --version` | Pass | current branch `feature/in-c-public-v1-rc`; Node v22.22.0, npm 10.9.4. Existing unrelated dirty/untracked Flutter/classic quiz files were not reverted. |
+| 2 | 큐 scan | `npm run verify:chromatics-v1-work-queue` | Pass | Queue had 11 rows. Automatable next rows included `CV1-MULTIVOICE-GRAND-STAFF-WORKFLOW`, `CV1-SELECTION-FILTERS`, `CV1-UI-COMPACT-DESKTOP-VISUAL-QA`, `CV1-NATIVE-FORMAT-DECISION`. |
+| 3 | reference scan | `npm run verify:notation-reference-apps` | Pass | MuseScore 4.7.5 installed/collected CLI app-export fixture; Dorico, Sibelius, Finale remain not installed and external/manual blockers. |
+| 4 | fixture scan | `npm run verify:musicxml-fixtures`, `npm run verify:midi-fixtures` | Pass | MusicXML external fixture QA 1 test passed; MIDI V1 QA fixture 3 tests passed. |
+| 5 | `CV1-SELECTION-FILTERS` | `npm test -- src/renderer/src/editor/editor-state.test.ts -t "selection-filter\|same-staff-voice"` | Pass | 5 tests passed. Added `notes/rests/all` event-type filter foundation and filtered delete behavior. Duplicate event ids in same-staff voices remain scoped to the addressed voice. |
+| 6 | `CV1-UI-COMPACT-DESKTOP-VISUAL-QA` | `npm test -- src/renderer/src/App.test.tsx -t "global-tempo lyrics\|toolbar\|selection filter\|work mode"` | Pass | 3 tests passed. File command surface now exposes `선택 필터`, context strip shows current filter and range filtered count, and note-selected filtered delete disabled/enabled state follows the filter. Human compact desktop screenshot QA remains required. |
+| 7 | `CV1-NATIVE-FORMAT-DECISION` | `npm run verify:chromatics-v1-save-policy` | Pass | Added a policy verifier for MusicXML primary save, native project format post-V1, unsupported layout warning contract, release docs, and work queue consistency. Queue row moved to `Done` for V1 policy; post-V1 native format design remains separate. |
+| 8 | regression | `npm run typecheck` | Pass | `tsc --noEmit` 성공 after selection filter/App/save-policy additions. |
+| 9 | queue update | `npm run verify:chromatics-v1-work-queue` | Pass | Queue now has statuses `Blocked external`, `Done`, `Manual QA required`, `Partial`; next automatable rows are `CV1-MULTIVOICE-GRAND-STAFF-WORKFLOW`, `CV1-SELECTION-FILTERS`, and `CV1-UI-COMPACT-DESKTOP-VISUAL-QA`. |
+| 10 | final gates | `npm test` | Pass | 33 files / 450 tests passed |
+| 11 | final gates | `npm run build` | Pass | Electron/Vite main, preload, renderer production build 성공 |
+| 12 | final gates | `node scripts/verify-site-content.mjs` | Pass | content manifest, product relation, feature map path 검증 통과 |
+| 13 | final gates | `npm run verify:visual-regression` | Pass | MusicXML/system-layout tests 84 passed, production build, notation snapshot verifier 통과 |
+| 14 | final gates | `git diff --check` | Pass | whitespace error 없음 |
+| 15 | final gates | `npm run verify:e2e` | Fail, then Pass | First run exposed stale E2E expectations after File/Export command separation. `scripts/verify-single-voice-mvp.cjs` now checks File lifecycle commands, Export/Page Setup PDF/MIDI commands, and the `선택 필터` default/options separately. Follow-up run passed with Electron single-voice MVP smoke, grand staff preview, toolbar overflow guard, and release scenario bounds. |
+| 16 | reference app smoke | `npm run verify:musescore-cli-fixtures` | Fail, then Pass | Local MuseScore 4.7.5 CLI hit the known intermittent `SIGABRT` / `mutex lock failed` on attempts 1-2, then attempt 3 rendered `musescore-4-7-5-cli-grand-staff-export.pdf` with 19869 bytes and valid PDF structure. |
+| 17 | post-doc consistency | `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Evidence update 후 queue/status, MusicXML-first save policy, site content manifest, whitespace gate를 재확인했다. |
+
+Remaining automatable queue starts: `CV1-MULTIVOICE-GRAND-STAFF-WORKFLOW`,
+`CV1-SELECTION-FILTERS` copy/paste/object filters, and compact desktop visual
+guards. Remaining manual/external blockers include MuseScore GUI snapshot,
+Dorico/Sibelius/Finale-origin fixtures, file-dialog PDF/MusicXML/MIDI QA,
+playback listening QA, and Windows packaged smoke.
+
+## 2026-09-11 Queue Drain Selection Filter And Compact Mode Guard Run
+
+| 순서 | Queue ID | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- | --- |
+| 1 | prompt intake | pasted goal prompt, `docs/product/chromatics-commercial-v1-work-queue.md`, `docs/product/chromatics-commercial-v1-reference-gap-matrix.md`, `docs/product/chromatics-desktop-v1.md`, `docs/quality/known-limitations.md`, `docs/quality/release-readiness-checklist.md` | Pass | 장기 실행 목표를 시작하고 queue를 authoritative source로 재확인했다. |
+| 2 | queue scan | `npm run verify:chromatics-v1-work-queue` | Pass | 시작 시 automatable next rows는 `CV1-MULTIVOICE-GRAND-STAFF-WORKFLOW`, `CV1-SELECTION-FILTERS`, `CV1-UI-COMPACT-DESKTOP-VISUAL-QA`였다. |
+| 3 | `CV1-SELECTION-FILTERS` | `npm test -- src/renderer/src/editor/editor-state.test.ts -t "selection-filter\|same-staff-voice-copy-paste"` | Pass | 6 tests passed. Added filtered range clipboard/paste helpers. `전체/음표만/쉼표만` filter now applies to copy/paste target/source in addressed same-staff voice, and non-contiguous filtered ranges are rejected to avoid rhythmic gaps. |
+| 4 | `CV1-SELECTION-FILTERS` | `npm test -- src/renderer/src/App.test.tsx -t "selection-filter.copy\|selection filter\|work mode"` | Pass | 1 test passed. App copy action now uses filtered event count and reports filtered copy status. |
+| 5 | regression | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after editor/App selection-filter changes. |
+| 6 | `CV1-UI-COMPACT-DESKTOP-VISUAL-QA` | `npm run verify:e2e` | Fail, then Pass | First compact toolbar mode guard only scanned `.toolbar` and failed because Notation Objects, Lyrics/Chords, and Playback controls live in panel/strip surfaces. The verifier was corrected to scan visible aria-labelled command surfaces. Follow-up run passed and now cycles File, Score Setup, Note Input, Notation Objects, Lyrics/Chords, Export/Page Setup, and Playback at 960px while checking command placement and overflow. |
+| 7 | queue update | docs update | Pass | `CV1-SELECTION-FILTERS` moved to `Done` for V1 event-type filters. `CV1-UI-COMPACT-DESKTOP-VISUAL-QA` moved to `Manual QA required` after adding the compact E2E guard. `CV1-MULTIVOICE-GRAND-STAFF-WORKFLOW` now points to manual SATB/piano engraving/PDF QA because current automated selection/range/delete/copy/paste/playback/MusicXML coverage is in place. |
+| 8 | queue drain verifier | `npm run verify:chromatics-v1-work-queue` | Fail, then Pass | First run failed because the verifier still required at least one `Partial` row. The verifier now accepts a drained automation queue, rejects stale `In progress`, and reports `automationQueueDrained: true` with no `nextAutomatableRows`. |
+| 9 | regression | `npm test` | Fail, then Pass | First full run timed out in `import-export.save-pdf applies a strict target page count when possible`; the test passes in isolation and intentionally adds 80 measures, so its timeout was raised to 10000ms. Follow-up full run passed 33 files / 453 tests. |
+| 10 | fixture/site gates | `npm run verify:musicxml-fixtures`, `npm run verify:midi-fixtures`, `node scripts/verify-site-content.mjs` | Pass | MusicXML external fixture QA 1 test passed, MIDI V1 QA fixture 3 tests passed, site content manifest/product relation/feature map path verification passed. |
+| 11 | final consistency | `npm run verify:visual-regression`, `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy`, `git diff --check` | Pass | Visual regression passed 84 MusicXML/system-layout tests plus notation snapshots. Queue now has statuses `Blocked external`, `Done`, `Manual QA required`, `automationQueueDrained: true`, and no automatable next rows. Save policy and whitespace gates passed. |
+
+## 2026-09-11 MuseScore Parity Roadmap And Page Margin Guide Slice
+
+| 순서 | Queue ID | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- | --- |
+| 1 | MS-PARITY-001 | MuseScore Studio official docs review | Pass | Primary references were MuseScore Studio Handbook, user interface, copy/paste, score size and spacing, pages and vertical spacing, chord symbols, templates/styles, and selecting elements. |
+| 2 | MS-PARITY-001 | `npm run verify:chromatics-musescore-parity-roadmap` | Fail, then Pass | First run caught a missing `Notation Objects` row in the new roadmap matrix. Added `MS-NOTATION-001`; follow-up verifier passed with 19 rows and `parityAutomationQueueDrained: false`. |
+| 3 | MS-LAYOUT-001 | `npm test -- src/renderer/src/App.test.tsx -t "page margin guides"` | Pass | 1 test passed. `내보내기` now exposes a non-printing page margin guide toggle; the score page stores the current margin guide inset and hides the guide during PDF export capture. |
+| 4 | regression | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after App/CSS/script/docs changes. |
+| 5 | final gates | `npm run verify:chromatics-musescore-parity-roadmap` | Pass | 19 roadmap rows verified; next automatable rows remain queued, so MuseScore parity is intentionally not complete. |
+| 6 | final gates | `npm test -- src/renderer/src/App.test.tsx -t "page margin guides"` | Pass | Page margin guide regression stayed green after documentation updates. |
+| 7 | final gates | `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Electron/Vite production build, site content verification, and whitespace gate all passed. |
+| 8 | MS-PROPERTIES-001 | `npm test -- src/renderer/src/App.test.tsx -t "page margin guides\|properties-panel"` | Fail, then Pass | First run caught an aria-label collision with an existing note inspector `선택 속성` region plus unsafe measure/range typing. The new read-only properties surface was renamed to `선택 요약`, measure numbering now uses `measure.number`, and range address is guarded. Follow-up run passed 2 tests. |
+| 9 | MS-PROPERTIES-001 | `npm run typecheck` | Fail, then Pass | First run caught the same measure/range typing issue. Follow-up `tsc --noEmit` passed after the guarded selected-properties model. |
+| 10 | final gates | `npm run verify:chromatics-musescore-parity-roadmap`, `npm test -- src/renderer/src/App.test.tsx -t "page margin guides\|properties-panel"`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier, 2 focused App tests, Electron/Vite production build, site content verification, and whitespace gate passed. Roadmap still reports `parityAutomationQueueDrained: false`, so MuseScore parity remains an active long-running queue. |
+| 11 | MS-PROPERTIES-001 follow-up | `npm test -- src/renderer/src/App.test.tsx -t "properties-panel"` | Pass | 1 test passed. The selected properties surface now includes an editable `선택 요약 셈여림` control that reuses the active measure dynamics command path and updates the notation preview. |
+| 12 | MS-PROPERTIES-001 follow-up | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after wiring the editable dynamic property control. |
+| 13 | MS-HELP-001 | `npm test -- src/renderer/src/App.test.tsx -t "properties-panel\|shortcut-help"` | Pass | 2 tests passed. File mode now opens a `단축키 도움말` dialog with V1 note input, voice/selection, and file/editing shortcut groups; the legacy plain `9` triplet shortcut is not exposed. |
+| 14 | MS-HELP-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding the shortcut reference dialog. |
+| 15 | final gates | `npm run verify:chromatics-musescore-parity-roadmap`, `npm test -- src/renderer/src/App.test.tsx -t "page margin guides\|properties-panel\|shortcut-help"`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier now reports 19 rows, `MS-PROPERTIES-001` and `MS-HELP-001` removed from `nextAutomatableRows`, and `parityAutomationQueueDrained: false` with 10 remaining automatable MuseScore parity rows. Focused App tests passed 3 tests; production build, site content verification, and whitespace gate passed. |
+| 16 | MS-TEMPLATES-001 | `npm test -- src/renderer/src/App.test.tsx -t "built-in-template-picker\|create-ensemble-score"` | Pass | 2 tests passed. The new score dialog now exposes a built-in template picker for solo melody, piano grand staff, 2-part ensemble, and string quartet; picking the string quartet template synchronizes the legacy score-structure select and creates the expected four-part score skeleton. |
+| 17 | MS-TEMPLATES-001 final gates | `npm run typecheck`, `npm run verify:chromatics-musescore-parity-roadmap`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Typecheck, roadmap schema, production build, site content, and whitespace gates passed. Roadmap verifier reports 19 rows, `parityAutomationQueueDrained: false`, and 9 remaining automatable MuseScore parity rows after removing `MS-TEMPLATES-001`. |
+| 18 | MS-UI-001 | `npm test -- src/renderer/src/App.test.tsx -t "playback.global-tempo"` | Fail, then Pass | First run expected the wrong initial docked palette active mode; second run exposed an ambiguous global `셈여림` query after adding the right properties dock. Updated the regression to expect initial `음표` mode and scope the notation dynamics assertion to the visible `표기 객체` panel. Follow-up passed 1 test. |
+| 19 | MS-UI-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding the score workspace left `고정 팔레트`, right `속성 도크`, and notation-mode `셈여림 팔레트`. |
+| 20 | MS-SELECTION-001 | `npm test -- src/renderer/src/App.test.tsx -t "palette.lyrics-chords"` | Pass | 1 test passed. File mode now includes a `표기 필터`; with a measure selected, the `코드` filter deletes only that measure's chord symbols and the `셈여림` filter deletes only that measure's dynamics. |
+| 21 | MS-SELECTION-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after wiring the marking filter state, context strip label, and measure-object delete command path. |
+| 22 | MS-COPY-001 | `npm test -- src/renderer/src/App.test.tsx -t "palette.lyrics-chords"` | Pass | 1 test passed after extending the same workflow. The `표기 필터` now copies/pastes measure-level chord symbols or dynamics through a separate object clipboard and replaces only the same marking type in the target measure. |
+| 23 | MS-COPY-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding the measure marking clipboard and paste command builder. |
+| 24 | final gates | `npm run verify:chromatics-musescore-parity-roadmap`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier passed with 19 rows, `parityAutomationQueueDrained: false`, and 6 remaining automatable rows: `MS-VOICE-001`, `MS-NOTATION-001`, `MS-PARTS-001`, `MS-LAYOUT-002`, `MS-LAYOUT-003`, `MS-PLAYBACK-001`. Production build, site content, and whitespace gates passed. |
+
+Remaining MuseScore parity automatable rows start with `MS-VOICE-001`,
+`MS-NOTATION-001`, `MS-PARTS-001`,
+`MS-LAYOUT-002`, `MS-LAYOUT-003`, and `MS-PLAYBACK-001`. External/manual rows include GUI-created
+MuseScore snapshots, Finale/Dorico/Sibelius-origin fixtures, PDF visual QA, MIDI
+hardware/external app QA, and playback listening QA.
+
 ## Not Run In This Package
 
 | 항목 | 이유 | 후속 기준 |

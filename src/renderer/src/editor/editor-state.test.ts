@@ -23,6 +23,9 @@ import {
   buildDeleteCommand,
   buildDotCommand,
   buildDurationCommand,
+  buildFilteredDeleteCommand,
+  buildFilteredRangeClipboard,
+  buildFilteredRangePasteCommand,
   buildNoteEntryCommand,
   buildRangeClipboard,
   buildRangePasteCommand,
@@ -32,6 +35,7 @@ import {
   createEventSelection,
   createRangeSelection,
   getAdjacentEventId,
+  getFilteredSelectedEventIds,
   getSelectedEventIds,
   locateEvent,
   locateMeasure
@@ -182,6 +186,118 @@ describe('editor state', () => {
       'note-b4',
       'note-c5'
     ])
+  })
+
+  it('selection-filter.filters note and rest ids inside the addressed voice only', () => {
+    const score = scoreWithSameStaffVoiceDuplicateRestIds()
+    const voiceTwoAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-2'
+    }
+    const selection = createRangeSelection(
+      score,
+      'shared-note',
+      'shared-rest',
+      voiceTwoAddress
+    )
+
+    expect(selection).toMatchObject({
+      type: 'range',
+      eventIds: ['shared-note', 'shared-rest'],
+      address: voiceTwoAddress
+    })
+    expect(getFilteredSelectedEventIds(score, selection!, { eventTypes: 'notes' })).toEqual([
+      'shared-note'
+    ])
+    expect(getFilteredSelectedEventIds(score, selection!, { eventTypes: 'rests' })).toEqual([
+      'shared-rest'
+    ])
+    expect(
+      getFilteredSelectedEventIds(score, selection!, { eventTypes: 'notes-and-rests' })
+    ).toEqual(['shared-note', 'shared-rest'])
+    expect(
+      locateEvent(score, 'shared-note', voiceTwoAddress)?.event
+    ).toMatchObject({
+      type: 'note',
+      pitch: {
+        step: 'G'
+      }
+    })
+  })
+
+  it('selection-filter.note-only-delete converts only notes in the addressed voice range', () => {
+    const score = scoreWithSameStaffVoiceDuplicateRestIds()
+    const voiceTwoAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-2'
+    }
+    const selection = createRangeSelection(
+      score,
+      'shared-note',
+      'shared-rest',
+      voiceTwoAddress
+    )
+    const command = buildFilteredDeleteCommand(score, selection!, {
+      eventTypes: 'notes'
+    })
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voiceOne = measure.voices.find((voice) => voice.id === 'voice-1')
+    const voiceTwo = measure.voices.find((voice) => voice.id === 'voice-2')
+
+    expect(command).toMatchObject({
+      type: 'voice-events.replace',
+      target: voiceTwoAddress,
+      editedEventId: 'shared-note'
+    })
+    expect(voiceOne?.events.map((event) => event.id)).toEqual([
+      'shared-note',
+      'shared-rest',
+      'v1-rest'
+    ])
+    expect(voiceTwo?.events).toMatchObject([
+      {
+        id: 'shared-note',
+        type: 'rest',
+        position: { tick: 0 },
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'shared-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER },
+        duration: { value: 'quarter' }
+      },
+      {
+        id: 'v2-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+  })
+
+  it('selection-filter.rest-only-delete rejects a note-only range and leaves other voices untouched', () => {
+    const score = scoreWithSameStaffVoices()
+    const voiceTwoAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-2'
+    }
+    const selection = createRangeSelection(
+      score,
+      'v2-note-1',
+      'v2-note-2',
+      voiceTwoAddress
+    )
+
+    expect(buildFilteredDeleteCommand(score, selection!, { eventTypes: 'rests' }))
+      .toBeUndefined()
   })
 
   it('keeps range selection ordered when extending backward', () => {
@@ -1252,6 +1368,100 @@ describe('editor state', () => {
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
   })
 
+  it('selection-filter.note-only-copy-paste targets filtered events in the addressed voice', () => {
+    const score = scoreWithSameStaffVoices()
+    const voiceOneAddress = {
+      partId: 'part-1',
+      staffId: 'staff-1',
+      measureId: 'measure-1',
+      voiceId: 'voice-1'
+    }
+    const voiceTwoAddress = {
+      ...voiceOneAddress,
+      voiceId: 'voice-2'
+    }
+    const source = createRangeSelection(
+      score,
+      'v1-note-1',
+      'v1-rest',
+      voiceOneAddress
+    )
+    const target = createRangeSelection(
+      score,
+      'v2-note-1',
+      'v2-rest',
+      voiceTwoAddress
+    )
+    const clipboard = buildFilteredRangeClipboard(score, source!, {
+      eventTypes: 'notes'
+    })
+    const command = buildFilteredRangePasteCommand(
+      score,
+      target!,
+      clipboard!,
+      idSequence('filtered-voice-2-paste'),
+      { eventTypes: 'notes' }
+    )
+    const result = applyScoreCommand(score, command!)
+    const measure = result.score.parts[0].staves[0].measures[0]
+    const voiceOne = measure.voices.find((voice) => voice.id === 'voice-1')
+    const voiceTwo = measure.voices.find((voice) => voice.id === 'voice-2')
+
+    expect(source).toMatchObject({
+      type: 'range',
+      eventIds: ['v1-note-1', 'v1-note-2', 'v1-rest']
+    })
+    expect(clipboard).toMatchObject({
+      durationTicks: TICKS_PER_QUARTER * 2,
+      eventCount: 2
+    })
+    expect(command).toMatchObject({
+      type: 'voice-events.replace',
+      target: voiceTwoAddress,
+      editedEventId: 'filtered-voice-2-paste-1'
+    })
+    expect(voiceOne?.events.map((event) => event.id)).toEqual([
+      'v1-note-1',
+      'v1-note-2',
+      'v1-rest'
+    ])
+    expect(voiceTwo?.events).toMatchObject([
+      {
+        id: 'filtered-voice-2-paste-1',
+        type: 'note',
+        pitch: { step: 'C' },
+        position: { tick: 0 }
+      },
+      {
+        id: 'filtered-voice-2-paste-2',
+        type: 'note',
+        pitch: { step: 'D' },
+        position: { tick: TICKS_PER_QUARTER }
+      },
+      {
+        id: 'v2-rest',
+        type: 'rest',
+        position: { tick: TICKS_PER_QUARTER * 2 }
+      }
+    ])
+    expect(validateMeasureRhythm(measure).isExact).toBe(true)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('selection-filter.copy rejects filtered events that would leave rhythmic gaps', () => {
+    const score = scoreWith([
+      note('note-1', 0, 'quarter'),
+      rest('rest-1', TICKS_PER_QUARTER, 'quarter'),
+      note('note-2', TICKS_PER_QUARTER * 2, 'quarter'),
+      rest('rest-2', TICKS_PER_QUARTER * 3, 'quarter')
+    ])
+    const selection = createRangeSelection(score, 'note-1', 'note-2')
+
+    expect(
+      buildFilteredRangeClipboard(score, selection!, { eventTypes: 'notes' })
+    ).toBeUndefined()
+  })
+
   it('copies a single whole note and pastes it over a full-measure rest', () => {
     const score = createScore({
       parts: [
@@ -1585,6 +1795,44 @@ function scoreWithSameStaffDuplicateEventIds(): Score {
                     events: [
                       noteWithPitch('shared-note', 0, 'quarter', 'G'),
                       rest('v2-rest', TICKS_PER_QUARTER, 'half')
+                    ]
+                  })
+                ]
+              })
+            ]
+          })
+        ]
+      })
+    ]
+  })
+}
+
+function scoreWithSameStaffVoiceDuplicateRestIds(): Score {
+  return createScore({
+    parts: [
+      createPart({
+        id: 'part-1',
+        staves: [
+          createStaff({
+            id: 'staff-1',
+            measures: [
+              createMeasure({
+                id: 'measure-1',
+                voices: [
+                  createVoice({
+                    id: 'voice-1',
+                    events: [
+                      noteWithPitch('shared-note', 0, 'quarter', 'C'),
+                      rest('shared-rest', TICKS_PER_QUARTER, 'quarter'),
+                      rest('v1-rest', TICKS_PER_QUARTER * 2, 'half')
+                    ]
+                  }),
+                  createVoice({
+                    id: 'voice-2',
+                    events: [
+                      noteWithPitch('shared-note', 0, 'quarter', 'G'),
+                      rest('shared-rest', TICKS_PER_QUARTER, 'quarter'),
+                      rest('v2-rest', TICKS_PER_QUARTER * 2, 'half')
                     ]
                   })
                 ]

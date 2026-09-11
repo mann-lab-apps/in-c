@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
+import { XMLParser } from 'fast-xml-parser'
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -57,14 +58,24 @@ const externalFixtureManifest = JSON.parse(
     expectedDynamics: string[]
     expectedArticulations: string[]
     expectedVoiceCounts?: number[]
+    expectedVoiceIdsByStaff?: string[][]
+    expectedRawVoiceValuesByStaff?: string[][]
     expectedWarnings: string[]
     expectedWarningPaths: string[]
   }>
   requiredAppExports: Array<{
     sourceApp: string
+    referenceRole:
+      | 'primary-current-free-market-reference'
+      | 'primary-legacy-finale-style-migration-reference'
+      | 'secondary-commercial-reference'
     collectionStatus: 'manual-collection-required' | 'collected'
     targetFixtureId: string
     exportSettings: string
+    manualQaStatus:
+      | 'manual-gui-required'
+      | 'manual-gui-or-user-fixture-required'
+    fixtureSourcePolicy: string
     evidence: string
   }>
 }
@@ -236,15 +247,23 @@ describe('MusicXML MVP', () => {
   })
 
   it('import-export.external-app-fixture-qa parses representative notation app MusicXML fixtures', () => {
-    expect(externalFixtureManifest.fixtures.map((entry) => entry.sourceApp).sort()).toEqual([
-      'Dorico',
-      'Finale',
-      'MuseScore',
-      'Sibelius'
-    ])
+    expect(
+      [...new Set(externalFixtureManifest.fixtures.map((entry) => entry.sourceApp))].sort()
+    ).toEqual(['Dorico', 'Finale', 'MuseScore', 'Sibelius'])
     expect(
       externalFixtureManifest.requiredAppExports.map((entry) => entry.sourceApp).sort()
     ).toEqual(['Dorico', 'Finale', 'MuseScore', 'Sibelius'])
+    expect(
+      Object.fromEntries(
+        externalFixtureManifest.requiredAppExports.map((entry) => [
+          entry.sourceApp,
+          entry.referenceRole
+        ])
+      )
+    ).toMatchObject({
+      Finale: 'primary-legacy-finale-style-migration-reference',
+      MuseScore: 'primary-current-free-market-reference'
+    })
 
     const collectedAppExports = new Set(
       externalFixtureManifest.fixtures
@@ -255,6 +274,10 @@ describe('MusicXML MVP', () => {
     for (const requiredExport of externalFixtureManifest.requiredAppExports) {
       expect(requiredExport.targetFixtureId, requiredExport.sourceApp).toBeTruthy()
       expect(requiredExport.exportSettings.trim(), requiredExport.sourceApp).not.toBe('')
+      expect(requiredExport.fixtureSourcePolicy.trim(), requiredExport.sourceApp).not.toBe('')
+      expect(requiredExport.manualQaStatus, requiredExport.sourceApp).toMatch(
+        /^manual-/
+      )
       expect(requiredExport.evidence, requiredExport.sourceApp).toMatch(
         /^docs\/quality\/external-musicxml-fixture-qa\.md#/
       )
@@ -319,6 +342,16 @@ describe('MusicXML MVP', () => {
       if (fixtureEntry.expectedVoiceCounts) {
         expect(readScoreVoiceCounts(score), fixtureEntry.id).toEqual(
           fixtureEntry.expectedVoiceCounts
+        )
+      }
+      if (fixtureEntry.expectedVoiceIdsByStaff) {
+        expect(readScoreVoiceIdsByStaff(score), fixtureEntry.id).toEqual(
+          fixtureEntry.expectedVoiceIdsByStaff
+        )
+      }
+      if (fixtureEntry.expectedRawVoiceValuesByStaff) {
+        expect(readRawMusicXmlVoiceValuesByStaff(xml), fixtureEntry.id).toEqual(
+          fixtureEntry.expectedRawVoiceValuesByStaff
         )
       }
       expect([...new Set(report.warnings.map((warning) => warning.code))].sort()).toEqual(
@@ -2733,4 +2766,95 @@ function readScoreVoiceCounts(score: ReturnType<typeof parseMusicXml>): number[]
       staff.measures.map((measure) => measure.voices.length)
     )
   )
+}
+
+function readScoreVoiceIdsByStaff(score: ReturnType<typeof parseMusicXml>): string[][] {
+  return score.parts.flatMap((part) =>
+    part.staves.map((staff) => staff.measures[0]?.voices.map((voice) => voice.id) ?? [])
+  )
+}
+
+const rawMusicXmlParser = new XMLParser({
+  ignoreAttributes: false,
+  parseAttributeValue: false,
+  parseTagValue: false,
+  trimValues: true
+})
+
+function asArray<T>(value: T | T[] | null | undefined): T[] {
+  if (value == null) {
+    return []
+  }
+
+  return Array.isArray(value) ? value : [value]
+}
+
+function readRawMusicXmlVoiceValuesByStaff(xml: string): string[][] {
+  const document = rawMusicXmlParser.parse(xml) as {
+    'score-partwise'?: {
+      part?: unknown
+    }
+  }
+  const parts = asArray(document['score-partwise']?.part)
+
+  return parts.flatMap((partValue) => {
+    const part = partValue as {
+      measure?: unknown
+    }
+    const measures = asArray(part.measure)
+    const staffCount = Math.max(
+      1,
+      ...measures.flatMap((measureValue) => {
+        const measure = measureValue as {
+          attributes?: unknown
+          note?: unknown
+        }
+
+        return [
+          ...asArray(measure.attributes).flatMap((attributesValue) => {
+            const attributes = attributesValue as {
+              staves?: string
+            }
+
+            return attributes.staves ? [Number(attributes.staves)] : []
+          }),
+          ...asArray(measure.note).flatMap((noteValue) => {
+            const note = noteValue as {
+              staff?: string
+            }
+
+            return note.staff ? [Number(note.staff)] : []
+          })
+        ]
+      })
+    )
+    const voicesByStaff = Array.from({ length: staffCount }, () => new Set<string>())
+
+    for (const measureValue of measures) {
+      const measure = measureValue as {
+        note?: unknown
+      }
+
+      for (const noteValue of asArray(measure.note)) {
+        const note = noteValue as {
+          staff?: string
+          voice?: string
+        }
+
+        if (!note.voice) {
+          continue
+        }
+
+        const staffNumber = Number(note.staff ?? '1')
+        const staffIndex = Math.min(Math.max(staffNumber - 1, 0), staffCount - 1)
+        voicesByStaff[staffIndex].add(note.voice)
+      }
+    }
+
+    return voicesByStaff.map((voices) =>
+      [...voices].sort(
+        (left, right) => Number(left) - Number(right) || left.localeCompare(right)
+      )
+    )
+  })
 }

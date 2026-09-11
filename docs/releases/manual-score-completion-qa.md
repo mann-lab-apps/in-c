@@ -42,6 +42,12 @@
 - 셈여림표와 hairpin이 오선과 겹치지 않는다.
 - MusicXML로 다시 저장하고 가져왔을 때 주요 표현이 유지된다.
 
+2026-09-11 Codex automation note: `npm run verify:musescore-cli-fixtures` now
+renders the collected MuseScore 4.7.5 CLI app-export grand staff fixture through
+MuseScore Studio into a structurally valid PDF. This is useful reference-app
+import/render evidence, but it is not a human visual QA pass and does not
+replace the file-dialog PDF checks below.
+
 ## 파트보 PDF 수동 확인
 
 자동 smoke는 string quartet Cello part view의 direct-path PDF target/write/structure와
@@ -59,7 +65,7 @@ dialog를 통해 아래 항목을 별도로 확인하고 근거를 남긴다.
 | --- | --- | --- | --- |
 | 2-4 part ensemble에서 Viola 또는 Cello 파트보 선택 | 화면 상태와 제목이 선택 part를 가리킨다. | 미실행 |  |
 | PDF 설정 프리셋 `컴팩트 파트보` 적용 | A4 portrait, 좁은 여백, 축소된 staff size가 파트보에 적용된다. | 미실행 |  |
-| file dialog로 파트보 PDF 저장 | 저장 dialog가 열리고 선택한 경로에 PDF가 생성된다. | 미실행 |  |
+| `내보내기` 탭에서 file dialog로 파트보 PDF 저장 | 저장 dialog가 열리고 선택한 경로에 PDF가 생성된다. | 미실행 |  |
 | 저장된 PDF 열기 | PDF 제목 영역에 score title과 selected part title이 보이고, 다른 part 보표/event가 보이지 않는다. | 미실행 |  |
 | 총보로 되돌린 뒤 PDF 저장 | 총보 PDF에는 전체 part가 다시 보인다. | 미실행 |  |
 
@@ -77,9 +83,9 @@ human file-dialog visual QA pass.
 
 | 항목 | 기대 결과 | 결과 | 근거 |
 | --- | --- | --- | --- |
-| Letter landscape, 12mm margin, 90% staff size, 120% system spacing으로 총보 PDF 저장 | viewer의 page size/orientation과 시각 여백이 설정과 일치한다. | 미실행 |  |
-| `출판 A4` preset으로 총보 PDF 저장 | A4 portrait, 12mm margin, 95% staff size, 125% system spacing이 눈에 띄는 왜곡 없이 적용된다. | 미실행 |  |
-| `컴팩트 파트보` preset으로 선택 part PDF 저장 | A4 portrait, 6mm margin, 90% staff size, 90% system spacing이 파트보에 적용되고 제목/보표가 잘리지 않는다. | 미실행 |  |
+| `내보내기` 탭에서 Letter landscape, 12mm margin, 90% staff size, 120% system spacing으로 총보 PDF 저장 | viewer의 page size/orientation과 시각 여백이 설정과 일치한다. | 미실행 |  |
+| `내보내기` 탭에서 `출판 A4` preset으로 총보 PDF 저장 | A4 portrait, 12mm margin, 95% staff size, 125% system spacing이 눈에 띄는 왜곡 없이 적용된다. | 미실행 |  |
+| `내보내기` 탭에서 `컴팩트 파트보` preset으로 선택 part PDF 저장 | A4 portrait, 6mm margin, 90% staff size, 90% system spacing이 파트보에 적용되고 제목/보표가 잘리지 않는다. | 미실행 |  |
 | 목표 장수 1-2장 강제 설정 | 페이지 수가 기대 범위에 들어오며 readable floor 아래로 깨지지 않는다. | 미실행 |  |
 
 ## Playback/Mixer 수동 확인

@@ -5,7 +5,7 @@
 
 ## 목적
 
-Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 V1 후보로 다시 정의한다. 이 문서는 MuseScore Studio, Dorico Pro, Sibelius를 레퍼런스로 삼되, 소스코드나 커뮤니티 글이 아니라 공식 매뉴얼, 공식 도움말, 공식 릴리즈 문서에서 확인되는 기능 표면만 기준으로 삼는다.
+Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 V1 후보로 다시 정의한다. 이 문서는 무료 현행 시장 레퍼런스인 MuseScore Studio와 사용자가 익숙한 Finale-style workflow를 primary 기준으로 삼고, Dorico Pro와 Sibelius는 secondary commercial reference로 유지한다. 소스코드나 커뮤니티 글이 아니라 공식 매뉴얼, 공식 도움말, 공식 릴리즈 문서에서 확인되는 기능 표면만 기준으로 삼는다.
 
 상용 V1의 현실적인 목표는 "전문가가 모든 대편성 악보를 완성하는 앱"이 아니라, 아래 작업을 신뢰할 수 있게 끝내는 데 있다.
 
@@ -18,6 +18,15 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 ## 공식 레퍼런스
 
 ### MuseScore Studio
+
+역할: primary current/free market reference. 2026-09-11 local audit에서
+`/Applications/MuseScore 4.app`이 발견되었고 bundle version은 4.7.5,
+CLI executable 후보는 `/Applications/MuseScore 4.app/Contents/MacOS/mscore`다.
+2026-09-11에 MuseScore Studio 4.7.5 CLI가 export한
+`musescore-4-7-5-cli-grand-staff-export.musicxml` fixture를 수집했고
+`npm run verify:musescore-cli-fixtures`로 해당 fixture의 MuseScore PDF 렌더링 smoke를
+반복 검증한다. 단, 이는 CLI app-export evidence이며 GUI-created MuseScore score,
+reopen/manual snapshot, human PDF review는 여전히 public RC 전 수동 QA로 남긴다.
 
 | 확인한 공식 섹션 | Commercial V1에 주는 신호 |
 | --- | --- |
@@ -32,6 +41,23 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | File export | PDF, MusicXML, MIDI, part별 export가 실사용 교환 표면임. |
 | Working with MusicXML files | MusicXML은 앱 간 교환 표준이지만 layout cleanup이 필요할 수 있음을 제품적으로 설명해야 함. |
 | Page layout / score size and spacing | page size, margin, staff size, vertical spacing, page breaks, staff/system spacing 조정이 필요함. |
+
+### Finale-style workflow
+
+역할: primary legacy workflow and migration reference. Finale는 공식적으로 개발과
+판매가 종료된 제품이므로 현행 경쟁 제품 기준이 아니라, 사용자가 익숙한 Simple
+Entry/Speedy Entry/tool palette/menu workflow와 Finale-origin MusicXML migration
+기준으로 사용한다. 2026-09-11 local audit에서 Finale 앱은 `/Applications` 또는
+사용자 Applications 폴더에서 발견되지 않았다. 따라서 Finale-origin real fixture는
+사용자가 제공하는 Finale-origin MusicXML 또는 별도 설치 환경에서 수집해야 한다.
+
+| 확인한 공식/legacy 섹션 | Commercial V1에 주는 신호 |
+| --- | --- |
+| Finale discontinuation notice | Finale는 더 이상 현행 개발 기준이 아니므로 Chromatics V1은 Finale 사용자 migration과 workflow familiarity를 별도 QA 축으로 다뤄야 함. |
+| Finale/Garritan support status | Finale technical support 종료 후에도 registered product download/authorization resource는 남아 있으나, 앱 자체 확인은 사용자 보유 환경에 의존함. |
+| Simple Entry | rhythmic value, sharp/flat, tuplet, dot, tie를 entry palette에서 빠르게 조합하는 workflow가 Finale 사용자 기대치임. |
+| Speedy Entry | keyboard-first / MIDI-assisted 빠른 입력은 post-V1 또는 V1 polish 후보지만, duration/voice/accidental 조작의 즉시성은 V1 UI 기준에 반영해야 함. |
+| MusicXML 4.0 export migration | Finale-origin 파일을 MusicXML로 옮기는 migration QA가 public RC 전 필요함. |
 
 ### Dorico Pro
 
@@ -75,7 +101,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 
 | 영역 | 기능 | 판정 | 현재 Chromatics 상태 | 남은 gap |
 | --- | --- | --- | --- | --- |
-| Score setup | 새 악보, title/composer, clef/key/time/tempo, measure count | Commercial V1 Required | 기본 생성 흐름 있음 | 템플릿, metadata polish, 첫 화면 정리 필요 |
+| Score setup | 새 악보, title/composer, clef/key/time/tempo, measure count | Commercial V1 Required | 기본 생성 흐름과 built-in template picker 있음 | user-saved template/style workflow, metadata polish, 첫 화면 정리 필요 |
 | Score setup | instrument/player/part 모델 | Commercial V1 Required | partId/staffId/voiceId 기반이 있음 | instrument picker, ordering, part label, transposition metadata polish |
 | Score setup | piano grand staff | Commercial V1 Required | grand staff workflow 일부 있음 | 양손 입력 UX, brace/bracket, staff spacing, playback/export QA |
 | Score setup | 2-4 part ensemble | Commercial V1 Required | string quartet 자동 QA 일부 있음 | part별 입력, 저장/reopen/export manual RC QA |
@@ -90,7 +116,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | Input | grace notes | V1 Polish | 확인 필요 | 없으면 known limitation으로 분리 |
 | Editing | single/list/range selection | Commercial V1 Required | 구현 및 polish 일부 있음 | overlap object selection, voice/staff/part filter |
 | Editing | copy/paste notes and attached markings | Commercial V1 Required | 일부 구현 | lyrics/chords/dynamics/slurs voice-aware paste regression |
-| Editing | selection filters | Commercial V1 Required | 부족 | voice/object type filter가 필요 |
+| Editing | selection filters | Commercial V1 Required | V1 필수 범위의 `전체/음표만/쉼표만` event-type filter가 File command surface, context strip, filtered delete/copy/paste에 연결됨 | lyrics/chord/dynamics 같은 object-type fine filters는 별도 V1 Polish/Post-V1 후보 |
 | Editing | undo/redo reliable editing history | Commercial V1 Required | 확인 필요 | compound edit, import/export, layout option change coverage |
 | Editing | keyboard navigation-first policy | Commercial V1 Required | Up/Down 정책 변경됨 | shortcut help/preferences polish |
 | Editing | transpose, octave shift, enharmonic respell | Commercial V1 Required | 일부 구현 | diatonic/chromatic UX, multi-selection QA |
@@ -102,7 +128,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | Notation | chord symbols | Commercial V1 Required | 구현 및 QA 일부 | parsing breadth, slash chords, positioning/export QA |
 | Notation | rehearsal marks and system text | Commercial V1 Required | 일부 구현 | automatic sequence, placement, export/reopen QA |
 | Notation | repeats and volta | Commercial V1 Required | playback repeat slice 있음 | engraving, export/reopen, manual playback QA |
-| Layout | page size/orientation/margins/staff size | Commercial V1 Required | PDF preset 첫 slice 있음 | print plan/export consistency, manual PDF visual QA |
+| Layout | page size/orientation/margins/staff size | Commercial V1 Required | PDF preset 첫 slice 있음. 2026-09-11 MuseScore parity slice로 `내보내기` 탭에 non-printing page margin guide toggle을 추가했고, 현재 margin mm가 score page preview guide inset에 반영되며 PDF export capture 중에는 숨겨지는 App regression을 추가함 | 실제 PDF viewer visual QA, page fitting polish |
 | Layout | staff/system spacing | Commercial V1 Required | 일부 있음 | page fitting, part-specific spacing, visual QA |
 | Layout | collision avoidance for text/lines/spans | Commercial V1 Required | annotation lane 일부 있음 | solo/piano/ensemble visual regression 확대 |
 | Layout | style presets and engraving options | V1 Polish | 제한적 | 최소 "default/readable/compact part" preset 필요 |
@@ -111,7 +137,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | Parts | independent part layout persistence | Commercial V1 Required | preference workflow 첫 slice 있음 | per-part layout/page setup persistence 정책 |
 | Parts | cues / condensing / score subsets | Post-V1 | 없음 | 상용 V1 이후로 명시 |
 | File | native project format | Commercial V1 Required decision | MusicXML primary save policy 확정 | 상용 V1은 native format 도입 또는 위험 문서화 필요 |
-| File | MusicXML import/export | Commercial V1 Required | 구현 및 compatibility seed verifier 있음 | MuseScore/Dorico/Sibelius/Finale 실제 fixture 수집 |
+| File | MusicXML import/export | Commercial V1 Required | 구현, compatibility seed verifier, MuseScore 4.7.5 CLI app-export fixture 있음 | Finale/Dorico/Sibelius 실제 fixture와 MuseScore GUI/manual reopen snapshot 수집 |
 | File | unsupported MusicXML report | Commercial V1 Required | 상세 report UI 첫 slice 있음 | false positive warning 축소 지속 |
 | File | PDF export | Commercial V1 Required | 구현 및 smoke 일부 있음 | 사람 기준 visual QA, signed packaged path QA |
 | File | MIDI export | Commercial V1 Required | 구현 및 verifier 있음 | DAW/notation app external open QA |
@@ -123,7 +149,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 | Packaging | Windows packaged app | Commercial V1 Required | 미실행 | installer/smoke/signing policy 필요 |
 | Packaging | Linux support | V1 Polish | 정책 필요 | 지원/미지원 명확화 |
 | Release | evidence log and release gates | Commercial V1 Required | 문서 있음 | 최신 실행 결과, manual Pass/Fail/Not run 정리 |
-| UX | toolbar/ribbon/palette organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가함 | 상용 V1 전 Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup을 더 명확히 분리해야 함 |
+| UX | toolbar/ribbon/palette/properties organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07 measure-level palette slice로 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 `표기 객체` 탭에서 조작하도록 분리했다. 2026-09-07 Lyrics/Chords slice로 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭의 별도 코드 group에 배치했다. 2026-09-07 Export/Page Setup slice로 PDF/MIDI export와 PDF page setup controls를 `파일`/`악보`에서 빼고 `내보내기` 탭으로 분리했으며, MIDI export도 현재 full score/selected part view 정책을 따르도록 고정했다. 2026-09-11 MuseScore parity slice로 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다 | 상용 V1 전 editable Properties inspector 확장, user-configurable dock layout, compact desktop visual QA가 더 필요함 |
 | UX | discoverability, shortcuts, command help | V1 Polish | 일부 shortcut migration | shortcut reference/preferences 필요 |
 | UX | accessibility and localization | V1 Polish | 확인 필요 | 최소 keyboard focus/label QA |
 
@@ -132,7 +158,7 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 1. **전문 사보 UI 재정리**
    현재 기능이 많아졌지만 상단 controls가 한꺼번에 노출되어 난잡하다. MuseScore의 palette/properties, Dorico의 mode/panel, Sibelius의 ribbon/keypad처럼 기능을 작업 맥락별로 나눠야 한다. Commercial V1에서는 최소한 Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 정보 구조를 다시 잡아야 한다.
 
-   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 아직 category naming, notation object palette, export/page setup 분리는 남아 있으므로 Commercial V1 UI blocker 전체가 완료된 것은 아니다.
+   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 2026-09-07 measure-level palette slice는 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 Score Setup에서 `표기 객체` 탭으로 옮겨 note-entry와 structural setup 표면에서 분리했다. 2026-09-07 Lyrics/Chords slice는 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭 안의 별도 `코드` group으로 옮겼으며, note 선택은 선택 event tick, measure 선택은 measure start tick 0에 chord symbol을 붙이는 정책을 App 테스트로 고정했다. 2026-09-07 Export/Page Setup slice는 `파일` 탭을 새 악보/MusicXML 가져오기/저장과 기본 편집 명령 중심으로 남기고, PDF/MIDI export, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset을 `내보내기` 탭으로 옮겼다. PDF/MIDI export는 현재 score view, 즉 full score 또는 selected part view를 따르며, part view MIDI suggested filename까지 App 테스트로 고정했다. 2026-09-11 queue run은 Electron E2E에 960px compact desktop work-mode 순회 guard를 추가해 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, document/context/text overflow를 자동 점검한다. 같은 날 MuseScore parity slice로 선택 event/measure/range를 읽는 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다. 아직 editable Properties inspector 확장, user-configurable dock layout, 사람이 실제 compact desktop 화면 밀도/naming을 보는 manual visual QA는 남아 있으므로 Commercial V1 UI signoff 전체가 완료된 것은 아니다.
 
 2. **same-staff multi-voice production polish**
    같은 보표 다성부는 "있다"가 아니라 rests, stems, selection, copy/paste, playback, MusicXML, collision까지 한 workflow로 통과해야 한다.
@@ -141,7 +167,8 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
    part view가 총보 필터가 아니라 독립 파트보처럼 보이고 저장되어야 한다. 선택 part만 PDF/MusicXML/MIDI export되는지 자동 테스트와 manual QA가 모두 필요하다.
 
 4. **외부 MusicXML fixture QA**
-   MuseScore, Dorico, Sibelius, Finale-origin 실제 export fixture가 없으면 상용 V1 호환성 주장은 약하다. Compatibility seed는 유지하되 실제 앱 버전, export setting, warning snapshot, reopen screenshot/evidence를 versioned fixture로 관리해야 한다.
+   MuseScore, Dorico, Sibelius, Finale-origin 실제 export fixture가 없으면 상용 V1 호환성 주장은 약하다. Compatibility seed는 유지하되 실제 앱 버전, export setting, warning snapshot, reopen screenshot/evidence를 versioned fixture로 관리해야 한다. 2026-09-11 MuseScore CLI app-export fixture와 import/render smoke는 MuseScore 축의 자동 evidence를 한 단계 올렸지만, GUI-created source score와 reopen/manual snapshot은 아직 대체하지 않는다.
+   같은 날 `verify:notation-reference-apps`는 Dorico/Sibelius까지 포함하도록 확대되어 네 앱의 local availability, required fixture status, next action을 한 번에 출력한다. Dorico/Sibelius/Finale는 현재 로컬 미설치이므로 app-export fixture 수집은 external/manual blocker로 남는다.
 
 5. **engraving collision avoidance**
    lyrics, dynamics, hairpins, slurs, chord symbols, rehearsal marks가 한 시스템에서 겹치지 않아야 한다. 자동 layout test만으로 끝내지 말고 PDF visual manual QA를 release gate로 둔다.
@@ -178,12 +205,15 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 
 ## 다음 작업 추천 순서
 
-1. Commercial V1 UX information architecture: 난잡한 상단 UI를 전문 작업 흐름 중심으로 재배치한다.
-2. External MusicXML fixture collection: MuseScore, Dorico, Sibelius, Finale 실제 export fixture 1개씩 수집한다.
-3. Same-staff multi-voice release score: piano grand staff fixture로 입력, layout, playback, export/reopen을 고정한다.
-4. Part extraction release score: string quartet fixture로 selected part view/PDF/MusicXML/MIDI를 고정한다.
-5. Manual PDF/playback/package QA: solo, piano, ensemble 세 악보를 release candidate evidence로 채운다.
-6. Native format decision: 상용 V1 포함 여부를 결정하고 migration policy를 문서화한다.
+1. MuseScore Studio급 장기 parity 작업은 `docs/product/chromatics-musescore-parity-roadmap.md`와 `npm run verify:chromatics-musescore-parity-roadmap`를 시작점으로 삼는다. 최소 V1 RC 자동 큐가 비어도 MuseScore parity 큐의 `Todo`가 남아 있으면 제품 완성 판정으로 보지 않는다.
+2. `docs/product/chromatics-commercial-v1-work-queue.md`와 `npm run verify:chromatics-v1-work-queue`는 Commercial V1 최소 blocker 큐의 회귀 확인용으로 유지한다.
+3. Commercial V1 UX information architecture: 난잡한 상단 UI를 전문 작업 흐름 중심으로 재배치한다. `전체/음표만/쉼표만` selection filter는 File command surface/context strip/delete/copy/paste까지 연결되었고 compact desktop E2E mode guard가 추가되었다. 2026-09-11 MuseScore parity 첫 slice로 Export/Page Setup의 page margin guide preview를 추가했다. 남은 것은 사람이 compact desktop 화면 밀도와 naming을 확인하는 manual visual QA다.
+4. MuseScore/Finale reference fixture collection: 설치된 MuseScore 4.7.5의 CLI app-export fixture와 `verify:musescore-cli-fixtures` import/render smoke를 유지하면서, MuseScore GUI reopen/manual snapshot을 채운다. Finale는 사용자 제공 Finale-origin MusicXML 또는 별도 호환 환경에서 migration fixture를 확보한다.
+5. Dorico/Sibelius secondary fixture collection: `verify:notation-reference-apps`의 nextAction에 따라 실제 export fixture 또는 사용자 제공 파일을 확보한다.
+6. Same-staff multi-voice release score: piano grand staff fixture로 입력, layout, playback, export/reopen을 고정한다.
+7. Part extraction release score: string quartet fixture로 selected part view/PDF/MusicXML/MIDI를 고정한다.
+8. Manual PDF/playback/package QA: solo, piano, ensemble 세 악보를 release candidate evidence로 채운다.
+9. Native format decision: V1은 MusicXML primary save와 post-V1 native format 정책으로 고정했고 `verify:chromatics-v1-save-policy`로 문서/코드 warning 일관성을 검증한다. 별도 native format 설계는 post-V1 work item으로 다시 연다.
 
 ## 출처
 
@@ -194,6 +224,9 @@ Chromatics Desktop V1의 기존 "개인용 MVP / public alpha" 범위를 상용 
 - MuseScore Studio, File export: https://handbook.musescore.org/en_gb/file-management/file-export
 - MuseScore Studio, Working with MusicXML files: https://handbook.musescore.org/file-management/working-with-musicxml-files
 - MuseScore Studio, Score size and spacing: https://handbook.musescore.org/en_gb/formatting/score-size-and-spacing
+- MakeMusic, The End of Finale: https://www.finalemusic.com/blog/end-of-finale-new-journey-dorico-letter-from-president/
+- Finale/Garritan Help Center, technical support ended: https://makemusic.zendesk.com/hc/en-us/articles/33668410024343-What-Happens-Now-That-Finale-Technical-Support-Has-Ended
+- Finale User Manual, Simple Entry: https://usermanuals.finalemusic.com/FinaleWin/Content/Finale/Simple_Entry.htm
 - Dorico Pro Help 6.2: https://www.steinberg.help/r/dorico-pro/6.2/en
 - Dorico Pro, Export MusicXML dialog 6.1: https://www.steinberg.help/r/dorico-pro/6.1/en/dorico/topics/project_file_handling/project_file_handling_export_musicxml_dialog_r.html
 - Avid Sibelius Documentation: https://kb.avid.com/pkb/articles/en_US/user_guide/Sibelius-Documentation-All

@@ -116,7 +116,7 @@ macOS 또는 Windows 중 하나라도 `실패` 또는 `미실행`이면 V1 deskt
 
 - 전체 판정: 미실행
 - 보안 경고 또는 운영체제별 차이: macOS local unpacked package uses unsigned build with `mac.identity: null` for automated smoke; installer/DMG and Windows packages were not verified. Linux is post-V1.
-- 후속 이슈: release candidate에서 실제 file dialog 기반 MusicXML/PDF/MIDI 저장, 사람이 확인하는 총보/파트보 PDF와 MIDI 산출물 열기, MusicXML 다시 열기, 앱 종료/재실행을 OS별로 확인한다.
+- 후속 이슈: release candidate에서 실제 file dialog 기반 MusicXML 저장은 `파일` 탭에서, PDF/MIDI export와 page setup은 `내보내기` 탭에서 수행하고, 사람이 확인하는 총보/파트보 PDF와 MIDI 산출물 열기, MusicXML 다시 열기, 앱 종료/재실행을 OS별로 확인한다.
 
 ## RC 수동/외부 QA availability audit: 2026-09-03
 
@@ -132,3 +132,16 @@ macOS 또는 Windows 중 하나라도 `실패` 또는 `미실행`이면 V1 deskt
 | PDF viewer 보조 확인 | 자동 보조 확인 | latest available packaged smoke PDF는 `pdfinfo` 기준 A4 1페이지/rotation 0이고 Poppler PNG render에 성공했다. | 실제 file dialog로 총보/파트보 PDF를 저장하고 viewer에서 사람이 visual QA를 수행한다. |
 | Windows packaged smoke | 미실행 | 현재 실행 환경은 macOS arm64이며 Windows artifact/OS session 없음. | Windows x64 installer 또는 portable EXE에서 설치/첫 실행/save/open/export smoke를 수행한다. |
 | Linux release policy | V1 후속 | Chromatics Desktop V1 public release target is macOS and Windows; Linux is post-V1 unless explicitly promoted with an AppImage artifact and OS smoke evidence. | post-V1에서 Linux artifact를 만들면 별도 AppImage smoke matrix를 추가한다. |
+
+## RC reference-app automation audit: 2026-09-11
+
+- 환경: macOS arm64
+- 확인자: Codex
+
+| 항목 | 결과 | 근거 | 다음 action |
+| --- | --- | --- | --- |
+| MuseScore reference app | 부분 확인 | MuseScore Studio 4.7.5 CLI가 `/Applications/MuseScore 4.app/Contents/MacOS/mscore`에서 실행됨. `musescore-4-7-5-cli-grand-staff-export.musicxml`을 app-export fixture로 수집했고, `npm run verify:musescore-cli-fixtures`가 이 fixture를 PDF로 렌더링해 PDF header/EOF/size 검증을 통과했다. | MuseScore GUI-created source score와 reopen/manual snapshot을 추가로 확인한다. |
+| Dorico reference app | 미실행 | 2026-09-11 `npm run verify:notation-reference-apps`에서 Dorico app이 로컬 Applications 폴더에 없음을 확인했다. | Dorico를 설치하거나 documented Dorico-origin MusicXML fixture를 제공해 manifest에 연결한다. |
+| Sibelius reference app | 미실행 | 2026-09-11 `npm run verify:notation-reference-apps`에서 Sibelius app이 로컬 Applications 폴더에 없음을 확인했다. | Sibelius를 설치하거나 documented Sibelius-origin MusicXML fixture를 제공해 manifest에 연결한다. |
+| Finale reference app | 미실행 | Finale는 로컬 Applications audit에서 발견되지 않음. | 호환 가능한 Finale 환경을 설치하거나 사용자 제공 Finale-origin MusicXML migration fixture를 확보한다. |
+| 수동 file dialog QA | 미실행 | 새 MuseScore CLI smoke는 external app import/render 자동화이며 Chromatics packaged app file dialog 조작을 수행하지 않는다. | macOS/Windows packaged app에서 실제 MusicXML/PDF/MIDI save/open/export, quit/relaunch를 사람이 확인한다. |
