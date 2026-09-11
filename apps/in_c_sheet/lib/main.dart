@@ -191,9 +191,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       _isBulkSelecting = false;
       _bulkSelectedScoreIds.clear();
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$changedCount개 악보 metadata를 일괄 편집했습니다.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$changedCount개 악보 정보를 일괄 편집했습니다.')));
   }
 
   Future<void> _showBulkSetlistAdd() async {
@@ -477,7 +477,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           builder: (context) => AlertDialog(
             title: const Text('라이브러리 비우기'),
             content: Text(
-              '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 metadata만 비웁니다.',
+              '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 정보만 비웁니다.',
             ),
             actions: [
               TextButton(
@@ -839,7 +839,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     messenger.showSnackBar(
-      SnackBar(content: Text('metadata 백업을 저장했습니다: ${result.outputUri}')),
+      SnackBar(content: Text('정보 백업을 저장했습니다: ${result.outputUri}')),
     );
   }
 
@@ -899,9 +899,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('metadata 복원'),
+        title: const Text('정보 복원'),
         content: const Text(
-          '백업 JSON의 악보 metadata, 세트리스트, 도구 설정으로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+          '백업 JSON의 악보 정보, 세트리스트, 도구 설정으로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
         ),
         actions: [
           TextButton(
@@ -925,7 +925,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     }
     final message = switch (result.status) {
       SheetLibraryBackupRestoreStatus.restored =>
-        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 복원했습니다.',
+        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 복원했습니다.',
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion => '지원하지 않는 백업 버전입니다.',
       SheetLibraryBackupRestoreStatus.invalid => '올바른 백업 JSON이 아닙니다.',
@@ -939,9 +939,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('자동 metadata 복원'),
+        title: const Text('자동 정보 복원'),
         content: const Text(
-          '마지막 자동 metadata snapshot으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+          '마지막 자동 정보 백업으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
         ),
         actions: [
           TextButton(
@@ -965,11 +965,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     }
     final message = switch (result.status) {
       SheetLibraryBackupRestoreStatus.restored =>
-        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 자동 백업에서 복원했습니다.',
+        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 자동 백업에서 복원했습니다.',
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion =>
         '지원하지 않는 자동 백업 버전입니다.',
-      SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 metadata 백업이 없습니다.',
+      SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 정보 백업이 없습니다.',
       SheetLibraryBackupRestoreStatus.error => '자동 백업을 복원하지 못했습니다.',
     };
     ScaffoldMessenger.of(context)
@@ -1152,7 +1152,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       builder: (context) => AlertDialog(
         title: const Text('전체 백업 복원'),
         content: const Text(
-          'ZIP 백업의 악보 metadata, 세트리스트, 도구 설정과 포함된 PDF 파일로 현재 앱 데이터를 덮어씁니다.',
+          'ZIP 백업의 악보 정보, 세트리스트, 도구 설정과 포함된 PDF 파일로 현재 앱 데이터를 덮어씁니다.',
         ),
         actions: [
           TextButton(
@@ -1256,21 +1256,21 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 value: _LibraryBackupAction.exportMetadata,
                 child: ListTile(
                   leading: Icon(Icons.ios_share),
-                  title: Text('metadata 백업'),
+                  title: Text('정보 백업'),
                 ),
               ),
               PopupMenuItem<_LibraryBackupAction>(
                 value: _LibraryBackupAction.importMetadata,
                 child: ListTile(
                   leading: Icon(Icons.restore),
-                  title: Text('metadata 복원'),
+                  title: Text('정보 복원'),
                 ),
               ),
               PopupMenuItem<_LibraryBackupAction>(
                 value: _LibraryBackupAction.restoreAutomaticMetadata,
                 child: ListTile(
                   leading: Icon(Icons.history),
-                  title: Text('자동 metadata 복원'),
+                  title: Text('자동 정보 복원'),
                 ),
               ),
               PopupMenuDivider(),
@@ -2061,7 +2061,7 @@ String _rehearsalMarkKindLabel(String kind) {
 String _cropPresetScopeLabel(String scope) {
   return switch (scope) {
     SheetCropPreset.oddEvenScope => '홀수/짝수 페이지',
-    SheetCropPreset.coverExcludedScope => 'Cover 제외',
+    SheetCropPreset.coverExcludedScope => '표지 제외',
     _ => '모든 페이지',
   };
 }
@@ -2489,7 +2489,7 @@ class _CustomFieldsEditor extends StatelessWidget {
             ),
           ),
           if (fields.isEmpty)
-            Text('추가 metadata 없음', style: theme.textTheme.bodySmall)
+            Text('추가 정보 없음', style: theme.textTheme.bodySmall)
           else
             for (var index = 0; index < fields.length; index += 1)
               ListTile(
@@ -2792,14 +2792,14 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 12),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
-          const _InfoRow(label: '빌드', value: 'Beta test build'),
+          const _InfoRow(label: '빌드', value: '내부 테스트 빌드'),
           _InfoRow(label: '악보', value: '${scores.length}개'),
           _InfoRow(label: '세트리스트', value: '${setlists.length}개'),
           _InfoRow(label: '즐겨찾기/고정', value: '$favoriteCount/$pinnedCount'),
           _InfoRow(label: '필기 요약', value: annotationSummary),
           _InfoRow(label: '외부 필기 저장소', value: '$externalAnnotationCount개 악보'),
-          _InfoRow(label: 'Custom pedal', value: '$customPedalCount개 악보'),
-          _InfoRow(label: 'Page metadata', value: '$pageMetadataCount개 악보'),
+          _InfoRow(label: '사용자 페달', value: '$customPedalCount개 악보'),
+          _InfoRow(label: '페이지 설정', value: '$pageMetadataCount개 악보'),
           const SizedBox(height: 18),
           Text(
             '확인할 항목',
@@ -2839,13 +2839,13 @@ pageMetadataScores=$pageMetadataCount
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: _debugSummary()));
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Debug summary를 복사했습니다.')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('진단 요약을 복사했습니다.')));
               }
             },
             icon: const Icon(Icons.bug_report_outlined),
-            label: const Text('Debug summary 복사'),
+            label: const Text('진단 요약 복사'),
           ),
         ],
       ),
@@ -4698,7 +4698,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
             const Divider(),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('공연 보기 preset'),
+              title: const Text('공연 보기 프리셋'),
               subtitle: const Text('세트리스트로 열 때 곡별 보기 설정보다 우선 적용'),
               value: _useViewerOverride,
               onChanged: (value) => setState(() {
@@ -6640,7 +6640,7 @@ setlist=$setlistLabel
             ),
             const ListTile(
               leading: Icon(Icons.info_outline),
-              title: Text('파트/버전은 metadata로 관리됩니다'),
+              title: Text('파트/버전은 앱 안 정보로 관리됩니다'),
               subtitle: Text('원본 PDF를 수정하지 않고 현재 파일과 연결 파일만 전환합니다.'),
             ),
             for (final linkedFile in currentScore.linkedFiles)
@@ -6867,7 +6867,7 @@ setlist=$setlistLabel
 
   Future<void> _importPdfOutlineBookmarks() async {
     if (_pdfOutlineBookmarks.isEmpty) {
-      _showSnackBar('가져올 PDF outline/bookmark가 없습니다.');
+      _showSnackBar('가져올 PDF 목차/북마크가 없습니다.');
       return;
     }
     final didMerge = await widget.controller.mergeBookmarksFromOutline(
@@ -6876,8 +6876,8 @@ setlist=$setlistLabel
     );
     _showSnackBar(
       didMerge
-          ? '${_pdfOutlineBookmarks.length}개 PDF outline 후보를 북마크에 병합했습니다.'
-          : '새로 병합할 PDF outline 항목이 없습니다.',
+          ? '${_pdfOutlineBookmarks.length}개 PDF 목차 후보를 북마크에 병합했습니다.'
+          : '새로 병합할 PDF 목차 항목이 없습니다.',
     );
   }
 
@@ -7474,9 +7474,7 @@ setlist=$setlistLabel
             return ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: Text('$pageNumber쪽'),
-              subtitle: rotation == null
-                  ? null
-                  : Text('회전 $rotation도 metadata'),
+              subtitle: rotation == null ? null : Text('회전값 $rotation도'),
               trailing: IconButton(
                 tooltip: '숨김 해제',
                 onPressed: () => Navigator.of(context).pop(pageNumber),
@@ -8126,7 +8124,7 @@ setlist=$setlistLabel
         ? '$pageNumber쪽'
         : '순서 ${orderIndex + 1}';
     _showSnackBar(
-      '$targetLabel 회전 metadata: $label',
+      '$targetLabel 회전값: $label',
       action: hasPageRotations || hasInstanceRotations
           ? SnackBarAction(
               label: '사본 생성',
@@ -8149,11 +8147,11 @@ setlist=$setlistLabel
     }
     final currentScore = score;
     if (currentScore.pageSettings.pageRotations.isEmpty) {
-      _showSnackBar('적용할 페이지 회전 metadata가 없습니다.');
+      _showSnackBar('적용할 페이지 회전값이 없습니다.');
       return;
     }
     if (currentScore.pageSettings.instanceRotations.isNotEmpty) {
-      _showSnackBar('instance 회전은 페이지 정리 적용 사본으로 재배치해주세요.');
+      _showSnackBar('개별 회전값은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -8161,7 +8159,7 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('회전 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, 회전 metadata를 실제 페이지 회전으로 '
+          '원본 PDF는 연결 파일로 보존하고, 저장한 회전값을 실제 페이지 회전으로 '
           '적용한 앱 내부 사본을 만듭니다.',
         ),
         actions: [
@@ -8218,11 +8216,11 @@ setlist=$setlistLabel
     final currentScore = score;
     if (!currentScore.pageSettings.crop.hasCrop &&
         currentScore.pageSettings.pageCrops.isEmpty) {
-      _showSnackBar('적용할 crop metadata가 없습니다.');
+      _showSnackBar('적용할 자르기 설정이 없습니다.');
       return;
     }
     if (currentScore.pageSettings.instanceCrops.isNotEmpty) {
-      _showSnackBar('instance crop은 페이지 정리 적용 사본으로 재배치해주세요.');
+      _showSnackBar('개별 자르기 값은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -8230,7 +8228,7 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('자르기 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, crop metadata를 실제 PDF CropBox로 '
+          '원본 PDF는 연결 파일로 보존하고, 저장한 자르기 값을 실제 PDF CropBox로 '
           '적용한 앱 내부 사본을 만듭니다.',
         ),
         actions: [
@@ -8345,11 +8343,11 @@ setlist=$setlistLabel
           children: [
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('현재 자르기 값을 preset으로 저장'),
+              title: const Text('현재 자르기 값을 프리셋으로 저장'),
               subtitle: Text(
                 currentScore.pageSettings.crop.hasCrop
-                    ? '현재 crop 사용'
-                    : 'crop 없음',
+                    ? '현재 자르기 값 사용'
+                    : '자르기 없음',
               ),
               onTap: () => Navigator.of(
                 context,
@@ -8370,7 +8368,7 @@ setlist=$setlistLabel
                   ),
                 ),
                 trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+                  tooltip: '프리셋 삭제',
                   onPressed: () => Navigator.of(context).pop(
                     _CropPresetAction(
                       type: _CropPresetActionType.remove,
@@ -8400,8 +8398,8 @@ setlist=$setlistLabel
       }
       _showSnackBar(
         didApply
-            ? '${_cropPresetScopeLabel(preset.scope)} preset을 적용했습니다.'
-            : '적용할 preset이 없습니다.',
+            ? '${_cropPresetScopeLabel(preset.scope)} 프리셋을 적용했습니다.'
+            : '적용할 프리셋이 없습니다.',
       );
       return;
     }
@@ -8412,7 +8410,7 @@ setlist=$setlistLabel
         currentScore,
         preset.id,
       );
-      _showSnackBar(didRemove ? 'Crop preset을 삭제했습니다.' : '삭제할 preset이 없습니다.');
+      _showSnackBar(didRemove ? '자르기 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (selected?.type != _CropPresetActionType.add) {
@@ -8423,7 +8421,7 @@ setlist=$setlistLabel
     }
     final input = await _showCropPresetDialog(
       context: context,
-      initialLabel: '공연용 crop',
+      initialLabel: '공연용 자르기',
       initialScope: SheetCropPreset.allPagesScope,
     );
     if (input == null) {
@@ -8443,12 +8441,12 @@ setlist=$setlistLabel
         createdAt: now,
       ),
     );
-    _showSnackBar(didAdd ? 'Crop preset을 저장했습니다.' : 'Crop preset을 저장하지 못했습니다.');
+    _showSnackBar(didAdd ? '자르기 프리셋을 저장했습니다.' : '자르기 프리셋을 저장하지 못했습니다.');
   }
 
   String _cropPresetSummary(SheetCropSettings crop) {
     if (!crop.hasCrop) {
-      return 'crop 없음';
+      return '자르기 없음';
     }
     final normalized = crop.normalized();
     return 'L ${(normalized.left * 100).round()} · '
@@ -8469,7 +8467,7 @@ setlist=$setlistLabel
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Crop preset 저장'),
+            title: const Text('자르기 프리셋 저장'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -8505,7 +8503,7 @@ setlist=$setlistLabel
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '기본 저장은 앱 표시 metadata이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
+                  '기본 저장은 앱 안 표시 설정이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
                 ),
               ],
             ),
@@ -8518,7 +8516,7 @@ setlist=$setlistLabel
                 onPressed: () {
                   final label = labelController.text.trim();
                   Navigator.of(context).pop((
-                    label: label.isEmpty ? 'Crop preset' : label,
+                    label: label.isEmpty ? '자르기 프리셋' : label,
                     scope: selectedScope,
                   ));
                 },
@@ -8552,8 +8550,8 @@ setlist=$setlistLabel
           children: [
             const ListTile(
               leading: Icon(Icons.info_outline),
-              title: Text('페이지 템플릿 metadata'),
-              subtitle: Text('기본 저장은 metadata이며, 필요하면 PDF 사본에 적용합니다.'),
+              title: Text('페이지 템플릿 설정'),
+              subtitle: Text('기본 저장은 앱 안 설정이며, 필요하면 PDF 사본에 적용합니다.'),
             ),
             ListTile(
               leading: const Icon(Icons.summarize_outlined),
@@ -8562,17 +8560,17 @@ setlist=$setlistLabel
             ),
             ListTile(
               leading: const Icon(Icons.note_add_outlined),
-              title: const Text('현재 페이지 뒤 빈 페이지 metadata'),
+              title: const Text('현재 페이지 뒤 빈 페이지 추가'),
               onTap: () => Navigator.of(context).pop('blank'),
             ),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('현재 숨김 상태를 preset으로 저장'),
+              title: const Text('현재 숨김 상태를 프리셋으로 저장'),
               onTap: () => Navigator.of(context).pop('visibility'),
             ),
             ListTile(
               leading: const Icon(Icons.filter_1_outlined),
-              title: const Text('Cover 제외 preset 저장'),
+              title: const Text('표지 제외 프리셋 저장'),
               onTap: () => Navigator.of(context).pop('cover'),
             ),
             for (final preset in currentScore.pageSettings.visibilityPresets)
@@ -8582,7 +8580,7 @@ setlist=$setlistLabel
                 subtitle: Text('${preset.hiddenPages.length}쪽 숨김'),
                 onTap: () => Navigator.of(context).pop('apply:${preset.id}'),
                 trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+                  tooltip: '프리셋 삭제',
                   onPressed: () =>
                       Navigator.of(context)
                           .pop('removeVisibility:${preset.id}'),
@@ -8594,9 +8592,9 @@ setlist=$setlistLabel
               ListTile(
                 leading: const Icon(Icons.note_outlined),
                 title: Text(insertion.label),
-                subtitle: Text('${insertion.afterPage}쪽 뒤 빈 페이지 metadata'),
+                subtitle: Text('${insertion.afterPage}쪽 뒤 빈 페이지'),
                 trailing: IconButton(
-                  tooltip: '빈 페이지 metadata 삭제',
+                  tooltip: '빈 페이지 삭제',
                   onPressed: () =>
                       Navigator.of(context).pop('removeBlank:${insertion.id}'),
                   icon: const Icon(Icons.delete_outline),
@@ -8623,7 +8621,7 @@ setlist=$setlistLabel
           createdAt: now,
         ),
       );
-      _showSnackBar(didAdd ? '빈 페이지 metadata를 저장했습니다.' : '저장하지 못했습니다.');
+      _showSnackBar(didAdd ? '빈 페이지를 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action == 'visibility' || action == 'cover') {
@@ -8635,12 +8633,12 @@ setlist=$setlistLabel
         pageCount: pageCount,
         preset: SheetPageVisibilityPreset(
           id: '${now.microsecondsSinceEpoch}-visibility',
-          label: action == 'cover' ? 'Cover 제외' : '현재 숨김 상태',
+          label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
           hiddenPages: hiddenPages,
           createdAt: now,
         ),
       );
-      _showSnackBar(didAdd ? 'Visibility preset을 저장했습니다.' : '저장하지 못했습니다.');
+      _showSnackBar(didAdd ? '숨김 프리셋을 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action.startsWith('apply:')) {
@@ -8649,7 +8647,7 @@ setlist=$setlistLabel
         presetId: action.substring('apply:'.length),
         pageCount: pageCount,
       );
-      _showSnackBar(didApply ? 'Visibility preset을 적용했습니다.' : '적용하지 못했습니다.');
+      _showSnackBar(didApply ? '숨김 프리셋을 적용했습니다.' : '적용하지 못했습니다.');
       return;
     }
     if (action.startsWith('removeVisibility:')) {
@@ -8657,9 +8655,7 @@ setlist=$setlistLabel
         currentScore,
         action.substring('removeVisibility:'.length),
       );
-      _showSnackBar(
-        didRemove ? 'Visibility preset을 삭제했습니다.' : '삭제할 preset이 없습니다.',
-      );
+      _showSnackBar(didRemove ? '숨김 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (action.startsWith('removeBlank:')) {
@@ -8667,9 +8663,7 @@ setlist=$setlistLabel
         currentScore,
         action.substring('removeBlank:'.length),
       );
-      _showSnackBar(
-        didRemove ? '빈 페이지 metadata를 삭제했습니다.' : '삭제할 metadata가 없습니다.',
-      );
+      _showSnackBar(didRemove ? '빈 페이지를 삭제했습니다.' : '삭제할 항목이 없습니다.');
     }
   }
 
@@ -8683,7 +8677,7 @@ setlist=$setlistLabel
     if (settings.hiddenPages.isEmpty &&
         settings.pageOrder.isEmpty &&
         settings.blankPageInsertions.isEmpty) {
-      _showSnackBar('적용할 페이지 정리 metadata가 없습니다.');
+      _showSnackBar('적용할 페이지 정리 설정이 없습니다.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -8691,8 +8685,8 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('페이지 정리 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지와 instance '
-          'crop/rotation metadata를 앱 내부 사본의 페이지 구조로 적용합니다.',
+          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지와 개별 '
+          '자르기/회전 설정을 앱 내부 사본의 페이지 구조로 적용합니다.',
         ),
         actions: [
           TextButton(
@@ -8749,7 +8743,7 @@ setlist=$setlistLabel
           '${settings.hasCustomPageOrder ? settings.effectivePageOrder(pageCount).length : pageCount}개',
       '반복/점프 ${settings.jumpPoints.length}개',
       '빈 페이지 ${settings.blankPageInsertions.length}개',
-      'visibility preset ${settings.visibilityPresets.length}개',
+      '숨김 프리셋 ${settings.visibilityPresets.length}개',
     ];
     return parts.join(' · ');
   }
@@ -9340,11 +9334,11 @@ setlist=$setlistLabel
       if (duplicatePageCount > 0) '복제 $duplicatePageCount',
       if (pageSettings.hasCustomPageOrder) '가상 순서 ${order.length}',
       if (pageSettings.pageCrops.isNotEmpty)
-        '페이지별 crop ${pageSettings.pageCrops.length}',
+        '페이지별 자르기 ${pageSettings.pageCrops.length}',
       if (pageSettings.instanceCrops.isNotEmpty)
-        'instance crop ${pageSettings.instanceCrops.length}',
+        '개별 자르기 ${pageSettings.instanceCrops.length}',
       if (pageSettings.instanceRotations.isNotEmpty)
-        'instance 회전 ${pageSettings.instanceRotations.length}',
+        '개별 회전 ${pageSettings.instanceRotations.length}',
     ].join(' · ');
     await showModalBottomSheet<void>(
       context: context,
@@ -9364,7 +9358,7 @@ setlist=$setlistLabel
               const SizedBox(height: 8),
               Text(
                 pageSummary.isEmpty
-                    ? '원본 PDF는 그대로이고 앱 표시 metadata만 반영됩니다.'
+                    ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
                     : '$pageSummary · 원본 PDF는 그대로입니다.',
               ),
               const SizedBox(height: 12),
@@ -9621,7 +9615,7 @@ setlist=$setlistLabel
                       Expanded(
                         child: matches.isEmpty
                             ? const Center(
-                                child: Text('검색어를 입력하면 page 결과가 여기에 표시됩니다.'),
+                                child: Text('검색어를 입력하면 쪽 결과가 여기에 표시됩니다.'),
                               )
                             : ListView.separated(
                                 itemBuilder: (context, index) {
@@ -10385,7 +10379,7 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.importPdfOutline,
               child: ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF outline 가져오기'),
+                title: const Text('PDF 목차 가져오기'),
                 subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
               ),
             ),
@@ -10393,7 +10387,7 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
                 leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전 metadata 저장'),
+                title: Text('회전값 저장'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -10415,7 +10409,7 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.crop_outlined),
                 title: const Text('자르기 맞춤'),
                 subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('metadata 적용 중')
+                    ? const Text('앱 설정 적용 중')
                     : const Text('원본 PDF 보존'),
               ),
             ),
@@ -10431,18 +10425,18 @@ setlist=$setlistLabel
                     currentScore.pageSettings.crop.hasCrop ||
                         currentScore.pageSettings.pageCrops.isNotEmpty
                     ? Text(
-                        '전체 crop'
+                        '전체 자르기'
                         '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
                         '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
                       )
-                    : const Text('저장된 crop 없음'),
+                    : const Text('저장된 자르기 없음'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.cropPresets,
               child: ListTile(
                 leading: Icon(Icons.crop_free_outlined),
-                title: Text('Crop preset'),
+                title: Text('자르기 프리셋'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -10498,7 +10492,7 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(Icons.keyboard_alt_outlined),
                 title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 key log'),
+                subtitle: Text('페달/키보드 입력 기록'),
               ),
             ),
           ],
@@ -10731,7 +10725,7 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.importPdfOutline,
               child: ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF outline 가져오기'),
+                title: const Text('PDF 목차 가져오기'),
                 subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
               ),
             ),
@@ -10739,7 +10733,7 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
                 leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전 metadata 저장'),
+                title: Text('회전값 저장'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -10761,7 +10755,7 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.crop_outlined),
                 title: const Text('자르기 맞춤'),
                 subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('metadata 적용 중')
+                    ? const Text('앱 설정 적용 중')
                     : const Text('원본 PDF 보존'),
               ),
             ),
@@ -10777,18 +10771,18 @@ setlist=$setlistLabel
                     currentScore.pageSettings.crop.hasCrop ||
                         currentScore.pageSettings.pageCrops.isNotEmpty
                     ? Text(
-                        '전체 crop'
+                        '전체 자르기'
                         '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
                         '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
                       )
-                    : const Text('저장된 crop 없음'),
+                    : const Text('저장된 자르기 없음'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.cropPresets,
               child: ListTile(
                 leading: Icon(Icons.crop_free_outlined),
-                title: Text('Crop preset'),
+                title: Text('자르기 프리셋'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -10844,7 +10838,7 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(Icons.keyboard_alt_outlined),
                 title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 key log'),
+                subtitle: Text('페달/키보드 입력 기록'),
               ),
             ),
             const PopupMenuDivider(),
@@ -14288,7 +14282,7 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Cue point',
+                              '큐 포인트',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -14299,14 +14293,14 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                                 ? null
                                 : _importRehearsalCuePoints,
                             icon: const Icon(Icons.playlist_add),
-                            label: const Text('리허설 mark 가져오기'),
+                            label: const Text('리허설 마크 가져오기'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       if (_settings.cuePoints.isEmpty)
                         Text(
-                          '등록된 cue point가 없습니다.',
+                          '등록된 큐 포인트가 없습니다.',
                           style: theme.textTheme.bodySmall,
                         )
                       else
@@ -15958,7 +15952,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 OutlinedButton.icon(
                   onPressed: _tapTempo,
                   icon: const Icon(Icons.touch_app_outlined),
-                  label: const Text('Tap tempo'),
+                  label: const Text('탭 템포'),
                 ),
                 const SizedBox(width: 16),
                 IconButton.filledTonal(
@@ -16078,10 +16072,10 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.volume_up_outlined),
-              title: const Text('tick 소리'),
+              title: const Text('틱 소리'),
               subtitle: Text(
                 _settings.soundEnabled
-                    ? '시작하면 beat마다 소리를 냅니다. 안 들리면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.'
+                    ? '시작하면 박마다 소리를 냅니다. 안 들리면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.'
                     : '소리를 끄고 화면 박자 표시만 사용합니다.',
               ),
               value: _settings.soundEnabled,

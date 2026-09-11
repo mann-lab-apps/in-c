@@ -449,7 +449,7 @@ class SheetCropPreset {
     final createdAt = _dateFromJson(json['createdAt']);
     return SheetCropPreset(
       id: id,
-      label: _fallbackStringFromJson(json['label'], 'Crop preset'),
+      label: _fallbackStringFromJson(json['label'], '자르기 프리셋'),
       scope: _normalizeScope(json['scope']),
       crop: SheetCropSettings.fromJson(_asJsonMap(json['crop'])),
       alternateCrop: SheetCropSettings.fromJson(
@@ -637,7 +637,7 @@ class SheetPageVisibilityPreset {
   factory SheetPageVisibilityPreset.fromJson(Map<String, Object?> json) {
     return SheetPageVisibilityPreset(
       id: _stringFromJson(json['id']).trim(),
-      label: _fallbackStringFromJson(json['label'], 'Visibility preset'),
+      label: _fallbackStringFromJson(json['label'], '숨김 프리셋'),
       hiddenPages: SheetPageSettings._normalizePages(json['hiddenPages']),
       createdAt: _dateFromJson(json['createdAt']),
     );

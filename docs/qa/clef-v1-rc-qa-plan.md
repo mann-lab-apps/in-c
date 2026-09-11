@@ -456,3 +456,13 @@ flutter build ios --release --no-codesign
   일치한다.
 - 실제 메트로놈 audio route, 튜너 마이크 정확도/latency, Bluetooth/USB 페달 방향키, S Pen, 실제
   CamScanner/object-stream 샘플은 계속 실기기/외부 샘플 QA로 남긴다.
+
+2026-09-07 MobileSheets급 장기 polish 추가 기록:
+
+- MobileSheets annotation toolbar에서 확인한 line 도구를 Clef 필기 도구에 추가했다. 선 도구는
+  화살표와 같은 두 점 입력 흐름을 쓰되 화살촉 없이 렌더링하며, 화면 렌더/PDF 공유/export
+  경로와 codec/hit-test 테스트에 반영했다.
+- 화면에 직접 노출되는 `metadata`, `preset`, `crop`, `debug`, `key log`, `Tap tempo`,
+  `tick 소리` 같은 혼합 표기를 `정보`, `프리셋`, `자르기`, `진단 요약`, `입력 기록`,
+  `탭 템포`, `틱 소리` 중심으로 정리했다. 내부 JSON field와 코드 class 이름은 호환성 때문에
+  유지한다.

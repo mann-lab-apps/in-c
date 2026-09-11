@@ -248,15 +248,15 @@ void main() {
     expect(find.text('나눔'), findsOneWidget);
     expect(find.text('카운트인'), findsOneWidget);
     expect(find.text('1마디'), findsOneWidget);
-    expect(find.text('Tap tempo'), findsOneWidget);
+    expect(find.text('탭 템포'), findsOneWidget);
     expect(find.byTooltip('악보 위에 작게 띄우기'), findsOneWidget);
     await tester.scrollUntilVisible(
-      find.text('tick 소리'),
+      find.text('틱 소리'),
       200,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('첫 박 강조'), findsOneWidget);
-    expect(find.text('tick 소리'), findsOneWidget);
+    expect(find.text('틱 소리'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('소리 확인'),
       160,
