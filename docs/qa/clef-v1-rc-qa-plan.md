@@ -466,3 +466,6 @@ flutter build ios --release --no-codesign
   `tick 소리` 같은 혼합 표기를 `정보`, `프리셋`, `자르기`, `진단 요약`, `입력 기록`,
   `탭 템포`, `틱 소리` 중심으로 정리했다. 내부 JSON field와 코드 class 이름은 호환성 때문에
   유지한다.
+- 메트로놈 mini panel은 기존 작은 점 표시 대신 가로 시각 박자 strip을 전면에 두어, Android
+  audio route/볼륨 문제로 tick sound가 작거나 들리지 않아도 악보 위에서 현재 박을 눈으로
+  따라갈 수 있게 했다. 실제 소리 출력과 latency는 계속 실기기 QA로 확인한다.

@@ -264,4 +264,26 @@ void main() {
     );
     expect(find.text('소리 확인'), findsOneWidget);
   });
+
+  testWidgets('mini metronome panel exposes visual beat strip', (tester) async {
+    await tester.pumpWidget(
+      buildViewerMiniMetronomePanelForTest(
+        settings: const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.threeFour,
+          soundEnabled: false,
+        ),
+      ),
+    );
+
+    expect(find.bySemanticsLabel('메트로놈 시각 박자 표시'), findsOneWidget);
+    expect(find.textContaining('96 BPM'), findsOneWidget);
+    expect(find.text('화면 표시만'), findsOneWidget);
+
+    await tester.tap(find.text('시작'));
+    await tester.pump();
+
+    expect(find.text('정지'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

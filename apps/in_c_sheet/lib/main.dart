@@ -11662,6 +11662,14 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
             ),
           ],
         ),
+        const SizedBox(height: 8),
+        _MiniMetronomePulseStrip(
+          beat: _beat,
+          isRunning: _isRunning,
+          isCountingIn: _isCountingIn,
+          settings: settings,
+        ),
+        const SizedBox(height: 8),
         Row(
           children: [
             FilledButton.tonalIcon(
@@ -11671,28 +11679,15 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: List<Widget>.generate(settings.meter.beatsPerBar, (
-                  index,
-                ) {
-                  final isCurrent = index == _beat.beatIndex;
-                  final isAccent = index == 0 && settings.accentEnabled;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 100),
-                    width: isCurrent ? 16 : 11,
-                    height: isCurrent ? 16 : 11,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: isCurrent
-                          ? (isAccent
-                                ? theme.colorScheme.primary
-                                : theme.colorScheme.tertiary)
-                          : theme.colorScheme.surfaceContainerHighest,
-                    ),
-                  );
-                }),
+              child: Text(
+                settings.soundEnabled ? '소리와 화면 표시' : '화면 표시만',
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -11741,6 +11736,59 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _MiniMetronomePulseStrip extends StatelessWidget {
+  const _MiniMetronomePulseStrip({
+    required this.beat,
+    required this.isRunning,
+    required this.isCountingIn,
+    required this.settings,
+  });
+
+  final SheetMetronomeBeat beat;
+  final bool isRunning;
+  final bool isCountingIn;
+  final SheetMetronomeSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      label: '메트로놈 시각 박자 표시',
+      child: Row(
+        children: List<Widget>.generate(settings.meter.beatsPerBar, (index) {
+          final isCurrent = isRunning && index == beat.beatIndex;
+          final isAccent = index == 0 && settings.accentEnabled;
+          final Color activeColor = isCountingIn
+              ? colors.secondary
+              : isAccent
+              ? colors.primary
+              : colors.tertiary;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
+              height: isCurrent ? 12 : 7,
+              margin: EdgeInsets.only(
+                right: index == settings.meter.beatsPerBar - 1 ? 0 : 4,
+              ),
+              decoration: BoxDecoration(
+                color: isCurrent ? activeColor : colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: isAccent
+                      ? colors.primary.withValues(alpha: 0.54)
+                      : colors.outlineVariant,
+                  width: isAccent ? 1.2 : 0.8,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -15642,6 +15690,25 @@ Widget buildMetronomeSheetForTest({
         onSettingsChanged: (_) async {},
         onShowMiniPanel: () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildViewerMiniMetronomePanelForTest({
+  SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _ViewerMiniToolPanel(
+          tool: _ViewerMiniTool.metronome,
+          metronomeSettings: settings,
+          onMetronomeSettingsChanged: (_) async {},
+          onOpenTuner: () {},
+          onClose: () {},
+        ),
       ),
     ),
   );
