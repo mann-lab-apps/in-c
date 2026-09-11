@@ -260,23 +260,53 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     return action.setlist;
   }
 
-  Future<void> _importPdf() async {
+  Future<void> _importPdf({bool addToSetlist = false}) async {
     final score = await controller.importPdf();
     if (!mounted || score == null) {
       return;
     }
+    if (addToSetlist) {
+      await _addImportedScoreToSetlist(score);
+      if (!mounted) {
+        return;
+      }
+    }
     await _openScore(score);
   }
 
-  Future<void> _importImagesAsPdf() async {
+  Future<void> _importImagesAsPdf({bool addToSetlist = false}) async {
     final score = await controller.importImagesAsPdf();
     if (!mounted || score == null) {
       return;
+    }
+    if (addToSetlist) {
+      await _addImportedScoreToSetlist(score);
+      if (!mounted) {
+        return;
+      }
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('"${score.title}" 이미지 PDF를 추가했습니다.')),
     );
     await _openScore(score);
+  }
+
+  Future<void> _addImportedScoreToSetlist(SheetScore score) async {
+    final target = await _selectSetlistForBulkAdd(1);
+    if (!mounted || target == null) {
+      return;
+    }
+    final result = await controller.addScoresToSetlist(target, <SheetScore>[
+      score,
+    ]);
+    if (!mounted) {
+      return;
+    }
+    final message = result.didAddAny
+        ? '"${score.title}"을 "${target.title}"에 추가했습니다.'
+        : '"${target.title}"에 이미 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showTesterInfo() async {
@@ -303,11 +333,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               onTap: () => Navigator.of(context).pop(_LibraryImportAction.pdf),
             ),
             ListTile(
+              leading: const Icon(Icons.playlist_add_outlined),
+              title: const Text('PDF 가져와 세트리스트에 추가'),
+              subtitle: const Text('가져온 뒤 기존/새 세트리스트 선택'),
+              onTap: () =>
+                  Navigator.of(context).pop(_LibraryImportAction.pdfToSetlist),
+            ),
+            ListTile(
               leading: const Icon(Icons.photo_library_outlined),
               title: const Text('이미지를 PDF 악보로 묶기'),
               subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
               onTap: () =>
                   Navigator.of(context).pop(_LibraryImportAction.images),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_photo_alternate_outlined),
+              title: const Text('이미지를 묶어 세트리스트에 추가'),
+              subtitle: const Text('이미지 PDF 생성 뒤 세트리스트 선택'),
+              onTap: () =>
+                  Navigator.of(context)
+                      .pop(_LibraryImportAction.imagesToSetlist),
             ),
           ],
         ),
@@ -316,8 +361,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     switch (action) {
       case _LibraryImportAction.pdf:
         await _importPdf();
+      case _LibraryImportAction.pdfToSetlist:
+        await _importPdf(addToSetlist: true);
       case _LibraryImportAction.images:
         await _importImagesAsPdf();
+      case _LibraryImportAction.imagesToSetlist:
+        await _importImagesAsPdf(addToSetlist: true);
       case null:
         return;
     }
@@ -1459,7 +1508,7 @@ enum _LibraryBackupAction {
   importFull,
 }
 
-enum _LibraryImportAction { pdf, images }
+enum _LibraryImportAction { pdf, pdfToSetlist, images, imagesToSetlist }
 
 enum _LibraryProfileActionType { all, select, create, rename, delete }
 

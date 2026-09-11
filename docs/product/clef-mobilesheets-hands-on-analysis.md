@@ -64,7 +64,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | viewer background | full screen viewer는 검은 letterbox/주변부와 문서 흰 영역이 보인다. overlay는 회색 bar로 뜬다. | paper/white 계열 viewer background를 적용했다. | MobileSheets의 검은 배경은 집중감은 있지만 스캔 악보와 이질감이 있을 수 있다. | fullscreen 몰입, overlay 숨김. | 무조건 검은 배경 기본값. | Clef는 현재 paper/white 기본값 유지. | v1 유지 |
 | 라이브러리 metadata | 상단 탭은 Recent/Songs/Setlists/Collections/Artists/Albums/Genres. 필터는 Search, Source, Key, Collection, Difficulty, Genre, Rating. metadata 미입력 row는 제목 아래 `-`로 보인다. | title/file/source filename/최근 시간/마지막 페이지를 카드에 노출한다. | MobileSheets는 metadata power가 강하지만, 빈 값이 예쁘진 않다. Clef가 더 친절해야 한다. | 파일명 기반 title 추정, metadata 필터, setlist/collection 축. | 빈 metadata `-`만 보이는 표현. | Clef는 metadata 미입력 card 식별성 계속 유지. | v1 유지, v1.1 |
 | 필기/annotation | annotation mode에 pen, highlighter, text, stamp, eraser, line, select, layer, crop/cut, staff/grid, metronome, export/download, delete, settings, undo/redo가 한 줄에 있다. | pen/highlighter/eraser/text와 undo/redo/local annotation layer 중심. | MobileSheets는 도구가 많지만 초보자에겐 부담스럽다. | undo/redo, favorite tool, S Pen/stylus 설정, tool presets. | stamp/layer/shape 전체를 v1에 넣는 것. | S Pen QA 후 v1.1 annotation polish. | v1.1 |
-| import/export | Import 메뉴에서 Local File, Dropbox, Google Drive, OneDrive, Nextcloud, Batch Import, Batch Audio Import, CSV or PDF Bookmarks를 제공한다. Import wizard는 title guess, auto crop, editor after import, duplicate behavior, setlist/collection/key/artist/composer/genre assignment를 제공한다. | PDF/image import, 원본 보존, link sanitizer, backup/restore. | cloud browser, batch import, CSV bookmark import, import-time metadata assignment는 Clef에 없다. | local file picker, duplicate policy, import 결과 dialog, import-time setlist assignment. | cloud provider 전부 내장, CSV songbook split을 v1에 넣는 것. | v1은 current 유지. v1.1에서 batch import/import-time setlist 검토. | v1.1/Later |
+| import/export | Import 메뉴에서 Local File, Dropbox, Google Drive, OneDrive, Nextcloud, Batch Import, Batch Audio Import, CSV or PDF Bookmarks를 제공한다. Import wizard는 title guess, auto crop, editor after import, duplicate behavior, setlist/collection/key/artist/composer/genre assignment를 제공한다. | PDF/image import, 가져오며 세트리스트 추가, 원본 보존, link sanitizer, backup/restore. | cloud browser, batch import, CSV bookmark import, import-time full metadata assignment는 Clef에 없다. | local file picker, duplicate policy, import 결과 dialog, import-time setlist assignment. | cloud provider 전부 내장, CSV songbook split을 v1에 넣는 것. | v1은 로컬 import+setlist assignment 유지. v1.1에서 batch/cloud/full metadata import 검토. | v1/v1.1/Later |
 | 설정 구조 | split pane settings. About, Storage, Library, Display, Import, Touch & Pedal, Face Gesture, Text File, MIDI, Backup and Restore, Other가 보인다. Display와 Touch & Pedal에는 page animation, repeat, half-page, touch actions, overlay toggle, AirTurn direct mode, USB mouse 등 세부 옵션이 많다. | Clef는 주요 viewer/tuner/metronome/settings를 더 얕게 제공한다. | MobileSheets는 파워유저에게 좋지만 첫 사용자에게는 무겁다. | category split, touch/pedal action mapping, display mode preset. | 모든 세부 설정을 한 번에 노출. | v1.1에서 "고급 설정" 안에만 제한적으로 확장. | v1.1/Spike |
 
 ## 친구 피드백 기준 최종 판단
@@ -97,7 +97,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
   첫 사용자에게는 화면 밀도와 설정량이 부담스럽다.
 - Clef & Staff v1은 현재 피드백 hotfix 방향이 맞다. v1에서는 카드 식별성, 세트리스트,
   메트로놈 소리, page hint의 실제 태블릿 QA에 집중한다.
-- v1.1은 import-time setlist assignment, display preset, pedal
+- v1.1은 display preset, pedal
   capture wizard, annotation favorite/tool preset을 우선 검토한다.
 - cloud browser, batch import, CSV songbook split, MIDI, movable overlay, scanner/OCR,
   advanced annotation layer는 Spike 또는 Later로 두는 편이 안전하다.
@@ -110,7 +110,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | Setlist card/rail 실기기 가독성 polish | MobileSheets Recent에 setlist가 직접 노출된다. Clef는 rail 방식이라 구분성이 중요하다. | 낮음 | v1 QA 후 필요 시 |
 | Setlist reorder handoff QA | MobileSheets edit mode의 handle이 크다. Clef는 drag, 위/아래, 직접 순서 입력을 제공한다. | 낮음 | v1 QA 후 필요 시 |
 | Advanced metronome cue/pattern | MobileSheets metronome은 곡 위 패널에서 상세 설정을 제공한다. Clef는 count-in, 악보별 metronome snapshot, 세트리스트별 tempo override를 추가했다. 복잡한 cue/pattern editor는 아직 없다. | 중간 | v1.1 |
-| Import-time setlist assignment | MobileSheets import wizard에서 setlist/collection 지정 가능. | 중간 | v1.1 |
+| Import metadata assignment | MobileSheets import wizard에서 setlist/collection/key/artist/genre 지정 가능. Clef는 로컬 PDF/이미지 import 메뉴에서 세트리스트 추가 경로를 제공한다. | 중간 | v1.1 |
 | Touch/Pedal capture wizard | MobileSheets Touch & Pedal Settings가 별도 action mapping을 제공한다. | 높음 | Spike |
 | Annotation favorite/tool preset | MobileSheets annotation toolbar는 도구가 많고 favorite 개념이 필요해 보인다. | 중간 | v1.1 |
 | Full cloud/browser import | MobileSheets는 Dropbox/Drive/OneDrive/Nextcloud 내장. | 높음 | Later |

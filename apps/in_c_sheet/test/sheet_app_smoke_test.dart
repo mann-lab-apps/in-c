@@ -47,6 +47,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('import menu exposes setlist assignment actions', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('악보 추가'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('PDF 가져오기'), findsOneWidget);
+    expect(find.text('PDF 가져와 세트리스트에 추가'), findsOneWidget);
+    expect(find.text('이미지를 PDF 악보로 묶기'), findsOneWidget);
+    expect(find.text('이미지를 묶어 세트리스트에 추가'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home renders recent setlists without overflow', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);

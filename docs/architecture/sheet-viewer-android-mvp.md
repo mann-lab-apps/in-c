@@ -232,7 +232,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 ## 공유/import/export 1차 구조
 
-- 라이브러리의 `악보 추가` 버튼은 PDF 가져오기와 이미지를 PDF 악보로 묶기를 제공한다.
+- 라이브러리의 `악보 추가` 버튼은 PDF 가져오기, 이미지를 PDF 악보로 묶기, 가져온 악보를 바로
+  기존/새 세트리스트에 추가하는 action을 제공한다.
 - `SheetLibraryStore.importPdfBytes`는 file picker, Android shared import, 테스트가 같은 내부 PDF
   사본 저장 경로를 타도록 만든다.
 - Android `MainActivity`는 공유받은 PDF URI를 앱 cache의 `shared-imports/`에 복사하고, Flutter는
