@@ -1,5 +1,7 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
+import 'package:in_c_sheet/sheet_metronome_player.dart';
 
 void main() {
   test('clamps BPM and decodes unsupported meter with defaults', () {
@@ -21,6 +23,10 @@ void main() {
     expect(low.accentEnabled, isTrue);
     expect(low.subdivision, SheetMetronomeSubdivision.none);
     expect(low.countInBars, 0);
+    expect(
+      low.volumePercent,
+      SheetMetronomeSettings.defaultSettings.volumePercent,
+    );
     expect(high.bpm, 240);
     expect(high.meter, SheetMetronomeMeter.sixEight);
     expect(decimal.bpm, 132);
@@ -34,6 +40,7 @@ void main() {
       accentEnabled: false,
       subdivision: SheetMetronomeSubdivision.triplet,
       countInBars: 2,
+      volumePercent: 42,
     );
 
     final decoded = SheetMetronomeCodec.decode(
@@ -46,6 +53,8 @@ void main() {
     expect(decoded.accentEnabled, isFalse);
     expect(decoded.subdivision, SheetMetronomeSubdivision.triplet);
     expect(decoded.countInBars, 2);
+    expect(decoded.volumePercent, 42);
+    expect(decoded.normalizedVolume, 0.42);
     expect(decoded.pulseDuration.inMilliseconds, 152);
   });
 
@@ -78,6 +87,7 @@ void main() {
       'accentEnabled': 'no',
       'subdivision': 'tiny',
       'countInBars': 8,
+      'volumePercent': 'loud',
     });
 
     expect(settings.bpm, SheetMetronomeSettings.defaultSettings.bpm);
@@ -86,26 +96,50 @@ void main() {
     expect(settings.accentEnabled, isTrue);
     expect(settings.subdivision, SheetMetronomeSubdivision.none);
     expect(settings.countInBars, 2);
+    expect(
+      settings.volumePercent,
+      SheetMetronomeSettings.defaultSettings.volumePercent,
+    );
   });
 
-  test('clamps count-in bars and keeps backward compatible default', () {
-    expect(
-      SheetMetronomeSettings.fromJson(const <String, Object?>{
-        'countInBars': -1,
-      }).countInBars,
-      0,
-    );
-    expect(
-      SheetMetronomeSettings.fromJson(const <String, Object?>{
-        'countInBars': 1.6,
-      }).countInBars,
-      2,
-    );
-    expect(
-      SheetMetronomeSettings.fromJson(const <String, Object?>{}).countInBars,
-      SheetMetronomeSettings.defaultSettings.countInBars,
-    );
-  });
+  test(
+    'clamps count-in bars, volume, and keeps backward compatible default',
+    () {
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{
+          'countInBars': -1,
+        }).countInBars,
+        0,
+      );
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{
+          'countInBars': 1.6,
+        }).countInBars,
+        2,
+      );
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{}).countInBars,
+        SheetMetronomeSettings.defaultSettings.countInBars,
+      );
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{
+          'volumePercent': -10,
+        }).volumePercent,
+        0,
+      );
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{
+          'volumePercent': 120,
+        }).volumePercent,
+        100,
+      );
+      expect(
+        SheetMetronomeSettings.fromJson(const <String, Object?>{})
+            .volumePercent,
+        SheetMetronomeSettings.defaultSettings.volumePercent,
+      );
+    },
+  );
 
   test('cycles beat and subdivision sequence', () {
     const first = SheetMetronomeBeat(
@@ -125,5 +159,75 @@ void main() {
     expect(third.subdivisionIndex, 0);
     expect(fourth.beatNumber, 2);
     expect(fourth.subdivisionIndex, 1);
+  });
+
+  test(
+    'metronome sound player sends accent and volume to native channel',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/clef_metronome_player');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return null;
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      final player = SheetMetronomeSoundPlayer(channel: channel);
+      await player.playClick(
+        settings: const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+          volumePercent: 64,
+        ),
+        accent: true,
+      );
+
+      expect(calls, hasLength(1));
+      expect(calls.single.method, 'playClick');
+      expect(calls.single.arguments, <String, Object?>{
+        'accent': true,
+        'volume': 0.64,
+      });
+    },
+  );
+
+  test('metronome sound player skips silent or zero volume settings', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('test/clef_metronome_player_skip');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final player = SheetMetronomeSoundPlayer(channel: channel);
+    await player.playClick(
+      settings: const SheetMetronomeSettings(
+        bpm: 96,
+        meter: SheetMetronomeMeter.fourFour,
+        soundEnabled: false,
+      ),
+      accent: true,
+    );
+    await player.playClick(
+      settings: const SheetMetronomeSettings(
+        bpm: 96,
+        meter: SheetMetronomeMeter.fourFour,
+        volumePercent: 0,
+      ),
+      accent: true,
+    );
+
+    expect(calls, isEmpty);
   });
 }

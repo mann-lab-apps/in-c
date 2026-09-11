@@ -27,6 +27,7 @@ import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
+import 'sheet_metronome_player.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
@@ -11669,6 +11670,7 @@ class _ViewerMiniToolPanel extends StatefulWidget {
 }
 
 class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
+  late final SheetMetronomeSoundPlayer _soundPlayer;
   Timer? _timer;
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
@@ -11677,6 +11679,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   @override
   void initState() {
     super.initState();
+    _soundPlayer = SheetMetronomeSoundPlayer();
     _beat = _initialBeat(widget.metronomeSettings);
   }
 
@@ -11765,7 +11768,12 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (!widget.metronomeSettings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
-    unawaited(SystemSound.play(SystemSoundType.click));
+    unawaited(
+      _soundPlayer.playClick(
+        settings: widget.metronomeSettings,
+        accent: _beat.isAccent,
+      ),
+    );
   }
 
   @override
@@ -11808,7 +11816,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
               child: Text(
                 _isCountingIn
                     ? '카운트인 $countInBeatsLeft박'
-                    : '${settings.bpm} BPM · ${settings.meter.label}$countInLabel · ${settings.soundEnabled ? '소리' : '시각'}',
+                    : '${settings.bpm} BPM · ${settings.meter.label}$countInLabel · ${settings.soundEnabled ? '소리 ${settings.volumePercent}%' : '시각'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -11841,7 +11849,9 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                settings.soundEnabled ? '소리와 화면 표시' : '화면 표시만',
+                settings.soundEnabled
+                    ? '소리 ${settings.volumePercent}% · 화면 표시'
+                    : '화면 표시만',
                 textAlign: TextAlign.end,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -15895,6 +15905,7 @@ Widget buildViewerCompactOptionsMenuForTest() {
 }
 
 class _MetronomeSheetState extends State<_MetronomeSheet> {
+  late final SheetMetronomeSoundPlayer _soundPlayer;
   late SheetMetronomeSettings _settings;
   late SheetMetronomeBeat _beat;
   Timer? _timer;
@@ -15906,6 +15917,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   @override
   void initState() {
     super.initState();
+    _soundPlayer = SheetMetronomeSoundPlayer();
     _settings = widget.initialSettings;
     _beat = SheetMetronomeBeat(
       beatIndex: 0,
@@ -15950,6 +15962,14 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   Future<void> _setSoundEnabled(bool enabled) async {
     final nextSettings = _settings.copyWith(soundEnabled: enabled);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _setVolumePercent(int volumePercent) async {
+    final nextSettings = _settings.copyWith(volumePercent: volumePercent);
     setState(() {
       _settings = nextSettings;
     });
@@ -16097,11 +16117,18 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     if (!_settings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
-    unawaited(SystemSound.play(SystemSoundType.click));
+    unawaited(
+      _soundPlayer.playClick(settings: _settings, accent: _beat.isAccent),
+    );
   }
 
   void _previewTickSound() {
-    unawaited(SystemSound.play(SystemSoundType.click));
+    unawaited(
+      _soundPlayer.playClick(
+        settings: _settings.copyWith(soundEnabled: true),
+        accent: true,
+      ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('소리가 들리지 않으면 기기 볼륨, 무음 모드, 이어폰 연결을 확인하세요.')),
     );
@@ -16327,6 +16354,23 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               ),
               value: _settings.soundEnabled,
               onChanged: _setSoundEnabled,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              enabled: _settings.soundEnabled,
+              leading: const Icon(Icons.graphic_eq_outlined),
+              title: const Text('소리 크기'),
+              trailing: Text('${_settings.volumePercent}%'),
+              subtitle: Slider(
+                value: _settings.volumePercent.toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 10,
+                label: '${_settings.volumePercent}%',
+                onChanged: _settings.soundEnabled
+                    ? (value) => _setVolumePercent(value.round())
+                    : null,
+              ),
             ),
             Align(
               alignment: Alignment.centerRight,

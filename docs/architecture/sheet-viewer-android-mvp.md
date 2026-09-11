@@ -117,8 +117,9 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   `pdf_document`의 `PdfEditor.rotatePages`로 회전 적용 사본을 만든다. `pdfrx`의 low-level
   `PdfPageView`에는 `rotationOverride`가 있지만, 현재 `PdfViewer.file`/`PdfViewerParams`
   경로에서 page별 live 렌더 rotation hook을 안정적으로 주입하는 API는 확인되지 않았다.
-- 메트로놈은 visual beat에 더해 기본 OFF `tick 소리` toggle을 제공한다. 1차 tick은 Flutter
-  `SystemSoundType.click`을 사용하므로 accent/normal beat 음색 구분과 low-latency 보장은 후속이다.
+- 메트로놈은 visual beat에 더해 기본 ON `tick 소리` toggle을 제공한다. Android에서는 native PCM
+  click으로 volume percent와 강박/약박 차이를 반영하고, iOS/미지원 플랫폼에서는 system click fallback을
+  사용한다.
 - 튜너는 `record` 기반 raw PCM stream과 autocorrelation pitch detector까지 1차 구현했다.
   Android/iOS microphone permission도 선언했다. Median smoothing, 낮은 confidence 무시,
   no-signal debounce를 1차로 적용했지만 실기기 pitch 정확도, latency, 소음 환경 안정성은
@@ -444,15 +445,18 @@ link handling, page layout customization, page manipulation 관련 확장 지점
 
 - 메트로놈 설정은 앱 전역 기본값, 악보별 snapshot, 세트리스트별 score override로 저장한다.
   세트리스트에서 연 악보는 세트리스트 override가 악보 snapshot보다 우선한다.
-- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision, count-in이다. BPM은 40-240 범위로 clamp한다.
+- 저장 필드는 BPM, 박자, 첫 박 강조 여부, subdivision, count-in, volume percent이다. BPM은
+  40-240 범위로 clamp한다.
 - 지원 박자는 `2/4`, `3/4`, `4/4`, `6/8`이다.
 - subdivision은 없음, 8분, 3연, 16분을 제공한다. Tap tempo는 최근 tap 간격으로 BPM을 갱신한다.
 - 1차 메트로놈은 viewer bottom sheet로 제공하고, 공연 모드에서도 열 수 있다. bottom sheet에서
   악보 위 고정형 mini panel로 축소할 수 있다.
 - 현재 구현은 visual metronome이다. 첫 박은 accent color로 표시하고, 현재 beat와 마지막 beat
   시각을 보여준다.
-- 메트로놈 tick은 기본 ON `SystemSoundType.click`으로 제공한다. accent/normal beat 전용 asset과
-  low-latency audio package 선택은 별도 검증 후 붙인다.
+- 메트로놈 tick은 기본 ON이며 Android에서는 `clef/metronome_player` MethodChannel과 native
+  `AudioTrack` one-shot PCM click으로 재생한다. volume percent와 강박/약박 click 차이를 반영한다.
+  iOS/미지원 플랫폼에서는 Flutter system click fallback을 사용하며, low-latency audio package와
+  iOS parity는 별도 검증 후 붙인다.
 - 기준음/드론 설정은 앱 전역 `SheetToneSettings`로 저장한다. root concert MIDI note, drone
   mode, volume percent를 저장하고, 실제 재생은 Android `clef/tone_player` MethodChannel과
   native `AudioTrack` sine stream을 사용한다. iOS/미지원 플랫폼에서는 playback channel 없음으로
@@ -868,8 +872,8 @@ spike로 유지한다. 페이지 순서 변경/복제/반복 삽입은 원본 PD
 2026-08-23 베타 전달 polish에서는 앱 내 테스트 정보 화면, 빈 라이브러리 CTA, PDF viewer 오류
 배너, 구체적인 import/share/export 실패 문구를 추가했다. 한글/비ASCII 텍스트 주석은 현재 PDF
 font embedding 제약 때문에 export 사본에서 제외하고 개수를 안내한다. 한글 텍스트 주석만 있는
-경우에는 원본 PDF 공유로 fallback한다. 메트로놈은 기본 OFF `tick 소리` toggle을 추가했으며,
-Flutter system click sound 기반이라 accent 음색 구분과 latency 보장은 후속 검증 항목이다.
+경우에는 원본 PDF 공유로 fallback한다. 메트로놈은 기본 ON `tick 소리` toggle과 Android native tick
+volume을 제공하며, iOS parity와 low-latency 보장은 후속 검증 항목이다.
 2026-08-28에는 튜너 sheet에 기준음/드론을 추가하고 Android `AudioTrack` sine playback 채널,
 전역 tone 설정 저장, metadata/full backup round-trip을 연결했다. 이어서 linked audio file import와
 Android `MediaPlayer` 기반 로컬 오디오 재생/정지를 추가했다.

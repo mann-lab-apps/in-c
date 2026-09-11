@@ -151,7 +151,8 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 9. 저지연 Metronome/Audio/iOS Playback Parity
 
-- 현재 v1 상태: visual metronome, `SystemSound` click, Android native tone/drone, Android
+- 현재 v1 상태: visual metronome, Android native metronome tick volume/accent click, Android native
+  tone/drone, Android
   `MediaPlayer` local audio playback, linked audio metadata/backup이 있다. 튜너는
   Chromatic-only UI, sharp/flat 표기, LED/input bar, A4 quick/history/보정 제안, adaptive noise
   floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
@@ -159,7 +160,7 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   감지 confidence/noise floor/clipping debug label까지 구현했지만 실제 마이크 latency/외부 마이크 안정성은
   QA가 필요하다. 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했으며,
   악보앱에 다시 넣을지 또는 별도 튜너앱으로 분리할지는 v1.1 이후 제품 판단으로 둔다.
-- 왜 v1.1 spike인지: low-latency tick/accent sound, audio session, background policy, iOS native
+- 왜 v1.1 spike인지: low-latency tick scheduling, audio session, background policy, iOS native
   bridge, codec support를 결정해야 한다.
 - 결정 필요사항: audio package/native bridge, tick/accent asset, latency target, background/lock
   screen policy, iOS audio session category, codec matrix.

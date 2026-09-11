@@ -8,6 +8,7 @@ class SheetMetronomeSettings {
     this.accentEnabled = true,
     this.subdivision = SheetMetronomeSubdivision.none,
     this.countInBars = 0,
+    this.volumePercent = 85,
   });
 
   factory SheetMetronomeSettings.fromJson(Map<String, Object?>? json) {
@@ -16,6 +17,7 @@ class SheetMetronomeSettings {
     final accentEnabledValue = json?['accentEnabled'];
     final subdivisionValue = json?['subdivision'];
     final countInBarsValue = json?['countInBars'];
+    final volumePercentValue = json?['volumePercent'];
     return SheetMetronomeSettings(
       bpm: _normalizeBpm(json?['bpm']),
       meter: SheetMetronomeMeter.fromId(
@@ -33,6 +35,7 @@ class SheetMetronomeSettings {
             : defaultSettings.subdivision.id,
       ),
       countInBars: _normalizeCountInBars(countInBarsValue),
+      volumePercent: _normalizeVolumePercent(volumePercentValue),
     );
   }
 
@@ -47,6 +50,9 @@ class SheetMetronomeSettings {
   final bool accentEnabled;
   final SheetMetronomeSubdivision subdivision;
   final int countInBars;
+  final int volumePercent;
+
+  double get normalizedVolume => volumePercent.clamp(0, 100) / 100;
 
   Duration get beatDuration {
     return Duration(milliseconds: (60000 / bpm).round());
@@ -65,6 +71,7 @@ class SheetMetronomeSettings {
     bool? accentEnabled,
     SheetMetronomeSubdivision? subdivision,
     int? countInBars,
+    int? volumePercent,
   }) {
     return SheetMetronomeSettings(
       bpm: clampBpm(bpm ?? this.bpm),
@@ -73,6 +80,7 @@ class SheetMetronomeSettings {
       accentEnabled: accentEnabled ?? this.accentEnabled,
       subdivision: subdivision ?? this.subdivision,
       countInBars: clampCountInBars(countInBars ?? this.countInBars),
+      volumePercent: clampVolumePercent(volumePercent ?? this.volumePercent),
     );
   }
 
@@ -84,12 +92,16 @@ class SheetMetronomeSettings {
       'accentEnabled': accentEnabled,
       'subdivision': subdivision.id,
       'countInBars': countInBars,
+      'volumePercent': volumePercent,
     };
   }
 
   static int clampBpm(int bpm) => bpm.clamp(40, 240).toInt();
 
   static int clampCountInBars(int bars) => bars.clamp(0, 2).toInt();
+
+  static int clampVolumePercent(int volumePercent) =>
+      volumePercent.clamp(0, 100).toInt();
 
   static int _normalizeBpm(Object? value) {
     if (value is num) {
@@ -103,6 +115,13 @@ class SheetMetronomeSettings {
       return clampCountInBars(value.round());
     }
     return defaultSettings.countInBars;
+  }
+
+  static int _normalizeVolumePercent(Object? value) {
+    if (value is num) {
+      return clampVolumePercent(value.round());
+    }
+    return defaultSettings.volumePercent;
   }
 }
 

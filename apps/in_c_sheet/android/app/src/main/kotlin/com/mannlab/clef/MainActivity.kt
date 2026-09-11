@@ -19,12 +19,15 @@ import kotlin.math.sin
 class MainActivity : FlutterActivity() {
     private val sharedImportsChannelName = "clef/shared_imports"
     private val tonePlayerChannelName = "clef/tone_player"
+    private val metronomePlayerChannelName = "clef/metronome_player"
     private val audioPlayerChannelName = "clef/audio_player"
     private val pendingSharedFiles = mutableListOf<Map<String, String>>()
     private val tonePlayer = ClefTonePlayer()
+    private val metronomePlayer = ClefMetronomePlayer()
     private val audioPlayer = ClefAudioPlayer()
     private var sharedImportsChannel: MethodChannel? = null
     private var tonePlayerChannel: MethodChannel? = null
+    private var metronomePlayerChannel: MethodChannel? = null
     private var audioPlayerChannel: MethodChannel? = null
     private var didCollectInitialIntent = false
 
@@ -79,6 +82,30 @@ class MainActivity : FlutterActivity() {
                 "stop" -> {
                     tonePlayer.stop()
                     result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+        metronomePlayerChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            metronomePlayerChannelName,
+        )
+        metronomePlayerChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "playClick" -> {
+                    val accent = call.argument<Boolean>("accent") ?: false
+                    val volume =
+                        call.argument<Number>("volume")?.toDouble() ?: 0.85
+                    try {
+                        metronomePlayer.playClick(accent, volume)
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "playback_error",
+                            error.message ?: "Metronome playback failed.",
+                            null,
+                        )
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -319,6 +346,60 @@ private class ClefTonePlayer {
         } catch (_: IllegalStateException) {
             isRunning = false
         }
+    }
+}
+
+private class ClefMetronomePlayer {
+    private val sampleRate = 44_100
+
+    fun playClick(accent: Boolean, volume: Double) {
+        val safeVolume = volume.coerceIn(0.0, 1.0)
+        if (safeVolume <= 0.0) {
+            return
+        }
+
+        val buffer = makeClickBuffer(accent, safeVolume)
+        Thread {
+            val track = AudioTrack(
+                AudioManager.STREAM_MUSIC,
+                sampleRate,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+                buffer.size * java.lang.Short.BYTES,
+                AudioTrack.MODE_STATIC,
+            )
+            try {
+                track.write(buffer, 0, buffer.size)
+                track.play()
+                Thread.sleep(70)
+            } finally {
+                track.release()
+            }
+        }.apply {
+            name = "ClefMetronomeClick"
+            isDaemon = true
+            start()
+        }
+    }
+
+    private fun makeClickBuffer(accent: Boolean, volume: Double): ShortArray {
+        val sampleCount = (sampleRate * 0.045).roundToInt()
+        val buffer = ShortArray(sampleCount)
+        val frequency = if (accent) 1_760.0 else 1_240.0
+        val gain = (volume * if (accent) 0.82 else 0.58).coerceIn(0.0, 0.9)
+        var phase = 0.0
+        val phaseStep = 2.0 * PI * frequency / sampleRate
+
+        for (sampleIndex in buffer.indices) {
+            val fade = 1.0 - sampleIndex.toDouble() / sampleCount
+            val envelope = fade * fade * fade
+            val sample = sin(phase) * envelope * gain * Short.MAX_VALUE
+            buffer[sampleIndex] = sample.roundToInt()
+                .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                .toShort()
+            phase += phaseStep
+        }
+        return buffer
     }
 }
 
