@@ -4,7 +4,7 @@ class SheetMetronomeSettings {
   const SheetMetronomeSettings({
     required this.bpm,
     required this.meter,
-    this.soundEnabled = false,
+    this.soundEnabled = true,
     this.accentEnabled = true,
     this.subdivision = SheetMetronomeSubdivision.none,
   });

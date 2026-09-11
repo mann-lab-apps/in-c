@@ -12,10 +12,10 @@ helpers:
 - draw pen/highlighter strokes and text annotations as app metadata
 - share PDFs, annotated PDF copies, and full local backups
 - block URL link taps and create URL-link-disabled PDF copies
-- use visual metronome, reference tone/drone, local audio playback, auto scroll,
+- use audible/visual metronome, reference tone/drone, local audio playback, auto scroll,
   hardware-key page turns, and microphone tuner
-- switch tuner preset/profile across chromatic, target, guitar/bass, ukulele,
-  mandolin, strings, and transposing-instrument flows
+- use a chromatic-only tuner with pitch history, A4 calibration, reference tone,
+  drone, and weak-signal guidance
 
 ## Current Scope
 
@@ -28,8 +28,8 @@ Included:
 - `pdfrx` PDF rendering
 - tester info sheet with feedback template copy
 - Korean-first app copy with feedback fields for awkward wording
-- tuner quick A4 actions, target lock, calibration history, and adaptive
-  noise-floor guard for practice-session tuning
+- tuner quick A4 actions, calibration history, and adaptive noise-floor guard
+  for practice-session tuning
 
 Known limitations:
 

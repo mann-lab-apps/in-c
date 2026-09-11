@@ -17,7 +17,7 @@ void main() {
 
     expect(low.bpm, 40);
     expect(low.meter, SheetMetronomeMeter.fourFour);
-    expect(low.soundEnabled, isFalse);
+    expect(low.soundEnabled, isTrue);
     expect(low.accentEnabled, isTrue);
     expect(low.subdivision, SheetMetronomeSubdivision.none);
     expect(high.bpm, 240);
@@ -46,6 +46,16 @@ void main() {
     expect(decoded.pulseDuration.inMilliseconds, 152);
   });
 
+  test('keeps explicit silent metronome preference', () {
+    final settings = SheetMetronomeSettings.fromJson(<String, Object?>{
+      'bpm': 96,
+      'meter': 'fourFour',
+      'soundEnabled': false,
+    });
+
+    expect(settings.soundEnabled, isFalse);
+  });
+
   test('falls back to default settings for malformed JSON', () {
     expect(
       SheetMetronomeCodec.decode('{bad json').bpm,
@@ -68,7 +78,7 @@ void main() {
 
     expect(settings.bpm, SheetMetronomeSettings.defaultSettings.bpm);
     expect(settings.meter, SheetMetronomeSettings.defaultSettings.meter);
-    expect(settings.soundEnabled, isFalse);
+    expect(settings.soundEnabled, isTrue);
     expect(settings.accentEnabled, isTrue);
     expect(settings.subdivision, SheetMetronomeSubdivision.none);
   });

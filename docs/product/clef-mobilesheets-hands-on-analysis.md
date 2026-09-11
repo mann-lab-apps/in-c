@@ -75,7 +75,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 | 여러 악보 세트리스트 추가 | 선택 overflow에서 `Create Setlist from Songs`. | 반영됨. | action 발견성, 중복 skip copy. | 현재 유지. 안내 문구만 QA. | v1 QA |
 | 세트리스트 drag reorder | edit mode에서 큰 drag handle과 split layout. | 반영됨. 후속 hotfix에서 handle hit area를 44dp로 키웠다. | 긴 목록 drag feel 미검증. | 실제 손가락 drag QA. 직접 순번 입력은 보류. | v1 QA, v1.1 |
 | 최근 목록 세트리스트 | Recent에 setlist와 song이 함께 표시. | 반영됨. | Clef rail/card 구분 가독성. | 곡 수 badge와 최근 연 시간 확인. | v1 QA |
-| 메트로놈 소리 | Audio and Visual mode, sound FX, volume, start button 제공. | 반영됨. | 실제 기기에서 소리 안 남 보고. | audio route/volume/visual fallback 실기기 최우선 확인. | v1 QA/hotfix |
+| 메트로놈 소리 | Audio and Visual mode, sound FX, volume, start button 제공. | 반영됨. 새 metronome settings는 기본 `소리 켬`이고, 꺼두면 `시각만` 상태를 표시한다. | 실제 기기 audio route/volume/무음 모드 QA 필요. | 실기기에서 소리와 visual fallback을 최우선 확인. | v1 QA |
 | 메트로놈 리듬 설정 | time signature, subdivision, accent first beat, tap tempo 제공. | 반영됨. | count-in/per-score tempo 저장 없음. | v1은 충분. 곡별 tempo/count-in은 v1.1. | v1.1 |
 | 미니 튜너/메트로놈 | 악보 위 floating metronome panel. tuner는 확인되지 않음. | 반영됨. | Clef panel이 악보를 가리는지. | 고정형 유지, movable/resize는 spike. | v1 QA/Spike |
 | 터치 페이지 넘김 | 중앙 탭 overlay. touch actions는 설정에서 따로 지정. | 반영됨. | 좌/우 page turn은 1-page 샘플이라 직접 검증 제한. | Clef tap zone hint 유지. | v1 유지 |
@@ -106,7 +106,7 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 
 | 후보 | 근거 | 난이도 | 추천 |
 | --- | --- | --- | --- |
-| Metronome audio route/fallback QA and hotfix | MobileSheets는 playback mode/volume을 명확히 노출하고, 사용자도 소리 안 남을 보고했다. | 중간 | v1 hotfix 후보 |
+| Metronome audio route QA | MobileSheets는 playback mode/volume을 명확히 노출하고, 사용자도 소리 안 남을 보고했다. Clef는 기본 `소리 켬`과 `소리`/`시각만` 상태 표시를 적용했다. | 중간 | 실기기 QA |
 | Setlist card/rail 실기기 가독성 polish | MobileSheets Recent에 setlist가 직접 노출된다. Clef는 rail 방식이라 구분성이 중요하다. | 낮음 | v1 QA 후 필요 시 |
 | Setlist reorder handle hit area QA | MobileSheets edit mode의 handle이 크다. | 낮음 | v1 QA 후 필요 시 |
 | Per-score tempo/count-in | MobileSheets metronome은 곡 위 패널에서 상세 설정을 제공한다. | 중간 | v1.1 |

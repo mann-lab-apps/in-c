@@ -35,6 +35,8 @@
    확인한다. 기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 v1 UI에 보이지 않아야 한다.
 11. 가능하면 Piascore 또는 무료 상용 튜너앱과 A4/E2/A2/C4/G4/C6 cents 값을 비교해 차이를 기록한다.
 12. 메트로놈을 열어 BPM/박자, 8분/3연/16분 나눔, 첫 박 강조, Tap tempo, start/stop을 확인한다.
+    기본값은 `소리 켬`이어야 하며, `tick 소리`를 끄면 화면 박자 표시만 사용하는 `시각만` 상태로
+    이해되는지 확인한다.
 13. 메트로놈/튜너 sheet의 작은 창 버튼으로 악보 위 mini panel을 띄우고 닫을 수 있는지 확인한다.
 14. viewer 첫 진입에서 왼쪽 `이전`, 가운데 `메뉴`, 오른쪽 `다음` tap zone 안내가 보이는지 확인한다.
 15. 자동 스크롤을 시작한 뒤 수동 페이지 이동 시 정지되는지 확인한다.
@@ -106,6 +108,9 @@
   최근 세트리스트 rail, page tap zone hint, paper/white viewer background, 메트로놈 subdivision/Tap tempo,
   고정형 mini tuner/metronome panel을 v1 hotfix에 반영했다. 실제 장비/연주 환경에서는 discoverability와
   장시간 사용성을 다시 확인한다.
+- MobileSheets 비교와 연주자 피드백에 따라 새 metronome settings의 기본값은 `소리 켬`으로 둔다.
+  명시적으로 `tick 소리`를 끈 기존/저장 설정은 유지하며, 메트로놈 화면과 mini panel에는 `소리`/`시각만`
+  상태가 보여야 한다.
 - 다중 선택 모드에서는 일반 목록뿐 아니라 `최근` quick access 악보 카드도 선택 상태로 바뀌어야 한다.
   선택된 카드는 check icon, primary border, 강조 배경이 보이고 viewer로 열리지 않아야 한다.
 - 세트리스트 상세의 drag handle은 손가락으로 바로 잡을 수 있을 정도의 터치 영역으로 보이며, 위/아래

@@ -11421,7 +11421,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
             const SizedBox(width: 6),
             Expanded(
               child: Text(
-                '${settings.bpm} BPM · ${settings.meter.label}',
+                '${settings.bpm} BPM · ${settings.meter.label} · ${settings.soundEnabled ? '소리' : '시각'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.labelLarge?.copyWith(
@@ -15627,7 +15627,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             ),
             Center(
               child: Text(
-                'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar}',
+                'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar} · ${_settings.soundEnabled ? '소리 켬' : '시각만'}',
                 style: theme.textTheme.labelLarge,
               ),
             ),
@@ -15760,8 +15760,10 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.volume_up_outlined),
               title: const Text('tick 소리'),
-              subtitle: const Text(
-                '소리가 들리지 않으면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.',
+              subtitle: Text(
+                _settings.soundEnabled
+                    ? '시작하면 beat마다 소리를 냅니다. 안 들리면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.'
+                    : '소리를 끄고 화면 박자 표시만 사용합니다.',
               ),
               value: _settings.soundEnabled,
               onChanged: _setSoundEnabled,
