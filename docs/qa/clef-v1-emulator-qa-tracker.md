@@ -72,7 +72,7 @@ adb push ~/Desktop/IMSLP924425-PMLP301733-Op.85_Bach_Minuet_Anh._120_arranged_by
 | ID | 영역 | 에뮬레이터에서 할 일 | 샘플/입력 | 통과 기준 | 상태 |
 | --- | --- | --- | --- | --- | --- |
 | EMU-001 | 설치/업데이트 | `adb install -r`로 release APK 덮어 설치 | `app-release.apk` | 기존 library metadata가 유지되고 앱이 실행됨 | 통과 |
-| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | `1.0.0+14` | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
+| EMU-002 | Play build sanity | build number와 앱 내 테스트 정보 version 확인 | 현재 소스 `1.0.0+20` 또는 내부테스트 설치본 buildCode | 앱 내 표시와 `pubspec.yaml` version이 일치 | 통과 |
 | EMU-003 | 첫 화면 | 빈 라이브러리/기존 라이브러리 상태 확인 | 앱 첫 화면 | 검색, 필터, import CTA, 테스트 정보 진입이 보임 | 통과 |
 | EMU-004 | PDF import | system picker로 PDF 가져오기 | IMSLP, `short-score.pdf` | import 실패 없이 viewer 진입 | 통과 |
 | EMU-005 | 비PDF import 실패 | PDF picker/공유에서 비PDF 선택 시도 | `.txt` 또는 이미지 파일 | crash 없이 unsupported 안내 | 예정 |
@@ -285,6 +285,19 @@ v1.1 spike 여부:
   내부 저장 key는 기존 `hybrid`, `autocorrelation`, `yin`을 유지한다.
 - 실마이크 pitch 정확도, latency, 소음 환경 안정성은 emulator로 판단하지 않고 Android 실기기 QA에
   남긴다.
+
+## 2026-09-11 MobileSheets/연주자 피드백 후속 메트로놈 확인
+
+- MobileSheets hands-on 분석에서 metronome은 Audio/Visual mode와 sound 설정이 명확히 분리되어
+  있었고, 연주자 피드백에서도 `메트로놈 소리가 안 나요`가 반복 확인 대상이었다.
+- Clef는 새 metronome settings 기본값을 `소리 켬`으로 바꾸고, 명시적으로 `tick 소리`를 끈 저장값은
+  계속 존중한다.
+- 메트로놈 sheet의 BPM 요약에는 `소리 켬` 또는 `시각만`이 표시되고, viewer mini panel에도
+  `소리`/`시각` 상태가 표시된다.
+- `flutter test test/sheet_metronome_test.dart test/sheet_app_smoke_test.dart`, `flutter analyze`,
+  전체 `flutter test`, `dart run tool/rc_release_check.dart`, `flutter build apk --debug`는 통과했다.
+- 2026-09-11 현재 ADB에 연결된 emulator가 없어 debug APK 설치/화면 확인은 미실행이다. 다음 emulator
+  실행 시 `메트로놈` sheet와 mini panel에서 소리 상태 표시를 확인한다.
 
 ## 내부테스트 업로드 전 확인
 
