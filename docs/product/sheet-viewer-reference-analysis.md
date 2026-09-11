@@ -266,7 +266,7 @@ Clef & Staff는 이를 그대로 복제하기보다, 연주자가 바로 막힌 
 | 튜너 | 공식 MobileSheets 자료에서 chromatic tuner는 확인되지 않았다. | Chromatic-only tuner, pitch history chart, input stabilization이 있다. | 전용 튜너앱만큼의 실기기 정확도/latency 근거는 부족하다. | 악보앱 차별점으로 유지하되 실기기 QA로 정확도 판단. | v1 QA |
 | 미니 도구 | song display는 metronome/audio player 같은 window/control을 포함하고 quick action box는 performance mode에서도 접근 가능하다. | 악보 위 고정형 tuner/metronome mini panel이 있다. | 이동/접기/크기 조절은 없다. | v1은 고정형으로 제한. movable overlay architecture는 spike. | v1 유지, spike |
 | 파일/import | local, cloud, external app, batch import, CSV/PDF bookmark import가 있다. 원본 crop은 수정하지 않는다고 설명한다. | PDF/image import, 원본 보존, link sanitizer, backup/restore가 있다. | direct cloud browser, batch directory import, CSV songbook split은 없다. | 직접 스캐너/OCR/cloud folder/direct SAF는 v1.1 이후. | v1.1/Later |
-| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text/stamp/line/arrow/rectangle, undo/redo, favorite tool, 기본 layer 표시/숨김/export flag, stylus pressure metadata가 있다. | S Pen pressure/palm rejection 실기기 QA, 다중 layer/keying, music-specific shape가 남았다. | S Pen 실기기 QA 후 stylus/layer polish를 v1.1로 이동. | QA, v1.1 |
+| 필기/주석 | pen/highlighter/text/stamp/shape/layer/stylus pressure/favorite/undo 등을 제공한다. | pen/highlighter/eraser/text/stamp/line/arrow/rectangle/crescendo/diminuendo, undo/redo, favorite tool, 기본 layer 표시/숨김/export flag, stylus pressure metadata가 있다. | S Pen pressure/palm rejection 실기기 QA, 다중 layer/keying, staff/grid/custom stamp pack이 남았다. | S Pen 실기기 QA 후 stylus/layer polish를 v1.1로 이동하고, staff/grid 도구는 필요성이 확인되면 별도 slice로 검토한다. | QA, v1.1 |
 
 ### 친구 피드백 9개별 처리 판단
 

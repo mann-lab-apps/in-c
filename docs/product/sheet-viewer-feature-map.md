@@ -78,9 +78,9 @@
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 구현됨: stroke/text/redo와 layer flag를 SharedPreferences inline metadata로 저장하고, file-backed annotation store adapter/external reference를 v1.1 준비 상태로 보유 |
-| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: stamp annotation tool, line/arrow/rectangle, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
+| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: stamp annotation tool, line/arrow/rectangle/crescendo/diminuendo, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
-| 주석 | crescendo/piano staff | MobileSheets 지원 | V2 | 중간 | music-specific shapes |
+| 주석 | crescendo/diminuendo hairpin | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 헤어핀 필기, hit-test/delete, redo, PDF export rendering. staff/grid 같은 더 무거운 악보 전용 도구는 후속 |
 | 주석 | favorite tool | MobileSheets 지원 | V1 | 낮음 | 구현됨: favorite annotation tool preset 저장/복원, library profile별 분리 |
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |

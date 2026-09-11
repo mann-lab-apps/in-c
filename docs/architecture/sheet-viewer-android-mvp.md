@@ -570,8 +570,8 @@ link handling, page layout customization, page manipulation 관련 확장 지점
   무시한다.
 - 렌더링은 normalized point를 page-local offset으로 환산해 그린다. 따라서 확대/축소/이동,
   1페이지 가로 layout, 2페이지 spread, 세로 스크롤에서 page와 annotation이 같이 움직인다.
-- 지원 도구는 펜, 형광펜, 화살표, 사각형, 텍스트, 스탬프, 지우개다. undo/redo와 favorite tool
-  preset을 제공한다.
+- 지원 도구는 펜, 형광펜, 선, 화살표, 사각형, 크레셴도/디미누엔도 헤어핀, 텍스트, 스탬프,
+  지우개다. undo/redo와 favorite tool preset을 제공한다.
 - 텍스트 주석은 id, pageNumber, normalized position, text, color, fontSize, createdAt을 저장한다.
 - 텍스트 도구를 선택한 뒤 page를 탭하면 입력 dialog를 띄우고, 입력한 텍스트를 해당 page 위치에
   렌더링한다.

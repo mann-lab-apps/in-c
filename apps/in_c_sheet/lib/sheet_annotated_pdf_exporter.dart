@@ -247,6 +247,13 @@ class SheetAnnotatedPdfExporter {
       content.restore();
       return;
     }
+    if ((stroke.tool == SheetAnnotationTool.crescendo ||
+            stroke.tool == SheetAnnotationTool.diminuendo) &&
+        stroke.points.length >= 2) {
+      _drawHairpin(content, geometry, stroke);
+      content.restore();
+      return;
+    }
     if (stroke.tool != SheetAnnotationTool.line &&
         stroke.tool != SheetAnnotationTool.arrow &&
         _hasPressureVariation(stroke)) {
@@ -346,6 +353,45 @@ class SheetAnnotatedPdfExporter {
       ..lineTo(left.x, left.y)
       ..moveTo(end.x, end.y)
       ..lineTo(right.x, right.y)
+      ..stroke();
+  }
+
+  static void _drawHairpin(
+    dynamic content,
+    SheetPdfAnnotationGeometry geometry,
+    SheetAnnotationStroke stroke,
+  ) {
+    final start = geometry.toPdfPoint(stroke.points.first);
+    final end = geometry.toPdfPoint(stroke.points.last);
+    final dx = end.x - start.x;
+    final dy = end.y - start.y;
+    final length = math.sqrt((dx * dx) + (dy * dy));
+    if (length < 0.1) {
+      content
+        ..moveTo(start.x, start.y)
+        ..lineTo(start.x + 0.1, start.y + 0.1)
+        ..stroke();
+      return;
+    }
+    final normalX = -dy / length;
+    final normalY = dx / length;
+    final opening = (_pdfLineWidth(stroke) * 5).clamp(10.0, 28.0).toDouble();
+    final halfOpening = opening / 2;
+    final closed = stroke.tool == SheetAnnotationTool.crescendo ? start : end;
+    final open = stroke.tool == SheetAnnotationTool.crescendo ? end : start;
+    final upper = SheetPdfAnnotationPoint(
+      open.x + (normalX * halfOpening),
+      open.y + (normalY * halfOpening),
+    );
+    final lower = SheetPdfAnnotationPoint(
+      open.x - (normalX * halfOpening),
+      open.y - (normalY * halfOpening),
+    );
+    content
+      ..moveTo(closed.x, closed.y)
+      ..lineTo(upper.x, upper.y)
+      ..moveTo(closed.x, closed.y)
+      ..lineTo(lower.x, lower.y)
       ..stroke();
   }
 

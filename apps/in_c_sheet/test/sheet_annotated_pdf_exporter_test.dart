@@ -90,6 +90,30 @@ void main() {
             ],
             createdAt: now.add(const Duration(seconds: 2)),
           ),
+          SheetAnnotationStroke(
+            id: 'crescendo-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.crescendo,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.15, y: 0.7),
+              SheetAnnotationPoint(x: 0.45, y: 0.7),
+            ],
+            createdAt: now.add(const Duration(seconds: 3)),
+          ),
+          SheetAnnotationStroke(
+            id: 'diminuendo-1',
+            pageNumber: 1,
+            tool: SheetAnnotationTool.diminuendo,
+            color: 0xff111111,
+            width: 3,
+            points: const <SheetAnnotationPoint>[
+              SheetAnnotationPoint(x: 0.55, y: 0.7),
+              SheetAnnotationPoint(x: 0.85, y: 0.7),
+            ],
+            createdAt: now.add(const Duration(seconds: 4)),
+          ),
         ],
         texts: <SheetTextAnnotation>[
           SheetTextAnnotation(
@@ -113,7 +137,7 @@ void main() {
 
     expect(result.didWrite, isTrue);
     expect(result.mode, SheetPdfAnnotationExportMode.renderedStamp);
-    expect(result.strokeCount, 3);
+    expect(result.strokeCount, 5);
     expect(result.textCount, 1);
     expect(result.exportedTextCount, 1);
     expect(result.skippedUnicodeTextCount, 0);

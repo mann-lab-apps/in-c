@@ -19,6 +19,13 @@ void main() {
         'width': 4,
       },
     );
+    final hairpinPreset = SheetAnnotationToolPreset.fromJson(
+      const <String, Object?>{
+        'toolName': 'crescendo',
+        'color': 0xff111111,
+        'width': 4,
+      },
+    );
 
     expect(preset.toolName, 'stamp');
     expect(preset.color, 0xffd33232);
@@ -29,6 +36,7 @@ void main() {
       SheetAnnotationToolPreset.fromJson(preset.toJson()).toJson(),
       preset.toJson(),
     );
+    expect(hairpinPreset.isValid, isTrue);
     expect(invalidPreset.isValid, isFalse);
     expect(SheetAnnotationToolPreset.fromJson(null).isValid, isFalse);
   });
@@ -319,7 +327,7 @@ void main() {
     expect(decoded.points.last.pressure, 1.3);
   });
 
-  test('annotation stroke supports line, arrow, and rectangle tools', () {
+  test('annotation stroke supports shape and hairpin tools', () {
     final createdAt = DateTime.parse('2026-08-21T10:00:00.000');
     final line = _stroke(
       id: 'line-1',
@@ -339,14 +347,40 @@ void main() {
       tool: SheetAnnotationTool.rectangle,
       createdAt: createdAt.add(const Duration(seconds: 1)),
     );
+    final crescendo = _stroke(
+      id: 'crescendo-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.crescendo,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.1, y: 0.2),
+        SheetAnnotationPoint(x: 0.5, y: 0.2),
+      ],
+      createdAt: createdAt.add(const Duration(seconds: 2)),
+    );
+    final diminuendo = _stroke(
+      id: 'diminuendo-1',
+      pageNumber: 1,
+      tool: SheetAnnotationTool.diminuendo,
+      points: const <SheetAnnotationPoint>[
+        SheetAnnotationPoint(x: 0.1, y: 0.2),
+        SheetAnnotationPoint(x: 0.5, y: 0.2),
+      ],
+      createdAt: createdAt.add(const Duration(seconds: 3)),
+    );
 
     final decodedLine = SheetAnnotationStroke.fromJson(line.toJson());
     final decodedArrow = SheetAnnotationStroke.fromJson(arrow.toJson());
     final decodedRectangle = SheetAnnotationStroke.fromJson(rectangle.toJson());
+    final decodedCrescendo = SheetAnnotationStroke.fromJson(crescendo.toJson());
+    final decodedDiminuendo = SheetAnnotationStroke.fromJson(
+      diminuendo.toJson(),
+    );
 
     expect(decodedLine.tool, SheetAnnotationTool.line);
     expect(decodedArrow.tool, SheetAnnotationTool.arrow);
     expect(decodedRectangle.tool, SheetAnnotationTool.rectangle);
+    expect(decodedCrescendo.tool, SheetAnnotationTool.crescendo);
+    expect(decodedDiminuendo.tool, SheetAnnotationTool.diminuendo);
     expect(
       line.hitTest(
         const SheetAnnotationPoint(x: 0.15, y: 0.15),
@@ -367,6 +401,20 @@ void main() {
         tolerance: 0.02,
       ),
       isFalse,
+    );
+    expect(
+      crescendo.hitTest(
+        const SheetAnnotationPoint(x: 0.49, y: 0.25),
+        tolerance: 0.03,
+      ),
+      isTrue,
+    );
+    expect(
+      diminuendo.hitTest(
+        const SheetAnnotationPoint(x: 0.12, y: 0.25),
+        tolerance: 0.03,
+      ),
+      isTrue,
     );
   });
 

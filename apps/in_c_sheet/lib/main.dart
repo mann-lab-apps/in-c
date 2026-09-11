@@ -5283,6 +5283,8 @@ enum _AnnotationToolbarTool {
   line('선', Icons.remove),
   arrow('화살표', Icons.call_made),
   rectangle('사각형', Icons.crop_square),
+  crescendo('크레셴도', Icons.open_in_full),
+  diminuendo('디미누엔도', Icons.close_fullscreen),
   stamp('스탬프', Icons.check_circle_outline),
   text('텍스트', Icons.text_fields),
   eraser('지우개', Icons.auto_fix_off_outlined);
@@ -5307,7 +5309,20 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
       _AnnotationToolbarTool.line => SheetAnnotationTool.line,
       _AnnotationToolbarTool.arrow => SheetAnnotationTool.arrow,
       _AnnotationToolbarTool.rectangle => SheetAnnotationTool.rectangle,
+      _AnnotationToolbarTool.crescendo => SheetAnnotationTool.crescendo,
+      _AnnotationToolbarTool.diminuendo => SheetAnnotationTool.diminuendo,
       _ => SheetAnnotationTool.pen,
+    };
+  }
+
+  bool get usesTwoPointShape {
+    return switch (this) {
+      _AnnotationToolbarTool.line ||
+      _AnnotationToolbarTool.arrow ||
+      _AnnotationToolbarTool.rectangle ||
+      _AnnotationToolbarTool.crescendo ||
+      _AnnotationToolbarTool.diminuendo => true,
+      _ => false,
     };
   }
 }
@@ -9243,9 +9258,7 @@ setlist=$setlistLabel
     if (points.isEmpty) {
       return;
     }
-    if (_annotationTool == _AnnotationToolbarTool.line ||
-        _annotationTool == _AnnotationToolbarTool.arrow ||
-        _annotationTool == _AnnotationToolbarTool.rectangle) {
+    if (_annotationTool.usesTwoPointShape) {
       setState(() {
         _draftAnnotationPoints = <SheetAnnotationPoint>[points.first, point];
       });
@@ -13120,6 +13133,13 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
 
+    if ((stroke.tool == SheetAnnotationTool.crescendo ||
+            stroke.tool == SheetAnnotationTool.diminuendo) &&
+        stroke.points.length >= 2) {
+      _paintHairpin(canvas, size, stroke, paint);
+      return;
+    }
+
     if (stroke.tool != SheetAnnotationTool.line &&
         stroke.tool != SheetAnnotationTool.arrow) {
       _paintFreehandStroke(canvas, size, stroke, paint, baseStrokeWidth);
@@ -13226,6 +13246,31 @@ class _AnnotationPainter extends CustomPainter {
 
   double _pressureStrokeWidth(double baseStrokeWidth, double pressure) {
     return (baseStrokeWidth * pressure).clamp(0.5, 48.0).toDouble();
+  }
+
+  void _paintHairpin(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final start = _pointOffset(stroke.points.first, size);
+    final end = _pointOffset(stroke.points.last, size);
+    final vector = end - start;
+    if (vector.distance < 2) {
+      canvas.drawLine(start, start.translate(0.1, 0.1), paint);
+      return;
+    }
+    final normal = Offset(-vector.dy, vector.dx) / vector.distance;
+    final opening = (paint.strokeWidth * 5).clamp(14.0, 38.0).toDouble();
+    final halfOpening = opening / 2;
+    final closed = stroke.tool == SheetAnnotationTool.crescendo ? start : end;
+    final open = stroke.tool == SheetAnnotationTool.crescendo ? end : start;
+    final upper = open + (normal * halfOpening);
+    final lower = open - (normal * halfOpening);
+    canvas
+      ..drawLine(closed, upper, paint)
+      ..drawLine(closed, lower, paint);
   }
 
   void _paintArrowHead(

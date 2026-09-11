@@ -17,7 +17,9 @@ enum SheetAnnotationTool {
   highlighter,
   line,
   arrow,
-  rectangle;
+  rectangle,
+  crescendo,
+  diminuendo;
 
   static SheetAnnotationTool fromName(String? name) {
     return SheetAnnotationTool.values.firstWhere(
@@ -66,6 +68,8 @@ class SheetAnnotationToolPreset {
     'line',
     'arrow',
     'rectangle',
+    'crescendo',
+    'diminuendo',
     'stamp',
     'text',
     'eraser',
@@ -167,6 +171,18 @@ class SheetAnnotationStroke {
       return _distanceToRectangle(point, points.first, points.last) <=
           tolerance;
     }
+    if ((tool == SheetAnnotationTool.crescendo ||
+            tool == SheetAnnotationTool.diminuendo) &&
+        points.length >= 2) {
+      return _distanceToHairpin(
+            point,
+            points.first,
+            points.last,
+            tolerance,
+            isCrescendo: tool == SheetAnnotationTool.crescendo,
+          ) <=
+          tolerance;
+    }
     if (points.length == 1) {
       return points.single.distanceTo(point) <= tolerance;
     }
@@ -259,6 +275,39 @@ class SheetAnnotationStroke {
     return edges
         .map((edge) => _distanceToSegment(point, edge.$1, edge.$2))
         .reduce((value, element) => math.min(value, element));
+  }
+
+  static double _distanceToHairpin(
+    SheetAnnotationPoint point,
+    SheetAnnotationPoint first,
+    SheetAnnotationPoint second,
+    double tolerance, {
+    required bool isCrescendo,
+  }) {
+    final dx = second.x - first.x;
+    final dy = second.y - first.y;
+    final length = math.sqrt((dx * dx) + (dy * dy));
+    if (length == 0) {
+      return point.distanceTo(first);
+    }
+    final normalX = -dy / length;
+    final normalY = dx / length;
+    final opening = math.max(tolerance * 3.5, 0.018);
+    final halfOpening = opening / 2;
+    final closed = isCrescendo ? first : second;
+    final open = isCrescendo ? second : first;
+    final upper = SheetAnnotationPoint(
+      x: (open.x + (normalX * halfOpening)).clamp(0.0, 1.0).toDouble(),
+      y: (open.y + (normalY * halfOpening)).clamp(0.0, 1.0).toDouble(),
+    );
+    final lower = SheetAnnotationPoint(
+      x: (open.x - (normalX * halfOpening)).clamp(0.0, 1.0).toDouble(),
+      y: (open.y - (normalY * halfOpening)).clamp(0.0, 1.0).toDouble(),
+    );
+    return math.min(
+      _distanceToSegment(point, closed, upper),
+      _distanceToSegment(point, closed, lower),
+    );
   }
 }
 

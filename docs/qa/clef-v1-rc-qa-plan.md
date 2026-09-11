@@ -463,6 +463,9 @@ flutter build ios --release --no-codesign
 - MobileSheets annotation toolbar에서 확인한 line 도구를 Clef 필기 도구에 추가했다. 선 도구는
   화살표와 같은 두 점 입력 흐름을 쓰되 화살촉 없이 렌더링하며, 화면 렌더/PDF 공유/export
   경로와 codec/hit-test 테스트에 반영했다.
+- MobileSheets의 음악 전용 annotation 중 RC에 가볍게 흡수 가능한 크레셴도/디미누엔도 헤어핀을
+  두 점 입력 필기 도구로 추가했다. 화면 렌더, 지우개 hit-test, undo/redo 저장, 필기 포함 PDF
+  공유/export 경로에 반영했다. staff/grid/custom stamp pack은 후속 고급 도구로 남긴다.
 - 화면에 직접 노출되는 `metadata`, `preset`, `crop`, `debug`, `key log`, `Tap tempo`,
   `tick 소리` 같은 혼합 표기를 `정보`, `프리셋`, `자르기`, `진단 요약`, `입력 기록`,
   `탭 템포`, `틱 소리` 중심으로 정리했다. 내부 JSON field와 코드 class 이름은 호환성 때문에
