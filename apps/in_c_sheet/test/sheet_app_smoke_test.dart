@@ -257,5 +257,11 @@ void main() {
     );
     expect(find.text('첫 박 강조'), findsOneWidget);
     expect(find.text('tick 소리'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('소리 확인'),
+      160,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('소리 확인'), findsOneWidget);
   });
 }

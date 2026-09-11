@@ -15855,6 +15855,13 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     unawaited(SystemSound.play(SystemSoundType.click));
   }
 
+  void _previewTickSound() {
+    unawaited(SystemSound.play(SystemSoundType.click));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('소리가 들리지 않으면 기기 볼륨, 무음 모드, 이어폰 연결을 확인하세요.')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -16075,6 +16082,14 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               ),
               value: _settings.soundEnabled,
               onChanged: _setSoundEnabled,
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: _previewTickSound,
+                icon: const Icon(Icons.volume_up_outlined),
+                label: const Text('소리 확인'),
+              ),
             ),
           ],
         ),
