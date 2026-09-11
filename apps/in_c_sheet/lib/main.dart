@@ -5132,6 +5132,7 @@ enum _JumpPointAction { add, open, rename, delete }
 enum _ViewerMenuAction {
   bookmarks,
   scoreParts,
+  editScoreMetadata,
   scoreNotes,
   displayMode,
   displayEffect,
@@ -5172,6 +5173,38 @@ enum _ViewerMenuAction {
 }
 
 enum _ViewerMiniTool { metronome, tuner }
+
+List<PopupMenuEntry<_ViewerMenuAction>> _viewerCompactLibraryMenuItems() =>
+    const [
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.bookmarks,
+        child: ListTile(
+          leading: Icon(Icons.bookmarks_outlined),
+          title: Text('북마크 목록'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.scoreParts,
+        child: ListTile(
+          leading: Icon(Icons.library_music_outlined),
+          title: Text('파트/버전'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.editScoreMetadata,
+        child: ListTile(
+          leading: Icon(Icons.edit_note_outlined),
+          title: Text('악보 정보 편집'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.scoreNotes,
+        child: ListTile(
+          leading: Icon(Icons.sticky_note_2_outlined),
+          title: Text('악보 메모'),
+        ),
+      ),
+    ];
 
 enum _AnnotationToolbarTool {
   pen('펜', Icons.edit_outlined),
@@ -6864,6 +6897,30 @@ setlist=$setlistLabel
     }
     await widget.controller.updateStructuredNotes(score, notes);
     _showSnackBar('악보 메모를 저장했습니다.');
+  }
+
+  Future<void> _editCurrentScoreMetadata() async {
+    final result = await _showScoreMetadataDialog(
+      context: context,
+      score: score,
+      onAddLinkedFile: widget.controller.pickLinkedFile,
+    );
+    if (result == null || !mounted) {
+      return;
+    }
+    await widget.controller.updateScoreMetadata(
+      score,
+      title: result.title,
+      composer: result.composer,
+      tags: result.tags,
+      note: result.note,
+      collection: result.collection,
+      group: result.group,
+      rating: result.rating,
+      linkedFiles: result.linkedFiles,
+      customFields: result.customFields,
+    );
+    _showSnackBar('악보 정보를 저장했습니다.');
   }
 
   Future<void> _importPdfOutlineBookmarks() async {
@@ -9773,6 +9830,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.scoreParts:
         await _showScoreParts();
         return;
+      case _ViewerMenuAction.editScoreMetadata:
+        await _editCurrentScoreMetadata();
+        return;
       case _ViewerMenuAction.scoreNotes:
         await _showScoreNotes();
         return;
@@ -10248,6 +10308,12 @@ setlist=$setlistLabel
         ),
       if (!isCompactViewer && !_isPerformanceMode)
         IconButton(
+          tooltip: '악보 정보 편집',
+          onPressed: _editCurrentScoreMetadata,
+          icon: const Icon(Icons.edit_note_outlined),
+        ),
+      if (!isCompactViewer && !_isPerformanceMode)
+        IconButton(
           tooltip: '보기 모드',
           onPressed: _selectDisplayMode,
           icon: Icon(_displayMode.icon),
@@ -10541,27 +10607,7 @@ setlist=$setlistLabel
           tooltip: '보기 옵션',
           onSelected: (action) => _handleViewerMenuAction(action),
           itemBuilder: (context) => [
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.bookmarks,
-              child: ListTile(
-                leading: Icon(Icons.bookmarks_outlined),
-                title: Text('북마크 목록'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreParts,
-              child: ListTile(
-                leading: Icon(Icons.library_music_outlined),
-                title: Text('파트/버전'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreNotes,
-              child: ListTile(
-                leading: Icon(Icons.sticky_note_2_outlined),
-                title: Text('악보 메모'),
-              ),
-            ),
+            ..._viewerCompactLibraryMenuItems(),
             PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.displayMode,
               child: ListTile(
@@ -15744,6 +15790,20 @@ Widget buildViewerMiniMetronomePanelForTest({
 @visibleForTesting
 Widget buildTapZoneHintOverlayForTest() {
   return const MaterialApp(home: Scaffold(body: _TapZoneHintOverlay()));
+}
+
+@visibleForTesting
+Widget buildViewerCompactOptionsMenuForTest() {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: PopupMenuButton<_ViewerMenuAction>(
+          tooltip: '보기 옵션',
+          itemBuilder: (context) => _viewerCompactLibraryMenuItems(),
+        ),
+      ),
+    ),
+  );
 }
 
 class _MetronomeSheetState extends State<_MetronomeSheet> {

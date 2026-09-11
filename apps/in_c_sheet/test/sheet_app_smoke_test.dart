@@ -295,4 +295,19 @@ void main() {
     expect(find.text('다음'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('compact viewer menu exposes score metadata editing', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildViewerCompactOptionsMenuForTest());
+
+    await tester.tap(find.byTooltip('보기 옵션'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('북마크 목록'), findsOneWidget);
+    expect(find.text('파트/버전'), findsOneWidget);
+    expect(find.text('악보 정보 편집'), findsOneWidget);
+    expect(find.text('악보 메모'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }

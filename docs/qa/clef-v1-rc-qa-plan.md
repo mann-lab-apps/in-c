@@ -471,3 +471,6 @@ flutter build ios --release --no-codesign
   따라갈 수 있게 했다. 실제 소리 출력과 latency는 계속 실기기 QA로 확인한다.
 - 페이지 터치 넘김은 첫 진입 overlay에 더해 `터치 영역 다시 보기` action을 제공한다. 사용자가
   한 번 놓친 뒤에도 왼쪽 이전, 가운데 메뉴, 오른쪽 다음 영역을 다시 확인할 수 있다.
+- MobileSheets의 import wizard식 metadata assignment를 그대로 강제하지 않고, viewer toolbar의
+  `악보 정보 편집` 진입점으로 가져온 악보를 보면서 제목/작곡가/태그/컬렉션/그룹/별점/custom
+  field를 바로 정리할 수 있게 했다. import-time 전체 wizard는 v1.1 후보로 유지한다.
