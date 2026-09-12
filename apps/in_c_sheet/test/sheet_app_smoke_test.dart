@@ -359,6 +359,73 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('bulk collection assignment can jump to its filter', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'uncollected score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/uncollected-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'score-2',
+        title: 'recital score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/recital-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        collection: 'Recital',
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('uncollected score').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('선택 악보 컬렉션 지정'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Recital').last);
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('score-1').collection, 'Recital');
+    expect(find.text('보기'), findsOneWidget);
+
+    await tester.tap(find.text('보기'));
+    await tester.pumpAndSettle();
+
+    expect(controller.libraryViewSettings.collectionQuery, 'Recital');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home surfaces imported scores that need metadata review', (
     tester,
   ) async {

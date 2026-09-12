@@ -260,7 +260,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       _bulkSelectedScoreIds.clear();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$changedCount개 악보를 "$collection" 컬렉션으로 묶었습니다.')),
+      SnackBar(
+        content: Text('$changedCount개 악보를 "$collection" 컬렉션으로 묶었습니다.'),
+        action: SnackBarAction(
+          label: '보기',
+          onPressed: () {
+            unawaited(controller.updateCollectionFilter(collection));
+          },
+        ),
+      ),
     );
   }
 
@@ -4121,7 +4129,7 @@ class _ScoreGrid extends StatelessWidget {
     if (!isWide) {
       return ListView.separated(
         itemBuilder: (context, index) => SizedBox(
-          height: 196,
+          height: 212,
           child: _ScoreTile(
             score: scores[index],
             onOpen: onOpen,
@@ -4142,7 +4150,7 @@ class _ScoreGrid extends StatelessWidget {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
-        mainAxisExtent: 196,
+        mainAxisExtent: 212,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
