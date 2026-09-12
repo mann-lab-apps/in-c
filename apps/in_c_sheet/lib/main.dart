@@ -4976,14 +4976,16 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addScore,
-        icon: const Icon(Icons.playlist_add),
-        label: const Text('악보 추가'),
-      ),
+      floatingActionButton: scores.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _addScore,
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('악보 추가'),
+            ),
       body: SafeArea(
         child: scores.isEmpty
-            ? const Center(child: Text('이 세트리스트에 악보가 없습니다.'))
+            ? _EmptySetlistDetail(onAddScore: _addScore)
             : ReorderableListView.builder(
                 buildDefaultDragHandles: false,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
@@ -5103,6 +5105,45 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 },
                 itemCount: scores.length,
               ),
+      ),
+    );
+  }
+}
+
+class _EmptySetlistDetail extends StatelessWidget {
+  const _EmptySetlistDetail({required this.onAddScore});
+
+  final VoidCallback onAddScore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.playlist_add_check_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '이 세트리스트에 악보가 없습니다.',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text('연주 순서에 넣을 악보를 골라 담아보세요.', textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onAddScore,
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('악보 추가'),
+            ),
+          ],
+        ),
       ),
     );
   }

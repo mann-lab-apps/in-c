@@ -795,6 +795,68 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('empty setlist detail exposes a single add action', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: '빈 세트에 담을 악보',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/empty-set-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'setlist-1',
+        title: '빈 공연 순서',
+        scoreIds: const <String>[],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: 'setlist-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('이 세트리스트에 악보가 없습니다.'), findsOneWidget);
+    expect(find.text('연주 순서에 넣을 악보를 골라 담아보세요.'), findsOneWidget);
+    expect(find.byType(FloatingActionButton), findsNothing);
+
+    await tester.tap(find.text('악보 추가'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('추가할 악보를 선택하세요'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('setlist detail removal can be undone', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);
