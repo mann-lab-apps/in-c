@@ -5200,6 +5200,23 @@ class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
     });
   }
 
+  void _toggleFilteredScores(List<SheetScore> filteredScores) {
+    setState(() {
+      final visibleScoreIds = filteredScores.map((score) => score.id).toSet();
+      if (visibleScoreIds.isEmpty) {
+        return;
+      }
+      final didSelectAllVisible = visibleScoreIds.every(
+        _selectedScoreIds.contains,
+      );
+      if (didSelectAllVisible) {
+        _selectedScoreIds.removeAll(visibleScoreIds);
+      } else {
+        _selectedScoreIds.addAll(visibleScoreIds);
+      }
+    });
+  }
+
   void _submit() {
     final selectedScores = widget.scores
         .where((score) => _selectedScoreIds.contains(score.id))
@@ -5248,6 +5265,33 @@ class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
             decoration: const InputDecoration(
               hintText: '추가할 악보 검색',
               prefixIcon: Icon(Icons.search),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: filteredScores.isEmpty
+                  ? null
+                  : () => _toggleFilteredScores(filteredScores),
+              icon: Icon(
+                filteredScores.isNotEmpty &&
+                        filteredScores.every(
+                          (score) => _selectedScoreIds.contains(score.id),
+                        )
+                    ? Icons.deselect
+                    : Icons.select_all,
+              ),
+              label: Text(
+                filteredScores.isNotEmpty &&
+                        filteredScores.every(
+                          (score) => _selectedScoreIds.contains(score.id),
+                        )
+                    ? '현재 검색 결과 선택 해제'
+                    : '현재 검색 결과 전체 선택',
+              ),
             ),
           ),
         ),
