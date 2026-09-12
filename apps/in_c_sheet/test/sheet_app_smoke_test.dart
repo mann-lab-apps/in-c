@@ -169,7 +169,7 @@ void main() {
         SheetScore(
           id: 'score-$index',
           title: '악보 $index',
-          composer: '',
+          composer: index < 2 ? 'Bach' : 'Chopin',
           tags: const <String>[],
           note: '',
           filePath: '/tmp/score-$index.pdf',
@@ -199,6 +199,8 @@ void main() {
     expect(find.text('G 1'), findsOneWidget);
     expect(find.text('장르'), findsOneWidget);
     expect(find.text('Etude 2'), findsOneWidget);
+    expect(find.text('작곡가'), findsOneWidget);
+    expect(find.text('Bach 2'), findsOneWidget);
 
     await tester.tap(find.text('D 2'));
     await tester.pumpAndSettle();
@@ -247,6 +249,7 @@ void main() {
     await controller.load();
     controller.updateQuery('moon');
     await controller.updateFavoriteFilter(true);
+    await controller.updateComposerFilter('Beethoven');
     await controller.updateCollectionFilter('Recital');
     await controller.updateGroupFilter('Piano');
     await controller.updateMinimumRatingFilter(4);
@@ -258,6 +261,7 @@ void main() {
     expect(find.text('현재 조건'), findsOneWidget);
     expect(find.text('검색: moon'), findsOneWidget);
     expect(find.text('즐겨찾기'), findsWidgets);
+    expect(find.text('작곡가: Beethoven'), findsOneWidget);
     expect(find.text('컬렉션: Recital'), findsWidgets);
     expect(find.text('그룹: Piano'), findsWidgets);
     expect(find.text('별점 4+'), findsOneWidget);

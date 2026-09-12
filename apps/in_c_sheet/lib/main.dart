@@ -1646,6 +1646,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         onClearFavorite: () =>
                             controller.updateFavoriteFilter(false),
                         onClearTag: () => controller.updateTagFilter(''),
+                        onClearComposer: () =>
+                            controller.updateComposerFilter(''),
                         onClearCollection: () =>
                             controller.updateCollectionFilter(''),
                         onClearGroup: () => controller.updateGroupFilter(''),
@@ -1658,6 +1660,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                       if (!hasActiveLibraryCondition) ...[
                         const SizedBox(height: 10),
                         _LibraryFacetExplorer(
+                          composerFacets: controller.composerFacets,
                           collectionFacets: controller.collectionFacets,
                           groupFacets: controller.groupFacets,
                           ratingFacets: controller.ratingFacets,
@@ -1667,6 +1670,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           },
                           selectedCollection:
                               controller.libraryViewSettings.collectionQuery,
+                          selectedComposer:
+                              controller.libraryViewSettings.composerQuery,
                           selectedGroup:
                               controller.libraryViewSettings.groupQuery,
                           selectedMinimumRating:
@@ -1675,6 +1680,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               controller.libraryViewSettings.customFieldFilters,
                           onCollectionSelected:
                               controller.updateCollectionFilter,
+                          onComposerSelected: controller.updateComposerFilter,
                           onGroupSelected: controller.updateGroupFilter,
                           onRatingSelected:
                               controller.updateMinimumRatingFilter,
@@ -1687,7 +1693,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         _NoticeBanner(message: controller.errorMessage!),
                       if (controller.errorMessage != null)
                         const SizedBox(height: 12),
-                      if (!controller.isLoading &&
+                      if (!hasActiveLibraryCondition &&
+                          !controller.isLoading &&
                           (controller.pinnedScores.isNotEmpty ||
                               controller.favoriteScores.isNotEmpty ||
                               controller.recentScores.isNotEmpty ||
@@ -2086,6 +2093,7 @@ class _ActiveLibraryFiltersBar extends StatelessWidget {
     required this.onClearQuery,
     required this.onClearFavorite,
     required this.onClearTag,
+    required this.onClearComposer,
     required this.onClearCollection,
     required this.onClearGroup,
     required this.onClearRating,
@@ -2098,6 +2106,7 @@ class _ActiveLibraryFiltersBar extends StatelessWidget {
   final VoidCallback onClearQuery;
   final VoidCallback onClearFavorite;
   final VoidCallback onClearTag;
+  final VoidCallback onClearComposer;
   final VoidCallback onClearCollection;
   final VoidCallback onClearGroup;
   final VoidCallback onClearRating;
@@ -2132,6 +2141,15 @@ class _ActiveLibraryFiltersBar extends StatelessWidget {
           icon: Icons.sell_outlined,
           label: '태그: ${settings.tagQuery}',
           onDeleted: onClearTag,
+        ),
+      );
+    }
+    if (settings.hasComposerFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.person_outline,
+          label: '작곡가: ${settings.composerQuery}',
+          onDeleted: onClearComposer,
         ),
       );
     }
@@ -2179,7 +2197,7 @@ class _ActiveLibraryFiltersBar extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 10),
       child: SizedBox(
-        height: 42,
+        height: 48,
         child: Row(
           children: [
             Semantics(
@@ -2245,29 +2263,35 @@ class _ActiveLibraryFilterChip extends StatelessWidget {
 
 class _LibraryFacetExplorer extends StatelessWidget {
   const _LibraryFacetExplorer({
+    required this.composerFacets,
     required this.collectionFacets,
     required this.groupFacets,
     required this.ratingFacets,
     required this.customFieldFacets,
     required this.selectedCollection,
+    required this.selectedComposer,
     required this.selectedGroup,
     required this.selectedMinimumRating,
     required this.selectedCustomFieldFilters,
     required this.onCollectionSelected,
+    required this.onComposerSelected,
     required this.onGroupSelected,
     required this.onRatingSelected,
     required this.onCustomFieldSelected,
   });
 
+  final List<SheetLibraryFacet> composerFacets;
   final List<SheetLibraryFacet> collectionFacets;
   final List<SheetLibraryFacet> groupFacets;
   final List<SheetLibraryFacet> ratingFacets;
   final Map<String, List<SheetLibraryFacet>> customFieldFacets;
   final String selectedCollection;
+  final String selectedComposer;
   final String selectedGroup;
   final int selectedMinimumRating;
   final Map<String, String> selectedCustomFieldFilters;
   final ValueChanged<String> onCollectionSelected;
+  final ValueChanged<String> onComposerSelected;
   final ValueChanged<String> onGroupSelected;
   final ValueChanged<int> onRatingSelected;
   final void Function(String fieldKey, String value) onCustomFieldSelected;
@@ -2279,7 +2303,8 @@ class _LibraryFacetExplorer extends StatelessWidget {
           for (final entry in customFieldFacets.entries)
             if (entry.value.isNotEmpty) MapEntry(entry.key, entry.value),
         ];
-    if (collectionFacets.isEmpty &&
+    if (composerFacets.isEmpty &&
+        collectionFacets.isEmpty &&
         groupFacets.isEmpty &&
         visibleCustomFieldFacets.isEmpty &&
         ratingFacets.isEmpty) {
@@ -2303,6 +2328,19 @@ class _LibraryFacetExplorer extends StatelessWidget {
           selectedValue: selectedCollection,
           onSelected: (value) {
             onCollectionSelected(value == selectedCollection ? '' : value);
+          },
+        ),
+      );
+    }
+    if (composerFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '작곡가',
+          icon: Icons.person_outline,
+          facets: composerFacets,
+          selectedValue: selectedComposer,
+          onSelected: (value) {
+            onComposerSelected(value == selectedComposer ? '' : value);
           },
         ),
       );
@@ -2360,11 +2398,14 @@ class _LibraryFacetExplorer extends StatelessWidget {
         border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: rows,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 150),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: rows,
+          ),
         ),
       ),
     );

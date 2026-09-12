@@ -130,6 +130,7 @@ void main() {
         sortMode: SheetLibrarySortMode.title,
         favoriteOnly: true,
         tagQuery: 'lesson',
+        composerQuery: 'Bach',
         collectionQuery: 'Etudes',
         groupQuery: 'Lesson A',
         minimumRating: 4,
@@ -181,6 +182,7 @@ void main() {
     expect(loadedLibraryViewSettings.sortMode, SheetLibrarySortMode.title);
     expect(loadedLibraryViewSettings.favoriteOnly, isTrue);
     expect(loadedLibraryViewSettings.tagQuery, 'lesson');
+    expect(loadedLibraryViewSettings.composerQuery, 'Bach');
     expect(loadedLibraryViewSettings.collectionQuery, 'Etudes');
     expect(loadedLibraryViewSettings.groupQuery, 'Lesson A');
     expect(loadedLibraryViewSettings.minimumRating, 4);
@@ -300,6 +302,7 @@ void main() {
         sortMode: SheetLibrarySortMode.title,
         favoriteOnly: true,
         tagQuery: '',
+        composerQuery: '',
         collectionQuery: '',
         groupQuery: '',
         minimumRating: 0,

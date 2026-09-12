@@ -172,6 +172,10 @@ class SheetLibraryController extends ChangeNotifier {
     return List<String>.unmodifiable(tags);
   }
 
+  List<SheetLibraryFacet> get composerFacets {
+    return _stringFacets(_scores.map((score) => score.composer));
+  }
+
   List<String> get allCollections {
     final collections = _scores
         .map((score) => score.collection.trim())
@@ -2317,6 +2321,12 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateComposerFilter(String composerQuery) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(composerQuery: composerQuery),
+    );
+  }
+
   Future<void> updateCollectionFilter(String collectionQuery) async {
     await _updateLibraryViewSettings(
       _libraryViewSettings.copyWith(collectionQuery: collectionQuery),
@@ -2359,6 +2369,7 @@ class SheetLibraryController extends ChangeNotifier {
       _libraryViewSettings.copyWith(
         favoriteOnly: false,
         tagQuery: '',
+        composerQuery: '',
         collectionQuery: '',
         groupQuery: '',
         minimumRating: 0,

@@ -1593,6 +1593,7 @@ void main() {
     controller.updateQuery('bach');
     await controller.updateFavoriteFilter(true);
     await controller.updateTagFilter('lesson');
+    await controller.updateComposerFilter('Arban');
     await controller.updateCollectionFilter('Methods');
     await controller.updateGroupFilter('Warmup');
     await controller.updateMinimumRatingFilter(3);
@@ -1605,6 +1606,7 @@ void main() {
     expect(controller.query, isEmpty);
     expect(controller.libraryViewSettings.favoriteOnly, isFalse);
     expect(controller.libraryViewSettings.tagQuery, isEmpty);
+    expect(controller.libraryViewSettings.composerQuery, isEmpty);
     expect(controller.libraryViewSettings.collectionQuery, isEmpty);
     expect(controller.libraryViewSettings.groupQuery, isEmpty);
     expect(controller.libraryViewSettings.minimumRating, 0);
@@ -1848,6 +1850,10 @@ void main() {
     expect(controller.filteredScores.single.id, 'score-2');
 
     await controller.updateTagFilter('');
+    await controller.updateComposerFilter('Bach');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateComposerFilter('');
     await controller.updateCollectionFilter('Etudes');
     expect(controller.filteredScores.single.id, 'score-1');
 

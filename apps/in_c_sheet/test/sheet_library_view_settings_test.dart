@@ -8,6 +8,7 @@ void main() {
       sortMode: SheetLibrarySortMode.rating,
       favoriteOnly: true,
       tagQuery: 'lesson',
+      composerQuery: 'Bach',
       collectionQuery: 'Methods',
       groupQuery: 'Warmup',
       minimumRating: 4,
@@ -21,6 +22,7 @@ void main() {
     expect(decoded.sortMode, SheetLibrarySortMode.rating);
     expect(decoded.favoriteOnly, isTrue);
     expect(decoded.tagQuery, 'lesson');
+    expect(decoded.composerQuery, 'Bach');
     expect(decoded.collectionQuery, 'Methods');
     expect(decoded.groupQuery, 'Warmup');
     expect(decoded.minimumRating, 4);
@@ -43,6 +45,7 @@ void main() {
       'sortMode': 7,
       'favoriteOnly': 'true',
       'tagQuery': 4,
+      'composerQuery': <String>['Bach'],
       'collectionQuery': <String>['book'],
       'groupQuery': false,
       'minimumRating': 3.6,
@@ -56,6 +59,7 @@ void main() {
     expect(settings.sortMode, SheetLibrarySortMode.recent);
     expect(settings.favoriteOnly, isFalse);
     expect(settings.tagQuery, isEmpty);
+    expect(settings.composerQuery, isEmpty);
     expect(settings.collectionQuery, isEmpty);
     expect(settings.groupQuery, isEmpty);
     expect(settings.minimumRating, 4);
@@ -68,6 +72,7 @@ void main() {
       sortMode: SheetLibrarySortMode.recent,
       favoriteOnly: false,
       tagQuery: ' lesson ',
+      composerQuery: ' composer ',
       collectionQuery: ' methods ',
       groupQuery: ' WARMUP ',
       minimumRating: 4,
@@ -97,6 +102,7 @@ void main() {
 
     expect(settings.matches(score), isTrue);
     expect(json['tagQuery'], 'lesson');
+    expect(json['composerQuery'], 'composer');
     expect(json['collectionQuery'], 'methods');
     expect(json['groupQuery'], 'WARMUP');
     expect(json['minimumRating'], 4);

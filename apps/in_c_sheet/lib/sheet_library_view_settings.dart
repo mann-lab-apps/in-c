@@ -22,6 +22,7 @@ class SheetLibraryViewSettings {
     required this.sortMode,
     required this.favoriteOnly,
     required this.tagQuery,
+    required this.composerQuery,
     required this.collectionQuery,
     required this.groupQuery,
     required this.minimumRating,
@@ -36,6 +37,7 @@ class SheetLibraryViewSettings {
       ),
       favoriteOnly: favoriteOnlyValue is bool ? favoriteOnlyValue : false,
       tagQuery: _stringFromJson(json?['tagQuery']).trim(),
+      composerQuery: _stringFromJson(json?['composerQuery']).trim(),
       collectionQuery: _stringFromJson(json?['collectionQuery']).trim(),
       groupQuery: _stringFromJson(json?['groupQuery']).trim(),
       minimumRating: SheetScore.normalizeRating(json?['minimumRating']),
@@ -47,6 +49,7 @@ class SheetLibraryViewSettings {
     sortMode: SheetLibrarySortMode.recent,
     favoriteOnly: false,
     tagQuery: '',
+    composerQuery: '',
     collectionQuery: '',
     groupQuery: '',
     minimumRating: 0,
@@ -56,6 +59,7 @@ class SheetLibraryViewSettings {
   final SheetLibrarySortMode sortMode;
   final bool favoriteOnly;
   final String tagQuery;
+  final String composerQuery;
   final String collectionQuery;
   final String groupQuery;
   final int minimumRating;
@@ -65,6 +69,7 @@ class SheetLibraryViewSettings {
     SheetLibrarySortMode? sortMode,
     bool? favoriteOnly,
     String? tagQuery,
+    String? composerQuery,
     String? collectionQuery,
     String? groupQuery,
     int? minimumRating,
@@ -74,6 +79,7 @@ class SheetLibraryViewSettings {
       sortMode: sortMode ?? this.sortMode,
       favoriteOnly: favoriteOnly ?? this.favoriteOnly,
       tagQuery: tagQuery?.trim() ?? this.tagQuery,
+      composerQuery: composerQuery?.trim() ?? this.composerQuery,
       collectionQuery: collectionQuery?.trim() ?? this.collectionQuery,
       groupQuery: groupQuery?.trim() ?? this.groupQuery,
       minimumRating: SheetScore.normalizeRating(
@@ -87,6 +93,8 @@ class SheetLibraryViewSettings {
 
   bool get hasTagFilter => tagQuery.trim().isNotEmpty;
 
+  bool get hasComposerFilter => composerQuery.trim().isNotEmpty;
+
   bool get hasCollectionFilter => collectionQuery.trim().isNotEmpty;
 
   bool get hasGroupFilter => groupQuery.trim().isNotEmpty;
@@ -98,6 +106,7 @@ class SheetLibraryViewSettings {
   bool get hasAnyFilter =>
       favoriteOnly ||
       hasTagFilter ||
+      hasComposerFilter ||
       hasCollectionFilter ||
       hasGroupFilter ||
       hasRatingFilter ||
@@ -115,6 +124,11 @@ class SheetLibraryViewSettings {
       if (!hasTag) {
         return false;
       }
+    }
+    if (hasComposerFilter &&
+        score.composer.trim().toLowerCase() !=
+            composerQuery.trim().toLowerCase()) {
+      return false;
     }
     if (hasCollectionFilter &&
         score.collection.trim().toLowerCase() !=
@@ -159,6 +173,7 @@ class SheetLibraryViewSettings {
       'sortMode': sortMode.name,
       'favoriteOnly': favoriteOnly,
       'tagQuery': tagQuery.trim(),
+      'composerQuery': composerQuery.trim(),
       'collectionQuery': collectionQuery.trim(),
       'groupQuery': groupQuery.trim(),
       'minimumRating': SheetScore.normalizeRating(minimumRating),
