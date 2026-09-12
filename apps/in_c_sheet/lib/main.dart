@@ -234,6 +234,35 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  Future<void> _showBulkCollectionAssign() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('컬렉션에 묶을 악보를 선택하세요.')));
+      return;
+    }
+    final collection = await _selectCollectionForBulkAssign(
+      _bulkSelectedScoreIds.length,
+    );
+    if (!mounted || collection == null) {
+      return;
+    }
+
+    final changedCount = await controller.bulkEditScores(
+      Set<String>.of(_bulkSelectedScoreIds),
+      collection: collection,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$changedCount개 악보를 "$collection" 컬렉션으로 묶었습니다.')),
+    );
+  }
+
   Future<SheetSetlist?> _selectSetlistForBulkAdd(int scoreCount) async {
     final action = await showModalBottomSheet<_BulkSetlistTargetAction>(
       context: context,
@@ -259,6 +288,41 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return controller.createSetlist(title);
     }
     return action.setlist;
+  }
+
+  Future<String?> _selectCollectionForBulkAssign(int scoreCount) async {
+    final action = await showModalBottomSheet<_BulkCollectionTargetAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _BulkCollectionTargetSheet(
+        collections: controller.allCollections,
+        scoreCount: scoreCount,
+      ),
+    );
+    if (!mounted || action == null) {
+      return null;
+    }
+    if (action.collectionName != null) {
+      return action.collectionName;
+    }
+    final input = await _showTextEntryDialog(
+      context: context,
+      title: '새 컬렉션 지정',
+      label: '컬렉션 이름',
+      initialValue: controller.libraryViewSettings.collectionQuery.isEmpty
+          ? '새 컬렉션'
+          : controller.libraryViewSettings.collectionQuery,
+    );
+    if (!mounted || input == null) {
+      return null;
+    }
+    final collection = input.trim();
+    if (collection.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('컬렉션 이름을 입력하세요.')));
+      return null;
+    }
+    return collection;
   }
 
   Future<void> _importPdf({bool addToSetlist = false}) async {
@@ -1291,6 +1355,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   ? null
                   : _showBulkSetlistAdd,
               icon: const Icon(Icons.playlist_add_check),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 컬렉션 지정',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _showBulkCollectionAssign,
+              icon: const Icon(Icons.collections_bookmark_outlined),
             ),
           IconButton(
             tooltip: '세트리스트',
@@ -3933,6 +4005,81 @@ class _BulkSetlistTargetSheet extends StatelessWidget {
                 onTap: () =>
                     Navigator.of(context)
                         .pop(_BulkSetlistTargetAction.existing(setlist)),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BulkCollectionTargetAction {
+  const _BulkCollectionTargetAction.existing(this.collectionName);
+
+  const _BulkCollectionTargetAction.create() : collectionName = null;
+
+  final String? collectionName;
+}
+
+class _BulkCollectionTargetSheet extends StatelessWidget {
+  const _BulkCollectionTargetSheet({
+    required this.collections,
+    required this.scoreCount,
+  });
+
+  final List<String> collections;
+  final int scoreCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.collections_bookmark_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$scoreCount개 악보 컬렉션 지정',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.add),
+            title: const Text('새 컬렉션 이름 입력'),
+            subtitle: const Text('선택한 악보를 새 컬렉션으로 바로 묶습니다.'),
+            onTap: () =>
+                Navigator.of(context)
+                    .pop(const _BulkCollectionTargetAction.create()),
+          ),
+          const Divider(),
+          if (collections.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('아직 컬렉션이 없습니다. 새 컬렉션 이름을 입력해 묶어보세요.'),
+            )
+          else
+            for (final collection in collections)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.collections_bookmark_outlined),
+                title: Text(
+                  collection,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_BulkCollectionTargetAction.existing(collection)),
               ),
         ],
       ),

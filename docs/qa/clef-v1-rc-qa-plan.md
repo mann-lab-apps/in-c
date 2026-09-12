@@ -420,6 +420,8 @@ flutter build ios --release --no-codesign
 - 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 일괄 선택 AppBar에서 선택 악보를 기존/새
   세트리스트에 한 번에 추가할 수 있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를
   안내한다.
+- MobileSheets의 `Create Collection from Songs` 흐름을 Clef식으로 줄여, 일괄 선택 AppBar에서
+  선택한 여러 악보를 기존/새 컬렉션으로 바로 묶을 수 있게 했다.
 - 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을
   보조 수단으로 유지한다.
 - 세트리스트를 열면 마지막 연 시간과 마지막으로 연 곡을 저장하고 홈 quick access에 `최근 세트리스트`
@@ -488,6 +490,8 @@ flutter build ios --release --no-codesign
   흡수했다.
 - PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
   MobileSheets식 metadata assignment 필요를 가볍게 처리한다.
+- 일괄 선택 모드에서는 세트리스트 추가와 별도로 `컬렉션 지정` action을 제공해, 여러 악보를
+  컬렉션으로 묶은 뒤 컬렉션 필터로 다시 찾는 흐름을 지원한다.
 - MobileSheets batch/bookmark import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기, 여러 PDF를
   세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. cloud browser, batch
   audio, CSV songbook split은 후속으로 남긴다.

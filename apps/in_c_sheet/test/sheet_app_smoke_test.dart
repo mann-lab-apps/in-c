@@ -303,6 +303,13 @@ void main() {
 
     expect(find.text('1개 선택'), findsOneWidget);
     expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('선택 악보 컬렉션 지정'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('1개 악보 컬렉션 지정'), findsOneWidget);
+    expect(find.text('새 컬렉션 이름 입력'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

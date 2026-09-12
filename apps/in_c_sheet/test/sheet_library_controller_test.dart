@@ -1913,6 +1913,7 @@ void main() {
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
     expect(controller.scoreById('score-2').rating, 5);
+    expect(controller.allCollections, <String>['Recital']);
     expect(controller.scoreById('score-1').isFavorite, isTrue);
     expect(controller.scoreById('score-2').isPinned, isTrue);
     expect(controller.scoreById('score-3').tags, <String>['strings']);
