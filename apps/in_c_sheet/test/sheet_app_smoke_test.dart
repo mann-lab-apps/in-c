@@ -304,6 +304,8 @@ void main() {
     expect(find.text('1개 선택'), findsOneWidget);
     expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
     expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+    expect(find.byTooltip('악보 추가'), findsNothing);
+    expect(find.byTooltip('백업/복원'), findsNothing);
 
     await tester.tap(find.byTooltip('선택 악보 컬렉션 지정'));
     await tester.pumpAndSettle();
@@ -353,6 +355,7 @@ void main() {
     expect(find.byTooltip('선택 취소'), findsOneWidget);
     expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
     expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+    expect(find.byTooltip('악보 추가'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

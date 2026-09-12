@@ -1365,94 +1365,96 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkCollectionAssign,
               icon: const Icon(Icons.collections_bookmark_outlined),
             ),
-          IconButton(
-            tooltip: '세트리스트',
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (context) =>
-                      SheetSetlistsScreen(controller: controller),
+          if (!_isBulkSelecting) ...[
+            IconButton(
+              tooltip: '세트리스트',
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        SheetSetlistsScreen(controller: controller),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.queue_music),
+            ),
+            IconButton(
+              tooltip: '테스트 정보',
+              onPressed: _showTesterInfo,
+              icon: const Icon(Icons.info_outline),
+            ),
+            IconButton(
+              tooltip: '전역 보기/입력 기본값',
+              onPressed: _showGlobalViewerDefaults,
+              icon: const Icon(Icons.settings_applications_outlined),
+            ),
+            PopupMenuButton<_LibraryBackupAction>(
+              tooltip: '백업/복원',
+              icon: const Icon(Icons.inventory_2_outlined),
+              onSelected: (action) {
+                switch (action) {
+                  case _LibraryBackupAction.exportMetadata:
+                    _exportBackup();
+                  case _LibraryBackupAction.importMetadata:
+                    _importBackup();
+                  case _LibraryBackupAction.restoreAutomaticMetadata:
+                    _restoreAutomaticBackup();
+                  case _LibraryBackupAction.exportFull:
+                    _exportFullBackup();
+                  case _LibraryBackupAction.importFull:
+                    _importFullBackup();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.ios_share),
+                    title: Text('정보 백업'),
+                  ),
                 ),
-              );
-            },
-            icon: const Icon(Icons.queue_music),
-          ),
-          IconButton(
-            tooltip: '테스트 정보',
-            onPressed: _showTesterInfo,
-            icon: const Icon(Icons.info_outline),
-          ),
-          IconButton(
-            tooltip: '전역 보기/입력 기본값',
-            onPressed: _showGlobalViewerDefaults,
-            icon: const Icon(Icons.settings_applications_outlined),
-          ),
-          PopupMenuButton<_LibraryBackupAction>(
-            tooltip: '백업/복원',
-            icon: const Icon(Icons.inventory_2_outlined),
-            onSelected: (action) {
-              switch (action) {
-                case _LibraryBackupAction.exportMetadata:
-                  _exportBackup();
-                case _LibraryBackupAction.importMetadata:
-                  _importBackup();
-                case _LibraryBackupAction.restoreAutomaticMetadata:
-                  _restoreAutomaticBackup();
-                case _LibraryBackupAction.exportFull:
-                  _exportFullBackup();
-                case _LibraryBackupAction.importFull:
-                  _importFullBackup();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.ios_share),
-                  title: Text('정보 백업'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.restore),
+                    title: Text('정보 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.restore),
-                  title: Text('정보 복원'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.restoreAutomaticMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.history),
+                    title: Text('자동 정보 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.restoreAutomaticMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text('자동 정보 복원'),
+                PopupMenuDivider(),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportFull,
+                  child: ListTile(
+                    leading: Icon(Icons.archive_outlined),
+                    title: Text('PDF 포함 전체 백업'),
+                  ),
                 ),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportFull,
-                child: ListTile(
-                  leading: Icon(Icons.archive_outlined),
-                  title: Text('PDF 포함 전체 백업'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importFull,
+                  child: ListTile(
+                    leading: Icon(Icons.unarchive_outlined),
+                    title: Text('전체 백업 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importFull,
-                child: ListTile(
-                  leading: Icon(Icons.unarchive_outlined),
-                  title: Text('전체 백업 복원'),
-                ),
-              ),
-            ],
-          ),
-          IconButton(
-            tooltip: '악보 추가',
-            onPressed: controller.isImporting ? null : _showImportOptions,
-            icon: controller.isImporting
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Icon(Icons.add_to_photos_outlined),
-          ),
+              ],
+            ),
+            IconButton(
+              tooltip: '악보 추가',
+              onPressed: controller.isImporting ? null : _showImportOptions,
+              icon: controller.isImporting
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Icon(Icons.add_to_photos_outlined),
+            ),
+          ],
         ],
       ),
       floatingActionButton: _isBulkSelecting
