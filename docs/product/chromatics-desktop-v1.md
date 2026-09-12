@@ -1,5 +1,26 @@
 # Chromatics Desktop V1
 
+## 2026-09-12 Local Workflow Update
+
+- Score Setup now supports part reordering and written-to-sounding instrument
+  offsets (C, Bb, Eb, F and octave variants). Written pitches/key signatures stay
+  unchanged; playback and MIDI use sounding pitches. Imported per-staff/measure
+  transpose changes survive save/reopen and inserted measures inherit the offset.
+  This is not a concert-pitch display toggle or automatic written-key conversion.
+- MusicXML primary save accepts plain XML and compressed MXL containers. Only
+  paths explicitly opened or selected for saving are writable; resave backs up
+  existing bytes and atomically replaces the file. Concurrent save clicks are
+  suppressed and late responses cannot mark newer edits/documents as saved.
+- Selected harmony/rehearsal/staff/system/expression text is editable in the
+  properties dock using existing undoable commands. Range controls remain disabled.
+- Fermatas share a score-wide performed-time map across voices, parts, repeats and
+  tempo events. Simultaneous holds use the maximum duration once, not once per voice.
+- The compact workspace puts the palette above the score/properties columns.
+  Always-accessible palette/properties icon toggles independently collapse/restore
+  docks and persist visibility locally. Freeform drag-docking is not implemented.
+  Human PDF/engraving/listening/native-dialog QA remains required; see the current
+  [evidence](../quality/evidence-log.md#2026-09-12-continuous-v1-discovery-and-implementation).
+
 작성일: 2026-09-01
 
 ## Product Cut
@@ -282,6 +303,10 @@ on the score page while PDF export capture hides the guide.
 - saved part view workflow policy: MusicXML stays the exchange format, while
   Chromatics Desktop restores the last full-score/part-view choice per local
   MusicXML file path when that part still exists.
+- selected-part PDF page setup preferences are also stored locally by MusicXML
+  file path and part id, so reopened part views can restore part-specific
+  compact/readable PDF presets without embedding Chromatics-only state into
+  plain MusicXML.
 - collision avoidance for core items: notes, stems, beams, lyrics, dynamics,
   hairpins, slurs, chord symbols, rehearsal marks.
 - print/PDF preview.
@@ -320,7 +345,9 @@ on the score page while PDF export capture hides the guide.
   MuseScore CLI app-export MusicXML fixture opens in MuseScore Studio and exports
   to a structurally valid PDF.
 - PNG/SVG export is P1.
-- compressed `.mxl` is P1 unless import compatibility becomes a launch blocker.
+- Compressed `.mxl` open/save/recent reopen is implemented using the MusicXML
+  container rootfile, with UTF-8 decoding, path validation, 32 MiB file/root limits
+  and a 256 KiB container limit. Native file-dialog/external app QA remains required.
 - unsupported MusicXML features produce actionable warnings.
 - round-trip tests cover V1 notation objects.
 
@@ -494,12 +521,19 @@ When a text editor is focused, `Space` is text input, not playback.
 - Plain `Up/Down` no longer edits pitch directly. It navigates to adjacent
   vertical lanes where possible and shows a transpose hint when no target exists.
 - Multi-voice editing is partial and blocks professional V1 release.
+  The 2026-09-12 MuseScore parity slice adds an explicit same-staff
+  voice presentation policy in the renderer: voice 1/3 use upper/up-stem
+  lanes, voice 2/4 use lower/down-stem lanes, and multi-voice rests receive
+  lane-specific vertical offsets while single-voice notation keeps automatic
+  VexFlow stem placement.
 - Multi-part ensemble editing and part extraction/live part view are partial and
   block professional V1 release. The score tab can preview a selected part and
   use that part view as the PDF output target with a part score title. Saved
   MusicXML files keep a local file-path view preference so reopen returns to the
-  last valid part view, but independent part-layout polish and real PDF file QA
-  remain. App tests verify a string quartet Viola part PDF export path uses only
+  last valid part view, and 2026-09-12 App tests verify selected-part PDF page
+  setup preference restore for a reopened Cello part view. Portable independent
+  part-layout polish and real PDF file QA remain. App tests verify a string
+  quartet Viola part PDF export path uses only
   the selected part and the compact parts PDF preset, and that import-origin
   first-part staff-level annotations do not leak into a Cello part PDF render
   target; packaged smoke verifies Cello part page/title metadata, visible event

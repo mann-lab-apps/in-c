@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveNotationEventTone, sameVoiceLane } from './visual-state'
+import {
+  resolveNotationEventTone,
+  resolveSameStaffVoicePresentation,
+  sameVoiceLane
+} from './visual-state'
 
 describe('notation visual state priority', () => {
   it('keeps selection tone when the selected event is also playing', () => {
@@ -104,5 +108,35 @@ describe('notation visual state priority', () => {
     expect(resolveNotationEventTone('note-1', new Set(), undefined, false)).toBe(
       'default'
     )
+  })
+
+  it('same-staff.multi-voice-fixture separates voice 1/3 and 2/4 stem and rest lanes', () => {
+    expect(resolveSameStaffVoicePresentation('voice-1', 4)).toEqual({
+      lane: 'upper',
+      restYOffset: -10,
+      stemDirection: 1
+    })
+    expect(resolveSameStaffVoicePresentation('voice-2', 4)).toEqual({
+      lane: 'lower',
+      restYOffset: 10,
+      stemDirection: -1
+    })
+    expect(resolveSameStaffVoicePresentation('voice-3', 4)).toEqual({
+      lane: 'upper-secondary',
+      restYOffset: -18,
+      stemDirection: 1
+    })
+    expect(resolveSameStaffVoicePresentation('voice-4', 4)).toEqual({
+      lane: 'lower-secondary',
+      restYOffset: 18,
+      stemDirection: -1
+    })
+  })
+
+  it('same-staff.multi-voice-fixture keeps single-voice notation on VexFlow automatic stem placement', () => {
+    expect(resolveSameStaffVoicePresentation('voice-1', 1)).toEqual({
+      lane: 'neutral',
+      restYOffset: 0
+    })
   })
 })

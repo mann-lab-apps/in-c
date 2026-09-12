@@ -17,6 +17,8 @@ const MIDI_PROGRAM_BY_PART_NAME: ReadonlyArray<readonly [RegExp, number]> = [
   [/contrabass|double bass|bass|콘트라베이스/i, 43],
   [/flute|플루트/i, 73],
   [/clarinet|클라리넷/i, 71],
+  [/alto sax|알토 색소폰/i, 65],
+  [/horn|호른/i, 60],
   [/oboe|오보에/i, 68],
   [/bassoon|바순/i, 70],
   [/voice|vocal|soprano|alto|tenor|baritone|bass voice|성악/i, 52]

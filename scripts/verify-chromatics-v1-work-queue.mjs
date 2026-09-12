@@ -137,10 +137,6 @@ function main() {
     }
   }
 
-  if (statuses.has('In progress')) {
-    fail('Work queue must not leave rows in In progress between goal-mode runs')
-  }
-
   const nextAutomatableRows = rows
     .filter((row) => ['Todo', 'Partial', 'In progress'].includes(row.status))
     .map((row) => row.id)

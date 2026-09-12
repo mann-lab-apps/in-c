@@ -721,11 +721,140 @@ playback listening QA, and Windows packaged smoke.
 | 23 | MS-COPY-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding the measure marking clipboard and paste command builder. |
 | 24 | final gates | `npm run verify:chromatics-musescore-parity-roadmap`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier passed with 19 rows, `parityAutomationQueueDrained: false`, and 6 remaining automatable rows: `MS-VOICE-001`, `MS-NOTATION-001`, `MS-PARTS-001`, `MS-LAYOUT-002`, `MS-LAYOUT-003`, `MS-PLAYBACK-001`. Production build, site content, and whitespace gates passed. |
 
-Remaining MuseScore parity automatable rows start with `MS-VOICE-001`,
-`MS-NOTATION-001`, `MS-PARTS-001`,
-`MS-LAYOUT-002`, `MS-LAYOUT-003`, and `MS-PLAYBACK-001`. External/manual rows include GUI-created
+## 2026-09-12 MuseScore Parity Same-Staff Voice Presentation Slice
+
+| 순서 | Queue ID | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- | --- |
+| 1 | MS-VOICE-001 | `npm test -- src/renderer/src/notation/visual-state.test.ts` | Pass | 1 file / 7 tests passed. Added same-staff multi-voice presentation policy coverage: single-voice notation remains neutral/automatic, while multi-voice voice 1/3 use upper/up-stem lanes and voice 2/4 use lower/down-stem lanes with separate rest offsets. |
+| 2 | MS-VOICE-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after wiring the presentation policy into `NotationPreview` and preserving multi-voice beam stem direction. |
+| 3 | MS-VOICE-001 | `npm run verify:chromatics-musescore-parity-roadmap`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier passed with 19 rows and removed `MS-VOICE-001` from `nextAutomatableRows`; production build, site content verification, and whitespace gate passed. |
+| 4 | MS-VOICE-001 visual regression | `npm run verify:visual-regression` | Fail, update, then Pass | First run passed MusicXML/system-layout tests but caught intentional notation snapshot metric changes at 960px after the same-staff voice presentation policy. `npm run verify:notation-snapshots:update` failed once inside the sandbox with Electron `SIGABRT`, then passed with escalated Electron execution and updated `docs/testing/notation-snapshot-baseline.json`. Follow-up visual regression passed 84 tests plus notation snapshots. Manual PDF engraving QA remains release-candidate work and is not counted as complete here. |
+| 5 | MS-NOTATION-001 | `npm test -- src/renderer/src/App.test.tsx -t "palette.measure-level-notation\|palette.notation-applicability"` | Fail, then Pass | First run exposed unscoped `셈여림` label queries after the properties dock existed. Tests now scope measure-level dynamics to the Notation Objects region. Follow-up passed 2 tests and verifies range selection disables rehearsal/staff/system/expression text plus dynamics controls. |
+| 6 | MS-NOTATION-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding the measure-level notation applicability state. |
+| 7 | MS-PARTS-001 | `npm test -- src/renderer/src/App.test.tsx -t "layout.live-part-view"` | Pass | 1 file / 3 tests passed. The saved MusicXML part-view workflow now also verifies selected Cello part PDF page setup preference persistence through `chromatics.part-page-setup.v1`, restores the compact parts preset on reopen, and keeps the part view target. |
+| 8 | MS-PARTS-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding local file-path/part-id selected-part page setup preferences and applying them to display/print score paths. |
+| 9 | MS-LAYOUT-002 | `npm test -- src/renderer/src/notation/print-layout.test.ts` | Fail, then Pass | First run caught an over-eager compact classification and candidate typing issue. The style resolver now treats compact as multiple compression signals, keeping readable Letter landscape with loose system spacing as `readable`. Follow-up passed 1 file / 6 tests. |
+| 10 | MS-LAYOUT-002 | `npm run typecheck` | Fail, then Pass | First run caught `engravingStyle` leaking into candidate requirements; `PrintLayoutCandidate` now omits the derived plan field. Follow-up `tsc --noEmit` passed. |
+| 11 | MS-LAYOUT-003 | `npm test -- src/renderer/src/notation/annotation-lanes.test.ts` | Fail, then Pass | New dense solo fixture caught system text and rehearsal mark spacing too close at 6px. Rehearsal marks now move above dense system text stacks, renderer annotation elements expose lane metadata, and follow-up annotation lane suite passed 1 file / 9 tests. |
+| 12 | MS-LAYOUT-003 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after annotation lane policy and renderer metadata changes. |
+| 13 | pre-playback gates | `npm run verify:chromatics-musescore-parity-roadmap`, `npm run build`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Roadmap verifier passed with 19 rows and remaining automatable row `MS-PLAYBACK-001` after `MS-LAYOUT-003` was completed. Production build, site content verification, and whitespace gate passed after documentation updates. |
+| 14 | MS-PLAYBACK-001 | `npm test -- src/renderer/src/App.test.tsx -t "playback.part-mixer"` | Pass | 1 file / 2 tests passed. The mixer now persists Melody mute/solo/volume to `chromatics.part-mixer.v1`, restores it on reload, keeps string quartet part mixer states independent, and exposes the active Cello row as `재생 중` while inactive rows remain `대기`. |
+| 15 | MS-PLAYBACK-001 | `npm run typecheck` | Pass | `tsc --noEmit` succeeded after adding persisted mixer settings and active playback row metadata. |
+| 16 | queue drain verifier | `npm run verify:chromatics-musescore-parity-roadmap` | Fail, then Pass | First run failed because the verifier still required at least one `Todo` row even after the automation queue was drained. The verifier now requires `Done`, `Research`, and `External QA` coverage while allowing no `Todo`/`Partial`/`In progress` rows. Follow-up passed with 19 rows, statuses `Done`/`External QA`/`Postpone`/`Research`, `parityAutomationQueueDrained: true`, and no `nextAutomatableRows`. |
+| 17 | final gates | `npm run build`, `npm run verify:visual-regression`, `npm run verify:chromatics-musescore-parity-roadmap`, `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Production build passed. Visual regression passed 84 MusicXML/system-layout tests plus notation snapshots. Roadmap verifier passed with `parityAutomationQueueDrained: true` and no `nextAutomatableRows`. Site content verification and whitespace gate passed. |
+
+Remaining MuseScore parity automatable rows are empty after the final roadmap verifier. External/manual rows include GUI-created
 MuseScore snapshots, Finale/Dorico/Sibelius-origin fixtures, PDF visual QA, MIDI
 hardware/external app QA, and playback listening QA.
+
+## 2026-09-12 Headless Commercial V1 QA Expansion
+
+| 순서 | Queue ID | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- | --- |
+| 1 | queue scan | `npm run verify:chromatics-musescore-parity-roadmap`, `npm run verify:chromatics-v1-work-queue` | Pass | Both verifiers reported drained automation queues: `parityAutomationQueueDrained: true`, `automationQueueDrained: true`, and no `nextAutomatableRows`. |
+| 2 | headless QA discovery | `npm run verify:e2e` | Pass | Baseline Electron headless smoke passed before expansion, confirming existing keyboard, File/Export separation, compact 960px mode sweep, release scenario bounds, grand staff preview, and notation renderer checks. |
+| 3 | headless QA expansion | `scripts/verify-single-voice-mvp.cjs` update | Pass | Added Electron headless checks for 960 compact-short, 960 compact-tall, and 1400 desktop-short work-mode layout; selected Viola part view export state; compact part page setup metadata; and playback mixer persistence/activity. |
+| 4 | headless QA expansion | `npm run verify:e2e` | Fail, then Pass | First expanded run caught a QA-script mismatch with real DOM behavior: the playback volume slider rounded invalid `72` to `70`, and the script queried a non-existent `.part-mixer__volume-value`. The check was aligned to the real 5-step slider value `75` and `.part-mixer__volume output`; follow-up passed. |
+
+No new app blocker was found by the expanded headless QA. The newly covered automation still does not replace GUI-created
+MuseScore/Finale/Dorico/Sibelius fixture QA, human PDF visual QA, external MIDI open QA, playback listening QA, or installer/OS
+manual smoke.
+
+## 2026-09-12 Continuous V1 Discovery And Implementation
+
+- Initial verifiers: both existing queues passed and reported drained. Code audit
+  found missing Required transposing-instrument support and a shared-voice fermata
+  timing bug; these were registered instead of treating queue drain as completion.
+- `src/musicxml/transposition.test.ts`: 6 tests failed before implementation and
+  passed after per-measure/staff transpose preservation, sounding playback/MIDI,
+  and standard trill-mark parsing/export. Unsupported doubled transposition fails
+  explicitly. W3C reference: https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/transpose/.
+- Targeted MusicXML/editor/playback/MIDI run: 5 files, 103 tests passed.
+- Fermata sync regression failed with second repeat starting at beat 2 instead of
+  2.5. Score-wide hold mapping fixes simultaneous voices/parts, repeat duration and
+  tempo event placement. Playback hook/timeline/MIDI/transposition: 50 tests passed.
+- Properties and transposing-instrument App tests initially caught test selector,
+  fixture-value and tick-unit assumptions, plus mistyped property variable names.
+  Corrected tests use existing accessible names, fixture values and TICKS_PER_QUARTER.
+- Initial `npm test`: 474 passed, 6 failed due to ambiguous global label queries
+  after adding a second editing surface. Queries now address the intended toolbar
+  by accessible role/name. The final pre-engraving follow-up passed 37 files / 488 tests.
+- Headless baseline after initial features passed. Expanded dock check initially
+  failed because hidden-window native blur did not commit the fields; the harness
+  now dispatches focusout, matching the existing metadata harness. Follow-up passed.
+- MXL: fflate 0.8.3 exact dependency installed after sandbox DNS failure; elevated
+  install passed. Container tests (7) and file-session disk I/O tests (2) passed.
+  `npm audit --omit=dev --json`: no production dependency vulnerabilities. The
+  install's all-dependency report still lists development-tool advisories; not an
+  all-dependency security signoff.
+- Further inspection found real non-smoke resave blocked by the smoke-only guard,
+  plus stale save response risks. Both were added to the queue during this run.
+- New save race tests cover editing during write/cleanup, document replacement,
+  stale failure, retry, and duplicate suppression. A cleanup test initially used
+  the bridge mock's default canceled-save response; giving it a successful save
+  result fixed the test. Typecheck also caught an unknown recovery payload access;
+  the assertion now checks the structured payload without an unsafe cast.
+- Headless captures found 960px score clipping despite document-level overflow
+  passing. Moving the compact palette above the workspace increased notation width
+  from 560 to 644; E2E now checks internal score overflow. Inspected screenshots
+  then exposed global tempo/rehearsal overlap, registered as a further local task.
+- `verify:visual-regression` initially failed on the intentional 960px width/slur
+  geometry change; the 1400px metrics were unchanged. Header/positioned-tempo lane
+  correction requires a reviewed baseline update, not suppressing the verifier.
+- `verify:musicxml-fixtures` passed (1 fixture-suite test); `verify:midi-fixtures`
+  passed (3 tests); `node scripts/verify-site-content.mjs` passed.
+- Electron under the filesystem sandbox exited SIGABRT; elevated local E2E passed.
+  This is local Electron automation, not native-dialog/manual signoff.
+- Screenshot follow-up also found rehearsal-frame versus text-baseline spacing was
+  underestimated. The lane policy now reserves the 24px frame plus text ascent and
+  clearance; positioned tempo lanes and global header clearance are included.
+  E2E asserts both tempo/rehearsal and rehearsal/chord bounding boxes do not overlap.
+- `RUN_MUSESCORE_MXL_QA=1 npm test -- src/musicxml/musescore-mxl.test.ts` passed
+  against installed `MuseScore4 4.7.5`: Chromatics-generated MXL opened in MuseScore,
+  exported XML reopened in Chromatics, preserving written pitches/durations and
+  chromatic transposition. This opt-in test is skipped in ordinary unit runs and
+  must be reported separately; it is not a GUI-created fixture or human QA.
+- Continued matrix audit registered dock visibility customization instead of
+  leaving all workspace customization as manual. Independent icon toggles persist
+  locally and retain selection/text state. The first test incorrectly expected
+  selection kind `note`; the existing selection contract is `event` and was retained.
+
+Automated disk/headless results do not certify native file dialogs, human listening,
+external app fidelity, Windows installation or commercial release readiness.
+
+### Final Gate Results
+
+| Command / check | Result | Scope |
+| --- | --- | --- |
+| `npm run typecheck` | Pass | Current TypeScript contracts |
+| `npm test` | Pass | 37 passed files, 491 passed tests; 1 opt-in MuseScore test/file skipped |
+| `RUN_MUSESCORE_MXL_QA=1 npm test -- src/musicxml/musescore-mxl.test.ts` | Pass | Actual MuseScore4 4.7.5 MXL import/XML export; not human GUI QA |
+| `npm run verify:e2e` | Pass | Built Electron workflows, 960 compact short/tall and 1400 desktop; new editable properties, dock toggle, internal score bounds and annotation bbox guards |
+| `CHROMATICS_QA_URL=http://127.0.0.1:5173 env -u ELECTRON_RUN_AS_NODE npx electron scripts/verify-single-voice-mvp.cjs` | Pass | Same harness against the running local Vite renderer; fixture bridge/mocked exports are not native dialogs |
+| `npm run verify:notation-snapshots:update`, then `npm run verify:visual-regression` | Pass | Baseline reviewed for compact width and deliberate header/rehearsal clearance change; event count retained |
+| `npm run verify:musicxml-fixtures` | Pass | Existing manifest/notation/warning expectations |
+| `npm run verify:midi-fixtures` | Pass | Solo/grand staff/ensemble fixture tests |
+| `npm run package:dir` | Pass | macOS arm64 unpacked app; includes production build; signing explicitly disabled by existing configuration |
+| `npm run verify:package` | Pass | PACKAGED_APP_SMOKE_OK including hasMxlRoundTrip=true, selected Cello PDF metadata/structure and MIDI write |
+| `node scripts/verify-site-content.mjs` | Pass | Site manifests/content guard; no deployment performed |
+| `git diff --check` | Pass | No whitespace errors |
+
+Final queue/schema checks passed: Commercial queue 22 rows and parity roadmap 23
+rows, both with no registered Todo/Partial/In progress items. `verify:chromatics-v1-save-policy`
+also passed. `MS-UX-SCOPE-002` retains the expanded inspector/freeform docking scope
+decision; this is not a claim that all MuseScore features have been implemented.
+
+Artifacts/logs: `/private/tmp/chromatics-{full-test,e2e,visual,package,package-smoke,local-web-qa,mxl-reference}.log`.
+Screenshots: OS temp `chromatics-v1-properties-960.png` and `chromatics-v1-properties-1400.png`.
+Logs/screenshots are local diagnostics; the versioned tests and this summary are
+the retained repeatable evidence. Initial dev invocation rejected unsupported
+electron-vite `--host`; a direct Vite server was used instead. Sandbox listen EPERM
+was resolved by approved local-only execution. No source/hosting release occurred.
+
+Verdict: local implementation and automated checks improved substantially, but
+Commercial V1 remains **not complete**. External/manual RC gates and explicit scope
+decisions for broader inspectors/freeform docking remain; do not advertise all
+MuseScore features or all V1 implementation as complete based on queue counts.
 
 ## Not Run In This Package
 

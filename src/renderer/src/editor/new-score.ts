@@ -4,6 +4,7 @@ import {
   createScore,
   createStaff,
   type Clef,
+  type InstrumentTransposition,
   type KeySignature,
   type Score,
   type TempoMarking,
@@ -164,6 +165,7 @@ export const partPresets = [
     id: 'double-bass',
     label: '더블베이스',
     abbreviation: 'Cb.',
+    transposition: { diatonic: 0, chromatic: 0, octaveChange: -1 },
     staves: [{ id: 'staff-1', clef: { sign: 'F', line: 4 } }]
   },
   {
@@ -176,6 +178,17 @@ export const partPresets = [
     id: 'clarinet',
     label: '클라리넷',
     abbreviation: 'Cl.',
+    transposition: { diatonic: -1, chromatic: -2 },
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+  },
+  {
+    id: 'alto-saxophone', label: '알토 색소폰 (E♭)', abbreviation: 'A. Sax.',
+    transposition: { diatonic: -5, chromatic: -9 },
+    staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
+  },
+  {
+    id: 'horn', label: '호른 (F)', abbreviation: 'Hn.',
+    transposition: { diatonic: -4, chromatic: -7 },
     staves: [{ id: 'staff-1', clef: { sign: 'G', line: 2 } }]
   },
   {
@@ -194,6 +207,7 @@ export const partPresets = [
   id: string
   label: string
   abbreviation: string
+  transposition?: InstrumentTransposition
   staves: ReadonlyArray<{
     id: string
     clef: Clef

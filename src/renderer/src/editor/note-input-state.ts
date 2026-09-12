@@ -418,6 +418,7 @@ export function buildSequentialInput(
     id: newMeasureId,
     number: location.measure.number + 1,
     clef: { ...location.measure.clef },
+    transposition: location.measure.transposition,
     keySignature: { ...location.measure.keySignature },
     timeSignature: { ...location.measure.timeSignature },
     voices: [
@@ -1082,6 +1083,7 @@ function ensureNextInputMeasure(
     id: measureId,
     number: location.measure.number + 1,
     clef: { ...location.measure.clef },
+    transposition: location.measure.transposition,
     keySignature: { ...location.measure.keySignature },
     timeSignature: { ...location.measure.timeSignature },
     voices: [

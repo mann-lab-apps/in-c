@@ -18,6 +18,8 @@ const LYRIC_TO_ANNOTATION_GAP = 18
 const SYSTEM_HEIGHT_BASELINE = 154
 const LOWER_BOTTOM_PADDING = 18
 const UPPER_TOP_PADDING = 12
+// Rehearsal offsets anchor a 24px box; neighboring text offsets are baselines.
+const REHEARSAL_TO_TEXT_GAP = 44
 
 export interface MeasureAnnotationLaneInput {
   expressionTextCount?: number
@@ -29,6 +31,7 @@ export interface MeasureAnnotationLaneInput {
   lyricLineCount?: number
   lyricScale?: number
   systemTextCount?: number
+  tempoCount?: number
 }
 
 export interface MeasureAnnotationLanes {
@@ -41,6 +44,7 @@ export interface MeasureAnnotationLanes {
   requiredBelow: number
   staffTextYOffset?: number
   systemTextYOffsets: number[]
+  tempoYOffsets: number[]
 }
 
 export type SlurSide = 'above' | 'below'
@@ -71,7 +75,8 @@ export function resolveMeasureAnnotationLanes({
   hasStaffText = false,
   lyricLineCount = 0,
   lyricScale = 1,
-  systemTextCount = 0
+  systemTextCount = 0,
+  tempoCount = 0
 }: MeasureAnnotationLaneInput): MeasureAnnotationLanes {
   const systemTextYOffsets = createSystemTextYOffsets(systemTextCount)
   const staffTextYOffset = hasStaffText
@@ -86,7 +91,8 @@ export function resolveMeasureAnnotationLanes({
   )
   const rehearsalMarkYOffset = resolveRehearsalMarkYOffset(
     hasRehearsalMark,
-    harmonyMarkYOffsets
+    harmonyMarkYOffsets,
+    systemTextYOffsets
   )
   const lyricBottom = resolveLyricBottom(lyricLineCount, lyricScale)
   let lowerCursor = Math.max(
@@ -120,6 +126,10 @@ export function resolveMeasureAnnotationLanes({
       ? undefined
       : staffTextYOffset - UPPER_TOP_PADDING
   ].filter((offset): offset is number => offset !== undefined)
+  const tempoYOffsets = Array.from({ length: tempoCount }, (_, index) =>
+    Math.min(-42, Math.min(0, ...upperOffsets) - 16) - index * 24
+  )
+  upperOffsets.push(...tempoYOffsets.map((offset) => offset - 18))
   const lowerOffsets = [
     dynamicMarkYOffset,
     hairpinYOffset === undefined ? undefined : hairpinYOffset + 6,
@@ -136,8 +146,22 @@ export function resolveMeasureAnnotationLanes({
       upperOffsets.length > 0 ? Math.abs(Math.min(...upperOffsets)) : 0,
     requiredBelow: Math.max(SYSTEM_HEIGHT_BASELINE, ...lowerOffsets),
     staffTextYOffset,
-    systemTextYOffsets
+    systemTextYOffsets,
+    tempoYOffsets
   }
+}
+
+export function resolveAnnotationSystemTop(
+  defaultTop: number,
+  lanes: Iterable<MeasureAnnotationLanes>,
+  hasHeader: boolean
+): number {
+  const allLanes = [...lanes]
+  const extension = resolveAnnotationVerticalExtension(allLanes)
+  return Math.max(
+    defaultTop + extension.above,
+    (hasHeader ? 60 : 12) + Math.max(0, ...allLanes.map((lane) => lane.requiredAbove))
+  )
 }
 
 export function resolveAnnotationVerticalExtension(
@@ -233,7 +257,8 @@ function createHarmonyMarkYOffsets(
 
 function resolveRehearsalMarkYOffset(
   hasRehearsalMark: boolean,
-  harmonyMarkYOffsets: number[]
+  harmonyMarkYOffsets: number[],
+  systemTextYOffsets: number[]
 ): number | undefined {
   if (!hasRehearsalMark) {
     return undefined
@@ -241,14 +266,15 @@ function resolveRehearsalMarkYOffset(
 
   const firstHarmonyOffset = harmonyMarkYOffsets[0]
 
-  if (firstHarmonyOffset === undefined) {
-    return REHEARSAL_MARK_Y_OFFSET
-  }
-
-  return Math.min(
+  const harmonyAwareOffset = Math.min(
     REHEARSAL_MARK_Y_OFFSET,
-    firstHarmonyOffset - SYSTEM_TEXT_LINE_GAP
+    firstHarmonyOffset === undefined ? REHEARSAL_MARK_Y_OFFSET : firstHarmonyOffset - REHEARSAL_TO_TEXT_GAP
   )
+  const firstSystemTextOffset = systemTextYOffsets[0]
+
+  return firstSystemTextOffset === undefined
+    ? harmonyAwareOffset
+    : Math.min(harmonyAwareOffset, firstSystemTextOffset - REHEARSAL_TO_TEXT_GAP)
 }
 
 function resolveLyricBottom(lineCount: number, lyricScale: number): number {

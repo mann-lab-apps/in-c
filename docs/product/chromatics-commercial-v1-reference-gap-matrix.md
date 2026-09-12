@@ -102,22 +102,22 @@ Entry/Speedy Entry/tool palette/menu workflow와 Finale-origin MusicXML migratio
 | 영역 | 기능 | 판정 | 현재 Chromatics 상태 | 남은 gap |
 | --- | --- | --- | --- | --- |
 | Score setup | 새 악보, title/composer, clef/key/time/tempo, measure count | Commercial V1 Required | 기본 생성 흐름과 built-in template picker 있음 | user-saved template/style workflow, metadata polish, 첫 화면 정리 필요 |
-| Score setup | instrument/player/part 모델 | Commercial V1 Required | partId/staffId/voiceId 기반이 있음 | instrument picker, ordering, part label, transposition metadata polish |
+| Score setup | instrument/player/part 모델 | Commercial V1 Required | part/staff/voice 모델, 악기 preset, part label과 파트 위/아래 이동 UI 구현; App undo/XML order 회귀 통과 | 더 넓은 instrument catalog와 실제 총보/파트보 수동 QA |
 | Score setup | piano grand staff | Commercial V1 Required | grand staff workflow 일부 있음 | 양손 입력 UX, brace/bracket, staff spacing, playback/export QA |
 | Score setup | 2-4 part ensemble | Commercial V1 Required | string quartet 자동 QA 일부 있음 | part별 입력, 저장/reopen/export manual RC QA |
-| Score setup | common transposing instruments | Commercial V1 Required | 확인 필요 | Bb/Eb/F instrument written/sounding pitch 정책 필요 |
+| Score setup | common transposing instruments | Commercial V1 Required | Bb/Eb/F/octave preset, per-staff/measure transpose import/export, written pitch 유지 및 sounding playback/MIDI 구현 | 실제 외부 앱/청감 QA; concert-pitch display toggle은 별도 parity 기능 |
 | Input | duration-first keyboard note/rest input | Commercial V1 Required | 구현됨 | shortcut discoverability와 UI 정리 필요 |
 | Input | mouse note input | Commercial V1 Required | 일부 있음 | hit target, accidental/octave prediction, undo/retry UX |
 | Input | MIDI keyboard step input | V1 Polish | 없음/확인 필요 | 상용 V1 포함 여부 결정 필요 |
 | Input | pitch-first input mode | V1 Polish | 없음/확인 필요 | MuseScore/Dorico 호환 power-user option |
 | Input | chords and intervals | Commercial V1 Required | 일부 있음 | chord editing, selected note insertion, MusicXML reopen QA |
-| Input | same-staff multi-voice | Commercial V1 Required | 첫 구현 및 일부 QA 있음 | rests/stems/collision/selection/copy/export polish |
+| Input | same-staff multi-voice | Commercial V1 Required | 첫 구현 및 일부 QA 있음. 2026-09-12 MuseScore parity slice로 다성부 staff에서 voice 1/3은 upper/up-stem lane, voice 2/4는 lower/down-stem lane을 쓰고 rest y-offset을 분리하는 renderer policy와 visual-state test를 추가함 | 더 넓은 SATB/piano real-score visual/manual QA, collision/selection/copy/export polish |
 | Input | tuplets and ties | Commercial V1 Required | triplet/tie/tuplet timing 일부 있음 | tuplets edit UI, nested/odd tuplets scope 결정 |
 | Input | grace notes | V1 Polish | 확인 필요 | 없으면 known limitation으로 분리 |
 | Editing | single/list/range selection | Commercial V1 Required | 구현 및 polish 일부 있음 | overlap object selection, voice/staff/part filter |
 | Editing | copy/paste notes and attached markings | Commercial V1 Required | 일부 구현 | lyrics/chords/dynamics/slurs voice-aware paste regression |
 | Editing | selection filters | Commercial V1 Required | V1 필수 범위의 `전체/음표만/쉼표만` event-type filter가 File command surface, context strip, filtered delete/copy/paste에 연결됨 | lyrics/chord/dynamics 같은 object-type fine filters는 별도 V1 Polish/Post-V1 후보 |
-| Editing | undo/redo reliable editing history | Commercial V1 Required | 확인 필요 | compound edit, import/export, layout option change coverage |
+| Editing | undo/redo reliable editing history | Commercial V1 Required | 기존 command history + properties 편집/파트 재정렬/악기 이조 App 및 core undo 회귀; 저장 중 새 편집 보존 테스트 | 새 compound workflow마다 회귀 확장; 모든 가능한 편집 조합의 완성을 의미하지 않음 |
 | Editing | keyboard navigation-first policy | Commercial V1 Required | Up/Down 정책 변경됨 | shortcut help/preferences polish |
 | Editing | transpose, octave shift, enharmonic respell | Commercial V1 Required | 일부 구현 | diatonic/chromatic UX, multi-selection QA |
 | Notation | clef/key/time/tempo changes | Commercial V1 Required | 일부 구현 | mid-score change input/export/reopen QA |
@@ -126,30 +126,30 @@ Entry/Speedy Entry/tool palette/menu workflow와 Finale-origin MusicXML migratio
 | Notation | slurs, ties, hairpins | Commercial V1 Required | 일부 구현 | long-span collision, endpoints, MusicXML round-trip |
 | Notation | lyrics | Commercial V1 Required | 구현 및 QA 일부 | verse handling, melisma, collision polish |
 | Notation | chord symbols | Commercial V1 Required | 구현 및 QA 일부 | parsing breadth, slash chords, positioning/export QA |
-| Notation | rehearsal marks and system text | Commercial V1 Required | 일부 구현 | automatic sequence, placement, export/reopen QA |
+| Notation | rehearsal marks and system text | Commercial V1 Required | 일부 구현. 2026-09-12 MuseScore parity slice로 range selection에서는 measure-level text/dynamics controls가 disabled 상태로 고정되어 적용 가능성이 덜 헷갈리게 됨 | automatic sequence, placement, object-specific property editing, export/reopen QA |
 | Notation | repeats and volta | Commercial V1 Required | playback repeat slice 있음 | engraving, export/reopen, manual playback QA |
 | Layout | page size/orientation/margins/staff size | Commercial V1 Required | PDF preset 첫 slice 있음. 2026-09-11 MuseScore parity slice로 `내보내기` 탭에 non-printing page margin guide toggle을 추가했고, 현재 margin mm가 score page preview guide inset에 반영되며 PDF export capture 중에는 숨겨지는 App regression을 추가함 | 실제 PDF viewer visual QA, page fitting polish |
-| Layout | staff/system spacing | Commercial V1 Required | 일부 있음 | page fitting, part-specific spacing, visual QA |
-| Layout | collision avoidance for text/lines/spans | Commercial V1 Required | annotation lane 일부 있음 | solo/piano/ensemble visual regression 확대 |
-| Layout | style presets and engraving options | V1 Polish | 제한적 | 최소 "default/readable/compact part" preset 필요 |
+| Layout | staff/system spacing | Commercial V1 Required | 일부 있음. 2026-09-12 selected part별 PDF page setup preference를 local file-path/part-id 저장소로 복원하는 첫 slice 추가 | portable part-specific spacing, page fitting, visual QA |
+| Layout | collision avoidance for text/lines/spans | Commercial V1 Required | annotation lane 일부 있음. 2026-09-12 dense solo fixture에서 system text/rehearsal/chord/staff text 및 lyrics/dynamics/hairpin/expression lane 간격을 고정하고 rehearsal mark를 dense system text stack 위로 이동함 | piano/ensemble visual regression 확대, PDF/manual engraving QA |
+| Layout | style presets and engraving options | V1 Polish | 2026-09-12 print layout plan에 `default`/`readable`/`compact` engraving style contract와 compact parts spacing regression 추가 | full style library, measure density controls, manual visual QA |
 | Parts | live part view | Commercial V1 Required | 첫 slice 있음 | selected part title/event-only rendering 더 강화 |
 | Parts | part extraction PDF/MusicXML | Commercial V1 Required | PDF smoke 일부 있음 | full score vs part export matrix, file dialog manual QA |
 | Parts | independent part layout persistence | Commercial V1 Required | preference workflow 첫 slice 있음 | per-part layout/page setup persistence 정책 |
 | Parts | cues / condensing / score subsets | Post-V1 | 없음 | 상용 V1 이후로 명시 |
 | File | native project format | Commercial V1 Required decision | MusicXML primary save policy 확정 | 상용 V1은 native format 도입 또는 위험 문서화 필요 |
-| File | MusicXML import/export | Commercial V1 Required | 구현, compatibility seed verifier, MuseScore 4.7.5 CLI app-export fixture 있음 | Finale/Dorico/Sibelius 실제 fixture와 MuseScore GUI/manual reopen snapshot 수집 |
+| File | MusicXML import/export | Commercial V1 Required | plain XML/MXL container open/save/recent reopen, 표준 trill-mark, 이조 보존 구현; compatibility seed와 MuseScore CLI fixture 유지 | Finale/Dorico/Sibelius 실제 fixture와 MuseScore GUI/manual reopen, MXL native dialog QA |
 | File | unsupported MusicXML report | Commercial V1 Required | 상세 report UI 첫 slice 있음 | false positive warning 축소 지속 |
 | File | PDF export | Commercial V1 Required | 구현 및 smoke 일부 있음 | 사람 기준 visual QA, signed packaged path QA |
 | File | MIDI export | Commercial V1 Required | 구현 및 verifier 있음 | DAW/notation app external open QA |
-| Playback | transport, cursor, stop/jump/restart | Commercial V1 Required | 자동 QA 일부 있음 | 실제 청감 QA, same-staff/multi-part regression 유지 |
-| Playback | tempo map, repeats, volta | Commercial V1 Required | 일부 구현 | repeat-wide policy manual pass 필요 |
-| Playback | mixer mute/solo/volume | Commercial V1 Required | 첫 slice 및 tests 있음 | packaged/manual ensemble QA |
+| Playback | transport, cursor, stop/jump/restart | Commercial V1 Required | 자동 QA 일부 있음. 2026-09-12 MuseScore parity slice로 mixer row가 active playback part를 `재생 중` 상태로 노출한다 | 실제 청감 QA, richer metering, same-staff/multi-part regression 유지 |
+| Playback | tempo map, repeats, volta | Commercial V1 Required | score-wide repeats/tempo + fermata 공통 time map; voice/part/repeat 동기화 회귀 통과 | 실제 ensemble listening QA |
+| Playback | mixer mute/solo/volume | Commercial V1 Required | 첫 slice 및 tests 있음. 2026-09-12 mute/solo/volume 설정이 `chromatics.part-mixer.v1` localStorage에 저장/복원되고, App regression이 단일 파트와 string quartet 독립 mixer state를 확인한다 | packaged/manual ensemble 청감 QA |
 | Playback | VST/sound libraries/audio export | Post-V1 | 없음 | 명시적으로 후속 |
 | Packaging | macOS packaged app | Commercial V1 Required | unpacked smoke 일부 있음 | DMG, signing/notarization, file dialog QA |
 | Packaging | Windows packaged app | Commercial V1 Required | 미실행 | installer/smoke/signing policy 필요 |
 | Packaging | Linux support | V1 Polish | 정책 필요 | 지원/미지원 명확화 |
 | Release | evidence log and release gates | Commercial V1 Required | 문서 있음 | 최신 실행 결과, manual Pass/Fail/Not run 정리 |
-| UX | toolbar/ribbon/palette/properties organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07 measure-level palette slice로 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 `표기 객체` 탭에서 조작하도록 분리했다. 2026-09-07 Lyrics/Chords slice로 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭의 별도 코드 group에 배치했다. 2026-09-07 Export/Page Setup slice로 PDF/MIDI export와 PDF page setup controls를 `파일`/`악보`에서 빼고 `내보내기` 탭으로 분리했으며, MIDI export도 현재 full score/selected part view 정책을 따르도록 고정했다. 2026-09-11 MuseScore parity slice로 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다 | 상용 V1 전 editable Properties inspector 확장, user-configurable dock layout, compact desktop visual QA가 더 필요함 |
+| UX | toolbar/ribbon/palette/properties organization | Commercial V1 Required | 2026-09-04 첫 slice로 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07 measure-level palette slice로 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 `표기 객체` 탭에서 조작하도록 분리했다. 2026-09-07 Lyrics/Chords slice로 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭의 별도 코드 group에 배치했다. 2026-09-07 Export/Page Setup slice로 PDF/MIDI export와 PDF page setup controls를 `파일`/`악보`에서 빼고 `내보내기` 탭으로 분리했으며, MIDI export도 현재 full score/selected part view 정책을 따르도록 고정했다. 2026-09-11 MuseScore parity slice로 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다. 2026-09-12 headless Commercial V1 QA 확장으로 960 compact short/tall, 1400 desktop-short work-mode layout, selected Viola part view export state, compact part page setup metadata, playback mixer persistence/activity를 Electron E2E에서 확인한다 | 상용 V1 전 slur/hairpin 등 추가 객체별 Properties inspector 확장, freeform drag-docking (기본 표시 설정은 구현됨), 사람이 실제 화면 밀도/naming을 보는 compact desktop visual QA가 더 필요함 |
 | UX | discoverability, shortcuts, command help | V1 Polish | 일부 shortcut migration | shortcut reference/preferences 필요 |
 | UX | accessibility and localization | V1 Polish | 확인 필요 | 최소 keyboard focus/label QA |
 
@@ -158,7 +158,7 @@ Entry/Speedy Entry/tool palette/menu workflow와 Finale-origin MusicXML migratio
 1. **전문 사보 UI 재정리**
    현재 기능이 많아졌지만 상단 controls가 한꺼번에 노출되어 난잡하다. MuseScore의 palette/properties, Dorico의 mode/panel, Sibelius의 ribbon/keypad처럼 기능을 작업 맥락별로 나눠야 한다. Commercial V1에서는 최소한 Score Setup, Note Input, Notation Objects, Lyrics/Chords, Playback, Export/Page Setup의 정보 구조를 다시 잡아야 한다.
 
-   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 2026-09-07 measure-level palette slice는 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 Score Setup에서 `표기 객체` 탭으로 옮겨 note-entry와 structural setup 표면에서 분리했다. 2026-09-07 Lyrics/Chords slice는 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭 안의 별도 `코드` group으로 옮겼으며, note 선택은 선택 event tick, measure 선택은 measure start tick 0에 chord symbol을 붙이는 정책을 App 테스트로 고정했다. 2026-09-07 Export/Page Setup slice는 `파일` 탭을 새 악보/MusicXML 가져오기/저장과 기본 편집 명령 중심으로 남기고, PDF/MIDI export, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset을 `내보내기` 탭으로 옮겼다. PDF/MIDI export는 현재 score view, 즉 full score 또는 selected part view를 따르며, part view MIDI suggested filename까지 App 테스트로 고정했다. 2026-09-11 queue run은 Electron E2E에 960px compact desktop work-mode 순회 guard를 추가해 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, document/context/text overflow를 자동 점검한다. 같은 날 MuseScore parity slice로 선택 event/measure/range를 읽는 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다. 아직 editable Properties inspector 확장, user-configurable dock layout, 사람이 실제 compact desktop 화면 밀도/naming을 보는 manual visual QA는 남아 있으므로 Commercial V1 UI signoff 전체가 완료된 것은 아니다.
+   2026-09-04 첫 vertical slice로 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태를 보여주는 context strip을 추가하고, inspector/toolbar를 compact panel layout으로 정리했다. 2026-09-07 measure-level palette slice는 rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef를 Score Setup에서 `표기 객체` 탭으로 옮겨 note-entry와 structural setup 표면에서 분리했다. 2026-09-07 Lyrics/Chords slice는 chord symbol input을 `음표` 패널에서 빼고 `가사` 탭 안의 별도 `코드` group으로 옮겼으며, note 선택은 선택 event tick, measure 선택은 measure start tick 0에 chord symbol을 붙이는 정책을 App 테스트로 고정했다. 2026-09-07 Export/Page Setup slice는 `파일` 탭을 새 악보/MusicXML 가져오기/저장과 기본 편집 명령 중심으로 남기고, PDF/MIDI export, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset을 `내보내기` 탭으로 옮겼다. PDF/MIDI export는 현재 score view, 즉 full score 또는 selected part view를 따르며, part view MIDI suggested filename까지 App 테스트로 고정했다. 2026-09-11 queue run은 Electron E2E에 960px compact desktop work-mode 순회 guard를 추가해 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, document/context/text overflow를 자동 점검한다. 같은 날 MuseScore parity slice로 선택 event/measure/range를 읽는 read-only `선택 요약` properties surface를 추가했고, 후속 slice로 score workspace 좌측 `고정 팔레트`, 우측 `속성 도크`, notation-mode `셈여림 팔레트`를 추가했다. 2026-09-12 headless Commercial V1 QA 확장은 compact short/tall과 desktop-short viewport에서 모든 work mode의 overflow/page visibility를 확인하고, selected Viola part view export state와 playback mixer activity/persistence를 실제 Electron DOM으로 점검한다. 아직 slur/hairpin 등 추가 객체별 Properties inspector 확장, freeform drag-docking (기본 표시 설정은 구현됨), 사람이 실제 compact desktop 화면 밀도/naming을 보는 manual visual QA는 남아 있으므로 Commercial V1 UI signoff 전체가 완료된 것은 아니다.
 
 2. **same-staff multi-voice production polish**
    같은 보표 다성부는 "있다"가 아니라 rests, stems, selection, copy/paste, playback, MusicXML, collision까지 한 workflow로 통과해야 한다.
@@ -205,7 +205,7 @@ Entry/Speedy Entry/tool palette/menu workflow와 Finale-origin MusicXML migratio
 
 ## 다음 작업 추천 순서
 
-1. MuseScore Studio급 장기 parity 작업은 `docs/product/chromatics-musescore-parity-roadmap.md`와 `npm run verify:chromatics-musescore-parity-roadmap`를 시작점으로 삼는다. 최소 V1 RC 자동 큐가 비어도 MuseScore parity 큐의 `Todo`가 남아 있으면 제품 완성 판정으로 보지 않는다.
+1. MuseScore Studio급 장기 parity 작업은 `docs/product/chromatics-musescore-parity-roadmap.md`와 `npm run verify:chromatics-musescore-parity-roadmap`를 시작점으로 삼는다. 2026-09-12 기준 현재 문서화된 MuseScore parity 자동화 큐는 비었지만, External QA/Manual QA/Research/Postpone row는 제품 완성 판정에 앞서 별도로 처리해야 한다.
 2. `docs/product/chromatics-commercial-v1-work-queue.md`와 `npm run verify:chromatics-v1-work-queue`는 Commercial V1 최소 blocker 큐의 회귀 확인용으로 유지한다.
 3. Commercial V1 UX information architecture: 난잡한 상단 UI를 전문 작업 흐름 중심으로 재배치한다. `전체/음표만/쉼표만` selection filter는 File command surface/context strip/delete/copy/paste까지 연결되었고 compact desktop E2E mode guard가 추가되었다. 2026-09-11 MuseScore parity 첫 slice로 Export/Page Setup의 page margin guide preview를 추가했다. 남은 것은 사람이 compact desktop 화면 밀도와 naming을 확인하는 manual visual QA다.
 4. MuseScore/Finale reference fixture collection: 설치된 MuseScore 4.7.5의 CLI app-export fixture와 `verify:musescore-cli-fixtures` import/render smoke를 유지하면서, MuseScore GUI reopen/manual snapshot을 채운다. Finale는 사용자 제공 Finale-origin MusicXML 또는 별도 호환 환경에서 migration fixture를 확보한다.
