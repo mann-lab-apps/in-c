@@ -113,6 +113,8 @@ void main() {
 
     expect(find.text('최근 세트리스트'), findsOneWidget);
     expect(find.text('새 세트리스트'), findsOneWidget);
+    expect(find.text('진행 1/1'), findsOneWidget);
+    expect(find.textContaining('최근 '), findsWidgets);
     expect(find.textContaining('이어보기 · clef short score'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -215,12 +217,23 @@ void main() {
     );
 
     expect(scoreToOpenForSetlistResumeForTest(setlist, scores).id, 'score-2');
+    expect(setlistProgressLabelForTest(setlist), '진행 2/2');
     expect(
       scoreToOpenForSetlistResumeForTest(
         setlist.copyWith(lastOpenedScoreId: 'missing'),
         scores,
       ).id,
       'score-1',
+    );
+    expect(
+      setlistProgressLabelForTest(
+        setlist.copyWith(clearLastOpenedScoreId: true),
+      ),
+      '2곡',
+    );
+    expect(
+      setlistProgressLabelForTest(setlist.copyWith(scoreIds: const <String>[])),
+      '빈 목록',
     );
   });
 

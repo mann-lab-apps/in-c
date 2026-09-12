@@ -3385,6 +3385,24 @@ SheetScore scoreToOpenForSetlistResumeForTest(
   return _scoreToOpenForSetlistResume(setlist, scores);
 }
 
+String _setlistProgressLabel(SheetSetlist setlist) {
+  final total = setlist.scoreIds.length;
+  if (total == 0) {
+    return '빈 목록';
+  }
+  final scoreId = setlist.lastOpenedScoreId;
+  final currentIndex = scoreId == null ? -1 : setlist.scoreIds.indexOf(scoreId);
+  if (currentIndex < 0) {
+    return '$total곡';
+  }
+  return '진행 ${currentIndex + 1}/$total';
+}
+
+@visibleForTesting
+String setlistProgressLabelForTest(SheetSetlist setlist) {
+  return _setlistProgressLabel(setlist);
+}
+
 class _QuickAccessScoreChip extends StatelessWidget {
   const _QuickAccessScoreChip({
     required this.score,
@@ -3537,8 +3555,9 @@ class _RecentSetlistsBand extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final setlist = setlists[index];
                   final openedLabel = setlist.lastOpenedAt == null
-                      ? '${setlist.scoreIds.length}곡'
-                      : '${_formatShortDate(setlist.lastOpenedAt!)} · ${setlist.scoreIds.length}곡';
+                      ? '최근 기록 없음'
+                      : '최근 ${_formatShortDate(setlist.lastOpenedAt!)}';
+                  final progressLabel = _setlistProgressLabel(setlist);
                   final lastOpenedScoreId = setlist.lastOpenedScoreId;
                   final lastOpenedScore = lastOpenedScoreId == null
                       ? null
@@ -3561,15 +3580,46 @@ class _RecentSetlistsBand extends StatelessWidget {
                                 children: [
                                   const Icon(Icons.queue_music, size: 16),
                                   const SizedBox(width: 4),
-                                  Text(
-                                    '세트리스트',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      fontWeight: FontWeight.w900,
+                                  Expanded(
+                                    child: Text(
+                                      '세트리스트',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primaryContainer
+                                          .withValues(alpha: 0.72),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      child: Text(
+                                        progressLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onPrimaryContainer,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 8),
                               Text(
                                 setlist.title,
                                 maxLines: 1,
@@ -3578,7 +3628,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
-                              const SizedBox(height: 18),
+                              const SizedBox(height: 10),
                               Text(
                                 openedLabel,
                                 maxLines: 1,
