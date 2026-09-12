@@ -154,6 +154,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
   void _toggleBulkScoreSelection(SheetScore score) {
     setState(() {
+      _isBulkSelecting = true;
       if (!_bulkSelectedScoreIds.add(score.id)) {
         _bulkSelectedScoreIds.remove(score.id);
       }
@@ -3514,6 +3515,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
+          onLongPress: () => onSelectionChanged(score),
           child: Stack(
             children: [
               Padding(
@@ -4216,6 +4218,7 @@ class _ScoreTile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
+        onLongPress: () => onSelectionChanged(score),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(

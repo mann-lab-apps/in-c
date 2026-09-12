@@ -313,6 +313,49 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('long pressing a score enters bulk selection', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'long press score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/long-press-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('long press score').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('1개 선택'), findsOneWidget);
+    expect(find.byTooltip('선택 취소'), findsOneWidget);
+    expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home surfaces imported scores that need metadata review', (
     tester,
   ) async {

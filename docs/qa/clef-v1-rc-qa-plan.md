@@ -417,9 +417,9 @@ flutter build ios --release --no-codesign
 
 2026-09-07 연주자 피드백 v1 hotfix 기록:
 
-- 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 일괄 선택 AppBar에서 선택 악보를 기존/새
-  세트리스트에 한 번에 추가할 수 있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를
-  안내한다.
+- 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 카드 long press 또는 상단 버튼으로 선택
+  모드에 들어간 뒤 일괄 선택 AppBar에서 선택 악보를 기존/새 세트리스트에 한 번에 추가할 수
+  있게 했다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를 안내한다.
 - MobileSheets의 `Create Collection from Songs` 흐름을 Clef식으로 줄여, 일괄 선택 AppBar에서
   선택한 여러 악보를 기존/새 컬렉션으로 바로 묶을 수 있게 했다.
 - 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을
