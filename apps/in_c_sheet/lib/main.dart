@@ -1435,6 +1435,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkCollectionAssign,
               icon: const Icon(Icons.collections_bookmark_outlined),
             ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 정보 일괄 편집',
+              onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
+              icon: const Icon(Icons.edit_note),
+            ),
           if (!_isBulkSelecting) ...[
             IconButton(
               tooltip: '세트리스트',
@@ -1527,13 +1533,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           ],
         ],
       ),
-      floatingActionButton: _isBulkSelecting
-          ? FloatingActionButton.extended(
-              onPressed: _showBulkEdit,
-              icon: const Icon(Icons.edit_note),
-              label: const Text('일괄 편집'),
-            )
-          : null,
+      floatingActionButton: null,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

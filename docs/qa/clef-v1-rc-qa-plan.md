@@ -382,8 +382,8 @@ flutter build ios --release --no-codesign
 - 튜너 bottom sheet는 진입 직후 마이크 입력을 시작하고, 큰 `시작` 버튼 대신 작은 마이크 toggle만 둔다.
 - 라이브러리 생성 시 기존 이름과 중복되면 조용히 실패하지 않고 `이미 있습니다` 안내와 `열기` action을
   표시한다.
-- 일반 라이브러리 화면의 `악보 추가` 진입점은 상단 action 하나로 정리하고, 빈 상태 안내 CTA와 일괄
-  선택 모드의 `일괄 편집` FAB만 예외로 유지한다.
+- 일반 라이브러리 화면의 `악보 추가` 진입점은 상단 action 하나로 정리하고, 일괄 선택 모드에서는
+  세트리스트/컬렉션/정보 편집 action을 상단 선택 AppBar로 모아 하단 FAB와 중복되지 않게 한다.
 
 2026-09-04 튜너 UX 간결화 기록:
 
@@ -419,7 +419,7 @@ flutter build ios --release --no-codesign
 
 - 다중 선택 카드의 선택 상태를 더 진하게 표시하고, 카드 long press 또는 상단 버튼으로 선택
   모드에 들어간 뒤 현재 목록 전체 선택/해제와 일괄 선택 AppBar에서 선택 악보를 기존/새
-  세트리스트에 한 번에 추가할 수 있게 했다. 선택 중에는 일반 앱 action을 숨기고 선택 action만
+  세트리스트에 한 번에 추가하거나 정보를 일괄 편집할 수 있게 했다. 선택 중에는 일반 앱 action을 숨기고 선택 action만
   남긴다. 이미 들어간 악보는 중복으로 넣지 않고 skip count를 안내하며, 완료 안내의 `열기`로
   대상 세트리스트 상세를 바로 확인할 수 있다.
 - MobileSheets의 `Create Collection from Songs` 흐름을 Clef식으로 줄여, 일괄 선택 AppBar에서

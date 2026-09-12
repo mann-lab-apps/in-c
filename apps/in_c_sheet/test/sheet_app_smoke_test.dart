@@ -304,6 +304,8 @@ void main() {
     expect(find.text('1개 선택'), findsOneWidget);
     expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
     expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 정보 일괄 편집'), findsOneWidget);
+    expect(find.widgetWithText(FloatingActionButton, '일괄 편집'), findsNothing);
     expect(find.byTooltip('악보 추가'), findsNothing);
     expect(find.byTooltip('백업/복원'), findsNothing);
 
@@ -355,7 +357,52 @@ void main() {
     expect(find.byTooltip('선택 취소'), findsOneWidget);
     expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
     expect(find.byTooltip('선택 악보 컬렉션 지정'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 정보 일괄 편집'), findsOneWidget);
+    expect(find.widgetWithText(FloatingActionButton, '일괄 편집'), findsNothing);
     expect(find.byTooltip('악보 추가'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('bulk edit opens from the selection app bar', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'bulk edit score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/bulk-edit-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('bulk edit score').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('선택 악보 정보 일괄 편집'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('일괄 편집'), findsOneWidget);
+    expect(find.text('추가할 태그'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
