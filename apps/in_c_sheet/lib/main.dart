@@ -8242,7 +8242,53 @@ setlist=$setlistLabel
     final duplicateSuffix = result.skippedDuplicateCount > 0
         ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
         : '';
-    _showSnackBar('${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.');
+    _showSnackBar(
+      '${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.',
+      action: SnackBarAction(
+        label: '세트리스트 만들기',
+        onPressed: () {
+          unawaited(_createSetlistFromSongbookScores(result.createdScores));
+        },
+      ),
+    );
+  }
+
+  Future<void> _createSetlistFromSongbookScores(List<SheetScore> scores) async {
+    if (scores.isEmpty) {
+      return;
+    }
+    final title =
+        '${score.title.trim().isEmpty ? 'Songbook' : score.title} 곡 모음';
+    final existing = widget.controller.setlistByTitleOrNull(title);
+    final setlist = existing ?? await widget.controller.createSetlist(title);
+    final result = await widget.controller.addScoresToSetlist(setlist, scores);
+    if (!mounted) {
+      return;
+    }
+    final target = widget.controller.setlistByIdOrNull(setlist.id) ?? setlist;
+    final skippedSuffix = result.skippedDuplicateCount > 0
+        ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+        : '';
+    _showSnackBar(
+      result.didAddAny
+          ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.'
+          : '"${target.title}"에 이미 모두 담겨 있습니다.',
+      action: SnackBarAction(
+        label: '열기',
+        onPressed: () {
+          unawaited(
+            Navigator.of(context).push<void>(
+              MaterialPageRoute<void>(
+                builder: (context) => SheetSetlistDetailScreen(
+                  controller: widget.controller,
+                  setlistId: target.id,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _selectDisplayMode() async {

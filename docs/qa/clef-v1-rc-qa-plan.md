@@ -505,5 +505,6 @@ flutter build ios --release --no-codesign
 - MobileSheets batch/bookmark import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기, 여러 PDF를
   세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. CSV/PDF 북마크가 있는
   긴 songbook은 원본 PDF를 수정하지 않고 같은 파일을 참조하는 곡 항목으로 나눌 수 있다. 각 곡
-  항목은 북마크 시작 page부터 다음 북마크 전 page까지의 pageOrder를 가진다. cloud browser와 batch
-  audio, 실제 PDF 파일 물리 분할은 후속으로 남긴다.
+  항목은 북마크 시작 page부터 다음 북마크 전 page까지의 pageOrder를 가진다. 생성 완료 안내의
+  `세트리스트 만들기` action으로 방금 만든 곡 항목을 북마크 순서대로 세트리스트에 담고 상세 화면으로
+  바로 이어갈 수 있다. cloud browser와 batch audio, 실제 PDF 파일 물리 분할은 후속으로 남긴다.
