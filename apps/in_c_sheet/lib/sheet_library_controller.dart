@@ -2478,6 +2478,19 @@ class SheetLibraryController extends ChangeNotifier {
     return null;
   }
 
+  SheetSetlist? setlistByTitleOrNull(String title, {String? exceptId}) {
+    final normalized = _normalizeSetlistTitle(title).toLowerCase();
+    for (final setlist in _setlists) {
+      if (setlist.id == exceptId) {
+        continue;
+      }
+      if (_normalizeSetlistTitle(setlist.title).toLowerCase() == normalized) {
+        return setlist;
+      }
+    }
+    return null;
+  }
+
   Future<void> _replace(SheetScore updated) async {
     _scores = _scores
         .map((score) => score.id == updated.id ? updated : score)

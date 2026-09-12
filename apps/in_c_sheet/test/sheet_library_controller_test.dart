@@ -2120,6 +2120,33 @@ void main() {
     ]);
   });
 
+  test(
+    'finds setlists by normalized title while excluding the current one',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'setlist-1',
+          title: 'Recital',
+          scoreIds: const <String>[],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(controller.setlistByTitleOrNull(' recital ')?.id, 'setlist-1');
+      expect(
+        controller.setlistByTitleOrNull('Recital', exceptId: 'setlist-1'),
+        isNull,
+      );
+    },
+  );
+
   test('deletes selected scores and cleans setlist references', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');

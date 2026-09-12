@@ -47,6 +47,40 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'duplicate setlist names show guidance without creating another',
+    (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 7, 10);
+      final store = SheetLibraryStore();
+      await store.saveSetlists([
+        SheetSetlist(
+          id: 'setlist-1',
+          title: '새 세트리스트',
+          scoreIds: const <String>[],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      await tester.pumpWidget(
+        MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('새 세트리스트').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('저장'));
+      await tester.pumpAndSettle();
+
+      expect(controller.setlists, hasLength(1));
+      expect(find.text('"새 세트리스트" 세트리스트가 이미 있습니다.'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('import menu exposes setlist assignment actions', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final controller = SheetLibraryController(store: SheetLibraryStore());

@@ -369,6 +369,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       if (!mounted || title == null) {
         return null;
       }
+      final existing = controller.setlistByTitleOrNull(title);
+      if (existing != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${existing.title}" 세트리스트가 이미 있습니다.')),
+        );
+        return existing;
+      }
       return controller.createSetlist(title);
     }
     return action.setlist;
@@ -4593,6 +4600,31 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       return;
     }
 
+    final existing = controller.setlistByTitleOrNull(title);
+    if (existing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"${existing.title}" 세트리스트가 이미 있습니다.'),
+          action: SnackBarAction(
+            label: '열기',
+            onPressed: () {
+              unawaited(
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) => SheetSetlistDetailScreen(
+                      controller: controller,
+                      setlistId: existing.id,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     final setlist = await controller.createSetlist(title);
     if (!mounted) {
       return;
@@ -4742,16 +4774,27 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _renameSetlist() async {
+    final currentSetlist = setlist;
     final title = await _showTextEntryDialog(
       context: context,
       title: '세트리스트 이름 변경',
       label: '이름',
-      initialValue: setlist.title,
+      initialValue: currentSetlist.title,
     );
-    if (title == null) {
+    if (!mounted || title == null) {
       return;
     }
-    await controller.renameSetlist(setlist, title);
+    final existing = controller.setlistByTitleOrNull(
+      title,
+      exceptId: currentSetlist.id,
+    );
+    if (existing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${existing.title}" 세트리스트가 이미 있습니다.')),
+      );
+      return;
+    }
+    await controller.renameSetlist(currentSetlist, title);
   }
 
   Future<void> _deleteSetlist() async {
