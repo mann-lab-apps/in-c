@@ -130,9 +130,17 @@ export interface Measure {
   timeSignature: TimeSignature
   keySignature: KeySignature
   clef: Clef
+  transposition?: InstrumentTransposition
   repeat?: RepeatMark
   volta?: VoltaMark
   voices: Voice[]
+}
+
+// MusicXML interval added to written pitches to obtain sounding pitches.
+export interface InstrumentTransposition {
+  diatonic?: number
+  chromatic: number
+  octaveChange?: number
 }
 
 export type MeasureTiming =

@@ -1637,6 +1637,38 @@ describe('playback timeline', () => {
     }
   )
 
+  it('playback.fermata-sync aligns voices, parts, repeated holds and tempo changes', () => {
+    const score = createScore({
+      parts: ['wind', 'piano'].map((partId) => createPart({
+        id: partId,
+        staves: [createStaff({ measures: [createMeasure({
+          id: `${partId}-m1`,
+          timeSignature: { beats: 2, beatType: 4 },
+          repeat: partId === 'wind' ? { start: true, end: true, times: 2 } : undefined,
+          voices: ['voice-1', 'voice-2'].map((voiceId) => createVoice({
+            id: voiceId,
+            events: [
+              createNote({ id: `${partId}-${voiceId}-held`, pitch: { step: 'C', octave: 4 }, fermata: partId === 'wind' }),
+              createNote({ id: `${partId}-${voiceId}-next`, pitch: { step: 'D', octave: 4 }, position: createTimePosition(TICKS_PER_QUARTER) })
+            ]
+          }))
+        })] })]
+      })),
+      tempoEvents: [{ id: 'slow', measureId: 'wind-m1', tick: TICKS_PER_QUARTER, bpm: 60 }]
+    })
+    const timeline = createPlaybackTimeline(score)
+    for (const partId of ['wind', 'piano']) {
+      for (const voiceId of ['voice-1', 'voice-2']) {
+        const held = timeline.events.filter((event) => event.eventId === `${partId}-${voiceId}-held`)
+        expect(held.map((event) => event.startBeat)).toEqual([0, 2.5])
+        expect(held.map((event) => event.durationBeats)).toEqual([1.5, 1.5])
+        expect(timeline.events.filter((event) => event.eventId === `${partId}-${voiceId}-next`).map((event) => event.startBeat)).toEqual([1.5, 4])
+      }
+    }
+    expect(timeline.tempoEvents.map((event) => event.startBeat)).toEqual([1.5, 4])
+    expect(timeline.totalBeats).toBe(5)
+  })
+
   it('playback.fermata-delay extends playback time after fermatas', () => {
     const score = createScore({
       parts: [

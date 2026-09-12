@@ -159,7 +159,7 @@ function main() {
     }
   }
 
-  for (const status of ['Todo', 'Done', 'Research', 'External QA']) {
+  for (const status of ['Done', 'Research', 'External QA']) {
     if (!statuses.has(status)) {
       fail(`Expected at least one row with status: ${status}`)
     }

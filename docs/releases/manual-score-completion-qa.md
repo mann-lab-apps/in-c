@@ -9,6 +9,20 @@
 
 ## 준비
 
+### 2026-09-12 Added Scenarios
+
+These are **Not run** as human/native-dialog QA. Unit and Electron evidence is
+recorded separately in the evidence log.
+
+| Scenario | Expected result | Status | Evidence to collect |
+| --- | --- | --- | --- |
+| Bb clarinet / Eb alto sax / F horn / double bass | Written notes remain unchanged; sounding playback and exported MIDI match instrument offsets; reopen keeps offsets | Not run | App/version, score, listening notes, external reopen screenshot |
+| Ensemble fermata and repeated passage | All voices/parts wait together, repeated tempo changes remain aligned | Not run | Score and human listening outcome |
+| Native MusicXML and MXL save twice, reopen and resave | Both saves succeed at the selected path, latest edits reopen, previous file is backed up | Not run | Paths, file artifacts, native dialog screenshots |
+| Edit while save dialog/write is pending | New edits remain unsaved/recoverable and are included in the next save | Not run | Screen recording and reopened file |
+| Part order and selected part export | Reordering keeps notes/instrument settings; full score order and selected-part PDF/MIDI target stay correct | Not run | Score, exported artifacts, reopen screenshots |
+| 960px properties and dense tempo/rehearsal area | Fields and score remain accessible; tempo, rehearsal, text/chords readable in app and PDF | Not run | App/PDF screenshots at compact and desktop widths |
+
 - 패키징된 앱 또는 릴리즈 후보 빌드
 - 저장할 임시 폴더
 - QA 기록용 이슈 또는 체크리스트

@@ -52,6 +52,7 @@ function buildInsertMeasure(
     id: createId('measure'),
     number: insertionIndex + 1,
     clef: { ...location.measure.clef },
+    transposition: location.measure.transposition,
     keySignature: { ...location.measure.keySignature },
     timeSignature: { ...location.measure.timeSignature },
     voices: location.measure.voices.map((voice) =>

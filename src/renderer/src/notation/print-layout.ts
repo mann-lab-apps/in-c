@@ -2,9 +2,11 @@ import type { Score, ScorePageSetup } from '../../../score-core'
 import { createSystemLayout } from './system-layout'
 
 export type PrintPageTarget = 'auto' | number
+export type PrintEngravingStylePreset = 'default' | 'readable' | 'compact'
 
 export interface PrintLayoutPlan {
   compactSpacing: boolean
+  engravingStyle: PrintEngravingStylePreset
   estimatedPageCount: number
   id: string
   label: string
@@ -24,6 +26,7 @@ export interface PrintLayoutPlan {
 interface PrintLayoutCandidate extends Omit<
   PrintLayoutPlan,
   | 'estimatedPageCount'
+  | 'engravingStyle'
   | 'overflowedTarget'
   | 'pageCount'
   | 'pageCssSize'
@@ -155,6 +158,7 @@ function evaluatePrintLayoutCandidate(
 
   return {
     ...normalizedCandidate,
+    engravingStyle: resolvePrintEngravingStylePreset(pageSetup),
     estimatedPageCount,
     overflowedTarget: false,
     pageCount: estimatedPageCount
@@ -297,6 +301,30 @@ export function normalizePrintPageSetup(
       DEFAULT_PAGE_SETUP.systemSpacingPercent
     )
   }
+}
+
+export function resolvePrintEngravingStylePreset(
+  setup: Required<ScorePageSetup>
+): PrintEngravingStylePreset {
+  const compactSignals = [
+    setup.pageMarginMm <= 6,
+    setup.staffSizePercent <= 90,
+    setup.systemSpacingPercent <= 95
+  ].filter(Boolean).length
+
+  if (compactSignals >= 2) {
+    return 'compact'
+  }
+
+  if (
+    setup.pageMarginMm >= 10 ||
+    setup.staffSizePercent >= 105 ||
+    setup.systemSpacingPercent >= 115
+  ) {
+    return 'readable'
+  }
+
+  return 'default'
 }
 
 export function formatPrintPageCssSize(

@@ -99,14 +99,51 @@ export function createPlaybackTimeline(score: Score): PlaybackTimeline {
     }
   }
 
+  const holdMap = createFermataHoldMap(score, scoreRepeatPlaybackPlan)
+  const performedBeat = (beat: number) => beat + [...holdMap].reduce(
+    (offset, [endBeat, hold]) => endBeat <= beat + 1e-9 ? offset + hold : offset, 0)
+
   return {
     events: applyHairpinVelocity(
       score,
       events.sort((left, right) => left.startBeat - right.startBeat)
-    ),
-    tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan),
-    totalBeats
+    ).map((event) => ({
+      ...event,
+      startBeat: performedBeat(event.startBeat),
+      durationBeats: performedBeat(event.startBeat + event.durationBeats) - performedBeat(event.startBeat)
+    })),
+    tempoEvents: createPlaybackTempoEvents(score, scoreRepeatPlaybackPlan).map((event) => ({
+      ...event, startBeat: performedBeat(event.startBeat)
+    })),
+    totalBeats: performedBeat(totalBeats)
   }
+}
+
+// A hold is shared by all parts at its ending beat, including every repeat pass.
+// Simultaneous fermatas contribute the longest hold once, not once per voice.
+function createFermataHoldMap(score: Score, repeatPlan?: RepeatPlaybackPlan): Map<number, number> {
+  const holds = new Map<number, number>()
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      const starts = createStaffMeasureStartBeatMap(staff.measures)
+      const entries = repeatPlan?.entries ?? staff.measures.map((measure, measureIndex) => ({
+        measureIndex, outputBeat: starts.get(measure.id) ?? 0
+      }))
+      for (const entry of entries) {
+        const measure = staff.measures[entry.measureIndex]
+        if (!measure) continue
+        for (const voice of measure.voices) {
+          for (const event of voice.events) {
+            if (!event.fermata) continue
+            const duration = voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
+            const endBeat = entry.outputBeat + event.position.tick / TICKS_PER_QUARTER + duration
+            holds.set(endBeat, Math.max(holds.get(endBeat) ?? 0, duration * (FERMATA_DURATION_MULTIPLIER - 1)))
+          }
+        }
+      }
+    }
+  }
+  return holds
 }
 
 function createStaffPlaybackEvents(
@@ -118,7 +155,6 @@ function createStaffPlaybackEvents(
 ): PlaybackTimeline {
   const events: PlaybackEvent[] = []
   let scoreBeat = 0
-  let expressionBeatOffset = 0
   const pendingTieEventByVoiceId = new Map<string, PlaybackEvent>()
 
   for (const measure of measures) {
@@ -126,9 +162,7 @@ function createStaffPlaybackEvents(
       for (const event of sortVoiceEvents(voice.events)) {
         const notatedDurationBeats =
           voiceEventDurationTicks(event, measure) / TICKS_PER_QUARTER
-        const durationBeats =
-          notatedDurationBeats *
-          (event.fermata ? FERMATA_DURATION_MULTIPLIER : 1)
+        const durationBeats = notatedDurationBeats
         const frequencies =
           event.type === 'note'
             ? eventFrequencies(measure, voice, event)
@@ -141,8 +175,7 @@ function createStaffPlaybackEvents(
           measureId: measure.id,
           startBeat:
             scoreBeat +
-            event.position.tick / TICKS_PER_QUARTER +
-            expressionBeatOffset,
+            event.position.tick / TICKS_PER_QUARTER,
           durationBeats,
           frequency:
             frequencies && frequencies.length > 0 ? frequencies[0] : undefined,
@@ -181,7 +214,6 @@ function createStaffPlaybackEvents(
           pendingTieEventByVoiceId.delete(voice.id)
         }
 
-        expressionBeatOffset += durationBeats - notatedDurationBeats
       }
     }
 
@@ -198,7 +230,7 @@ function createStaffPlaybackEvents(
   return {
     events: repeatedTimeline.events,
     tempoEvents: [],
-    totalBeats: repeatedTimeline.totalBeats + expressionBeatOffset
+    totalBeats: repeatedTimeline.totalBeats
   }
 }
 
@@ -415,7 +447,9 @@ function eventFrequencies(
     ? event.pitches
     : [resolveNotePitch(measure, voice, event)]
 
-  return pitches.map((pitch) => pitchToFrequency(pitch))
+  const offset = (measure.transposition?.chromatic ?? 0) +
+    12 * (measure.transposition?.octaveChange ?? 0)
+  return pitches.map((pitch) => pitchToFrequency(pitch) * 2 ** (offset / 12))
 }
 
 function eventTrillFrequency(
@@ -439,10 +473,12 @@ function eventTrillFrequency(
     tick: event.position.tick
   })
 
+  const offset = (measure.transposition?.chromatic ?? 0) +
+    12 * (measure.transposition?.octaveChange ?? 0)
   return pitchToFrequency({
     ...upperDiatonicPitch,
     alter: upperAlter
-  })
+  }) * 2 ** (offset / 12)
 }
 
 function createPlaybackTempoEvents(

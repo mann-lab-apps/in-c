@@ -53,6 +53,7 @@ interface MeasureState {
 
 interface PartMeasureState {
   clefs: Map<number, Clef>
+  transpositions: Map<number, NonNullable<Measure['transposition']>>
   divisions: number
   keySignature: KeySignature
   staffCount: number
@@ -366,6 +367,7 @@ function parseMusicXmlPart(
               type: 'regular'
             },
         clef: { ...(state.clefs.get(staffNumber) ?? defaultMeasureState.clef) },
+        transposition: state.transpositions.get(staffNumber),
         keySignature: { ...state.keySignature },
         timeSignature: { ...state.timeSignature },
         repeat: readRepeatMark(measureNode),
@@ -1337,7 +1339,7 @@ function readOrnaments(node: XmlNode): Extract<VoiceEvent, { type: 'note' }>['or
   }
 
   const values = (['trill', 'mordent', 'turn'] as const).filter(
-    (ornament) => ornament in ornaments
+    (ornament) => ornament in ornaments || (ornament === 'trill' && 'trill-mark' in ornaments)
   )
 
   return values.length > 0 ? values : undefined
@@ -1562,6 +1564,7 @@ function readTupletNotationTypes(node: XmlNode): Set<string | undefined> {
 function createPartMeasureState(): PartMeasureState {
   return {
     clefs: new Map([[1, { ...defaultMeasureState.clef }]]),
+    transpositions: new Map(),
     divisions: defaultMeasureState.divisions,
     keySignature: { ...defaultMeasureState.keySignature },
     staffCount: 1,
@@ -1578,6 +1581,23 @@ function readPartMeasureState(
   const keyNode = readOptionalNode(attributes, 'key')
   const timeNode = readOptionalNode(attributes, 'time')
   const clefs = new Map(previous.clefs)
+  const transpositions = new Map(previous.transpositions)
+  for (const node of toArray(attributes.transpose as XmlNode | XmlNode[] | undefined)) {
+    const chromatic = readOptionalInteger(node, 'chromatic')
+    if (chromatic === undefined || 'double' in node) {
+      throw new Error('MusicXML transpose: chromatic is required; doubled instruments are not supported.')
+    }
+    const transposition = {
+      chromatic,
+      diatonic: readOptionalInteger(node, 'diatonic'),
+      octaveChange: readOptionalInteger(node, 'octave-change')
+    }
+    const number = readOptionalInteger(node, '@_number')
+    if (number !== undefined) validateStaffNumber(number, staffCount)
+    for (let staff = 1; staff <= staffCount; staff += 1) {
+      if (number === undefined || number === staff) transpositions.set(staff, transposition)
+    }
+  }
 
   clefNodes.forEach((clefNode, index) => {
     const staffNumber =
@@ -1594,6 +1614,7 @@ function readPartMeasureState(
 
   return {
     clefs,
+    transpositions,
     divisions: readDivisions(attributes, previous.divisions),
     staffCount,
     keySignature: keyNode ? readKeySignature(keyNode) : previous.keySignature,
@@ -1928,7 +1949,7 @@ function collectUnsupportedNoteWarnings(
     })
 
   const ornaments = readOptionalNode(notations, 'ornaments')
-  const supportedOrnaments = new Set(['mordent', 'tremolo', 'trill', 'turn'])
+  const supportedOrnaments = new Set(['mordent', 'tremolo', 'trill', 'trill-mark', 'turn'])
 
   Object.keys(ornaments ?? {})
     .filter((key) => !key.startsWith('@_') && !supportedOrnaments.has(key))

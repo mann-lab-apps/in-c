@@ -21,6 +21,7 @@ describe('print layout planning', () => {
     })
 
     expect(resolvePrintLayoutPlan(score, 'auto')).toMatchObject({
+      engravingStyle: 'default',
       id: 'balanced',
       overflowedTarget: false,
       pageMarginMm: 8,
@@ -55,6 +56,7 @@ describe('print layout planning', () => {
     const plan = resolvePrintLayoutPlan(score, 'auto')
 
     expect(plan).toMatchObject({
+      engravingStyle: 'readable',
       id: 'balanced',
       pageCssSize: 'Letter landscape',
       pageMarginMm: 12,
@@ -70,6 +72,45 @@ describe('print layout planning', () => {
     expect(plan.renderWidth).toBeGreaterThan(900)
     expect(plan.pageHeight).toBeLessThan(plan.renderWidth)
     expect(plan.systemHeight).toBeGreaterThan(148)
+  })
+
+  it('layout.style-preset-contract maps compact part setup to denser spacing knobs', () => {
+    const defaultScore = createScore({
+      parts: [
+        {
+          id: 'part-1',
+          name: 'Part',
+          staves: [
+            {
+              id: 'staff-1',
+              measures: createMeasures(16)
+            }
+          ]
+        }
+      ]
+    })
+    const compactPartScore = createScore({
+      layout: {
+        pageSetup: {
+          pageSize: 'a4',
+          orientation: 'portrait',
+          pageMarginMm: 6,
+          staffSizePercent: 90,
+          systemSpacingPercent: 90
+        }
+      },
+      parts: defaultScore.parts
+    })
+    const defaultPlan = resolvePrintLayoutPlan(defaultScore, 'auto')
+    const compactPlan = resolvePrintLayoutPlan(compactPartScore, 'auto')
+
+    expect(compactPlan).toMatchObject({
+      engravingStyle: 'compact',
+      pageMarginMm: 6,
+      scale: 0.9
+    })
+    expect(compactPlan.renderWidth).toBeGreaterThan(defaultPlan.renderWidth)
+    expect(compactPlan.systemHeight).toBeLessThan(defaultPlan.systemHeight)
   })
 
   it('forces a strict target page count by scaling beyond the tightest candidate', () => {

@@ -28,6 +28,8 @@ import {
   Link2,
   Minus,
   Pause,
+  PanelLeft,
+  PanelRight,
   Play,
   Plus,
   RotateCcw,
@@ -147,6 +149,11 @@ import {
   timeSignaturePresets
 } from './editor/new-score'
 import { buildTimeSignatureCommand } from './editor/time-signature'
+import {
+  buildPartTranspositionCommand,
+  instrumentTranspositionPresets,
+  resolveInstrumentTranspositionId
+} from './editor/instrument-transposition'
 import {
   articulationTermOptions,
   breathMarkTermOptions,
@@ -300,8 +307,11 @@ interface StoredMusicXmlViewState {
   partId?: string
 }
 
+type PartPageSetupPreferences = Record<string, Required<ScorePageSetup>>
+
 interface AppOpenScoreOptions extends OpenScoreOptions {
   viewState?: StoredMusicXmlViewState
+  partPageSetupPreferences?: PartPageSetupPreferences
 }
 
 interface NewScoreDraft {
@@ -515,6 +525,9 @@ const shortcutReferenceSections = [
   }
 ] as const
 const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
+const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
+const partMixerStorageKey = 'chromatics.part-mixer.v1'
+const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -544,6 +557,8 @@ export const App = () => {
   const [scoreViewMode, setScoreViewMode] = useState<ScoreViewMode>('score')
   const [selectedScoreViewPartId, setSelectedScoreViewPartId] =
     useState<string>()
+  const [partPageSetupPreferences, setPartPageSetupPreferences] =
+    useState<PartPageSetupPreferences>({})
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
   const [pdfExporting, setPdfExporting] = useState(false)
@@ -551,7 +566,23 @@ export const App = () => {
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
-  const [partMixer, setPartMixer] = useState<PlaybackPartMixerMap>({})
+  const [partMixer, setPartMixer] =
+    useState<PlaybackPartMixerMap>(readStoredPartMixer)
+  const [dockVisibility, setDockVisibility] = useState(() => {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(dockVisibilityStorageKey) ?? '{}')
+      return { palette: value?.palette !== false, properties: value?.properties !== false }
+    } catch {
+      return { palette: true, properties: true }
+    }
+  })
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(dockVisibilityStorageKey, JSON.stringify(dockVisibility))
+    } catch {
+      // Workspace controls remain usable when browser storage is unavailable.
+    }
+  }, [dockVisibility])
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -562,6 +593,12 @@ export const App = () => {
   const [musicXmlReport, setMusicXmlReport] =
     useState<MusicXmlReportPanelState>()
   const [autosaveRevision, setAutosaveRevision] = useState(0)
+  const documentGeneration = useRef(0)
+  const currentScoreRef = useRef(score)
+  currentScoreRef.current = score
+  const saveInFlight = useRef(false)
+  const [savingMusicXml, setSavingMusicXml] = useState(false)
+  useEffect(() => () => { documentGeneration.current += 1 }, [])
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<AutosaveRecoverySnapshot>()
   const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
@@ -574,19 +611,20 @@ export const App = () => {
   const autosaveHasLoaded = useRef(false)
   const playback = useScorePlayback(score, partMixer)
   const scoreTempo = score.tempo?.bpm ?? DEFAULT_TEMPO_BPM
-  const pageSetup = useMemo(
-    () => normalizePrintPageSetup(score.layout?.pageSetup),
-    [score.layout?.pageSetup]
-  )
   const updatePartMixer = useCallback(
     (
       partId: string,
       update: (settings: PlaybackPartMixer) => PlaybackPartMixer
     ) => {
-      setPartMixer((currentMixer) => ({
-        ...currentMixer,
-        [partId]: update(resolvePartMixerSettings(currentMixer[partId]))
-      }))
+      setPartMixer((currentMixer) => {
+        const nextMixer = {
+          ...currentMixer,
+          [partId]: update(resolvePartMixerSettings(currentMixer[partId]))
+        }
+
+        writeStoredPartMixer(nextMixer)
+        return nextMixer
+      })
     },
     []
   )
@@ -724,6 +762,19 @@ export const App = () => {
   const livePartViewPart = score.parts.find(
     (part) => part.id === livePartViewPartId
   )
+  const pageSetup = useMemo(() => {
+    const partPageSetup =
+      scoreViewMode === 'part' && livePartViewPartId
+        ? partPageSetupPreferences[livePartViewPartId]
+        : undefined
+
+    return normalizePrintPageSetup(partPageSetup ?? score.layout?.pageSetup)
+  }, [
+    livePartViewPartId,
+    partPageSetupPreferences,
+    score.layout?.pageSetup,
+    scoreViewMode
+  ])
   const activeKeySignature =
     eventLocation?.measure.keySignature ??
     measureLocation?.measure.keySignature ??
@@ -1101,6 +1152,16 @@ export const App = () => {
     [activeStructurePart, executeCommand, score]
   )
 
+  const moveActivePart = useCallback((direction: -1 | 1) => {
+    const index = score.parts.findIndex((part) => part.id === activeStructurePart?.id)
+    const targetIndex = index + direction
+    if (index < 0 || targetIndex < 0 || targetIndex >= score.parts.length) return
+    const parts = [...score.parts]
+    const [part] = parts.splice(index, 1)
+    parts.splice(targetIndex, 0, part)
+    executeCommand(buildScorePartsReplaceCommand(score, parts))
+  }, [activeStructurePart, executeCommand, score])
+
   const addPartToScore = useCallback(() => {
     const partPreset = resolvePartPreset(selectedPartPresetId)
     const partId = createUniqueIdFromBase(
@@ -1116,7 +1177,8 @@ export const App = () => {
         score,
         partId,
         staffPreset.id,
-        staffPreset.clef
+        staffPreset.clef,
+        'transposition' in partPreset ? partPreset.transposition : undefined
       )
     )
     const nextPart = createPart({
@@ -1412,6 +1474,7 @@ export const App = () => {
     }
 
     playback.stop()
+    documentGeneration.current += 1
     setScore(recoverySnapshot.score)
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
@@ -1611,6 +1674,7 @@ export const App = () => {
     })
 
     playback.stop()
+    documentGeneration.current += 1
     setScore(nextScore)
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
@@ -2797,6 +2861,28 @@ export const App = () => {
         ...pageSetup,
         ...patch
       })
+
+      if (scoreViewMode === 'part' && livePartViewPartId) {
+        setPartPageSetupPreferences((currentPreferences) => {
+          const nextPreferences = {
+            ...currentPreferences,
+            [livePartViewPartId]: nextPageSetup
+          }
+          const filePath = currentMusicXmlFileRef.current?.filePath
+
+          if (filePath) {
+            writeStoredPartPageSetups(filePath, nextPreferences)
+          }
+
+          return nextPreferences
+        })
+        setFileStatus({
+          tone: 'neutral',
+          message: `${livePartViewPart?.name ?? '선택 파트'} 파트보 PDF 페이지 설정을 갱신했습니다.`
+        })
+        return
+      }
+
       const layout = {
         ...score.layout,
         pageSetup: nextPageSetup
@@ -2814,7 +2900,14 @@ export const App = () => {
         })
       }
     },
-    [executeCommand, pageSetup, score.layout]
+    [
+      executeCommand,
+      livePartViewPart?.name,
+      livePartViewPartId,
+      pageSetup,
+      score.layout,
+      scoreViewMode
+    ]
   )
 
   const applyPageSetupPreset = useCallback(
@@ -4051,6 +4144,7 @@ export const App = () => {
         options.viewState
       )
 
+      documentGeneration.current += 1
       setScore(nextScore)
       setAutosaveRevision((revision) =>
         options.markDirty === false ? 0 : revision + 1
@@ -4067,6 +4161,7 @@ export const App = () => {
       setSelectedScoreViewPartId(
         scoreViewState.mode === 'part' ? scoreViewState.partId : undefined
       )
+      setPartPageSetupPreferences(options.partPageSetupPreferences ?? {})
       setSelection(
         firstEvent
           ? {
@@ -4126,6 +4221,10 @@ export const App = () => {
         file.filePath,
         importedScore
       )
+      const partPageSetups = readStoredPartPageSetups(
+        file.filePath,
+        importedScore
+      )
 
       setMissingRecentFilePath(undefined)
       openScore(
@@ -4133,7 +4232,8 @@ export const App = () => {
         describeMusicXmlImportResult(file.fileName, report),
         {
           markDirty: false,
-          viewState
+          viewState,
+          partPageSetupPreferences: partPageSetups
         }
       )
       setMusicXmlReport(
@@ -4190,6 +4290,10 @@ export const App = () => {
           openedFile.filePath,
           importedScore
         )
+        const partPageSetups = readStoredPartPageSetups(
+          openedFile.filePath,
+          importedScore
+        )
 
         setMissingRecentFilePath(undefined)
         openScore(
@@ -4197,7 +4301,8 @@ export const App = () => {
           describeMusicXmlImportResult(openedFile.fileName, report, true),
           {
             markDirty: false,
-            viewState
+            viewState,
+            partPageSetupPreferences: partPageSetups
           }
         )
         setMusicXmlReport(
@@ -4266,6 +4371,12 @@ export const App = () => {
   }, [missingRecentFilePath])
 
   const saveMusicXml = useCallback(async () => {
+    if (saveInFlight.current) return
+    saveInFlight.current = true
+    setSavingMusicXml(true)
+    const savedGeneration = documentGeneration.current
+    const sameDocument = () => documentGeneration.current === savedGeneration
+    const sameSnapshot = () => sameDocument() && currentScoreRef.current === score
     try {
       if (noteInputState?.tupletInput) {
         setFileStatus({
@@ -4287,7 +4398,7 @@ export const App = () => {
         contents
       })
 
-      if (!result) {
+      if (!result || !sameDocument()) {
         return
       }
 
@@ -4303,18 +4414,30 @@ export const App = () => {
         result.filePath,
         createCurrentMusicXmlViewState(scoreViewMode, livePartViewPartId)
       )
+      writeStoredPartPageSetups(result.filePath, partPageSetupPreferences)
 
       try {
-        await window.inC.autosave.clear()
-        setAutosaveRevision(0)
+        if (sameSnapshot()) {
+          await window.inC.autosave.clear()
+          if (sameSnapshot()) {
+            setAutosaveRevision(0)
+          } else {
+            const latest = currentScoreRef.current
+            await window.inC.autosave.write({ score: latest, title: latest.title })
+          }
+        }
       } catch (autosaveError) {
+        if (!sameDocument()) return
         setFileStatus({
           tone: 'error',
           message: `악보는 저장했지만 자동저장 복구본을 정리하지 못했습니다. ${getErrorMessage(
             autosaveError
           )}`
         })
+        return
       }
+
+      if (!sameDocument()) return
 
       try {
         const recentFiles = await window.inC.recentMusicXml.add({
@@ -4322,8 +4445,10 @@ export const App = () => {
           fileName: result.fileName
         })
 
+        if (!sameDocument()) return
         setRecentMusicXmlFiles(recentFiles)
       } catch (recentError) {
+        if (!sameDocument()) return
         setFileStatus({
           tone: 'error',
           message: `악보는 저장했지만 최근 파일 목록을 갱신하지 못했습니다. ${getErrorMessage(
@@ -4335,18 +4460,30 @@ export const App = () => {
 
       setFileStatus({
         tone: 'neutral',
-        message: describeMusicXmlExportResult(result.fileName, report)
+        message: sameSnapshot()
+          ? describeMusicXmlExportResult(result.fileName, report)
+          : `${result.fileName}에 저장했습니다. 저장 중 추가한 변경사항은 아직 저장되지 않았습니다.`
       })
       setMusicXmlReport(
         createMusicXmlReportPanelState('export', result.fileName, report)
       )
     } catch (error) {
+      if (!sameDocument()) return
       setFileStatus({
         tone: 'error',
         message: getErrorMessage(error)
       })
+    } finally {
+      saveInFlight.current = false
+      setSavingMusicXml(false)
     }
-  }, [livePartViewPartId, noteInputState?.tupletInput, score, scoreViewMode])
+  }, [
+    livePartViewPartId,
+    noteInputState?.tupletInput,
+    partPageSetupPreferences,
+    score,
+    scoreViewMode
+  ])
 
   const savePdf = useCallback(async () => {
     if (!parsePdfTargetPages(pdfTargetPages)) {
@@ -4726,18 +4863,26 @@ export const App = () => {
     [noteInputState, score]
   )
   const displayScore = useMemo(
-    () =>
-      scoreViewMode === 'part' && livePartViewPartId
-        ? createLivePartViewScore(previewScore, livePartViewPartId)
-        : previewScore,
-    [livePartViewPartId, previewScore, scoreViewMode]
+    () => {
+      const baseScore =
+        scoreViewMode === 'part' && livePartViewPartId
+          ? createLivePartViewScore(previewScore, livePartViewPartId)
+          : previewScore
+
+      return applyPageSetupToScore(baseScore, pageSetup)
+    },
+    [livePartViewPartId, pageSetup, previewScore, scoreViewMode]
   )
   const printScore = useMemo(
-    () =>
-      scoreViewMode === 'part' && livePartViewPartId
-        ? createLivePartViewScore(score, livePartViewPartId)
-        : score,
-    [livePartViewPartId, score, scoreViewMode]
+    () => {
+      const baseScore =
+        scoreViewMode === 'part' && livePartViewPartId
+          ? createLivePartViewScore(score, livePartViewPartId)
+          : score
+
+      return applyPageSetupToScore(baseScore, pageSetup)
+    },
+    [livePartViewPartId, pageSetup, score, scoreViewMode]
   )
   const pdfTargetPageCount = parsePdfTargetPages(pdfTargetPages)
   const pdfTargetPagesInvalid = !pdfTargetPageCount
@@ -4760,6 +4905,8 @@ export const App = () => {
       ? eventLocation.event.pitch.alter ?? 0
       : undefined
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
+  const canEditMeasureNotation =
+    Boolean(activeMeasureId) && selection.type !== 'range'
   const measureObjectDeleteCommand =
     selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
       ? buildMeasureObjectDeleteCommand(
@@ -5066,6 +5213,24 @@ export const App = () => {
         className="editor-context-strip"
         aria-label="현재 작업 컨텍스트"
       >
+        <button
+          aria-label="팔레트 표시"
+          aria-pressed={dockVisibility.palette}
+          title="팔레트 표시"
+          type="button"
+          onClick={() => setDockVisibility((value) => ({ ...value, palette: !value.palette }))}
+        >
+          <PanelLeft aria-hidden="true" size={18} />
+        </button>
+        <button
+          aria-label="속성 표시"
+          aria-pressed={dockVisibility.properties}
+          title="속성 표시"
+          type="button"
+          onClick={() => setDockVisibility((value) => ({ ...value, properties: !value.properties }))}
+        >
+          <PanelRight aria-hidden="true" size={18} />
+        </button>
         <div>
           <span>작업</span>
           <strong>{activeToolbarCategoryLabel}</strong>
@@ -5418,7 +5583,13 @@ export const App = () => {
         hidden={toolbarCategory !== 'notation'}
       >
         {activeMeasureId ? (
-          <section className="inspector-properties" aria-label="마디 표기">
+          <section
+            className="inspector-properties"
+            aria-label="마디 표기"
+            data-applicability={
+              canEditMeasureNotation ? 'active-measure' : 'range-disabled'
+            }
+          >
             <h3>마디 표기</h3>
             <div className="inspector-properties__grid">
               <label>
@@ -5426,6 +5597,7 @@ export const App = () => {
                 <input
                   aria-label={koreanMusicTerms.rehearsalMark}
                   defaultValue={activeMeasureRehearsalMark?.text ?? ''}
+                  disabled={!canEditMeasureNotation}
                   key={`${activeMeasureId}-${
                     activeMeasureRehearsalMark?.text ?? ''
                   }`}
@@ -5452,6 +5624,7 @@ export const App = () => {
                 <input
                   aria-label={koreanMusicTerms.staffText}
                   defaultValue={activeMeasureStaffText?.text ?? ''}
+                  disabled={!canEditMeasureNotation}
                   key={`${activeMeasureId}-${
                     activeMeasureStaffText?.text ?? ''
                   }-staff-text`}
@@ -5478,6 +5651,7 @@ export const App = () => {
                 <input
                   aria-label="시스템 텍스트"
                   defaultValue={activeMeasureSystemText?.text ?? ''}
+                  disabled={!canEditMeasureNotation}
                   key={`${activeMeasureId}-${
                     activeMeasureSystemText?.text ?? ''
                   }-system-text`}
@@ -5504,6 +5678,7 @@ export const App = () => {
                 <input
                   aria-label="표현 텍스트"
                   defaultValue={activeExpressionText?.text ?? ''}
+                  disabled={!canEditMeasureNotation}
                   key={`${activeMeasureId}-${activeTick}-${
                     activeExpressionText?.text ?? ''
                   }-expression-text`}
@@ -5529,6 +5704,7 @@ export const App = () => {
                 <span>{koreanMusicTerms.dynamics}</span>
                 <select
                   aria-label={koreanMusicTerms.dynamics}
+                  disabled={!canEditMeasureNotation}
                   onChange={(event) => updateActiveDynamic(event.target.value)}
                   value={activeMeasureDynamic?.value ?? ''}
                 >
@@ -6008,9 +6184,46 @@ export const App = () => {
               </select>
             </label>
 
+            <label>
+              <span>파트 이조</span>
+              <select
+                aria-label="현재 파트 이조"
+                disabled={!activeStructurePart}
+                value={(() => {
+                  const ids = new Set(activeStructurePart?.staves.flatMap((staff) =>
+                    staff.measures.map((measure) => resolveInstrumentTranspositionId(measure.transposition))))
+                  return ids.size === 1 ? [...ids][0] : 'custom'
+                })()}
+                onChange={(event) => {
+                  if (!activeStructurePart) return
+                  const command = buildPartTranspositionCommand(score, activeStructurePart.id, event.target.value)
+                  if (command) executeCommand(command)
+                }}
+              >
+                <option disabled value="custom">사용자 지정 / 혼합</option>
+                {instrumentTranspositionPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>{preset.label}</option>
+                ))}
+              </select>
+            </label>
+
             <button onClick={addPartToScore} type="button">
               파트 추가
             </button>
+            <button
+              aria-label="파트 위로 이동"
+              title="파트 위로 이동"
+              disabled={!activeStructurePart || score.parts[0].id === activeStructurePart.id}
+              onClick={() => moveActivePart(-1)}
+              type="button"
+            ><ArrowUp aria-hidden="true" size={18} /></button>
+            <button
+              aria-label="파트 아래로 이동"
+              title="파트 아래로 이동"
+              disabled={!activeStructurePart || score.parts.at(-1)?.id === activeStructurePart.id}
+              onClick={() => moveActivePart(1)}
+              type="button"
+            ><ArrowDown aria-hidden="true" size={18} /></button>
             <button
               disabled={!activeStructurePart || score.parts.length <= 1}
               onClick={removeActivePart}
@@ -6197,12 +6410,14 @@ export const App = () => {
               </button>
               <button
                 aria-label="MusicXML로 저장"
+                aria-busy={savingMusicXml}
+                disabled={savingMusicXml}
                 onClick={saveMusicXml}
                 title="현재 악보를 MusicXML 파일로 저장"
                 type="button"
               >
                 <FileMusic aria-hidden="true" size={17} />
-                <span>저장</span>
+                <span>{savingMusicXml ? '저장 중' : '저장'}</span>
               </button>
               <button
                 aria-label="단축키 도움말"
@@ -6695,10 +6910,26 @@ export const App = () => {
             {score.parts.map((part) => {
               const settings = resolvePartMixerSettings(partMixer[part.id])
               const volumePercent = Math.round(settings.volume * 100)
+              const isActivePlaybackPart =
+                playback.activeEvent?.partId === part.id
 
               return (
-                <div className="part-mixer__row" key={part.id}>
+                <div
+                  className={`part-mixer__row${
+                    isActivePlaybackPart ? ' is-active' : ''
+                  }`}
+                  data-playback-active={
+                    isActivePlaybackPart ? 'true' : 'false'
+                  }
+                  key={part.id}
+                >
                   <span className="part-mixer__name">{part.name}</span>
+                  <span
+                    aria-label={`${part.name} 재생 상태`}
+                    className="part-mixer__activity"
+                  >
+                    {isActivePlaybackPart ? '재생 중' : '대기'}
+                  </span>
                   <label className="part-mixer__toggle">
                     <input
                       aria-label={`${part.name} 음소거`}
@@ -6777,8 +7008,8 @@ export const App = () => {
 
         <MusicXmlReportPanel report={musicXmlReport} />
 
-        <div className="docked-workspace" aria-label="도킹 작업 영역">
-          <aside className="docked-palette" aria-label="고정 팔레트">
+        <div className="docked-workspace" aria-label="도킹 작업 영역" data-palette={dockVisibility.palette} data-properties={dockVisibility.properties}>
+          <aside className="docked-palette" aria-label="고정 팔레트" hidden={!dockVisibility.palette}>
             <h3>팔레트</h3>
             <div className="docked-palette__actions">
               {toolbarCategories.map((category) => (
@@ -6976,7 +7207,7 @@ export const App = () => {
         </div>
           </div>
 
-          <aside className="docked-properties" aria-label="속성 도크">
+          <aside className="docked-properties" aria-label="속성 도크" hidden={!dockVisibility.properties}>
             <section
               aria-label="선택 요약"
               className="selection-properties"
@@ -6995,7 +7226,7 @@ export const App = () => {
                 <span>셈여림</span>
                 <select
                   aria-label="선택 요약 셈여림"
-                  disabled={!activeMeasureId}
+                  disabled={!canEditMeasureNotation}
                   onChange={(event) => updateActiveDynamic(event.target.value)}
                   value={activeMeasureDynamic?.value ?? ''}
                 >
@@ -7007,6 +7238,39 @@ export const App = () => {
                   ))}
                 </select>
               </label>
+              {[
+                { label: '코드', value: activeHarmony?.text, update: updateHarmonyText },
+                { label: '연습표', value: activeMeasureRehearsalMark?.text, update: updateActiveRehearsalMark },
+                { label: '보표 글자', value: activeMeasureStaffText?.text, update: updateActiveStaffText },
+                { label: '시스템 텍스트', value: activeMeasureSystemText?.text, update: updateActiveSystemText },
+                { label: '표현 텍스트', value: activeExpressionText?.text, update: updateActiveExpressionText }
+              ].map((property) => (
+                <label className="selection-properties__edit" key={property.label}>
+                  <span>{property.label}</span>
+                  <input
+                    aria-label={`선택 요약 ${property.label}`}
+                    key={`${activeMeasureId}-${activeTick}-${property.value ?? ''}`}
+                    defaultValue={property.value ?? ''}
+                    disabled={!canEditMeasureNotation}
+                    maxLength={120}
+                    onBlur={(event) => {
+                      if (canEditMeasureNotation && event.currentTarget.value.trim() !== (property.value ?? '')) {
+                        property.update(event.currentTarget.value)
+                      }
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.nativeEvent.isComposing) return
+                      if (event.key === 'Escape') {
+                        event.currentTarget.value = property.value ?? ''
+                        event.currentTarget.blur()
+                      } else if (event.key === 'Enter') {
+                        event.currentTarget.blur()
+                      }
+                    }}
+                    type="text"
+                  />
+                </label>
+              ))}
             </section>
           </aside>
         </div>
@@ -7756,7 +8020,8 @@ function createEmptyStaffFromScore(
   score: Score,
   partId: string,
   staffId: string,
-  clef: Clef
+  clef: Clef,
+  transposition?: Measure['transposition']
 ): Staff {
   const referenceMeasures =
     score.parts[0]?.staves[0]?.measures ?? [createMeasure()]
@@ -7770,7 +8035,8 @@ function createEmptyStaffFromScore(
         timing: measure.timing,
         timeSignature: measure.timeSignature,
         keySignature: measure.keySignature,
-        clef
+        clef,
+        transposition: transposition ?? score.parts.find((part) => part.id === partId)?.staves[0]?.measures[index]?.transposition
       })
     )
   })
@@ -8057,6 +8323,19 @@ function createLivePartViewScore(score: Score, partId: string): Score {
         eventIds.has(slur.startEventId) && eventIds.has(slur.endEventId)
     ),
     layout: filterLayoutForMeasureIds(score.layout, measureIds)
+  }
+}
+
+function applyPageSetupToScore(
+  score: Score,
+  pageSetup: Required<ScorePageSetup>
+): Score {
+  return {
+    ...score,
+    layout: {
+      ...score.layout,
+      pageSetup
+    }
   }
 }
 
@@ -9257,6 +9536,46 @@ function writeStoredMusicXmlViewState(
   }
 }
 
+function readStoredPartPageSetups(
+  filePath: string,
+  score: Score
+): PartPageSetupPreferences {
+  try {
+    const item = window.localStorage.getItem(partPageSetupStorageKey)
+    const stored = item ? JSON.parse(item) : undefined
+    const fileEntry =
+      stored &&
+      typeof stored === 'object' &&
+      !Array.isArray(stored) &&
+      filePath in stored
+        ? (stored as Record<string, unknown>)[filePath]
+        : undefined
+
+    return parseStoredPartPageSetups(fileEntry, score)
+  } catch {
+    return {}
+  }
+}
+
+function writeStoredPartPageSetups(
+  filePath: string,
+  preferences: PartPageSetupPreferences
+): void {
+  try {
+    const item = window.localStorage.getItem(partPageSetupStorageKey)
+    const stored = item ? JSON.parse(item) : undefined
+    const next =
+      stored && typeof stored === 'object' && !Array.isArray(stored)
+        ? { ...(stored as Record<string, unknown>) }
+        : {}
+
+    next[filePath] = preferences
+    window.localStorage.setItem(partPageSetupStorageKey, JSON.stringify(next))
+  } catch {
+    // Local part layout preferences must never block MusicXML saves.
+  }
+}
+
 function parseStoredMusicXmlViewState(
   value: unknown
 ): StoredMusicXmlViewState | undefined {
@@ -9276,6 +9595,69 @@ function parseStoredMusicXmlViewState(
   }
 
   return undefined
+}
+
+function parseStoredPartPageSetups(
+  value: unknown,
+  score: Score
+): PartPageSetupPreferences {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  const partIds = new Set(score.parts.map((part) => part.id))
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .filter(([partId]) => partIds.has(partId))
+      .map(([partId, setup]) => [partId, parseStoredPageSetup(setup)])
+      .filter((entry): entry is [string, Required<ScorePageSetup>] =>
+        Boolean(entry[1])
+      )
+  )
+}
+
+function parseStoredPageSetup(
+  value: unknown
+): Required<ScorePageSetup> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const setup = value as Partial<Record<keyof ScorePageSetup, unknown>>
+  const pageSize = setup.pageSize
+  const orientation = setup.orientation
+
+  if (
+    pageSize !== 'a4' &&
+    pageSize !== 'letter' &&
+    pageSize !== undefined
+  ) {
+    return undefined
+  }
+
+  if (
+    orientation !== 'portrait' &&
+    orientation !== 'landscape' &&
+    orientation !== undefined
+  ) {
+    return undefined
+  }
+
+  return normalizePrintPageSetup({
+    pageSize,
+    orientation,
+    pageMarginMm:
+      typeof setup.pageMarginMm === 'number' ? setup.pageMarginMm : undefined,
+    staffSizePercent:
+      typeof setup.staffSizePercent === 'number'
+        ? setup.staffSizePercent
+        : undefined,
+    systemSpacingPercent:
+      typeof setup.systemSpacingPercent === 'number'
+        ? setup.systemSpacingPercent
+        : undefined
+  })
 }
 
 function resolveStoredMusicXmlViewState(
@@ -9433,6 +9815,68 @@ function resolvePartMixerSettings(
     solo: settings?.solo ?? false,
     volume: Math.min(1.5, Math.max(0, settings?.volume ?? 1))
   }
+}
+
+function readStoredPartMixer(): PlaybackPartMixerMap {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  try {
+    const storedMixer = window.localStorage.getItem(partMixerStorageKey)
+
+    if (!storedMixer) {
+      return {}
+    }
+
+    return parseStoredPartMixer(JSON.parse(storedMixer))
+  } catch {
+    return {}
+  }
+}
+
+function writeStoredPartMixer(mixer: PlaybackPartMixerMap): void {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.localStorage.setItem(partMixerStorageKey, JSON.stringify(mixer))
+  } catch {
+    // Mixer persistence is a convenience; playback should still work.
+  }
+}
+
+function parseStoredPartMixer(value: unknown): PlaybackPartMixerMap {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>)
+      .map(([partId, settings]) => [
+        partId,
+        parseStoredPartMixerSettings(settings)
+      ])
+      .filter((entry): entry is [string, PlaybackPartMixer] => Boolean(entry[1]))
+  )
+}
+
+function parseStoredPartMixerSettings(
+  value: unknown
+): PlaybackPartMixer | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined
+  }
+
+  const settings = value as Record<string, unknown>
+  const volume = Number(settings.volume)
+
+  return resolvePartMixerSettings({
+    muted: settings.muted === true,
+    solo: settings.solo === true,
+    volume: Number.isFinite(volume) ? volume : 1
+  })
 }
 
 function parsePdfTargetPages(value: PdfTargetPagesValue): number | undefined {

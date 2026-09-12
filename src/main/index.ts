@@ -2,6 +2,7 @@ import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import { MusicXmlFileSession } from './musicxml-files'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
@@ -18,6 +19,7 @@ const getConcertPostersChannel = 'promotions:get-concert-posters'
 const productionConcertPostersApiUrl =
   'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
+const musicXmlFiles = new MusicXmlFileSession(backupExistingMusicXmlFile)
 
 interface AutosaveSnapshot {
   score: unknown
@@ -126,7 +128,7 @@ ipcMain.handle(openMusicXmlChannel, async () => {
     filters: [
       {
         name: 'MusicXML',
-        extensions: ['musicxml', 'xml']
+        extensions: ['musicxml', 'xml', 'mxl']
       }
     ]
   })
@@ -140,7 +142,7 @@ ipcMain.handle(openMusicXmlChannel, async () => {
   return {
     filePath,
     fileName: basename(filePath),
-    contents: await readFile(filePath, 'utf8')
+    contents: await musicXmlFiles.open(filePath)
   }
 })
 
@@ -155,7 +157,10 @@ ipcMain.handle(
     }
   ) => {
     if (input.filePath) {
-      assertSmokeDirectSavePath(input.filePath, 'musicxml')
+      if (isSmokeTest) {
+        assertSmokeDirectSavePath(input.filePath, input.filePath.endsWith('.mxl') ? 'mxl' : 'musicxml')
+        musicXmlFiles.authorizeSave(input.filePath)
+      }
       await writeMusicXmlFile(input.filePath, input.contents)
       return {
         filePath: input.filePath,
@@ -170,6 +175,10 @@ ipcMain.handle(
         {
           name: 'MusicXML',
           extensions: ['musicxml']
+        },
+        {
+          name: 'Compressed MusicXML',
+          extensions: ['mxl']
         }
       ]
     })
@@ -178,6 +187,7 @@ ipcMain.handle(
       return null
     }
 
+    musicXmlFiles.authorizeSave(result.filePath)
     await writeMusicXmlFile(result.filePath, input.contents)
     return {
       filePath: result.filePath,
@@ -353,7 +363,7 @@ ipcMain.handle(
       return {
         filePath: input.filePath,
         fileName,
-        contents: await readFile(input.filePath, 'utf8')
+        contents: await musicXmlFiles.open(input.filePath)
       }
     } catch (error) {
       if (isMissingFileError(error)) {
@@ -441,6 +451,7 @@ const createWindow = (): void => {
       app.getPath('temp'),
       `in-c-packaged-smoke-${process.pid}.pdf`
     )
+    const smokeMxlPath = join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.mxl`)
     const smokeMidiPath = join(
       app.getPath('temp'),
       `in-c-packaged-smoke-${process.pid}.mid`
@@ -484,6 +495,7 @@ const createWindow = (): void => {
       const result = await mainWindow.webContents.executeJavaScript(`
         (async () => {
           const smokeMusicXmlPath = ${JSON.stringify(smokeMusicXmlPath)}
+          const smokeMxlPath = ${JSON.stringify(smokeMxlPath)}
           const smokePdfPath = ${JSON.stringify(smokePdfPath)}
           const smokeMidiPath = ${JSON.stringify(smokeMidiPath)}
           const smokeMusicXmlContents = ${JSON.stringify(smokeMusicXmlContents)}
@@ -583,6 +595,15 @@ const createWindow = (): void => {
           const openedMusicXml = await window.inC.recentMusicXml.open({
             filePath: smokeMusicXmlPath
           })
+          await window.inC.musicXml.save({
+            filePath: smokeMxlPath, suggestedName: 'packaged-smoke.mxl', contents: smokeMusicXmlContents
+          })
+          const openedMxl = await window.inC.recentMusicXml.open({ filePath: smokeMxlPath })
+          await window.inC.musicXml.save({
+            filePath: smokeMxlPath, suggestedName: 'packaged-smoke.mxl',
+            contents: smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Resave')
+          })
+          const resavedMxl = await window.inC.recentMusicXml.open({ filePath: smokeMxlPath })
           const savedPdf = await window.inC.pdf.save({
             filePath: smokePdfPath,
             suggestedName: 'packaged-smoke.pdf'
@@ -697,6 +718,8 @@ const createWindow = (): void => {
             hasRecentOpenRoundTrip:
               recentFiles.some((file) => file.filePath === smokeMusicXmlPath) &&
               openedMusicXml?.contents === smokeMusicXmlContents,
+            hasMxlRoundTrip: openedMxl?.contents === smokeMusicXmlContents &&
+              resavedMxl?.contents === smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Resave'),
             hasPdfFileWrite:
               savedPdf?.filePath === smokePdfPath &&
               savedPdf?.fileName === 'in-c-packaged-smoke-${process.pid}.pdf',
@@ -740,6 +763,7 @@ const createWindow = (): void => {
         !result.hasNotationSvg ||
         !result.hasMusicXmlFileWrite ||
         !result.hasRecentOpenRoundTrip ||
+        !result.hasMxlRoundTrip ||
         !result.hasPdfFileWrite ||
         !result.hasPartViewPdfTarget ||
         !result.hasPartViewPdfFileWrite ||
@@ -756,6 +780,8 @@ const createWindow = (): void => {
       }
 
       const savedPdf = await readFile(smokePdfPath)
+      const savedMxl = await readFile(smokeMxlPath)
+      if (savedMxl.readUInt32LE(0) !== 0x04034b50) throw new Error('Packaged MXL archive is not ZIP.')
       const savedMidi = await readFile(smokeMidiPath)
 
       validateSmokePdf(savedPdf)
@@ -769,6 +795,7 @@ const createWindow = (): void => {
       app.exit(1)
     } finally {
       await rm(smokeMusicXmlPath, { force: true })
+      await rm(smokeMxlPath, { force: true })
       await rm(smokePdfPath, { force: true })
       await rm(smokeMidiPath, { force: true })
     }
@@ -823,8 +850,7 @@ async function writeMusicXmlFile(
   filePath: string,
   contents: string
 ): Promise<void> {
-  await backupExistingMusicXmlFile(filePath)
-  await writeFile(filePath, contents, 'utf8')
+  await musicXmlFiles.save(filePath, contents)
 }
 
 async function backupExistingMusicXmlFile(

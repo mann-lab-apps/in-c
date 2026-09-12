@@ -7,14 +7,23 @@ const fs = require('node:fs')
 const path = require('node:path')
 
 async function loadFixture(window, fixture = 'single-voice-mvp') {
-  await window.loadFile(
-    path.resolve(__dirname, '../out/renderer/index.html'),
-    {
-      query: {
-        fixture
-      }
+  if (process.env.CHROMATICS_QA_URL) {
+    const url = new URL(process.env.CHROMATICS_QA_URL)
+    if (!['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)) {
+      throw new Error('CHROMATICS_QA_URL must point to a local development server.')
     }
-  )
+    url.searchParams.set('fixture', fixture)
+    await window.loadURL(url.toString())
+  } else {
+    await window.loadFile(
+      path.resolve(__dirname, '../out/renderer/index.html'),
+      {
+        query: {
+          fixture
+        }
+      }
+    )
+  }
   await new Promise((resolve) => setTimeout(resolve, 800))
 }
 
@@ -1761,39 +1770,697 @@ async function verifyFileActions(window) {
 
   const result = await window.webContents.executeJavaScript(`
     (() => {
-      const buttons = [
-        ...document.querySelectorAll('.file-actions button')
+      const readButtons = (selector) => [
+        ...document.querySelectorAll(selector)
       ].map((button) => ({
         ariaLabel: button.getAttribute('aria-label'),
         label: button.querySelector('span')?.textContent?.trim()
       }))
+      const exportTab = [...document.querySelectorAll('.toolbar-tabs button')]
+        .find((button) => button.textContent.trim() === '내보내기')
+      const fileButtons = readButtons('.file-actions button')
+      const selectionFilter = document.querySelector('.selection-filter-control select')
+
+      exportTab?.click()
+      const exportButtons = readButtons('.export-actions button')
 
       return {
-        ariaLabel: document
+        fileAriaLabel: document
           .querySelector('.file-actions')
           ?.getAttribute('aria-label'),
-        buttons,
-        labels: buttons.map((button) => button.label)
+        exportAriaLabel: document
+          .querySelector('.export-actions')
+          ?.getAttribute('aria-label'),
+        fileButtons,
+        exportButtons,
+        fileLabels: fileButtons.map((button) => button.label),
+        exportLabels: exportButtons.map((button) => button.label),
+        selectionFilter: selectionFilter
+          ? {
+              ariaLabel: selectionFilter.getAttribute('aria-label'),
+              value: selectionFilter.value,
+              options: [...selectionFilter.querySelectorAll('option')].map(
+                (option) => option.textContent.trim()
+              )
+            }
+          : null
       }
     })()
   `)
-  const buttonLabels = result.buttons.map((button) => button.label)
-  const buttonAriaLabels = result.buttons.map((button) => button.ariaLabel)
+  const fileButtonLabels = result.fileButtons.map((button) => button.label)
+  const fileButtonAriaLabels = result.fileButtons.map((button) => button.ariaLabel)
+  const exportButtonLabels = result.exportButtons.map((button) => button.label)
+  const exportButtonAriaLabels = result.exportButtons.map((button) => button.ariaLabel)
 
   if (
-    result.ariaLabel !== '파일 작업' ||
-    buttonLabels.includes('Export') ||
-    buttonLabels.includes('저장하기') ||
-    !buttonLabels.includes('새 악보') ||
-    !buttonLabels.includes('MusicXML 가져오기') ||
-    !buttonLabels.includes('저장') ||
-    !buttonLabels.includes('PDF 변환') ||
-    !buttonAriaLabels.includes('새 악보 만들기') ||
-    !buttonAriaLabels.includes('MusicXML 가져오기') ||
-    !buttonAriaLabels.includes('MusicXML로 저장') ||
-    !buttonAriaLabels.includes('PDF 변환')
+    result.fileAriaLabel !== '파일 작업' ||
+    result.exportAriaLabel !== '내보내기 작업' ||
+    fileButtonLabels.includes('Export') ||
+    fileButtonLabels.includes('저장하기') ||
+    fileButtonLabels.includes('PDF 변환') ||
+    fileButtonLabels.includes('MIDI') ||
+    !fileButtonLabels.includes('새 악보') ||
+    !fileButtonLabels.includes('MusicXML 가져오기') ||
+    !fileButtonLabels.includes('저장') ||
+    !fileButtonAriaLabels.includes('새 악보 만들기') ||
+    !fileButtonAriaLabels.includes('MusicXML 가져오기') ||
+    !fileButtonAriaLabels.includes('MusicXML로 저장') ||
+    !result.selectionFilter ||
+    result.selectionFilter.ariaLabel !== '선택 필터' ||
+    result.selectionFilter.value !== 'notes-and-rests' ||
+    result.selectionFilter.options.join('|') !== '전체|음표만|쉼표만' ||
+    !exportButtonLabels.includes('PDF 변환') ||
+    !exportButtonLabels.includes('MIDI') ||
+    !exportButtonAriaLabels.includes('PDF 변환') ||
+    !exportButtonAriaLabels.includes('MIDI 내보내기')
   ) {
     throw new Error(`파일 작업 verification failed: ${JSON.stringify(result)}`)
+  }
+
+  return result
+}
+
+async function verifyCompactToolbarModes(window) {
+  await loadFixture(window, 'release-test')
+  window.setSize(960, 1000)
+  await new Promise((resolve) => setTimeout(resolve, 600))
+
+  const result = await window.webContents.executeJavaScript(`
+    (async () => {
+      const wait = () => new Promise((resolve) => setTimeout(resolve, 80))
+      const modeLabels = [
+        '파일',
+        '악보',
+        '음표',
+        '표기 객체',
+        '가사',
+        '내보내기',
+        '재생'
+      ]
+      const readVisibleText = (selector) =>
+        [...document.querySelectorAll(selector)]
+          .filter((element) => {
+            const style = window.getComputedStyle(element)
+            const box = element.getBoundingClientRect()
+            return (
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              box.width > 0 &&
+              box.height > 0
+            )
+          })
+          .map((element) => ({
+            ariaLabel: element.getAttribute('aria-label'),
+            className:
+              typeof element.className === 'string'
+                ? element.className
+                : element.getAttribute('class'),
+            text: element.textContent.trim()
+          }))
+      const readVisibleAriaLabels = () =>
+        [
+          ...document.querySelectorAll(
+            'button, input, select, textarea, output, div[aria-label], section[aria-label], nav[aria-label], header[aria-label]'
+          )
+        ]
+          .filter((element) => {
+            const style = window.getComputedStyle(element)
+            const box = element.getBoundingClientRect()
+            return (
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              box.width > 0 &&
+              box.height > 0
+            )
+          })
+          .map((element) => element.getAttribute('aria-label'))
+          .filter(Boolean)
+      const readOverflow = () => {
+        const toolbar = document.querySelector('.toolbar')
+        const tabs = document.querySelector('.toolbar-tabs')
+        const context = document.querySelector('.editor-context-strip')
+        const visibleControls = [
+          ...document.querySelectorAll(
+            '.toolbar button, .toolbar select, .toolbar input, .toolbar output, .toolbar label'
+          )
+        ].filter((element) => {
+          const style = window.getComputedStyle(element)
+          const box = element.getBoundingClientRect()
+          return (
+            style.display !== 'none' &&
+            style.visibility !== 'hidden' &&
+            box.width > 0 &&
+            box.height > 0
+          )
+        })
+        const textOverflow = visibleControls
+          .map((element) => {
+            const box = element.getBoundingClientRect()
+            return {
+              ariaLabel: element.getAttribute('aria-label'),
+              className:
+                typeof element.className === 'string'
+                  ? element.className
+                  : element.getAttribute('class'),
+              tagName: element.tagName,
+              text: element.textContent.trim(),
+              clientWidth: element.clientWidth,
+              scrollWidth: element.scrollWidth,
+              box: {
+                left: box.left,
+                right: box.right,
+                width: box.width
+              }
+            }
+          })
+          .filter(
+            (entry) =>
+              entry.text &&
+              entry.scrollWidth > entry.clientWidth + 1 &&
+              entry.box.width > 0
+          )
+
+        return {
+          documentOverflow:
+            document.documentElement.scrollWidth > window.innerWidth + 1,
+          toolbarOverflow:
+            toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : false,
+          tabsOverflow:
+            tabs ? tabs.scrollWidth > tabs.clientWidth + 1 : false,
+          contextOverflow:
+            context ? context.scrollWidth > context.clientWidth + 1 : false,
+          textOverflow
+        }
+      }
+      const modes = []
+
+      for (const label of modeLabels) {
+        const tab = [...document.querySelectorAll('.toolbar-tabs button')]
+          .find((button) => button.textContent.trim() === label)
+
+        if (!tab) {
+          modes.push({ label, missing: true })
+          continue
+        }
+
+        tab.click()
+        await wait()
+
+        modes.push({
+          label,
+          active:
+            document
+              .querySelector('.toolbar-tabs button[aria-pressed="true"]')
+              ?.textContent.trim(),
+          visibleAriaLabels: readVisibleAriaLabels(),
+          buttons: readVisibleText('.toolbar button'),
+          controls: readVisibleText('.toolbar input, .toolbar select, .toolbar output'),
+          overflow: readOverflow()
+        })
+      }
+
+      return {
+        modeLabels,
+        modes,
+        width: window.innerWidth
+      }
+    })()
+  `)
+
+  const byLabel = new Map(result.modes.map((mode) => [mode.label, mode]))
+  const file = byLabel.get('파일')
+  const note = byLabel.get('음표')
+  const notation = byLabel.get('표기 객체')
+  const lyrics = byLabel.get('가사')
+  const exportMode = byLabel.get('내보내기')
+  const playback = byLabel.get('재생')
+  const visibleButtonLabels = (mode) => mode?.buttons.map((button) => button.text) ?? []
+  const visibleAriaLabels = (mode) => mode?.visibleAriaLabels ?? []
+  const modeFailures = result.modes.filter(
+    (mode) =>
+      mode.missing ||
+      mode.active !== mode.label ||
+      mode.overflow.documentOverflow ||
+      mode.overflow.contextOverflow ||
+      mode.overflow.textOverflow.length > 0
+  )
+
+  if (
+    result.width !== 960 ||
+    modeFailures.length > 0 ||
+    visibleButtonLabels(file).includes('PDF 변환') ||
+    visibleButtonLabels(file).includes('MIDI') ||
+    visibleAriaLabels(note).includes('코드 심벌') ||
+    visibleAriaLabels(notation).includes('코드 심벌') ||
+    !visibleAriaLabels(lyrics).includes('코드 심벌') ||
+    !visibleAriaLabels(notation).includes('마디 표기') ||
+    !visibleButtonLabels(exportMode).includes('PDF 변환') ||
+    !visibleButtonLabels(exportMode).includes('MIDI') ||
+    !playback ||
+    !visibleAriaLabels(playback).includes('재생 컨트롤')
+  ) {
+    throw new Error(
+      `Compact toolbar mode verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
+async function verifyCommercialHeadlessViewports(window) {
+  await loadFixture(window, 'release-test')
+
+  const viewports = [
+    { name: 'compact-short', width: 960, height: 720 },
+    { name: 'compact-tall', width: 960, height: 1000 },
+    { name: 'desktop-short', width: 1400, height: 760 }
+  ]
+  const result = []
+
+  for (const viewport of viewports) {
+    window.setSize(viewport.width, viewport.height)
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    result.push(
+      await window.webContents.executeJavaScript(`
+        (async () => {
+          const wait = () => new Promise((resolve) => setTimeout(resolve, 70))
+          const modeLabels = [
+            '파일',
+            '악보',
+            '음표',
+            '표기 객체',
+            '가사',
+            '내보내기',
+            '재생'
+          ]
+          const isVisible = (element) => {
+            const style = window.getComputedStyle(element)
+            const box = element.getBoundingClientRect()
+            return (
+              style.display !== 'none' &&
+              style.visibility !== 'hidden' &&
+              box.width > 0 &&
+              box.height > 0
+            )
+          }
+          const readMode = (label) => {
+            const toolbar = document.querySelector('.toolbar')
+            const context = document.querySelector('.editor-context-strip')
+            const page = document.querySelector('.score-page')
+            const pageBox = page?.getBoundingClientRect()
+            const controls = [
+              ...document.querySelectorAll(
+                '.toolbar button, .toolbar select, .toolbar input, .toolbar output, .toolbar label'
+              )
+            ].filter(isVisible)
+            const textOverflow = controls
+              .map((element) => ({
+                ariaLabel: element.getAttribute('aria-label'),
+                tagName: element.tagName,
+                text: element.textContent.trim(),
+                clientWidth: element.clientWidth,
+                scrollWidth: element.scrollWidth
+              }))
+              .filter(
+                (entry) =>
+                  entry.text &&
+                  entry.scrollWidth > entry.clientWidth + 1
+              )
+            const ariaLabels = [
+              ...document.querySelectorAll(
+                'button, input, select, textarea, output, div[aria-label], section[aria-label], nav[aria-label], header[aria-label]'
+              )
+            ]
+              .filter(isVisible)
+              .map((element) => element.getAttribute('aria-label'))
+              .filter(Boolean)
+
+            return {
+              label,
+              active:
+                document
+                  .querySelector('.toolbar-tabs button[aria-pressed="true"]')
+                  ?.textContent.trim(),
+              ariaLabels,
+              documentOverflow:
+                document.documentElement.scrollWidth > window.innerWidth + 1,
+              toolbarOverflow:
+                toolbar ? toolbar.scrollWidth > toolbar.clientWidth + 1 : false,
+              contextOverflow:
+                context ? context.scrollWidth > context.clientWidth + 1 : false,
+              textOverflow,
+              pageVisible:
+                Boolean(pageBox) &&
+                pageBox.bottom > 0 &&
+                pageBox.top < window.innerHeight
+            }
+          }
+          const modes = []
+
+          for (const label of modeLabels) {
+            const tab = [...document.querySelectorAll('.toolbar-tabs button')]
+              .find((button) => button.textContent.trim() === label)
+
+            if (!tab) {
+              modes.push({ label, missing: true })
+              continue
+            }
+
+            tab.click()
+            await wait()
+            modes.push(readMode(label))
+          }
+
+          return {
+            height: window.innerHeight,
+            modes,
+            name: ${JSON.stringify(viewport.name)},
+            width: window.innerWidth
+          }
+        })()
+      `)
+    )
+  }
+
+  const failures = result.flatMap((viewport) =>
+    viewport.modes
+      .filter(
+        (mode) =>
+          mode.missing ||
+          mode.active !== mode.label ||
+          mode.documentOverflow ||
+          mode.contextOverflow ||
+          mode.textOverflow.length > 0 ||
+          !mode.pageVisible
+      )
+      .map((mode) => ({
+        viewport: viewport.name,
+        mode
+      }))
+  )
+  const desktop = result.find((viewport) => viewport.name === 'desktop-short')
+  const desktopFile = desktop?.modes.find((mode) => mode.label === '파일')
+  const desktopExport = desktop?.modes.find((mode) => mode.label === '내보내기')
+
+  if (
+    failures.length > 0 ||
+    desktopFile?.ariaLabels.includes('PDF 변환') ||
+    desktopFile?.ariaLabels.includes('MIDI 내보내기') ||
+    !desktopExport?.ariaLabels.includes('PDF 변환') ||
+    !desktopExport?.ariaLabels.includes('MIDI 내보내기')
+  ) {
+    throw new Error(
+      `Commercial headless viewport verification failed: ${JSON.stringify({
+        failures,
+        result
+      })}`
+    )
+  }
+
+  return result
+}
+
+async function verifyPropertiesDockEditing(window) {
+  await loadFixture(window, 'release-test')
+  const captures = []
+  for (const width of [1400, 960]) {
+    window.setSize(width, 900)
+    await new Promise((resolve) => setTimeout(resolve, 250))
+    const result = await window.webContents.executeJavaScript(`
+      (async () => {
+        const wait = () => new Promise((resolve) => setTimeout(resolve, 100))
+        document.querySelector('.notation-event[data-event-id="m1-d4"]')
+          ?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+        await wait()
+        for (const [label, value] of [['선택 요약 코드', 'Dm7'], ['선택 요약 보표 글자', 'cantabile']]) {
+          const input = document.querySelector('input[aria-label="' + label + '"]')
+          if (!input || input.disabled) throw new Error('Missing editable property: ' + label)
+          input.focus()
+          Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, value)
+          input.dispatchEvent(new Event('input', { bubbles: true }))
+          input.blur()
+          input.dispatchEvent(new FocusEvent('focusout', { bubbles: true }))
+          await wait()
+        }
+        const dock = document.querySelector('.docked-properties')
+        const box = dock.getBoundingClientRect()
+        const preview = document.querySelector('.notation-preview')
+        const tempo = preview.querySelector('.notation-tempo-marking').getBoundingClientRect()
+        const rehearsal = preview.querySelector('.notation-rehearsal-mark').getBoundingClientRect()
+        const rehearsalFrame = preview.querySelector('.notation-rehearsal-mark rect').getBoundingClientRect()
+        const harmony = preview.querySelector('.notation-harmony-mark').getBoundingClientRect()
+        const beforeWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
+        document.querySelector('button[aria-label="팔레트 표시"]').click()
+        document.querySelector('button[aria-label="속성 표시"]').click()
+        await wait()
+        const expandedWidth = document.querySelector('.score-canvas').getBoundingClientRect().width
+        const panelsHidden = ['.docked-palette', '.docked-properties'].every((selector) => getComputedStyle(document.querySelector(selector)).display === 'none')
+        document.querySelector('button[aria-label="팔레트 표시"]').click()
+        document.querySelector('button[aria-label="속성 표시"]').click()
+        await wait()
+        return {
+          panelsHidden,
+          canvasExpands: expandedWidth > beforeWidth,
+          chord: document.querySelector('input[aria-label="선택 요약 코드"]').value,
+          staffText: document.querySelector('input[aria-label="선택 요약 보표 글자"]').value,
+          renderedText: document.querySelector('.notation-preview').textContent,
+          overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
+          dockWidth: box.width,
+          scoreOverflow: preview.scrollWidth > preview.clientWidth + 1,
+          tempoRehearsalOverlap: tempo.left < rehearsal.right && tempo.right > rehearsal.left && tempo.top < rehearsal.bottom && tempo.bottom > rehearsal.top,
+          rehearsalHarmonyOverlap: rehearsalFrame.left < harmony.right && rehearsalFrame.right > harmony.left && rehearsalFrame.top < harmony.bottom && rehearsalFrame.bottom > harmony.top,
+          inputOverflow: [...dock.querySelectorAll('input, select')].some((input) => input.getBoundingClientRect().right > box.right + 1)
+        }
+      })()
+    `)
+    if (result.chord !== 'Dm7' || result.staffText !== 'cantabile' ||
+        !result.renderedText.includes('cantabile') || !result.panelsHidden || !result.canvasExpands || result.overflow || result.inputOverflow || result.scoreOverflow || result.tempoRehearsalOverlap || result.rehearsalHarmonyOverlap) {
+      throw new Error(`Properties dock workflow failed: ${JSON.stringify(result)}`)
+    }
+    const screenshot = path.join(app.getPath('temp'), `chromatics-v1-properties-${width}.png`)
+    fs.writeFileSync(screenshot, (await window.webContents.capturePage()).toPNG())
+    captures.push({ width, screenshot, ...result, renderedText: undefined })
+  }
+  return captures
+}
+
+async function verifyPartViewHeadlessExportState(window) {
+  await loadFixture(window)
+  window.setSize(1400, 900)
+  await new Promise((resolve) => setTimeout(resolve, 500))
+
+  const result = await window.webContents.executeJavaScript(`
+    (async () => {
+      const wait = () => new Promise((resolve) => setTimeout(resolve, 120))
+      const setSelectValue = (select, value) => {
+        if (!select) {
+          throw new Error('Select control not found.')
+        }
+
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLSelectElement.prototype,
+          'value'
+        ).set
+        setter.call(select, value)
+        select.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      const clickToolbar = async (label) => {
+        const button = [...document.querySelectorAll('.toolbar-tabs button')]
+          .find((candidate) => candidate.textContent.trim() === label)
+
+        if (!button) {
+          throw new Error(\`Toolbar tab not found: \${label}\`)
+        }
+
+        button.click()
+        await wait()
+      }
+      const openNewScore = async () => {
+        document
+          .querySelector('button[aria-label="새 악보 만들기"]')
+          ?.click()
+        await wait()
+
+        setSelectValue(
+          [...document.querySelectorAll('.new-score-form label')]
+            .find((label) => label.textContent?.includes('악보 구성'))
+            ?.querySelector('select'),
+          'string-quartet'
+        )
+        document
+          .querySelector('form[aria-label="새 악보 만들기"]')
+          ?.dispatchEvent(
+            new SubmitEvent('submit', {
+              bubbles: true,
+              cancelable: true
+            })
+          )
+        await new Promise((resolve) => setTimeout(resolve, 350))
+      }
+
+      await openNewScore()
+      await clickToolbar('악보')
+      setSelectValue(
+        document.querySelector('select[aria-label="악보 보기"]'),
+        'part'
+      )
+      await wait()
+      setSelectValue(
+        document.querySelector('select[aria-label="파트보 선택"]'),
+        'viola'
+      )
+      await wait()
+      await clickToolbar('내보내기')
+      setSelectValue(
+        document.querySelector('select[aria-label="PDF 설정 프리셋"]'),
+        'compact-parts'
+      )
+      await wait()
+
+      const page = document.querySelector('.score-page')
+      const partTitle = document.querySelector('[aria-label="파트보 제목"]')
+      const partIds = [
+        ...new Set(
+          [...document.querySelectorAll('.notation-event')]
+            .map((event) => event.getAttribute('data-part-id'))
+            .filter(Boolean)
+        )
+      ]
+      const staffLabels = [
+        ...document.querySelectorAll('.notation-staff-label')
+      ].map((label) => ({
+        partId: label.getAttribute('data-part-id'),
+        staffId: label.getAttribute('data-staff-id'),
+        text: label.textContent?.trim()
+      }))
+
+      return {
+        exportButtons: [
+          ...document.querySelectorAll('.export-actions button')
+        ].map((button) => ({
+          ariaLabel: button.getAttribute('aria-label'),
+          title: button.getAttribute('title'),
+          text: button.textContent.trim()
+        })),
+        page: {
+          margin: page?.getAttribute('data-pdf-page-margin-mm'),
+          orientation: page?.getAttribute('data-pdf-page-orientation'),
+          partId: page?.getAttribute('data-part-id'),
+          size: page?.getAttribute('data-pdf-page-size'),
+          staffSize: page?.getAttribute('data-pdf-staff-size-percent'),
+          systemSpacing: page?.getAttribute(
+            'data-pdf-system-spacing-percent'
+          ),
+          viewMode: page?.getAttribute('data-view-mode')
+        },
+        partIds,
+        partTitle: {
+          partId: partTitle?.getAttribute('data-part-id'),
+          text: partTitle?.textContent?.trim()
+        },
+        staffLabels,
+        status: [...document.querySelectorAll('.editor-status span')]
+          .map((value) => value.textContent?.trim())
+          .at(-1),
+        toolbarActive:
+          document
+            .querySelector('.toolbar-tabs button[aria-pressed="true"]')
+            ?.textContent.trim()
+      }
+    })()
+  `)
+
+  const exportAriaLabels = result.exportButtons.map((button) => button.ariaLabel)
+
+  if (
+    result.toolbarActive !== '내보내기' ||
+    result.page.viewMode !== 'part' ||
+    result.page.partId !== 'viola' ||
+    result.page.margin !== '6' ||
+    result.page.staffSize !== '90' ||
+    result.page.systemSpacing !== '90' ||
+    result.partTitle.text !== 'Viola' ||
+    result.partTitle.partId !== 'viola' ||
+    result.partIds.join('|') !== 'viola' ||
+    !result.staffLabels.every((label) => label.partId === 'viola') ||
+    !exportAriaLabels.includes('PDF 변환') ||
+    !exportAriaLabels.includes('MIDI 내보내기')
+  ) {
+    throw new Error(
+      `Part view headless export state verification failed: ${JSON.stringify(result)}`
+    )
+  }
+
+  return result
+}
+
+async function verifyPlaybackMixerHeadlessState(window) {
+  await loadFixture(window)
+  window.setSize(1280, 900)
+  await new Promise((resolve) => setTimeout(resolve, 400))
+
+  const result = await window.webContents.executeJavaScript(`
+    (async () => {
+      const wait = () => new Promise((resolve) => setTimeout(resolve, 120))
+      const clickToolbar = async (label) => {
+        const button = [...document.querySelectorAll('.toolbar-tabs button')]
+          .find((candidate) => candidate.textContent.trim() === label)
+
+        if (!button) {
+          throw new Error(\`Toolbar tab not found: \${label}\`)
+        }
+
+        button.click()
+        await wait()
+      }
+
+      await clickToolbar('재생')
+
+      const volume = document.querySelector('input[aria-label="Melody 볼륨"]')
+      if (volume) {
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          'value'
+        ).set
+        setter.call(volume, '75')
+        volume.dispatchEvent(new Event('input', { bubbles: true }))
+        volume.dispatchEvent(new Event('change', { bubbles: true }))
+      }
+      document.querySelector('button[aria-label="재생"]')?.click()
+      await new Promise((resolve) => setTimeout(resolve, 600))
+
+      const activity = document.querySelector(
+        '[aria-label="Melody 재생 상태"]'
+      )
+      const row = activity?.closest('.part-mixer__row')
+
+      return {
+        activity: activity?.textContent?.trim(),
+        active: row?.getAttribute('data-playback-active'),
+        mixerStorage: JSON.parse(
+          window.localStorage.getItem('chromatics.part-mixer.v1') ?? '{}'
+        ),
+        toolbarActive:
+          document
+            .querySelector('.toolbar-tabs button[aria-pressed="true"]')
+            ?.textContent.trim(),
+        volumeText: row?.querySelector('.part-mixer__volume output')
+          ?.textContent?.trim()
+      }
+    })()
+  `)
+
+  if (
+    result.toolbarActive !== '재생' ||
+    result.volumeText !== '75%' ||
+    result.mixerStorage['part-1']?.volume !== 0.75 ||
+    !['재생 중', '대기'].includes(result.activity) ||
+    !['true', 'false'].includes(result.active)
+  ) {
+    throw new Error(
+      `Playback mixer headless state verification failed: ${JSON.stringify(result)}`
+    )
   }
 
   return result
@@ -2688,6 +3355,14 @@ app.whenReady().then(async () => {
   await loadFixture(window)
   const keyboard = await verifyKeyboardRouting(window)
   const fileActions = await verifyFileActions(window)
+  const compactToolbarModes = await verifyCompactToolbarModes(window)
+  const commercialHeadlessViewports =
+    await verifyCommercialHeadlessViewports(window)
+  const propertiesDockEditing = await verifyPropertiesDockEditing(window)
+  const partViewHeadlessExportState =
+    await verifyPartViewHeadlessExportState(window)
+  const playbackMixerHeadlessState =
+    await verifyPlaybackMixerHeadlessState(window)
   const newScore = await verifyNewScoreWizard(window)
   const grandStaffPreview = await verifyGrandStaffPreview(window)
   const keySignature = await verifyKeySignatureControl(window)
@@ -2734,6 +3409,11 @@ app.whenReady().then(async () => {
         beams,
         ties,
         fileActions,
+        compactToolbarModes,
+        commercialHeadlessViewports,
+        propertiesDockEditing,
+        partViewHeadlessExportState,
+        playbackMixerHeadlessState,
         newScore,
         grandStaffPreview,
         keySignature,

@@ -31,6 +31,55 @@ Sibelius를 secondary commercial reference로 유지하면서 남은 Commercial 
 
 ## Current Loop Notes
 
+### 2026-09-12 Final Local Reaudit
+
+Eleven previously unregistered local tasks below were implemented in this run.
+The queue is not a complete MuseScore feature inventory. Reauditing Required
+score setup/input/editing/parts/exchange/layout/playback against App, serializer,
+timeline, Electron DOM and package results did not reproduce another defect in
+the tested workflows after these fixes. A future failing score reopens the queue.
+
+- Automated: 491 unit/App tests; Electron built-app and live-local-server runs;
+  reviewed 960/1400 screenshots; visual snapshots; XML/MIDI fixtures; macOS unpacked
+  smoke, including compressed MXL resave; actual MuseScore 4.7.5 CLI MXL exchange.
+- Manual/external still required: the original GUI fixture, PDF, listening,
+  native-dialog, installer/Windows rows. They were not changed to Done.
+- Existing product boundaries: native project persistence is post-V1; MIDI hardware
+  input, pitch-first input, custom styles and advanced filters remain the matrix's
+  V1 Polish/research scope. No Required data-loss defect was moved to Post-V1.
+- Additional object-specific inspectors and freeform drag-docking are not claimed
+  complete by the new text/harmony editor or visibility toggles. Their expanded
+  V1-versus-parity scope needs an explicit product decision before RC signoff;
+  neither a drained queue nor this audit proves all functionality complete.
+
+### 2026-09-12 Save Lifecycle Findings
+
+| ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CV1-DOCK-VISIBILITY | 작업 공간 도크 표시 설정 | UI Information Architecture | Required UX matrix configurable workspace | 좁은 화면에서 팔레트/속성 영역을 작업 목적에 따라 조절할 수 없음 | App persistence/context + viewport toggle | 사람 기준 도킹 ergonomics | Done | 독립 표시 토글, local preference, 선택/표기 유지 App 회귀와 960/1400 canvas 확대 E2E 통과. Freeform drag-docking은 별도 범위 결정. |
+| CV1-TEMPO-ANNOTATION-COLLISION | 빠르기와 연습표 상단 충돌 | Layout / Engraving | release-test 960px screenshot; Required readable notation | 글로벌 빠르기와 첫 연습표가 겹치며 위치별 빠르기도 lane 계산에서 빠짐 | lane unit + Electron bounding-box regression | 실제 PDF human review | Done | header/positioned tempo lane과 rehearsal frame clearance 구현. Lane unit, visual baseline, 960/1400 Electron bbox 회귀 통과; human PDF review는 별도. |
+| CV1-RESAVE-PATH | 두 번째 저장이 smoke 전용 guard에 막힘 | Document Lifecycle | primary save/reopen Required | 실제 데스크탑에서 열린 파일 또는 첫 저장 후 덮어쓰기가 실패 | main 파일 세션 실제 disk I/O 테스트 | native dialog 최종 확인 | Done | 실제 disk I/O 테스트에서 plain/MXL 최초 저장, 덮어쓰기, 원본 backup, 재열기, 비허용 경로 거부 통과. Native dialog 확인은 별도. |
+| CV1-SAVE-ASYNC-STATE | 늦은 저장 응답이 새 편집/문서 상태를 지움 | Document Lifecycle | undo/recovery/save Required | 저장 중 편집이나 문서 교체 후 dirty/recovery와 현재 파일 경로가 틀어짐 | 지연 Promise 기반 App 회귀 | 실제 파일 dialog 최종 확인 | Done | App 지연 응답 테스트에서 중복 저장, 새 편집, 문서 전환 성공/실패, 복구본 정리 중 편집, 실패 후 재시도 통과. Native dialog 최종 확인은 별도. |
+| CV1-COMPACT-CANVAS | 960px에서 양쪽 도크 때문에 악보 가로 스크롤 발생 | UI Information Architecture | Required compact desktop; captured screenshot | 오른쪽 마디를 보기 위해 악보를 가로 스크롤해야 함 | viewport/screenshot/renderer bounds | 사람이 실제 작업 밀도 확인 | Done | 960px palette 상단 배치로 악보 폭 확대. 내부 scoreOverflow=false, 1400px 유지; screenshot 검토와 visual regression 통과. |
+| CV1-PART-ORDER | 기존 파트 순서 변경 UI 부재 | Parts / Part View | Required instrument ordering matrix | 악기를 뒤늦게 추가하면 총보 순서를 바로잡을 수 없음 | App reorder/undo/XML order | 출력 순서 수동 확인 | Done | App part-order 회귀로 파트 이동/undo/redo, 이조 설정, 원래 음표, MusicXML part-list 순서 보존 확인. 실제 출력 순서 수동 확인은 별도. |
+
+### 2026-09-12 Rediscovered Implementation Work
+
+| ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CV1-TRANSPOSE-INSTRUMENTS | Bb/Eb/F 기보음과 실음 | MusicXML Compatibility | Required matrix common transposing instruments; MusicXML transpose specification | 이조악기 파일의 재생음과 재저장 의미가 잘못됨 | 모델/parser/serializer/timeline/MIDI/App 검증 | 실제 외부 앱 청감은 별도 | Done | MS-TRANSPOSE-001 구현/검증 완료: written pitch 유지, transpose 상속/초기화, Bb/Eb/F/octave 실음 재생/MIDI, UI undo. 외부 앱 청감은 별도. |
+| CV1-FERMATA-SYNC | 다성부/앙상블 fermata 시간 동기화 | Playback / Mixer | 동시 성부 및 repeat 재생 | 다른 성부가 늦게 시작하거나 repeat 구간이 겹칠 수 있음 | timeline/tempo/repeat 회귀 | 실제 청감은 별도 | Done | MS-PLAYBACK-002: score-wide hold map으로 다성부/파트/반복/tempo 동기화 회귀 통과. 실제 청감은 별도. |
+| CV1-PROPERTIES-TEXT-HARMONY | 선택 객체 속성 편집 | UI Information Architecture | MuseScore Properties; Required UX matrix | 코드/텍스트 수정에 작업 mode 전환이 필요함 | App 입력/undo/context 회귀 | 화면 밀도 최종 수동 QA | Done | MS-PROPERTIES-002: harmony와 rehearsal/staff/system/expression text의 선택 문맥 편집/취소/undo/XML 검증. 실제 밀도 평가는 별도. |
+
+Each linked parity row records current state, gap, implementation slice and test
+strategy. `In progress` is a valid live queue state; a schema pass is not release
+signoff or evidence that unregistered Required gaps do not exist.
+
+| ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CV1-MXL-EXCHANGE | 압축 MusicXML 열기/저장/최근 파일 | MusicXML Compatibility | MS-EXCHANGE-001; W3C compressed MusicXML container | 외부 사보앱의 .mxl 파일을 바로 열 수 없음 | ZIP library와 container parser, bridge 파일 I/O 테스트 | 실제 file dialog/외부 앱 교환은 별도 | Done | container/disk tests, 실제 MuseScore 4.7.5 CLI 왕복, macOS packaged MXL save/reopen/resave 통과. Native dialog와 human visual은 별도. |
+| CV1-MXML-TRILL | 표준 trill-mark import/export | MusicXML Compatibility | MusicXML ornaments/trill-mark | 트릴이 사라지고 잘못된 unsupported warning 발생 | parser/serializer/재생 왕복 테스트 | 외부 앱 snapshot 별도 | Done | 표준 trill-mark import/export와 이조 trill 재생 검증 통과; 기존 trill alias 호환 입력 유지. |
+
 - 2026-09-11: 큐 파일과 `verify:chromatics-v1-work-queue` gate를 추가해 다음 실행이
   남은 blocker를 다시 수집하고 최소 5개 후보를 확인할 수 있게 한다.
 - 2026-09-11: MuseScore CLI app-export fixture는 자동 evidence로 인정하지만,

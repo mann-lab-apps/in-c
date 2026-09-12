@@ -1,5 +1,15 @@
 # 패키지 앱 운영체제별 smoke matrix
 
+## 2026-09-12 Automated Update
+
+`npm run package:dir` and `npm run verify:package` passed for macOS arm64 unpacked
+`in-C.app`. Smoke now saves an actual compressed MXL, reopens it, overwrites its
+title, reopens again, and checks the ZIP signature. Existing Cello part-only PDF
+metadata/structure, MusicXML recent reopen, MIDI write and autosave checks passed.
+The separate file-session tests verify authorized ordinary resave, backup failure
+preserving the original file and retry. Smoke direct paths bypass native dialogs;
+native file-dialog, DMG installation/signing and Windows rows remain **Not run**.
+
 macOS와 Windows용 V1 릴리즈 후보가 설치·실행·저장·열기의 기본 흐름을
 막지 않는지 빠르게 확인하는 수동 검증 기준이다. `smoke`는 주요 기능이 바로
 막히지 않는지만 확인하는 검증을 뜻한다. 확인하지 않은 항목은 `미실행`으로 남긴다.

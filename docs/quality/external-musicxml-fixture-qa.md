@@ -1,5 +1,15 @@
 # External MusicXML Fixture QA
 
+## 2026-09-12 MXL Reference Automation
+
+`RUN_MUSESCORE_MXL_QA=1 npm test -- src/musicxml/musescore-mxl.test.ts` passed using
+installed MuseScore4 4.7.5. The test builds a Chromatics MXL with Bb transposition,
+uses the actual MuseScore CLI to export XML, and verifies written pitches, durations,
+measure count and transpose on reopen. Default unit runs skip this opt-in test.
+Temporary artifacts are removed by the test; this is repeatable CLI evidence, not
+a newly collected GUI-authored fixture or a manual snapshot. Native-dialog MXL
+exchange, Finale/Dorico/Sibelius sources and human visual confirmation remain open.
+
 Chromatics Desktop V1 uses this checklist to keep MusicXML import/export
 compatibility visible before public release.
 

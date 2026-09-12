@@ -2700,7 +2700,7 @@ describe('MusicXML MVP', () => {
       parseMusicXml(exported).parts[0].staves[0].measures[0].voices[0].events[0]
 
     expect(exported).toContain('<grace slash="yes"/>')
-    expect(exported).toContain('<trill/>')
+    expect(exported).toContain('<trill-mark/>')
     expect(exported).toContain('<mordent/>')
     expect(exported).toContain('<turn/>')
     expect(event).toMatchObject({

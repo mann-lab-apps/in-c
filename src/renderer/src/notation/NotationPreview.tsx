@@ -55,6 +55,7 @@ import {
   HARMONY_MARK_Y_OFFSET,
   REHEARSAL_MARK_Y_OFFSET,
   resolveAnnotationVerticalExtension,
+  resolveAnnotationSystemTop,
   resolveHairpinSpanYOffset,
   resolveMeasureAnnotationLanes,
   resolveSlurSideForAnnotationLanes,
@@ -68,7 +69,11 @@ import {
   type RangeSelectionPoint
 } from './range-selection-bands'
 import { resolveMixedTupletOnsetShifts } from './tuplet-spacing'
-import { resolveNotationEventTone, sameVoiceLane } from './visual-state'
+import {
+  resolveNotationEventTone,
+  resolveSameStaffVoicePresentation,
+  sameVoiceLane
+} from './visual-state'
 
 interface NotationPreviewProps {
   score: Score
@@ -268,9 +273,11 @@ export function NotationPreview({
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
       systemHeight,
-      systemTop:
-        (printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP) +
-        annotationExtension.above
+      systemTop: resolveAnnotationSystemTop(
+        printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP,
+        annotationLanesByMeasureId.values(),
+        Boolean(score.tempo || score.rhythmFeel)
+      )
     })
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(effectiveRenderWidth, layout.height)
@@ -620,7 +627,8 @@ export function NotationPreview({
               }
 
               return note
-            })
+            }),
+            measure.voices.length > 1
           )
         )
         const tuplets = (voice.tuplets ?? []).map((group) => {
@@ -760,6 +768,14 @@ export function NotationPreview({
             svgElement.setAttribute('data-staff-id', eventAddress.staffId)
             svgElement.setAttribute('data-measure-id', eventAddress.measureId)
             svgElement.setAttribute('data-voice-id', eventAddress.voiceId)
+          }
+          svgElement.setAttribute(
+            'data-voice-lane',
+            String(note.getAttribute('data-voice-lane') ?? 'neutral')
+          )
+          const stemDirection = note.getAttribute('data-voice-stem-direction')
+          if (stemDirection) {
+            svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
           }
 
           if (!isPreviewEventId(eventId)) {
@@ -1295,7 +1311,8 @@ function createMeasureAnnotationLaneMap(
             lyricLineCount: countMeasureLyricLines(measure),
             lyricScale,
             systemTextCount:
-              annotationMaps.systemTextsByMeasureId.get(measure.id)?.length
+              annotationMaps.systemTextsByMeasureId.get(measure.id)?.length,
+            tempoCount: annotationMaps.tempoEventsByMeasureId.get(measure.id)?.length
           })
         )
       }
@@ -1451,11 +1468,11 @@ function drawMeasureAnnotations(
     )
   }
 
-  for (const tempoEvent of annotationMaps.tempoEventsByMeasureId.get(measure.id) ?? []) {
+  for (const [index, tempoEvent] of (annotationMaps.tempoEventsByMeasureId.get(measure.id) ?? []).entries()) {
     drawPositionedTempoMarking(
       svg,
       resolveTickX(placement, measure, tempoEvent.tick),
-      staffY,
+      staffY + (lanes.tempoYOffsets[index] ?? -42),
       tempoEvent,
       measure.id
     )
@@ -1628,7 +1645,8 @@ function drawPassiveStaffMeasure(
           }
 
           return note
-        })
+        }),
+        measure.voices.length > 1
       )
     )
     const tuplets = (voice.tuplets ?? []).map((group) => {
@@ -1763,6 +1781,14 @@ function drawPassiveStaffMeasure(
       svgElement.setAttribute('data-staff-id', target.staffId)
       svgElement.setAttribute('data-measure-id', measure.id)
       svgElement.setAttribute('data-voice-id', voiceId)
+      svgElement.setAttribute(
+        'data-voice-lane',
+        String(note.getAttribute('data-voice-lane') ?? 'neutral')
+      )
+      const stemDirection = note.getAttribute('data-voice-stem-direction')
+      if (stemDirection) {
+        svgElement.setAttribute('data-voice-stem-direction', String(stemDirection))
+      }
       renderState.notesByEventId.set(event.id, note)
       renderState.systemsByEventId.set(event.id, placement.systemIndex)
       renderState.staffIndexByEventId.set(event.id, target.globalStaffIndex)
@@ -1874,13 +1900,14 @@ function drawTempoMarking(svg: SVGSVGElement, tempo: TempoMarking): void {
 function drawPositionedTempoMarking(
   svg: SVGSVGElement,
   x: number,
-  staffY: number,
+  y: number,
   tempo: TempoMarking,
   measureId?: string
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-tempo-marking', 'notation-tempo-marking--positioned')
+  text.setAttribute('data-annotation-lane', 'upper-tempo')
   if (tempo.transparent) {
     text.classList.add('notation-tempo-marking--transparent')
   }
@@ -1888,7 +1915,7 @@ function drawPositionedTempoMarking(
     text.setAttribute('data-measure-id', measureId)
   }
   text.setAttribute('x', String(x))
-  text.setAttribute('y', String(staffY - 42))
+  text.setAttribute('y', String(y))
   text.textContent = formatTempoMarking(tempo)
   svg.append(text)
 }
@@ -2076,6 +2103,7 @@ function drawRehearsalMark(
   const width = Math.max(24, label.length * 10 + 14)
 
   group.classList.add('notation-rehearsal-mark')
+  group.setAttribute('data-annotation-lane', 'upper-rehearsal')
   rect.setAttribute('x', String(x))
   rect.setAttribute('y', String(y))
   rect.setAttribute('width', String(width))
@@ -2098,6 +2126,7 @@ function drawStaffText(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-staff-text')
+  text.setAttribute('data-annotation-lane', 'upper-staff-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
   }
@@ -2135,6 +2164,7 @@ function drawSystemText(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-system-text')
+  text.setAttribute('data-annotation-lane', 'upper-system-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
   }
@@ -2154,6 +2184,7 @@ function drawExpressionText(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-expression-text')
+  text.setAttribute('data-annotation-lane', 'lower-expression-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
   }
@@ -2173,6 +2204,7 @@ function drawHarmonyMark(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-harmony-mark')
+  text.setAttribute('data-annotation-lane', 'upper-chord-symbol')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
   }
@@ -2192,6 +2224,7 @@ function drawDynamicMark(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-dynamic-mark')
+  text.setAttribute('data-annotation-lane', 'lower-dynamics')
   text.setAttribute('data-measure-id', measureId)
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2270,6 +2303,7 @@ function drawHairpinSegment(
   const rightOpening = openings.right
 
   group.classList.add('notation-hairpin')
+  group.setAttribute('data-annotation-lane', 'lower-hairpin')
 
   upper.setAttribute('x1', String(x1))
   upper.setAttribute('y1', String(y - leftOpening))
@@ -2421,6 +2455,10 @@ function drawSlurSegment(
   const endX = isLast ? x2 : x2 + 8
 
   path.classList.add('notation-slur')
+  path.setAttribute(
+    'data-annotation-lane',
+    side === 'above' ? 'upper-slur' : 'lower-slur'
+  )
   path.setAttribute(
     'd',
     `M ${startX} ${y1} Q ${controlX} ${controlY} ${endX} ${y2}`
@@ -2835,8 +2873,8 @@ function isPreviewEventId(eventId: string): boolean {
   return eventId.startsWith('preview-')
 }
 
-function createStableBeam(notes: StaveNote[]): Beam {
-  const beam = new Beam(notes, true)
+function createStableBeam(notes: StaveNote[], maintainStemDirections = false): Beam {
+  const beam = new Beam(notes, !maintainStemDirections)
 
   beam.renderOptions.maxSlope = STABLE_BEAM_MAX_SLOPE
   beam.renderOptions.minSlope = -STABLE_BEAM_MAX_SLOPE
@@ -2913,15 +2951,31 @@ function createStaveNote(
       : isRest
         ? ['b/4']
         : [toVexFlowKey(pitch!)]
+  const voicePresentation = resolveSameStaffVoicePresentation(
+    voice.id,
+    measure.voices.length
+  )
   const note = new StaveNote({
     clef,
     keys,
     duration: toVexFlowDuration(event.duration, isRest),
     alignCenter: event.type === 'rest' && Boolean(event.fullMeasure),
-    autoStem: true
+    autoStem: !voicePresentation.stemDirection,
+    stemDirection: voicePresentation.stemDirection
   })
 
   note.setAttribute('data-event-id', event.id)
+  note.setAttribute('data-voice-lane', voicePresentation.lane)
+  if (voicePresentation.stemDirection) {
+    note.setAttribute(
+      'data-voice-stem-direction',
+      voicePresentation.stemDirection > 0 ? 'up' : 'down'
+    )
+  }
+
+  if (isRest && voicePresentation.restYOffset) {
+    note.setYShift(voicePresentation.restYOffset)
+  }
 
   switch (
     resolveNotationEventTone(

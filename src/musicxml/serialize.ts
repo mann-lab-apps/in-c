@@ -187,7 +187,8 @@ function buildPartMeasureElements(
     buildMeasureElement(
       score,
       part.staves.map((staff) => staff.measures[measureIndex]),
-      slurBoundaries
+      slurBoundaries,
+      part.staves.some((staff) => staff.measures.some((measure) => measure.transposition))
     )
   )
 }
@@ -195,7 +196,8 @@ function buildPartMeasureElements(
 function buildMeasureElement(
   score: Score,
   measures: Measure[],
-  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>
+  slurBoundaries: Map<string, { starts?: string[]; stops?: string[] }>,
+  hasTransposition: boolean
 ) {
   const primaryMeasure = measures[0]
   const directions = buildMeasureDirections(score, primaryMeasure)
@@ -205,7 +207,7 @@ function buildMeasureElement(
   return xmlElement(
     'measure',
     [
-      xmlElement('attributes', buildAttributes(measures)),
+      xmlElement('attributes', buildAttributes(measures, hasTransposition)),
       ...directions.map((direction) => xmlElement('direction', direction)),
       ...harmonies.map((harmony) => xmlElement('harmony', harmony)),
       ...buildStaffPlaybackElements(measures, slurBoundaries),
@@ -591,7 +593,7 @@ function measureHasEvent(measure: Measure, eventId: string): boolean {
   )
 }
 
-function buildAttributes(measures: Measure[]) {
+function buildAttributes(measures: Measure[], hasTransposition: boolean) {
   const primaryMeasure = measures[0]
   const clefs = measures.map((measure) => clefToMusicXml(measure.clef))
 
@@ -616,7 +618,17 @@ function buildAttributes(measures: Measure[]) {
         : clefs.map((clef, index) => ({
             '@_number': index + 1,
             ...buildClefAttributes(clef)
-          }))
+          })),
+    ...(hasTransposition
+      ? { transpose: measures.map((measure, index) => ({
+          ...(measures.length > 1 ? { '@_number': index + 1 } : {}),
+          ...(measure.transposition?.diatonic !== undefined
+            ? { diatonic: measure.transposition.diatonic } : {}),
+          chromatic: measure.transposition?.chromatic ?? 0,
+          ...(measure.transposition?.octaveChange !== undefined
+            ? { 'octave-change': measure.transposition.octaveChange } : {})
+        })) }
+      : {})
   }
 }
 
@@ -782,7 +794,7 @@ function buildNote(
           ...(event.ornaments ?? []).reduce<Record<string, string>>(
             (values, ornament) => ({
               ...values,
-              [ornament]: ''
+              [ornament === 'trill' ? 'trill-mark' : ornament]: ''
             }),
             {}
           )
