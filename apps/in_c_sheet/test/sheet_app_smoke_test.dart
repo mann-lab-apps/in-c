@@ -426,6 +426,69 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('bulk selection toggles all visible scores', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'visible score one',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/visible-score-one.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'score-2',
+        title: 'visible score two',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/visible-score-two.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: now,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('여러 악보 선택'));
+    await tester.pumpAndSettle();
+    expect(find.text('0개 선택'), findsOneWidget);
+    expect(find.byTooltip('현재 목록 전체 선택'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('현재 목록 전체 선택'));
+    await tester.pumpAndSettle();
+    expect(find.text('2개 선택'), findsOneWidget);
+    expect(find.byTooltip('현재 목록 선택 해제'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('현재 목록 선택 해제'));
+    await tester.pumpAndSettle();
+    expect(find.text('0개 선택'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home surfaces imported scores that need metadata review', (
     tester,
   ) async {

@@ -161,6 +161,24 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     });
   }
 
+  void _toggleAllVisibleScoreSelection(List<SheetScore> visibleScores) {
+    if (visibleScores.isEmpty) {
+      return;
+    }
+    final visibleIds = visibleScores.map((score) => score.id).toSet();
+    final hasUnselectedVisible = visibleIds.any(
+      (id) => !_bulkSelectedScoreIds.contains(id),
+    );
+    setState(() {
+      _isBulkSelecting = true;
+      if (hasUnselectedVisible) {
+        _bulkSelectedScoreIds.addAll(visibleIds);
+      } else {
+        _bulkSelectedScoreIds.removeAll(visibleIds);
+      }
+    });
+  }
+
   Future<void> _showBulkEdit() async {
     if (_bulkSelectedScoreIds.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -1343,6 +1361,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final scores = controller.filteredScores;
+    final visibleScoreIds = scores.map((score) => score.id).toSet();
+    final hasUnselectedVisibleScore = visibleScoreIds.any(
+      (id) => !_bulkSelectedScoreIds.contains(id),
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -1357,6 +1379,18 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               _isBulkSelecting ? Icons.close : Icons.checklist_rtl_outlined,
             ),
           ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: hasUnselectedVisibleScore
+                  ? '현재 목록 전체 선택'
+                  : '현재 목록 선택 해제',
+              onPressed: scores.isEmpty
+                  ? null
+                  : () => _toggleAllVisibleScoreSelection(scores),
+              icon: Icon(
+                hasUnselectedVisibleScore ? Icons.select_all : Icons.deselect,
+              ),
+            ),
           if (_isBulkSelecting)
             IconButton(
               tooltip: '선택 악보를 세트리스트에 추가',
