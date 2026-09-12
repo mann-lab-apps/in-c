@@ -777,6 +777,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('순서 입력'), findsNWidgets(3));
+    expect(find.textContaining('파일 · score-1'), findsOneWidget);
 
     await tester.tap(find.byTooltip('순서 입력').first);
     await tester.pumpAndSettle();

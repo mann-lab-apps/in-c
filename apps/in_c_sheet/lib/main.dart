@@ -3568,6 +3568,17 @@ String _scoreIdentitySubtitle(SheetScore score) {
   return parts.isEmpty ? '파일 정보 없음' : parts.join(' · ');
 }
 
+String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
+  final identity = _scoreIdentitySubtitle(score);
+  if (setlist.rehearsalMode) {
+    final note = setlist.scoreNotes[score.id]?.trim();
+    return '${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽부터 · '
+        '${_formatDuration(setlist.scoreDurations[score.id] ?? 0)} · '
+        '${note?.isNotEmpty == true ? note : '메모 없음'} · $identity';
+  }
+  return '${score.lastPage}쪽부터 열기 · $identity';
+}
+
 SheetScore _scoreToOpenForSetlistResume(
   SheetSetlist setlist,
   List<SheetScore> scores,
@@ -5046,12 +5057,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       subtitle: Text(
-                        currentSetlist.rehearsalMode
-                            ? '${currentSetlist.scoreStartPages[score.id] ?? score.lastPage}'
-                                  '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
-                                  '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
-                            : '${score.lastPage}쪽부터 열기 · 총 ${_formatDuration(currentSetlist.totalEstimatedSeconds)}',
-                        maxLines: 1,
+                        _setlistScoreSubtitle(currentSetlist, score),
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       onTap: () => _openScore(score),
