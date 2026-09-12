@@ -2400,29 +2400,12 @@ class _LibraryFacetRow extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            ListTile(
-              leading: Icon(icon),
-              title: Text('$label 전체'),
-              subtitle: Text('${facets.length}개 조건'),
-            ),
-            for (final facet in facets)
-              ListTile(
-                title: Text('${facet.label} ${facet.count}'),
-                trailing: facet.value == selectedValue
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onSelected(facet.value);
-                },
-              ),
-          ],
-        ),
+      builder: (context) => _LibraryFacetPickerSheet(
+        label: label,
+        icon: icon,
+        facets: facets,
+        selectedValue: selectedValue,
+        onSelected: onSelected,
       ),
     );
   }
@@ -2473,6 +2456,109 @@ class _LibraryFacetRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LibraryFacetPickerSheet extends StatefulWidget {
+  const _LibraryFacetPickerSheet({
+    required this.label,
+    required this.icon,
+    required this.facets,
+    required this.selectedValue,
+    required this.onSelected,
+  });
+
+  final String label;
+  final IconData icon;
+  final List<SheetLibraryFacet> facets;
+  final String selectedValue;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_LibraryFacetPickerSheet> createState() =>
+      _LibraryFacetPickerSheetState();
+}
+
+class _LibraryFacetPickerSheetState extends State<_LibraryFacetPickerSheet> {
+  final _queryController = TextEditingController();
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  List<SheetLibraryFacet> get _filteredFacets {
+    final query = _queryController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      return widget.facets;
+    }
+    return [
+      for (final facet in widget.facets)
+        if (facet.label.toLowerCase().contains(query) ||
+            facet.value.toLowerCase().contains(query))
+          facet,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredFacets = _filteredFacets;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(widget.icon),
+                title: Text('${widget.label} 전체'),
+                subtitle: Text('${widget.facets.length}개 조건'),
+              ),
+              TextField(
+                controller: _queryController,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  labelText: '조건 검색',
+                  hintText: '예: D, Recital, 쉬움',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              if (filteredFacets.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Text('일치하는 조건이 없습니다'),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredFacets.length,
+                    itemBuilder: (context, index) {
+                      final facet = filteredFacets[index];
+                      return ListTile(
+                        title: Text('${facet.label} ${facet.count}'),
+                        trailing: facet.value == widget.selectedValue
+                            ? const Icon(Icons.check)
+                            : null,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onSelected(facet.value);
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

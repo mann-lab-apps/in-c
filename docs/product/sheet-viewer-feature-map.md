@@ -25,7 +25,7 @@
 | 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
-| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/컬렉션/그룹/별점 필터. MobileSheets의 Key/Genre/Difficulty 축은 Clef에서 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수하고, 적용 중인 검색/필터 조건을 해제 가능한 요약 칩으로 표시. facet 값이 많을 때는 `더 보기`로 숨겨진 값까지 선택 가능 |
+| 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/컬렉션/그룹/별점 필터. MobileSheets의 Key/Genre/Difficulty 축은 Clef에서 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수하고, 적용 중인 검색/필터 조건을 해제 가능한 요약 칩으로 표시. facet 값이 많을 때는 `더 보기` sheet에서 검색으로 좁혀 숨겨진 값까지 선택 가능 |
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |

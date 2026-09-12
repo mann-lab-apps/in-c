@@ -317,13 +317,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('컬렉션 전체'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('Collection 8 1'),
-      220,
-      scrollable: find.byType(Scrollable).last,
-    );
+    expect(find.widgetWithText(TextField, '조건 검색'), findsOneWidget);
+    await tester.enterText(find.widgetWithText(TextField, '조건 검색'), '8');
     await tester.pumpAndSettle();
     expect(find.text('Collection 8 1'), findsOneWidget);
+    expect(find.text('Collection 7 1'), findsNothing);
 
     await tester.tap(find.text('Collection 8 1'));
     await tester.pumpAndSettle();
