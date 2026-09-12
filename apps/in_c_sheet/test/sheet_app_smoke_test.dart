@@ -208,6 +208,70 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('home summarizes active search and metadata filters', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'Moonlight',
+        composer: 'Beethoven',
+        tags: const <String>['recital'],
+        note: '',
+        filePath: '/tmp/moonlight.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: true,
+        rating: 4,
+        collection: 'Recital',
+        group: 'Piano',
+        bookmarks: const <SheetBookmark>[],
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'D'),
+        ],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    controller.updateQuery('moon');
+    await controller.updateFavoriteFilter(true);
+    await controller.updateCollectionFilter('Recital');
+    await controller.updateGroupFilter('Piano');
+    await controller.updateMinimumRatingFilter(4);
+    await controller.updateCustomFieldFilter('조성', 'D');
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('현재 조건'), findsOneWidget);
+    expect(find.text('검색: moon'), findsOneWidget);
+    expect(find.text('즐겨찾기'), findsWidgets);
+    expect(find.text('컬렉션: Recital'), findsWidgets);
+    expect(find.text('그룹: Piano'), findsWidgets);
+    expect(find.text('별점 4+'), findsOneWidget);
+    expect(find.text('조성: D'), findsOneWidget);
+
+    await tester.tap(find.text('전체 초기화'));
+    await tester.pumpAndSettle();
+
+    expect(controller.query, isEmpty);
+    expect(controller.libraryViewSettings.hasAnyFilter, isFalse);
+    expect(find.text('현재 조건'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   test('recent setlist resume picks the last opened score when valid', () {
     final now = DateTime(2026, 9, 7, 10);
     final scores = <SheetScore>[

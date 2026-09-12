@@ -1448,6 +1448,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final hasUnselectedVisibleScore = visibleScoreIds.any(
       (id) => !_bulkSelectedScoreIds.contains(id),
     );
+    final hasActiveLibraryCondition =
+        controller.query.trim().isNotEmpty ||
+        controller.libraryViewSettings.hasAnyFilter;
 
     return Scaffold(
       appBar: AppBar(
@@ -1635,29 +1638,49 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         onGroupPressed: _selectGroupFilter,
                         onRatingPressed: _selectRatingFilter,
                       ),
-                      const SizedBox(height: 10),
-                      _LibraryFacetExplorer(
-                        collectionFacets: controller.collectionFacets,
-                        groupFacets: controller.groupFacets,
-                        ratingFacets: controller.ratingFacets,
-                        customFieldFacets: <String, List<SheetLibraryFacet>>{
-                          for (final key in _commonCustomMetadataFieldKeys)
-                            key: controller.customFieldFacets(key),
-                        },
-                        selectedCollection:
-                            controller.libraryViewSettings.collectionQuery,
-                        selectedGroup:
-                            controller.libraryViewSettings.groupQuery,
-                        selectedMinimumRating:
-                            controller.libraryViewSettings.minimumRating,
-                        selectedCustomFieldFilters:
-                            controller.libraryViewSettings.customFieldFilters,
-                        onCollectionSelected: controller.updateCollectionFilter,
-                        onGroupSelected: controller.updateGroupFilter,
-                        onRatingSelected: controller.updateMinimumRatingFilter,
-                        onCustomFieldSelected:
-                            controller.updateCustomFieldFilter,
+                      _ActiveLibraryFiltersBar(
+                        query: controller.query,
+                        settings: controller.libraryViewSettings,
+                        onClearQuery: () => controller.updateQuery(''),
+                        onClearFavorite: () =>
+                            controller.updateFavoriteFilter(false),
+                        onClearTag: () => controller.updateTagFilter(''),
+                        onClearCollection: () =>
+                            controller.updateCollectionFilter(''),
+                        onClearGroup: () => controller.updateGroupFilter(''),
+                        onClearRating: () =>
+                            controller.updateMinimumRatingFilter(0),
+                        onClearCustomField: (fieldKey) =>
+                            controller.updateCustomFieldFilter(fieldKey, ''),
+                        onClearAll: controller.clearLibrarySearchAndFilters,
                       ),
+                      if (!hasActiveLibraryCondition) ...[
+                        const SizedBox(height: 10),
+                        _LibraryFacetExplorer(
+                          collectionFacets: controller.collectionFacets,
+                          groupFacets: controller.groupFacets,
+                          ratingFacets: controller.ratingFacets,
+                          customFieldFacets: <String, List<SheetLibraryFacet>>{
+                            for (final key in _commonCustomMetadataFieldKeys)
+                              key: controller.customFieldFacets(key),
+                          },
+                          selectedCollection:
+                              controller.libraryViewSettings.collectionQuery,
+                          selectedGroup:
+                              controller.libraryViewSettings.groupQuery,
+                          selectedMinimumRating:
+                              controller.libraryViewSettings.minimumRating,
+                          selectedCustomFieldFilters:
+                              controller.libraryViewSettings.customFieldFilters,
+                          onCollectionSelected:
+                              controller.updateCollectionFilter,
+                          onGroupSelected: controller.updateGroupFilter,
+                          onRatingSelected:
+                              controller.updateMinimumRatingFilter,
+                          onCustomFieldSelected:
+                              controller.updateCustomFieldFilter,
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       if (controller.errorMessage != null)
                         _NoticeBanner(message: controller.errorMessage!),
@@ -2051,6 +2074,170 @@ class _LibraryViewBar extends StatelessWidget {
           onPressed: onRatingPressed,
         ),
       ],
+    );
+  }
+}
+
+class _ActiveLibraryFiltersBar extends StatelessWidget {
+  const _ActiveLibraryFiltersBar({
+    required this.query,
+    required this.settings,
+    required this.onClearQuery,
+    required this.onClearFavorite,
+    required this.onClearTag,
+    required this.onClearCollection,
+    required this.onClearGroup,
+    required this.onClearRating,
+    required this.onClearCustomField,
+    required this.onClearAll,
+  });
+
+  final String query;
+  final SheetLibraryViewSettings settings;
+  final VoidCallback onClearQuery;
+  final VoidCallback onClearFavorite;
+  final VoidCallback onClearTag;
+  final VoidCallback onClearCollection;
+  final VoidCallback onClearGroup;
+  final VoidCallback onClearRating;
+  final ValueChanged<String> onClearCustomField;
+  final VoidCallback onClearAll;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = <Widget>[];
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isNotEmpty) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.search,
+          label: '검색: $normalizedQuery',
+          onDeleted: onClearQuery,
+        ),
+      );
+    }
+    if (settings.favoriteOnly) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.star,
+          label: '즐겨찾기',
+          onDeleted: onClearFavorite,
+        ),
+      );
+    }
+    if (settings.hasTagFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.sell_outlined,
+          label: '태그: ${settings.tagQuery}',
+          onDeleted: onClearTag,
+        ),
+      );
+    }
+    if (settings.hasCollectionFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.collections_bookmark_outlined,
+          label: '컬렉션: ${settings.collectionQuery}',
+          onDeleted: onClearCollection,
+        ),
+      );
+    }
+    if (settings.hasGroupFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.folder_outlined,
+          label: '그룹: ${settings.groupQuery}',
+          onDeleted: onClearGroup,
+        ),
+      );
+    }
+    if (settings.hasRatingFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.star_rate_outlined,
+          label: '별점 ${settings.minimumRating}+',
+          onDeleted: onClearRating,
+        ),
+      );
+    }
+    for (final entry in settings.customFieldFilters.entries) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: _customMetadataFacetIcon(entry.key),
+          label: '${entry.key}: ${entry.value}',
+          onDeleted: () => onClearCustomField(entry.key),
+        ),
+      );
+    }
+
+    if (chips.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        height: 42,
+        child: Row(
+          children: [
+            Semantics(
+              label: '적용 중인 검색 및 필터',
+              child: Text(
+                '현재 조건',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: onClearAll,
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+              label: const Text('전체 초기화'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final chip in chips) ...[
+                      chip,
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveLibraryFilterChip extends StatelessWidget {
+  const _ActiveLibraryFilterChip({
+    required this.icon,
+    required this.label,
+    required this.onDeleted,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      avatar: Icon(icon, size: 18),
+      label: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Text(label, overflow: TextOverflow.ellipsis),
+      ),
+      onDeleted: onDeleted,
+      deleteIcon: const Icon(Icons.close, size: 18),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 }
