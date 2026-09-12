@@ -4787,30 +4787,32 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       return;
     }
 
-    var query = '';
-    final selected = await showModalBottomSheet<SheetScore>(
+    final currentSetlist = setlist;
+    final selectedScores = await showModalBottomSheet<List<SheetScore>>(
       context: context,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return SafeArea(
-            child: _ScorePickerSheet(
-              scores: availableScores,
-              query: query,
-              onQueryChanged: (value) {
-                setModalState(() {
-                  query = value;
-                });
-              },
-            ),
-          );
-        },
-      ),
+      isScrollControlled: true,
+      builder: (context) =>
+          SafeArea(child: _ScoreMultiPickerSheet(scores: availableScores)),
     );
-    if (selected == null) {
+    if (selectedScores == null || selectedScores.isEmpty) {
       return;
     }
-    await controller.addScoreToSetlist(setlist, selected);
+    final result = await controller.addScoresToSetlist(
+      currentSetlist,
+      selectedScores,
+    );
+    if (!mounted) {
+      return;
+    }
+    final skippedLabel = result.skippedDuplicateCount == 0
+        ? ''
+        : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel'
+        : '이미 모두 세트리스트에 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openFirstScore() async {
@@ -5177,30 +5179,72 @@ class _SetlistOrderDialogState extends State<_SetlistOrderDialog> {
   }
 }
 
-class _ScorePickerSheet extends StatelessWidget {
-  const _ScorePickerSheet({
-    required this.scores,
-    required this.query,
-    required this.onQueryChanged,
-  });
+class _ScoreMultiPickerSheet extends StatefulWidget {
+  const _ScoreMultiPickerSheet({required this.scores});
 
   final List<SheetScore> scores;
-  final String query;
-  final ValueChanged<String> onQueryChanged;
+
+  @override
+  State<_ScoreMultiPickerSheet> createState() => _ScoreMultiPickerSheetState();
+}
+
+class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
+  String _query = '';
+  final Set<String> _selectedScoreIds = <String>{};
+
+  void _toggleScore(SheetScore score) {
+    setState(() {
+      if (!_selectedScoreIds.add(score.id)) {
+        _selectedScoreIds.remove(score.id);
+      }
+    });
+  }
+
+  void _submit() {
+    final selectedScores = widget.scores
+        .where((score) => _selectedScoreIds.contains(score.id))
+        .toList(growable: false);
+    Navigator.of(context).pop(selectedScores);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final filteredScores = scores
-        .where((score) => score.matches(query))
+    final filteredScores = widget.scores
+        .where((score) => score.matches(_query))
         .toList(growable: false);
+    final selectedCount = _selectedScoreIds.length;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  selectedCount == 0
+                      ? '추가할 악보를 선택하세요'
+                      : '$selectedCount개 악보 선택됨',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: selectedCount == 0 ? null : _submit,
+                icon: const Icon(Icons.playlist_add),
+                label: const Text('추가'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: TextField(
-            onChanged: onQueryChanged,
+            onChanged: (value) {
+              setState(() {
+                _query = value;
+              });
+            },
             decoration: const InputDecoration(
               hintText: '추가할 악보 검색',
               prefixIcon: Icon(Icons.search),
@@ -5218,11 +5262,16 @@ class _ScorePickerSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   itemBuilder: (context, index) {
                     final score = filteredScores[index];
+                    final isSelected = _selectedScoreIds.contains(score.id);
                     return ListTile(
-                      leading: const Icon(Icons.description_outlined),
+                      leading: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => _toggleScore(score),
+                      ),
                       title: Text(score.title),
                       subtitle: Text(_scoreIdentitySubtitle(score)),
-                      onTap: () => Navigator.of(context).pop(score),
+                      selected: isSelected,
+                      onTap: () => _toggleScore(score),
                     );
                   },
                   separatorBuilder: (context, index) =>

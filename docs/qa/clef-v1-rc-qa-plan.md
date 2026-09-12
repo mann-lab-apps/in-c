@@ -425,8 +425,9 @@ flutter build ios --release --no-codesign
   대상 세트리스트 상세를 바로 확인할 수 있다.
 - MobileSheets의 `Create Collection from Songs` 흐름을 Clef식으로 줄여, 일괄 선택 AppBar에서
   선택한 여러 악보를 기존/새 컬렉션으로 바로 묶을 수 있게 했다.
-- 세트리스트 상세는 drag handle reorder를 지원하며 기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을
-  보조 수단으로 유지한다. 제거 버튼은 즉시 반영되지만 snackbar `되돌리기`로 원래 위치에 복구할 수 있다.
+- 세트리스트 상세는 검색 후 여러 악보를 체크해 한 번에 추가하는 흐름과 drag handle reorder를 지원하며
+  기존 위/아래 이동 버튼과 번호 배지 직접 순서 입력을 보조 수단으로 유지한다. 제거 버튼은 즉시 반영되지만
+  snackbar `되돌리기`로 원래 위치에 복구할 수 있다.
 - 세트리스트를 열면 마지막 연 시간과 마지막으로 연 곡을 저장하고 홈 quick access에 `최근 세트리스트`
   rail로 표시한다. 홈 card에는 `진행 n/m` pill, 최근 연 시간, `이어보기` 곡명을 표시하고,
   다시 열면 저장된 곡부터 이어서 시작한다. 좁은 viewer toolbar와 공연 모드에서도 현재 곡명과

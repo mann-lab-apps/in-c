@@ -862,6 +862,78 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('setlist detail adds multiple scores at once', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (final id in const <String>['score-1', 'score-2', 'score-3'])
+        SheetScore(
+          id: id,
+          title: '악보 $id',
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/$id.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'setlist-1',
+        title: '공연 순서',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: 'setlist-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('악보 추가'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('추가할 악보를 선택하세요'), findsOneWidget);
+    await tester.tap(find.text('악보 score-2'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('악보 score-3'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('2개 악보 선택됨'), findsOneWidget);
+    await tester.tap(find.text('추가'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+    expect(find.text('2개 악보를 세트리스트에 추가했습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('metronome sheet exposes hotfix rhythm controls', (tester) async {
     await tester.pumpWidget(
       buildMetronomeSheetForTest(
