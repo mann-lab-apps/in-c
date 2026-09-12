@@ -1290,7 +1290,7 @@ void main() {
     expect(summary.appIdentityReadiness.version, '1.0.0+14');
     expect(
       summary.appIdentityReadiness.iconStatus,
-      contains('first-pass in C icon applied'),
+      contains('Darezzo C clef icon applied'),
     );
     expect(
       summary.appIdentityReadiness.androidApplicationId,

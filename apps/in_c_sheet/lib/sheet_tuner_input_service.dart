@@ -30,6 +30,8 @@ class SheetTunerInputService {
 
   Stream<SheetTunerState> get states => _states.stream;
   bool get isListening => _isListening;
+  SheetTunerDetectionDebugInfo? get detectionDebugInfo =>
+      _detector.lastDebugInfo;
 
   Future<void> start({required SheetTunerSettings settings}) async {
     if (_isDisposed || _isListening) {
@@ -169,10 +171,13 @@ class SheetTunerInputService {
   void _applySettings(SheetTunerSettings settings) {
     final didChangeProfile =
         _settings.detectionProfile != settings.detectionProfile;
+    final didChangeAlgorithm =
+        _settings.detectionAlgorithm != settings.detectionAlgorithm;
     _settings = settings;
     _detector.configureForProfile(settings.detectionProfile);
+    _detector.configureAlgorithm(settings.detectionAlgorithm);
     _stabilizer.configureForProfile(settings.detectionProfile);
-    if (didChangeProfile) {
+    if (didChangeProfile || didChangeAlgorithm) {
       _detector.reset();
       _stabilizer.reset();
     }

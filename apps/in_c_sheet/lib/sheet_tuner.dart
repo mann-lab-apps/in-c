@@ -571,6 +571,30 @@ enum SheetTunerDetectionProfile {
   String toJson() => name;
 }
 
+enum SheetTunerPitchDetectionAlgorithm {
+  hybrid(label: '자동', description: '두 감지 방식 중 더 안정적인 결과를 사용'),
+  autocorrelation(label: '기존', description: '기존 안정 감지 방식'),
+  yin(label: '정밀 후보', description: '미세한 cents 비교를 확인할 때 사용');
+
+  const SheetTunerPitchDetectionAlgorithm({
+    required this.label,
+    required this.description,
+  });
+
+  factory SheetTunerPitchDetectionAlgorithm.fromJson(Object? value) {
+    return switch (value) {
+      'autocorrelation' => SheetTunerPitchDetectionAlgorithm.autocorrelation,
+      'yin' => SheetTunerPitchDetectionAlgorithm.yin,
+      _ => SheetTunerPitchDetectionAlgorithm.hybrid,
+    };
+  }
+
+  final String label;
+  final String description;
+
+  String toJson() => name;
+}
+
 class SheetTunerSettings {
   const SheetTunerSettings({
     required this.referencePitchA4,
@@ -578,6 +602,7 @@ class SheetTunerSettings {
     this.tuningPreset = SheetTunerPreset.chromatic,
     this.displayMode = SheetTunerDisplayMode.concert,
     this.detectionProfile = SheetTunerDetectionProfile.chromatic,
+    this.detectionAlgorithm = SheetTunerPitchDetectionAlgorithm.hybrid,
     this.notationPreference = SheetTunerNotationPreference.instrumentDefault,
     this.targetLockEnabled = false,
     this.targetLockThresholdCents = defaultTargetLockThresholdCents,
@@ -608,6 +633,11 @@ class SheetTunerSettings {
     final detectionProfile = json?.containsKey('detectionProfile') ?? false
         ? SheetTunerDetectionProfile.fromJson(json?['detectionProfile'])
         : tuningPreset.detectionProfile;
+    final detectionAlgorithm = json?.containsKey('detectionAlgorithm') ?? false
+        ? SheetTunerPitchDetectionAlgorithm.fromJson(
+            json?['detectionAlgorithm'],
+          )
+        : SheetTunerPitchDetectionAlgorithm.hybrid;
     return SheetTunerSettings(
       referencePitchA4: _normalizeReferencePitch(json?['referencePitchA4']),
       tuningMode:
@@ -617,6 +647,7 @@ class SheetTunerSettings {
       tuningPreset: tuningPreset,
       displayMode: displayMode,
       detectionProfile: detectionProfile,
+      detectionAlgorithm: detectionAlgorithm,
       notationPreference: SheetTunerNotationPreference.fromJson(
         json?['notationPreference'],
       ),
@@ -642,6 +673,7 @@ class SheetTunerSettings {
   final SheetTunerPreset tuningPreset;
   final SheetTunerDisplayMode displayMode;
   final SheetTunerDetectionProfile detectionProfile;
+  final SheetTunerPitchDetectionAlgorithm detectionAlgorithm;
   final SheetTunerNotationPreference notationPreference;
   final bool targetLockEnabled;
   final int targetLockThresholdCents;
@@ -657,6 +689,7 @@ class SheetTunerSettings {
     SheetTunerPreset? tuningPreset,
     SheetTunerDisplayMode? displayMode,
     SheetTunerDetectionProfile? detectionProfile,
+    SheetTunerPitchDetectionAlgorithm? detectionAlgorithm,
     SheetTunerNotationPreference? notationPreference,
     bool? targetLockEnabled,
     int? targetLockThresholdCents,
@@ -696,6 +729,7 @@ class SheetTunerSettings {
       tuningPreset: tuningPreset ?? this.tuningPreset,
       displayMode: displayMode ?? this.displayMode,
       detectionProfile: detectionProfile ?? this.detectionProfile,
+      detectionAlgorithm: detectionAlgorithm ?? this.detectionAlgorithm,
       notationPreference: notationPreference ?? this.notationPreference,
       targetLockEnabled: targetLockEnabled ?? this.targetLockEnabled,
       targetLockThresholdCents: _normalizeTargetLockThresholdCents(
@@ -739,6 +773,7 @@ class SheetTunerSettings {
       'tuningPreset': tuningPreset.toJson(),
       'displayMode': displayMode.toJson(),
       'detectionProfile': detectionProfile.toJson(),
+      'detectionAlgorithm': detectionAlgorithm.toJson(),
       'notationPreference': notationPreference.toJson(),
       'targetLockEnabled': targetLockEnabled,
       'targetLockThresholdCents': targetLockThresholdCents,
@@ -1324,7 +1359,7 @@ class SheetTunerFeedback {
       SheetTunerInputStatus.noSignal when reading == null =>
         const SheetTunerFeedback(
           band: SheetTunerFeedbackBand.noSignal,
-          label: '소리가 너무 작습니다',
+          label: '소리가 작거나 주변 소음이 큽니다',
           displayCents: 0,
         ),
       _ when reading == null => const SheetTunerFeedback(
@@ -1411,6 +1446,149 @@ class SheetTunerFeedback {
   }
 }
 
+class SheetTunerPitchHistorySample {
+  const SheetTunerPitchHistorySample({
+    required this.timestampMillis,
+    required this.noteMidiNumber,
+    required this.centsOffset,
+    required this.signalLevel,
+    required this.band,
+  });
+
+  factory SheetTunerPitchHistorySample.fromReading({
+    required DateTime timestamp,
+    required SheetTunerReading? reading,
+    required SheetTunerFeedback feedback,
+  }) {
+    if (reading == null || !feedback.hasPitch) {
+      return SheetTunerPitchHistorySample.gap(timestamp: timestamp);
+    }
+    return SheetTunerPitchHistorySample(
+      timestampMillis: timestamp.millisecondsSinceEpoch,
+      noteMidiNumber: reading.note.midiNumber,
+      centsOffset: feedback.displayCents,
+      signalLevel: reading.signalLevel.clamp(0.0, 1.0).toDouble(),
+      band: feedback.band,
+    );
+  }
+
+  factory SheetTunerPitchHistorySample.gap({required DateTime timestamp}) {
+    return SheetTunerPitchHistorySample(
+      timestampMillis: timestamp.millisecondsSinceEpoch,
+      noteMidiNumber: null,
+      centsOffset: 0,
+      signalLevel: 0,
+      band: SheetTunerFeedbackBand.noSignal,
+    );
+  }
+
+  final int timestampMillis;
+  final int? noteMidiNumber;
+  final double centsOffset;
+  final double signalLevel;
+  final SheetTunerFeedbackBand band;
+
+  bool get hasPitch => noteMidiNumber != null;
+  bool get isLowConfidence => band == SheetTunerFeedbackBand.lowConfidence;
+}
+
+class SheetTunerPitchHistorySegment {
+  const SheetTunerPitchHistorySegment(this.samples);
+
+  final List<SheetTunerPitchHistorySample> samples;
+
+  int? get noteMidiNumber =>
+      samples.isEmpty ? null : samples.first.noteMidiNumber;
+}
+
+class SheetTunerPitchHistoryBuffer {
+  SheetTunerPitchHistoryBuffer({
+    this.window = const Duration(milliseconds: 2200),
+    this.maxSamples = 96,
+  });
+
+  final Duration window;
+  final int maxSamples;
+  final List<SheetTunerPitchHistorySample> _samples =
+      <SheetTunerPitchHistorySample>[];
+
+  List<SheetTunerPitchHistorySample> get samples =>
+      List<SheetTunerPitchHistorySample>.unmodifiable(_samples);
+
+  void add({
+    required DateTime timestamp,
+    required SheetTunerReading? reading,
+    required SheetTunerFeedback feedback,
+  }) {
+    _samples.add(
+      SheetTunerPitchHistorySample.fromReading(
+        timestamp: timestamp,
+        reading: reading,
+        feedback: feedback,
+      ),
+    );
+    _trim(timestamp);
+  }
+
+  void addGap({required DateTime timestamp}) {
+    _samples.add(SheetTunerPitchHistorySample.gap(timestamp: timestamp));
+    _trim(timestamp);
+  }
+
+  void reset() {
+    _samples.clear();
+  }
+
+  List<SheetTunerPitchHistorySegment> segments() {
+    return segmentsFor(samples);
+  }
+
+  static List<SheetTunerPitchHistorySegment> segmentsFor(
+    List<SheetTunerPitchHistorySample> samples,
+  ) {
+    final segments = <SheetTunerPitchHistorySegment>[];
+    var current = <SheetTunerPitchHistorySample>[];
+    int? currentNoteMidiNumber;
+
+    void flush() {
+      if (current.isNotEmpty) {
+        segments.add(
+          SheetTunerPitchHistorySegment(
+            List<SheetTunerPitchHistorySample>.unmodifiable(current),
+          ),
+        );
+        current = <SheetTunerPitchHistorySample>[];
+      }
+      currentNoteMidiNumber = null;
+    }
+
+    for (final sample in samples) {
+      if (!sample.hasPitch) {
+        flush();
+        continue;
+      }
+      if (currentNoteMidiNumber != null &&
+          currentNoteMidiNumber != sample.noteMidiNumber) {
+        flush();
+      }
+      currentNoteMidiNumber = sample.noteMidiNumber;
+      current.add(sample);
+    }
+    flush();
+    return List<SheetTunerPitchHistorySegment>.unmodifiable(segments);
+  }
+
+  void _trim(DateTime now) {
+    final cutoff = now.subtract(window).millisecondsSinceEpoch;
+    while (_samples.isNotEmpty && _samples.first.timestampMillis < cutoff) {
+      _samples.removeAt(0);
+    }
+    while (_samples.length > maxSamples) {
+      _samples.removeAt(0);
+    }
+  }
+}
+
 enum SheetTunerInputPowerBand { idle, silent, weak, steady, strong }
 
 class SheetTunerInputPower {
@@ -1435,7 +1613,7 @@ class SheetTunerInputPower {
       return const SheetTunerInputPower(
         band: SheetTunerInputPowerBand.silent,
         value: 0,
-        label: '소리가 너무 작습니다',
+        label: '소리가 작거나 주변 소음이 큽니다',
       );
     }
     final value = reading.signalLevel.clamp(0.0, 1.0).toDouble();
@@ -1463,6 +1641,44 @@ class SheetTunerInputPower {
   final SheetTunerInputPowerBand band;
   final double value;
   final String label;
+}
+
+class SheetTunerDetectionDebugInfo {
+  const SheetTunerDetectionDebugInfo({
+    required this.algorithm,
+    required this.rms,
+    required this.confidence,
+    required this.noiseFloorRms,
+    required this.rejectionReason,
+    this.clippingRatio = 0,
+  });
+
+  final SheetTunerPitchDetectionAlgorithm algorithm;
+  final double rms;
+  final double confidence;
+  final double noiseFloorRms;
+  final String rejectionReason;
+  final double clippingRatio;
+
+  bool get isAccepted => rejectionReason.isEmpty;
+
+  String get label {
+    final parts = <String>[
+      '엔진 ${algorithm.label}',
+      '신호 ${rms.toStringAsFixed(3)}',
+      '신뢰도 ${(confidence * 100).round()}%',
+    ];
+    if (noiseFloorRms > 0) {
+      parts.add('노이즈 ${noiseFloorRms.toStringAsFixed(3)}');
+    }
+    if (clippingRatio > 0.01) {
+      parts.add('클리핑 ${(clippingRatio * 100).round()}%');
+    }
+    if (rejectionReason.isNotEmpty) {
+      parts.add('제외 $rejectionReason');
+    }
+    return parts.join(' · ');
+  }
 }
 
 class SheetTunerTargetLockResult {
@@ -1785,6 +2001,7 @@ class SheetTunerPitchDetector {
     double? maxFrequency,
     double? minRms,
     double? minConfidence,
+    this.algorithm = SheetTunerPitchDetectionAlgorithm.hybrid,
     this.useAdaptiveNoiseFloor = true,
     SheetTunerAdaptiveNoiseGate? adaptiveNoiseGate,
   }) : minFrequency = minFrequency ?? detectionProfile.minFrequency,
@@ -1800,14 +2017,30 @@ class SheetTunerPitchDetector {
   double maxFrequency;
   double minRms;
   double minConfidence;
+  SheetTunerPitchDetectionAlgorithm algorithm;
   final SheetTunerAdaptiveNoiseGate _adaptiveNoiseGate;
   final List<double> _buffer = <double>[];
+  SheetTunerDetectionDebugInfo? _lastDebugInfo;
+
+  static const double lowAmplitudeNormalizationMinRmsRatio = 0.22;
+  static const double lowAmplitudeSignalToNoiseRatio = 3.2;
+  static const double normalizationTargetRms = 0.12;
+  static const double maxNormalizationGain = 18;
+  static const double clippingSampleThreshold = 0.985;
+  static const double clippingPenaltyThreshold = 0.02;
+  static const double maxClippingConfidencePenalty = 0.3;
+
+  SheetTunerDetectionDebugInfo? get lastDebugInfo => _lastDebugInfo;
 
   void configureForProfile(SheetTunerDetectionProfile profile) {
     minFrequency = profile.minFrequency;
     maxFrequency = profile.maxFrequency;
     minRms = profile.minRms;
     minConfidence = profile.minConfidence;
+  }
+
+  void configureAlgorithm(SheetTunerPitchDetectionAlgorithm value) {
+    algorithm = value;
   }
 
   SheetTunerReading? addPcm16Chunk(
@@ -1825,6 +2058,13 @@ class SheetTunerPitchDetector {
     int referencePitchA4 = 440,
   }) {
     if (samples.isEmpty) {
+      _lastDebugInfo = SheetTunerDetectionDebugInfo(
+        algorithm: algorithm,
+        rms: 0,
+        confidence: 0,
+        noiseFloorRms: _adaptiveNoiseGate.noiseFloorRms,
+        rejectionReason: 'empty',
+      );
       return null;
     }
 
@@ -1832,14 +2072,22 @@ class SheetTunerPitchDetector {
     if (_buffer.length > windowSize) {
       _buffer.removeRange(0, _buffer.length - windowSize);
     }
+    final frameRms = SheetTunerAdaptiveNoiseGate.rms(samples);
     if (_buffer.length < windowSize) {
+      _lastDebugInfo = SheetTunerDetectionDebugInfo(
+        algorithm: algorithm,
+        rms: frameRms,
+        confidence: 0,
+        noiseFloorRms: _adaptiveNoiseGate.noiseFloorRms,
+        rejectionReason: 'warmingUp',
+      );
       return null;
     }
 
-    final frameRms = SheetTunerAdaptiveNoiseGate.rms(samples);
     final effectiveMinRms = useAdaptiveNoiseFloor
         ? _adaptiveNoiseGate.adaptiveMinRms(minRms)
         : minRms;
+    final frameClippingRatio = clippingRatio(_buffer);
     final reading = detectSamples(
       _buffer,
       sampleRate: sampleRate,
@@ -1848,10 +2096,21 @@ class SheetTunerPitchDetector {
       maxFrequency: maxFrequency,
       minRms: effectiveMinRms,
       minConfidence: minConfidence,
+      algorithm: algorithm,
+      normalizeLowAmplitude: useAdaptiveNoiseFloor,
+      noiseFloorRms: _adaptiveNoiseGate.noiseFloorRms,
     );
+    final acceptedLowAmplitude =
+        useAdaptiveNoiseFloor &&
+        frameRms < effectiveMinRms &&
+        _adaptiveNoiseGate.acceptsLowAmplitudeSignal(
+          rms: frameRms,
+          baseMinRms: minRms,
+        );
     final shouldReject =
         useAdaptiveNoiseFloor &&
         reading != null &&
+        !acceptedLowAmplitude &&
         _adaptiveNoiseGate.shouldRejectCandidate(
           rms: frameRms,
           confidence: reading.signalLevel,
@@ -1864,12 +2123,27 @@ class SheetTunerPitchDetector {
         confidence: reading?.signalLevel,
       );
     }
+    _lastDebugInfo = SheetTunerDetectionDebugInfo(
+      algorithm: algorithm,
+      rms: frameRms,
+      confidence: reading?.signalLevel ?? 0,
+      noiseFloorRms: _adaptiveNoiseGate.noiseFloorRms,
+      clippingRatio: frameClippingRatio,
+      rejectionReason: shouldReject
+          ? 'noiseFloor'
+          : reading == null
+          ? frameRms < effectiveMinRms
+                ? 'weakSignal'
+                : 'noPitch'
+          : '',
+    );
     return shouldReject ? null : reading;
   }
 
   void reset() {
     _buffer.clear();
     _adaptiveNoiseGate.reset();
+    _lastDebugInfo = null;
   }
 
   static SheetTunerReading? detectSamples(
@@ -1882,6 +2156,10 @@ class SheetTunerPitchDetector {
     double? maxFrequency,
     double? minRms,
     double? minConfidence,
+    SheetTunerPitchDetectionAlgorithm algorithm =
+        SheetTunerPitchDetectionAlgorithm.hybrid,
+    bool normalizeLowAmplitude = false,
+    double noiseFloorRms = 0,
   }) {
     if (samples.length < 64 || sampleRate <= 0) {
       return null;
@@ -1892,16 +2170,17 @@ class SheetTunerPitchDetector {
     final effectiveMinConfidence =
         minConfidence ?? detectionProfile.minConfidence;
 
-    final mean = samples.reduce((a, b) => a + b) / samples.length;
-    final centered = List<double>.generate(
-      samples.length,
-      (index) => samples[index] - mean,
-      growable: false,
+    final prepared = _prepareAnalysisFrame(
+      samples,
+      minRms: effectiveMinRms,
+      normalizeLowAmplitude: normalizeLowAmplitude,
+      noiseFloorRms: noiseFloorRms,
     );
-    final rms = _rootMeanSquare(centered);
-    if (rms < effectiveMinRms) {
+    if (prepared == null) {
       return null;
     }
+    final centered = prepared.samples;
+    final clippingPenalty = _clippingConfidencePenalty(prepared.clippingRatio);
 
     final analysisMinFrequency = math.min(
       SheetTunerDetectionProfile.chromatic.minFrequency,
@@ -1916,6 +2195,142 @@ class SheetTunerPitchDetector {
       return null;
     }
 
+    final autocorrelationReading = _detectAutocorrelation(
+      centered: centered,
+      sampleRate: sampleRate,
+      referencePitchA4: referencePitchA4,
+      minLag: minLag,
+      maxLag: maxLag,
+      minFrequency: effectiveMinFrequency,
+      maxFrequency: effectiveMaxFrequency,
+      minConfidence: effectiveMinConfidence,
+    );
+    if (algorithm == SheetTunerPitchDetectionAlgorithm.autocorrelation) {
+      return _applyConfidencePenalty(
+        autocorrelationReading,
+        clippingPenalty,
+        referencePitchA4: referencePitchA4,
+      );
+    }
+
+    final yinReading = _detectYin(
+      centered: centered,
+      sampleRate: sampleRate,
+      referencePitchA4: referencePitchA4,
+      minLag: minLag,
+      maxLag: maxLag,
+      minFrequency: effectiveMinFrequency,
+      maxFrequency: effectiveMaxFrequency,
+      minConfidence: effectiveMinConfidence,
+    );
+    if (algorithm == SheetTunerPitchDetectionAlgorithm.yin) {
+      return _applyConfidencePenalty(
+        yinReading,
+        clippingPenalty,
+        referencePitchA4: referencePitchA4,
+      );
+    }
+    return _applyConfidencePenalty(
+      _selectHybridReading(
+        autocorrelationReading: autocorrelationReading,
+        yinReading: yinReading,
+      ),
+      clippingPenalty,
+      referencePitchA4: referencePitchA4,
+    );
+  }
+
+  static _PreparedTunerFrame? _prepareAnalysisFrame(
+    List<double> samples, {
+    required double minRms,
+    required bool normalizeLowAmplitude,
+    required double noiseFloorRms,
+  }) {
+    final mean = samples.reduce((a, b) => a + b) / samples.length;
+    final centered = List<double>.generate(
+      samples.length,
+      (index) => samples[index] - mean,
+      growable: false,
+    );
+    final rms = _rootMeanSquare(centered);
+    if (rms >= minRms) {
+      return _PreparedTunerFrame(
+        samples: centered,
+        clippingRatio: clippingRatio(samples),
+      );
+    }
+    if (!normalizeLowAmplitude || noiseFloorRms <= 0) {
+      return null;
+    }
+    final enoughAboveNoise =
+        rms >= noiseFloorRms * lowAmplitudeSignalToNoiseRatio;
+    final enoughAbsoluteSignal =
+        rms >= minRms * lowAmplitudeNormalizationMinRmsRatio;
+    if (!enoughAboveNoise || !enoughAbsoluteSignal) {
+      return null;
+    }
+    final gain = (normalizationTargetRms / rms)
+        .clamp(1.0, maxNormalizationGain)
+        .toDouble();
+    return _PreparedTunerFrame(
+      samples: centered
+          .map((sample) => (sample * gain).clamp(-1.0, 1.0).toDouble())
+          .toList(growable: false),
+      clippingRatio: clippingRatio(samples),
+    );
+  }
+
+  static SheetTunerReading? _applyConfidencePenalty(
+    SheetTunerReading? reading,
+    double penalty, {
+    required int referencePitchA4,
+  }) {
+    if (reading == null || penalty <= 0) {
+      return reading;
+    }
+    return SheetTunerPitch.detect(
+      frequency: reading.frequency,
+      referencePitchA4: referencePitchA4,
+      signalLevel: (reading.signalLevel - penalty).clamp(0.0, 1.0).toDouble(),
+      preferredMidiNumber: reading.note.midiNumber,
+    );
+  }
+
+  static double _clippingConfidencePenalty(double clippingRatio) {
+    if (clippingRatio <= clippingPenaltyThreshold) {
+      return 0;
+    }
+    final severity =
+        ((clippingRatio - clippingPenaltyThreshold) /
+                (0.18 - clippingPenaltyThreshold))
+            .clamp(0.0, 1.0)
+            .toDouble();
+    return severity * maxClippingConfidencePenalty;
+  }
+
+  static double clippingRatio(List<double> samples) {
+    if (samples.isEmpty) {
+      return 0;
+    }
+    var clipped = 0;
+    for (final sample in samples) {
+      if (sample.abs() >= clippingSampleThreshold) {
+        clipped += 1;
+      }
+    }
+    return clipped / samples.length;
+  }
+
+  static SheetTunerReading? _detectAutocorrelation({
+    required List<double> centered,
+    required int sampleRate,
+    required int referencePitchA4,
+    required int minLag,
+    required int maxLag,
+    required double minFrequency,
+    required double maxFrequency,
+    required double minConfidence,
+  }) {
     var globalBestLag = minLag;
     var bestCorrelation = -1.0;
     final correlations = <int, double>{};
@@ -1928,7 +2343,7 @@ class SheetTunerPitchDetector {
       }
     }
 
-    if (bestCorrelation < effectiveMinConfidence) {
+    if (bestCorrelation < minConfidence) {
       return null;
     }
 
@@ -1938,7 +2353,7 @@ class SheetTunerPitchDetector {
       correlations: correlations,
       globalBestLag: globalBestLag,
       bestCorrelation: bestCorrelation,
-      minConfidence: effectiveMinConfidence,
+      minConfidence: minConfidence,
     );
     final selectedCorrelation = correlations[bestLag] ?? bestCorrelation;
     final refinedLag = _refineLag(
@@ -1948,8 +2363,7 @@ class SheetTunerPitchDetector {
       correlations[bestLag + 1],
     );
     final frequency = sampleRate / refinedLag;
-    if (frequency < effectiveMinFrequency ||
-        frequency > effectiveMaxFrequency) {
+    if (frequency < minFrequency || frequency > maxFrequency) {
       return null;
     }
     return SheetTunerPitch.detect(
@@ -1957,6 +2371,114 @@ class SheetTunerPitchDetector {
       referencePitchA4: referencePitchA4,
       signalLevel: selectedCorrelation,
     );
+  }
+
+  static SheetTunerReading? _detectYin({
+    required List<double> centered,
+    required int sampleRate,
+    required int referencePitchA4,
+    required int minLag,
+    required int maxLag,
+    required double minFrequency,
+    required double maxFrequency,
+    required double minConfidence,
+    double absoluteThreshold = 0.15,
+  }) {
+    final difference = List<double>.filled(maxLag + 1, 0);
+    for (var lag = 1; lag <= maxLag; lag += 1) {
+      var sum = 0.0;
+      for (var index = 0; index < centered.length - lag; index += 1) {
+        final delta = centered[index] - centered[index + lag];
+        sum += delta * delta;
+      }
+      difference[lag] = sum;
+    }
+
+    final cumulativeMeanNormalized = List<double>.filled(maxLag + 1, 1);
+    var runningSum = 0.0;
+    for (var lag = 1; lag <= maxLag; lag += 1) {
+      runningSum += difference[lag];
+      cumulativeMeanNormalized[lag] = runningSum <= 0
+          ? 1
+          : difference[lag] * lag / runningSum;
+    }
+
+    int? selectedLag;
+    var selectedValue = double.infinity;
+    for (var lag = minLag; lag <= maxLag; lag += 1) {
+      final value = cumulativeMeanNormalized[lag];
+      if (value < absoluteThreshold) {
+        var candidate = lag;
+        while (candidate + 1 <= maxLag &&
+            cumulativeMeanNormalized[candidate + 1] <
+                cumulativeMeanNormalized[candidate]) {
+          candidate += 1;
+        }
+        selectedLag = candidate;
+        selectedValue = cumulativeMeanNormalized[candidate];
+        break;
+      }
+      if (value < selectedValue) {
+        selectedValue = value;
+        selectedLag = lag;
+      }
+    }
+
+    if (selectedLag == null) {
+      return null;
+    }
+    final confidence = (1 - selectedValue).clamp(0.0, 1.0).toDouble();
+    if (confidence < minConfidence) {
+      return null;
+    }
+    final refinedLag = _refineLag(
+      selectedLag,
+      selectedLag > 1 ? cumulativeMeanNormalized[selectedLag - 1] : null,
+      selectedValue,
+      selectedLag + 1 <= maxLag
+          ? cumulativeMeanNormalized[selectedLag + 1]
+          : null,
+    );
+    final frequency = sampleRate / refinedLag;
+    if (frequency < minFrequency || frequency > maxFrequency) {
+      return null;
+    }
+    return SheetTunerPitch.detect(
+      frequency: frequency,
+      referencePitchA4: referencePitchA4,
+      signalLevel: confidence,
+    );
+  }
+
+  static SheetTunerReading? _selectHybridReading({
+    required SheetTunerReading? autocorrelationReading,
+    required SheetTunerReading? yinReading,
+  }) {
+    if (autocorrelationReading == null) {
+      return yinReading;
+    }
+    if (yinReading == null) {
+      return autocorrelationReading;
+    }
+    final ratio = autocorrelationReading.frequency / yinReading.frequency;
+    final likelyAutocorrelationHarmonic =
+        ratio > 1.92 &&
+        ratio < 2.08 &&
+        yinReading.signalLevel >= autocorrelationReading.signalLevel - 0.18;
+    if (likelyAutocorrelationHarmonic) {
+      return yinReading;
+    }
+    final centsBetween = SheetTunerPitch.centsFromTarget(
+      frequency: yinReading.frequency,
+      targetFrequency: autocorrelationReading.frequency,
+    ).abs();
+    if (centsBetween <= 35 &&
+        yinReading.signalLevel >= autocorrelationReading.signalLevel - 0.08) {
+      return yinReading;
+    }
+    return autocorrelationReading.signalLevel >= yinReading.signalLevel
+        ? autocorrelationReading
+        : yinReading;
   }
 
   static int _firstStrongLocalPeak({
@@ -2079,6 +2601,17 @@ class SheetTunerAdaptiveNoiseGate {
         rms > floor * suddenNoiseMultiplier;
   }
 
+  bool acceptsLowAmplitudeSignal({
+    required double rms,
+    required double baseMinRms,
+  }) {
+    final floor = noiseFloorRms;
+    if (floor <= 0) {
+      return false;
+    }
+    return rms >= floor * noiseMultiplier && rms >= baseMinRms * 0.22;
+  }
+
   void observeFrame({
     required double rms,
     required double baseMinRms,
@@ -2116,6 +2649,16 @@ class SheetTunerAdaptiveNoiseGate {
     }
     return math.sqrt(sumSquares / samples.length);
   }
+}
+
+class _PreparedTunerFrame {
+  const _PreparedTunerFrame({
+    required this.samples,
+    required this.clippingRatio,
+  });
+
+  final List<double> samples;
+  final double clippingRatio;
 }
 
 class SheetTunerReadingStabilizer {
@@ -2220,16 +2763,18 @@ class SheetTunerReadingStabilizer {
     final jumpCents =
         1200 * SheetTunerPitch._log2(reading.frequency / last.frequency);
     final absoluteJumpCents = jumpCents.abs();
+    final isOctaveCandidate =
+        absoluteJumpCents >= 1050 && absoluteJumpCents <= 1350;
+    final isThirdHarmonicCandidate =
+        last.frequency <= 220 && jumpCents > 1800 && jumpCents < 2000;
     if (absoluteJumpCents <= maxStableJumpCents ||
-        absoluteJumpCents < 1050 ||
-        absoluteJumpCents > 1350) {
+        (!isOctaveCandidate && !isThirdHarmonicCandidate)) {
       return reading;
     }
 
-    final foldedFrequencies = <double>[
-      reading.frequency / 2,
-      reading.frequency * 2,
-    ];
+    final foldedFrequencies = isThirdHarmonicCandidate
+        ? <double>[reading.frequency / 3]
+        : <double>[reading.frequency / 2, reading.frequency * 2];
     for (final frequency in foldedFrequencies) {
       final foldedJumpCents =
           1200 * SheetTunerPitch._log2(frequency / last.frequency);
@@ -2240,7 +2785,8 @@ class SheetTunerReadingStabilizer {
           signalLevel: reading.signalLevel,
         );
         if (folded != null &&
-            folded.note.midiNumber % 12 == reading.note.midiNumber % 12) {
+            (isThirdHarmonicCandidate ||
+                folded.note.midiNumber % 12 == reading.note.midiNumber % 12)) {
           return folded;
         }
       }

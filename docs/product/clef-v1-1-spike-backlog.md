@@ -151,19 +151,25 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
 
 ## 9. 저지연 Metronome/Audio/iOS Playback Parity
 
-- 현재 v1 상태: visual metronome, `SystemSound` click, Android native tone/drone, Android
+- 현재 v1 상태: visual metronome, Android native metronome tick volume/accent click, Android native
+  tone/drone, Android
   `MediaPlayer` local audio playback, linked audio metadata/backup이 있다. 튜너는
-  Chromatic/Target mode, 악기별 preset, custom target/preset, target lock, sharp/flat 표기,
-  LED/input bar, A4 quick/history/보정 제안, adaptive noise floor 1차, target cents,
-  feedback damping/hold까지 구현했지만 실제 마이크 latency/외부 마이크 안정성은 QA가 필요하다.
-- 왜 v1.1 spike인지: low-latency tick/accent sound, audio session, background policy, iOS native
+  Chromatic-only UI, sharp/flat 표기, LED/input bar, A4 quick/history/보정 제안, adaptive noise
+  floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, feedback damping/hold,
+  Hybrid/YIN/autocorrelation detector 선택, plucked string 회귀 테스트,
+  감지 confidence/noise floor/clipping debug label까지 구현했지만 실제 마이크 latency/외부 마이크 안정성은
+  QA가 필요하다. 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했으며,
+  악보앱에 다시 넣을지 또는 별도 튜너앱으로 분리할지는 v1.1 이후 제품 판단으로 둔다.
+- 왜 v1.1 spike인지: low-latency tick scheduling, audio session, background policy, iOS native
   bridge, codec support를 결정해야 한다.
 - 결정 필요사항: audio package/native bridge, tick/accent asset, latency target, background/lock
   screen policy, iOS audio session category, codec matrix.
 - 구현 후보: native low-latency audio engine, preloaded tick/accent buffers, shared transport state,
-  iOS tone/audio player bridge, latency debug screen, tuner noise calibration dashboard와 YIN/MPM 비교 spike.
+  iOS tone/audio player bridge, latency debug screen, tuner noise calibration dashboard와 MPM/native
+  detector 비교 spike.
 - 테스트/fixture/실기기 조건: Android tablet, iPhone/iPad, wired/Bluetooth output, MP3/M4A/WAV,
-  BPM 40-240, accent drift measurement, tuner concurrent use, 실제 악기/외부 마이크 cents jitter 측정.
+  BPM 40-240, accent drift measurement, tuner concurrent use, 실제 악기/외부 마이크 cents jitter 측정,
+  Hybrid/YIN/autocorrelation engine별 상용 튜너 비교표.
 - Acceptance criteria: metronome tick/accent가 체감 latency와 drift 기준을 만족하고, Android/iOS
   local audio playback 상태/오류 문구가 일관된다.
 - Blocker 해제 조건: audio engine 선택, sound asset license, device latency QA.
@@ -203,6 +209,28 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
   overlays가 rotated coordinate에 맞으며, applied copy fallback은 계속 사용할 수 있다.
 - Blocker 해제 조건: stable viewer hook/API 선택, coordinate regression tests, screenshot QA.
 
+## 12. Viewer Mini Tool Panel과 고급 Metronome UX
+
+- 현재 v1 상태: 튜너와 메트로놈은 viewer bottom sheet에서 열리고, 필요할 때 viewer 우상단의 고정형
+  mini panel로 축소해 악보 위에 유지할 수 있다. 튜너는 Chromatic-only로 정리했고, 메트로놈은
+  BPM/박자/start-stop/accent visual, 악보별 metronome snapshot, 기본 ON tick sound toggle,
+  8분/3연/16분 subdivision, 0/1/2마디 count-in, 첫 박 강조, Tap tempo를 제공한다.
+- 왜 v1.1 spike인지: RC에는 drag/resize 없는 고정형 mini panel까지만 넣었다. 연주자가 악보를 보면서
+  튜너/메트로놈을 장시간 켜두려면 movable floating panel 또는 side panel architecture, focus/gesture
+  충돌, performance mode, accessibility, audio lifecycle을 함께 결정해야 한다.
+- 결정 필요사항: modal sheet 유지 vs floating mini panel, drag/move/resize 허용 여부, panel collapse
+  UX, viewer tap zone과의 충돌 정책, 공연 모드에서 열 수 있는 action 범위, metronome audible/visible
+  mode, setlist별 tempo/time signature override 저장.
+- 구현 후보: viewer overlay tool host, movable compact metronome/tuner card, visible metronome border
+  pulse, complex accent pattern presets, metronome cue editor.
+- 테스트/fixture/실기기 조건: phone/tablet portrait/landscape, 1-page/2-page/scroll/half-page viewer,
+  pedal page turn 중 panel focus 유지, Android audio route/volume, TalkBack semantic label, long-running
+  battery/latency smoke.
+- Acceptance criteria: 사용자가 위치를 조절할 수 있는 작은 패널로 튜너/메트로놈을 유지하고,
+  page turn/tap zones/performance mode와 충돌하지 않으며, 소리 실패 시 visible-only 상태가 명확하다.
+- Blocker 해제 조건: overlay architecture 결정, audio latency/fallback QA, 실제 연주 중 장시간 사용성
+  확인.
+
 ## RC 이후 추천 우선순위
 
 1. 실제 CamScanner/object stream 샘플과 Android tablet smoke QA로 v1 RC release blocker를 먼저 닫는다.
@@ -214,4 +242,6 @@ backlog다. v1 RC는 원본 PDF 보존, 앱 내부 metadata, 적용/공유 사�
    고정한다.
 5. PDF 표준 annotation embed와 SQLite/file-backed migration은 데이터/호환성 리스크가 커서 fixture와
    adapter 설계를 먼저 고정한다.
-6. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.
+6. Viewer mini tool panel과 고급 metronome UX는 실제 연주자 피드백 가치가 크지만 viewer overlay와
+   audio lifecycle 영향이 있으므로 v1.1 spike로 설계한 뒤 구현한다.
+7. Cloud sync/account/server 저장은 RC 사용성 검증 이후 V2/Later 투자 판단으로 남긴다.

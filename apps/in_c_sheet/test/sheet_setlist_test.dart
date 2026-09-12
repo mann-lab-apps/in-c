@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 
@@ -6,6 +7,7 @@ void main() {
   test('SheetSetlist encodes and decodes records', () {
     final createdAt = DateTime.parse('2026-08-20T10:00:00.000');
     final updatedAt = DateTime.parse('2026-08-20T10:05:00.000');
+    final lastOpenedAt = DateTime.parse('2026-08-20T10:07:00.000');
     final setlist = SheetSetlist(
       id: 'setlist-1',
       title: 'Recital',
@@ -16,7 +18,16 @@ void main() {
       scoreStartPages: const <String, int>{'score-1': 2},
       scoreNotes: const <String, String>{'score-1': 'Check transition.'},
       scoreDurations: const <String, int>{'score-1': 180, 'score-2': 210},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 92,
+          meter: SheetMetronomeMeter.threeFour,
+          countInBars: 1,
+        ),
+      },
       transitionSeconds: 12,
+      lastOpenedAt: lastOpenedAt,
+      lastOpenedScoreId: 'score-2',
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'twoPage',
         halfPageTurn: true,
@@ -41,7 +52,15 @@ void main() {
       'score-1': 180,
       'score-2': 210,
     });
+    expect(decoded.single.scoreMetronomeSettings['score-1']?.bpm, 92);
+    expect(
+      decoded.single.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.threeFour,
+    );
+    expect(decoded.single.scoreMetronomeSettings['score-1']?.countInBars, 1);
     expect(decoded.single.transitionSeconds, 12);
+    expect(decoded.single.lastOpenedAt, lastOpenedAt);
+    expect(decoded.single.lastOpenedScoreId, 'score-2');
     expect(decoded.single.totalEstimatedSeconds, 402);
     expect(decoded.single.viewerSettingsOverride?.displayMode, 'twoPage');
     expect(decoded.single.viewerSettingsOverride?.halfPageTurn, isTrue);
@@ -50,6 +69,24 @@ void main() {
       SheetViewerSettings.reversedSetlistPedalMapping,
     );
     expect(decoded.single.viewerSettingsOverride?.autoAdvanceSetlist, isTrue);
+  });
+
+  test('drops stale last opened score ids while decoding', () {
+    final decoded = SheetSetlist.decodeList('''
+[
+  {
+    "id": "setlist-1",
+    "title": "Recital",
+    "scoreIds": ["score-1"],
+    "createdAt": "2026-08-20T10:00:00.000",
+    "updatedAt": "2026-08-20T10:05:00.000",
+    "lastOpenedScoreId": "missing-score"
+  }
+]
+''');
+
+    expect(decoded, hasLength(1));
+    expect(decoded.single.lastOpenedScoreId, isNull);
   });
 
   test('sorts decoded setlists by updated date', () {
@@ -190,10 +227,21 @@ void main() {
         'missing': 'Drop me',
       },
       scoreDurations: const <String, int>{'score-1': 180, 'missing': 99},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+        'missing': SheetMetronomeSettings(
+          bpm: 144,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      },
       viewerSettingsOverride: const SheetViewerSettings(
         displayMode: 'continuousVertical',
         halfPageTurn: false,
       ),
+      lastOpenedScoreId: 'missing',
     );
 
     final cleaned = setlist.removeMissingScores(<String>{'score-1', 'score-2'});
@@ -202,7 +250,10 @@ void main() {
     expect(cleaned.scoreStartPages, <String, int>{'score-1': 2});
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
+    expect(cleaned.scoreMetronomeSettings.keys, <String>['score-1']);
+    expect(cleaned.scoreMetronomeSettings['score-1']?.bpm, 96);
     expect(cleaned.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(cleaned.lastOpenedScoreId, isNull);
   });
 
   test('removes stale rehearsal metadata even when score ids are clean', () {
@@ -219,6 +270,16 @@ void main() {
         'missing': 'Drop me',
       },
       scoreDurations: const <String, int>{'score-1': 180, 'missing': 99},
+      scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+        'score-1': SheetMetronomeSettings(
+          bpm: 108,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+        'missing': SheetMetronomeSettings(
+          bpm: 132,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      },
     );
 
     final cleaned = setlist.removeMissingScores(<String>{'score-1'});
@@ -227,6 +288,8 @@ void main() {
     expect(cleaned.scoreStartPages, <String, int>{'score-1': 2});
     expect(cleaned.scoreNotes, <String, String>{'score-1': 'Ready'});
     expect(cleaned.scoreDurations, <String, int>{'score-1': 180});
+    expect(cleaned.scoreMetronomeSettings.keys, <String>['score-1']);
+    expect(cleaned.scoreMetronomeSettings['score-1']?.bpm, 108);
   });
 
   test('adds and removes scores without duplicating ids', () {

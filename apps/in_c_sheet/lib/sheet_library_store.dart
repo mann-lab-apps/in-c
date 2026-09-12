@@ -10,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'sheet_annotated_pdf_exporter.dart';
 import 'sheet_annotation.dart';
+import 'sheet_bookmark_import.dart';
 import 'sheet_library_backup.dart';
 import 'sheet_library_profile.dart';
 import 'sheet_library_view_settings.dart';
@@ -655,6 +656,54 @@ class SheetLibraryStore {
     }
 
     return importPdfBytes(bytes: await file.readAsBytes(), fileName: file.name);
+  }
+
+  Future<List<SheetScore>> importPdfs() async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf'],
+    );
+
+    if (files.isEmpty) {
+      return const <SheetScore>[];
+    }
+
+    final scores = <SheetScore>[];
+    for (final file in files) {
+      if (!SheetFileImportPolicy.isPdfFileName(file.name)) {
+        throw FormatException('Unsupported PDF file: ${file.name}');
+      }
+      scores.add(
+        await importPdfBytes(
+          bytes: await file.readAsBytes(),
+          fileName: file.name,
+        ),
+      );
+    }
+    return List<SheetScore>.unmodifiable(scores);
+  }
+
+  Future<List<SheetBookmark>> importBookmarkCsv({
+    required int pageCount,
+  }) async {
+    final files = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['csv', 'txt'],
+    );
+
+    if (files.isEmpty) {
+      return const <SheetBookmark>[];
+    }
+
+    final text = utf8.decode(
+      await files.first.readAsBytes(),
+      allowMalformed: true,
+    );
+    return SheetBookmarkCsvImporter.parse(
+      text,
+      pageCount: pageCount,
+      createdAt: DateTime.now(),
+    );
   }
 
   Future<SheetScore> importPdfFile(File file, {String? fileName}) async {

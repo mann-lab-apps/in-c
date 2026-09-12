@@ -68,27 +68,25 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ## 튜너 흐름
 
 1. viewer에서 튜너 bottom sheet를 연다.
-2. `시작`을 눌러 microphone permission prompt가 뜨는지 확인한다.
+2. 튜너 진입 시 microphone permission prompt가 뜨는지 확인한다.
 3. 권한 허용 후 상태가 `마이크 입력 수신 중` 또는 `소리가 작거나 안정적이지 않습니다`로 바뀌는지
    확인한다.
-4. Concert/Bb/Eb/F/Strings/Guitar/Bass 표시 profile과 감지 profile을 각각 전환한다.
-5. 440Hz reference tone을 입력해 Concert A4, frequency, cents, signal이 갱신되는지 확인한다.
-6. Bb Trumpet, Alto Sax, Horn in F에서 written/concert 표시가 이해되는지 확인한다.
-7. Violin 또는 Guitar profile에서 open string target shortcut을 누르고 target 표시와 cents meter를
+4. 첫 화면이 chromatic-only로 확대된 pitch history chart 안에 현재 음, frequency, cents, signal을 바로 보여주는지
    확인한다.
-8. 조용한 상태에서 no signal로 안정적으로 돌아가는지 확인한다.
-9. start/stop을 빠르게 여러 번 눌러 crash가 없는지 확인한다.
-10. bottom sheet를 닫은 뒤 다시 열어 recorder가 정상 재시작되는지 확인한다.
-11. 권한을 거부한 뒤 앱이 crash 없이 권한 안내를 표시하는지 확인한다.
+5. 440Hz reference tone을 입력해 A4, frequency, cents, signal이 갱신되는지 확인한다.
+6. 기타 줄 맞춤, 악기별 preset, custom target, target lock이 v1 UI에 보이지 않는지 확인한다.
+7. 조용한 상태에서 no signal로 안정적으로 돌아가는지 확인한다.
+8. 마이크 toggle을 빠르게 여러 번 눌러 crash가 없는지 확인한다.
+9. bottom sheet를 닫은 뒤 다시 열어 recorder가 정상 재시작되는지 확인한다.
+10. 권한을 거부한 뒤 앱이 crash 없이 권한 안내를 표시하는지 확인한다.
 
 기록할 항목:
 
 - 권한 prompt 표시 여부.
 - 440Hz 또는 튜닝 앱 reference tone 입력 시 A4 근처 탐지 여부.
-- Bb/Eb/F 악기 profile에서 실제 입력 시 written/concert 표시가 기대와 맞는지 여부.
-- Strings/Guitar/Bass target shortcut이 실제 open string 조율에 맞는지 여부.
+- 기타 줄 맞춤/악기별 preset/target lock이 v1 UI에서 제외되어 있는지 여부.
 - note label 깜빡임 정도.
-- cents meter 흔들림 정도.
+- pitch history chart와 cents 요약 흔들림 정도.
 - start/stop/bottom sheet close 후 microphone indicator가 꺼지는지 여부.
 
 ## 하드웨어 키/Bluetooth 페달

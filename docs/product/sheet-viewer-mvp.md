@@ -213,10 +213,11 @@ import/library/viewer/annotation/performance/backup 흐름을 구현했고, Home
 - 주석/필기 1차: 펜/형광펜 stroke, 텍스트 주석, 지우개 stroke 삭제, 색상/두께 선택,
   텍스트 주석 수정/삭제, 현재 페이지 stroke/text undo/redo, 기본 layer 표시/숨김과 PDF 공유
   포함/제외, 앱 metadata 저장, `pdfrx` page overlay 기반 좌표 정합성 보강.
-- 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 OFF tick sound toggle.
+- 메트로놈 1차: BPM/박자 저장, start/stop, accent beat visual 표시, 기본 ON tick sound toggle,
+  Android native tick volume.
 - 튜너 1차: `record` 기반 microphone PCM stream, autocorrelation pitch detector, median
   smoothing, no-signal debounce, octave jump 완화, note hysteresis, frequency-to-note 계산,
-  cents meter, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
+  확대된 pitch history chart, Concert/Bb Trumpet 표시 모드, Chromatic/Bb Trumpet 감지 profile, A4 기준음 저장,
   visual tuner fallback.
 - 하드웨어 키/Bluetooth 페달 입력 1차: Arrow/Page/Space/Enter/Tab/Media key 기반 이전/다음
   페이지 넘김, 방향키 방식 페달의 PDF 내부 미세 스크롤 방지, 곡 처음/끝 경계 안내.

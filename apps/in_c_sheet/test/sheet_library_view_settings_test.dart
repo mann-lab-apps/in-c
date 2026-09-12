@@ -8,9 +8,11 @@ void main() {
       sortMode: SheetLibrarySortMode.rating,
       favoriteOnly: true,
       tagQuery: 'lesson',
+      composerQuery: 'Bach',
       collectionQuery: 'Methods',
       groupQuery: 'Warmup',
       minimumRating: 4,
+      customFieldFilters: <String, String>{'조성': 'D', '장르': 'Etude'},
     );
 
     final decoded = SheetLibraryViewSettingsCodec.decode(
@@ -20,9 +22,14 @@ void main() {
     expect(decoded.sortMode, SheetLibrarySortMode.rating);
     expect(decoded.favoriteOnly, isTrue);
     expect(decoded.tagQuery, 'lesson');
+    expect(decoded.composerQuery, 'Bach');
     expect(decoded.collectionQuery, 'Methods');
     expect(decoded.groupQuery, 'Warmup');
     expect(decoded.minimumRating, 4);
+    expect(decoded.customFieldFilters, <String, String>{
+      '조성': 'D',
+      '장르': 'Etude',
+    });
   });
 
   test('falls back to default settings for malformed JSON', () {
@@ -38,17 +45,25 @@ void main() {
       'sortMode': 7,
       'favoriteOnly': 'true',
       'tagQuery': 4,
+      'composerQuery': <String>['Bach'],
       'collectionQuery': <String>['book'],
       'groupQuery': false,
       'minimumRating': 3.6,
+      'customFieldFilters': <Object?, Object?>{
+        ' 조성 ': ' D ',
+        '장르': '',
+        '': 'Etude',
+      },
     });
 
     expect(settings.sortMode, SheetLibrarySortMode.recent);
     expect(settings.favoriteOnly, isFalse);
     expect(settings.tagQuery, isEmpty);
+    expect(settings.composerQuery, isEmpty);
     expect(settings.collectionQuery, isEmpty);
     expect(settings.groupQuery, isEmpty);
     expect(settings.minimumRating, 4);
+    expect(settings.customFieldFilters, <String, String>{'조성': 'D'});
   });
 
   test('matches and serializes trimmed direct filter values', () {
@@ -57,9 +72,11 @@ void main() {
       sortMode: SheetLibrarySortMode.recent,
       favoriteOnly: false,
       tagQuery: ' lesson ',
+      composerQuery: ' composer ',
       collectionQuery: ' methods ',
       groupQuery: ' WARMUP ',
       minimumRating: 4,
+      customFieldFilters: <String, String>{' 조성 ': ' D '},
     );
     final score = SheetScore(
       id: 'score-1',
@@ -77,14 +94,19 @@ void main() {
       lastPage: 1,
       isFavorite: false,
       bookmarks: const <SheetBookmark>[],
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '조성', value: 'D'),
+      ],
     );
     final json = settings.toJson();
 
     expect(settings.matches(score), isTrue);
     expect(json['tagQuery'], 'lesson');
+    expect(json['composerQuery'], 'composer');
     expect(json['collectionQuery'], 'methods');
     expect(json['groupQuery'], 'WARMUP');
     expect(json['minimumRating'], 4);
+    expect(json['customFieldFilters'], <String, String>{'조성': 'D'});
   });
 
   test('encodes and decodes performance preset templates', () {

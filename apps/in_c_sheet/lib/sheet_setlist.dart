@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'sheet_metronome.dart';
 import 'sheet_score.dart';
 
 class SheetSetlist {
@@ -13,8 +14,11 @@ class SheetSetlist {
     this.scoreStartPages = const <String, int>{},
     this.scoreNotes = const <String, String>{},
     this.scoreDurations = const <String, int>{},
+    this.scoreMetronomeSettings = const <String, SheetMetronomeSettings>{},
     this.transitionSeconds = 0,
     this.viewerSettingsOverride,
+    this.lastOpenedAt,
+    this.lastOpenedScoreId,
   });
 
   factory SheetSetlist.fromJson(Map<String, Object?> json) {
@@ -23,20 +27,25 @@ class SheetSetlist {
       throw const FormatException('Setlist id is required.');
     }
     final createdAt = _dateFromJson(json['createdAt']);
+    final scoreIds = _jsonList(json['scoreIds'])
+        .map(_stringFromJson)
+        .map((scoreId) => scoreId.trim())
+        .where((scoreId) => scoreId.isNotEmpty)
+        .toList(growable: false);
+    final lastOpenedScoreId = _stringFromJson(json['lastOpenedScoreId']).trim();
     return SheetSetlist(
       id: id,
       title: _titleFromJson(json['title']),
-      scoreIds: _jsonList(json['scoreIds'])
-          .map(_stringFromJson)
-          .map((scoreId) => scoreId.trim())
-          .where((scoreId) => scoreId.isNotEmpty)
-          .toList(growable: false),
+      scoreIds: scoreIds,
       createdAt: createdAt,
       updatedAt: _dateFromJson(json['updatedAt'], fallback: createdAt),
       rehearsalMode: _boolFromJson(json['rehearsalMode'], fallback: false),
       scoreStartPages: _intMapFromJson(json['scoreStartPages']),
       scoreNotes: _stringMapFromJson(json['scoreNotes']),
       scoreDurations: _intMapFromJson(json['scoreDurations']),
+      scoreMetronomeSettings: _metronomeSettingsMapFromJson(
+        json['scoreMetronomeSettings'],
+      ),
       transitionSeconds: _intFromJson(
         json['transitionSeconds'],
         fallback: 0,
@@ -44,6 +53,10 @@ class SheetSetlist {
       viewerSettingsOverride: _viewerSettingsFromJson(
         json['viewerSettingsOverride'],
       ),
+      lastOpenedAt: _optionalDateFromJson(json['lastOpenedAt']),
+      lastOpenedScoreId: scoreIds.contains(lastOpenedScoreId)
+          ? lastOpenedScoreId
+          : null,
     );
   }
 
@@ -92,8 +105,11 @@ class SheetSetlist {
   final Map<String, int> scoreStartPages;
   final Map<String, String> scoreNotes;
   final Map<String, int> scoreDurations;
+  final Map<String, SheetMetronomeSettings> scoreMetronomeSettings;
   final int transitionSeconds;
   final SheetViewerSettings? viewerSettingsOverride;
+  final DateTime? lastOpenedAt;
+  final String? lastOpenedScoreId;
 
   int get totalScoreDurationSeconds {
     var total = 0;
@@ -118,9 +134,14 @@ class SheetSetlist {
     Map<String, int>? scoreStartPages,
     Map<String, String>? scoreNotes,
     Map<String, int>? scoreDurations,
+    Map<String, SheetMetronomeSettings>? scoreMetronomeSettings,
     int? transitionSeconds,
     SheetViewerSettings? viewerSettingsOverride,
     bool clearViewerSettingsOverride = false,
+    DateTime? lastOpenedAt,
+    bool clearLastOpenedAt = false,
+    String? lastOpenedScoreId,
+    bool clearLastOpenedScoreId = false,
   }) {
     return SheetSetlist(
       id: id,
@@ -132,12 +153,20 @@ class SheetSetlist {
       scoreStartPages: scoreStartPages ?? this.scoreStartPages,
       scoreNotes: scoreNotes ?? this.scoreNotes,
       scoreDurations: scoreDurations ?? this.scoreDurations,
+      scoreMetronomeSettings:
+          scoreMetronomeSettings ?? this.scoreMetronomeSettings,
       transitionSeconds: (transitionSeconds ?? this.transitionSeconds)
           .clamp(0, 600)
           .toInt(),
       viewerSettingsOverride: clearViewerSettingsOverride
           ? null
           : viewerSettingsOverride ?? this.viewerSettingsOverride,
+      lastOpenedAt: clearLastOpenedAt
+          ? null
+          : lastOpenedAt ?? this.lastOpenedAt,
+      lastOpenedScoreId: clearLastOpenedScoreId
+          ? null
+          : lastOpenedScoreId ?? this.lastOpenedScoreId,
     );
   }
 
@@ -163,10 +192,23 @@ class SheetSetlist {
         scoreDurations.entries.where((entry) => cleanedIds.contains(entry.key)),
       ),
     );
+    final cleanedMetronomeSettings =
+        Map<String, SheetMetronomeSettings>.unmodifiable(
+          Map<String, SheetMetronomeSettings>.fromEntries(
+            scoreMetronomeSettings.entries.where(
+              (entry) => cleanedIds.contains(entry.key),
+            ),
+          ),
+        );
+    final cleanedLastOpenedScoreId = cleanedIds.contains(lastOpenedScoreId)
+        ? lastOpenedScoreId
+        : null;
     if (_listEquals(cleaned, scoreIds) &&
         _mapEquals(cleanedStartPages, scoreStartPages) &&
         _mapEquals(cleanedNotes, scoreNotes) &&
-        _mapEquals(cleanedDurations, scoreDurations)) {
+        _mapEquals(cleanedDurations, scoreDurations) &&
+        _metronomeMapEquals(cleanedMetronomeSettings, scoreMetronomeSettings) &&
+        cleanedLastOpenedScoreId == lastOpenedScoreId) {
       return this;
     }
     return copyWith(
@@ -174,6 +216,9 @@ class SheetSetlist {
       scoreStartPages: cleanedStartPages,
       scoreNotes: cleanedNotes,
       scoreDurations: cleanedDurations,
+      scoreMetronomeSettings: cleanedMetronomeSettings,
+      lastOpenedScoreId: cleanedLastOpenedScoreId,
+      clearLastOpenedScoreId: cleanedLastOpenedScoreId == null,
       updatedAt: DateTime.now(),
     );
   }
@@ -193,6 +238,7 @@ class SheetSetlist {
       scoreIds: scoreIds
           .where((candidate) => candidate != scoreId)
           .toList(growable: false),
+      clearLastOpenedScoreId: lastOpenedScoreId == scoreId,
       updatedAt: updatedAt,
     );
   }
@@ -223,9 +269,14 @@ class SheetSetlist {
       'scoreStartPages': scoreStartPages,
       'scoreNotes': scoreNotes,
       'scoreDurations': scoreDurations,
+      'scoreMetronomeSettings': scoreMetronomeSettings.map(
+        (scoreId, settings) => MapEntry(scoreId, settings.toJson()),
+      ),
       'transitionSeconds': transitionSeconds,
       if (viewerSettingsOverride != null)
         'viewerSettingsOverride': viewerSettingsOverride!.toJson(),
+      if (lastOpenedAt != null) 'lastOpenedAt': lastOpenedAt!.toIso8601String(),
+      if (lastOpenedScoreId != null) 'lastOpenedScoreId': lastOpenedScoreId,
     };
   }
 
@@ -247,6 +298,22 @@ class SheetSetlist {
     }
     for (final entry in a.entries) {
       if (b[entry.key] != entry.value) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static bool _metronomeMapEquals(
+    Map<String, SheetMetronomeSettings> a,
+    Map<String, SheetMetronomeSettings> b,
+  ) {
+    if (a.length != b.length) {
+      return false;
+    }
+    for (final entry in a.entries) {
+      if (jsonEncode(b[entry.key]?.toJson()) !=
+          jsonEncode(entry.value.toJson())) {
         return false;
       }
     }
@@ -291,6 +358,13 @@ DateTime _dateFromJson(Object? value, {DateTime? fallback}) {
   return fallback ?? DateTime.fromMillisecondsSinceEpoch(0);
 }
 
+DateTime? _optionalDateFromJson(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  return DateTime.tryParse(value);
+}
+
 bool _boolFromJson(Object? value, {required bool fallback}) {
   return value is bool ? value : fallback;
 }
@@ -330,4 +404,23 @@ Map<String, String> _stringMapFromJson(Object? value) {
     }
   }
   return Map<String, String>.unmodifiable(result);
+}
+
+Map<String, SheetMetronomeSettings> _metronomeSettingsMapFromJson(
+  Object? value,
+) {
+  final map = _asJsonMap(value);
+  if (map == null) {
+    return const <String, SheetMetronomeSettings>{};
+  }
+  final result = <String, SheetMetronomeSettings>{};
+  for (final entry in map.entries) {
+    final scoreId = entry.key.trim();
+    final settingsJson = _asJsonMap(entry.value);
+    if (scoreId.isEmpty || settingsJson == null) {
+      continue;
+    }
+    result[scoreId] = SheetMetronomeSettings.fromJson(settingsJson);
+  }
+  return Map<String, SheetMetronomeSettings>.unmodifiable(result);
 }

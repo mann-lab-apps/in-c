@@ -402,7 +402,7 @@ class ClassicalAppIdentityReadiness {
       storeSubtitle: '오늘 하나씩 여는 클래식',
       shortDescription: '작품 중심으로 클래식을 발견하고, 듣기와 공연으로 이어집니다.',
       iconStatus:
-          'first-pass in C icon applied; device and store review still needed',
+          'Darezzo C clef icon applied; device and store review still needed',
       privacyCopyStatus: 'in-app policy copy and docs are present',
       permissionSummary: 'local-first storage, external link-out, no hosted audio, no advertiser raw events',
       releaseDecision: 'Public V1 uses the Play Console package name com.mannlab.inc with in C display name, icon, store copy, and direct discovery entry.',

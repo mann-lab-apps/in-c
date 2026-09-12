@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui show Canvas;
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
@@ -26,6 +27,7 @@ import 'sheet_library_profile.dart';
 import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
+import 'sheet_metronome_player.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
@@ -38,7 +40,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+14';
+const String _clefAppVersion = '1.0.0+20';
 const bool _launchInCDiscoveryHome = bool.fromEnvironment(
   'IN_C_DISCOVERY_HOME',
 );
@@ -152,8 +154,27 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
 
   void _toggleBulkScoreSelection(SheetScore score) {
     setState(() {
+      _isBulkSelecting = true;
       if (!_bulkSelectedScoreIds.add(score.id)) {
         _bulkSelectedScoreIds.remove(score.id);
+      }
+    });
+  }
+
+  void _toggleAllVisibleScoreSelection(List<SheetScore> visibleScores) {
+    if (visibleScores.isEmpty) {
+      return;
+    }
+    final visibleIds = visibleScores.map((score) => score.id).toSet();
+    final hasUnselectedVisible = visibleIds.any(
+      (id) => !_bulkSelectedScoreIds.contains(id),
+    );
+    setState(() {
+      _isBulkSelecting = true;
+      if (hasUnselectedVisible) {
+        _bulkSelectedScoreIds.addAll(visibleIds);
+      } else {
+        _bulkSelectedScoreIds.removeAll(visibleIds);
       }
     });
   }
@@ -182,6 +203,82 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       rating: input.rating,
       isFavorite: input.isFavorite,
       isPinned: input.isPinned,
+      customFields: input.customFields,
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$changedCount개 악보 정보를 일괄 편집했습니다.')));
+  }
+
+  Future<void> _showBulkSetlistAdd() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('세트리스트에 넣을 악보를 선택하세요.')));
+      return;
+    }
+    final selectedScores = controller.scores
+        .where((score) => _bulkSelectedScoreIds.contains(score.id))
+        .toList(growable: false);
+    if (selectedScores.isEmpty) {
+      return;
+    }
+
+    final target = await _selectSetlistForBulkAdd(selectedScores.length);
+    if (!mounted || target == null) {
+      return;
+    }
+
+    final result = await controller.addScoresToSetlist(target, selectedScores);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+
+    final skippedLabel = result.skippedDuplicateCount == 0
+        ? ''
+        : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel'
+        : '"${target.title}"에 이미 모두 포함되어 있습니다.';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            unawaited(_openSetlistDetail(target));
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBulkCollectionAssign() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('컬렉션에 묶을 악보를 선택하세요.')));
+      return;
+    }
+    final collection = await _selectCollectionForBulkAssign(
+      _bulkSelectedScoreIds.length,
+    );
+    if (!mounted || collection == null) {
+      return;
+    }
+
+    final changedCount = await controller.bulkEditScores(
+      Set<String>.of(_bulkSelectedScoreIds),
+      collection: collection,
     );
     if (!mounted) {
       return;
@@ -191,27 +288,229 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       _bulkSelectedScoreIds.clear();
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$changedCount개 악보 metadata를 일괄 편집했습니다.')),
+      SnackBar(
+        content: Text('$changedCount개 악보를 "$collection" 컬렉션으로 묶었습니다.'),
+        action: SnackBarAction(
+          label: '보기',
+          onPressed: () {
+            unawaited(controller.updateCollectionFilter(collection));
+          },
+        ),
+      ),
     );
   }
 
-  Future<void> _importPdf() async {
+  Future<void> _deleteBulkScores() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('제거할 악보를 선택하세요.')));
+      return;
+    }
+    final scoreCount = _bulkSelectedScoreIds.length;
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('선택 악보 제거'),
+        content: Text(
+          '$scoreCount개 악보를 이 라이브러리 목록에서 제거할까요?\n\n'
+          '가져온 PDF 원본 파일은 삭제하지 않고, 세트리스트에 들어간 항목만 함께 정리합니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('제거'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || didConfirm != true) {
+      return;
+    }
+
+    final deletedCount = await controller.deleteScoresByIds(
+      Set<String>.of(_bulkSelectedScoreIds),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+    final message = deletedCount == 0
+        ? '제거할 악보가 없습니다.'
+        : '$deletedCount개 악보를 라이브러리에서 제거했습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<SheetSetlist?> _selectSetlistForBulkAdd(int scoreCount) async {
+    final action = await showModalBottomSheet<_BulkSetlistTargetAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _BulkSetlistTargetSheet(
+        setlists: controller.setlists,
+        scoreCount: scoreCount,
+      ),
+    );
+    if (!mounted || action == null) {
+      return null;
+    }
+    if (action.createNew) {
+      final title = await _showTextEntryDialog(
+        context: context,
+        title: '새 세트리스트 만들기',
+        label: '이름',
+        initialValue: '새 세트리스트',
+      );
+      if (!mounted || title == null) {
+        return null;
+      }
+      final existing = controller.setlistByTitleOrNull(title);
+      if (existing != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('"${existing.title}" 세트리스트가 이미 있습니다.')),
+        );
+        return existing;
+      }
+      return controller.createSetlist(title);
+    }
+    return action.setlist;
+  }
+
+  Future<String?> _selectCollectionForBulkAssign(int scoreCount) async {
+    final action = await showModalBottomSheet<_BulkCollectionTargetAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _BulkCollectionTargetSheet(
+        collections: controller.allCollections,
+        scoreCount: scoreCount,
+      ),
+    );
+    if (!mounted || action == null) {
+      return null;
+    }
+    if (action.collectionName != null) {
+      return action.collectionName;
+    }
+    final input = await _showTextEntryDialog(
+      context: context,
+      title: '새 컬렉션 지정',
+      label: '컬렉션 이름',
+      initialValue: controller.libraryViewSettings.collectionQuery.isEmpty
+          ? '새 컬렉션'
+          : controller.libraryViewSettings.collectionQuery,
+    );
+    if (!mounted || input == null) {
+      return null;
+    }
+    final collection = input.trim();
+    if (collection.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('컬렉션 이름을 입력하세요.')));
+      return null;
+    }
+    return collection;
+  }
+
+  Future<void> _importPdf({bool addToSetlist = false}) async {
     final score = await controller.importPdf();
     if (!mounted || score == null) {
       return;
     }
-    await _openScore(score);
+    final openedExisting = controller.lastImportOpenedExistingScore;
+    if (openedExisting) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${score.title}"이 이미 있어 기존 악보를 엽니다.')),
+      );
+    }
+    if (addToSetlist) {
+      await _addImportedScoreToSetlist(score);
+      if (!mounted) {
+        return;
+      }
+    }
+    await _openScore(score, showImportNudge: !openedExisting);
   }
 
-  Future<void> _importImagesAsPdf() async {
+  Future<void> _importPdfs({bool addToSetlist = false}) async {
+    final result = await controller.importPdfs();
+    if (!mounted || result.isEmpty) {
+      return;
+    }
+    if (addToSetlist) {
+      final target = await _selectSetlistForBulkAdd(result.scores.length);
+      if (!mounted || target == null) {
+        return;
+      }
+      final setlistResult = await controller.addScoresToSetlist(
+        target,
+        result.scores,
+      );
+      if (!mounted) {
+        return;
+      }
+      final added = setlistResult.addedCount;
+      final skipped = setlistResult.skippedDuplicateCount;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            skipped > 0
+                ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
+                : '"${target.title}"에 $added개 악보를 추가했습니다.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final duplicateSuffix = result.existingCount > 0
+        ? ' 기존 악보 ${result.existingCount}개는 다시 만들지 않았습니다.'
+        : '';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${result.importedCount}개 PDF를 가져왔습니다.$duplicateSuffix'),
+      ),
+    );
+  }
+
+  Future<void> _importImagesAsPdf({bool addToSetlist = false}) async {
     final score = await controller.importImagesAsPdf();
     if (!mounted || score == null) {
       return;
     }
+    if (addToSetlist) {
+      await _addImportedScoreToSetlist(score);
+      if (!mounted) {
+        return;
+      }
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('"${score.title}" 이미지 PDF를 추가했습니다.')),
     );
-    await _openScore(score);
+    await _openScore(score, showImportNudge: true);
+  }
+
+  Future<void> _addImportedScoreToSetlist(SheetScore score) async {
+    final target = await _selectSetlistForBulkAdd(1);
+    if (!mounted || target == null) {
+      return;
+    }
+    final result = await controller.addScoresToSetlist(target, <SheetScore>[
+      score,
+    ]);
+    if (!mounted) {
+      return;
+    }
+    final message = result.didAddAny
+        ? '"${score.title}"을 "${target.title}"에 추가했습니다.'
+        : '"${target.title}"에 이미 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _showTesterInfo() async {
@@ -228,34 +527,132 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('PDF 가져오기'),
-              subtitle: const Text('파일 앱, 다운로드, 메신저 저장 PDF'),
-              onTap: () => Navigator.of(context).pop(_LibraryImportAction.pdf),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('이미지를 PDF 악보로 묶기'),
-              subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
-              onTap: () =>
-                  Navigator.of(context).pop(_LibraryImportAction.images),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf_outlined),
+                title: const Text('PDF 가져오기'),
+                subtitle: const Text('파일 앱, 다운로드, 메신저 저장 PDF'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.pdf),
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add_outlined),
+                title: const Text('PDF 가져와 세트리스트에 추가'),
+                subtitle: const Text('가져온 뒤 기존/새 세트리스트 선택'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.pdfToSetlist),
+              ),
+              ListTile(
+                leading: const Icon(Icons.library_add_outlined),
+                title: const Text('여러 PDF 가져오기'),
+                subtitle: const Text('여러 파일을 한 번에 라이브러리에 추가'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.pdfs),
+              ),
+              ListTile(
+                leading: const Icon(Icons.playlist_add_check_outlined),
+                title: const Text('여러 PDF를 세트리스트에 추가'),
+                subtitle: const Text('묶음으로 가져온 뒤 공연 순서에 추가'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.pdfsToSetlist),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('이미지를 PDF 악보로 묶기'),
+                subtitle: const Text('JPG/PNG를 페이지별 PDF로 등록'),
+                onTap: () =>
+                    Navigator.of(context).pop(_LibraryImportAction.images),
+              ),
+              ListTile(
+                leading: const Icon(Icons.add_photo_alternate_outlined),
+                title: const Text('이미지를 묶어 세트리스트에 추가'),
+                subtitle: const Text('이미지 PDF 생성 뒤 세트리스트 선택'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_LibraryImportAction.imagesToSetlist),
+              ),
+            ],
+          ),
         ),
       ),
     );
     switch (action) {
       case _LibraryImportAction.pdf:
         await _importPdf();
+      case _LibraryImportAction.pdfToSetlist:
+        await _importPdf(addToSetlist: true);
+      case _LibraryImportAction.pdfs:
+        await _importPdfs();
+      case _LibraryImportAction.pdfsToSetlist:
+        await _importPdfs(addToSetlist: true);
       case _LibraryImportAction.images:
         await _importImagesAsPdf();
+      case _LibraryImportAction.imagesToSetlist:
+        await _importImagesAsPdf(addToSetlist: true);
       case null:
         return;
     }
+  }
+
+  Future<void> _openRecentSetlist(SheetSetlist setlist) async {
+    final scores = controller.scoresForSetlist(setlist);
+    if (!mounted) {
+      return;
+    }
+    if (scores.isEmpty) {
+      await controller.markSetlistOpened(setlist);
+      if (!mounted) {
+        return;
+      }
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (context) => SheetSetlistDetailScreen(
+            controller: controller,
+            setlistId: setlist.id,
+          ),
+        ),
+      );
+      return;
+    }
+    final score = _scoreToOpenForSetlistResume(setlist, scores);
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
+    await controller.markOpened(score);
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetViewerScreen(
+          controller: controller,
+          scoreId: score.id,
+          setlistId: setlist.id,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSetlistDetail(SheetSetlist setlist) async {
+    final currentSetlist = controller.setlistByIdOrNull(setlist.id);
+    if (currentSetlist == null) {
+      return;
+    }
+    await controller.markSetlistOpened(currentSetlist);
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: currentSetlist.id,
+        ),
+      ),
+    );
   }
 
   Future<void> _showLibrarySwitcher() async {
@@ -330,7 +727,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           builder: (context) => AlertDialog(
             title: const Text('라이브러리 비우기'),
             content: Text(
-              '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 metadata만 비웁니다.',
+              '"${action.label}" 라이브러리의 악보 파일은 삭제하지 않고, 이 라이브러리 정보만 비웁니다.',
             ),
             actions: [
               TextButton(
@@ -473,10 +870,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         content: Text('${imported.length}개 PDF를 Clef & Staff 라이브러리에 추가했습니다.'),
       ),
     );
-    await _openScore(imported.first);
+    await _openScore(imported.first, showImportNudge: true);
   }
 
-  Future<void> _openScore(SheetScore score, {String? setlistId}) async {
+  Future<void> _openScore(
+    SheetScore score, {
+    String? setlistId,
+    bool showImportNudge = false,
+  }) async {
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -488,6 +889,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           controller: controller,
           scoreId: score.id,
           setlistId: setlistId,
+          showImportNudge: showImportNudge,
         ),
       ),
     );
@@ -692,7 +1094,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     messenger.showSnackBar(
-      SnackBar(content: Text('metadata 백업을 저장했습니다: ${result.outputUri}')),
+      SnackBar(content: Text('정보 백업을 저장했습니다: ${result.outputUri}')),
     );
   }
 
@@ -752,9 +1154,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('metadata 복원'),
+        title: const Text('정보 복원'),
         content: const Text(
-          '백업 JSON의 악보 metadata, 세트리스트, 도구 설정으로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+          '백업 JSON의 악보 정보, 세트리스트, 도구 설정으로 현재 앱 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
         ),
         actions: [
           TextButton(
@@ -778,7 +1180,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     }
     final message = switch (result.status) {
       SheetLibraryBackupRestoreStatus.restored =>
-        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 복원했습니다.',
+        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 복원했습니다.',
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion => '지원하지 않는 백업 버전입니다.',
       SheetLibraryBackupRestoreStatus.invalid => '올바른 백업 JSON이 아닙니다.',
@@ -792,9 +1194,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('자동 metadata 복원'),
+        title: const Text('자동 정보 복원'),
         content: const Text(
-          '마지막 자동 metadata snapshot으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
+          '마지막 자동 정보 백업으로 현재 라이브러리 데이터를 덮어씁니다. PDF 파일 자체는 복원되지 않습니다.',
         ),
         actions: [
           TextButton(
@@ -818,11 +1220,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     }
     final message = switch (result.status) {
       SheetLibraryBackupRestoreStatus.restored =>
-        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 metadata를 자동 백업에서 복원했습니다.',
+        '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 자동 백업에서 복원했습니다.',
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion =>
         '지원하지 않는 자동 백업 버전입니다.',
-      SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 metadata 백업이 없습니다.',
+      SheetLibraryBackupRestoreStatus.invalid => '사용 가능한 자동 정보 백업이 없습니다.',
       SheetLibraryBackupRestoreStatus.error => '자동 백업을 복원하지 못했습니다.',
     };
     ScaffoldMessenger.of(context)
@@ -1005,7 +1407,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       builder: (context) => AlertDialog(
         title: const Text('전체 백업 복원'),
         content: const Text(
-          'ZIP 백업의 악보 metadata, 세트리스트, 도구 설정과 포함된 PDF 파일로 현재 앱 데이터를 덮어씁니다.',
+          'ZIP 백업의 악보 정보, 세트리스트, 도구 설정과 포함된 PDF 파일로 현재 앱 데이터를 덮어씁니다.',
         ),
         actions: [
           TextButton(
@@ -1043,6 +1445,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final scores = controller.filteredScores;
+    final visibleScoreIds = scores.map((score) => score.id).toSet();
+    final hasUnselectedVisibleScore = visibleScoreIds.any(
+      (id) => !_bulkSelectedScoreIds.contains(id),
+    );
+    final hasActiveLibraryCondition =
+        controller.query.trim().isNotEmpty ||
+        controller.libraryViewSettings.hasAnyFilter;
 
     return Scaffold(
       appBar: AppBar(
@@ -1057,103 +1466,141 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               _isBulkSelecting ? Icons.close : Icons.checklist_rtl_outlined,
             ),
           ),
-          IconButton(
-            tooltip: '세트리스트',
-            onPressed: () {
-              Navigator.of(context).push<void>(
-                MaterialPageRoute<void>(
-                  builder: (context) =>
-                      SheetSetlistsScreen(controller: controller),
-                ),
-              );
-            },
-            icon: const Icon(Icons.queue_music),
-          ),
-          IconButton(
-            tooltip: '테스트 정보',
-            onPressed: _showTesterInfo,
-            icon: const Icon(Icons.info_outline),
-          ),
-          IconButton(
-            tooltip: '전역 보기/입력 기본값',
-            onPressed: _showGlobalViewerDefaults,
-            icon: const Icon(Icons.settings_applications_outlined),
-          ),
-          PopupMenuButton<_LibraryBackupAction>(
-            tooltip: '백업/복원',
-            icon: const Icon(Icons.inventory_2_outlined),
-            onSelected: (action) {
-              switch (action) {
-                case _LibraryBackupAction.exportMetadata:
-                  _exportBackup();
-                case _LibraryBackupAction.importMetadata:
-                  _importBackup();
-                case _LibraryBackupAction.restoreAutomaticMetadata:
-                  _restoreAutomaticBackup();
-                case _LibraryBackupAction.exportFull:
-                  _exportFullBackup();
-                case _LibraryBackupAction.importFull:
-                  _importFullBackup();
-              }
-            },
-            itemBuilder: (context) => const [
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.ios_share),
-                  title: Text('metadata 백업'),
-                ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: hasUnselectedVisibleScore
+                  ? '현재 목록 전체 선택'
+                  : '현재 목록 선택 해제',
+              onPressed: scores.isEmpty
+                  ? null
+                  : () => _toggleAllVisibleScoreSelection(scores),
+              icon: Icon(
+                hasUnselectedVisibleScore ? Icons.select_all : Icons.deselect,
               ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.restore),
-                  title: Text('metadata 복원'),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보를 세트리스트에 추가',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _showBulkSetlistAdd,
+              icon: const Icon(Icons.playlist_add_check),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 컬렉션 지정',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _showBulkCollectionAssign,
+              icon: const Icon(Icons.collections_bookmark_outlined),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 정보 일괄 편집',
+              onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
+              icon: const Icon(Icons.edit_note),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 라이브러리에서 제거',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _deleteBulkScores,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          if (!_isBulkSelecting) ...[
+            IconButton(
+              tooltip: '세트리스트',
+              onPressed: () {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) =>
+                        SheetSetlistsScreen(controller: controller),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.queue_music),
+            ),
+            IconButton(
+              tooltip: '테스트 정보',
+              onPressed: _showTesterInfo,
+              icon: const Icon(Icons.info_outline),
+            ),
+            IconButton(
+              tooltip: '전역 보기/입력 기본값',
+              onPressed: _showGlobalViewerDefaults,
+              icon: const Icon(Icons.settings_applications_outlined),
+            ),
+            PopupMenuButton<_LibraryBackupAction>(
+              tooltip: '백업/복원',
+              icon: const Icon(Icons.inventory_2_outlined),
+              onSelected: (action) {
+                switch (action) {
+                  case _LibraryBackupAction.exportMetadata:
+                    _exportBackup();
+                  case _LibraryBackupAction.importMetadata:
+                    _importBackup();
+                  case _LibraryBackupAction.restoreAutomaticMetadata:
+                    _restoreAutomaticBackup();
+                  case _LibraryBackupAction.exportFull:
+                    _exportFullBackup();
+                  case _LibraryBackupAction.importFull:
+                    _importFullBackup();
+                }
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.ios_share),
+                    title: Text('정보 백업'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.restoreAutomaticMetadata,
-                child: ListTile(
-                  leading: Icon(Icons.history),
-                  title: Text('자동 metadata 복원'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.restore),
+                    title: Text('정보 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuDivider(),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.exportFull,
-                child: ListTile(
-                  leading: Icon(Icons.archive_outlined),
-                  title: Text('PDF 포함 전체 백업'),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.restoreAutomaticMetadata,
+                  child: ListTile(
+                    leading: Icon(Icons.history),
+                    title: Text('자동 정보 복원'),
+                  ),
                 ),
-              ),
-              PopupMenuItem<_LibraryBackupAction>(
-                value: _LibraryBackupAction.importFull,
-                child: ListTile(
-                  leading: Icon(Icons.unarchive_outlined),
-                  title: Text('전체 백업 복원'),
+                PopupMenuDivider(),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.exportFull,
+                  child: ListTile(
+                    leading: Icon(Icons.archive_outlined),
+                    title: Text('PDF 포함 전체 백업'),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          IconButton(
-            tooltip: '악보 추가',
-            onPressed: controller.isImporting ? null : _showImportOptions,
-            icon: controller.isImporting
-                ? const SizedBox.square(
-                    dimension: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : const Icon(Icons.add_to_photos_outlined),
-          ),
+                PopupMenuItem<_LibraryBackupAction>(
+                  value: _LibraryBackupAction.importFull,
+                  child: ListTile(
+                    leading: Icon(Icons.unarchive_outlined),
+                    title: Text('전체 백업 복원'),
+                  ),
+                ),
+              ],
+            ),
+            IconButton(
+              tooltip: '악보 추가',
+              onPressed: controller.isImporting ? null : _showImportOptions,
+              icon: controller.isImporting
+                  ? const SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Icon(Icons.add_to_photos_outlined),
+            ),
+          ],
         ],
       ),
-      floatingActionButton: _isBulkSelecting
-          ? FloatingActionButton.extended(
-              onPressed: _showBulkEdit,
-              icon: const Icon(Icons.edit_note),
-              label: const Text('일괄 편집'),
-            )
-          : null,
+      floatingActionButton: null,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -1166,7 +1613,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide ? 28 : 16,
                     12,
                     isWide ? 28 : 16,
-                    96,
+                    isWide ? 24 : 96,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1192,30 +1639,69 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                         onGroupPressed: _selectGroupFilter,
                         onRatingPressed: _selectRatingFilter,
                       ),
-                      const SizedBox(height: 10),
-                      _LibraryFacetExplorer(
-                        collectionFacets: controller.collectionFacets,
-                        groupFacets: controller.groupFacets,
-                        ratingFacets: controller.ratingFacets,
-                        selectedCollection:
-                            controller.libraryViewSettings.collectionQuery,
-                        selectedGroup:
-                            controller.libraryViewSettings.groupQuery,
-                        selectedMinimumRating:
-                            controller.libraryViewSettings.minimumRating,
-                        onCollectionSelected: controller.updateCollectionFilter,
-                        onGroupSelected: controller.updateGroupFilter,
-                        onRatingSelected: controller.updateMinimumRatingFilter,
+                      _ActiveLibraryFiltersBar(
+                        query: controller.query,
+                        settings: controller.libraryViewSettings,
+                        onClearQuery: () => controller.updateQuery(''),
+                        onClearFavorite: () =>
+                            controller.updateFavoriteFilter(false),
+                        onClearTag: () => controller.updateTagFilter(''),
+                        onClearComposer: () =>
+                            controller.updateComposerFilter(''),
+                        onClearCollection: () =>
+                            controller.updateCollectionFilter(''),
+                        onClearGroup: () => controller.updateGroupFilter(''),
+                        onClearRating: () =>
+                            controller.updateMinimumRatingFilter(0),
+                        onClearCustomField: (fieldKey) =>
+                            controller.updateCustomFieldFilter(fieldKey, ''),
+                        onClearAll: controller.clearLibrarySearchAndFilters,
                       ),
+                      if (!hasActiveLibraryCondition) ...[
+                        const SizedBox(height: 10),
+                        _LibraryFacetExplorer(
+                          composerFacets: controller.composerFacets,
+                          collectionFacets: controller.collectionFacets,
+                          groupFacets: controller.groupFacets,
+                          ratingFacets: controller.ratingFacets,
+                          customFieldFacets: <String, List<SheetLibraryFacet>>{
+                            for (final key in _commonCustomMetadataFieldKeys)
+                              key: controller.customFieldFacets(key),
+                          },
+                          selectedCollection:
+                              controller.libraryViewSettings.collectionQuery,
+                          selectedComposer:
+                              controller.libraryViewSettings.composerQuery,
+                          selectedGroup:
+                              controller.libraryViewSettings.groupQuery,
+                          selectedMinimumRating:
+                              controller.libraryViewSettings.minimumRating,
+                          selectedCustomFieldFilters:
+                              controller.libraryViewSettings.customFieldFilters,
+                          onCollectionSelected:
+                              controller.updateCollectionFilter,
+                          onComposerSelected: controller.updateComposerFilter,
+                          onGroupSelected: controller.updateGroupFilter,
+                          onRatingSelected:
+                              controller.updateMinimumRatingFilter,
+                          onCustomFieldSelected:
+                              controller.updateCustomFieldFilter,
+                        ),
+                      ],
                       const SizedBox(height: 14),
                       if (controller.errorMessage != null)
                         _NoticeBanner(message: controller.errorMessage!),
                       if (controller.errorMessage != null)
                         const SizedBox(height: 12),
-                      if (!controller.isLoading &&
+                      if (!hasActiveLibraryCondition &&
+                          !controller.isLoading &&
                           (controller.pinnedScores.isNotEmpty ||
                               controller.favoriteScores.isNotEmpty ||
-                              controller.recentScores.isNotEmpty)) ...[
+                              controller.recentScores.isNotEmpty ||
+                              controller
+                                  .scoresNeedingMetadataReview
+                                  .isNotEmpty ||
+                              controller.recentSetlists.isNotEmpty)) ...[
                         _QuickAccessBand(
                           pinnedScores: controller.pinnedScores
                               .take(8)
@@ -1226,8 +1712,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           recentScores: controller.recentScores
                               .take(8)
                               .toList(growable: false),
+                          metadataReviewScores: controller
+                              .scoresNeedingMetadataReview
+                              .take(8)
+                              .toList(growable: false),
                           onOpen: _openScore,
+                          onEdit: _editScore,
+                          isSelecting: _isBulkSelecting,
+                          selectedIds: _bulkSelectedScoreIds,
+                          onSelectionChanged: _toggleBulkScoreSelection,
                         ),
+                        if (controller.recentSetlists.isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          _RecentSetlistsBand(
+                            setlists: controller.recentSetlists
+                                .take(8)
+                                .toList(growable: false),
+                            scoreById: controller.scoreByIdOrNull,
+                            onOpen: _openRecentSetlist,
+                          ),
+                        ],
                         const SizedBox(height: 14),
                       ],
                       Expanded(
@@ -1340,7 +1844,14 @@ enum _LibraryBackupAction {
   importFull,
 }
 
-enum _LibraryImportAction { pdf, images }
+enum _LibraryImportAction {
+  pdf,
+  pdfToSetlist,
+  pdfs,
+  pdfsToSetlist,
+  images,
+  imagesToSetlist,
+}
 
 enum _LibraryProfileActionType { all, select, create, rename, delete }
 
@@ -1575,38 +2086,310 @@ class _LibraryViewBar extends StatelessWidget {
   }
 }
 
-class _LibraryFacetExplorer extends StatelessWidget {
-  const _LibraryFacetExplorer({
-    required this.collectionFacets,
-    required this.groupFacets,
-    required this.ratingFacets,
-    required this.selectedCollection,
-    required this.selectedGroup,
-    required this.selectedMinimumRating,
-    required this.onCollectionSelected,
-    required this.onGroupSelected,
-    required this.onRatingSelected,
+class _ActiveLibraryFiltersBar extends StatelessWidget {
+  const _ActiveLibraryFiltersBar({
+    required this.query,
+    required this.settings,
+    required this.onClearQuery,
+    required this.onClearFavorite,
+    required this.onClearTag,
+    required this.onClearComposer,
+    required this.onClearCollection,
+    required this.onClearGroup,
+    required this.onClearRating,
+    required this.onClearCustomField,
+    required this.onClearAll,
   });
 
-  final List<SheetLibraryFacet> collectionFacets;
-  final List<SheetLibraryFacet> groupFacets;
-  final List<SheetLibraryFacet> ratingFacets;
-  final String selectedCollection;
-  final String selectedGroup;
-  final int selectedMinimumRating;
-  final ValueChanged<String> onCollectionSelected;
-  final ValueChanged<String> onGroupSelected;
-  final ValueChanged<int> onRatingSelected;
+  final String query;
+  final SheetLibraryViewSettings settings;
+  final VoidCallback onClearQuery;
+  final VoidCallback onClearFavorite;
+  final VoidCallback onClearTag;
+  final VoidCallback onClearComposer;
+  final VoidCallback onClearCollection;
+  final VoidCallback onClearGroup;
+  final VoidCallback onClearRating;
+  final ValueChanged<String> onClearCustomField;
+  final VoidCallback onClearAll;
 
   @override
   Widget build(BuildContext context) {
-    final visibleCollectionFacets = collectionFacets.take(6).toList();
-    final visibleGroupFacets = groupFacets.take(6).toList();
-    final visibleRatingFacets = ratingFacets.take(5).toList();
-    if (visibleCollectionFacets.isEmpty &&
-        visibleGroupFacets.isEmpty &&
-        visibleRatingFacets.isEmpty) {
+    final chips = <Widget>[];
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isNotEmpty) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.search,
+          label: '검색: $normalizedQuery',
+          onDeleted: onClearQuery,
+        ),
+      );
+    }
+    if (settings.favoriteOnly) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.star,
+          label: '즐겨찾기',
+          onDeleted: onClearFavorite,
+        ),
+      );
+    }
+    if (settings.hasTagFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.sell_outlined,
+          label: '태그: ${settings.tagQuery}',
+          onDeleted: onClearTag,
+        ),
+      );
+    }
+    if (settings.hasComposerFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.person_outline,
+          label: '작곡가: ${settings.composerQuery}',
+          onDeleted: onClearComposer,
+        ),
+      );
+    }
+    if (settings.hasCollectionFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.collections_bookmark_outlined,
+          label: '컬렉션: ${settings.collectionQuery}',
+          onDeleted: onClearCollection,
+        ),
+      );
+    }
+    if (settings.hasGroupFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.folder_outlined,
+          label: '그룹: ${settings.groupQuery}',
+          onDeleted: onClearGroup,
+        ),
+      );
+    }
+    if (settings.hasRatingFilter) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: Icons.star_rate_outlined,
+          label: '별점 ${settings.minimumRating}+',
+          onDeleted: onClearRating,
+        ),
+      );
+    }
+    for (final entry in settings.customFieldFilters.entries) {
+      chips.add(
+        _ActiveLibraryFilterChip(
+          icon: _customMetadataFacetIcon(entry.key),
+          label: '${entry.key}: ${entry.value}',
+          onDeleted: () => onClearCustomField(entry.key),
+        ),
+      );
+    }
+
+    if (chips.isEmpty) {
       return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        height: 48,
+        child: Row(
+          children: [
+            Semantics(
+              label: '적용 중인 검색 및 필터',
+              child: Text(
+                '현재 조건',
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: onClearAll,
+              icon: const Icon(Icons.filter_alt_off_outlined, size: 18),
+              label: const Text('전체 초기화'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final chip in chips) ...[
+                      chip,
+                      const SizedBox(width: 8),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveLibraryFilterChip extends StatelessWidget {
+  const _ActiveLibraryFilterChip({
+    required this.icon,
+    required this.label,
+    required this.onDeleted,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    return InputChip(
+      avatar: Icon(icon, size: 18),
+      label: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 220),
+        child: Text(label, overflow: TextOverflow.ellipsis),
+      ),
+      onDeleted: onDeleted,
+      deleteIcon: const Icon(Icons.close, size: 18),
+      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    );
+  }
+}
+
+class _LibraryFacetExplorer extends StatelessWidget {
+  const _LibraryFacetExplorer({
+    required this.composerFacets,
+    required this.collectionFacets,
+    required this.groupFacets,
+    required this.ratingFacets,
+    required this.customFieldFacets,
+    required this.selectedCollection,
+    required this.selectedComposer,
+    required this.selectedGroup,
+    required this.selectedMinimumRating,
+    required this.selectedCustomFieldFilters,
+    required this.onCollectionSelected,
+    required this.onComposerSelected,
+    required this.onGroupSelected,
+    required this.onRatingSelected,
+    required this.onCustomFieldSelected,
+  });
+
+  final List<SheetLibraryFacet> composerFacets;
+  final List<SheetLibraryFacet> collectionFacets;
+  final List<SheetLibraryFacet> groupFacets;
+  final List<SheetLibraryFacet> ratingFacets;
+  final Map<String, List<SheetLibraryFacet>> customFieldFacets;
+  final String selectedCollection;
+  final String selectedComposer;
+  final String selectedGroup;
+  final int selectedMinimumRating;
+  final Map<String, String> selectedCustomFieldFilters;
+  final ValueChanged<String> onCollectionSelected;
+  final ValueChanged<String> onComposerSelected;
+  final ValueChanged<String> onGroupSelected;
+  final ValueChanged<int> onRatingSelected;
+  final void Function(String fieldKey, String value) onCustomFieldSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleCustomFieldFacets =
+        <MapEntry<String, List<SheetLibraryFacet>>>[
+          for (final entry in customFieldFacets.entries)
+            if (entry.value.isNotEmpty) MapEntry(entry.key, entry.value),
+        ];
+    if (composerFacets.isEmpty &&
+        collectionFacets.isEmpty &&
+        groupFacets.isEmpty &&
+        visibleCustomFieldFacets.isEmpty &&
+        ratingFacets.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final rows = <Widget>[];
+    void addRow(Widget row) {
+      if (rows.isNotEmpty) {
+        rows.add(const SizedBox(height: 8));
+      }
+      rows.add(row);
+    }
+
+    if (collectionFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '컬렉션',
+          icon: Icons.collections_bookmark_outlined,
+          facets: collectionFacets,
+          selectedValue: selectedCollection,
+          onSelected: (value) {
+            onCollectionSelected(value == selectedCollection ? '' : value);
+          },
+        ),
+      );
+    }
+    if (composerFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '작곡가',
+          icon: Icons.person_outline,
+          facets: composerFacets,
+          selectedValue: selectedComposer,
+          onSelected: (value) {
+            onComposerSelected(value == selectedComposer ? '' : value);
+          },
+        ),
+      );
+    }
+    if (groupFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '그룹',
+          icon: Icons.folder_outlined,
+          facets: groupFacets,
+          selectedValue: selectedGroup,
+          onSelected: (value) {
+            onGroupSelected(value == selectedGroup ? '' : value);
+          },
+        ),
+      );
+    }
+    for (final entry in visibleCustomFieldFacets) {
+      final selectedValue = selectedCustomFieldFilters[entry.key] ?? '';
+      addRow(
+        _LibraryFacetRow(
+          label: entry.key,
+          icon: _customMetadataFacetIcon(entry.key),
+          facets: entry.value,
+          selectedValue: selectedValue,
+          onSelected: (value) {
+            onCustomFieldSelected(
+              entry.key,
+              value == selectedValue ? '' : value,
+            );
+          },
+        ),
+      );
+    }
+    if (ratingFacets.isNotEmpty) {
+      addRow(
+        _LibraryFacetRow(
+          label: '별점',
+          icon: Icons.star_rate_outlined,
+          facets: ratingFacets,
+          selectedValue: selectedMinimumRating == 0
+              ? ''
+              : selectedMinimumRating.toString(),
+          onSelected: (value) {
+            final rating = int.tryParse(value) ?? 0;
+            onRatingSelected(rating == selectedMinimumRating ? 0 : rating);
+          },
+        ),
+      );
     }
 
     return DecoratedBox(
@@ -1615,60 +2398,28 @@ class _LibraryFacetExplorer extends StatelessWidget {
         border: Border.all(color: Colors.black.withValues(alpha: 0.08)),
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (visibleCollectionFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '컬렉션',
-                icon: Icons.collections_bookmark_outlined,
-                facets: visibleCollectionFacets,
-                selectedValue: selectedCollection,
-                onSelected: (value) {
-                  onCollectionSelected(
-                    value == selectedCollection ? '' : value,
-                  );
-                },
-              ),
-            if (visibleCollectionFacets.isNotEmpty &&
-                visibleGroupFacets.isNotEmpty)
-              const SizedBox(height: 8),
-            if (visibleGroupFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '그룹',
-                icon: Icons.folder_outlined,
-                facets: visibleGroupFacets,
-                selectedValue: selectedGroup,
-                onSelected: (value) {
-                  onGroupSelected(value == selectedGroup ? '' : value);
-                },
-              ),
-            if ((visibleCollectionFacets.isNotEmpty ||
-                    visibleGroupFacets.isNotEmpty) &&
-                visibleRatingFacets.isNotEmpty)
-              const SizedBox(height: 8),
-            if (visibleRatingFacets.isNotEmpty)
-              _LibraryFacetRow(
-                label: '별점',
-                icon: Icons.star_rate_outlined,
-                facets: visibleRatingFacets,
-                selectedValue: selectedMinimumRating == 0
-                    ? ''
-                    : selectedMinimumRating.toString(),
-                onSelected: (value) {
-                  final rating = int.tryParse(value) ?? 0;
-                  onRatingSelected(
-                    rating == selectedMinimumRating ? 0 : rating,
-                  );
-                },
-              ),
-          ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 150),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: rows,
+          ),
         ),
       ),
     );
   }
+}
+
+IconData _customMetadataFacetIcon(String fieldKey) {
+  return switch (fieldKey) {
+    '조성' => Icons.music_note_outlined,
+    '장르' => Icons.category_outlined,
+    '난이도' => Icons.trending_up_outlined,
+    '편성' => Icons.groups_outlined,
+    _ => Icons.tune_outlined,
+  };
 }
 
 class _LibraryFacetRow extends StatelessWidget {
@@ -1686,8 +2437,25 @@ class _LibraryFacetRow extends StatelessWidget {
   final String selectedValue;
   final ValueChanged<String> onSelected;
 
+  void _showAllFacets(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _LibraryFacetPickerSheet(
+        label: label,
+        icon: icon,
+        facets: facets,
+        selectedValue: selectedValue,
+        onSelected: onSelected,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const maxVisibleFacets = 6;
+    final visibleFacets = facets.take(maxVisibleFacets).toList();
+    final hiddenCount = facets.length - visibleFacets.length;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1713,16 +2481,125 @@ class _LibraryFacetRow extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final facet in facets)
+              for (final facet in visibleFacets)
                 ChoiceChip(
                   label: Text('${facet.label} ${facet.count}'),
                   selected: facet.value == selectedValue,
                   onSelected: (_) => onSelected(facet.value),
                 ),
+              if (hiddenCount > 0)
+                ActionChip(
+                  avatar: const Icon(Icons.more_horiz, size: 18),
+                  label: Text('더 보기 $hiddenCount'),
+                  onPressed: () => _showAllFacets(context),
+                ),
             ],
           ),
         ),
       ],
+    );
+  }
+}
+
+class _LibraryFacetPickerSheet extends StatefulWidget {
+  const _LibraryFacetPickerSheet({
+    required this.label,
+    required this.icon,
+    required this.facets,
+    required this.selectedValue,
+    required this.onSelected,
+  });
+
+  final String label;
+  final IconData icon;
+  final List<SheetLibraryFacet> facets;
+  final String selectedValue;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_LibraryFacetPickerSheet> createState() =>
+      _LibraryFacetPickerSheetState();
+}
+
+class _LibraryFacetPickerSheetState extends State<_LibraryFacetPickerSheet> {
+  final _queryController = TextEditingController();
+
+  @override
+  void dispose() {
+    _queryController.dispose();
+    super.dispose();
+  }
+
+  List<SheetLibraryFacet> get _filteredFacets {
+    final query = _queryController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      return widget.facets;
+    }
+    return [
+      for (final facet in widget.facets)
+        if (facet.label.toLowerCase().contains(query) ||
+            facet.value.toLowerCase().contains(query))
+          facet,
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredFacets = _filteredFacets;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 560),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(widget.icon),
+                title: Text('${widget.label} 전체'),
+                subtitle: Text('${widget.facets.length}개 조건'),
+              ),
+              TextField(
+                controller: _queryController,
+                decoration: const InputDecoration(
+                  prefixIcon: Icon(Icons.search),
+                  labelText: '조건 검색',
+                  hintText: '예: D, Recital, 쉬움',
+                  border: OutlineInputBorder(),
+                ),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 8),
+              if (filteredFacets.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 24),
+                  child: Text('일치하는 조건이 없습니다'),
+                )
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: filteredFacets.length,
+                    itemBuilder: (context, index) {
+                      final facet = filteredFacets[index];
+                      return ListTile(
+                        title: Text('${facet.label} ${facet.count}'),
+                        trailing: facet.value == widget.selectedValue
+                            ? const Icon(Icons.check)
+                            : null,
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          widget.onSelected(facet.value);
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1777,37 +2654,70 @@ Future<String?> _showTextEntryDialog({
   required String label,
   required String initialValue,
 }) async {
-  final textController = TextEditingController(text: initialValue);
-  try {
-    return await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        void close(String? value) {
-          FocusScope.of(dialogContext).unfocus();
-          Navigator.of(dialogContext).pop(value);
-        }
+  return showDialog<String>(
+    context: context,
+    builder: (dialogContext) => _TextEntryDialog(
+      title: title,
+      label: label,
+      initialValue: initialValue,
+    ),
+  );
+}
 
-        return AlertDialog(
-          title: Text(title),
-          content: TextField(
-            controller: textController,
-            autofocus: true,
-            decoration: InputDecoration(labelText: label),
-            textInputAction: TextInputAction.done,
-            onSubmitted: close,
-          ),
-          actions: [
-            TextButton(onPressed: () => close(null), child: const Text('취소')),
-            FilledButton(
-              onPressed: () => close(textController.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
+class _TextEntryDialog extends StatefulWidget {
+  const _TextEntryDialog({
+    required this.title,
+    required this.label,
+    required this.initialValue,
+  });
+
+  final String title;
+  final String label;
+  final String initialValue;
+
+  @override
+  State<_TextEntryDialog> createState() => _TextEntryDialogState();
+}
+
+class _TextEntryDialogState extends State<_TextEntryDialog> {
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _close(String? value) {
+    FocusManager.instance.primaryFocus?.unfocus();
+    Navigator.of(context).pop(value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _textController,
+        autofocus: true,
+        decoration: InputDecoration(labelText: widget.label),
+        textInputAction: TextInputAction.done,
+        onSubmitted: _close,
+      ),
+      actions: [
+        TextButton(onPressed: () => _close(null), child: const Text('취소')),
+        FilledButton(
+          onPressed: () => _close(_textController.text),
+          child: const Text('저장'),
+        ),
+      ],
     );
-  } finally {
-    textController.dispose();
   }
 }
 
@@ -1860,7 +2770,7 @@ String _rehearsalMarkKindLabel(String kind) {
 String _cropPresetScopeLabel(String scope) {
   return switch (scope) {
     SheetCropPreset.oddEvenScope => '홀수/짝수 페이지',
-    SheetCropPreset.coverExcludedScope => 'Cover 제외',
+    SheetCropPreset.coverExcludedScope => '표지 제외',
     _ => '모든 페이지',
   };
 }
@@ -2026,6 +2936,24 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
                     onAdd: () async {
                       final field = await _showCustomFieldDialog(
                         context: context,
+                      );
+                      if (field == null) {
+                        return;
+                      }
+                      setDialogState(() {
+                        customFields.add(field);
+                        customFields = SheetScore.normalizeCustomFields(
+                          customFields,
+                        ).toList(growable: true);
+                      });
+                    },
+                    onAddSuggested: (fieldKey) async {
+                      final field = await _showCustomFieldDialog(
+                        context: context,
+                        initialField: SheetCustomMetadataField(
+                          key: fieldKey,
+                          value: '',
+                        ),
                       );
                       if (field == null) {
                         return;
@@ -2255,18 +3183,27 @@ class _CustomFieldsEditor extends StatelessWidget {
   const _CustomFieldsEditor({
     required this.fields,
     required this.onAdd,
+    required this.onAddSuggested,
     required this.onEdit,
     required this.onRemove,
   });
 
   final List<SheetCustomMetadataField> fields;
   final Future<void> Function() onAdd;
+  final Future<void> Function(String fieldKey) onAddSuggested;
   final ValueChanged<int> onEdit;
   final ValueChanged<int> onRemove;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final existingKeys = fields
+        .map((field) => field.key.trim().toLowerCase())
+        .where((key) => key.isNotEmpty)
+        .toSet();
+    final suggestions = _commonCustomMetadataFieldKeys
+        .where((key) => !existingKeys.contains(key.toLowerCase()))
+        .toList(growable: false);
     return Align(
       alignment: Alignment.centerLeft,
       child: Column(
@@ -2287,8 +3224,26 @@ class _CustomFieldsEditor extends StatelessWidget {
               label: const Text('필드 추가'),
             ),
           ),
+          if (suggestions.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text('자주 쓰는 필드', style: theme.textTheme.bodySmall),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final key in suggestions)
+                  ActionChip(
+                    avatar: const Icon(Icons.add, size: 16),
+                    label: Text(key),
+                    onPressed: () => onAddSuggested(key),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
           if (fields.isEmpty)
-            Text('추가 metadata 없음', style: theme.textTheme.bodySmall)
+            Text('추가 정보 없음', style: theme.textTheme.bodySmall)
           else
             for (var index = 0; index < fields.length; index += 1)
               ListTile(
@@ -2327,6 +3282,8 @@ class _CustomFieldsEditor extends StatelessWidget {
   }
 }
 
+const _commonCustomMetadataFieldKeys = <String>['조성', '장르', '난이도', '편성'];
+
 class _ScoreMetadataInput {
   const _ScoreMetadataInput({
     required this.title,
@@ -2349,6 +3306,28 @@ class _ScoreMetadataInput {
   final String note;
   final List<SheetLinkedFile> linkedFiles;
   final List<SheetCustomMetadataField> customFields;
+}
+
+SnackBar _buildImportedScoreNudgeSnackBar({
+  required String title,
+  required VoidCallback onEdit,
+}) {
+  final normalizedTitle = title.trim().isEmpty ? '악보' : title.trim();
+  return SnackBar(
+    content: Text('"$normalizedTitle" 악보를 추가했습니다.'),
+    action: SnackBarAction(label: '정보 편집', onPressed: onEdit),
+  );
+}
+
+@visibleForTesting
+SnackBar buildImportedScoreNudgeSnackBarForTest({
+  required String title,
+  VoidCallback? onEdit,
+}) {
+  return _buildImportedScoreNudgeSnackBar(
+    title: title,
+    onEdit: onEdit ?? () {},
+  );
 }
 
 String _formatShortDate(DateTime value) {
@@ -2591,14 +3570,14 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 12),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
-          const _InfoRow(label: '빌드', value: 'Beta test build'),
+          const _InfoRow(label: '빌드', value: '내부 테스트 빌드'),
           _InfoRow(label: '악보', value: '${scores.length}개'),
           _InfoRow(label: '세트리스트', value: '${setlists.length}개'),
           _InfoRow(label: '즐겨찾기/고정', value: '$favoriteCount/$pinnedCount'),
           _InfoRow(label: '필기 요약', value: annotationSummary),
           _InfoRow(label: '외부 필기 저장소', value: '$externalAnnotationCount개 악보'),
-          _InfoRow(label: 'Custom pedal', value: '$customPedalCount개 악보'),
-          _InfoRow(label: 'Page metadata', value: '$pageMetadataCount개 악보'),
+          _InfoRow(label: '사용자 페달', value: '$customPedalCount개 악보'),
+          _InfoRow(label: '페이지 설정', value: '$pageMetadataCount개 악보'),
           const SizedBox(height: 18),
           Text(
             '확인할 항목',
@@ -2638,13 +3617,13 @@ pageMetadataScores=$pageMetadataCount
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: _debugSummary()));
               if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Debug summary를 복사했습니다.')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('진단 요약을 복사했습니다.')));
               }
             },
             icon: const Icon(Icons.bug_report_outlined),
-            label: const Text('Debug summary 복사'),
+            label: const Text('진단 요약 복사'),
           ),
         ],
       ),
@@ -2808,17 +3787,34 @@ class _QuickAccessBand extends StatelessWidget {
     required this.pinnedScores,
     required this.favoriteScores,
     required this.recentScores,
+    required this.metadataReviewScores,
     required this.onOpen,
+    required this.onEdit,
+    required this.isSelecting,
+    required this.selectedIds,
+    required this.onSelectionChanged,
   });
 
   final List<SheetScore> pinnedScores;
   final List<SheetScore> favoriteScores;
   final List<SheetScore> recentScores;
+  final List<SheetScore> metadataReviewScores;
   final ValueChanged<SheetScore> onOpen;
+  final ValueChanged<SheetScore> onEdit;
+  final bool isSelecting;
+  final Set<String> selectedIds;
+  final ValueChanged<SheetScore> onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
     final groups = <_QuickAccessGroup>[
+      if (!isSelecting)
+        _QuickAccessGroup(
+          label: '정리 필요',
+          icon: Icons.edit_note,
+          scores: metadataReviewScores,
+          opensForEdit: true,
+        ),
       _QuickAccessGroup(
         label: '고정',
         icon: Icons.push_pin,
@@ -2837,7 +3833,7 @@ class _QuickAccessBand extends StatelessWidget {
 
     final theme = Theme.of(context);
     return SizedBox(
-      height: 148,
+      height: 208,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
@@ -2879,7 +3875,10 @@ class _QuickAccessBand extends StatelessWidget {
                           final score = group.scores[scoreIndex];
                           return _QuickAccessScoreChip(
                             score: score,
-                            onOpen: onOpen,
+                            onOpen: group.opensForEdit ? onEdit : onOpen,
+                            isSelecting: isSelecting,
+                            isSelected: selectedIds.contains(score.id),
+                            onSelectionChanged: onSelectionChanged,
                           );
                         },
                         separatorBuilder: (context, index) =>
@@ -2905,11 +3904,13 @@ class _QuickAccessGroup {
     required this.label,
     required this.icon,
     required this.scores,
+    this.opensForEdit = false,
   });
 
   final String label;
   final IconData icon;
   final List<SheetScore> scores;
+  final bool opensForEdit;
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {
@@ -2925,11 +3926,67 @@ String _scoreIdentitySubtitle(SheetScore score) {
   return parts.isEmpty ? '파일 정보 없음' : parts.join(' · ');
 }
 
+String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
+  final identity = _scoreIdentitySubtitle(score);
+  if (setlist.rehearsalMode) {
+    final note = setlist.scoreNotes[score.id]?.trim();
+    return '${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽부터 · '
+        '${_formatDuration(setlist.scoreDurations[score.id] ?? 0)} · '
+        '${note?.isNotEmpty == true ? note : '메모 없음'} · $identity';
+  }
+  return '${score.lastPage}쪽부터 열기 · $identity';
+}
+
+SheetScore _scoreToOpenForSetlistResume(
+  SheetSetlist setlist,
+  List<SheetScore> scores,
+) {
+  return scores.firstWhere(
+    (score) => score.id == setlist.lastOpenedScoreId,
+    orElse: () => scores.first,
+  );
+}
+
+@visibleForTesting
+SheetScore scoreToOpenForSetlistResumeForTest(
+  SheetSetlist setlist,
+  List<SheetScore> scores,
+) {
+  return _scoreToOpenForSetlistResume(setlist, scores);
+}
+
+String _setlistProgressLabel(SheetSetlist setlist) {
+  final total = setlist.scoreIds.length;
+  if (total == 0) {
+    return '빈 목록';
+  }
+  final scoreId = setlist.lastOpenedScoreId;
+  final currentIndex = scoreId == null ? -1 : setlist.scoreIds.indexOf(scoreId);
+  if (currentIndex < 0) {
+    return '$total곡';
+  }
+  return '진행 ${currentIndex + 1}/$total';
+}
+
+@visibleForTesting
+String setlistProgressLabelForTest(SheetSetlist setlist) {
+  return _setlistProgressLabel(setlist);
+}
+
 class _QuickAccessScoreChip extends StatelessWidget {
-  const _QuickAccessScoreChip({required this.score, required this.onOpen});
+  const _QuickAccessScoreChip({
+    required this.score,
+    required this.onOpen,
+    required this.isSelecting,
+    required this.isSelected,
+    required this.onSelectionChanged,
+  });
 
   final SheetScore score;
   final ValueChanged<SheetScore> onOpen;
+  final bool isSelecting;
+  final bool isSelected;
+  final ValueChanged<SheetScore> onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2940,53 +3997,238 @@ class _QuickAccessScoreChip extends StatelessWidget {
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
     return SizedBox(
       width: 176,
+      height: 144,
       child: Material(
-        color: theme.colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
+        color: isSelected
+            ? theme.colorScheme.primaryContainer.withValues(alpha: 0.6)
+            : theme.colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(
+            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            width: isSelected ? 2 : 0,
+          ),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => onOpen(score),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  score.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall,
-                ),
-                const Spacer(),
-                Row(
+          onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
+          onLongPress: () => onSelectionChanged(score),
+          child: Stack(
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(10, 10, isSelecting ? 34 : 10, 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (score.isPinned)
-                      const Icon(Icons.push_pin, size: 14)
-                    else if (score.isFavorite)
-                      const Icon(Icons.star, size: 14)
-                    else
-                      const Icon(Icons.history, size: 14),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        openedLabel,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall,
-                      ),
+                    Text(
+                      score.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        if (score.isPinned)
+                          const Icon(Icons.push_pin, size: 14)
+                        else if (score.isFavorite)
+                          const Icon(Icons.star, size: 14)
+                        else
+                          const Icon(Icons.history, size: 14),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            openedLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.labelSmall,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
+              ),
+              if (isSelecting)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.radio_button_unchecked,
+                    color: isSelected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outline,
+                    size: 24,
+                    semanticLabel: isSelected ? '선택됨' : '선택 안 됨',
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentSetlistsBand extends StatelessWidget {
+  const _RecentSetlistsBand({
+    required this.setlists,
+    required this.scoreById,
+    required this.onOpen,
+  });
+
+  final List<SheetSetlist> setlists;
+  final SheetScore? Function(String id) scoreById;
+  final ValueChanged<SheetSetlist> onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.queue_music, size: 18),
+                const SizedBox(width: 6),
+                Text(
+                  '최근 세트리스트',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ],
             ),
-          ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 132,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  final setlist = setlists[index];
+                  final openedLabel = setlist.lastOpenedAt == null
+                      ? '최근 기록 없음'
+                      : '최근 ${_formatShortDate(setlist.lastOpenedAt!)}';
+                  final progressLabel = _setlistProgressLabel(setlist);
+                  final lastOpenedScoreId = setlist.lastOpenedScoreId;
+                  final lastOpenedScore = lastOpenedScoreId == null
+                      ? null
+                      : scoreById(lastOpenedScoreId);
+                  return SizedBox(
+                    width: 188,
+                    child: Material(
+                      color: theme.colorScheme.surfaceContainerHighest,
+                      borderRadius: BorderRadius.circular(8),
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => onOpen(setlist),
+                        child: Padding(
+                          padding: const EdgeInsets.all(10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.queue_music, size: 16),
+                                  const SizedBox(width: 4),
+                                  Expanded(
+                                    child: Text(
+                                      '세트리스트',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primaryContainer
+                                          .withValues(alpha: 0.72),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 3,
+                                      ),
+                                      child: Text(
+                                        progressLabel,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onPrimaryContainer,
+                                              fontWeight: FontWeight.w900,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                setlist.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                openedLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelSmall,
+                              ),
+                              if (lastOpenedScore != null) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  '이어보기 · ${lastOpenedScore.title}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemCount: setlists.length,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2997,6 +4239,7 @@ class _BulkEditInput {
   const _BulkEditInput({
     required this.addTags,
     required this.removeTags,
+    required this.customFields,
     this.collection,
     this.group,
     this.rating,
@@ -3006,6 +4249,7 @@ class _BulkEditInput {
 
   final List<String> addTags;
   final List<String> removeTags;
+  final List<SheetCustomMetadataField> customFields;
   final String? collection;
   final String? group;
   final int? rating;
@@ -3025,6 +4269,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
   final _removeTagsController = TextEditingController();
   final _collectionController = TextEditingController();
   final _groupController = TextEditingController();
+  final _customFieldKeyController = TextEditingController();
+  final _customFieldValueController = TextEditingController();
   int? _rating;
   bool? _favorite;
   bool? _pinned;
@@ -3035,6 +4281,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
     _removeTagsController.dispose();
     _collectionController.dispose();
     _groupController.dispose();
+    _customFieldKeyController.dispose();
+    _customFieldValueController.dispose();
     super.dispose();
   }
 
@@ -3075,6 +4323,38 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
               controller: _groupController,
               decoration: const InputDecoration(labelText: '그룹 변경'),
             ),
+            const SizedBox(height: 12),
+            Text(
+              '사용자 필드 일괄 지정',
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final key in _commonCustomMetadataFieldKeys)
+                  ActionChip(
+                    label: Text(key),
+                    onPressed: () => _customFieldKeyController.text = key,
+                  ),
+              ],
+            ),
+            TextField(
+              controller: _customFieldKeyController,
+              decoration: const InputDecoration(
+                labelText: '필드 이름',
+                hintText: '예: 조성, 장르, 난이도, 편성',
+              ),
+            ),
+            TextField(
+              controller: _customFieldValueController,
+              decoration: const InputDecoration(
+                labelText: '필드 값',
+                hintText: '예: D, Etude, 쉬움, 현악합주',
+              ),
+            ),
             const SizedBox(height: 10),
             DropdownButtonFormField<int?>(
               initialValue: _rating,
@@ -3110,6 +4390,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                     _BulkEditInput(
                       addTags: _splitTags(_addTagsController.text),
                       removeTags: _splitTags(_removeTagsController.text),
+                      customFields: _customFieldInput(),
                       collection: _blankToNull(_collectionController.text),
                       group: _blankToNull(_groupController.text),
                       rating: _rating,
@@ -3139,6 +4420,14 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
   static String? _blankToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  List<SheetCustomMetadataField> _customFieldInput() {
+    final field = SheetCustomMetadataField(
+      key: _customFieldKeyController.text,
+      value: _customFieldValueController.text,
+    );
+    return field.isValid ? <SheetCustomMetadataField>[field] : const [];
   }
 }
 
@@ -3192,6 +4481,158 @@ class _NullableBoolControl extends StatelessWidget {
 
 enum _NullableBoolChoice { unchanged, enabled, disabled }
 
+class _BulkSetlistTargetAction {
+  const _BulkSetlistTargetAction.existing(this.setlist) : createNew = false;
+
+  const _BulkSetlistTargetAction.create() : createNew = true, setlist = null;
+
+  final bool createNew;
+  final SheetSetlist? setlist;
+}
+
+class _BulkSetlistTargetSheet extends StatelessWidget {
+  const _BulkSetlistTargetSheet({
+    required this.setlists,
+    required this.scoreCount,
+  });
+
+  final List<SheetSetlist> setlists;
+  final int scoreCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.playlist_add_check),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$scoreCount개 악보를 세트리스트에 추가',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.add),
+            title: const Text('새 세트리스트 만들기'),
+            subtitle: const Text('이름을 정한 뒤 선택한 악보를 바로 추가합니다.'),
+            onTap: () =>
+                Navigator.of(context)
+                    .pop(const _BulkSetlistTargetAction.create()),
+          ),
+          const Divider(),
+          if (setlists.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('아직 세트리스트가 없습니다. 새 세트리스트를 만들어 추가하세요.'),
+            )
+          else
+            for (final setlist in setlists)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.queue_music),
+                title: Text(
+                  setlist.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text('${setlist.scoreIds.length}곡'),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_BulkSetlistTargetAction.existing(setlist)),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BulkCollectionTargetAction {
+  const _BulkCollectionTargetAction.existing(this.collectionName);
+
+  const _BulkCollectionTargetAction.create() : collectionName = null;
+
+  final String? collectionName;
+}
+
+class _BulkCollectionTargetSheet extends StatelessWidget {
+  const _BulkCollectionTargetSheet({
+    required this.collections,
+    required this.scoreCount,
+  });
+
+  final List<String> collections;
+  final int scoreCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.collections_bookmark_outlined),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '$scoreCount개 악보 컬렉션 지정',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.add),
+            title: const Text('새 컬렉션 이름 입력'),
+            subtitle: const Text('선택한 악보를 새 컬렉션으로 바로 묶습니다.'),
+            onTap: () =>
+                Navigator.of(context)
+                    .pop(const _BulkCollectionTargetAction.create()),
+          ),
+          const Divider(),
+          if (collections.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text('아직 컬렉션이 없습니다. 새 컬렉션 이름을 입력해 묶어보세요.'),
+            )
+          else
+            for (final collection in collections)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.collections_bookmark_outlined),
+                title: Text(
+                  collection,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () =>
+                    Navigator.of(context)
+                        .pop(_BulkCollectionTargetAction.existing(collection)),
+              ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ScoreGrid extends StatelessWidget {
   const _ScoreGrid({
     required this.scores,
@@ -3221,16 +4662,19 @@ class _ScoreGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!isWide) {
       return ListView.separated(
-        itemBuilder: (context, index) => _ScoreTile(
-          score: scores[index],
-          onOpen: onOpen,
-          onFavorite: onFavorite,
-          onPin: onPin,
-          isSelecting: isSelecting,
-          isSelected: selectedIds.contains(scores[index].id),
-          onSelectionChanged: onSelectionChanged,
-          onEdit: onEdit,
-          onShare: onShare,
+        itemBuilder: (context, index) => SizedBox(
+          height: 212,
+          child: _ScoreTile(
+            score: scores[index],
+            onOpen: onOpen,
+            onFavorite: onFavorite,
+            onPin: onPin,
+            isSelecting: isSelecting,
+            isSelected: selectedIds.contains(scores[index].id),
+            onSelectionChanged: onSelectionChanged,
+            onEdit: onEdit,
+            onShare: onShare,
+          ),
         ),
         separatorBuilder: (context, index) => const SizedBox(height: 10),
         itemCount: scores.length,
@@ -3240,7 +4684,7 @@ class _ScoreGrid extends StatelessWidget {
     return GridView.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
-        mainAxisExtent: 150,
+        mainAxisExtent: 212,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
@@ -3285,6 +4729,7 @@ class _ScoreTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final subtitle = _scoreIdentitySubtitle(score);
     final organization = <String>[
       if (score.collection.isNotEmpty) score.collection,
@@ -3300,12 +4745,24 @@ class _ScoreTile extends StatelessWidget {
       '마지막 ${score.lastPage}쪽',
     ];
 
+    final selectedColor = theme.colorScheme.primaryContainer.withValues(
+      alpha: 0.52,
+    );
     return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(8),
+      color: isSelected ? selectedColor : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+          width: isSelected ? 2 : 1,
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => isSelecting ? onSelectionChanged(score) : onOpen(score),
+        onLongPress: () => onSelectionChanged(score),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
@@ -3313,7 +4770,12 @@ class _ScoreTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(Icons.description_outlined),
+                  Icon(
+                    isSelected
+                        ? Icons.check_circle
+                        : Icons.description_outlined,
+                    color: isSelected ? theme.colorScheme.primary : null,
+                  ),
                   if (isSelecting) ...[
                     Checkbox(
                       value: isSelected,
@@ -3415,16 +4877,17 @@ class _ScoreTile extends StatelessWidget {
                   organization,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ],
-              const Spacer(),
+              const SizedBox(height: 8),
               Text(
                 footerParts.join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall,
+                style: theme.textTheme.bodySmall,
               ),
             ],
           ),
@@ -3535,6 +4998,31 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       return;
     }
 
+    final existing = controller.setlistByTitleOrNull(title);
+    if (existing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('"${existing.title}" 세트리스트가 이미 있습니다.'),
+          action: SnackBarAction(
+            label: '열기',
+            onPressed: () {
+              unawaited(
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(
+                    builder: (context) => SheetSetlistDetailScreen(
+                      controller: controller,
+                      setlistId: existing.id,
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     final setlist = await controller.createSetlist(title);
     if (!mounted) {
       return;
@@ -3558,6 +5046,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     }
 
     final score = scores.first;
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -3683,16 +5172,27 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _renameSetlist() async {
+    final currentSetlist = setlist;
     final title = await _showTextEntryDialog(
       context: context,
       title: '세트리스트 이름 변경',
       label: '이름',
-      initialValue: setlist.title,
+      initialValue: currentSetlist.title,
     );
-    if (title == null) {
+    if (!mounted || title == null) {
       return;
     }
-    await controller.renameSetlist(setlist, title);
+    final existing = controller.setlistByTitleOrNull(
+      title,
+      exceptId: currentSetlist.id,
+    );
+    if (existing != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${existing.title}" 세트리스트가 이미 있습니다.')),
+      );
+      return;
+    }
+    await controller.renameSetlist(currentSetlist, title);
   }
 
   Future<void> _deleteSetlist() async {
@@ -3739,30 +5239,32 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       return;
     }
 
-    var query = '';
-    final selected = await showModalBottomSheet<SheetScore>(
+    final currentSetlist = setlist;
+    final selectedScores = await showModalBottomSheet<List<SheetScore>>(
       context: context,
       showDragHandle: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return SafeArea(
-            child: _ScorePickerSheet(
-              scores: availableScores,
-              query: query,
-              onQueryChanged: (value) {
-                setModalState(() {
-                  query = value;
-                });
-              },
-            ),
-          );
-        },
-      ),
+      isScrollControlled: true,
+      builder: (context) =>
+          SafeArea(child: _ScoreMultiPickerSheet(scores: availableScores)),
     );
-    if (selected == null) {
+    if (selectedScores == null || selectedScores.isEmpty) {
       return;
     }
-    await controller.addScoreToSetlist(setlist, selected);
+    final result = await controller.addScoresToSetlist(
+      currentSetlist,
+      selectedScores,
+    );
+    if (!mounted) {
+      return;
+    }
+    final skippedLabel = result.skippedDuplicateCount == 0
+        ? ''
+        : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel'
+        : '이미 모두 세트리스트에 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openFirstScore() async {
@@ -3772,10 +5274,12 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           .showSnackBar(const SnackBar(content: Text('세트리스트에 악보가 없습니다.')));
       return;
     }
+    await controller.markSetlistOpened(setlist, scoreId: scores.first.id);
     await _openScore(scores.first);
   }
 
   Future<void> _openScore(SheetScore score) async {
+    await controller.markSetlistOpened(setlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -3813,6 +5317,63 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       scoreDurations: updated.scoreDurations,
       viewerSettingsOverride: updated.viewerSettingsOverride,
       clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+    );
+  }
+
+  Future<void> _moveScoreToPosition(
+    SheetSetlist currentSetlist,
+    SheetScore score,
+    int currentIndex,
+    int totalCount,
+  ) async {
+    final targetPosition = await showDialog<int>(
+      context: context,
+      builder: (context) => _SetlistOrderDialog(
+        scoreTitle: score.title,
+        initialPosition: currentIndex + 1,
+        totalCount: totalCount,
+      ),
+    );
+    if (targetPosition == null) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    final targetIndex = targetPosition - 1;
+    if (targetIndex == currentIndex) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
+      return;
+    }
+    await controller.moveScoreInSetlist(
+      currentSetlist,
+      currentIndex,
+      targetIndex,
+    );
+  }
+
+  Future<void> _removeScoreFromSetlist(
+    SheetSetlist currentSetlist,
+    SheetScore score,
+    int index,
+  ) async {
+    await controller.removeScoreFromSetlist(currentSetlist, score);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${score.title}"을 세트리스트에서 제거했습니다.'),
+        action: SnackBarAction(
+          label: '되돌리기',
+          onPressed: () {
+            unawaited(
+              controller.insertScoreInSetlist(currentSetlist, score, index),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -3856,78 +5417,133 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _addScore,
-        icon: const Icon(Icons.playlist_add),
-        label: const Text('악보 추가'),
-      ),
+      floatingActionButton: scores.isEmpty
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: _addScore,
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('악보 추가'),
+            ),
       body: SafeArea(
         child: scores.isEmpty
-            ? const Center(child: Text('이 세트리스트에 악보가 없습니다.'))
-            : ListView.separated(
+            ? _EmptySetlistDetail(onAddScore: _addScore)
+            : ReorderableListView.builder(
+                buildDefaultDragHandles: false,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-                itemBuilder: (context, index) {
-                  final score = scores[index];
-                  return ListTile(
-                    tileColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    leading: CircleAvatar(child: Text('${index + 1}')),
-                    title: Text(
-                      score.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      currentSetlist.rehearsalMode
-                          ? '${currentSetlist.scoreStartPages[score.id] ?? score.lastPage}'
-                                '쪽부터 · ${_formatDuration(currentSetlist.scoreDurations[score.id] ?? 0)} · '
-                                '${currentSetlist.scoreNotes[score.id] ?? '메모 없음'}'
-                          : '${score.lastPage}쪽부터 열기 · 총 ${_formatDuration(currentSetlist.totalEstimatedSeconds)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () => _openScore(score),
-                    trailing: Wrap(
-                      spacing: 0,
-                      children: [
-                        IconButton(
-                          tooltip: '위로',
-                          onPressed: index == 0
-                              ? null
-                              : () => controller.moveScoreInSetlist(
-                                  currentSetlist,
-                                  index,
-                                  index - 1,
-                                ),
-                          icon: const Icon(Icons.keyboard_arrow_up),
-                        ),
-                        IconButton(
-                          tooltip: '아래로',
-                          onPressed: index == scores.length - 1
-                              ? null
-                              : () => controller.moveScoreInSetlist(
-                                  currentSetlist,
-                                  index,
-                                  index + 1,
-                                ),
-                          icon: const Icon(Icons.keyboard_arrow_down),
-                        ),
-                        IconButton(
-                          tooltip: '제거',
-                          onPressed: () => controller.removeScoreFromSetlist(
-                            currentSetlist,
-                            score,
-                          ),
-                          icon: const Icon(Icons.remove_circle_outline),
-                        ),
-                      ],
+                onReorderItem: (oldIndex, newIndex) {
+                  unawaited(
+                    controller.moveScoreInSetlist(
+                      currentSetlist,
+                      oldIndex,
+                      newIndex,
                     ),
                   );
                 },
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 10),
+                itemBuilder: (context, index) {
+                  final score = scores[index];
+                  return Padding(
+                    key: ValueKey('${currentSetlist.id}-${score.id}'),
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: ListTile(
+                      tileColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      leading: SizedBox(
+                        width: 92,
+                        child: Row(
+                          children: [
+                            Tooltip(
+                              message: '순서 입력',
+                              child: InkWell(
+                                customBorder: const CircleBorder(),
+                                onTap: () => _moveScoreToPosition(
+                                  currentSetlist,
+                                  score,
+                                  index,
+                                  scores.length,
+                                ),
+                                child: CircleAvatar(
+                                  child: Text('${index + 1}'),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Semantics(
+                              button: true,
+                              label: '끌어서 순서 변경',
+                              child: ReorderableDragStartListener(
+                                index: index,
+                                child: Tooltip(
+                                  message: '끌어서 순서 변경',
+                                  child: SizedBox(
+                                    width: 44,
+                                    height: 44,
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.drag_handle,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      title: Text(
+                        score.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      subtitle: Text(
+                        _setlistScoreSubtitle(currentSetlist, score),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () => _openScore(score),
+                      trailing: Wrap(
+                        spacing: 0,
+                        children: [
+                          IconButton(
+                            tooltip: '위로',
+                            onPressed: index == 0
+                                ? null
+                                : () => controller.moveScoreInSetlist(
+                                    currentSetlist,
+                                    index,
+                                    index - 1,
+                                  ),
+                            icon: const Icon(Icons.keyboard_arrow_up),
+                          ),
+                          IconButton(
+                            tooltip: '아래로',
+                            onPressed: index == scores.length - 1
+                                ? null
+                                : () => controller.moveScoreInSetlist(
+                                    currentSetlist,
+                                    index,
+                                    index + 1,
+                                  ),
+                            icon: const Icon(Icons.keyboard_arrow_down),
+                          ),
+                          IconButton(
+                            tooltip: '제거',
+                            onPressed: () => _removeScoreFromSetlist(
+                              currentSetlist,
+                              score,
+                              index,
+                            ),
+                            icon: const Icon(Icons.remove_circle_outline),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
                 itemCount: scores.length,
               ),
       ),
@@ -3935,33 +5551,236 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 }
 
-class _ScorePickerSheet extends StatelessWidget {
-  const _ScorePickerSheet({
-    required this.scores,
-    required this.query,
-    required this.onQueryChanged,
-  });
+class _EmptySetlistDetail extends StatelessWidget {
+  const _EmptySetlistDetail({required this.onAddScore});
 
-  final List<SheetScore> scores;
-  final String query;
-  final ValueChanged<String> onQueryChanged;
+  final VoidCallback onAddScore;
 
   @override
   Widget build(BuildContext context) {
-    final filteredScores = scores
-        .where((score) => score.matches(query))
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.playlist_add_check_outlined,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '이 세트리스트에 악보가 없습니다.',
+              style: Theme.of(context).textTheme.titleMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            const Text('연주 순서에 넣을 악보를 골라 담아보세요.', textAlign: TextAlign.center),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: onAddScore,
+              icon: const Icon(Icons.playlist_add),
+              label: const Text('악보 추가'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetlistOrderDialog extends StatefulWidget {
+  const _SetlistOrderDialog({
+    required this.scoreTitle,
+    required this.initialPosition,
+    required this.totalCount,
+  });
+
+  final String scoreTitle;
+  final int initialPosition;
+  final int totalCount;
+
+  @override
+  State<_SetlistOrderDialog> createState() => _SetlistOrderDialogState();
+}
+
+class _SetlistOrderDialogState extends State<_SetlistOrderDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _textController;
+
+  @override
+  void initState() {
+    super.initState();
+    _textController = TextEditingController(text: '${widget.initialPosition}');
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() != true) {
+      return;
+    }
+    Navigator.of(context).pop(int.parse(_textController.text));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text('"${widget.scoreTitle}" 순서 이동'),
+      content: Form(
+        key: _formKey,
+        child: TextFormField(
+          controller: _textController,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly,
+          ],
+          decoration: InputDecoration(
+            labelText: '이동할 순서',
+            helperText: '1부터 ${widget.totalCount} 사이 숫자',
+          ),
+          validator: (value) {
+            final position = int.tryParse(value ?? '');
+            if (position == null ||
+                position < 1 ||
+                position > widget.totalCount) {
+              return '1부터 ${widget.totalCount} 사이로 입력해주세요.';
+            }
+            return null;
+          },
+          onFieldSubmitted: (_) => _submit(),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('취소'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('이동')),
+      ],
+    );
+  }
+}
+
+class _ScoreMultiPickerSheet extends StatefulWidget {
+  const _ScoreMultiPickerSheet({required this.scores});
+
+  final List<SheetScore> scores;
+
+  @override
+  State<_ScoreMultiPickerSheet> createState() => _ScoreMultiPickerSheetState();
+}
+
+class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
+  String _query = '';
+  final Set<String> _selectedScoreIds = <String>{};
+
+  void _toggleScore(SheetScore score) {
+    setState(() {
+      if (!_selectedScoreIds.add(score.id)) {
+        _selectedScoreIds.remove(score.id);
+      }
+    });
+  }
+
+  void _toggleFilteredScores(List<SheetScore> filteredScores) {
+    setState(() {
+      final visibleScoreIds = filteredScores.map((score) => score.id).toSet();
+      if (visibleScoreIds.isEmpty) {
+        return;
+      }
+      final didSelectAllVisible = visibleScoreIds.every(
+        _selectedScoreIds.contains,
+      );
+      if (didSelectAllVisible) {
+        _selectedScoreIds.removeAll(visibleScoreIds);
+      } else {
+        _selectedScoreIds.addAll(visibleScoreIds);
+      }
+    });
+  }
+
+  void _submit() {
+    final selectedScores = widget.scores
+        .where((score) => _selectedScoreIds.contains(score.id))
         .toList(growable: false);
+    Navigator.of(context).pop(selectedScores);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredScores = widget.scores
+        .where((score) => score.matches(_query))
+        .toList(growable: false);
+    final selectedCount = _selectedScoreIds.length;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  selectedCount == 0
+                      ? '추가할 악보를 선택하세요'
+                      : '$selectedCount개 악보 선택됨',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              FilledButton.icon(
+                onPressed: selectedCount == 0 ? null : _submit,
+                icon: const Icon(Icons.playlist_add),
+                label: const Text('추가'),
+              ),
+            ],
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
           child: TextField(
-            onChanged: onQueryChanged,
+            onChanged: (value) {
+              setState(() {
+                _query = value;
+              });
+            },
             decoration: const InputDecoration(
               hintText: '추가할 악보 검색',
               prefixIcon: Icon(Icons.search),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: filteredScores.isEmpty
+                  ? null
+                  : () => _toggleFilteredScores(filteredScores),
+              icon: Icon(
+                filteredScores.isNotEmpty &&
+                        filteredScores.every(
+                          (score) => _selectedScoreIds.contains(score.id),
+                        )
+                    ? Icons.deselect
+                    : Icons.select_all,
+              ),
+              label: Text(
+                filteredScores.isNotEmpty &&
+                        filteredScores.every(
+                          (score) => _selectedScoreIds.contains(score.id),
+                        )
+                    ? '현재 검색 결과 선택 해제'
+                    : '현재 검색 결과 전체 선택',
+              ),
             ),
           ),
         ),
@@ -3976,11 +5795,16 @@ class _ScorePickerSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                   itemBuilder: (context, index) {
                     final score = filteredScores[index];
+                    final isSelected = _selectedScoreIds.contains(score.id);
                     return ListTile(
-                      leading: const Icon(Icons.description_outlined),
+                      leading: Checkbox(
+                        value: isSelected,
+                        onChanged: (_) => _toggleScore(score),
+                      ),
                       title: Text(score.title),
                       subtitle: Text(_scoreIdentitySubtitle(score)),
-                      onTap: () => Navigator.of(context).pop(score),
+                      selected: isSelected,
+                      onTap: () => _toggleScore(score),
                     );
                   },
                   separatorBuilder: (context, index) =>
@@ -4079,7 +5903,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
             const Divider(),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('공연 보기 preset'),
+              title: const Text('공연 보기 프리셋'),
               subtitle: const Text('세트리스트로 열 때 곡별 보기 설정보다 우선 적용'),
               value: _useViewerOverride,
               onChanged: (value) => setState(() {
@@ -4513,6 +6337,7 @@ enum _JumpPointAction { add, open, rename, delete }
 enum _ViewerMenuAction {
   bookmarks,
   scoreParts,
+  editScoreMetadata,
   scoreNotes,
   displayMode,
   displayEffect,
@@ -4520,6 +6345,7 @@ enum _ViewerMenuAction {
   pedalMapping,
   renderProfile,
   pageTurnAnimation,
+  showTapZoneHint,
   performanceSettings,
   toggleHalfPageTurn,
   toggleAnnotationMode,
@@ -4536,6 +6362,7 @@ enum _ViewerMenuAction {
   manageJumpPoints,
   manageRehearsalMarks,
   importPdfOutline,
+  importBookmarkCsv,
   cropPages,
   cropPresets,
   applyPageCrop,
@@ -4551,11 +6378,50 @@ enum _ViewerMenuAction {
   togglePerformanceMode,
 }
 
+enum _ViewerMiniTool { metronome, tuner }
+
+List<PopupMenuEntry<_ViewerMenuAction>> _viewerCompactLibraryMenuItems() =>
+    const [
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.bookmarks,
+        child: ListTile(
+          leading: Icon(Icons.bookmarks_outlined),
+          title: Text('북마크 목록'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.scoreParts,
+        child: ListTile(
+          leading: Icon(Icons.library_music_outlined),
+          title: Text('파트/버전'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.editScoreMetadata,
+        child: ListTile(
+          leading: Icon(Icons.edit_note_outlined),
+          title: Text('악보 정보 편집'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.scoreNotes,
+        child: ListTile(
+          leading: Icon(Icons.sticky_note_2_outlined),
+          title: Text('악보 메모'),
+        ),
+      ),
+    ];
+
 enum _AnnotationToolbarTool {
   pen('펜', Icons.edit_outlined),
   highlighter('형광펜', Icons.brush_outlined),
+  line('선', Icons.remove),
   arrow('화살표', Icons.call_made),
   rectangle('사각형', Icons.crop_square),
+  staff('오선', Icons.view_headline),
+  grid('격자', Icons.grid_4x4),
+  crescendo('크레셴도', Icons.open_in_full),
+  diminuendo('디미누엔도', Icons.close_fullscreen),
   stamp('스탬프', Icons.check_circle_outline),
   text('텍스트', Icons.text_fields),
   eraser('지우개', Icons.auto_fix_off_outlined);
@@ -4577,9 +6443,27 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
   SheetAnnotationTool get sheetAnnotationTool {
     return switch (this) {
       _AnnotationToolbarTool.highlighter => SheetAnnotationTool.highlighter,
+      _AnnotationToolbarTool.line => SheetAnnotationTool.line,
       _AnnotationToolbarTool.arrow => SheetAnnotationTool.arrow,
       _AnnotationToolbarTool.rectangle => SheetAnnotationTool.rectangle,
+      _AnnotationToolbarTool.staff => SheetAnnotationTool.staff,
+      _AnnotationToolbarTool.grid => SheetAnnotationTool.grid,
+      _AnnotationToolbarTool.crescendo => SheetAnnotationTool.crescendo,
+      _AnnotationToolbarTool.diminuendo => SheetAnnotationTool.diminuendo,
       _ => SheetAnnotationTool.pen,
+    };
+  }
+
+  bool get usesTwoPointShape {
+    return switch (this) {
+      _AnnotationToolbarTool.line ||
+      _AnnotationToolbarTool.arrow ||
+      _AnnotationToolbarTool.rectangle ||
+      _AnnotationToolbarTool.staff ||
+      _AnnotationToolbarTool.grid ||
+      _AnnotationToolbarTool.crescendo ||
+      _AnnotationToolbarTool.diminuendo => true,
+      _ => false,
     };
   }
 }
@@ -4587,7 +6471,13 @@ extension _AnnotationToolbarToolStroke on _AnnotationToolbarTool {
 enum _AnnotationStamp {
   ok('OK', Icons.check_circle_outline),
   cue('CUE', Icons.flag_outlined),
-  mark('!', Icons.priority_high);
+  mark('!', Icons.priority_high),
+  fine('Fine', Icons.flag_circle_outlined),
+  dc('D.C.', Icons.repeat),
+  ds('D.S.', Icons.repeat_on_outlined),
+  coda('Coda', Icons.adjust),
+  rit('rit.', Icons.slow_motion_video_outlined),
+  accel('accel.', Icons.speed_outlined);
 
   const _AnnotationStamp(this.label, this.icon);
 
@@ -4714,6 +6604,7 @@ class SheetViewerScreen extends StatefulWidget {
     required this.scoreId,
     this.setlistId,
     this.autoStartScroll = false,
+    this.showImportNudge = false,
     super.key,
   });
 
@@ -4721,6 +6612,7 @@ class SheetViewerScreen extends StatefulWidget {
   final String scoreId;
   final String? setlistId;
   final bool autoStartScroll;
+  final bool showImportNudge;
 
   @override
   State<SheetViewerScreen> createState() => _SheetViewerScreenState();
@@ -4777,11 +6669,22 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   bool _didLoadPdfOutline = false;
   String? _viewerFileStatusPath;
   Future<SheetViewerFileStatus>? _viewerFileStatusFuture;
+  bool _showTapZoneHint = true;
+  Offset? _tapZonePointerDown;
+  DateTime? _tapZonePointerDownAt;
+  _ViewerMiniTool? _miniTool;
 
   SheetScore get score => widget.controller.scoreById(widget.scoreId);
 
   SheetViewerSettings get _effectiveViewerSettings {
     return widget.controller.viewerSettingsForScore(
+      score,
+      setlistId: widget.setlistId,
+    );
+  }
+
+  SheetMetronomeSettings get _effectiveMetronomeSettings {
+    return widget.controller.metronomeSettingsForScore(
       score,
       setlistId: widget.setlistId,
     );
@@ -4886,6 +6789,14 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     return parts.join(' · ');
   }
 
+  String _setlistProgressSubtitle(SheetSetlistPlaybackContext context) {
+    final parts = <String>[context.title, context.positionLabel];
+    if (context.currentDurationSeconds > 0) {
+      parts.add(_formatDuration(context.currentDurationSeconds));
+    }
+    return parts.join(' · ');
+  }
+
   String get _currentPageLabel {
     final hiddenCount = score.pageSettings.hiddenPages.length;
     final pageText = '${_pageNumber ?? score.lastPage}/${_pageCount ?? '-'}';
@@ -4930,7 +6841,7 @@ setlist=$setlistLabel
     return switch (_displayEffect) {
       _SheetViewerDisplayEffect.dark => const Color(0xff171918),
       _SheetViewerDisplayEffect.inverted => const Color(0xff101010),
-      _ => const Color(0xff313332),
+      _ => const Color(0xfffbfbf7),
     };
   }
 
@@ -4945,6 +6856,9 @@ setlist=$setlistLabel
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _keyboardFocusNode.requestFocus();
+        if (widget.showImportNudge) {
+          _showImportedScoreNudge();
+        }
       }
     });
   }
@@ -5007,6 +6921,69 @@ setlist=$setlistLabel
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _handleViewerPointerDown(PointerDownEvent event) {
+    _keyboardFocusNode.requestFocus();
+    _showPageControlsTemporarily();
+    _tapZonePointerDown = event.localPosition;
+    _tapZonePointerDownAt = DateTime.now();
+  }
+
+  void _handleViewerPointerUp(PointerUpEvent event) {
+    final down = _tapZonePointerDown;
+    final downAt = _tapZonePointerDownAt;
+    _tapZonePointerDown = null;
+    _tapZonePointerDownAt = null;
+    if (down == null ||
+        downAt == null ||
+        _isAnnotationMode ||
+        _showPdfLinks ||
+        _isSanitizingPdfLinks ||
+        _isApplyingPageTransform) {
+      return;
+    }
+    if (DateTime.now().difference(downAt) > const Duration(milliseconds: 420)) {
+      return;
+    }
+    if ((event.localPosition - down).distance > 18) {
+      return;
+    }
+
+    final size = MediaQuery.sizeOf(context);
+    final reservedBottomHeight = _isPerformanceMode ? 116.0 : 150.0;
+    if (event.localPosition.dy > size.height - reservedBottomHeight) {
+      setState(() {
+        _showTapZoneHint = false;
+        _showPageControls = true;
+      });
+      _schedulePageControlsAutoHide();
+      return;
+    }
+
+    if (_miniTool != null &&
+        event.localPosition.dx > size.width - 340 &&
+        event.localPosition.dy < 180) {
+      setState(() => _showTapZoneHint = false);
+      return;
+    }
+
+    final width = size.width;
+    if (event.localPosition.dx < width * 0.34) {
+      setState(() => _showTapZoneHint = false);
+      unawaited(_handlePedalPageTurn(-1, allowHalfPageTurn: false));
+      return;
+    }
+    if (event.localPosition.dx > width * 0.66) {
+      setState(() => _showTapZoneHint = false);
+      unawaited(_handlePedalPageTurn(1, allowHalfPageTurn: false));
+      return;
+    }
+    setState(() {
+      _showTapZoneHint = false;
+      _showPageControls = true;
+    });
+    _schedulePageControlsAutoHide();
   }
 
   PdfTextSearcher _ensureTextSearcher() {
@@ -5471,7 +7448,7 @@ setlist=$setlistLabel
       builder: (context) => _AutoScrollSheet(
         initialSettings: score.autoScrollSettings,
         rehearsalMarks: score.pageSettings.rehearsalMarks,
-        metronomeBpm: widget.controller.metronomeSettings.bpm,
+        metronomeBpm: _effectiveMetronomeSettings.bpm,
         currentPage: _pageNumber ?? score.lastPage,
         pageCount: pageCount,
         isAutoScrolling: _isAutoScrolling,
@@ -5943,7 +7920,7 @@ setlist=$setlistLabel
             ),
             const ListTile(
               leading: Icon(Icons.info_outline),
-              title: Text('파트/버전은 metadata로 관리됩니다'),
+              title: Text('파트/버전은 앱 안 정보로 관리됩니다'),
               subtitle: Text('원본 PDF를 수정하지 않고 현재 파일과 연결 파일만 전환합니다.'),
             ),
             for (final linkedFile in currentScore.linkedFiles)
@@ -6168,9 +8145,42 @@ setlist=$setlistLabel
     _showSnackBar('악보 메모를 저장했습니다.');
   }
 
+  Future<void> _editCurrentScoreMetadata() async {
+    final result = await _showScoreMetadataDialog(
+      context: context,
+      score: score,
+      onAddLinkedFile: widget.controller.pickLinkedFile,
+    );
+    if (result == null || !mounted) {
+      return;
+    }
+    await widget.controller.updateScoreMetadata(
+      score,
+      title: result.title,
+      composer: result.composer,
+      tags: result.tags,
+      note: result.note,
+      collection: result.collection,
+      group: result.group,
+      rating: result.rating,
+      linkedFiles: result.linkedFiles,
+      customFields: result.customFields,
+    );
+    _showSnackBar('악보 정보를 저장했습니다.');
+  }
+
+  void _showImportedScoreNudge() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      _buildImportedScoreNudgeSnackBar(
+        title: score.title,
+        onEdit: () => unawaited(_editCurrentScoreMetadata()),
+      ),
+    );
+  }
+
   Future<void> _importPdfOutlineBookmarks() async {
     if (_pdfOutlineBookmarks.isEmpty) {
-      _showSnackBar('가져올 PDF outline/bookmark가 없습니다.');
+      _showSnackBar('가져올 PDF 목차/북마크가 없습니다.');
       return;
     }
     final didMerge = await widget.controller.mergeBookmarksFromOutline(
@@ -6179,8 +8189,30 @@ setlist=$setlistLabel
     );
     _showSnackBar(
       didMerge
-          ? '${_pdfOutlineBookmarks.length}개 PDF outline 후보를 북마크에 병합했습니다.'
-          : '새로 병합할 PDF outline 항목이 없습니다.',
+          ? '${_pdfOutlineBookmarks.length}개 PDF 목차 후보를 북마크에 병합했습니다.'
+          : '새로 병합할 PDF 목차 항목이 없습니다.',
+    );
+  }
+
+  Future<void> _importCsvBookmarks() async {
+    final pageCount = _pdfController.pageCount;
+    if (pageCount <= 0) {
+      _showSnackBar('PDF 페이지 수를 확인한 뒤 CSV 북마크를 가져올 수 있습니다.');
+      return;
+    }
+    final addedCount = await widget.controller.importBookmarksFromCsv(
+      score,
+      pageCount: pageCount,
+    );
+    final errorMessage = widget.controller.errorMessage;
+    if (errorMessage != null) {
+      _showSnackBar(errorMessage);
+      return;
+    }
+    _showSnackBar(
+      addedCount > 0
+          ? '$addedCount개 CSV 북마크를 추가했습니다.'
+          : '새로 가져올 CSV 북마크가 없습니다.',
     );
   }
 
@@ -6777,9 +8809,7 @@ setlist=$setlistLabel
             return ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
               title: Text('$pageNumber쪽'),
-              subtitle: rotation == null
-                  ? null
-                  : Text('회전 $rotation도 metadata'),
+              subtitle: rotation == null ? null : Text('회전값 $rotation도'),
               trailing: IconButton(
                 tooltip: '숨김 해제',
                 onPressed: () => Navigator.of(context).pop(pageNumber),
@@ -7429,7 +9459,7 @@ setlist=$setlistLabel
         ? '$pageNumber쪽'
         : '순서 ${orderIndex + 1}';
     _showSnackBar(
-      '$targetLabel 회전 metadata: $label',
+      '$targetLabel 회전값: $label',
       action: hasPageRotations || hasInstanceRotations
           ? SnackBarAction(
               label: '사본 생성',
@@ -7452,11 +9482,11 @@ setlist=$setlistLabel
     }
     final currentScore = score;
     if (currentScore.pageSettings.pageRotations.isEmpty) {
-      _showSnackBar('적용할 페이지 회전 metadata가 없습니다.');
+      _showSnackBar('적용할 페이지 회전값이 없습니다.');
       return;
     }
     if (currentScore.pageSettings.instanceRotations.isNotEmpty) {
-      _showSnackBar('instance 회전은 페이지 정리 적용 사본으로 재배치해주세요.');
+      _showSnackBar('개별 회전값은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -7464,7 +9494,7 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('회전 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, 회전 metadata를 실제 페이지 회전으로 '
+          '원본 PDF는 연결 파일로 보존하고, 저장한 회전값을 실제 페이지 회전으로 '
           '적용한 앱 내부 사본을 만듭니다.',
         ),
         actions: [
@@ -7521,11 +9551,11 @@ setlist=$setlistLabel
     final currentScore = score;
     if (!currentScore.pageSettings.crop.hasCrop &&
         currentScore.pageSettings.pageCrops.isEmpty) {
-      _showSnackBar('적용할 crop metadata가 없습니다.');
+      _showSnackBar('적용할 자르기 설정이 없습니다.');
       return;
     }
     if (currentScore.pageSettings.instanceCrops.isNotEmpty) {
-      _showSnackBar('instance crop은 페이지 정리 적용 사본으로 재배치해주세요.');
+      _showSnackBar('개별 자르기 값은 페이지 정리 적용 사본으로 재배치해주세요.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -7533,7 +9563,7 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('자르기 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, crop metadata를 실제 PDF CropBox로 '
+          '원본 PDF는 연결 파일로 보존하고, 저장한 자르기 값을 실제 PDF CropBox로 '
           '적용한 앱 내부 사본을 만듭니다.',
         ),
         actions: [
@@ -7648,11 +9678,11 @@ setlist=$setlistLabel
           children: [
             ListTile(
               leading: const Icon(Icons.add),
-              title: const Text('현재 자르기 값을 preset으로 저장'),
+              title: const Text('현재 자르기 값을 프리셋으로 저장'),
               subtitle: Text(
                 currentScore.pageSettings.crop.hasCrop
-                    ? '현재 crop 사용'
-                    : 'crop 없음',
+                    ? '현재 자르기 값 사용'
+                    : '자르기 없음',
               ),
               onTap: () => Navigator.of(
                 context,
@@ -7673,7 +9703,7 @@ setlist=$setlistLabel
                   ),
                 ),
                 trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+                  tooltip: '프리셋 삭제',
                   onPressed: () => Navigator.of(context).pop(
                     _CropPresetAction(
                       type: _CropPresetActionType.remove,
@@ -7703,8 +9733,8 @@ setlist=$setlistLabel
       }
       _showSnackBar(
         didApply
-            ? '${_cropPresetScopeLabel(preset.scope)} preset을 적용했습니다.'
-            : '적용할 preset이 없습니다.',
+            ? '${_cropPresetScopeLabel(preset.scope)} 프리셋을 적용했습니다.'
+            : '적용할 프리셋이 없습니다.',
       );
       return;
     }
@@ -7715,7 +9745,7 @@ setlist=$setlistLabel
         currentScore,
         preset.id,
       );
-      _showSnackBar(didRemove ? 'Crop preset을 삭제했습니다.' : '삭제할 preset이 없습니다.');
+      _showSnackBar(didRemove ? '자르기 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (selected?.type != _CropPresetActionType.add) {
@@ -7726,7 +9756,7 @@ setlist=$setlistLabel
     }
     final input = await _showCropPresetDialog(
       context: context,
-      initialLabel: '공연용 crop',
+      initialLabel: '공연용 자르기',
       initialScope: SheetCropPreset.allPagesScope,
     );
     if (input == null) {
@@ -7746,12 +9776,12 @@ setlist=$setlistLabel
         createdAt: now,
       ),
     );
-    _showSnackBar(didAdd ? 'Crop preset을 저장했습니다.' : 'Crop preset을 저장하지 못했습니다.');
+    _showSnackBar(didAdd ? '자르기 프리셋을 저장했습니다.' : '자르기 프리셋을 저장하지 못했습니다.');
   }
 
   String _cropPresetSummary(SheetCropSettings crop) {
     if (!crop.hasCrop) {
-      return 'crop 없음';
+      return '자르기 없음';
     }
     final normalized = crop.normalized();
     return 'L ${(normalized.left * 100).round()} · '
@@ -7772,7 +9802,7 @@ setlist=$setlistLabel
         context: context,
         builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
-            title: const Text('Crop preset 저장'),
+            title: const Text('자르기 프리셋 저장'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -7808,7 +9838,7 @@ setlist=$setlistLabel
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  '기본 저장은 앱 표시 metadata이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
+                  '기본 저장은 앱 안 표시 설정이며, 필요하면 원본 보존 사본에 PDF CropBox를 적용합니다.',
                 ),
               ],
             ),
@@ -7821,7 +9851,7 @@ setlist=$setlistLabel
                 onPressed: () {
                   final label = labelController.text.trim();
                   Navigator.of(context).pop((
-                    label: label.isEmpty ? 'Crop preset' : label,
+                    label: label.isEmpty ? '자르기 프리셋' : label,
                     scope: selectedScope,
                   ));
                 },
@@ -7855,8 +9885,8 @@ setlist=$setlistLabel
           children: [
             const ListTile(
               leading: Icon(Icons.info_outline),
-              title: Text('페이지 템플릿 metadata'),
-              subtitle: Text('기본 저장은 metadata이며, 필요하면 PDF 사본에 적용합니다.'),
+              title: Text('페이지 템플릿 설정'),
+              subtitle: Text('기본 저장은 앱 안 설정이며, 필요하면 PDF 사본에 적용합니다.'),
             ),
             ListTile(
               leading: const Icon(Icons.summarize_outlined),
@@ -7865,17 +9895,17 @@ setlist=$setlistLabel
             ),
             ListTile(
               leading: const Icon(Icons.note_add_outlined),
-              title: const Text('현재 페이지 뒤 빈 페이지 metadata'),
+              title: const Text('현재 페이지 뒤 빈 페이지 추가'),
               onTap: () => Navigator.of(context).pop('blank'),
             ),
             ListTile(
               leading: const Icon(Icons.visibility_off_outlined),
-              title: const Text('현재 숨김 상태를 preset으로 저장'),
+              title: const Text('현재 숨김 상태를 프리셋으로 저장'),
               onTap: () => Navigator.of(context).pop('visibility'),
             ),
             ListTile(
               leading: const Icon(Icons.filter_1_outlined),
-              title: const Text('Cover 제외 preset 저장'),
+              title: const Text('표지 제외 프리셋 저장'),
               onTap: () => Navigator.of(context).pop('cover'),
             ),
             for (final preset in currentScore.pageSettings.visibilityPresets)
@@ -7885,7 +9915,7 @@ setlist=$setlistLabel
                 subtitle: Text('${preset.hiddenPages.length}쪽 숨김'),
                 onTap: () => Navigator.of(context).pop('apply:${preset.id}'),
                 trailing: IconButton(
-                  tooltip: 'Preset 삭제',
+                  tooltip: '프리셋 삭제',
                   onPressed: () =>
                       Navigator.of(context)
                           .pop('removeVisibility:${preset.id}'),
@@ -7897,9 +9927,9 @@ setlist=$setlistLabel
               ListTile(
                 leading: const Icon(Icons.note_outlined),
                 title: Text(insertion.label),
-                subtitle: Text('${insertion.afterPage}쪽 뒤 빈 페이지 metadata'),
+                subtitle: Text('${insertion.afterPage}쪽 뒤 빈 페이지'),
                 trailing: IconButton(
-                  tooltip: '빈 페이지 metadata 삭제',
+                  tooltip: '빈 페이지 삭제',
                   onPressed: () =>
                       Navigator.of(context).pop('removeBlank:${insertion.id}'),
                   icon: const Icon(Icons.delete_outline),
@@ -7926,7 +9956,7 @@ setlist=$setlistLabel
           createdAt: now,
         ),
       );
-      _showSnackBar(didAdd ? '빈 페이지 metadata를 저장했습니다.' : '저장하지 못했습니다.');
+      _showSnackBar(didAdd ? '빈 페이지를 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action == 'visibility' || action == 'cover') {
@@ -7938,12 +9968,12 @@ setlist=$setlistLabel
         pageCount: pageCount,
         preset: SheetPageVisibilityPreset(
           id: '${now.microsecondsSinceEpoch}-visibility',
-          label: action == 'cover' ? 'Cover 제외' : '현재 숨김 상태',
+          label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
           hiddenPages: hiddenPages,
           createdAt: now,
         ),
       );
-      _showSnackBar(didAdd ? 'Visibility preset을 저장했습니다.' : '저장하지 못했습니다.');
+      _showSnackBar(didAdd ? '숨김 프리셋을 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action.startsWith('apply:')) {
@@ -7952,7 +9982,7 @@ setlist=$setlistLabel
         presetId: action.substring('apply:'.length),
         pageCount: pageCount,
       );
-      _showSnackBar(didApply ? 'Visibility preset을 적용했습니다.' : '적용하지 못했습니다.');
+      _showSnackBar(didApply ? '숨김 프리셋을 적용했습니다.' : '적용하지 못했습니다.');
       return;
     }
     if (action.startsWith('removeVisibility:')) {
@@ -7960,9 +9990,7 @@ setlist=$setlistLabel
         currentScore,
         action.substring('removeVisibility:'.length),
       );
-      _showSnackBar(
-        didRemove ? 'Visibility preset을 삭제했습니다.' : '삭제할 preset이 없습니다.',
-      );
+      _showSnackBar(didRemove ? '숨김 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (action.startsWith('removeBlank:')) {
@@ -7970,9 +9998,7 @@ setlist=$setlistLabel
         currentScore,
         action.substring('removeBlank:'.length),
       );
-      _showSnackBar(
-        didRemove ? '빈 페이지 metadata를 삭제했습니다.' : '삭제할 metadata가 없습니다.',
-      );
+      _showSnackBar(didRemove ? '빈 페이지를 삭제했습니다.' : '삭제할 항목이 없습니다.');
     }
   }
 
@@ -7986,7 +10012,7 @@ setlist=$setlistLabel
     if (settings.hiddenPages.isEmpty &&
         settings.pageOrder.isEmpty &&
         settings.blankPageInsertions.isEmpty) {
-      _showSnackBar('적용할 페이지 정리 metadata가 없습니다.');
+      _showSnackBar('적용할 페이지 정리 설정이 없습니다.');
       return;
     }
     final confirmed = await showDialog<bool>(
@@ -7994,8 +10020,8 @@ setlist=$setlistLabel
       builder: (context) => AlertDialog(
         title: const Text('페이지 정리 적용 사본 생성'),
         content: const Text(
-          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지와 instance '
-          'crop/rotation metadata를 앱 내부 사본의 페이지 구조로 적용합니다.',
+          '원본 PDF는 연결 파일로 보존하고, 숨김/순서/빈 페이지와 개별 '
+          '자르기/회전 설정을 앱 내부 사본의 페이지 구조로 적용합니다.',
         ),
         actions: [
           TextButton(
@@ -8052,7 +10078,7 @@ setlist=$setlistLabel
           '${settings.hasCustomPageOrder ? settings.effectivePageOrder(pageCount).length : pageCount}개',
       '반복/점프 ${settings.jumpPoints.length}개',
       '빈 페이지 ${settings.blankPageInsertions.length}개',
-      'visibility preset ${settings.visibilityPresets.length}개',
+      '숨김 프리셋 ${settings.visibilityPresets.length}개',
     ];
     return parts.join(' · ');
   }
@@ -8409,8 +10435,7 @@ setlist=$setlistLabel
     if (points.isEmpty) {
       return;
     }
-    if (_annotationTool == _AnnotationToolbarTool.arrow ||
-        _annotationTool == _AnnotationToolbarTool.rectangle) {
+    if (_annotationTool.usesTwoPointShape) {
       setState(() {
         _draftAnnotationPoints = <SheetAnnotationPoint>[points.first, point];
       });
@@ -8642,11 +10667,11 @@ setlist=$setlistLabel
       if (duplicatePageCount > 0) '복제 $duplicatePageCount',
       if (pageSettings.hasCustomPageOrder) '가상 순서 ${order.length}',
       if (pageSettings.pageCrops.isNotEmpty)
-        '페이지별 crop ${pageSettings.pageCrops.length}',
+        '페이지별 자르기 ${pageSettings.pageCrops.length}',
       if (pageSettings.instanceCrops.isNotEmpty)
-        'instance crop ${pageSettings.instanceCrops.length}',
+        '개별 자르기 ${pageSettings.instanceCrops.length}',
       if (pageSettings.instanceRotations.isNotEmpty)
-        'instance 회전 ${pageSettings.instanceRotations.length}',
+        '개별 회전 ${pageSettings.instanceRotations.length}',
     ].join(' · ');
     await showModalBottomSheet<void>(
       context: context,
@@ -8666,7 +10691,7 @@ setlist=$setlistLabel
               const SizedBox(height: 8),
               Text(
                 pageSummary.isEmpty
-                    ? '원본 PDF는 그대로이고 앱 표시 metadata만 반영됩니다.'
+                    ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
                     : '$pageSummary · 원본 PDF는 그대로입니다.',
               ),
               const SizedBox(height: 12),
@@ -8923,7 +10948,7 @@ setlist=$setlistLabel
                       Expanded(
                         child: matches.isEmpty
                             ? const Center(
-                                child: Text('검색어를 입력하면 page 결과가 여기에 표시됩니다.'),
+                                child: Text('검색어를 입력하면 쪽 결과가 여기에 표시됩니다.'),
                               )
                             : ListView.separated(
                                 itemBuilder: (context, index) {
@@ -8975,21 +11000,37 @@ setlist=$setlistLabel
   }
 
   Future<void> _showMetronome() async {
-    await showModalBottomSheet<void>(
+    final currentScore = score;
+    final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _MetronomeSheet(
-        initialSettings: widget.controller.metronomeSettings,
-        onSettingsChanged: widget.controller.updateMetronomeSettings,
+        initialSettings: widget.controller.metronomeSettingsForScore(
+          currentScore,
+          setlistId: widget.setlistId,
+        ),
+        settingsScopeLabel: widget.setlistId == null
+            ? '이 악보에 저장됩니다'
+            : '이 세트리스트에 저장됩니다',
+        onSettingsChanged: (settings) =>
+            widget.controller.updateMetronomeSettingsForScore(
+              currentScore,
+              settings,
+              setlistId: widget.setlistId,
+            ),
+        onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
     if (mounted) {
+      if (showMiniPanel == true) {
+        setState(() => _miniTool = _ViewerMiniTool.metronome);
+      }
       _keyboardFocusNode.requestFocus();
     }
   }
 
   Future<void> _showTuner() async {
-    await showModalBottomSheet<void>(
+    final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (context) => _TunerSheet(
@@ -8997,9 +11038,13 @@ setlist=$setlistLabel
         initialToneSettings: widget.controller.toneSettings,
         onSettingsChanged: widget.controller.updateTunerSettings,
         onToneSettingsChanged: widget.controller.updateToneSettings,
+        onShowMiniPanel: () => Navigator.of(context).pop(true),
       ),
     );
     if (mounted) {
+      if (showMiniPanel == true) {
+        setState(() => _miniTool = _ViewerMiniTool.tuner);
+      }
       _keyboardFocusNode.requestFocus();
     }
   }
@@ -9060,6 +11105,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.scoreParts:
         await _showScoreParts();
         return;
+      case _ViewerMenuAction.editScoreMetadata:
+        await _editCurrentScoreMetadata();
+        return;
       case _ViewerMenuAction.scoreNotes:
         await _showScoreNotes();
         return;
@@ -9080,6 +11128,13 @@ setlist=$setlistLabel
         return;
       case _ViewerMenuAction.pageTurnAnimation:
         await _selectPageTurnAnimation();
+        return;
+      case _ViewerMenuAction.showTapZoneHint:
+        setState(() {
+          _showTapZoneHint = true;
+          _showPageControls = true;
+        });
+        _schedulePageControlsAutoHide();
         return;
       case _ViewerMenuAction.performanceSettings:
         await _showPerformanceSettings();
@@ -9143,6 +11198,9 @@ setlist=$setlistLabel
         return;
       case _ViewerMenuAction.importPdfOutline:
         await _importPdfOutlineBookmarks();
+        return;
+      case _ViewerMenuAction.importBookmarkCsv:
+        await _importCsvBookmarks();
         return;
       case _ViewerMenuAction.cropPages:
         await _showCropSettings();
@@ -9318,6 +11376,10 @@ setlist=$setlistLabel
       }
     }
 
+    final setlist = widget.controller.setlistByIdOrNull(setlistId);
+    if (setlist != null) {
+      await widget.controller.markSetlistOpened(setlist, scoreId: nextScore.id);
+    }
     await widget.controller.markOpened(nextScore);
     if (!mounted) {
       return;
@@ -9528,6 +11590,12 @@ setlist=$setlistLabel
         ),
       if (!isCompactViewer && !_isPerformanceMode)
         IconButton(
+          tooltip: '악보 정보 편집',
+          onPressed: _editCurrentScoreMetadata,
+          icon: const Icon(Icons.edit_note_outlined),
+        ),
+      if (!isCompactViewer && !_isPerformanceMode)
+        IconButton(
           tooltip: '보기 모드',
           onPressed: _selectDisplayMode,
           icon: Icon(_displayMode.icon),
@@ -9561,6 +11629,13 @@ setlist=$setlistLabel
           tooltip: '페이지 넘김 감각',
           onPressed: _selectPageTurnAnimation,
           icon: Icon(_pageTurnAnimation.icon),
+        ),
+      if (!isCompactViewer && !_isPerformanceMode)
+        IconButton(
+          tooltip: '터치 영역 다시 보기',
+          onPressed: () =>
+              _handleViewerMenuAction(_ViewerMenuAction.showTapZoneHint),
+          icon: const Icon(Icons.touch_app_outlined),
         ),
       if (!isCompactViewer && !_isPerformanceMode)
         IconButton(
@@ -9667,15 +11742,23 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.importPdfOutline,
               child: ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF outline 가져오기'),
+                title: const Text('PDF 목차 가져오기'),
                 subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.importBookmarkCsv,
+              child: ListTile(
+                leading: Icon(Icons.table_rows_outlined),
+                title: Text('CSV 북마크 가져오기'),
+                subtitle: Text('page,label 또는 label,page'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
                 leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전 metadata 저장'),
+                title: Text('회전값 저장'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -9697,7 +11780,7 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.crop_outlined),
                 title: const Text('자르기 맞춤'),
                 subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('metadata 적용 중')
+                    ? const Text('앱 설정 적용 중')
                     : const Text('원본 PDF 보존'),
               ),
             ),
@@ -9713,18 +11796,18 @@ setlist=$setlistLabel
                     currentScore.pageSettings.crop.hasCrop ||
                         currentScore.pageSettings.pageCrops.isNotEmpty
                     ? Text(
-                        '전체 crop'
+                        '전체 자르기'
                         '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
                         '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
                       )
-                    : const Text('저장된 crop 없음'),
+                    : const Text('저장된 자르기 없음'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.cropPresets,
               child: ListTile(
                 leading: Icon(Icons.crop_free_outlined),
-                title: Text('Crop preset'),
+                title: Text('자르기 프리셋'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -9780,7 +11863,7 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(Icons.keyboard_alt_outlined),
                 title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 key log'),
+                subtitle: Text('페달/키보드 입력 기록'),
               ),
             ),
           ],
@@ -9814,27 +11897,7 @@ setlist=$setlistLabel
           tooltip: '보기 옵션',
           onSelected: (action) => _handleViewerMenuAction(action),
           itemBuilder: (context) => [
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.bookmarks,
-              child: ListTile(
-                leading: Icon(Icons.bookmarks_outlined),
-                title: Text('북마크 목록'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreParts,
-              child: ListTile(
-                leading: Icon(Icons.library_music_outlined),
-                title: Text('파트/버전'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.scoreNotes,
-              child: ListTile(
-                leading: Icon(Icons.sticky_note_2_outlined),
-                title: Text('악보 메모'),
-              ),
-            ),
+            ..._viewerCompactLibraryMenuItems(),
             PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.displayMode,
               child: ListTile(
@@ -9875,6 +11938,14 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(_pageTurnAnimation.icon),
                 title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.showTapZoneHint,
+              child: ListTile(
+                leading: Icon(Icons.touch_app_outlined),
+                title: Text('터치 영역 다시 보기'),
+                subtitle: Text('왼쪽 이전 · 가운데 메뉴 · 오른쪽 다음'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -10013,15 +12084,23 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.importPdfOutline,
               child: ListTile(
                 leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF outline 가져오기'),
+                title: const Text('PDF 목차 가져오기'),
                 subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+              ),
+            ),
+            const PopupMenuItem<_ViewerMenuAction>(
+              value: _ViewerMenuAction.importBookmarkCsv,
+              child: ListTile(
+                leading: Icon(Icons.table_rows_outlined),
+                title: Text('CSV 북마크 가져오기'),
+                subtitle: Text('page,label 또는 label,page'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
                 leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전 metadata 저장'),
+                title: Text('회전값 저장'),
               ),
             ),
             PopupMenuItem<_ViewerMenuAction>(
@@ -10043,7 +12122,7 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.crop_outlined),
                 title: const Text('자르기 맞춤'),
                 subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('metadata 적용 중')
+                    ? const Text('앱 설정 적용 중')
                     : const Text('원본 PDF 보존'),
               ),
             ),
@@ -10059,18 +12138,18 @@ setlist=$setlistLabel
                     currentScore.pageSettings.crop.hasCrop ||
                         currentScore.pageSettings.pageCrops.isNotEmpty
                     ? Text(
-                        '전체 crop'
+                        '전체 자르기'
                         '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
                         '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
                       )
-                    : const Text('저장된 crop 없음'),
+                    : const Text('저장된 자르기 없음'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.cropPresets,
               child: ListTile(
                 leading: Icon(Icons.crop_free_outlined),
-                title: Text('Crop preset'),
+                title: Text('자르기 프리셋'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -10126,7 +12205,7 @@ setlist=$setlistLabel
               child: ListTile(
                 leading: Icon(Icons.keyboard_alt_outlined),
                 title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 key log'),
+                subtitle: Text('페달/키보드 입력 기록'),
               ),
             ),
             const PopupMenuDivider(),
@@ -10196,10 +12275,8 @@ setlist=$setlistLabel
             child: SafeArea(
               child: Listener(
                 behavior: HitTestBehavior.translucent,
-                onPointerDown: (_) {
-                  _keyboardFocusNode.requestFocus();
-                  _showPageControlsTemporarily();
-                },
+                onPointerDown: _handleViewerPointerDown,
+                onPointerUp: _handleViewerPointerUp,
                 child: Stack(
                   children: [
                     FutureBuilder<SheetViewerFileStatus>(
@@ -10553,6 +12630,49 @@ setlist=$setlistLabel
                           ),
                         ),
                       ),
+                    if (_showTapZoneHint &&
+                        !_isAnnotationMode &&
+                        !_isPerformanceMode)
+                      const Positioned.fill(child: _TapZoneHintOverlay()),
+                    if (setlistContext != null &&
+                        (usesScrollableViewerToolbar || _isPerformanceMode) &&
+                        !_isAnnotationMode)
+                      Positioned(
+                        left: _isPerformanceMode
+                            ? (isCompactViewer ? 68 : 80)
+                            : 16,
+                        right: isCompactViewer ? 8 : 16,
+                        top: isCompactViewer ? 12 : 16,
+                        child: Align(
+                          alignment: _isPerformanceMode
+                              ? Alignment.topLeft
+                              : Alignment.topCenter,
+                          child: _SetlistProgressBadge(
+                            scoreTitle: currentScore.title,
+                            subtitle: _setlistProgressSubtitle(setlistContext),
+                          ),
+                        ),
+                      ),
+                    if (_miniTool != null && !_isAnnotationMode)
+                      Positioned(
+                        top: isCompactViewer ? 12 : 20,
+                        right: isCompactViewer ? 8 : 20,
+                        child: _ViewerMiniToolPanel(
+                          tool: _miniTool!,
+                          metronomeSettings: _effectiveMetronomeSettings,
+                          onMetronomeSettingsChanged: (settings) =>
+                              widget.controller.updateMetronomeSettingsForScore(
+                                currentScore,
+                                settings,
+                                setlistId: widget.setlistId,
+                              ),
+                          onOpenTuner: () {
+                            setState(() => _miniTool = null);
+                            unawaited(_showTuner());
+                          },
+                          onClose: () => setState(() => _miniTool = null),
+                        ),
+                      ),
                     if (_isPerformanceMode)
                       Positioned(
                         left: isCompactViewer ? 8 : 16,
@@ -10654,6 +12774,423 @@ class _ViewerDisplayEffectWrapper extends StatelessWidget {
       ),
       _ => child,
     };
+  }
+}
+
+class _TapZoneHintOverlay extends StatelessWidget {
+  const _TapZoneHintOverlay();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final zoneColor = theme.colorScheme.primary.withValues(alpha: 0.08);
+    final lineColor = theme.colorScheme.primary.withValues(alpha: 0.28);
+    return Semantics(
+      container: true,
+      label: '페이지 터치 영역 안내',
+      child: IgnorePointer(
+        child: ColoredBox(
+          color: Colors.transparent,
+          child: Row(
+            children: [
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: zoneColor,
+                  borderColor: lineColor,
+                  icon: Icons.chevron_left,
+                  label: '이전',
+                ),
+              ),
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: Colors.white.withValues(alpha: 0.38),
+                  borderColor: lineColor,
+                  icon: Icons.touch_app_outlined,
+                  label: '메뉴',
+                ),
+              ),
+              Expanded(
+                child: _TapZoneHintPane(
+                  color: zoneColor,
+                  borderColor: lineColor,
+                  icon: Icons.chevron_right,
+                  label: '다음',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TapZoneHintPane extends StatelessWidget {
+  const _TapZoneHintPane({
+    required this.color,
+    required this.borderColor,
+    required this.icon,
+    required this.label,
+  });
+
+  final Color color;
+  final Color borderColor;
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        border: Border.symmetric(
+          vertical: BorderSide(color: borderColor, width: 0.6),
+        ),
+      ),
+      child: Center(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.86),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: borderColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ViewerMiniToolPanel extends StatefulWidget {
+  const _ViewerMiniToolPanel({
+    required this.tool,
+    required this.metronomeSettings,
+    required this.onMetronomeSettingsChanged,
+    required this.onOpenTuner,
+    required this.onClose,
+  });
+
+  final _ViewerMiniTool tool;
+  final SheetMetronomeSettings metronomeSettings;
+  final Future<void> Function(SheetMetronomeSettings settings)
+  onMetronomeSettingsChanged;
+  final VoidCallback onOpenTuner;
+  final VoidCallback onClose;
+
+  @override
+  State<_ViewerMiniToolPanel> createState() => _ViewerMiniToolPanelState();
+}
+
+class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
+  late final SheetMetronomeSoundPlayer _soundPlayer;
+  Timer? _timer;
+  late SheetMetronomeBeat _beat;
+  bool _isRunning = false;
+  int _countInPulsesLeft = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _soundPlayer = SheetMetronomeSoundPlayer();
+    _beat = _initialBeat(widget.metronomeSettings);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ViewerMiniToolPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.metronomeSettings != widget.metronomeSettings ||
+        oldWidget.tool != widget.tool) {
+      _beat = _initialBeat(widget.metronomeSettings);
+      if (_isRunning) {
+        _restartTimer();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  SheetMetronomeBeat _initialBeat(SheetMetronomeSettings settings) {
+    return SheetMetronomeBeat(
+      beatIndex: 0,
+      beatsPerBar: settings.meter.beatsPerBar,
+      pulsesPerBeat: settings.subdivision.pulsesPerBeat,
+    );
+  }
+
+  void _toggleRunning() {
+    if (_isRunning) {
+      _timer?.cancel();
+      setState(() {
+        _isRunning = false;
+        _countInPulsesLeft = 0;
+      });
+      return;
+    }
+    setState(() {
+      _isRunning = true;
+      _beat = _initialBeat(widget.metronomeSettings);
+      _countInPulsesLeft = _countInTotalPulses;
+    });
+    _playTick();
+    _consumeCountInPulse();
+    _restartTimer();
+  }
+
+  void _restartTimer() {
+    _timer?.cancel();
+    _timer = Timer.periodic(
+      widget.metronomeSettings.pulseDuration,
+      (_) => _advanceBeat(),
+    );
+  }
+
+  void _advanceBeat() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _beat = _beat.next();
+      _consumeCountInPulse();
+    });
+    _playTick();
+  }
+
+  int get _countInTotalPulses =>
+      widget.metronomeSettings.countInBars *
+      widget.metronomeSettings.meter.beatsPerBar *
+      widget.metronomeSettings.subdivision.pulsesPerBeat;
+
+  bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
+
+  void _consumeCountInPulse() {
+    if (_countInPulsesLeft <= 0) {
+      return;
+    }
+    _countInPulsesLeft--;
+    if (_countInPulsesLeft == 0) {
+      _beat = _initialBeat(widget.metronomeSettings);
+    }
+  }
+
+  void _playTick() {
+    if (!widget.metronomeSettings.soundEnabled || !_beat.isBeatStart) {
+      return;
+    }
+    unawaited(
+      _soundPlayer.playClick(
+        settings: widget.metronomeSettings,
+        accent: widget.metronomeSettings.isAccentBeat(_beat),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      elevation: 8,
+      color: theme.colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 280),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+          child: widget.tool == _ViewerMiniTool.metronome
+              ? _buildMetronome(context)
+              : _buildTuner(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetronome(BuildContext context) {
+    final theme = Theme.of(context);
+    final settings = widget.metronomeSettings;
+    final countInLabel = settings.countInBars == 0
+        ? ''
+        : ' · ${settings.countInBars}마디';
+    final countInBeatsLeft =
+        (_countInPulsesLeft / settings.subdivision.pulsesPerBeat).ceil();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.speed, size: 18),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                _isCountingIn
+                    ? '카운트인 $countInBeatsLeft박'
+                    : '${settings.bpm} BPM · ${settings.meter.label}$countInLabel · ${settings.soundEnabled ? '소리 ${settings.volumePercent}%' : '시각'}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '닫기',
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _MiniMetronomePulseStrip(
+          beat: _beat,
+          isRunning: _isRunning,
+          isCountingIn: _isCountingIn,
+          settings: settings,
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: _toggleRunning,
+              icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
+              label: Text(_isRunning ? '정지' : '시작'),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                settings.soundEnabled
+                    ? '소리 ${settings.volumePercent}% · 화면 표시'
+                    : '화면 표시만',
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTuner(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.tune, size: 18),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '크로매틱 튜너',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: '닫기',
+              onPressed: widget.onClose,
+              icon: const Icon(Icons.close),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '상세 화면에서 현재 음과 pitch history를 봅니다.',
+          style: theme.textTheme.bodySmall,
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: FilledButton.tonalIcon(
+            onPressed: widget.onOpenTuner,
+            icon: const Icon(Icons.open_in_full),
+            label: const Text('튜너 열기'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MiniMetronomePulseStrip extends StatelessWidget {
+  const _MiniMetronomePulseStrip({
+    required this.beat,
+    required this.isRunning,
+    required this.isCountingIn,
+    required this.settings,
+  });
+
+  final SheetMetronomeBeat beat;
+  final bool isRunning;
+  final bool isCountingIn;
+  final SheetMetronomeSettings settings;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      label: '메트로놈 시각 박자 표시',
+      child: Row(
+        children: List<Widget>.generate(settings.meter.beatsPerBar, (index) {
+          final isCurrent = isRunning && index == beat.beatIndex;
+          final isAccent = settings.normalizedAccentBeatIndexes.contains(index);
+          final isActiveAccent =
+              settings.accentEnabled && settings.isAccentBeat(beat);
+          final Color activeColor = isCountingIn
+              ? colors.secondary
+              : isActiveAccent
+              ? colors.primary
+              : colors.tertiary;
+          return Expanded(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 120),
+              curve: Curves.easeOutCubic,
+              height: isCurrent ? 12 : 7,
+              margin: EdgeInsets.only(
+                right: index == settings.meter.beatsPerBar - 1 ? 0 : 4,
+              ),
+              decoration: BoxDecoration(
+                color: isCurrent ? activeColor : colors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(99),
+                border: Border.all(
+                  color: isAccent
+                      ? colors.primary.withValues(alpha: 0.54)
+                      : colors.outlineVariant,
+                  width: isAccent ? 1.2 : 0.8,
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
   }
 }
 
@@ -11036,7 +13573,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          '공연 preset template',
+          '공연 보기 프리셋',
           style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w900,
           ),
@@ -11045,7 +13582,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
         TextField(
           controller: _templateNameController,
           decoration: const InputDecoration(
-            labelText: 'Template 이름',
+            labelText: '프리셋 이름',
             prefixIcon: Icon(Icons.bookmark_add_outlined),
           ),
           textInputAction: TextInputAction.next,
@@ -11054,7 +13591,7 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
         TextField(
           controller: _templateDeviceController,
           decoration: const InputDecoration(
-            labelText: '장비 profile',
+            labelText: '장비 메모',
             prefixIcon: Icon(Icons.devices_other),
           ),
           textInputAction: TextInputAction.done,
@@ -11813,7 +14350,25 @@ class _AnnotationPainter extends CustomPainter {
       return;
     }
 
-    if (stroke.tool != SheetAnnotationTool.arrow) {
+    if (stroke.tool == SheetAnnotationTool.staff && stroke.points.length >= 2) {
+      _paintStaffGuide(canvas, size, stroke, paint);
+      return;
+    }
+
+    if (stroke.tool == SheetAnnotationTool.grid && stroke.points.length >= 2) {
+      _paintGridGuide(canvas, size, stroke, paint);
+      return;
+    }
+
+    if ((stroke.tool == SheetAnnotationTool.crescendo ||
+            stroke.tool == SheetAnnotationTool.diminuendo) &&
+        stroke.points.length >= 2) {
+      _paintHairpin(canvas, size, stroke, paint);
+      return;
+    }
+
+    if (stroke.tool != SheetAnnotationTool.line &&
+        stroke.tool != SheetAnnotationTool.arrow) {
       _paintFreehandStroke(canvas, size, stroke, paint, baseStrokeWidth);
       return;
     }
@@ -11912,12 +14467,110 @@ class _AnnotationPainter extends CustomPainter {
     canvas.drawPath(path, paint);
   }
 
+  Rect _shapeRect(Size size, SheetAnnotationStroke stroke) {
+    return Rect.fromPoints(
+      Offset(
+        stroke.points.first.x * size.width,
+        stroke.points.first.y * size.height,
+      ),
+      Offset(
+        stroke.points.last.x * size.width,
+        stroke.points.last.y * size.height,
+      ),
+    );
+  }
+
+  void _paintStaffGuide(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final rect = _shapeRect(size, stroke);
+    final top = math.min(rect.top, rect.bottom);
+    final bottom = math.max(rect.top, rect.bottom);
+    final left = math.min(rect.left, rect.right);
+    final right = math.max(rect.left, rect.right);
+    final height = (bottom - top).abs();
+    final lineGap = height <= 1 ? 6.0 : height / 4;
+    final startY = height <= 1 ? top - (lineGap * 2) : top;
+    final guidePaint = Paint()
+      ..color = paint.color.withValues(alpha: 0.72)
+      ..strokeWidth = paint.strokeWidth.clamp(1.0, 4.0).toDouble()
+      ..strokeCap = StrokeCap.round;
+    for (var index = 0; index < 5; index += 1) {
+      final y = startY + (lineGap * index);
+      canvas.drawLine(Offset(left, y), Offset(right, y), guidePaint);
+    }
+  }
+
+  void _paintGridGuide(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final rect = _shapeRect(size, stroke);
+    final normalized = Rect.fromLTRB(
+      math.min(rect.left, rect.right),
+      math.min(rect.top, rect.bottom),
+      math.max(rect.left, rect.right),
+      math.max(rect.top, rect.bottom),
+    );
+    final guidePaint = Paint()
+      ..color = paint.color.withValues(alpha: 0.44)
+      ..strokeWidth = paint.strokeWidth.clamp(0.8, 2.4).toDouble()
+      ..strokeCap = StrokeCap.square;
+    const divisions = 4;
+    for (var index = 0; index <= divisions; index += 1) {
+      final t = index / divisions;
+      final x = normalized.left + (normalized.width * t);
+      final y = normalized.top + (normalized.height * t);
+      canvas
+        ..drawLine(
+          Offset(x, normalized.top),
+          Offset(x, normalized.bottom),
+          guidePaint,
+        )
+        ..drawLine(
+          Offset(normalized.left, y),
+          Offset(normalized.right, y),
+          guidePaint,
+        );
+    }
+  }
+
   Offset _pointOffset(SheetAnnotationPoint point, Size size) {
     return Offset(point.x * size.width, point.y * size.height);
   }
 
   double _pressureStrokeWidth(double baseStrokeWidth, double pressure) {
     return (baseStrokeWidth * pressure).clamp(0.5, 48.0).toDouble();
+  }
+
+  void _paintHairpin(
+    Canvas canvas,
+    Size size,
+    SheetAnnotationStroke stroke,
+    Paint paint,
+  ) {
+    final start = _pointOffset(stroke.points.first, size);
+    final end = _pointOffset(stroke.points.last, size);
+    final vector = end - start;
+    if (vector.distance < 2) {
+      canvas.drawLine(start, start.translate(0.1, 0.1), paint);
+      return;
+    }
+    final normal = Offset(-vector.dy, vector.dx) / vector.distance;
+    final opening = (paint.strokeWidth * 5).clamp(14.0, 38.0).toDouble();
+    final halfOpening = opening / 2;
+    final closed = stroke.tool == SheetAnnotationTool.crescendo ? start : end;
+    final open = stroke.tool == SheetAnnotationTool.crescendo ? end : start;
+    final upper = open + (normal * halfOpening);
+    final lower = open - (normal * halfOpening);
+    canvas
+      ..drawLine(closed, upper, paint)
+      ..drawLine(closed, lower, paint);
   }
 
   void _paintArrowHead(
@@ -12191,12 +14844,10 @@ class _AnnotationToolbar extends StatelessWidget {
           horizontal: isCompact ? 8 : 12,
           vertical: 8,
         ),
-        child: isCompact
-            ? SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: toolbarContent,
-              )
-            : toolbarContent,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: toolbarContent,
+        ),
       ),
     );
   }
@@ -12426,6 +15077,61 @@ class _PerformanceQuickActionButton extends StatelessWidget {
         color: isActive ? const Color(0xffffd54f) : Colors.white,
         onPressed: onPressed,
         icon: Icon(icon),
+      ),
+    );
+  }
+}
+
+class _SetlistProgressBadge extends StatelessWidget {
+  const _SetlistProgressBadge({
+    required this.scoreTitle,
+    required this.subtitle,
+  });
+
+  final String scoreTitle;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      container: true,
+      label: '세트리스트 진행 위치',
+      value: '$scoreTitle, $subtitle',
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
+        child: Material(
+          color: Colors.black.withValues(alpha: 0.62),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  scoreTitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -13193,7 +15899,7 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'Cue point',
+                              '큐 포인트',
                               style: theme.textTheme.titleMedium?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
@@ -13204,14 +15910,14 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
                                 ? null
                                 : _importRehearsalCuePoints,
                             icon: const Icon(Icons.playlist_add),
-                            label: const Text('리허설 mark 가져오기'),
+                            label: const Text('리허설 마크 가져오기'),
                           ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       if (_settings.cuePoints.isEmpty)
                         Text(
-                          '등록된 cue point가 없습니다.',
+                          '등록된 큐 포인트가 없습니다.',
                           style: theme.textTheme.bodySmall,
                         )
                       else
@@ -13371,15 +16077,62 @@ class _TunerSheet extends StatefulWidget {
     required this.initialToneSettings,
     required this.onSettingsChanged,
     required this.onToneSettingsChanged,
+    this.autoStartInput = true,
+    this.onShowMiniPanel,
   });
 
   final SheetTunerSettings initialSettings;
   final SheetToneSettings initialToneSettings;
   final Future<void> Function(SheetTunerSettings settings) onSettingsChanged;
   final Future<void> Function(SheetToneSettings settings) onToneSettingsChanged;
+  final bool autoStartInput;
+  final VoidCallback? onShowMiniPanel;
 
   @override
   State<_TunerSheet> createState() => _TunerSheetState();
+}
+
+@visibleForTesting
+Widget buildTunerSheetForTest({
+  SheetTunerSettings settings = SheetTunerSettings.defaultSettings,
+  SheetToneSettings toneSettings = SheetToneSettings.defaultSettings,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _TunerSheet(
+        initialSettings: settings,
+        initialToneSettings: toneSettings,
+        autoStartInput: false,
+        onSettingsChanged: (_) async {},
+        onToneSettingsChanged: (_) async {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildTunerPitchHistoryChartForTest({
+  List<SheetTunerPitchHistorySample> samples =
+      const <SheetTunerPitchHistorySample>[],
+  String currentNoteLabel = 'A4',
+  String detailLabel = 'Concert A4',
+  String? readingLabel,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: SizedBox(
+          width: 360,
+          child: _TunerPitchHistoryChart(
+            samples: samples,
+            currentNoteLabel: currentNoteLabel,
+            detailLabel: detailLabel,
+            readingLabel: readingLabel,
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _TunerSheetState extends State<_TunerSheet> {
@@ -13388,6 +16141,7 @@ class _TunerSheetState extends State<_TunerSheet> {
   late final SheetTunerInputService _inputService;
   late final SheetTonePlayer _tonePlayer;
   late final SheetTunerFeedbackStabilizer _feedbackStabilizer;
+  late final SheetTunerPitchHistoryBuffer _pitchHistory;
   late double _demoFrequency;
   StreamSubscription<SheetTunerState>? _inputSubscription;
   SheetTunerState _state = SheetTunerState.idle;
@@ -13399,15 +16153,17 @@ class _TunerSheetState extends State<_TunerSheet> {
   @override
   void initState() {
     super.initState();
-    _settings = widget.initialSettings;
+    _settings = _chromaticOnlySettings(widget.initialSettings);
     _toneSettings = widget.initialToneSettings;
     _inputService = SheetTunerInputService();
     _tonePlayer = SheetTonePlayer();
     _feedbackStabilizer = SheetTunerFeedbackStabilizer();
+    _pitchHistory = SheetTunerPitchHistoryBuffer();
     _inputSubscription = _inputService.states.listen((state) {
       if (mounted) {
         setState(() {
           _state = state;
+          _recordPitchHistory(state);
           if (state.isListening && state.reading != null) {
             _rememberCalibrationReading(state.reading!);
           }
@@ -13416,10 +16172,40 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
     _demoFrequency = _settings.referencePitchA4.toDouble();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
+      if (!mounted) {
+        return;
+      }
+      if (_needsChromaticOnlyNormalization(widget.initialSettings)) {
+        unawaited(widget.onSettingsChanged(_settings));
+      }
+      if (widget.autoStartInput) {
         unawaited(_inputService.start(settings: _settings));
       }
     });
+  }
+
+  SheetTunerSettings _chromaticOnlySettings(SheetTunerSettings settings) {
+    return settings.copyWith(
+      tuningMode: SheetTunerMode.chromatic,
+      tuningPreset: SheetTunerPreset.chromatic,
+      displayMode: SheetTunerDisplayMode.concert,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+      targetLockEnabled: false,
+      clearTargetConcertMidiNumber: true,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
+    );
+  }
+
+  bool _needsChromaticOnlyNormalization(SheetTunerSettings settings) {
+    return settings.tuningMode != SheetTunerMode.chromatic ||
+        settings.tuningPreset != SheetTunerPreset.chromatic ||
+        settings.displayMode != SheetTunerDisplayMode.concert ||
+        settings.detectionProfile != SheetTunerDetectionProfile.chromatic ||
+        settings.targetLockEnabled ||
+        settings.targetConcertMidiNumber != null ||
+        settings.customPresetId != null ||
+        settings.customTargets.isNotEmpty;
   }
 
   @override
@@ -13441,6 +16227,7 @@ class _TunerSheetState extends State<_TunerSheet> {
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
@@ -13452,16 +16239,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  Future<void> _setTargetLockEnabled(bool enabled) async {
-    final nextSettings = _settings.copyWith(targetLockEnabled: enabled);
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
   Future<void> _setNotationPreference(
     SheetTunerNotationPreference notationPreference,
   ) async {
@@ -13471,103 +16248,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setDisplayMode(SheetTunerDisplayMode displayMode) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: displayMode,
-      detectionProfile: _recommendedDetectionProfile(displayMode),
-      customTargets: previousTargets,
-      clearTargetConcertMidiNumber: !_hasTargetForMode(
-        displayMode,
-        _settings.targetConcertMidiNumber,
-      ),
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          _demoFrequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningMode(SheetTunerMode tuningMode) async {
-    final targets = _activeTuningTargetsFor(_settings);
-    final targetConcertMidiNumber = tuningMode == SheetTunerMode.target
-        ? _settings.targetConcertMidiNumber ??
-              (targets.isEmpty ? null : targets.first.concertMidiNumber)
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: tuningMode,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      clearTargetConcertMidiNumber: tuningMode == SheetTunerMode.chromatic,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening && targetConcertMidiNumber != null) {
-        final targetNote = SheetTunerPitch.noteFromMidi(
-          targetConcertMidiNumber,
-          referencePitchA4: nextSettings.referencePitchA4,
-        );
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _setTuningPreset(SheetTunerPreset tuningPreset) async {
-    final usePresetTargets =
-        tuningPreset != SheetTunerPreset.chromatic &&
-        tuningPreset != SheetTunerPreset.manual;
-    final targets = tuningPreset.targets;
-    final targetConcertMidiNumber = usePresetTargets
-        ? tuningPreset.hasTarget(_settings.targetConcertMidiNumber)
-              ? _settings.targetConcertMidiNumber
-              : targets.first.concertMidiNumber
-        : null;
-    final nextSettings = _settings.copyWith(
-      tuningMode: usePresetTargets
-          ? SheetTunerMode.target
-          : SheetTunerMode.chromatic,
-      tuningPreset: tuningPreset,
-      displayMode: tuningPreset.displayMode,
-      detectionProfile: tuningPreset.detectionProfile,
-      targetConcertMidiNumber: targetConcertMidiNumber,
-      clearTargetConcertMidiNumber: !usePresetTargets,
-      clearCustomPresetId: true,
-      clearCustomTargets: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = targetConcertMidiNumber == null
-            ? nextSettings.detectionProfile.clampFrequency(_demoFrequency)
-            : nextSettings.detectionProfile.clampFrequency(
-                SheetTunerPitch.noteFromMidi(
-                  targetConcertMidiNumber,
-                  referencePitchA4: nextSettings.referencePitchA4,
-                ).frequency,
-              );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
     await widget.onSettingsChanged(nextSettings);
   }
 
@@ -13607,253 +16287,17 @@ class _TunerSheetState extends State<_TunerSheet> {
     });
   }
 
-  Future<void> _setTargetConcertMidiNumber(int midiNumber) async {
-    final targetNote = SheetTunerPitch.noteFromMidi(
-      midiNumber,
-      referencePitchA4: _settings.referencePitchA4,
-    );
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      targetConcertMidiNumber: midiNumber,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = _settings.detectionProfile.clampFrequency(
-          targetNote.frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _clearTargetConcertMidiNumber() async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.chromatic,
-      clearTargetConcertMidiNumber: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _addCurrentReadingAsCustomTarget(
-    SheetTunerReading? reading,
+  Future<void> _setDetectionAlgorithm(
+    SheetTunerPitchDetectionAlgorithm detectionAlgorithm,
   ) async {
-    if (reading == null) {
-      _showTunerMessage('먼저 추가할 음을 잡아주세요.');
-      return;
-    }
-    final targets = SheetTunerTarget.normalizeList(<SheetTunerTarget>[
-      ..._activeTuningTargetsFor(_settings),
-      SheetTunerTarget(
-        label: reading.note.labelWith(preferFlats: _preferFlats),
-        concertMidiNumber: reading.note.midiNumber,
-      ),
-    ]);
     final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber: reading.note.midiNumber,
-      customTargets: targets,
-      clearCustomPresetId: true,
+      detectionAlgorithm: detectionAlgorithm,
     );
     _feedbackStabilizer.reset();
     setState(() {
       _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage(
-      '${reading.note.labelWith(preferFlats: _preferFlats)} 타겟을 추가했습니다.',
-    );
-  }
-
-  Future<void> _removeCustomTarget(int midiNumber) async {
-    final targets = _activeTuningTargetsFor(_settings)
-        .where((target) => target.concertMidiNumber != midiNumber)
-        .toList(growable: false);
-    final normalized = SheetTunerTarget.normalizeList(targets);
-    final removedActiveTarget = _settings.targetConcertMidiNumber == midiNumber;
-    final nextTarget = removedActiveTarget && normalized.isNotEmpty
-        ? normalized.first.concertMidiNumber
-        : _settings.targetConcertMidiNumber;
-    final nextSettings = _settings.copyWith(
-      tuningMode: normalized.isEmpty
-          ? SheetTunerMode.chromatic
-          : _settings.tuningMode,
-      tuningPreset: normalized.isEmpty
-          ? SheetTunerPreset.chromatic
-          : SheetTunerPreset.manual,
-      targetConcertMidiNumber: nextTarget,
-      customTargets: normalized,
-      clearTargetConcertMidiNumber: normalized.isEmpty,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _saveCustomPreset() async {
-    final targets = _activeTuningTargetsFor(_settings);
-    if (targets.isEmpty) {
-      _showTunerMessage('저장할 타겟 음이 없습니다.');
-      return;
-    }
-    final controller = TextEditingController(
-      text:
-          _currentCustomPreset?.name ??
-          '내 튜닝 ${_settings.customPresets.length + 1}',
-    );
-    final name = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('커스텀 프리셋 저장'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            decoration: const InputDecoration(
-              labelText: '프리셋 이름',
-              hintText: '예: 기타 반음 낮춤',
-            ),
-            textInputAction: TextInputAction.done,
-            onSubmitted: (value) => Navigator.of(context).pop(value),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('취소'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(controller.text),
-              child: const Text('저장'),
-            ),
-          ],
-        );
-      },
-    );
-    controller.dispose();
-    if (!mounted) {
-      return;
-    }
-    final trimmedName = name?.trim() ?? '';
-    if (trimmedName.isEmpty) {
-      return;
-    }
-    final previousPreset = _currentCustomPreset;
-    final preset = SheetTunerCustomPreset(
-      id:
-          previousPreset?.id ??
-          'custom-${DateTime.now().microsecondsSinceEpoch}',
-      name: trimmedName,
-      displayMode: _settings.displayMode,
-      detectionProfile: _settings.detectionProfile,
-      targets: SheetTunerTarget.normalizeList(targets),
-      updatedAt: DateTime.now(),
-    );
-    final presets = <SheetTunerCustomPreset>[
-      preset,
-      ..._settings.customPresets.where((stored) => stored.id != preset.id),
-    ];
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-      customPresets: presets,
-    );
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('$trimmedName 프리셋을 저장했습니다.');
-  }
-
-  Future<void> _applyCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextSettings = _settings.copyWith(
-      tuningMode: SheetTunerMode.target,
-      tuningPreset: SheetTunerPreset.manual,
-      displayMode: preset.displayMode,
-      detectionProfile: preset.detectionProfile,
-      targetConcertMidiNumber:
-          preset.hasTarget(_settings.targetConcertMidiNumber)
-          ? _settings.targetConcertMidiNumber
-          : preset.targets.first.concertMidiNumber,
-      customPresetId: preset.id,
-      customTargets: preset.targets,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
+      _pitchHistory.reset();
       if (!_state.isListening) {
-        _demoFrequency = nextSettings.detectionProfile.clampFrequency(
-          SheetTunerPitch.noteFromMidi(
-            nextSettings.targetConcertMidiNumber!,
-            referencePitchA4: nextSettings.referencePitchA4,
-          ).frequency,
-        );
-        _state = _stateWithFrequency(_demoFrequency, isListening: false);
-      }
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-  }
-
-  Future<void> _deleteCustomPreset(SheetTunerCustomPreset preset) async {
-    final nextPresets = _settings.customPresets
-        .where((stored) => stored.id != preset.id)
-        .toList(growable: false);
-    final isActive = _settings.customPresetId == preset.id;
-    final nextSettings = _settings.copyWith(
-      customPresets: nextPresets,
-      clearCustomPresetId: isActive,
-      clearCustomTargets: isActive,
-      clearTargetConcertMidiNumber: isActive,
-      tuningMode: isActive ? SheetTunerMode.chromatic : _settings.tuningMode,
-      tuningPreset: isActive
-          ? SheetTunerPreset.chromatic
-          : _settings.tuningPreset,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-    });
-    _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
-    _showTunerMessage('${preset.name} 프리셋을 삭제했습니다.');
-  }
-
-  Future<void> _setDetectionProfile(
-    SheetTunerDetectionProfile detectionProfile,
-  ) async {
-    final previousTargets = _activeTuningTargetsFor(_settings);
-    final nextSettings = _settings.copyWith(
-      tuningPreset: SheetTunerPreset.manual,
-      detectionProfile: detectionProfile,
-      customTargets: previousTargets,
-      clearCustomPresetId: true,
-    );
-    _feedbackStabilizer.reset();
-    setState(() {
-      _settings = nextSettings;
-      if (!_state.isListening) {
-        _demoFrequency = detectionProfile.clampFrequency(_demoFrequency);
         _state = _stateWithFrequency(_demoFrequency, isListening: false);
       }
     });
@@ -13874,9 +16318,11 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   Future<void> _toggleListening() async {
     if (_state.isListening) {
+      setState(_pitchHistory.reset);
       await _inputService.stop();
       return;
     }
+    setState(_pitchHistory.reset);
     await _inputService.start(settings: _settings);
   }
 
@@ -13904,20 +16350,29 @@ class _TunerSheetState extends State<_TunerSheet> {
     return _settings.notationPreference.preferFlatsFor(_settings.displayMode);
   }
 
-  SheetTunerCustomPreset? get _currentCustomPreset {
-    for (final preset in _settings.customPresets) {
-      if (preset.id == _settings.customPresetId) {
-        return preset;
-      }
-    }
-    return null;
-  }
-
   void _rememberCalibrationReading(SheetTunerReading reading) {
     _recentCalibrationReadings.add(reading);
     if (_recentCalibrationReadings.length > 12) {
       _recentCalibrationReadings.removeAt(0);
     }
+  }
+
+  void _recordPitchHistory(SheetTunerState state) {
+    if (!state.isListening) {
+      _pitchHistory.reset();
+      return;
+    }
+    final reading = state.reading;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: state.inputStatus,
+      reading: reading,
+      centsOffset: reading?.centsOffset ?? 0,
+    );
+    _pitchHistory.add(
+      timestamp: DateTime.now(),
+      reading: reading,
+      feedback: feedback,
+    );
   }
 
   Future<void> _confirmCalibrationSuggestion(
@@ -13957,11 +16412,6 @@ class _TunerSheetState extends State<_TunerSheet> {
     }
   }
 
-  void _showTunerMessage(String message) {
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -13976,41 +16426,16 @@ class _TunerSheetState extends State<_TunerSheet> {
     final reading = _state.isListening
         ? _state.reading
         : _state.reading ?? demoReading;
-    final isTargetMode =
-        _settings.tuningMode == SheetTunerMode.target &&
-        _settings.targetConcertMidiNumber != null;
-    final targetNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber!,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetWrittenNote = !isTargetMode
-        ? null
-        : SheetTunerPitch.noteFromMidi(
-            _settings.targetConcertMidiNumber! +
-                _settings.displayMode.transposeSemitones,
-            referencePitchA4: _settings.referencePitchA4,
-          );
-    final targetLock = SheetTunerTargetLock.evaluate(
-      settings: _settings,
-      reading: reading,
-    );
-    final effectiveReading = targetLock.isRejected ? null : reading;
-    final targetCents = effectiveReading == null || targetNote == null
-        ? null
-        : SheetTunerPitch.centsFromTarget(
-            frequency: effectiveReading.frequency,
-            targetFrequency: targetNote.frequency,
-          );
+    final tuningTargets = _activeTuningTargetsFor();
+    final effectiveReading = reading;
     final displayedPitch = effectiveReading == null
         ? null
         : SheetTunerPitch.displayPitch(
             reading: effectiveReading,
-            displayMode: _settings.displayMode,
+            displayMode: SheetTunerDisplayMode.concert,
             referencePitchA4: _settings.referencePitchA4,
           );
-    final cents = targetCents ?? effectiveReading?.centsOffset ?? 0;
+    final cents = effectiveReading?.centsOffset ?? 0;
     final feedbackInputStatus = _state.isListening
         ? _state.inputStatus
         : effectiveReading == null
@@ -14021,22 +16446,12 @@ class _TunerSheetState extends State<_TunerSheet> {
       reading: effectiveReading,
       centsOffset: cents,
     );
-    final feedback = targetLock.isRejected
-        ? const SheetTunerFeedback(
-            band: SheetTunerFeedbackBand.lowConfidence,
-            label: '타겟 음을 기다리는 중',
-            displayCents: 0,
-          )
-        : baseFeedback;
-    final inputPower = SheetTunerInputPower.fromState(
-      inputStatus: feedbackInputStatus,
-      reading: reading,
-    );
+    final feedback = baseFeedback;
+    final detectionDebugInfo = _inputService.detectionDebugInfo;
     final calibrationSuggestion = SheetTunerReferenceCalibration.suggest(
       readings: _recentCalibrationReadings,
       currentReferencePitchA4: _settings.referencePitchA4,
     );
-    final isInTune = feedback.isInTune;
     final status = _tunerStatusLabel(_state.inputStatus);
     final statusMessage = switch (_state.inputStatus) {
       SheetTunerInputStatus.idle ||
@@ -14045,13 +16460,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       SheetTunerInputStatus.error => status.label,
       _ => feedback.label,
     };
-    final tuningTargets = _activeTuningTargetsFor(_settings);
-    final isCustomTargets =
-        _settings.customPresetId != null || _settings.customTargets.isNotEmpty;
-    final stringTargets = _settings.tuningPreset.usesStringTargetPanel
-        ? SheetTunerStringTarget.fromTargets(tuningTargets)
-        : const <SheetTunerStringTarget>[];
-
+    final pitchHistorySamples = _pitchHistory.samples;
+    final pitchHistoryNoteLabel = displayedPitch?.primaryLabelWith(
+      preferFlats: _preferFlats,
+    );
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
@@ -14072,6 +16484,12 @@ class _TunerSheetState extends State<_TunerSheet> {
                       ),
                     ),
                   ),
+                  if (widget.onShowMiniPanel != null)
+                    IconButton(
+                      onPressed: widget.onShowMiniPanel,
+                      icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                      tooltip: '악보 위에 작게 띄우기',
+                    ),
                   IconButton.filledTonal(
                     onPressed: _toggleListening,
                     icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
@@ -14108,247 +16526,98 @@ class _TunerSheetState extends State<_TunerSheet> {
                 ),
               ),
               const SizedBox(height: 18),
-              Center(
-                child: Text(
-                  displayedPitch?.primaryLabelWith(preferFlats: _preferFlats) ??
-                      '--',
-                  style: theme.textTheme.displayLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                    color: isInTune
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.onSurface,
-                  ),
-                ),
-              ),
-              Center(
-                child: Text(
-                  effectiveReading == null
-                      ? targetLock.isRejected
-                            ? '타겟 음을 기다리는 중'
-                            : '소리를 내면 음을 잡습니다'
-                      : displayedPitch!.detailLabelWith(
-                          preferFlats: _preferFlats,
-                        ),
-                  style: theme.textTheme.labelLarge,
-                ),
-              ),
-              if (targetNote != null && targetWrittenNote != null)
-                Center(
-                  child: Text(
-                    '타겟 ${targetWrittenNote.labelWith(preferFlats: _preferFlats)}'
-                    ' · Concert ${targetNote.labelWith(preferFlats: true)}',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              Center(
-                child: Text(
-                  '표시 ${_settings.displayMode.label} · 감지 ${_settings.detectionProfile.label}',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '${reading.frequency.toStringAsFixed(2)} Hz · '
-                    '${feedback.displayCents >= 0 ? '+' : ''}'
-                    '${feedback.displayCents.toStringAsFixed(1)} cents',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: targetLock.isRejected
-                          ? theme.colorScheme.error
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              if (reading != null)
-                Center(
-                  child: Text(
-                    '신호 ${(reading.signalLevel * 100).round()}%',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 20),
-              _TunerMeter(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerLedStrip(feedback: feedback),
-              const SizedBox(height: 14),
-              _TunerInputPowerBar(power: inputPower),
-              if (stringTargets.isNotEmpty) ...[
-                const SizedBox(height: 18),
-                _TunerStringTargetPanel(
-                  title: _settings.tuningPreset.stringTargetPanelLabel,
-                  stringTargets: stringTargets,
-                  selectedConcertMidiNumber: _settings.targetConcertMidiNumber,
-                  referencePitchA4: _settings.referencePitchA4,
-                  preferFlats: _preferFlats,
-                  onSelected: (target) => unawaited(
-                    _setTargetConcertMidiNumber(target.concertMidiNumber),
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              Text(
-                _settings.tuningMode == SheetTunerMode.target
-                    ? '타겟 음'
-                    : '빠른 타겟',
-                style: theme.textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final target in tuningTargets)
-                    if (isCustomTargets)
-                      InputChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
-                        onDeleted: () => unawaited(
-                          _removeCustomTarget(target.concertMidiNumber),
-                        ),
-                      )
-                    else
-                      FilterChip(
-                        selected:
-                            _settings.tuningMode == SheetTunerMode.target &&
-                            _settings.targetConcertMidiNumber ==
-                                target.concertMidiNumber,
-                        label: Text(
-                          target.targetLabel(
-                            displayMode: _settings.displayMode,
-                            referencePitchA4: _settings.referencePitchA4,
-                            preferFlats: _preferFlats,
-                          ),
-                        ),
-                        onSelected: (selected) => unawaited(
-                          selected
-                              ? _setTargetConcertMidiNumber(
-                                  target.concertMidiNumber,
-                                )
-                              : _clearTargetConcertMidiNumber(),
-                        ),
+              _TunerPitchHistoryChart(
+                samples: pitchHistorySamples,
+                currentNoteLabel: pitchHistoryNoteLabel,
+                detailLabel: effectiveReading == null
+                    ? '소리를 내면 가장 가까운 음을 표시합니다'
+                    : displayedPitch!.detailLabelWith(
+                        preferFlats: _preferFlats,
                       ),
-                  ActionChip(
-                    avatar: const Icon(Icons.add, size: 18),
-                    label: const Text('현재 음 추가'),
-                    onPressed: () =>
-                        unawaited(_addCurrentReadingAsCustomTarget(reading)),
-                  ),
-                  if (_settings.targetConcertMidiNumber != null)
-                    ActionChip(
-                      avatar: const Icon(Icons.close, size: 18),
-                      label: const Text('타겟 해제'),
-                      onPressed: () =>
-                          unawaited(_clearTargetConcertMidiNumber()),
-                    ),
-                ],
+                readingLabel: reading == null
+                    ? null
+                    : '${reading.frequency.toStringAsFixed(2)} Hz · '
+                          '${feedback.displayCents >= 0 ? '+' : ''}'
+                          '${feedback.displayCents.toStringAsFixed(1)} cents · '
+                          '신호 ${(reading.signalLevel * 100).round()}%',
               ),
-              const SizedBox(height: 24),
-              Text('튜닝 설정', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
+              const SizedBox(height: 16),
               Wrap(
+                alignment: WrapAlignment.center,
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final mode in SheetTunerMode.values)
+                  Text(
+                    'A4 ${_settings.referencePitchA4} Hz',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                  for (final quickPitch in <int>[440, 441, 442])
                     ChoiceChip(
-                      selected: _settings.tuningMode == mode,
-                      label: Text(mode.label),
-                      onSelected: (_) => unawaited(_setTuningMode(mode)),
+                      selected: _settings.referencePitchA4 == quickPitch,
+                      label: Text('$quickPitch'),
+                      onSelected: (_) => unawaited(
+                        _setReferencePitch(
+                          quickPitch,
+                          calibrationSource: 'quick',
+                        ),
+                      ),
                     ),
                 ],
               ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerPreset>(
-                initialValue: _settings.tuningPreset,
-                decoration: const InputDecoration(
-                  labelText: '튜닝 프리셋',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerPreset.values
-                    .map(
-                      (preset) => DropdownMenuItem<SheetTunerPreset>(
-                        value: preset,
-                        child: Text(preset.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setTuningPreset(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerDisplayMode>(
-                initialValue: _settings.displayMode,
-                decoration: const InputDecoration(
-                  labelText: '악기/표시 기준',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerDisplayMode.values
-                    .map(
-                      (mode) => DropdownMenuItem<SheetTunerDisplayMode>(
-                        value: mode,
-                        child: Text('${mode.label} · ${mode.familyLabel}'),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setDisplayMode(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetTunerDetectionProfile>(
-                initialValue: _settings.detectionProfile,
-                decoration: const InputDecoration(
-                  labelText: '감지 프로필',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetTunerDetectionProfile.values
-                    .map(
-                      (profile) => DropdownMenuItem<SheetTunerDetectionProfile>(
-                        value: profile,
-                        child: Text(profile.label),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(_setDetectionProfile(value));
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(top: 8, bottom: 12),
-                title: Text('고급 설정', style: theme.textTheme.titleMedium),
+                childrenPadding: const EdgeInsets.only(top: 8, bottom: 16),
+                title: Text('세부 설정', style: theme.textTheme.titleMedium),
                 children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('감지', style: theme.textTheme.labelLarge),
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<SheetTunerPitchDetectionAlgorithm>(
+                    initialValue: _settings.detectionAlgorithm,
+                    decoration: const InputDecoration(
+                      labelText: '감지 엔진',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SheetTunerPitchDetectionAlgorithm.values
+                        .map(
+                          (algorithm) =>
+                              DropdownMenuItem<
+                                SheetTunerPitchDetectionAlgorithm
+                              >(value: algorithm, child: Text(algorithm.label)),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        unawaited(_setDetectionAlgorithm(value));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      _settings.detectionAlgorithm.description,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  if (detectionDebugInfo != null) ...[
+                    const SizedBox(height: 6),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '감지 진단 ${detectionDebugInfo.label}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 16),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text('표기', style: theme.textTheme.labelLarge),
@@ -14368,45 +16637,6 @@ class _TunerSheetState extends State<_TunerSheet> {
                         ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('타겟 잠금'),
-                    subtitle: const Text('선택한 줄/음에서 크게 벗어난 입력은 기다림 상태로 둡니다.'),
-                    value: _settings.targetLockEnabled,
-                    onChanged: (value) =>
-                        unawaited(_setTargetLockEnabled(value)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: _saveCustomPreset,
-                          icon: const Icon(Icons.save_outlined),
-                          label: const Text('커스텀 프리셋 저장'),
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (_settings.customPresets.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        for (final preset in _settings.customPresets)
-                          InputChip(
-                            selected: preset.id == _settings.customPresetId,
-                            label: Text(preset.name),
-                            onSelected: (_) =>
-                                unawaited(_applyCustomPreset(preset)),
-                            onDeleted: () =>
-                                unawaited(_deleteCustomPreset(preset)),
-                          ),
-                      ],
-                    ),
-                  ],
                   if (calibrationSuggestion != null) ...[
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
@@ -14417,200 +16647,203 @@ class _TunerSheetState extends State<_TunerSheet> {
                       label: Text(calibrationSuggestion.label),
                     ),
                   ],
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text('기준음/드론', style: theme.textTheme.labelLarge),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (_settings.targetConcertMidiNumber != null &&
-                      _toneSettings.rootConcertMidiNumber !=
-                          _settings.targetConcertMidiNumber)
-                    ActionChip(
-                      avatar: const Icon(Icons.track_changes, size: 18),
-                      label: const Text('타겟으로 맞추기'),
-                      onPressed: () => unawaited(
-                        _setToneSettings(
-                          _toneSettings.copyWith(
-                            rootConcertMidiNumber:
-                                _settings.targetConcertMidiNumber!,
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('기준음/드론', style: theme.textTheme.labelLarge),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      if (_settings.targetConcertMidiNumber != null &&
+                          _toneSettings.rootConcertMidiNumber !=
+                              _settings.targetConcertMidiNumber)
+                        ActionChip(
+                          avatar: const Icon(Icons.track_changes, size: 18),
+                          label: const Text('타겟으로 맞추기'),
+                          onPressed: () => unawaited(
+                            _setToneSettings(
+                              _toneSettings.copyWith(
+                                rootConcertMidiNumber:
+                                    _settings.targetConcertMidiNumber!,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  for (final target in tuningTargets)
-                    ChoiceChip(
-                      selected:
-                          _toneSettings.rootConcertMidiNumber ==
-                          target.concertMidiNumber,
-                      label: Text(
-                        target.targetLabel(
-                          displayMode: _settings.displayMode,
-                          referencePitchA4: _settings.referencePitchA4,
-                          preferFlats: _preferFlats,
-                        ),
-                      ),
-                      onSelected: (_) => unawaited(
-                        _setToneSettings(
-                          _toneSettings.copyWith(
-                            rootConcertMidiNumber: target.concertMidiNumber,
+                      for (final target in tuningTargets)
+                        ChoiceChip(
+                          selected:
+                              _toneSettings.rootConcertMidiNumber ==
+                              target.concertMidiNumber,
+                          label: Text(
+                            target.targetLabel(
+                              displayMode: _settings.displayMode,
+                              referencePitchA4: _settings.referencePitchA4,
+                              preferFlats: _preferFlats,
+                            ),
+                          ),
+                          onSelected: (_) => unawaited(
+                            _setToneSettings(
+                              _toneSettings.copyWith(
+                                rootConcertMidiNumber: target.concertMidiNumber,
+                              ),
+                            ),
                           ),
                         ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<SheetToneDroneMode>(
+                    initialValue: _toneSettings.droneMode,
+                    decoration: const InputDecoration(
+                      labelText: '드론 모드',
+                      border: OutlineInputBorder(),
+                    ),
+                    items: SheetToneDroneMode.values
+                        .map(
+                          (mode) => DropdownMenuItem<SheetToneDroneMode>(
+                            value: mode,
+                            child: Text(mode.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        unawaited(
+                          _setToneSettings(
+                            _toneSettings.copyWith(droneMode: value),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _toneLabel(),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Slider(
+                    value: _toneSettings.volumePercent.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    label: '${_toneSettings.volumePercent}%',
+                    onChanged: (value) => unawaited(
+                      _setToneSettings(
+                        _toneSettings.copyWith(volumePercent: value.round()),
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<SheetToneDroneMode>(
-                initialValue: _toneSettings.droneMode,
-                decoration: const InputDecoration(
-                  labelText: '드론 모드',
-                  border: OutlineInputBorder(),
-                ),
-                items: SheetToneDroneMode.values
-                    .map(
-                      (mode) => DropdownMenuItem<SheetToneDroneMode>(
-                        value: mode,
-                        child: Text(mode.label),
+                  ),
+                  FilledButton.icon(
+                    onPressed: _toggleTone,
+                    icon: Icon(_isTonePlaying ? Icons.stop : Icons.graphic_eq),
+                    label: Text(_isTonePlaying ? '드론 정지' : '드론 재생'),
+                  ),
+                  if (_lastTonePlaybackResult?.status ==
+                      SheetTonePlaybackStatus.unsupportedPlatform)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        '이 기기에서는 기준음 재생 채널을 사용할 수 없습니다.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
+                        ),
                       ),
                     )
-                    .toList(growable: false),
-                onChanged: (value) {
-                  if (value != null) {
-                    unawaited(
-                      _setToneSettings(
-                        _toneSettings.copyWith(droneMode: value),
-                      ),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _toneLabel(),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-              Slider(
-                value: _toneSettings.volumePercent.toDouble(),
-                min: 0,
-                max: 100,
-                divisions: 20,
-                label: '${_toneSettings.volumePercent}%',
-                onChanged: (value) => unawaited(
-                  _setToneSettings(
-                    _toneSettings.copyWith(volumePercent: value.round()),
-                  ),
-                ),
-              ),
-              FilledButton.icon(
-                onPressed: _toggleTone,
-                icon: Icon(_isTonePlaying ? Icons.stop : Icons.graphic_eq),
-                label: Text(_isTonePlaying ? '드론 정지' : '드론 재생'),
-              ),
-              if (_lastTonePlaybackResult?.status ==
-                  SheetTonePlaybackStatus.unsupportedPlatform)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    '이 기기에서는 기준음 재생 채널을 사용할 수 없습니다.',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                )
-              else if (_lastTonePlaybackResult?.status ==
-                  SheetTonePlaybackStatus.failed)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    _lastTonePlaybackResult!.message.isEmpty
-                        ? '기준음 재생을 시작하지 못했습니다.'
-                        : _lastTonePlaybackResult!.message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.error,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 24),
-              Text(
-                'A4 기준음 ${_settings.referencePitchA4} Hz',
-                style: theme.textTheme.labelLarge,
-              ),
-              Slider(
-                value: _settings.referencePitchA4.toDouble(),
-                min: 415,
-                max: 466,
-                divisions: 51,
-                label: '${_settings.referencePitchA4} Hz',
-                onChanged: (value) => _setReferencePitch(value.round()),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: 'A4 낮추기',
-                    onPressed: () =>
-                        _setReferencePitch(_settings.referencePitchA4 - 1),
-                    icon: const Icon(Icons.remove),
-                  ),
-                  const SizedBox(width: 16),
-                  IconButton.filledTonal(
-                    tooltip: 'A4 올리기',
-                    onPressed: () =>
-                        _setReferencePitch(_settings.referencePitchA4 + 1),
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final quickPitch in <int>[440, 441, 442])
-                    ChoiceChip(
-                      selected: _settings.referencePitchA4 == quickPitch,
-                      label: Text('$quickPitch Hz'),
-                      onSelected: (_) => unawaited(
-                        _setReferencePitch(
-                          quickPitch,
-                          calibrationSource: 'quick',
+                  else if (_lastTonePlaybackResult?.status ==
+                      SheetTonePlaybackStatus.failed)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _lastTonePlaybackResult!.message.isEmpty
+                            ? '기준음 재생을 시작하지 못했습니다.'
+                            : _lastTonePlaybackResult!.message,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.error,
                         ),
                       ),
                     ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'A4 기준음 ${_settings.referencePitchA4} Hz',
+                    style: theme.textTheme.labelLarge,
+                  ),
+                  Slider(
+                    value: _settings.referencePitchA4.toDouble(),
+                    min: 415,
+                    max: 466,
+                    divisions: 51,
+                    label: '${_settings.referencePitchA4} Hz',
+                    onChanged: (value) => _setReferencePitch(value.round()),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      IconButton.filledTonal(
+                        tooltip: 'A4 낮추기',
+                        onPressed: () =>
+                            _setReferencePitch(_settings.referencePitchA4 - 1),
+                        icon: const Icon(Icons.remove),
+                      ),
+                      const SizedBox(width: 16),
+                      IconButton.filledTonal(
+                        tooltip: 'A4 올리기',
+                        onPressed: () =>
+                            _setReferencePitch(_settings.referencePitchA4 + 1),
+                        icon: const Icon(Icons.add),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final quickPitch in <int>[440, 441, 442])
+                        ChoiceChip(
+                          selected: _settings.referencePitchA4 == quickPitch,
+                          label: Text('$quickPitch Hz'),
+                          onSelected: (_) => unawaited(
+                            _setReferencePitch(
+                              quickPitch,
+                              calibrationSource: 'quick',
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (_settings.calibrationHistory.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '최근 기준음 ${_settings.calibrationHistory.take(3).map((event) => '${event.referencePitchA4} Hz').join(' · ')}',
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 14),
+                  if (!_state.isListening) ...[
+                    Text(
+                      '테스트 주파수 ${_demoFrequency.toStringAsFixed(2)} Hz',
+                      style: theme.textTheme.labelLarge,
+                    ),
+                    Slider(
+                      value: _demoFrequency,
+                      min: _settings.detectionProfile.minFrequency,
+                      max: _settings.detectionProfile.maxFrequency,
+                      divisions: 120,
+                      label: '${_demoFrequency.toStringAsFixed(2)} Hz',
+                      onChanged: _setDemoFrequency,
+                    ),
+                  ],
                 ],
               ),
-              if (_settings.calibrationHistory.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  '최근 기준음 ${_settings.calibrationHistory.take(3).map((event) => '${event.referencePitchA4} Hz').join(' · ')}',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              const SizedBox(height: 14),
-              if (!_state.isListening) ...[
-                Text(
-                  '테스트 주파수 ${_demoFrequency.toStringAsFixed(2)} Hz',
-                  style: theme.textTheme.labelLarge,
-                ),
-                Slider(
-                  value: _demoFrequency,
-                  min: _settings.detectionProfile.minFrequency,
-                  max: _settings.detectionProfile.maxFrequency,
-                  divisions: 120,
-                  label: '${_demoFrequency.toStringAsFixed(2)} Hz',
-                  onChanged: _setDemoFrequency,
-                ),
-              ],
             ],
           ),
         ),
@@ -14668,401 +16901,332 @@ class _TunerSheetState extends State<_TunerSheet> {
     };
   }
 
-  bool _hasTargetForMode(SheetTunerDisplayMode mode, int? midiNumber) {
-    if (midiNumber == null) {
-      return false;
+  List<SheetTunerTarget> _activeTuningTargetsFor() {
+    return SheetTunerPreset.chromatic.targets;
+  }
+}
+
+class _TunerPitchHistoryChart extends StatelessWidget {
+  const _TunerPitchHistoryChart({
+    required this.samples,
+    required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
+  });
+
+  static const Duration _historyWindow = Duration(milliseconds: 2200);
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Semantics(
+      label: '최근 음정 변화 그래프',
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(
+          height: 284,
+          child: CustomPaint(
+            painter: _TunerPitchHistoryPainter(
+              samples: samples,
+              currentNoteLabel: currentNoteLabel,
+              detailLabel: detailLabel,
+              readingLabel: readingLabel,
+              colors: theme.colorScheme,
+              textStyle: theme.textTheme.labelSmall,
+              historyWindow: _historyWindow,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TunerPitchHistoryPainter extends CustomPainter {
+  _TunerPitchHistoryPainter({
+    required this.samples,
+    required this.currentNoteLabel,
+    required this.detailLabel,
+    required this.readingLabel,
+    required this.colors,
+    required this.textStyle,
+    required this.historyWindow,
+  });
+
+  static const double _maxCents = 50;
+  static const double _paddingLeft = 70;
+  static const double _paddingRight = 18;
+  static const double _paddingTop = 56;
+  static const double _paddingBottom = 26;
+
+  final List<SheetTunerPitchHistorySample> samples;
+  final String? currentNoteLabel;
+  final String detailLabel;
+  final String? readingLabel;
+  final ColorScheme colors;
+  final TextStyle? textStyle;
+  final Duration historyWindow;
+
+  @override
+  void paint(ui.Canvas canvas, Size size) {
+    final chart = Rect.fromLTRB(
+      _paddingLeft,
+      _paddingTop,
+      size.width - _paddingRight,
+      size.height - _paddingBottom,
+    );
+    if (chart.width <= 0 || chart.height <= 0) {
+      return;
     }
-    final targets = _settings.customTargets.isNotEmpty
-        ? _settings.customTargets
-        : mode.tuningTargets;
-    return targets.any((target) => target.concertMidiNumber == midiNumber);
+
+    _paintGrid(canvas, chart);
+    _paintLabels(canvas, chart);
+    _paintCurrentSummary(canvas, size);
+    _paintHistory(canvas, chart);
   }
 
-  List<SheetTunerTarget> _activeTuningTargetsFor(SheetTunerSettings settings) {
-    for (final preset in settings.customPresets) {
-      if (preset.id == settings.customPresetId) {
-        return preset.targets;
+  void _paintGrid(ui.Canvas canvas, Rect chart) {
+    final gridPaint = Paint()
+      ..color = colors.outlineVariant.withValues(alpha: 0.62)
+      ..strokeWidth = 1;
+    final centerPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.74)
+      ..strokeWidth = 1.5;
+
+    for (final cents in const <double>[-50, -25, 0, 25, 50]) {
+      final y = _yForCents(chart, cents);
+      canvas.drawLine(
+        Offset(chart.left, y),
+        Offset(chart.right, y),
+        cents == 0 ? centerPaint : gridPaint,
+      );
+    }
+    for (var index = 1; index < 4; index += 1) {
+      final x = chart.left + (chart.width * index / 4);
+      canvas.drawLine(Offset(x, chart.top), Offset(x, chart.bottom), gridPaint);
+    }
+
+    final originPaint = Paint()
+      ..color = colors.primary.withValues(alpha: 0.38)
+      ..strokeWidth = 2;
+    canvas.drawLine(
+      Offset(chart.left, chart.top),
+      Offset(chart.left, chart.bottom),
+      originPaint,
+    );
+  }
+
+  void _paintLabels(ui.Canvas canvas, Rect chart) {
+    final labelStyle = textStyle?.copyWith(
+      color: colors.onSurfaceVariant,
+      fontWeight: FontWeight.w700,
+    );
+    _paintText(canvas, '높음', Offset(4, chart.top - 2), labelStyle);
+    _paintText(canvas, '낮음', Offset(4, chart.bottom - 12), labelStyle);
+
+    final noteLabel = currentNoteLabel;
+    final centerLabel = noteLabel == null || noteLabel.isEmpty
+        ? '--'
+        : noteLabel;
+    final painter = _textPainter(
+      centerLabel,
+      labelStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 24,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    painter.layout(maxWidth: chart.left - 8);
+    painter.paint(
+      canvas,
+      Offset(4, _yForCents(chart, 0) - (painter.height / 2)),
+    );
+  }
+
+  void _paintCurrentSummary(ui.Canvas canvas, Size size) {
+    final noteLabel = currentNoteLabel == null || currentNoteLabel!.isEmpty
+        ? '--'
+        : currentNoteLabel!;
+    final notePainter = _textPainter(
+      noteLabel,
+      textStyle?.copyWith(
+        color: colors.onSurface,
+        fontSize: 34,
+        fontWeight: FontWeight.w900,
+      ),
+    );
+    notePainter.layout(maxWidth: size.width * 0.42);
+    notePainter.paint(canvas, const Offset(14, 10));
+
+    final detailPainter = _textPainter(
+      detailLabel,
+      textStyle?.copyWith(
+        color: colors.onSurfaceVariant,
+        fontWeight: FontWeight.w700,
+      ),
+    );
+    final summaryWidth = math.max(0.0, size.width - notePainter.width - 44);
+    detailPainter.layout(maxWidth: summaryWidth);
+    detailPainter.paint(canvas, Offset(notePainter.width + 24, 12));
+
+    final reading = readingLabel;
+    if (reading == null || reading.isEmpty) {
+      return;
+    }
+    final readingPainter = _textPainter(
+      reading,
+      textStyle?.copyWith(color: colors.onSurfaceVariant),
+    );
+    readingPainter.layout(maxWidth: summaryWidth);
+    readingPainter.paint(canvas, Offset(notePainter.width + 24, 30));
+  }
+
+  void _paintHistory(ui.Canvas canvas, Rect chart) {
+    final pitchedSamples = samples.where((sample) => sample.hasPitch).toList();
+    if (pitchedSamples.isEmpty) {
+      return;
+    }
+
+    final newest = samples.last.timestampMillis;
+    final windowMillis = math.max(1, historyWindow.inMilliseconds);
+    final segments = SheetTunerPitchHistoryBuffer.segmentsFor(samples);
+    SheetTunerPitchHistorySample? latestPitchedSample;
+
+    Offset positionFor(SheetTunerPitchHistorySample sample) {
+      final age = newest - sample.timestampMillis;
+      final progress = (age / windowMillis).clamp(0.0, 1.0);
+      final x = chart.left + (chart.width * progress);
+      return Offset(x, _yForCents(chart, sample.centsOffset));
+    }
+
+    for (final segment in segments) {
+      final segmentSamples = segment.samples;
+      if (segmentSamples.isEmpty) {
+        continue;
+      }
+      latestPitchedSample = segmentSamples.last;
+      if (segmentSamples.length == 1) {
+        final sample = segmentSamples.single;
+        canvas.drawCircle(
+          positionFor(sample),
+          2.8,
+          Paint()..color = _colorForBand(sample.band, sample.signalLevel),
+        );
+        continue;
+      }
+      for (var index = 1; index < segmentSamples.length; index += 1) {
+        final previous = segmentSamples[index - 1];
+        final current = segmentSamples[index];
+        final paint = Paint()
+          ..color = _colorForBand(current.band, current.signalLevel)
+          ..strokeWidth = current.isLowConfidence ? 1.4 : 2.6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(positionFor(previous), positionFor(current), paint);
       }
     }
-    if (settings.customTargets.isNotEmpty) {
-      return settings.customTargets;
+
+    final latest = latestPitchedSample;
+    if (latest != null) {
+      _paintLatestMarker(canvas, positionFor(latest), latest);
     }
-    if (settings.tuningPreset == SheetTunerPreset.manual) {
-      return settings.displayMode.tuningTargets;
-    }
-    return settings.tuningPreset.targets;
   }
 
-  SheetTunerDetectionProfile _recommendedDetectionProfile(
-    SheetTunerDisplayMode mode,
+  void _paintLatestMarker(
+    ui.Canvas canvas,
+    Offset center,
+    SheetTunerPitchHistorySample sample,
   ) {
-    return switch (mode) {
-      SheetTunerDisplayMode.bbTrumpet => SheetTunerDetectionProfile.bbTrumpet,
-      SheetTunerDisplayMode.bbClarinet ||
-      SheetTunerDisplayMode.tenorSax ||
-      SheetTunerDisplayMode.altoSax ||
-      SheetTunerDisplayMode.baritoneSax ||
-      SheetTunerDisplayMode.frenchHorn =>
-        SheetTunerDetectionProfile.highInstrument,
-      SheetTunerDisplayMode.bassClef ||
-      SheetTunerDisplayMode.cello ||
-      SheetTunerDisplayMode.doubleBass =>
-        SheetTunerDetectionProfile.lowInstrument,
-      SheetTunerDisplayMode.violin ||
-      SheetTunerDisplayMode.viola => SheetTunerDetectionProfile.strings,
-      SheetTunerDisplayMode.guitar ||
-      SheetTunerDisplayMode.bassGuitar => SheetTunerDetectionProfile.guitarBass,
-      SheetTunerDisplayMode.concert => SheetTunerDetectionProfile.chromatic,
-    };
+    if (sample.band == SheetTunerFeedbackBand.inTune) {
+      _paintCenterMarker(canvas, center);
+    } else {
+      final fill = Paint()
+        ..color = colors.surface
+        ..style = PaintingStyle.fill;
+      final stroke = Paint()
+        ..color = _colorForBand(sample.band, sample.signalLevel)
+        ..strokeWidth = 2
+        ..style = PaintingStyle.stroke;
+      canvas.drawCircle(center, 6, fill);
+      canvas.drawCircle(center, 6, stroke);
+    }
   }
-}
 
-class _TunerMeter extends StatelessWidget {
-  const _TunerMeter({required this.feedback});
+  void _paintCenterMarker(ui.Canvas canvas, Offset center) {
+    final markerPaint = Paint()
+      ..color = colors.primary
+      ..style = PaintingStyle.fill;
+    final checkPaint = Paint()
+      ..color = colors.onPrimary
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+    canvas.drawCircle(center, 9, markerPaint);
+    final check = Path()
+      ..moveTo(center.dx - 4, center.dy)
+      ..lineTo(center.dx - 1, center.dy + 3)
+      ..lineTo(center.dx + 5, center.dy - 4);
+    canvas.drawPath(check, checkPaint);
+  }
 
-  final SheetTunerFeedback feedback;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final clamped = feedback.displayCents.clamp(-50.0, 50.0).toDouble();
-    final alignmentX = clamped / 50.0;
-    final markerColor = switch (feedback.band) {
-      SheetTunerFeedbackBand.inTune => theme.colorScheme.primary,
+  Color _colorForBand(SheetTunerFeedbackBand band, double signalLevel) {
+    final base = switch (band) {
+      SheetTunerFeedbackBand.inTune => colors.primary,
       SheetTunerFeedbackBand.slightlyFlat ||
-      SheetTunerFeedbackBand.slightlySharp => theme.colorScheme.tertiary,
-      SheetTunerFeedbackBand.veryFlat ||
-      SheetTunerFeedbackBand.verySharp => theme.colorScheme.error,
-      SheetTunerFeedbackBand.lowConfidence => theme.colorScheme.secondary,
-      _ => theme.colorScheme.outline,
+      SheetTunerFeedbackBand.veryFlat => colors.tertiary,
+      SheetTunerFeedbackBand.slightlySharp ||
+      SheetTunerFeedbackBand.verySharp => colors.error,
+      SheetTunerFeedbackBand.lowConfidence => colors.secondary,
+      _ => colors.outline,
     };
+    final opacity = band == SheetTunerFeedbackBand.lowConfidence
+        ? 0.38
+        : (0.44 + (signalLevel.clamp(0.0, 1.0) * 0.5));
+    return base.withValues(alpha: opacity.clamp(0.28, 0.94));
+  }
 
-    return Column(
-      children: [
-        SizedBox(
-          height: 54,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                height: 10,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Container(
-                width: 3,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-              ),
-              Align(
-                alignment: Alignment(alignmentX, 0),
-                child: Container(
-                  width: feedback.hasPitch ? 18 : 10,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: markerColor,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: Row(
-            children: [
-              Text('낮음', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('정확', style: theme.textTheme.labelSmall),
-              const Spacer(),
-              Text('높음', style: theme.textTheme.labelSmall),
-            ],
-          ),
-        ),
-      ],
+  double _yForCents(Rect chart, double cents) {
+    final clamped = cents.clamp(-_maxCents, _maxCents).toDouble();
+    final normalized = clamped / _maxCents;
+    return chart.center.dy - (normalized * chart.height / 2);
+  }
+
+  void _paintText(
+    ui.Canvas canvas,
+    String text,
+    Offset offset,
+    TextStyle? style,
+  ) {
+    final painter = _textPainter(text, style);
+    painter.layout();
+    painter.paint(canvas, offset);
+  }
+
+  TextPainter _textPainter(String text, TextStyle? style) {
+    return TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
     );
   }
-}
-
-class _TunerLedStrip extends StatelessWidget {
-  const _TunerLedStrip({required this.feedback});
-
-  final SheetTunerFeedback feedback;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final active = feedback.ledState;
-    final inactiveColor = theme.colorScheme.surfaceContainerHighest;
-    final states = <({SheetTunerLedState state, String label})>[
-      (state: SheetTunerLedState.veryFlat, label: '--'),
-      (state: SheetTunerLedState.flat, label: '-'),
-      (state: SheetTunerLedState.center, label: '0'),
-      (state: SheetTunerLedState.sharp, label: '+'),
-      (state: SheetTunerLedState.verySharp, label: '++'),
-    ];
-
-    return Row(
-      children: [
-        for (final item in states) ...[
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: item.state == SheetTunerLedState.center ? 28 : 22,
-              decoration: BoxDecoration(
-                color: active == item.state
-                    ? _ledColor(theme, item.state)
-                    : inactiveColor,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                item.label,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: active == item.state
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-          ),
-          if (item.state != SheetTunerLedState.verySharp)
-            const SizedBox(width: 6),
-        ],
-      ],
-    );
-  }
-
-  Color _ledColor(ThemeData theme, SheetTunerLedState state) {
-    return switch (state) {
-      SheetTunerLedState.center => theme.colorScheme.primary,
-      SheetTunerLedState.flat ||
-      SheetTunerLedState.sharp => theme.colorScheme.tertiary,
-      SheetTunerLedState.veryFlat ||
-      SheetTunerLedState.verySharp => theme.colorScheme.error,
-      SheetTunerLedState.lowConfidence => theme.colorScheme.secondary,
-      SheetTunerLedState.off => theme.colorScheme.outline,
-    };
-  }
-}
-
-class _TunerStringTargetPanel extends StatelessWidget {
-  const _TunerStringTargetPanel({
-    required this.title,
-    required this.stringTargets,
-    required this.selectedConcertMidiNumber,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final String title;
-  final List<SheetTunerStringTarget> stringTargets;
-  final int? selectedConcertMidiNumber;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.55,
-        ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.linear_scale, size: 18),
-                const SizedBox(width: 6),
-                Text(
-                  title,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '6 -> 1',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 720
-                    ? math.min(stringTargets.length, 4)
-                    : constraints.maxWidth >= 460
-                    ? math.min(stringTargets.length, 3)
-                    : 2;
-                final spacing = 8.0;
-                final width =
-                    (constraints.maxWidth - (spacing * (columns - 1))) /
-                    columns;
-                return Wrap(
-                  spacing: spacing,
-                  runSpacing: spacing,
-                  children: [
-                    for (final stringTarget in stringTargets)
-                      SizedBox(
-                        width: width,
-                        child: _TunerStringTargetButton(
-                          stringTarget: stringTarget,
-                          selected:
-                              selectedConcertMidiNumber ==
-                              stringTarget.target.concertMidiNumber,
-                          referencePitchA4: referencePitchA4,
-                          preferFlats: preferFlats,
-                          onSelected: onSelected,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TunerStringTargetButton extends StatelessWidget {
-  const _TunerStringTargetButton({
-    required this.stringTarget,
-    required this.selected,
-    required this.referencePitchA4,
-    required this.preferFlats,
-    required this.onSelected,
-  });
-
-  final SheetTunerStringTarget stringTarget;
-  final bool selected;
-  final int referencePitchA4;
-  final bool preferFlats;
-  final ValueChanged<SheetTunerTarget> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final target = stringTarget.target;
-    final pitch = SheetTunerPitch.noteFromMidi(
-      target.concertMidiNumber,
-      referencePitchA4: referencePitchA4,
-    );
-    return Material(
-      color: selected
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surface,
-      borderRadius: BorderRadius.circular(8),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onSelected(target),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${stringTarget.stringNumber}번줄',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                pitch.labelWith(preferFlats: preferFlats),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: selected
-                      ? theme.colorScheme.onPrimaryContainer
-                      : theme.colorScheme.onSurface,
-                ),
-              ),
-              Text(
-                '${pitch.frequency.toStringAsFixed(1)} Hz',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TunerInputPowerBar extends StatelessWidget {
-  const _TunerInputPowerBar({required this.power});
-
-  final SheetTunerInputPower power;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final value = power.value.clamp(0.0, 1.0).toDouble();
-    final barColor = switch (power.band) {
-      SheetTunerInputPowerBand.strong ||
-      SheetTunerInputPowerBand.steady => theme.colorScheme.primary,
-      SheetTunerInputPowerBand.weak => theme.colorScheme.tertiary,
-      SheetTunerInputPowerBand.silent => theme.colorScheme.error,
-      SheetTunerInputPowerBand.idle => theme.colorScheme.outline,
-    };
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          children: [
-            Text('입력', style: theme.textTheme.labelSmall),
-            const Spacer(),
-            Text(
-              power.label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            minHeight: 8,
-            value: value,
-            color: barColor,
-            backgroundColor: theme.colorScheme.surfaceContainerHighest,
-          ),
-        ),
-      ],
-    );
+  bool shouldRepaint(covariant _TunerPitchHistoryPainter oldDelegate) {
+    return oldDelegate.samples != samples ||
+        oldDelegate.currentNoteLabel != currentNoteLabel ||
+        oldDelegate.detailLabel != detailLabel ||
+        oldDelegate.readingLabel != readingLabel ||
+        oldDelegate.colors != colors ||
+        oldDelegate.textStyle != textStyle ||
+        oldDelegate.historyWindow != historyWindow;
   }
 }
 
@@ -15070,30 +17234,138 @@ class _MetronomeSheet extends StatefulWidget {
   const _MetronomeSheet({
     required this.initialSettings,
     required this.onSettingsChanged,
+    required this.onShowMiniPanel,
+    this.settingsScopeLabel,
   });
 
   final SheetMetronomeSettings initialSettings;
   final Future<void> Function(SheetMetronomeSettings settings)
   onSettingsChanged;
+  final VoidCallback onShowMiniPanel;
+  final String? settingsScopeLabel;
 
   @override
   State<_MetronomeSheet> createState() => _MetronomeSheetState();
 }
 
+@visibleForTesting
+Widget buildMetronomeSheetForTest({
+  SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _MetronomeSheet(
+        initialSettings: settings,
+        onSettingsChanged: (_) async {},
+        onShowMiniPanel: () {},
+        settingsScopeLabel: '이 악보에 저장됩니다',
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildViewerMiniMetronomePanelForTest({
+  SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _ViewerMiniToolPanel(
+          tool: _ViewerMiniTool.metronome,
+          metronomeSettings: settings,
+          onMetronomeSettingsChanged: (_) async {},
+          onOpenTuner: () {},
+          onClose: () {},
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildSetlistProgressBadgeForTest({
+  String scoreTitle = 'G선상의 아리아',
+  String subtitle = '공연 순서 · 2/8 · 3분',
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _SetlistProgressBadge(
+          scoreTitle: scoreTitle,
+          subtitle: subtitle,
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildTapZoneHintOverlayForTest() {
+  return const MaterialApp(home: Scaffold(body: _TapZoneHintOverlay()));
+}
+
+@visibleForTesting
+Widget buildAnnotationToolbarForTest() {
+  return MaterialApp(
+    home: Scaffold(
+      body: _AnnotationToolbar(
+        isCompact: false,
+        selectedTool: _AnnotationToolbarTool.stamp,
+        selectedColor: 0xff111111,
+        selectedWidth: 4,
+        selectedStamp: _AnnotationStamp.ok,
+        isLayerVisible: true,
+        includeLayerInExport: true,
+        hasFavoritePreset: true,
+        onToolSelected: (_) {},
+        onColorSelected: (_) {},
+        onWidthChanged: (_) {},
+        onStampSelected: (_) {},
+        onUndo: () {},
+        onRedo: () {},
+        onToggleLayerVisibility: () {},
+        onToggleLayerExport: () {},
+        onSaveFavorite: () {},
+        onApplyFavorite: () {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildViewerCompactOptionsMenuForTest() {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: PopupMenuButton<_ViewerMenuAction>(
+          tooltip: '보기 옵션',
+          itemBuilder: (context) => _viewerCompactLibraryMenuItems(),
+        ),
+      ),
+    ),
+  );
+}
+
 class _MetronomeSheetState extends State<_MetronomeSheet> {
+  late final SheetMetronomeSoundPlayer _soundPlayer;
   late SheetMetronomeSettings _settings;
   late SheetMetronomeBeat _beat;
   Timer? _timer;
   bool _isRunning = false;
+  int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
+  final List<DateTime> _tapTempoMarks = <DateTime>[];
 
   @override
   void initState() {
     super.initState();
+    _soundPlayer = SheetMetronomeSoundPlayer();
     _settings = widget.initialSettings;
     _beat = SheetMetronomeBeat(
       beatIndex: 0,
       beatsPerBar: _settings.meter.beatsPerBar,
+      pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
     );
   }
 
@@ -15115,10 +17387,19 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   }
 
   Future<void> _setMeter(SheetMetronomeMeter meter) async {
-    final nextSettings = _settings.copyWith(meter: meter);
+    final nextSettings = _settings.copyWith(
+      meter: meter,
+      accentBeatIndexes: SheetMetronomeSettings.defaultAccentBeatIndexesFor(
+        meter,
+      ),
+    );
     setState(() {
       _settings = nextSettings;
-      _beat = SheetMetronomeBeat(beatIndex: 0, beatsPerBar: meter.beatsPerBar);
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
       _lastBeatAt = null;
     });
     await widget.onSettingsChanged(nextSettings);
@@ -15135,11 +17416,108 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     await widget.onSettingsChanged(nextSettings);
   }
 
+  Future<void> _setVolumePercent(int volumePercent) async {
+    final nextSettings = _settings.copyWith(volumePercent: volumePercent);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _setAccentEnabled(bool enabled) async {
+    final nextSettings = _settings.copyWith(accentEnabled: enabled);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _toggleAccentBeat(int beatIndex) async {
+    final accents = _settings.normalizedAccentBeatIndexes.toSet();
+    if (accents.contains(beatIndex)) {
+      accents.remove(beatIndex);
+    } else {
+      accents.add(beatIndex);
+    }
+    final nextAccents = accents.toList()..sort();
+    final nextSettings = _settings.copyWith(accentBeatIndexes: nextAccents);
+    setState(() {
+      _settings = nextSettings;
+    });
+    await widget.onSettingsChanged(nextSettings);
+  }
+
+  Future<void> _setSubdivision(SheetMetronomeSubdivision subdivision) async {
+    final nextSettings = _settings.copyWith(subdivision: subdivision);
+    setState(() {
+      _settings = nextSettings;
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: subdivision.pulsesPerBeat,
+      );
+      _lastBeatAt = null;
+    });
+    await widget.onSettingsChanged(nextSettings);
+    if (_isRunning) {
+      _restartTimer();
+    }
+  }
+
+  Future<void> _setCountInBars(int bars) async {
+    final nextSettings = _settings.copyWith(countInBars: bars);
+    setState(() {
+      _settings = nextSettings;
+      _countInPulsesLeft = _isRunning ? _countInTotalPulses : 0;
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
+      _lastBeatAt = null;
+    });
+    await widget.onSettingsChanged(nextSettings);
+    if (_isRunning) {
+      _restartTimer();
+    }
+  }
+
+  Future<void> _tapTempo() async {
+    final now = DateTime.now();
+    _tapTempoMarks.removeWhere(
+      (mark) => now.difference(mark) > const Duration(seconds: 3),
+    );
+    _tapTempoMarks.add(now);
+    if (_tapTempoMarks.length < 2) {
+      setState(() {});
+      return;
+    }
+    if (_tapTempoMarks.length > 5) {
+      _tapTempoMarks.removeAt(0);
+    }
+
+    final intervals = <int>[];
+    for (var index = 1; index < _tapTempoMarks.length; index++) {
+      intervals.add(
+        _tapTempoMarks[index]
+            .difference(_tapTempoMarks[index - 1])
+            .inMilliseconds,
+      );
+    }
+    final averageMs =
+        intervals.reduce((sum, value) => sum + value) / intervals.length;
+    if (averageMs <= 0) {
+      return;
+    }
+    await _setBpm((60000 / averageMs).round());
+  }
+
   void _toggleRunning() {
     if (_isRunning) {
       _timer?.cancel();
       setState(() {
         _isRunning = false;
+        _countInPulsesLeft = 0;
       });
       return;
     }
@@ -15149,16 +17527,19 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       _beat = SheetMetronomeBeat(
         beatIndex: 0,
         beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
       );
+      _countInPulsesLeft = _countInTotalPulses;
       _lastBeatAt = DateTime.now();
     });
     _playTick();
+    _consumeCountInPulse();
     _restartTimer();
   }
 
   void _restartTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(_settings.beatDuration, (_) => _advanceBeat());
+    _timer = Timer.periodic(_settings.pulseDuration, (_) => _advanceBeat());
   }
 
   void _advanceBeat() {
@@ -15168,31 +17549,79 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
     setState(() {
       _beat = _beat.next();
+      _consumeCountInPulse();
       _lastBeatAt = DateTime.now();
     });
     _playTick();
   }
 
-  void _playTick() {
-    if (!_settings.soundEnabled) {
+  int get _countInTotalPulses =>
+      _settings.countInBars *
+      _settings.meter.beatsPerBar *
+      _settings.subdivision.pulsesPerBeat;
+
+  bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
+
+  void _consumeCountInPulse() {
+    if (_countInPulsesLeft <= 0) {
       return;
     }
-    unawaited(SystemSound.play(SystemSoundType.click));
+    _countInPulsesLeft--;
+    if (_countInPulsesLeft == 0) {
+      _beat = SheetMetronomeBeat(
+        beatIndex: 0,
+        beatsPerBar: _settings.meter.beatsPerBar,
+        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
+      );
+    }
+  }
+
+  void _playTick() {
+    if (!_settings.soundEnabled || !_beat.isBeatStart) {
+      return;
+    }
+    unawaited(
+      _soundPlayer.playClick(
+        settings: _settings,
+        accent: _settings.isAccentBeat(_beat),
+      ),
+    );
+  }
+
+  void _previewTickSound() {
+    unawaited(
+      _soundPlayer.playClick(
+        settings: _settings.copyWith(soundEnabled: true),
+        accent: true,
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('소리가 들리지 않으면 기기 볼륨, 무음 모드, 이어폰 연결을 확인하세요.')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final beatTime = _lastBeatAt == null
         ? '대기'
         : _formatShortDate(_lastBeatAt!);
+    final countInBeatsLeft =
+        (_countInPulsesLeft / _settings.subdivision.pulsesPerBeat).ceil();
+    final beatLabel = _isCountingIn
+        ? '카운트인 $countInBeatsLeft박 남음'
+        : _settings.isAccentBeat(_beat)
+        ? '강박 · $beatTime'
+        : _beat.isBeatStart
+        ? '보통박 · $beatTime'
+        : '나눔박 · $beatTime';
 
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: ListView(
+          shrinkWrap: true,
           children: [
             Row(
               children: [
@@ -15206,6 +17635,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                     ),
                   ),
                 ),
+                IconButton(
+                  onPressed: widget.onShowMiniPanel,
+                  icon: const Icon(Icons.picture_in_picture_alt_outlined),
+                  tooltip: '악보 위에 작게 띄우기',
+                ),
                 FilledButton.icon(
                   onPressed: _toggleRunning,
                   icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
@@ -15213,6 +17647,15 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 ),
               ],
             ),
+            if (widget.settingsScopeLabel != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                widget.settingsScopeLabel!,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
             Center(
               child: Text(
@@ -15224,7 +17667,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
             ),
             Center(
               child: Text(
-                'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar}',
+                'BPM · ${_settings.meter.label} · ${_beat.beatNumber}/${_settings.meter.beatsPerBar} · ${_settings.soundEnabled ? '소리 켬' : '시각만'}',
                 style: theme.textTheme.labelLarge,
               ),
             ),
@@ -15246,6 +17689,12 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   icon: const Icon(Icons.remove),
                 ),
                 const SizedBox(width: 16),
+                OutlinedButton.icon(
+                  onPressed: _tapTempo,
+                  icon: const Icon(Icons.touch_app_outlined),
+                  label: const Text('탭 템포'),
+                ),
+                const SizedBox(width: 16),
                 IconButton.filledTonal(
                   tooltip: 'BPM 올리기',
                   onPressed: () => _setBpm(_settings.bpm + 1),
@@ -15254,6 +17703,13 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               ],
             ),
             const SizedBox(height: 18),
+            Text(
+              '박자',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -15268,6 +17724,50 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   )
                   .toList(growable: false),
             ),
+            const SizedBox(height: 16),
+            Text(
+              '나눔',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: SheetMetronomeSubdivision.values
+                  .map(
+                    (subdivision) => ChoiceChip(
+                      label: Text(subdivision.label),
+                      selected: subdivision == _settings.subdivision,
+                      onSelected: (_) => _setSubdivision(subdivision),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '카운트인',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: const <int>[0, 1, 2]
+                  .map(
+                    (bars) => ChoiceChip(
+                      label: Text(bars == 0 ? '없음' : '$bars마디'),
+                      selected: bars == _settings.countInBars,
+                      onSelected: (_) => _setCountInBars(bars),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
             const SizedBox(height: 22),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -15275,7 +17775,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 index,
               ) {
                 final isCurrent = index == _beat.beatIndex;
-                final isAccent = index == 0;
+                final isAccent = _settings.normalizedAccentBeatIndexes.contains(
+                  index,
+                );
+                final isActiveAccent =
+                    _settings.accentEnabled && _settings.isAccentBeat(_beat);
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   width: isCurrent ? 30 : 22,
@@ -15284,7 +17788,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: isCurrent
-                        ? (isAccent
+                        ? (isActiveAccent
                               ? theme.colorScheme.primary
                               : theme.colorScheme.tertiary)
                         : theme.colorScheme.surfaceContainerHighest,
@@ -15299,22 +17803,79 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
               }),
             ),
             const SizedBox(height: 12),
-            Center(
-              child: Text(
-                _beat.isAccent ? '강박 · $beatTime' : '보통박 · $beatTime',
-                style: theme.textTheme.labelMedium,
+            Center(child: Text(beatLabel, style: theme.textTheme.labelMedium)),
+            const SizedBox(height: 8),
+            Text(
+              '강세 패턴',
+              style: theme.textTheme.labelLarge?.copyWith(
+                fontWeight: FontWeight.w900,
               ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: List<Widget>.generate(_settings.meter.beatsPerBar, (
+                index,
+              ) {
+                final selected = _settings.normalizedAccentBeatIndexes.contains(
+                  index,
+                );
+                return FilterChip(
+                  label: Text('${index + 1}박'),
+                  selected: selected,
+                  onSelected: _settings.accentEnabled
+                      ? (_) => _toggleAccentBeat(index)
+                      : null,
+                );
+              }),
             ),
             const SizedBox(height: 8),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              secondary: const Icon(Icons.radio_button_checked),
+              title: const Text('강세 사용'),
+              subtitle: const Text('선택한 박을 더 강한 소리와 색으로 표시합니다.'),
+              value: _settings.accentEnabled,
+              onChanged: _setAccentEnabled,
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
               secondary: const Icon(Icons.volume_up_outlined),
-              title: const Text('tick 소리'),
-              subtitle: const Text(
-                '기기 기본 click sound를 사용합니다. 정확한 latency는 실기기 확인 필요',
+              title: const Text('틱 소리'),
+              subtitle: Text(
+                _settings.soundEnabled
+                    ? '시작하면 박마다 소리를 냅니다. 안 들리면 미디어/시스템 볼륨, 무음 모드, 연결된 이어폰을 확인하세요.'
+                    : '소리를 끄고 화면 박자 표시만 사용합니다.',
               ),
               value: _settings.soundEnabled,
               onChanged: _setSoundEnabled,
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              enabled: _settings.soundEnabled,
+              leading: const Icon(Icons.graphic_eq_outlined),
+              title: const Text('소리 크기'),
+              trailing: Text('${_settings.volumePercent}%'),
+              subtitle: Slider(
+                value: _settings.volumePercent.toDouble(),
+                min: 0,
+                max: 100,
+                divisions: 10,
+                label: '${_settings.volumePercent}%',
+                onChanged: _settings.soundEnabled
+                    ? (value) => _setVolumePercent(value.round())
+                    : null,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: _previewTickSound,
+                icon: const Icon(Icons.volume_up_outlined),
+                label: const Text('소리 확인'),
+              ),
             ),
           ],
         ),

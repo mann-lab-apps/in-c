@@ -19,6 +19,44 @@ import 'sheet_setlist.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 
+class SheetSetlistBulkAddResult {
+  const SheetSetlistBulkAddResult({
+    required this.addedCount,
+    required this.skippedDuplicateCount,
+  });
+
+  final int addedCount;
+  final int skippedDuplicateCount;
+
+  bool get didAddAny => addedCount > 0;
+}
+
+class SheetPdfBatchImportResult {
+  const SheetPdfBatchImportResult({
+    required this.importedScores,
+    required this.existingScores,
+  });
+
+  static const empty = SheetPdfBatchImportResult(
+    importedScores: <SheetScore>[],
+    existingScores: <SheetScore>[],
+  );
+
+  final List<SheetScore> importedScores;
+  final List<SheetScore> existingScores;
+
+  List<SheetScore> get scores {
+    return List<SheetScore>.unmodifiable(<SheetScore>[
+      ...importedScores,
+      ...existingScores,
+    ]);
+  }
+
+  int get importedCount => importedScores.length;
+  int get existingCount => existingScores.length;
+  bool get isEmpty => importedScores.isEmpty && existingScores.isEmpty;
+}
+
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
 
@@ -46,6 +84,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool _isLoading = true;
   bool _isImporting = false;
   String? _errorMessage;
+  bool _lastImportOpenedExistingScore = false;
 
   List<SheetScore> get scores => _scores;
   List<SheetSetlist> get setlists => _setlists;
@@ -68,6 +107,7 @@ class SheetLibraryController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isImporting => _isImporting;
   String? get errorMessage => _errorMessage;
+  bool get lastImportOpenedExistingScore => _lastImportOpenedExistingScore;
 
   SheetLibraryProfile? libraryProfileByName(String name) {
     final normalized = _normalizeOptionalMetadata(name);
@@ -106,10 +146,34 @@ class SheetLibraryController extends ChangeNotifier {
     return List<SheetScore>.unmodifiable(scores);
   }
 
+  List<SheetScore> get scoresNeedingMetadataReview {
+    final scores = _scores.where(_needsMetadataReview).toList();
+    scores.sort((a, b) {
+      final importedCompare = b.importedAt.compareTo(a.importedAt);
+      if (importedCompare != 0) {
+        return importedCompare;
+      }
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+    return List<SheetScore>.unmodifiable(scores);
+  }
+
+  List<SheetSetlist> get recentSetlists {
+    final setlists = _setlists
+        .where((setlist) => setlist.lastOpenedAt != null)
+        .toList();
+    setlists.sort(_recentSetlistCompare);
+    return List<SheetSetlist>.unmodifiable(setlists);
+  }
+
   List<String> get allTags {
     final tags = _scores.expand((score) => score.tags).toSet().toList();
     tags.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return List<String>.unmodifiable(tags);
+  }
+
+  List<SheetLibraryFacet> get composerFacets {
+    return _stringFacets(_scores.map((score) => score.composer));
   }
 
   List<String> get allCollections {
@@ -138,6 +202,20 @@ class SheetLibraryController extends ChangeNotifier {
 
   List<SheetLibraryFacet> get groupFacets {
     return _stringFacets(_scores.map((score) => score.group));
+  }
+
+  List<SheetLibraryFacet> customFieldFacets(String fieldKey) {
+    final normalizedKey = fieldKey.trim().toLowerCase();
+    if (normalizedKey.isEmpty) {
+      return const <SheetLibraryFacet>[];
+    }
+    return _stringFacets(
+      _scores.expand(
+        (score) => score.customFields
+            .where((field) => field.key.trim().toLowerCase() == normalizedKey)
+            .map((field) => field.value),
+      ),
+    );
   }
 
   List<SheetLibraryFacet> get ratingFacets {
@@ -191,6 +269,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -200,6 +279,11 @@ class SheetLibraryController extends ChangeNotifier {
           : _withActiveCollection(importedScore);
       if (score == null) {
         return null;
+      }
+      final duplicate = _findLikelyImportedDuplicate(score);
+      if (duplicate != null) {
+        _lastImportOpenedExistingScore = true;
+        return duplicate;
       }
 
       _scores = <SheetScore>[score, ..._scores];
@@ -214,6 +298,53 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetPdfBatchImportResult> importPdfs() async {
+    if (_isImporting) {
+      return SheetPdfBatchImportResult.empty;
+    }
+
+    _isImporting = true;
+    _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
+    notifyListeners();
+
+    try {
+      final rawScores = await store.importPdfs();
+      if (rawScores.isEmpty) {
+        return SheetPdfBatchImportResult.empty;
+      }
+      final importedScores = <SheetScore>[];
+      final existingScores = <SheetScore>[];
+      for (final rawScore in rawScores) {
+        final score = _withActiveCollection(rawScore);
+        final duplicate =
+            _findLikelyImportedDuplicate(score) ??
+            _findLikelyDuplicateIn(score, importedScores);
+        if (duplicate != null) {
+          existingScores.add(duplicate);
+        } else {
+          importedScores.add(score);
+        }
+      }
+
+      if (importedScores.isNotEmpty) {
+        _scores = <SheetScore>[...importedScores, ..._scores];
+        await store.saveScores(_scores);
+      }
+      _lastImportOpenedExistingScore = existingScores.isNotEmpty;
+      return SheetPdfBatchImportResult(
+        importedScores: List<SheetScore>.unmodifiable(importedScores),
+        existingScores: List<SheetScore>.unmodifiable(existingScores),
+      );
+    } catch (error) {
+      _errorMessage = 'PDF를 가져오지 못했습니다. 파일이 PDF인지, Drive/iCloud/Dropbox 파일이 기기에 내려받아져 있는지 확인해주세요.';
+      return SheetPdfBatchImportResult.empty;
+    } finally {
+      _isImporting = false;
+      notifyListeners();
+    }
+  }
+
   Future<SheetScore?> importImagesAsPdf() async {
     if (_isImporting) {
       return null;
@@ -221,6 +352,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -253,6 +385,7 @@ class SheetLibraryController extends ChangeNotifier {
 
     _isImporting = true;
     _errorMessage = null;
+    _lastImportOpenedExistingScore = false;
     notifyListeners();
 
     try {
@@ -283,6 +416,58 @@ class SheetLibraryController extends ChangeNotifier {
 
   List<SheetScoreShareCandidate> shareCandidates(SheetScore score) {
     return store.shareCandidates(score);
+  }
+
+  SheetScore? _findLikelyImportedDuplicate(SheetScore importedScore) {
+    final importedKey = _duplicateImportKey(importedScore);
+    if (importedKey.length < 3) {
+      return null;
+    }
+    for (final score in _scores) {
+      if (score.id == importedScore.id) {
+        continue;
+      }
+      if (_duplicateImportKey(score) == importedKey) {
+        return score;
+      }
+    }
+    return null;
+  }
+
+  SheetScore? _findLikelyDuplicateIn(
+    SheetScore importedScore,
+    Iterable<SheetScore> candidates,
+  ) {
+    final importedKey = _duplicateImportKey(importedScore);
+    if (importedKey.length < 3) {
+      return null;
+    }
+    for (final score in candidates) {
+      if (score.id == importedScore.id) {
+        continue;
+      }
+      if (_duplicateImportKey(score) == importedKey) {
+        return score;
+      }
+    }
+    return null;
+  }
+
+  String _duplicateImportKey(SheetScore score) {
+    return score.sourceFileDisplayName
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_\-]+'), ' ')
+        .trim();
+  }
+
+  bool _needsMetadataReview(SheetScore score) {
+    return score.composer.trim().isEmpty &&
+        score.tags.isEmpty &&
+        score.collection.trim().isEmpty &&
+        score.group.trim().isEmpty &&
+        score.rating <= 0 &&
+        score.note.trim().isEmpty &&
+        score.customFields.isEmpty;
   }
 
   Future<void> markOpened(SheetScore score) async {
@@ -562,6 +747,30 @@ class SheetLibraryController extends ChangeNotifier {
     return changedCount;
   }
 
+  Future<int> deleteScoresByIds(Set<String> scoreIds) async {
+    final normalizedIds = scoreIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (normalizedIds.isEmpty) {
+      return 0;
+    }
+
+    final beforeCount = _scores.length;
+    _scores = _scores
+        .where((score) => !normalizedIds.contains(score.id))
+        .toList(growable: false);
+    final deletedCount = beforeCount - _scores.length;
+    if (deletedCount == 0) {
+      return 0;
+    }
+
+    await store.saveScores(_scores);
+    await _removeMissingSetlistScores();
+    notifyListeners();
+    return deletedCount;
+  }
+
   Future<void> updateStructuredNotes(
     SheetScore score,
     SheetScoreNotes notes,
@@ -806,6 +1015,44 @@ class SheetLibraryController extends ChangeNotifier {
     _metronomeSettings = settings;
     await store.saveMetronomeSettings(settings);
     notifyListeners();
+  }
+
+  SheetMetronomeSettings metronomeSettingsForScore(
+    SheetScore score, {
+    String? setlistId,
+  }) {
+    final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
+    return setlist?.scoreMetronomeSettings[score.id] ??
+        score.metronomeSettings ??
+        _metronomeSettings;
+  }
+
+  Future<void> updateMetronomeSettingsForScore(
+    SheetScore score,
+    SheetMetronomeSettings settings, {
+    String? setlistId,
+  }) async {
+    _metronomeSettings = settings;
+    await store.saveMetronomeSettings(settings);
+    final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
+    if (setlist != null) {
+      await _replaceSetlist(
+        setlist.copyWith(
+          scoreMetronomeSettings:
+              Map<String, SheetMetronomeSettings>.unmodifiable(
+                <String, SheetMetronomeSettings>{
+                  ...setlist.scoreMetronomeSettings,
+                  score.id: settings,
+                },
+              ),
+          updatedAt: DateTime.now(),
+        ),
+      );
+      return;
+    }
+    await _replace(
+      score.copyWith(metronomeSettings: settings, updatedAt: DateTime.now()),
+    );
   }
 
   Future<void> updateTunerSettings(SheetTunerSettings settings) async {
@@ -1453,6 +1700,35 @@ class SheetLibraryController extends ChangeNotifier {
     return true;
   }
 
+  Future<int> importBookmarksFromCsv(
+    SheetScore score, {
+    required int pageCount,
+  }) async {
+    _errorMessage = null;
+    try {
+      final importedBookmarks = await store.importBookmarkCsv(
+        pageCount: pageCount,
+      );
+      if (importedBookmarks.isEmpty) {
+        return 0;
+      }
+      final currentScore = scoreById(score.id);
+      final beforeCount = currentScore.bookmarks.length;
+      final didMerge = await mergeBookmarksFromOutline(
+        currentScore,
+        importedBookmarks,
+      );
+      if (!didMerge) {
+        return 0;
+      }
+      return scoreById(score.id).bookmarks.length - beforeCount;
+    } catch (_) {
+      _errorMessage = 'CSV 북마크를 가져오지 못했습니다. page,label 형식인지 확인해주세요.';
+      notifyListeners();
+      return 0;
+    }
+  }
+
   Future<bool> addCropPreset(SheetScore score, SheetCropPreset preset) async {
     final nextPageSettings = score.pageSettings.addCropPreset(preset);
     if (identical(nextPageSettings, score.pageSettings)) {
@@ -1787,6 +2063,9 @@ class SheetLibraryController extends ChangeNotifier {
       scoreStartPages: Map<String, int>.unmodifiable(setlist.scoreStartPages),
       scoreNotes: Map<String, String>.unmodifiable(setlist.scoreNotes),
       scoreDurations: Map<String, int>.unmodifiable(setlist.scoreDurations),
+      scoreMetronomeSettings: Map<String, SheetMetronomeSettings>.unmodifiable(
+        setlist.scoreMetronomeSettings,
+      ),
       transitionSeconds: setlist.transitionSeconds,
       viewerSettingsOverride: setlist.viewerSettingsOverride,
     );
@@ -1808,11 +2087,62 @@ class SheetLibraryController extends ChangeNotifier {
     await _replaceSetlist(setlist.appendScore(score.id, DateTime.now()));
   }
 
+  Future<SheetSetlistBulkAddResult> addScoresToSetlist(
+    SheetSetlist setlist,
+    Iterable<SheetScore> scores,
+  ) async {
+    final existingScoreIds = setlist.scoreIds.toSet();
+    final nextScoreIds = setlist.scoreIds.toList();
+    var skippedDuplicateCount = 0;
+
+    for (final score in scores) {
+      if (existingScoreIds.add(score.id)) {
+        nextScoreIds.add(score.id);
+      } else {
+        skippedDuplicateCount += 1;
+      }
+    }
+
+    final addedCount = nextScoreIds.length - setlist.scoreIds.length;
+    if (addedCount > 0) {
+      await _replaceSetlist(
+        setlist.copyWith(
+          scoreIds: List<String>.unmodifiable(nextScoreIds),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+    return SheetSetlistBulkAddResult(
+      addedCount: addedCount,
+      skippedDuplicateCount: skippedDuplicateCount,
+    );
+  }
+
   Future<void> removeScoreFromSetlist(
     SheetSetlist setlist,
     SheetScore score,
   ) async {
     await _replaceSetlist(setlist.removeScore(score.id, DateTime.now()));
+  }
+
+  Future<void> insertScoreInSetlist(
+    SheetSetlist setlist,
+    SheetScore score,
+    int index,
+  ) async {
+    final currentSetlist = setlistByIdOrNull(setlist.id);
+    if (currentSetlist == null || currentSetlist.scoreIds.contains(score.id)) {
+      return;
+    }
+    final nextScoreIds = currentSetlist.scoreIds.toList();
+    final targetIndex = index.clamp(0, nextScoreIds.length).toInt();
+    nextScoreIds.insert(targetIndex, score.id);
+    await _replaceSetlist(
+      currentSetlist.copyWith(
+        scoreIds: List<String>.unmodifiable(nextScoreIds),
+        updatedAt: DateTime.now(),
+      ),
+    );
   }
 
   Future<void> moveScoreInSetlist(
@@ -1822,6 +2152,24 @@ class SheetLibraryController extends ChangeNotifier {
   ) async {
     await _replaceSetlist(
       setlist.moveScore(fromIndex, toIndex, DateTime.now()),
+    );
+  }
+
+  Future<void> markSetlistOpened(
+    SheetSetlist setlist, {
+    String? scoreId,
+  }) async {
+    final normalizedScoreId = scoreId?.trim();
+    await _replaceSetlist(
+      setlist.copyWith(
+        lastOpenedAt: DateTime.now(),
+        lastOpenedScoreId:
+            normalizedScoreId != null &&
+                setlist.scoreIds.contains(normalizedScoreId)
+            ? normalizedScoreId
+            : null,
+        updatedAt: DateTime.now(),
+      ),
     );
   }
 
@@ -1875,10 +2223,16 @@ class SheetLibraryController extends ChangeNotifier {
     int? rating,
     bool? isFavorite,
     bool? isPinned,
+    List<SheetCustomMetadataField> customFields =
+        const <SheetCustomMetadataField>[],
   }) async {
     if (scoreIds.isEmpty) {
       return 0;
     }
+    final customFieldUpdates = SheetScore.normalizeCustomFields(customFields);
+    final customFieldUpdateKeys = customFieldUpdates
+        .map((field) => field.key.toLowerCase())
+        .toSet();
     final addTagSet = addTags
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
@@ -1908,6 +2262,16 @@ class SheetLibraryController extends ChangeNotifier {
               nextTags.add(tag);
             }
           }
+          final nextCustomFields = customFieldUpdates.isEmpty
+              ? score.customFields
+              : SheetScore.normalizeCustomFields([
+                  for (final field in score.customFields)
+                    if (!customFieldUpdateKeys.contains(
+                      field.key.toLowerCase(),
+                    ))
+                      field,
+                  ...customFieldUpdates,
+                ]);
           changedCount += 1;
           return score.copyWith(
             tags: List<String>.unmodifiable(nextTags),
@@ -1922,6 +2286,7 @@ class SheetLibraryController extends ChangeNotifier {
                 : SheetScore.normalizeRating(rating),
             isFavorite: isFavorite ?? score.isFavorite,
             isPinned: isPinned ?? score.isPinned,
+            customFields: nextCustomFields,
             updatedAt: now,
           );
         })
@@ -1956,6 +2321,12 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateComposerFilter(String composerQuery) async {
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(composerQuery: composerQuery),
+    );
+  }
+
   Future<void> updateCollectionFilter(String collectionQuery) async {
     await _updateLibraryViewSettings(
       _libraryViewSettings.copyWith(collectionQuery: collectionQuery),
@@ -1974,15 +2345,35 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
+  Future<void> updateCustomFieldFilter(String fieldKey, String value) async {
+    final normalizedKey = fieldKey.trim();
+    final normalizedValue = value.trim();
+    final filters = <String, String>{
+      ..._libraryViewSettings.customFieldFilters,
+    };
+    if (normalizedKey.isNotEmpty) {
+      if (normalizedValue.isEmpty) {
+        filters.remove(normalizedKey);
+      } else {
+        filters[normalizedKey] = normalizedValue;
+      }
+    }
+    await _updateLibraryViewSettings(
+      _libraryViewSettings.copyWith(customFieldFilters: filters),
+    );
+  }
+
   Future<void> clearLibrarySearchAndFilters() async {
     _query = '';
     await _updateLibraryViewSettings(
       _libraryViewSettings.copyWith(
         favoriteOnly: false,
         tagQuery: '',
+        composerQuery: '',
         collectionQuery: '',
         groupQuery: '',
         minimumRating: 0,
+        customFieldFilters: const <String, String>{},
       ),
     );
   }
@@ -2115,6 +2506,19 @@ class SheetLibraryController extends ChangeNotifier {
     return null;
   }
 
+  SheetSetlist? setlistByTitleOrNull(String title, {String? exceptId}) {
+    final normalized = _normalizeSetlistTitle(title).toLowerCase();
+    for (final setlist in _setlists) {
+      if (setlist.id == exceptId) {
+        continue;
+      }
+      if (_normalizeSetlistTitle(setlist.title).toLowerCase() == normalized) {
+        return setlist;
+      }
+    }
+    return null;
+  }
+
   Future<void> _replace(SheetScore updated) async {
     _scores = _scores
         .map((score) => score.id == updated.id ? updated : score)
@@ -2219,6 +2623,16 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   int _recentScoreCompare(SheetScore a, SheetScore b) {
+    final aOpened = a.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final bOpened = b.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+    final openedCompare = bOpened.compareTo(aOpened);
+    if (openedCompare != 0) {
+      return openedCompare;
+    }
+    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+  }
+
+  int _recentSetlistCompare(SheetSetlist a, SheetSetlist b) {
     final aOpened = a.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
     final bOpened = b.lastOpenedAt ?? DateTime.fromMillisecondsSinceEpoch(0);
     final openedCompare = bOpened.compareTo(aOpened);

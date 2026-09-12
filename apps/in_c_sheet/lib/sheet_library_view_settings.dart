@@ -22,9 +22,11 @@ class SheetLibraryViewSettings {
     required this.sortMode,
     required this.favoriteOnly,
     required this.tagQuery,
+    required this.composerQuery,
     required this.collectionQuery,
     required this.groupQuery,
     required this.minimumRating,
+    this.customFieldFilters = const <String, String>{},
   });
 
   factory SheetLibraryViewSettings.fromJson(Map<String, Object?>? json) {
@@ -35,9 +37,11 @@ class SheetLibraryViewSettings {
       ),
       favoriteOnly: favoriteOnlyValue is bool ? favoriteOnlyValue : false,
       tagQuery: _stringFromJson(json?['tagQuery']).trim(),
+      composerQuery: _stringFromJson(json?['composerQuery']).trim(),
       collectionQuery: _stringFromJson(json?['collectionQuery']).trim(),
       groupQuery: _stringFromJson(json?['groupQuery']).trim(),
       minimumRating: SheetScore.normalizeRating(json?['minimumRating']),
+      customFieldFilters: _stringMapFromJson(json?['customFieldFilters']),
     );
   }
 
@@ -45,39 +49,51 @@ class SheetLibraryViewSettings {
     sortMode: SheetLibrarySortMode.recent,
     favoriteOnly: false,
     tagQuery: '',
+    composerQuery: '',
     collectionQuery: '',
     groupQuery: '',
     minimumRating: 0,
+    customFieldFilters: <String, String>{},
   );
 
   final SheetLibrarySortMode sortMode;
   final bool favoriteOnly;
   final String tagQuery;
+  final String composerQuery;
   final String collectionQuery;
   final String groupQuery;
   final int minimumRating;
+  final Map<String, String> customFieldFilters;
 
   SheetLibraryViewSettings copyWith({
     SheetLibrarySortMode? sortMode,
     bool? favoriteOnly,
     String? tagQuery,
+    String? composerQuery,
     String? collectionQuery,
     String? groupQuery,
     int? minimumRating,
+    Map<String, String>? customFieldFilters,
   }) {
     return SheetLibraryViewSettings(
       sortMode: sortMode ?? this.sortMode,
       favoriteOnly: favoriteOnly ?? this.favoriteOnly,
       tagQuery: tagQuery?.trim() ?? this.tagQuery,
+      composerQuery: composerQuery?.trim() ?? this.composerQuery,
       collectionQuery: collectionQuery?.trim() ?? this.collectionQuery,
       groupQuery: groupQuery?.trim() ?? this.groupQuery,
       minimumRating: SheetScore.normalizeRating(
         minimumRating ?? this.minimumRating,
       ),
+      customFieldFilters: _normalizeCustomFieldFilters(
+        customFieldFilters ?? this.customFieldFilters,
+      ),
     );
   }
 
   bool get hasTagFilter => tagQuery.trim().isNotEmpty;
+
+  bool get hasComposerFilter => composerQuery.trim().isNotEmpty;
 
   bool get hasCollectionFilter => collectionQuery.trim().isNotEmpty;
 
@@ -85,12 +101,16 @@ class SheetLibraryViewSettings {
 
   bool get hasRatingFilter => minimumRating > 0;
 
+  bool get hasCustomFieldFilter => customFieldFilters.isNotEmpty;
+
   bool get hasAnyFilter =>
       favoriteOnly ||
       hasTagFilter ||
+      hasComposerFilter ||
       hasCollectionFilter ||
       hasGroupFilter ||
-      hasRatingFilter;
+      hasRatingFilter ||
+      hasCustomFieldFilter;
 
   bool matches(SheetScore score) {
     if (favoriteOnly && !score.isFavorite) {
@@ -105,6 +125,11 @@ class SheetLibraryViewSettings {
         return false;
       }
     }
+    if (hasComposerFilter &&
+        score.composer.trim().toLowerCase() !=
+            composerQuery.trim().toLowerCase()) {
+      return false;
+    }
     if (hasCollectionFilter &&
         score.collection.trim().toLowerCase() !=
             collectionQuery.trim().toLowerCase()) {
@@ -116,6 +141,21 @@ class SheetLibraryViewSettings {
     }
     if (hasRatingFilter && score.rating < minimumRating) {
       return false;
+    }
+    for (final filter in customFieldFilters.entries) {
+      final key = filter.key.trim().toLowerCase();
+      final value = filter.value.trim().toLowerCase();
+      if (key.isEmpty || value.isEmpty) {
+        continue;
+      }
+      final hasMatchingField = score.customFields.any(
+        (field) =>
+            field.key.trim().toLowerCase() == key &&
+            field.value.trim().toLowerCase() == value,
+      );
+      if (!hasMatchingField) {
+        return false;
+      }
     }
     return true;
   }
@@ -133,11 +173,45 @@ class SheetLibraryViewSettings {
       'sortMode': sortMode.name,
       'favoriteOnly': favoriteOnly,
       'tagQuery': tagQuery.trim(),
+      'composerQuery': composerQuery.trim(),
       'collectionQuery': collectionQuery.trim(),
       'groupQuery': groupQuery.trim(),
       'minimumRating': SheetScore.normalizeRating(minimumRating),
+      'customFieldFilters': _normalizeCustomFieldFilters(customFieldFilters),
     };
   }
+}
+
+Map<String, String> _stringMapFromJson(Object? value) {
+  if (value is! Map) {
+    return const <String, String>{};
+  }
+  final result = <String, String>{};
+  for (final entry in value.entries) {
+    final key = entry.key.toString().trim();
+    final mapValue = _stringFromJson(entry.value).trim();
+    if (key.isEmpty || mapValue.isEmpty) {
+      continue;
+    }
+    result[key] = mapValue;
+  }
+  return Map<String, String>.unmodifiable(result);
+}
+
+Map<String, String> _normalizeCustomFieldFilters(Map<String, String> filters) {
+  if (filters.isEmpty) {
+    return const <String, String>{};
+  }
+  final result = <String, String>{};
+  for (final entry in filters.entries) {
+    final key = entry.key.trim();
+    final value = entry.value.trim();
+    if (key.isEmpty || value.isEmpty) {
+      continue;
+    }
+    result[key] = value;
+  }
+  return Map<String, String>.unmodifiable(result);
 }
 
 List<SheetScore> sortScores(

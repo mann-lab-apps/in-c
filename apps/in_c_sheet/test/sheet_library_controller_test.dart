@@ -198,6 +198,125 @@ void main() {
     },
   );
 
+  test(
+    'opens existing score instead of duplicating matching PDF import',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(
+        _score(
+          now,
+          id: 'imported-score',
+          title: 'Recital Part',
+          filePath: '/tmp/imported-score-recital-part.pdf',
+        ),
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          id: 'score-1',
+          title: 'Recital Part',
+          filePath: '/tmp/score-1-recital-part.pdf',
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final imported = await controller.importPdf();
+
+      expect(imported?.id, 'score-1');
+      expect(controller.scores, hasLength(1));
+      expect(controller.lastImportOpenedExistingScore, isTrue);
+    },
+  );
+
+  test(
+    'batch PDF import adds new scores and suppresses existing duplicates',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = _ImportScoreStore(
+        _score(now, id: 'unused-single'),
+        batchScores: <SheetScore>[
+          _score(
+            now,
+            id: 'batch-1',
+            title: 'Etude',
+            filePath: '/tmp/batch-1-etude.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-2',
+            title: 'Prelude',
+            filePath: '/tmp/batch-2-prelude.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-existing',
+            title: 'Recital Part',
+            filePath: '/tmp/batch-existing-recital.pdf',
+          ),
+          _score(
+            now,
+            id: 'batch-duplicate',
+            title: 'Etude',
+            filePath: '/tmp/batch-duplicate-etude.pdf',
+          ),
+        ],
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          id: 'score-1',
+          title: 'Recital Part',
+          filePath: '/tmp/score-1-recital.pdf',
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final result = await controller.importPdfs();
+
+      expect(result.importedCount, 2);
+      expect(result.existingCount, 2);
+      expect(result.importedScores.map((score) => score.title), <String>[
+        'Etude',
+        'Prelude',
+      ]);
+      expect(controller.scores, hasLength(3));
+      expect(controller.lastImportOpenedExistingScore, isTrue);
+    },
+  );
+
+  test('tracks imported scores that still need metadata review', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        id: 'review-1',
+        title: 'Fresh Scan',
+        importedAt: now.add(const Duration(minutes: 2)),
+      ),
+      _score(now, id: 'ready-1', title: 'Edited Score', composer: 'Bach'),
+      _score(
+        now,
+        id: 'review-2',
+        title: 'Untitled PDF',
+        importedAt: now.add(const Duration(minutes: 1)),
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    expect(
+      controller.scoresNeedingMetadataReview.map((score) => score.id),
+      <String>['review-1', 'review-2'],
+    );
+  });
+
   test('uses collections as lightweight library profiles', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -530,6 +649,143 @@ void main() {
 
     await controller.unhidePage(controller.scores.single, 2);
     expect(controller.scores.single.pageSettings.hiddenPages, isEmpty);
+  });
+
+  test(
+    'uses score metronome settings and persists updates as score snapshot',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveMetronomeSettings(
+        const SheetMetronomeSettings(
+          bpm: 120,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+      );
+      await store.saveScores(<SheetScore>[
+        _score(
+          now,
+          metronomeSettings: const SheetMetronomeSettings(
+            bpm: 88,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(
+        controller.metronomeSettingsForScore(controller.scores.single).bpm,
+        88,
+      );
+
+      await controller.updateMetronomeSettingsForScore(
+        controller.scores.single,
+        const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.sixEight,
+          subdivision: SheetMetronomeSubdivision.eighth,
+          countInBars: 2,
+        ),
+      );
+
+      final updatedScore = controller.scores.single;
+      expect(updatedScore.metronomeSettings?.bpm, 96);
+      expect(
+        updatedScore.metronomeSettings?.meter,
+        SheetMetronomeMeter.sixEight,
+      );
+      expect(
+        updatedScore.metronomeSettings?.subdivision,
+        SheetMetronomeSubdivision.eighth,
+      );
+      expect(updatedScore.metronomeSettings?.countInBars, 2);
+      expect(controller.metronomeSettings.bpm, 96);
+      expect((await store.loadScores()).single.metronomeSettings?.bpm, 96);
+      expect((await store.loadMetronomeSettings()).bpm, 96);
+    },
+  );
+
+  test('uses setlist metronome override before score snapshot', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveMetronomeSettings(
+      const SheetMetronomeSettings(
+        bpm: 120,
+        meter: SheetMetronomeMeter.fourFour,
+      ),
+    );
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        metronomeSettings: const SheetMetronomeSettings(
+          bpm: 88,
+          meter: SheetMetronomeMeter.threeFour,
+        ),
+      ),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-1': SheetMetronomeSettings(
+            bpm: 72,
+            meter: SheetMetronomeMeter.twoFour,
+          ),
+        },
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final score = controller.scoreById('score-1');
+    expect(controller.metronomeSettingsForScore(score).bpm, 88);
+    expect(
+      controller.metronomeSettingsForScore(score, setlistId: 'setlist-1').bpm,
+      72,
+    );
+
+    await controller.updateMetronomeSettingsForScore(
+      score,
+      const SheetMetronomeSettings(
+        bpm: 96,
+        meter: SheetMetronomeMeter.sixEight,
+        subdivision: SheetMetronomeSubdivision.eighth,
+        countInBars: 1,
+      ),
+      setlistId: 'setlist-1',
+    );
+
+    expect(controller.scoreById('score-1').metronomeSettings?.bpm, 88);
+    final updatedSetlist = controller.setlistById('setlist-1');
+    expect(updatedSetlist.scoreMetronomeSettings['score-1']?.bpm, 96);
+    expect(
+      updatedSetlist.scoreMetronomeSettings['score-1']?.meter,
+      SheetMetronomeMeter.sixEight,
+    );
+    expect(
+      updatedSetlist.scoreMetronomeSettings['score-1']?.subdivision,
+      SheetMetronomeSubdivision.eighth,
+    );
+    expect(updatedSetlist.scoreMetronomeSettings['score-1']?.countInBars, 1);
+    expect(controller.metronomeSettings.bpm, 96);
+    expect((await store.loadScores()).single.metronomeSettings?.bpm, 88);
+    expect(
+      (await store.loadSetlists())
+          .single
+          .scoreMetronomeSettings['score-1']
+          ?.bpm,
+      96,
+    );
+    expect((await store.loadMetronomeSettings()).bpm, 96);
   });
 
   test(
@@ -1160,6 +1416,38 @@ void main() {
     );
   });
 
+  test('imports CSV bookmarks and skips existing pages', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = _BookmarkCsvStore(<SheetBookmark>[
+      SheetBookmark(pageNumber: 1, label: 'Intro', createdAt: now),
+      SheetBookmark(pageNumber: 2, label: 'Duplicate', createdAt: now),
+      SheetBookmark(pageNumber: 4, label: 'Coda', createdAt: now),
+    ]);
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 2, label: 'Existing', createdAt: now),
+        ],
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final addedCount = await controller.importBookmarksFromCsv(
+      controller.scores.single,
+      pageCount: 4,
+    );
+
+    expect(addedCount, 2);
+    expect(
+      controller.scores.single.bookmarks.map((bookmark) => bookmark.label),
+      <String>['Intro', 'Existing', 'Coda'],
+    );
+  });
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1189,6 +1477,7 @@ void main() {
         referencePitchA4: 442,
         displayMode: SheetTunerDisplayMode.bbTrumpet,
         detectionProfile: SheetTunerDetectionProfile.bbTrumpet,
+        detectionAlgorithm: SheetTunerPitchDetectionAlgorithm.yin,
         notationPreference: SheetTunerNotationPreference.flats,
       ),
     );
@@ -1203,6 +1492,10 @@ void main() {
       SheetTunerDetectionProfile.bbTrumpet,
     );
     expect(
+      controller.tunerSettings.detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.yin,
+    );
+    expect(
       controller.tunerSettings.notationPreference,
       SheetTunerNotationPreference.flats,
     );
@@ -1214,6 +1507,10 @@ void main() {
     expect(
       (await store.loadTunerSettings()).detectionProfile,
       SheetTunerDetectionProfile.bbTrumpet,
+    );
+    expect(
+      (await store.loadTunerSettings()).detectionAlgorithm,
+      SheetTunerPitchDetectionAlgorithm.yin,
     );
   });
 
@@ -1296,9 +1593,11 @@ void main() {
     controller.updateQuery('bach');
     await controller.updateFavoriteFilter(true);
     await controller.updateTagFilter('lesson');
+    await controller.updateComposerFilter('Arban');
     await controller.updateCollectionFilter('Methods');
     await controller.updateGroupFilter('Warmup');
     await controller.updateMinimumRatingFilter(3);
+    await controller.updateCustomFieldFilter('조성', 'D');
 
     expect(controller.filteredScores, isEmpty);
 
@@ -1307,9 +1606,11 @@ void main() {
     expect(controller.query, isEmpty);
     expect(controller.libraryViewSettings.favoriteOnly, isFalse);
     expect(controller.libraryViewSettings.tagQuery, isEmpty);
+    expect(controller.libraryViewSettings.composerQuery, isEmpty);
     expect(controller.libraryViewSettings.collectionQuery, isEmpty);
     expect(controller.libraryViewSettings.groupQuery, isEmpty);
     expect(controller.libraryViewSettings.minimumRating, 0);
+    expect(controller.libraryViewSettings.customFieldFilters, isEmpty);
     expect(controller.filteredScores.single.title, 'Arban');
   });
 
@@ -1507,6 +1808,10 @@ void main() {
         collection: 'Etudes',
         group: 'Lesson A',
         rating: 3,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'D'),
+          SheetCustomMetadataField(key: '장르', value: 'Etude'),
+        ],
         isFavorite: true,
         importedAt: now,
         lastOpenedAt: now.add(const Duration(minutes: 3)),
@@ -1520,6 +1825,10 @@ void main() {
         collection: 'Recital',
         group: 'Solo',
         rating: 5,
+        customFields: const <SheetCustomMetadataField>[
+          SheetCustomMetadataField(key: '조성', value: 'G'),
+          SheetCustomMetadataField(key: '장르', value: 'Sonata'),
+        ],
         importedAt: now.add(const Duration(minutes: 1)),
       ),
     ]);
@@ -1541,6 +1850,10 @@ void main() {
     expect(controller.filteredScores.single.id, 'score-2');
 
     await controller.updateTagFilter('');
+    await controller.updateComposerFilter('Bach');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateComposerFilter('');
     await controller.updateCollectionFilter('Etudes');
     expect(controller.filteredScores.single.id, 'score-1');
 
@@ -1553,6 +1866,14 @@ void main() {
     expect(controller.filteredScores.single.id, 'score-2');
 
     await controller.updateMinimumRatingFilter(0);
+    await controller.updateCustomFieldFilter('조성', 'D');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateCustomFieldFilter('장르', 'Etude');
+    expect(controller.filteredScores.single.id, 'score-1');
+
+    await controller.updateCustomFieldFilter('조성', '');
+    await controller.updateCustomFieldFilter('장르', '');
     await controller.updateLibrarySortMode(SheetLibrarySortMode.rating);
     expect(controller.filteredScores.map((score) => score.id), <String>[
       'score-2',
@@ -1590,6 +1911,10 @@ void main() {
       rating: 5,
       isFavorite: true,
       isPinned: true,
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '조성', value: 'D'),
+        SheetCustomMetadataField(key: '장르', value: 'Etude'),
+      ],
     );
 
     expect(changedCount, 2);
@@ -1598,6 +1923,12 @@ void main() {
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
     expect(controller.scoreById('score-2').rating, 5);
+    expect(controller.scoreById('score-1').customFields, hasLength(2));
+    expect(controller.scoreById('score-1').customFields.first.key, '조성');
+    expect(controller.scoreById('score-1').customFields.first.value, 'D');
+    expect(controller.scoreById('score-2').customFields.last.key, '장르');
+    expect(controller.scoreById('score-2').customFields.last.value, 'Etude');
+    expect(controller.allCollections, <String>['Recital']);
     expect(controller.scoreById('score-1').isFavorite, isTrue);
     expect(controller.scoreById('score-2').isPinned, isTrue);
     expect(controller.scoreById('score-3').tags, <String>['strings']);
@@ -1618,6 +1949,10 @@ void main() {
           collection: 'Methods',
           group: 'Warmup',
           rating: 4,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'D'),
+            SheetCustomMetadataField(key: '장르', value: 'Etude'),
+          ],
         ),
         _score(
           now,
@@ -1626,6 +1961,10 @@ void main() {
           collection: 'Methods',
           group: 'Solo',
           rating: 2,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'D'),
+            SheetCustomMetadataField(key: '장르', value: 'Etude'),
+          ],
         ),
         _score(
           now,
@@ -1634,6 +1973,10 @@ void main() {
           collection: 'Recital',
           group: 'Solo',
           rating: 5,
+          customFields: const <SheetCustomMetadataField>[
+            SheetCustomMetadataField(key: '조성', value: 'G'),
+            SheetCustomMetadataField(key: '장르', value: 'Sonata'),
+          ],
         ),
       ]);
 
@@ -1654,6 +1997,18 @@ void main() {
         controller.ratingFacets.map((facet) => '${facet.value}:${facet.count}'),
         <String>['5:1', '4:2', '3:2', '2:3', '1:3'],
       );
+      expect(
+        controller
+            .customFieldFacets('조성')
+            .map((facet) => '${facet.label}:${facet.count}'),
+        <String>['D:2', 'G:1'],
+      );
+      expect(
+        controller
+            .customFieldFacets('장르')
+            .map((facet) => '${facet.label}:${facet.count}'),
+        <String>['Etude:2', 'Sonata:1'],
+      );
     },
   );
 
@@ -1672,6 +2027,12 @@ void main() {
         scoreIds: const <String>['score-1', 'score-2'],
         createdAt: now,
         updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-2': SheetMetronomeSettings(
+            bpm: 108,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        },
       ),
     ]);
 
@@ -1686,6 +2047,218 @@ void main() {
     expect(context?.title, 'Recital');
     expect(context?.positionLabel, '2/2');
   });
+
+  test('bulk adds scores to setlist and skips duplicates', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.addScoresToSetlist(
+      controller.setlists.single,
+      <SheetScore>[
+        controller.scores[0],
+        controller.scores[1],
+        controller.scores[2],
+      ],
+    );
+
+    expect(result.addedCount, 2);
+    expect(result.skippedDuplicateCount, 1);
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+  });
+
+  test('inserts a removed score back into a setlist position', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1', 'score-3'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.insertScoreInSetlist(
+      controller.setlists.single,
+      controller.scoreById('score-2'),
+      1,
+    );
+
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+
+    await controller.insertScoreInSetlist(
+      controller.setlists.single,
+      controller.scoreById('score-2'),
+      0,
+    );
+
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+  });
+
+  test(
+    'finds setlists by normalized title while excluding the current one',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'setlist-1',
+          title: 'Recital',
+          scoreIds: const <String>[],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      expect(controller.setlistByTitleOrNull(' recital ')?.id, 'setlist-1');
+      expect(
+        controller.setlistByTitleOrNull('Recital', exceptId: 'setlist-1'),
+        isNull,
+      );
+    },
+  );
+
+  test('deletes selected scores and cleans setlist references', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1', 'score-2', 'score-3'],
+        scoreStartPages: const <String, int>{'score-2': 3},
+        scoreNotes: const <String, String>{'score-2': 'solo'},
+        scoreDurations: const <String, int>{'score-2': 120},
+        createdAt: now,
+        updatedAt: now,
+        lastOpenedScoreId: 'score-2',
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final deletedCount = await controller.deleteScoresByIds(<String>{
+      'score-2',
+      'missing',
+    });
+
+    expect(deletedCount, 1);
+    expect(controller.scores.map((score) => score.id), <String>[
+      'score-1',
+      'score-3',
+    ]);
+    expect(controller.setlists.single.scoreIds, <String>['score-1', 'score-3']);
+    expect(
+      controller.setlists.single.scoreStartPages,
+      isNot(contains('score-2')),
+    );
+    expect(controller.setlists.single.scoreNotes, isNot(contains('score-2')));
+    expect(
+      controller.setlists.single.scoreDurations,
+      isNot(contains('score-2')),
+    );
+    expect(controller.setlists.single.lastOpenedScoreId, isNull);
+  });
+
+  test(
+    'tracks recently opened setlists separately from recent scores',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[
+        _score(now, id: 'score-1', title: 'First'),
+        _score(now, id: 'score-2', title: 'Second'),
+      ]);
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'older',
+          title: 'Older',
+          scoreIds: const <String>['score-1'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+        SheetSetlist(
+          id: 'newer',
+          title: 'Newer',
+          scoreIds: const <String>['score-2'],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      await controller.markSetlistOpened(
+        controller.setlistById('older'),
+        scoreId: 'score-1',
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+      await controller.markSetlistOpened(
+        controller.setlistById('newer'),
+        scoreId: 'score-2',
+      );
+
+      expect(controller.recentSetlists.map((setlist) => setlist.id), <String>[
+        'newer',
+        'older',
+      ]);
+      expect((await store.loadSetlists()).first.lastOpenedAt, isNotNull);
+      expect((await store.loadSetlists()).first.lastOpenedScoreId, 'score-2');
+    },
+  );
 
   test('updates setlist rehearsal mode settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1707,6 +2280,12 @@ void main() {
         scoreIds: const <String>['score-1', 'score-2'],
         createdAt: now,
         updatedAt: now,
+        scoreMetronomeSettings: const <String, SheetMetronomeSettings>{
+          'score-2': SheetMetronomeSettings(
+            bpm: 108,
+            meter: SheetMetronomeMeter.threeFour,
+          ),
+        },
       ),
     ]);
 
@@ -1747,6 +2326,7 @@ void main() {
 
     final duplicate = await controller.duplicateSetlist(updated);
     expect(duplicate.viewerSettingsOverride?.displayMode, 'continuousVertical');
+    expect(duplicate.scoreMetronomeSettings['score-2']?.bpm, 108);
 
     await controller.updateSetlistRehearsalSettings(
       updated,
@@ -2083,13 +2663,33 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
 }
 
 class _ImportScoreStore extends SheetLibraryStore {
-  _ImportScoreStore(this.score);
+  _ImportScoreStore(this.score, {List<SheetScore>? batchScores})
+    : batchScores = batchScores ?? <SheetScore>[score];
 
   final SheetScore score;
+  final List<SheetScore> batchScores;
 
   @override
   Future<SheetScore?> importPdf() async {
     return score;
+  }
+
+  @override
+  Future<List<SheetScore>> importPdfs() async {
+    return batchScores;
+  }
+}
+
+class _BookmarkCsvStore extends SheetLibraryStore {
+  _BookmarkCsvStore(this.bookmarks);
+
+  final List<SheetBookmark> bookmarks;
+
+  @override
+  Future<List<SheetBookmark>> importBookmarkCsv({
+    required int pageCount,
+  }) async {
+    return bookmarks;
   }
 }
 
@@ -2107,7 +2707,11 @@ SheetScore _score(
   String collection = '',
   String group = '',
   int rating = 0,
+  String? filePath,
   List<SheetLinkedFile> linkedFiles = const <SheetLinkedFile>[],
+  SheetMetronomeSettings? metronomeSettings,
+  List<SheetCustomMetadataField> customFields =
+      const <SheetCustomMetadataField>[],
 }) {
   return SheetScore(
     id: id,
@@ -2115,11 +2719,12 @@ SheetScore _score(
     composer: composer,
     tags: tags,
     note: '',
-    filePath: '/tmp/$id.pdf',
+    filePath: filePath ?? '/tmp/$id.pdf',
     collection: collection,
     group: group,
     rating: rating,
     linkedFiles: linkedFiles,
+    customFields: customFields,
     importedAt: importedAt ?? now,
     updatedAt: now,
     lastOpenedAt: lastOpenedAt,
@@ -2127,5 +2732,6 @@ SheetScore _score(
     isFavorite: isFavorite,
     isPinned: isPinned,
     bookmarks: bookmarks,
+    metronomeSettings: metronomeSettings,
   );
 }

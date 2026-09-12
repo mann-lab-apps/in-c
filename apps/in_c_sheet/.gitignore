@@ -43,6 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/releases/*.aab
+/releases/*.ipa
+/releases/*.mobileprovision
 
 # Widget Preview related
 .widget_preview/
