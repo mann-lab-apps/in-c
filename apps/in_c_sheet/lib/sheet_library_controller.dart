@@ -2219,10 +2219,16 @@ class SheetLibraryController extends ChangeNotifier {
     int? rating,
     bool? isFavorite,
     bool? isPinned,
+    List<SheetCustomMetadataField> customFields =
+        const <SheetCustomMetadataField>[],
   }) async {
     if (scoreIds.isEmpty) {
       return 0;
     }
+    final customFieldUpdates = SheetScore.normalizeCustomFields(customFields);
+    final customFieldUpdateKeys = customFieldUpdates
+        .map((field) => field.key.toLowerCase())
+        .toSet();
     final addTagSet = addTags
         .map((tag) => tag.trim())
         .where((tag) => tag.isNotEmpty)
@@ -2252,6 +2258,16 @@ class SheetLibraryController extends ChangeNotifier {
               nextTags.add(tag);
             }
           }
+          final nextCustomFields = customFieldUpdates.isEmpty
+              ? score.customFields
+              : SheetScore.normalizeCustomFields([
+                  for (final field in score.customFields)
+                    if (!customFieldUpdateKeys.contains(
+                      field.key.toLowerCase(),
+                    ))
+                      field,
+                  ...customFieldUpdates,
+                ]);
           changedCount += 1;
           return score.copyWith(
             tags: List<String>.unmodifiable(nextTags),
@@ -2266,6 +2282,7 @@ class SheetLibraryController extends ChangeNotifier {
                 : SheetScore.normalizeRating(rating),
             isFavorite: isFavorite ?? score.isFavorite,
             isPinned: isPinned ?? score.isPinned,
+            customFields: nextCustomFields,
             updatedAt: now,
           );
         })

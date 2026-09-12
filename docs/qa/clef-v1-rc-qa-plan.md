@@ -499,7 +499,9 @@ flutter build ios --release --no-codesign
 - PDF/이미지/share import 후 viewer가 열릴 때 `정보 편집` snackbar action을 제공해, 가져온 직후
   MobileSheets식 metadata assignment 필요를 가볍게 처리한다.
 - 일괄 선택 모드에서는 세트리스트 추가와 별도로 `컬렉션 지정` action을 제공해, 여러 악보를
-  컬렉션으로 묶은 뒤 컬렉션 필터로 다시 찾는 흐름을 지원한다.
+  컬렉션으로 묶은 뒤 컬렉션 필터로 다시 찾는 흐름을 지원한다. `정보 편집` 일괄 action은
+  태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 `조성` 같은 custom field도 여러 악보에 한 번에
+  지정할 수 있다.
 - MobileSheets batch/bookmark import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기, 여러 PDF를
   세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. cloud browser, batch
   audio, CSV songbook split은 후속으로 남긴다.

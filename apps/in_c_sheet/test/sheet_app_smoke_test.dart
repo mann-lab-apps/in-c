@@ -563,6 +563,21 @@ void main() {
 
     expect(find.text('일괄 편집'), findsOneWidget);
     expect(find.text('추가할 태그'), findsOneWidget);
+    expect(find.text('사용자 필드 일괄 지정'), findsOneWidget);
+    expect(find.text('조성'), findsOneWidget);
+    expect(find.text('필드 이름'), findsOneWidget);
+    expect(find.text('필드 값'), findsOneWidget);
+
+    await tester.tap(find.text('조성'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '필드 값'), 'D');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('적용'));
+    await tester.tap(find.text('적용'));
+    await tester.pumpAndSettle();
+
+    expect(controller.scoreById('score-1').customFields.single.key, '조성');
+    expect(controller.scoreById('score-1').customFields.single.value, 'D');
     expect(tester.takeException(), isNull);
   });
 

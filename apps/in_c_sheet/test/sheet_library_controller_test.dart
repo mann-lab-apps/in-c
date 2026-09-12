@@ -1905,6 +1905,10 @@ void main() {
       rating: 5,
       isFavorite: true,
       isPinned: true,
+      customFields: const <SheetCustomMetadataField>[
+        SheetCustomMetadataField(key: '조성', value: 'D'),
+        SheetCustomMetadataField(key: '장르', value: 'Etude'),
+      ],
     );
 
     expect(changedCount, 2);
@@ -1913,6 +1917,11 @@ void main() {
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
     expect(controller.scoreById('score-2').rating, 5);
+    expect(controller.scoreById('score-1').customFields, hasLength(2));
+    expect(controller.scoreById('score-1').customFields.first.key, '조성');
+    expect(controller.scoreById('score-1').customFields.first.value, 'D');
+    expect(controller.scoreById('score-2').customFields.last.key, '장르');
+    expect(controller.scoreById('score-2').customFields.last.value, 'Etude');
     expect(controller.allCollections, <String>['Recital']);
     expect(controller.scoreById('score-1').isFavorite, isTrue);
     expect(controller.scoreById('score-2').isPinned, isTrue);

@@ -203,6 +203,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       rating: input.rating,
       isFavorite: input.isFavorite,
       isPinned: input.isPinned,
+      customFields: input.customFields,
     );
     if (!mounted) {
       return;
@@ -4111,6 +4112,7 @@ class _BulkEditInput {
   const _BulkEditInput({
     required this.addTags,
     required this.removeTags,
+    required this.customFields,
     this.collection,
     this.group,
     this.rating,
@@ -4120,6 +4122,7 @@ class _BulkEditInput {
 
   final List<String> addTags;
   final List<String> removeTags;
+  final List<SheetCustomMetadataField> customFields;
   final String? collection;
   final String? group;
   final int? rating;
@@ -4139,6 +4142,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
   final _removeTagsController = TextEditingController();
   final _collectionController = TextEditingController();
   final _groupController = TextEditingController();
+  final _customFieldKeyController = TextEditingController();
+  final _customFieldValueController = TextEditingController();
   int? _rating;
   bool? _favorite;
   bool? _pinned;
@@ -4149,6 +4154,8 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
     _removeTagsController.dispose();
     _collectionController.dispose();
     _groupController.dispose();
+    _customFieldKeyController.dispose();
+    _customFieldValueController.dispose();
     super.dispose();
   }
 
@@ -4189,6 +4196,38 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
               controller: _groupController,
               decoration: const InputDecoration(labelText: '그룹 변경'),
             ),
+            const SizedBox(height: 12),
+            Text(
+              '사용자 필드 일괄 지정',
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final key in _commonCustomMetadataFieldKeys)
+                  ActionChip(
+                    label: Text(key),
+                    onPressed: () => _customFieldKeyController.text = key,
+                  ),
+              ],
+            ),
+            TextField(
+              controller: _customFieldKeyController,
+              decoration: const InputDecoration(
+                labelText: '필드 이름',
+                hintText: '예: 조성, 장르, 난이도, 편성',
+              ),
+            ),
+            TextField(
+              controller: _customFieldValueController,
+              decoration: const InputDecoration(
+                labelText: '필드 값',
+                hintText: '예: D, Etude, 쉬움, 현악합주',
+              ),
+            ),
             const SizedBox(height: 10),
             DropdownButtonFormField<int?>(
               initialValue: _rating,
@@ -4224,6 +4263,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                     _BulkEditInput(
                       addTags: _splitTags(_addTagsController.text),
                       removeTags: _splitTags(_removeTagsController.text),
+                      customFields: _customFieldInput(),
                       collection: _blankToNull(_collectionController.text),
                       group: _blankToNull(_groupController.text),
                       rating: _rating,
@@ -4253,6 +4293,14 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
   static String? _blankToNull(String value) {
     final trimmed = value.trim();
     return trimmed.isEmpty ? null : trimmed;
+  }
+
+  List<SheetCustomMetadataField> _customFieldInput() {
+    final field = SheetCustomMetadataField(
+      key: _customFieldKeyController.text,
+      value: _customFieldValueController.text,
+    );
+    return field.isValid ? <SheetCustomMetadataField>[field] : const [];
   }
 }
 

@@ -21,7 +21,7 @@
 | 범주 | 기능 | 레퍼런스 기준 | 단계 | 난이도 | 주요 의존성/메모 |
 | --- | --- | --- | --- | --- | --- |
 | 라이브러리 | PDF 가져오기 | MobileSheets/Piascore 기본 | MVP | 중간 | 구현됨: Android/iOS file picker와 share import, 로컬 사본 정책, 단일/여러 PDF 가져오기, 가져오며 세트리스트 추가 action |
-| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
+| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 일괄 편집에서도 태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 custom field를 여러 악보에 한 번에 지정 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
 | 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
