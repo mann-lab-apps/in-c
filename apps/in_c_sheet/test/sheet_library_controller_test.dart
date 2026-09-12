@@ -1448,6 +1448,102 @@ void main() {
     );
   });
 
+  test('creates songbook score entries from bookmark ranges', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        title: 'Real Book',
+        composer: 'Various',
+        tags: const <String>['jazz'],
+        collection: 'Gig book',
+        filePath: '/tmp/real-book.pdf',
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 1, label: 'Autumn Leaves', createdAt: now),
+          SheetBookmark(pageNumber: 4, label: 'Blue Bossa', createdAt: now),
+          SheetBookmark(pageNumber: 7, label: 'C Jam Blues', createdAt: now),
+        ],
+      ).copyWith(
+        pageSettings: SheetPageSettings.empty.copyWith(
+          instanceRotations: const <int, int>{0: 90},
+          instanceCrops: const <int, SheetCropSettings>{
+            0: SheetCropSettings(left: 0.1),
+          },
+        ),
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createScoresFromBookmarks(
+      controller.scores.single,
+      pageCount: 10,
+    );
+
+    expect(result.createdCount, 3);
+    expect(result.skippedDuplicateCount, 0);
+    expect(controller.scores, hasLength(4));
+    expect(result.createdScores.map((score) => score.title), <String>[
+      'Real Book - Autumn Leaves',
+      'Real Book - Blue Bossa',
+      'Real Book - C Jam Blues',
+    ]);
+    expect(
+      result.createdScores.map((score) => score.pageSettings.pageOrder),
+      <List<int>>[
+        <int>[1, 2, 3],
+        <int>[4, 5, 6],
+        <int>[7, 8, 9, 10],
+      ],
+    );
+    expect(result.createdScores.first.filePath, '/tmp/real-book.pdf');
+    expect(result.createdScores.first.composer, 'Various');
+    expect(result.createdScores.first.tags, <String>['jazz']);
+    expect(result.createdScores.first.collection, 'Gig book');
+    expect(result.createdScores.first.lastPage, 1);
+    expect(result.createdScores.first.pageSettings.instanceRotations, isEmpty);
+    expect(result.createdScores.first.pageSettings.instanceCrops, isEmpty);
+  });
+
+  test(
+    'skips duplicate songbook score entries for the same source range',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final source = _score(
+        now,
+        title: 'Binder',
+        filePath: '/tmp/binder.pdf',
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 2, label: 'March', createdAt: now),
+          SheetBookmark(pageNumber: 5, label: 'Finale', createdAt: now),
+        ],
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final first = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 6,
+      );
+      final second = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 6,
+      );
+
+      expect(first.createdCount, 2);
+      expect(second.createdCount, 0);
+      expect(second.skippedDuplicateCount, 2);
+      expect(controller.scores, hasLength(3));
+    },
+  );
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

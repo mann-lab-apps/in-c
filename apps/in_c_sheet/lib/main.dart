@@ -6363,6 +6363,7 @@ enum _ViewerMenuAction {
   manageRehearsalMarks,
   importPdfOutline,
   importBookmarkCsv,
+  createScoresFromBookmarks,
   cropPages,
   cropPresets,
   applyPageCrop,
@@ -8214,6 +8215,34 @@ setlist=$setlistLabel
           ? '$addedCount개 CSV 북마크를 추가했습니다.'
           : '새로 가져올 CSV 북마크가 없습니다.',
     );
+  }
+
+  Future<void> _createScoresFromBookmarks() async {
+    final pageCount = _pdfController.pageCount;
+    if (pageCount <= 0) {
+      _showSnackBar('PDF 페이지 수를 확인한 뒤 곡으로 나눌 수 있습니다.');
+      return;
+    }
+    if (score.bookmarks.isEmpty) {
+      _showSnackBar('북마크를 먼저 추가하거나 CSV로 가져오세요.');
+      return;
+    }
+    final result = await widget.controller.createScoresFromBookmarks(
+      score,
+      pageCount: pageCount,
+    );
+    if (!result.didCreateAny) {
+      _showSnackBar(
+        result.skippedDuplicateCount > 0
+            ? '이미 만든 곡 항목입니다.'
+            : '곡으로 나눌 북마크 구간이 없습니다.',
+      );
+      return;
+    }
+    final duplicateSuffix = result.skippedDuplicateCount > 0
+        ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+        : '';
+    _showSnackBar('${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.');
   }
 
   Future<void> _selectDisplayMode() async {
@@ -11202,6 +11231,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.importBookmarkCsv:
         await _importCsvBookmarks();
         return;
+      case _ViewerMenuAction.createScoresFromBookmarks:
+        await _createScoresFromBookmarks();
+        return;
       case _ViewerMenuAction.cropPages:
         await _showCropSettings();
         return;
@@ -11754,6 +11786,17 @@ setlist=$setlistLabel
                 subtitle: Text('page,label 또는 label,page'),
               ),
             ),
+            PopupMenuItem<_ViewerMenuAction>(
+              enabled: currentScore.bookmarks.isNotEmpty,
+              value: _ViewerMenuAction.createScoresFromBookmarks,
+              child: ListTile(
+                leading: const Icon(Icons.splitscreen_outlined),
+                title: const Text('북마크를 곡으로 나누기'),
+                subtitle: currentScore.bookmarks.isEmpty
+                    ? const Text('북마크를 먼저 추가하세요')
+                    : Text('${currentScore.bookmarks.length}개 구간 후보'),
+              ),
+            ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.rotateCurrentPage,
               child: ListTile(
@@ -12094,6 +12137,17 @@ setlist=$setlistLabel
                 leading: Icon(Icons.table_rows_outlined),
                 title: Text('CSV 북마크 가져오기'),
                 subtitle: Text('page,label 또는 label,page'),
+              ),
+            ),
+            PopupMenuItem<_ViewerMenuAction>(
+              enabled: currentScore.bookmarks.isNotEmpty,
+              value: _ViewerMenuAction.createScoresFromBookmarks,
+              child: ListTile(
+                leading: const Icon(Icons.splitscreen_outlined),
+                title: const Text('북마크를 곡으로 나누기'),
+                subtitle: currentScore.bookmarks.isEmpty
+                    ? const Text('북마크를 먼저 추가하세요')
+                    : Text('${currentScore.bookmarks.length}개 구간 후보'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(

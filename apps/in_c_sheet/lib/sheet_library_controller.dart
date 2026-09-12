@@ -57,6 +57,19 @@ class SheetPdfBatchImportResult {
   bool get isEmpty => importedScores.isEmpty && existingScores.isEmpty;
 }
 
+class SheetSongbookSplitResult {
+  const SheetSongbookSplitResult({
+    required this.createdScores,
+    required this.skippedDuplicateCount,
+  });
+
+  final List<SheetScore> createdScores;
+  final int skippedDuplicateCount;
+
+  int get createdCount => createdScores.length;
+  bool get didCreateAny => createdScores.isNotEmpty;
+}
+
 class SheetLibraryController extends ChangeNotifier {
   SheetLibraryController({required this.store});
 
@@ -1729,6 +1742,96 @@ class SheetLibraryController extends ChangeNotifier {
     }
   }
 
+  Future<SheetSongbookSplitResult> createScoresFromBookmarks(
+    SheetScore score, {
+    required int pageCount,
+  }) async {
+    final source = scoreById(score.id);
+    final segments = _songbookSegmentsFromBookmarks(
+      source.bookmarks,
+      pageCount: pageCount,
+    );
+    if (segments.isEmpty) {
+      return const SheetSongbookSplitResult(
+        createdScores: <SheetScore>[],
+        skippedDuplicateCount: 0,
+      );
+    }
+
+    final now = DateTime.now();
+    final createdScores = <SheetScore>[];
+    var skippedDuplicateCount = 0;
+    for (final segment in segments) {
+      final title = _songbookSegmentTitle(source, segment.bookmark.label);
+      final pageOrder = List<int>.unmodifiable(
+        List<int>.generate(
+          segment.endPage - segment.startPage + 1,
+          (index) => segment.startPage + index,
+        ),
+      );
+      if (_hasSongbookSegmentDuplicate(
+        sourceFilePath: source.filePath,
+        title: title,
+        pageOrder: pageOrder,
+        pendingScores: createdScores,
+      )) {
+        skippedDuplicateCount += 1;
+        continue;
+      }
+
+      createdScores.add(
+        SheetScore(
+          id: _newScoreId(now, createdScores.length),
+          title: title,
+          composer: source.composer,
+          tags: source.tags,
+          note: source.note,
+          filePath: source.filePath,
+          collection: source.collection,
+          group: source.group,
+          rating: source.rating,
+          linkedFiles: source.linkedFiles,
+          structuredNotes: source.structuredNotes,
+          customFields: source.customFields,
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: segment.startPage,
+          isFavorite: false,
+          isPinned: false,
+          bookmarks: _bookmarksInPageRange(
+            source.bookmarks,
+            startPage: segment.startPage,
+            endPage: segment.endPage,
+          ),
+          viewerSettings: source.viewerSettings,
+          pageSettings: source.pageSettings.copyWith(
+            pageOrder: pageOrder,
+            instanceRotations: const <int, int>{},
+            instanceCrops: const <int, SheetCropSettings>{},
+          ),
+          autoScrollSettings: source.autoScrollSettings,
+          metronomeSettings: source.metronomeSettings,
+        ),
+      );
+    }
+
+    if (createdScores.isEmpty) {
+      return SheetSongbookSplitResult(
+        createdScores: const <SheetScore>[],
+        skippedDuplicateCount: skippedDuplicateCount,
+      );
+    }
+
+    _scores = <SheetScore>[...createdScores, ..._scores];
+    await store.saveScores(_scores);
+    notifyListeners();
+    return SheetSongbookSplitResult(
+      createdScores: List<SheetScore>.unmodifiable(createdScores),
+      skippedDuplicateCount: skippedDuplicateCount,
+    );
+  }
+
   Future<bool> addCropPreset(SheetScore score, SheetCropPreset preset) async {
     final nextPageSettings = score.pageSettings.addCropPreset(preset);
     if (identical(nextPageSettings, score.pageSettings)) {
@@ -2390,6 +2493,85 @@ class SheetLibraryController extends ChangeNotifier {
     return 'performance-preset-$timestamp-$suffix';
   }
 
+  String _newScoreId(DateTime now, int offset) {
+    final timestamp = now.microsecondsSinceEpoch + offset;
+    final suffix = Random().nextInt(0x7fffffff).toRadixString(16);
+    return '$timestamp-$suffix';
+  }
+
+  List<_SongbookSegment> _songbookSegmentsFromBookmarks(
+    List<SheetBookmark> bookmarks, {
+    required int pageCount,
+  }) {
+    if (pageCount < 1 || bookmarks.isEmpty) {
+      return const <_SongbookSegment>[];
+    }
+    final sorted =
+        bookmarks
+            .where((bookmark) => bookmark.pageNumber >= 1)
+            .where((bookmark) => bookmark.pageNumber <= pageCount)
+            .toList(growable: false)
+          ..sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
+    final segments = <_SongbookSegment>[];
+    for (var index = 0; index < sorted.length; index += 1) {
+      final bookmark = sorted[index];
+      final nextStart = index + 1 < sorted.length
+          ? sorted[index + 1].pageNumber
+          : pageCount + 1;
+      final endPage = (nextStart - 1)
+          .clamp(bookmark.pageNumber, pageCount)
+          .toInt();
+      if (endPage >= bookmark.pageNumber) {
+        segments.add(
+          _SongbookSegment(
+            bookmark: bookmark,
+            startPage: bookmark.pageNumber,
+            endPage: endPage,
+          ),
+        );
+      }
+    }
+    return List<_SongbookSegment>.unmodifiable(segments);
+  }
+
+  String _songbookSegmentTitle(SheetScore score, String bookmarkLabel) {
+    final label = _normalizeOptionalMetadata(bookmarkLabel);
+    if (label.isEmpty) {
+      return '${score.title} 부분';
+    }
+    final scoreTitle = _normalizeScoreTitle(score.title, '악보');
+    if (label.toLowerCase().startsWith(scoreTitle.toLowerCase())) {
+      return label;
+    }
+    return '$scoreTitle - $label';
+  }
+
+  bool _hasSongbookSegmentDuplicate({
+    required String sourceFilePath,
+    required String title,
+    required List<int> pageOrder,
+    required List<SheetScore> pendingScores,
+  }) {
+    return <SheetScore>[..._scores, ...pendingScores].any((candidate) {
+      return candidate.filePath == sourceFilePath &&
+          candidate.title.trim().toLowerCase() == title.trim().toLowerCase() &&
+          _intListsEqual(candidate.pageSettings.pageOrder, pageOrder);
+    });
+  }
+
+  List<SheetBookmark> _bookmarksInPageRange(
+    List<SheetBookmark> bookmarks, {
+    required int startPage,
+    required int endPage,
+  }) {
+    return List<SheetBookmark>.unmodifiable(
+      bookmarks.where((bookmark) {
+        return bookmark.pageNumber >= startPage &&
+            bookmark.pageNumber <= endPage;
+      }),
+    );
+  }
+
   Future<SheetLibraryBackupExportResult> exportMetadataBackup() {
     return store.exportMetadataBackup();
   }
@@ -2658,6 +2840,33 @@ class SheetLibraryFacet {
   final String label;
   final String value;
   final int count;
+}
+
+class _SongbookSegment {
+  const _SongbookSegment({
+    required this.bookmark,
+    required this.startPage,
+    required this.endPage,
+  });
+
+  final SheetBookmark bookmark;
+  final int startPage;
+  final int endPage;
+}
+
+bool _intListsEqual(List<int> left, List<int> right) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 List<SheetLibraryFacet> _stringFacets(Iterable<String> values) {
