@@ -3937,6 +3937,44 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
   return '${score.lastPage}쪽부터 열기 · $identity';
 }
 
+String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
+  final buffer = StringBuffer()
+    ..writeln(setlist.title)
+    ..writeln(
+      setlist.totalEstimatedSeconds > 0
+          ? '${scores.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}'
+          : '${scores.length}곡',
+    );
+  if (setlist.transitionSeconds > 0 && scores.length > 1) {
+    buffer.writeln('전환 ${_formatDuration(setlist.transitionSeconds)}');
+  }
+  buffer.writeln();
+
+  for (var index = 0; index < scores.length; index += 1) {
+    final score = scores[index];
+    final composer = score.composer.trim();
+    final note = setlist.scoreNotes[score.id]?.trim();
+    final duration = setlist.scoreDurations[score.id] ?? 0;
+    final details = <String>[
+      if (composer.isNotEmpty) composer,
+      '${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽부터',
+      if (duration > 0) _formatDuration(duration),
+      if (note?.isNotEmpty == true) note!,
+    ];
+    buffer.writeln('${index + 1}. ${score.title}');
+    if (details.isNotEmpty) {
+      buffer.writeln('   ${details.join(' · ')}');
+    }
+  }
+
+  return buffer.toString().trimRight();
+}
+
+@visibleForTesting
+String setlistShareTextForTest(SheetSetlist setlist, List<SheetScore> scores) {
+  return _setlistShareText(setlist, scores);
+}
+
 SheetScore _scoreToOpenForSetlistResume(
   SheetSetlist setlist,
   List<SheetScore> scores,
@@ -5231,6 +5269,19 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         .showSnackBar(SnackBar(content: Text('"${duplicate.title}"을 만들었습니다.')));
   }
 
+  Future<void> _copySetlistText() async {
+    final currentSetlist = setlist;
+    final scores = controller.scoresForSetlist(currentSetlist);
+    await Clipboard.setData(
+      ClipboardData(text: _setlistShareText(currentSetlist, scores)),
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('세트리스트 내용을 복사했습니다.')));
+  }
+
   Future<void> _addScore() async {
     final availableScores = controller.scoresAvailableForSetlist(setlist);
     if (availableScores.isEmpty) {
@@ -5399,6 +5450,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   ? Icons.fact_check
                   : Icons.fact_check_outlined,
             ),
+          ),
+          IconButton(
+            tooltip: '목록 복사',
+            onPressed: _copySetlistText,
+            icon: const Icon(Icons.content_paste_go_outlined),
           ),
           IconButton(
             tooltip: '세트리스트 복제',

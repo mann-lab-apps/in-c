@@ -342,7 +342,7 @@ void main() {
       SheetScore(
         id: 'score-1',
         title: 'First',
-        composer: '',
+        composer: 'Bach',
         tags: const <String>[],
         note: '',
         filePath: '/tmp/first.pdf',
@@ -396,6 +396,28 @@ void main() {
     expect(
       setlistProgressLabelForTest(setlist.copyWith(scoreIds: const <String>[])),
       '빈 목록',
+    );
+    expect(
+      setlistShareTextForTest(
+        setlist.copyWith(
+          rehearsalMode: true,
+          scoreStartPages: const <String, int>{'score-1': 2, 'score-2': 5},
+          scoreDurations: const <String, int>{'score-1': 180},
+          scoreNotes: const <String, String>{'score-2': '반복 없이'},
+          transitionSeconds: 15,
+        ),
+        scores,
+      ),
+      [
+        '공연 순서',
+        '2곡 · 총 3분 15초',
+        '전환 15초',
+        '',
+        '1. First',
+        '   Bach · 2쪽부터 · 3분',
+        '2. Second',
+        '   5쪽부터 · 반복 없이',
+      ].join('\n'),
     );
   });
 
