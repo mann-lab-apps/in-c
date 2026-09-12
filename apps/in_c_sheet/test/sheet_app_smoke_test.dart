@@ -272,6 +272,68 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('home facet rows expose hidden values through more action', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (var index = 1; index <= 8; index += 1)
+        SheetScore(
+          id: 'score-$index',
+          title: 'Score $index',
+          composer: '',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/score-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          collection: 'Collection $index',
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Collection 1 1'), findsOneWidget);
+    expect(find.text('더 보기 2'), findsOneWidget);
+    expect(find.text('Collection 8 1'), findsNothing);
+
+    await tester.tap(find.text('더 보기 2'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('컬렉션 전체'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Collection 8 1'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Collection 8 1'), findsOneWidget);
+
+    await tester.tap(find.text('Collection 8 1'));
+    await tester.pumpAndSettle();
+
+    expect(controller.libraryViewSettings.collectionQuery, 'Collection 8');
+    expect(controller.filteredScores.single.id, 'score-8');
+    expect(find.text('컬렉션: Collection 8'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   test('recent setlist resume picks the last opened score when valid', () {
     final now = DateTime(2026, 9, 7, 10);
     final scores = <SheetScore>[

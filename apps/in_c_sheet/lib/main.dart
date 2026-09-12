@@ -2273,19 +2273,15 @@ class _LibraryFacetExplorer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visibleCollectionFacets = collectionFacets.take(6).toList();
-    final visibleGroupFacets = groupFacets.take(6).toList();
-    final visibleRatingFacets = ratingFacets.take(5).toList();
     final visibleCustomFieldFacets =
         <MapEntry<String, List<SheetLibraryFacet>>>[
           for (final entry in customFieldFacets.entries)
-            if (entry.value.isNotEmpty)
-              MapEntry(entry.key, entry.value.take(6).toList()),
+            if (entry.value.isNotEmpty) MapEntry(entry.key, entry.value),
         ];
-    if (visibleCollectionFacets.isEmpty &&
-        visibleGroupFacets.isEmpty &&
+    if (collectionFacets.isEmpty &&
+        groupFacets.isEmpty &&
         visibleCustomFieldFacets.isEmpty &&
-        visibleRatingFacets.isEmpty) {
+        ratingFacets.isEmpty) {
       return const SizedBox.shrink();
     }
 
@@ -2297,12 +2293,12 @@ class _LibraryFacetExplorer extends StatelessWidget {
       rows.add(row);
     }
 
-    if (visibleCollectionFacets.isNotEmpty) {
+    if (collectionFacets.isNotEmpty) {
       addRow(
         _LibraryFacetRow(
           label: '컬렉션',
           icon: Icons.collections_bookmark_outlined,
-          facets: visibleCollectionFacets,
+          facets: collectionFacets,
           selectedValue: selectedCollection,
           onSelected: (value) {
             onCollectionSelected(value == selectedCollection ? '' : value);
@@ -2310,12 +2306,12 @@ class _LibraryFacetExplorer extends StatelessWidget {
         ),
       );
     }
-    if (visibleGroupFacets.isNotEmpty) {
+    if (groupFacets.isNotEmpty) {
       addRow(
         _LibraryFacetRow(
           label: '그룹',
           icon: Icons.folder_outlined,
-          facets: visibleGroupFacets,
+          facets: groupFacets,
           selectedValue: selectedGroup,
           onSelected: (value) {
             onGroupSelected(value == selectedGroup ? '' : value);
@@ -2340,12 +2336,12 @@ class _LibraryFacetExplorer extends StatelessWidget {
         ),
       );
     }
-    if (visibleRatingFacets.isNotEmpty) {
+    if (ratingFacets.isNotEmpty) {
       addRow(
         _LibraryFacetRow(
           label: '별점',
           icon: Icons.star_rate_outlined,
-          facets: visibleRatingFacets,
+          facets: ratingFacets,
           selectedValue: selectedMinimumRating == 0
               ? ''
               : selectedMinimumRating.toString(),
@@ -2399,8 +2395,42 @@ class _LibraryFacetRow extends StatelessWidget {
   final String selectedValue;
   final ValueChanged<String> onSelected;
 
+  void _showAllFacets(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            ListTile(
+              leading: Icon(icon),
+              title: Text('$label 전체'),
+              subtitle: Text('${facets.length}개 조건'),
+            ),
+            for (final facet in facets)
+              ListTile(
+                title: Text('${facet.label} ${facet.count}'),
+                trailing: facet.value == selectedValue
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () {
+                  Navigator.of(context).pop();
+                  onSelected(facet.value);
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const maxVisibleFacets = 6;
+    final visibleFacets = facets.take(maxVisibleFacets).toList();
+    final hiddenCount = facets.length - visibleFacets.length;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2426,11 +2456,17 @@ class _LibraryFacetRow extends StatelessWidget {
             spacing: 6,
             runSpacing: 6,
             children: [
-              for (final facet in facets)
+              for (final facet in visibleFacets)
                 ChoiceChip(
                   label: Text('${facet.label} ${facet.count}'),
                   selected: facet.value == selectedValue,
                   onSelected: (_) => onSelected(facet.value),
+                ),
+              if (hiddenCount > 0)
+                ActionChip(
+                  avatar: const Icon(Icons.more_horiz, size: 18),
+                  label: Text('더 보기 $hiddenCount'),
+                  onPressed: () => _showAllFacets(context),
                 ),
             ],
           ),
