@@ -4843,6 +4843,30 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     );
   }
 
+  Future<void> _removeScoreFromSetlist(
+    SheetSetlist currentSetlist,
+    SheetScore score,
+    int index,
+  ) async {
+    await controller.removeScoreFromSetlist(currentSetlist, score);
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${score.title}"을 세트리스트에서 제거했습니다.'),
+        action: SnackBarAction(
+          label: '되돌리기',
+          onPressed: () {
+            unawaited(
+              controller.insertScoreInSetlist(currentSetlist, score, index),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final currentSetlist = setlist;
@@ -5000,9 +5024,10 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                           ),
                           IconButton(
                             tooltip: '제거',
-                            onPressed: () => controller.removeScoreFromSetlist(
+                            onPressed: () => _removeScoreFromSetlist(
                               currentSetlist,
                               score,
+                              index,
                             ),
                             icon: const Icon(Icons.remove_circle_outline),
                           ),

@@ -2097,6 +2097,26 @@ class SheetLibraryController extends ChangeNotifier {
     await _replaceSetlist(setlist.removeScore(score.id, DateTime.now()));
   }
 
+  Future<void> insertScoreInSetlist(
+    SheetSetlist setlist,
+    SheetScore score,
+    int index,
+  ) async {
+    final currentSetlist = setlistByIdOrNull(setlist.id);
+    if (currentSetlist == null || currentSetlist.scoreIds.contains(score.id)) {
+      return;
+    }
+    final nextScoreIds = currentSetlist.scoreIds.toList();
+    final targetIndex = index.clamp(0, nextScoreIds.length).toInt();
+    nextScoreIds.insert(targetIndex, score.id);
+    await _replaceSetlist(
+      currentSetlist.copyWith(
+        scoreIds: List<String>.unmodifiable(nextScoreIds),
+        updatedAt: DateTime.now(),
+      ),
+    );
+  }
+
   Future<void> moveScoreInSetlist(
     SheetSetlist setlist,
     int fromIndex,

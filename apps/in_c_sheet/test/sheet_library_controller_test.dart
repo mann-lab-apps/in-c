@@ -2073,6 +2073,53 @@ void main() {
     ]);
   });
 
+  test('inserts a removed score back into a setlist position', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1', 'score-3'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await controller.insertScoreInSetlist(
+      controller.setlists.single,
+      controller.scoreById('score-2'),
+      1,
+    );
+
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+
+    await controller.insertScoreInSetlist(
+      controller.setlists.single,
+      controller.scoreById('score-2'),
+      0,
+    );
+
+    expect(controller.setlists.single.scoreIds, <String>[
+      'score-1',
+      'score-2',
+      'score-3',
+    ]);
+  });
+
   test(
     'tracks recently opened setlists separately from recent scores',
     () async {
