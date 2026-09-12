@@ -426,6 +426,66 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('bulk setlist add can open the target setlist', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'bulk setlist score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/bulk-setlist-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Sunday service',
+        scoreIds: const <String>[],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('bulk setlist score').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('선택 악보를 세트리스트에 추가'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sunday service').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('1개 악보를 "Sunday service"에 추가했습니다.'), findsOneWidget);
+    expect(find.text('열기'), findsOneWidget);
+
+    await tester.tap(find.text('열기'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SheetSetlistDetailScreen), findsOneWidget);
+    expect(controller.setlistById('setlist-1').scoreIds, const ['score-1']);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('bulk selection toggles all visible scores', (tester) async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     tester.view.physicalSize = const Size(2560, 1600);

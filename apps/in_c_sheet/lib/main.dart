@@ -249,8 +249,17 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final message = result.didAddAny
         ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel'
         : '"${target.title}"에 이미 모두 포함되어 있습니다.';
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            unawaited(_openSetlistDetail(target));
+          },
+        ),
+      ),
+    );
   }
 
   Future<void> _showBulkCollectionAssign() async {
@@ -566,6 +575,25 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           controller: controller,
           scoreId: score.id,
           setlistId: setlist.id,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSetlistDetail(SheetSetlist setlist) async {
+    final currentSetlist = controller.setlistByIdOrNull(setlist.id);
+    if (currentSetlist == null) {
+      return;
+    }
+    await controller.markSetlistOpened(currentSetlist);
+    if (!mounted) {
+      return;
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: currentSetlist.id,
         ),
       ),
     );

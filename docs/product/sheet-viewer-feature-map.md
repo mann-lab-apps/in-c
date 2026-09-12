@@ -26,7 +26,7 @@
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/컬렉션/그룹/별점 필터. MobileSheets의 Key/Genre/Difficulty 축은 Clef에서 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, bulk add, 여러 PDF 가져오며 세트리스트 추가, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 검색 추가, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, bulk add와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 제거, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |
 | 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기 |
@@ -138,7 +138,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   건너뛰는 방식이다.
 - 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
   확인한다.
-- 세트리스트, 세트리스트 연속 넘김. 검색 추가, 일괄 선택 bulk add, bulk collection 지정, drag reorder/위아래 이동/직접 순서 입력,
+- 세트리스트, 세트리스트 연속 넘김. 검색 추가, 일괄 선택 bulk add와 추가 후 상세 열기, bulk collection 지정, drag reorder/위아래 이동/직접 순서 입력,
   첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간, 마지막 곡 이어보기, viewer context 표시, 명시적 이전/다음 곡
   이동이다.
 - 북마크. 2차 구현은 페이지 anchor 저장, 목록 이동, 이름 변경, 삭제, PDF 목차 병합, CSV 북마크
