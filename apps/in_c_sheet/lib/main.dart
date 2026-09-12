@@ -299,6 +299,54 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     );
   }
 
+  Future<void> _deleteBulkScores() async {
+    if (_bulkSelectedScoreIds.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('제거할 악보를 선택하세요.')));
+      return;
+    }
+    final scoreCount = _bulkSelectedScoreIds.length;
+    final didConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('선택 악보 제거'),
+        content: Text(
+          '$scoreCount개 악보를 이 라이브러리 목록에서 제거할까요?\n\n'
+          '가져온 PDF 원본 파일은 삭제하지 않고, 세트리스트에 들어간 항목만 함께 정리합니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('제거'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted || didConfirm != true) {
+      return;
+    }
+
+    final deletedCount = await controller.deleteScoresByIds(
+      Set<String>.of(_bulkSelectedScoreIds),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isBulkSelecting = false;
+      _bulkSelectedScoreIds.clear();
+    });
+    final message = deletedCount == 0
+        ? '제거할 악보가 없습니다.'
+        : '$deletedCount개 악보를 라이브러리에서 제거했습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<SheetSetlist?> _selectSetlistForBulkAdd(int scoreCount) async {
     final action = await showModalBottomSheet<_BulkSetlistTargetAction>(
       context: context,
@@ -1440,6 +1488,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               tooltip: '선택 악보 정보 일괄 편집',
               onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
               icon: const Icon(Icons.edit_note),
+            ),
+          if (_isBulkSelecting)
+            IconButton(
+              tooltip: '선택 악보 라이브러리에서 제거',
+              onPressed: _bulkSelectedScoreIds.isEmpty
+                  ? null
+                  : _deleteBulkScores,
+              icon: const Icon(Icons.delete_outline),
             ),
           if (!_isBulkSelecting) ...[
             IconButton(

@@ -406,6 +406,71 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('bulk delete confirms before removing scores', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 7, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score-1',
+        title: 'delete me score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/delete-me-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+      SheetScore(
+        id: 'score-2',
+        title: 'keep me score',
+        composer: '',
+        tags: const <String>[],
+        note: '',
+        filePath: '/tmp/keep-me-score.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const <SheetBookmark>[],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.longPress(find.text('delete me score').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('선택 악보 제거'), findsOneWidget);
+    expect(find.textContaining('PDF 원본 파일은 삭제하지 않고'), findsOneWidget);
+
+    await tester.tap(find.text('제거'));
+    await tester.pumpAndSettle();
+
+    expect(controller.scores.map((score) => score.id), <String>['score-2']);
+    expect(find.text('1개 악보를 라이브러리에서 제거했습니다.'), findsOneWidget);
+    expect(find.text('delete me score'), findsNothing);
+    expect(find.text('keep me score'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('bulk collection assignment can jump to its filter', (
     tester,
   ) async {

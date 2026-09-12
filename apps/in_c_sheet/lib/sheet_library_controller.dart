@@ -743,6 +743,30 @@ class SheetLibraryController extends ChangeNotifier {
     return changedCount;
   }
 
+  Future<int> deleteScoresByIds(Set<String> scoreIds) async {
+    final normalizedIds = scoreIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    if (normalizedIds.isEmpty) {
+      return 0;
+    }
+
+    final beforeCount = _scores.length;
+    _scores = _scores
+        .where((score) => !normalizedIds.contains(score.id))
+        .toList(growable: false);
+    final deletedCount = beforeCount - _scores.length;
+    if (deletedCount == 0) {
+      return 0;
+    }
+
+    await store.saveScores(_scores);
+    await _removeMissingSetlistScores();
+    notifyListeners();
+    return deletedCount;
+  }
+
   Future<void> updateStructuredNotes(
     SheetScore score,
     SheetScoreNotes notes,

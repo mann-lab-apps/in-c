@@ -2120,6 +2120,55 @@ void main() {
     ]);
   });
 
+  test('deletes selected scores and cleans setlist references', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(now, id: 'score-1', title: 'First'),
+      _score(now, id: 'score-2', title: 'Second'),
+      _score(now, id: 'score-3', title: 'Third'),
+    ]);
+    await store.saveSetlists(<SheetSetlist>[
+      SheetSetlist(
+        id: 'setlist-1',
+        title: 'Recital',
+        scoreIds: const <String>['score-1', 'score-2', 'score-3'],
+        scoreStartPages: const <String, int>{'score-2': 3},
+        scoreNotes: const <String, String>{'score-2': 'solo'},
+        scoreDurations: const <String, int>{'score-2': 120},
+        createdAt: now,
+        updatedAt: now,
+        lastOpenedScoreId: 'score-2',
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final deletedCount = await controller.deleteScoresByIds(<String>{
+      'score-2',
+      'missing',
+    });
+
+    expect(deletedCount, 1);
+    expect(controller.scores.map((score) => score.id), <String>[
+      'score-1',
+      'score-3',
+    ]);
+    expect(controller.setlists.single.scoreIds, <String>['score-1', 'score-3']);
+    expect(
+      controller.setlists.single.scoreStartPages,
+      isNot(contains('score-2')),
+    );
+    expect(controller.setlists.single.scoreNotes, isNot(contains('score-2')));
+    expect(
+      controller.setlists.single.scoreDurations,
+      isNot(contains('score-2')),
+    );
+    expect(controller.setlists.single.lastOpenedScoreId, isNull);
+  });
+
   test(
     'tracks recently opened setlists separately from recent scores',
     () async {
