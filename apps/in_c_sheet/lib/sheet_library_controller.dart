@@ -83,6 +83,7 @@ class SheetLibraryController extends ChangeNotifier {
   List<SheetSetlist> _setlists = const <SheetSetlist>[];
   SheetMetronomeSettings _metronomeSettings =
       SheetMetronomeSettings.defaultSettings;
+  Future<void> _metronomeSaveTail = Future<void>.value();
   SheetTunerSettings _tunerSettings = SheetTunerSettings.defaultSettings;
   SheetToneSettings _toneSettings = SheetToneSettings.defaultSettings;
   SheetLibraryViewSettings _libraryViewSettings =
@@ -1031,8 +1032,20 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<void> updateMetronomeSettings(SheetMetronomeSettings settings) async {
     _metronomeSettings = settings;
-    await store.saveMetronomeSettings(settings);
-    notifyListeners();
+    await _enqueueMetronomeSave(() async {
+      await store.saveMetronomeSettings(settings);
+      notifyListeners();
+    });
+  }
+
+  Future<void> _enqueueMetronomeSave(Future<void> Function() save) {
+    final pending = _metronomeSaveTail.then((_) => save());
+    // A failed request still reaches its caller without blocking later saves.
+    _metronomeSaveTail = pending.then<void>(
+      (_) {},
+      onError: (Object error, StackTrace stackTrace) {},
+    );
+    return pending;
   }
 
   SheetMetronomeSettings metronomeSettingsForScore(
@@ -1051,15 +1064,29 @@ class SheetLibraryController extends ChangeNotifier {
     String? setlistId,
   }) async {
     _metronomeSettings = settings;
+    await _enqueueMetronomeSave(
+      () => _saveMetronomeSettingsForScore(
+        score.id,
+        settings,
+        setlistId: setlistId,
+      ),
+    );
+  }
+
+  Future<void> _saveMetronomeSettingsForScore(
+    String scoreId,
+    SheetMetronomeSettings settings, {
+    String? setlistId,
+  }) async {
     await store.saveMetronomeSettings(settings);
-    final currentScore = scoreByIdOrNull(score.id);
+    final currentScore = scoreByIdOrNull(scoreId);
     if (currentScore == null) {
       notifyListeners();
       return;
     }
     final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
     if (setlistId != null) {
-      if (setlist == null || !setlist.scoreIds.contains(score.id)) {
+      if (setlist == null || !setlist.scoreIds.contains(scoreId)) {
         notifyListeners();
         return;
       }
@@ -1069,7 +1096,7 @@ class SheetLibraryController extends ChangeNotifier {
               Map<String, SheetMetronomeSettings>.unmodifiable(
                 <String, SheetMetronomeSettings>{
                   ...setlist.scoreMetronomeSettings,
-                  score.id: settings,
+                  scoreId: settings,
                 },
               ),
           updatedAt: DateTime.now(),

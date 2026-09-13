@@ -192,6 +192,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 메트로놈. visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot,
   저장 대기 중 바뀐 페이지/필기는 보존하며 삭제된 악보/세트리스트나 제외된 곡에는 값을 다시 붙이지 않는다.
   전역 기본값 저장과 악보/세트리스트별 적용 범위는 구분한다.
+  연속 설정 저장은 요청 순서를 지켜 최신 BPM의 복원값이 이전 값으로 돌아가지 않게 한다.
+  한 저장이 실패해도 이후 요청은 진행하며 실패한 요청 자체의 오류는 호출자에게 전달한다.
   세트리스트별 score metronome override,
   start/stop, 첫 박 강조, subdivision, Tap tempo, 0/1/2마디 count-in, 기본 ON tick 소리,
   `소리`/`시각만` 상태 표시, viewer mini panel과 시각 박자 strip을 제공한다.

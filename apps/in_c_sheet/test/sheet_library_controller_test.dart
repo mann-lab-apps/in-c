@@ -17,6 +17,118 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test('global metronome save follows pending score save without changing its override', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = _DelayedMetronomeStore();
+    final original = _score(DateTime(2026, 9, 13));
+    await store.saveScores([original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.delayNext = true;
+    final first = controller.updateMetronomeSettingsForScore(
+      original,
+      SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+    );
+    await store.entered.future;
+    final second = controller.updateMetronomeSettings(
+      SheetMetronomeSettings.defaultSettings.copyWith(bpm: 120),
+    );
+    store.release.complete();
+    await Future.wait([first, second]);
+    await controller.load();
+    expect(controller.metronomeSettings.bpm, 120);
+    expect(controller.scoreById(original.id).metronomeSettings?.bpm, 96);
+  });
+
+  for (final scope in ['global', 'score', 'setlist']) {
+    test('concurrent metronome saves retain latest $scope settings', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = _DelayedMetronomeStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, original);
+      Future<void> save(int bpm) {
+        final settings = SheetMetronomeSettings.defaultSettings.copyWith(
+          bpm: bpm,
+        );
+        if (scope == 'global') {
+          return controller.updateMetronomeSettings(settings);
+        }
+        return controller.updateMetronomeSettingsForScore(
+          original,
+          settings,
+          setlistId: scope == 'setlist' ? setlist.id : null,
+        );
+      }
+
+      store.delayNext = true;
+      final first = save(96);
+      await store.entered.future;
+      final second = save(120);
+      await Future<void>.delayed(Duration.zero);
+      store.release.complete();
+      await Future.wait([first, second]);
+      await controller.load();
+      expect(controller.metronomeSettings.bpm, 120);
+      if (scope == 'score') {
+        expect(controller.scoreById(original.id).metronomeSettings?.bpm, 120);
+      } else if (scope == 'setlist') {
+        expect(
+          controller.setlists.single.scoreMetronomeSettings[original.id]?.bpm,
+          120,
+        );
+        expect(controller.scoreById(original.id).metronomeSettings, isNull);
+      }
+    });
+  }
+
+  for (final failingBpm in [96, 120]) {
+    test(
+      'metronome save error at $failingBpm does not poison later writes',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = _DelayedMetronomeStore()..failingBpm = failingBpm;
+        final original = _score(DateTime(2026, 9, 13));
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        Future<void> save(int bpm) =>
+            controller.updateMetronomeSettingsForScore(
+              original,
+              SheetMetronomeSettings.defaultSettings.copyWith(bpm: bpm),
+            );
+        store.delayNext = true;
+        final first = save(96);
+        final firstCheck = expectLater(
+          first,
+          failingBpm == 96 ? throwsStateError : completes,
+        );
+        await store.entered.future;
+        final second = save(120);
+        final secondCheck = expectLater(
+          second,
+          failingBpm == 120 ? throwsStateError : completes,
+        );
+        store.release.complete();
+        await Future.wait([firstCheck, secondCheck]);
+        final lastSuccessfulBpm = failingBpm == 96 ? 120 : 96;
+        await controller.load();
+        expect(controller.metronomeSettings.bpm, lastSuccessfulBpm);
+        expect(
+          controller.scoreById(original.id).metronomeSettings?.bpm,
+          lastSuccessfulBpm,
+        );
+        await save(132);
+        await controller.load();
+        expect(controller.metronomeSettings.bpm, 132);
+        expect(controller.scoreById(original.id).metronomeSettings?.bpm, 132);
+      },
+    );
+  }
+
   for (final removal in ['setlist', 'membership', 'score']) {
     test('delayed metronome save respects removed $removal scope', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -3406,6 +3518,7 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
 
 class _DelayedMetronomeStore extends SheetLibraryStore {
   bool delayNext = false;
+  int? failingBpm;
   final entered = Completer<void>();
   final release = Completer<void>();
 
@@ -3416,6 +3529,7 @@ class _DelayedMetronomeStore extends SheetLibraryStore {
       entered.complete();
       await release.future;
     }
+    if (settings.bpm == failingBpm) throw StateError('metronome write failed');
     await super.saveMetronomeSettings(settings);
   }
 }
