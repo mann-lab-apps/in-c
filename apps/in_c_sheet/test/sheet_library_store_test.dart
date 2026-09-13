@@ -17,6 +17,7 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,102 @@ void main() {
       await documentsDir.delete(recursive: true);
     }
   });
+
+  for (final fullZip in <bool>[false, true]) {
+    for (final throws in <bool>[false, true]) {
+      for (final failedKey in <String>[
+        'clef_setlists',
+        'clef_tone_settings',
+        'clef_favorite_annotation_preset',
+        'clef_automatic_metadata_backup',
+      ]) {
+        test('restore rolls back $failedKey (ZIP: $fullZip, throws: $throws)', () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final source = await store.importPdfBytes(
+            bytes: await File('test-fixtures/pdfs/short-score.pdf')
+                .readAsBytes(),
+            fileName: 'rollback.pdf',
+          );
+          await store.saveScores(<SheetScore>[source]);
+          final profile = await store.createLibraryProfile('Restore target');
+          await store.saveScores(<SheetScore>[source]);
+          final metadata = await store.exportMetadataBackupJson();
+          final zip = await store.exportFullBackupZipBytes();
+          await store.saveScores(<SheetScore>[
+            source.copyWith(title: 'Current score'),
+          ]);
+          await store.saveMetronomeSettings(
+            const SheetMetronomeSettings(
+              bpm: 73,
+              meter: SheetMetronomeMeter.threeFour,
+            ),
+          );
+          await store.saveTunerSettings(
+            SheetTunerSettings(referencePitchA4: 442),
+          );
+          await store.saveFavoriteAnnotationPreset(
+            const SheetAnnotationToolPreset(
+              toolName: 'stamp',
+              color: 0xffd33232,
+              width: 8,
+              stampName: 'cue',
+            ),
+          );
+          final before = await platform.getAll();
+          platform.failureKey =
+              'flutter.$failedKey${failedKey == 'clef_tone_settings' ? '' : '.${profile.id}'}';
+          platform.throwOnFailure = throws;
+          final result = fullZip
+              ? await store.restoreFullBackupZipBytes(zip)
+              : await store.restoreMetadataBackupJson(metadata);
+          expect(result.status, SheetLibraryBackupRestoreStatus.error);
+          expect(await platform.getAll(), before);
+          final preferences = await SharedPreferences.getInstance();
+          await preferences.reload();
+          expect((await store.loadScores()).single.title, 'Current score');
+          expect((await store.loadMetronomeSettings()).bpm, 73);
+          expect((await store.loadTunerSettings()).referencePitchA4, 442);
+          expect(
+            (await store.loadFavoriteAnnotationPreset())?.toolName,
+            'stamp',
+          );
+          final retry = fullZip
+              ? await store.restoreFullBackupZipBytes(zip)
+              : await store.restoreMetadataBackupJson(metadata);
+          expect(retry.didRestore, isTrue);
+          final snapshot = (await store.loadAutomaticMetadataBackup())!;
+          final restoredScore = (await store.loadScores()).single;
+          expect(snapshot.scores.single.filePath, restoredScore.filePath);
+          expect(snapshot.scores.single.title, source.title);
+          expect(snapshot.tunerSettings.referencePitchA4, 440);
+          expect(await store.loadFavoriteAnnotationPreset(), isNull);
+          await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+          expect((await store.loadScores()).single.title, source.title);
+        });
+      }
+    }
+  }
+
+  test(
+    'restore reports a failed rollback and still attempts other keys',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final score = _score(DateTime(2026, 9, 13));
+      await store.saveScores(<SheetScore>[score]);
+      final metadata = await store.exportMetadataBackupJson();
+      await store.saveScores(<SheetScore>[
+        score.copyWith(title: 'Current score'),
+      ]);
+      platform.failureKey = 'flutter.clef_setlists';
+      platform.failuresRemaining = 2;
+      final result = await store.restoreMetadataBackupJson(metadata);
+      expect(result.status, SheetLibraryBackupRestoreStatus.error);
+      expect(result.failureReason, contains('rollback failed'));
+      expect((await store.loadScores()).single.title, 'Current score');
+    },
+  );
 
   test('persists scores and setlists in SharedPreferences', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1003,8 +1100,8 @@ void main() {
     test(
       'repeated full restore preserves existing files (write failure: $rejectWrite)',
       () async {
-        SharedPreferences.setMockInitialValues(<String, Object>{});
-        final store = _RejectingScoreWriteStore();
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
         final source = await store.importPdfBytes(
           bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
           fileName: 'concert.pdf',
@@ -1032,11 +1129,14 @@ void main() {
         await File(existing.annotationStorage.path)
             .writeAsString('{"later":"marks"}');
 
-        await store.createLibraryProfile('Other library');
+        final targetProfile = await store.createLibraryProfile('Other library');
         await store.saveScores(<SheetScore>[
           existing.copyWith(title: 'Current target'),
         ]);
-        store.rejectScoreWrites = rejectWrite;
+        if (rejectWrite) {
+          platform.failureKey = 'flutter.clef_scores.${targetProfile.id}';
+          platform.throwOnFailure = true;
+        }
         final result = await store.restoreFullBackupZipBytes(zip);
         expect(
           result.status,
@@ -1745,15 +1845,43 @@ void main() {
   );
 }
 
-class _RejectingScoreWriteStore extends SheetLibraryStore {
-  bool rejectScoreWrites = false;
+_FailingPreferencesStore _installFailingPreferences() {
+  final previous = SharedPreferencesStorePlatform.instance;
+  final platform = _FailingPreferencesStore();
+  SharedPreferences.resetStatic();
+  SharedPreferencesStorePlatform.instance = platform;
+  addTearDown(() {
+    SharedPreferences.resetStatic();
+    SharedPreferencesStorePlatform.instance = previous;
+  });
+  return platform;
+}
+
+class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
+  _FailingPreferencesStore() : super.empty();
+
+  String? failureKey;
+  bool throwOnFailure = false;
+  int failuresRemaining = 1;
+
+  bool _shouldFail(String key) {
+    if (key != failureKey) return false;
+    failuresRemaining -= 1;
+    if (failuresRemaining <= 0) failureKey = null;
+    if (throwOnFailure) throw PlatformException(code: 'write_failed');
+    return true;
+  }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
-    if (rejectScoreWrites) {
-      throw StateError('Simulated score persistence failure');
-    }
-    await super.saveScores(scores);
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    if (_shouldFail(key)) return false;
+    return super.setValue(valueType, key, value);
+  }
+
+  @override
+  Future<bool> remove(String key) async {
+    if (_shouldFail(key)) return false;
+    return super.remove(key);
   }
 }
 

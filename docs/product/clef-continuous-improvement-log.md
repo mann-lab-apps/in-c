@@ -21,6 +21,8 @@
 | B3 | Backup codec tolerantly drops malformed records, potentially clearing a library on restore. | Reject missing/non-list collections, malformed records and duplicate IDs. Preserve explicit empty backups and optional legacy setting defaults. | Failure reproduced with a non-list scores value; eight rejection cases and one legacy fixture. Store suite 37/37, full Flutter suite, analyze/RC PASS. | VERIFIED LOCAL |
 | B4 | Missing-file success copy does not explain absent bytes. | Expose unique missing source-file counts and a persistent confirmation dialog for partial full restore. | Shared missing PDF/linked/annotation store fixture; widget menu/confirm/warning/dismiss flow. Full suite 466/466, analyze/RC PASS (`/private/tmp/clef-rc-b4.log`). | VERIFIED LOCAL |
 | B5 | Repeating a full restore overwrites PDF/annotation paths used by another library, even when the subsequent metadata write fails. | Fresh storage paths for restored bytes, stable score IDs/setlist links, display filenames and shared-PDF cache. Earlier library files and metadata remain unchanged. | Successful and injected first-metadata-write-failure regressions reproduced byte replacement before fix. Store 39/39, full suite 479/479, analyze/RC PASS (`/private/tmp/clef-rc-b5.log`). | VERIFIED LOCAL |
+| B6 | Restore ignores false persistence results and can leave partially replaced metadata after an exception. | Capture only affected keys, check writes/removals, rollback attempted keys on failure, preserve previous automatic backup and other library metadata. Report rollback failure, never success. | JSON/ZIP, returned false/thrown error at early/late/remove keys, cache reload, retry and rollback failure. Store 56/56, full suite 496/496, analyze/RC PASS (`/private/tmp/clef-rc-b6.log`). | VERIFIED LOCAL |
+| B7 | Backup import currently has no exclusive progress state in the UI. | Inspect duplicate restore initiation and concurrent editing; prevent conflicting actions while restoring. Do not claim atomic concurrency from B6 rollback alone. | Controller/UI call-path review and delayed restore widget regression. | TODO |
 | S1 | Split songbook entries inherit full-book scrolling and cross-song jumps; hidden first page is selected on entry. | Hide out-of-range pages, start at first visible page, restrict jumps/marks/auto-scroll. Keep one page if the whole range was hidden; preserve source and repeated-split deduplication after compaction. | Regression reproduced hidden first-page selection; controller suite 52/52, full suite 468/468, analyze/RC PASS (`/private/tmp/clef-rc-s1.log`). Physical PDF gestures need device QA. | VERIFIED LOCAL |
 | S2 | New songbook entries currently start with an empty annotation layer. | Copy current in-range strokes/texts and visibility/export flags, retain hidden-page marks, reset edit history and use independent inline storage. Source/sibling edits stay isolated. | Regression reproduced empty split annotations; copy/delete/reload isolation test PASS. Full suite 469/469, analyze/RC PASS (`/private/tmp/clef-rc-s2.log`). | VERIFIED LOCAL |
 | U1 | Fixed home sections can leave almost no space for scores. Older emulator install shows a roughly 10px grid; current source overflows by 338px at 360x720. | One vertical scroll for header and lazy score list/grid; reach and select the last of 30 scores on phone/tablet/landscape. Empty/search states remain accessible. | Widget regression at 360x720, 1280x800 and 800x360, empty states and search reset. Full suite 475/475, analyze/RC PASS (`/private/tmp/clef-rc-u1.log`). | VERIFIED LOCAL |
@@ -50,10 +52,13 @@ U1: `dc7bb54`, full suite 475/475, analyze/RC PASS; commit subject:
 `fix: keep Clef library accessible below recent sections`.
 U2: `a790fc0`, narrow selection overflow menu implemented; full suite 477/477, analyze/RC PASS.
 Commit subject: `fix: fit Clef selection actions on narrow screens`.
-B5: restore storage isolation implemented; full suite 479/479, analyze/RC PASS.
+B5: `f714560`, restore storage isolation implemented; full suite 479/479, analyze/RC PASS.
 Commit subject: `fix: isolate Clef restored files from existing libraries`.
-Next: inspect remaining backup write-failure preservation gaps.
-Known limit: preflight validation is not a transaction for disk/preferences write failures.
+B6: checked metadata writes with best-effort rollback; full suite 496/496, analyze/RC PASS.
+Commit subject: `fix: roll back Clef metadata after restore write failures`.
+Next: inspect conflicting UI actions during backup restore (B7).
+Known limits: process termination, persistent storage failure preventing rollback and
+concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before
 transactional metadata rollback would be unsafe, so this slice preserves them.
 No app build performed; new changes have widget/source evidence only.

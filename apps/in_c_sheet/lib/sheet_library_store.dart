@@ -1254,15 +1254,7 @@ class SheetLibraryStore {
   ) async {
     try {
       final backup = SheetLibraryBackupCodec.decode(value);
-      await saveScores(backup.scores);
-      await saveSetlists(backup.setlists);
-      await saveMetronomeSettings(backup.metronomeSettings);
-      await saveTunerSettings(backup.tunerSettings);
-      await saveToneSettings(backup.toneSettings);
-      await saveLibraryViewSettings(backup.libraryViewSettings);
-      await saveGlobalViewerSettings(backup.globalViewerSettings);
-      await savePerformancePresetTemplates(backup.performancePresetTemplates);
-      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
+      await _restoreBackupMetadata(backup);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: backup.scores.length,
@@ -1427,15 +1419,7 @@ class SheetLibraryStore {
         restoredScores.add(restoredScore);
       }
 
-      await saveScores(restoredScores);
-      await saveSetlists(backup.setlists);
-      await saveMetronomeSettings(backup.metronomeSettings);
-      await saveTunerSettings(backup.tunerSettings);
-      await saveToneSettings(backup.toneSettings);
-      await saveLibraryViewSettings(backup.libraryViewSettings);
-      await saveGlobalViewerSettings(backup.globalViewerSettings);
-      await savePerformancePresetTemplates(backup.performancePresetTemplates);
-      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
+      await _restoreBackupMetadata(backup, restoredScores: restoredScores);
       final sourcePathsByScoreId = <String, String>{
         for (final score in backup.scores) score.id: score.filePath,
       };
@@ -1474,6 +1458,91 @@ class SheetLibraryStore {
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
+    }
+  }
+
+  Future<void> _restoreBackupMetadata(
+    SheetLibraryBackup backup, {
+    List<SheetScore>? restoredScores,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final libraryId = await _activeLibraryId(preferences);
+    final restored = SheetLibraryBackup.fromState(
+      scores: restoredScores ?? backup.scores,
+      setlists: backup.setlists,
+      metronomeSettings: backup.metronomeSettings,
+      tunerSettings: backup.tunerSettings,
+      toneSettings: backup.toneSettings,
+      libraryViewSettings: backup.libraryViewSettings,
+      globalViewerSettings: backup.globalViewerSettings,
+      performancePresetTemplates: backup.performancePresetTemplates,
+      favoriteAnnotationPreset: backup.favoriteAnnotationPreset,
+    );
+    final preset = restored.favoriteAnnotationPreset;
+    final values = <String, String?>{
+      _scopedKey(_scoresKey, libraryId): SheetScore.encodeList(restored.scores),
+      _scopedKey(_setlistsKey, libraryId): SheetSetlist.encodeList(
+        restored.setlists,
+      ),
+      _metronomeSettingsKey: SheetMetronomeCodec.encode(
+        restored.metronomeSettings,
+      ),
+      _tunerSettingsKey: SheetTunerCodec.encode(restored.tunerSettings),
+      _toneSettingsKey: SheetToneCodec.encode(restored.toneSettings),
+      _scopedKey(_libraryViewSettingsKey, libraryId):
+          SheetLibraryViewSettingsCodec.encode(restored.libraryViewSettings),
+      _globalViewerSettingsKey: jsonEncode(
+        restored.globalViewerSettings.toJson(),
+      ),
+      _scopedKey(
+        _performancePresetTemplatesKey,
+        libraryId,
+      ): SheetPerformancePresetTemplateCodec.encode(
+        restored.performancePresetTemplates,
+      ),
+      _scopedKey(
+        _favoriteAnnotationPresetKey,
+        libraryId,
+      ): preset != null && preset.isValid
+          ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
+          : null,
+      _scopedKey(_automaticMetadataBackupKey, libraryId):
+          SheetLibraryBackupCodec.encode(restored),
+    };
+    final previous = <String, String?>{
+      for (final key in values.keys) key: preferences.getString(key),
+    };
+    final attempted = <String>[];
+    try {
+      for (final entry in values.entries) {
+        // Include the failing key: SharedPreferences updates its cache before I/O.
+        attempted.add(entry.key);
+        final saved = entry.value == null
+            ? await preferences.remove(entry.key)
+            : await preferences.setString(entry.key, entry.value!);
+        if (!saved) {
+          throw StateError('Backup metadata write failed: ${entry.key}');
+        }
+      }
+    } catch (_) {
+      final rollbackFailures = <String>[];
+      for (final key in attempted.reversed) {
+        try {
+          final value = previous[key];
+          final saved = value == null
+              ? await preferences.remove(key)
+              : await preferences.setString(key, value);
+          if (!saved) rollbackFailures.add(key);
+        } catch (_) {
+          rollbackFailures.add(key);
+        }
+      }
+      if (rollbackFailures.isNotEmpty) {
+        throw StateError(
+          'Backup metadata rollback failed: ${rollbackFailures.join(', ')}',
+        );
+      }
+      rethrow;
     }
   }
 
