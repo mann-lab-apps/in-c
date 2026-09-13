@@ -1633,153 +1633,175 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide ? 28 : 16,
                     12,
                     isWide ? 28 : 16,
-                    isWide ? 24 : 96,
+                    24,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SearchField(
-                        query: controller.query,
-                        onChanged: controller.updateQuery,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryProfileBar(
-                        activeLibrary: controller.activeLibraryProfile.name,
-                        visibleCount: scores.length,
-                        totalCount: controller.scores.length,
-                        onPressed: _showLibrarySwitcher,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryViewBar(
-                        settings: controller.libraryViewSettings,
-                        onSortPressed: _selectSortMode,
-                        onFavoriteChanged: controller.updateFavoriteFilter,
-                        onTagPressed: _selectTagFilter,
-                        onCollectionPressed: _selectCollectionFilter,
-                        onGroupPressed: _selectGroupFilter,
-                        onRatingPressed: _selectRatingFilter,
-                      ),
-                      _ActiveLibraryFiltersBar(
-                        query: controller.query,
-                        settings: controller.libraryViewSettings,
-                        onClearQuery: () => controller.updateQuery(''),
-                        onClearFavorite: () =>
-                            controller.updateFavoriteFilter(false),
-                        onClearTag: () => controller.updateTagFilter(''),
-                        onClearComposer: () =>
-                            controller.updateComposerFilter(''),
-                        onClearCollection: () =>
-                            controller.updateCollectionFilter(''),
-                        onClearGroup: () => controller.updateGroupFilter(''),
-                        onClearRating: () =>
-                            controller.updateMinimumRatingFilter(0),
-                        onClearCustomField: (fieldKey) =>
-                            controller.updateCustomFieldFilter(fieldKey, ''),
-                        onClearAll: controller.clearLibrarySearchAndFilters,
-                      ),
-                      if (!hasActiveLibraryCondition) ...[
-                        const SizedBox(height: 10),
-                        _LibraryFacetExplorer(
-                          composerFacets: controller.composerFacets,
-                          collectionFacets: controller.collectionFacets,
-                          groupFacets: controller.groupFacets,
-                          ratingFacets: controller.ratingFacets,
-                          customFieldFacets: <String, List<SheetLibraryFacet>>{
-                            for (final key in _commonCustomMetadataFieldKeys)
-                              key: controller.customFieldFacets(key),
-                          },
-                          selectedCollection:
-                              controller.libraryViewSettings.collectionQuery,
-                          selectedComposer:
-                              controller.libraryViewSettings.composerQuery,
-                          selectedGroup:
-                              controller.libraryViewSettings.groupQuery,
-                          selectedMinimumRating:
-                              controller.libraryViewSettings.minimumRating,
-                          selectedCustomFieldFilters:
-                              controller.libraryViewSettings.customFieldFilters,
-                          onCollectionSelected:
-                              controller.updateCollectionFilter,
-                          onComposerSelected: controller.updateComposerFilter,
-                          onGroupSelected: controller.updateGroupFilter,
-                          onRatingSelected:
-                              controller.updateMinimumRatingFilter,
-                          onCustomFieldSelected:
-                              controller.updateCustomFieldFilter,
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      if (controller.errorMessage != null)
-                        _NoticeBanner(message: controller.errorMessage!),
-                      if (controller.errorMessage != null)
-                        const SizedBox(height: 12),
-                      if (!hasActiveLibraryCondition &&
-                          !controller.isLoading &&
-                          (controller.pinnedScores.isNotEmpty ||
-                              controller.favoriteScores.isNotEmpty ||
-                              controller.recentScores.isNotEmpty ||
-                              controller
-                                  .scoresNeedingMetadataReview
-                                  .isNotEmpty ||
-                              controller.recentSetlists.isNotEmpty)) ...[
-                        _QuickAccessBand(
-                          pinnedScores: controller.pinnedScores
-                              .take(8)
-                              .toList(growable: false),
-                          favoriteScores: controller.favoriteScores
-                              .take(8)
-                              .toList(growable: false),
-                          recentScores: controller.recentScores
-                              .take(8)
-                              .toList(growable: false),
-                          metadataReviewScores: controller
-                              .scoresNeedingMetadataReview
-                              .take(8)
-                              .toList(growable: false),
-                          onOpen: _openScore,
-                          onEdit: _editScore,
-                          isSelecting: _isBulkSelecting,
-                          selectedIds: _bulkSelectedScoreIds,
-                          onSelectionChanged: _toggleBulkScoreSelection,
-                        ),
-                        if (controller.recentSetlists.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _RecentSetlistsBand(
-                            setlists: controller.recentSetlists
-                                .take(8)
-                                .toList(growable: false),
-                            scoreById: controller.scoreByIdOrNull,
-                            onOpen: _openRecentSetlist,
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                      ],
-                      Expanded(
-                        child: controller.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : scores.isEmpty
-                            ? _EmptyLibrary(
-                                hasQuery: controller.query.isNotEmpty,
-                                hasFilter:
-                                    controller.libraryViewSettings.hasAnyFilter,
-                                onImportPressed: _showImportOptions,
-                                onClearPressed:
-                                    controller.clearLibrarySearchAndFilters,
-                                onTesterInfoPressed: _showTesterInfo,
-                              )
-                            : _ScoreGrid(
-                                scores: scores,
-                                isWide: isWide,
+                  child: CustomScrollView(
+                    key: const ValueKey('clef-library-scroll'),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _SearchField(
+                              query: controller.query,
+                              onChanged: controller.updateQuery,
+                            ),
+                            const SizedBox(height: 10),
+                            _LibraryProfileBar(
+                              activeLibrary:
+                                  controller.activeLibraryProfile.name,
+                              visibleCount: scores.length,
+                              totalCount: controller.scores.length,
+                              onPressed: _showLibrarySwitcher,
+                            ),
+                            const SizedBox(height: 10),
+                            _LibraryViewBar(
+                              settings: controller.libraryViewSettings,
+                              onSortPressed: _selectSortMode,
+                              onFavoriteChanged:
+                                  controller.updateFavoriteFilter,
+                              onTagPressed: _selectTagFilter,
+                              onCollectionPressed: _selectCollectionFilter,
+                              onGroupPressed: _selectGroupFilter,
+                              onRatingPressed: _selectRatingFilter,
+                            ),
+                            _ActiveLibraryFiltersBar(
+                              query: controller.query,
+                              settings: controller.libraryViewSettings,
+                              onClearQuery: () => controller.updateQuery(''),
+                              onClearFavorite: () =>
+                                  controller.updateFavoriteFilter(false),
+                              onClearTag: () => controller.updateTagFilter(''),
+                              onClearComposer: () =>
+                                  controller.updateComposerFilter(''),
+                              onClearCollection: () =>
+                                  controller.updateCollectionFilter(''),
+                              onClearGroup: () =>
+                                  controller.updateGroupFilter(''),
+                              onClearRating: () =>
+                                  controller.updateMinimumRatingFilter(0),
+                              onClearCustomField: (fieldKey) => controller
+                                  .updateCustomFieldFilter(fieldKey, ''),
+                              onClearAll:
+                                  controller.clearLibrarySearchAndFilters,
+                            ),
+                            if (!hasActiveLibraryCondition) ...[
+                              const SizedBox(height: 10),
+                              _LibraryFacetExplorer(
+                                composerFacets: controller.composerFacets,
+                                collectionFacets: controller.collectionFacets,
+                                groupFacets: controller.groupFacets,
+                                ratingFacets: controller.ratingFacets,
+                                customFieldFacets:
+                                    <String, List<SheetLibraryFacet>>{
+                                      for (final key
+                                          in _commonCustomMetadataFieldKeys)
+                                        key: controller.customFieldFacets(key),
+                                    },
+                                selectedCollection: controller
+                                    .libraryViewSettings
+                                    .collectionQuery,
+                                selectedComposer: controller
+                                    .libraryViewSettings
+                                    .composerQuery,
+                                selectedGroup:
+                                    controller.libraryViewSettings.groupQuery,
+                                selectedMinimumRating: controller
+                                    .libraryViewSettings
+                                    .minimumRating,
+                                selectedCustomFieldFilters: controller
+                                    .libraryViewSettings
+                                    .customFieldFilters,
+                                onCollectionSelected:
+                                    controller.updateCollectionFilter,
+                                onComposerSelected:
+                                    controller.updateComposerFilter,
+                                onGroupSelected: controller.updateGroupFilter,
+                                onRatingSelected:
+                                    controller.updateMinimumRatingFilter,
+                                onCustomFieldSelected:
+                                    controller.updateCustomFieldFilter,
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+                            if (controller.errorMessage != null)
+                              _NoticeBanner(message: controller.errorMessage!),
+                            if (controller.errorMessage != null)
+                              const SizedBox(height: 12),
+                            if (!hasActiveLibraryCondition &&
+                                !controller.isLoading &&
+                                (controller.pinnedScores.isNotEmpty ||
+                                    controller.favoriteScores.isNotEmpty ||
+                                    controller.recentScores.isNotEmpty ||
+                                    controller
+                                        .scoresNeedingMetadataReview
+                                        .isNotEmpty ||
+                                    controller.recentSetlists.isNotEmpty)) ...[
+                              _QuickAccessBand(
+                                pinnedScores: controller.pinnedScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                favoriteScores: controller.favoriteScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                recentScores: controller.recentScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                metadataReviewScores: controller
+                                    .scoresNeedingMetadataReview
+                                    .take(8)
+                                    .toList(growable: false),
                                 onOpen: _openScore,
-                                onFavorite: controller.toggleFavorite,
-                                onPin: controller.togglePinned,
+                                onEdit: _editScore,
                                 isSelecting: _isBulkSelecting,
                                 selectedIds: _bulkSelectedScoreIds,
                                 onSelectionChanged: _toggleBulkScoreSelection,
-                                onEdit: _editScore,
-                                onShare: _shareScore,
                               ),
+                              if (controller.recentSetlists.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                _RecentSetlistsBand(
+                                  setlists: controller.recentSetlists
+                                      .take(8)
+                                      .toList(growable: false),
+                                  scoreById: controller.scoreByIdOrNull,
+                                  onOpen: _openRecentSetlist,
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                            ],
+                          ],
+                        ),
                       ),
+                      if (controller.isLoading)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (scores.isEmpty)
+                        SliverToBoxAdapter(
+                          child: _EmptyLibrary(
+                            hasQuery: controller.query.isNotEmpty,
+                            hasFilter:
+                                controller.libraryViewSettings.hasAnyFilter,
+                            onImportPressed: _showImportOptions,
+                            onClearPressed:
+                                controller.clearLibrarySearchAndFilters,
+                            onTesterInfoPressed: _showTesterInfo,
+                          ),
+                        )
+                      else
+                        _ScoreGrid(
+                          scores: scores,
+                          isWide: isWide,
+                          onOpen: _openScore,
+                          onFavorite: controller.toggleFavorite,
+                          onPin: controller.togglePinned,
+                          isSelecting: _isBulkSelecting,
+                          selectedIds: _bulkSelectedScoreIds,
+                          onSelectionChanged: _toggleBulkScoreSelection,
+                          onEdit: _editScore,
+                          onShare: _shareScore,
+                        ),
                     ],
                   ),
                 ),
@@ -3388,75 +3410,66 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilteredEmpty = hasQuery || hasFilter;
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    hasQuery ? Icons.search_off : Icons.library_music_outlined,
-                    size: 58,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    isFilteredEmpty
-                        ? '조건에 맞는 악보가 없습니다.'
-                        : '악보를 추가해 테스트를 시작하세요.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  if (isFilteredEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                hasQuery ? Icons.search_off : Icons.library_music_outlined,
+                size: 58,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                isFilteredEmpty ? '조건에 맞는 악보가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              if (isFilteredEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  onPressed: onClearPressed,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('검색/필터 초기화'),
+                ),
+              ] else ...[
+                const SizedBox(height: 8),
+                Text(
+                  'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: onImportPressed,
+                      icon: const Icon(Icons.add_to_photos_outlined),
+                      label: const Text('악보 추가'),
                     ),
-                    const SizedBox(height: 18),
                     OutlinedButton.icon(
-                      onPressed: onClearPressed,
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                      label: const Text('검색/필터 초기화'),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: onImportPressed,
-                          icon: const Icon(Icons.add_to_photos_outlined),
-                          label: const Text('악보 추가'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: onTesterInfoPressed,
-                          icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('테스트 항목'),
-                        ),
-                      ],
+                      onPressed: onTesterInfoPressed,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('테스트 항목'),
                     ),
                   ],
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -4719,7 +4732,7 @@ class _ScoreGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isWide) {
-      return ListView.separated(
+      return SliverList.separated(
         itemBuilder: (context, index) => SizedBox(
           height: 212,
           child: _ScoreTile(
@@ -4739,7 +4752,7 @@ class _ScoreGrid extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
+    return SliverGrid.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
         mainAxisExtent: 212,

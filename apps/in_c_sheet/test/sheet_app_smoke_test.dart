@@ -10,6 +10,134 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final viewport in <Size>[
+    const Size(360, 720),
+    const Size(1280, 800),
+    const Size(800, 360),
+  ]) {
+    testWidgets(
+      'library remains scrollable with all quick sections at $viewport',
+      (tester) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        tester.view.physicalSize = viewport;
+        tester.view.devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final now = DateTime(2026, 9, 13);
+        final store = SheetLibraryStore();
+        final scores = List<SheetScore>.generate(
+          30,
+          (index) => SheetScore(
+            id: 'scroll-$index',
+            title: 'Scroll score $index',
+            composer: 'Composer',
+            tags: const <String>[],
+            note: '',
+            filePath: '/tmp/scroll-$index.pdf',
+            importedAt: now.subtract(Duration(minutes: index)),
+            updatedAt: now,
+            lastOpenedAt: now.subtract(Duration(minutes: index)),
+            lastPage: 1,
+            isFavorite: true,
+            isPinned: true,
+            bookmarks: const <SheetBookmark>[],
+            collection: 'Concert',
+            group: 'Ensemble',
+            rating: 4,
+          ),
+        );
+        await store.saveScores(scores);
+        await store.saveSetlists(<SheetSetlist>[
+          SheetSetlist(
+            id: 'recent',
+            title: 'Recent concert',
+            scoreIds: <String>[scores.first.id],
+            createdAt: now,
+            updatedAt: now,
+            lastOpenedAt: now,
+          ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await tester.pumpWidget(InCSheetApp(controller: controller));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final scrollable = find
+            .descendant(
+              of: find.byKey(const ValueKey('clef-library-scroll')),
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is Scrollable &&
+                    widget.axisDirection == AxisDirection.down,
+              ),
+            )
+            .first;
+        for (
+          var attempt = 0;
+          attempt < 60 &&
+              find.text('Scroll score 29').hitTestable().evaluate().isEmpty;
+          attempt += 1
+        ) {
+          final bounds = tester.getRect(scrollable);
+          await tester.dragFrom(
+            Offset(bounds.center.dx, bounds.bottom - 24),
+            const Offset(0, -250),
+          );
+          await tester.pumpAndSettle();
+        }
+        final position = tester.state<ScrollableState>(scrollable).position;
+        expect(
+          find.text('Scroll score 29').hitTestable(),
+          findsOneWidget,
+          reason: 'scroll=${position.pixels}/${position.maxScrollExtent}',
+        );
+        await tester.longPress(find.text('Scroll score 29'));
+        await tester.pumpAndSettle();
+        expect(find.text('1개 선택'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byTooltip('선택 취소'));
+        controller.updateQuery('no matching score');
+        await tester.pumpAndSettle();
+        expect(find.text('조건에 맞는 악보가 없습니다.'), findsOneWidget);
+        final reset = find.widgetWithText(OutlinedButton, '검색/필터 초기화');
+        await tester.ensureVisible(reset);
+        await tester.pumpAndSettle();
+        await tester.tap(reset);
+        await tester.pumpAndSettle();
+        expect(controller.filteredScores.length, 30);
+        expect(controller.query, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+    testWidgets('empty library actions remain reachable at $viewport', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      tester.view.physicalSize = viewport;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final controller = SheetLibraryController(store: SheetLibraryStore());
+      await controller.load();
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      final add = find.widgetWithText(FilledButton, '악보 추가');
+      await tester.dragFrom(
+        Offset(viewport.width / 2, viewport.height - 48),
+        const Offset(0, -250),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(add);
+      await tester.pumpAndSettle();
+      expect(add.hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('full restore reports missing files until acknowledged', (
     tester,
   ) async {

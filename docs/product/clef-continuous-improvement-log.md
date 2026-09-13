@@ -22,6 +22,9 @@
 | B4 | Missing-file success copy does not explain absent bytes. | Expose unique missing source-file counts and a persistent confirmation dialog for partial full restore. | Shared missing PDF/linked/annotation store fixture; widget menu/confirm/warning/dismiss flow. Full suite 466/466, analyze/RC PASS (`/private/tmp/clef-rc-b4.log`). | VERIFIED LOCAL |
 | S1 | Split songbook entries inherit full-book scrolling and cross-song jumps; hidden first page is selected on entry. | Hide out-of-range pages, start at first visible page, restrict jumps/marks/auto-scroll. Keep one page if the whole range was hidden; preserve source and repeated-split deduplication after compaction. | Regression reproduced hidden first-page selection; controller suite 52/52, full suite 468/468, analyze/RC PASS (`/private/tmp/clef-rc-s1.log`). Physical PDF gestures need device QA. | VERIFIED LOCAL |
 | S2 | New songbook entries currently start with an empty annotation layer. | Copy current in-range strokes/texts and visibility/export flags, retain hidden-page marks, reset edit history and use independent inline storage. Source/sibling edits stay isolated. | Regression reproduced empty split annotations; copy/delete/reload isolation test PASS. Full suite 469/469, analyze/RC PASS (`/private/tmp/clef-rc-s2.log`). | VERIFIED LOCAL |
+| U1 | Fixed home sections can leave almost no space for scores. Older emulator install shows a roughly 10px grid; current source overflows by 338px at 360x720. | One vertical scroll for header and lazy score list/grid; reach and select the last of 30 scores on phone/tablet/landscape. Empty/search states remain accessible. | Widget regression at 360x720, 1280x800 and 800x360, empty states and search reset. Full suite 475/475, analyze/RC PASS (`/private/tmp/clef-rc-u1.log`). | VERIFIED LOCAL |
+| U2 | Six inline selection actions may obscure the count on a narrow screen; MobileSheets uses contextual overflow actions. | Verify count legibility at 320/360dp; retain direct setlist add and select-all, keep secondary actions reachable and disabled when no selection. Do not change tablet shortcuts or deletion confirmation. | Width-specific widget count/layout and menu/action regression. | TODO |
+| R1 | Installed Clef package differs from this source's Android package. | Establish the intended release identity before building; do not revert another app's package change without product confirmation. | Source `com.mannlab.inc`; installed Clef `com.mannlab.clef`. Historical commit `5c416a6` changed the package for in C. | BLOCKED: release identity decision; does not block local UX work |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 
 ## Verification Policy
@@ -39,11 +42,24 @@ B2: `f603e1c`, store suite 28/28 and full suite 456/456, analyze/RC PASS.
 B3: `8714f23`, store suite 37/37 and full Flutter suite, analyze/RC PASS.
 B4: `b40c7c9`, full suite 466/466, analyze/RC PASS.
 S1: `f1707d5`, controller suite 52/52, full suite 468/468, analyze/RC PASS.
-S2: current in-memory annotations copied per physical page range; external file-backed
+S2: `3787f9a`, full suite 469/469, analyze/RC PASS. Current in-memory annotations copied per physical page range; external file-backed
 hydration/migration remains outside this slice. Commit subject:
 `fix: preserve Clef songbook annotations in split scores`.
-Next: inspect existing emulator installations and remaining selection/setlist UX gaps.
-AVD launch via Flutter returned without a connected device; direct emulator launch is
-being inspected. Do not count either attempt as successful app verification.
+U1: full suite 475/475, analyze/RC PASS; commit subject:
+`fix: keep Clef library accessible below recent sections`.
+Next: inspect narrow multi-selection toolbar reachability.
 Known limit: preflight validation is not a transaction for disk/preferences write failures.
-No emulator evidence or app build claimed.
+No app build performed; new changes have widget/source evidence only.
+
+## Installed-App Observation (2026-09-13)
+
+- Direct AVD launch succeeded: `clef_rc_tablet_api35`, Android 15, 2560x1600,
+  density 320; emulator shut down after inspection.
+- Clef: `com.mannlab.clef`, `1.0.0+20`, last installed 2026-09-07.
+  Screenshot: `/private/tmp/clef-installed-home-20260913.png` (temporary evidence).
+  Recent sections and filters occupy nearly all home height; score grid is nearly hidden.
+- MobileSheets Free: `com.zubersoft.mobilesheetsfree`, 3.9.43 Build647.
+  Screenshot: `/private/tmp/mobilesheets-library-20260913.png` (temporary evidence).
+  Compact tabs/filters leave the main area for list rows; Recent shows a song and a setlist.
+- These observations are not validation of the newly changed source, and do not establish
+  microphone, pedal, touch performance or current MobileSheets paid-edition behavior.
