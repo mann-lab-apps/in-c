@@ -475,6 +475,8 @@ const createWindow = (): void => {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Hidden smoke windows still need animation frames for the PDF print layout.
+      backgroundThrottling: !isSmokeTest,
       sandbox: false
     }
   })
@@ -599,14 +601,17 @@ const createWindow = (): void => {
             setter.call(select, value)
             select.dispatchEvent(new Event('change', { bubbles: true }))
           }
-          const waitForCondition = async (predicate, message) => {
-            for (let attempt = 0; attempt < 20; attempt += 1) {
+          const waitForCondition = async (predicate, message, timeoutMs = 1000) => {
+            const deadline = performance.now() + timeoutMs
+            while (performance.now() < deadline) {
               if (predicate()) {
                 return
               }
               await new Promise((resolve) => setTimeout(resolve, 50))
             }
-            throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent)
+            throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent +
+              '; visibility=' + document.visibilityState +
+              '; printing=' + !!document.querySelector('.app-shell--pdf-export'))
           }
           const labels = [...document.querySelectorAll('.new-score-form label')]
           const field = (name) =>
@@ -836,7 +841,7 @@ const createWindow = (): void => {
           ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '내보내기')?.click()
           await new Promise(resolve => setTimeout(resolve, 50))
           document.querySelector('[aria-label="PDF 변환"]')?.click()
-          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('로 PDF를 만들었습니다.'), 'Native part PDF export did not complete')
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('로 PDF를 만들었습니다.'), 'Native part PDF export did not complete', 10000)
           document.querySelector('[aria-label="MusicXML 내보내기"]')?.click()
           await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('-part.musicxml로 MusicXML을 내보냈습니다.'), 'Part XML UI export did not complete')
           const partXmlFile = await window.inC.recentMusicXml.open({ filePath: ${JSON.stringify(smokePartExportPath)} })

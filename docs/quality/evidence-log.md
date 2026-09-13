@@ -1532,6 +1532,30 @@ the user's stop request. Git integration is separately authorized.
 | Windows dev server advisory check | 현재 실행 환경은 macOS다. | #8에서 Windows 환경 확인 |
 | Supabase backend live verification | Auth client와 publishable env 주입은 2026-07-29 main 배포에서 확인했지만, OAuth provider/schema/RLS는 외부 운영 변경이다. | #316에서 provider 설정 후 실행 |
 
+## 2026-09-13 PR 754 Packaged Smoke Follow-up
+
+- PR head `4b0118d`: CI test (607 passed / 1 skipped), site build and macOS
+  package passed. Linux job `103716441581` and Windows job `103716441646`
+  failed at `Native part PDF export did not complete` after the one-second
+  renderer deadline. Both installers/artifacts had built successfully; neither
+  failed smoke is recorded as a platform pass.
+- The smoke BrowserWindow stays hidden while App PDF export awaits two animation
+  frames. Disable background throttling only for smoke windows, retain the normal
+  app default, and give PDF generation a bounded ten-second completion wait.
+  Failure diagnostics now include visibility and print-layout state. Existing
+  native/PDF file assertions remain mandatory; no sleep replaces success checks.
+  Reference: [Electron BrowserWindow visibility and throttling](https://www.electronjs.org/docs/latest/api/browser-window#page-visibility),
+  checked 2026-09-13. Remote rerun is required to confirm the platform diagnosis.
+- `npm run package:dir` (including typecheck/build), `npm run verify:package`
+  and `git diff --check`: Pass locally on macOS arm64 after the change.
+  Final geometry-build `verify:e2e` also passed, recorded in PR 754's comment.
+- Local smoke also logged rejection of an existing version-1 autosave by the
+  version-2 recovery validator before proceeding. Fresh version-2 recovery
+  passed; legacy autosave migration is NOT verified by that pass and remains
+  a native lifecycle follow-up on explicit resume. No further feature task was
+  started after the user's stop request.
+- This is a push/merge checkpoint, not expanded V1 or public RC signoff.
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.
