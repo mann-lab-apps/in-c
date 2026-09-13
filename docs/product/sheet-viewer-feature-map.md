@@ -41,7 +41,7 @@
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
 | 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환 |
-| 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | 24차 구현: CSV/PDF 북마크를 기준으로 같은 PDF를 참조하는 곡 항목을 생성한다. 원본 PDF는 분할/수정하지 않고 각 곡 항목의 pageOrder를 북마크 구간으로 제한하며, 같은 원본/구간/제목은 중복 생성하지 않는다. 생성 직후 `세트리스트 만들기` action으로 북마크 순서의 곡 모음을 바로 만들 수 있다. 실제 PDF 파일 물리 분할은 후속 |
+| 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | CSV/PDF 북마크로 같은 PDF를 참조하는 곡 항목을 생성한다. 곡 밖 페이지는 숨기고 표시 순서/자동 스크롤/점프/리허설 마크를 해당 구간으로 제한한다. 구간이 모두 숨겨져 있으면 새 곡의 첫 페이지 한 장을 표시한다. 같은 원본/표시 구간/제목은 중복 생성하지 않고 생성 직후 `세트리스트 만들기`로 곡 모음을 만든다. 원본 PDF/설정은 보존하며 물리 분할은 후속 |
 | 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |

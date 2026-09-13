@@ -1763,12 +1763,16 @@ class SheetLibraryController extends ChangeNotifier {
     var skippedDuplicateCount = 0;
     for (final segment in segments) {
       final title = _songbookSegmentTitle(source, segment.bookmark.label);
+      final visibleSegmentPages = List<int>.generate(
+        segment.endPage - segment.startPage + 1,
+        (index) => segment.startPage + index,
+      ).where((page) => !source.pageSettings.isHidden(page)).toList();
       final pageOrder = List<int>.unmodifiable(
-        List<int>.generate(
-          segment.endPage - segment.startPage + 1,
-          (index) => segment.startPage + index,
-        ),
+        visibleSegmentPages.isEmpty
+            ? <int>[segment.startPage]
+            : visibleSegmentPages,
       );
+      final visiblePages = pageOrder.toSet();
       if (_hasSongbookSegmentDuplicate(
         sourceFilePath: source.filePath,
         title: title,
@@ -1796,7 +1800,7 @@ class SheetLibraryController extends ChangeNotifier {
           importedAt: now,
           updatedAt: now,
           lastOpenedAt: null,
-          lastPage: segment.startPage,
+          lastPage: pageOrder.first,
           isFavorite: false,
           isPinned: false,
           bookmarks: _bookmarksInPageRange(
@@ -1805,12 +1809,46 @@ class SheetLibraryController extends ChangeNotifier {
             endPage: segment.endPage,
           ),
           viewerSettings: source.viewerSettings,
-          pageSettings: source.pageSettings.copyWith(
-            pageOrder: pageOrder,
-            instanceRotations: const <int, int>{},
-            instanceCrops: const <int, SheetCropSettings>{},
+          pageSettings: source.pageSettings
+              .copyWith(
+                hiddenPages: List<int>.unmodifiable(
+                  List<int>.generate(
+                    pageCount,
+                    (index) => index + 1,
+                  ).where((page) => !visiblePages.contains(page)),
+                ),
+                pageOrder: pageOrder,
+                instanceRotations: const <int, int>{},
+                instanceCrops: const <int, SheetCropSettings>{},
+                blankPageInsertions: source.pageSettings.blankPageInsertions
+                    .where(
+                      (insertion) => visiblePages.contains(insertion.afterPage),
+                    )
+                    .toList(growable: false),
+              )
+              .compactForPageCount(pageCount),
+          autoScrollSettings: source.autoScrollSettings.copyWith(
+            startPage: pageOrder.first,
+            endPage: pageOrder.last,
+            pausePageNumbers: source.autoScrollSettings.pausePageNumbers
+                .where(visiblePages.contains)
+                .toList(growable: false),
+            pageDurations: <int, int>{
+              for (final entry
+                  in source.autoScrollSettings.pageDurations.entries)
+                if (visiblePages.contains(entry.key)) entry.key: entry.value,
+            },
+            repeatSections: source.autoScrollSettings.repeatSections
+                .where(
+                  (section) =>
+                      visiblePages.contains(section.startPage) &&
+                      visiblePages.contains(section.endPage),
+                )
+                .toList(growable: false),
+            cuePoints: source.autoScrollSettings.cuePoints
+                .where((cue) => visiblePages.contains(cue.pageNumber))
+                .toList(growable: false),
           ),
-          autoScrollSettings: source.autoScrollSettings,
           metronomeSettings: source.metronomeSettings,
         ),
       );

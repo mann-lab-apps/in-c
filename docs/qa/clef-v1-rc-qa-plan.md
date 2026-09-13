@@ -44,6 +44,7 @@
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
 | 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
 | 5-2 | 북마크 | 현재 페이지 북마크, PDF 목차 병합, CSV 북마크 병합, 목록 이동/이름 변경/삭제가 동작한다. | CSV 형식, 병합 수, 중복 page skip, 이동 page |
+| 5-3 | Songbook 곡 범위 | 분리 곡은 구간 안의 표시 페이지에서 시작하고 구간 밖 페이지/점프/리허설 마크를 숨긴다. 자동 스크롤도 곡 구간을 따른다. | 숨김 첫 페이지, 모두 숨긴 구간의 첫 페이지 fallback, 원본 보존, 재진입/재분할 중복 방지. Controller 자동 검증; 실제 PDF gesture/render QA 별도 |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
 | 8 | 필기/주석 | pen/highlighter/text/line/shape/stamp/staff/grid, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |

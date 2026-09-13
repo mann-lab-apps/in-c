@@ -1544,6 +1544,140 @@ void main() {
     },
   );
 
+  test(
+    'songbook entries keep navigation and auto-scroll inside their movement',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final source =
+          _score(
+            now,
+            title: 'Book',
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(pageNumber: 3, label: 'First', createdAt: now),
+              SheetBookmark(pageNumber: 6, label: 'Second', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[3],
+              jumpPoints: <SheetPageJumpPoint>[
+                SheetPageJumpPoint(
+                  id: 'inside',
+                  sourcePage: 4,
+                  targetPage: 5,
+                  label: 'A',
+                  createdAt: now,
+                ),
+                SheetPageJumpPoint(
+                  id: 'outside',
+                  sourcePage: 5,
+                  targetPage: 7,
+                  label: 'B',
+                  createdAt: now,
+                ),
+              ],
+              rehearsalMarks: <SheetRehearsalMark>[
+                SheetRehearsalMark(
+                  id: 'a',
+                  pageNumber: 4,
+                  label: 'A',
+                  kind: 'rehearsal',
+                  createdAt: now,
+                ),
+                SheetRehearsalMark(
+                  id: 'b',
+                  pageNumber: 7,
+                  label: 'B',
+                  kind: 'rehearsal',
+                  createdAt: now,
+                ),
+              ],
+            ),
+            autoScrollSettings: SheetAutoScrollSettings.defaultSettings
+                .copyWith(
+                  pausePageNumbers: <int>[4, 7],
+                  pageDurations: <int, int>{4: 60, 7: 80},
+                ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 9,
+      );
+      final first = result.createdScores.first;
+      expect(first.lastPage, 4);
+      expect(first.pageSettings.visiblePages(9), <int>[4, 5]);
+      expect(first.pageSettings.effectivePageOrder(9), <int>[4, 5]);
+      expect(
+        first.pageSettings.closestVisiblePage(fromPage: 7, pageCount: 9),
+        5,
+      );
+      expect(first.pageSettings.jumpPoints.map((point) => point.id), <String>[
+        'inside',
+      ]);
+      expect(first.pageSettings.rehearsalMarks.map((mark) => mark.id), <String>[
+        'a',
+      ]);
+      final plan = first.autoScrollSettings.plan(currentPage: 4, pageCount: 9);
+      expect(plan.startPage, 4);
+      expect(plan.endPage, 5);
+      expect(first.autoScrollSettings.pausePageNumbers, <int>[4]);
+      expect(first.autoScrollSettings.pageDurations, <int, int>{4: 60});
+      await controller.compactScoreForPageCount(first, 9);
+      await controller.load();
+      final repeated = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 9,
+      );
+      expect(repeated.createdCount, 0);
+      expect(repeated.skippedDuplicateCount, 2);
+      expect(controller.scoreById(source.id).toJson(), source.toJson());
+    },
+  );
+
+  test(
+    'songbook movement with every page hidden retains one in-range page',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final source =
+          _score(
+            now,
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(
+                pageNumber: 2,
+                label: 'Hidden movement',
+                createdAt: now,
+              ),
+              SheetBookmark(pageNumber: 4, label: 'Next', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[2, 3],
+            ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 5,
+      );
+      final first = result.createdScores.first;
+      expect(first.lastPage, 2);
+      expect(first.pageSettings.visiblePages(5), <int>[2]);
+      expect(first.pageSettings.effectivePageOrder(5), <int>[2]);
+      expect(controller.scoreById(source.id).pageSettings.hiddenPages, <int>[
+        2,
+        3,
+      ]);
+    },
+  );
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
