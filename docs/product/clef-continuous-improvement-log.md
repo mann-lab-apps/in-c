@@ -33,7 +33,16 @@
 
 ## Verification Policy
 
-U5: VERIFIED LOCAL. Six setlist toolbar actions truncate even a short title at
+S7: VERIFIED LOCAL. Partial rehearsal/preset updates used an old setlist snapshot,
+replacing newer membership, title and unrelated performance data. Regression
+reproduced title reverting from Evening to Concert. Apply provided fields to current
+state, filter supplied per-score maps to current membership, preserve omitted fields,
+allow explicit clear, and return false for missing targets (including preset apply).
+This is not a field-level merge of simultaneous edits to the same provided setting.
+Full suite 521/521, analyze/RC PASS (`/private/tmp/clef-rc-s7.log`).
+Commit subject: `fix: preserve Clef setlist state during settings updates`.
+
+U5: `3a149f0`, VERIFIED LOCAL. Six setlist toolbar actions truncate even a short title at
 320/360dp. Keep open-first/rehearsal direct; move copy/duplicate/rename/delete into
 a contextual menu below 720dp, retaining wide shortcuts. Acceptance: readable title,
 reachable commands, empty-list disabled playback, deletion confirmation and resize.
@@ -115,7 +124,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: preserve current setlist membership/metadata during partial rehearsal or preset updates.
+Next: avoid indistinguishable names when a setlist is duplicated repeatedly.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

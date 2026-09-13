@@ -16,6 +16,93 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
+    'partial setlist settings preserve newer membership and performance state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final created = await controller.createSetlist('Concert');
+      await controller.addScoresToSetlist(created, scores);
+      final snapshot = controller.setlists.single;
+      await controller.removeScoreFromSetlist(snapshot, scores.first);
+      await controller.renameSetlist(controller.setlists.single, 'Evening');
+      await controller.markSetlistOpened(
+        controller.setlists.single,
+        scoreId: 'b',
+      );
+      await controller.updateMetronomeSettingsForScore(
+        scores.last,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+        setlistId: snapshot.id,
+      );
+      await controller.updateSetlistRehearsalSettings(
+        snapshot,
+        transitionSeconds: 7,
+        scoreStartPages: const {'a': 2, 'b': 3},
+        scoreNotes: const {'a': 'Removed', 'b': 'Solo'},
+        scoreDurations: const {'a': 30, 'b': 90},
+      );
+      var current = controller.setlists.single;
+      expect(current.title, 'Evening');
+      expect(current.scoreIds, ['b']);
+      expect(current.scoreStartPages, {'b': 3});
+      expect(current.scoreNotes, {'b': 'Solo'});
+      expect(current.scoreDurations, {'b': 90});
+      expect(current.scoreMetronomeSettings['b']?.bpm, 96);
+      expect(current.lastOpenedScoreId, 'b');
+      final template = await controller.savePerformancePresetTemplate(
+        name: 'Stage',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: false,
+        ),
+      );
+      expect(
+        await controller.applyPerformancePresetToSetlist(snapshot, template.id),
+        isTrue,
+      );
+      await controller.load();
+      current = controller.setlists.single;
+      expect(current.title, 'Evening');
+      expect(current.scoreIds, ['b']);
+      expect(current.scoreNotes, {'b': 'Solo'});
+      expect(current.transitionSeconds, 7);
+      expect(current.scoreMetronomeSettings['b']?.bpm, 96);
+      expect(current.viewerSettingsOverride?.displayMode, 'twoPage');
+      expect(
+        await controller.updateSetlistRehearsalSettings(
+          snapshot,
+          scoreNotes: const {},
+          clearViewerSettingsOverride: true,
+        ),
+        isTrue,
+      );
+      expect(controller.setlists.single.scoreNotes, isEmpty);
+      expect(controller.setlists.single.scoreDurations, {'b': 90});
+      expect(controller.setlists.single.viewerSettingsOverride, isNull);
+      await controller.deleteSetlist(current);
+      expect(
+        await controller.updateSetlistRehearsalSettings(
+          snapshot,
+          transitionSeconds: 20,
+        ),
+        isFalse,
+      );
+      expect(
+        await controller.applyPerformancePresetToSetlist(snapshot, template.id),
+        isFalse,
+      );
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
+  test(
     'setlist reorder rejects stale indexes and preserves current metadata',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

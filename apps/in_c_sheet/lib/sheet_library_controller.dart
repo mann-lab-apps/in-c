@@ -973,11 +973,10 @@ class SheetLibraryController extends ChangeNotifier {
     if (template == null) {
       return false;
     }
-    await updateSetlistRehearsalSettings(
+    return updateSetlistRehearsalSettings(
       setlist,
       viewerSettingsOverride: template.viewerSettings,
     );
-    return true;
   }
 
   SheetPerformancePresetTemplate? performancePresetTemplateByIdOrNull(
@@ -2364,7 +2363,7 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
-  Future<void> updateSetlistRehearsalSettings(
+  Future<bool> updateSetlistRehearsalSettings(
     SheetSetlist setlist, {
     bool? rehearsalMode,
     int? transitionSeconds,
@@ -2374,24 +2373,46 @@ class SheetLibraryController extends ChangeNotifier {
     SheetViewerSettings? viewerSettingsOverride,
     bool clearViewerSettingsOverride = false,
   }) async {
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) return false;
+    final scoreIds = current.scoreIds.toSet();
     await _replaceSetlist(
-      setlist.copyWith(
+      current.copyWith(
         rehearsalMode: rehearsalMode,
         transitionSeconds: transitionSeconds,
         scoreStartPages: scoreStartPages == null
             ? null
-            : Map<String, int>.unmodifiable(scoreStartPages),
+            : Map<String, int>.unmodifiable(
+                Map.fromEntries(
+                  scoreStartPages.entries.where(
+                    (entry) => scoreIds.contains(entry.key),
+                  ),
+                ),
+              ),
         scoreNotes: scoreNotes == null
             ? null
-            : Map<String, String>.unmodifiable(scoreNotes),
+            : Map<String, String>.unmodifiable(
+                Map.fromEntries(
+                  scoreNotes.entries.where(
+                    (entry) => scoreIds.contains(entry.key),
+                  ),
+                ),
+              ),
         scoreDurations: scoreDurations == null
             ? null
-            : Map<String, int>.unmodifiable(scoreDurations),
+            : Map<String, int>.unmodifiable(
+                Map.fromEntries(
+                  scoreDurations.entries.where(
+                    (entry) => scoreIds.contains(entry.key),
+                  ),
+                ),
+              ),
         viewerSettingsOverride: viewerSettingsOverride,
         clearViewerSettingsOverride: clearViewerSettingsOverride,
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
   SheetViewerSettings viewerSettingsForScore(
