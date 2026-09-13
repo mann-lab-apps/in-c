@@ -592,7 +592,7 @@ class SheetLibraryController extends ChangeNotifier {
     return score.bookmarks.any((bookmark) => bookmark.pageNumber == pageNumber);
   }
 
-  Future<void> updateScoreMetadata(
+  Future<bool> updateScoreMetadata(
     SheetScore score, {
     required String title,
     required String composer,
@@ -604,24 +604,29 @@ class SheetLibraryController extends ChangeNotifier {
     List<SheetLinkedFile>? linkedFiles,
     List<SheetCustomMetadataField>? customFields,
   }) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) return false;
     await _replace(
-      score.copyWith(
-        title: _normalizeScoreTitle(title, score.title),
+      current.copyWith(
+        title: _normalizeScoreTitle(title, current.title),
         composer: composer.trim(),
         tags: _normalizeTags(tags),
         note: note.trim(),
-        collection: _normalizeOptionalMetadata(collection ?? score.collection),
-        group: _normalizeOptionalMetadata(group ?? score.group),
-        rating: SheetScore.normalizeRating(rating ?? score.rating),
+        collection: _normalizeOptionalMetadata(
+          collection ?? current.collection,
+        ),
+        group: _normalizeOptionalMetadata(group ?? current.group),
+        rating: SheetScore.normalizeRating(rating ?? current.rating),
         linkedFiles: linkedFiles == null
-            ? score.linkedFiles
+            ? current.linkedFiles
             : SheetScore.normalizeLinkedFiles(linkedFiles),
         customFields: customFields == null
-            ? score.customFields
+            ? current.customFields
             : SheetScore.normalizeCustomFields(customFields),
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
   Future<void> createCollectionLibrary(String name) async {

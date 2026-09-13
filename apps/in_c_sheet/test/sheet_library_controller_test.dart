@@ -17,6 +17,80 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test(
+    'metadata edit applies only submitted fields to current score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateScoreMetadata(
+        original,
+        title: original.title,
+        composer: '',
+        tags: '',
+        note: '',
+        collection: 'Concert',
+        group: 'Brass',
+        rating: 4,
+      );
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.updateMetronomeSettingsForScore(
+        controller.scoreById(original.id),
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 120),
+      );
+      final before = controller.scoreById(original.id).toJson();
+      final result = await controller.updateScoreMetadata(
+        original,
+        title: 'Edited',
+        composer: ' Bach ',
+        tags: 'solo',
+        note: ' cue ',
+      );
+      expect(result, isTrue);
+      await controller.load();
+      final after = controller.scoreById(original.id).toJson();
+      expect(after['title'], 'Edited');
+      expect(after['composer'], 'Bach');
+      expect(after['note'], 'cue');
+      for (final key in ['title', 'composer', 'tags', 'note', 'updatedAt']) {
+        before.remove(key);
+        after.remove(key);
+      }
+      expect(after, before);
+      await controller.updateScoreMetadata(
+        original,
+        title: '',
+        composer: '',
+        tags: '',
+        note: '',
+        collection: '',
+        group: '',
+        rating: 0,
+      );
+      final cleared = controller.scoreById(original.id);
+      expect(cleared.title, 'Edited');
+      expect(cleared.collection, '');
+      expect(cleared.group, '');
+      expect(cleared.rating, 0);
+      await controller.deleteScoresByIds({original.id});
+      expect(
+        await controller.updateScoreMetadata(
+          original,
+          title: 'Lost',
+          composer: '',
+          tags: '',
+          note: '',
+        ),
+        isFalse,
+      );
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
   for (final action in ['page', 'open']) {
     test('stale $action callback preserves current score content', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

@@ -33,6 +33,18 @@
 
 ## Verification Policy
 
+S14: VERIFIED LOCAL. Home metadata editing holds a score snapshot while its dialog is
+open. Widget save first reproduced disposed TextEditingController use during route
+exit. Keep controllers until DialogRoute.completed, preserve captured target identity,
+apply submitted metadata to the current score and report a missing target instead of
+success. Preserve omitted optional fields; explicit empty values still clear fields.
+Acceptance: live page/favorite preservation, save/cancel exit, deleted target notice,
+codec preservation of all non-edited fields, optional fields and reload. Not a merge
+of simultaneous edits to the same submitted metadata field. Full suite 558/558,
+analyze/RC PASS (`/private/tmp/clef-rc-s14.log`). Commit subject:
+`fix: preserve Clef metadata dialog state and target`.
+
+S13 commit: `81e90e5`.
 S13: VERIFIED LOCAL. PDF onPageChanged captures a build-time score, and setlist opening
 also awaits another write before marking a captured score opened. These bookkeeping
 operations must not replace newer score content. Regression reproduced lost title,
@@ -194,8 +206,8 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: S13 verified; commit then inspect metadata dialogs for stale-snapshot
-replacement. No build/push/merge.
+Resume checkpoint: S14 verified; commit then audit bookmark edit callbacks against current
+score state. No build/push/merge.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

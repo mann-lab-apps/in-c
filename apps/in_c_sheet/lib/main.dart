@@ -906,11 +906,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       score: score,
       onAddLinkedFile: controller.pickLinkedFile,
     );
-    if (result == null) {
+    if (result == null || !mounted) {
       return;
     }
 
-    await controller.updateScoreMetadata(
+    final didSave = await controller.updateScoreMetadata(
       score,
       title: result.title,
       composer: result.composer,
@@ -922,6 +922,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       linkedFiles: result.linkedFiles,
       customFields: result.customFields,
     );
+    if (!mounted || didSave) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('악보가 없어 정보를 저장하지 못했습니다.')));
   }
 
   Future<void> _selectSortMode() async {
@@ -2960,8 +2963,10 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
   var customFields = score.customFields.toList(growable: true);
   var rating = score.rating;
   try {
-    return await showDialog<_ScoreMetadataInput>(
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final route = DialogRoute<_ScoreMetadataInput>(
       context: context,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('악보 정보 편집'),
@@ -3157,6 +3162,9 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
         ),
       ),
     );
+    final result = await navigator.push(route);
+    await route.completed;
+    return result;
   } finally {
     titleController.dispose();
     composerController.dispose();
@@ -8459,16 +8467,17 @@ setlist=$setlistLabel
   }
 
   Future<void> _editCurrentScoreMetadata() async {
+    final target = score;
     final result = await _showScoreMetadataDialog(
       context: context,
-      score: score,
+      score: target,
       onAddLinkedFile: widget.controller.pickLinkedFile,
     );
     if (result == null || !mounted) {
       return;
     }
-    await widget.controller.updateScoreMetadata(
-      score,
+    final didSave = await widget.controller.updateScoreMetadata(
+      target,
       title: result.title,
       composer: result.composer,
       tags: result.tags,
@@ -8479,7 +8488,8 @@ setlist=$setlistLabel
       linkedFiles: result.linkedFiles,
       customFields: result.customFields,
     );
-    _showSnackBar('악보 정보를 저장했습니다.');
+    if (!mounted) return;
+    _showSnackBar(didSave ? '악보 정보를 저장했습니다.' : '악보가 없어 정보를 저장하지 못했습니다.');
   }
 
   void _showImportedScoreNudge() {

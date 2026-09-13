@@ -14,6 +14,83 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final outcome in ['save', 'removed', 'cancel']) {
+    final removed = outcome == 'removed';
+    testWidgets(
+      'metadata dialog preserves current score or reports missing target $outcome',
+      (tester) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        tester.view.physicalSize = const Size(2560, 1600);
+        tester.view.devicePixelRatio = 2;
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
+        final now = DateTime(2026, 9, 13);
+        final store = SheetLibraryStore();
+        await store.saveScores([
+          SheetScore(
+            id: 'draft',
+            title: 'Draft score',
+            composer: '',
+            tags: const [],
+            note: '',
+            filePath: '/tmp/draft.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const [],
+          ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await tester.pumpWidget(InCSheetApp(controller: controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Draft score').first);
+        await tester.pumpAndSettle();
+        expect(find.text('악보 정보 편집'), findsOneWidget);
+        await tester.enterText(
+          find.widgetWithText(TextField, '제목'),
+          'Concert score',
+        );
+        if (removed) {
+          await controller.deleteScoresByIds({'draft'});
+        } else {
+          await controller.updateLastPage(controller.scoreById('draft'), 4);
+          await controller.toggleFavorite(controller.scoreById('draft'));
+        }
+        await tester.pump();
+        final save = outcome == 'cancel'
+            ? find.widgetWithText(TextButton, '취소')
+            : find.widgetWithText(FilledButton, '저장');
+        await tester.ensureVisible(save);
+        await tester.tap(save);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        if (removed) {
+          expect(controller.scores, isEmpty);
+          expect(find.text('악보가 없어 정보를 저장하지 못했습니다.'), findsOneWidget);
+        } else {
+          final score = controller.scoreById('draft');
+          expect(
+            score.title,
+            outcome == 'cancel' ? 'Draft score' : 'Concert score',
+          );
+          expect(score.lastPage, 4);
+          expect(score.isFavorite, isTrue);
+        }
+        await controller.load();
+        if (removed) {
+          expect(controller.scores, isEmpty);
+        } else {
+          expect(controller.scoreById('draft').lastPage, 4);
+        }
+      },
+    );
+  }
+
   for (final action in <String>['정보 복원', '자동 정보 복원', '전체 백업 복원']) {
     for (final outcome in <String>['success', 'cancel', 'error']) {
       testWidgets('$action blocks editing until restore $outcome', (
