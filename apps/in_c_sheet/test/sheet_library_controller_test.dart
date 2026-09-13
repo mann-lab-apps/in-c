@@ -16,6 +16,42 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
+    'setlist add excludes removed scores without counting them as duplicates',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b', 'c']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, scores.first);
+      await controller.deleteScoresByIds({'c'});
+      final result = await controller.addScoresToSetlist(setlist, [
+        ...scores,
+        scores[1],
+      ]);
+      expect(result.addedCount, 1);
+      expect(result.skippedDuplicateCount, 2);
+      expect(result.skippedMissingCount, 1);
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+      final missingOnly = await controller.addScoresToSetlist(setlist, [
+        scores.last,
+      ]);
+      expect(missingOnly.didAddAny, isFalse);
+      expect(missingOnly.skippedDuplicateCount, 0);
+      expect(missingOnly.skippedMissingCount, 1);
+      await controller.addScoreToSetlist(setlist, scores.last);
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+      await controller.load();
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+    },
+  );
+
+  test(
     'repeated setlist duplicates receive distinct case-insensitive names',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

@@ -251,7 +251,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ? ''
         : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
     final message = result.didAddAny
-        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel'
+        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '"${target.title}"에 이미 모두 포함되어 있습니다.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -460,13 +460,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       final added = setlistResult.addedCount;
       if (_showSetlistAddFailure(context, setlistResult)) return;
       final skipped = setlistResult.skippedDuplicateCount;
+      final message = skipped > 0
+          ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
+          : '"${target.title}"에 $added개 악보를 추가했습니다.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            skipped > 0
-                ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
-                : '"${target.title}"에 $added개 악보를 추가했습니다.',
-          ),
+          content: Text('$message${_setlistMissingScoreSuffix(setlistResult)}'),
         ),
       );
       return;
@@ -4075,12 +4074,20 @@ bool _showSetlistAddFailure(
   BuildContext context,
   SheetSetlistBulkAddResult result,
 ) {
-  if (!result.targetMissing) return false;
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('세트리스트가 없어 추가하지 못했습니다. 다시 선택해주세요.')),
-  );
+  final message = result.targetMissing
+      ? '세트리스트가 없어 추가하지 못했습니다. 다시 선택해주세요.'
+      : !result.didAddAny && result.skippedMissingCount > 0
+      ? '선택한 악보 중 ${result.skippedMissingCount}개가 라이브러리에 없어 추가하지 못했습니다.'
+      : null;
+  if (message == null) return false;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   return true;
 }
+
+String _setlistMissingScoreSuffix(SheetSetlistBulkAddResult result) =>
+    result.skippedMissingCount == 0
+    ? ''
+    : ' 라이브러리에서 제거된 ${result.skippedMissingCount}개는 건너뛰었습니다.';
 
 String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
   final buffer = StringBuffer()
@@ -5473,7 +5480,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         ? ''
         : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
     final message = result.didAddAny
-        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel'
+        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '이미 모두 세트리스트에 포함되어 있습니다.';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
@@ -8576,7 +8583,7 @@ setlist=$setlistLabel
         : '';
     _showSnackBar(
       result.didAddAny
-          ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.'
+          ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.${_setlistMissingScoreSuffix(result)}'
           : '"${target.title}"에 이미 모두 담겨 있습니다.',
       action: SnackBarAction(
         label: '열기',

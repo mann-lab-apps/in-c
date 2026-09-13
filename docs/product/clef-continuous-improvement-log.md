@@ -33,7 +33,15 @@
 
 ## Verification Policy
 
-S8: VERIFIED LOCAL. A pending setlist undo can reinsert a score removed from the library.
+S9: VERIFIED LOCAL. Bulk add accepts stale scores no longer in the library and reports
+them as newly added. Validate membership for single/bulk add, distinguish missing
+from duplicate counts, and communicate partial/all-missing outcomes in every add flow.
+Regression reproduced two additions instead of one; mixed/all-missing controller and
+pending-picker widget cases pass. Physical file existence is not used as membership.
+Full suite 527/527, analyze/RC PASS (`/private/tmp/clef-rc-s9.log`).
+Commit subject: `fix: skip missing Clef scores during setlist add`.
+
+S8: `2fdcde6`, VERIFIED LOCAL. A pending setlist undo can reinsert a score removed from the library.
 Widget regression reproduced the dangling score ID. Require both targets to exist;
 already-restored entries are a successful no-op. Notify when undo cannot restore.
 Normal undo, removed score and removed setlist widget cases are covered; no new data fields.
@@ -139,7 +147,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: validate pending bulk-add scores and distinguish removed items from duplicates.
+Next: async metronome saves must preserve intervening score/page/annotation changes.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

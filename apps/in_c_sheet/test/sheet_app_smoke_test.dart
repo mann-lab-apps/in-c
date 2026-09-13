@@ -1794,6 +1794,70 @@ void main() {
     });
   }
 
+  for (final removedCount in [1, 2]) {
+    testWidgets(
+      'bulk add reports $removedCount scores removed while selecting',
+      (tester) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 9, 13);
+        final store = SheetLibraryStore();
+        await store.saveScores([
+          for (final id in ['a', 'b', 'c'])
+            SheetScore(
+              id: id,
+              title: 'Score $id',
+              composer: '',
+              tags: const [],
+              note: '',
+              filePath: '/tmp/$id.pdf',
+              importedAt: now,
+              updatedAt: now,
+              lastOpenedAt: null,
+              lastPage: 1,
+              isFavorite: false,
+              bookmarks: const [],
+            ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final setlist = await controller.createSetlist('Concert');
+        await controller.addScoreToSetlist(setlist, controller.scoreById('a'));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: SheetSetlistDetailScreen(
+              controller: controller,
+              setlistId: setlist.id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('악보 추가'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Score b'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Score c'));
+        await tester.pumpAndSettle();
+        await controller.deleteScoresByIds({'c', if (removedCount == 2) 'b'});
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('추가'));
+        await tester.pumpAndSettle();
+        expect(controller.setlists.single.scoreIds, [
+          'a',
+          if (removedCount == 1) 'b',
+        ]);
+        expect(
+          find.text(
+            removedCount == 1
+                ? '1개 악보를 세트리스트에 추가했습니다. 라이브러리에서 제거된 1개는 건너뛰었습니다.'
+                : '선택한 악보 중 2개가 라이브러리에 없어 추가하지 못했습니다.',
+          ),
+          findsOneWidget,
+        );
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final changedWhilePicking in [false, true]) {
     testWidgets(
       'setlist detail bulk add with newer snapshot: $changedWhilePicking',

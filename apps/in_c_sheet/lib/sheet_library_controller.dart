@@ -24,11 +24,13 @@ class SheetSetlistBulkAddResult {
     required this.addedCount,
     required this.skippedDuplicateCount,
     this.targetMissing = false,
+    this.skippedMissingCount = 0,
   });
 
   final int addedCount;
   final int skippedDuplicateCount;
   final bool targetMissing;
+  final int skippedMissingCount;
 
   bool get didAddAny => addedCount > 0;
 }
@@ -2254,9 +2256,7 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> addScoreToSetlist(SheetSetlist setlist, SheetScore score) async {
-    final current = setlistByIdOrNull(setlist.id);
-    if (current == null) return;
-    await _replaceSetlist(current.appendScore(score.id, DateTime.now()));
+    await addScoresToSetlist(setlist, [score]);
   }
 
   Future<SheetSetlistBulkAddResult> addScoresToSetlist(
@@ -2273,9 +2273,15 @@ class SheetLibraryController extends ChangeNotifier {
     }
     final existingScoreIds = current.scoreIds.toSet();
     final nextScoreIds = current.scoreIds.toList();
+    final validScoreIds = _scores.map((score) => score.id).toSet();
     var skippedDuplicateCount = 0;
+    var skippedMissingCount = 0;
 
     for (final score in scores) {
+      if (!validScoreIds.contains(score.id)) {
+        skippedMissingCount += 1;
+        continue;
+      }
       if (existingScoreIds.add(score.id)) {
         nextScoreIds.add(score.id);
       } else {
@@ -2295,6 +2301,7 @@ class SheetLibraryController extends ChangeNotifier {
     return SheetSetlistBulkAddResult(
       addedCount: addedCount,
       skippedDuplicateCount: skippedDuplicateCount,
+      skippedMissingCount: skippedMissingCount,
     );
   }
 
