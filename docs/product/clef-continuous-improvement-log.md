@@ -33,6 +33,20 @@
 
 ## Verification Policy
 
+S12: VERIFIED LOCAL. Resume at `0002857` after restoring the removed temporary worktree;
+fetched dev remains 27 commits ahead of origin/dev, with no remote-only commits.
+Closing a running metronome during delayed settings save reproduced a leaked periodic
+timer in a widget regression. Apply playback timing immediately before persistence;
+late responses never restart playback. Catch persistence failures and show a notice
+only for the current request while mounted. Keep optimistic live settings on failure.
+Acceptance: BPM/meter/subdivision/count-in after close or stop, immediate timing,
+out-of-order success, current/old/closed failure and retry. Fourteen widget tests pass.
+Full suite 551/551, analyze and RC PASS (`/private/tmp/clef-rc-s12-final.log`).
+Initial test-only braces lint was fixed before the successful rerun. No native audio
+timing or new installed-app evidence. Commit subject:
+`fix: decouple Clef metronome playback from pending saves`.
+
+S11 commit: `0002857`.
 S11: VERIFIED LOCAL. Rapid metronome changes can persist an older BPM after a newer one.
 All three global/score/setlist regressions reproduced 96 instead of 120 after reload.
 Serialize metronome persistence in request order; share the queue across global and
@@ -169,10 +183,8 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-User stop checkpoint: S11 verified; commit this checkpoint and stop. No build/push/merge.
-Unstarted follow-up: check metronome sheet dismissal during pending settings saves;
-the timer restart after an awaited save is a source-level concern, not a reproduced
-widget result yet. Await a new user instruction before investigating/implementing it.
+Resume checkpoint: S12 verified; commit then examine stale score snapshots during
+page/metadata updates. No build/push/merge.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

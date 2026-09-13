@@ -17663,12 +17663,13 @@ class _MetronomeSheet extends StatefulWidget {
 @visibleForTesting
 Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+  Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
 }) {
   return MaterialApp(
     home: Scaffold(
       body: _MetronomeSheet(
         initialSettings: settings,
-        onSettingsChanged: (_) async {},
+        onSettingsChanged: onSettingsChanged ?? (_) async {},
         onShowMiniPanel: () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
       ),
@@ -17768,6 +17769,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
   final List<DateTime> _tapTempoMarks = <DateTime>[];
+  int _settingsRequest = 0;
 
   @override
   void initState() {
@@ -17792,9 +17794,22 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
+    await _persistSettings(nextSettings, restartTimer: true);
+  }
+
+  Future<void> _persistSettings(
+    SheetMetronomeSettings settings, {
+    bool restartTimer = false,
+  }) async {
+    final request = ++_settingsRequest;
+    if (restartTimer && _isRunning) _restartTimer();
+    try {
+      await widget.onSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _settingsRequest) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('설정을 저장하지 못했습니다. 다시 변경해주세요.')),
+      );
     }
   }
 
@@ -17814,10 +17829,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _setSoundEnabled(bool enabled) async {
@@ -17825,7 +17837,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setVolumePercent(int volumePercent) async {
@@ -17833,7 +17845,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setAccentEnabled(bool enabled) async {
@@ -17841,7 +17853,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _toggleAccentBeat(int beatIndex) async {
@@ -17856,7 +17868,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setSubdivision(SheetMetronomeSubdivision subdivision) async {
@@ -17870,10 +17882,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _setCountInBars(int bars) async {
@@ -17888,10 +17897,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _tapTempo() async {

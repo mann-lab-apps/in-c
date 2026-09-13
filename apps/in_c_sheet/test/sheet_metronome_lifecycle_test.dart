@@ -1,0 +1,160 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_metronome.dart';
+
+void main() {
+  const silent = SheetMetronomeSettings(
+    bpm: 120,
+    meter: SheetMetronomeMeter.fourFour,
+    soundEnabled: false,
+  );
+  for (final action in ['BPM', '3/4', '8분', '1마디']) {
+    for (final exit in ['close', 'stop']) {
+      testWidgets('$action save after $exit cannot restart metronome', (
+        tester,
+      ) async {
+        final saved = Completer<void>();
+        await tester.pumpWidget(
+          buildMetronomeSheetForTest(
+            settings: silent,
+            onSettingsChanged: (_) => saved.future,
+          ),
+        );
+        await tester.tap(find.text('시작'));
+        await tester.pump();
+        final control = action == 'BPM'
+            ? find.byTooltip('BPM 올리기')
+            : find.text(action);
+        await tester.ensureVisible(control);
+        await tester.tap(control);
+        await tester.pump();
+        if (exit == 'close') {
+          await tester.pumpWidget(const SizedBox.shrink());
+        } else {
+          await tester.scrollUntilVisible(
+            find.text('정지'),
+            -250,
+            scrollable: find.byType(Scrollable).first,
+          );
+          await tester.tap(find.text('정지'));
+          await tester.pump();
+        }
+        saved.complete();
+        await tester.pump();
+        await tester.pump(const Duration(seconds: 1));
+        if (exit == 'stop') expect(find.text('시작'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  testWidgets(
+    'BPM playback changes before save and late completion does not reset beat',
+    (tester) async {
+      final saves = <Completer<void>>[];
+      await tester.pumpWidget(
+        buildMetronomeSheetForTest(
+          settings: silent,
+          onSettingsChanged: (_) {
+            final save = Completer<void>();
+            saves.add(save);
+            return save.future;
+          },
+        ),
+      );
+      await tester.tap(find.text('시작'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('BPM 올리기'));
+      await tester.pump();
+      await tester.tap(find.byTooltip('BPM 올리기'));
+      await tester.pump();
+      expect(find.text('122'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 492));
+      expect(find.textContaining('BPM · 4/4 · 2/4'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 200));
+      saves.last.complete();
+      saves.first.complete();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 292));
+      expect(find.textContaining('BPM · 4/4 · 3/4'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  for (final outcome in [
+    'latest failure',
+    'old failure',
+    'closed failure',
+    'success',
+  ]) {
+    testWidgets('metronome handles $outcome without stale UI', (tester) async {
+      final saves = <Completer<void>>[];
+      await tester.pumpWidget(
+        buildMetronomeSheetForTest(
+          settings: silent,
+          onSettingsChanged: (_) {
+            final save = Completer<void>();
+            saves.add(save);
+            return save.future;
+          },
+        ),
+      );
+      await tester.tap(find.byTooltip('BPM 올리기'));
+      await tester.pump();
+      if (outcome == 'old failure') {
+        await tester.tap(find.byTooltip('BPM 올리기'));
+        await tester.pump();
+        saves.last.complete();
+      }
+      if (outcome == 'closed failure') {
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
+      if (outcome == 'success') {
+        saves.first.complete();
+      } else {
+        saves.first.completeError(StateError('save failed'));
+      }
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(
+        find.text('설정을 저장하지 못했습니다. 다시 변경해주세요.'),
+        outcome == 'latest failure' ? findsOneWidget : findsNothing,
+      );
+      if (outcome == 'latest failure') {
+        await tester.tap(find.byTooltip('BPM 올리기'));
+        await tester.pump();
+        saves.last.complete();
+        await tester.pump();
+        expect(find.text('122'), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
+  testWidgets('closing running metronome during save leaves no periodic timer', (
+    tester,
+  ) async {
+    final saved = Completer<void>();
+    await tester.pumpWidget(
+      buildMetronomeSheetForTest(
+        settings: SheetMetronomeSettings.defaultSettings.copyWith(
+          soundEnabled: false,
+        ),
+        onSettingsChanged: (_) => saved.future,
+      ),
+    );
+    await tester.tap(find.text('시작'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('BPM 올리기'));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    saved.complete();
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+    // The widget test binding also rejects periodic timers surviving teardown.
+  });
+}
