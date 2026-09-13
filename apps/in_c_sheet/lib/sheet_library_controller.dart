@@ -523,19 +523,20 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
-  Future<void> toggleBookmark(SheetScore score, int pageNumber) async {
-    if (pageNumber < 1) {
-      return;
+  Future<bool> toggleBookmark(SheetScore score, int pageNumber) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || pageNumber < 1) {
+      return false;
     }
 
-    final existing = score.bookmarks
+    final existing = current.bookmarks
         .where((bookmark) => bookmark.pageNumber != pageNumber)
         .toList();
-    final isRemoving = existing.length != score.bookmarks.length;
+    final isRemoving = existing.length != current.bookmarks.length;
     final nextBookmarks = isRemoving
         ? existing
         : <SheetBookmark>[
-            ...score.bookmarks,
+            ...current.bookmarks,
             SheetBookmark(
               pageNumber: pageNumber,
               label: '$pageNumber쪽',
@@ -545,19 +546,24 @@ class SheetLibraryController extends ChangeNotifier {
     nextBookmarks.sort((a, b) => a.pageNumber.compareTo(b.pageNumber));
 
     await _replace(
-      score.copyWith(
+      current.copyWith(
         bookmarks: List<SheetBookmark>.unmodifiable(nextBookmarks),
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
-  Future<void> renameBookmark(
+  Future<bool> renameBookmark(
     SheetScore score,
     SheetBookmark bookmark,
     String label,
   ) async {
-    final nextBookmarks = score.bookmarks
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || !isBookmarked(current, bookmark.pageNumber)) {
+      return false;
+    }
+    final nextBookmarks = current.bookmarks
         .map(
           (candidate) => candidate.pageNumber == bookmark.pageNumber
               ? candidate.copyWith(
@@ -568,24 +574,30 @@ class SheetLibraryController extends ChangeNotifier {
         .toList(growable: false);
 
     await _replace(
-      score.copyWith(
+      current.copyWith(
         bookmarks: List<SheetBookmark>.unmodifiable(nextBookmarks),
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
-  Future<void> deleteBookmark(SheetScore score, SheetBookmark bookmark) async {
+  Future<bool> deleteBookmark(SheetScore score, SheetBookmark bookmark) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || !isBookmarked(current, bookmark.pageNumber)) {
+      return false;
+    }
     await _replace(
-      score.copyWith(
+      current.copyWith(
         bookmarks: List<SheetBookmark>.unmodifiable(
-          score.bookmarks
+          current.bookmarks
               .where((candidate) => candidate.pageNumber != bookmark.pageNumber)
               .toList(growable: false),
         ),
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
   bool isBookmarked(SheetScore score, int pageNumber) {

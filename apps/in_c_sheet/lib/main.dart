@@ -8120,8 +8120,16 @@ setlist=$setlistLabel
       currentScore,
       pageNumber,
     );
-    await widget.controller.toggleBookmark(currentScore, pageNumber);
-    _showSnackBar(wasBookmarked ? '북마크를 해제했습니다.' : '북마크를 추가했습니다.');
+    final didChange = await widget.controller.toggleBookmark(
+      currentScore,
+      pageNumber,
+    );
+    if (!mounted) return;
+    _showSnackBar(
+      didChange
+          ? (wasBookmarked ? '북마크를 해제했습니다.' : '북마크를 추가했습니다.')
+          : '악보가 없어 북마크를 변경하지 못했습니다.',
+    );
   }
 
   Future<void> _showBookmarks() async {
@@ -8183,7 +8191,7 @@ setlist=$setlistLabel
         ),
       ),
     );
-    if (selected == null) {
+    if (selected == null || !mounted) {
       return;
     }
 
@@ -8206,18 +8214,25 @@ setlist=$setlistLabel
           label: '이름',
           initialValue: selected.bookmark.label,
         );
-        if (label == null) {
+        if (label == null || !mounted) {
           return;
         }
-        await widget.controller.renameBookmark(
+        final didRename = await widget.controller.renameBookmark(
           currentScore,
           selected.bookmark,
           label,
         );
+        if (mounted && !didRename) {
+          _showSnackBar('북마크가 없어 이름을 변경하지 못했습니다.');
+        }
         return;
       case _BookmarkListAction.delete:
-        await widget.controller.deleteBookmark(currentScore, selected.bookmark);
-        _showSnackBar('북마크를 삭제했습니다.');
+        final didDelete = await widget.controller.deleteBookmark(
+          currentScore,
+          selected.bookmark,
+        );
+        if (!mounted) return;
+        _showSnackBar(didDelete ? '북마크를 삭제했습니다.' : '이미 없어진 북마크입니다.');
         return;
     }
   }

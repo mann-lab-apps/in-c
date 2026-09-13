@@ -33,6 +33,17 @@
 
 ## Verification Policy
 
+S15: VERIFIED LOCAL. Bookmark list actions retain a score captured before modal waits.
+All toggle/rename/delete regressions reproduced loss of another newly added bookmark.
+Apply only the requested page operation to current score state; reject missing scores
+and missing rename/delete targets. Return explicit success and use it in viewer copy,
+with mounted checks after waits. Acceptance: preserve other bookmarks and all unrelated
+codec fields, toggle current membership, invalid page no-op, absent targets and reload.
+Controller evidence only for new bookmark scenarios; native viewer messages need QA.
+Full suite 562/562, analyze/RC PASS (`/private/tmp/clef-rc-s15.log`). Commit subject:
+`fix: apply Clef bookmark actions to current state`.
+
+S14 commit: `97688b2`.
 S14: VERIFIED LOCAL. Home metadata editing holds a score snapshot while its dialog is
 open. Widget save first reproduced disposed TextEditingController use during route
 exit. Keep controllers until DialogRoute.completed, preserve captured target identity,
@@ -206,8 +217,12 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: S14 verified; commit then audit bookmark edit callbacks against current
-score state. No build/push/merge.
+Resume checkpoint: S15 verified; commit then check favorite/pin card callbacks for
+stale-snapshot loss. No build/push/merge.
+Pending investigation: ordinary saveScores/saveSetlists ignore false preference writes,
+and _replace changes memory before awaiting storage. Annotation copy promises prior
+data preservation on failure, which needs a separate persistence/rollback contract
+and injected-write-failure evidence before claiming reliability. Not verified yet.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

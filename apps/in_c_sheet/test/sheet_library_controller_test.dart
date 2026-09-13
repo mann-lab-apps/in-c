@@ -18,6 +18,105 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
+    'bookmark commands reject missing targets and toggle current membership',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final bookmark = SheetBookmark(
+        pageNumber: 1,
+        label: 'Intro',
+        createdAt: now,
+      );
+      final original = _score(now, bookmarks: [bookmark]);
+      final store = SheetLibraryStore();
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(await controller.toggleBookmark(original, 1), isTrue);
+      final without = controller.scoreById(original.id);
+      expect(
+        await controller.renameBookmark(original, bookmark, 'Lost'),
+        isFalse,
+      );
+      expect(await controller.deleteBookmark(original, bookmark), isFalse);
+      expect(await controller.toggleBookmark(original, 0), isFalse);
+      expect(identical(controller.scoreById(original.id), without), isTrue);
+      expect(await controller.toggleBookmark(original, 1), isTrue);
+      expect(controller.scoreById(original.id).bookmarks.single.label, '1쪽');
+      await controller.deleteScoresByIds({original.id});
+      expect(await controller.toggleBookmark(original, 2), isFalse);
+      expect(
+        await controller.renameBookmark(original, bookmark, 'Lost'),
+        isFalse,
+      );
+      expect(await controller.deleteBookmark(original, bookmark), isFalse);
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
+  for (final action in ['toggle', 'rename', 'delete']) {
+    test(
+      'stale bookmark $action preserves current score and other bookmarks',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 9, 13);
+        final original = _score(
+          now,
+          bookmarks: [
+            SheetBookmark(pageNumber: 1, label: 'Intro', createdAt: now),
+          ],
+        );
+        final store = SheetLibraryStore();
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await controller.toggleBookmark(original, 4);
+        await controller.updateScoreMetadata(
+          controller.scoreById(original.id),
+          title: 'Revised',
+          composer: 'Bach',
+          tags: '',
+          note: 'Cue',
+        );
+        final before = controller.scoreById(original.id).toJson();
+        switch (action) {
+          case 'toggle':
+            await controller.toggleBookmark(original, 2);
+          case 'rename':
+            await controller.renameBookmark(
+              original,
+              original.bookmarks.single,
+              'Start',
+            );
+          case 'delete':
+            await controller.deleteBookmark(
+              original,
+              original.bookmarks.single,
+            );
+        }
+        await controller.load();
+        final current = controller.scoreById(original.id);
+        expect(
+          current.bookmarks.map((bookmark) => bookmark.pageNumber),
+          action == 'toggle'
+              ? [1, 2, 4]
+              : action == 'rename'
+              ? [1, 4]
+              : [4],
+        );
+        if (action == 'rename') expect(current.bookmarks.first.label, 'Start');
+        final after = current.toJson();
+        for (final key in ['bookmarks', 'updatedAt']) {
+          before.remove(key);
+          after.remove(key);
+        }
+        expect(after, before);
+      },
+    );
+  }
+
+  test(
     'metadata edit applies only submitted fields to current score',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
