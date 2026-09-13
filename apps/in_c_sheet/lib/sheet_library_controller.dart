@@ -491,16 +491,19 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> markOpened(SheetScore score) async {
-    await _replace(score.copyWith(lastOpenedAt: DateTime.now()));
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) return;
+    await _replace(current.copyWith(lastOpenedAt: DateTime.now()));
   }
 
   Future<void> updateLastPage(SheetScore score, int pageNumber) async {
-    if (pageNumber < 1 || score.lastPage == pageNumber) {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null || pageNumber < 1 || current.lastPage == pageNumber) {
       return;
     }
 
     await _replace(
-      score.copyWith(
+      current.copyWith(
         lastPage: pageNumber,
         lastOpenedAt: DateTime.now(),
         updatedAt: DateTime.now(),

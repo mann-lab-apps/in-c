@@ -33,6 +33,17 @@
 
 ## Verification Policy
 
+S13: VERIFIED LOCAL. PDF onPageChanged captures a build-time score, and setlist opening
+also awaits another write before marking a captured score opened. These bookkeeping
+operations must not replace newer score content. Regression reproduced lost title,
+favorite and annotation, plus a missing return-to-page-1 update after visiting page 4.
+Resolve current score for markOpened/updateLastPage, preserve all unrelated codec
+fields, compare the current page for no-op and ignore removed targets. Controller
+tests cover reload, old-page return, invalid/current page and removed score.
+Full suite 554/554, analyze/RC PASS (`/private/tmp/clef-rc-s13.log`). Native PDF event
+ordering remains device QA. Commit subject: `fix: preserve Clef content during page bookkeeping`.
+
+S12 commit: `e6924b4`.
 S12: VERIFIED LOCAL. Resume at `0002857` after restoring the removed temporary worktree;
 fetched dev remains 27 commits ahead of origin/dev, with no remote-only commits.
 Closing a running metronome during delayed settings save reproduced a leaked periodic
@@ -183,8 +194,8 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: S12 verified; commit then examine stale score snapshots during
-page/metadata updates. No build/push/merge.
+Resume checkpoint: S13 verified; commit then inspect metadata dialogs for stale-snapshot
+replacement. No build/push/merge.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

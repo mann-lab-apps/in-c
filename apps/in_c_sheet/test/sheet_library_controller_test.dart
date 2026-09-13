@@ -17,6 +17,77 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final action in ['page', 'open']) {
+    test('stale $action callback preserves current score content', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateScoreMetadata(
+        original,
+        title: 'Revised',
+        composer: 'Bach',
+        tags: 'practice',
+        note: 'Solo',
+      );
+      await controller.toggleFavorite(controller.scoreById(original.id));
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.addAnnotationStroke(
+        controller.scoreById(original.id),
+        SheetAnnotationStroke(
+          id: 'fresh',
+          pageNumber: 4,
+          tool: SheetAnnotationTool.pen,
+          color: 0xff111111,
+          width: 2,
+          points: const [SheetAnnotationPoint(x: .1, y: .2)],
+          createdAt: DateTime(2026, 9, 13),
+        ),
+      );
+      final before = controller.scoreById(original.id).toJson();
+      if (action == 'page') {
+        await controller.updateLastPage(original, 5);
+      } else {
+        await controller.markOpened(original);
+      }
+      await controller.load();
+      final after = controller.scoreById(original.id).toJson();
+      expect(after['lastPage'], action == 'page' ? 5 : 4);
+      for (final field in ['lastPage', 'lastOpenedAt', 'updatedAt']) {
+        before.remove(field);
+        after.remove(field);
+      }
+      expect(after, before);
+    });
+  }
+
+  test(
+    'stale page snapshot cannot suppress a return to its old page',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateLastPage(original, 4);
+      await controller.updateLastPage(original, 1);
+      expect(controller.scoreById(original.id).lastPage, 1);
+      final current = controller.scoreById(original.id);
+      await controller.updateLastPage(original, 1);
+      expect(identical(controller.scoreById(original.id), current), isTrue);
+      await controller.updateLastPage(original, 0);
+      expect(identical(controller.scoreById(original.id), current), isTrue);
+      await controller.deleteScoresByIds({original.id});
+      await controller.markOpened(original);
+      await controller.updateLastPage(original, 2);
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
   test('global metronome save follows pending score save without changing its override', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = _DelayedMetronomeStore();
