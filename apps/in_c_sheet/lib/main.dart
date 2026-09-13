@@ -117,6 +117,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   final Set<String> _handledSharedImportPaths = <String>{};
   final Set<String> _bulkSelectedScoreIds = <String>{};
   bool _isBulkSelecting = false;
+  Completer<void>? _backupRestoreCompletion;
 
   SheetLibraryController get controller => widget.controller;
 
@@ -842,6 +843,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _importSharedFiles(Object? value) async {
+    await _backupRestoreCompletion?.future;
     final parsedFiles = _parseSharedImportFiles(value);
     final files = parsedFiles
         .where((file) => !_handledSharedImportPaths.contains(file.path))
@@ -1150,6 +1152,48 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         '(${_formatBytes(bytes)})가 포함됩니다$externalLabel.';
   }
 
+  Future<SheetLibraryBackupRestoreResult> _runBackupRestore(
+    Future<SheetLibraryBackupRestoreResult> Function() restore,
+  ) async {
+    if (_backupRestoreCompletion != null || controller.isImporting) {
+      return const SheetLibraryBackupRestoreResult(
+        status: SheetLibraryBackupRestoreStatus.canceled,
+      );
+    }
+    final completion = Completer<void>();
+    _backupRestoreCompletion = completion;
+    final navigator = Navigator.of(context);
+    final route = DialogRoute<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text('백업 복원 중'),
+          content: SizedBox(
+            height: 48,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ),
+    );
+    try {
+      unawaited(navigator.push(route));
+      return await restore();
+    } catch (error) {
+      return SheetLibraryBackupRestoreResult(
+        status: SheetLibraryBackupRestoreStatus.error,
+        failureReason: error.toString(),
+      );
+    } finally {
+      if (navigator.mounted && route.isActive) {
+        navigator.removeRoute(route);
+      }
+      _backupRestoreCompletion = null;
+      completion.complete();
+    }
+  }
+
   Future<void> _importBackup() async {
     final didConfirm = await showDialog<bool>(
       context: context,
@@ -1174,7 +1218,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.importMetadataBackup();
+    final result = await _runBackupRestore(controller.importMetadataBackup);
     if (!mounted) {
       return;
     }
@@ -1214,7 +1258,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.restoreAutomaticMetadataBackup();
+    final result = await _runBackupRestore(
+      controller.restoreAutomaticMetadataBackup,
+    );
     if (!mounted) {
       return;
     }
@@ -1425,7 +1471,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.importFullBackup();
+    final result = await _runBackupRestore(controller.importFullBackup);
     if (!mounted) {
       return;
     }
@@ -1601,6 +1647,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ),
             PopupMenuButton<_LibraryBackupAction>(
               tooltip: '백업/복원',
+              enabled: !controller.isImporting,
               icon: const Icon(Icons.inventory_2_outlined),
               onSelected: (action) {
                 switch (action) {

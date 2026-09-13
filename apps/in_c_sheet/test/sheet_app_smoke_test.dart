@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
@@ -11,6 +14,142 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final action in <String>['정보 복원', '자동 정보 복원', '전체 백업 복원']) {
+    for (final outcome in <String>['success', 'cancel', 'error']) {
+      testWidgets('$action blocks editing until restore $outcome', (
+        tester,
+      ) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = _DelayedRestoreStore();
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await tester.pumpWidget(InCSheetApp(controller: controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('백업/복원'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(action));
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(FilledButton, '복원'));
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(find.text('백업 복원 중'), findsOneWidget);
+        expect(find.byTooltip('여러 악보 선택').hitTestable(), findsNothing);
+        expect(find.byTooltip('백업/복원').hitTestable(), findsNothing);
+        await tester.tapAt(const Offset(10, 250));
+        await tester.binding.handlePopRoute();
+        await tester.pump(const Duration(milliseconds: 350));
+        expect(find.text('백업 복원 중'), findsOneWidget);
+        expect(store.restoreCalls, 1);
+        if (outcome == 'error') {
+          store.completion.completeError(
+            StateError('Simulated restore failure'),
+          );
+        } else {
+          store.completion.complete(
+            SheetLibraryBackupRestoreResult(
+              status: outcome == 'cancel'
+                  ? SheetLibraryBackupRestoreStatus.canceled
+                  : SheetLibraryBackupRestoreStatus.restored,
+            ),
+          );
+        }
+        await tester.pumpAndSettle();
+        expect(find.text('백업 복원 중'), findsNothing);
+        expect(find.byTooltip('백업/복원').hitTestable(), findsOneWidget);
+        if (outcome == 'error') {
+          expect(find.textContaining('복원하지 못했습니다'), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
+  testWidgets(
+    'restore completion after leaving the app does not use a disposed navigator',
+    (tester) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = _DelayedRestoreStore();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('백업/복원'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('전체 백업 복원'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '복원'));
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.text('백업 복원 중'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+      store.completion.completeError(StateError('Late restore error'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('shared PDF import waits for a pending restore', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = _DelayedRestoreStore();
+    final controller = _RecordingSharedImportController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('전체 백업 복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '복원'));
+    await tester.pump(const Duration(milliseconds: 350));
+    final reply = Completer<void>();
+    tester.binding.channelBuffers.push(
+      'clef/shared_imports',
+      const StandardMethodCodec().encodeMethodCall(
+        const MethodCall('sharedFiles', <Map<String, String>>[
+          <String, String>{
+            'path': '/tmp/shared-during-restore.pdf',
+            'name': 'Shared score.pdf',
+          },
+        ]),
+      ),
+      (_) => reply.complete(),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(controller.sharedImports, isEmpty);
+    expect(reply.isCompleted, isFalse);
+    store.completion.complete(
+      const SheetLibraryBackupRestoreResult(
+        status: SheetLibraryBackupRestoreStatus.restored,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(reply.isCompleted, isTrue);
+    expect(
+      controller.sharedImports.single.path,
+      '/tmp/shared-during-restore.pdf',
+    );
+    expect(find.text('백업 복원 중'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('backup menu waits for an active PDF import', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = _DelayedRestoreStore();
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    final importing = controller.importPdf();
+    await tester.pump();
+    final menu = find.byWidgetPredicate(
+      (widget) => widget is PopupMenuButton && widget.tooltip == '백업/복원',
+    );
+    expect(tester.widget<PopupMenuButton<dynamic>>(menu).enabled, isFalse);
+    store.importCompletion.complete(null);
+    await importing;
+    await tester.pumpAndSettle();
+    expect(tester.widget<PopupMenuButton<dynamic>>(menu).enabled, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final width in <double>[320, 360]) {
     testWidgets('compact selection actions preserve the count at $width', (
       tester,
@@ -1664,6 +1803,41 @@ void main() {
     expect(didTapEdit, isTrue);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _RecordingSharedImportController extends SheetLibraryController {
+  _RecordingSharedImportController({required super.store});
+  final sharedImports = <SheetSharedImportFile>[];
+
+  @override
+  Future<List<SheetScore>> importSharedPdfFiles(
+    List<SheetSharedImportFile> files,
+  ) async {
+    sharedImports.addAll(files);
+    return <SheetScore>[];
+  }
+}
+
+class _DelayedRestoreStore extends SheetLibraryStore {
+  final completion = Completer<SheetLibraryBackupRestoreResult>();
+  final importCompletion = Completer<SheetScore?>();
+  int restoreCalls = 0;
+
+  @override
+  Future<SheetScore?> importPdf() => importCompletion.future;
+
+  Future<SheetLibraryBackupRestoreResult> _restore() {
+    restoreCalls += 1;
+    return completion.future;
+  }
+
+  @override
+  Future<SheetLibraryBackupRestoreResult> importMetadataBackup() => _restore();
+  @override
+  Future<SheetLibraryBackupRestoreResult> restoreAutomaticMetadataBackup() =>
+      _restore();
+  @override
+  Future<SheetLibraryBackupRestoreResult> importFullBackup() => _restore();
 }
 
 class _PartialBackupStore extends SheetLibraryStore {

@@ -69,6 +69,7 @@
 | 15-4 | 누락 파일 복원 결과 | 백업 당시 missing으로 기록한 파일은 정보만 복원하고 확인 dialog에 누락 파일 수를 표시한다. 같은 원본 경로는 중복 집계하지 않는다. | PDF/연결 파일/필기 파일 누락 수, 지속 안내, 확인 후 닫기; widget/store 검증 |
 | 15-5 | 반복 복원 파일 격리 | 같은 ZIP을 다시 복원해도 기존 라이브러리에서 사용하는 PDF/필기 파일은 덮어쓰지 않는다. | 새 파일 경로, 기존 ID/공유 PDF 유지, 성공/첫 metadata 저장 실패 시 기존 bytes 보존. 전체 metadata transaction과 실패 후 미참조 파일 정리는 별도 |
 | 15-6 | 복원 저장 실패 | 쓰기/삭제 false 반환 또는 예외 시 시도한 metadata 키를 복원 직전 값으로 되돌린다. rollback 실패도 오류로 반환한다. | JSON/ZIP, 초기/후기 설정 키와 삭제, 이전 자동 백업/다른 라이브러리 보존, cache reload/재시도. 강제 종료/지속 저장소 오류/동시 변경은 이 검증에 포함하지 않음 |
+| 15-7 | 복원 진행 UI | 진행 창으로 편집/중복 진입/뒤로가기를 막고 종료 시 해제한다. 공유 PDF는 복원 뒤 처리하며 PDF 가져오기 중에는 백업 메뉴를 잠근다. | 지연 JSON/자동/ZIP 결과 성공/취소/오류, 화면 종료 후 늦은 응답, 공유 채널 순서 widget 검증. native picker/앱 강제 종료 QA 별도 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
