@@ -33,6 +33,19 @@
 
 ## Verification Policy
 
+S18: VERIFIED LOCAL. Controller regressions reproduced failed annotation edits remaining
+in memory, including two failed consecutive saves. On single-score replacement failure,
+read persisted scores only while that request still owns the current list/profile;
+recheck after the read, notify after recovery, and propagate the original error. Do not
+restore an earlier optimistic snapshot which may itself have failed. Acceptance:
+success/failure pairs, late old failure, deletion, delayed recovery plus newer edit or
+profile switch, unreadable recovery, notification, retry, and actual preferences false
+responses. Full suite 620/620, analyze/RC PASS (`/private/tmp/clef-rc-s18.log`).
+Bulk/import/setlist controller memory recovery is not included. No new build/device
+verification. Annotation error copy still needs separate
+review because failed storage compensation cannot guarantee data preservation.
+
+S17 commit: `7afef9e`.
 S17: VERIFIED LOCAL. Eight injected score-write failures reproduced false success or a
 partially updated score/automatic-backup pair. Reuse the existing checked restore
 writes and best-effort rollback for ordinary metadata saves. Because all writers share
@@ -242,10 +255,10 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: commit S17, then address controller optimistic-memory
-recovery and annotation failure copy with injected-failure evidence. No build/push/merge.
-Pending investigation: _replace changes memory before awaiting storage. Annotation
-copy promises prior data preservation on failure; controller recovery is not verified.
+Resume checkpoint: commit S18, then correct annotation failure copy/result flow.
+No build/push/merge. RC runner currently trusts exit code alone; an interrupted Flutter
+test printed failures but exited zero in the initial S17 run. That interrupted run was
+not counted as evidence; require explicit complete test evidence in a later tool slice.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

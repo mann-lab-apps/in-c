@@ -9,6 +9,7 @@ import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
@@ -50,6 +51,41 @@ void main() {
       await documentsDir.delete(recursive: true);
     }
   });
+
+  for (final failedKey in ['clef_scores', 'clef_automatic_metadata_backup']) {
+    test(
+      'controller recovers annotation after $failedKey returns false',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final now = DateTime(2026, 9, 13);
+        final original = _score(now);
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        platform.failureKey = 'flutter.$failedKey';
+        final text = SheetTextAnnotation(
+          id: 'cue',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+          text: 'Cue',
+          color: 0xff000000,
+          fontSize: 18,
+          createdAt: now,
+        );
+        await expectLater(
+          controller.addTextAnnotation(original, text),
+          throwsA(isA<StateError>()),
+        );
+        expect(controller.scores.single.toJson(), original.toJson());
+        await (await SharedPreferences.getInstance()).reload();
+        expect((await store.loadScores()).single.toJson(), original.toJson());
+        await controller.addTextAnnotation(controller.scores.single, text);
+        await controller.load();
+        expect(controller.scores.single.annotationLayer.texts.single.id, 'cue');
+      },
+    );
+  }
 
   for (final throws in [false, true]) {
     for (final empty in [false, true]) {

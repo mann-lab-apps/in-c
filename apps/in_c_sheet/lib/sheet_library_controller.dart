@@ -2898,7 +2898,27 @@ class SheetLibraryController extends ChangeNotifier {
     _scores = _scores
         .map((score) => score.id == updated.id ? updated : score)
         .toList(growable: false);
-    await store.saveScores(_scores);
+    final pendingScores = _scores;
+    final libraryId = _activeLibraryProfile.id;
+    try {
+      await store.saveScores(pendingScores);
+    } catch (_) {
+      if (identical(_scores, pendingScores) &&
+          _activeLibraryProfile.id == libraryId) {
+        try {
+          final persisted = await store.loadScores();
+          // A newer edit, deletion or library switch owns the current state.
+          if (identical(_scores, pendingScores) &&
+              _activeLibraryProfile.id == libraryId) {
+            _scores = persisted;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Preserve the original write error when recovery cannot read storage.
+        }
+      }
+      rethrow;
+    }
     notifyListeners();
   }
 
