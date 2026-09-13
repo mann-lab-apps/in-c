@@ -14,6 +14,53 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final tooltip in ['즐겨찾기', '고정']) {
+    testWidgets('score card accepts two $tooltip taps before rebuilding', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      await store.saveScores([
+        SheetScore(
+          id: 'ready',
+          title: 'Concert score',
+          composer: 'Bach',
+          tags: const [],
+          note: '',
+          filePath: '/tmp/concert.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const [],
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      final control = find.byTooltip(tooltip).first;
+      await tester.ensureVisible(control);
+      await tester.tap(control);
+      final first = controller.scoreById('ready');
+      expect(tooltip == '고정' ? first.isPinned : first.isFavorite, isTrue);
+      await tester.tap(control);
+      await tester.pumpAndSettle();
+      final second = controller.scoreById('ready');
+      expect(tooltip == '고정' ? second.isPinned : second.isFavorite, isFalse);
+      expect(tester.takeException(), isNull);
+      await controller.load();
+      expect(
+        tooltip == '고정'
+            ? controller.scoreById('ready').isPinned
+            : controller.scoreById('ready').isFavorite,
+        isFalse,
+      );
+    });
+  }
+
   for (final outcome in ['save', 'removed', 'cancel']) {
     final removed = outcome == 'removed';
     testWidgets(

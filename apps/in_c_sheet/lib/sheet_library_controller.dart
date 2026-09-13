@@ -512,14 +512,21 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> toggleFavorite(SheetScore score) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) return;
     await _replace(
-      score.copyWith(isFavorite: !score.isFavorite, updatedAt: DateTime.now()),
+      current.copyWith(
+        isFavorite: !current.isFavorite,
+        updatedAt: DateTime.now(),
+      ),
     );
   }
 
   Future<void> togglePinned(SheetScore score) async {
+    final current = scoreByIdOrNull(score.id);
+    if (current == null) return;
     await _replace(
-      score.copyWith(isPinned: !score.isPinned, updatedAt: DateTime.now()),
+      current.copyWith(isPinned: !current.isPinned, updatedAt: DateTime.now()),
     );
   }
 

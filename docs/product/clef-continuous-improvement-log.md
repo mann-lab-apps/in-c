@@ -33,6 +33,15 @@
 
 ## Verification Policy
 
+S16: VERIFIED LOCAL. Favorite/pin callbacks retain the score rendered by a card. Repeated
+calls before rebuild stayed enabled instead of toggling off and could replace newer
+score content. Resolve the current score before toggling; ignore removed scores.
+Acceptance: two stale commands restore the flag, all unrelated codec fields survive,
+deleted score stays absent, real card double taps before pump and reload work.
+Controller and actual card widget regressions pass, including reload. Full suite
+566/566, analyze/RC PASS (`/private/tmp/clef-rc-s16.log`). No new app build or device QA.
+
+S15 commit: `450f1e9`.
 S15: VERIFIED LOCAL. Bookmark list actions retain a score captured before modal waits.
 All toggle/rename/delete regressions reproduced loss of another newly added bookmark.
 Apply only the requested page operation to current score state; reject missing scores
@@ -217,8 +226,8 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: S15 verified; commit then check favorite/pin card callbacks for
-stale-snapshot loss. No build/push/merge.
+Resume checkpoint: verify/commit S16, then investigate ordinary score persistence
+failure signaling and annotation failure copy. No build/push/merge.
 Pending investigation: ordinary saveScores/saveSetlists ignore false preference writes,
 and _replace changes memory before awaiting storage. Annotation copy promises prior
 data preservation on failure, which needs a separate persistence/rollback contract

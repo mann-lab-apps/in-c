@@ -17,6 +17,53 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final action in ['favorite', 'pin']) {
+    test(
+      'stale $action card callback toggles current flag without losing content',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = SheetLibraryStore();
+        final original = _score(DateTime(2026, 9, 13));
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await controller.updateScoreMetadata(
+          original,
+          title: 'Revised',
+          composer: 'Bach',
+          tags: '',
+          note: 'Cue',
+        );
+        await controller.updateLastPage(controller.scoreById(original.id), 4);
+        final before = controller.scoreById(original.id).toJson();
+        Future<void> toggle() => action == 'favorite'
+            ? controller.toggleFavorite(original)
+            : controller.togglePinned(original);
+        await toggle();
+        var current = controller.scoreById(original.id);
+        expect(
+          action == 'favorite' ? current.isFavorite : current.isPinned,
+          isTrue,
+        );
+        await toggle();
+        await controller.load();
+        current = controller.scoreById(original.id);
+        expect(
+          action == 'favorite' ? current.isFavorite : current.isPinned,
+          isFalse,
+        );
+        final after = current.toJson();
+        before.remove('updatedAt');
+        after.remove('updatedAt');
+        expect(after, before);
+        await controller.deleteScoresByIds({original.id});
+        await toggle();
+        await controller.load();
+        expect(controller.scores, isEmpty);
+      },
+    );
+  }
+
   test(
     'bookmark commands reject missing targets and toggle current membership',
     () async {
