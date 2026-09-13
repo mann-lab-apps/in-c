@@ -1437,10 +1437,23 @@ class SheetLibraryStore {
       await saveGlobalViewerSettings(backup.globalViewerSettings);
       await savePerformancePresetTemplates(backup.performancePresetTemplates);
       await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
+      final sourcePathsByScoreId = <String, String>{
+        for (final score in backup.scores) score.id: score.filePath,
+      };
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: restoredScores.length,
         restoredSetlistCount: backup.setlists.length,
+        missingFileCount: mappings
+            .where((mapping) => mapping.missing)
+            .map(
+              (mapping) =>
+                  mapping.linkedFilePath ??
+                  mapping.annotationStoragePath ??
+                  sourcePathsByScoreId[mapping.scoreId]!,
+            )
+            .toSet()
+            .length,
       );
     } on UnsupportedError catch (error) {
       return SheetLibraryBackupRestoreResult(

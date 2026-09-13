@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -9,6 +10,30 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('full restore reports missing files until acknowledged', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: _PartialBackupStore());
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('백업/복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('전체 백업 복원'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '복원'));
+    await tester.pumpAndSettle();
+    expect(find.text('일부 파일은 복원되지 않았습니다'), findsOneWidget);
+    expect(find.textContaining('2개 파일은 백업에 포함되어 있지 않습니다.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    expect(find.text('일부 파일은 복원되지 않았습니다'), findsOneWidget);
+    await tester.tap(find.text('확인'));
+    await tester.pumpAndSettle();
+    expect(find.text('일부 파일은 복원되지 않았습니다'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Clef home exposes RC actions without discovery surface', (
     tester,
   ) async {
@@ -1417,4 +1442,16 @@ void main() {
     expect(didTapEdit, isTrue);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _PartialBackupStore extends SheetLibraryStore {
+  @override
+  Future<SheetLibraryBackupRestoreResult> importFullBackup() async {
+    return const SheetLibraryBackupRestoreResult(
+      status: SheetLibraryBackupRestoreStatus.restored,
+      restoredScoreCount: 3,
+      restoredSetlistCount: 1,
+      missingFileCount: 2,
+    );
+  }
 }

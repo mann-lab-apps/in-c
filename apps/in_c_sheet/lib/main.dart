@@ -1429,6 +1429,25 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted) {
       return;
     }
+    if (result.didRestore && result.missingFileCount > 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('일부 파일은 복원되지 않았습니다'),
+          content: Text(
+            '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 복원했습니다.\n\n'
+            '${result.missingFileCount}개 파일은 백업에 포함되어 있지 않습니다. 해당 PDF, 연결 파일 또는 필기 파일을 확인해주세요.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     final message = switch (result.status) {
       SheetLibraryBackupRestoreStatus.restored =>
         '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트를 PDF 포함 백업에서 복원했습니다.',

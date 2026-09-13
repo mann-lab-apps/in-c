@@ -273,12 +273,14 @@ class SheetLibraryBackupRestoreResult {
     required this.status,
     this.restoredScoreCount = 0,
     this.restoredSetlistCount = 0,
+    this.missingFileCount = 0,
     this.failureReason,
   });
 
   final SheetLibraryBackupRestoreStatus status;
   final int restoredScoreCount;
   final int restoredSetlistCount;
+  final int missingFileCount;
   final String? failureReason;
 
   bool get didRestore => status == SheetLibraryBackupRestoreStatus.restored;

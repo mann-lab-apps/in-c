@@ -980,6 +980,7 @@ void main() {
       SharedPreferences.setMockInitialValues(<String, Object>{});
       final result = await store.restoreFullBackupZipBytes(zip);
       expect(result.didRestore, isTrue);
+      expect(result.missingFileCount, 0);
       final restored = await store.loadScores();
       expect(
         restored.take(3).map((score) => score.filePath).toSet(),
@@ -1098,12 +1099,38 @@ void main() {
       bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
       fileName: 'offline.pdf',
     );
-    await store.saveScores(<SheetScore>[source]);
+    final segment = SheetScore.fromJson(<String, Object?>{
+      ...source.toJson(),
+      'id': 'offline-movement',
+    });
+    final linked = await store.importLinkedFileBytes(
+      bytes: utf8.encode('audio'),
+      fileName: 'missing.mp3',
+    );
+    final annotationStorage = SheetAnnotationStorageReference(
+      mode: SheetAnnotationStorageReference.fileMode,
+      path: '${documentsDir.path}/missing-marks.json',
+    );
+    await store.saveScores(<SheetScore>[
+      source.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: annotationStorage,
+      ),
+      segment.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: annotationStorage,
+      ),
+    ]);
     await File(source.filePath).delete();
+    await File(linked.path).delete();
     final zip = await store.exportFullBackupZipBytes();
     final result = await store.restoreFullBackupZipBytes(zip);
     expect(result.didRestore, isTrue);
-    expect((await store.loadScores()).single.filePath, source.filePath);
+    expect(result.missingFileCount, 3);
+    expect((await store.loadScores()).map((score) => score.filePath), <String>[
+      source.filePath,
+      source.filePath,
+    ]);
   });
 
   test('exports and restores a full backup zip with PDF files', () async {
