@@ -2378,6 +2378,7 @@ class SheetLibraryController extends ChangeNotifier {
     Set<String> scoreIds, {
     List<String> addTags = const <String>[],
     List<String> removeTags = const <String>[],
+    String? composer,
     String? collection,
     String? group,
     int? rating,
@@ -2435,6 +2436,9 @@ class SheetLibraryController extends ChangeNotifier {
           changedCount += 1;
           return score.copyWith(
             tags: List<String>.unmodifiable(nextTags),
+            composer: composer == null
+                ? score.composer
+                : _normalizeOptionalMetadata(composer),
             collection: collection == null
                 ? score.collection
                 : _normalizeOptionalMetadata(collection),

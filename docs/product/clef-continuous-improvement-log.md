@@ -27,6 +27,7 @@
 | S2 | New songbook entries currently start with an empty annotation layer. | Copy current in-range strokes/texts and visibility/export flags, retain hidden-page marks, reset edit history and use independent inline storage. Source/sibling edits stay isolated. | Regression reproduced empty split annotations; copy/delete/reload isolation test PASS. Full suite 469/469, analyze/RC PASS (`/private/tmp/clef-rc-s2.log`). | VERIFIED LOCAL |
 | U1 | Fixed home sections can leave almost no space for scores. Older emulator install shows a roughly 10px grid; current source overflows by 338px at 360x720. | One vertical scroll for header and lazy score list/grid; reach and select the last of 30 scores on phone/tablet/landscape. Empty/search states remain accessible. | Widget regression at 360x720, 1280x800 and 800x360, empty states and search reset. Full suite 475/475, analyze/RC PASS (`/private/tmp/clef-rc-u1.log`). | VERIFIED LOCAL |
 | U2 | Six inline selection actions obscure the count at 320/360dp; MobileSheets uses contextual overflow actions. | Retain direct setlist add and select-all; secondary actions remain reachable and disabled when no selection. Preserve tablet shortcuts and deletion confirmation. | Count truncation reproduced before fix; width-specific widget count/menu/action/resize regression. Full suite 477/477, analyze/RC PASS (`/private/tmp/clef-rc-u2.log`). | VERIFIED LOCAL |
+| U3 | Batch-imported scores can share a composer, but bulk editing omits this core metadata field. MobileSheets supports composer/artist assignment. | Add composer to existing bulk form/API, trim input, preserve unselected scores and omitted UI input. Search/facets/reload reflect the new value; no codec/schema change. | Missing field reproduced in widget test; apply/blank-preserve and selected/unselected/query/facet/reload regressions. Full suite 508/508, analyze/RC PASS (`/private/tmp/clef-rc-u3.log`). | VERIFIED LOCAL |
 | R1 | Installed Clef package differs from this source's Android package. | Establish the intended release identity before building; do not revert another app's package change without product confirmation. | Source `com.mannlab.inc`; installed Clef `com.mannlab.clef`. Historical commit `5c416a6` changed the package for in C. | BLOCKED: release identity decision; does not block local UX work |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 
@@ -56,10 +57,12 @@ B5: `f714560`, restore storage isolation implemented; full suite 479/479, analyz
 Commit subject: `fix: isolate Clef restored files from existing libraries`.
 B6: `023dfba`, checked metadata writes with best-effort rollback; full suite 496/496, analyze/RC PASS.
 Commit subject: `fix: roll back Clef metadata after restore write failures`.
-B7: restore progress, UI exclusion and shared-import deferral implemented;
+B7: `fcc43e3`, restore progress, UI exclusion and shared-import deferral implemented;
 full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
-Next: bulk composer editing gap in metadata cleanup after batch import.
+U3: bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
+Commit subject: `feat: edit Clef composers in bulk`.
+Next: file-name search and missing-title display consistency across library/setlist/share.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

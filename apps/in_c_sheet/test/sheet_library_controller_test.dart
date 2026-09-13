@@ -2228,7 +2228,12 @@ void main() {
         collection: 'Archive',
       ),
       _score(now, id: 'score-2', tags: const <String>['brass']),
-      _score(now, id: 'score-3', tags: const <String>['strings']),
+      _score(
+        now,
+        id: 'score-3',
+        composer: 'Composer',
+        tags: const <String>['strings'],
+      ),
     ]);
 
     final controller = SheetLibraryController(store: store);
@@ -2238,6 +2243,7 @@ void main() {
       <String>{'score-1', 'score-2'},
       addTags: const <String>['recital', 'Brass'],
       removeTags: const <String>['old'],
+      composer: '  J. S. Bach  ',
       collection: 'Recital',
       group: 'Finale',
       rating: 5,
@@ -2251,6 +2257,15 @@ void main() {
 
     expect(changedCount, 2);
     expect(controller.scoreById('score-1').tags, <String>['brass', 'recital']);
+    expect(controller.scoreById('score-1').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-2').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-3').composer, 'Composer');
+    expect(
+      controller.composerFacets
+          .singleWhere((facet) => facet.value == 'J. S. Bach')
+          .count,
+      2,
+    );
     expect(controller.scoreById('score-2').tags, <String>['brass', 'recital']);
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
@@ -2265,6 +2280,19 @@ void main() {
     expect(controller.scoreById('score-2').isPinned, isTrue);
     expect(controller.scoreById('score-3').tags, <String>['strings']);
     expect(controller.scoreById('score-1').filePath, '/tmp/score-1.pdf');
+    await controller.bulkEditScores(
+      <String>{'score-1'},
+      addTags: <String>['practice'],
+    );
+    await controller.load();
+    expect(controller.scoreById('score-1').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-2').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-3').composer, 'Composer');
+    controller.updateQuery('J. S. Bach');
+    expect(controller.filteredScores.map((score) => score.id).toSet(), <String>{
+      'score-1',
+      'score-2',
+    });
   });
 
   test(

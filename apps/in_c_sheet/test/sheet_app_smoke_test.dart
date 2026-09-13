@@ -973,6 +973,11 @@ void main() {
 
     expect(find.text('일괄 편집'), findsOneWidget);
     expect(find.text('추가할 태그'), findsOneWidget);
+    expect(find.widgetWithText(TextField, '작곡가 변경'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, '작곡가 변경'),
+      '  Bach  ',
+    );
     expect(find.text('사용자 필드 일괄 지정'), findsOneWidget);
     expect(find.text('조성'), findsOneWidget);
     expect(find.text('필드 이름'), findsOneWidget);
@@ -982,12 +987,32 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '필드 값'), 'D');
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('적용'));
-    await tester.tap(find.text('적용'));
+    final apply = find.widgetWithText(FilledButton, '적용');
+    await tester.ensureVisible(apply);
+    await tester.pumpAndSettle();
+    await tester.tap(apply);
     await tester.pumpAndSettle();
 
     expect(controller.scoreById('score-1').customFields.single.key, '조성');
     expect(controller.scoreById('score-1').customFields.single.value, 'D');
+    expect(controller.scoreById('score-1').composer, 'Bach');
+    await tester.tap(find.byTooltip('여러 악보 선택'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('현재 목록 전체 선택'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('선택 악보 정보 일괄 편집'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '작곡가 변경'), '   ');
+    await tester.enterText(
+      find.widgetWithText(TextField, '추가할 태그'),
+      'practice',
+    );
+    await tester.ensureVisible(apply);
+    await tester.pumpAndSettle();
+    await tester.tap(apply);
+    await tester.pumpAndSettle();
+    expect(controller.scoreById('score-1').composer, 'Bach');
+    expect(controller.scoreById('score-1').tags, contains('practice'));
     expect(tester.takeException(), isNull);
   });
 

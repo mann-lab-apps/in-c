@@ -199,6 +199,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       Set<String>.of(_bulkSelectedScoreIds),
       addTags: input.addTags,
       removeTags: input.removeTags,
+      composer: input.composer,
       collection: input.collection,
       group: input.group,
       rating: input.rating,
@@ -4408,6 +4409,7 @@ class _BulkEditInput {
     required this.addTags,
     required this.removeTags,
     required this.customFields,
+    this.composer,
     this.collection,
     this.group,
     this.rating,
@@ -4418,6 +4420,7 @@ class _BulkEditInput {
   final List<String> addTags;
   final List<String> removeTags;
   final List<SheetCustomMetadataField> customFields;
+  final String? composer;
   final String? collection;
   final String? group;
   final int? rating;
@@ -4433,6 +4436,7 @@ class _BulkEditSheet extends StatefulWidget {
 }
 
 class _BulkEditSheetState extends State<_BulkEditSheet> {
+  final _composerController = TextEditingController();
   final _addTagsController = TextEditingController();
   final _removeTagsController = TextEditingController();
   final _collectionController = TextEditingController();
@@ -4445,6 +4449,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
 
   @override
   void dispose() {
+    _composerController.dispose();
     _addTagsController.dispose();
     _removeTagsController.dispose();
     _collectionController.dispose();
@@ -4472,6 +4477,13 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: _composerController,
+              decoration: const InputDecoration(
+                labelText: '작곡가 변경',
+                hintText: '변경 없음',
+              ),
+            ),
             TextField(
               controller: _addTagsController,
               decoration: const InputDecoration(
@@ -4558,6 +4570,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                     _BulkEditInput(
                       addTags: _splitTags(_addTagsController.text),
                       removeTags: _splitTags(_removeTagsController.text),
+                      composer: _blankToNull(_composerController.text),
                       customFields: _customFieldInput(),
                       collection: _blankToNull(_collectionController.text),
                       group: _blankToNull(_groupController.text),

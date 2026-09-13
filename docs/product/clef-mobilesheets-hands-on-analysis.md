@@ -104,6 +104,11 @@ Android 에뮬레이터에서 관찰했다. 이번 문서는 구현 지시가 �
 
 ## 다음 구현 후보
 
+2026-09-13 로컬 보강: import/bulk metadata 흐름의 작곡가 지정 누락을 보완했다.
+Clef의 기존 일괄 편집에 작곡가를 추가하고, 빈 입력은 기존 값을 보존한다.
+작곡가 검색/facet/저장 복원은 같은 기존 필드를 사용한다. 이 내용은 코드/widget 근거이며
+새 빌드의 실기기 조작을 확인한 기록은 아니다.
+
 | 후보 | 근거 | 난이도 | 추천 |
 | --- | --- | --- | --- |
 | Metronome audio route QA | MobileSheets는 playback mode/volume을 명확히 노출하고, 사용자도 소리 안 남을 보고했다. Clef는 기본 `소리 켬`, Android native tick volume, 강박/약박 click, `소리`/`시각만` 상태 표시, mini panel 시각 박자 strip을 적용했다. | 중간 | 실기기 QA |
