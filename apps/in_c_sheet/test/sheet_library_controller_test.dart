@@ -1678,6 +1678,108 @@ void main() {
     },
   );
 
+  test(
+    'songbook copies in-range annotations independently without edit history',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      SheetAnnotationStroke stroke(int page) => SheetAnnotationStroke(
+        id: 'stroke-$page',
+        pageNumber: page,
+        tool: SheetAnnotationTool.pen,
+        color: 0xff112233,
+        width: 3,
+        points: const <SheetAnnotationPoint>[
+          SheetAnnotationPoint(x: 0.1, y: 0.2),
+          SheetAnnotationPoint(x: 0.2, y: 0.3),
+        ],
+        createdAt: now,
+      );
+      SheetTextAnnotation text(int page) => SheetTextAnnotation(
+        id: 'text-$page',
+        pageNumber: page,
+        position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+        text: 'Practice $page',
+        color: 0xff112233,
+        fontSize: 16,
+        createdAt: now,
+      );
+      final source =
+          _score(
+            now,
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(pageNumber: 2, label: 'First', createdAt: now),
+              SheetBookmark(pageNumber: 4, label: 'Second', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[2],
+            ),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[stroke(1), stroke(2), stroke(4)],
+              texts: <SheetTextAnnotation>[text(3), text(5)],
+              redoStack: <SheetAnnotationRedoEntry>[
+                SheetAnnotationRedoEntry.stroke(stroke(3)),
+              ],
+              eraseUndoStack: <SheetAnnotationRedoEntry>[
+                SheetAnnotationRedoEntry.eraseText(text(2)),
+              ],
+              layers: <SheetAnnotationDisplayLayer>[
+                SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+                  isVisible: false,
+                  includeInExport: false,
+                ),
+              ],
+            ),
+            annotationStorage: const SheetAnnotationStorageReference(
+              mode: SheetAnnotationStorageReference.fileMode,
+              path: '/tmp/source-marks.json',
+            ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 5,
+      );
+      final first = result.createdScores.first;
+      final second = result.createdScores.last;
+      expect(
+        first.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+        <int>[2],
+      );
+      expect(first.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+        3,
+      ]);
+      expect(
+        second.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+        <int>[4],
+      );
+      expect(second.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+        5,
+      ]);
+      expect(first.annotationLayer.redoStack, isEmpty);
+      expect(first.annotationLayer.eraseUndoStack, isEmpty);
+      expect(first.annotationLayer.isDefaultLayerVisible, isFalse);
+      expect(first.annotationLayer.includeDefaultLayerInExport, isFalse);
+      expect(first.annotationStorage.isFileBacked, isFalse);
+      expect(first.annotationStorage.path, isEmpty);
+      await controller.removeTextAnnotation(first, 'text-3');
+      await controller.load();
+      expect(controller.scoreById(first.id).annotationLayer.texts, isEmpty);
+      expect(
+        controller.scoreById(source.id).annotationLayer.toJson(),
+        source.annotationLayer.toJson(),
+      );
+      expect(
+        controller.scoreById(second.id).annotationLayer.texts.single.text,
+        'Practice 5',
+      );
+    },
+  );
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

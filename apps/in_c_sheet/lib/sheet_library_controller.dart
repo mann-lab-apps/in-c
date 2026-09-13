@@ -1808,6 +1808,25 @@ class SheetLibraryController extends ChangeNotifier {
             startPage: segment.startPage,
             endPage: segment.endPage,
           ),
+          annotationLayer: SheetAnnotationLayer(
+            strokes: List<SheetAnnotationStroke>.unmodifiable(
+              source.annotationLayer.strokes.where(
+                (stroke) =>
+                    stroke.pageNumber >= segment.startPage &&
+                    stroke.pageNumber <= segment.endPage,
+              ),
+            ),
+            texts: List<SheetTextAnnotation>.unmodifiable(
+              source.annotationLayer.texts.where(
+                (text) =>
+                    text.pageNumber >= segment.startPage &&
+                    text.pageNumber <= segment.endPage,
+              ),
+            ),
+            layers: List<SheetAnnotationDisplayLayer>.unmodifiable(
+              source.annotationLayer.layers,
+            ),
+          ),
           viewerSettings: source.viewerSettings,
           pageSettings: source.pageSettings
               .copyWith(
