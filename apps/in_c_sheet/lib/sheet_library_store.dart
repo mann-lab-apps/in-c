@@ -1078,6 +1078,7 @@ class SheetLibraryStore {
     );
     final archive = Archive();
     final mappings = <SheetLibraryFullBackupFileMapping>[];
+    final scoreEntriesByPath = <String, String>{};
 
     for (final score in scores) {
       final originalFile = File(score.filePath);
@@ -1085,7 +1086,8 @@ class SheetLibraryStore {
           .split(Platform.pathSeparator)
           .last;
       final safeName = _safeFileName(originalFileName);
-      final entryPath = 'scores/${score.id}-$safeName';
+      final existingEntryPath = scoreEntriesByPath[score.filePath];
+      final entryPath = existingEntryPath ?? 'scores/${score.id}-$safeName';
       final exists = await originalFile.exists();
       mappings.add(
         SheetLibraryFullBackupFileMapping(
@@ -1095,10 +1097,11 @@ class SheetLibraryStore {
           missing: !exists,
         ),
       );
-      if (exists) {
+      if (exists && existingEntryPath == null) {
         archive.addFile(
           ArchiveFile.bytes(entryPath, await originalFile.readAsBytes()),
         );
+        scoreEntriesByPath[score.filePath] = entryPath;
       }
 
       for (var index = 0; index < score.linkedFiles.length; index += 1) {
@@ -1338,6 +1341,7 @@ class SheetLibraryStore {
               mapping.scoreId: mapping,
           };
       final restoredScores = <SheetScore>[];
+      final restoredScorePathsByEntry = <String, String>{};
 
       for (final score in backup.scores) {
         var restoredScore = score;
@@ -1348,11 +1352,14 @@ class SheetLibraryStore {
         } else {
           final entry = archive.findFile(mapping.entryPath);
           if (entry != null && entry.isFile) {
-            final restoredPath = await _writeImportedPdf(
-              bytes: entry.content,
-              id: score.id,
-              originalFileName: mapping.originalFileName,
-            );
+            final restoredPath =
+                restoredScorePathsByEntry[mapping.entryPath] ??
+                await _writeImportedPdf(
+                  bytes: entry.content,
+                  id: score.id,
+                  originalFileName: mapping.originalFileName,
+                );
+            restoredScorePathsByEntry[mapping.entryPath] = restoredPath;
             restoredScore = restoredScore.copyWith(filePath: restoredPath);
           }
         }

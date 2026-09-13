@@ -100,6 +100,8 @@
 15. 한글 텍스트 주석만 있는 악보에서 PDF export 제한 안내와 원본 공유 fallback을 확인한다.
 16. URL link가 있는 PDF에서 link tap 차단과 link 제거 사본 생성을 확인한다.
 17. metadata 백업과 PDF 포함 전체 백업을 생성한다.
+    같은 songbook에서 나눈 여러 곡을 전체 백업/복원한 뒤 각각의 곡 구간과 세트리스트 순서가
+    유지되는지 확인한다. 공유 PDF는 한 번만 백업/복원되며, 이름만 같은 다른 PDF는 합쳐지지 않는다.
 18. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
 19. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
 20. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고

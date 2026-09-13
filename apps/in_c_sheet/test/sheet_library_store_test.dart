@@ -898,6 +898,106 @@ void main() {
     expect(mappings.last.scoreId, 'score-1');
   });
 
+  test(
+    'full backup preserves shared songbook PDFs and distinct same-name files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-09-13T10:00:00.000');
+      final bytes = await File('test-fixtures/pdfs/short-score.pdf')
+          .readAsBytes();
+      final source = await store.importPdfBytes(
+        bytes: bytes,
+        fileName: 'book.pdf',
+        importedAt: now,
+      );
+      final otherDirectory = await Directory('${documentsDir.path}/other')
+          .create();
+      final otherFile = await File('${otherDirectory.path}/book.pdf')
+          .writeAsBytes(bytes);
+      final first =
+          SheetScore.fromJson(<String, Object?>{
+            ...source.toJson(),
+            'id': 'movement-1',
+          }).copyWith(
+            title: 'First',
+            pageSettings: SheetPageSettings.empty.copyWith(pageOrder: <int>[1]),
+          );
+      final second =
+          SheetScore.fromJson(<String, Object?>{
+            ...source.toJson(),
+            'id': 'movement-2',
+          }).copyWith(
+            title: 'Second',
+            lastPage: 2,
+            pageSettings: SheetPageSettings.empty.copyWith(
+              pageOrder: <int>[2, 3],
+            ),
+          );
+      await store.saveScores(<SheetScore>[
+        source,
+        first,
+        second,
+        SheetScore.fromJson(<String, Object?>{
+          ...source.toJson(),
+          'id': 'other-book',
+          'filePath': otherFile.path,
+        }),
+      ]);
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'concert',
+          title: 'Concert',
+          scoreIds: <String>[first.id, second.id],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final zip = await store.exportFullBackupZipBytes();
+      final archive = ZipDecoder().decodeBytes(zip);
+      expect(
+        archive.files.where((file) => file.name.startsWith('scores/')),
+        hasLength(2),
+      );
+      final manifest = jsonDecode(
+        utf8.decode(
+          archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+        ),
+      ) as Map;
+      final mappings = (manifest['fileMappings'] as List).cast<Map>();
+      expect(mappings, hasLength(4));
+      expect(
+        mappings.take(3).map((mapping) => mapping['entryPath']).toSet(),
+        hasLength(1),
+      );
+
+      final oldDirectory = documentsDir;
+      documentsDir = await Directory.systemTemp.createTemp(
+        'clef-shared-restore-',
+      );
+      await oldDirectory.delete(recursive: true);
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final result = await store.restoreFullBackupZipBytes(zip);
+      expect(result.didRestore, isTrue);
+      final restored = await store.loadScores();
+      expect(
+        restored.take(3).map((score) => score.filePath).toSet(),
+        hasLength(1),
+      );
+      expect(restored.last.filePath, isNot(restored.first.filePath));
+      expect(await File(restored.first.filePath).readAsBytes(), bytes);
+      expect(await File(restored.last.filePath).readAsBytes(), bytes);
+      expect(restored[1].pageSettings.pageOrder, <int>[1]);
+      expect(restored[2].pageSettings.pageOrder, <int>[2, 3]);
+      expect(restored[2].lastPage, 2);
+      expect((await store.loadSetlists()).single.scoreIds, <String>[
+        first.id,
+        second.id,
+      ]);
+    },
+  );
+
   test('exports and restores a full backup zip with PDF files', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
