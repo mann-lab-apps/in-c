@@ -15,6 +15,135 @@ Sibelius를 secondary commercial reference로 유지하면서 남은 Commercial 
 
 ## Queue
 
+### User-Requested Wrap-Up And Integration (2026-09-13)
+
+User requested stopping feature work and pushing/merging the current Chromatics
+changes. Only in-flight validation/documentation and Git integration continue;
+do not start another implementation task without explicit user resumption.
+Span geometry now has first native-v2 migration, numeric placement/offset/height,
+reset/history, SVG/PDF and loss-warning evidence. PDF image review reproduced
+clipping below the old SVG boundary; expanded manual bounds fix it. This does
+not close multi-system manual collision handling, arbitrary rhythmic anchors,
+independent object clipboard or the other expanded Required umbrellas.
+Next on explicit resumption: span segment/collision and independent part-geometry
+contracts, then remaining Ready Required work. Implementation and RC incomplete.
+
+### Direct Span Selection And Endpoints (2026-09-13)
+
+The latest explicit execution request found no current goal; a new matching goal
+was registered active. Earlier paused/stopped entries below are historical.
+`CV1-X-SPAN-PROPERTIES` is now Partial: a part-scoped slur/hairpin list and actual
+SVG pointer/keyboard targets open the endpoint inspector. Same-staff ordered
+endpoints can be edited; hairpins allow rests, slurs require notes. Missing,
+foreign-staff and reversed endpoints reject without mutation. Delete/history,
+native disk reopen, MusicXML round-trip and unchanged background notes are tested.
+Selected-object context survives history but not a document/view/selection change.
+Manual geometry, arbitrary rhythmic anchors and independent object clipboard
+remain Required implementation, not manual-QA-only. Next: portable geometry with
+schema migration, auto-layout reset and renderer/export tests.
+
+### Resumed Range Palette Work (2026-09-13)
+
+The user explicitly resumed work after the checkpoint below. Goal tool state was
+`paused`; no tool supports resuming it, so this is ordinary execution, not a claim
+of active goal-mode continuation. The earlier stop checkpoint remains historical.
+
+`CV1-X-RANGE-PALETTE-ACCESS` now has a single primary range group at the start of
+Notation Objects. Clicking notes preserves that mode, while Note Input no longer
+contains those commands. Controls reflect valid note/rest endpoints, existing
+spans and undo/redo. Current model still requires a two-event range for hairpins
+and octave lines; this does not implement MuseScore's single-note extension or
+free rhythmic anchors. Separate endpoint/geometry work remains Required.
+The docked dynamics palette now follows the same range-disabled policy as the
+toolbar and property dock. Existing live handlers also reject range application.
+
+Electron actual pointer-command and file round-trip evidence covers 960/1400;
+native dialogs and human engraving remain separate. See evidence-log for final
+gates. Next implementation: `CV1-X-SPAN-PROPERTIES`, span selection and endpoint
+editing followed by portable geometry; not another palette relocation.
+
+### User-Requested Checkpoint (2026-09-13)
+
+Stopped again at the user's request after finishing the in-flight removed-staff
+layout-anchor slice. No subsequent implementation task was started. This resumed
+run covered aligned signature/repeat/volta boundaries, part removal/reordering,
+standalone part XML titles/breaks, rest hairpins and repeated velocity, stem
+clearance, workspace height and four-type octave XML/playback pitch conversion.
+These are partial contracts, not completed umbrella features.
+
+Removed-staff breaks now map by measure position to an equally sized surviving
+staff of the same part; undo/redo restores score and native part layouts together.
+Deleting a measure from a surviving staff still drops that measure's break.
+Focused regression passed; final full-suite results are in evidence-log.
+
+Next suggested task: `CV1-X-RANGE-PALETTE-ACCESS`, reproduce visible range-command
+access at 960/1400 before moving slur/hairpin/octave controls to Notation Objects.
+Other pending work includes unequal-staff layout remapping, page-setting XML
+interchange, arbitrary rhythmic span anchors, octave held-note/tie boundaries
+and ambiguous legacy XML recovery. All Expanded V1 Required rows remain in scope.
+Development preview remains at http://localhost:5173/ (`npm run dev`, session 3715);
+do not close an open user document or discard edits as part of this checkpoint.
+See evidence-log for commands and results. Implementation and public RC are
+both incomplete; this checkpoint is not a completion claim. No commit/push/merge
+or deployment was performed.
+
+### Expanded V1 Required Queue (2026-09-12)
+
+The user explicitly promoted previous parity/Post-V1 items. The earlier native
+decision and narrow filter definition below are historical. All new rows are
+Required; their dependencies, observable acceptance and evidence contracts are
+in [Expanded V1](chromatics-expanded-v1.md#required-contracts).
+Do not close an umbrella row after its first slice.
+
+2026-09-13 discovered while testing CV1-X-PART-XML: rich secondary-part
+annotations are dropped by primary-part-only import; multi-staff export only
+writes upper-staff directions. Repair part/staff ownership and slur voice/chord
+mapping before claiming the rich export contract. Direction span tick/voice
+endpoints need a separate audit; first/last-note mapping is not full fidelity.
+
+2026-09-13 corrected 960px Electron screenshot review: score rendering is
+nonblank and the existing visual baseline passes, but the upper command surface
+remains dense. Track usable command access and compact layout under
+CV1-X-WORKSPACE; existing bounds checks are not ergonomic completion evidence.
+
+| ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CV1-X-PART-XML | 선택 파트 MusicXML export | Parts / Part View | MuseScore File export; Expanded V1 contract | 총보를 손상하지 않고 개별 파트 교환 | projection/App/disk/Electron | native dialog | Partial | Note/rest hairpin anchors, standalone independent title and system/page breaks now round-trip. Actual packaged XML checked. Remaining: arbitrary rhythmic anchors, page settings, octave pitch semantics, real dialog/external reopen |
+| CV1-X-NATIVE-SCHEMA | portable native schema | Document Lifecycle | Expanded V1 contract; native vs interchange | 다른 기기에서 조판/파트 설정 손실 | schema/migration/round-trip | cross-machine QA | Partial | Version 2 adds span geometry with v1 validation/migration, limits/reference checks and round-trip. Remaining expanded portable models and cross-machine/native-dialog QA; see native format contract |
+| CV1-X-NATIVE-LIFECYCLE | native save/open/recovery | Document Lifecycle | CV1-X-NATIVE-SCHEMA | 프로젝트 저장 안전성 | disk/race/package tests | native dialog | Partial | Backup discovery/recovery UI, stale autosave error guard and dirty-only full-envelope recovery after native/XML cleanup across document switches. Next: file-open/settings and discard race audit, retention controls and native-dialog/crash evidence |
+| CV1-X-SPAN-PROPERTIES | span endpoint/geometry 속성 | UI Information Architecture | Expanded V1 span contract | 슬러/헤어핀 직접 조정 부재 | core/App/layout | engraving QA | Partial | Direct selection/endpoint edit, numeric placement/offset/height, auto reset/history/native-v2 and SVG/PDF first contracts implemented. Next: segment-specific geometry, inter-system collisions, independent part geometry, arbitrary rhythmic anchors and XML geometry interchange. |
+| CV1-X-OBJECT-FILTERS | 객체 선택과 필터 확장 | Editing Workflow | Expanded V1 selection contract | 원하는 표기만 일괄 편집 불가 | core/App | selection ergonomics | Todo | lyrics/text/span 포함 single/list/range 소속 모델 감사 |
+| CV1-X-OBJECT-CLIPBOARD | 객체 clipboard 확장 | Editing Workflow | CV1-X-OBJECT-FILTERS | 음표와 별개 표기 재사용 불완전 | core/App/round-trip | 실전 편집 | Todo | 필터 모델 이후 텍스트/span 재연결 및 부분 포함 정책 구현 |
+| CV1-X-PART-LAYOUT | 독립 파트보 portable layout | Parts / Part View | Expanded V1 part contract | 기기 이동 시 파트 조판 손실 | App/native/export | PDF QA | Partial | Part title, page/system breaks and page settings support independent editing/history/native save. Reset removes independent title/break/page overrides and is undoable. Next: structural score-edit/removed-anchor audit and complete portable authoring/export verification |
+| CV1-X-ENGRAVING | 마디 밀도와 수동 조판 | PDF / Page Setup | Expanded V1 engraving contract | 출판용 페이지 조정 부족 | layout/visual/PDF render | human engraving | Todo | 폭/밀도/manual override 우선순위 구현 |
+| CV1-X-CONCERT-VIEW | 실음/기보음 표시 전환 | MusicXML Compatibility | Expanded V1 transpose contract | 이조악기 총보 검토 불편 | pitch/App/XML/MIDI | 청감 | Todo | 저장음과 표시음 분리 및 key/input semantics 고정 |
+| CV1-X-MIDI-INPUT | MIDI step/chord input | Editing Workflow | MuseScore input-by-duration; Expanded V1 | 장치 기반 입력 부재 | simulated MIDI/App | physical device | Todo | permission/device adapter와 안전한 note-on/off 처리 |
+| CV1-X-PITCH-FIRST | pitch-first 입력 | Editing Workflow | MuseScore input-by-duration | 음높이 먼저 고르는 입력 부재 | state/App | keyboard ergonomics | Todo | pitch preview와 duration commit 상태 구현 |
+| CV1-X-TEMPLATES-STYLES | 사용자 template/style | Document Lifecycle | Expanded V1 customization contract | 반복 편성/서식 재사용 불가 | App/import/export | 사용자 작업 확인 | Todo | native/schema 이후 저장/재사용/교환/초기화 구현 |
+| CV1-X-COMMANDS-SHORTCUTS | 명령 검색/단축키 설정 | UI Information Architecture | Expanded V1 commands contract | 기능 탐색과 개인화 부족 | App/conflict tests | keyboard/IME | Todo | command inventory와 searchable palette부터 구현 |
+| CV1-X-WORKSPACE | 도킹/크기/배치 저장 | UI Information Architecture | Expanded V1 workspace contract | visibility 외 배치 조정 불가 | pointer/keyboard/visual | ergonomics | Partial | Context-strip grid expansion fixed (152px to 43px at 960); visible command headless regression. Resize/reorder/dock/reset and complete compact command access remain Required. |
+| CV1-X-IMAGE-EXPORT | PNG/SVG 출력 | PDF / Page Setup | MuseScore File export | 악보 이미지 공유 불가 | render/pixel/disk | viewer QA | Todo | self-contained page/part/range capture 구현 |
+| CV1-X-WORKFLOW-AUDIT | 확장 V1 실전 감사 | Same-Staff Multi-Voice | Expanded V1 audit contract | 큐 밖 누락 기능 방치 | fixtures/headless | 청감/engraving | Todo | 각 slice 후 Required 재감사, 새 누락은 별도 ID 등록 |
+
+### Expanded V1 Discovered Subtasks (2026-09-13)
+
+These are Required children of the expanded contracts, not optional research.
+
+| ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CV1-X-XML-OCTAVE-PITCH | octave-shift XML 음높이 의미 | MusicXML Compatibility | W3C MusicXML octave-shift; parent CV1-X-PART-XML | XML up/down and performed pitches differ from internal display-pitch convention | XML/MIDI/pitch fixture | external app comparison | Partial | Four octave types now use standard direction and performed pitch; stop at end-note duration, chord/native/MIDI/lower-staff instrument transpose tests pass. Remaining: legacy ambiguous XML recovery, rest/interior-tick/cross-staff anchors, 22 shifts, held notes/ties across boundaries, overlap and real external GUI comparison. |
+| CV1-X-SPAN-RHYTHMIC-ANCHORS | 음표 외 span endpoint | Editing Workflow | MuseScore Dynamics and hairpins; parent CV1-X-SPAN-PROPERTIES | interior-duration/end-of-measure positions cannot be preserved as event IDs alone | model/native/XML/layout/Electron | engraving QA | Partial | Rest-event hairpin input/undo/redo/native/XML/renderer and voice-scoped playback implemented. Add portable arbitrary-tick anchors, exact stop time and cross-staff spans; unsupported positions still reject. |
+| CV1-X-HAIRPIN-REPEAT-VELOCITY | 반복 구간 헤어핀 재생 | Playback | Rest-anchor audit; parent CV1-X-WORKFLOW-AUDIT | bare event ID lookup applies velocity only to first repeated occurrence | timeline/XML regression | listening | Partial | Three-pass note/rest hairpin regression fixed with per-start occurrence pairing and part/staff/voice scope. Cross-ending/missing-stop traversal policy and listening remain open. |
+| CV1-X-HAIRPIN-DENSE-CLEARANCE | 낮은 음역 헤어핀과 하단 표기 간격 | Layout / Engraving | Actual rest-hairpin 960/1400 screenshots; parent CV1-X-ENGRAVING | stem clearance must also reserve system height and adjacent annotation lanes | layout/Electron image | engraving/PDF | Partial | Stem/wedge contact reproduced (-9px). Actual stem-aware offset added; finish extreme ledger, expression-lane and multi-system height audit. |
+| CV1-X-PART-LAYOUT-STRUCTURE | 파트 조판 anchor와 구조 편집 | Parts / Part View | Expanded V1 linked part contract | deleting a measure left saved break anchors dangling | App/native/layout | full score authoring | Partial | Reorder/removal/global direction retention and re-add isolation tested. Equal-length removed-staff breaks remap within the owning part; score/native layouts undo together. Actual earlier packaged XML contains independent title/page break. Next: unequal-staff policy, page-setting interchange, conflicting external layouts and complete linked-score authoring verification |
+| CV1-X-RANGE-PALETTE-ACCESS | 범위 기호 primary 위치 | UI Information Architecture | MuseScore expressive-marking palettes; parent CV1-X-WORKSPACE | range commands were in Note Input and note clicks changed mode | App/headless | broad ergonomics remains in workspace parent | Done | Primary range group moved to Notation Objects; selection preserves mode, controls expose disabled/pressed state. App history/XML/native and actual Electron pointer, 960/1400 hit bounds pass. Direct span geometry remains under CV1-X-SPAN-PROPERTIES. |
+| CV1-X-DYNAMIC-PALETTE-APPLICABILITY | 셈여림 팔레트 적용 정책 불일치 | UI Information Architecture | Range-palette audit; parent CV1-X-WORKSPACE | docked dynamics accepted ranges while toolbar/property dock disabled them | App/headless | none for this narrow policy | Done | Regression reproduced enabled docked buttons on range. Shared handler and all three surfaces now reject range application consistently; App and actual Electron checks pass. |
+| CV1-X-SCORE-MEASURE-STRUCTURE | 총보 마디 삽입/삭제 동기화 | Editing Workflow | MuseScore Adding and removing measures; Expanded V1 workflow audit | staff-only edits desynchronized piano/ensemble measures | core/App/native/XML/package | reference GUI and musical review | Partial | Aligned edits, preceding signature inheritance, active input voice, repeat timing and matched volta shrink covered. Next: unaligned import recovery, broader complex endings and App/manual boundary audit |
+| CV1-PART-PAGE-BREAK | page break가 시스템만 나눔 | PDF / Page Setup | Native part layout failing print test | 명시적 페이지 나눔이 PDF에서 무시됨 | layout/real PDF | human engraving | Done | Page-aware placement now starts a new page and preserves explicit breaks over target-page fitting; native Cello PDF has two pages |
+| CV1-REST-CLEF-PLACEMENT | 쉼표가 보표 밖에 렌더링됨 | Layout / Engraving | Native Cello PDF raster review; VexFlow staff-line coordinates | bass/alto/tenor rests use treble pitch keys | adapter/real PDF raster | full engraving review | Done | Clef-specific keys and whole-versus-half/quarter rest baselines; VexFlow line assertions for four clefs. Broad dense engraving remains Required |
+
+### Historical Baseline Rows
+
 | ID | 문제명 | 카테고리 | Reference 근거 | 사용자 영향 | 자동화 가능 | 외부/수동 필요 | 상태 | 다음 action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | CV1-MXML-MUSESCORE-GUI-SNAPSHOT | MuseScore GUI-created/reopen snapshot QA | MusicXML Compatibility | MuseScore Studio export/reopen workflow | MuseScore 사용자가 가져온 악보 호환성을 신뢰하기 어렵다. | 부분 가능: CLI app-export fixture와 PDF smoke는 존재 | MuseScore GUI에서 실제 작성, export, reopen snapshot 필요 | Manual QA required | MuseScore GUI로 grand staff score를 작성해 export하고 warning snapshot/reopen screenshot을 추가한다. |

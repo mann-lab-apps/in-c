@@ -1,5 +1,29 @@
 # Chromatics Desktop V1 릴리즈 노트 초안
 
+## 2026-09-13 Octave Interchange Correction
+
+Development builds now use standard MusicXML octave directions and pitch values:
+8va/15ma encode `down`, 8vb/15mb encode `up`, with performed note pitches. Native
+projects retain written/display pitches and gain corrected octave playback/MIDI.
+Older Chromatics XML used reversed directions and omitted pitch conversion. Those
+files have no reliable producer-version marker, so this reader does not guess a
+legacy correction. Keep originals and prefer re-exporting from the native source
+with the corrected build. XML-only recovery needs explicit comparison/conversion;
+this remains an expanded V1 blocker, not a solved migration or release approval.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](../product/chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 상태: V1 웹 랜딩 공개용 초안
 
 이 문서는 public release candidate 전에 사용자-facing 문구를 고정하기 위한 초안이다.

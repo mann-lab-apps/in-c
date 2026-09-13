@@ -1,11 +1,18 @@
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { MusicXmlFileSession } from './musicxml-files'
+import { NativeProjectFileSession } from './project-files'
+import { decodeNativeProject, encodeNativeProject } from '../project/schema'
+import { AutosaveFileStore, type AutosaveSnapshot } from './autosave-files'
+import { RecentFileStore } from './recent-files'
+import { NativeProjectBackupStore } from './project-backups'
 
 const openMusicXmlChannel = 'musicxml:open'
 const saveMusicXmlChannel = 'musicxml:save'
+const exportMusicXmlChannel = 'musicxml:export'
 const savePdfChannel = 'pdf:save'
 const saveMidiChannel = 'midi:save'
 const readAutosaveChannel = 'autosave:read'
@@ -20,20 +27,44 @@ const productionConcertPostersApiUrl =
   'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
 const musicXmlFiles = new MusicXmlFileSession(backupExistingMusicXmlFile)
+const nativeBackups = new NativeProjectBackupStore(() => join(app.getPath('userData'), 'native-project-backups'))
+const nativeFiles = new NativeProjectFileSession(filePath => nativeBackups.create(filePath))
 
-interface AutosaveSnapshot {
-  score: unknown
-  metadata: {
-    title: string
-    updatedAt: string
-    version: string
+ipcMain.handle('project:list-backups', () => nativeBackups.list())
+ipcMain.handle('project:read-backup', async (_event, id: string) => ({ contents: await nativeBackups.read(id) }))
+
+ipcMain.handle('project:open', async () => {
+  const result = isSmokeTest
+    ? { canceled: false, filePaths: [join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.chromatics`)] }
+    : await dialog.showOpenDialog({ title: 'Chromatics 프로젝트 열기', properties: ['openFile'], filters: [{ name: 'Chromatics Project', extensions: ['chromatics'] }] })
+  const filePath = result.filePaths[0]
+  if (result.canceled || !filePath) return null
+  return { filePath, fileName: basename(filePath), contents: encodeNativeProject(await nativeFiles.open(filePath)) }
+})
+
+ipcMain.handle('project:save', async (_event, input: { filePath?: string; suggestedName: string; contents: string }) => {
+  const project = decodeNativeProject(input.contents)
+  let filePath = input.filePath
+  if (!filePath) {
+    const result = isSmokeTest
+      ? { canceled: false, filePath: join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.chromatics`) }
+      : await dialog.showSaveDialog({ title: 'Chromatics 프로젝트 저장', defaultPath: input.suggestedName, filters: [{ name: 'Chromatics Project', extensions: ['chromatics'] }] })
+    if (result.canceled || !result.filePath) return null
+    filePath = result.filePath
+    nativeFiles.authorizeSave(filePath)
   }
-}
+  await nativeFiles.save(filePath, project)
+  return { filePath, fileName: basename(filePath) }
+})
+
+const autosaveFiles = new AutosaveFileStore(autosavePath)
+const recentFiles = new RecentFileStore(recentMusicXmlPath)
 
 interface RecentMusicXmlFile {
   filePath: string
   fileName: string
   openedAt: string
+  format?: 'native'
 }
 
 function assertSmokeDirectSavePath(filePath: string, extension: string): void {
@@ -196,6 +227,28 @@ ipcMain.handle(
   }
 )
 
+ipcMain.handle(exportMusicXmlChannel, async (
+  _event,
+  input: { filePath?: string; suggestedName: string; contents: string }
+) => {
+  if (input.filePath) assertSmokeDirectSavePath(input.filePath, 'xml')
+  const result = input.filePath
+    ? { canceled: false, filePath: input.filePath }
+    : isSmokeTest
+    ? { canceled: false, filePath: join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}-part.musicxml`) }
+    : await dialog.showSaveDialog({
+        title: 'MusicXML 내보내기',
+        defaultPath: input.suggestedName,
+        filters: [
+          { name: 'MusicXML', extensions: ['musicxml'] },
+          { name: 'Compressed MusicXML', extensions: ['mxl'] }
+        ]
+      })
+  if (result.canceled || !result.filePath) return null
+  await musicXmlFiles.exportCopy(result.filePath, input.contents)
+  return { filePath: result.filePath, fileName: basename(result.filePath) }
+})
+
 ipcMain.handle(
   savePdfChannel,
   async (
@@ -215,7 +268,7 @@ ipcMain.handle(
       assertSmokeDirectSavePath(input.filePath, 'pdf')
     }
 
-    let outputPath = input.filePath
+    let outputPath = input.filePath ?? (isSmokeTest ? join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.pdf`) : undefined)
 
     if (!outputPath) {
       const result = await dialog.showSaveDialog({
@@ -294,15 +347,7 @@ ipcMain.handle(
 )
 
 ipcMain.handle(readAutosaveChannel, async () => {
-  try {
-    return JSON.parse(await readFile(autosavePath(), 'utf8')) as AutosaveSnapshot
-  } catch (error) {
-    if (isMissingFileError(error)) {
-      return null
-    }
-
-    throw error
-  }
+  return autosaveFiles.read()
 })
 
 ipcMain.handle(
@@ -312,10 +357,12 @@ ipcMain.handle(
     input: {
       score: unknown
       title: string
+      project?: AutosaveSnapshot['project']
     }
   ) => {
     const snapshot: AutosaveSnapshot = {
       score: input.score,
+      ...(input.project ? { project: input.project } : {}),
       metadata: {
         title: input.title,
         updatedAt: new Date().toISOString(),
@@ -323,15 +370,12 @@ ipcMain.handle(
       }
     }
 
-    await mkdir(autosaveDirectory(), { recursive: true })
-    await writeFile(autosavePath(), JSON.stringify(snapshot, null, 2), 'utf8')
-
-    return snapshot.metadata
+    return autosaveFiles.write(snapshot)
   }
 )
 
 ipcMain.handle(clearAutosaveChannel, async () => {
-  await rm(autosavePath(), { force: true })
+  await autosaveFiles.clear()
 })
 
 ipcMain.handle(listRecentMusicXmlChannel, async () => readRecentMusicXmlFiles())
@@ -343,6 +387,7 @@ ipcMain.handle(
     input: {
       filePath: string
       fileName: string
+      format?: 'native'
     }
   ) => addRecentMusicXmlFile(input)
 )
@@ -363,7 +408,9 @@ ipcMain.handle(
       return {
         filePath: input.filePath,
         fileName,
-        contents: await musicXmlFiles.open(input.filePath)
+        contents: recent?.format === 'native'
+          ? encodeNativeProject(await nativeFiles.open(input.filePath))
+          : await musicXmlFiles.open(input.filePath)
       }
     } catch (error) {
       if (isMissingFileError(error)) {
@@ -428,6 +475,8 @@ const createWindow = (): void => {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Hidden smoke windows still need animation frames for the PDF print layout.
+      backgroundThrottling: !isSmokeTest,
       sandbox: false
     }
   })
@@ -452,6 +501,9 @@ const createWindow = (): void => {
       `in-c-packaged-smoke-${process.pid}.pdf`
     )
     const smokeMxlPath = join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.mxl`)
+    const smokeExportPath = join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.xml`)
+    const smokePartExportPath = join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}-part.musicxml`)
+    const smokeNativePath = join(app.getPath('temp'), `in-c-packaged-smoke-${process.pid}.chromatics`)
     const smokeMidiPath = join(
       app.getPath('temp'),
       `in-c-packaged-smoke-${process.pid}.mid`
@@ -491,11 +543,13 @@ const createWindow = (): void => {
       0x2f, 0x00
     ]
 
+    let smokeExitCode = 0
     try {
       const result = await mainWindow.webContents.executeJavaScript(`
         (async () => {
           const smokeMusicXmlPath = ${JSON.stringify(smokeMusicXmlPath)}
           const smokeMxlPath = ${JSON.stringify(smokeMxlPath)}
+          const smokeExportPath = ${JSON.stringify(smokeExportPath)}
           const smokePdfPath = ${JSON.stringify(smokePdfPath)}
           const smokeMidiPath = ${JSON.stringify(smokeMidiPath)}
           const smokeMusicXmlContents = ${JSON.stringify(smokeMusicXmlContents)}
@@ -547,14 +601,17 @@ const createWindow = (): void => {
             setter.call(select, value)
             select.dispatchEvent(new Event('change', { bubbles: true }))
           }
-          const waitForCondition = async (predicate, message) => {
-            for (let attempt = 0; attempt < 20; attempt += 1) {
+          const waitForCondition = async (predicate, message, timeoutMs = 1000) => {
+            const deadline = performance.now() + timeoutMs
+            while (performance.now() < deadline) {
               if (predicate()) {
                 return
               }
               await new Promise((resolve) => setTimeout(resolve, 50))
             }
-            throw new Error(message)
+            throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent +
+              '; visibility=' + document.visibilityState +
+              '; printing=' + !!document.querySelector('.app-shell--pdf-export'))
           }
           const labels = [...document.querySelectorAll('.new-score-form label')]
           const field = (name) =>
@@ -595,6 +652,21 @@ const createWindow = (): void => {
           const openedMusicXml = await window.inC.recentMusicXml.open({
             filePath: smokeMusicXmlPath
           })
+          const exportedXml = await window.inC.musicXml.exportCopy({
+            filePath: smokeExportPath, suggestedName: 'export.xml',
+            contents: smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Export')
+          })
+          const recentAfterExport = await window.inC.recentMusicXml.list()
+          const reopenedExport = await window.inC.recentMusicXml.open({ filePath: smokeExportPath })
+          let exportOverwriteRejected = false
+          try {
+            await window.inC.musicXml.exportCopy({
+              filePath: smokeExportPath, suggestedName: 'export.xml', contents: 'must not overwrite opened document'
+            })
+          } catch {
+            exportOverwriteRejected = true
+          }
+          await window.inC.recentMusicXml.remove({ filePath: smokeExportPath })
           await window.inC.musicXml.save({
             filePath: smokeMxlPath, suggestedName: 'packaged-smoke.mxl', contents: smokeMusicXmlContents
           })
@@ -690,6 +762,104 @@ const createWindow = (): void => {
             suggestedName: 'packaged-smoke.mid',
             contents: smokeMidiContents
           })
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="파트보 제목 수정"]')?.click()
+          await waitForCondition(() => document.querySelector('[aria-label="파트보 제목 입력"]'), 'Part title editor did not open')
+          const partTitleInput = document.querySelector('[aria-label="파트보 제목 입력"]')
+          setInputValue(partTitleInput, 'Cello Rehearsal')
+          await new Promise(resolve => setTimeout(resolve, 50))
+          partTitleInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
+          await waitForCondition(() => document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal', 'Part title edit did not commit')
+          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native UI save did not complete')
+          const nativeRecent = (await window.inC.recentMusicXml.list()).find(file => file.format === 'native')
+          if (!nativeRecent) throw new Error('Native recent entry was not persisted')
+          const nativeDisk = await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })
+          let nativeData = JSON.parse(nativeDisk.contents)
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '악보')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('.notation-event[data-part-id="cello"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="마디 추가"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('새 마디를 추가했습니다.'), 'Score-wide measure insertion did not complete')
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          await waitForCondition(() => !document.querySelector('[aria-label="프로젝트 저장"]')?.disabled, 'Inserted score save did not finish')
+          const insertedData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
+          const hasScoreWideMeasureEdit = insertedData.score.parts.length === 4 && insertedData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 5))
+          window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyZ', key: 'z', ctrlKey: true, bubbles: true }))
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          await waitForCondition(() => !document.querySelector('[aria-label="프로젝트 저장"]')?.disabled, 'Measure undo save did not finish')
+          nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
+          if (!nativeData.score.parts.every(part => part.staves.every(staff => staff.measures.length === 4))) throw new Error('Score-wide measure undo did not restore all parts')
+          const celloLayout = nativeData.partLayouts.find(part => part.partId === 'cello')
+          const celloSecondMeasure = nativeData.score.parts.find(part => part.id === 'cello').staves[0].measures[1].id
+          const hasNativePartTitleEdit = celloLayout.title === 'Cello Rehearsal' &&
+            nativeData.score.parts.find(part => part.id === 'cello').name === 'Cello' &&
+            nativeData.score.title === 'Packaged Smoke Score'
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '악보')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('.notation-event[data-measure-id="' + celloSecondMeasure + '"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+          await waitForCondition(() => {
+            const button = document.querySelector('[aria-label="페이지 나누기 추가"]')
+            return button && !button.disabled
+          }, 'Part page break command was not enabled')
+          document.querySelector('[aria-label="페이지 나누기 추가"]')?.click()
+          await waitForCondition(() => document.querySelector('[aria-label="페이지 나누기 해제"]'), 'Part page break was not inserted')
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Part page break save did not complete')
+          nativeData = JSON.parse((await window.inC.recentMusicXml.open({ filePath: nativeRecent.filePath })).contents)
+          if (!nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageBreakBeforeMeasureIds?.includes(celloSecondMeasure) || nativeData.score.layout?.pageBreakBeforeMeasureIds?.length) throw new Error('Part page break leaked into full score or was not saved')
+          document.querySelector('[aria-label="프로젝트 열기"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics을 열었습니다.'), 'Native UI reopen did not complete')
+          const hasNativeProjectRoundTrip = nativeData.format === 'chromatics-project' &&
+            nativeData.score.parts.length === 4 && nativeData.score.title === 'Packaged Smoke Score' &&
+            nativeData.view.mode === 'part' && nativeData.view.partId === 'cello' &&
+            nativeData.partLayouts.find(part => part.partId === 'cello')?.layout.pageSetup.staffSizePercent === 90 &&
+            document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
+          document.querySelector('[aria-label="프로젝트 저장"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Native second save did not complete')
+          const backupEntry = (await window.inC.project.listBackups()).find(entry => entry.fileName.endsWith('in-c-packaged-smoke-${process.pid}.chromatics'))
+          if (!backupEntry || backupEntry.error) throw new Error('Native backup was not discoverable')
+          document.querySelector('[aria-label="프로젝트 백업"]')?.click()
+          await waitForCondition(() => [...document.querySelectorAll('[data-backup-id]')].some(row => row.getAttribute('data-backup-id') === backupEntry.id), 'Backup UI did not list saved revision')
+          const backupRow = [...document.querySelectorAll('[data-backup-id]')].find(row => row.getAttribute('data-backup-id') === backupEntry.id)
+          backupRow.querySelector('button')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('백업을 복구했습니다.'), 'Native backup UI recovery did not complete')
+          const hasNativeBackupUiRecovery = !document.querySelector('[role="dialog"][aria-label="프로젝트 백업"]') &&
+            document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal'
+          const partSystems = [...document.querySelectorAll('[data-measure-id][data-system-index]')]
+          const hasNativePartLayout = document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() === 'Cello Rehearsal' &&
+            partSystems.some(element => element.getAttribute('data-measure-id') === celloSecondMeasure && Number(element.getAttribute('data-system-index')) > 0)
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '내보내기')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          document.querySelector('[aria-label="PDF 변환"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('로 PDF를 만들었습니다.'), 'Native part PDF export did not complete', 10000)
+          document.querySelector('[aria-label="MusicXML 내보내기"]')?.click()
+          await waitForCondition(() => document.querySelector('.editor-status')?.textContent?.includes('-part.musicxml로 MusicXML을 내보냈습니다.'), 'Part XML UI export did not complete')
+          const partXmlFile = await window.inC.recentMusicXml.open({ filePath: ${JSON.stringify(smokePartExportPath)} })
+          const partXml = new DOMParser().parseFromString(partXmlFile.contents, 'application/xml')
+          const hasPartXmlLayout = !partXml.querySelector('parsererror') &&
+            partXml.querySelector('work > work-title')?.textContent === 'Cello Rehearsal' &&
+            partXml.querySelectorAll('score-partwise > part').length === 1 &&
+            partXml.querySelector('score-partwise > part')?.getAttribute('id') === 'cello' &&
+            partXml.querySelector('part > measure[number="2"] > print')?.getAttribute('new-page') === 'yes'
+          await window.inC.recentMusicXml.remove({ filePath: ${JSON.stringify(smokePartExportPath)} })
+          ;[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()
+          await new Promise(resolve => setTimeout(resolve, 50))
+          await window.inC.autosave.write({ score: nativeData.score, project: nativeData, title: nativeData.score.title })
+          const nativeRecovery = await window.inC.autosave.read()
+          const hasNativeRecoveryRoundTrip = nativeRecovery?.project?.view?.partId === 'cello' &&
+            nativeRecovery.project.score.parts.length === 4 &&
+            nativeRecovery.project.partLayouts.find(part => part.partId === 'cello')?.layout.pageSetup.staffSizePercent === 90
+          await window.inC.recentMusicXml.remove({ filePath: nativeRecent.filePath })
           await window.inC.autosave.write({
             score: { title: 'Packaged Smoke' },
             title: 'Packaged Smoke'
@@ -720,6 +890,16 @@ const createWindow = (): void => {
               openedMusicXml?.contents === smokeMusicXmlContents,
             hasMxlRoundTrip: openedMxl?.contents === smokeMusicXmlContents &&
               resavedMxl?.contents === smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Resave'),
+            hasExportCopyRoundTrip: exportedXml?.filePath === smokeExportPath &&
+              reopenedExport?.contents === smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Export') &&
+              !recentAfterExport.some(file => file.filePath === smokeExportPath) && exportOverwriteRejected,
+            hasNativeProjectRoundTrip,
+            hasNativeRecoveryRoundTrip,
+            hasNativeBackupUiRecovery,
+            hasNativePartLayout,
+            hasNativePartTitleEdit,
+            hasPartXmlLayout,
+            hasScoreWideMeasureEdit,
             hasPdfFileWrite:
               savedPdf?.filePath === smokePdfPath &&
               savedPdf?.fileName === 'in-c-packaged-smoke-${process.pid}.pdf',
@@ -764,6 +944,14 @@ const createWindow = (): void => {
         !result.hasMusicXmlFileWrite ||
         !result.hasRecentOpenRoundTrip ||
         !result.hasMxlRoundTrip ||
+        !result.hasExportCopyRoundTrip ||
+        !result.hasNativeProjectRoundTrip ||
+        !result.hasNativeRecoveryRoundTrip ||
+        !result.hasNativeBackupUiRecovery ||
+        !result.hasNativePartLayout ||
+        !result.hasNativePartTitleEdit ||
+        !result.hasPartXmlLayout ||
+        !result.hasScoreWideMeasureEdit ||
         !result.hasPdfFileWrite ||
         !result.hasPartViewPdfTarget ||
         !result.hasPartViewPdfFileWrite ||
@@ -778,26 +966,61 @@ const createWindow = (): void => {
       if (savedContents !== smokeMusicXmlContents) {
         throw new Error('Packaged MusicXML smoke file contents did not round-trip.')
       }
+      if (await readFile(smokeExportPath, 'utf8') !== smokeMusicXmlContents.replace('Packaged Smoke', 'Packaged Export')) {
+        throw new Error('Packaged export copy was not preserved after rejected overwrite.')
+      }
 
       const savedPdf = await readFile(smokePdfPath)
+      const savedNative = decodeNativeProject(await readFile(smokeNativePath, 'utf8'))
+      if (savedNative.score.parts.length !== 4 || savedNative.view.mode !== 'part') throw new Error('Packaged native file lost score or view state.')
       const savedMxl = await readFile(smokeMxlPath)
       if (savedMxl.readUInt32LE(0) !== 0x04034b50) throw new Error('Packaged MXL archive is not ZIP.')
       const savedMidi = await readFile(smokeMidiPath)
 
       validateSmokePdf(savedPdf)
+      const nativePartPageCount = savedPdf.toString('latin1').match(/\/Type\s*\/Page\b/g)?.length ?? 0
+      if (nativePartPageCount < 2) throw new Error('Native part page break did not reach the PDF file.')
+      await writeFile(join(app.getPath('temp'), 'in-c-native-part-layout.pdf'), savedPdf)
 
       validateSmokeMidi(savedMidi)
 
+      await mainWindow.webContents.executeJavaScript(`document.querySelector('[aria-label="프로젝트 백업"]')?.click()`)
+      for (const width of [960, 1400]) {
+        mainWindow.setSize(width, 900)
+        await new Promise(resolve => setTimeout(resolve, 400))
+        const fits = await mainWindow.webContents.executeJavaScript(`(() => {
+          const dialog = document.querySelector('[role="dialog"][aria-label="프로젝트 백업"]')
+          if (!dialog || !dialog.querySelector('[data-backup-id]')) return false
+          const box = dialog.getBoundingClientRect()
+          return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight &&
+            dialog.scrollWidth <= dialog.clientWidth + 1
+        })()`)
+        if (!fits) throw new Error(`Native backup dialog does not fit at ${width}px`)
+        await writeFile(join(app.getPath('temp'), `in-c-native-backups-${width}.png`), (await mainWindow.webContents.capturePage()).toPNG())
+      }
+      await copyFile(smokePartExportPath, join(app.getPath('temp'), 'in-c-native-part-layout.musicxml'))
       console.log(`PACKAGED_APP_SMOKE_OK ${JSON.stringify(result)}`)
-      app.exit(0)
     } catch (error) {
       console.error(error)
-      app.exit(1)
+      smokeExitCode = 1
     } finally {
-      await rm(smokeMusicXmlPath, { force: true })
-      await rm(smokeMxlPath, { force: true })
-      await rm(smokePdfPath, { force: true })
-      await rm(smokeMidiPath, { force: true })
+      try {
+        await rm(smokeMusicXmlPath, { force: true })
+        await rm(smokeMxlPath, { force: true })
+        await rm(smokeExportPath, { force: true })
+        await rm(smokePartExportPath, { force: true })
+        await rm(smokeNativePath, { force: true })
+        await rm(smokePdfPath, { force: true })
+        await rm(smokeMidiPath, { force: true })
+        for (const backup of await nativeBackups.list()) {
+          if (backup.fileName.endsWith(`in-c-packaged-smoke-${process.pid}.chromatics`)) {
+            await rm(join(app.getPath('userData'), 'native-project-backups', backup.id), { force: true })
+          }
+        }
+      } catch (error) {
+        console.error('Smoke artifact cleanup failed', error)
+        smokeExitCode = 1
+      } finally { app.exit(smokeExitCode) }
     }
   })
 
@@ -896,75 +1119,21 @@ function getConcertPostersApiUrls(): string[] {
 }
 
 async function readRecentMusicXmlFiles(): Promise<RecentMusicXmlFile[]> {
-  try {
-    const parsed = JSON.parse(
-      await readFile(recentMusicXmlPath(), 'utf8')
-    ) as unknown
-
-    return Array.isArray(parsed)
-      ? parsed.filter(isRecentMusicXmlFile).slice(0, 5)
-      : []
-  } catch (error) {
-    if (isMissingFileError(error)) {
-      return []
-    }
-
-    throw error
-  }
+  return recentFiles.list()
 }
 
 async function addRecentMusicXmlFile(input: {
   filePath: string
   fileName: string
+  format?: 'native'
 }): Promise<RecentMusicXmlFile[]> {
-  const recentFiles = await readRecentMusicXmlFiles()
-  const nextFiles = [
-    {
-      filePath: input.filePath,
-      fileName: input.fileName,
-      openedAt: new Date().toISOString()
-    },
-    ...recentFiles.filter((file) => file.filePath !== input.filePath)
-  ].slice(0, 5)
-
-  await writeRecentMusicXmlFiles(nextFiles)
-  return nextFiles
+  return recentFiles.add(input)
 }
 
 async function removeRecentMusicXmlFile(
   filePath: string
 ): Promise<RecentMusicXmlFile[]> {
-  const nextFiles = (await readRecentMusicXmlFiles()).filter(
-    (file) => file.filePath !== filePath
-  )
-
-  await writeRecentMusicXmlFiles(nextFiles)
-  return nextFiles
-}
-
-async function writeRecentMusicXmlFiles(
-  recentFiles: RecentMusicXmlFile[]
-): Promise<void> {
-  await mkdir(app.getPath('userData'), { recursive: true })
-  await writeFile(
-    recentMusicXmlPath(),
-    JSON.stringify(recentFiles, null, 2),
-    'utf8'
-  )
-}
-
-function isRecentMusicXmlFile(value: unknown): value is RecentMusicXmlFile {
-  if (typeof value !== 'object' || value === null) {
-    return false
-  }
-
-  const recent = value as Partial<RecentMusicXmlFile>
-
-  return (
-    typeof recent.filePath === 'string' &&
-    typeof recent.fileName === 'string' &&
-    typeof recent.openedAt === 'string'
-  )
+  return recentFiles.remove(filePath)
 }
 
 function isMissingFileError(error: unknown): boolean {

@@ -2,10 +2,16 @@ import { describe, expect, it } from 'vitest'
 
 import {
   resolveHairpinOpenings,
+  resolveHairpinStemClearance,
   resolveHairpinSegments
 } from './hairpin-rendering'
 
 describe('hairpin rendering', () => {
+  it('keeps the entire wedge below lower-voice stems without lowering a clear annotation lane', () => {
+    expect(resolveHairpinStemClearance(126, [125, 120])).toBe(143)
+    expect(resolveHairpinStemClearance(180, [125, 120])).toBe(180)
+    expect(resolveHairpinStemClearance(126, [])).toBe(126)
+  })
   it('layout.hairpin-system-segments creates a continuous segment for every crossed system', () => {
     const segments = resolveHairpinSegments(
       { x: 80, y: 40 },

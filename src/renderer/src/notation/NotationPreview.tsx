@@ -24,6 +24,7 @@ import {
   sortVoiceEvents,
   type Measure,
   type Score,
+  type SpanEngraving,
   type Staff,
   type TempoMarking,
   type Voice as ScoreVoice,
@@ -31,6 +32,7 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
+import { resolveSpanViewport } from './span-viewport'
 import {
   createSystemLayout,
   leadingNotationPadding,
@@ -41,10 +43,12 @@ import {
   toVexFlowClef,
   toVexFlowDuration,
   toVexFlowKey,
+  toVexFlowRestKey,
   toVexFlowKeySignature
 } from './vexflow-adapter'
 import {
   resolveHairpinOpenings,
+  resolveHairpinStemClearance,
   resolveHairpinSegments
 } from './hairpin-rendering'
 import {
@@ -76,6 +80,8 @@ import {
 } from './visual-state'
 
 interface NotationPreviewProps {
+  selectedSpan?: { kind: 'slur' | 'hairpin'; id: string }
+  onSelectSpan?: (reference: { kind: 'slur' | 'hairpin'; id: string }) => void
   score: Score
   inlineLyricEditor?: InlineLyricEditor
   selectedEventAddress?: VoiceAddress
@@ -203,6 +209,8 @@ interface RenderedStaffState {
 }
 
 export function NotationPreview({
+  selectedSpan,
+  onSelectSpan,
   score,
   inlineLyricEditor,
   selectedEventAddress,
@@ -979,6 +987,7 @@ export function NotationPreview({
     })
 
     if (svg) {
+      const manualBounds: DOMRect[] = []
       ;(score.slurs ?? []).forEach((slur, slurIndex) => {
         const start = staffRenderState.pointsByEventId.get(slur.startEventId)
         const end = staffRenderState.pointsByEventId.get(slur.endEventId)
@@ -1006,7 +1015,7 @@ export function NotationPreview({
           end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
         ])
 
-        drawSlurSegments(
+        const segments = drawSlurSegments(
           svg,
           start,
           end,
@@ -1014,8 +1023,13 @@ export function NotationPreview({
           endSystem,
           staffBounds,
           slurIndex,
-          slurSide
+          slur.engraving?.placement ?? slurSide,
+          slur.engraving
         )
+        for (const segment of segments) {
+          if (slur.engraving) manualBounds.push(segment.getBBox())
+          bindSpanSelection(segment, { kind: 'slur', id: slur.id }, selectedSpan, onSelectSpan)
+        }
       })
 
       for (const hairpin of score.hairpins ?? []) {
@@ -1038,7 +1052,7 @@ export function NotationPreview({
           continue
         }
 
-        drawHairpinSegments(
+        const segments = drawHairpinSegments(
           svg,
           start,
           end,
@@ -1046,13 +1060,33 @@ export function NotationPreview({
           startSystem,
           endSystem,
           staffBounds,
-          resolveHairpinSpanYOffset([
+          resolveHairpinStemClearance(resolveHairpinSpanYOffset([
             start.measureId
               ? annotationLanesByMeasureId.get(start.measureId)
               : undefined,
             end.measureId ? annotationLanesByMeasureId.get(end.measureId) : undefined
-          ])
+          ]) ?? HAIRPIN_Y_OFFSET, Array.from(staffRenderState.notesByEventId).flatMap(([eventId, note]) => {
+            const point = staffRenderState.pointsByEventId.get(eventId)
+            const system = staffRenderState.systemsByEventId.get(eventId)
+            if (!point || system === undefined || system < startSystem || system > endSystem ||
+              staffRenderState.staffIndexByEventId.get(eventId) !== staffRenderState.staffIndexByEventId.get(hairpin.startEventId) ||
+              (system === startSystem && point.x < start.x) ||
+              (system === endSystem && point.x > end.x) || !note.hasStem()) return []
+            const stem = resolveStemGeometry(note, point.y)
+            return [Math.max(stem.topY, stem.baseY) - point.y]
+          })),
+          hairpin.engraving
         )
+        for (const segment of segments) {
+          if (hairpin.engraving) manualBounds.push(segment.getBBox())
+          bindSpanSelection(segment, { kind: 'hairpin', id: hairpin.id }, selectedSpan, onSelectSpan)
+        }
+      }
+
+      if (manualBounds.length) {
+        const viewport = resolveSpanViewport(effectiveRenderWidth, layout.height, manualBounds)
+        renderer.resize(viewport.width, viewport.height)
+        svg.setAttribute('viewBox', `${viewport.x} ${viewport.y} ${viewport.width} ${viewport.height}`)
       }
 
       for (const octaveShift of score.octaveShifts ?? []) {
@@ -1127,6 +1161,8 @@ export function NotationPreview({
       )
     }
   }, [
+    onSelectSpan,
+    selectedSpan,
     onSelectEvent,
     onSelectEventRange,
     onSelectLyric,
@@ -2262,8 +2298,10 @@ function drawHairpinSegments(
   startSystem: number,
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>,
-  yOffset = HAIRPIN_Y_OFFSET
-): void {
+  yOffset = HAIRPIN_Y_OFFSET,
+  engraving?: SpanEngraving
+): SVGGElement[] {
+  const elements: SVGGElement[] = []
   for (const segment of resolveHairpinSegments(
     start,
     end,
@@ -2271,17 +2309,19 @@ function drawHairpinSegments(
     endSystem,
     boundsBySystemIndex
   )) {
-    drawHairpinSegment(
+    elements.push(drawHairpinSegment(
       svg,
-      segment.x1,
-      segment.x2,
+      segment.x1 + (engraving?.offsetX ?? 0) * 10,
+      segment.x2 + (engraving?.offsetX ?? 0) * 10,
       segment.staffY,
       type,
       segment.isFirst,
       segment.isLast,
-      yOffset
-    )
+      (engraving?.placement === 'above' ? -34 : yOffset) + (engraving?.offsetY ?? 0) * 10,
+      engraving?.height
+    ))
   }
+  return elements
 }
 
 function drawHairpinSegment(
@@ -2292,15 +2332,17 @@ function drawHairpinSegment(
   type: string,
   isFirst: boolean,
   isLast: boolean,
-  yOffset = HAIRPIN_Y_OFFSET
-): void {
+  yOffset = HAIRPIN_Y_OFFSET,
+  height?: number
+): SVGGElement {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const upper = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const lower = document.createElementNS('http://www.w3.org/2000/svg', 'line')
   const y = staffY + yOffset
   const openings = resolveHairpinOpenings(type, isFirst, isLast)
-  const leftOpening = openings.left
-  const rightOpening = openings.right
+  const scale = height === undefined ? 1 : height / 2
+  const leftOpening = openings.left * scale
+  const rightOpening = openings.right * scale
 
   group.classList.add('notation-hairpin')
   group.setAttribute('data-annotation-lane', 'lower-hairpin')
@@ -2316,6 +2358,7 @@ function drawHairpinSegment(
 
   group.append(upper, lower)
   svg.append(group)
+  return group
 }
 
 function drawOctaveShiftSegments(
@@ -2397,8 +2440,10 @@ function drawSlurSegments(
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>,
   slurIndex: number,
-  side: 'above' | 'below'
-): void {
+  side: 'above' | 'below',
+  engraving?: SpanEngraving
+): SVGPathElement[] {
+  const elements: SVGPathElement[] = []
   const firstSystem = Math.min(startSystem, endSystem)
   const lastSystem = Math.max(startSystem, endSystem)
 
@@ -2427,8 +2472,12 @@ function drawSlurSegments(
       continue
     }
 
-    drawSlurSegment(svg, x1, x2, y1, y2, side, slurIndex, isFirst, isLast)
+    elements.push(drawSlurSegment(svg,
+      x1 + (engraving?.offsetX ?? 0) * 10, x2 + (engraving?.offsetX ?? 0) * 10,
+      y1 + (engraving?.offsetY ?? 0) * 10, y2 + (engraving?.offsetY ?? 0) * 10,
+      side, slurIndex, isFirst, isLast, engraving?.height))
   }
+  return elements
 }
 
 function drawSlurSegment(
@@ -2440,12 +2489,13 @@ function drawSlurSegment(
   side: 'above' | 'below',
   slurIndex: number,
   isFirst: boolean,
-  isLast: boolean
-): void {
+  isLast: boolean,
+  height?: number
+): SVGPathElement {
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   const offset = (slurIndex % 3) * 6
   const span = Math.abs(x2 - x1)
-  const curveDepth = Math.min(22, Math.max(10, span * 0.09)) + offset
+  const curveDepth = height === undefined ? Math.min(22, Math.max(10, span * 0.09)) + offset : height * 10
   const controlX = (x1 + x2) / 2
   const controlY =
     side === 'above'
@@ -2464,6 +2514,39 @@ function drawSlurSegment(
     `M ${startX} ${y1} Q ${controlX} ${controlY} ${endX} ${y2}`
   )
   svg.append(path)
+  return path
+}
+
+function bindSpanSelection(
+  element: SVGElement,
+  reference: { kind: 'slur' | 'hairpin'; id: string },
+  selected: NotationPreviewProps['selectedSpan'],
+  onSelect: NotationPreviewProps['onSelectSpan']
+): void {
+  if (!onSelect) return
+  const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
+  group.classList.add('notation-span-target')
+  group.classList.toggle('is-selected', selected?.kind === reference.kind && selected.id === reference.id)
+  group.setAttribute('data-span-id', reference.id)
+  group.setAttribute('data-span-kind', reference.kind)
+  group.setAttribute('role', 'button')
+  group.setAttribute('tabindex', '0')
+  group.setAttribute('aria-label', `${reference.kind === 'slur' ? '슬러' : '헤어핀'} ${reference.id} 선택`)
+  group.setAttribute('aria-pressed', String(selected?.kind === reference.kind && selected.id === reference.id))
+  const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+  hit.setAttribute('d', element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
+    `M ${line.getAttribute('x1')} ${line.getAttribute('y1')} L ${line.getAttribute('x2')} ${line.getAttribute('y2')}`).join(' '))
+  hit.classList.add('notation-span-hit')
+  element.parentNode?.insertBefore(group, element)
+  group.append(element, hit)
+  group.addEventListener('click', event => { event.stopPropagation(); onSelect(reference) })
+  group.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      event.stopPropagation()
+      onSelect(reference)
+    }
+  })
 }
 
 function resolveSlurAnchorMetrics(note: StaveNote): Partial<CursorPoint> {
@@ -2949,7 +3032,7 @@ function createStaveNote(
     event.type === 'note' && event.pitches?.length
       ? event.pitches.map(toVexFlowKey)
       : isRest
-        ? ['b/4']
+        ? [toVexFlowRestKey(measure.clef, event.duration.value)]
         : [toVexFlowKey(pitch!)]
   const voicePresentation = resolveSameStaffVoicePresentation(
     voice.id,

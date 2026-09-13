@@ -1,5 +1,18 @@
 # Chromatics MuseScore Parity Roadmap
 
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 작성일: 2026-09-11
 상태: MuseScore Studio 공식 문서 기반 장기 parity 실행 큐
 

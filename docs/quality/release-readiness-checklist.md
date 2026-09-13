@@ -1,5 +1,53 @@
 # Release Readiness Checklist
 
+## 2026-09-13 Integration Checkpoint
+
+User requested stop plus push/merge. Final local full suite: 607 passed / 1
+skipped. Native v2 migration/geometry, actual SVG/PDF bounds and reset/history
+have evidence; XML/MIDI fixture gates and unchanged visual metrics pass.
+Integration is a development checkpoint, not expanded V1 completion or RC approval.
+No new feature work starts without explicit resumption. CI status belongs to the
+new PR head, not historical package evidence below.
+
+## 2026-09-13 Direct Span Inspector Follow-Up
+
+Current goal was absent and was registered active on explicit user request.
+Direct list/SVG span selection, endpoint editing, delete/history and native/XML
+contracts have automated evidence. Full suite: 602 passed / 1 skipped before
+display-only follow-up; focused follow-up: 4 passed. Build, 960/1400 pointer/file
+QA and unchanged notation visual metrics pass. See evidence-log for gates.
+Geometry and other expanded Required implementations remain open; public RC is
+not approved. This does not replace installer, dialog or human engraving QA.
+
+## 2026-09-13 Resumed Implementation
+
+Range-palette follow-up: Notation Objects access/selection continuity and docked
+dynamics applicability have App and 960/1400 Electron pointer/file evidence.
+Full current suite is 598 passed / 1 skipped; E2E and visual regression pass.
+This is not a fresh installer or human engraving signoff. Goal state was paused;
+explicitly requested implementation continued through ordinary execution.
+
+Automated slices now cover aligned measure signature/repeat/volta boundaries,
+part reorder/removal history, XML system/page breaks, standalone part titles and
+rest-anchored hairpins. Evidence is tied to the current dirty worktree, not past CI.
+Headless rest-hairpin authoring/XML reopen passed at 960/1400, with 8px measured
+stem clearance after a reproduced collision. File dialogs and human engraving/
+listening are not covered. Expanded Required implementations remain Partial;
+neither implementation completion nor public RC approval is granted.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](../product/chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 기준일: 2026-07-15
 
 ## Document Control

@@ -141,6 +141,14 @@ function main() {
     .filter((row) => ['Todo', 'Partial', 'In progress'].includes(row.status))
     .map((row) => row.id)
 
+  const expandedScope = readFileSync(resolve(rootDir, 'docs/product/chromatics-expanded-v1.md'), 'utf8')
+  const requiredExpandedIds = [...expandedScope.matchAll(/^\| (CV1-X-[A-Z-]+) \|/gm)].map(match => match[1])
+  if (requiredExpandedIds.length < 16) fail('Expanded V1 acceptance inventory is missing tasks')
+  for (const id of requiredExpandedIds) {
+    const row = rows.find(row => row.id === id)
+    if (!row || row.status === 'Post-V1') fail(`Expanded V1 Required task missing or demoted: ${id}`)
+  }
+
   console.log(
     JSON.stringify(
       {
@@ -151,6 +159,7 @@ function main() {
         categories: [...categories].sort(),
         statuses: [...statuses].sort(),
         automationQueueDrained: nextAutomatableRows.length === 0,
+        expandedRequiredTasks: requiredExpandedIds.length,
         nextAutomatableRows
       },
       null,

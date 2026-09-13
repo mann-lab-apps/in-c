@@ -653,14 +653,14 @@ describe('MusicXML MVP', () => {
       {
         code: 'unsupported-layout',
         message:
-          'manual system break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+          'system break has no aligned score measure and was not exported to MusicXML.',
         path: 'score.layout.systemBreakBeforeMeasureIds[0]',
         measureId: 'measure-2'
       },
       {
         code: 'unsupported-layout',
         message:
-          'manual page break is not exported to MusicXML yet; use PDF export to preserve printed layout.',
+          'page break has no aligned score measure and was not exported to MusicXML.',
         path: 'score.layout.pageBreakBeforeMeasureIds[0]',
         measureId: 'measure-3'
       },
@@ -1016,10 +1016,10 @@ describe('MusicXML MVP', () => {
   })
 
   it.each([
-    ['8va', 'up', 8],
-    ['8vb', 'down', 8],
-    ['15ma', 'up', 15],
-    ['15mb', 'down', 15]
+    ['8va', 'down', 8],
+    ['8vb', 'up', 8],
+    ['15ma', 'down', 15],
+    ['15mb', 'up', 15]
   ] as const)(
     'exports and re-imports %s octave shift spans',
     (type, direction, size) => {
