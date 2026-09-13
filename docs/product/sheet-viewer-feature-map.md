@@ -190,6 +190,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   `pdfrx` page rect 기반 overlay로 좌표 정합성을 높였다. 18차에서 텍스트 주석 생성/렌더/수정/삭제/undo를
   추가했고, 후속 보강에서 stroke/text redo까지 연결했다.
 - 메트로놈. visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot,
+  저장 대기 중 바뀐 페이지/필기는 보존하며 삭제된 악보/세트리스트나 제외된 곡에는 값을 다시 붙이지 않는다.
+  전역 기본값 저장과 악보/세트리스트별 적용 범위는 구분한다.
   세트리스트별 score metronome override,
   start/stop, 첫 박 강조, subdivision, Tap tempo, 0/1/2마디 count-in, 기본 ON tick 소리,
   `소리`/`시각만` 상태 표시, viewer mini panel과 시각 박자 strip을 제공한다.

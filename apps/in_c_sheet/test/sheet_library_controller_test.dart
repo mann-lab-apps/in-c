@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
@@ -15,6 +17,103 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final removal in ['setlist', 'membership', 'score']) {
+    test('delayed metronome save respects removed $removal scope', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = _DelayedMetronomeStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, original);
+      store.delayNext = true;
+      final pending = controller.updateMetronomeSettingsForScore(
+        original,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+        setlistId: setlist.id,
+      );
+      addTearDown(() async {
+        if (!store.release.isCompleted) store.release.complete();
+        await pending;
+      });
+      await store.entered.future;
+      switch (removal) {
+        case 'setlist':
+          await controller.deleteSetlist(setlist);
+        case 'membership':
+          await controller.removeScoreFromSetlist(setlist, original);
+        case 'score':
+          await controller.deleteScoresByIds({original.id});
+      }
+      store.release.complete();
+      await pending;
+      await controller.load();
+      expect(controller.metronomeSettings.bpm, 96);
+      expect(
+        controller.scoreByIdOrNull(original.id)?.metronomeSettings,
+        isNull,
+      );
+      if (removal == 'setlist') {
+        expect(controller.setlists, isEmpty);
+      } else {
+        expect(controller.setlists.single.scoreMetronomeSettings, isEmpty);
+        expect(controller.setlists.single.scoreIds, isEmpty);
+      }
+      if (removal == 'score') expect(controller.scores, isEmpty);
+    });
+  }
+
+  test(
+    'delayed metronome save preserves newer page and annotation state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = _DelayedMetronomeStore();
+      final original = _score(now);
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.delayNext = true;
+      final pending = controller.updateMetronomeSettingsForScore(
+        original,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+      );
+      addTearDown(() async {
+        if (!store.release.isCompleted) store.release.complete();
+        await pending;
+      });
+      await store.entered.future;
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.addAnnotationStroke(
+        controller.scoreById(original.id),
+        SheetAnnotationStroke(
+          id: 'fresh',
+          pageNumber: 4,
+          tool: SheetAnnotationTool.pen,
+          color: 0xff111111,
+          width: 2,
+          points: const [SheetAnnotationPoint(x: .1, y: .2)],
+          createdAt: now,
+        ),
+      );
+      store.release.complete();
+      await pending;
+      expect(controller.scoreById(original.id).lastPage, 4);
+      expect(
+        controller.scoreById(original.id).annotationLayer.strokes.single.id,
+        'fresh',
+      );
+      expect(controller.scoreById(original.id).metronomeSettings?.bpm, 96);
+      await controller.load();
+      expect(controller.scoreById(original.id).lastPage, 4);
+      expect(
+        controller.scoreById(original.id).annotationLayer.strokes.single.id,
+        'fresh',
+      );
+    },
+  );
+
   test(
     'setlist add excludes removed scores without counting them as duplicates',
     () async {
@@ -3302,6 +3401,22 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
     SheetScore score,
   ) async {
     return result;
+  }
+}
+
+class _DelayedMetronomeStore extends SheetLibraryStore {
+  bool delayNext = false;
+  final entered = Completer<void>();
+  final release = Completer<void>();
+
+  @override
+  Future<void> saveMetronomeSettings(SheetMetronomeSettings settings) async {
+    if (delayNext) {
+      delayNext = false;
+      entered.complete();
+      await release.future;
+    }
+    await super.saveMetronomeSettings(settings);
   }
 }
 

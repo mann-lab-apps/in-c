@@ -1052,8 +1052,17 @@ class SheetLibraryController extends ChangeNotifier {
   }) async {
     _metronomeSettings = settings;
     await store.saveMetronomeSettings(settings);
+    final currentScore = scoreByIdOrNull(score.id);
+    if (currentScore == null) {
+      notifyListeners();
+      return;
+    }
     final setlist = setlistId == null ? null : setlistByIdOrNull(setlistId);
-    if (setlist != null) {
+    if (setlistId != null) {
+      if (setlist == null || !setlist.scoreIds.contains(score.id)) {
+        notifyListeners();
+        return;
+      }
       await _replaceSetlist(
         setlist.copyWith(
           scoreMetronomeSettings:
@@ -1069,7 +1078,10 @@ class SheetLibraryController extends ChangeNotifier {
       return;
     }
     await _replace(
-      score.copyWith(metronomeSettings: settings, updatedAt: DateTime.now()),
+      currentScore.copyWith(
+        metronomeSettings: settings,
+        updatedAt: DateTime.now(),
+      ),
     );
   }
 

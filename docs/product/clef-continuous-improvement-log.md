@@ -33,7 +33,16 @@
 
 ## Verification Policy
 
-S9: VERIFIED LOCAL. Bulk add accepts stale scores no longer in the library and reports
+S10: VERIFIED LOCAL. Async metronome persistence overwrites page/annotation edits made
+while awaiting the global settings write. Regression reproduced page 4 reverting to 1.
+Resolve current score and explicit setlist scope after that await. Acceptance: preserve
+new page/strokes through reload; deleted score, deleted setlist and removed member
+must not receive settings or be recreated. The global default still updates intentionally.
+Four delayed-store regressions pass; full suite 531/531, analyze/RC PASS
+(`/private/tmp/clef-rc-s10.log`). This does not yet establish ordering of multiple
+concurrent metronome saves. Commit subject: `fix: preserve Clef state during metronome saves`.
+
+S9: `37e9e8c`, VERIFIED LOCAL. Bulk add accepts stale scores no longer in the library and reports
 them as newly added. Validate membership for single/bulk add, distinguish missing
 from duplicate counts, and communicate partial/all-missing outcomes in every add flow.
 Regression reproduced two additions instead of one; mixed/all-missing controller and
@@ -147,7 +156,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: async metronome saves must preserve intervening score/page/annotation changes.
+Next: examine ordering of concurrent metronome saves.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before
