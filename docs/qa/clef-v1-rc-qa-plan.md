@@ -60,6 +60,7 @@
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
 | 15-0 | 자동 백업 복원 | 백업 메뉴의 자동 metadata 복원이 파일 picker 없이 active library profile의 최신 snapshot으로 되돌린다. | 복원 전후 악보 수, 활성 library profile, PDF filePath 접근 여부 |
 | 15-1 | Songbook 전체 백업 | 같은 PDF 참조를 ZIP에 한 번만 담고 복원 후에도 공유한다. 다른 경로의 동명 파일은 별도로 보존한다. | 곡 구간/pageOrder, 마지막 페이지, 세트리스트 순서, 공유 경로, PDF bytes; 로컬 fixture 검증과 기기 QA 구분 |
+| 15-2 | 불완전 ZIP 복원 차단 | 필요한 PDF/연결 파일/필기 파일 또는 매핑이 없는 ZIP은 쓰기 전 거부한다. 백업 당시 명시적으로 missing 기록된 파일은 기존 metadata 보존 정책을 따른다. | 거부 안내, 기존 라이브러리/파일 유지. 로컬 손상 fixture 테스트; 저장 중 디스크 오류의 전체 rollback은 별도 점검 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |

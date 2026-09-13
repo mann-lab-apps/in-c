@@ -1435,7 +1435,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion =>
         '지원하지 않는 전체 백업 버전입니다.',
-      SheetLibraryBackupRestoreStatus.invalid => '올바른 Clef 전체 백업 ZIP이 아닙니다.',
+      SheetLibraryBackupRestoreStatus.invalid =>
+        '백업 형식이 올바르지 않거나 필요한 파일이 빠져 있습니다.',
       SheetLibraryBackupRestoreStatus.error => '전체 백업을 복원하지 못했습니다.',
     };
     ScaffoldMessenger.of(context)

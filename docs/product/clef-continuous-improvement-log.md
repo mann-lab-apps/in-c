@@ -17,7 +17,8 @@
 | ID | User problem / evidence | Acceptance and failure criteria | Verification | State / dependency |
 | --- | --- | --- | --- | --- |
 | B1 | Songbook entries share a PDF, but full backup stores and restores a copy per entry. | One archive PDF per identical source path; restore shared references, page ranges and setlist IDs. Distinct same-name files stay distinct; legacy backups still restore. | New regression first failed (4 archive PDFs instead of 2), then passed. Store suite 20/20, full suite 448/448, analyze and RC check PASS. | VERIFIED LOCAL |
-| B2 | Full restore skips absent archive entries and may replace the library with inaccessible references. | Inspect corrupt/missing mapping behavior; reject incomplete archives before replacing metadata while retaining explicitly missing-file compatibility. | Corrupt ZIP fixtures and existing-library preservation tests. | TODO; local |
+| B2 | Full restore skips absent archive entries and may replace the library with inaccessible references. | Reject incomplete archives before writing files/replacing metadata; retain explicitly missing-file compatibility. | Missing linked-file fixture reproduced false success. Seven corrupt fixtures preserve existing metadata/PDF bytes; store suite 28/28, full suite 456/456, analyze/RC PASS. | VERIFIED LOCAL |
+| B3 | Backup codec tolerantly drops malformed records and missing-file success copy does not explain absent bytes. | Inspect metadata restore validation and expose explicitly missing file counts; preserve older valid settings defaults. | Codec/store/widget regression tests. | TODO; local |
 | S1 | Split songbook entries inherit source page settings beyond their own range. | Check hidden pages, jump marks and navigation against the claimed song range; reproduce gaps before changing policy. | Controller/model tests and viewer call-path review. | TODO; local |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 
@@ -31,8 +32,9 @@
 
 ## Checkpoint
 
-B1 implemented with store/controller-independent ZIP fixtures. Formatter changed only
-the two edited Dart files. No emulator evidence or app build claimed.
-Commit subject: `fix: preserve shared Clef songbook files in backups`.
-Next: B2, add corrupt ZIP fixtures to `sheet_library_store_test.dart` and ensure
-restore validates all required entries before writing files or replacing metadata.
+B1: `457a257`, store suite 20/20 and full suite 448/448, analyze/RC PASS.
+B2: preflight checks all mappings before writes; UI explains invalid/incomplete backup.
+Commit subject: `fix: validate Clef backup files before restoring`.
+Next: B3, reproduce malformed score/setlist arrays in metadata backup restore.
+Known limit: preflight validation is not a transaction for disk/preferences write failures.
+No emulator evidence or app build claimed.

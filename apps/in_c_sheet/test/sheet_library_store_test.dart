@@ -998,6 +998,114 @@ void main() {
     },
   );
 
+  for (final damage in <String>[
+    'missing PDF',
+    'missing linked file',
+    'missing annotation file',
+    'missing mapping',
+    'malformed mapping',
+    'unsafe mapping',
+    'duplicate mapping',
+  ]) {
+    test('rejects $damage before changing the existing library', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-09-13T10:00:00.000');
+      final source = await store.importPdfBytes(
+        bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+        fileName: 'preserved.pdf',
+        importedAt: now,
+      );
+      final linked = await store.importLinkedFileBytes(
+        bytes: utf8.encode('audio fixture'),
+        fileName: 'practice.mp3',
+        importedAt: now,
+      );
+      final annotation = await File('${documentsDir.path}/marks.json')
+          .writeAsString('{"strokes":[]}');
+      final score = source.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: SheetAnnotationStorageReference(
+          mode: SheetAnnotationStorageReference.fileMode,
+          path: annotation.path,
+        ),
+      );
+      await store.saveScores(<SheetScore>[score]);
+      final archive = ZipDecoder().decodeBytes(
+        await store.exportFullBackupZipBytes(),
+      );
+      final manifest = jsonDecode(
+        utf8.decode(
+          archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+        ),
+      ) as Map<String, dynamic>;
+      final mappings = (manifest['fileMappings'] as List).cast<Map>();
+      String? omittedEntry;
+      switch (damage) {
+        case 'missing PDF':
+          omittedEntry = mappings[0]['entryPath'] as String;
+        case 'missing linked file':
+          omittedEntry = mappings[1]['entryPath'] as String;
+        case 'missing annotation file':
+          omittedEntry = mappings[2]['entryPath'] as String;
+        case 'missing mapping':
+          mappings.removeAt(1);
+        case 'malformed mapping':
+          mappings[1].remove('scoreId');
+        case 'unsafe mapping':
+          mappings[1]['entryPath'] = 'linked-files/../escape.mp3';
+        case 'duplicate mapping':
+          mappings.add(Map.of(mappings[0]));
+      }
+      manifest['fileMappings'] = mappings;
+      final damaged = Archive();
+      for (final entry in archive.files) {
+        if (entry.name != SheetLibraryFullBackup.manifestFileName &&
+            entry.name != omittedEntry) {
+          damaged.addFile(ArchiveFile.bytes(entry.name, entry.content));
+        }
+      }
+      damaged.addFile(
+        ArchiveFile.string(
+          SheetLibraryFullBackup.manifestFileName,
+          jsonEncode(manifest),
+        ),
+      );
+
+      await File(score.filePath).writeAsString('newer local PDF');
+      await store.saveScores(<SheetScore>[
+        score.copyWith(title: 'Current library'),
+      ]);
+      final before = await store.exportMetadataBackupJson();
+      final result = await store.restoreFullBackupZipBytes(
+        ZipEncoder().encode(damaged),
+      );
+      expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
+      expect((await store.loadScores()).single.title, 'Current library');
+      expect(await File(score.filePath).readAsString(), 'newer local PDF');
+      final after = await store.exportMetadataBackupJson();
+      expect(
+        SheetLibraryBackupCodec.decode(after).scores.single.toJson(),
+        SheetLibraryBackupCodec.decode(before).scores.single.toJson(),
+      );
+    });
+  }
+
+  test('full backup retains explicitly missing source file metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final source = await store.importPdfBytes(
+      bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+      fileName: 'offline.pdf',
+    );
+    await store.saveScores(<SheetScore>[source]);
+    await File(source.filePath).delete();
+    final zip = await store.exportFullBackupZipBytes();
+    final result = await store.restoreFullBackupZipBytes(zip);
+    expect(result.didRestore, isTrue);
+    expect((await store.loadScores()).single.filePath, source.filePath);
+  });
+
   test('exports and restores a full backup zip with PDF files', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

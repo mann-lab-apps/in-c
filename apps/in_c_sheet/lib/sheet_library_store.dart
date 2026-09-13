@@ -1314,6 +1314,12 @@ class SheetLibraryStore {
       final mappings = SheetLibraryFullBackupFileMapping.decodeList(
         manifestMap['fileMappings'],
       );
+      _validateFullBackupFiles(
+        archive,
+        backup,
+        manifestMap['fileMappings'],
+        mappings,
+      );
       final scoreFileMappingsByScoreId =
           <String, SheetLibraryFullBackupFileMapping>{
             for (final mapping in mappings.where(
@@ -1456,6 +1462,70 @@ class SheetLibraryStore {
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
+    }
+  }
+
+  void _validateFullBackupFiles(
+    Archive archive,
+    SheetLibraryBackup backup,
+    Object? rawMappings,
+    List<SheetLibraryFullBackupFileMapping> mappings,
+  ) {
+    if (rawMappings is! List || rawMappings.length != mappings.length) {
+      throw const FormatException('Invalid backup file mappings.');
+    }
+
+    // Validate every reference before restoring any file or replacing metadata.
+    final expected = <(String, String, String)>{};
+    for (final score in backup.scores) {
+      if (score.id.isEmpty ||
+          score.id == '.' ||
+          score.id == '..' ||
+          score.id.contains('/') ||
+          score.id.contains(r'\')) {
+        throw const FormatException('Invalid backup score ID.');
+      }
+      if (!expected.add((score.id, 'score', ''))) {
+        throw const FormatException('Duplicate backup score ID.');
+      }
+      for (final linked in score.linkedFiles) {
+        expected.add((score.id, 'linked', linked.path));
+      }
+      if (score.annotationStorage.isFileBacked) {
+        expected.add((score.id, 'annotation', score.annotationStorage.path));
+      }
+    }
+    for (final mapping in mappings) {
+      if (mapping.isLinkedFile && mapping.isAnnotationFile) {
+        throw const FormatException('Ambiguous backup file mapping.');
+      }
+      final key = mapping.isLinkedFile
+          ? (mapping.scoreId, 'linked', mapping.linkedFilePath!)
+          : mapping.isAnnotationFile
+          ? (mapping.scoreId, 'annotation', mapping.annotationStoragePath!)
+          : (mapping.scoreId, 'score', '');
+      if (!expected.remove(key)) {
+        throw const FormatException(
+          'Unexpected or duplicate backup file mapping.',
+        );
+      }
+      final safePath = mapping.isLinkedFile
+          ? _isSafeLinkedZipEntryPath(mapping.entryPath)
+          : mapping.isAnnotationFile
+          ? _isSafeAnnotationZipEntryPath(mapping.entryPath)
+          : _isSafeScoreZipEntryPath(mapping.entryPath);
+      if (!safePath) {
+        throw const FormatException('Invalid backup entry path.');
+      }
+      if (!mapping.missing) {
+        final entry = archive.findFile(mapping.entryPath);
+        if (entry == null || !entry.isFile) {
+          throw const FormatException('A required backup file is missing.');
+        }
+      }
+    }
+    if (expected.isNotEmpty) {
+      throw const FormatException('A required backup file mapping is missing.');
     }
   }
 

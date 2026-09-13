@@ -109,7 +109,7 @@
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
-| 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존 |
+| 동기화 | 로컬 백업/복원 | MobileSheets 기본 | MVP | 중간 | metadata-only JSON과 PDF 포함 전체 백업/복원 ZIP. 같은 파일을 참조하는 songbook 곡들은 PDF를 ZIP에 한 번만 저장하고 복원 후에도 공유 참조를 유지한다. 파일명이 같아도 경로가 다르면 별도 보존. 전체 복원 전 PDF/연결 파일/필기 파일 매핑과 ZIP 항목을 검증하며, 손상/누락 시 기존 파일과 metadata를 바꾸지 않는다 |
 | 동기화 | 자동 DB 백업 | MobileSheets 참고 | V1 | 중간 | 구현됨: save mutation마다 active library profile별 metadata-only 자동 snapshot 저장/복원. OS background scheduled full backup은 후속 |
 | 동기화 | 클라우드 동기화 | MobileSheets 지원 | Later | 높음 | conflict model |
 | 동기화 | 기기 간 페이지 전환 | 양쪽 지원 | Later | 높음 | Wi-Fi/Bluetooth session |
