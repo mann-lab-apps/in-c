@@ -1463,12 +1463,21 @@ void main() {
       );
       await tester.tap(more);
       await tester.pumpAndSettle();
+      await tester.tap(find.text('세트리스트 복제'));
+      await tester.pumpAndSettle();
+      expect(controller.setlists, hasLength(3));
+      expect(
+        controller.setlists.map((item) => item.title),
+        contains('저녁 공연 copy (2)'),
+      );
+      await tester.tap(more);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('삭제'));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsOneWidget);
       await tester.tap(find.widgetWithText(TextButton, '취소'));
       await tester.pumpAndSettle();
-      expect(controller.setlists, hasLength(2));
+      expect(controller.setlists, hasLength(3));
       tester.view.physicalSize = const Size(1280, 800);
       await tester.pumpAndSettle();
       expect(more, findsNothing);

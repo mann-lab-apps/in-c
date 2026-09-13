@@ -16,6 +16,35 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
+    'repeated setlist duplicates receive distinct case-insensitive names',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final original = await controller.createSetlist('Concert');
+      final first = await controller.duplicateSetlist(original);
+      expect(first.title, 'Concert copy');
+      await controller.renameSetlist(first, '  CONCERT COPY  ');
+      await controller.createSetlist('Concert copy (2)');
+      final third = await controller.duplicateSetlist(original);
+      expect(third.title, 'Concert copy (3)');
+      await controller.load();
+      final fourth = await controller.duplicateSetlist(
+        controller.setlistById(original.id),
+      );
+      expect(fourth.title, 'Concert copy (4)');
+      expect(controller.setlists.map((item) => item.id).toSet(), hasLength(5));
+      expect(controller.setlistById(original.id).title, 'Concert');
+      final persisted = await store.loadSetlists();
+      expect(
+        persisted.map((item) => item.title.toLowerCase()).toSet(),
+        hasLength(5),
+      );
+    },
+  );
+
+  test(
     'partial setlist settings preserve newer membership and performance state',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

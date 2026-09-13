@@ -33,7 +33,15 @@
 
 ## Verification Policy
 
-S7: VERIFIED LOCAL. Partial rehearsal/preset updates used an old setlist snapshot,
+U6: VERIFIED LOCAL. Repeated setlist copies have indistinguishable names. Keep the
+existing first-copy label and choose a free numbered suffix on a collision, using
+the existing case-insensitive title lookup. Regression reproduced a duplicate
+Concert copy instead of Concert copy (3). Acceptance: preserve originals/IDs,
+handle pre-existing numbered/case variants and reload, exercise repeated UI copy.
+Full suite 522/522, analyze/RC PASS (`/private/tmp/clef-rc-u6.log`).
+Commit subject: `fix: distinguish repeated Clef setlist copies`.
+
+S7: `0f3bfb9`, VERIFIED LOCAL. Partial rehearsal/preset updates used an old setlist snapshot,
 replacing newer membership, title and unrelated performance data. Regression
 reproduced title reverting from Evening to Concert. Apply provided fields to current
 state, filter supplied per-score maps to current membership, preserve omitted fields,
@@ -124,7 +132,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: avoid indistinguishable names when a setlist is duplicated repeatedly.
+Next: prevent stale undo/selection from reintroducing missing library score IDs.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

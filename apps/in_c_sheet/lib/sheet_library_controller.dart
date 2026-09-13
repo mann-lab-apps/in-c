@@ -2218,9 +2218,14 @@ class SheetLibraryController extends ChangeNotifier {
 
   Future<SheetSetlist> duplicateSetlist(SheetSetlist setlist) async {
     final now = DateTime.now();
+    final baseTitle = '${setlist.title} copy';
+    var title = baseTitle;
+    for (var suffix = 2; setlistByTitleOrNull(title) != null; suffix++) {
+      title = '$baseTitle ($suffix)';
+    }
     final duplicate = SheetSetlist(
       id: '${now.microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}',
-      title: '${setlist.title} copy',
+      title: title,
       scoreIds: List<String>.unmodifiable(setlist.scoreIds),
       createdAt: now,
       updatedAt: now,
