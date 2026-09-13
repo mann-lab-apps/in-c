@@ -1,3 +1,7 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:flutter/foundation.dart';
 
 import 'classical_daily_notification.dart';
@@ -5,9 +9,15 @@ import 'classical_discovery_catalog.dart';
 import 'classical_concert_import.dart';
 import 'classical_discovery_data_source.dart';
 import 'classical_discovery_models.dart';
+import 'classical_discovery_ops.dart'
+    show classicalFounderIntent, classicalQualityObservationQuestions;
 import 'classical_discovery_store.dart';
 
 typedef ClassicalDiscoveryClock = DateTime Function();
+
+final _discoveryIdRandom = Random.secure();
+String _discoveryIdSuffix() =>
+    '${_discoveryIdRandom.nextInt(1 << 32).toRadixString(36)}${_discoveryIdRandom.nextInt(1 << 32).toRadixString(36)}';
 
 class ClassicalPromotionView {
   const ClassicalPromotionView({
@@ -105,6 +115,27 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   UserDiscoveryState _state = UserDiscoveryState.defaultState;
   bool _isLoading = true;
+  bool _loadFailed = false;
+  bool _resettingData = false;
+  int _dataGeneration = 0;
+  bool get resettingData => _resettingData;
+  String? persistenceMessage;
+  Future<void> _pendingWrites = Future<void>.value();
+  int _writeRevision = 0;
+  bool _disposed = false;
+  bool get loadFailed => _loadFailed;
+  StreamSubscription<void>? _notificationSubscription;
+  Future<void> _notificationActions = Future<void>.value();
+  Future<void> _notificationOpens = Future<void>.value();
+  final ValueNotifier<DailyPick?> notificationDestination = ValueNotifier(null);
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _notificationSubscription?.cancel();
+    notificationDestination.dispose();
+    super.dispose();
+  }
 
   List<ClassicalComposer> get composers =>
       List<ClassicalComposer>.unmodifiable(_composers);
@@ -124,9 +155,28 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   String get preferredPlatformId => _state.preferredPlatformId;
   String get region => _state.region;
   bool get needsOnboarding => !_state.onboardingCompleted;
+  bool get hasDailyRecommendation => _works.any(_isRecommendationReady);
+  Duration get untilNextDailyPick {
+    final now = _clock();
+    return DateTime(now.year, now.month, now.day + 1).difference(now);
+  }
+
+  Iterable<ClassicalReaction> get _latestReactions {
+    final byWork = <String, ClassicalReaction>{};
+    for (final reaction in _state.reactions) {
+      final previous = byWork[reaction.workId];
+      if (previous == null ||
+          reaction.occurredAt.isAfter(previous.occurredAt)) {
+        byWork[reaction.workId] = reaction;
+      }
+    }
+    return byWork.values;
+  }
+
   List<TasteIntakeItem> get tasteIntakeItems =>
       List<TasteIntakeItem>.unmodifiable(_state.tasteIntakeItems);
   ReminderPreference get reminderPreference => _state.reminderPreference;
+  FounderTasteProfile get founderTasteProfile => FounderTasteProfile.current;
   List<DailyPick> get dailyPickHistory {
     final picks = <DailyPick>[dailyPick(), ..._state.dailyPicks];
     final byId = <String, DailyPick>{};
@@ -138,15 +188,129 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return List<DailyPick>.unmodifiable(result);
   }
 
+  List<FirstSevenDayDailyPickPreview> founderSevenDayPreview({
+    DateTime? startDate,
+  }) {
+    if (!hasDailyRecommendation) return const [];
+    final start = _dateOnly(startDate ?? _clock());
+    final now = _clock();
+    final tasteItems = _state.tasteIntakeItems.isNotEmpty
+        ? _state.tasteIntakeItems.take(24).toList(growable: false)
+        : _buildTasteIntakeItems([
+            ...FounderTasteProfile.current.favoriteInputs,
+            FounderTasteProfile.current.fastReaction,
+          ], now);
+    final previewController = ClassicalDiscoveryController(
+      store: store,
+      composers: _composers,
+      works: _works,
+      concerts: _concerts,
+      promotions: _promotions,
+      clock: () => now,
+      notificationGateway: const DisabledClassicalDailyNotificationGateway(),
+    );
+    previewController._state = _state.copyWith(
+      tasteIntakeItems: tasteItems,
+      dailyPicks: <DailyPick>[],
+    );
+    final priorPicks = <DailyPick>[];
+    final result = <FirstSevenDayDailyPickPreview>[];
+    for (var index = 0; index < 7; index += 1) {
+      final date = DateTime(start.year, start.month, start.day + index);
+      final dayNow = DateTime(date.year, date.month, date.day, 9);
+      previewController._state = previewController._state.copyWith(
+        dailyPicks: priorPicks,
+      );
+      final pick = previewController._buildDailyPick(date: date, now: dayNow);
+      final work = previewController.workById(pick.workId);
+      if (work == null) {
+        continue;
+      }
+      final moment =
+          work.listeningMoments
+              .where((candidate) => candidate.id == pick.momentId)
+              .firstOrNull ??
+          work.primaryMoment ??
+          work.listeningMoments.first;
+      result.add(
+        FirstSevenDayDailyPickPreview(
+          day: index + 1,
+          date: date,
+          pick: pick,
+          work: work,
+          moment: moment,
+          judgement: _firstSevenDayJudgement(index, pick),
+          nextPath: _firstSevenDayNextPath(pick),
+        ),
+      );
+      priorPicks.insert(
+        0,
+        pick.copyWith(completedAt: dayNow, completionConfirmed: true),
+      );
+    }
+    return List<FirstSevenDayDailyPickPreview>.unmodifiable(result);
+  }
+
+  FounderDailyPickQualitySnapshot founderDailyPickQualitySnapshot({
+    DateTime? startDate,
+  }) {
+    final preview = founderSevenDayPreview(startDate: startDate);
+    final firstThree = preview.take(3).toList(growable: false);
+    final closeFirstThree =
+        firstThree.length == 3 &&
+        firstThree.every((item) => item.pick.pickType == 'close_step');
+    final surpriseCount = preview
+        .where((item) => item.pick.pickType == 'surprise')
+        .length;
+    final coldMismatchCount = preview
+        .where((item) => _isFounderColdStartMismatch(item.work))
+        .length;
+    final hasListeningPoint = preview.every(
+      (item) => item.pick.listenFor.trim().isNotEmpty,
+    );
+    final ready =
+        preview.length == 7 &&
+        closeFirstThree &&
+        surpriseCount <= 1 &&
+        coldMismatchCount == 0 &&
+        hasListeningPoint;
+    final lines = <String>[
+      'Daily Pick first 7 days: SIMULATION (assumes completion each day)',
+      'previewDays=${preview.length}',
+      'closeFirstThree=$closeFirstThree',
+      'surpriseCount=$surpriseCount',
+      'coldMismatchCount=$coldMismatchCount',
+      'ruleCompliancePassed=$ready',
+      'founderApproval=${classicalFounderIntent(_state.events)}',
+      for (final item in preview)
+        'day${item.day}: ${item.work.titleKo} / ${item.pick.distanceLabel} / ${item.judgement}',
+    ];
+    return FounderDailyPickQualitySnapshot(
+      previewDays: preview.length,
+      closeFirstThree: closeFirstThree,
+      surpriseCount: surpriseCount,
+      coldMismatchCount: coldMismatchCount,
+      ruleCompliancePassed: ready,
+      founderApproval: classicalFounderIntent(_state.events),
+      exportText: lines.join('\n'),
+    );
+  }
+
   ClassicalWork get todayWork {
-    final savedDue = repeatDueWorks();
+    final savedDue = repeatDueWorks().where(_isRecommendationReady).toList();
     if (savedDue.isNotEmpty) {
       return savedDue.first;
     }
     final founderPool = _works
-        .where((work) => work.catalogStatusTags.contains('founder_pick'))
+        .where(
+          (work) =>
+              _isRecommendationReady(work) &&
+              work.catalogStatusTags.contains('founder_pick'),
+        )
         .toList(growable: false);
-    final pool = founderPool.isEmpty ? _works : founderPool;
+    final pool = founderPool.isEmpty
+        ? _works.where(_isRecommendationReady).toList()
+        : founderPool;
     final day = _clock().difference(DateTime(2026)).inDays;
     return pool[day.abs() % pool.length];
   }
@@ -240,10 +404,31 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    if (_resettingData) return;
+    final generation = _dataGeneration;
     _isLoading = true;
     notifyListeners();
-    _state = await store.loadState();
+    try {
+      final loaded = await store.loadState();
+      if (generation != _dataGeneration) return;
+      _state = loaded;
+      _loadFailed = false;
+      persistenceMessage = store.recoveryMessage;
+    } catch (_) {
+      if (generation != _dataGeneration) return;
+      _loadFailed = true;
+      _isLoading = false;
+      persistenceMessage = '기록을 불러오지 못했습니다. 기존 기록은 그대로 보관되어 있어요.';
+      notifyListeners();
+      return;
+    }
+    if (_state.onboardingCompleted && hasDailyRecommendation) {
+      await ensureDailyPick();
+    }
     _isLoading = false;
+    _notificationSubscription ??= _notificationGateway.opens.listen((_) {
+      unawaited(consumePendingDailyPickNotification());
+    });
     await consumePendingDailyPickNotification();
     notifyListeners();
   }
@@ -306,7 +491,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       for (final item in items)
         if (existingKeys.add(normalizeDiscoveryText(item.rawInput))) item,
       ..._state.tasteIntakeItems,
-    ].take(24).toList(growable: false);
+    ].take(DiscoveryHistoryLimits.tasteInputs).toList(growable: false);
     await _setState(
       _state.copyWith(
         tasteIntakeItems: nextItems,
@@ -325,9 +510,49 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         ),
       ),
     );
+    if (hasDailyRecommendation) await ensureDailyPick();
+  }
+
+  Future<void> correctTasteIntakeMatch(String itemId, {String? workId}) async {
+    if (_loadFailed) throw StateError('Stored preferences could not be loaded');
+    final item = _state.tasteIntakeItems
+        .where((item) => item.id == itemId)
+        .firstOrNull;
+    if (item == null) throw ArgumentError.value(itemId, 'itemId');
+    final work = workId == null ? null : workById(workId);
+    if (workId != null && work == null) {
+      throw ArgumentError.value(workId, 'workId');
+    }
+    final previousRevision = item.updatedAt ?? item.createdAt;
+    final now = _clock();
+    final revision = now.isAfter(previousRevision)
+        ? now
+        : previousRevision.add(const Duration(microseconds: 1));
+    final corrected = TasteIntakeItem(
+      id: item.id,
+      rawInput: item.rawInput,
+      label: work?.titleKo ?? item.rawInput,
+      sourceType: work == null ? 'free_text' : 'catalog_match',
+      confidence: work == null ? 0 : 100,
+      matchedWorkId: work?.id,
+      matchedComposerId: work?.composerId,
+      matchOrigin: work == null ? 'user_unlinked' : 'user_selected',
+      createdAt: item.createdAt,
+      updatedAt: revision,
+    );
+    await _setState(
+      _state.copyWith(
+        tasteIntakeItems: [
+          for (final entry in _state.tasteIntakeItems)
+            entry.id == itemId ? corrected : entry,
+        ],
+      ),
+    );
+    await _refreshEnabledReminder();
   }
 
   TasteStartPreview? previewTasteStart(Iterable<String> rawInputs) {
+    if (!hasDailyRecommendation) return null;
     final now = _clock();
     final items = _buildTasteIntakeItems(rawInputs, now);
     if (items.isEmpty) {
@@ -425,7 +650,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           add(entry.key, entry.value * 2, item.createdAt);
         }
       } else {
-        add(_axisForFreeText(item.rawInput), 2, item.createdAt);
+        add(_axisForTasteItem(item), 12, item.createdAt);
       }
     }
 
@@ -434,13 +659,17 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       if (work == null) {
         continue;
       }
-      final base = state.saved ? 4 : 1;
+      final base = state.saved
+          ? 4
+          : state.familiarityLevel > 0
+          ? 1
+          : 0;
       for (final entry in _axisWeightsForWork(work).entries) {
         add(entry.key, entry.value * base, state.updatedAt);
       }
     }
 
-    for (final reaction in _state.reactions) {
+    for (final reaction in _latestReactions) {
       final work = workById(reaction.workId);
       if (work == null) {
         continue;
@@ -449,7 +678,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         'liked' => 4,
         'repeat' => 3,
         'instrument' => 2,
-        'unsure' => 1,
+        'unsure' => 0,
         _ => 1,
       };
       for (final entry in _axisWeightsForWork(work).entries) {
@@ -624,8 +853,55 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         .where((pick) => _isSameLocalDay(pick.date, date))
         .firstOrNull;
     return _withDerivedDailyPickCompletion(
-      stored ?? _buildDailyPick(date: date, now: effectiveNow),
+      _resolveDailyPick(stored, date: date, now: effectiveNow),
       effectiveNow,
+    );
+  }
+
+  String? _dailyPickCatalogIssue(DailyPick pick) {
+    final work = workById(pick.workId);
+    if (work == null) return 'work_removed';
+    if (work.catalogStatusTags.contains('needs_copy_review') ||
+        work.catalogStatusTags.contains('catalog_backfill')) {
+      return 'work_unreviewed';
+    }
+    final moment = work.listeningMoments
+        .where((item) => item.id == pick.momentId)
+        .firstOrNull;
+    if (moment == null || !_isValidRecommendationMoment(work, moment)) {
+      return 'moment_unavailable';
+    }
+    return null;
+  }
+
+  DailyPick _resolveDailyPick(
+    DailyPick? stored, {
+    required DateTime date,
+    required DateTime now,
+  }) {
+    final issue = stored == null ? null : _dailyPickCatalogIssue(stored);
+    if (stored != null && issue == null) {
+      final correctedSincePick = _state.tasteIntakeItems.any(
+        (item) =>
+            item.updatedAt != null &&
+            !item.updatedAt!.isBefore(stored.createdAt),
+      );
+      if (!correctedSincePick) return stored;
+      // Keep the day's music/history, but no longer assert its old taste rationale.
+      return stored.copyWith(
+        reason: '음악 연결을 수정했어요. 오늘 고른 작품은 그대로 두고, 다음 추천부터 반영합니다.',
+        sourceEvidence: '수정 전 고른 작품',
+        whyNow: '오늘 고른 한 곡을 이어서 들어보세요.',
+        distanceLabel: '오늘 고른 작품',
+      );
+    }
+    final next = _buildDailyPick(date: date, now: now);
+    if (stored == null) return next;
+    // Catalog withdrawal is the only exception to a valid same-day pin.
+    return next.copyWith(
+      catalogRevision: stored.catalogRevision + 1,
+      replacedWorkId: stored.workId,
+      replacementReason: issue,
     );
   }
 
@@ -639,32 +915,56 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         .where((pick) => _isSameLocalDay(pick.date, date))
         .firstOrNull;
     final pick = _withDerivedDailyPickCompletion(
-      (existing ?? _buildDailyPick(date: date, now: effectiveNow)).copyWith(
+      _resolveDailyPick(existing, date: date, now: effectiveNow).copyWith(
         openedFromNotification:
             openedFromNotification ||
             (existing?.openedFromNotification ?? false),
       ),
       effectiveNow,
     );
+    if (existing != null &&
+        existing.catalogRevision == pick.catalogRevision &&
+        existing.completedAt == pick.completedAt &&
+        existing.completionConfirmed == pick.completionConfirmed &&
+        existing.openedFromNotification == pick.openedFromNotification &&
+        !openedFromNotification) {
+      return pick;
+    }
     final nextPicks = <DailyPick>[
       pick,
       ..._state.dailyPicks.where((item) => item.id != pick.id),
-    ].take(30).toList(growable: false);
+    ].take(DiscoveryHistoryLimits.dailyPicks).toList(growable: false);
     await _setState(
       _state.copyWith(
         dailyPicks: nextPicks,
-        events: openedFromNotification
-            ? _withEvent(
-                'daily_pick_notification_open',
-                'work',
-                pick.workId,
-                context: pick.id,
-                properties: <String, String>{
-                  'dailyPickId': pick.id,
-                  'date': _dateKey(pick.date),
-                },
-              )
-            : _state.events,
+        events: _withEvents([
+          if (existing != null &&
+              existing.catalogRevision != pick.catalogRevision)
+            _eventRecord(
+              'daily_pick_replaced',
+              'work',
+              pick.workId,
+              at: effectiveNow,
+              properties: {
+                'dailyPickId': pick.id,
+                'previousWorkId': existing.workId,
+                'previousMomentId': existing.momentId,
+                'reason': pick.replacementReason!,
+                'revision': pick.catalogRevision.toString(),
+              },
+            ),
+          if (openedFromNotification)
+            _eventRecord(
+              'daily_pick_notification_open',
+              'work',
+              pick.workId,
+              context: pick.id,
+              properties: <String, String>{
+                'dailyPickId': pick.id,
+                'date': _dateKey(pick.date),
+              },
+            ),
+        ]),
       ),
     );
     return pick;
@@ -674,16 +974,61 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required bool enabled,
     String? timeLabel,
     String? message,
-  }) async {
-    final now = _clock();
-    final base = _state.reminderPreference.copyWith(
+  }) => _queueNotificationAction(
+    () => _configureDailyPickReminder(
       enabled: enabled,
       timeLabel: timeLabel,
       message: message,
+    ),
+  );
+
+  Future<void> _queueNotificationAction(Future<void> Function() action) {
+    if (_resettingData) return Future<void>.value();
+    final pending = _notificationActions.then((_) => action());
+    _notificationActions = pending.catchError((Object _) {});
+    return pending;
+  }
+
+  Future<void> _configureDailyPickReminder({
+    required bool enabled,
+    String? timeLabel,
+    String? message,
+    bool requestPermission = true,
+  }) async {
+    if (enabled && !hasDailyRecommendation) {
+      await _configureDailyPickReminder(
+        enabled: false,
+        requestPermission: false,
+      );
+      return;
+    }
+    final now = _clock();
+    final reminderMessage = message ?? dailyPickReminderMessage(now: now);
+    final base = _state.reminderPreference.copyWith(
+      enabled: enabled,
+      timeLabel: timeLabel,
+      message: reminderMessage,
       updatedAt: now,
     );
     if (!enabled) {
-      await _notificationGateway.cancelDailyPick();
+      try {
+        await _notificationGateway.cancelDailyPick();
+      } catch (_) {
+        await _setState(
+          _state.copyWith(
+            reminderPreference: _state.reminderPreference.copyWith(
+              deliveryStatus: 'cancel-failed',
+            ),
+            events: _withEvent(
+              'daily_pick_notification_error',
+              'user',
+              'local',
+              properties: const {'operation': 'cancel'},
+            ),
+          ),
+        );
+        return;
+      }
       final nextPrefs = <String>{..._state.notificationPreferences}
         ..remove('today_work');
       await _setState(
@@ -706,7 +1051,14 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       return;
     }
 
-    final permissionStatus = await _notificationGateway.requestPermission();
+    String permissionStatus;
+    try {
+      permissionStatus = requestPermission
+          ? await _notificationGateway.requestPermission()
+          : await _notificationGateway.currentPermissionStatus();
+    } catch (_) {
+      permissionStatus = 'permission-error';
+    }
     final granted =
         permissionStatus == 'granted' ||
         permissionStatus == 'provisional' ||
@@ -737,9 +1089,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         _state.copyWith(
           reminderPreference: base.copyWith(
             enabled: false,
-            deliveryStatus: permissionStatus == 'unsupported'
-                ? 'unsupported'
-                : 'permission-denied',
+            deliveryStatus: switch (permissionStatus) {
+              'unsupported' => 'unsupported',
+              'denied' => 'permission-denied',
+              _ => 'permission-error',
+            },
           ),
           notificationPreferences: nextPrefs,
           preferencesUpdatedAt: now,
@@ -800,12 +1154,95 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
-  Future<void> consumePendingDailyPickNotification() async {
-    final payload = await _notificationGateway.consumeLaunchPayload();
-    if (payload == null || payload.trim().isEmpty) {
+  String dailyPickReminderMessage({DateTime? now}) {
+    final effectiveNow = now ?? _clock();
+    final recentUnsure = _latestReactions
+        .where(
+          (reaction) =>
+              reaction.type == 'unsure' &&
+              !reaction.occurredAt.isAfter(effectiveNow) &&
+              effectiveNow.difference(reaction.occurredAt).inDays <= 1,
+        )
+        .firstOrNull;
+    if (recentUnsure != null) {
+      return '오늘은 조금 더 가까운 곡으로 갈게요.';
+    }
+    if (savedButUnopenedWorks.isNotEmpty) {
+      return '저장한 선율, 첫 지점만 다시 들어볼까요?';
+    }
+    final likedYesterday = _latestReactions.any(
+      (reaction) =>
+          reaction.type == 'liked' &&
+          !reaction.occurredAt.isAfter(effectiveNow) &&
+          effectiveNow.difference(reaction.occurredAt).inDays <= 2,
+    );
+    if (likedYesterday) {
+      return '좋았던 감각에서 한 걸음만 이어가볼까요?';
+    }
+    final today = _dateOnly(effectiveNow);
+    final yesterday = DateTime(today.year, today.month, today.day - 1);
+    final hadEarlierDailyPick = _state.dailyPicks.any(
+      (pick) => _dateOnly(pick.date).isBefore(today),
+    );
+    final completedYesterday = _dailyCompletionDates().any(
+      (date) => _isSameLocalDay(date, yesterday),
+    );
+    if (hadEarlierDailyPick && !completedYesterday) {
+      return '잠시 쉬었어도 괜찮아요. 오늘 한 곡만 열어볼까요?';
+    }
+    return '오늘 한 곡만 열어볼까요?';
+  }
+
+  Future<void> refreshDailyExperience() async {
+    if (isLoading || loadFailed || needsOnboarding || !hasDailyRecommendation) {
       return;
     }
-    await ensureDailyPick(openedFromNotification: true);
+    await ensureDailyPick();
+    await consumePendingDailyPickNotification();
+    await _refreshEnabledReminder();
+  }
+
+  Future<void> _refreshEnabledReminder() => _queueNotificationAction(() async {
+    if (_state.reminderPreference.enabled) {
+      await _configureDailyPickReminder(
+        enabled: true,
+        requestPermission: false,
+      );
+    }
+  });
+
+  Future<void> consumePendingDailyPickNotification() {
+    if (_resettingData) return Future<void>.value();
+    final generation = _dataGeneration;
+    final next = _notificationOpens.then((_) async {
+      try {
+        final payload = await _notificationGateway.consumeLaunchPayload();
+        if (_resettingData || generation != _dataGeneration) return;
+        if (payload == null || payload.trim().isEmpty) return;
+        var valid = false;
+        try {
+          final decoded = jsonDecode(payload);
+          valid =
+              decoded is Map &&
+              decoded['version'] == 1 &&
+              decoded['route'] == 'today';
+        } on FormatException {
+          final legacy = Uri.splitQueryString(payload.replaceAll(';', '&'));
+          valid =
+              (legacy['dailyPickId']?.startsWith('daily-pick-') ?? false) &&
+              workById(legacy['workId'] ?? '') != null;
+        }
+        if (!valid || !hasDailyRecommendation) return;
+        final destination = await ensureDailyPick(openedFromNotification: true);
+        if (!_resettingData && generation == _dataGeneration) {
+          notificationDestination.value = destination;
+        }
+      } catch (_) {
+        // Notification delivery must not prevent local music access.
+      }
+    });
+    _notificationOpens = next;
+    return next;
   }
 
   DailyPick _buildDailyPick({required DateTime date, required DateTime now}) {
@@ -813,42 +1250,63 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final targetDifficulty = _targetDifficultyFor(
       listeningLevelSnapshot().level,
     );
-    final savedWork = savedButUnopenedWorks
-        .where((work) => work.primaryMoment != null)
-        .firstOrNull;
-    final unsureWork = _recentUnsureAnchor(now);
-    final pickType = savedWork != null
-        ? 'revisit'
-        : unsureWork != null
-        ? 'recovery'
-        : _shouldUseSurprisePick(date, now)
-        ? 'surprise'
-        : _state.dailyPicks.length.isEven
-        ? 'close_step'
-        : 'gentle_expansion';
-    final anchor = _bestTasteAnchor();
     final usedWorkIds = <String>{
       ..._state.dailyPicks.take(14).map((pick) => pick.workId),
     };
+    final savedWork = savedButUnopenedWorks
+        .where(
+          (work) =>
+              _isRecommendationReady(work) &&
+              work.primaryMoment != null &&
+              !usedWorkIds.contains(work.id),
+        )
+        .firstOrNull;
+    final unsureWork = _recentUnsureAnchor(now, excludedWorkIds: usedWorkIds);
+    var pickType = unsureWork != null
+        ? 'recovery'
+        : savedWork != null
+        ? 'revisit'
+        : _dailyPickTypeFor(date, now);
+    final anchor = _bestTasteAnchor();
     final candidates = _scoreProgressiveCandidates(
       axis: axis,
       targetDifficulty: targetDifficulty,
       anchor: anchor,
-      usedWorkIds: usedWorkIds,
+      usedWorkIds: {
+        ...usedWorkIds,
+        ..._state.tasteIntakeItems
+            .map((item) => item.matchedWorkId)
+            .whereType<String>(),
+      },
     );
-    final work =
-        savedWork ??
-        unsureWork ??
-        _pickDailyWork(
-          candidates: candidates,
-          pickType: pickType,
-          axis: axis,
-          anchor: anchor,
-          targetDifficulty: targetDifficulty,
-        ) ??
-        _easyFounderWork(now);
+    var selected = _pickDailyWork(
+      candidates: candidates,
+      pickType: pickType,
+      axis: axis,
+      anchor: anchor,
+      targetDifficulty: targetDifficulty,
+    );
+    if (pickType == 'surprise' && selected == null) {
+      pickType = 'close_step';
+      selected = _pickDailyWork(
+        candidates: candidates,
+        pickType: pickType,
+        axis: axis,
+        anchor: anchor,
+        targetDifficulty: targetDifficulty,
+      );
+    }
+    if (selected == null && unsureWork == null && savedWork == null) {
+      // A sparse catalog is not evidence that an unrelated work is a close match.
+      pickType = 'open_start';
+      selected = candidates
+          .map((item) => item.work)
+          .where((work) => !_isFounderColdStartMismatch(work))
+          .firstOrNull;
+    }
+    final work = unsureWork ?? savedWork ?? selected ?? _easyFounderWork(now);
     final moment = work.primaryMoment ?? work.listeningMoments.first;
-    final sourceEvidence = _dailyPickSourceEvidence(axis);
+    final sourceEvidence = _dailyPickSourceEvidence(axis, work);
     return DailyPick(
       id: 'daily-pick-${_dateKey(date)}',
       date: date,
@@ -869,6 +1327,17 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
+  String _dailyPickTypeFor(DateTime date, DateTime now) {
+    final createdDays = _state.dailyPicks.length;
+    if (createdDays < 3) {
+      return 'close_step';
+    }
+    if (_shouldUseSurprisePick(date, now)) {
+      return 'surprise';
+    }
+    return createdDays.isEven ? 'gentle_expansion' : 'close_step';
+  }
+
   ClassicalWork? _pickDailyWork({
     required List<({ClassicalWork work, int score})> candidates,
     required String pickType,
@@ -878,7 +1347,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }) {
     bool isClose(ClassicalWork work) =>
         !_isFounderColdStartMismatch(work) &&
-        work.difficultyForListening <= targetDifficulty + 1;
+        work.difficultyForListening <= targetDifficulty + 1 &&
+        (anchor == null ||
+            work.composerId == anchor.composerId ||
+            work.instrumentation == anchor.instrumentation ||
+            work.moodTags.any(anchor.moodTags.contains));
 
     bool isGentleExpansion(ClassicalWork work) =>
         !_isFounderColdStartMismatch(work) &&
@@ -891,6 +1364,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     bool isSurprise(ClassicalWork work) =>
         !_isFounderColdStartMismatch(work) &&
         work.difficultyForListening <= targetDifficulty + 2 &&
+        (_axisWeightsForWork(work)[axis] ?? 0) >= 3 &&
         _axisWeightsForWork(work).keys
             .any((candidateAxis) => candidateAxis != axis) &&
         (anchor == null ||
@@ -902,6 +1376,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       'gentle_expansion' => isGentleExpansion,
       _ => isClose,
     };
+    if (pickType == 'surprise' || pickType == 'close_step') {
+      return candidates.map((item) => item.work).where(predicate).firstOrNull;
+    }
     return candidates.map((item) => item.work).where(predicate).firstOrNull ??
         candidates
             .map((item) => item.work)
@@ -915,7 +1392,14 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       return false;
     }
     final createdDays = _state.dailyPicks.length;
-    if (createdDays < 3) {
+    if (createdDays < 3 ||
+        _state.dailyPicks
+                .where(
+                  (pick) =>
+                      _withDerivedDailyPickCompletion(pick, now).isCompleted,
+                )
+                .length <
+            3) {
       return false;
     }
     final recentSurpriseCount = _state.dailyPicks
@@ -926,19 +1410,46 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   bool _hasRecentUnsure(DateTime now) {
-    return _state.reactions.any(
+    return _latestReactions.any(
       (reaction) =>
           reaction.type == 'unsure' &&
+          !reaction.occurredAt.isAfter(now) &&
           now.difference(reaction.occurredAt).inDays <= 1,
     );
   }
 
-  String _dailyPickSourceEvidence(String axis) {
-    final label = _dailyTasteEvidenceLabel();
-    if (label.isNotEmpty) {
-      return '$label에서 출발해 ${_axisNoun(axis)} 쪽으로 한 걸음 잡았습니다.';
+  String _dailyPickSourceEvidence(String axis, ClassicalWork work) {
+    final descriptor = '${work.composerNameKo}의 ${work.instrumentation} 작품';
+    for (final reaction in _latestReactions) {
+      if (reaction.type != 'liked' && reaction.type != 'repeat') continue;
+      final source = workById(reaction.workId);
+      if (source == null ||
+          !_axisWeightsForWork(source).containsKey(axis) ||
+          !_axisWeightsForWork(work).containsKey(axis)) {
+        continue;
+      }
+      return '좋았던 ${source.titleKo}에 이어, $descriptor에서 ${_axisNoun(axis)}을 따라가 봅니다.';
     }
-    return _sourceEvidenceFor(axis);
+    final item =
+        _state.tasteIntakeItems.where((item) {
+          final source = workById(item.matchedWorkId ?? '');
+          return source != null &&
+              _axisWeightsForWork(source).containsKey(axis);
+        }).firstOrNull ??
+        _state.tasteIntakeItems.firstOrNull;
+    if (item == null) {
+      return '오늘은 $descriptor에서 시작합니다. ${work.primaryMoment?.prompt ?? ''}';
+    }
+    final source = workById(item.matchedWorkId ?? '');
+    if (source != null) {
+      final bridge = source.composerId == work.composerId
+          ? '같은 작곡가의 다른 작품'
+          : source.instrumentation == work.instrumentation
+          ? '같은 편성의 다른 작곡가'
+          : '${work.instrumentation}의 ${_axisNoun(axis)}';
+      return '${source.titleKo}을 좋아한다고 남겨주셨어요. 오늘은 $bridge로 이어봅니다.';
+    }
+    return '${_tasteEvidenceLabelFor(item)}는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 $descriptor에서 시작합니다.';
   }
 
   String _dailyPickReasonFor(
@@ -947,8 +1458,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required String axis,
     required String sourceEvidence,
   }) {
+    if (pickType == 'open_start') {
+      return '아직 좋아한 곡과 연결할 근거가 부족해요. 오늘은 ${work.composerNameKo}의 ${work.instrumentation} 작품을 새로 열어봅니다.';
+    }
     if (pickType == 'surprise') {
-      return '예상보다 살짝 옆길이지만, ${_axisNoun(axis)}이 ${work.titleKo}에서도 이어집니다.';
+      return '오늘은 조금 옆길로 갑니다. $sourceEvidence';
     }
     if (pickType == 'revisit') {
       return '저장해둔 작품을 오늘은 한 지점만 다시 열어봅니다.';
@@ -956,16 +1470,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (pickType == 'recovery') {
       return '낯설었던 뒤라, 오늘은 더 가까운 입구로 낮춰 잡았습니다.';
     }
-    if (_hasFounderMelodyTaste()) {
-      return '선율이 먼저 들어오는 취향이면, ${work.titleKo}는 오늘 한 줄만 잡기 좋습니다.';
-    }
     return sourceEvidence;
   }
 
   String _dailyPickWhyNowFor(String pickType) {
     return switch (pickType) {
       'surprise' => '반응을 남기면 의외였는지, 다음에도 열릴 길인지 구분합니다.',
-      'revisit' => '전체 듣기로 넘어가면 저장함이 아니라 오늘의 기록으로 남습니다.',
+      'revisit' => '듣고 돌아와 반응을 남기면 오늘의 감상 기록으로 이어집니다.',
       'recovery' => '좋음이나 아직 모르겠음을 남기면 내일은 더 알맞은 거리로 조정합니다.',
       'gentle_expansion' => '오늘 반응에 따라 내일은 같은 감각을 다른 시대나 악기로 옮깁니다.',
       _ => '오늘 반응이 내일의 한 곡 거리를 조금 바꿉니다.',
@@ -974,6 +1485,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   String _dailyPickDistanceLabel(String pickType) {
     return switch (pickType) {
+      'open_start' => '새로 열어보기',
       'surprise' => '의외의 우회로',
       'revisit' => '다시 들어볼 때',
       'recovery' => '아주 가까움',
@@ -982,8 +1494,22 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     };
   }
 
+  String _firstSevenDayJudgement(int index, DailyPick pick) {
+    return '거리 적절성: 사용자 평가 전';
+  }
+
+  String _firstSevenDayNextPath(DailyPick pick) {
+    return switch (pick.pickType) {
+      'surprise' => '반응이 좋으면 옆길을 살리고, 낯설면 내일 가까운 곡으로 돌아옵니다.',
+      'gentle_expansion' => '같은 감각을 다른 시대나 악기로 한 칸 옮깁니다.',
+      'recovery' => '오늘은 거리를 줄이고, 반응이 쌓이면 다시 넓힙니다.',
+      'revisit' => '저장한 곡을 듣고 반응을 남기면 감상지도에 이어집니다.',
+      _ => '먼저 익숙한 감각을 잡고, 다음 날 한 걸음만 넓힙니다.',
+    };
+  }
+
   DailyPick _withDerivedDailyPickCompletion(DailyPick pick, DateTime now) {
-    if (pick.completedAt != null) {
+    if (pick.isCompleted) {
       return pick;
     }
     final completions = <DateTime>[
@@ -998,10 +1524,23 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             _isSameLocalDay(event.occurredAt, pick.date))
           event.occurredAt,
     ]..sort();
+    if (completions.isEmpty &&
+        _state
+            .stateForWork(pick.workId)
+            .confirmedListenDays
+            .contains(_dateKey(pick.date))) {
+      return pick.copyWith(
+        completedAt: pick.completedAt ?? pick.date,
+        completionConfirmed: true,
+      );
+    }
     if (completions.isEmpty) {
       return pick;
     }
-    return pick.copyWith(completedAt: completions.first);
+    return pick.copyWith(
+      completedAt: completions.first,
+      completionConfirmed: true,
+    );
   }
 
   List<DailyPick> _dailyPicksWithCompletion(
@@ -1013,12 +1552,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       return _state.dailyPicks;
     }
     final completed = pick.copyWith(
-      completedAt: pick.completedAt ?? completedAt,
+      completedAt: pick.isCompleted ? pick.completedAt : completedAt,
+      completionConfirmed: true,
     );
     return <DailyPick>[
       completed,
       ..._state.dailyPicks.where((item) => item.id != completed.id),
-    ].take(30).toList(growable: false);
+    ].take(DiscoveryHistoryLimits.dailyPicks).toList(growable: false);
   }
 
   ({int hour, int minute}) _parseReminderTime(String timeLabel) {
@@ -1032,6 +1572,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   String _dateKey(DateTime date) {
+    date = date.toLocal();
     final month = date.month.toString().padLeft(2, '0');
     final day = date.day.toString().padLeft(2, '0');
     return '${date.year}-$month-$day';
@@ -1058,13 +1599,18 @@ class ClassicalDiscoveryController extends ChangeNotifier {
               .firstOrNull
         : null;
     final work =
-        completedWork ??
         pickWork ??
+        completedWork ??
         savedWork ??
         unsureWork ??
         recommendedWork ??
         _easyFounderWork(effectiveNow);
-    final moment = work.primaryMoment ?? work.listeningMoments.first;
+    final moment =
+        work.listeningMoments
+            .where((moment) => moment.id == pick.momentId)
+            .firstOrNull ??
+        work.primaryMoment ??
+        work.listeningMoments.first;
     final isCompleted = _workHasDailyCompletion(work.id, effectiveNow);
     final tasteEvidenceLabel = _dailyTasteEvidenceLabel();
     return DailyListeningStep(
@@ -1145,7 +1691,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final completedToday = dates.contains(today);
     var weeklyCompletedDays = 0;
     for (var index = 0; index < 7; index += 1) {
-      if (dates.contains(today.subtract(Duration(days: index)))) {
+      if (dates.contains(
+        DateTime(today.year, today.month, today.day - index),
+      )) {
         weeklyCompletedDays += 1;
       }
     }
@@ -1153,10 +1701,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     var currentRunDays = 0;
     var cursor = completedToday
         ? today
-        : today.subtract(const Duration(days: 1));
+        : DateTime(today.year, today.month, today.day - 1);
     while (dates.contains(cursor)) {
       currentRunDays += 1;
-      cursor = cursor.subtract(const Duration(days: 1));
+      cursor = DateTime(cursor.year, cursor.month, cursor.day - 1);
     }
 
     final sortedDates = dates.toList()..sort((a, b) => b.compareTo(a));
@@ -1395,7 +1943,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }) async {
     final now = _clock();
     final reflection = PostConcertReflection(
-      id: 'reflection-${now.microsecondsSinceEpoch}',
+      id: 'reflection-${now.microsecondsSinceEpoch}-${_discoveryIdSuffix()}',
       concertId: concertId,
       routeId: routeId,
       workId: workId,
@@ -1410,7 +1958,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         postConcertReflections: <PostConcertReflection>[
           reflection,
           ..._state.postConcertReflections,
-        ].take(80).toList(growable: false),
+        ].take(DiscoveryHistoryLimits.reflections).toList(growable: false),
         events: _withEvent(
           'post_concert_reflection_add',
           'work',
@@ -1960,14 +2508,14 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final now = _clock();
     final nextState = current.copyWith(
       saved: !current.saved,
-      firstListenedAt: current.firstListenedAt ?? now,
-      lastListenedAt: now,
+      updatedAt: now,
       repeatDueAt: now.add(const Duration(days: 1)),
     );
     await _setWorkState(
       nextState,
       eventType: nextState.saved ? 'work_save' : 'work_unsave',
     );
+    await _refreshEnabledReminder();
   }
 
   Future<void> completeMoment(String workId, String momentId) async {
@@ -1979,6 +2527,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       current.copyWith(
         firstListenedAt: current.firstListenedAt ?? now,
         lastListenedAt: now,
+        confirmedListenDays: {
+          ..._engagementDatesForWork(workId).map(_dateKey),
+          _dateKey(now),
+        },
         repeatDueAt: now.add(repeatDelay),
         familiarityLevel: nextFamiliarity,
         updatedAt: now,
@@ -1987,6 +2539,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       context: momentId,
       dailyPicks: _dailyPicksWithCompletion(workId, completedAt: now),
     );
+    await _refreshEnabledReminder();
   }
 
   Future<void> addReaction(
@@ -1999,7 +2552,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final reactionCounts = Map<String, int>.of(current.reactionCounts);
     reactionCounts[type] = (reactionCounts[type] ?? 0) + 1;
     final reaction = ClassicalReaction(
-      id: 'reaction-${now.microsecondsSinceEpoch}',
+      id: 'reaction-${now.microsecondsSinceEpoch}-${_discoveryIdSuffix()}',
       workId: workId,
       type: type,
       momentId: momentId,
@@ -2013,6 +2566,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final nextWorkState = current.copyWith(
       firstListenedAt: current.firstListenedAt ?? now,
       lastListenedAt: now,
+      confirmedListenDays: {
+        ..._engagementDatesForWork(workId).map(_dateKey),
+        _dateKey(now),
+      },
+      latestReactionType: type,
       repeatDueAt: repeatDueAt,
       updatedAt: now,
       reactionCounts: reactionCounts,
@@ -2027,10 +2585,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         reactions: <ClassicalReaction>[
           reaction,
           ..._state.reactions,
-        ].take(80).toList(),
+        ].take(DiscoveryHistoryLimits.reactions).toList(),
         events: _withEvent('reaction_add', 'work', workId, context: type),
       ),
     );
+    await _refreshEnabledReminder();
   }
 
   Future<void> setPreferredPlatform(String platformId) async {
@@ -2042,6 +2601,61 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         events: _withEvent('preferred_platform_set', 'platform', platformId),
       ),
     );
+  }
+
+  Future<void> updateReaction(String reactionId, String type) async {
+    if (!const {'liked', 'repeat', 'instrument', 'unsure'}.contains(type)) {
+      return;
+    }
+    final original = _state.reactions
+        .where((r) => r.id == reactionId)
+        .firstOrNull;
+    if (original == null || original.type == type) return;
+    final current = _state.stateForWork(original.workId);
+    final counts = Map<String, int>.of(current.reactionCounts);
+    final remaining = (counts[original.type] ?? 1) - 1;
+    if (remaining > 0) {
+      counts[original.type] = remaining;
+    } else {
+      counts.remove(original.type);
+    }
+    counts[type] = (counts[type] ?? 0) + 1;
+    final revised = ClassicalReaction(
+      id: original.id,
+      workId: original.workId,
+      type: type,
+      momentId: original.momentId,
+      occurredAt: original.occurredAt,
+      updatedAt: _clock(),
+    );
+    await _setState(
+      _state.copyWith(
+        reactions: [
+          for (final r in _state.reactions) r.id == reactionId ? revised : r,
+        ],
+        workStates: {
+          ..._state.workStates,
+          original.workId: current.copyWith(
+            reactionCounts: counts,
+            updatedAt: _clock(),
+            latestReactionType: _latestReactions.any((r) => r.id == original.id)
+                ? type
+                : current.latestReactionType,
+          ),
+        },
+        events: _withEvent(
+          'reaction_update',
+          'work',
+          original.workId,
+          context: type,
+          properties: {
+            'reactionId': original.id,
+            'previousType': original.type,
+          },
+        ),
+      ),
+    );
+    await _refreshEnabledReminder();
   }
 
   Future<void> setRegion(String region) async {
@@ -2092,6 +2706,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     List<String> tasteInputs = const <String>[],
     Set<String> notificationPreferences = const <String>{},
   }) async {
+    final wasReminderEnabled = _state.reminderPreference.enabled;
     final now = _clock();
     final intakeItems = _buildTasteIntakeItems(tasteInputs, now);
     await _setState(
@@ -2100,7 +2715,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         tasteIntakeItems: <TasteIntakeItem>[
           ...intakeItems,
           ..._state.tasteIntakeItems,
-        ].take(24).toList(growable: false),
+        ].take(DiscoveryHistoryLimits.tasteInputs).toList(growable: false),
         experienceLevel: experienceLevel,
         preferredMoodTags: preferredMoodTags,
         preferredContextTags: preferredContextTags,
@@ -2129,6 +2744,12 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         ),
       ),
     );
+    if (hasDailyRecommendation) await ensureDailyPick();
+    if (notificationPreferences.contains('today_work') || wasReminderEnabled) {
+      await configureDailyPickReminder(
+        enabled: notificationPreferences.contains('today_work'),
+      );
+    }
   }
 
   Future<void> skipOnboarding() async {
@@ -2140,6 +2761,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         events: _withEvent('onboarding_skip', 'user', 'local'),
       ),
     );
+    if (hasDailyRecommendation) await ensureDailyPick();
   }
 
   Future<void> recordProviderClick(
@@ -2148,10 +2770,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     bool fallback = false,
     String surface = 'listening',
   }) async {
-    final now = _clock();
     await _setState(
       _state.copyWith(
-        dailyPicks: _dailyPicksWithCompletion(work.id, completedAt: now),
         events: _withEvent(
           'external_platform_click',
           'work',
@@ -2209,9 +2829,18 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (!didSave) {
       saved.remove(concertId);
     }
+    final previousRevision = _state.concertSaveUpdatedAt[concertId];
+    final now = _clock();
+    final revision = previousRevision != null && !now.isAfter(previousRevision)
+        ? previousRevision.add(const Duration(microseconds: 1))
+        : now;
     await _setState(
       _state.copyWith(
         savedConcertIds: saved,
+        concertSaveUpdatedAt: {
+          ..._state.concertSaveUpdatedAt,
+          concertId: revision,
+        },
         events: _withEvent(
           didSave ? 'concert_save' : 'concert_unsave',
           'concert',
@@ -2307,7 +2936,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         })
         .clamp(0, 10);
     return ConcertPreviewRoute(
-      id: 'route-${now.microsecondsSinceEpoch}',
+      id: 'route-${now.microsecondsSinceEpoch}-${_discoveryIdSuffix()}',
       sourceType: sourceType,
       concertId: concertId,
       routeTitle: title,
@@ -2338,7 +2967,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         previewRoutes: <ConcertPreviewRoute>[
           route,
           ..._state.previewRoutes.where((item) => item.id != route.id),
-        ].take(20).toList(growable: false),
+        ].take(DiscoveryHistoryLimits.previewRoutes).toList(growable: false),
         events: _withEvent(
           eventType,
           'route',
@@ -2381,6 +3010,110 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
+  Future<void> recordQualityObservation({
+    required String category,
+    required String testerId,
+    required Map<String, bool> answers,
+    required String notes,
+  }) async {
+    final questions = classicalQualityObservationQuestions[category];
+    if (questions == null ||
+        testerId.trim().isEmpty ||
+        notes.trim().isEmpty ||
+        answers.length != questions.length ||
+        !questions.keys.every(answers.containsKey) ||
+        (category == 'founder_intent' && testerId.trim() != 'founder')) {
+      throw ArgumentError('An identified observation and notes are required');
+    }
+    await _setState(
+      _state.copyWith(
+        events: _withEvent(
+          'feedback_submit',
+          'app',
+          'in-c',
+          context: category,
+          properties: {
+            'category': category,
+            'evidenceKind': 'observed',
+            'testerId': testerId.trim(),
+            'message': notes.trim(),
+            for (final entry in answers.entries)
+              entry.key: entry.value.toString(),
+          },
+        ),
+      ),
+    );
+  }
+
+  String _pickReviewSnapshot(DailyPick pick) => jsonEncode({
+    'date': _dateKey(pick.date),
+    'workId': pick.workId,
+    'momentId': pick.momentId,
+    'reason': pick.reason,
+    'listenFor': pick.listenFor,
+    'sourceEvidence': pick.sourceEvidence,
+    'pickType': pick.pickType,
+  });
+
+  String dailyDistanceAssessment(DailyPick pick) {
+    final snapshot = _pickReviewSnapshot(pick);
+    final matches =
+        _state.events
+            .where(
+              (event) =>
+                  event.eventType == 'feedback_submit' &&
+                  event.context == 'daily_distance' &&
+                  event.properties['evidenceKind'] == 'observed_preview' &&
+                  event.properties['mergeConflict'] != 'true' &&
+                  event.properties['snapshot'] == snapshot &&
+                  (event.properties['testerId']?.trim().isNotEmpty ?? false),
+            )
+            .toList()
+          ..sort((a, b) => b.occurredAt.compareTo(a.occurredAt));
+    final latest = matches.firstOrNull;
+    final label = switch (latest?.properties['distance']) {
+      'too_close' => '너무 가까움',
+      'appropriate' => '적절함',
+      'too_far' => '너무 멂',
+      _ => null,
+    };
+    return label == null
+        ? '거리 적절성: 사용자 평가 전'
+        : '미리보기 응답: $label (${latest!.properties['testerId']})';
+  }
+
+  Future<void> recordDailyDistanceEvaluation({
+    required DailyPick pick,
+    required String testerId,
+    required String distance,
+    required String notes,
+  }) async {
+    if (testerId.trim().isEmpty ||
+        notes.trim().isEmpty ||
+        !const {'too_close', 'appropriate', 'too_far'}.contains(distance) ||
+        workById(pick.workId) == null) {
+      throw ArgumentError('A real preview response is required');
+    }
+    await _setState(
+      _state.copyWith(
+        events: _withEvent(
+          'feedback_submit',
+          'work',
+          pick.workId,
+          context: 'daily_distance',
+          properties: {
+            'category': 'daily_distance',
+            'evidenceKind': 'observed_preview',
+            'testerId': testerId.trim(),
+            'distance': distance,
+            'message': notes.trim(),
+            'snapshot': _pickReviewSnapshot(pick),
+          },
+        ),
+      ),
+    );
+  }
+
   Future<void> _setWorkState(
     UserWorkState nextWorkState, {
     required String eventType,
@@ -2405,9 +3138,77 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   Future<void> _setState(UserDiscoveryState state) async {
+    if (_loadFailed ||
+        _resettingData ||
+        state.historyResetAt?.microsecondsSinceEpoch !=
+            _state.historyResetAt?.microsecondsSinceEpoch) {
+      return;
+    }
     _state = state;
-    await store.saveState(_state);
+    final revision = ++_writeRevision;
+    // Serialize snapshots: an older slow write must not overwrite a newer action.
+    final write = _pendingWrites.then((_) async {
+      try {
+        await store.saveState(state);
+        if (revision == _writeRevision) {
+          persistenceMessage = store.recoveryMessage;
+        }
+      } catch (_) {
+        if (revision == _writeRevision) {
+          persistenceMessage = '변경을 저장하지 못했습니다. 앱을 닫기 전에 다시 저장해 주세요.';
+        }
+      }
+    });
+    _pendingWrites = write;
+    await write;
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> retryPersistence() => _loadFailed ? load() : _setState(_state);
+
+  String exportLocalData() {
+    if (_loadFailed || _isLoading || _resettingData) {
+      throw StateError('History is unavailable');
+    }
+    return const JsonEncoder.withIndent('  ').convert({
+      'format': 'in-c-personal-data',
+      'version': 1,
+      'exportedAt': _clock().toIso8601String(),
+      'storageWarning': persistenceMessage,
+      'state': _state.toJson(),
+    });
+  }
+
+  Future<void> eraseLocalData() async {
+    if (_isLoading) throw StateError('History is still loading');
+    if (_resettingData) throw StateError('Deletion is already running');
+    _resettingData = true;
+    _dataGeneration++;
     notifyListeners();
+    var storageStarted = false;
+    try {
+      await _notificationActions;
+      await _notificationOpens;
+      await _notificationGateway.cancelDailyPick();
+      await _notificationGateway.consumeLaunchPayload();
+      await _pendingWrites;
+      storageStarted = true;
+      _state = await store.eraseLocalData(at: _clock());
+      _loadFailed = false;
+      _isLoading = false;
+      persistenceMessage = null;
+      notificationDestination.value = null;
+    } catch (_) {
+      // A partial disk erase must be resumed before accepting new edits.
+      if (storageStarted) _loadFailed = true;
+      persistenceMessage = storageStarted
+          ? '기록 삭제를 마치지 못했어요. 다시 시도해 주세요.'
+          : '알림을 해제하지 못해 기록 삭제를 시작하지 않았어요.';
+      rethrow;
+    } finally {
+      _resettingData = false;
+      if (!_disposed) notifyListeners();
+    }
   }
 
   List<DiscoveryEvent> _withEvent(
@@ -2417,7 +3218,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     String? context,
     Map<String, String> properties = const <String, String>{},
   }) {
-    return <DiscoveryEvent>[
+    return _retainEvents(<DiscoveryEvent>[
       _eventRecord(
         eventType,
         entityType,
@@ -2426,14 +3227,18 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         properties: properties,
       ),
       ..._state.events,
-    ].take(200).toList(growable: false);
+    ]);
   }
 
   List<DiscoveryEvent> _withEvents(List<DiscoveryEvent> events) {
-    return <DiscoveryEvent>[
+    return _retainEvents(<DiscoveryEvent>[
       ...events.reversed,
       ..._state.events,
-    ].take(200).toList(growable: false);
+    ]);
+  }
+
+  List<DiscoveryEvent> _retainEvents(List<DiscoveryEvent> events) {
+    return retainDiscoveryEvents(events);
   }
 
   DiscoveryEvent _eventRecord(
@@ -2446,7 +3251,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }) {
     final now = at ?? _clock();
     return DiscoveryEvent(
-      id: 'event-${now.microsecondsSinceEpoch}-$eventType',
+      id: 'event-${now.microsecondsSinceEpoch}-$eventType-${_discoveryIdSuffix()}',
       eventType: eventType,
       entityType: entityType,
       entityId: entityId,
@@ -2754,9 +3559,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           : workById(item.matchedWorkId!);
       if (work != null) {
         openWork(work, evidence: 2, at: item.createdAt);
-      } else {
+      } else if (_axisForTasteItem(item).isNotEmpty) {
         openNode(
-          _entryNodeIdForAxis(_axisForFreeText(item.rawInput)),
+          _entryNodeIdForAxis(_axisForTasteItem(item)),
           evidence: 1,
           at: item.createdAt,
         );
@@ -2779,7 +3584,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       if (work == null) {
         continue;
       }
-      if (event.context != null && event.context!.isNotEmpty) {
+      if (work.listeningMoments.any((moment) => moment.id == event.context) &&
+          event.eventType == 'listening_moment_complete') {
         capturedMomentIds.add('${work.id}:${event.context}');
       }
       final evidence = switch (event.eventType) {
@@ -2806,7 +3612,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           evidence: reaction.type == 'unsure' ? 1 : 2,
           at: reaction.occurredAt,
         );
-        if (reaction.type == 'unsure') {
+        if (reaction.type == 'unsure' &&
+            _latestReactions.any((latest) => latest.id == reaction.id)) {
           unfamiliar.add(node.id);
         }
       }
@@ -2822,8 +3629,17 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       }
     }
 
-    for (final entry in evidenceCountByNode.entries) {
-      if (entry.value >= 4) {
+    final listeningDaysByNode = <String, Set<DateTime>>{};
+    for (final workId in _state.workStates.keys) {
+      final work = workById(workId);
+      if (work == null) continue;
+      final days = _engagementDatesForWork(workId);
+      for (final node in _nodesForWork(work, nodes)) {
+        listeningDaysByNode.putIfAbsent(node.id, () => {}).addAll(days);
+      }
+    }
+    for (final entry in listeningDaysByNode.entries) {
+      if (entry.value.length >= 2) {
         familiar.add(entry.key);
       }
     }
@@ -3096,39 +3912,35 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   bool _isConqueredWorkCandidate(String workId) {
     final state = _state.workStates[workId];
-    if (state == null) {
-      return false;
-    }
-    final reactions = _state.reactions
-        .where((reaction) => reaction.workId == workId)
-        .toList();
-    if (reactions.any((reaction) => reaction.type == 'unsure')) {
-      return false;
-    }
-    var signals = 0;
-    if (state.saved) {
-      signals += 1;
-    }
-    if (reactions.isNotEmpty) {
-      signals += 1;
-    }
-    if (_state.events.any(
-      (event) =>
-          event.entityType == 'work' &&
-          event.entityId == workId &&
-          event.eventType == 'external_platform_click',
-    )) {
-      signals += 1;
-    }
-    if (_state.events.any(
-      (event) =>
-          event.entityType == 'work' &&
-          event.entityId == workId &&
-          event.eventType == 'listening_moment_complete',
-    )) {
-      signals += 1;
-    }
-    return signals >= 2;
+    final latest = _latestReactions
+        .where((r) => r.workId == workId)
+        .firstOrNull;
+    return state?.saved == true &&
+        const {
+          'liked',
+          'repeat',
+        }.contains(latest?.type ?? state?.latestReactionType) &&
+        _engagementDatesForWork(workId).length >= 2;
+  }
+
+  Set<DateTime> _engagementDatesForWork(String workId) {
+    final now = _clock();
+    return {
+      for (final key in _state.stateForWork(workId).confirmedListenDays)
+        if (DateTime.tryParse(key) case final day?)
+          if (!day.isAfter(now)) _dateOnly(day),
+      for (final reaction in _state.reactions)
+        if (reaction.workId == workId && !reaction.occurredAt.isAfter(now))
+          _dateOnly(reaction.occurredAt),
+      for (final event in _state.events)
+        if (event.entityId == workId &&
+            _isDailyCompletionEvent(event) &&
+            !event.occurredAt.isAfter(now))
+          _dateOnly(event.occurredAt),
+      for (final reflection in _state.postConcertReflections)
+        if (reflection.workId == workId && !reflection.occurredAt.isAfter(now))
+          _dateOnly(reflection.occurredAt),
+    };
   }
 
   List<RecommendationShelf> _dedupeRecommendationShelves(
@@ -3139,7 +3951,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     for (final shelf in shelves) {
       final works = <ClassicalWork>[];
       for (final work in shelf.works) {
-        if (seen.add(work.id)) {
+        if (_isRecommendationReady(work) && seen.add(work.id)) {
           works.add(work);
         }
       }
@@ -3164,6 +3976,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }) {
     final scored = <({ClassicalWork work, int score})>[];
     for (final work in _works) {
+      if (!_isRecommendationReady(work)) continue;
       final score = work.relevanceScoreFor(
         anchor: anchor,
         hasConcert: work.concertIds.isNotEmpty,
@@ -3205,7 +4018,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           : null;
       items.add(
         TasteIntakeItem(
-          id: 'taste-${now.microsecondsSinceEpoch}-$index',
+          id: 'taste-${now.microsecondsSinceEpoch}-$index-${_discoveryIdSuffix()}',
           label:
               matchedWork?.titleKo ??
               matchedComposer?.nameKo ??
@@ -3216,6 +4029,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           sourceType: matchedWork == null && matchedComposer == null
               ? 'free_text'
               : 'catalog_match',
+          matchOrigin: 'automatic',
           confidence: matchedWork == null
               ? (matchedComposer == null ? 20 : 55)
               : matchedWork.searchScore(trimmed).clamp(0, 100),
@@ -3223,7 +4037,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         ),
       );
       index += 1;
-      if (items.length == 8) {
+      if (items.length == 24) {
         break;
       }
     }
@@ -3232,33 +4046,74 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   ClassicalWork? _matchTasteWork(String input) {
     final compact = normalizeDiscoveryText(input);
+    final composer = _matchComposer(input);
+    if (composer != null &&
+        [
+          composer.nameKo,
+          composer.nameOriginal,
+          composer.nameOriginal.split(' ').last,
+          ...composer.aliases,
+        ].any((name) => normalizeDiscoveryText(name) == compact)) {
+      return null;
+    }
+    if (composer?.id == 'chopin' &&
+        ['야상곡', '녹턴', 'nocturne', 'op92', 'op9no2'].any(compact.contains)) {
+      final numbers = RegExp(r'\d+')
+          .allMatches(input)
+          .map((match) => int.tryParse(match.group(0)!))
+          .toList();
+      // A work family or a different opus is not evidence for this specific work.
+      final exactOpus =
+          numbers.length == 2 && numbers[0] == 9 && numbers[1] == 2;
+      final work = workById('chopin-nocturne-op9-2');
+      final exactTitle =
+          work != null &&
+          [work.titleKo, work.titleOriginal].any(
+            (title) =>
+                [
+                  composer!.nameKo,
+                  composer.nameOriginal,
+                  ...composer.aliases,
+                ].any(
+                  (name) =>
+                      compact == normalizeDiscoveryText('$name $title') ||
+                      compact == normalizeDiscoveryText('$title $name'),
+                ),
+          );
+      return exactOpus || exactTitle ? work : null;
+    }
+    bool numberedTitle(List<String> names, int number) => names.any(
+      (name) =>
+          RegExp('${RegExp.escape(name)}$number(?![0-9])').hasMatch(compact),
+    );
     final nicknameMatches = <({bool matched, String workId})>[
       (
         matched:
             compact.contains('베토벤') &&
-            (compact.contains('교향곡9') ||
+            (numberedTitle(['교향곡', 'symphony', 'symphonyno'], 9) ||
                 compact.contains('합창') ||
                 compact.contains('환희') ||
                 compact.contains('ode') ||
-                compact.contains('joy') ||
-                compact.contains('symphony9')),
+                compact.contains('joy')),
         workId: 'beethoven-symphony-9',
       ),
       (
         matched:
             (compact.contains('드보르작') || compact.contains('dvorak')) &&
-            (compact.contains('교향곡9') ||
+            (numberedTitle(['교향곡', 'symphony', 'symphonyno'], 9) ||
                 compact.contains('신세계') ||
-                compact.contains('newworld') ||
-                compact.contains('symphony9')),
+                compact.contains('newworld')),
         workId: 'dvorak-new-world',
       ),
       (
         matched:
             compact.contains('라흐') &&
-            (compact.contains('피협2') ||
-                compact.contains('피아노협주곡2') ||
-                compact.contains('pianoconcerto2')),
+            numberedTitle([
+              '피협',
+              '피아노협주곡',
+              'pianoconcerto',
+              'pianoconcertono',
+            ], 2),
         workId: 'rachmaninoff-piano-concerto-2',
       ),
       (
@@ -3266,16 +4121,6 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             compact.contains('말러') &&
             (compact.contains('아다지에토') || compact.contains('adagietto')),
         workId: 'mahler-adagietto',
-      ),
-      (
-        matched:
-            compact.contains('쇼팽') &&
-            (compact.contains('녹턴') ||
-                compact.contains('야상곡') ||
-                compact.contains('nocturne') ||
-                compact.contains('op92') ||
-                compact.contains('op9no2')),
-        workId: 'chopin-nocturne-op9-2',
       ),
     ];
     for (final match in nicknameMatches) {
@@ -3286,9 +4131,33 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         }
       }
     }
-    return searchWorks(input)
-        .where((work) => work.searchScore(input) >= 40)
-        .firstOrNull;
+    final exactMatches = searchWorks(input).where((work) {
+      final titles = [
+        work.titleKo,
+        work.titleOriginal,
+        work.catalogNumber,
+        ...work.aliases,
+      ].map(normalizeDiscoveryText).where((field) => field.isNotEmpty).toSet();
+      if (titles.contains(compact)) return true;
+      if (composer == null || composer.id != work.composerId) return false;
+      return [
+        composer.nameKo,
+        composer.nameOriginal,
+        composer.nameOriginal.split(' ').last,
+        ...composer.aliases,
+      ].any((field) {
+        final name = normalizeDiscoveryText(field);
+        if (name.isEmpty) return false;
+        return (compact.startsWith(name) &&
+                titles.contains(compact.substring(name.length))) ||
+            (compact.endsWith(name) &&
+                titles.contains(
+                  compact.substring(0, compact.length - name.length),
+                ));
+      });
+    }).toList();
+    // Fuzzy search is useful for browsing, not proof of an explicitly liked work.
+    return exactMatches.length == 1 ? exactMatches.single : null;
   }
 
   ClassicalComposer? _matchComposer(String input) {
@@ -3298,15 +4167,21 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       if (candidate.isEmpty || normalized.isEmpty) {
         return false;
       }
-      return candidate == normalized ||
-          candidate.contains(normalized) ||
-          normalized.contains(candidate);
+      if (candidate == normalized) return true;
+      if (RegExp(r'[a-zA-Z]').hasMatch(field)) {
+        final words = field.trim().toLowerCase().split(RegExp(r'\s+'));
+        return RegExp(
+          '(?<![a-z])${words.map(RegExp.escape).join(r'\s+')}(?![a-z])',
+        ).hasMatch(input.toLowerCase());
+      }
+      return normalized.contains(candidate);
     }
 
     for (final composer in _composers) {
       final fields = [
         composer.nameKo,
         composer.nameOriginal,
+        composer.nameOriginal.split(' ').last,
         ...composer.aliases,
       ];
       if (fields.any((field) => normalizeDiscoveryText(field) == normalized)) {
@@ -3317,6 +4192,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       final fields = [
         composer.nameKo,
         composer.nameOriginal,
+        composer.nameOriginal.split(' ').last,
         ...composer.aliases,
       ];
       if (fields.any(matchesField)) {
@@ -3352,7 +4228,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return TasteTranslation(
       sourceLabel: sourceLabel,
       axis: axis,
-      startingPoint: _translationStartingPoint(axis, sourceLabel),
+      startingPoint: hasOnlyFreeText
+          ? '$sourceLabel는 기록해둘게요. 아직 곡을 연결하지 못해, 오늘은 ${work.composerNameKo}의 ${work.instrumentation} 작품부터 들어봅니다.'
+          : _translationStartingPoint(axis, sourceLabel),
       familiarFeeling: _translationFamiliarFeeling(axis, sourceLabel),
       listenFor: _translationListenFor(axis, work),
       nextDirection: _translationNextDirection(axis),
@@ -3386,15 +4264,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   String _translationListenFor(String axis, ClassicalWork work) {
     final moment = work.primaryMoment ?? work.listeningMoments.first;
-    final cue = switch (axis) {
-      '색채형' => '악기 색이 살짝 바뀌는 지점',
-      '리듬형' => '반복되는 움직임이 몸에 먼저 닿는 지점',
-      '긴장형' => '소리가 버티다가 풀리는 지점',
-      '구조형' => '앞에서 나온 생각이 다시 보이는 지점',
-      '극적형' => '장면이 바뀌는 듯한 지점',
-      _ => '선율이 앞으로 걸어 나오는 지점',
-    };
-    return '${moment.label}에서는 $cue만 잡아보세요.';
+    return moment.prompt;
   }
 
   String _translationNextDirection(String axis) {
@@ -3533,11 +4403,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           ? null
           : workById(item.matchedWorkId!);
       if (work == null) {
-        scores.update(
-          _axisForFreeText(item.rawInput),
-          (score) => score + 2,
-          ifAbsent: () => 2,
-        );
+        final axis = _axisForTasteItem(item);
+        if (axis.isEmpty) continue;
+        scores.update(axis, (score) => score + 12, ifAbsent: () => 12);
         continue;
       }
       for (final entry in _axisWeightsForWork(work).entries) {
@@ -3563,7 +4431,22 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   String _sourceEvidenceForPreview(List<TasteIntakeItem> items, String axis) {
-    final label = _tasteEvidenceLabelFor(items.first);
+    final item =
+        items
+            .where(
+              (item) =>
+                  item.matchedWorkId != null ||
+                  item.matchedComposerId != null ||
+                  _axisForTasteItem(item).isNotEmpty,
+            )
+            .firstOrNull ??
+        items.first;
+    final label = _tasteEvidenceLabelFor(item);
+    if (item.matchedWorkId == null &&
+        item.matchedComposerId == null &&
+        _axisForTasteItem(item).isEmpty) {
+      return '$label는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 들어볼 작품을 골랐습니다.';
+    }
     return '$label에서 출발해 ${_axisNoun(axis)} 쪽으로 가까운 길을 잡았습니다.';
   }
 
@@ -3576,6 +4459,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   String _tasteBasedDailyReason(TasteIntakeItem item, String axis) {
     final label = _tasteEvidenceLabelFor(item);
+    if (item.matchedWorkId == null &&
+        item.matchedComposerId == null &&
+        _axisForTasteItem(item).isEmpty) {
+      return '$label는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 한 곡을 들어보고 시작합니다.';
+    }
     final action = _axisListeningAction(axis);
     return '$label에서 시작했다면, 오늘은 $action 30초만 잡아봅니다.';
   }
@@ -3617,9 +4505,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   ClassicalWork _easyFounderWork(DateTime now) {
+    final readyWorks = _works
+        .where(_isRecommendationReady)
+        .toList(growable: false);
     final founderPool = _works
         .where(
           (work) =>
+              _isRecommendationReady(work) &&
               work.primaryMoment != null &&
               (work.catalogStatusTags.contains('founder_pick') ||
                   work.contextTags.contains('처음 듣기')),
@@ -3629,19 +4521,24 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         .where((work) => work.difficultyForListening <= 2)
         .toList(growable: false);
     final pool = easyPool.isEmpty
-        ? (founderPool.isEmpty
-              ? _works.where((work) => work.primaryMoment != null).toList()
-              : founderPool)
+        ? (founderPool.isEmpty ? readyWorks : founderPool)
         : easyPool;
+    if (pool.isEmpty) {
+      throw StateError('No reviewed listening recommendation available');
+    }
     final day = now.difference(DateTime(2026)).inDays;
     return pool[day.abs() % pool.length];
   }
 
-  ClassicalWork? _recentUnsureAnchor(DateTime now) {
-    final recentUnsure = _state.reactions
+  ClassicalWork? _recentUnsureAnchor(
+    DateTime now, {
+    Set<String> excludedWorkIds = const {},
+  }) {
+    final recentUnsure = _latestReactions
         .where(
           (reaction) =>
               reaction.type == 'unsure' &&
+              !reaction.occurredAt.isAfter(now) &&
               now.difference(reaction.occurredAt).inDays <= 7,
         )
         .toList(growable: false);
@@ -3652,15 +4549,18 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (unsureWork == null) {
       return null;
     }
-    final closeWorks = _recommendFor(unsureWork, maxCount: 8)
+    final closeWorks = _recommendFor(unsureWork, maxCount: _works.length)
         .where(
           (work) =>
+              !excludedWorkIds.contains(work.id) &&
+              _isRecommendationReady(work) &&
+              !_isFounderColdStartMismatch(work) &&
               work.primaryMoment != null &&
               work.difficultyForListening <=
                   unsureWork.difficultyForListening.clamp(1, 3),
         )
         .toList(growable: false);
-    return closeWorks.firstOrNull ?? _easyFounderWork(now);
+    return closeWorks.firstOrNull;
   }
 
   ClassicalWork? _completedWorkOn(DateTime date) {
@@ -3682,10 +4582,22 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         return work;
       }
     }
+    for (final state in _state.workStates.values) {
+      if (state.confirmedListenDays.contains(_dateKey(date))) {
+        final work = workById(state.workId);
+        if (work?.primaryMoment != null) return work;
+      }
+    }
     return null;
   }
 
   bool _workHasDailyCompletion(String workId, DateTime date) {
+    if (_state
+        .stateForWork(workId)
+        .confirmedListenDays
+        .contains(_dateKey(date))) {
+      return true;
+    }
     final hasReaction = _state.reactions.any(
       (reaction) =>
           reaction.workId == workId &&
@@ -3705,6 +4617,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   Set<DateTime> _dailyCompletionDates() {
     return <DateTime>{
+      for (final state in _state.workStates.values)
+        for (final key in state.confirmedListenDays)
+          if (DateTime.tryParse(key) case final date?) _dateOnly(date),
       for (final reaction in _state.reactions) _dateOnly(reaction.occurredAt),
       for (final event in _state.events)
         if (_isDailyCompletionEvent(event)) _dateOnly(event.occurredAt),
@@ -3713,15 +4628,17 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
   bool _isDailyCompletionEvent(DiscoveryEvent event) {
     return event.entityType == 'work' &&
-        (event.eventType == 'listening_moment_complete' ||
-            event.eventType == 'external_platform_click');
+        event.eventType == 'listening_moment_complete';
   }
 
   bool _isSameLocalDay(DateTime a, DateTime b) {
+    a = a.toLocal();
+    b = b.toLocal();
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   DateTime _dateOnly(DateTime value) {
+    value = value.toLocal();
     return DateTime(value.year, value.month, value.day);
   }
 
@@ -3803,6 +4720,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
+  String _axisForTasteItem(TasteIntakeItem item) =>
+      item.matchOrigin == 'user_unlinked'
+      ? ''
+      : _axisForFreeText(item.rawInput);
+
   String _axisForFreeText(String input) {
     if (_containsAny(input, ['영화', 'ost', '게임', '드라마', '웅장'])) {
       return '극적형';
@@ -3816,31 +4738,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     if (_containsAny(input, ['푸가', '바흐', '변주', '기법', '의도', '시대'])) {
       return '구조형';
     }
-    if (_containsAny(input, [
-      '피아노',
-      '발라드',
-      '멜로디',
-      '선율',
-      '비와이',
-      '알면서도',
-      'viva',
-      '청춘',
-      '밤산책',
-      'sailingaway',
-      '잘가',
-      'glowup',
-      '야상곡',
-      '쇼팽',
-      '산책',
-      '독서',
-      '일하면서',
-    ])) {
+    if (_containsAny(input, ['피아노', '발라드', '멜로디', '선율', '야상곡', '쇼팽'])) {
       return '선율형';
     }
     if (_containsAny(input, ['앰비언트', '사운드', '분위기', '색'])) {
       return '색채형';
     }
-    return '선율형';
+    return '';
   }
 
   String _nextGrowthAreaFor(List<String> strengths) {
@@ -3876,6 +4780,21 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return null;
   }
 
+  bool _isRecommendationReady(ClassicalWork work) =>
+      !work.catalogStatusTags.contains('needs_copy_review') &&
+      !work.catalogStatusTags.contains('catalog_backfill') &&
+      work.primaryMoment != null &&
+      _isValidRecommendationMoment(work, work.primaryMoment!);
+
+  bool _isValidRecommendationMoment(
+    ClassicalWork work,
+    ListeningMoment moment,
+  ) =>
+      moment.prompt.trim().isNotEmpty &&
+      moment.startSeconds >= 0 &&
+      moment.endSeconds > moment.startSeconds &&
+      moment.endSeconds <= work.durationSeconds;
+
   List<({ClassicalWork work, int score})> _scoreProgressiveCandidates({
     required String axis,
     required int targetDifficulty,
@@ -3884,7 +4803,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }) {
     final scored = <({ClassicalWork work, int score})>[];
     for (final work in _works) {
-      if (usedWorkIds.contains(work.id)) {
+      if (usedWorkIds.contains(work.id) || !_isRecommendationReady(work)) {
         continue;
       }
       final weights = _axisWeightsForWork(work);
@@ -3924,32 +4843,12 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   String _progressiveReasonFor(ClassicalWork work, String lane, String axis) {
-    if (_hasFounderMelodyTaste()) {
-      final technique = _eraTechniqueFor(work);
-      return switch (lane) {
-        'immediate' =>
-          '선율이 먼저 들어오는 취향이면, ${work.titleKo}는 일하거나 걸을 때도 한 줄을 잡기 좋습니다.',
-        'stretch' => '${work.period}에서 자주 보이는 $technique만 하나 더 들어봅니다.',
-        'later' => '조금 뒤에는 ${work.composerNameKo}가 선율을 더 길게 끌고 가는 방식을 열어봅니다.',
-        _ => '오늘은 선율 하나만 잡아도 충분한 작품입니다.',
-      };
-    }
+    final prompt = work.primaryMoment?.prompt ?? '한 지점에서 시작해 봅니다.';
     return switch (lane) {
-      'immediate' => '${_axisReasonPrefix(axis)} 지금 듣기 좋은 입구에 가깝습니다.',
-      'stretch' => '${work.instrumentation}와 ${work.period} 색으로 한 걸음만 넓혀봅니다.',
-      'later' => '지금은 낯설 수 있지만, ${work.instrumentation}에 익숙해지면 다시 열릴 작품입니다.',
-      _ => '오늘 하나만 들어도 충분한 작품입니다.',
-    };
-  }
-
-  String _axisReasonPrefix(String axis) {
-    return switch (axis) {
-      '색채형' => '소리의 색에 머무는 기록이 있어요.',
-      '리듬형' => '움직임에 반응한 신호가 있어요.',
-      '긴장형' => '긴장과 해소를 붙잡은 기록이 있어요.',
-      '구조형' => '큰 흐름을 따라가는 쪽으로 귀가 열리고 있어요.',
-      '극적형' => '장면이 그려지는 음악에 반응했어요.',
-      _ => '선율이 선명한 작품에 반응했어요.',
+      'immediate' => _dailyPickSourceEvidence(axis, work),
+      'stretch' => '${work.period}의 ${work.instrumentation} 작품입니다. $prompt',
+      'later' => '다음에는 ${work.composerNameKo}의 이 지점도 열어볼까요? $prompt',
+      _ => prompt,
     };
   }
 
@@ -3989,28 +4888,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   bool _hasFounderMelodyTaste() {
-    final text = _state.tasteIntakeItems.map((item) => item.rawInput).join(' ');
-    return _containsAny(text, [
-          '비와이',
-          '알면서도',
-          'viva',
-          '청춘',
-          '밤산책',
-          'sailingaway',
-          '잘가',
-          'glowup',
-          '쇼팽',
-          '야상곡',
-          '드보르작',
-          '베토벤',
-          '하이든',
-          '모차르트',
-          '선율',
-          '산책',
-          '독서',
-          '일하면서',
-        ]) ||
-        tasteAxisScores().firstOrNull?.axis == '선율형';
+    return tasteAxisScores().firstOrNull?.axis == '선율형';
   }
 
   bool _isFounderExplicitTasteWork(String workId) {
@@ -4022,7 +4900,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   bool _isFounderColdStartMismatch(ClassicalWork work) {
-    if (_isFounderExplicitTasteWork(work.id)) {
+    if (_isFounderExplicitTasteWork(work.id) ||
+        _state.tasteIntakeItems.any(
+          (item) => item.matchedComposerId == work.composerId,
+        )) {
+      return false;
+    }
+    if (_state.tasteIntakeItems.isNotEmpty && !_hasFounderMelodyTaste()) {
       return false;
     }
     final text = [
@@ -4043,25 +4927,6 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       '바그너',
       'wagner',
     ]);
-  }
-
-  String _eraTechniqueFor(ClassicalWork work) {
-    if (_containsAny(work.period, ['바로크'])) {
-      return '반복되는 선율과 성부의 겹침';
-    }
-    if (_containsAny(work.period, ['고전'])) {
-      return '질문과 대답처럼 또렷한 문장';
-    }
-    if (_containsAny(work.period, ['낭만'])) {
-      return '길게 숨 쉬는 선율';
-    }
-    if (_containsAny(work.period, ['인상'])) {
-      return '화성 색채가 번지는 방식';
-    }
-    if (_containsAny(work.period, ['근현대', '현대'])) {
-      return '색과 리듬이 바뀌는 순간';
-    }
-    return '선율이 돌아오는 방식';
   }
 
   String _sourceEvidenceFor(String axis) {

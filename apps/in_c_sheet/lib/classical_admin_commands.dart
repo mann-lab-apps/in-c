@@ -545,6 +545,7 @@ ClassicalConcert _copyConcert(
 }) {
   return ClassicalConcert(
     id: concert.id,
+    isDemonstration: concert.isDemonstration,
     title: concert.title,
     venue: concert.venue,
     region: concert.region,

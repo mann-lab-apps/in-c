@@ -321,7 +321,8 @@ void main() {
       expect(step.work.catalogStatusTags, contains('founder_pick'));
       expect(step.work.difficultyForListening, lessThanOrEqualTo(2));
       expect(step.estimatedSeconds, inInclusiveRange(15, 180));
-      expect(step.reason, contains('입구'));
+      expect(step.reason, contains(step.work.composerNameKo));
+      expect(step.prompt, step.moment.prompt);
     },
   );
 
@@ -373,8 +374,8 @@ void main() {
 
     expect(preview, isNotNull);
     expect(preview!.translation.sourceLabel, contains('Interstellar OST'));
-    expect(preview.translation.startingPoint, contains('시작'));
-    expect(preview.translation.listenFor, contains('잡아보세요'));
+    expect(preview.translation.startingPoint, contains('아직 곡을 연결하지 못해'));
+    expect(preview.translation.listenFor, preview.dailyStep.moment.prompt);
     expect(preview.translation.nextDirection, contains('다음'));
     expect(preview.translation.avoidForNow, isNot(contains('AI')));
     expect(preview.dailyStep.prompt, preview.translation.listenFor);
@@ -393,6 +394,7 @@ void main() {
       '드보르작 - 교향곡 9번',
       '하이든 - 건반 협주곡 2번',
       '로꼬 - 잘가',
+      '선율',
     ]);
 
     final axes = controller.tasteAxisScores();
@@ -441,6 +443,31 @@ void main() {
       expect(haydn.items.single.matchedComposerId, 'haydn');
       expect(haydn.translation.sourceLabel, contains('하이든 건반 협주곡 2번'));
       expect(chopin!.items.single.matchedWorkId, 'chopin-nocturne-op9-2');
+    },
+  );
+
+  test(
+    'founder taste profile maps to melody and structure guardrails',
+    () async {
+      final controller = _controller();
+      await controller.load();
+
+      final profile = controller.founderTasteProfile;
+      final preview = controller.previewTasteStart([
+        ...profile.favoriteInputs,
+        profile.fastReaction,
+      ]);
+      final bach = controller.previewTasteStart(profile.exceptions);
+      final opera = controller.previewTasteStart(profile.avoidInputs);
+
+      expect(profile.fastReaction, '선율');
+      expect(profile.contexts, contains('산책할 때'));
+      expect(preview!.axis, '선율형');
+      expect(preview.translation.listenFor, preview.dailyStep.moment.prompt);
+      expect(bach!.axis, '구조형');
+      expect(bach.translation.listenFor, bach.dailyStep.moment.prompt);
+      expect(opera!.dailyStep.work.composerNameKo, isNot('바그너'));
+      expect(opera.dailyStep.work.composerNameKo, isNot('말러'));
     },
   );
 
@@ -507,6 +534,74 @@ void main() {
     expect(picks.map((pick) => pick.workId).toSet().length, picks.length);
   });
 
+  test(
+    'founder first seven days preview keeps close starts and one surprise',
+    () async {
+      final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+      await controller.load();
+
+      final preview = controller.founderSevenDayPreview();
+      final firstThree = preview.take(3).toList(growable: false);
+      final surprise = preview
+          .where((item) => item.pick.pickType == 'surprise')
+          .toList(growable: false);
+
+      expect(preview.length, 7);
+      expect(
+        firstThree.map((item) => item.pick.pickType).toSet(),
+        equals({'close_step'}),
+      );
+      expect(
+        firstThree.map((item) => item.judgement).toSet(),
+        equals({'거리 적절성: 사용자 평가 전'}),
+      );
+      expect(surprise.length, lessThanOrEqualTo(1));
+      expect(surprise.length, greaterThanOrEqualTo(1));
+      expect(surprise.single.nextPath, contains('낯설면'));
+      expect(
+        preview.map((item) => item.work.id).toSet().length,
+        preview.length,
+      );
+    },
+  );
+
+  test(
+    'founder simulation reports rules separately from human approval',
+    () async {
+      final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+      await controller.load();
+
+      final snapshot = controller.founderDailyPickQualitySnapshot();
+
+      expect(snapshot.previewDays, 7);
+      expect(snapshot.closeFirstThree, isTrue);
+      expect(snapshot.surpriseCount, lessThanOrEqualTo(1));
+      expect(snapshot.coldMismatchCount, 0);
+      expect(snapshot.ruleCompliancePassed, isTrue);
+      expect(snapshot.founderApproval, 'NOT_VERIFIED');
+      expect(snapshot.exportText, contains('SIMULATION'));
+      expect(snapshot.exportText, contains('founderApproval=NOT_VERIFIED'));
+    },
+  );
+
+  test('founder first seven days avoids cold mismatch works', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+
+    final preview = controller.founderSevenDayPreview();
+    final firstWeekCopy = preview
+        .map(
+          (item) =>
+              '${item.work.titleKo} ${item.work.titleOriginal} '
+              '${item.work.composerNameKo} ${item.work.instrumentation}',
+        )
+        .join(' ');
+
+    expect(firstWeekCopy, isNot(contains('오페라')));
+    expect(firstWeekCopy, isNot(contains('말러')));
+    expect(firstWeekCopy.toLowerCase(), isNot(contains('wagner')));
+  });
+
   test('unsure reaction disables surprise for the next daily pick', () async {
     var now = DateTime(2026, 9, 1, 9);
     final controller = _controller(clock: () => now);
@@ -527,8 +622,44 @@ void main() {
     expect(pick.distanceLabel, isNot('의외의 우회로'));
   });
 
+  test('daily pick reminder copy changes by user state', () async {
+    var now = DateTime(2026, 9, 1, 9);
+    final controller = _controller(clock: () => now);
+    await controller.load();
+    expect(controller.dailyPickReminderMessage(), contains('오늘 한 곡'));
+
+    await controller.addTasteIntakeInputs(const ['쇼팽 야상곡 9-2번']);
+    final pick = await controller.ensureDailyPick();
+    await controller.toggleSaveWork(pick.workId);
+    expect(controller.dailyPickReminderMessage(), contains('저장한 선율'));
+
+    await controller.recordProviderClick(
+      controller.workById(pick.workId)!,
+      controller.workById(pick.workId)!.externalLinks.first,
+    );
+    now = DateTime(2026, 9, 2, 9);
+    final tomorrow = await controller.ensureDailyPick();
+    await controller.addReaction(tomorrow.workId, 'liked');
+    expect(controller.dailyPickReminderMessage(), contains('좋았던 감각'));
+
+    now = DateTime(2026, 9, 3, 9);
+    await controller.addReaction('mahler-adagietto', 'unsure');
+    expect(controller.dailyPickReminderMessage(), contains('가까운 곡'));
+  });
+
+  test('daily pick reminder invites return after missed yesterday', () async {
+    var now = DateTime(2026, 9, 1, 9);
+    final controller = _controller(clock: () => now);
+    await controller.load();
+    await controller.ensureDailyPick();
+
+    now = DateTime(2026, 9, 2, 9);
+
+    expect(controller.dailyPickReminderMessage(), contains('잠시 쉬었어도'));
+  });
+
   test(
-    'daily pick completes from moment, link-out, and reaction actions',
+    'daily pick completes from explicit moment or reaction, not link-out',
     () async {
       var now = DateTime(2026, 9, 1, 9);
       final controller = _controller(clock: () => now);
@@ -543,7 +674,7 @@ void main() {
       pick = await controller.ensureDailyPick();
       final work = controller.workById(pick.workId)!;
       await controller.recordProviderClick(work, work.externalLinks.first);
-      expect(controller.dailyPick().isCompleted, isTrue);
+      expect(controller.dailyPick().isCompleted, isFalse);
 
       now = DateTime(2026, 9, 3, 9);
       pick = await controller.ensureDailyPick();
@@ -677,8 +808,9 @@ void main() {
     expect(progress.rewardCopy, contains('오늘 들은 지점'));
   });
 
-  test('reaction updates axis familiarity', () async {
-    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+  test('reaction on a later day updates axis familiarity', () async {
+    var now = DateTime(2026, 9, 1, 9);
+    final controller = _controller(clock: () => now);
     await controller.load();
     final step = controller.dailyListeningStep();
 
@@ -687,6 +819,8 @@ void main() {
       'liked',
       momentId: step.moment.id,
     );
+    expect(controller.listeningMapProgress().familiarCount, 0);
+    now = DateTime(2026, 9, 2, 9);
     await controller.completeMoment(step.work.id, step.moment.id);
 
     final progress = controller.listeningMapProgress();
@@ -710,19 +844,27 @@ void main() {
     );
   });
 
-  test('save full listen and reaction creates conquered candidate', () async {
-    final controller = _controller();
-    await controller.load();
-    final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
+  test(
+    'save and positive reaction across days creates personal repertoire',
+    () async {
+      var now = DateTime(2026, 9, 1, 9);
+      final controller = _controller(clock: () => now);
+      await controller.load();
+      final work = ClassicalDiscoveryCatalog.workById('bach-air')!;
 
-    await controller.toggleSaveWork(work.id);
-    await controller.recordProviderClick(work, work.externalLinks.first);
-    await controller.addReaction(work.id, 'liked');
+      await controller.toggleSaveWork(work.id);
+      await controller.recordProviderClick(work, work.externalLinks.first);
+      await controller.addReaction(work.id, 'liked');
 
-    final progress = controller.listeningMapProgress();
-    expect(progress.conqueredWorks.map((item) => item.id), contains(work.id));
-    expect(progress.conqueredCount, greaterThan(0));
-  });
+      expect(controller.conqueredWorks(), isEmpty);
+      now = DateTime(2026, 9, 2, 9);
+      await controller.addReaction(work.id, 'liked');
+
+      final progress = controller.listeningMapProgress();
+      expect(progress.conqueredWorks.map((item) => item.id), contains(work.id));
+      expect(progress.conqueredCount, greaterThan(0));
+    },
+  );
 
   test('work detail map role exposes node and next path', () async {
     final controller = _controller();
@@ -792,6 +934,8 @@ void main() {
       secondStep.work,
       secondStep.work.externalLinks.first,
     );
+    expect(controller.continuitySummary(now: now).completedToday, isFalse);
+    await controller.completeMoment(secondStep.work.id, secondStep.moment.id);
 
     final summary = controller.continuitySummary(now: DateTime(2026, 9, 2, 22));
     expect(summary.weeklyCompletedDays, 2);
@@ -1329,10 +1473,20 @@ void main() {
     expect(summary.storeMetadataReadiness.isVerified, isFalse);
     expect(summary.publicCopyReadiness.isVerified, isTrue);
     expect(summary.publicCopyReadiness.blockedTerms, contains('funnel'));
-    expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isTrue);
+    expect(summary.buildQaReadiness.hasInstallLaunchSmoke, isFalse);
     expect(summary.buildQaReadiness.isVerified, isFalse);
-    expect(summary.buildQaReadiness.androidInstallSmoke, startsWith('PASS'));
-    expect(summary.buildQaReadiness.iosTestFlightUpload, contains('BLOCKED'));
+    expect(
+      summary.buildQaReadiness.androidInstallSmoke,
+      startsWith('NOT_VERIFIED'),
+    );
+    expect(
+      summary.buildQaReadiness.iosTestFlightUpload,
+      contains('NOT_VERIFIED'),
+    );
+    expect(
+      summary.publicCopyReadiness.checkedSurfaces,
+      isNot(contains('Today')),
+    );
     expect(
       summary.publicV1Closeout.evidenceText,
       contains('Store metadata production verification gaps'),
@@ -1343,7 +1497,7 @@ void main() {
     );
     expect(
       summary.publicV1Closeout.evidenceText,
-      contains('Install/launch smoke: PASS'),
+      contains('Install/launch smoke: GAP'),
     );
   });
 
@@ -1368,7 +1522,7 @@ void main() {
       expect(summary.firstThreeMinuteFunnelComplete, isTrue);
       expect(summary.softLaunchReadiness.founderPickCount, 30);
       expect(summary.publicV1Closeout.releaseReady, isFalse);
-      expect(summary.publicV1Closeout.contentOpsGapCount, 0);
+      expect(summary.publicV1Closeout.contentOpsGapCount, greaterThan(0));
       expect(
         summary.publicV1Closeout.productionVerificationGapCount,
         greaterThan(0),
@@ -1429,9 +1583,10 @@ void main() {
         context: 'founder_quality',
         properties: {
           'category': 'founder_quality',
+          'evidenceKind': 'observed',
           'testerId': testerId,
           'dailyStepTapped': passed.toString(),
-          'reasonAccepted': passed.toString(),
+          'reasonAccepted': (passed || testerId == 'u4').toString(),
           'openedFullListen': passed.toString(),
           'leftReaction': passed.toString(),
           'understoodListeningMap': passed.toString(),
@@ -1490,6 +1645,7 @@ void main() {
           context: 'first_use_wow',
           properties: {
             'category': 'first_use_wow',
+            'evidenceKind': 'observed',
             'testerId': testerId,
             'personalRecommendation': personal.toString(),
             'knewWhatToHear': personal.toString(),
@@ -1539,6 +1695,7 @@ void main() {
         context: 'first_use_wow',
         properties: {
           'category': 'first_use_wow',
+          'evidenceKind': 'observed',
           'testerId': 'u$index',
           'personalRecommendation': (index < 3).toString(),
           'knewWhatToHear': 'true',
@@ -2135,6 +2292,54 @@ void main() {
     expect(find.textContaining('첫 추천이 내 입력'), findsOneWidget);
   });
 
+  testWidgets('Catalog Ops exposes first seven day recommendation preview', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Catalog Ops'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('첫 7일 추천 미리보기'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('첫 7일 추천 미리보기'), findsOneWidget);
+    expect(find.textContaining('사용자 평가 전'), findsWidgets);
+    expect(find.textContaining('선율'), findsWidgets);
+  });
+
+  testWidgets('Catalog Ops exposes Daily Pick quality snapshot', (
+    tester,
+  ) async {
+    final controller = _controller();
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Catalog Ops'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Daily Pick 규칙 검사'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Daily Pick 규칙 검사'), findsOneWidget);
+    expect(find.textContaining('감상 품질 평가 아님'), findsOneWidget);
+    expect(find.textContaining('founderApproval=NOT_VERIFIED'), findsOneWidget);
+  });
+
   testWidgets('My Music empty state shows listening map start copy', (
     tester,
   ) async {
@@ -2372,6 +2577,12 @@ class _FakeDailyNotificationGateway
   String? launchPayload;
   DailyPickNotificationRequest? scheduledRequest;
   var cancelled = false;
+
+  @override
+  Stream<void> get opens => const Stream<void>.empty();
+
+  @override
+  Future<String> currentPermissionStatus() async => permissionStatus;
 
   @override
   Future<void> cancelDailyPick() async {
