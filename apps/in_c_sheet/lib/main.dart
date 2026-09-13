@@ -5328,6 +5328,8 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
   }
 }
 
+enum _SetlistDetailAction { copy, duplicate, rename, delete }
+
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
     required this.controller,
@@ -5618,10 +5620,17 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       );
     }
     final scores = controller.scoresForSetlist(currentSetlist);
+    final compactActions = MediaQuery.sizeOf(context).width < 720;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentSetlist.title, overflow: TextOverflow.ellipsis),
+        title: Text(
+          currentSetlist.title,
+          overflow: TextOverflow.ellipsis,
+          style: compactActions
+              ? Theme.of(context).textTheme.titleMedium
+              : null,
+        ),
         actions: [
           IconButton(
             tooltip: '첫 곡 열기',
@@ -5637,26 +5646,77 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   : Icons.fact_check_outlined,
             ),
           ),
-          IconButton(
-            tooltip: '목록 복사',
-            onPressed: _copySetlistText,
-            icon: const Icon(Icons.content_paste_go_outlined),
-          ),
-          IconButton(
-            tooltip: '세트리스트 복제',
-            onPressed: _duplicateSetlist,
-            icon: const Icon(Icons.content_copy),
-          ),
-          IconButton(
-            tooltip: '이름 변경',
-            onPressed: _renameSetlist,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: '삭제',
-            onPressed: _deleteSetlist,
-            icon: const Icon(Icons.delete_outline),
-          ),
+          if (!compactActions) ...[
+            IconButton(
+              tooltip: '목록 복사',
+              onPressed: _copySetlistText,
+              icon: const Icon(Icons.content_paste_go_outlined),
+            ),
+            IconButton(
+              tooltip: '세트리스트 복제',
+              onPressed: _duplicateSetlist,
+              icon: const Icon(Icons.content_copy),
+            ),
+            IconButton(
+              tooltip: '이름 변경',
+              onPressed: _renameSetlist,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: '삭제',
+              onPressed: _deleteSetlist,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ] else
+            PopupMenuButton<_SetlistDetailAction>(
+              tooltip: '세트리스트 작업 더 보기',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) async {
+                if (controller.setlistByIdOrNull(widget.setlistId) == null) {
+                  return;
+                }
+                switch (action) {
+                  case _SetlistDetailAction.copy:
+                    await _copySetlistText();
+                  case _SetlistDetailAction.duplicate:
+                    await _duplicateSetlist();
+                  case _SetlistDetailAction.rename:
+                    await _renameSetlist();
+                  case _SetlistDetailAction.delete:
+                    await _deleteSetlist();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: _SetlistDetailAction.copy,
+                  child: ListTile(
+                    leading: Icon(Icons.content_paste_go_outlined),
+                    title: Text('목록 복사'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.duplicate,
+                  child: ListTile(
+                    leading: Icon(Icons.content_copy),
+                    title: Text('세트리스트 복제'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.rename,
+                  child: ListTile(
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('이름 변경'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.delete,
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('삭제'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
       floatingActionButton: scores.isEmpty

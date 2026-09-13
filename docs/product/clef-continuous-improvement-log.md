@@ -33,7 +33,16 @@
 
 ## Verification Policy
 
-S6: VERIFIED LOCAL. Reordering an old snapshot resurrected a removed score in regression.
+U5: VERIFIED LOCAL. Six setlist toolbar actions truncate even a short title at
+320/360dp. Keep open-first/rehearsal direct; move copy/duplicate/rename/delete into
+a contextual menu below 720dp, retaining wide shortcuts. Acceptance: readable title,
+reachable commands, empty-list disabled playback, deletion confirmation and resize.
+Title truncation reproduced in both narrow widget cases before the change.
+Copy/rename/duplicate/delete-cancel and wide-resize widget paths pass. Full suite
+520/520, analyze/RC PASS (`/private/tmp/clef-rc-u5.log`) after fixing a braces lint.
+Commit subject: `fix: keep Clef setlist actions readable on narrow screens`.
+
+S6: `b48d070`, VERIFIED LOCAL. Reordering an old snapshot resurrected a removed score in regression.
 Accept index operations only while ordered score IDs match current state; preserve
 current metadata if only title/settings changed. Invalid/missing targets return false;
 same-index valid requests do not write. Drag, arrows and direct position share a
@@ -106,7 +115,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: inspect narrow setlist detail toolbar/title readability and action reachability.
+Next: preserve current setlist membership/metadata during partial rehearsal or preset updates.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

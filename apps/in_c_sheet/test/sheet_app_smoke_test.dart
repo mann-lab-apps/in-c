@@ -1383,6 +1383,102 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final width in [320.0, 360.0]) {
+    testWidgets('setlist toolbar keeps title readable at $width', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      tester.view.physicalSize = Size(width, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final controller = SheetLibraryController(store: SheetLibraryStore());
+      await controller.load();
+      final setlist = await controller.createSetlist('공연 순서');
+      await tester.pumpWidget(
+        MaterialApp(
+          initialRoute: '/setlist',
+          routes: {
+            '/': (_) => const Scaffold(),
+            '/setlist': (_) => SheetSetlistDetailScreen(
+              controller: controller,
+              setlistId: setlist.id,
+            ),
+          },
+        ),
+      );
+      await tester.pumpAndSettle();
+      final title = tester.renderObject<RenderParagraph>(find.text('공연 순서'));
+      expect(title.didExceedMaxLines, isFalse);
+      expect(title.size.width, greaterThanOrEqualTo(80));
+      for (final tooltip in ['첫 곡 열기', '리허설 모드']) {
+        final button = find.byWidgetPredicate(
+          (widget) => widget is IconButton && widget.tooltip == tooltip,
+        );
+        expect(tester.widget<IconButton>(button).onPressed, isNull);
+      }
+      final more = find.byTooltip('세트리스트 작업 더 보기');
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+        expect(find.text(label).hitTestable(), findsOneWidget);
+      }
+      await tester.tap(find.text('목록 복사'));
+      await tester.pumpAndSettle();
+      expect(copied, contains('공연 순서'));
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('이름 변경'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), '저녁 공연');
+      await tester.tap(find.widgetWithText(FilledButton, '저장'));
+      await tester.pumpAndSettle();
+      expect(controller.setlists.single.title, '저녁 공연');
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('세트리스트 복제'));
+      await tester.pumpAndSettle();
+      expect(controller.setlists, hasLength(2));
+      expect(
+        controller.setlists.map((item) => item.title),
+        contains('저녁 공연 copy'),
+      );
+      await tester.tap(more);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('삭제'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, '취소'));
+      await tester.pumpAndSettle();
+      expect(controller.setlists, hasLength(2));
+      tester.view.physicalSize = const Size(1280, 800);
+      await tester.pumpAndSettle();
+      expect(more, findsNothing);
+      for (final label in ['목록 복사', '세트리스트 복제', '이름 변경', '삭제']) {
+        expect(find.byTooltip(label).hitTestable(), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final listChanged in [false, true]) {
     testWidgets('setlist direct order entry with changed list: $listChanged', (
       tester,
