@@ -371,6 +371,53 @@ void main() {
     });
   }
 
+  testWidgets('untitled scores remain identifiable in library and setlist', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime(2026, 9, 13);
+    final store = SheetLibraryStore();
+    final score = SheetScore(
+      id: 'nameless',
+      title: '   ',
+      composer: '',
+      tags: const <String>[],
+      note: '',
+      filePath: '/tmp/nameless-Bach-Minuet.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: null,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const <SheetBookmark>[],
+    );
+    final setlist = SheetSetlist(
+      id: 'concert',
+      title: 'Concert',
+      scoreIds: <String>[score.id],
+      createdAt: now,
+      updatedAt: now,
+    );
+    await store.saveScores(<SheetScore>[score]);
+    await store.saveSetlists(<SheetSetlist>[setlist]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    expect(find.text('Bach-Minuet'), findsWidgets);
+    expect(
+      setlistShareTextForTest(setlist, <SheetScore>[score]),
+      contains('1. Bach-Minuet'),
+    );
+    await tester.tap(find.byTooltip('세트리스트'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Concert'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bach-Minuet'), findsOneWidget);
+    expect(controller.scoreById('nameless').title, '   ');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('full restore reports missing files until acknowledged', (
     tester,
   ) async {

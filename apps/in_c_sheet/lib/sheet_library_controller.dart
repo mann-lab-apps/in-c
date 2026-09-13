@@ -166,7 +166,9 @@ class SheetLibraryController extends ChangeNotifier {
       if (importedCompare != 0) {
         return importedCompare;
       }
-      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+      return a.displayTitle.toLowerCase().compareTo(
+        b.displayTitle.toLowerCase(),
+      );
     });
     return List<SheetScore>.unmodifiable(scores);
   }
@@ -2872,7 +2874,7 @@ class SheetLibraryController extends ChangeNotifier {
     if (openedCompare != 0) {
       return openedCompare;
     }
-    return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    return a.displayTitle.toLowerCase().compareTo(b.displayTitle.toLowerCase());
   }
 
   int _recentSetlistCompare(SheetSetlist a, SheetSetlist b) {

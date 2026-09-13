@@ -222,11 +222,14 @@ List<SheetScore> sortScores(
   sorted.sort((a, b) {
     return switch (sortMode) {
       SheetLibrarySortMode.recent => _compareRecent(a, b),
-      SheetLibrarySortMode.title => _compareText(a.title, b.title),
+      SheetLibrarySortMode.title => _compareText(
+        a.displayTitle,
+        b.displayTitle,
+      ),
       SheetLibrarySortMode.composer => _compareText(
         a.composer,
         b.composer,
-      ).nonZeroOr(_compareText(a.title, b.title)),
+      ).nonZeroOr(_compareText(a.displayTitle, b.displayTitle)),
       SheetLibrarySortMode.rating =>
         b.rating.compareTo(a.rating).nonZeroOr(_compareRecent(a, b)),
       SheetLibrarySortMode.imported => b.importedAt.compareTo(a.importedAt),
@@ -402,7 +405,9 @@ String _fallbackTemplateId(String name, String deviceProfile) {
 int _compareRecent(SheetScore a, SheetScore b) {
   final aDate = a.lastOpenedAt ?? a.importedAt;
   final bDate = b.lastOpenedAt ?? b.importedAt;
-  return bDate.compareTo(aDate).nonZeroOr(_compareText(a.title, b.title));
+  return bDate
+      .compareTo(aDate)
+      .nonZeroOr(_compareText(a.displayTitle, b.displayTitle));
 }
 
 int _compareText(String a, String b) {

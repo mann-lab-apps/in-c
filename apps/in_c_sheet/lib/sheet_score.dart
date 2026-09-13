@@ -2240,7 +2240,9 @@ class SheetScore {
     final importedAt = _dateFromJson(json['importedAt']);
     return SheetScore(
       id: _requiredStringFromJson(json['id'], 'Score id'),
-      title: _fallbackStringFromJson(json['title'], 'Untitled score'),
+      title: json['title'] is String
+          ? json['title']! as String
+          : 'Untitled score',
       composer: _stringFromJson(json['composer']),
       tags: _jsonList(json['tags'])
           .whereType<String>()
@@ -2350,6 +2352,9 @@ class SheetScore {
   final SheetAutoScrollSettings autoScrollSettings;
   final SheetMetronomeSettings? metronomeSettings;
 
+  String get displayTitle =>
+      title.trim().isEmpty ? sourceFileDisplayName : title.trim();
+
   String get sourceFileDisplayName {
     final normalizedPath = filePath.trim().replaceAll('\\', '/');
     final rawName = normalizedPath.split('/').last.trim();
@@ -2371,7 +2376,9 @@ class SheetScore {
       return true;
     }
 
+    final fileName = filePath.trim().replaceAll('\\', '/').split('/').last;
     return title.toLowerCase().contains(normalized) ||
+        fileName.toLowerCase().contains(normalized) ||
         composer.toLowerCase().contains(normalized) ||
         tags.any((tag) => tag.toLowerCase().contains(normalized)) ||
         collection.toLowerCase().contains(normalized) ||

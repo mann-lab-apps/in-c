@@ -427,7 +427,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final openedExisting = controller.lastImportOpenedExistingScore;
     if (openedExisting) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${score.title}"이 이미 있어 기존 악보를 엽니다.')),
+        SnackBar(content: Text('"${score.displayTitle}"이 이미 있어 기존 악보를 엽니다.')),
       );
     }
     if (addToSetlist) {
@@ -492,7 +492,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       }
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${score.title}" 이미지 PDF를 추가했습니다.')),
+      SnackBar(content: Text('"${score.displayTitle}" 이미지 PDF를 추가했습니다.')),
     );
     await _openScore(score, showImportNudge: true);
   }
@@ -509,7 +509,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     final message = result.didAddAny
-        ? '"${score.title}"을 "${target.title}"에 추가했습니다.'
+        ? '"${score.displayTitle}"을 "${target.title}"에 추가했습니다.'
         : '"${target.title}"에 이미 포함되어 있습니다.';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
@@ -778,7 +778,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: score.title,
+          subject: score.displayTitle,
           files: [
             XFile(
               candidate.path,
@@ -4092,7 +4092,7 @@ String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
       if (duration > 0) _formatDuration(duration),
       if (note?.isNotEmpty == true) note!,
     ];
-    buffer.writeln('${index + 1}. ${score.title}');
+    buffer.writeln('${index + 1}. ${score.displayTitle}');
     if (details.isNotEmpty) {
       buffer.writeln('   ${details.join(' · ')}');
     }
@@ -4190,7 +4190,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
@@ -4378,7 +4378,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                               if (lastOpenedScore != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  '이어보기 · ${lastOpenedScore.title}',
+                                  '이어보기 · ${lastOpenedScore.displayTitle}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.labelSmall?.copyWith(
@@ -4966,7 +4966,7 @@ class _ScoreTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -5523,7 +5523,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     final targetPosition = await showDialog<int>(
       context: context,
       builder: (context) => _SetlistOrderDialog(
-        scoreTitle: score.title,
+        scoreTitle: score.displayTitle,
         initialPosition: currentIndex + 1,
         totalCount: totalCount,
       ),
@@ -5558,7 +5558,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${score.title}"을 세트리스트에서 제거했습니다.'),
+        content: Text('"${score.displayTitle}"을 세트리스트에서 제거했습니다.'),
         action: SnackBarAction(
           label: '되돌리기',
           onPressed: () {
@@ -5694,7 +5694,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                         ),
                       ),
                       title: Text(
-                        score.title,
+                        score.displayTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -6000,7 +6000,7 @@ class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
                         value: isSelected,
                         onChanged: (_) => _toggleScore(score),
                       ),
-                      title: Text(score.title),
+                      title: Text(score.displayTitle),
                       subtitle: Text(_scoreIdentitySubtitle(score)),
                       selected: isSelected,
                       onTap: () => _toggleScore(score),
@@ -6220,7 +6220,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
@@ -8113,7 +8113,7 @@ setlist=$setlistLabel
           children: [
             ListTile(
               leading: const Icon(Icons.description_outlined),
-              title: Text(currentScore.title),
+              title: Text(currentScore.displayTitle),
               subtitle: Text(
                 '현재 열려 있는 악보 · ${File(currentScore.filePath).existsSync() ? '파일 확인됨' : '파일 없음'}',
               ),
@@ -8372,7 +8372,7 @@ setlist=$setlistLabel
   void _showImportedScoreNudge() {
     ScaffoldMessenger.of(context).showSnackBar(
       _buildImportedScoreNudgeSnackBar(
-        title: score.title,
+        title: score.displayTitle,
         onEdit: () => unawaited(_editCurrentScoreMetadata()),
       ),
     );
@@ -8456,8 +8456,7 @@ setlist=$setlistLabel
     if (scores.isEmpty) {
       return;
     }
-    final title =
-        '${score.title.trim().isEmpty ? 'Songbook' : score.title} 곡 모음';
+    final title = '${score.displayTitle} 곡 모음';
     final existing = widget.controller.setlistByTitleOrNull(title);
     final setlist = existing ?? await widget.controller.createSetlist(title);
     final result = await widget.controller.addScoresToSetlist(setlist, scores);
@@ -10445,7 +10444,7 @@ setlist=$setlistLabel
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: currentScore.title,
+          subject: currentScore.displayTitle,
           files: [
             XFile(
               candidate.path,
@@ -10515,12 +10514,12 @@ setlist=$setlistLabel
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: currentScore.title,
+          subject: currentScore.displayTitle,
           files: [
             XFile(
               result.outputPath!,
               name: SheetScoreSharePolicy.exportFileName(
-                title: '${currentScore.title} annotated',
+                title: '${currentScore.displayTitle} annotated',
                 composer: currentScore.composer,
               ),
               mimeType: 'application/pdf',
@@ -11633,8 +11632,8 @@ setlist=$setlistLabel
           title: Text(delta < 0 ? '이전 곡으로 이동' : '다음 곡으로 이동'),
           content: Text(
             transitionDetails.isEmpty
-                ? '"${nextScore.title}" 악보를 열까요?'
-                : '"${nextScore.title}"\n${transitionDetails.join(' · ')}',
+                ? '"${nextScore.displayTitle}" 악보를 열까요?'
+                : '"${nextScore.displayTitle}"\n${transitionDetails.join(' · ')}',
           ),
           actions: [
             TextButton(
@@ -11780,7 +11779,7 @@ setlist=$setlistLabel
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(currentScore.title, overflow: TextOverflow.ellipsis),
+        Text(currentScore.displayTitle, overflow: TextOverflow.ellipsis),
         if (setlistContext != null)
           Text(
             _setlistContextSubtitle(setlistContext),
@@ -12947,7 +12946,7 @@ setlist=$setlistLabel
                               ? Alignment.topLeft
                               : Alignment.topCenter,
                           child: _SetlistProgressBadge(
-                            scoreTitle: currentScore.title,
+                            scoreTitle: currentScore.displayTitle,
                             subtitle: _setlistProgressSubtitle(setlistContext),
                           ),
                         ),

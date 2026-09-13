@@ -307,6 +307,22 @@ void main() {
     );
 
     expect(score.sourceFileDisplayName, 'Bach Minuet Anh 120');
+    expect(score.displayTitle, 'Imported scan');
+    final untitled = score.copyWith(title: '   ');
+    expect(untitled.displayTitle, 'Bach Minuet Anh 120');
+    expect(untitled.title, '   ');
+    final restored = SheetScore.fromJson(untitled.toJson());
+    expect(restored.title, '   ');
+    expect(restored.displayTitle, 'Bach Minuet Anh 120');
+    expect(untitled.copyWith(filePath: '').displayTitle, '악보 파일');
+    expect(
+      untitled.copyWith(filePath: r'C:\scores\Minuet.pdf').displayTitle,
+      'Minuet',
+    );
+    expect(score.copyWith(title: ' Minuet ').displayTitle, 'Minuet');
+    expect(score.matches('bach minuet anh 120.pdf'), isTrue);
+    expect(score.matches('/app/docs'), isFalse);
+    expect(score.copyWith(title: 'Renamed piece').matches('MINUET'), isTrue);
     expect(
       score
           .copyWith(filePath: '/downloads/plain-name.PDF')

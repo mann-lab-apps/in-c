@@ -33,6 +33,15 @@
 
 ## Verification Policy
 
+U4: VERIFIED LOCAL. Friend feedback requires identifiable scores without metadata.
+Use the source filename for explicitly blank titles across home, setlist, viewer and
+copied run sheets; search by filename and sort by displayed name. Preserve raw blank
+titles through codec round-trip without adding schema fields. Widget regression
+reproduced the missing label and now passes. Analyze, full tests and RC check PASS
+(`/private/tmp/clef-rc-u4.log`). An invalid test-only copyWith argument was corrected
+before the successful full rerun. Commit subject:
+`fix: identify Clef untitled scores by source filename`.
+
 - Per slice: meaningful regression tests, `dart format lib test tool`,
   `flutter analyze`, `flutter test`, `dart run tool/rc_release_check.dart`.
 - Review formatter diff; check whitespace, tabs and stale documentation wording.
@@ -60,9 +69,9 @@ Commit subject: `fix: roll back Clef metadata after restore write failures`.
 B7: `fcc43e3`, restore progress, UI exclusion and shared-import deferral implemented;
 full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
-U3: bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
+U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: file-name search and missing-title display consistency across library/setlist/share.
+Next: regression for orphaned setlist duration/metronome settings during load.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before
