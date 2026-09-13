@@ -33,7 +33,16 @@
 
 ## Verification Policy
 
-U4: VERIFIED LOCAL. Friend feedback requires identifiable scores without metadata.
+S3: VERIFIED LOCAL. Setlist load ignored cleanup when only orphaned durations or
+metronome settings changed. Use the existing model's unchanged-instance contract
+instead of checking only three collection lengths. Regression reproduced both
+orphan maps remaining in memory. Acceptance: persist complete cleanup, preserve
+valid settings/resume position, and leave the timestamp unchanged on a second load.
+Both regressions pass; full suite 512/512, analyze/RC PASS
+(`/private/tmp/clef-rc-s3.log`). Commit subject:
+`fix: persist complete Clef setlist reference cleanup`.
+
+U4: `21a3545`, VERIFIED LOCAL. Friend feedback requires identifiable scores without metadata.
 Use the source filename for explicitly blank titles across home, setlist, viewer and
 copied run sheets; search by filename and sort by displayed name. Preserve raw blank
 titles through codec round-trip without adding schema fields. Widget regression
@@ -71,7 +80,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: regression for orphaned setlist duration/metronome settings during load.
+Next: stale setlist snapshots during consecutive add/remove actions.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

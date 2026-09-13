@@ -2820,11 +2820,8 @@ class SheetLibraryController extends ChangeNotifier {
     final cleaned = _setlists
         .map((setlist) {
           final next = setlist.removeMissingScores(validScoreIds);
-          changed =
-              changed ||
-              next.scoreIds.length != setlist.scoreIds.length ||
-              next.scoreStartPages.length != setlist.scoreStartPages.length ||
-              next.scoreNotes.length != setlist.scoreNotes.length;
+          // The model returns itself only when every reference is unchanged.
+          changed = changed || !identical(next, setlist);
           return next;
         })
         .toList(growable: false);

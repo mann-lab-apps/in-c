@@ -15,6 +15,51 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final orphanKind in ['duration', 'metronome']) {
+    test('load persists orphaned setlist $orphanKind cleanup', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      await store.saveScores([_score(now, id: 'kept')]);
+      await store.saveSetlists([
+        SheetSetlist(
+          id: 'concert',
+          title: 'Concert',
+          scoreIds: const ['kept'],
+          createdAt: now,
+          updatedAt: now,
+          scoreDurations: {
+            'kept': 90,
+            if (orphanKind == 'duration') 'removed': 120,
+          },
+          scoreMetronomeSettings: {
+            'kept': SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+            if (orphanKind == 'metronome')
+              'removed': SheetMetronomeSettings.defaultSettings.copyWith(
+                bpm: 120,
+              ),
+          },
+          lastOpenedScoreId: 'kept',
+          lastOpenedAt: now,
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.setlists.single.scoreDurations, {'kept': 90});
+      expect(controller.setlists.single.scoreMetronomeSettings.keys, ['kept']);
+      expect(
+        controller.setlists.single.scoreMetronomeSettings['kept']?.bpm,
+        96,
+      );
+      expect(controller.setlists.single.lastOpenedScoreId, 'kept');
+      final persisted = (await store.loadSetlists()).single;
+      expect(persisted.scoreDurations, {'kept': 90});
+      expect(persisted.scoreMetronomeSettings.keys, ['kept']);
+      await controller.load();
+      expect(controller.setlists.single.updatedAt, persisted.updatedAt);
+    });
+  }
+
   test('renames and deletes bookmarks with empty label fallback', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
