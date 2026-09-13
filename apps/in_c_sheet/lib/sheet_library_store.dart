@@ -1349,6 +1349,7 @@ class SheetLibraryStore {
       final restoredScores = <SheetScore>[];
       final restoredScorePathsByEntry = <String, String>{};
 
+      // Other libraries may still reference files from an earlier restore.
       for (final score in backup.scores) {
         var restoredScore = score;
         final mapping = scoreFileMappingsByScoreId[score.id];
@@ -1360,9 +1361,8 @@ class SheetLibraryStore {
           if (entry != null && entry.isFile) {
             final restoredPath =
                 restoredScorePathsByEntry[mapping.entryPath] ??
-                await _writeImportedPdf(
+                await _writeRestoredFile(
                   bytes: entry.content,
-                  id: score.id,
                   originalFileName: mapping.originalFileName,
                 );
             restoredScorePathsByEntry[mapping.entryPath] = restoredPath;
@@ -1408,9 +1408,8 @@ class SheetLibraryStore {
             _isSafeAnnotationZipEntryPath(annotationMapping.entryPath)) {
           final annotationEntry = archive.findFile(annotationMapping.entryPath);
           if (annotationEntry != null && annotationEntry.isFile) {
-            final restoredAnnotationPath = await _writeAnnotationFile(
+            final restoredAnnotationPath = await _writeRestoredFile(
               bytes: annotationEntry.content,
-              scoreId: score.id,
               originalFileName: annotationMapping.originalFileName,
             );
             restoredScore = restoredScore.copyWith(
@@ -1579,19 +1578,16 @@ class SheetLibraryStore {
     return file.path;
   }
 
-  Future<String> _writeAnnotationFile({
+  Future<String> _writeRestoredFile({
     required List<int> bytes,
-    required String scoreId,
     required String originalFileName,
   }) async {
     final documents = await getApplicationDocumentsDirectory();
-    final annotationsDir = Directory('${documents.path}/annotations');
-    if (!annotationsDir.existsSync()) {
-      await annotationsDir.create(recursive: true);
-    }
-
+    final restoredFilesDir = await Directory('${documents.path}/restored-files')
+        .create(recursive: true);
+    final destination = await restoredFilesDir.createTemp('restore-');
     final safeName = _safeFileName(originalFileName);
-    final file = File('${annotationsDir.path}/$scoreId-$safeName');
+    final file = File('${destination.path}/$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }

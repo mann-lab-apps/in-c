@@ -67,6 +67,7 @@
 | 15-2 | 불완전 ZIP 복원 차단 | 필요한 PDF/연결 파일/필기 파일 또는 매핑이 없는 ZIP은 쓰기 전 거부한다. 백업 당시 명시적으로 missing 기록된 파일은 기존 metadata 보존 정책을 따른다. | 거부 안내, 기존 라이브러리/파일 유지. 로컬 손상 fixture 테스트; 저장 중 디스크 오류의 전체 rollback은 별도 점검 |
 | 15-3 | Metadata 복원 검증 | 악보/세트리스트 목록 누락, 잘못된 레코드, 중복 ID는 복원 전에 거부하며 명시적인 빈 목록은 허용한다. | 기존 악보/세트리스트/설정 보존, 구버전 선택 설정 기본값, JSON/ZIP 공통 codec |
 | 15-4 | 누락 파일 복원 결과 | 백업 당시 missing으로 기록한 파일은 정보만 복원하고 확인 dialog에 누락 파일 수를 표시한다. 같은 원본 경로는 중복 집계하지 않는다. | PDF/연결 파일/필기 파일 누락 수, 지속 안내, 확인 후 닫기; widget/store 검증 |
+| 15-5 | 반복 복원 파일 격리 | 같은 ZIP을 다시 복원해도 기존 라이브러리에서 사용하는 PDF/필기 파일은 덮어쓰지 않는다. | 새 파일 경로, 기존 ID/공유 PDF 유지, 성공/첫 metadata 저장 실패 시 기존 bytes 보존. 전체 metadata transaction과 실패 후 미참조 파일 정리는 별도 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |

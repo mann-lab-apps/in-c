@@ -999,6 +999,85 @@ void main() {
     },
   );
 
+  for (final rejectWrite in <bool>[false, true]) {
+    test(
+      'repeated full restore preserves existing files (write failure: $rejectWrite)',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = _RejectingScoreWriteStore();
+        final source = await store.importPdfBytes(
+          bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+          fileName: 'concert.pdf',
+        );
+        final annotation = await File('${documentsDir.path}/concert-marks.json')
+            .writeAsString('{"strokes":[]}');
+        await store.saveScores(<SheetScore>[
+          source.copyWith(
+            annotationStorage: SheetAnnotationStorageReference(
+              mode: SheetAnnotationStorageReference.fileMode,
+              path: annotation.path,
+            ),
+          ),
+        ]);
+        final backupPdf = await File(source.filePath).readAsBytes();
+        final zip = await store.exportFullBackupZipBytes();
+        expect((await store.restoreFullBackupZipBytes(zip)).didRestore, isTrue);
+        final existing = (await store.loadScores()).single;
+        expect(existing.sourceFileDisplayName, source.sourceFileDisplayName);
+        final currentPdf = <int>[
+          ...backupPdf,
+          ...utf8.encode('\n% later edits\n'),
+        ];
+        await File(existing.filePath).writeAsBytes(currentPdf);
+        await File(existing.annotationStorage.path)
+            .writeAsString('{"later":"marks"}');
+
+        await store.createLibraryProfile('Other library');
+        await store.saveScores(<SheetScore>[
+          existing.copyWith(title: 'Current target'),
+        ]);
+        store.rejectScoreWrites = rejectWrite;
+        final result = await store.restoreFullBackupZipBytes(zip);
+        expect(
+          result.status,
+          rejectWrite
+              ? SheetLibraryBackupRestoreStatus.error
+              : SheetLibraryBackupRestoreStatus.restored,
+        );
+        expect(await File(existing.filePath).readAsBytes(), currentPdf);
+        expect(
+          await File(existing.annotationStorage.path).readAsString(),
+          '{"later":"marks"}',
+        );
+        final target = (await store.loadScores()).single;
+        if (rejectWrite) {
+          expect(target.title, 'Current target');
+          expect(target.filePath, existing.filePath);
+        } else {
+          expect(target.id, existing.id);
+          expect(target.sourceFileDisplayName, source.sourceFileDisplayName);
+          expect(target.filePath, isNot(existing.filePath));
+          expect(
+            target.annotationStorage.path,
+            isNot(existing.annotationStorage.path),
+          );
+          expect(await File(target.filePath).readAsBytes(), backupPdf);
+          expect(
+            await File(target.annotationStorage.path).readAsString(),
+            '{"strokes":[]}',
+          );
+        }
+        await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+        final originalLibraryScore = (await store.loadScores()).single;
+        expect(originalLibraryScore.filePath, existing.filePath);
+        expect(
+          originalLibraryScore.annotationStorage.path,
+          existing.annotationStorage.path,
+        );
+      },
+    );
+  }
+
   for (final damage in <String>[
     'missing PDF',
     'missing linked file',
@@ -1664,6 +1743,18 @@ void main() {
       );
     },
   );
+}
+
+class _RejectingScoreWriteStore extends SheetLibraryStore {
+  bool rejectScoreWrites = false;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores) async {
+    if (rejectScoreWrites) {
+      throw StateError('Simulated score persistence failure');
+    }
+    await super.saveScores(scores);
+  }
 }
 
 SheetScore _score(
