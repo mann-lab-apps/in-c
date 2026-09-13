@@ -11,6 +11,17 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 에뮬레이터에서 Codex가 사전에 재현/회귀 확인할 수 있는 항목은
 [`clef-v1-emulator-qa-tracker.md`](clef-v1-emulator-qa-tracker.md)에서 따로 관리한다.
 
+## 2026-09-13 다음 배포 준비
+
+- Clef & Staff Android applicationId/namespace는 `com.mannlab.clef`다. in C는 별도 앱이다.
+- 최신 소스와 앱 내 테스트 정보는 `1.0.0+21`이다. Play Console의 code 21 사용 여부는 미확인이다.
+- 서명 파일 누락과 디버그 키를 사용한 검증은 의도대로 실패했고, 기존 Clef 업로드 키 검증은 통과했다.
+- `android/`에서 `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`로
+  앱 빌드 없이 서명을 재확인할 수 있다. 키 파일은 git에 포함하지 않는다.
+- 이번 준비 작업에서는 APK/AAB/iOS 빌드를 하지 않았다. 아래 20번 산출물은 과거 기록이며,
+  최신 코드가 반영된 배포 파일이 아니다. 새 빌드 후 실제 경로/해시/버전/서명을 기록한다.
+- 새로운 소스의 실기기 메트로놈, 튜너, 페달, 스타일러스 품질은 별도 QA가 필요하다.
+
 ## 사전 확인
 
 실행 위치는 `apps/in_c_sheet`다.
@@ -237,8 +248,8 @@ Pitch history chart 읽기 쉬움: 예 / 아니오
 
 ## 2026-09-07 내부테스트 산출물
 
-- 현재 소스 QA 대상: `Clef & Staff` `1.0.0+20`.
-- 최신 Play Console 업로드 후보:
+- 당시 소스 QA 대상: `Clef & Staff` `1.0.0+20`.
+- 당시 Play Console 업로드 후보:
   `apps/in_c_sheet/releases/clef-and-staff-1.0.0+20-release.aab`.
 - 원본 Flutter 산출물: `apps/in_c_sheet/build/app/outputs/bundle/release/app-release.aab`.
 - 파일 크기: 약 68MB.

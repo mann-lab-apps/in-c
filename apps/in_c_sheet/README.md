@@ -72,8 +72,19 @@ Build outputs:
 
 Android release signing:
 
-- `android/app/build.gradle.kts` reads `android/key.properties` when present and signs release APK/AAB
-  with the configured upload keystore.
+- Clef & Staff uses Android applicationId/namespace `com.mannlab.clef`, not the separate in C app.
+  The next source candidate is `1.0.0+21`; verify that code 21 is unused in Play Console before upload.
+- `android/app/build.gradle.kts` requires `android/key.properties` for release APK/AAB signing.
+  Missing keys or a certificate other than the recorded Clef upload key fail release tasks;
+  there is no debug-signing fallback. From `android/`, run the following without building the app:
+
+  ```sh
+  ./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease
+  ```
+
+- The recorded upload certificate SHA1 is
+  `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
+  Change this guard only after an approved Play upload-key rotation, not to bypass a signing failure.
 - `android/key.properties` and `android/app/upload-keystore.jks` are ignored secrets. Keep secure backups
   outside git.
 - Use `android/key.properties.example` as the template if the local signing files need to be recreated.

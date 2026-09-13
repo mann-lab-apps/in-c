@@ -40,7 +40,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+20';
+const String _clefAppVersion = '1.0.0+21';
 const bool _launchInCDiscoveryHome = bool.fromEnvironment(
   'IN_C_DISCOVERY_HOME',
 );

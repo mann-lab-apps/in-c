@@ -28,7 +28,7 @@
 | U1 | Fixed home sections can leave almost no space for scores. Older emulator install shows a roughly 10px grid; current source overflows by 338px at 360x720. | One vertical scroll for header and lazy score list/grid; reach and select the last of 30 scores on phone/tablet/landscape. Empty/search states remain accessible. | Widget regression at 360x720, 1280x800 and 800x360, empty states and search reset. Full suite 475/475, analyze/RC PASS (`/private/tmp/clef-rc-u1.log`). | VERIFIED LOCAL |
 | U2 | Six inline selection actions obscure the count at 320/360dp; MobileSheets uses contextual overflow actions. | Retain direct setlist add and select-all; secondary actions remain reachable and disabled when no selection. Preserve tablet shortcuts and deletion confirmation. | Count truncation reproduced before fix; width-specific widget count/menu/action/resize regression. Full suite 477/477, analyze/RC PASS (`/private/tmp/clef-rc-u2.log`). | VERIFIED LOCAL |
 | U3 | Batch-imported scores can share a composer, but bulk editing omits this core metadata field. MobileSheets supports composer/artist assignment. | Add composer to existing bulk form/API, trim input, preserve unselected scores and omitted UI input. Search/facets/reload reflect the new value; no codec/schema change. | Missing field reproduced in widget test; apply/blank-preserve and selected/unselected/query/facet/reload regressions. Full suite 508/508, analyze/RC PASS (`/private/tmp/clef-rc-u3.log`). | VERIFIED LOCAL |
-| R1 | Installed Clef package differs from this source's Android package. | Establish the intended release identity before building; do not revert another app's package change without product confirmation. | Source `com.mannlab.inc`; installed Clef `com.mannlab.clef`. Historical commit `5c416a6` changed the package for in C. | BLOCKED: release identity decision; does not block local UX work |
+| R1 | Installed Clef package differed from the source Android package. | Keep Clef separate from in C and retain its update identity. | User confirmed Clef & Staff is the renamed Clef, not in C. Restored `com.mannlab.clef` in the Clef worktree only; signing guard rejects missing/debug keys and accepts the recorded upload key. | VERIFIED LOCAL: configuration/signing; new app build and Play code availability remain unverified |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 
 ## Verification Policy
@@ -295,3 +295,33 @@ No app build performed; new changes have widget/source evidence only.
   Compact tabs/filters leave the main area for list rows; Recent shows a song and a setlist.
 - These observations are not validation of the newly changed source, and do not establish
   microphone, pedal, touch performance or current MobileSheets paid-edition behavior.
+
+## Android Build Preparation (2026-09-13)
+
+- User redirected the paused improvement goal to build preparation. Base: `cf61abe` on
+  `dev`, 35 commits ahead of `origin/dev`. No further feature slices were started.
+- User confirmed Clef was renamed Clef & Staff and in C/classical discovery is separate.
+  Restored the Clef Android namespace/applicationId/activity package to `com.mannlab.clef`
+  in `/private/tmp/clef-next-polish` only. Root worktree changes were not modified or staged.
+- Candidate source/app-info version: `1.0.0+21`. Play Console code 21 availability is unverified.
+- Removed release debug-signing fallback. Added a pre-release guard requiring the recorded
+  upload certificate SHA1 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
+  Local signing files were copied from the existing valid root files and remain ignored secrets.
+- Regression evidence: both identity/signing contract tests failed before the fix
+  (`/private/tmp/clef-release-config-red.log`) and passed in the full 630-test suite.
+- Gradle live checks: missing key.properties rejected; actual debug certificate
+  `AB:86:4E:DD:DF:C4:06:77:D9:DC:5A:43:F6:39:99:35:A3:9E:19:15` rejected;
+  existing upload key accepted by `:app:verifyClefReleaseSigning :app:validateSigningRelease`.
+  Logs: `/private/tmp/clef-signing-missing.log`, `/private/tmp/clef-signing-wrong.log`,
+  `/private/tmp/clef-signing-valid.log` (temporary evidence).
+- `:app:bundleRelease --dry-run` passed and includes the signing guard before preReleaseBuild.
+  This verifies configuration/task wiring, not native compilation or a produced app bundle.
+  Gradle/plugin deprecation warnings remain non-fatal; no dependency upgrade was included.
+- `dart format lib test tool`: 83 files, zero formatter changes. Analyze, 630/630 tests,
+  RC, diff whitespace, trailing whitespace/tab/stale wording checks: PASS.
+  Full log: `/private/tmp/clef-release-prep-rc.log` (temporary evidence).
+- Commit subject: `fix: prepare Clef Android release identity and signing`.
+  No APK/AAB/iOS build, install, push or merge was performed.
+- Next release action: confirm code 21 is unused in Play Console, then on user build request
+  run `flutter build appbundle --release` from this worktree's `apps/in_c_sheet` and archive
+  the verified artifact inside the project. Actual compile success and physical QA remain open.

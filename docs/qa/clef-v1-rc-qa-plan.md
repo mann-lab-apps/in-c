@@ -8,6 +8,16 @@
 실행 순서대로 따라가며 결과만 기록한다. 이번 RC 준비는 새 기능 추가가 아니라, 연주 중
 헷갈리지 않고 metadata가 안전하게 보존되는지 확인하는 데 집중한다.
 
+## 최신 배포 준비 (2026-09-13)
+
+- 소스 후보: `Clef & Staff` `1.0.0+21`, Android applicationId/namespace `com.mannlab.clef`.
+  in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
+- Play Console code 21 미사용 여부는 아직 확인하지 않았다. 확인 후 새 release 빌드를 진행한다.
+- 서명 파일 누락/기존 디버그 키는 차단하고, 기록된 Clef 업로드 키는 Gradle 서명 검증을 통과했다.
+- `:app:bundleRelease --dry-run`으로 서명 검사 연결과 task graph를 확인했다.
+  실제 앱 컴파일, APK/AAB/iOS 생성, 설치 및 업로드는 수행하지 않았다.
+- 아래 20번 빌드/에뮬레이터 기록은 당시 근거다. 최신 변경의 실기기 QA 결과로 사용하지 않는다.
+
 ## 준비물
 
 - 설치 파일: Android debug/release APK, 가능하면 iPad용 TestFlight 또는 local iOS build.
@@ -350,7 +360,7 @@ flutter build ios --release --no-codesign
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
 - 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI/pitch
-  history chart/연주자 피드백 보강분은 현재 `1.0.0+20` RC 후보로 준비한다.
+  history chart/연주자 피드백 보강분은 이후 `1.0.0+20` RC 산출물에 반영했다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -370,7 +380,7 @@ flutter build ios --release --no-codesign
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 소스 version은 `1.0.0+20`이다.
+- 당시 준비한 소스 version은 `1.0.0+20`이며, 최신 후보는 배포 준비 기록을 따른다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
@@ -479,7 +489,7 @@ flutter build ios --release --no-codesign
 
 2026-09-07 연주자 피드백 최종 hotfix 확인:
 
-- 현재 소스 version과 앱 내 테스트 정보는 `1.0.0+20`이다.
+- 당시 소스 version과 앱 내 테스트 정보는 `1.0.0+20`이었다.
 - Android 앱 label resource를 `Clef & Staff`로 정정했다. `com.mannlab.clef` 패키지를 실행해도
   emulator task label이 `in C`로 보이던 문제를 제거했다.
 - `clef_rc_tablet_api35` emulator에서 `com.mannlab.clef/.MainActivity`가 foreground이고 task label이
