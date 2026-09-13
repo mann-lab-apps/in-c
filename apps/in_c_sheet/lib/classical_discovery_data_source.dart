@@ -113,6 +113,7 @@ ListeningMoment _momentFromJson(Map<String, Object?> json) {
     tags: _strings(json['tags']),
     recommendedRecordingId: _nullableString(json['recommendedRecordingId']),
     fallbackExternalLinkId: _nullableString(json['fallbackExternalLinkId']),
+    timingEvidenceUrl: _nullableString(json['timingEvidenceUrl']),
   );
 }
 
@@ -146,6 +147,7 @@ ClassicalRecording _recordingFromJson(Map<String, Object?> json) {
 
 ClassicalConcert _concertFromJson(Map<String, Object?> json) {
   return ClassicalConcert(
+    isDemonstration: json['isDemonstration'] == true,
     id: _string(json['id']),
     title: _string(json['title']),
     venue: _string(json['venue']),
