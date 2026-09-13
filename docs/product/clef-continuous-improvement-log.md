@@ -18,7 +18,8 @@
 | --- | --- | --- | --- | --- |
 | B1 | Songbook entries share a PDF, but full backup stores and restores a copy per entry. | One archive PDF per identical source path; restore shared references, page ranges and setlist IDs. Distinct same-name files stay distinct; legacy backups still restore. | New regression first failed (4 archive PDFs instead of 2), then passed. Store suite 20/20, full suite 448/448, analyze and RC check PASS. | VERIFIED LOCAL |
 | B2 | Full restore skips absent archive entries and may replace the library with inaccessible references. | Reject incomplete archives before writing files/replacing metadata; retain explicitly missing-file compatibility. | Missing linked-file fixture reproduced false success. Seven corrupt fixtures preserve existing metadata/PDF bytes; store suite 28/28, full suite 456/456, analyze/RC PASS. | VERIFIED LOCAL |
-| B3 | Backup codec tolerantly drops malformed records and missing-file success copy does not explain absent bytes. | Inspect metadata restore validation and expose explicitly missing file counts; preserve older valid settings defaults. | Codec/store/widget regression tests. | TODO; local |
+| B3 | Backup codec tolerantly drops malformed records, potentially clearing a library on restore. | Reject missing/non-list collections, malformed records and duplicate IDs. Preserve explicit empty backups and optional legacy setting defaults. | Failure reproduced with a non-list scores value; eight rejection cases and one legacy fixture. Store suite 37/37, full Flutter suite, analyze/RC PASS. | VERIFIED LOCAL |
+| B4 | Missing-file success copy does not explain absent bytes. | Expose explicitly missing file counts when full restore succeeds with metadata only for those references. | Store result and UI message tests. | TODO; local |
 | S1 | Split songbook entries inherit source page settings beyond their own range. | Check hidden pages, jump marks and navigation against the claimed song range; reproduce gaps before changing policy. | Controller/model tests and viewer call-path review. | TODO; local |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 
@@ -33,8 +34,9 @@
 ## Checkpoint
 
 B1: `457a257`, store suite 20/20 and full suite 448/448, analyze/RC PASS.
-B2: preflight checks all mappings before writes; UI explains invalid/incomplete backup.
-Commit subject: `fix: validate Clef backup files before restoring`.
-Next: B3, reproduce malformed score/setlist arrays in metadata backup restore.
+B2: `f603e1c`, store suite 28/28 and full suite 456/456, analyze/RC PASS.
+B3: backup codec validates record retention and unique IDs before restore writes.
+Commit subject: `fix: reject incomplete Clef backup metadata`.
+Next: B4, expose missing-file counts in full restore result and UI.
 Known limit: preflight validation is not a transaction for disk/preferences write failures.
 No emulator evidence or app build claimed.

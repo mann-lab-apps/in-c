@@ -122,6 +122,9 @@
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |
 
+백업 복원에서는 악보/세트리스트 목록 누락, 잘못된 레코드, 중복 ID를 조용히 버리지 않고
+거부한다. 명시적인 빈 목록과 구버전의 선택적 도구 설정 기본값은 계속 지원한다.
+
 ## MVP Coverage
 
 MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악보 뷰어로 인정받기

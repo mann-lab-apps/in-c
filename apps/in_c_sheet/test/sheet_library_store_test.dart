@@ -1395,6 +1395,82 @@ void main() {
     expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
   });
 
+  for (final field in <String>['scores', 'setlists']) {
+    for (final damage in <String>[
+      'absent',
+      'not a list',
+      'invalid row',
+      'duplicate ID',
+    ]) {
+      test(
+        'rejects metadata backup $field $damage without replacing data',
+        () async {
+          SharedPreferences.setMockInitialValues(<String, Object>{});
+          final store = SheetLibraryStore();
+          final now = DateTime.parse('2026-09-13T10:00:00.000');
+          final score = await store.importPdfBytes(
+            bytes: await File('test-fixtures/pdfs/short-score.pdf')
+                .readAsBytes(),
+            fileName: 'keep.pdf',
+            importedAt: now,
+          );
+          await store.saveScores(<SheetScore>[score]);
+          await store.saveSetlists(<SheetSetlist>[
+            SheetSetlist(
+              id: 'keep-setlist',
+              title: 'Keep',
+              scoreIds: <String>[score.id],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          ]);
+          final before = jsonDecode(
+            await store.exportMetadataBackupJson(),
+          ) as Map<String, dynamic>;
+          final damaged =
+              jsonDecode(jsonEncode(before)) as Map<String, dynamic>;
+          switch (damage) {
+            case 'absent':
+              damaged.remove(field);
+            case 'not a list':
+              damaged[field] = 'lost records';
+            case 'invalid row':
+              (damaged[field] as List).add(<String, Object?>{'title': 'No ID'});
+            case 'duplicate ID':
+              (damaged[field] as List).add((damaged[field] as List).first);
+          }
+          final result = await store.restoreMetadataBackupJson(
+            jsonEncode(damaged),
+          );
+          expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
+          final after = jsonDecode(
+            await store.exportMetadataBackupJson(),
+          ) as Map<String, dynamic>;
+          expect(after..remove('exportedAt'), before..remove('exportedAt'));
+        },
+      );
+    }
+  }
+
+  test(
+    'accepts an explicitly empty legacy backup with settings defaults',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final result = await store.restoreMetadataBackupJson(
+        jsonEncode(<String, Object?>{
+          'version': 1,
+          'scores': <Object?>[],
+          'setlists': <Object?>[],
+        }),
+      );
+      expect(result.didRestore, isTrue);
+      expect(await store.loadScores(), isEmpty);
+      expect(await store.loadSetlists(), isEmpty);
+      expect((await store.loadTunerSettings()).referencePitchA4, 440);
+    },
+  );
+
   test('rejects invalid backup JSON', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();

@@ -32,11 +32,24 @@ class SheetLibraryBackup {
       throw UnsupportedError('Unsupported backup version: $version');
     }
 
+    final scores = SheetScore.decodeJsonList(json['scores']);
+    final setlists = SheetSetlist.decodeJsonList(json['setlists']);
+    _validateBackupRecords(
+      json['scores'],
+      scores.map((score) => score.id),
+      'scores',
+    );
+    _validateBackupRecords(
+      json['setlists'],
+      setlists.map((setlist) => setlist.id),
+      'setlists',
+    );
+
     return SheetLibraryBackup(
       version: version,
       exportedAt: _dateFromJson(json['exportedAt']),
-      scores: SheetScore.decodeJsonList(json['scores']),
-      setlists: SheetSetlist.decodeJsonList(json['setlists']),
+      scores: scores,
+      setlists: setlists,
       metronomeSettings: SheetMetronomeSettings.fromJson(
         _asJsonMap(json['metronomeSettings']),
       ),
@@ -288,6 +301,15 @@ class SheetLibraryBackupCodec {
         (key, mapValue) => MapEntry(key.toString(), mapValue as Object?),
       ),
     );
+  }
+}
+
+void _validateBackupRecords(Object? value, Iterable<String> ids, String field) {
+  final decodedIds = ids.toList(growable: false);
+  if (value is! List ||
+      value.length != decodedIds.length ||
+      decodedIds.toSet().length != decodedIds.length) {
+    throw FormatException('Invalid or duplicate backup $field.');
   }
 }
 
