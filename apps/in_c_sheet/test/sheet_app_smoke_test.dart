@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
@@ -10,6 +11,99 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final width in <double>[320, 360]) {
+    testWidgets('compact selection actions preserve the count at $width', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      tester.view.physicalSize = Size(width, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      await store.saveScores(
+        List<SheetScore>.generate(
+          2,
+          (index) => SheetScore(
+            id: 'compact-$index',
+            title: 'Score $index',
+            composer: '',
+            tags: const <String>[],
+            note: '',
+            filePath: '/tmp/compact-$index.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const <SheetBookmark>[],
+          ),
+        ),
+      );
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('여러 악보 선택'));
+      await tester.pumpAndSettle();
+      final count = find.descendant(
+        of: find.text('0개 선택'),
+        matching: find.byType(RichText),
+      );
+      expect(
+        tester.renderObject<RenderParagraph>(count).didExceedMaxLines,
+        isFalse,
+      );
+      await tester.tap(find.byTooltip('선택 작업 더 보기'));
+      await tester.pumpAndSettle();
+      final actions = tester.widgetList<PopupMenuItem<dynamic>>(
+        find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+      );
+      expect(actions.length, 3);
+      expect(actions.every((item) => !item.enabled), isTrue);
+      await tester.tapAt(const Offset(10, 200));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('현재 목록 전체 선택'));
+      await tester.pumpAndSettle();
+      expect(find.text('2개 선택'), findsOneWidget);
+      expect(find.byTooltip('선택 악보를 세트리스트에 추가').hitTestable(), findsOneWidget);
+      await tester.tap(find.byTooltip('선택 작업 더 보기'));
+      await tester.pumpAndSettle();
+      expect(find.text('컬렉션 지정'), findsOneWidget);
+      expect(find.text('라이브러리에서 제거'), findsOneWidget);
+      await tester.tap(find.text('정보 일괄 편집'));
+      await tester.pumpAndSettle();
+      expect(find.text('일괄 편집'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('선택 작업 더 보기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('컬렉션 지정'));
+      await tester.pumpAndSettle();
+      expect(find.text('2개 악보 컬렉션 지정'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('선택 작업 더 보기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('라이브러리에서 제거'));
+      await tester.pumpAndSettle();
+      expect(find.text('선택 악보 제거'), findsOneWidget);
+      await tester.tap(find.text('취소'));
+      await tester.pumpAndSettle();
+      expect(controller.scores.length, 2);
+      expect(find.text('2개 선택'), findsOneWidget);
+      tester.view.physicalSize = const Size(1280, 800);
+      await tester.pumpAndSettle();
+      expect(find.byTooltip('선택 작업 더 보기'), findsNothing);
+      expect(find.byTooltip('선택 악보 컬렉션 지정').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('선택 악보 정보 일괄 편집').hitTestable(), findsOneWidget);
+      expect(find.byTooltip('선택 악보 라이브러리에서 제거').hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final viewport in <Size>[
     const Size(360, 720),
     const Size(1280, 800),

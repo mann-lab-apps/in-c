@@ -1472,11 +1472,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final hasActiveLibraryCondition =
         controller.query.trim().isNotEmpty ||
         controller.libraryViewSettings.hasAnyFilter;
+    final compactSelectionActions = MediaQuery.sizeOf(context).width < 720;
 
     return Scaffold(
       appBar: AppBar(
         title: _isBulkSelecting
-            ? Text('${_bulkSelectedScoreIds.length}개 선택')
+            ? Text(
+                '${_bulkSelectedScoreIds.length}개 선택',
+                style: Theme.of(context).textTheme.titleMedium,
+              )
             : null,
         actions: [
           IconButton(
@@ -1506,7 +1510,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkSetlistAdd,
               icon: const Icon(Icons.playlist_add_check),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 컬렉션 지정',
               onPressed: _bulkSelectedScoreIds.isEmpty
@@ -1514,19 +1518,63 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkCollectionAssign,
               icon: const Icon(Icons.collections_bookmark_outlined),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 정보 일괄 편집',
               onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
               icon: const Icon(Icons.edit_note),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 라이브러리에서 제거',
               onPressed: _bulkSelectedScoreIds.isEmpty
                   ? null
                   : _deleteBulkScores,
               icon: const Icon(Icons.delete_outline),
+            ),
+          if (_isBulkSelecting && compactSelectionActions)
+            PopupMenuButton<_LibrarySelectionAction>(
+              tooltip: '선택 작업 더 보기',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) async {
+                switch (action) {
+                  case _LibrarySelectionAction.collection:
+                    await _showBulkCollectionAssign();
+                  case _LibrarySelectionAction.edit:
+                    await _showBulkEdit();
+                  case _LibrarySelectionAction.remove:
+                    await _deleteBulkScores();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.collection,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.collections_bookmark_outlined),
+                    title: const Text('컬렉션 지정'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.edit,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.edit_note),
+                    title: const Text('정보 일괄 편집'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.remove,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.delete_outline),
+                    title: const Text('라이브러리에서 제거'),
+                  ),
+                ),
+              ],
             ),
           if (!_isBulkSelecting) ...[
             IconButton(
@@ -1877,6 +1925,8 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
     _ => 'auto',
   };
 }
+
+enum _LibrarySelectionAction { collection, edit, remove }
 
 enum _LibraryBackupAction {
   exportMetadata,
