@@ -10720,20 +10720,24 @@ setlist=$setlistLabel
   }
 
   Future<void> _undoCurrentPageAnnotation() async {
-    final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
+    final pageNumber = _pdfController.isReady
+        ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
+        : _pageNumber ?? score.lastPage;
     final didUndo = await _saveAnnotationChange(
       () => widget.controller.undoLastAnnotation(score, pageNumber),
     );
+    if (didUndo == null) return;
     _showSnackBar(didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.');
   }
 
   Future<void> _redoCurrentPageAnnotation() async {
-    final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
+    final pageNumber = _pdfController.isReady
+        ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
+        : _pageNumber ?? score.lastPage;
     final didRedo = await _saveAnnotationChange(
       () => widget.controller.redoLastAnnotation(score, pageNumber),
     );
+    if (didRedo == null) return;
     _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');
   }
 
@@ -10885,7 +10889,7 @@ setlist=$setlistLabel
     try {
       await widget.controller.addAnnotationStroke(score, stroke);
     } catch (_) {
-      _showSnackBar('필기를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+      _showSnackBar('필기를 저장하지 못했습니다. 저장 상태를 확인해주세요.');
     }
   }
 
@@ -10929,7 +10933,7 @@ setlist=$setlistLabel
           ),
         );
       } catch (_) {
-        _showSnackBar('스탬프를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+        _showSnackBar('스탬프를 저장하지 못했습니다. 저장 상태를 확인해주세요.');
       }
       return;
     }
@@ -10960,7 +10964,7 @@ setlist=$setlistLabel
         ),
       );
     } catch (_) {
-      _showSnackBar('텍스트 주석을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+      _showSnackBar('텍스트 주석을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
     }
   }
 
@@ -11011,6 +11015,7 @@ setlist=$setlistLabel
           final didRemove = await _saveAnnotationChange(
             () => widget.controller.removeTextAnnotation(score, annotation.id),
           );
+          if (didRemove == null) return;
           _showSnackBar(didRemove ? '텍스트 주석을 삭제했습니다.' : '삭제할 텍스트가 없습니다.');
           return;
         }
@@ -11020,12 +11025,14 @@ setlist=$setlistLabel
             annotation.copyWith(text: text),
           ),
         );
+        if (didUpdate == null) return;
         _showSnackBar(didUpdate ? '텍스트 주석을 수정했습니다.' : '수정할 텍스트가 없습니다.');
         return;
       case _TextAnnotationAction.delete:
         final didRemove = await _saveAnnotationChange(
           () => widget.controller.removeTextAnnotation(score, annotation.id),
         );
+        if (didRemove == null) return;
         _showSnackBar(didRemove ? '텍스트 주석을 삭제했습니다.' : '삭제할 텍스트가 없습니다.');
         return;
     }
@@ -11046,12 +11053,12 @@ setlist=$setlistLabel
     );
   }
 
-  Future<bool> _saveAnnotationChange(Future<bool> Function() save) async {
+  Future<bool?> _saveAnnotationChange(Future<bool> Function() save) async {
     try {
       return await save();
     } catch (_) {
-      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
-      return false;
+      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      return null;
     }
   }
 

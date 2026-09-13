@@ -33,6 +33,20 @@
 
 ## Verification Policy
 
+S19: VERIFIED LOCAL. Actual viewer toolbar widget tests first exposed unsafe pageNumber
+access before the PDF controller is ready. Use the existing last-page fallback until
+ready. After isolating that exception, retaining the previous false-on-error contract
+reproduced a queued 'nothing to undo' message after the error snackbar expired. Return
+null for failure and prevent undo/redo/text actions from queuing empty/success feedback.
+Remove unconditional data-preservation promises from annotation storage errors.
+Acceptance: undo/redo success, empty, failure including delayed follow-up, and closing
+the viewer before completion. Missing-file viewer fixture exercises real toolbar/state;
+it does not establish PDF rendering, touch drawing, or device I/O quality. Text action
+branches are source-checked rather than native PDF gesture tested. All eight toolbar
+widget cases pass; full suite 628/628, analyze/RC PASS (`/private/tmp/clef-rc-s19.log`).
+Commit subject: `fix: preserve Clef annotation failure feedback`.
+
+S18 commit: `be60864`.
 S18: VERIFIED LOCAL. Controller regressions reproduced failed annotation edits remaining
 in memory, including two failed consecutive saves. On single-score replacement failure,
 read persisted scores only while that request still owns the current list/profile;
@@ -255,8 +269,12 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: commit S18, then correct annotation failure copy/result flow.
-No build/push/merge. RC runner currently trusts exit code alone; an interrupted Flutter
+User stop checkpoint (2026-09-13): PAUSED after S19 verification and focused commit.
+Do not begin another slice until the user resumes. No build/version bump/push/merge.
+Source remains `1.0.0+20`; current changes require a new build for device verification,
+after resolving R1 release applicationId. Resume with git status/log and this checkpoint.
+Next candidates: bulk/import/setlist controller failure recovery and RC test-completion
+evidence. RC runner currently trusts exit code alone; an interrupted Flutter
 test printed failures but exited zero in the initial S17 run. That interrupted run was
 not counted as evidence; require explicit complete test evidence in a later tool slice.
 Known limits: process termination, persistent storage failure preventing rollback and
