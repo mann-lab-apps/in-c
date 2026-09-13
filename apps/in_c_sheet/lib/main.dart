@@ -5555,16 +5555,33 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       return;
     }
     final targetIndex = targetPosition - 1;
-    if (targetIndex == currentIndex) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
-      return;
-    }
-    await controller.moveScoreInSetlist(
+    final applied = await _moveSetlistScore(
       currentSetlist,
       currentIndex,
       targetIndex,
     );
+    if (mounted && applied && targetIndex == currentIndex) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
+    }
+  }
+
+  Future<bool> _moveSetlistScore(
+    SheetSetlist snapshot,
+    int fromIndex,
+    int toIndex,
+  ) async {
+    final applied = await controller.moveScoreInSetlist(
+      snapshot,
+      fromIndex,
+      toIndex,
+    );
+    if (mounted && !applied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('목록이 바뀌었습니다. 순서를 다시 선택해주세요.')),
+      );
+    }
+    return applied;
   }
 
   Future<void> _removeScoreFromSetlist(
@@ -5657,11 +5674,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                 onReorderItem: (oldIndex, newIndex) {
                   unawaited(
-                    controller.moveScoreInSetlist(
-                      currentSetlist,
-                      oldIndex,
-                      newIndex,
-                    ),
+                    _moveSetlistScore(currentSetlist, oldIndex, newIndex),
                   );
                 },
                 itemBuilder: (context, index) {
@@ -5737,7 +5750,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                             tooltip: '위로',
                             onPressed: index == 0
                                 ? null
-                                : () => controller.moveScoreInSetlist(
+                                : () => _moveSetlistScore(
                                     currentSetlist,
                                     index,
                                     index - 1,
@@ -5748,7 +5761,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                             tooltip: '아래로',
                             onPressed: index == scores.length - 1
                                 ? null
-                                : () => controller.moveScoreInSetlist(
+                                : () => _moveSetlistScore(
                                     currentSetlist,
                                     index,
                                     index + 1,

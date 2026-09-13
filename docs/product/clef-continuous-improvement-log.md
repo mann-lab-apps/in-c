@@ -33,7 +33,15 @@
 
 ## Verification Policy
 
-S5: VERIFIED LOCAL. A missing setlist caused detail rebuild to throw and bulk add to
+S6: VERIFIED LOCAL. Reordering an old snapshot resurrected a removed score in regression.
+Accept index operations only while ordered score IDs match current state; preserve
+current metadata if only title/settings changed. Invalid/missing targets return false;
+same-index valid requests do not write. Drag, arrows and direct position share a
+conflict notice. Widget stale-dialog/retry cases pass; full suite 518/518, analyze/RC
+PASS (`/private/tmp/clef-rc-s6.log`). Commit subject:
+`fix: reject stale Clef setlist reorder requests`.
+
+S5: `df14f04`, VERIFIED LOCAL. A missing setlist caused detail rebuild to throw and bulk add to
 report an all-duplicates outcome. Render a missing-target state; add-result carries
 targetMissing, handled by all five add entry points. Pending delete/open/rehearsal
 flows avoid dereferencing a vanished target after waiting. Widget regression first
@@ -98,7 +106,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: prevent stale index-based reordering from moving the wrong song.
+Next: inspect narrow setlist detail toolbar/title readability and action reachability.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

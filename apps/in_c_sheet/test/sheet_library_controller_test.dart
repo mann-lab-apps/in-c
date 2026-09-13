@@ -16,6 +16,45 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   test(
+    'setlist reorder rejects stale indexes and preserves current metadata',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b', 'c']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final created = await controller.createSetlist('Concert');
+      await controller.addScoresToSetlist(created, scores);
+      final snapshot = controller.setlists.single;
+      await controller.removeScoreFromSetlist(snapshot, scores.first);
+      expect(await controller.moveScoreInSetlist(snapshot, 0, 2), isFalse);
+      expect(controller.setlists.single.scoreIds, ['b', 'c']);
+      final fresh = controller.setlists.single;
+      await controller.renameSetlist(fresh, 'Evening');
+      expect(await controller.moveScoreInSetlist(fresh, 0, 1), isTrue);
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      expect(await controller.moveScoreInSetlist(fresh, 0, 1), isFalse);
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      await controller.load();
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      final latest = controller.setlists.single;
+      expect(await controller.moveScoreInSetlist(latest, -1, 0), isFalse);
+      expect(await controller.moveScoreInSetlist(latest, 0, 2), isFalse);
+      expect(await controller.moveScoreInSetlist(latest, 0, 0), isTrue);
+      expect(controller.setlists.single.updatedAt, latest.updatedAt);
+      await controller.deleteSetlist(latest);
+      expect(await controller.moveScoreInSetlist(latest, 0, 1), isFalse);
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
+  test(
     'setlist actions preserve changes made after the displayed snapshot',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});

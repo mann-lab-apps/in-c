@@ -1383,74 +1383,94 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('setlist detail supports direct order entry', (tester) async {
-    SharedPreferences.setMockInitialValues(<String, Object>{});
-    tester.view.physicalSize = const Size(2560, 1600);
-    tester.view.devicePixelRatio = 2;
-    addTearDown(() {
-      tester.view.resetPhysicalSize();
-      tester.view.resetDevicePixelRatio();
-    });
+  for (final listChanged in [false, true]) {
+    testWidgets('setlist direct order entry with changed list: $listChanged', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      tester.view.physicalSize = const Size(2560, 1600);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
-    final now = DateTime(2026, 9, 7, 10);
-    final store = SheetLibraryStore();
-    await store.saveScores([
-      for (final id in const <String>['score-1', 'score-2', 'score-3'])
-        SheetScore(
-          id: id,
-          title: '악보 $id',
-          composer: '',
-          tags: const <String>[],
-          note: '',
-          filePath: '/tmp/$id.pdf',
-          importedAt: now,
+      final now = DateTime(2026, 9, 7, 10);
+      final store = SheetLibraryStore();
+      await store.saveScores([
+        for (final id in const <String>['score-1', 'score-2', 'score-3'])
+          SheetScore(
+            id: id,
+            title: '악보 $id',
+            composer: '',
+            tags: const <String>[],
+            note: '',
+            filePath: '/tmp/$id.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const <SheetBookmark>[],
+          ),
+      ]);
+      await store.saveSetlists([
+        SheetSetlist(
+          id: 'setlist-1',
+          title: '공연 순서',
+          scoreIds: const <String>['score-1', 'score-2', 'score-3'],
+          createdAt: now,
           updatedAt: now,
-          lastOpenedAt: null,
-          lastPage: 1,
-          isFavorite: false,
-          bookmarks: const <SheetBookmark>[],
         ),
-    ]);
-    await store.saveSetlists([
-      SheetSetlist(
-        id: 'setlist-1',
-        title: '공연 순서',
-        scoreIds: const <String>['score-1', 'score-2', 'score-3'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-    ]);
-    final controller = SheetLibraryController(store: store);
-    await controller.load();
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: SheetSetlistDetailScreen(
-          controller: controller,
-          setlistId: 'setlist-1',
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetSetlistDetailScreen(
+            controller: controller,
+            setlistId: 'setlist-1',
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byTooltip('순서 입력'), findsNWidgets(3));
-    expect(find.textContaining('파일 · score-1'), findsOneWidget);
+      expect(find.byTooltip('순서 입력'), findsNWidgets(3));
+      expect(find.textContaining('파일 · score-1'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('순서 입력').first);
-    await tester.pumpAndSettle();
-    expect(find.text('"악보 score-1" 순서 이동'), findsOneWidget);
+      await tester.tap(find.byTooltip('순서 입력').first);
+      await tester.pumpAndSettle();
+      expect(find.text('"악보 score-1" 순서 이동'), findsOneWidget);
+      if (listChanged) {
+        await controller.removeScoreFromSetlist(
+          controller.setlists.single,
+          controller.scoreById('score-1'),
+        );
+        await tester.pumpAndSettle();
+      }
 
-    await tester.enterText(find.byType(TextFormField), '3');
-    await tester.tap(find.text('이동'));
-    await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextFormField), '3');
+      await tester.tap(find.text('이동'));
+      await tester.pumpAndSettle();
 
-    expect(controller.setlists.single.scoreIds, <String>[
-      'score-2',
-      'score-3',
-      'score-1',
-    ]);
-    expect(tester.takeException(), isNull);
-  });
+      expect(controller.setlists.single.scoreIds, <String>[
+        'score-2',
+        'score-3',
+        if (!listChanged) 'score-1',
+      ]);
+      if (listChanged) {
+        expect(find.text('목록이 바뀌었습니다. 순서를 다시 선택해주세요.'), findsOneWidget);
+        await tester.tap(find.byTooltip('순서 입력').first);
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextFormField), '2');
+        await tester.tap(find.text('이동'));
+        await tester.pumpAndSettle();
+        expect(controller.setlists.single.scoreIds, ['score-3', 'score-2']);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   for (final pendingAction in ['add', 'rehearsal']) {
     testWidgets(

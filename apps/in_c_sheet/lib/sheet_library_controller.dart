@@ -2323,14 +2323,25 @@ class SheetLibraryController extends ChangeNotifier {
     );
   }
 
-  Future<void> moveScoreInSetlist(
+  Future<bool> moveScoreInSetlist(
     SheetSetlist setlist,
     int fromIndex,
     int toIndex,
   ) async {
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null ||
+        !listEquals(current.scoreIds, setlist.scoreIds) ||
+        fromIndex < 0 ||
+        fromIndex >= current.scoreIds.length ||
+        toIndex < 0 ||
+        toIndex >= current.scoreIds.length) {
+      return false;
+    }
+    if (fromIndex == toIndex) return true;
     await _replaceSetlist(
-      setlist.moveScore(fromIndex, toIndex, DateTime.now()),
+      current.moveScore(fromIndex, toIndex, DateTime.now()),
     );
+    return true;
   }
 
   Future<void> markSetlistOpened(
