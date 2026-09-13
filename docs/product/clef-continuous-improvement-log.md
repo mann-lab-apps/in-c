@@ -33,7 +33,14 @@
 
 ## Verification Policy
 
-U6: VERIFIED LOCAL. Repeated setlist copies have indistinguishable names. Keep the
+S8: VERIFIED LOCAL. A pending setlist undo can reinsert a score removed from the library.
+Widget regression reproduced the dangling score ID. Require both targets to exist;
+already-restored entries are a successful no-op. Notify when undo cannot restore.
+Normal undo, removed score and removed setlist widget cases are covered; no new data fields.
+Full suite 524/524, analyze/RC PASS (`/private/tmp/clef-rc-s8.log`).
+Commit subject: `fix: validate Clef setlist undo targets`.
+
+U6: `fa1a647`, VERIFIED LOCAL. Repeated setlist copies have indistinguishable names. Keep the
 existing first-copy label and choose a free numbered suffix on a collision, using
 the existing case-insensitive title lookup. Regression reproduced a duplicate
 Concert copy instead of Concert copy (3). Acceptance: preserve originals/IDs,
@@ -132,7 +139,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: prevent stale undo/selection from reintroducing missing library score IDs.
+Next: validate pending bulk-add scores and distinguish removed items from duplicates.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

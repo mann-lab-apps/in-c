@@ -2307,15 +2307,16 @@ class SheetLibraryController extends ChangeNotifier {
     await _replaceSetlist(current.removeScore(score.id, DateTime.now()));
   }
 
-  Future<void> insertScoreInSetlist(
+  Future<bool> insertScoreInSetlist(
     SheetSetlist setlist,
     SheetScore score,
     int index,
   ) async {
     final currentSetlist = setlistByIdOrNull(setlist.id);
-    if (currentSetlist == null || currentSetlist.scoreIds.contains(score.id)) {
-      return;
+    if (currentSetlist == null || scoreByIdOrNull(score.id) == null) {
+      return false;
     }
+    if (currentSetlist.scoreIds.contains(score.id)) return true;
     final nextScoreIds = currentSetlist.scoreIds.toList();
     final targetIndex = index.clamp(0, nextScoreIds.length).toInt();
     nextScoreIds.insert(targetIndex, score.id);
@@ -2325,6 +2326,7 @@ class SheetLibraryController extends ChangeNotifier {
         updatedAt: DateTime.now(),
       ),
     );
+    return true;
   }
 
   Future<bool> moveScoreInSetlist(

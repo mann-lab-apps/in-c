@@ -5600,10 +5600,17 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         content: Text('"${score.displayTitle}"을 세트리스트에서 제거했습니다.'),
         action: SnackBarAction(
           label: '되돌리기',
-          onPressed: () {
-            unawaited(
-              controller.insertScoreInSetlist(currentSetlist, score, index),
+          onPressed: () async {
+            final restored = await controller.insertScoreInSetlist(
+              currentSetlist,
+              score,
+              index,
             );
+            if (mounted && !restored) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('악보 또는 세트리스트가 없어 되돌리지 못했습니다.')),
+              );
+            }
           },
         ),
       ),
