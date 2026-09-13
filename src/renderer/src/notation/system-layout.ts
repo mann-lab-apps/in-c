@@ -123,6 +123,7 @@ export function createSystemLayout(
   )
   const systemCount = systemMeasuresList.length
   const placements: MeasurePlacement[] = []
+  const pageBreaks = new Set(options.layout?.pageBreakBeforeMeasureIds ?? [])
   let verticalCursor = metrics.systemTop
 
   for (let systemIndex = 0; systemIndex < systemCount; systemIndex += 1) {
@@ -132,6 +133,11 @@ export function createSystemLayout(
       options.lyricScale ?? 1,
       metrics
     )
+    if (options.pageHeight && systemIndex > 0 && pageBreaks.has(systemMeasures[0]!.id)) {
+      const previousY = placements.at(-1)!.y
+      const nextPageTop = (Math.floor(previousY / options.pageHeight) + 1) * options.pageHeight
+      verticalCursor = Math.max(verticalCursor, nextPageTop + metrics.systemTop)
+    }
     const y = alignSystemToPage(
       verticalCursor + verticalSpace.above,
       verticalSpace.below,

@@ -182,6 +182,11 @@ function main() {
     .filter((row) => ['Todo', 'Partial', 'In progress'].includes(row.status))
     .map((row) => row.id)
 
+  const expandedRows = readFileSync(resolve(rootDir, 'docs/product/chromatics-commercial-v1-work-queue.md'), 'utf8')
+    .split(/\r?\n/).filter(line => line.startsWith('| CV1-X-')).map(splitRow)
+  if (expandedRows.length < 16) fail('Expanded Required queue missing; historical parity cannot establish completeness')
+  const expandedAutomatableRows = expandedRows.filter(row => ['Todo', 'Partial', 'In progress'].includes(row[7])).map(row => row[0])
+
   console.log(
     JSON.stringify(
       {
@@ -191,8 +196,10 @@ function main() {
         rows: rows.length,
         areas: [...areas].sort(),
         statuses: [...statuses].sort(),
-        parityAutomationQueueDrained: nextAutomatableRows.length === 0,
-        nextAutomatableRows
+        historicalParityAutomationQueueDrained: nextAutomatableRows.length === 0,
+        parityAutomationQueueDrained: nextAutomatableRows.length === 0 && expandedAutomatableRows.length === 0,
+        nextAutomatableRows: [...nextAutomatableRows, ...expandedAutomatableRows],
+        completeness: 'Schema check only; expanded acceptance and manual gates are separate'
       },
       null,
       2

@@ -9,6 +9,46 @@
 
 ## 준비
 
+### 2026-09-13 Span Geometry Follow-up
+
+Numeric slur/hairpin geometry, auto reset/history, native v2/v1 migration and
+automated PDF rendering are implemented. Human dense-score engraving, multiple
+systems, independent part geometry and actual dialogs remain Not run or Required
+implementation as tracked in the queue. Do not count sparse automated PDF review
+as human completion. Check that manual offsets do not collide with other staves.
+
+### 2026-09-13 Native Follow-up
+
+Automation follow-up: backup selection/recovery, cancel while restoring, part
+title/break application and actual two-page Cello PDF have local evidence.
+Still Not run manually: native dialogs, actual crash/relaunch recovery, cross-
+machine reopening, dense piano/ensemble engraving and independent layout editing.
+Do not treat the sparse Cello output as completion of those workflows.
+
+Native open/save/Save As/recent/automatic recovery now have implementation tests;
+they are no longer wholly absent. Keep these human checks **Not run** until done:
+
+- Open/save/Save As `.chromatics` through the real OS dialog; reopen after restart.
+- Recover a native autosave; verify full score plus selected part/page settings,
+  then save a new path without overwriting the recovered document's original.
+- Attempt a corrupt/future-version file and an externally modified file; confirm
+  the original remains untouched and a useful error appears.
+- Copy a project to another machine and compare score/part state.
+- Backup discovery UI and renderer part-title/break application now have automated
+  implementation evidence; their actual user review remains Not run. Manual
+  geometry and complete linked-layout structure contracts still need implementation.
+- Export an independently titled part as XML, reopen in an external notation app,
+  and compare its title, instrument label and explicit system/page breaks. Check
+  page-setting warnings separately; the native source must remain unchanged.
+- Enter a voice-2 rest-to-rest hairpin, undo/redo, native/XML reopen and listen to
+  all repeat passes. Inspect dense lower annotations and PDF spacing separately.
+
+Expanded V1 adds separate selected-part MusicXML export (full-score primary save
+must retain its original path/dirty state). Native project, portable part layout,
+MIDI input, image output and the other expanded contracts remain implementation
+work, not QA-only. For part XML, native-dialog original-path rejection and actual
+external-app reopen are Not run; App/disk/headless evidence is logged separately.
+
 ### 2026-09-12 Added Scenarios
 
 These are **Not run** as human/native-dialog QA. Unit and Electron evidence is

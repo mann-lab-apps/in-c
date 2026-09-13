@@ -21,6 +21,7 @@
     "verify:mvp": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-single-voice-mvp.cjs",
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
     "verify:e2e": "npm run verify:mvp",
+    "verify:rest-hairpin": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-rest-hairpin.cjs",
     "verify:notation-snapshots": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs",
     "verify:notation-snapshots:update": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --update",
     "verify:visual-regression": "npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts && npm run verify:notation-snapshots",
@@ -58,7 +59,8 @@
     "lucide-react": "^1.21.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
-    "vexflow": "^5.0.0"
+    "vexflow": "^5.0.0",
+    "zod": "4.6.2"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",

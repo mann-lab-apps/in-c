@@ -1,5 +1,33 @@
 # Chromatics Commercial V1 Reference Gap Matrix
 
+2026-09-13 geometry follow-up: numeric placement/offset/height, auto reset/history,
+native v2 with v1 migration and actual SVG/PDF output partially satisfy span
+properties. Segment-level and multi-system collision work remains Required.
+
+2026-09-13 span inspector follow-up: direct SVG/list selection, ordered same-staff
+endpoint editing and delete/history/native/XML tests partially address
+CV1-X-SPAN-PROPERTIES. Geometry, rhythmic anchors and independent clipboard remain
+Required. Reference: [MuseScore adjusting elements directly](https://handbook.musescore.org/basics/adjusting-elements-directly),
+living handbook checked 2026-09-13; not an external GUI observation.
+
+2026-09-13 range-palette evidence: hairpin/slur/octave commands now live in
+Notation Objects, retain that mode during note selection, expose applicability
+and active markings, and pass 960/1400 pointer/file regression. This closes the
+narrow range-access task, not object selection/geometry or complete workspace UX.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 작성일: 2026-09-04  
 상태: 공식 문서 기반 제품 범위 재정의 초안
 

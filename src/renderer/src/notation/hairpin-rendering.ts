@@ -17,6 +17,14 @@ interface HairpinSegment {
   isLast: boolean
 }
 
+export function resolveHairpinStemClearance(
+  laneOffset: number,
+  stemBottomOffsets: Iterable<number>
+): number {
+  // Reserve the 10px wedge opening plus an 8px gap from every voice's stem.
+  return Math.max(laneOffset, ...Array.from(stemBottomOffsets, bottom => bottom + 18))
+}
+
 export function resolveHairpinOpenings(
   type: string,
   isFirst: boolean,

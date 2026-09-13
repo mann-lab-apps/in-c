@@ -55,6 +55,16 @@ export function toVexFlowClef(clef: Clef): string {
   }
 }
 
+export function toVexFlowRestKey(clef: Clef, value: Duration['value'] = 'quarter'): string {
+  const whole = value === 'whole'
+  switch (toVexFlowClef(clef)) {
+    case 'bass': return whole ? 'f/3' : 'd/3'
+    case 'alto': return whole ? 'e/4' : 'c/4'
+    case 'tenor': return whole ? 'c/4' : 'a/3'
+    default: return whole ? 'd/5' : 'b/4'
+  }
+}
+
 const majorKeys = [
   'Cb',
   'Gb',

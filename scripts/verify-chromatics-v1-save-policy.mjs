@@ -7,17 +7,17 @@ const checks = [
   {
     id: 'release-notes-primary-save',
     path: 'docs/releases/chromatics-v1-release-notes-draft.md',
-    patterns: [/Primary save\*\*: MusicXML/, /전용 프로젝트 포맷은 V1에 포함하지 않고 post-V1/]
+    patterns: [/Expanded V1 Scope Override/, /Current implemented save: MusicXML\/MXL/, /Native lifecycle remains/]
   },
   {
-    id: 'known-limitations-native-post-v1',
+    id: 'known-limitations-expanded-native',
     path: 'docs/quality/known-limitations.md',
-    patterns: [/## Native Project Format Is Post-V1/, /Chromatics V1은 별도 전용 프로젝트 파일 포맷을 제공하지 않고 MusicXML을 primary save로 사용한다/]
+    patterns: [/Expanded V1 Scope Override/, /Required target: portable native project/]
   },
   {
     id: 'desktop-v1-save-policy',
     path: 'docs/product/chromatics-desktop-v1.md',
-    patterns: [/Native project format is explicitly post-V1/, /V1 uses MusicXML as the primary\s+save format/]
+    patterns: [/Expanded V1 Scope Override/, /Current implemented save: MusicXML\/MXL/, /Required target: portable native project/]
   },
   {
     id: 'musicxml-export-warning-contract',
@@ -32,7 +32,7 @@ const checks = [
   {
     id: 'work-queue-native-decision',
     path: 'docs/product/chromatics-commercial-v1-work-queue.md',
-    patterns: [/CV1-NATIVE-FORMAT-DECISION/, /MusicXML-first 저장/]
+    patterns: [/CV1-X-NATIVE-SCHEMA/, /CV1-X-NATIVE-LIFECYCLE/, /CV1-X-PART-XML/]
   }
 ]
 
@@ -71,7 +71,7 @@ function main() {
       {
         checkedAt: new Date().toISOString(),
         status: 'passed',
-        policy: 'MusicXML primary save; native project format post-V1',
+        policy: 'MusicXML/MXL and first native slice implemented; expanded native lifecycle is incomplete',
         results
       },
       null,
