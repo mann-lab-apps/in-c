@@ -2205,8 +2205,10 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> renameSetlist(SheetSetlist setlist, String title) async {
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) return;
     await _replaceSetlist(
-      setlist.copyWith(
+      current.copyWith(
         title: _normalizeSetlistTitle(title),
         updatedAt: DateTime.now(),
       ),
@@ -2246,15 +2248,24 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> addScoreToSetlist(SheetSetlist setlist, SheetScore score) async {
-    await _replaceSetlist(setlist.appendScore(score.id, DateTime.now()));
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) return;
+    await _replaceSetlist(current.appendScore(score.id, DateTime.now()));
   }
 
   Future<SheetSetlistBulkAddResult> addScoresToSetlist(
     SheetSetlist setlist,
     Iterable<SheetScore> scores,
   ) async {
-    final existingScoreIds = setlist.scoreIds.toSet();
-    final nextScoreIds = setlist.scoreIds.toList();
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) {
+      return const SheetSetlistBulkAddResult(
+        addedCount: 0,
+        skippedDuplicateCount: 0,
+      );
+    }
+    final existingScoreIds = current.scoreIds.toSet();
+    final nextScoreIds = current.scoreIds.toList();
     var skippedDuplicateCount = 0;
 
     for (final score in scores) {
@@ -2265,10 +2276,10 @@ class SheetLibraryController extends ChangeNotifier {
       }
     }
 
-    final addedCount = nextScoreIds.length - setlist.scoreIds.length;
+    final addedCount = nextScoreIds.length - current.scoreIds.length;
     if (addedCount > 0) {
       await _replaceSetlist(
-        setlist.copyWith(
+        current.copyWith(
           scoreIds: List<String>.unmodifiable(nextScoreIds),
           updatedAt: DateTime.now(),
         ),
@@ -2284,7 +2295,9 @@ class SheetLibraryController extends ChangeNotifier {
     SheetSetlist setlist,
     SheetScore score,
   ) async {
-    await _replaceSetlist(setlist.removeScore(score.id, DateTime.now()));
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) return;
+    await _replaceSetlist(current.removeScore(score.id, DateTime.now()));
   }
 
   Future<void> insertScoreInSetlist(
@@ -2321,13 +2334,15 @@ class SheetLibraryController extends ChangeNotifier {
     SheetSetlist setlist, {
     String? scoreId,
   }) async {
+    final current = setlistByIdOrNull(setlist.id);
+    if (current == null) return;
     final normalizedScoreId = scoreId?.trim();
     await _replaceSetlist(
-      setlist.copyWith(
+      current.copyWith(
         lastOpenedAt: DateTime.now(),
         lastOpenedScoreId:
             normalizedScoreId != null &&
-                setlist.scoreIds.contains(normalizedScoreId)
+                current.scoreIds.contains(normalizedScoreId)
             ? normalizedScoreId
             : null,
         updatedAt: DateTime.now(),

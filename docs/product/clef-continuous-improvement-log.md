@@ -33,7 +33,17 @@
 
 ## Verification Policy
 
-S3: VERIFIED LOCAL. Setlist load ignored cleanup when only orphaned durations or
+S4: VERIFIED LOCAL. Old setlist snapshots can replace intervening membership changes
+and miscount duplicates. Resolve current state for single/bulk add, remove, rename
+and resume bookkeeping. Regression first counted three additions instead of two.
+Acceptance: consecutive stale-snapshot commands preserve prior changes, current
+duplicates count once, current title/resume survive, deleted setlists stay deleted.
+Widget coverage includes another addition while the multi-picker remains open.
+This is not a cross-process storage transaction or a reorder conflict policy.
+Full suite 514/514, analyze/RC PASS (`/private/tmp/clef-rc-s4.log`).
+Commit subject: `fix: apply Clef setlist actions to current state`.
+
+S3: `1117931`, VERIFIED LOCAL. Setlist load ignored cleanup when only orphaned durations or
 metronome settings changed. Use the existing model's unchanged-instance contract
 instead of checking only three collection lengths. Regression reproduced both
 orphan maps remaining in memory. Acceptance: persist complete cleanup, preserve
@@ -80,7 +90,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: stale setlist snapshots during consecutive add/remove actions.
+Next: missing-target notice and detail recovery when a setlist disappears during selection.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before

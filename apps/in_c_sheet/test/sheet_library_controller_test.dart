@@ -15,6 +15,48 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test(
+    'setlist actions preserve changes made after the displayed snapshot',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        _score(now, id: 'a'),
+        _score(now, id: 'b'),
+        _score(now, id: 'c'),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final snapshot = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(snapshot, scores[0]);
+      final added = await controller.addScoresToSetlist(snapshot, scores);
+      expect(added.addedCount, 2);
+      expect(added.skippedDuplicateCount, 1);
+      expect(controller.setlists.single.scoreIds, ['a', 'b', 'c']);
+      final populated = controller.setlists.single;
+      await controller.removeScoreFromSetlist(populated, scores[0]);
+      await controller.removeScoreFromSetlist(populated, scores[1]);
+      expect(controller.setlists.single.scoreIds, ['c']);
+      await controller.renameSetlist(populated, 'Evening');
+      await controller.markSetlistOpened(populated, scoreId: 'c');
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c']);
+      expect(controller.setlists.single.lastOpenedScoreId, 'c');
+      await controller.markSetlistOpened(populated, scoreId: 'a');
+      expect(controller.setlists.single.lastOpenedScoreId, 'c');
+      await controller.load();
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c']);
+      await controller.deleteSetlist(populated);
+      await controller.addScoreToSetlist(populated, scores[0]);
+      await controller.renameSetlist(populated, 'Deleted');
+      await controller.markSetlistOpened(populated, scoreId: 'a');
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
   for (final orphanKind in ['duration', 'metronome']) {
     test('load persists orphaned setlist $orphanKind cleanup', () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
