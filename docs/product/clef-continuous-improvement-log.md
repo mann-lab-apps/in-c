@@ -33,6 +33,22 @@
 
 ## Verification Policy
 
+S17: VERIFIED LOCAL. Eight injected score-write failures reproduced false success or a
+partially updated score/automatic-backup pair. Reuse the existing checked restore
+writes and best-effort rollback for ordinary metadata saves. Because all writers share
+the automatic backup, serialize score/setlist/tool/view/preset/restore metadata writes
+across store instances; recover the queue after errors. No storage format changes.
+Acceptance: primary or backup false/throw, absent keys, preset deletion, cache/disk
+reload, other-profile preservation, failed rollback reporting, retry, and a delayed
+failed score save followed by a setlist save. Store suite 98/98; full suite 608/608,
+analyze/RC PASS (`/private/tmp/clef-rc-s17-final.log`). Initial full run was interrupted
+after a shared completed-Future retained a previous widget test zone; clear the idle
+queue before returning completion. Both card widgets and full suite now pass. Initial
+style diagnostic was also fixed. Controller optimistic-memory rollback is next. Process
+termination, persistent I/O failure, cross-isolate writers, and concurrent profile
+deletion are not covered by this in-process compensation contract.
+
+S16 commit: `190fe2b`.
 S16: VERIFIED LOCAL. Favorite/pin callbacks retain the score rendered by a card. Repeated
 calls before rebuild stayed enabled instead of toggling off and could replace newer
 score content. Resolve the current score before toggling; ignore removed scores.
@@ -226,12 +242,10 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Resume checkpoint: verify/commit S16, then investigate ordinary score persistence
-failure signaling and annotation failure copy. No build/push/merge.
-Pending investigation: ordinary saveScores/saveSetlists ignore false preference writes,
-and _replace changes memory before awaiting storage. Annotation copy promises prior
-data preservation on failure, which needs a separate persistence/rollback contract
-and injected-write-failure evidence before claiming reliability. Not verified yet.
+Resume checkpoint: commit S17, then address controller optimistic-memory
+recovery and annotation failure copy with injected-failure evidence. No build/push/merge.
+Pending investigation: _replace changes memory before awaiting storage. Annotation
+copy promises prior data preservation on failure; controller recovery is not verified.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before
