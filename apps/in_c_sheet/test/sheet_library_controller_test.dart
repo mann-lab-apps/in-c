@@ -50,6 +50,11 @@ void main() {
       expect(controller.setlists.single.title, 'Evening');
       expect(controller.setlists.single.scoreIds, ['c']);
       await controller.deleteSetlist(populated);
+      final missing = await controller.addScoresToSetlist(populated, scores);
+      expect(missing.targetMissing, isTrue);
+      expect(missing.addedCount, 0);
+      expect(missing.skippedDuplicateCount, 0);
+      expect(missing.didAddAny, isFalse);
       await controller.addScoreToSetlist(populated, scores[0]);
       await controller.renameSetlist(populated, 'Deleted');
       await controller.markSetlistOpened(populated, scoreId: 'a');

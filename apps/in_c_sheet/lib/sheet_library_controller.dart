@@ -23,10 +23,12 @@ class SheetSetlistBulkAddResult {
   const SheetSetlistBulkAddResult({
     required this.addedCount,
     required this.skippedDuplicateCount,
+    this.targetMissing = false,
   });
 
   final int addedCount;
   final int skippedDuplicateCount;
+  final bool targetMissing;
 
   bool get didAddAny => addedCount > 0;
 }
@@ -2262,6 +2264,7 @@ class SheetLibraryController extends ChangeNotifier {
       return const SheetSetlistBulkAddResult(
         addedCount: 0,
         skippedDuplicateCount: 0,
+        targetMissing: true,
       );
     }
     final existingScoreIds = current.scoreIds.toSet();

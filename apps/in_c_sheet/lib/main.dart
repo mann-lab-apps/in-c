@@ -241,6 +241,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     setState(() {
       _isBulkSelecting = false;
       _bulkSelectedScoreIds.clear();
@@ -457,6 +458,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         return;
       }
       final added = setlistResult.addedCount;
+      if (_showSetlistAddFailure(context, setlistResult)) return;
       final skipped = setlistResult.skippedDuplicateCount;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -508,6 +510,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     final message = result.didAddAny
         ? '"${score.displayTitle}"을 "${target.title}"에 추가했습니다.'
         : '"${target.title}"에 이미 포함되어 있습니다.';
@@ -4068,6 +4071,17 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
   return '${score.lastPage}쪽부터 열기 · $identity';
 }
 
+bool _showSetlistAddFailure(
+  BuildContext context,
+  SheetSetlistBulkAddResult result,
+) {
+  if (!result.targetMissing) return false;
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('세트리스트가 없어 추가하지 못했습니다. 다시 선택해주세요.')),
+  );
+  return true;
+}
+
 String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
   final buffer = StringBuffer()
     ..writeln(setlist.title)
@@ -5377,11 +5391,12 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _deleteSetlist() async {
+    final currentSetlist = setlist;
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('세트리스트 삭제'),
-        content: Text('"${setlist.title}"을 삭제할까요?'),
+        content: Text('"${currentSetlist.title}"을 삭제할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -5397,7 +5412,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted || didConfirm != true) {
       return;
     }
-    await controller.deleteSetlist(setlist);
+    await controller.deleteSetlist(currentSetlist);
     if (mounted) {
       Navigator.of(context).pop();
     }
@@ -5451,6 +5466,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     final skippedLabel = result.skippedDuplicateCount == 0
         ? ''
         : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
@@ -5473,7 +5489,9 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
   }
 
   Future<void> _openScore(SheetScore score) async {
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (currentSetlist == null) return;
+    await controller.markSetlistOpened(currentSetlist, scoreId: score.id);
     await controller.markOpened(score);
     if (!mounted) {
       return;
@@ -5483,27 +5501,29 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         builder: (context) => SheetViewerScreen(
           controller: controller,
           scoreId: score.id,
-          setlistId: setlist.id,
+          setlistId: currentSetlist.id,
         ),
       ),
     );
   }
 
   Future<void> _showRehearsalSettings() async {
+    final initialSetlist = setlist;
     final updated = await showModalBottomSheet<SheetSetlist>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => _SetlistRehearsalSheet(
-        setlist: setlist,
-        scores: controller.scoresForSetlist(setlist),
+        setlist: initialSetlist,
+        scores: controller.scoresForSetlist(initialSetlist),
       ),
     );
-    if (updated == null) {
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (!mounted || updated == null || currentSetlist == null) {
       return;
     }
     await controller.updateSetlistRehearsalSettings(
-      setlist,
+      currentSetlist,
       rehearsalMode: updated.rehearsalMode,
       transitionSeconds: updated.transitionSeconds,
       scoreStartPages: updated.scoreStartPages,
@@ -5573,7 +5593,13 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentSetlist = setlist;
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (currentSetlist == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('세트리스트')),
+        body: const SafeArea(child: Center(child: Text('세트리스트를 찾을 수 없습니다.'))),
+      );
+    }
     final scores = controller.scoresForSetlist(currentSetlist);
 
     return Scaffold(
@@ -8463,6 +8489,7 @@ setlist=$setlistLabel
     if (!mounted) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     final target = widget.controller.setlistByIdOrNull(setlist.id) ?? setlist;
     final skippedSuffix = result.skippedDuplicateCount > 0
         ? ' · 중복 ${result.skippedDuplicateCount}개 제외'

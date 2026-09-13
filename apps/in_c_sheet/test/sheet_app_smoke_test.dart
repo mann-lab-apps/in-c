@@ -1452,6 +1452,74 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  for (final pendingAction in ['add', 'rehearsal']) {
+    testWidgets(
+      'missing setlist closes pending $pendingAction without false success',
+      (tester) async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 9, 13);
+        final store = SheetLibraryStore();
+        await store.saveScores([
+          SheetScore(
+            id: 'a',
+            title: 'Minuet',
+            composer: '',
+            tags: const [],
+            note: '',
+            filePath: '/tmp/a.pdf',
+            importedAt: now,
+            updatedAt: now,
+            lastOpenedAt: null,
+            lastPage: 1,
+            isFavorite: false,
+            bookmarks: const [],
+          ),
+        ]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final setlist = await controller.createSetlist('Concert');
+        if (pendingAction == 'rehearsal') {
+          await controller.addScoreToSetlist(setlist, controller.scores.single);
+        }
+        await tester.pumpWidget(
+          MaterialApp(
+            home: SheetSetlistDetailScreen(
+              controller: controller,
+              setlistId: setlist.id,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        if (pendingAction == 'add') {
+          await tester.tap(find.text('악보 추가'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('Minuet'));
+        } else {
+          await tester.tap(find.byTooltip('리허설 모드'));
+          await tester.pumpAndSettle();
+        }
+        await controller.deleteSetlist(setlist);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        final submit = find.widgetWithText(
+          FilledButton,
+          pendingAction == 'add' ? '추가' : '저장',
+        );
+        await tester.ensureVisible(submit);
+        await tester.pumpAndSettle();
+        await tester.tap(submit);
+        await tester.pumpAndSettle();
+        expect(find.text('세트리스트를 찾을 수 없습니다.'), findsOneWidget);
+        if (pendingAction == 'add') {
+          expect(find.text('세트리스트가 없어 추가하지 못했습니다. 다시 선택해주세요.'), findsOneWidget);
+        }
+        expect(find.text('이미 모두 세트리스트에 포함되어 있습니다.'), findsNothing);
+        expect(controller.setlists, isEmpty);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('empty setlist detail exposes a single add action', (
     tester,
   ) async {

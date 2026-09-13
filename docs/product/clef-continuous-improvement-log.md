@@ -33,7 +33,15 @@
 
 ## Verification Policy
 
-S4: VERIFIED LOCAL. Old setlist snapshots can replace intervening membership changes
+S5: VERIFIED LOCAL. A missing setlist caused detail rebuild to throw and bulk add to
+report an all-duplicates outcome. Render a missing-target state; add-result carries
+targetMissing, handled by all five add entry points. Pending delete/open/rehearsal
+flows avoid dereferencing a vanished target after waiting. Widget regression first
+raised Bad state: No element; pending add/rehearsal cases now pass. No schema change.
+Full suite 516/516, analyze/RC PASS (`/private/tmp/clef-rc-s5.log`).
+Commit subject: `fix: handle missing Clef setlist targets gracefully`.
+
+S4: `8b06f5d`, VERIFIED LOCAL. Old setlist snapshots can replace intervening membership changes
 and miscount duplicates. Resolve current state for single/bulk add, remove, rename
 and resume bookkeeping. Regression first counted three additions instead of two.
 Acceptance: consecutive stale-snapshot commands preserve prior changes, current
@@ -90,7 +98,7 @@ full suite 508/508, analyze/RC PASS. Commit subject:
 `fix: protect Clef library actions during backup restore`.
 U3: `2506f90`, bulk composer edit implemented; full suite 508/508, analyze/RC PASS.
 Commit subject: `feat: edit Clef composers in bulk`.
-Next: missing-target notice and detail recovery when a setlist disappears during selection.
+Next: prevent stale index-based reordering from moving the wrong song.
 Known limits: process termination, persistent storage failure preventing rollback and
 non-UI concurrent mutations are not covered by the in-process rollback contract.
 Fresh restored files may remain unreferenced after a failed restore; deleting them before
