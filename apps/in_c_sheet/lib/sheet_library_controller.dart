@@ -816,16 +816,57 @@ class SheetLibraryController extends ChangeNotifier {
     }
 
     final beforeCount = _scores.length;
-    _scores = _scores
+    final remainingScores = _scores
         .where((score) => !normalizedIds.contains(score.id))
         .toList(growable: false);
-    final deletedCount = beforeCount - _scores.length;
+    final deletedCount = beforeCount - remainingScores.length;
     if (deletedCount == 0) {
       return 0;
     }
 
-    await store.saveScores(_scores);
-    await _removeMissingSetlistScores();
+    final validIds = remainingScores.map((score) => score.id).toSet();
+    _scores = remainingScores;
+    _setlists = _setlists
+        .map((setlist) => setlist.removeMissingScores(validIds))
+        .toList(growable: false);
+    final pendingScores = _scores;
+    final pendingSetlists = _setlists;
+    final libraryId = _activeLibraryProfile.id;
+    try {
+      await store.saveScoresAndSetlists(
+        pendingScores,
+        pendingSetlists,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      // Recover each owned list independently; newer edits/profile switches win.
+      if (_activeLibraryProfile.id == libraryId &&
+          identical(_scores, pendingScores)) {
+        try {
+          final persisted = await store.loadScores();
+          if (_activeLibraryProfile.id == libraryId &&
+              identical(_scores, pendingScores)) {
+            _scores = persisted;
+          }
+        } catch (_) {
+          // Preserve the original write error even when recovery cannot read.
+        }
+      }
+      if (_activeLibraryProfile.id == libraryId &&
+          identical(_setlists, pendingSetlists)) {
+        try {
+          final persisted = await store.loadSetlists();
+          if (_activeLibraryProfile.id == libraryId &&
+              identical(_setlists, pendingSetlists)) {
+            _setlists = persisted;
+          }
+        } catch (_) {
+          // Still notify with the best available state and report failure.
+        }
+      }
+      notifyListeners();
+      rethrow;
+    }
     notifyListeners();
     return deletedCount;
   }

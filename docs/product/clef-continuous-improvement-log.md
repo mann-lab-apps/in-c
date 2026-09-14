@@ -37,7 +37,7 @@
 | S23 | Setlist detail edits leak save failures, including reorder and removal undo. | Report storage failure without success/conflict feedback or delete navigation; allow retry and ignore late errors after route exit. | Fifteen new widget cases; 37/37 setlist recovery cases, full suite 706/706, analyze/RC PASS. | VERIFIED LOCAL |
 | S24 | Setlist list creation and post-import addition await unguarded saves. | Distinguish successful library import from failed setlist addition; no automatic viewer navigation after failed/cancelled target selection, preserve imported scores for retry. | Fourteen new cases; full suite 720/720, analyze/RC PASS. | VERIFIED LOCAL |
 | S25 | Recent-position writes in open/viewer transitions interrupt reading on storage failure. | Allow valid reading with a storage warning; recheck route/profile/score/setlist membership after each awaited write. No late navigation after context changes. | Forty new widget cases; full suite 760/760, analyze/RC PASS. | VERIFIED LOCAL |
-| S26 | Bulk score deletion saves scores and setlist cleanup separately, with unguarded UI failure. | Reproduce first/second/backup write failures; preserve durable linked metadata and recover UI without deleting source files. | Inspect existing metadata rollback helper before introducing any new transaction mechanism. | TODO |
+| S26 | Bulk score deletion saves scores and setlist cleanup separately, with unguarded UI failure. | Group linked metadata and automatic backup in the existing rollback operation; recover owned lists and retain selection on failure. Never delete source files. | Twenty-eight new failure/lifecycle cases; targeted store/removal 128/128, full suite 788/788, analyze/RC PASS. | VERIFIED LOCAL |
 | S27 | Duplicate-import notice says the existing score opens before setlist target selection finishes. | Do not claim opening after target cancellation or failed addition. Preserve existing-score deduplication. | Actual duplicate-import widget flow; no new import policy. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
@@ -141,6 +141,28 @@ completion, RC/diff checks PASS (`/private/tmp/clef-rc-s25-final.log`). The firs
 reported four multiline-if brace lints; corrected and reran the full checker to PASS.
 No new build/device evidence. Commit subject: `fix: keep Clef reading through visit save failures`.
 Next: S26 score deletion atomic metadata/selection recovery; prioritize data consistency over S27 copy timing.
+
+S25 commit: `d159999`. S26 adds `saveScoresAndSetlists` using the existing serialized metadata
+write/rollback helper. Removal precomputes both lists, skips no-op IDs without changing ownership,
+and recovers each still-owned list on failure. Newer edits/profile switches are not overwritten.
+Home removal catches failure and keeps selection; source PDF files are never deleted here.
+The initial fixture used unsupported `copyWith(id:)`; corrected with the structured model codec.
+With the new memory recovery held constant, temporarily restoring the prior separate-write policy
+reproduced four second-write metadata mismatches and one UI mismatch. The paired operation passes
+all initial 13 cases; twelve no-op/race/read-failure cases also pass. Added closed UI and failed
+rollback checks. Full verification pending. Returned write failures are covered, not process-crash
+atomicity or guaranteed recovery when rollback/reads also fail. Load-time orphan cleanup remains
+outside this removal slice; inspect its startup failure handling separately.
+
+Resume after quota interruption: fetched origin; dev remains seven commits ahead at d159999.
+The delayed successful removal fixture reproduced writes leaking into the newly active library.
+The paired-save API now requires the library ID captured by the controller before awaiting;
+the delayed test store forwards that same ID. Fixed three multiline-if lints. Targeted store/
+removal suites pass 128/128 (`/private/tmp/clef-removal-resume.log`). Full suite 788/788,
+analyze, JSON completion gate, RC and diff/whitespace scans PASS (`/private/tmp/clef-rc-s26.log`).
+Formatter touched only the paired store method in this resume; all earlier dirty diff was reviewed.
+Commit subject: `fix: persist Clef score removal as linked metadata`. Next: S27 duplicate import copy.
+No build/version change/push/merge. The original project worktree remains unrelated and untouched.
 
 ## Verification Policy
 

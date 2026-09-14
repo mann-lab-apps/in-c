@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
@@ -50,6 +52,212 @@ void main() {
     if (documentsDir.existsSync()) {
       await documentsDir.delete(recursive: true);
     }
+  });
+
+  for (final scoped in [false, true]) {
+    for (final throws in [false, true]) {
+      for (final key in [
+        'clef_scores',
+        'clef_setlists',
+        'clef_automatic_metadata_backup',
+      ]) {
+        test(
+          'score removal recovers both lists on $key failure: scoped=$scoped throws=$throws',
+          () async {
+            final platform = _installFailingPreferences();
+            final store = SheetLibraryStore();
+            final suffix = scoped
+                ? '.${(await store.createLibraryProfile('Removal')).id}'
+                : '';
+            final now = DateTime(2026, 9, 14);
+            final source = File('${documentsDir.path}/preserved.pdf');
+            await source.writeAsString('source bytes');
+            final original = _score(now, filePath: source.path);
+            final keep = SheetScore.fromJson({
+              ...original.toJson(),
+              'id': 'keep',
+              'title': 'Keep',
+            });
+            await store.saveScores([original, keep]);
+            await store.saveSetlists([
+              SheetSetlist(
+                id: 'concert',
+                title: 'Concert',
+                scoreIds: [original.id, keep.id],
+                createdAt: now,
+                updatedAt: now,
+                scoreNotes: {original.id: 'Cue'},
+                scoreStartPages: {original.id: 2},
+              ),
+            ]);
+            final controller = SheetLibraryController(store: store);
+            await controller.load();
+            final before = await platform.getAll();
+            final scoresBefore = controller.scores
+                .map((s) => s.toJson())
+                .toList();
+            final setsBefore = controller.setlists
+                .map((s) => s.toJson())
+                .toList();
+            var notifications = 0;
+            controller.addListener(() => notifications++);
+            platform.failureKey = 'flutter.$key$suffix';
+            platform.throwOnFailure = throws;
+            await expectLater(
+              controller.deleteScoresByIds({original.id}),
+              throwsA(anything),
+            );
+            expect(await platform.getAll(), before);
+            expect(
+              controller.scores.map((s) => s.toJson()).toList(),
+              scoresBefore,
+            );
+            expect(
+              controller.setlists.map((s) => s.toJson()).toList(),
+              setsBefore,
+            );
+            expect(notifications, greaterThan(0));
+            await (await SharedPreferences.getInstance()).reload();
+            expect(
+              (await store.loadScores()).map((s) => s.toJson()).toList(),
+              scoresBefore,
+            );
+            expect(
+              (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+              setsBefore,
+            );
+            expect(await controller.deleteScoresByIds({original.id}), 1);
+            expect(controller.scores.single.id, 'keep');
+            expect(controller.setlists.single.scoreIds, ['keep']);
+            expect(controller.setlists.single.scoreNotes, isEmpty);
+            final backup = (await store.loadAutomaticMetadataBackup())!;
+            expect(backup.scores.single.id, 'keep');
+            expect(backup.setlists.single.scoreIds, ['keep']);
+            expect(await source.readAsString(), 'source bytes');
+          },
+        );
+      }
+    }
+  }
+
+  testWidgets('bulk removal keeps selection after linked metadata failure', (
+    tester,
+  ) async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Sonata').last);
+    await tester.pumpAndSettle();
+    platform.failureKey = 'flutter.clef_setlists';
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('선택한 악보의 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 라이브러리에서 제거'), findsOneWidget);
+    expect(controller.scores.single.id, original.id);
+    expect(controller.setlists.single.scoreIds, [original.id]);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('라이브러리에서 제거했습니다.'), findsNothing);
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists.single.scoreIds, isEmpty);
+    expect(find.text('1개 악보를 라이브러리에서 제거했습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('closed bulk removal ignores delayed save failure', (
+    tester,
+  ) async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Sonata').last);
+    await tester.pumpAndSettle();
+    platform.delayKey = 'flutter.clef_scores';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    platform.failureKey = 'flutter.clef_setlists';
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(platform.writeEntered!.isCompleted, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    platform.releaseWrite!.complete();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(controller.scores.single.id, original.id);
+    expect(controller.setlists.single.scoreIds, [original.id]);
+  });
+
+  test('score removal reports rollback failure instead of success', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    platform.failureKey = 'flutter.clef_setlists';
+    platform.failuresRemaining = 2;
+    await expectLater(
+      controller.deleteScoresByIds({original.id}),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('rollback failed'),
+        ),
+      ),
+    );
+    await (await SharedPreferences.getInstance()).reload();
+    await controller.load();
+    expect(await controller.deleteScoresByIds({original.id}), 1);
   });
 
   for (final failedKey in ['clef_scores', 'clef_automatic_metadata_backup']) {

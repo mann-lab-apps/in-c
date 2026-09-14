@@ -419,6 +419,18 @@ class SheetLibraryStore {
     return _readSetlists(preferences, activeLibraryId);
   }
 
+  Future<void> saveScoresAndSetlists(
+    List<SheetScore> scores,
+    List<SheetSetlist> setlists, {
+    required String libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_scoresKey, libraryId): SheetScore.encodeList(scores),
+      _scopedKey(_setlistsKey, libraryId): SheetSetlist.encodeList(setlists),
+    }, automaticBackupLibraryId: libraryId);
+  }
+
   Future<void> saveSetlists(List<SheetSetlist> setlists) async {
     final preferences = await SharedPreferences.getInstance();
     final activeLibraryId = await _activeLibraryId(preferences);

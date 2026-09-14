@@ -354,10 +354,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final deletedCount = await controller.deleteScoresByIds(
-      Set<String>.of(_bulkSelectedScoreIds),
+    final selectedIds = Set<String>.of(_bulkSelectedScoreIds);
+    final deletedCount = await _saveBulkChanges(
+      () => controller.deleteScoresByIds(selectedIds),
     );
-    if (!mounted) {
+    if (!mounted || deletedCount == null) {
       return;
     }
     setState(() {
