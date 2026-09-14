@@ -1811,6 +1811,130 @@ Previous approval-service capacity failures are not product-test failures; no
 alternate file-edit path was used. The continuation prompt is versioned at
 `docs/product/chromatics-expanded-v1-continuation-prompt.md`.
 
+## 2026-09-14 Range Clipboard Continuation
+
+Base c105c7e, isolated recovery branch, no commit/push/merge/deploy authorized.
+Before changes: full suite 646 pass / 1 skip (85.15s), build/typecheck, E2E,
+visual regression, XML/MIDI fixtures, save-policy/queue/site/diff and fresh macOS
+unpacked package smoke passed. No GitHub Actions runs were returned for this branch.
+These baseline gates do not validate the following uncommitted implementation.
+
+Approval-service `Selected model is at capacity` repeatedly rejected test edits;
+Git status confirmed no partial application. A later retry succeeded. New App
+tests first failed on absent omission feedback (3 failures). App now builds the
+clipboard from the effective part projection, preserving object/null/inherit
+semantics at copy time, and reports excluded spans/segments after copy and paste.
+Expanded App tests: 6 pass (slur/hairpin x three policies), including part-to-score
+switch, original geometry preservation, native save/reopen and undo/redo. Existing
+range/selection/native safety focused set also passed before the six-case expansion.
+Editor-state: 48 pass, including fresh IDs and deep-clone isolation through source
+deletion and repeated paste into a different document. Unused sourceAddress metadata
+was removed; destination anchors derive from the selected target, not source lookup.
+
+`npm run verify:range-span-copy`: build/typecheck pass, Electron SIGABRT during
+macOS application registration. Elevated GUI retry rejected by approval capacity.
+The new harness therefore remains Not run past launch; it is not renderer/disk QA
+evidence yet. Same launch failure occurred in the baseline part-span harness;
+crash report: `~/Library/Logs/DiagnosticReports/Electron-2026-09-14-182631.ips`
+with `_RegisterApplication` / `NSApplication` frames, not a failed score assertion.
+No human dialogs/engraving/listening or RC signoff. Final current gates pending.
+
+Reference: [MuseScore copy and paste](https://handbook.musescore.org/basics/copy-and-paste)
+and [Parts](https://handbook.musescore.org/basics/parts), living handbook checked
+2026-09-14. Passage marking reuse and independent part properties inform these
+contracts; no new reference-app GUI observation. Partial/outside-span exclusions
+are an explicit current Chromatics boundary, not MuseScore parity completion.
+Next implementation audit: octave-line copying; broader independent-object and
+cross-measure clipboard remains Required.
+
+### Octave Range Copy Audit
+
+Four failure-first tests reproduced omitted octave lines and missing omission
+counts. The clipboard now captures contained 8va/8vb/15ma/15mb lines, remaps both
+endpoints and includes partial octave lines in the exclusion feedback. Native/XML
+reopen and performed-frequency equivalence are tested for all four types.
+Follow-up failure-first tests exposed double transposition when pasting between
+voices of the same staff. Exact existing type/interval is reused; conflicting or
+partially overlapping staff intervals reject the paste before mutation. The App
+failure message includes octave conflicts. General preexisting octave overlap and
+arbitrary rhythmic-anchor semantics remain Required, not solved by this guard.
+Focused editor/App run: 15 pass, covering six part-geometry cases with octave
+preservation, four octave types, three overlap cases and clipboard isolation.
+`node --check scripts/verify-range-span-copy.cjs` and `git diff --check`: pass.
+Current full-suite and actual GUI gates are still pending.
+
+### Range Clipboard Final Automation
+
+Current uncommitted production code: `npm test` 660 pass / 1 skip (86.47s).
+The subsequent test-only distinct part-segment fixture refinement passes all six
+App cases (7.11s); production code is unchanged. Build/typecheck, `verify:e2e`,
+`verify:visual-regression` (84 unit tests plus unchanged 960/1400 snapshots),
+`verify:musicxml-fixtures` (1 pass / 58 filtered) and `verify:midi-fixtures`
+(3 pass / 3 filtered) pass. Fresh `package:dir` and `verify:package` pass on
+macOS arm64; expected original-path export refusal is exercised by the smoke.
+The package command result lost during context transition was rerun after no
+builder process remained; the rerun result, not the lost result, is the evidence.
+
+The initial sandbox/approval failures above remain recorded. An approved local
+`env -u ELECTRON_RUN_AS_NODE node_modules/.bin/electron scripts/verify-range-span-copy.cjs`
+rerun passes six object/automatic/inherit cases at 960/1400px. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-ddT9TQ`.
+Each case writes source/pasted/undo/redo/reopened native files and a PNG. Native
+serialization, disk read/write, parser reopen, live slur bounds, copied octave,
+source isolation and omission feedback are asserted. Object versus inherited
+segment geometry moves the visible slur exactly 20px relative to its staff at
+both widths. Reviewed `960-object.png` and `1400-automatic.png` directly.
+The harness uses DOM commands and an intercepted file bridge, not native dialogs.
+Existing crowded toolbar/workspace and broader engraving remain Required; these
+screenshots are not whole-UI approval, human PDF QA or RC signoff.
+
+Next: independent slur/hairpin clipboard, preserving destination notes and using
+exact rhythmic endpoint matching; broader object/filter/cross-measure contracts
+remain in expanded V1. No commit, push, merge or deployment performed.
+
+### Independent Span Clipboard And User Stop
+
+User requested stop plus commit/push/merge on 2026-09-14. No next feature task is
+started. The in-flight independent slur/hairpin clipboard is being validated for
+integration alongside the earlier c105c7e native recovery/segment checkpoint.
+
+Failure-first: new core suite initially failed because the clipboard module was
+absent; two App tests reproduced ignored object-copy commands. Four core tests
+now pass: source snapshot isolation, unchanged destination notes, musical segment
+remapping, history/native/XML, cross-measure exact tick distance, and rejection of
+missing/ambiguous/chord/rest/foreign-voice endpoints. Initial typecheck caught an
+incorrect exported type name; the implementation uses the existing segments type.
+App fixture initially used half notes as a quarter-distance target; that correctly
+rejects. The test now asserts rejection plus a valid matching target, not relaxed
+endpoint matching. Two App tests pass with native save/reopen and undo/redo.
+`npm test`: 666 pass / 1 skip, 90.95s. Current `npm run build`: pass, renderer
+`index-Cc_BrX00.js`. Source geometry is captured from effective part view; the new
+object is added without replacing any destination notes. Out-of-span or unmappable
+segment geometry is omitted with feedback. Core cross-measure distance is not
+cross-measure note-range copy, nor arbitrary rhythmic/chord/cross-voice support.
+
+The four new independent-object actual-renderer/disk cases are appended to
+`verify:range-span-copy`. Approved Electron execution passes all ten cases at
+960/1400px. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-S9LAHr`.
+Reviewed `960-independent-slur.png` and `1400-independent-hairpin.png`: original
+and pasted shapes are visible at the intended events. Native source/pasted/undo/
+redo/reopened disk snapshots and unchanged notes pass. File dialogs remain mocked.
+Current XML/MIDI fixture, save-policy, site-content and queue checks pass (57 rows,
+16 expanded umbrellas, queue not drained).
+No public RC, human-dialog, listening or external-app signoff is claimed.
+
+Final integration gates on this uncommitted source: `verify:e2e`,
+`verify:visual-regression` (84 unit tests and unchanged snapshots), fresh
+`package:dir` followed by `verify:package`, and `git diff --check` pass. Packaged
+original-path export refusal is expected negative-case evidence, not a failure.
+No validation process remains running. Existing development preview on port 5174
+was left intact. Next feature work requires explicit user resumption; the next
+candidate is broader independent-object/chord/cross-voice endpoint handling.
+The upcoming PR includes c105c7e plus this follow-up, targets main, and must have
+current CI results checked before merge. Git integration is authorized by the
+latest user request; no release tag or installer publication is requested.
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

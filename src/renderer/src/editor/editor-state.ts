@@ -9,6 +9,7 @@ import type {
   ScoreCommand,
   Slur,
   Hairpin,
+  OctaveShift,
   VoiceAddress,
   VoiceEvent
 } from '../../../score-core'
@@ -81,9 +82,9 @@ export interface RangeClipboard {
   durationTicks: number
   eventCount: number
   events: RangeClipboardEvent[]
-  sourceAddress?: VoiceAddress
   slurs?: Slur[]
   hairpins?: Hairpin[]
+  octaveShifts?: OctaveShift[]
   excludedSpanCount?: number
   excludedSegmentCount?: number
 }
@@ -406,11 +407,12 @@ export function buildRangeClipboard(
     return [copy]
   })
   const slurs = collectSpans(score.slurs), hairpins = collectSpans(score.hairpins)
+  const octaveShifts = collectSpans(score.octaveShifts)
 
   return {
     durationTicks: endTick - startTick,
     eventCount: range.events.length,
-    sourceAddress: { ...range.address }, slurs, hairpins, excludedSpanCount, excludedSegmentCount,
+    slurs, hairpins, octaveShifts, excludedSpanCount, excludedSegmentCount,
     events: range.events.map((event) => ({
       relativeTick: event.position.tick - startTick,
       event: structuredClone(event)
@@ -501,7 +503,34 @@ export function buildRangePasteCommand(
     return [copy]
   })
   const copiedSlurs = copySpans(clipboard.slurs), copiedHairpins = copySpans(clipboard.hairpins)
+  const copiedOctaveShifts = copySpans(clipboard.octaveShifts)
   const retained = <T extends Slur | Hairpin>(spans: T[] | undefined) => (spans ?? []).filter(span => !selectedIds.has(span.startEventId) && !selectedIds.has(span.endEventId))
+  if (copiedOctaveShifts.length) {
+    const staff = score.parts.find(part => part.id === range.address.partId)!.staves.find(staff => staff.id === range.address.staffId)!
+    const locations = new Map<string, { start: number; end: number }>()
+    let measureTick = 0
+    for (const current of staff.measures) {
+      const measure = current.id === nextMeasure.id ? nextMeasure : current
+      for (const voice of measure.voices) for (const event of voice.events) {
+        locations.set(event.id, { start: measureTick + event.position.tick, end: measureTick + eventEndTick(event) })
+      }
+      measureTick += measureDurationTicks(measure)
+    }
+    const octaveShifts = retained(score.octaveShifts)
+    // Octave lines affect every voice of a staff; duplicate intervals must not stack.
+    for (const span of copiedOctaveShifts) {
+      const start = locations.get(span.startEventId)!.start, end = locations.get(span.endEventId)!.end
+      let duplicate = false
+      for (const existing of octaveShifts) {
+        const existingStart = locations.get(existing.startEventId)?.start, existingEnd = locations.get(existing.endEventId)?.end
+        if (existingStart === undefined || existingEnd === undefined || end <= existingStart || start >= existingEnd) continue
+        if (existingStart !== start || existingEnd !== end || existing.type !== span.type) return undefined
+        duplicate = true
+      }
+      if (!duplicate) octaveShifts.push(span)
+    }
+    commands.push({ type: 'score-octave-shifts.update', octaveShifts })
+  }
   if (copiedSlurs.length) commands.push({ type: 'score-slurs.update', slurs: [...retained(score.slurs), ...copiedSlurs] })
   if (copiedHairpins.length) commands.push({ type: 'score-hairpins.update', hairpins: [...retained(score.hairpins), ...copiedHairpins] })
   return commands.length > 1 ? { type: 'score.batch', commands } : replacement

@@ -1,5 +1,23 @@
 # Known Limitations
 
+## 2026-09-14 Clipboard Continuation
+
+Range copy/paste now reports omitted partial spans and saved segments outside its
+single-measure range. Slur/hairpin geometry snapshots respect independent part
+object/null/inherit overrides; switching view does not change a captured snapshot.
+Core/App history and native round-trip tests pass. Actual renderer/disk clipboard
+QA passes six 960/1400px cases after the initial launch/approval interruption.
+DOM-driven Electron QA is not native file-dialog or human engraving signoff.
+Contained octave lines now copy with fresh endpoints; four-type native/XML/pitch
+tests pass. Identical staff-wide intervals are reused to avoid double transposition;
+conflicting/partial overlaps reject before editing. General octave overlap semantics
+remain Required.
+Independent slur/hairpin copy now supports exact same-voice endpoint distance,
+including cross-measure distance in core tests, without changing destination notes.
+Missing/ambiguous chord endpoints and cross-voice source spans explicitly reject.
+Other independent objects, cross-measure note ranges and broader editing remain
+Required implementation audits, not QA-only or permitted RC gaps.
+
 ## 2026-09-14 Recovery Follow-Up
 
 Latest segment follow-up writes native v4 and migrates v1/v2/v3, including v3

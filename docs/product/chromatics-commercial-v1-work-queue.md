@@ -15,6 +15,33 @@ Sibelius를 secondary commercial reference로 유지하면서 남은 Commercial 
 
 ## Queue
 
+### Clipboard Continuation (2026-09-14)
+
+User subsequently requested stopping feature work and committing/pushing/merging.
+Finish only the in-flight clipboard validation and integration; do not begin the
+next Required task until explicit resumption. Independent slur/hairpin copy now
+preserves destination notes using exact same-voice tick-distance endpoints.
+Core and App history/native/XML tests and ten renderer/disk cases pass; final
+integration gates are recorded in evidence-log.
+Cross-voice endpoints, ambiguous chord endpoints, arbitrary rhythmic anchors,
+other object types and expanded umbrella completion remain open.
+
+Explicit resumption starts from pushed c105c7e in the isolated recovery worktree.
+Approval-service capacity initially blocked edits; no alternate write path was used.
+Current code snapshots effective part slur/hairpin geometry and reports omitted
+partial spans/outside segments on copy and paste. Six App tests cover object/null/
+absent overrides, part-to-score switching, native save/reopen and history. Editor
+tests cover source deletion and repeated cross-document paste without aliasing.
+New actual-renderer/disk harness: `verify:range-span-copy`. Initial sandbox launch
+and approval-service failures were followed by a successful elevated run: all six
+960/1400px cases pass, including a measured 20px independent segment displacement.
+Full suite: 660 pass / 1 skip; build, E2E, visual and fresh macOS package smoke pass.
+Octave lines now copy with fresh endpoints and four-type native/XML/playback tests.
+Same-staff identical intervals reuse existing lines; conflicting overlaps reject
+before mutation. Independent slur/hairpin object copy without notes is now covered
+below. On explicit resumption: broader object/chord/cross-voice contracts and
+cross-measure note ranges; all expanded Required umbrellas remain open.
+
 ### Explicit Resumption (2026-09-14)
 
 Quota resumption completed the interrupted pre-segment gates: 629 tests pass /
@@ -151,7 +178,7 @@ CV1-X-WORKSPACE; existing bounds checks are not ergonomic completion evidence.
 | CV1-X-NATIVE-LIFECYCLE | native save/open/recovery | Document Lifecycle | CV1-X-NATIVE-SCHEMA | 프로젝트 저장 안전성 | disk/race/package tests | native dialog | Partial | Backup discovery/recovery UI, stale autosave error guard and dirty-only full-envelope recovery after native/XML cleanup across document switches. Next: file-open/settings and discard race audit, retention controls and native-dialog/crash evidence |
 | CV1-X-SPAN-PROPERTIES | span endpoint/geometry 속성 | UI Information Architecture | Expanded V1 span contract | 슬러/헤어핀 직접 조정 부재 | core/App/layout | engraving QA | Partial | Direct selection/endpoint edit, numeric placement/offset/height, auto reset/history/native-v2 and SVG/PDF first contracts implemented. Next: segment-specific geometry, inter-system collisions, independent part geometry, arbitrary rhythmic anchors and XML geometry interchange. |
 | CV1-X-OBJECT-FILTERS | 객체 선택과 필터 확장 | Editing Workflow | Expanded V1 selection contract | 원하는 표기만 일괄 편집 불가 | core/App | selection ergonomics | Todo | lyrics/text/span 포함 single/list/range 소속 모델 감사 |
-| CV1-X-OBJECT-CLIPBOARD | 객체 clipboard 확장 | Editing Workflow | CV1-X-OBJECT-FILTERS | 음표와 별개 표기 재사용 불완전 | core/App/round-trip | 실전 편집 | Partial | Range note-attached marking preservation and replaced-endpoint cleanup pass. Contained source slur/hairpin copying is in progress; independent object/text copying, cross-measure range and partial-span policies remain Required. |
+| CV1-X-OBJECT-CLIPBOARD | 객체 clipboard 확장 | Editing Workflow | CV1-X-OBJECT-FILTERS | 음표와 별개 표기 재사용 불완전 | core/App/round-trip | 실전 편집 | Partial | Contained range slur/hairpin/octave and independent slur/hairpin exact-tick copying have tests. Other object/text copying, cross-voice/chord endpoints, cross-measure note ranges and partial-span policies remain Required. |
 | CV1-X-PART-LAYOUT | 독립 파트보 portable layout | Parts / Part View | Expanded V1 part contract | 기기 이동 시 파트 조판 손실 | App/native/export | PDF QA | Partial | Part title, page/system breaks and page settings support independent editing/history/native save. Reset removes independent title/break/page overrides and is undoable. Next: structural score-edit/removed-anchor audit and complete portable authoring/export verification |
 | CV1-X-ENGRAVING | 마디 밀도와 수동 조판 | PDF / Page Setup | Expanded V1 engraving contract | 출판용 페이지 조정 부족 | layout/visual/PDF render | human engraving | Todo | 폭/밀도/manual override 우선순위 구현 |
 | CV1-X-CONCERT-VIEW | 실음/기보음 표시 전환 | MusicXML Compatibility | Expanded V1 transpose contract | 이조악기 총보 검토 불편 | pitch/App/XML/MIDI | 청감 | Todo | 저장음과 표시음 분리 및 key/input semantics 고정 |
@@ -178,7 +205,8 @@ workflow and span umbrellas remain Partial even when a bounded child is Done.
 | CV1-X-PART-SPAN-GEOMETRY | independent part span placement | Parts / Part View | MuseScore Parts; parent CV1-X-SPAN-PROPERTIES | adjusting a part altered the full score | schema/App/Electron/disk/PDF | full engraving review | Done | Scoped overrides/reset/relink/history, XML primary-save warning, actual 960/1400/PDF and 629-test rerun pass. Per-system segment contracts remain in their separate child; parent is not Done. |
 | CV1-X-STACKED-ANNOTATION-CLEARANCE | piano staff text and upper clef overlap | Layout / Engraving | reviewed rich Piano PDF; parent CV1-X-ENGRAVING | fixed 96px spacing ignores neighboring annotation ink | lane/layout/Electron/PDF | full engraving review | Done | Shared renderer/print staff extents, long-hairpin interior lanes and rich Piano ink/PDF checks, fresh macOS package and 629-test rerun pass. Extreme ledger/manual segment collision handling stays in parent. |
 | CV1-X-SPAN-SEGMENT-GEOMETRY | per-system span geometry | Layout / Engraving | expanded V1 contract; parent CV1-X-SPAN-PROPERTIES | uniform offset cannot adjust one segment or separate part layout | schema/layout/App/real export | engraving review | Partial | Native v4 musical boundaries, segment edit/reset/inherit, independent part history, actual four-system/two-page disk/PDF and inactive status/cleanup/undo/reapplication pass. Boundary deletion/save/undo/reopen and ensemble insertion/reorder regressions pass. Finish current gates, deleted-span clipboard geometry ownership and denser geometry QA; broad engraving remains in parent. |
-| CV1-X-RANGE-SPAN-COPY | contained span and segment ownership on paste | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | copied passage loses slurs/hairpins or retains source geometry anchors | core/App/native/XML | editing/engraving QA | Partial | Failure-first same-staff/cross-part tests expect contained spans to follow fresh event IDs and single-measure geometry to follow the destination. Exclude partial spans with explicit status; preserve source and undo; independent object clipboard remains in parent. |
+| CV1-X-RANGE-SPAN-COPY | contained span and segment ownership on paste | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | copied passage loses spans or retains source geometry anchors | core/App/native/XML | editing/engraving QA | Partial | Effective part object/null/inherit snapshots, omission feedback, source immutability, repeated cross-document IDs and octave conflict guards pass core/App/native/XML and actual renderer/disk QA. Broader cross-measure/partial-span policy remains Required. |
+| CV1-X-SPAN-OBJECT-COPY | independent slur/hairpin clipboard | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | selected object cannot be reused without replacing notes | core/App/native/XML/renderer | clipboard ergonomics and manual engraving | Partial | Exact same-voice rhythmic endpoint matching, geometry snapshot/remapping and unchanged notes pass four core, two App and four actual Electron cases. Reject missing, ambiguous chord and cross-voice endpoints explicitly. After user resumption address explicit chord/cross-voice targeting and other object types. |
 | CV1-X-RANGE-PASTE-MARKING-SAFETY | range paste drops markings and leaves dead span anchors | Editing Workflow | MuseScore copy-and-paste; parents CV1-X-WORKFLOW-AUDIT / CV1-X-OBJECT-CLIPBOARD | pasted notes lose attached markings and native save can reject deleted target endpoints | core/App/native/history | clipboard ergonomics | Partial | Current code audit found minimal pitch-duration clone and raw voice replacement. Reproduce deep-clone loss and dangling span anchors, fix one history transaction, verify target selection and native save/undo. Independent object clipboard and source span replication remain separate Required contracts. |
 | CV1-X-XML-OCTAVE-PITCH | octave-shift XML 음높이 의미 | MusicXML Compatibility | W3C MusicXML octave-shift; parent CV1-X-PART-XML | XML up/down and performed pitches differ from internal display-pitch convention | XML/MIDI/pitch fixture | external app comparison | Partial | Four octave types now use standard direction and performed pitch; stop at end-note duration, chord/native/MIDI/lower-staff instrument transpose tests pass. Remaining: legacy ambiguous XML recovery, rest/interior-tick/cross-staff anchors, 22 shifts, held notes/ties across boundaries, overlap and real external GUI comparison. |
 | CV1-X-SPAN-RHYTHMIC-ANCHORS | 음표 외 span endpoint | Editing Workflow | MuseScore Dynamics and hairpins; parent CV1-X-SPAN-PROPERTIES | interior-duration/end-of-measure positions cannot be preserved as event IDs alone | model/native/XML/layout/Electron | engraving QA | Partial | Rest-event hairpin input/undo/redo/native/XML/renderer and voice-scoped playback implemented. Add portable arbitrary-tick anchors, exact stop time and cross-staff spans; unsupported positions still reject. |

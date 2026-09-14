@@ -4714,6 +4714,79 @@ describe('App component shell', () => {
     expect((await save()).score).toEqual(saved.score)
   })
 
+  it.each([
+    ['slur', 'object'], ['slur', 'automatic'], ['slur', 'inherit'],
+    ['hairpin', 'object'], ['hairpin', 'automatic'], ['hairpin', 'inherit']
+  ] as const)('range clipboard snapshots %s %s part geometry and reports omissions through native history', async (kind, policy) => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const part = project.score.parts[0]!, staff = part.staves[0]!, measure = staff.measures[0]!
+    const [first, second, third, fourth] = measure.voices[0]!.events
+    if (!first || !second || !third || !fourth) throw new Error('Invalid range fixture')
+    const segment = { partId: part.id, staffId: staff.id, startMeasureId: measure.id, endMeasureId: measure.id, geometry: { offsetY: 2 } }
+    const outsideSegment = { ...segment, endMeasureId: staff.measures[1]!.id }
+    const engraving = { offsetY: -1, segments: [segment, outsideSegment] }
+    const contained = { id: 'contained', startEventId: first.id, endEventId: second.id, engraving }
+    project.score.slurs = kind === 'slur' ? [contained] : []
+    project.score.hairpins = kind === 'hairpin' ? [{ ...contained, type: 'crescendo' }] : []
+    project.score.hairpins.push({ id: 'partial', type: 'crescendo', startEventId: second.id, endEventId: third.id })
+    project.score.octaveShifts = [{ id: 'contained-octave', startEventId: first.id, endEventId: second.id, type: '8va' }]
+    project.view = { mode: 'part', partId: part.id }
+    const partSegment = { ...segment, geometry: { offsetY: 4 } }
+    const override = policy === 'object' ? { ...engraving, offsetY: 3, segments: [partSegment, outsideSegment] } : null
+    project.partLayouts = [{ partId: part.id, layout: {}, ...(policy === 'inherit' ? {} : {
+      spanEngravings: [{ kind, spanId: 'contained', engraving: override }]
+    }) }]
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/range.chromatics', fileName: 'range.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/scores/range.chromatics', fileName: 'range.chromatics' }
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Release QA Scenario')
+    fireEvent.click(screen.getByRole('button', { name: `${first.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: `${second.id} 선택` }), { shiftKey: true })
+    fireEvent.keyDown(window, { code: 'KeyC', ctrlKey: true })
+    expect(screen.getByText(/부분 포함 표기 1개 제외/)).toBeInTheDocument()
+    if (policy !== 'automatic') expect(screen.getByText(/범위 밖 구간 배치 1개 제외/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'score' } })
+    fireEvent.click(screen.getByRole('button', { name: `${third.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: `${fourth.id} 선택` }), { shiftKey: true })
+    fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
+    expect(screen.getByText(/붙여넣었습니다.*부분 포함 표기 1개 제외/)).toBeInTheDocument()
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('range.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    const saved = await save()
+    const spans = kind === 'slur' ? saved.score.slurs! : saved.score.hairpins!
+    expect(spans[0]).toEqual(kind === 'slur' ? project.score.slurs[0] : project.score.hairpins[0])
+    expect(saved.partLayouts).toEqual(project.partLayouts)
+    const copied = spans[1]!
+    expect(saved.score.octaveShifts).toHaveLength(2)
+    expect(saved.score.octaveShifts![1]).toMatchObject({ type: '8va', startEventId: copied.startEventId, endEventId: copied.endEventId })
+    expect(copied.engraving).toEqual(policy === 'automatic' ? undefined : {
+      offsetY: policy === 'object' ? 3 : -1, segments: [policy === 'object' ? partSegment : segment]
+    })
+    expect(copied.startEventId).not.toBe(first.id)
+    expect(copied.endEventId).not.toBe(second.id)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).score).toEqual(saved.score)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('range.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(saved.score)
+  })
+
   it('range-editing.same-staff-voice-copy-paste keeps navigation in the pasted voice', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
@@ -5394,6 +5467,55 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
     expect(palette).toBeVisible()
     for (const button of within(palette).getAllByRole('button')) expect(button).toBeDisabled()
+  })
+
+  it.each(['slur', 'hairpin'] as const)('independent %s object clipboard keeps destination notes and supports native history', async kind => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const staff = project.score.parts[0].staves[0], source = staff.measures[0].voices[0].events
+    const target = source.slice(2)
+    const span = { id: 'independent-source', startEventId: source[0].id, endEventId: source[1].id, engraving: { offsetY: 2 } }
+    project.score.slurs = kind === 'slur' ? [span] : []
+    project.score.hairpins = kind === 'hairpin' ? [{ ...span, type: 'crescendo' }] : []
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/object.chromatics', fileName: 'object.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/scores/object.chromatics', fileName: 'object.chromatics' }
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Release QA Scenario')
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: `${kind}:${span.id}` } })
+    fireEvent.keyDown(window, { code: 'KeyC', ctrlKey: true })
+    expect(screen.getByText(/표기 객체를 복사했습니다/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: `${staff.measures[1].voices[0].events[0].id} 선택` }))
+    fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
+    expect(screen.getByText(/같은 성부에서 원본과 같은 틱 간격의 끝점이 필요합니다/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: `${target[0].id} 선택` }))
+    fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
+    expect(screen.getByText(/표기 객체를 붙여넣었습니다/)).toBeInTheDocument()
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('object.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    const saved = await save(), spans = kind === 'slur' ? saved.score.slurs! : saved.score.hairpins!
+    expect(saved.score.parts).toEqual(project.score.parts)
+    expect(spans).toHaveLength(2)
+    expect(spans[1]).toMatchObject({ startEventId: target[0].id, endEventId: target[1].id, engraving: { offsetY: 2 } })
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).score).toEqual(saved.score)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('object.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(saved.score)
   })
 
   it('span properties edits rest endpoints without changing background notes and survives history and native save', async () => {

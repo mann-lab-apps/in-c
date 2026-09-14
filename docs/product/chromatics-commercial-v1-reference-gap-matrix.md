@@ -1,5 +1,14 @@
 # Chromatics Commercial V1 Reference Gap Matrix
 
+2026-09-14 clipboard follow-up: part geometry snapshots and explicit excluded-span/
+segment feedback now have slur/hairpin App history/native tests. Contained octave
+lines preserve four-type native/XML/playback pitch; staff-wide duplicate intervals
+reuse existing lines and conflicting overlaps reject. Actual clipboard renderer/
+disk harness passes six 960/1400px cases after initial launch/approval errors.
+Independent slur/hairpin clipboard now has exact same-voice endpoint, unchanged
+note, history/native/XML tests. Broader independent object/chord/cross-voice and
+cross-measure note-range reuse remain expanded Required implementation.
+
 Latest 2026-09-14: native v4 musical segment placement, inherited/local geometry,
 part history and four-system/two-page output cover another bounded span contract.
 Continuation collision reservation now includes manual depth and adjacent marks.

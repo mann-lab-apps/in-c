@@ -1,5 +1,17 @@
 # Release Readiness Checklist
 
+## 2026-09-14 Clipboard Follow-Up
+
+Final in-flight independent object addition: 666 tests pass / 1 skip; ten actual
+Electron clipboard renderer/disk cases pass at 960/1400px. User requested stopping
+feature development and integrating the branch; this is not V1/RC completion.
+
+Uncommitted follow-up adds effective part geometry copy, omission feedback and
+contained octave-line copying with duplicate/conflict guards. Focused App/core
+tests pass; full suite 660 pass / 1 skip, fresh build/E2E/visual/package smoke pass.
+Actual range clipboard renderer/disk QA passes six 960/1400px cases. Baseline
+c105c7e gates below remain historical. No expanded-V1 implementation or RC signoff.
+
 ## 2026-09-14 Development Checkpoint
 
 User requested commit/push only. Current full suite: 646 passed / 1 skipped;

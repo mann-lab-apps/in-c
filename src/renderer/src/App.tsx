@@ -11,6 +11,7 @@ import { createRoot } from 'react-dom/client'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
 import { SpanProperties } from './SpanProperties'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
+import { buildSpanClipboard, buildSpanPaste, type SpanClipboard } from './editor/span-clipboard'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
 import {
@@ -565,6 +566,7 @@ export const App = () => {
   const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
     useState<SelectionObjectTypeFilter>('none')
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
+  const [spanClipboard, setSpanClipboard] = useState<SpanClipboard>()
   const [measureMarkingClipboard, setMeasureMarkingClipboard] =
     useState<MeasureMarkingClipboard>()
   const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
@@ -2595,6 +2597,22 @@ export const App = () => {
   ])
 
   const copySelection = useCallback(() => {
+    const sourceScore = scoreViewMode === 'part' && livePartViewPartId
+      ? applyPortablePartLayout(createLivePartViewScore(score, livePartViewPartId), livePartLayout)
+      : score
+    if (activeSpanReference) {
+      const clipboard = buildSpanClipboard(sourceScore, activeSpanReference)
+      if (!clipboard) {
+        setFileStatus({ tone: 'error', message: '같은 성부의 유효한 끝점을 가진 표기 객체만 복사할 수 있습니다.' })
+        return
+      }
+      setSpanClipboard(clipboard)
+      setRangeClipboard(undefined)
+      setMeasureMarkingClipboard(undefined)
+      setFileStatus({ tone: 'neutral', message: '표기 객체를 복사했습니다.' +
+        (clipboard.excludedSegmentCount ? ` 범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외` : '') })
+      return
+    }
     if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
       const clipboard = buildMeasureMarkingClipboard(
         score,
@@ -2612,6 +2630,7 @@ export const App = () => {
 
       setMeasureMarkingClipboard(clipboard)
       setRangeClipboard(undefined)
+      setSpanClipboard(undefined)
       setFileStatus({
         tone: 'neutral',
         message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 복사했습니다.`
@@ -2619,7 +2638,7 @@ export const App = () => {
       return
     }
 
-    const clipboard = buildFilteredRangeClipboard(score, selection, {
+    const clipboard = buildFilteredRangeClipboard(sourceScore, selection, {
       eventTypes: selectionEventTypeFilter
     })
 
@@ -2633,16 +2652,29 @@ export const App = () => {
 
     setRangeClipboard(clipboard)
     setMeasureMarkingClipboard(undefined)
+    setSpanClipboard(undefined)
     setFileStatus({
       tone: 'neutral',
       message:
-        selectionEventTypeFilter === 'notes-and-rests'
+        (selectionEventTypeFilter === 'notes-and-rests'
           ? `${clipboard.eventCount}개 이벤트를 복사했습니다.`
-          : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`
+          : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`) + describeRangeClipboardExclusions(clipboard)
     })
-  }, [score, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
+  }, [activeSpanReference, score, scoreViewMode, livePartViewPartId, livePartLayout, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
 
   const pasteSelection = useCallback(() => {
+    if (spanClipboard) {
+      const pasted = !activeSpanReference && buildSpanPaste(score, selection, spanClipboard, () => crypto.randomUUID())
+      if (!pasted) {
+        setFileStatus({ tone: 'error', message: '같은 성부에서 원본과 같은 틱 간격의 끝점이 필요합니다. 대상 음표 또는 쉼표를 선택해 주세요.' })
+        return
+      }
+      if (executeCommand(pasted.command)) {
+        setFileStatus({ tone: 'neutral', message: '표기 객체를 붙여넣었습니다.' +
+          (pasted.excludedSegmentCount ? ` 적용할 수 없는 구간 배치 ${pasted.excludedSegmentCount}개 제외` : '') })
+      }
+      return
+    }
     if (selection.type === 'measure' && measureMarkingClipboard) {
       const command = buildMeasureMarkingPasteCommand(
         score,
@@ -2680,7 +2712,7 @@ export const App = () => {
       setFileStatus({
         tone: 'error',
         message:
-          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이와 셋잇단음표는 아직 제외됩니다.'
+          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이·셋잇단음표 또는 옥타브선 충돌이 있는 대상은 지원하지 않습니다.'
       })
       return
     }
@@ -2717,9 +2749,11 @@ export const App = () => {
 
     setFileStatus({
       tone: 'neutral',
-      message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.`
+      message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.` + describeRangeClipboardExclusions(rangeClipboard)
     })
   }, [
+    activeSpanReference,
+    spanClipboard,
     executeCommand,
     measureMarkingClipboard,
     noteInputState,
@@ -4853,6 +4887,7 @@ export const App = () => {
       if (activeSpanReference) {
         if (isUndoShortcut(event)) { event.preventDefault(); undo() }
         else if (isRedoShortcut(event)) { event.preventDefault(); redo() }
+        else if (usesCommandKey && !event.altKey && event.code === 'KeyC') { event.preventDefault(); copySelection() }
         else if (event.key === 'Escape') { event.preventDefault(); setSpanSelection(undefined) }
         else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSpan() }
         else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playback.play() }
@@ -5234,7 +5269,7 @@ export const App = () => {
           eventTypes: selectionEventTypeFilter
         })
       )))
-  const canCopySelection = !activeSpanReference && Boolean(
+  const canCopySelection = activeSpanReference ? Boolean(buildSpanClipboard(score, activeSpanReference)) : Boolean(
     (selection.type === 'measure' &&
       selectionObjectTypeFilter !== 'none' &&
       buildMeasureMarkingClipboard(
@@ -5247,6 +5282,7 @@ export const App = () => {
       })
   )
   const canPasteSelection = !activeSpanReference && Boolean(
+    (spanClipboard && buildSpanPaste(score, selection, spanClipboard, previewInputId)) ||
     (selection.type === 'measure' && measureMarkingClipboard) ||
       (rangeClipboard &&
       buildFilteredRangePasteCommand(
@@ -8921,6 +8957,13 @@ function describeStaffTarget(
   return part.staves.length === 1 || staffIndex < 0
     ? part.name
     : `${part.name} 보표 ${staffIndex + 1}`
+}
+
+function describeRangeClipboardExclusions(clipboard: RangeClipboard): string {
+  const exclusions: string[] = []
+  if (clipboard.excludedSpanCount) exclusions.push(`부분 포함 표기 ${clipboard.excludedSpanCount}개 제외`)
+  if (clipboard.excludedSegmentCount) exclusions.push(`범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외`)
+  return exclusions.length ? ` ${exclusions.join(', ')}.` : ''
 }
 
 function describeSelectionFilter(filter: SelectionEventTypeFilter): string {
