@@ -85,10 +85,14 @@ class SheetLibraryStore {
 
   Future<void> setActiveLibraryProfile(String id) async {
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    final active =
-        _profileById(profiles, id) ?? SheetLibraryProfile.defaultProfile;
-    await preferences.setString(_activeLibraryProfileKey, active.id);
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      final active =
+          _profileById(profiles, id) ?? SheetLibraryProfile.defaultProfile;
+      await _commitMetadataValues(preferences, {
+        _activeLibraryProfileKey: active.id,
+      });
+    });
   }
 
   Future<SheetLibraryProfile> createLibraryProfile(String name) async {
@@ -97,30 +101,36 @@ class SheetLibraryStore {
       return loadActiveLibraryProfile();
     }
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    for (final profile in profiles) {
-      if (profile.name.toLowerCase() == normalized.toLowerCase()) {
-        await preferences.setString(_activeLibraryProfileKey, profile.id);
-        return profile;
+    late SheetLibraryProfile result;
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      for (final profile in profiles) {
+        if (profile.name.toLowerCase() == normalized.toLowerCase()) {
+          await _commitMetadataValues(preferences, {
+            _activeLibraryProfileKey: profile.id,
+          });
+          result = profile;
+          return;
+        }
       }
-    }
-    final now = DateTime.now();
-    final profile = SheetLibraryProfile(
-      id: _newLibraryProfileId(now),
-      name: normalized,
-      createdAt: now,
-      updatedAt: now,
-    );
-    final nextProfiles = SheetLibraryProfile.normalizeProfiles([
-      ...profiles,
-      profile,
-    ]);
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(nextProfiles),
-    );
-    await preferences.setString(_activeLibraryProfileKey, profile.id);
-    return profile;
+      final now = DateTime.now();
+      final profile = SheetLibraryProfile(
+        id: _newLibraryProfileId(now),
+        name: normalized,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final nextProfiles = SheetLibraryProfile.normalizeProfiles([
+        ...profiles,
+        profile,
+      ]);
+      await _commitMetadataValues(preferences, {
+        _libraryProfilesKey: SheetLibraryProfileCodec.encode(nextProfiles),
+        _activeLibraryProfileKey: profile.id,
+      });
+      result = profile;
+    });
+    return result;
   }
 
   Future<SheetLibraryProfile?> renameLibraryProfile({

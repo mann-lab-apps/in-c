@@ -771,6 +771,161 @@ void main() {
     );
   }
 
+  for (final throws in [false, true]) {
+    for (final key in [
+      'clef_library_profiles',
+      'clef_active_library_profile',
+    ]) {
+      test(
+        'profile creation rolls back $key failure: throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          await store.saveScores([_score(DateTime(2026, 9, 14))]);
+          final controller = SheetLibraryController(store: store);
+          await controller.load();
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.$key';
+          platform.throwOnFailure = throws;
+          await controller.createLibraryProfile('Concert');
+          expect(controller.errorMessage, '라이브러리를 만들지 못했습니다.');
+          expect(await platform.getAll(), before);
+          expect((await store.loadLibraryProfiles()).length, 1);
+          expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+          expect(controller.scores.single.id, 'score-1');
+          await (await SharedPreferences.getInstance()).reload();
+          await controller.createLibraryProfile('Concert');
+          expect(controller.errorMessage, isNull);
+          expect(controller.activeLibraryProfile.name, 'Concert');
+          expect(controller.scores, isEmpty);
+          expect((await store.loadLibraryProfiles()).length, 2);
+        },
+      );
+    }
+    for (final duplicateCreate in [false, true]) {
+      test(
+        'activation failure preserves previous profile: duplicateCreate=$duplicateCreate throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final target = await store.createLibraryProfile('Concert');
+          await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.clef_active_library_profile';
+          platform.throwOnFailure = throws;
+          await expectLater(
+            duplicateCreate
+                ? store.createLibraryProfile(' concert ')
+                : store.setActiveLibraryProfile(target.id),
+            throwsA(anything),
+          );
+          expect(await platform.getAll(), before);
+          expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+          await (await SharedPreferences.getInstance()).reload();
+          await store.setActiveLibraryProfile(target.id);
+          expect((await store.loadActiveLibraryProfile()).id, target.id);
+        },
+      );
+    }
+  }
+
+  for (final duplicate in [false, true]) {
+    test(
+      'queued profile creation retains both requests: duplicate=$duplicate',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        platform.delayKey = 'flutter.clef_library_profiles';
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final first = store.createLibraryProfile('First');
+        await platform.writeEntered!.future;
+        final second = SheetLibraryStore().createLibraryProfile(
+          duplicate ? 'first' : 'Second',
+        );
+        await Future<void>.delayed(Duration.zero);
+        platform.releaseWrite!.complete();
+        final a = await first;
+        final b = await second;
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.length, duplicate ? 2 : 3);
+        expect(profiles.any((p) => p.id == a.id), isTrue);
+        expect(profiles.any((p) => p.id == b.id), isTrue);
+        expect((await store.loadActiveLibraryProfile()).id, b.id);
+        if (duplicate) expect(a.id, b.id);
+      },
+    );
+  }
+
+  test(
+    'slower profile activation does not overwrite newer selection',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final target = await store.createLibraryProfile('Concert');
+      await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+      platform.delayKey = 'flutter.clef_active_library_profile';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final first = store.setActiveLibraryProfile(target.id);
+      await platform.writeEntered!.future;
+      final second = store.setActiveLibraryProfile(
+        SheetLibraryProfile.defaultId,
+      );
+      await Future<void>.delayed(Duration.zero);
+      platform.releaseWrite!.complete();
+      await first;
+      await second;
+      await (await SharedPreferences.getInstance()).reload();
+      expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+    },
+  );
+
+  for (final key in ['clef_library_profiles', 'clef_active_library_profile']) {
+    test('queued create retries after $key failure', () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      platform.delayKey = 'flutter.clef_library_profiles';
+      platform.failureKey = 'flutter.$key';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final first = store.createLibraryProfile('Concert');
+      final failure = expectLater(first, throwsA(anything));
+      await platform.writeEntered!.future;
+      final second = SheetLibraryStore().createLibraryProfile('Concert');
+      platform.releaseWrite!.complete();
+      await failure;
+      final result = await second;
+      await (await SharedPreferences.getInstance()).reload();
+      expect((await store.loadLibraryProfiles()).length, 2);
+      expect((await store.loadActiveLibraryProfile()).id, result.id);
+    });
+  }
+
+  test('queued creation and rename preserve each other', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final existing = await store.createLibraryProfile('Original');
+    platform.delayKey = 'flutter.clef_library_profiles';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    final created = store.createLibraryProfile('New');
+    await platform.writeEntered!.future;
+    final renamed = store.renameLibraryProfile(
+      id: existing.id,
+      name: 'Revised',
+    );
+    platform.releaseWrite!.complete();
+    final profile = await created;
+    await renamed;
+    await (await SharedPreferences.getInstance()).reload();
+    final profiles = await store.loadLibraryProfiles();
+    expect(profiles.length, 3);
+    expect(profiles.firstWhere((p) => p.id == existing.id).name, 'Revised');
+    expect((await store.loadActiveLibraryProfile()).id, profile.id);
+  });
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(

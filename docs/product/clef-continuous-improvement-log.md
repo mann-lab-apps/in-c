@@ -64,6 +64,8 @@
 
 | S39 | Rename ignores false writes, leaves changed cache on failure and permits late writes to replace newer names; UI errors are unhandled. | Queue rename read/check/write, check persistence and rollback, preserve later renames and distinguish save errors from duplicate feedback across route lifetime. | Nine initial red cases; fifteen new storage/UI cases, targeted 158/158, full 941/941, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S40 | Profile creation can partly persist its index/activation and slow activation can replace newer selection. | Queue latest duplicate lookup, group create keys with checked rollback, serialize activation, preserve existing profiles and retry after failure. | Ten initial red cases; sixteen new storage/home cases, targeted 174/174, full 957/957, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -384,6 +386,21 @@ Commit subject: `fix: serialize Clef library profile renames`.
 Profile creation/deletion/activation still use separate legacy
 write paths and are not covered by rename serialization. No build/version change/push/merge.
 Next: profile creation/activation partial-write failures.
+
+S39 commit: `0ff372e`. S40 moves creation and activation into the shared metadata queue.
+Creation checks duplicates inside the queue and commits profile index plus active ID together;
+duplicate creation/activation check write results and roll back attempted keys on failure.
+Ten initial red cases, sixteen new cases covering false/throw at both create keys, active-ID
+failure for direct/duplicate selection, two concurrent creations, latest activation, queued retry,
+mixed creation/rename and real home create/switch failure/retry. Targeted 174/174 PASS.
+Evidence: `/private/tmp/clef-profile-create-red.log`, `/private/tmp/clef-profile-create-green.log`.
+Initial test execution approval hit capacity; read-only audit and normal retry succeeded.
+Full 957/957, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s40.log`).
+Commit subject: `fix: commit Clef profile creation and activation together`.
+Controller overlapping load results, deletion and cross-isolate
+writes are not made transactional. No build/version change/push/merge.
+Next: inspect actual viewer annotation layer visibility/export
+failure feedback before lower-priority store-only deletion paths.
 
 ## Verification Policy
 
