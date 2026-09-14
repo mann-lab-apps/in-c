@@ -21,7 +21,7 @@ const _reactionLabels = <String, String>{
 
 const classicalPrivacyNotice = <String, String>{
   '음악과 외부 서비스': 'in C는 음원을 직접 제공하거나 저장하지 않습니다. 전체 듣기는 외부 음악 서비스에서 열립니다. 검색 링크는 특정 연주를 바로 재생하는 링크가 아닙니다. 미리듣기는 제공자가 허용하고 검토된 주소만 사용합니다.',
-  '이 기기에 남는 기록': '좋아하는 음악, 저장, 반응, 감상한 날짜, 알림 설정과 최근 사용 기록을 이 기기에 저장합니다. 현재 계정 동기화와 원격 이벤트 전송은 연결되어 있지 않습니다.',
+  '이 기기에 남는 기록': '좋아하는 음악, 추천에서 제외한 작곡가와 오페라 노래 설정, 저장, 반응, 감상한 날짜, 알림 설정과 최근 사용 기록을 이 기기에 저장합니다. 현재 계정 동기화와 원격 이벤트 전송은 연결되어 있지 않습니다.',
   '최근 기록과 관찰 메모': '최근 반응 80개와 일반 이벤트 200개를 유지합니다. 테스트 관찰은 별도로 최근 100개를 유지합니다. 감상한 날짜는 지도 유지를 위해 남습니다. 관찰 메모에는 실명이나 연락처를 쓰지 마세요.',
   '공연과 광고': '광고 공연에는 sponsored 표시가 붙습니다. 광고주에게 개인 원본 이벤트나 관찰 메모를 제공하지 않습니다. 광고 보고는 집계 리포트만 사용합니다. 예시 공연은 실제 일정이나 예매 정보가 아닙니다.',
   '듣기 기록':
@@ -105,6 +105,102 @@ class ClassicalTasteConnectionsScreen extends StatelessWidget {
             ),
         ],
       ),
+    ),
+  );
+}
+
+class ClassicalComposerExclusionsScreen extends StatefulWidget {
+  const ClassicalComposerExclusionsScreen({
+    required this.controller,
+    super.key,
+  });
+  final ClassicalDiscoveryController controller;
+
+  @override
+  State<ClassicalComposerExclusionsScreen> createState() =>
+      _ComposerExclusionsState();
+}
+
+class _ComposerExclusionsState
+    extends State<ClassicalComposerExclusionsScreen> {
+  String query = '';
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('추천에서 제외')),
+    body: AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        final controller = widget.controller;
+        final composers = controller.composers
+            .where(
+              (composer) => normalizeDiscoveryText(
+                '${composer.nameKo} ${composer.nameOriginal} ${composer.aliases.join(' ')}',
+              ).contains(normalizeDiscoveryText(query)),
+            )
+            .toList();
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: '작곡가 검색',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (value) => setState(() => query = value),
+              ),
+            ),
+            if (controller.persistenceMessage case final message?)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Text(message),
+                    TextButton(
+                      onPressed: controller.retryPersistence,
+                      child: const Text('다시 저장'),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                children: [
+                  if (query.trim().isEmpty) ...[
+                    SwitchListTile(
+                      key: const ValueKey('exclude-operatic-vocals'),
+                      title: const Text('오페라의 노래'),
+                      value: controller.state.excludeOperaticVocals,
+                      onChanged: controller.loadFailed
+                          ? null
+                          : controller.setOperaticVocalsExcluded,
+                    ),
+                    const Divider(),
+                  ],
+                  if (composers.isEmpty)
+                    const ListTile(title: Text('일치하는 작곡가가 없어요.')),
+                  for (final composer in composers)
+                    CheckboxListTile(
+                      key: ValueKey('exclude-composer-${composer.id}'),
+                      title: Text(composer.nameKo),
+                      subtitle: Text(composer.nameOriginal),
+                      value: controller.state.excludedComposerIds.contains(
+                        composer.id,
+                      ),
+                      onChanged: controller.loadFailed
+                          ? null
+                          : (value) => controller.setComposerExcluded(
+                              composer.id,
+                              value ?? false,
+                            ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     ),
   );
 }
@@ -404,7 +500,12 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen>
             children: [
               const Icon(Icons.library_music_outlined, size: 32),
               const SizedBox(height: 12),
-              const Text('지금은 추천할 작품을 준비 중이에요', textAlign: TextAlign.center),
+              Text(
+                !controller.hasRecommendationExclusions
+                    ? '지금은 추천할 작품을 준비 중이에요'
+                    : '선택한 조건에 맞는 추천이 없어요',
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 8),
               const Text('저장한 기록은 그대로 보관됩니다.', textAlign: TextAlign.center),
               const SizedBox(height: 12),
@@ -413,6 +514,18 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen>
                 icon: const Icon(Icons.search),
                 label: const Text('작품 찾아보기'),
               ),
+              if (controller.hasRecommendationExclusions)
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => ClassicalComposerExclusionsScreen(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('추천에서 제외'),
+                ),
             ],
           ),
         ),
@@ -465,30 +578,17 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen>
   }
 
   Future<void> _openLink(ClassicalWork work, ExternalLink link) async {
-    await controller.recordProviderClick(
+    await launchClassicalWorkLink(
+      context,
       work,
       link,
-      surface: ClassicalLinkSurface.listening.name,
+      onAttempt: (candidate, fallback) => controller.recordProviderClick(
+        work,
+        candidate,
+        fallback: fallback,
+        surface: ClassicalLinkSurface.listening.name,
+      ),
     );
-    final opened = await _launchUrl(
-      link.url,
-      surface: ClassicalLinkSurface.listening,
-      verifiedDirect: link.isVerifiedDirect,
-    );
-    if (opened || link.linkType == 'listen_search') {
-      return;
-    }
-    final fallback = _fallbackSearchLinkFor(work, except: link.id);
-    if (fallback == null) {
-      return;
-    }
-    await controller.recordProviderClick(
-      work,
-      fallback,
-      fallback: true,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    await _launchUrl(fallback.url, surface: ClassicalLinkSurface.listening);
   }
 
   Future<void> _openTicket(ClassicalPromotionView view) async {
@@ -2027,40 +2127,16 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
   }
 
   Future<void> _openLink(BuildContext context, ExternalLink link) async {
-    await controller.recordProviderClick(
+    await launchClassicalWorkLink(
+      context,
       work,
       link,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    final opened = await _launch(
-      context,
-      link.url,
-      surface: ClassicalLinkSurface.listening,
-      verifiedDirect: link.isVerifiedDirect,
-    );
-    if (opened || link.linkType == 'listen_search') {
-      return;
-    }
-    final fallback = _fallbackSearchLinkFor(work, except: link.id);
-    if (fallback == null) {
-      return;
-    }
-    await controller.recordProviderClick(
-      work,
-      fallback,
-      fallback: true,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await _launch(
-      context,
-      fallback.url,
-      surface: ClassicalLinkSurface.listening,
+      onAttempt: (candidate, fallback) => controller.recordProviderClick(
+        work,
+        candidate,
+        fallback: fallback,
+        surface: ClassicalLinkSurface.listening.name,
+      ),
     );
   }
 
@@ -2784,6 +2860,17 @@ class _MyMusicView extends StatelessWidget {
                 TextButton.icon(
                   onPressed: () => Navigator.of(context).push<void>(
                     MaterialPageRoute(
+                      builder: (_) => ClassicalComposerExclusionsScreen(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('추천에서 제외'),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
                       builder: (_) =>
                           ClassicalDataControlsScreen(controller: controller),
                     ),
@@ -3154,17 +3241,20 @@ class _NextThreePanel extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            recommendations.first.sourceEvidence,
-            style: theme.textTheme.bodySmall,
-          ),
           const SizedBox(height: 8),
           for (final recommendation in recommendations)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                child: Text(_laneShortLabel(recommendation.lane)),
+              leading: Tooltip(
+                message: switch (recommendation.lane) {
+                  'immediate' => '취향에서 이어보기',
+                  'stretch' => '한 걸음 넓혀보기',
+                  'later' => '다음에 들어보기',
+                  _ => '새로 열어보기',
+                },
+                child: CircleAvatar(
+                  child: Text(_laneShortLabel(recommendation.lane)),
+                ),
               ),
               title: Text(recommendation.work.titleKo),
               subtitle: Text(recommendation.reason),
@@ -4393,7 +4483,8 @@ class _MetadataPanel extends StatelessWidget {
           _MetadataRow(label: '편성', value: work.instrumentation),
           _MetadataRow(
             label: '길이',
-            value: _formatDuration(work.durationSeconds),
+            value:
+                '${work.catalogStatusTags.contains('duration_estimated') ? '약 ' : ''}${_formatDuration(work.durationSeconds)}',
           ),
           if (work.catalogNumber.isNotEmpty)
             _MetadataRow(label: '작품 번호', value: work.catalogNumber),
@@ -4431,7 +4522,7 @@ class _MomentTile extends StatelessWidget {
         leading: const Icon(Icons.graphic_eq),
         title: Text(moment.label),
         subtitle: Text(
-          '${_formatDuration(moment.endSeconds)} · ${moment.prompt}',
+          '${_formatDuration(moment.endSeconds - moment.startSeconds)} 감상 · ${moment.prompt}',
         ),
         trailing: IconButton(
           tooltip: '완료',
@@ -5284,23 +5375,6 @@ Future<bool> _launch(
   );
 }
 
-ExternalLink? _fallbackSearchLinkFor(ClassicalWork work, {String? except}) {
-  final candidates = work.externalLinks
-      .where((link) => link.id != except)
-      .where((link) => link.isSafeSearch)
-      .toList(growable: false);
-  if (candidates.isEmpty) {
-    return null;
-  }
-  candidates.sort((a, b) {
-    final aScore = a.platformId == 'youtube' ? 0 : 1;
-    final bScore = b.platformId == 'youtube' ? 0 : 1;
-    final byProvider = aScore.compareTo(bScore);
-    return byProvider != 0 ? byProvider : a.label.compareTo(b.label);
-  });
-  return candidates.first;
-}
-
 String _listenCtaLabel(ExternalLink link) {
   final provider = _platformName(link.platformId, fallback: link.label);
   if (link.linkType == 'listen_search') {
@@ -5326,6 +5400,7 @@ String _laneShortLabel(String lane) {
     'immediate' => '맞',
     'stretch' => '확',
     'later' => '후',
+    'open_start' => '새',
     _ => '다',
   };
 }

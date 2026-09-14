@@ -256,6 +256,8 @@ class DiscoveryStateMerger {
     'preferredContextTags': state.preferredContextTags.toList()..sort(),
     'preferredInstruments': state.preferredInstruments.toList()..sort(),
     'notificationPreferences': state.notificationPreferences.toList()..sort(),
+    'excludedComposerIds': state.excludedComposerIds.toList()..sort(),
+    'excludeOperaticVocals': state.excludeOperaticVocals,
     'reminderPreference': state.reminderPreference.toJson(),
   });
 

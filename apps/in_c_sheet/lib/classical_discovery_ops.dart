@@ -210,7 +210,10 @@ class ClassicalLinkReviewPolicy {
         previewUrl: link.previewUrl!,
       );
     }
-    if (link.linkType == 'listen_direct' &&
+    if (link.linkType == 'listen_preview_approved' &&
+        link.platformId == platformId &&
+        link.isVerifiedDirect &&
+        !_looksLikeSearchUrl(link.previewUrl!) &&
         _hostMatchesPlatform(platformId, link.previewUrl!)) {
       return ClassicalPreviewReview(
         platformId: platformId,

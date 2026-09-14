@@ -20,6 +20,86 @@ import 'package:url_launcher/url_launcher.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('legacy pinned rationale is withdrawn without replacing music or listening history', () async {
+    final now = DateTime(2026, 9, 14, 9);
+    final store = MemoryStore();
+    final original = buildController(store, clock: () => now);
+    await original.load();
+    final pin = await original.ensureDailyPick();
+    await original.toggleSaveWork(pin.workId);
+    const oldClaim = '신세계 교향곡 2악장을 좋아한다고 남겨주셨어요. 오늘은 피아노의 선율로 이어봅니다.';
+    final legacy = pin.copyWith(reason: oldClaim, sourceEvidence: oldClaim);
+    store.state = store.state.copyWith(dailyPicks: [legacy]);
+    final stale = store.state;
+    final workStates = jsonEncode(stale.toJson()['workStates']);
+    final events = jsonEncode(stale.toJson()['events']);
+    original.dispose();
+    final corrected = buildController(store, clock: () => now);
+    await corrected.load();
+    final shown = corrected.dailyPick();
+    expect(shown.reason, isNot(contains('좋아한다고')));
+    expect(shown.sourceEvidence, isNot(contains('좋아한다고')));
+    expect(shown.workId, legacy.workId);
+    expect(shown.momentId, legacy.momentId);
+    expect(shown.createdAt, legacy.createdAt);
+    expect(shown.catalogRevision, legacy.catalogRevision);
+    expect(shown.completedAt, legacy.completedAt);
+    expect(shown.completionConfirmed, legacy.completionConfirmed);
+    await corrected.ensureDailyPick();
+    expect(store.state.dailyPicks.single.reason, shown.reason);
+    expect(jsonEncode(store.state.toJson()['workStates']), workStates);
+    expect(jsonEncode(store.state.toJson()['events']), events);
+    const merger = DiscoveryStateMerger();
+    for (final merged in [
+      merger.merge(stale, store.state),
+      merger.merge(store.state, stale),
+    ]) {
+      final reloadedStore = MemoryStore()
+        ..state = UserDiscoveryState.fromJson(merged.toJson());
+      final reloaded = buildController(
+        reloadedStore,
+        clock: () => now.add(const Duration(days: 1)),
+      );
+      await reloaded.load();
+      final history = reloaded.dailyPickHistory.firstWhere(
+        (item) => item.id == legacy.id,
+      );
+      expect(history.reason, isNot(contains('좋아한다고')));
+      expect(history.workId, legacy.workId);
+      reloaded.dispose();
+    }
+    corrected.dispose();
+  });
+
+  test('daily reason preserves an automatic symphony input without claiming a movement preference', () async {
+    final controller = buildController(MemoryStore());
+    await controller.load();
+    const input = '드보르작 - 교향곡 9번';
+    await controller.addTasteIntakeInputs([input]);
+    final week = controller.founderSevenDayPreview();
+    expect(week, hasLength(7));
+    for (final day in week) {
+      expect(day.pick.sourceEvidence, contains(input));
+      expect(day.pick.sourceEvidence, isNot(contains('2악장을 좋아한다고')));
+    }
+    controller.dispose();
+  });
+
+  test('daily reason chooses the closer supplied work instead of the first axis match', () async {
+    final controller = buildController(MemoryStore());
+    await controller.load();
+    await controller.addTasteIntakeInputs(['드보르작 - 교향곡 9번', '베토벤 - 교향곡 9번']);
+    final beethovenDays = controller.founderSevenDayPreview().where(
+      (day) => day.work.composerId == 'beethoven',
+    );
+    expect(beethovenDays, isNotEmpty);
+    for (final day in beethovenDays) {
+      expect(day.pick.sourceEvidence, contains('베토벤 - 교향곡 9번'));
+      expect(day.pick.sourceEvidence, contains('같은 작곡가'));
+    }
+    controller.dispose();
+  });
+
   test('successful save clears a recovered-backup warning', () async {
     const key = 'in_c_recovery_warning_test';
     final snapshot = UserDiscoveryState.defaultState.copyWith(region: '부산');
@@ -845,9 +925,10 @@ void main() {
     final controller = buildController(MemoryStore());
     await controller.load();
     final preview = controller.previewTasteStart(['unknown music 123'])!;
-    expect(preview.dailyStep.reason, contains('아직 곡을 연결하지 못해'));
+    expect(preview.dailyStep.reason, contains('연결할 근거가 부족'));
     for (final item in preview.nextThree) {
-      expect(item.sourceEvidence, contains('아직 곡을 연결하지 못해'));
+      expect(item.sourceEvidence, contains('연결할 근거가 부족'));
+      expect(item.lane, 'open_start');
     }
     controller.dispose();
   });
@@ -1510,6 +1591,57 @@ void main() {
     }
   });
 
+  for (final backwards in [false, true]) {
+    test(
+      'reaction correction survives stale merge with backwards clock $backwards',
+      () async {
+        var now = DateTime(2026, 9, 14, 9);
+        final store = MemoryStore();
+        final controller = buildController(store, clock: () => now);
+        await controller.load();
+        await controller.toggleSaveWork('bach-air');
+        await controller.addReaction('bach-air', 'liked');
+        final original = controller.state.reactions.single;
+        final listeningDays = controller.state
+            .stateForWork('bach-air')
+            .confirmedListenDays;
+        await controller.updateReaction(original.id, 'unsure');
+        final stale = controller.state;
+        if (backwards) now = now.subtract(const Duration(days: 1));
+        store.failWrites = true;
+        await controller.updateReaction(original.id, 'liked');
+        expect(controller.persistenceMessage, isNotNull);
+        store.failWrites = false;
+        await controller.retryPersistence();
+        final current = store.state;
+        const merger = DiscoveryStateMerger();
+        for (final merged in [
+          merger.merge(current, stale),
+          merger.merge(stale, current),
+        ]) {
+          expect(merged.reactions.single.type, 'liked');
+          expect(merged.reactions.single.occurredAt, original.occurredAt);
+          final workState = merged.stateForWork('bach-air');
+          expect(workState.latestReactionType, 'liked');
+          expect(workState.reactionCounts, {'liked': 1});
+          expect(workState.confirmedListenDays, listeningDays);
+          expect(workState.saved, isTrue);
+          final reopenedStore = MemoryStore()
+            ..state = UserDiscoveryState.fromJson(merged.toJson());
+          final reopened = buildController(
+            reopenedStore,
+            clock: () => DateTime(2026, 9, 14, 10),
+          );
+          await reopened.load();
+          expect(reopened.state.reactions.single.type, 'liked');
+          expect(merger.merge(merged, stale).reactions.single.type, 'liked');
+          reopened.dispose();
+        }
+        controller.dispose();
+      },
+    );
+  }
+
   test(
     'unconfigured remote storage never pretends a write succeeded',
     () async {
@@ -1537,7 +1669,9 @@ void main() {
         controller.listeningMapProgress().userState.openedNodeIds,
         isEmpty,
       );
-      expect(controller.dailyPick().reason, contains('아직 곡을 연결하지 못해'));
+      expect(controller.dailyPick().pickType, 'open_start');
+      expect(controller.dailyPick().reason, contains('연결할 근거가 부족'));
+      expect(controller.dailyPick().sourceEvidence, contains('아직 곡을 연결하지 못해'));
       expect(controller.dailyListeningStep().moment.prompt, isNotEmpty);
       await controller.addTasteIntakeInputs(['리듬']);
       expect(controller.tasteAxisScores().first.axis, '리듬형');

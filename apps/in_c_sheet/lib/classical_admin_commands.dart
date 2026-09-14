@@ -67,6 +67,7 @@ class AdminCatalogCommandValidator {
           'aliases',
           'moodTags',
           'contextTags',
+          'isOperaticVocal',
         ]);
       case 'external_link_upsert':
         _require(command, errors, 'platformId');
@@ -100,6 +101,10 @@ class AdminCatalogCommandValidator {
         break;
       default:
         errors.add('Unsupported command type: ${command.type}');
+    }
+    if (command.fields.containsKey('isOperaticVocal') &&
+        !const {'true', 'false'}.contains(command.fields['isOperaticVocal'])) {
+      errors.add('isOperaticVocal must be true or false.');
     }
     return AdminCommandValidationResult(errors: List.unmodifiable(errors));
   }
@@ -200,6 +205,7 @@ class AdminCatalogCommandReducer {
       ],
       moodTags: _csv(fields['moodTags']),
       contextTags: _csv(fields['contextTags']),
+      isOperaticVocal: fields['isOperaticVocal'] == 'true',
       difficultyForListening: _int(
         fields['difficultyForListening'],
         fallback: 2,
@@ -267,6 +273,9 @@ class AdminCatalogCommandReducer {
       aliases: _optionalCsv(command.fields['aliases']),
       moodTags: _optionalCsv(command.fields['moodTags']),
       contextTags: _optionalCsv(command.fields['contextTags']),
+      isOperaticVocal: command.fields.containsKey('isOperaticVocal')
+          ? command.fields['isOperaticVocal'] == 'true'
+          : null,
     );
     final works = [...catalog.works];
     works[index] = updated;
@@ -508,6 +517,7 @@ ClassicalWork _copyWork(
   List<ExternalLink>? scoreLinks,
   List<String>? concertIds,
   List<String>? catalogStatusTags,
+  bool? isOperaticVocal,
 }) {
   return ClassicalWork(
     id: work.id,
@@ -533,6 +543,7 @@ ClassicalWork _copyWork(
     scoreLinks: scoreLinks ?? work.scoreLinks,
     concertIds: concertIds ?? work.concertIds,
     catalogStatusTags: catalogStatusTags ?? work.catalogStatusTags,
+    isOperaticVocal: isOperaticVocal ?? work.isOperaticVocal,
   );
 }
 

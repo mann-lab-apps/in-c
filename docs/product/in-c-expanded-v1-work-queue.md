@@ -1,8 +1,11 @@
 # in C Expanded V1 Work Queue
 
 Audit started: 2026-09-13. Scope: inherited expansion A-I and follow-up acceptance.
-Working tree: main, 77 commits behind cached origin/main; unrelated edits preserved.
-No commit, push, merge or deployment authorized. Historical PASS is not current evidence.
+Current audit: 2026-09-14, a310157 on feature/in-c-expanded-v1-checkpoint-20260914
+in `/private/tmp/in-c-v1-resume-20260914`. Continuation is being closed as a checkpoint.
+PR #755/e3e634a verified merged; original dirty worktree and other products preserved.
+Latest user request authorizes checkpoint commit, push and merge, not deployment or identity changes.
+Historical PASS is not current evidence. The expanded V1 objective is not complete.
 
 ## Contract
 
@@ -25,9 +28,9 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | A01 | Same-day pick survives reactions and reopening; next date refreshes | Pinned on intake/onboarding/load; foreground midnight and restart regression pass | store | controller restart + widget rollover tests | DONE | PASS/PASS/N/N | Observe resume/timezone on iOS |
 | A02 | New day avoids recent picks, including saved-unopened and recovery | 14-pick exclusions applied to saved/recovery; 7-day uniqueness and 21-day unreviewed exclusion pass | A01 | 7-day saved/unsure/missed-day scenarios | DONE | PASS/PASS/N/N | Retain missed-day cases in full suite |
 | A03 | First 3 close; at most 1 surprise in 7 days; unsure recovers | Three full-week profiles now pass independent input/liked-work bridge assertions and surprise-to-unsure recovery; catalog withdrawals replace a pinned pick with an explained revision, preserving listening history | A02 | first-week tests; four invalid-catalog cases, merge/restart/no-candidate/notification/next-day UI | IN_PROGRESS | PASS/PASS/N/N | Actual perceived distance remains C03/C04; signed-device catalog/notification review remains |
-| A04 | Recommendation reason references actual input/action and selected work | Next Three uses selected work prompts, not invented period techniques; unknown intake preview now explicitly acknowledges no match | E01 | next-three prompt assertion; unmatched-preview red/green; per-work review | IN_PROGRESS | PARTIAL/PASS/N/N | Finish first30 score/recording claims; do not equate generic tags with musical quality |
-| B01 | Founder likes/avoids and Bach exception honored | Founder fixture remains; automatic sequence is not founder preference approval | A03 | founder full input fixture | NOT_VERIFIED | P/PARTIAL/N/N | Inspect actual sequence and request real response after implementation |
-| B02 | Other users do not inherit founder preferences | Explicit composer matches exempt cold-start guard; unknown input no longer claims match | E01 | contrasting profiles and unknown input | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Contrast profiles; remove inferred founder-only song features |
+| A04 | Recommendation reason references actual input/action and selected work | Reasons preserve raw input/composer evidence; legacy false favorite claims withdrawn. BWV578 guide has official source; moment labels use end-start, not end offsets | E01 | reason/legacy snapshot, broad/exact BWV input and 45-75-second duration regressions PASS; native themed fugue detail | IN_PROGRESS | PARTIAL/PASS/PARTIAL/N | Finish first30 score/recording claims and actual perceived recommendation relevance |
+| B01 | Founder likes/avoids and Bach exception honored | Explicit composer/opera-vocal exclusions persist without erasing pins/history; actual BWV578 candidate added outside first30; generic Bach fugue input remains composer/form evidence, not a claimed favorite | A03 | exclusion codec/admin/import/recovery, real fugue and different BWV tests; native QA | NOT_VERIFIED | PARTIAL/PASS/PARTIAL/N | Founder response, exact recording/window and whether instrumental opera excerpts are avoided remain open |
+| B02 | Other users do not inherit founder preferences | Removed melody-derived Mahler/chorus veto and founder-only context bonus; scores now use supplied work/composer/preferences. Founder demo exclusions stay in simulated state | E01 | contrasting Puccini/melody profiles; demo nonmutation; general fugue versus exact/different BWV tests | IN_PROGRESS | PASS/PASS/PARTIAL/N | Continue independent first-week/human relevance evaluation; no satisfaction inferred from rule PASS |
 | C01 | 7-day preview shows pick/reason/moment/next path without mutating real history | 7-day preview explicitly SIMULATION; nonmutation test passes | A01 | state equality + simulation labels | DONE | PASS/PASS/N/N | Keep simulation separate from real event evidence |
 | C02 | Automatic rule compliance never means founder approval | Rule compliance is separate; founder approval needs an identified observed response and otherwise stays NOT_VERIFIED | none | simulation nonmutation and observed/anonymous/latest-response tests | DONE | PASS/PASS/N/N | Actual founder response remains C03 |
 | C03 | Founder willingness and 5-user outcomes recorded honestly | no actual responses supplied | full flow | founder response; 4/5 reason, 3/5 return and map understanding | NOT_VERIFIED | N/N/N/N | Prepare evidence; await actual users after implementation |
@@ -39,14 +42,14 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | F02 | Surprise failure returns to close recovery; no reaction is not approval | No action cannot unlock surprise; external clicks no longer completion | A03 | liked/unsure/no-action/missed-day scenarios | IN_PROGRESS | PASS/PARTIAL/N/N | Legacy completion and unsure-after-surprise cases |
 | G01 | iOS permission/denied/unsupported/error usable | Permission exceptions handled; denied refresh uses currentPermissionStatus | none | MethodChannel + controller failure tests | IN_PROGRESS | PASS/PARTIAL/N/N | Native bridge and denied-state QA |
 | G02 | Time change/cancel/reschedule cannot resurrect stale reminder | Permission/schedule/cancel serialized; delayed enable then disable regression passes | G01 | delayed older success/failure tests | DONE | PASS/PASS/N/N | Native delivery remains G04 |
-| G03 | Alert opens intended current pick on warm/cold launch once | Warm/cold payload consume and navigation wired; duplicate/invalid and My Music route tests pass | A01 | gateway/controller/widget tests + iOS taps | IN_PROGRESS | PASS/PASS/N/N | Actual notification tap in iOS |
-| G04 | Repeating reminder respects local time and current state | Recurring current-day route and local clock; no stale work payload; reschedule replaces request | G02,G03 | native schedule inspection; timezone and delivery QA | IN_PROGRESS | PASS/PARTIAL/N/N | Timezone, pending request and delivery QA |
-| H01 | Preferred verified direct then verified direct then search | Verified direct sorted before safe search; unapproved/host mismatch filtered | none | sorting and actual launcher failures | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Provider path/custom-scheme contract and launcher tests |
+| G03 | Alert opens intended current pick on warm/cold launch once | Early delegate registration and Scene notificationResponse forwarding added; native buffer ignores duplicate delivery/dismissal/unrelated alerts and consumes once | A01 | Swift buffer contract tests + existing gateway/controller/widget navigation; OS taps still absent | IN_PROGRESS | PASS/PASS/PARTIAL/N | Actual warm/cold notification tap in iOS; native contract injection is not tap evidence |
+| G04 | Repeating reminder respects local time and current state | Calendar replacement/cancel and actual foreground delivery verified under provisional authorization in isolated iOS26.5 simulator | G02,G03 | native log and actual willPresent callback; see 2026-09-14 evidence | IN_PROGRESS | PASS/PASS/PARTIAL/N | Physical/background delivery, timezone travel and real notification taps remain |
+| H01 | Preferred verified direct then verified direct then search | Both Today/Work Detail recover failed searches as well as directs; bounded same-provider/YouTube fallback and copy-query escape; leaving screen stops late retry | none | four actual widget/launcher-channel contract tests PASS, including throws and disposal | IN_PROGRESS | PASS/PASS/N/N | Actual provider playback/region availability still unverified |
 | H02 | External return preserves pick and context; events describe click only | External click retained as attempt; no new Daily completion or listening timestamp | A01,D02 | return/failure tests; truthful listening copy | IN_PROGRESS | PARTIAL/PASS/N/N | Audit map/passport and old persisted completion |
 | I01 | Public text lacks internal/AI/ranking language and is concise | Ops hidden in release unless explicit build flag; partial copy check no longer claims all screens verified | none | copy scan and all primary screenshots | IN_PROGRESS | PARTIAL/PARTIAL/PARTIAL/N | Remaining public copy and recording-specific source review |
 | I02 | Small screen, text scaling, semantics and keyboard access work | 320/390 at 1.6; iOS tap-target/label guidelines; Tab/Enter/Escape guide flow pass; native screenshots inspected | E02,D01 | responsive/guideline/keyboard tests; iOS captures | IN_PROGRESS | PASS/PASS/PARTIAL/N | Native VoiceOver traversal and physical small-screen check remain unverified |
 | L01 | Local storage failure cannot silently lose user state | Backup fallback now also handles absent/wrong-type primary; invalid new snapshots are rejected before backup rotation; failed recovery preserves raw values | none | missing/wrong-type primary, corrupt backup, invalid candidate red/green plus existing write/race/native checks | IN_PROGRESS | PASS/PASS/PARTIAL/N | Native rerun for latest backup changes; data controls/OS backup review remain |
-| L02 | Unconfigured remote must not pretend sync succeeded; local state remains intact | Same-ID conflicts/bounds/provenance covered; three-way work merge regression found unioned dates changing revision choice, now excluded from tie-break while still unioned | L01 | two/three-way and repeated merge/codec, bounds, concert unsave, observed-vs-simulation conflicts | IN_PROGRESS | PASS/PASS/N/N | Broader data-control/recovery audit remains L01; actual remote absent, never claim sync success |
+| L02 | Unconfigured remote must not pretend sync succeeded; local state remains intact | Same-ID conflicts/bounds/provenance covered; composer exclusion joins preference codec/tie-break; local preference revisions remain monotonic across backward clocks | L01 | two/three-way merge/codec, removal vs stale snapshot, failed-write retry, original event/unsave cases | IN_PROGRESS | PASS/PASS/N/N | Broader data-control/recovery audit remains L01; actual remote absent, never claim sync success |
 | P01 | Privacy and sponsored disclosure consistent, ads below listening | Missing in-app notice discovered; My Music policy sheet now states actual local-only use and bounded records | E02 | public navigation/320px policy smoke; disclosure tests | IN_PROGRESS | PASS/PARTIAL/N/N | Legal/store review and data-control audit remain separate |
 | K01 | First exposure content individually accurate and links vetted | All30 rows have source notes; Swan Lake now explicitly Act II No.10, unsupported Brahms slow opening removed; remaining score claims and all recordings/windows unapproved | A04 | docs/research/in-c-founder-30-content-review.md; excerpt/guide regression | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Resolve remaining score details and all30 recording windows; official search links are not direct approval |
 | R01 | Current code formats, analyzes, tests with Clef regression | Historical439 superseded by resumed checks; current logs and counts are in dated evidence | code tasks | fresh scoped/full commands and logs | IN_PROGRESS | PASS/PARTIAL/N/N | Finish current full/controller/analyze/native verification and record exact results |
@@ -58,11 +61,60 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | P02 | Seed demonstration concerts cannot impersonate live ticket inventory | All seed concerts explicitly demonstration; labels everywhere and ticket CTAs disabled; release gate excludes demo evidence | P01 | concert detail no-ticket smoke, demo status codec and gate tests | IN_PROGRESS | PASS/PARTIAL/N/N | Audit public demonstration policy and actual production import |
 | L03 | Empty/damaged/unreviewed catalog never crashes the Daily screen or fabricates a recommendation | Empty and no-valid-moment pools show unavailable state, preserve history, keep Works/Ops accessible; fallback excludes unreviewed works | L01,K01 | empty/no-moment/unreviewed widget regression and Ops navigation | DONE | PASS/PASS/N/N | Keep stored-pick catalog revision case in A03 follow-up |
 | E03 | Natural composer + title input identifies a work; composer-only input must not invent a favorite piece | First-week audit exposed Vivaldi Spring being recognized only as a composer; combined Korean/English/prefix/suffix matching now passes, exact composer remains composer evidence | E01 | reproduced compound-intake failure, corrected four-profile/input tests, full451 and controller108 PASS | DONE | PASS/PASS/N/N | Retain compound-input regressions; subjective recommendation approval remains C03 |
-| G06 | Native scheduling cannot claim success without authorization; verify actual pending requests | Actual simulator exposed empty pending queue after reported success; native authorization guard now returns permission_denied; simulator-only readback added | G01,G04 | native unauthorized test PASS at not-determined; authorized replace/cancel SKIP | IN_PROGRESS | PASS/PARTIAL/PARTIAL/N | Authorize simulator/device and rerun explicit IN_C_SIMULATOR_QA branch; do not count skip as success |
+| G06 | Native scheduling cannot claim success without authorization; verify actual pending requests | Not-determined refusal and real provisional authorization both verified; isolated simulator-only QA hooks do not change production permission behavior | G01,G04 | actual pending replace/cancel plus foreground delivery PASS, no authorized-branch SKIP in this run | IN_PROGRESS | PASS/PASS/PARTIAL/N | Full user permission/denial and physical-device behavior remain separate |
 | E04 | Review and correct/unlink legacy taste associations without losing raw input or listening history | My Music connection list/editor, provenance and monotonic per-item revision; equal-time unlink wins; corrected same-day pick retains music but withdraws old rationale | E03,L02 | legacy fixture, explicit selection/unlink, stale/tied/three-way merge, failed-write retry, next-day behavior, 320px/1.6 UI and native reload | DONE | PASS/PASS/PARTIAL/N | Physical usability/user trust remains C03/I02; no silent legacy rewrite |
 | P03 | Inspect/copy personal records and explicitly erase in C data without Clef damage or backup resurrection | JSON surface, confirmation, cancellation-before-erase, persisted erase intent, per-key serialization and reset epoch; late notification navigation rejected | L01,L02,P01 | 10 data-control tests, 320px/1.6 confirmation/cancel, native isolated deletion/reload, previous-snapshot merge | DONE | PASS/PASS/PARTIAL/N | OS/external backups and actual notification authorization remain explicit limits |
 
 ## Verification Commands
+
+2026-09-14 closeout: Next Three and intake now require an actual input/work/preference
+connection; difficulty alone cannot imply a taste match. Stretch additionally names a changed
+composer/period/ensemble. Unconnected fallback slots are open_start, displayed separately.
+Draft input and automatic broad symphony wording remain separate from saved taste and displayed
+work anchors. No self-anchor/duplicate slot fill. Work-detail/map paths use the same contract.
+Small-screen 320px/1.4 text check PASS; source-backed Chopin opening guide narrowed to melody
+over left-hand accompaniment, without recording/timing approval. Full584/analyze/format/diff
+PASS before checkpoint packaging; see current evidence for final native results.
+Required39 remains DONE11/IN_PROGRESS26/NOT_VERIFIED2. Next: first30 recording/window review,
+actual notification taps/VoiceOver and founder quality evidence. Stop new implementation here
+per user request and commit/push/merge only the in C checkpoint.
+
+Latest E01/A04/B01 continuation: intake preview deduplicates works, including a one-work
+pool, and scores/explains the draft inputs without rewriting saved taste. Explicit composer
+plus fugue input prefers an actual fugue, not merely any piece by the same composer.
+Targeted3/full577/analyze/format/diff PASS; native/device/value evidence remains separate.
+Next: independently audit Next Three lane distances and map recommendations; do not infer
+those contracts from dedupe or nonmutation. Required39 counts unchanged. Prior checkpoint
+commit/push permission below does not authorize further commit/push in this continuation.
+
+Latest checkpoint: day-five gentle expansion requires a known bridge, with close/open-start
+fallback and explicit instrument/mood reasons. Scoped12/full574/analyze/format/diff and
+iOS no-codesign build (26.0MB) PASS; see Day-Five Expansion Bridge Checkpoint evidence.
+Required39 stays DONE11/IN_PROGRESS26/NOT_VERIFIED2. Older counts below are historical.
+User now authorizes checkpoint commit/push only, not merge/deploy/identity changes.
+
+Latest L02 reaction revision checks: targeted2/full573/analyze/format PASS.
+Equal/backwards-clock edits preserve the final reaction, original listening time and saved
+state across stale/repeated merges and reload. Earlier approval-capacity rejections were
+followed by successful execution on continuation. No remote/device/human approval or
+whole-row completion is implied. Logs: /private/tmp/in-c-reaction-revision-{check,full,analyze}.log.
+
+Latest K01/P01 follow-up separates full-listening approval from explicit preview approval.
+Direct-only URLs cannot enable preview; actual available-player widget tests cover both
+states. Full571/controller110/analyze PASS. BWV1007 now has observed official browser
+playback/video progression, but no auditory/region/iOS/musical-window approval; no seed
+link was promoted. See Provider Playback And Preview Approval Audit in current evidence.
+
+Latest B02/A03 follow-up: a null work anchor no longer makes every candidate close.
+Composer-only/unknown sparse-catalog regressions distinguish an actual composer bridge
+from open_start; candidate availability is tested separately from distance labels.
+Full569/analyze and isolated native regression PASS. No existing pin migration or human
+approval implied; see the Composer-Only Bridge Audit in the current evidence document.
+
+Latest continuation evidence: [2026-09-14 execution](../quality/in-c-expanded-v1-evidence-2026-09-14.md).
+Required39: DONE11 / IN_PROGRESS26 / NOT_VERIFIED2; TODO/READY/BLOCKED0.
+No whole-row completion is inferred from the latest narrow fixes. All historical permissions
+to push/merge below belonged to earlier requests; this run has no such permission.
 
 - From app: dart format <changed Dart files>
 - flutter test test/classical_discovery_controller_test.dart

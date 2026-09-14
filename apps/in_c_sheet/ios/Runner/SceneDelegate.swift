@@ -7,6 +7,9 @@ class SceneDelegate: FlutterSceneDelegate {
     willConnectTo session: UISceneSession,
     options connectionOptions: UIScene.ConnectionOptions
   ) {
+    if let response = connectionOptions.notificationResponse {
+      InCDailyNotificationBridge.shared.handleNotificationResponse(response)
+    }
     ClefSharedImportBridge.shared.handle(urlContexts: connectionOptions.urlContexts)
     super.scene(scene, willConnectTo: session, options: connectionOptions)
   }

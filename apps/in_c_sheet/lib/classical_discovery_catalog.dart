@@ -421,7 +421,7 @@ class ClassicalDiscoveryCatalog {
       aliases: ['쇼팽 녹턴', 'Nocturne Op.9 No.2'],
       moodTags: ['로맨틱한', '밤', '선율'],
       contextTags: ['밤', '피아노', '처음 듣기'],
-      prompt: '멜로디가 말하듯 조금씩 늦춰지고 당겨지는 느낌을 들어보세요.',
+      prompt: '왼손의 반복되는 반주 위로 오른손 선율이 어떻게 이어지는지 들어보세요.',
       relatedWorkIds: ['debussy-clair-de-lune', 'beethoven-moonlight'],
       concertIds: ['concert-piano-evening'],
     ),
@@ -916,6 +916,7 @@ class ClassicalDiscoveryCatalog {
     ),
     _work(
       id: 'purcell-dido-lament',
+      isOperaticVocal: true,
       titleKo: '디도의 탄식',
       titleOriginal: 'Dido and Aeneas: When I am laid in earth',
       composerId: 'purcell',
@@ -970,6 +971,7 @@ class ClassicalDiscoveryCatalog {
     ),
     _work(
       id: 'bizet-carmen-habanera',
+      isOperaticVocal: true,
       titleKo: '카르멘: 하바네라',
       titleOriginal: 'Carmen: Habanera',
       composerId: 'bizet',
@@ -988,6 +990,7 @@ class ClassicalDiscoveryCatalog {
     ),
     _work(
       id: 'bizet-carmen-toreador',
+      isOperaticVocal: true,
       titleKo: '카르멘: 투우사의 노래',
       titleOriginal: 'Carmen: Toreador Song',
       composerId: 'bizet',
@@ -1006,6 +1009,7 @@ class ClassicalDiscoveryCatalog {
     ),
     _work(
       id: 'puccini-nessun-dorma',
+      isOperaticVocal: true,
       titleKo: '투란도트: 공주는 잠 못 이루고',
       titleOriginal: 'Turandot: Nessun dorma',
       composerId: 'puccini',
@@ -1024,6 +1028,7 @@ class ClassicalDiscoveryCatalog {
     ),
     _work(
       id: 'verdi-la-donna-mobile',
+      isOperaticVocal: true,
       titleKo: '리골레토: 여자의 마음',
       titleOriginal: 'Rigoletto: La donna e mobile',
       composerId: 'verdi',
@@ -1240,6 +1245,25 @@ class ClassicalDiscoveryCatalog {
       prompt: '느리게 걷는 리듬이 슬픔보다 오래된 기억처럼 들리는지 들어보세요.',
       relatedWorkIds: ['faure-pavane', 'debussy-clair-de-lune'],
       concertIds: const [],
+    ),
+    _work(
+      id: 'bach-little-fugue-bwv578',
+      titleKo: '작은 푸가 사단조',
+      titleOriginal: "Fugue in G minor 'Little'",
+      composerId: 'bach',
+      composerKo: '바흐',
+      composerOriginal: 'Johann Sebastian Bach',
+      period: '바로크',
+      instrumentation: '오르간',
+      durationSeconds: 240,
+      catalogNumber: 'BWV 578',
+      aliases: ['작은 푸가', '소푸가', 'Little Fugue', 'BWV578'],
+      moodTags: ['선율', '명료한', '반복'],
+      contextTags: ['집중', '처음 듣기', '독주'],
+      prompt: '처음 나온 긴 선율을 기억해 보세요. 다른 성부가 같은 주제로 들어오는 순간을 찾아봅니다.',
+      relatedWorkIds: ['bach-air', 'pachelbel-canon'],
+      concertIds: const [],
+      catalogStatusTags: const ['duration_estimated'],
     ),
     ..._scarlattiBackfillWorks(),
   ]);
@@ -1458,6 +1482,7 @@ ClassicalWork _work({
   required List<String> relatedWorkIds,
   required List<String> concertIds,
   List<String> catalogStatusTags = const <String>[],
+  bool isOperaticVocal = false,
 }) {
   final searchQuery = _searchQueryForWork(
     titleKo: titleKo,
@@ -1488,6 +1513,7 @@ ClassicalWork _work({
     ],
     moodTags: moodTags,
     contextTags: contextTags,
+    isOperaticVocal: isOperaticVocal,
     difficultyForListening: contextTags.contains('처음 듣기') ? 1 : 2,
     aliases: aliases,
     listeningMoments: <ListeningMoment>[
