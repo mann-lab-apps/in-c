@@ -8681,10 +8681,14 @@ setlist=$setlistLabel
       _showSnackBar('PDF 페이지 수를 확인한 뒤 CSV 북마크를 가져올 수 있습니다.');
       return;
     }
+    final libraryId = widget.controller.activeLibraryProfile.id;
     final addedCount = await widget.controller.importBookmarksFromCsv(
       score,
       pageCount: pageCount,
     );
+    if (!mounted || widget.controller.activeLibraryProfile.id != libraryId) {
+      return;
+    }
     final errorMessage = widget.controller.errorMessage;
     if (errorMessage != null) {
       _showSnackBar(errorMessage);

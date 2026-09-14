@@ -1840,26 +1840,51 @@ class SheetLibraryController extends ChangeNotifier {
     required int pageCount,
   }) async {
     _errorMessage = null;
-    try {
-      final importedBookmarks = await store.importBookmarkCsv(
-        pageCount: pageCount,
-      );
-      if (importedBookmarks.isEmpty) {
-        return 0;
+    final libraryId = _activeLibraryProfile.id;
+    void reportFailure(String message) {
+      if (_activeLibraryProfile.id == libraryId) {
+        _errorMessage = message;
+        notifyListeners();
       }
-      final currentScore = scoreById(score.id);
-      final beforeCount = currentScore.bookmarks.length;
+    }
+
+    final List<SheetBookmark> importedBookmarks;
+    try {
+      importedBookmarks = await store.importBookmarkCsv(pageCount: pageCount);
+    } catch (error) {
+      reportFailure(
+        error is FormatException
+            ? 'CSV 북마크를 가져오지 못했습니다. page,label 형식인지 확인해주세요.'
+            : 'CSV 북마크를 읽지 못했습니다. 파일을 기기에 내려받은 뒤 다시 시도해주세요.',
+      );
+      return 0;
+    }
+    if (_activeLibraryProfile.id != libraryId || importedBookmarks.isEmpty) {
+      return 0;
+    }
+    final currentScore = scoreByIdOrNull(score.id);
+    if (currentScore == null) {
+      reportFailure('악보가 없어 북마크를 추가하지 못했습니다.');
+      return 0;
+    }
+    final beforeCount = currentScore.bookmarks.length;
+    try {
       final didMerge = await mergeBookmarksFromOutline(
         currentScore,
         importedBookmarks,
       );
-      if (!didMerge) {
+      if (!didMerge || _activeLibraryProfile.id != libraryId) {
         return 0;
       }
-      return scoreById(score.id).bookmarks.length - beforeCount;
+      final savedScore = scoreByIdOrNull(score.id);
+      if (savedScore == null) {
+        reportFailure('악보가 없어 북마크를 추가하지 못했습니다.');
+        return 0;
+      }
+      final addedCount = savedScore.bookmarks.length - beforeCount;
+      return addedCount > 0 ? addedCount : 0;
     } catch (_) {
-      _errorMessage = 'CSV 북마크를 가져오지 못했습니다. page,label 형식인지 확인해주세요.';
-      notifyListeners();
+      reportFailure('북마크를 저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해주세요.');
       return 0;
     }
   }

@@ -42,6 +42,8 @@
 
 | S28 | Startup cleanup write failure claims the whole library cannot be read despite usable loaded scores. | Distinguish cleanup persistence failure from read failure; retain filtered usable references, warn and retry on next load; do not warn over newer list/profile state. | Seven new cases, three initial red regressions; complete full suite 799/799, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S29 | CSV picker completion may edit a same-ID score in another library; all failures blame CSV format. | Reject results/errors from another library, preserve edits made during selection, distinguish missing score/read/format/persistence failures and retry safely. | Eight new controller cases; five initial red failures, targeted 88/88, full 807/807, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -188,6 +190,16 @@ Temporary evidence: `/private/tmp/clef-cleanup-red.log`, `/private/tmp/clef-rc-s
 Commit subject: `fix: distinguish Clef cleanup persistence failures`.
 Next: CSV bookmark import conflates metadata save errors with file format errors;
 songbook setlist creation still needs guarded save/lifecycle UI coverage.
+
+S28 commit: `2a503a6`. S29 reproduced cross-library CSV bookmark application and incorrect
+failure messages. Capture the picker origin library, merge against current score state and
+ignore old-profile results/errors. The viewer suppresses feedback after closure/profile switch.
+Storage errors retain existing save recovery; cancellation and duplicate pages stay harmless.
+Eight new controller cases pass with existing controller tests (88/88); full suite 807/807,
+analyze/RC and whitespace scans PASS. Temporary evidence: `/private/tmp/clef-csv-recovery-red.log`,
+`/private/tmp/clef-rc-s29.log`. Commit subject: `fix: guard Clef CSV bookmark import outcomes`.
+This covers picker delay, not every store-write/profile-switch interleaving. No native picker
+or newest-build emulator claim. Next: full RC, then songbook setlist action or delayed save scope.
 
 ## Verification Policy
 
