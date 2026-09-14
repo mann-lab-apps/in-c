@@ -46,6 +46,8 @@
 
 | S30 | Delayed successful score/setlist/cleanup saves resolve the newly active library instead of their origin. | Pass captured library ID through owned score/setlist saves and startup cleanup; preserve existing rollback queue and backup scope. | Five red/green delay tests plus four explicit-target rollback/backup cases; targeted 61/61 and store 119/119, full 816/816, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S31 | Songbook-to-setlist creation/addition leaks save failures and continues after viewer exit. | Preserve created score entries, report partial failure with retry, reuse existing collection and stop later stages/feedback after route/profile change. | Five initial widget failures; 15 actual-action harness tests, full 831/831, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -214,6 +216,20 @@ analyze/RC and whitespace scans PASS. Temporary evidence: `/private/tmp/clef-sav
 Commit subject: `fix: scope Clef delayed metadata saves to their origin`.
 This does not establish safety for overlapping full loads or removing the source profile
 while a save is pending. Next: songbook setlist action save failure and retry UX.
+
+S30 commit: `59df68b`. S31 isolates the existing viewer songbook-setlist action into a
+testable function used by the viewer, without changing successful membership/order behavior.
+Five initial widget failures reproduced unhandled creation/add errors and continued work
+after exit. Both stages now have failure feedback with explicit retry and route/profile guards.
+Fifteen widget cases pass, including existing-list reuse and actual detail navigation.
+These exercise the shared action, not native PDF rendering or the split-menu gesture.
+Score splitting itself, profile deletion during writes and overlapping library loads remain
+separate candidate gaps. Initial RC rejected three async-context lint findings; explicit
+mounted checks fixed them. Final full suite 831/831, analyze/RC and whitespace scans PASS.
+Temporary evidence: `/private/tmp/clef-songbook-feedback-red.log`,
+`/private/tmp/clef-songbook-feedback-green.log`, `/private/tmp/clef-rc-s31-final.log`.
+Commit subject: `fix: recover Clef songbook setlist actions`.
+No build/version change/push/merge. Next: split-score save recovery and failure feedback.
 
 ## Verification Policy
 

@@ -4195,6 +4195,91 @@ Future<T?> _trySetlistSave<T>(
   }
 }
 
+@visibleForTesting
+Future<void> createSongbookSetlist(
+  BuildContext context,
+  SheetLibraryController controller, {
+  required String title,
+  required List<SheetScore> scores,
+}) async {
+  if (scores.isEmpty || !context.mounted) return;
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() =>
+      context.mounted &&
+      controller.activeLibraryProfile.id == libraryId &&
+      (route == null || route.isCurrent);
+  if (!canContinue()) return;
+  final SheetSetlist setlist;
+  final SheetSetlistBulkAddResult result;
+  try {
+    final existing = controller.setlistByTitleOrNull(title);
+    setlist = existing ?? await controller.createSetlist(title);
+    if (!canContinue()) return;
+    result = await controller.addScoresToSetlist(setlist, scores);
+  } catch (_) {
+    if (context.mounted && canContinue()) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('곡 항목은 유지되지만 세트리스트에 담지 못했습니다.'),
+            action: SnackBarAction(
+              label: '다시 시도',
+              onPressed: () {
+                if (!canContinue()) return;
+                unawaited(
+                  createSongbookSetlist(
+                    context,
+                    controller,
+                    title: title,
+                    scores: scores,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+    }
+    return;
+  }
+  if (!context.mounted || !canContinue()) return;
+  if (_showSetlistAddFailure(context, result)) return;
+  final target = controller.setlistByIdOrNull(setlist.id) ?? setlist;
+  final skippedSuffix = result.skippedDuplicateCount > 0
+      ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+      : '';
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(
+          result.didAddAny
+              ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.${_setlistMissingScoreSuffix(result)}'
+              : '"${target.title}"에 이미 모두 담겨 있습니다.',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (!canContinue()) return;
+            unawaited(
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (context) => SheetSetlistDetailScreen(
+                    controller: controller,
+                    setlistId: target.id,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+}
+
 bool _showSetlistAddFailure(
   BuildContext context,
   SheetSetlistBulkAddResult result,
@@ -8738,40 +8823,12 @@ setlist=$setlistLabel
   }
 
   Future<void> _createSetlistFromSongbookScores(List<SheetScore> scores) async {
-    if (scores.isEmpty) {
-      return;
-    }
-    final title = '${score.displayTitle} 곡 모음';
-    final existing = widget.controller.setlistByTitleOrNull(title);
-    final setlist = existing ?? await widget.controller.createSetlist(title);
-    final result = await widget.controller.addScoresToSetlist(setlist, scores);
-    if (!mounted) {
-      return;
-    }
-    if (_showSetlistAddFailure(context, result)) return;
-    final target = widget.controller.setlistByIdOrNull(setlist.id) ?? setlist;
-    final skippedSuffix = result.skippedDuplicateCount > 0
-        ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
-        : '';
-    _showSnackBar(
-      result.didAddAny
-          ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.${_setlistMissingScoreSuffix(result)}'
-          : '"${target.title}"에 이미 모두 담겨 있습니다.',
-      action: SnackBarAction(
-        label: '열기',
-        onPressed: () {
-          unawaited(
-            Navigator.of(context).push<void>(
-              MaterialPageRoute<void>(
-                builder: (context) => SheetSetlistDetailScreen(
-                  controller: widget.controller,
-                  setlistId: target.id,
-                ),
-              ),
-            ),
-          );
-        },
-      ),
+    if (!mounted) return;
+    await createSongbookSetlist(
+      context,
+      widget.controller,
+      title: '${score.displayTitle} 곡 모음',
+      scores: scores,
     );
   }
 
