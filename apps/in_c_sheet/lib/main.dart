@@ -195,19 +195,21 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted || input == null) {
       return;
     }
-    final changedCount = await controller.bulkEditScores(
-      Set<String>.of(_bulkSelectedScoreIds),
-      addTags: input.addTags,
-      removeTags: input.removeTags,
-      composer: input.composer,
-      collection: input.collection,
-      group: input.group,
-      rating: input.rating,
-      isFavorite: input.isFavorite,
-      isPinned: input.isPinned,
-      customFields: input.customFields,
+    final changedCount = await _saveBulkChanges(
+      () => controller.bulkEditScores(
+        Set<String>.of(_bulkSelectedScoreIds),
+        addTags: input.addTags,
+        removeTags: input.removeTags,
+        composer: input.composer,
+        collection: input.collection,
+        group: input.group,
+        rating: input.rating,
+        isFavorite: input.isFavorite,
+        isPinned: input.isPinned,
+        customFields: input.customFields,
+      ),
     );
-    if (!mounted) {
+    if (!mounted || changedCount == null) {
       return;
     }
     setState(() {
@@ -279,11 +281,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final changedCount = await controller.bulkEditScores(
-      Set<String>.of(_bulkSelectedScoreIds),
-      collection: collection,
+    final changedCount = await _saveBulkChanges(
+      () => controller.bulkEditScores(
+        Set<String>.of(_bulkSelectedScoreIds),
+        collection: collection,
+      ),
     );
-    if (!mounted) {
+    if (!mounted || changedCount == null) {
       return;
     }
     setState(() {
@@ -301,6 +305,19 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ),
       ),
     );
+  }
+
+  Future<int?> _saveBulkChanges(Future<int> Function() save) async {
+    try {
+      return await save();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('선택한 악보의 변경사항을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return null;
+    }
   }
 
   Future<void> _deleteBulkScores() async {

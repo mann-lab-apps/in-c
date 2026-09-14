@@ -31,7 +31,8 @@
 | R1 | Installed Clef package differed from the source Android package. | Keep Clef separate from in C and retain its update identity. | User confirmed Clef & Staff is the renamed Clef, not in C. Restored `com.mannlab.clef` in the Clef worktree only; signing guard rejects missing/debug keys and accepts the recorded upload key. | VERIFIED LOCAL: configuration/signing; new app build and Play code availability remain unverified |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 | Q2 | RC exit-code-only checks can accept an interrupted Flutter run. | Require valid JSON start/test completion/final success, zero process exit and at least one executed non-hidden test; reject errors even after test completion. | Eight false-success regressions reproduced in the extracted old predicate. Twelve fixtures plus actual Flutter file-reporter integration pass. Full suite 642/642, analyze/RC PASS. | VERIFIED LOCAL |
-| S20 | Bulk edits and setlist/import writes still bypass controller recovery. | Reproduce failure retaining unsaved state, then recover persisted data only while the failing request owns the current library/list; preserve newer mutations. | Existing S18 score recovery tests are the reference; investigate each write surface separately. | TODO |
+| S20 | Bulk metadata/collection saves retain failed edits in memory and leak errors from selection UI. | Recover persisted scores only while the request owns the current list/profile; preserve selection on failure, no success notice, allow retry, ignore closed UI. No-op bulk calls must not invalidate pending recovery. | Six regression failures reproduced before fix. Fourteen new unit/widget cases plus S18 recovery regression; full suite 656/656, analyze/RC PASS. | VERIFIED LOCAL |
+| S21 | Setlist/import writes still bypass controller recovery. | Investigate and reproduce each surface separately; preserve newer state and propagate save failures to actionable UI. | S18/S20 are the recovery reference. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -52,6 +53,22 @@
   for this tooling-only change. Commit subject: `fix: require complete Clef RC test evidence`.
 - Next: reproduce S20 bulk edit failure in controller and actual selection UI; preserve
   selection for retry and do not report success after failed persistence.
+
+S20 implementation: extracted existing S18 persistence/recovery body into `_saveScoreChanges`
+and reused it for bulk editing only. Nonmatching bulk selection leaves list identity intact.
+Both UI entry points catch failure, retain selection and avoid success messages. No guarantee
+is made if recovery reads fail or the process terminates. Import/setlist writes remain S21.
+Targeted baseline: six failures including optimistic-state retention and unhandled widget errors;
+after fix, bulk plus existing S18 tests passed. One intermediate patch targeted the similarly named
+collection-rename block and failed compilation; corrected before passing tests, with no retained
+change to collection rename. Extended race/closed-widget cases pass. Full suite 656/656,
+analyze, JSON completion gate, RC and diff whitespace checks PASS (`/private/tmp/clef-rc-s20.log`).
+Formatter changed only the new test file; reviewed source diff remains scoped to bulk and the
+shared S18 helper. No new installed-app evidence. New internal-test build will be needed after
+runtime changes; version remains 21 and no build/push/merge was performed.
+Commit subject: `fix: recover Clef bulk edits after save failures`.
+Next: inspect imported-score failure recovery across single/batch/image/share entry points;
+setlist persistence recovery remains a separate S21 follow-up.
 
 ## Verification Policy
 

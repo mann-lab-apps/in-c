@@ -2536,7 +2536,7 @@ class SheetLibraryController extends ChangeNotifier {
         .toSet();
     var changedCount = 0;
     final now = DateTime.now();
-    _scores = _scores
+    final updatedScores = _scores
         .map((score) {
           if (!scoreIds.contains(score.id)) {
             return score;
@@ -2588,8 +2588,8 @@ class SheetLibraryController extends ChangeNotifier {
         })
         .toList(growable: false);
     if (changedCount > 0) {
-      await store.saveScores(_scores);
-      notifyListeners();
+      _scores = updatedScores;
+      await _saveScoreChanges();
     }
     return changedCount;
   }
@@ -2898,6 +2898,10 @@ class SheetLibraryController extends ChangeNotifier {
     _scores = _scores
         .map((score) => score.id == updated.id ? updated : score)
         .toList(growable: false);
+    await _saveScoreChanges();
+  }
+
+  Future<void> _saveScoreChanges() async {
     final pendingScores = _scores;
     final libraryId = _activeLibraryProfile.id;
     try {

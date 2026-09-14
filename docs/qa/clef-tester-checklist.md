@@ -189,6 +189,10 @@
 
 ## Known Issues
 
+- 일괄 정보 편집/컬렉션 지정의 저장 실패는 성공 안내 대신 오류를 표시하고 선택을 유지해야 한다.
+  저장된 목록으로 복구를 시도하되, 읽기도 실패하면 데이터 보존을 보장하지 않는다.
+  지연 실패 뒤 재시도, 창 종료, 새 편집/라이브러리 전환은 로컬 회귀 범위이며 기기 저장소 QA는 별도다.
+
 - 튜너의 synthetic sine/noise/time-series/pitch history 테스트는 통과했다. v1 UI는 Chromatic-only 첫 화면,
   세부 설정 접힘, 확대된 pitch history chart, sharp/flat 표기, A4 440/441/442 quick action/history, A4 보정 제안, adaptive noise
   floor 1차, weak signal normalization, clipping penalty, 저음 3배음 guard, `자동`/`기존`/`정밀 후보`
