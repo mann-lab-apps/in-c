@@ -68,14 +68,9 @@ class SheetLibraryStore {
 
   Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
     final preferences = await SharedPreferences.getInstance();
-    final profiles = SheetLibraryProfileCodec.decode(
+    return SheetLibraryProfileCodec.decode(
       preferences.getString(_libraryProfilesKey),
     );
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(profiles),
-    );
-    return profiles;
   }
 
   Future<SheetLibraryProfile> loadActiveLibraryProfile() async {

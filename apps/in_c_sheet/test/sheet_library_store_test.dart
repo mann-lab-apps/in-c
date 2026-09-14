@@ -404,6 +404,47 @@ void main() {
     }
   }
 
+  for (final raw in <String?>[
+    null,
+    'not valid JSON',
+    '[{"id":"named","name":"Concert","futureField":{"keep":true}}]',
+  ]) {
+    test('profile reads preserve raw storage: $raw', () async {
+      SharedPreferences.setMockInitialValues({'clef_library_profiles': ?raw});
+      final preferences = await SharedPreferences.getInstance();
+      final store = SheetLibraryStore();
+      final profiles = await store.loadLibraryProfiles();
+      expect(profiles.first.isDefault, isTrue);
+      expect(
+        profiles.any((p) => p.id == 'named'),
+        raw?.contains('named') ?? false,
+      );
+      await store.loadActiveLibraryProfile();
+      await store.loadScores();
+      expect(preferences.getString('clef_library_profiles'), raw);
+      await preferences.reload();
+      expect(preferences.getString('clef_library_profiles'), raw);
+    });
+  }
+
+  test(
+    'reading existing scores does not depend on profile index writes',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 14));
+      await store.saveScores([original]);
+      final before = await platform.getAll();
+      platform.failureKey = 'flutter.clef_library_profiles';
+      platform.throwOnFailure = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.errorMessage, isNull);
+      expect(controller.scores.single.toJson(), original.toJson());
+      expect(await platform.getAll(), before);
+    },
+  );
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(

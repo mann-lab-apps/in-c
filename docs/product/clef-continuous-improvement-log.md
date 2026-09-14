@@ -52,6 +52,8 @@
 
 | S33 | Late PDF/batch/image/shared import may enter a newly active library or report stale results/errors there. | Check origin after file processing and persistence; stop uncommitted results after switch, preserve already-started original-library saves and suppress stale UI outcomes. | Sixteen initial red cases, eighteen new cases including real home-menu widget paths; targeted 47/47, full 862/862, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S34 | Profile reads rewrite raw JSON and can prevent opening scores when that unnecessary write fails. | Read without persistence; retain in-memory default normalization and explicit profile mutations. Missing/malformed/future-field raw values remain unchanged on reads. | Four initial red cases; store suite 123/123, full 866/866, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -264,6 +266,16 @@ are not cleaned or claimed transactional; source/created files are preserved.
 Next: profile-list reads rewrite stored JSON and depend on a successful write; reproduce
 read-only load failure/raw data replacement. Other candidates: overlapping library loads,
 source-profile removal during saves and remaining guarded viewer command failures.
+
+S33 commit: `a62620f`. S34 removes only the profile-index write from
+`loadLibraryProfiles`. Four regressions first reproduced raw-value replacement and failed
+score loading, then passed with all 123 store tests. Explicit create/rename/delete behavior
+is unchanged; unknown fields are preserved on reads, not guaranteed across mutations.
+Evidence: `/private/tmp/clef-profile-read-red.log`, `/private/tmp/clef-profile-read-green.log`.
+Initial RC found one null-aware-elements lint in the test; corrected and rerun.
+Full 866/866, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s34-final.log`).
+Commit subject: `fix: keep Clef profile reads free of writes`.
+No build/version change/push/merge. Next: reproduce partial library-clear persistence failures.
 
 ## Verification Policy
 
