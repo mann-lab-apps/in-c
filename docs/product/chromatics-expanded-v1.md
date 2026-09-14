@@ -9,6 +9,19 @@ MusicXML/MXL interchange is retained. A first native open/save/Save As slice is
 implemented as of 2026-09-13; see [Native format](chromatics-native-project-format.md)
 for its precise acceptance and remaining work. No RC or feature-complete claim is made.
 
+2026-09-14 latest: native v4 adds musical segment geometry and v1/v2/v3 migration.
+Selection/local reset/whole inheritance, App part history and actual four-system,
+two-page output have first evidence; changed boundaries do not retarget overrides.
+Inactive-state UX, structural editing and broader collision contracts remain.
+
+2026-09-14 checkpoint: native v3 preserves independent slur/hairpin part placement,
+with v1/v2 migration including legacy autosave. Part edits preserve full-score
+geometry; automatic reset and relink are distinct undoable commands. Actual
+renderer/PDF and portable reopen evidence covers this subset. Multi-system
+segment adjustment and whole Required contracts remain. Shared screen/print
+annotation extents fix the reproduced rich Piano staff-text/clef overlap;
+extreme ledger/manual collision handling still requires implementation.
+
 ## Reference Audit
 
 Checked 2026-09-12 against the live MuseScore Studio handbook. The installed

@@ -1556,6 +1556,385 @@ the user's stop request. Git integration is separately authorized.
   started after the user's stop request.
 - This is a push/merge checkpoint, not expanded V1 or public RC signoff.
 
+## 2026-09-14 Native Autosave Migration
+
+- Base: merged PR #754 / `ff6c9c2`; fresh isolated worktree. PR checks re-read:
+  test, site build, macOS/Linux/Windows packages passed on `576d52f`. They are
+  not verification of this uncommitted change.
+- Failure-first disk tests: four failures / two passes. V1 was rejected by the
+  outer v2 schema before migration; broken/future/invalid recovery files were
+  overwritten by subsequent writes. Changed validation order and protected
+  existing files during serialized write/clear. Focused schema/store: 19 passed.
+- Four new App tests initially failed (missing retry/error/action). After the
+  implementation, fixed test expectations for JSON's omission of undefined and
+  selected the File mode before querying its command. Four focused tests passed;
+  typecheck passed after replacing an invalid test-only role option/null value.
+- Startup/discard races and unclaimed-recovery native/XML cleanup regressions
+  pass. Two old immediate-loading assertions failed in the first full run
+  (613 passed, 2 failed, 1 skipped); changed them to await actual recovery-read
+  completion, then 617 passed / 1 skipped. Current part-selection additions need
+  the subsequent full run recorded below.
+- Smoke now uses a private temporary userData profile, cleaned after child exit;
+  never reuses/clears the user's actual recovery/recent files. Real v1 disk data
+  migrates without source writes, restores portable Cello state through App,
+  saves as v2 and reopens. Fresh `package:dir` and `verify:package` pass on macOS
+  arm64, including `hasLegacyNativeRecovery:true` and visible-part context.
+- Screenshots `in-c-legacy-recovery-960.png` / `-1400.png` and actual migrated
+  `in-c-migrated-recovery.chromatics` are in the OS temp directory. Both dialog
+  screenshots were reviewed; bounds/click-target checks pass. The 960px File
+  row still needs broad overflow work, not covered by the dialog-only gate.
+- Screenshot review found Cello view with Violin I editing context. New rich
+  Piano native-open/recovery tests reproduced it; part-aware initialization
+  fixed it. Delete/save then exposed `Invalid project span endpoints` for a
+  replaced note. Rhythm transaction cleanup now preserves rest hairpins and
+  other parts, removes invalid/consumed endpoints, and restores markings with
+  undo/redo. Focused rhythm tests: 20 passed; App delete/save now passes.
+- `verify:site-content` first failed because the clean worktree lacked the site
+  build/download manifest; `site:build` then verifier passed. Queue gate passed
+  before the new child rows; rerun below covers the updated task inventory.
+- Renderer QA server: `http://127.0.0.1:5174/`. Offline dependencies installed;
+  Electron needed its explicit binary install. Failed renderer-only CLI attempts
+  were replaced with standalone Vite config. Electron harness supplies preload;
+  this is not a claim of browser-only native file support.
+- Reference: MuseScore Studio living handbook
+  [Opening and saving](https://handbook.musescore.org/file-management/opening-and-saving-scores),
+  checked 2026-09-14. Native save/open and separate copy paths inform the workflow;
+  Chromatics version migration is its own contract, not an observed MuseScore
+  migration guarantee. No new external GUI/manual signoff.
+
+Current recovery checkpoint gates (before independent part geometry): full suite
+620 passed / 1 skipped, 49 files passed / 1 skipped (109.26s); typecheck/build,
+fresh macOS package/smoke, actual Electron E2E and visual regression (84 tests,
+unchanged 960/1400 snapshots) pass. XML fixture 1 pass / 58 filtered skips; MIDI
+3 pass / 3 filtered skips; queue 52 rows / 16 umbrellas, not drained. These results
+belong to uncommitted changes on `ff6c9c2`, not a new CI commit or public RC.
+
+## 2026-09-14 Independent Part Geometry
+
+- Parent `CV1-X-SPAN-PROPERTIES` remains Partial. Two failure-first tests
+  reproduced missing part projection/schema. Native v3 now preserves validated,
+  part-owned slur/hairpin overrides; v1/v2 migrate without source mutation.
+  Missing/foreign/duplicate and invented legacy overrides reject.
+- App tests cover both kinds: modify, undo/redo, full-score isolation, native
+  save/reopen, explicit auto reset, relink to score, deletion/pruned snapshot and
+  undo restoration. Five targeted App tests pass; schema/store/rhythm 41 pass
+  before the added v2 disk case and retained part-layout regressions below.
+- `scripts/verify-part-span-geometry.cjs` first failed because the hidden-window
+  harness did not dispatch focusout to commit numeric drafts (zero edits). Used
+  the existing harness's separate input/focusout pattern; no renderer workaround.
+  Actual slur and hairpin bounding boxes move 30px for -1sp to +2sp. Full-score
+  serialized data stays identical. Native disk readback/reopen, reset/relink,
+  960/1400 SVG bounds and click targets, selected-P2-only PDF pass.
+- Artifacts in OS temp: `chromatics-part-span.chromatics`,
+  `chromatics-part-span-{960,1400}.png`, `chromatics-part-span.pdf`.
+  Both screenshots and the Poppler raster `/private/tmp/chromatics-part-span-pdf.png`
+  were reviewed. Staff text/labels collide with the upper clef and dense lower
+  annotations; that is a newly reproduced Required engraving task, not a visual
+  pass for the complete score. No human/native-dialog signoff is claimed.
+- Full suite first rerun: 621 pass / 1 failure / 1 skip (180.90s). Existing
+  instrument remove/re-add test hit its 5-second timeout; focused rerun passes
+  in 2.02s. A clean full rerun is still required; timeout was not relaxed.
+  Diff review also caught two existing part-layout tests accidentally replaced
+  during test-file editing; both are restored alongside the new cases.
+- Reference: MuseScore Studio living handbook
+  [Positioning of elements](https://handbook.musescore.org/formatting/positioning-of-elements),
+  checked 2026-09-14. It distinguishes automatic placement and manual staff-space
+  offsets; this is a reference contract, not observed GUI or geometry parity.
+
+Independent geometry checkpoint rerun: 625 tests passed / 1 skipped (111.47s),
+including retained legacy part-layout cases and v1/v2 disk migration. Fresh v3
+build/package and macOS smoke pass. No timeout relaxation or test removal.
+The [MuseScore parts handbook](https://handbook.musescore.org/basics/parts), checked
+2026-09-14, supports separating musical linkage from per-part position properties;
+Chromatics implements only the documented slur/hairpin subset here.
+
+## 2026-09-14 Quota Resumption And Stacked Clearance
+
+Explicitly resumed the dirty `feature/chromatics-expanded-v1-recovery-20260914`
+worktree on `ff6c9c2`. Goal lookup returned no goal, so a matching goal was
+registered. No Git integration or deployment. Existing Vite process on 5174 was
+found; no duplicate server started. Historical test session results were not
+recoverable and were not treated as current evidence.
+
+- Shared `resolveScoreVerticalLayout` reserves adjacent staff annotation extents,
+  includes interior hairpin measures and feeds renderer and print page estimates.
+  Four layout tests cover rich Piano clearance, long hairpins and quartet paging.
+  Text styles use text fonts without inherited SVG strokes. The score-wide maxima
+  are conservative; per-system manual/ledger collision handling remains Required.
+- Full rerun: 628 passed / 1 failed / 1 skipped (161.87s). The strict PDF target
+  App test timed out at 10 seconds while build/package ran. Its standalone rerun
+  passed in 3.38s (4.74s total). No timeout or acceptance criteria were relaxed;
+  a clean full rerun follows. This failure is not hidden by the focused pass.
+- The next full attempt failed all 143 App tests during setup (486 other tests
+  passed): `window.localStorage.clear is not a function`. The test helper treated
+  a truthy partial Node Storage object as usable. It now installs a fresh Map
+  storage per test instead of depending on host/global availability. This is
+  test isolation, not a production recovery change. Full rerun follows the fix.
+- Typecheck, build, fresh `package:dir` then `verify:package` pass on macOS arm64.
+  Expected original-file overwrite refusal remains a negative smoke assertion.
+  Visual regression: 84 tests and unchanged 960/1400 snapshots pass.
+- Current-build `verify-single-voice-mvp.cjs` and
+  `verify-part-span-geometry.cjs` run through project-local Electron. An initial
+  direct `electron` command failed PATH lookup; corrected to node_modules/.bin.
+  Part geometry gate passes: actual slur/hairpin move 30px, native disk reopen,
+  auto/reset/relink, adjacent annotation ink clearance, selected-P2-only PDF.
+- Re-rendered `$TMPDIR/chromatics-part-span.pdf` with Poppler to
+  `/private/tmp/chromatics-part-span-pdf.png` and reviewed it. The reproduced
+  staff-text/clef overlap is absent. Sparse fixture review is not human engraving
+  signoff or proof that extreme manual offsets are collision-free.
+- XML fixture, MIDI fixture, save-policy, queue (54 rows, 16 expanded umbrellas,
+  not drained) and site-content gates pass. Final diff check follows edits.
+- Next: stable musical segment anchors and local geometry editing, with history,
+  native migration, reflow isolation and actual renderer/PDF tests. Reference:
+  [MuseScore slurs and ties](https://handbook.musescore.org/notation/expressive-markings/slurs-and-ties),
+  living handbook checked 2026-09-14; its partial-slur appearance and placement
+  contracts inform the implementation, not a claim of observed GUI parity.
+
+Quota-resumption clean rerun after storage isolation: **629 passed / 1 skipped**,
+50 files passed / 1 skipped, 84.08 seconds. No timeout increase. This concludes
+the pre-segment checkpoint, not the subsequent native-v4 implementation gates.
+
+## 2026-09-14 Musical Span Segment Geometry
+
+- New failure-first segment tests: 3 failed because segment operations were
+  absent. Musical identity uses part/staff and first/last covered measure IDs,
+  not transient system indices. Exact boundary mismatch retains but does not
+  apply the override; removed anchors are pruned only in saved snapshots.
+- Native writer is now v4; v1/v2/v3 migrate without source changes. Strict
+  legacy rejection forbids new segment fields, including part overrides.
+  Current schema/store/editor/hairpin tests: 35 passed, including v3 part geometry.
+- Actual segment targets select a segment with keyboard/pointer; inspector
+  chooses whole object or a stored/selected segment. Local automatic reset and
+  whole-object inheritance are distinct. Part scope uses the existing portable
+  override/history path. App geometry tests: 5 pass (9.21s test time).
+- Intermediate failures: hairpin helper expectations needed the new rendering-
+  only systemIndex field; App reopen assertion used the wrong status text.
+  A build-concurrent old geometry test timed out at 5 seconds, then its async
+  tail polluted the next test's call count. Sequential focused rerun passes;
+  no timeout relaxation. Full final run is still required.
+- Electron harness initially assumed an eight-measure source; the existing
+  release QA fixture has four measures. Corrected setup checks the actual import
+  and four musical measures, forces four systems plus a page break. Both slur
+  and hairpin first segments move 30px while all other geometry remains identical.
+  Reset/inheritance, actual disk/native reopen, 960/1400 stable IDs and changed-
+  break nonapplication pass. Saved inactive overrides remain intact.
+- `$TMPDIR/chromatics-span-segments.chromatics` and
+  `chromatics-span-segments.pdf` are real artifacts. PDF is two A4 pages; Poppler
+  rasters `/private/tmp/chromatics-span-segments-{1,2}.png` were reviewed.
+  Review found continuation collisions with fermata/caesura and insufficient
+  inter-system reservation. These are NOT visual Pass; geometry movement proof
+  is separate. Continue collision work before closing the segment child.
+- No installer/native dialog/human engraving QA or RC approval is implied.
+
+Continuation clearance follow-up: layout failure-first reported -90px available
+gap; actual SVG ink checks identified fermata/caesura intersections. Shared
+vertical layout now reserves manual span geometry and next-system expression
+mark space. Continuation slurs use offsets outside VexFlow's origin+40..80 staff
+lines. Focused schema/layout/store tests: 42 pass; typecheck/build pass.
+Actual Electron reset/disk/reflow/PDF and expression-ink checks now pass. Both PDF
+pages were re-rendered and reviewed; reproduced intersections are absent.
+Other segments preserve staff-relative geometry, while following systems may
+move to reserve collision clearance. The harness distinguishes these contracts
+and compares final native reopen against the fully edited layout, not an earlier
+intermediate layout. This corrects an initial absolute-position reopen failure.
+
+Visual regression initially failed as expected: later slurs move +74px; SVG
+height changes 620->842 at 960 and 466->614 at 1400. First-system geometry,
+event count and widths are unchanged. Both screenshots reviewed before baseline
+update. This conservative score-wide reservation is not optimized per-system
+density, extreme ledger handling or a whole engraving signoff.
+
+### Inactive Segment And Structure Follow-up
+
+- Pre-inspector full run: 636 passed / 1 skipped (78.26s). This does not substitute
+  for the current follow-up full run. Results from interrupted package/E2E sessions
+  could not be recovered, so those gates are being rerun rather than assumed Pass.
+- `SpanProperties.test.tsx`: 2 pass. Actual renderer reports current boundaries;
+  inactive entries disable numeric editing but allow explicit override removal.
+  Unknown/mock renderer state is not falsely labeled active or inactive.
+- Actual Electron initially failed `Active segment status missing`: App compared
+  the callback's display Score against a separately projected print Score. Fixed
+  comparison to display Score. Fresh build/harness then passes active/inactive
+  status, geometry cleanup, undo/save and original-break reapplication, along with
+  the existing disk/two-page PDF/continuation checks and 960/1400 control hit bounds.
+- New focused App tests: 2 pass for slur/hairpin boundary deletion, score/part
+  snapshot pruning, save, undo/redo and reopen. Saving preserves live undo geometry.
+- `span-segments.test.ts`: 4 pass including ensemble insertion, part reordering,
+  stable musical ownership, portable part overrides and reverse undo.
+- Whole-suite/package gates remain in progress; no manual dialog/installer,
+  human engraving/physical device or RC signoff is claimed.
+
+### Native-v4 Gates And Range Paste Follow-up
+
+Before clipboard changes, full suite: 641 passed / 1 skipped (85.50s).
+Fresh macOS package/build smoke, visual regression, XML/MIDI fixtures,
+queue/save-policy/site-content/diff checks passed. E2E first failed when a
+concurrent visual build replaced out/renderer; standalone E2E then passed.
+Do not rebuild out while an Electron gate is reading it. No human/cross-OS signoff.
+
+Current range-paste work reproduced two failures: lost attached markings and
+dangling replaced span anchors. Shared rhythm/paste cleanup plus deep cloning
+passed 65 focused core/editor tests and typecheck. Full suite then passed
+**643 / 1 skipped** (100.48s), plus build, XML/MIDI fixture, queue/site/diff gates.
+An approval-service model-capacity error blocked App test/document edits and
+Electron reruns. No alternate write path was used. User interrupted a later
+attempt, then explicitly resumed; no surviving test process or partial patch.
+
+After approval-service recovery, new App paste/selection/marking/native-save,
+part-override pruning, undo/redo and reopen test: 1 pass (147 filtered).
+Actual latest GUI/package gates and the final updated suite still need completion.
+Reference: [MuseScore copy and paste](https://handbook.musescore.org/basics/copy-and-paste),
+living handbook checked 2026-09-14. Passage/marking reuse informs acceptance;
+no MuseScore GUI observation is claimed. Source span replication, independent
+object clipboard and measure/tick-level markings remain Required.
+
+### User-Requested Commit/Push Checkpoint
+
+User requested a development checkpoint commit/push and a continuation prompt,
+not merge, deployment or expanded-V1 completion. The isolated branch remains
+`feature/chromatics-expanded-v1-recovery-20260914`, originally based on ff6c9c2.
+The raw source-span copy implementation passes same-staff/cross-part endpoint
+and segment ownership tests. Its old cleanup expectation was updated to include
+the newly copied slur, while still requiring replaced-target span removal.
+Checkpoint validation: `npm test` **646 passed / 1 skipped**, 52 files passed /
+1 skipped (90.20s). `npm run build` (including typecheck), queue verifier
+(56 rows, 16 Required umbrellas, not drained), site-content and diff checks pass.
+This is local evidence, not CI or current GUI/package signoff.
+
+Remaining implementation: connect excludedSpanCount/excludedSegmentCount to UI
+feedback; copy effective independent-part geometry; audit partial-boundary,
+cross-document and repeated paste semantics. Current clipboard is still bounded
+to simple single-measure ranges. Independent object clipboard remains Required.
+Latest segment Electron/native/PDF/960/1400 inspector rerun passed before the
+source-span copying addition. Latest source-span GUI/package gates are Not run.
+Previous approval-service capacity failures are not product-test failures; no
+alternate file-edit path was used. The continuation prompt is versioned at
+`docs/product/chromatics-expanded-v1-continuation-prompt.md`.
+
+## 2026-09-14 Range Clipboard Continuation
+
+Base c105c7e, isolated recovery branch, no commit/push/merge/deploy authorized.
+Before changes: full suite 646 pass / 1 skip (85.15s), build/typecheck, E2E,
+visual regression, XML/MIDI fixtures, save-policy/queue/site/diff and fresh macOS
+unpacked package smoke passed. No GitHub Actions runs were returned for this branch.
+These baseline gates do not validate the following uncommitted implementation.
+
+Approval-service `Selected model is at capacity` repeatedly rejected test edits;
+Git status confirmed no partial application. A later retry succeeded. New App
+tests first failed on absent omission feedback (3 failures). App now builds the
+clipboard from the effective part projection, preserving object/null/inherit
+semantics at copy time, and reports excluded spans/segments after copy and paste.
+Expanded App tests: 6 pass (slur/hairpin x three policies), including part-to-score
+switch, original geometry preservation, native save/reopen and undo/redo. Existing
+range/selection/native safety focused set also passed before the six-case expansion.
+Editor-state: 48 pass, including fresh IDs and deep-clone isolation through source
+deletion and repeated paste into a different document. Unused sourceAddress metadata
+was removed; destination anchors derive from the selected target, not source lookup.
+
+`npm run verify:range-span-copy`: build/typecheck pass, Electron SIGABRT during
+macOS application registration. Elevated GUI retry rejected by approval capacity.
+The new harness therefore remains Not run past launch; it is not renderer/disk QA
+evidence yet. Same launch failure occurred in the baseline part-span harness;
+crash report: `~/Library/Logs/DiagnosticReports/Electron-2026-09-14-182631.ips`
+with `_RegisterApplication` / `NSApplication` frames, not a failed score assertion.
+No human dialogs/engraving/listening or RC signoff. Final current gates pending.
+
+Reference: [MuseScore copy and paste](https://handbook.musescore.org/basics/copy-and-paste)
+and [Parts](https://handbook.musescore.org/basics/parts), living handbook checked
+2026-09-14. Passage marking reuse and independent part properties inform these
+contracts; no new reference-app GUI observation. Partial/outside-span exclusions
+are an explicit current Chromatics boundary, not MuseScore parity completion.
+Next implementation audit: octave-line copying; broader independent-object and
+cross-measure clipboard remains Required.
+
+### Octave Range Copy Audit
+
+Four failure-first tests reproduced omitted octave lines and missing omission
+counts. The clipboard now captures contained 8va/8vb/15ma/15mb lines, remaps both
+endpoints and includes partial octave lines in the exclusion feedback. Native/XML
+reopen and performed-frequency equivalence are tested for all four types.
+Follow-up failure-first tests exposed double transposition when pasting between
+voices of the same staff. Exact existing type/interval is reused; conflicting or
+partially overlapping staff intervals reject the paste before mutation. The App
+failure message includes octave conflicts. General preexisting octave overlap and
+arbitrary rhythmic-anchor semantics remain Required, not solved by this guard.
+Focused editor/App run: 15 pass, covering six part-geometry cases with octave
+preservation, four octave types, three overlap cases and clipboard isolation.
+`node --check scripts/verify-range-span-copy.cjs` and `git diff --check`: pass.
+Current full-suite and actual GUI gates are still pending.
+
+### Range Clipboard Final Automation
+
+Current uncommitted production code: `npm test` 660 pass / 1 skip (86.47s).
+The subsequent test-only distinct part-segment fixture refinement passes all six
+App cases (7.11s); production code is unchanged. Build/typecheck, `verify:e2e`,
+`verify:visual-regression` (84 unit tests plus unchanged 960/1400 snapshots),
+`verify:musicxml-fixtures` (1 pass / 58 filtered) and `verify:midi-fixtures`
+(3 pass / 3 filtered) pass. Fresh `package:dir` and `verify:package` pass on
+macOS arm64; expected original-path export refusal is exercised by the smoke.
+The package command result lost during context transition was rerun after no
+builder process remained; the rerun result, not the lost result, is the evidence.
+
+The initial sandbox/approval failures above remain recorded. An approved local
+`env -u ELECTRON_RUN_AS_NODE node_modules/.bin/electron scripts/verify-range-span-copy.cjs`
+rerun passes six object/automatic/inherit cases at 960/1400px. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-ddT9TQ`.
+Each case writes source/pasted/undo/redo/reopened native files and a PNG. Native
+serialization, disk read/write, parser reopen, live slur bounds, copied octave,
+source isolation and omission feedback are asserted. Object versus inherited
+segment geometry moves the visible slur exactly 20px relative to its staff at
+both widths. Reviewed `960-object.png` and `1400-automatic.png` directly.
+The harness uses DOM commands and an intercepted file bridge, not native dialogs.
+Existing crowded toolbar/workspace and broader engraving remain Required; these
+screenshots are not whole-UI approval, human PDF QA or RC signoff.
+
+Next: independent slur/hairpin clipboard, preserving destination notes and using
+exact rhythmic endpoint matching; broader object/filter/cross-measure contracts
+remain in expanded V1. No commit, push, merge or deployment performed.
+
+### Independent Span Clipboard And User Stop
+
+User requested stop plus commit/push/merge on 2026-09-14. No next feature task is
+started. The in-flight independent slur/hairpin clipboard is being validated for
+integration alongside the earlier c105c7e native recovery/segment checkpoint.
+
+Failure-first: new core suite initially failed because the clipboard module was
+absent; two App tests reproduced ignored object-copy commands. Four core tests
+now pass: source snapshot isolation, unchanged destination notes, musical segment
+remapping, history/native/XML, cross-measure exact tick distance, and rejection of
+missing/ambiguous/chord/rest/foreign-voice endpoints. Initial typecheck caught an
+incorrect exported type name; the implementation uses the existing segments type.
+App fixture initially used half notes as a quarter-distance target; that correctly
+rejects. The test now asserts rejection plus a valid matching target, not relaxed
+endpoint matching. Two App tests pass with native save/reopen and undo/redo.
+`npm test`: 666 pass / 1 skip, 90.95s. Current `npm run build`: pass, renderer
+`index-Cc_BrX00.js`. Source geometry is captured from effective part view; the new
+object is added without replacing any destination notes. Out-of-span or unmappable
+segment geometry is omitted with feedback. Core cross-measure distance is not
+cross-measure note-range copy, nor arbitrary rhythmic/chord/cross-voice support.
+
+The four new independent-object actual-renderer/disk cases are appended to
+`verify:range-span-copy`. Approved Electron execution passes all ten cases at
+960/1400px. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-S9LAHr`.
+Reviewed `960-independent-slur.png` and `1400-independent-hairpin.png`: original
+and pasted shapes are visible at the intended events. Native source/pasted/undo/
+redo/reopened disk snapshots and unchanged notes pass. File dialogs remain mocked.
+Current XML/MIDI fixture, save-policy, site-content and queue checks pass (57 rows,
+16 expanded umbrellas, queue not drained).
+No public RC, human-dialog, listening or external-app signoff is claimed.
+
+Final integration gates on this uncommitted source: `verify:e2e`,
+`verify:visual-regression` (84 unit tests and unchanged snapshots), fresh
+`package:dir` followed by `verify:package`, and `git diff --check` pass. Packaged
+original-path export refusal is expected negative-case evidence, not a failure.
+No validation process remains running. Existing development preview on port 5174
+was left intact. Next feature work requires explicit user resumption; the next
+candidate is broader independent-object/chord/cross-voice endpoint handling.
+The upcoming PR includes c105c7e plus this follow-up, targets main, and must have
+current CI results checked before merge. Git integration is authorized by the
+latest user request; no release tag or installer publication is requested.
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

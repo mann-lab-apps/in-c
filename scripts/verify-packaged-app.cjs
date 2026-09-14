@@ -1,4 +1,5 @@
-const { existsSync, readdirSync } = require('node:fs')
+const { existsSync, readdirSync, mkdtempSync, rmSync } = require('node:fs')
+const { tmpdir } = require('node:os')
 const { join, resolve } = require('node:path')
 const { spawn } = require('node:child_process')
 
@@ -17,26 +18,32 @@ const args = [
 ]
 const environment = { ...process.env }
 delete environment.ELECTRON_RUN_AS_NODE
+const smokeProfile = mkdtempSync(join(tmpdir(), 'chromatics-package-profile-'))
+environment.IN_C_SMOKE_USER_DATA = smokeProfile
 
 const child = spawn(executable, args, {
   env: environment,
   stdio: 'inherit'
 })
+let timedOut = false
 const timeout = setTimeout(() => {
+  timedOut = true
+  console.error('Packaged app smoke test timed out.')
   child.kill('SIGKILL')
-  throw new Error('Packaged app smoke test timed out.')
-}, 20_000)
+}, 40_000)
 
 child.on('error', (error) => {
   clearTimeout(timeout)
+  rmSync(smokeProfile, { recursive: true, force: true, maxRetries: 3 })
   throw error
 })
 
 child.on('exit', (code) => {
   clearTimeout(timeout)
+  rmSync(smokeProfile, { recursive: true, force: true, maxRetries: 3 })
 
-  if (code !== 0) {
-    process.exitCode = code ?? 1
+  if (code !== 0 || timedOut) {
+    process.exitCode = code || 1
     return
   }
 

@@ -393,12 +393,35 @@ function buildTieNormalizedReplaceCommand(
     return undefined
   }
 
+  // Rhythm edits can remove rest anchors or replace a note anchor with a rest.
+  // Keep cleanup in the same transaction so undo also restores the markings.
+  const previousEvents = locateStaff(score, target)?.measures.flatMap(measure =>
+    measure.voices.find(voice => voice.id === target.voiceId)?.events ?? []
+  ) ?? []
+  const nextEvents = normalizedVoice.measures.flatMap(measure =>
+    measure.voices.find(voice => voice.id === target.voiceId)?.events ?? [])
+  commands.push(...buildSpanCleanupCommands(score, previousEvents, nextEvents))
+
   return commands.length === 1
     ? commands[0]
-    : {
-        type: 'score.batch',
-        commands
-      }
+    : { type: 'score.batch', commands }
+}
+
+export function buildSpanCleanupCommands(score: Score, previousEvents: VoiceEvent[], replacementEvents: VoiceEvent[]): ScoreCommand[] {
+  const commands: ScoreCommand[] = []
+  const nextEvents = new Map(replacementEvents.map(event => [event.id, event]))
+  const removedIds = new Set(previousEvents.filter(event => !nextEvents.has(event.id)).map(event => event.id))
+  const invalidNoteIds = new Set(previousEvents.filter(event => nextEvents.get(event.id)?.type !== 'note').map(event => event.id))
+  const keepsEndpoints = (ids: Set<string>) => (span: { startEventId: string; endEventId: string }) =>
+    !ids.has(span.startEventId) && !ids.has(span.endEventId)
+  const slurs = score.slurs?.filter(keepsEndpoints(invalidNoteIds))
+  const hairpins = score.hairpins?.filter(keepsEndpoints(removedIds))
+  const octaveShifts = score.octaveShifts?.filter(keepsEndpoints(invalidNoteIds))
+  if (slurs?.length !== score.slurs?.length) commands.push({ type: 'score-slurs.update', slurs })
+  if (hairpins?.length !== score.hairpins?.length) commands.push({ type: 'score-hairpins.update', hairpins })
+  if (octaveShifts?.length !== score.octaveShifts?.length) commands.push({ type: 'score-octave-shifts.update', octaveShifts })
+
+  return commands
 }
 
 function normalizeTieRelationsForVoice(

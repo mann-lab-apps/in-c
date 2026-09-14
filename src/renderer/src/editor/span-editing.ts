@@ -1,10 +1,11 @@
-import type { Score, ScoreCommand, SpanEngraving } from '../../../score-core'
+import { isSpanSegmentAddressValid, type Score, type ScoreCommand, type SpanEngraving, type SpanSegmentAddress } from '../../../score-core'
 import { spanEngravingSchema } from '../../../project/schema'
 import { locateEvent } from './editor-state'
 
 export interface SpanReference {
   kind: 'slur' | 'hairpin'
   id: string
+  segment?: SpanSegmentAddress
 }
 
 export function findSpan(score: Score, reference: SpanReference) {
@@ -71,6 +72,9 @@ export function buildSpanDeleteCommand(score: Score, reference: SpanReference): 
 export function buildSpanEngravingCommand(score: Score, reference: SpanReference, engraving?: SpanEngraving): ScoreCommand {
   if (!findSpan(score, reference)) throw new Error('선택한 표기 객체가 없습니다.')
   const parsed = engraving === undefined ? undefined : spanEngravingSchema.parse(engraving)
+  if (parsed?.segments?.some(segment => !isSpanSegmentAddressValid(score, findSpan(score, reference)!, segment))) {
+    throw new Error('유효한 파트·보표·마디 구간을 선택해 주세요.')
+  }
   const validated = parsed && Object.values(parsed).some(value => value !== undefined) ? parsed : undefined
   return reference.kind === 'slur'
     ? { type: 'score-slurs.update', slurs: score.slurs?.map(item => item.id === reference.id ? { ...item, engraving: validated } : item) }

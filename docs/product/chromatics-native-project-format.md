@@ -1,11 +1,47 @@
 # Chromatics Native Project Format
 
-Implementation checkpoint: 2026-09-13, uncommitted worktree. Expanded V1 Required,
+Implementation checkpoint: 2026-09-14, uncommitted worktree. Expanded V1 Required,
 not a completed release contract. Extension: `.chromatics`; UTF-8 JSON envelope.
 
-## Version 2
+## Version 4
 
-- `format: "chromatics-project"`, `version: 2` are the current discriminators.
+The current writer is v4. Native files/autosaves v1/v2/v3 migrate in memory;
+legacy inputs containing segment fields are rejected, not silently stripped.
+Span engraving can contain per-system `segments` keyed by part ID, staff ID and
+the first/last covered measure IDs. A geometry object replaces the whole-object
+geometry for an exact segment; null means automatic, absent means inherit.
+Changing musical boundaries keeps an override inactive instead of retargeting it.
+Removed/foreign anchors reject at validation; App saved snapshots prune removed
+anchors without mutating live undo state. New segment selection/edit/reset,
+history, independent part scope and two-page output have tests. The renderer
+reports current musical segments to the inspector: saved inactive entries are
+labeled, numeric edits disabled, and explicit removal remains undoable. Restoring
+the original breaks reapplies preserved geometry. Deleting a boundary prunes only
+saved score/part overrides; saving does not erase live undo geometry. Ensemble
+insertion/part reordering preserve ownership. Full structural and dense engraving
+audits remain Required. Reproduced continuation/fermata/caesura intersections are
+fixed; numeric placement and successful PDF generation are not engraving signoff.
+
+## Version 3 History
+
+Version 3 introduced independent part geometry. Version 1/2 files and autosaves migrate in
+memory without rewriting their source or dropping existing geometry/settings.
+Legacy payloads containing version-3 fields reject; future versions also reject.
+Part layouts can store `spanEngravings` entries keyed by span kind and stable ID.
+An absent entry inherits the full-score geometry; an object replaces it for that
+part only; `null` explicitly requests automatic placement without inheriting the
+score override. Foreign, missing or duplicate span references reject.
+The inspector edits the active score/part scope, supports automatic reset and
+relink to score, undo/redo, native reopen, screen/PDF projection and existing XML
+geometry-loss warnings. Deleted span overrides are pruned in saved snapshots,
+not in live undo history. Part removal cannot reattach geometry to another part.
+Per-system segment geometry/collision reservation remains Required. The rich
+Piano staff-text/clef collision found in PDF review is fixed with shared screen/
+print annotation clearance; this is not full manual-geometry collision handling.
+
+## Version 2 History
+
+- `format: "chromatics-project"`, `version: 2` were the prior discriminators.
 - Slur/hairpin `engraving` optionally stores above/below placement, X/Y offsets
   in staff spaces (-8 to 8), and height (0.5 to 8). Height is slur quadratic
   control depth or full hairpin opening. Missing fields retain automatic layout;
@@ -57,6 +93,22 @@ snapshot. Recovery restores part view/page settings and preserves titles/breaks
 for resave; it never restores write authorization to the original path. Auto-
 save write/clear/read operations are serialized and replacement is atomic.
 
+2026-09-14 recovery contract: the autosave envelope uses the same validated
+v1/v2/v3-to-v4 project migration as native opening, before applying the current schema.
+The project, not a stale duplicate Score/title, is canonical. Reading never
+rewrites the source. Broken/future/unsupported recovery also blocks replacement
+and cleanup, preserving its bytes for repair/retry. This is serialized within
+one app process, not a cross-process locking guarantee.
+Unclaimed recovery, including a postponed or unreadable snapshot, pauses
+autosave and save-triggered cleanup even when a different document is opened.
+The status strip exposes this pause; File's recovery command permits retry.
+Explicit recovery, successful discard or a read confirming no snapshot releases
+the pause. Ordinary manual saves remain available. Retention/quarantine controls
+and human crash/recovery validation remain Required.
+Native opening/recovery selects the first event of the visible part, not a
+hidden primary part. Rhythm deletion removes invalid slur/octave endpoints and
+consumed hairpin anchors in the same undo transaction; valid rest hairpins stay.
+
 Main-process sessions require dialog-authorized paths, validate before writing,
 serialize open/save operations, write and fsync a same-directory temporary file,
 back up the existing file, then rename. Failed backup/rename removes the temp
@@ -89,7 +141,7 @@ loss on every filesystem; directory fsync and cross-process locking are not done
   project state, so MusicXML interchange alone does not clear unsaved portable
   changes. Structural score-edit/removed-anchor and complete authoring audits remain.
 - Initial native span geometry is connected to numeric editing and screen/PDF.
-  Segment-specific handles, independent part geometry and collision-aware manual
+  Independent part geometry is implemented in v3. Segment-specific handles and collision-aware manual
   inter-system spacing remain Required.
   No implementation of pitch-first input is implied by its stored setting.
 - Full async lifecycle audit, external-modification windows, backup retention,

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../project/schema'
 
 import {
   TICKS_PER_QUARTER,
@@ -30,6 +31,35 @@ const target: VoiceAddress = {
 }
 
 describe('monophonic rhythm editing', () => {
+  it('deleting an endpoint cleans only invalid spans and restores them with undo', () => {
+    const score = scoreWith([
+      note('start', 0, 'quarter'), rest('absorbed', quarter, 'quarter'),
+      note('end', quarter * 2, 'half')
+    ])
+    score.parts.push(createPart({ id: 'other-part', staves: [createStaff({ id: 'other-staff', measures: [
+      createMeasure({ id: 'other-measure', voices: [createVoice({ events: [note('other-start', 0, 'half'), note('other-end', quarter * 2, 'half')] })] })
+    ] })] }))
+    score.slurs = [
+      { id: 'deleted-slur', startEventId: 'start', endEventId: 'end', engraving: { height: 4 } },
+      { id: 'other-slur', startEventId: 'other-start', endEventId: 'other-end' }
+    ]
+    score.hairpins = [
+      { id: 'rest-compatible', startEventId: 'start', endEventId: 'end', type: 'crescendo' },
+      { id: 'absorbed-anchor', startEventId: 'absorbed', endEventId: 'end', type: 'diminuendo' }
+    ]
+    score.octaveShifts = [{ id: 'deleted-octave', startEventId: 'start', endEventId: 'end', type: '8va' }]
+    const before = encodeNativeProject(createNativeProject(score))
+    const result = applyScoreCommand(score, buildRhythmDeleteCommand(score, target, 'start')!)
+    expect(result.score.slurs).toEqual([score.slurs[1]])
+    expect(result.score.hairpins).toEqual([score.hairpins[0]])
+    expect(result.score.octaveShifts).toEqual([])
+    expect(result.score.parts[1]).toEqual(score.parts[1])
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(JSON.parse(JSON.stringify(result.score)))
+    const undone = applyScoreCommand(result.score, result.undo)
+    expect(encodeNativeProject(createNativeProject(undone.score))).toBe(before)
+    expect(applyScoreCommand(undone.score, undone.undo).score).toEqual(result.score)
+  })
+
   it('replaces part of a full-measure rest and fills the remaining span', () => {
     const score = createScore()
     const command = buildRhythmEditCommand(score, {

@@ -19,6 +19,9 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { demoScore } from '../notation/demo-score'
+import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../../project/schema'
+import { parseMusicXml, serializeMusicXml } from '../../../musicxml'
+import { createPlaybackTimeline } from '../playback/timeline'
 import {
   buildDeleteCommand,
   buildDotCommand,
@@ -1251,6 +1254,148 @@ describe('editor state', () => {
     ])
     expect(validateMeasureRhythm(measure).isExact).toBe(true)
     expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it('range paste removes replaced span endpoints in one undoable native-safe transaction', () => {
+    const score = scoreWith([note('source-1', 0, 'quarter'), note('source-2', TICKS_PER_QUARTER, 'quarter'),
+      note('target-1', TICKS_PER_QUARTER * 2, 'quarter'), note('target-2', TICKS_PER_QUARTER * 3, 'quarter')])
+    const retained = { id: 'retained', startEventId: 'source-1', endEventId: 'source-2', engraving: { height: 3 } }
+    score.slurs = [retained, { id: 'overwritten', startEventId: 'target-1', endEventId: 'target-2' }]
+    score.hairpins = [{ id: 'partial', startEventId: 'source-2', endEventId: 'target-1', type: 'crescendo' }]
+    score.octaveShifts = [{ id: 'octave', startEventId: 'target-1', endEventId: 'target-2', type: '8va' }]
+    const source = createRangeSelection(score, 'source-1', 'source-2')!
+    const target = createRangeSelection(score, 'target-1', 'target-2')!
+    const command = buildRangePasteCommand(score, target, buildRangeClipboard(score, source)!, idSequence('pasted'))!
+    const result = applyScoreCommand(score, command)
+    expect(result.score.slurs).toEqual([retained, { ...retained, id: 'pasted-3', startEventId: 'pasted-1', endEventId: 'pasted-2' }])
+    expect(result.score.hairpins).toEqual([])
+    expect(result.score.octaveShifts).toEqual([])
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(JSON.parse(JSON.stringify(result.score)))
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it.each(['same-staff', 'other-part'])('range paste reconnects contained spans and musical geometry to %s', destination => {
+    const score = scoreWithSameStaffVoices()
+    const part = score.parts[0]!, staff = part.staves[0]!, measure = staff.measures[0]!
+    const sourceAddress = { partId: part.id, staffId: staff.id, measureId: measure.id, voiceId: 'voice-1' }
+    let targetAddress = { ...sourceAddress, voiceId: 'voice-2' }
+    let targetIds = ['v2-note-1', 'v2-note-2']
+    if (destination === 'other-part') {
+      const other = structuredClone(part)
+      other.id = 'other-part'; other.staves[0]!.id = 'other-staff'; other.staves[0]!.measures[0]!.id = 'other-measure'
+      for (const voice of other.staves[0]!.measures[0]!.voices) for (const event of voice.events) event.id += '-other'
+      score.parts.push(other)
+      targetAddress = { partId: other.id, staffId: 'other-staff', measureId: 'other-measure', voiceId: 'voice-2' }
+      targetIds = targetIds.map(id => id + '-other')
+    }
+    const engraving = { height: 3, segments: [{ partId: part.id, staffId: staff.id,
+      startMeasureId: measure.id, endMeasureId: measure.id, geometry: { offsetY: 2 } }] }
+    score.slurs = [{ id: 'source-slur', startEventId: 'v1-note-1', endEventId: 'v1-note-2', engraving }]
+    score.hairpins = [{ id: 'source-hairpin', type: 'crescendo', startEventId: 'v1-note-1', endEventId: 'v1-note-2', engraving },
+      { id: 'partial', type: 'diminuendo', startEventId: 'v1-note-2', endEventId: 'v1-rest' }]
+    const original = structuredClone(score)
+    const clipboard = buildRangeClipboard(score, createRangeSelection(score, 'v1-note-1', 'v1-note-2', sourceAddress)!)!
+    const command = buildRangePasteCommand(score, createRangeSelection(score, targetIds[0]!, targetIds[1]!, targetAddress)!, clipboard, idSequence('copy'))!
+    const result = applyScoreCommand(score, command)
+    expect(result.score.slurs).toHaveLength(2)
+    expect(result.score.hairpins).toHaveLength(3)
+    const copied = result.score.slurs!.find(span => span.id !== 'source-slur')!
+    expect(copied).toMatchObject({ startEventId: 'copy-1', endEventId: 'copy-2', engraving: { height: 3, segments: [{
+      partId: targetAddress.partId, staffId: targetAddress.staffId, startMeasureId: targetAddress.measureId, endMeasureId: targetAddress.measureId, geometry: { offsetY: 2 }
+    }] } })
+    expect(score).toEqual(original)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score.slurs).toEqual(result.score.slurs)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(original)
+    copied.engraving!.segments![0]!.geometry!.offsetY = 7
+    expect(score.slurs![0]!.engraving!.segments![0]!.geometry!.offsetY).toBe(2)
+  })
+
+  it.each(['8va', '8vb', '15ma', '15mb'] as const)('range paste preserves contained %s lines and performed pitch through XML/native reopen', type => {
+    const score = scoreWith([note('source-1', 0, 'quarter'), note('source-2', TICKS_PER_QUARTER, 'quarter'),
+      note('target-1', TICKS_PER_QUARTER * 2, 'quarter'), note('target-2', TICKS_PER_QUARTER * 3, 'quarter')])
+    const retained = { id: 'source-octave', startEventId: 'source-1', endEventId: 'source-2', type }
+    score.octaveShifts = [retained, { id: 'partial-octave', startEventId: 'source-2', endEventId: 'target-1', type }]
+    const clipboard = buildRangeClipboard(score, createRangeSelection(score, 'source-1', 'source-2')!)!
+    expect(clipboard.excludedSpanCount).toBe(1)
+    const result = applyScoreCommand(score, buildRangePasteCommand(score,
+      createRangeSelection(score, 'target-1', 'target-2')!, clipboard, idSequence('octave-paste'))!)
+    expect(result.score.octaveShifts).toEqual([retained, { ...retained, id: 'octave-paste-3', startEventId: 'octave-paste-1', endEventId: 'octave-paste-2' }])
+    const timeline = createPlaybackTimeline(result.score)
+    expect(timeline.events.slice(2).map(event => event.frequency)).toEqual(timeline.events.slice(0, 2).map(event => event.frequency))
+    const reopened = parseMusicXml(serializeMusicXml(result.score))
+    expect(reopened.octaveShifts?.map(span => span.type)).toEqual([type, type])
+    expect(createPlaybackTimeline(reopened).events.map(event => event.frequency)).toEqual(timeline.events.map(event => event.frequency))
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score.octaveShifts).toEqual(result.score.octaveShifts)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(score)
+  })
+
+  it.each(['identical', 'different-type', 'partial-overlap'] as const)('range octave paste handles %s staff-wide intervals without double transposition', scenario => {
+    const source = scoreWithSameStaffVoices()
+    source.octaveShifts = [{ id: 'source-octave', startEventId: 'v1-note-1', endEventId: 'v1-note-2', type: '8va' }]
+    const clipboard = buildRangeClipboard(source, createRangeSelection(source, 'v1-note-1', 'v1-note-2')!)!
+    const target = scoreWithSameStaffVoices()
+    target.octaveShifts = [{ id: 'existing', startEventId: 'v1-note-1',
+      endEventId: scenario === 'partial-overlap' ? 'v1-note-1' : 'v1-note-2', type: scenario === 'different-type' ? '8vb' : '8va' }]
+    const original = structuredClone(target)
+    const command = buildRangePasteCommand(target, createRangeSelection(target, 'v2-note-1', 'v2-note-2')!, clipboard, idSequence('octave'))
+    if (scenario === 'identical') {
+      const result = applyScoreCommand(target, command!)
+      expect(result.score.octaveShifts).toEqual(target.octaveShifts)
+      const timeline = createPlaybackTimeline(result.score)
+      expect(timeline.events.filter(event => event.voiceId === 'voice-2').map(event => event.frequency))
+        .toEqual(timeline.events.filter(event => event.voiceId === 'voice-1').map(event => event.frequency))
+      expect(applyScoreCommand(result.score, result.undo).score).toEqual(original)
+    } else expect(command).toBeUndefined()
+    expect(target).toEqual(original)
+  })
+
+  it('range span clipboard survives source deletion and repeated paste into another document', () => {
+    const source = scoreWithSameStaffVoices()
+    const staff = source.parts[0]!.staves[0]!, measure = staff.measures[0]!
+    const segment = { partId: source.parts[0]!.id, staffId: staff.id, startMeasureId: measure.id, endMeasureId: measure.id, geometry: { height: 2 } }
+    source.slurs = [{ id: 'copied', startEventId: 'v1-note-1', endEventId: 'v1-note-2', engraving: { segments: [segment] } }]
+    source.hairpins = [{ id: 'partial', type: 'crescendo', startEventId: 'v1-note-2', endEventId: 'v1-rest' }]
+    const clipboard = buildRangeClipboard(source, createRangeSelection(source, 'v1-note-1', 'v1-note-2')!)!
+    expect(clipboard.excludedSpanCount).toBe(1)
+    expect(clipboard.excludedSegmentCount).toBe(0)
+    const snapshot = structuredClone(clipboard)
+    source.slurs = []
+    measure.voices[0]!.events = []
+    const target = scoreWith([rest('target-1', 0, 'half'), rest('target-2', TICKS_PER_QUARTER * 2, 'half')])
+    target.parts[0]!.id = 'destination'
+    target.parts[0]!.staves[0]!.id = 'destination-staff'
+    target.parts[0]!.staves[0]!.measures[0]!.id = 'destination-measure'
+    const id = idSequence('repeated')
+    const first = applyScoreCommand(target, buildRangePasteCommand(target, createEventSelection(target, 'target-1'), clipboard, id)!)
+    const second = applyScoreCommand(first.score, buildRangePasteCommand(first.score, createEventSelection(first.score, 'target-2'), clipboard, id)!)
+    expect(second.score.slurs).toHaveLength(2)
+    expect(second.score.hairpins ?? []).toEqual([])
+    const ids = second.score.slurs!.flatMap(span => [span.id, span.startEventId, span.endEventId])
+    expect(new Set(ids).size).toBe(6)
+    for (const span of second.score.slurs!) expect(span.engraving!.segments![0]).toEqual({ ...segment,
+      partId: 'destination', staffId: 'destination-staff', startMeasureId: 'destination-measure', endMeasureId: 'destination-measure' })
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(second.score))).score).toEqual(JSON.parse(JSON.stringify(second.score)))
+    expect(applyScoreCommand(second.score, second.undo).score).toEqual(first.score)
+    expect(applyScoreCommand(first.score, first.undo).score).toEqual(target)
+    expect(clipboard).toEqual(snapshot)
+  })
+
+  it('range clipboard snapshots and deep-clones note-attached markings without aliasing source or clipboard', () => {
+    const marked = { ...note('source', 0, 'half'), lyrics: [{ number: 1, text: 'la', syllabic: 'single' as const }],
+      articulations: ['accent' as const], ornaments: ['trill' as const], graceNotes: [{ pitch: { step: 'D' as const, octave: 4 } }],
+      tremolo: { type: 'single' as const, marks: 1 as const }, fermata: true, breathMark: 'breath' as const }
+    const score = scoreWith([marked, rest('target', TICKS_PER_QUARTER * 2, 'half')])
+    const clipboard = buildRangeClipboard(score, createEventSelection(score, 'source'))!
+    marked.lyrics[0]!.text = 'changed after copy'
+    const result = applyScoreCommand(score, buildRangePasteCommand(score, createEventSelection(score, 'target'), clipboard, idSequence('pasted'))!)
+    const pasted = locateEvent(result.score, 'pasted-1')!.event
+    expect(pasted).toMatchObject({ lyrics: [{ text: 'la' }], articulations: ['accent'], ornaments: ['trill'], graceNotes: marked.graceNotes, tremolo: marked.tremolo, fermata: true, breathMark: 'breath' })
+    if (pasted.type !== 'note') throw new Error('Missing pasted note')
+    pasted.lyrics![0]!.text = 'edited paste'
+    pasted.articulations!.push('staccato')
+    expect(clipboard.events[0]!.event).toMatchObject({ lyrics: [{ text: 'la' }], articulations: ['accent'] })
+    expect(marked.lyrics[0]!.text).toBe('changed after copy')
+    expect(marked.articulations).toEqual(['accent'])
   })
 
   it('range-editing.same-staff-voice-delete keeps range deletion scoped to voice 2', () => {

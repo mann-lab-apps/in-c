@@ -37,6 +37,14 @@ export function applyPortablePartLayout(score: Score, override?: NativeProject['
   }))]
   return {
     ...score,
+    slurs: score.slurs?.map(span => {
+      const geometry = override.spanEngravings?.find(item => item.kind === 'slur' && item.spanId === span.id)
+      return geometry ? { ...span, engraving: geometry.engraving ?? undefined } : span
+    }),
+    hairpins: score.hairpins?.map(span => {
+      const geometry = override.spanEngravings?.find(item => item.kind === 'hairpin' && item.spanId === span.id)
+      return geometry ? { ...span, engraving: geometry.engraving ?? undefined } : span
+    }),
     layout: {
       ...score.layout,
       ...override.layout,

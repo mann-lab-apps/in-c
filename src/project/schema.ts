@@ -1,8 +1,8 @@
 import { z } from 'zod'
-import { validateMeasureRhythm, validateTieRelations, validateVoiceTuplets, type Score } from '../score-core'
+import { isSpanSegmentAddressValid, spanSegmentKey, validateMeasureRhythm, validateTieRelations, validateVoiceTuplets, type Score, type SpanEngraving } from '../score-core'
 
 export const NATIVE_FORMAT = 'chromatics-project'
-export const NATIVE_VERSION = 2
+export const NATIVE_VERSION = 4
 export const MAX_PROJECT_BYTES = 16 * 1024 * 1024
 
 const id = z.string().min(1).max(256)
@@ -51,11 +51,15 @@ const measure = z.strictObject({
 const tempo = z.strictObject({ bpm: z.number().finite().positive().max(1000), beatUnit: durationValue.optional(), dots: integer.min(0).max(3).optional(), text: text.optional(), transparent: z.boolean().optional() })
 const measureMark = z.strictObject({ id, measureId: id, text })
 const span = { id, startEventId: id, endEventId: id }
-export const spanEngravingSchema = z.strictObject({
+const spanGeometrySchema = z.strictObject({
   placement: z.enum(['above', 'below']).optional(),
   offsetX: z.number().finite().min(-8).max(8).optional(),
   offsetY: z.number().finite().min(-8).max(8).optional(),
   height: z.number().finite().min(0.5).max(8).optional()
+})
+export const spanEngravingSchema = spanGeometrySchema.extend({
+  segments: z.array(z.strictObject({ partId: id, staffId: id, startMeasureId: id, endMeasureId: id,
+    geometry: spanGeometrySchema.nullable() })).max(10000).optional()
 })
 export const pageSetupSchema = z.strictObject({
   pageSize: z.enum(['a4', 'letter']).optional(), orientation: z.enum(['portrait', 'landscape']).optional(),
@@ -85,7 +89,9 @@ export const scoreSchema: z.ZodType<Score> = z.strictObject({
 
 export const nativeProjectSchema = z.strictObject({
   format: z.literal(NATIVE_FORMAT), version: z.literal(NATIVE_VERSION), score: scoreSchema,
-  partLayouts: z.array(z.strictObject({ partId: id, title: text.optional(), layout: layoutSchema })).max(128),
+  partLayouts: z.array(z.strictObject({ partId: id, title: text.optional(), layout: layoutSchema,
+    spanEngravings: z.array(z.strictObject({ kind: z.enum(['slur', 'hairpin']), spanId: id, engraving: spanEngravingSchema.nullable() })).max(20000).optional()
+  })).max(128),
   view: z.discriminatedUnion('mode', [z.strictObject({ mode: z.literal('score') }), z.strictObject({ mode: z.literal('part'), partId: id })]),
   settings: z.strictObject({ inputMode: z.enum(['duration-first', 'pitch-first']) })
 })
@@ -93,12 +99,19 @@ export type NativeProject = z.infer<typeof nativeProjectSchema>
 
 export function validateNativeProject(input: unknown): NativeProject {
   assertBoundedTree(input)
-  // Version 1 had no portable span geometry. Reject invented v1 geometry rather
-  // than treating it as an authorized migration payload.
-  if (input && typeof input === 'object' && 'format' in input && input.format === NATIVE_FORMAT && 'version' in input && input.version === 1) {
-    const legacy = nativeProjectSchema.extend({ version: z.literal(1) }).parse(input)
-    if ([...(legacy.score.slurs ?? []), ...(legacy.score.hairpins ?? [])].some(item => item.engraving !== undefined)) {
+  // Legacy payloads must not smuggle fields introduced by a later version.
+  if (input && typeof input === 'object' && 'format' in input && input.format === NATIVE_FORMAT && 'version' in input && (input.version === 1 || input.version === 2 || input.version === 3)) {
+    const legacy = nativeProjectSchema.extend({ version: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).parse(input)
+    if (legacy.version === 1 && [...(legacy.score.slurs ?? []), ...(legacy.score.hairpins ?? [])].some(item => item.engraving !== undefined)) {
       throw new Error('Span engraving is not supported in Chromatics project version 1.')
+    }
+    if (legacy.version < 3 && legacy.partLayouts.some(part => part.spanEngravings !== undefined)) {
+      throw new Error(`Independent span engraving is not supported in Chromatics project version ${legacy.version}.`)
+    }
+    const geometries = [...(legacy.score.slurs ?? []), ...(legacy.score.hairpins ?? []),
+      ...legacy.partLayouts.flatMap(part => part.spanEngravings ?? [])]
+    if (geometries.some(item => item.engraving?.segments !== undefined)) {
+      throw new Error(`Segment engraving is not supported in Chromatics project version ${legacy.version}.`)
     }
     input = { ...legacy, version: NATIVE_VERSION }
   }
@@ -189,6 +202,14 @@ function validateReferences(project: NativeProject): void {
     for (const mark of marks ?? []) { add(markingIds, mark.id); requireMeasure(mark.measureId) }
   }
   const noteIds = new Set(score.parts.flatMap(part => part.staves.flatMap(staff => staff.measures.flatMap(measure => measure.voices.flatMap(voice => voice.events.filter(event => event.type === 'note').map(event => event.id))))))
+  const checkSegments = (span: { id: string; startEventId: string; endEventId: string }, engraving?: SpanEngraving | null) => {
+    const keys = new Set<string>()
+    for (const segment of engraving?.segments ?? []) {
+      const key = spanSegmentKey(segment)
+      if (keys.has(key) || !isSpanSegmentAddressValid(score, span, segment)) throw new Error(`Invalid project span segment: ${span.id}`)
+      keys.add(key)
+    }
+  }
   for (const kind of ['slurs', 'hairpins', 'octaveShifts'] as const) {
     for (const span of score[kind] ?? []) {
       add(markingIds, span.id)
@@ -196,6 +217,7 @@ function validateReferences(project: NativeProject): void {
         (kind !== 'hairpins' && (!noteIds.has(span.startEventId) || !noteIds.has(span.endEventId)))) {
         throw new Error(`Invalid project span endpoints: ${span.id}`)
       }
+      if ('engraving' in span) checkSegments(span, span.engraving)
     }
   }
   const checkLayout = (layout: Score['layout'], allowed = measureIds) => {
@@ -208,6 +230,15 @@ function validateReferences(project: NativeProject): void {
     const owned = partMeasures.get(part.partId)
     if (!owned) throw new Error(`Unknown layout part: ${part.partId}`)
     checkLayout(part.layout, owned)
+    const overrides = new Set<string>()
+    for (const override of part.spanEngravings ?? []) {
+      add(overrides, `${override.kind}:${override.spanId}`)
+      const item = (override.kind === 'slur' ? score.slurs : score.hairpins)?.find(span => span.id === override.spanId)
+      if (!item || eventOwners.get(item.startEventId) !== part.partId || eventOwners.get(item.endEventId) !== part.partId) {
+        throw new Error(`Invalid part span override: ${override.spanId}`)
+      }
+      checkSegments(item, override.engraving)
+    }
   }
   if (project.view.mode === 'part' && !partIds.has(project.view.partId)) throw new Error('Unknown selected project part.')
   const ties = validateTieRelations(score)

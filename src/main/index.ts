@@ -1,4 +1,5 @@
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtempSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 
@@ -26,6 +27,9 @@ const getConcertPostersChannel = 'promotions:get-concert-posters'
 const productionConcertPostersApiUrl =
   'https://in-c.mannlab.app/api/concert-posters.json'
 const isSmokeTest = process.argv.includes('--smoke-test')
+if (isSmokeTest) {
+  app.setPath('userData', process.env.IN_C_SMOKE_USER_DATA ?? mkdtempSync(join(app.getPath('temp'), 'chromatics-package-profile-')))
+}
 const musicXmlFiles = new MusicXmlFileSession(backupExistingMusicXmlFile)
 const nativeBackups = new NativeProjectBackupStore(() => join(app.getPath('userData'), 'native-project-backups'))
 const nativeFiles = new NativeProjectFileSession(filePath => nativeBackups.create(filePath))
@@ -984,6 +988,74 @@ const createWindow = (): void => {
 
       validateSmokeMidi(savedMidi)
 
+      await mainWindow.webContents.executeJavaScript(`(async () => {
+        document.querySelector('[aria-label="프로젝트 저장"]').click()
+        for (let attempt = 0; attempt < 100; attempt += 1) {
+          if (document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.')) return
+          await new Promise(resolve => setTimeout(resolve, 50))
+        }
+        throw new Error('Pre-migration save did not finish')
+      })()`)
+      const legacyContents = JSON.stringify({
+        score: { title: 'Stale duplicate' }, project: { ...savedNative, version: 1 },
+        metadata: { title: 'Legacy recovery', updatedAt: '2026-09-13T00:00:00Z', version: 'legacy-test' }
+      })
+      await mkdir(autosaveDirectory(), { recursive: true })
+      await writeFile(autosavePath(), legacyContents)
+      const migrated = await autosaveFiles.read()
+      if (!migrated?.project || encodeNativeProject(migrated.project) !== encodeNativeProject(savedNative) || await readFile(autosavePath(), 'utf8') !== legacyContents) {
+        throw new Error('Legacy disk recovery lost state or rewrote the source during read')
+      }
+      await mainWindow.webContents.executeJavaScript(`(async () => {
+        const wait = async (predicate, message) => {
+          for (let attempt = 0; attempt < 100; attempt += 1) {
+            if (predicate()) return
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+          throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent)
+        }
+        document.querySelector('[aria-label="자동저장 복구"]').click()
+        await wait(() => document.querySelector('.recovery-dialog'), 'Legacy recovery dialog missing')
+      })()`)
+      for (const width of [960, 1400]) {
+        mainWindow.setSize(width, 900)
+        await new Promise(resolve => setTimeout(resolve, 300))
+        const fits = await mainWindow.webContents.executeJavaScript(`(() => {
+          const dialog = document.querySelector('.recovery-dialog')
+          if (!dialog) return false
+          const box = dialog.getBoundingClientRect()
+          return box.left >= 0 && box.right <= innerWidth && box.top >= 0 && box.bottom <= innerHeight &&
+            dialog.scrollWidth <= dialog.clientWidth + 1 && [...dialog.querySelectorAll('button')].every(button => {
+              const rect = button.getBoundingClientRect()
+              return rect.width >= 28 && rect.height >= 28 && button.contains(document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2))
+            })
+        })()`)
+        if (!fits) throw new Error('Legacy recovery dialog inaccessible at ' + width)
+        await writeFile(join(app.getPath('temp'), 'in-c-legacy-recovery-' + width + '.png'), (await mainWindow.webContents.capturePage()).toPNG())
+      }
+      await mainWindow.webContents.executeJavaScript(`(async () => {
+        const wait = async (predicate, message) => {
+          for (let attempt = 0; attempt < 100; attempt += 1) {
+            if (predicate()) return
+            await new Promise(resolve => setTimeout(resolve, 50))
+          }
+          throw new Error(message + ': ' + document.querySelector('.editor-status')?.textContent)
+        }
+        document.querySelector('.recovery-dialog .primary-action').click()
+        await wait(() => document.querySelector('.editor-status')?.textContent?.includes('프로젝트 복구본을 열었습니다.'), 'Legacy recovery did not apply')
+        if (document.querySelector('[aria-label="파트보 제목"]')?.textContent?.trim() !== 'Cello Rehearsal') throw new Error('Legacy part title was lost')
+        const context = document.querySelector('[aria-label="현재 작업 컨텍스트"]')?.textContent ?? ''
+        if (!context.includes('Cello') || context.includes('Violin I')) throw new Error('Legacy recovery selected a hidden part')
+        document.querySelector('[aria-label="프로젝트 저장"]').click()
+        await wait(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics에 저장했습니다.'), 'Migrated UI save missing')
+        document.querySelector('[aria-label="프로젝트 열기"]').click()
+        await wait(() => document.querySelector('.editor-status')?.textContent?.includes('.chromatics을 열었습니다.'), 'Migrated UI reopen missing')
+      })()`)
+      const migratedSaved = decodeNativeProject(await readFile(smokeNativePath, 'utf8'))
+      if (encodeNativeProject(migratedSaved) !== encodeNativeProject(savedNative)) throw new Error('Legacy recovery UI save/reopen changed portable state')
+      await copyFile(smokeNativePath, join(app.getPath('temp'), 'in-c-migrated-recovery.chromatics'))
+      await mainWindow.webContents.executeJavaScript(`[...document.querySelectorAll('.toolbar-tabs button')].find(button => button.textContent?.trim() === '파일')?.click()`)
+      await new Promise(resolve => setTimeout(resolve, 100))
       await mainWindow.webContents.executeJavaScript(`document.querySelector('[aria-label="프로젝트 백업"]')?.click()`)
       for (const width of [960, 1400]) {
         mainWindow.setSize(width, 900)
@@ -999,7 +1071,7 @@ const createWindow = (): void => {
         await writeFile(join(app.getPath('temp'), `in-c-native-backups-${width}.png`), (await mainWindow.webContents.capturePage()).toPNG())
       }
       await copyFile(smokePartExportPath, join(app.getPath('temp'), 'in-c-native-part-layout.musicxml'))
-      console.log(`PACKAGED_APP_SMOKE_OK ${JSON.stringify(result)}`)
+      console.log(`PACKAGED_APP_SMOKE_OK ${JSON.stringify({ ...result, hasLegacyNativeRecovery: true })}`)
     } catch (error) {
       console.error(error)
       smokeExitCode = 1

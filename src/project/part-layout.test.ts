@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest'
 import { parseMusicXml } from '../musicxml/parse'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from './part-layout'
 import { resolvePrintLayoutPlan } from '../renderer/src/notation/print-layout'
+import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject } from './schema'
+
+const source = () => createNativeProject(parseMusicXml(readFileSync('src/musicxml/fixtures/expanded-v1-part-export.musicxml', 'utf8')))
 
 describe('portable part layout rendering', () => {
   it('rebinds removed staff breaks to the same surviving measure without moving deleted-measure breaks', () => {
@@ -38,5 +41,38 @@ describe('portable part layout rendering', () => {
     expect(JSON.stringify(full)).toBe(before)
     expect(applyPortablePartLayout(full, override)).toBe(full)
     expect(applyPortablePartLayout(projected, { ...override, partId: 'other' })).toBe(projected)
+  })
+})
+
+describe('independent part span geometry', () => {
+  it('projects per-part geometry without changing the full score, including explicit automatic reset', () => {
+    const project = source()
+    const slur = project.score.slurs![0]!
+    slur.engraving = { offsetY: -2, height: 3 }
+    const part = project.score.parts[1]!
+    const override = { partId: part.id, layout: {}, spanEngravings: [
+      { kind: 'slur' as const, spanId: slur.id, engraving: { offsetY: 2, height: 4 } }
+    ] }
+    const projected = { ...project.score, parts: [part] }
+    expect(applyPortablePartLayout(projected, override).slurs![0]!.engraving).toEqual({ offsetY: 2, height: 4 })
+    expect(slur.engraving).toEqual({ offsetY: -2, height: 3 })
+    expect(applyPortablePartLayout(projected, { ...override, spanEngravings: [{ ...override.spanEngravings[0]!, engraving: null }] }).slurs![0]!.engraving).toBeUndefined()
+    expect(applyPortablePartLayout(projected, { partId: part.id, layout: {} }).slurs![0]!.engraving).toEqual(slur.engraving)
+    expect(applyPortablePartLayout(project.score, override)).toBe(project.score)
+  })
+
+  it('preserves validated part geometry and rejects foreign, missing, duplicate and legacy overrides', () => {
+    const project = source()
+    project.partLayouts = [{ partId: 'P2', layout: {}, spanEngravings: [
+      { kind: 'slur', spanId: project.score.slurs![0]!.id, engraving: null },
+      { kind: 'hairpin', spanId: project.score.hairpins![0]!.id, engraving: { height: 4 } }
+    ] }]
+    expect(decodeNativeProject(encodeNativeProject(project))).toEqual(project)
+    expect(() => validateNativeProject({ ...project, version: 2 })).toThrow(/version 2/)
+    expect(() => validateNativeProject({ ...project, partLayouts: [{ ...project.partLayouts[0], partId: 'P1' }] })).toThrow(/span/)
+    project.partLayouts[0]!.spanEngravings!.push(project.partLayouts[0]!.spanEngravings![0]!)
+    expect(() => validateNativeProject(project)).toThrow(/Duplicate/)
+    project.partLayouts[0]!.spanEngravings = [{ kind: 'slur', spanId: 'missing', engraving: {} }]
+    expect(() => validateNativeProject(project)).toThrow(/span/)
   })
 })

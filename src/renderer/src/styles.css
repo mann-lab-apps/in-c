@@ -1312,7 +1312,9 @@ h2 {
 }
 
 .notation-staff-label {
+  stroke: none;
   fill: #5d594f;
+  font-family: Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
   pointer-events: none;
@@ -1445,21 +1447,27 @@ h2 {
 }
 
 .notation-staff-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
 }
 
 .notation-system-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 14px;
   font-weight: 700;
   pointer-events: none;
 }
 
 .notation-expression-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 13px;
   font-style: italic;
   font-weight: 600;

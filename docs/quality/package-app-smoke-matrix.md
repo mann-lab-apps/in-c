@@ -1,5 +1,19 @@
 # 패키지 앱 운영체제별 smoke matrix
 
+## 2026-09-14 Legacy Recovery
+
+Latest native-v4/segment build: fresh `package:dir` then `verify:package` passed,
+including legacy recovery, native backup UI and part XML/PDF/MIDI assertions.
+This checkpoint precedes the following range-paste safety changes.
+
+Fresh macOS arm64 unpacked smoke uses a temporary isolated userData directory.
+Real version-1 disk autosave migrates without source writes, restores selected
+Cello part/title/settings through the recovery dialog, saves as the current
+native format and reopens. 960/1400px modal bounds/button hit targets and restored
+editing part are checked. Original overwrite refusal remains an expected negative
+test. This is automated smoke with controlled file paths, not human native-dialog,
+installer, listening or cross-OS signoff. PR754 Windows/Linux passes are historical.
+
 ## 2026-09-13 Native and Export Automation
 
 macOS arm64 unpacked app: export-copy IPC writes/reads a real file, does not add

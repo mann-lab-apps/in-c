@@ -26,9 +26,9 @@ describe('hairpin rendering', () => {
     )
 
     expect(segments).toEqual([
-      { x1: 90, x2: 482, staffY: 40, isFirst: true, isLast: false },
-      { x1: 38, x2: 482, staffY: 140, isFirst: false, isLast: false },
-      { x1: 38, x2: 202, staffY: 240, isFirst: false, isLast: true }
+      { systemIndex: 0, x1: 90, x2: 482, staffY: 40, isFirst: true, isLast: false },
+      { systemIndex: 1, x1: 38, x2: 482, staffY: 140, isFirst: false, isLast: false },
+      { systemIndex: 2, x1: 38, x2: 202, staffY: 240, isFirst: false, isLast: true }
     ])
   })
 

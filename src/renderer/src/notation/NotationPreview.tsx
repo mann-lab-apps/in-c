@@ -25,6 +25,9 @@ import {
   type Measure,
   type Score,
   type SpanEngraving,
+  type SpanSegmentAddress,
+  resolveSpanSegmentEngraving,
+  spanSegmentKey,
   type Staff,
   type TempoMarking,
   type Voice as ScoreVoice,
@@ -33,6 +36,7 @@ import {
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
 import { resolveSpanViewport } from './span-viewport'
+import type { SpanReference } from '../editor/span-editing'
 import {
   createSystemLayout,
   leadingNotationPadding,
@@ -58,8 +62,6 @@ import {
   HAIRPIN_Y_OFFSET,
   HARMONY_MARK_Y_OFFSET,
   REHEARSAL_MARK_Y_OFFSET,
-  resolveAnnotationVerticalExtension,
-  resolveAnnotationSystemTop,
   resolveHairpinSpanYOffset,
   resolveMeasureAnnotationLanes,
   resolveSlurSideForAnnotationLanes,
@@ -67,6 +69,7 @@ import {
   SYSTEM_TEXT_Y_OFFSET,
   type MeasureAnnotationLanes
 } from './annotation-lanes'
+import { resolveScoreVerticalLayout } from './score-vertical-layout'
 import type { PrintLayoutPlan } from './print-layout'
 import {
   resolveRangeSelectionBands,
@@ -80,8 +83,9 @@ import {
 } from './visual-state'
 
 interface NotationPreviewProps {
-  selectedSpan?: { kind: 'slur' | 'hairpin'; id: string }
-  onSelectSpan?: (reference: { kind: 'slur' | 'hairpin'; id: string }) => void
+  selectedSpan?: SpanReference
+  onSelectSpan?: (reference: SpanReference) => void
+  onRenderedSpanSegments?: (score: Score, segments: SpanReference[]) => void
   score: Score
   inlineLyricEditor?: InlineLyricEditor
   selectedEventAddress?: VoiceAddress
@@ -132,7 +136,6 @@ const STABLE_BEAM_MAX_SLOPE = 0.12
 const STABLE_BEAM_SLOPE_COST = 220
 const SINGLE_STAFF_SYSTEM_HEIGHT = 154
 const DEFAULT_SYSTEM_TOP = 72
-const STACKED_STAFF_Y_OFFSET = 96
 const MEASURE_STAFF_VERTICAL_PADDING = 18
 const LYRIC_EDITOR_WIDTH = 148
 const LYRIC_EDITOR_HEIGHT = 34
@@ -154,6 +157,14 @@ interface SystemBounds {
   x2: number
   noteStartX?: number
   y: number
+  startMeasureId: string
+  endMeasureId: string
+}
+
+interface RenderedSpanSegment {
+  element: SVGGraphicsElement
+  address: SpanSegmentAddress
+  staffY: number
 }
 
 interface MeasureAnnotationMaps {
@@ -211,6 +222,7 @@ interface RenderedStaffState {
 export function NotationPreview({
   selectedSpan,
   onSelectSpan,
+  onRenderedSpanSegments,
   score,
   inlineLyricEditor,
   selectedEventAddress,
@@ -262,30 +274,18 @@ export function NotationPreview({
     const printScale = printLayoutPlan?.scale ?? 1
     const lyricScale = Math.max(0.82, printScale)
     const annotationMaps = createMeasureAnnotationMaps(score)
-    const annotationLanesByMeasureId = createMeasureAnnotationLaneMap(
-      score,
-      annotationMaps,
-      lyricScale
-    )
-    const annotationExtension = resolveAnnotationVerticalExtension(
-      annotationLanesByMeasureId.values()
-    )
+    const vertical = resolveScoreVerticalLayout(score, lyricScale,
+      printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT,
+      printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP)
+    const annotationLanesByMeasureId = vertical.lanesByMeasureId
     const visibleStaffCount = Math.max(1, renderedStaffTargets.length)
-    const systemHeight =
-      (printLayoutPlan?.systemHeight ?? SINGLE_STAFF_SYSTEM_HEIGHT) +
-      (visibleStaffCount - 1) * STACKED_STAFF_Y_OFFSET +
-      annotationExtension.below
     const layout = createSystemLayout(measures, effectiveRenderWidth, {
       compactSpacing: Boolean(printLayoutPlan?.compactSpacing),
       layout: score.layout,
       lyricScale,
       pageHeight: printLayoutPlan?.pageHeight,
-      systemHeight,
-      systemTop: resolveAnnotationSystemTop(
-        printLayoutPlan?.systemTop ?? DEFAULT_SYSTEM_TOP,
-        annotationLanesByMeasureId.values(),
-        Boolean(score.tempo || score.rhythmFeel)
-      )
+      systemHeight: vertical.systemHeight,
+      systemTop: vertical.systemTop
     })
     const renderer = new Renderer(container, Renderer.Backends.SVG)
     renderer.resize(effectiveRenderWidth, layout.height)
@@ -943,6 +943,7 @@ export function NotationPreview({
           svg,
           placement,
           target,
+          vertical.staffOffsets[target.globalStaffIndex]!,
           measure,
           target.staff.measures[measureIndex - 1],
           annotationMaps,
@@ -988,6 +989,7 @@ export function NotationPreview({
 
     if (svg) {
       const manualBounds: DOMRect[] = []
+      const renderedSegments: SpanReference[] = []
       ;(score.slurs ?? []).forEach((slur, slurIndex) => {
         const start = staffRenderState.pointsByEventId.get(slur.startEventId)
         const end = staffRenderState.pointsByEventId.get(slur.endEventId)
@@ -1023,12 +1025,15 @@ export function NotationPreview({
           endSystem,
           staffBounds,
           slurIndex,
-          slur.engraving?.placement ?? slurSide,
+          slurSide,
+          renderedStaffTargets.find(target => target.globalStaffIndex === staffRenderState.staffIndexByEventId.get(slur.startEventId))!,
           slur.engraving
         )
         for (const segment of segments) {
-          if (slur.engraving) manualBounds.push(segment.getBBox())
-          bindSpanSelection(segment, { kind: 'slur', id: slur.id }, selectedSpan, onSelectSpan)
+          segment.element.setAttribute('data-span-staff-y', String(segment.staffY))
+          if (slur.engraving) manualBounds.push(segment.element.getBBox())
+          bindSpanSelection(segment.element, { kind: 'slur', id: slur.id, segment: segment.address }, selectedSpan, onSelectSpan)
+          renderedSegments.push({ kind: 'slur', id: slur.id, segment: segment.address })
         }
       })
 
@@ -1075,14 +1080,18 @@ export function NotationPreview({
             const stem = resolveStemGeometry(note, point.y)
             return [Math.max(stem.topY, stem.baseY) - point.y]
           })),
+          renderedStaffTargets.find(target => target.globalStaffIndex === staffRenderState.staffIndexByEventId.get(hairpin.startEventId))!,
           hairpin.engraving
         )
         for (const segment of segments) {
-          if (hairpin.engraving) manualBounds.push(segment.getBBox())
-          bindSpanSelection(segment, { kind: 'hairpin', id: hairpin.id }, selectedSpan, onSelectSpan)
+          segment.element.setAttribute('data-span-staff-y', String(segment.staffY))
+          if (hairpin.engraving) manualBounds.push(segment.element.getBBox())
+          bindSpanSelection(segment.element, { kind: 'hairpin', id: hairpin.id, segment: segment.address }, selectedSpan, onSelectSpan)
+          renderedSegments.push({ kind: 'hairpin', id: hairpin.id, segment: segment.address })
         }
       }
 
+      onRenderedSpanSegments?.(score, renderedSegments)
       if (manualBounds.length) {
         const viewport = resolveSpanViewport(effectiveRenderWidth, layout.height, manualBounds)
         renderer.resize(viewport.width, viewport.height)
@@ -1161,6 +1170,7 @@ export function NotationPreview({
       )
     }
   }, [
+    onRenderedSpanSegments,
     onSelectSpan,
     selectedSpan,
     onSelectEvent,
@@ -1234,7 +1244,8 @@ function updateStaffSystemBounds(
   placement: MeasurePlacement,
   globalStaffIndex: number,
   staffY: number,
-  noteStartX?: number
+  noteStartX?: number,
+  measureId = placement.measure.id
 ): void {
   const key = createStaffSystemKey(placement.systemIndex, globalStaffIndex)
   const bounds = boundsByStaffSystemKey.get(key)
@@ -1246,7 +1257,9 @@ function updateStaffSystemBounds(
       placement.x + placement.width
     ),
     noteStartX: noteStartX ?? bounds?.noteStartX,
-    y: staffY
+    y: staffY,
+    startMeasureId: !bounds || placement.x < bounds.x1 ? measureId : bounds.startMeasureId,
+    endMeasureId: !bounds || placement.x + placement.width >= bounds.x2 ? measureId : bounds.endMeasureId
   })
 }
 
@@ -1319,67 +1332,6 @@ function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
   }
 
   return annotationMaps
-}
-
-function createMeasureAnnotationLaneMap(
-  score: Score,
-  annotationMaps: MeasureAnnotationMaps,
-  lyricScale: number
-): Map<string, MeasureAnnotationLanes> {
-  const hairpinMeasureIds = collectHairpinMeasureIds(score)
-  const lanesByMeasureId = new Map<string, MeasureAnnotationLanes>()
-
-  for (const part of score.parts) {
-    for (const staff of part.staves) {
-      for (const measure of staff.measures) {
-        lanesByMeasureId.set(
-          measure.id,
-          resolveMeasureAnnotationLanes({
-            expressionTextCount:
-              annotationMaps.expressionTextsByMeasureId.get(measure.id)?.length,
-            harmonyCount:
-              annotationMaps.harmoniesByMeasureId.get(measure.id)?.length,
-            hasDynamic: annotationMaps.dynamicsByMeasureId.has(measure.id),
-            hasHairpin: hairpinMeasureIds.has(measure.id),
-            hasRehearsalMark:
-              annotationMaps.rehearsalMarksByMeasureId.has(measure.id),
-            hasStaffText: annotationMaps.staffTextsByMeasureId.has(measure.id),
-            lyricLineCount: countMeasureLyricLines(measure),
-            lyricScale,
-            systemTextCount:
-              annotationMaps.systemTextsByMeasureId.get(measure.id)?.length,
-            tempoCount: annotationMaps.tempoEventsByMeasureId.get(measure.id)?.length
-          })
-        )
-      }
-    }
-  }
-
-  return lanesByMeasureId
-}
-
-function collectHairpinMeasureIds(score: Score): Set<string> {
-  const measureIdByEventId = new Map<string, string>()
-
-  for (const part of score.parts) {
-    for (const staff of part.staves) {
-      for (const measure of staff.measures) {
-        for (const voice of measure.voices) {
-          for (const event of voice.events) {
-            measureIdByEventId.set(event.id, measure.id)
-          }
-        }
-      }
-    }
-  }
-
-  return new Set(
-    (score.hairpins ?? []).flatMap((hairpin) =>
-      [hairpin.startEventId, hairpin.endEventId]
-        .map((eventId) => measureIdByEventId.get(eventId))
-        .filter((measureId): measureId is string => Boolean(measureId))
-    )
-  )
 }
 
 function drawRangeSelectionBands(
@@ -1556,6 +1508,7 @@ function drawPassiveStaffMeasure(
   svg: SVGSVGElement | null,
   placement: MeasurePlacement,
   target: RenderedStaffTarget,
+  staffOffset: number,
   measure: Measure,
   previousMeasure: Measure | undefined,
   annotationMaps: MeasureAnnotationMaps,
@@ -1563,7 +1516,7 @@ function drawPassiveStaffMeasure(
   interaction: RenderedStaffInteraction,
   renderState: RenderedStaffState
 ): void {
-  const y = placement.y + target.globalStaffIndex * STACKED_STAFF_Y_OFFSET
+  const y = placement.y + staffOffset
   const stave = new Stave(placement.x, y, placement.width)
   const showsClef =
     placement.isSystemStart ||
@@ -1605,14 +1558,16 @@ function drawPassiveStaffMeasure(
     renderState.boundsByStaffSystemKey,
     placement,
     target.globalStaffIndex,
-    y
+    y,
+    undefined,
+    measure.id
   )
 
   if (svg && placement.isSystemStart) {
     drawStaffLabel(
       svg,
       placement.x + 4,
-      y - 12,
+      y - 8,
       target.staffIndex === 0 ? target.partName : `Staff ${target.staffIndex + 1}`,
       target
     )
@@ -1637,7 +1592,8 @@ function drawPassiveStaffMeasure(
       placement,
       target.globalStaffIndex,
       y,
-      stave.getNoteStartX()
+      stave.getNoteStartX(),
+      measure.id
     )
   }
 
@@ -2298,10 +2254,11 @@ function drawHairpinSegments(
   startSystem: number,
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>,
-  yOffset = HAIRPIN_Y_OFFSET,
+  yOffset: number,
+  scope: Pick<SpanSegmentAddress, 'partId' | 'staffId'>,
   engraving?: SpanEngraving
-): SVGGElement[] {
-  const elements: SVGGElement[] = []
+): RenderedSpanSegment[] {
+  const elements: RenderedSpanSegment[] = []
   for (const segment of resolveHairpinSegments(
     start,
     end,
@@ -2309,17 +2266,22 @@ function drawHairpinSegments(
     endSystem,
     boundsBySystemIndex
   )) {
-    elements.push(drawHairpinSegment(
+    const bounds = boundsBySystemIndex.get(segment.systemIndex)!
+    const address = { partId: scope.partId, staffId: scope.staffId,
+      startMeasureId: segment.isFirst ? start.measureId! : bounds.startMeasureId,
+      endMeasureId: segment.isLast ? end.measureId! : bounds.endMeasureId }
+    const geometry = resolveSpanSegmentEngraving(engraving, address)
+    elements.push({ address, staffY: bounds.y, element: drawHairpinSegment(
       svg,
-      segment.x1 + (engraving?.offsetX ?? 0) * 10,
-      segment.x2 + (engraving?.offsetX ?? 0) * 10,
+      segment.x1 + (geometry?.offsetX ?? 0) * 10,
+      segment.x2 + (geometry?.offsetX ?? 0) * 10,
       segment.staffY,
       type,
       segment.isFirst,
       segment.isLast,
-      (engraving?.placement === 'above' ? -34 : yOffset) + (engraving?.offsetY ?? 0) * 10,
-      engraving?.height
-    ))
+      (geometry?.placement === 'above' ? -34 : yOffset) + (geometry?.offsetY ?? 0) * 10,
+      geometry?.height
+    ) })
   }
   return elements
 }
@@ -2440,10 +2402,11 @@ function drawSlurSegments(
   endSystem: number,
   boundsBySystemIndex: Map<number, SystemBounds>,
   slurIndex: number,
-  side: 'above' | 'below',
+  automaticSide: 'above' | 'below',
+  scope: Pick<SpanSegmentAddress, 'partId' | 'staffId'>,
   engraving?: SpanEngraving
-): SVGPathElement[] {
-  const elements: SVGPathElement[] = []
+): RenderedSpanSegment[] {
+  const elements: RenderedSpanSegment[] = []
   const firstSystem = Math.min(startSystem, endSystem)
   const lastSystem = Math.max(startSystem, endSystem)
 
@@ -2456,6 +2419,11 @@ function drawSlurSegments(
 
     const isFirst = systemIndex === startSystem
     const isLast = systemIndex === endSystem
+    const address = { partId: scope.partId, staffId: scope.staffId,
+      startMeasureId: isFirst ? start.measureId! : bounds.startMeasureId,
+      endMeasureId: isLast ? end.measureId! : bounds.endMeasureId }
+    const geometry = resolveSpanSegmentEngraving(engraving, address)
+    const side = geometry?.placement ?? automaticSide
     const x1 = isFirst
       ? resolveSlurEndpointX(start, side, 'start')
       : resolveSlurContinuationStartX(bounds)
@@ -2472,10 +2440,10 @@ function drawSlurSegments(
       continue
     }
 
-    elements.push(drawSlurSegment(svg,
-      x1 + (engraving?.offsetX ?? 0) * 10, x2 + (engraving?.offsetX ?? 0) * 10,
-      y1 + (engraving?.offsetY ?? 0) * 10, y2 + (engraving?.offsetY ?? 0) * 10,
-      side, slurIndex, isFirst, isLast, engraving?.height))
+    elements.push({ address, staffY: bounds.y, element: drawSlurSegment(svg,
+      x1 + (geometry?.offsetX ?? 0) * 10, x2 + (geometry?.offsetX ?? 0) * 10,
+      y1 + (geometry?.offsetY ?? 0) * 10, y2 + (geometry?.offsetY ?? 0) * 10,
+      side, slurIndex, isFirst, isLast, geometry?.height) })
   }
   return elements
 }
@@ -2519,20 +2487,24 @@ function drawSlurSegment(
 
 function bindSpanSelection(
   element: SVGElement,
-  reference: { kind: 'slur' | 'hairpin'; id: string },
+  reference: SpanReference,
   selected: NotationPreviewProps['selectedSpan'],
   onSelect: NotationPreviewProps['onSelectSpan']
 ): void {
+  if (reference.segment) element.setAttribute('data-span-segment', spanSegmentKey(reference.segment))
   if (!onSelect) return
+  const isSelected = selected?.kind === reference.kind && selected.id === reference.id &&
+    (!selected.segment || Boolean(reference.segment && spanSegmentKey(selected.segment) === spanSegmentKey(reference.segment)))
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   group.classList.add('notation-span-target')
-  group.classList.toggle('is-selected', selected?.kind === reference.kind && selected.id === reference.id)
+  group.classList.toggle('is-selected', isSelected)
+  if (reference.segment) group.setAttribute('data-span-segment', spanSegmentKey(reference.segment))
   group.setAttribute('data-span-id', reference.id)
   group.setAttribute('data-span-kind', reference.kind)
   group.setAttribute('role', 'button')
   group.setAttribute('tabindex', '0')
   group.setAttribute('aria-label', `${reference.kind === 'slur' ? '슬러' : '헤어핀'} ${reference.id} 선택`)
-  group.setAttribute('aria-pressed', String(selected?.kind === reference.kind && selected.id === reference.id))
+  group.setAttribute('aria-pressed', String(isSelected))
   const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path')
   hit.setAttribute('d', element.getAttribute('d') ?? [...element.querySelectorAll('line')].map(line =>
     `M ${line.getAttribute('x1')} ${line.getAttribute('y1')} L ${line.getAttribute('x2')} ${line.getAttribute('y2')}`).join(' '))
@@ -2608,7 +2580,8 @@ function resolveSlurContinuationY(
   bounds: SystemBounds,
   side: 'above' | 'below'
 ): number {
-  return side === 'above' ? bounds.y - 12 : bounds.y + 56
+  // VexFlow's five staff lines run from origin + 40 through origin + 80.
+  return side === 'above' ? bounds.y + 20 : bounds.y + 100
 }
 
 function drawArticulations(
