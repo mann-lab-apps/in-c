@@ -38,7 +38,7 @@
 | S24 | Setlist list creation and post-import addition await unguarded saves. | Distinguish successful library import from failed setlist addition; no automatic viewer navigation after failed/cancelled target selection, preserve imported scores for retry. | Fourteen new cases; full suite 720/720, analyze/RC PASS. | VERIFIED LOCAL |
 | S25 | Recent-position writes in open/viewer transitions interrupt reading on storage failure. | Allow valid reading with a storage warning; recheck route/profile/score/setlist membership after each awaited write. No late navigation after context changes. | Forty new widget cases; full suite 760/760, analyze/RC PASS. | VERIFIED LOCAL |
 | S26 | Bulk score deletion saves scores and setlist cleanup separately, with unguarded UI failure. | Group linked metadata and automatic backup in the existing rollback operation; recover owned lists and retain selection on failure. Never delete source files. | Twenty-eight new failure/lifecycle cases; targeted store/removal 128/128, full suite 788/788, analyze/RC PASS. | VERIFIED LOCAL |
-| S27 | Duplicate-import notice says the existing score opens before setlist target selection finishes. | Do not claim opening after target cancellation or failed addition. Preserve existing-score deduplication. | Actual duplicate-import widget flow; no new import policy. | TODO |
+| S27 | Duplicate-import notice says the existing score opens before setlist target selection finishes. | Do not claim opening after target cancellation or failed addition. Preserve existing-score deduplication. | Four red/green widget regressions; targeted 29/29, full suite 792/792, analyze/RC PASS. | VERIFIED LOCAL |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -163,6 +163,17 @@ analyze, JSON completion gate, RC and diff/whitespace scans PASS (`/private/tmp/
 Formatter touched only the paired store method in this resume; all earlier dirty diff was reviewed.
 Commit subject: `fix: persist Clef score removal as linked metadata`. Next: S27 duplicate import copy.
 No build/version change/push/merge. The original project worktree remains unrelated and untouched.
+
+S26 commit: `7615f8b`. S27 removes the premature duplicate-open snackbar from the setlist
+flow; actual add/error feedback owns the result. Plain duplicate import uses a factual
+already-in-library notice instead of promising navigation. Four new widget assertions failed
+before the copy fix. They also verify original ID reuse, membership and route outcome.
+Targeted tests: 29/29; complete full suite: 792/792; analyze and RC PASS.
+Temporary evidence: `/private/tmp/clef-duplicate-copy-red.log`,
+`/private/tmp/clef-duplicate-copy-green.log`, `/private/tmp/clef-rc-s27.log`.
+No model, codec, duplicate matching policy or native import changes.
+Commit subject: `fix: clarify Clef duplicate import feedback`.
+Next: reproduce startup setlist-reference cleanup write failure before choosing a fix.
 
 ## Verification Policy
 

@@ -205,6 +205,68 @@ void main() {
     });
   }
 
+  for (final outcome in ['cancel', 'failure', 'success', 'plain']) {
+    testWidgets('duplicate PDF feedback matches $outcome outcome', (
+      tester,
+    ) async {
+      final target = await controller.createSetlist('Concert');
+      store.importedPdf = _score('new-import-id', fileName: 'existing');
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('악보 추가'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.text(outcome == 'plain' ? 'PDF 가져오기' : 'PDF 가져와 세트리스트에 추가'),
+      );
+      if (outcome == 'plain') {
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pump();
+        expect(find.text('"existing"은 이미 라이브러리에 있는 악보입니다.'), findsOneWidget);
+      } else {
+        await tester.pumpAndSettle();
+        expect(find.textContaining('기존 악보를 엽니다'), findsNothing);
+        if (outcome == 'cancel') {
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        } else {
+          store.failSetlistSave = outcome == 'failure';
+          await tester.tap(find.text('Concert').last);
+          if (outcome == 'success') {
+            await tester.pump();
+            await tester.pump(const Duration(milliseconds: 500));
+            await tester.pump();
+          } else {
+            await tester.pumpAndSettle();
+            expect(
+              find.text('악보는 라이브러리에 있지만 세트리스트에 담지 못했습니다. 다시 추가해주세요.'),
+              findsOneWidget,
+            );
+          }
+        }
+      }
+      expect(tester.takeException(), isNull);
+      expect(controller.scores.single.id, 'existing');
+      expect(
+        controller.setlistById(target.id).scoreIds,
+        outcome == 'success' ? ['existing'] : isEmpty,
+      );
+      expect(
+        find.byType(SheetViewerScreen),
+        outcome == 'success' || outcome == 'plain'
+            ? findsOneWidget
+            : findsNothing,
+      );
+      if (outcome == 'cancel' || outcome == 'failure') {
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        expect(find.textContaining('기존 악보를 엽니다'), findsNothing);
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+  }
+
   testWidgets('failed batch import shows an error without an unsaved card', (
     tester,
   ) async {
@@ -290,6 +352,7 @@ SheetScore _score(String id, {String? fileName}) {
 }
 
 class _ImportStore extends SheetLibraryStore {
+  SheetScore? importedPdf;
   bool failSetlistSave = false;
   Completer<void>? pendingSetlistWrite;
 
@@ -320,7 +383,7 @@ class _ImportStore extends SheetLibraryStore {
   }
 
   @override
-  Future<SheetScore?> importPdf() async => _imported();
+  Future<SheetScore?> importPdf() async => importedPdf ?? _imported();
   @override
   Future<List<SheetScore>> importPdfs() async => importedBatch ?? [_imported()];
   @override

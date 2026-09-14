@@ -447,9 +447,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     final openedExisting = controller.lastImportOpenedExistingScore;
-    if (openedExisting) {
+    if (openedExisting && !addToSetlist) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${score.displayTitle}"이 이미 있어 기존 악보를 엽니다.')),
+        SnackBar(content: Text('"${score.displayTitle}"은 이미 라이브러리에 있는 악보입니다.')),
       );
     }
     if (addToSetlist) {
