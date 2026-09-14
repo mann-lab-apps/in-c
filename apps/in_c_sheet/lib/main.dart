@@ -750,17 +750,32 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || name == null) {
           return;
         }
-        final didRename = await controller.renameLibraryProfile(
-          id: action.libraryId,
-          name: name,
-        );
-        if (didRename && mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')));
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('같은 이름의 라이브러리가 이미 있습니다.')),
+        final feedbackLibraryId = controller.activeLibraryProfile.id;
+        final route = ModalRoute.of(context);
+        bool canShowFeedback() =>
+            mounted &&
+            controller.activeLibraryProfile.id == feedbackLibraryId &&
+            (route == null || route.isCurrent);
+        try {
+          final didRename = await controller.renameLibraryProfile(
+            id: action.libraryId,
+            name: name,
           );
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  didRename ? '라이브러리 이름을 변경했습니다.' : '같은 이름의 라이브러리가 이미 있습니다.',
+                ),
+              ),
+            );
+          }
+        } catch (_) {
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('라이브러리 이름을 저장하지 못했습니다. 다시 시도해주세요.')),
+            );
+          }
         }
       case _LibraryProfileActionType.delete:
         final didConfirm = await showDialog<bool>(

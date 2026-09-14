@@ -62,6 +62,8 @@
 
 | S38 | Home sort/filter saves leave unsaved selections, leak exceptions and can cross library scope after delay. | Recover request-owned view settings, report failure through existing home notice, preserve newer state/unrelated errors, retry and scope original writes. | Fifteen initial red cases; eighteen new cases including real home filter UI and recovery reads; targeted 169/169, full 926/926, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S39 | Rename ignores false writes, leaves changed cache on failure and permits late writes to replace newer names; UI errors are unhandled. | Queue rename read/check/write, check persistence and rollback, preserve later renames and distinguish save errors from duplicate feedback across route lifetime. | Nine initial red cases; fifteen new storage/UI cases, targeted 158/158, full 941/941, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -368,6 +370,20 @@ The transient search query is not restored on filter-reset failure;
 only persisted view settings are covered. Collection rename direct-save and overlapping loads
 remain separate candidates. No build/version change/push/merge.
 Next: profile rename failure feedback and persistence, including queued rename read/modify/write.
+
+S38 commit: `bcc2778`. S39 makes profile rename derive its updated list inside the existing
+metadata queue and commit through checked rollback writes. Extracted `_queueMetadataWrite`
+retains the existing queue lifetime/error contract for other metadata writes. UI catches save
+errors, allows retry, and scopes late feedback to the initiating route/library.
+Nine initial red cases (three store, six widget). Fifteen new cases cover false/throw, cache/disk
+reload, duplicate checks, two queued profile edits, slow same-profile rename, failed rename followed
+by another store instance, and actual home dialog success/failure/exit/switch/coverage/retry.
+Evidence: `/private/tmp/clef-profile-rename-red.log`, `/private/tmp/clef-profile-rename-green.log`.
+Full 941/941, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s39.log`).
+Commit subject: `fix: serialize Clef library profile renames`.
+Profile creation/deletion/activation still use separate legacy
+write paths and are not covered by rename serialization. No build/version change/push/merge.
+Next: profile creation/activation partial-write failures.
 
 ## Verification Policy
 

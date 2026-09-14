@@ -135,32 +135,29 @@ class SheetLibraryStore {
       return null;
     }
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    if (profiles.any(
-      (profile) =>
-          profile.id != id &&
-          profile.name.toLowerCase() == normalized.toLowerCase(),
-    )) {
-      return null;
-    }
-    final now = DateTime.now();
     SheetLibraryProfile? renamed;
-    final nextProfiles = profiles
-        .map((profile) {
-          if (profile.id != id) {
-            return profile;
-          }
-          renamed = profile.copyWith(name: normalized, updatedAt: now);
-          return renamed!;
-        })
-        .toList(growable: false);
-    if (renamed == null) {
-      return null;
-    }
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(nextProfiles),
-    );
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      if (profiles.any(
+        (profile) =>
+            profile.id != id &&
+            profile.name.toLowerCase() == normalized.toLowerCase(),
+      )) {
+        return;
+      }
+      final now = DateTime.now();
+      final nextProfiles = profiles
+          .map((profile) {
+            if (profile.id != id) return profile;
+            renamed = profile.copyWith(name: normalized, updatedAt: now);
+            return renamed!;
+          })
+          .toList(growable: false);
+      if (renamed == null) return;
+      await _commitMetadataValues(preferences, {
+        _libraryProfilesKey: SheetLibraryProfileCodec.encode(nextProfiles),
+      });
+    });
     return renamed;
   }
 
@@ -1466,6 +1463,16 @@ class SheetLibraryStore {
     Map<String, String?> values, {
     String? automaticBackupLibraryId,
   }) {
+    return _queueMetadataWrite(
+      () => _commitMetadataValues(
+        preferences,
+        values,
+        automaticBackupLibraryId: automaticBackupLibraryId,
+      ),
+    );
+  }
+
+  Future<void> _queueMetadataWrite(Future<void> Function() write) {
     final previous = _metadataWrites;
     final result = () async {
       if (previous != null) {
@@ -1475,11 +1482,7 @@ class SheetLibraryStore {
           // A failed request must not prevent a later save or retry.
         }
       }
-      await _commitMetadataValues(
-        preferences,
-        values,
-        automaticBackupLibraryId: automaticBackupLibraryId,
-      );
+      await write();
     }();
     _metadataWrites = result;
     return result.whenComplete(() {

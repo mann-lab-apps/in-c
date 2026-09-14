@@ -639,6 +639,138 @@ void main() {
     });
   }
 
+  for (final throws in [false, true]) {
+    test(
+      'profile rename restores failed index write: throws=$throws',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final target = await store.createLibraryProfile('Concert');
+        final other = await store.createLibraryProfile('Other');
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final before = await platform.getAll();
+        platform.failureKey = 'flutter.clef_library_profiles';
+        platform.throwOnFailure = throws;
+        await expectLater(
+          controller.renameLibraryProfile(id: target.id, name: 'Revised'),
+          throwsA(anything),
+        );
+        expect(await platform.getAll(), before);
+        expect(
+          (await store.loadLibraryProfiles())
+              .firstWhere((p) => p.id == target.id)
+              .name,
+          'Concert',
+        );
+        expect(
+          controller.libraryProfiles.firstWhere((p) => p.id == target.id).name,
+          'Concert',
+        );
+        expect(controller.activeLibraryProfile.id, other.id);
+        expect(
+          await controller.renameLibraryProfile(id: target.id, name: 'Revised'),
+          isTrue,
+        );
+        await (await SharedPreferences.getInstance()).reload();
+        expect(
+          (await store.loadLibraryProfiles())
+              .firstWhere((p) => p.id == target.id)
+              .name,
+          'Revised',
+        );
+      },
+    );
+  }
+
+  for (final duplicate in [false, true]) {
+    test(
+      'queued profile renames preserve both latest names: duplicate=$duplicate',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final a = await store.createLibraryProfile('A');
+        final b = await store.createLibraryProfile('B');
+        platform.delayKey = 'flutter.clef_scores.${b.id}';
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final blocker = store.saveScores([_score(DateTime(2026, 9, 14))]);
+        await platform.writeEntered!.future;
+        final first = store.renameLibraryProfile(id: a.id, name: 'First');
+        final second = store.renameLibraryProfile(
+          id: b.id,
+          name: duplicate ? 'First' : 'Second',
+        );
+        await Future<void>.delayed(Duration.zero);
+        platform.releaseWrite!.complete();
+        await blocker;
+        expect((await first)?.name, 'First');
+        expect((await second)?.name, duplicate ? isNull : 'Second');
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.firstWhere((p) => p.id == a.id).name, 'First');
+        expect(
+          profiles.firstWhere((p) => p.id == b.id).name,
+          duplicate ? 'B' : 'Second',
+        );
+      },
+    );
+  }
+
+  test('slower profile rename cannot replace newer persisted name', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final target = await store.createLibraryProfile('Concert');
+    platform.delayKey = 'flutter.clef_library_profiles';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    final first = store.renameLibraryProfile(id: target.id, name: 'First');
+    await platform.writeEntered!.future;
+    final second = store.renameLibraryProfile(id: target.id, name: 'Second');
+    await Future<void>.delayed(Duration.zero);
+    platform.releaseWrite!.complete();
+    await first;
+    await second;
+    await (await SharedPreferences.getInstance()).reload();
+    expect(
+      (await store.loadLibraryProfiles())
+          .firstWhere((p) => p.id == target.id)
+          .name,
+      'Second',
+    );
+  });
+
+  for (final throws in [false, true]) {
+    test(
+      'failed profile rename does not overwrite the next rename: throws=$throws',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final a = await store.createLibraryProfile('A');
+        final b = await store.createLibraryProfile('B');
+        platform.delayKey = 'flutter.clef_library_profiles';
+        platform.failureKey = platform.delayKey;
+        platform.throwOnFailure = throws;
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final first = store.renameLibraryProfile(id: a.id, name: 'Failed');
+        final failure = expectLater(first, throwsA(anything));
+        await platform.writeEntered!.future;
+        final second = SheetLibraryStore().renameLibraryProfile(
+          id: b.id,
+          name: 'Saved',
+        );
+        platform.releaseWrite!.complete();
+        await failure;
+        expect((await second)?.name, 'Saved');
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.firstWhere((p) => p.id == a.id).name, 'A');
+        expect(profiles.firstWhere((p) => p.id == b.id).name, 'Saved');
+      },
+    );
+  }
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(
