@@ -785,10 +785,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || didConfirm != true) {
           return;
         }
-        final didClear = await controller.clearLibraryProfile(action.libraryId);
-        if (didClear && mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('라이브러리를 비웠습니다.')));
+        final feedbackLibraryId = controller.activeLibraryProfile.id;
+        final route = ModalRoute.of(context);
+        bool canShowFeedback() =>
+            mounted &&
+            controller.activeLibraryProfile.id == feedbackLibraryId &&
+            (route == null || route.isCurrent);
+        try {
+          final didClear = await controller.clearLibraryProfile(
+            action.libraryId,
+          );
+          if (didClear && mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('라이브러리를 비웠습니다.')));
+          }
+        } catch (_) {
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('라이브러리를 비우지 못했습니다. 다시 시도해주세요.')),
+            );
+          }
         }
     }
   }

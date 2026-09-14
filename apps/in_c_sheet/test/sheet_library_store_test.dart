@@ -445,6 +445,68 @@ void main() {
     },
   );
 
+  for (final throws in [false, true]) {
+    for (final failedKey in [
+      'clef_scores',
+      'clef_setlists',
+      'clef_library_view_settings',
+      'clef_favorite_annotation_preset',
+      'clef_automatic_metadata_backup',
+    ]) {
+      test(
+        'library clear restores $failedKey failure: throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final profile = await store.createLibraryProfile('Concert');
+          final preferences = await SharedPreferences.getInstance();
+          final keys = [
+            'clef_scores',
+            'clef_setlists',
+            'clef_library_view_settings',
+            'clef_favorite_annotation_preset',
+            'clef_automatic_metadata_backup',
+          ];
+          for (final key in keys) {
+            await preferences.setString(
+              '$key.${profile.id}',
+              '{"keep":"$key"}',
+            );
+            await preferences.setString(key, '{"other":"$key"}');
+          }
+          final file = File('${documentsDir.path}/original.pdf');
+          await file.writeAsBytes([1, 2, 3]);
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.$failedKey.${profile.id}';
+          platform.throwOnFailure = throws;
+          await expectLater(
+            store.clearLibraryProfile(profile.id),
+            throwsA(anything),
+          );
+          expect(await platform.getAll(), before);
+          for (final key in keys) {
+            expect(
+              preferences.getString('$key.${profile.id}'),
+              '{"keep":"$key"}',
+            );
+          }
+          await preferences.reload();
+          expect(await store.clearLibraryProfile(profile.id), isTrue);
+          for (final key in keys) {
+            expect(preferences.getString('$key.${profile.id}'), isNull);
+            expect(preferences.getString(key), '{"other":"$key"}');
+          }
+          expect((await store.loadActiveLibraryProfile()).id, profile.id);
+          expect(
+            (await store.loadLibraryProfiles()).any((p) => p.id == profile.id),
+            isTrue,
+          );
+          expect(await file.readAsBytes(), [1, 2, 3]);
+        },
+      );
+    }
+  }
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(

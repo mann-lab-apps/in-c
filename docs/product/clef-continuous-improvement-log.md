@@ -54,6 +54,8 @@
 
 | S34 | Profile reads rewrite raw JSON and can prevent opening scores when that unnecessary write fails. | Read without persistence; retain in-memory default normalization and explicit profile mutations. Missing/malformed/future-field raw values remain unchanged on reads. | Four initial red cases; store suite 123/123, full 866/866, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S35 | Clearing a library ignores failed removals or leaves partial metadata; late UI errors/feedback escape their initiating screen. | Group the five scoped removals in existing checked rollback writes; preserve original files/profile/other libraries, retry after failure and suppress stale UI feedback. | Ten injected storage failures and three UI failures reproduced; eighteen new store/widget cases including late success/failure, full 884/884, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -276,6 +278,24 @@ Initial RC found one null-aware-elements lint in the test; corrected and rerun.
 Full 866/866, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s34-final.log`).
 Commit subject: `fix: keep Clef profile reads free of writes`.
 No build/version change/push/merge. Next: reproduce partial library-clear persistence failures.
+
+S34 commit: `a925d03`. S35 local verification completed after the user requested commit/push.
+`clearLibraryProfile` now submits scores, setlists, view settings, favorite annotation preset
+and automatic backup removal together through `_writeMetadataValues`. The actual home
+confirmation action catches failure and guards feedback by mounted route and initiating library.
+Ten store failures (false/throw at each key) and three widget failures reproduced before fixing;
+the normal widget success case passed. Red evidence: `/private/tmp/clef-profile-clear-red.log`.
+Two green-test requests were rejected by automatic approval review because its model was at
+capacity, not because tests failed. Read-only status/diff checks confirmed only the intended
+four Clef code/test files before this checkpoint. No indirect execution workaround was used.
+Approval service recovered on resume. Initial targeted 137/137 PASS; extended four cases for
+closed/switched/covered routes and late success/failure. Full 884/884, analyze/RC and whitespace
+scans PASS (`/private/tmp/clef-rc-s35.log`). Formatter changed only the three intended source/test
+files. Feature map/tester checklist updated. Commit subject: `fix: recover Clef library clear failures`.
+User authorized committing and pushing dev on this checkpoint; main merge and builds remain
+unauthorized. No build/version change. Next: reproduce concurrent edits during library clear.
+Profile deletion/creation/rename transactions and concurrent edits during clearing remain
+separate unchecked gaps. Rollback failure/process termination guarantees are not claimed.
 
 ## Verification Policy
 

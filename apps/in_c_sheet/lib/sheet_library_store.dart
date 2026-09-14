@@ -173,7 +173,13 @@ class SheetLibraryStore {
     if (_profileById(profiles, id) == null) {
       return false;
     }
-    await _removeLibraryData(preferences, id);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_scoresKey, id): null,
+      _scopedKey(_setlistsKey, id): null,
+      _scopedKey(_libraryViewSettingsKey, id): null,
+      _scopedKey(_favoriteAnnotationPresetKey, id): null,
+      _scopedKey(_automaticMetadataBackupKey, id): null,
+    });
     return true;
   }
 
