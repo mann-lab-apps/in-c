@@ -35,7 +35,8 @@
 | S21 | Single/batch/image/shared import leaves unsaved score cards after metadata failure. | Recover persisted scores with S18/S20 ownership guards, return no imported success, distinguish storage failure from file failure, release import state and allow retry. Never delete source files to compensate. | Four controller flows plus batch UI reproduced failure. Thirteen new tests; full suite 669/669, analyze/RC PASS. | VERIFIED LOCAL |
 | S22 | Setlist mutations retain unsaved state and bulk add/create leaks failures to the UI. | Recover durable setlists only for the owning list/profile; preserve newer writes, report original failure, retain bulk selection for retry and ignore closed UI. | Twenty-two mutation/race/recovery/bulk UI cases; full suite 691/691, analyze/RC PASS. | VERIFIED LOCAL |
 | S23 | Setlist detail edits leak save failures, including reorder and removal undo. | Report storage failure without success/conflict feedback or delete navigation; allow retry and ignore late errors after route exit. | Fifteen new widget cases; 37/37 setlist recovery cases, full suite 706/706, analyze/RC PASS. | VERIFIED LOCAL |
-| S24 | Setlist list-create/import/viewer callbacks still await unguarded saves. | Separate import success from setlist-add failure; recent-position storage failure must not falsely claim navigation success or silently interrupt performance. | Inspect actual callbacks and reproduce before selecting a minimal policy. | TODO |
+| S24 | Setlist list creation and post-import addition await unguarded saves. | Distinguish successful library import from failed setlist addition; no automatic viewer navigation after failed/cancelled target selection, preserve imported scores for retry. | Fourteen new cases; full suite 720/720, analyze/RC PASS. | VERIFIED LOCAL |
+| S25 | Recent-position writes in setlist open/viewer transitions can interrupt reading on storage failure. | Define and test non-destructive reading fallback; no stale target navigation or false persistence claim. | Inspect home/list/detail/viewer paths and reproduce failures; actual PDF rendering remains separate. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -108,6 +109,21 @@ Final verification: 37/37 setlist cases, 706/706 full tests, analyze, JSON compl
 RC/diff checks PASS (`/private/tmp/clef-rc-s23.log`). Formatter touched only the edited main/test
 files. Commit subject: `fix: handle Clef setlist detail save failures`. No app build, version
 change or remote mutation. S24 covers remaining list-create/import/viewer entry points.
+
+S23 commit: `d811ec9`. S24 catches standalone setlist creation and post-import add failures.
+Library import remains durable when adding to the setlist fails, and the notice states that
+partial result explicitly. Single PDF/image flows no longer auto-open the viewer when target
+selection is cancelled or adding fails. Successful existing paths retain navigation behavior.
+Six import error/closed-widget cases and two list-create cases reproduced uncaught errors.
+Retry fixtures must use fresh import IDs with the same source filename, as native import does;
+image menu items require scrolling. Successful routing uses bounded pumps because fake PDF
+loading cannot establish native render completion. S25 covers remaining open/transition writes.
+Final verification: import cases 25/25, full suite 720/720, analyze/JSON completion/RC PASS
+(`/private/tmp/clef-rc-s24.log`). Diff/formatter review is scoped to main and the two edited
+tests plus docs. No build, version change, push or merge. Commit subject:
+`fix: distinguish Clef import and setlist save outcomes`.
+Next: S25 reading fallback. Also review duplicate-import copy timing: its existing-score
+notice currently precedes target selection, so cancellation can leave a misleading open notice.
 
 ## Verification Policy
 

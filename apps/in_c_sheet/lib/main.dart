@@ -452,8 +452,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       );
     }
     if (addToSetlist) {
-      await _addImportedScoreToSetlist(score);
-      if (!mounted) {
+      final added = await _addImportedScoreToSetlist(score);
+      if (!mounted || !added) {
         return;
       }
     }
@@ -470,11 +470,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       if (!mounted || target == null) {
         return;
       }
-      final setlistResult = await controller.addScoresToSetlist(
-        target,
-        result.scores,
+      final setlistResult = await _trySetlistSave(
+        context,
+        () => controller.addScoresToSetlist(target, result.scores),
+        errorMessage: _importedSetlistSaveFailure,
       );
-      if (!mounted) {
+      if (!mounted || setlistResult == null) {
         return;
       }
       final added = setlistResult.addedCount;
@@ -507,8 +508,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     if (addToSetlist) {
-      await _addImportedScoreToSetlist(score);
-      if (!mounted) {
+      final added = await _addImportedScoreToSetlist(score);
+      if (!mounted || !added) {
         return;
       }
     }
@@ -518,23 +519,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     await _openScore(score, showImportNudge: true);
   }
 
-  Future<void> _addImportedScoreToSetlist(SheetScore score) async {
+  Future<bool> _addImportedScoreToSetlist(SheetScore score) async {
     final target = await _selectSetlistForBulkAdd(1);
     if (!mounted || target == null) {
-      return;
+      return false;
     }
-    final result = await controller.addScoresToSetlist(target, <SheetScore>[
-      score,
-    ]);
-    if (!mounted) {
-      return;
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(target, <SheetScore>[score]),
+      errorMessage: _importedSetlistSaveFailure,
+    );
+    if (!mounted || result == null) {
+      return false;
     }
-    if (_showSetlistAddFailure(context, result)) return;
+    if (_showSetlistAddFailure(context, result)) return false;
     final message = result.didAddAny
         ? '"${score.displayTitle}"을 "${target.title}"에 추가했습니다.'
         : '"${target.title}"에 이미 포함되어 있습니다.';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+    return true;
   }
 
   Future<void> _showTesterInfo() async {
@@ -4098,17 +4102,20 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
   return '${score.lastPage}쪽부터 열기 · $identity';
 }
 
+const _importedSetlistSaveFailure =
+    '악보는 라이브러리에 있지만 세트리스트에 담지 못했습니다. 다시 추가해주세요.';
+
 Future<T?> _trySetlistSave<T>(
   BuildContext context,
-  Future<T> Function() save,
-) async {
+  Future<T> Function() save, {
+  String errorMessage = '세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.',
+}) async {
   try {
     return await save();
   } catch (_) {
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(errorMessage)));
     }
     return null;
   }
@@ -5269,8 +5276,11 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       return;
     }
 
-    final setlist = await controller.createSetlist(title);
-    if (!mounted) {
+    final setlist = await _trySetlistSave(
+      context,
+      () => controller.createSetlist(title),
+    );
+    if (!mounted || setlist == null) {
       return;
     }
     await Navigator.of(context).push<void>(

@@ -286,6 +286,39 @@ void main() {
     });
   }
 
+  for (final close in [false, true]) {
+    testWidgets('setlist list creation handles failure: closed=$close', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(home: SheetSetlistsScreen(controller: controller)),
+      );
+      await tester.pumpAndSettle();
+      store.delayWrites = close;
+      store.failWrites = !close;
+      await _createFromList(tester);
+      if (close) {
+        expect(store.writes, hasLength(1));
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        store.writes.single.completeError(failure);
+        await tester.pumpAndSettle();
+      }
+      expect(tester.takeException(), isNull);
+      expect(controller.setlistByTitleOrNull('Created'), isNull);
+      expect(find.byType(SheetSetlistDetailScreen), findsNothing);
+      if (!close) {
+        expect(find.text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+        store.failWrites = false;
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await _createFromList(tester);
+        expect(find.byType(SheetSetlistDetailScreen), findsOneWidget);
+        expect(controller.setlistByTitleOrNull('Created'), isNotNull);
+      }
+    });
+  }
+
   testWidgets('detail undo failure does not queue a missing-item message', (
     tester,
   ) async {
@@ -314,6 +347,14 @@ void main() {
       expect(controller.setlistById('concert').title, 'Concert');
     },
   );
+}
+
+Future<void> _createFromList(WidgetTester tester) async {
+  await tester.tap(find.text('새 세트리스트'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.widgetWithText(TextField, '이름'), 'Created');
+  await tester.tap(find.widgetWithText(FilledButton, '저장'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _openDetail(

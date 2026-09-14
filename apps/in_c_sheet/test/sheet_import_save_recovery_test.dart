@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -118,6 +120,91 @@ void main() {
     expect(controller.scores, isEmpty);
   });
 
+  for (final label in [
+    'PDF 가져와 세트리스트에 추가',
+    '여러 PDF를 세트리스트에 추가',
+    '이미지를 묶어 세트리스트에 추가',
+  ]) {
+    testWidgets('$label retains normal successful navigation', (tester) async {
+      final target = await controller.createSetlist('Concert');
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await _importIntoSetlist(tester, label, opensViewer: true);
+      expect(controller.setlistById(target.id).scoreIds, ['imported']);
+      expect((await store.loadSetlists()).single.scoreIds, ['imported']);
+      expect(
+        find.byType(SheetViewerScreen),
+        label == '여러 PDF를 세트리스트에 추가' ? findsNothing : findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    });
+
+    testWidgets('$label stays in library when target picker is cancelled', (
+      tester,
+    ) async {
+      final target = await controller.createSetlist('Concert');
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('악보 추가'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byType(SheetViewerScreen), findsNothing);
+      expect(controller.scoreById('imported').id, 'imported');
+      expect(controller.setlistById(target.id).scoreIds, isEmpty);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('$label preserves imported score on setlist failure', (
+      tester,
+    ) async {
+      final target = await controller.createSetlist('Concert');
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      store.failSetlistSave = true;
+      await _importIntoSetlist(tester, label);
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SheetViewerScreen), findsNothing);
+      expect(
+        find.text('악보는 라이브러리에 있지만 세트리스트에 담지 못했습니다. 다시 추가해주세요.'),
+        findsOneWidget,
+      );
+      expect(controller.scores.map((s) => s.id), contains('imported'));
+      expect((await store.loadScores()).map((s) => s.id), contains('imported'));
+      expect(controller.setlistById(target.id).scoreIds, isEmpty);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('이미지 PDF를 추가했습니다.'), findsNothing);
+      store.failSetlistSave = false;
+      store.importedBatch = [_score('retried-import', fileName: 'imported')];
+      await _importIntoSetlist(tester, '여러 PDF를 세트리스트에 추가');
+      expect(controller.setlistById(target.id).scoreIds, ['imported']);
+      expect(controller.scores.where((s) => s.id == 'imported'), hasLength(1));
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('$label ignores late setlist failure after closing', (
+      tester,
+    ) async {
+      await controller.createSetlist('Concert');
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      store.pendingSetlistWrite = Completer<void>();
+      await _importIntoSetlist(tester, label);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+      store.pendingSetlistWrite!.completeError(StateError('save failed'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+  }
+
   testWidgets('failed batch import shows an error without an unsaved card', (
     tester,
   ) async {
@@ -136,6 +223,27 @@ void main() {
     );
     expect(find.textContaining('개 PDF를 가져왔습니다'), findsNothing);
   });
+}
+
+Future<void> _importIntoSetlist(
+  WidgetTester tester,
+  String label, {
+  bool opensViewer = false,
+}) async {
+  await tester.tap(find.byTooltip('악보 추가'));
+  await tester.pumpAndSettle();
+  await tester.ensureVisible(find.text(label));
+  await tester.tap(find.text(label));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Concert').last);
+  if (opensViewer) {
+    // This fixture verifies routing, not native PDF loading or its progress animation.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump();
+  } else {
+    await tester.pumpAndSettle();
+  }
 }
 
 enum _Kind { pdf, batch, images, shared }
@@ -182,6 +290,16 @@ SheetScore _score(String id, {String? fileName}) {
 }
 
 class _ImportStore extends SheetLibraryStore {
+  bool failSetlistSave = false;
+  Completer<void>? pendingSetlistWrite;
+
+  @override
+  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+    await pendingSetlistWrite?.future;
+    if (failSetlistSave) throw StateError('setlist save failed');
+    await super.saveSetlists(setlists);
+  }
+
   bool failSave = false;
   bool failImport = false;
   int saveCalls = 0;
