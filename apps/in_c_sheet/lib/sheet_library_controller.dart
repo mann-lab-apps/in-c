@@ -2028,8 +2028,7 @@ class SheetLibraryController extends ChangeNotifier {
     }
 
     _scores = <SheetScore>[...createdScores, ..._scores];
-    await store.saveScores(_scores);
-    notifyListeners();
+    await _saveScoreChanges();
     return SheetSongbookSplitResult(
       createdScores: List<SheetScore>.unmodifiable(createdScores),
       skippedDuplicateCount: skippedDuplicateCount,

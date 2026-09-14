@@ -4196,6 +4196,99 @@ Future<T?> _trySetlistSave<T>(
 }
 
 @visibleForTesting
+Future<void> createSongbookScores(
+  BuildContext context,
+  SheetLibraryController controller, {
+  required SheetScore source,
+  required int pageCount,
+}) async {
+  if (!context.mounted) return;
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() =>
+      context.mounted &&
+      controller.activeLibraryProfile.id == libraryId &&
+      (route == null || route.isCurrent);
+  if (!canContinue()) return;
+  if (controller.scoreByIdOrNull(source.id) == null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('악보가 없어 곡으로 나누지 못했습니다.')));
+    return;
+  }
+  final SheetSongbookSplitResult result;
+  try {
+    result = await controller.createScoresFromBookmarks(
+      source,
+      pageCount: pageCount,
+    );
+  } catch (_) {
+    if (context.mounted && canContinue()) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('곡 항목을 저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해주세요.'),
+            action: SnackBarAction(
+              label: '다시 시도',
+              onPressed: () {
+                if (!canContinue()) return;
+                unawaited(
+                  createSongbookScores(
+                    context,
+                    controller,
+                    source: source,
+                    pageCount: pageCount,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+    }
+    return;
+  }
+  if (!context.mounted || !canContinue()) return;
+  if (!result.didCreateAny) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.skippedDuplicateCount > 0
+              ? '이미 만든 곡 항목입니다.'
+              : '곡으로 나눌 북마크 구간이 없습니다.',
+        ),
+      ),
+    );
+    return;
+  }
+  final duplicateSuffix = result.skippedDuplicateCount > 0
+      ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+      : '';
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text('${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '세트리스트 만들기',
+          onPressed: () {
+            if (!canContinue()) return;
+            unawaited(
+              createSongbookSetlist(
+                context,
+                controller,
+                title: '${source.displayTitle} 곡 모음',
+                scores: result.createdScores,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+}
+
+@visibleForTesting
 Future<void> createSongbookSetlist(
   BuildContext context,
   SheetLibraryController controller, {
@@ -8796,39 +8889,11 @@ setlist=$setlistLabel
       _showSnackBar('북마크를 먼저 추가하거나 CSV로 가져오세요.');
       return;
     }
-    final result = await widget.controller.createScoresFromBookmarks(
-      score,
-      pageCount: pageCount,
-    );
-    if (!result.didCreateAny) {
-      _showSnackBar(
-        result.skippedDuplicateCount > 0
-            ? '이미 만든 곡 항목입니다.'
-            : '곡으로 나눌 북마크 구간이 없습니다.',
-      );
-      return;
-    }
-    final duplicateSuffix = result.skippedDuplicateCount > 0
-        ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
-        : '';
-    _showSnackBar(
-      '${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.',
-      action: SnackBarAction(
-        label: '세트리스트 만들기',
-        onPressed: () {
-          unawaited(_createSetlistFromSongbookScores(result.createdScores));
-        },
-      ),
-    );
-  }
-
-  Future<void> _createSetlistFromSongbookScores(List<SheetScore> scores) async {
-    if (!mounted) return;
-    await createSongbookSetlist(
+    await createSongbookScores(
       context,
       widget.controller,
-      title: '${score.displayTitle} 곡 모음',
-      scores: scores,
+      source: score,
+      pageCount: pageCount,
     );
   }
 

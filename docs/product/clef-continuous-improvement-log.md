@@ -48,6 +48,8 @@
 
 | S31 | Songbook-to-setlist creation/addition leaks save failures and continues after viewer exit. | Preserve created score entries, report partial failure with retry, reuse existing collection and stop later stages/feedback after route/profile change. | Five initial widget failures; 15 actual-action harness tests, full 831/831, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S32 | Split-score direct saves retain unsaved cards, mislead retries and may cross libraries; viewer errors are unhandled. | Use owned score save recovery/scope; no false split success; allow retry into setlist flow and suppress stale feedback after route/profile change. | Eight initial red cases; thirteen new cases, full 844/844, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -230,6 +232,19 @@ Temporary evidence: `/private/tmp/clef-songbook-feedback-red.log`,
 `/private/tmp/clef-songbook-feedback-green.log`, `/private/tmp/clef-rc-s31-final.log`.
 Commit subject: `fix: recover Clef songbook setlist actions`.
 No build/version change/push/merge. Next: split-score save recovery and failure feedback.
+
+S31 commit: `79cf23f`. S32 reproduced unsaved split cards, wrong-library delayed success
+and viewer action failures. Splitting now uses `_saveScoreChanges`; source records and PDF
+paths remain unchanged. The actual viewer split action is a testable function with partial
+failure retry and route/profile guards; its success action calls the S31 setlist flow directly.
+Thirteen new controller/widget cases cover recovery/retry, source preservation, late success/
+failure, route exit/coverage, profile switch and missing/empty/duplicate targets.
+Full suite 844/844, analyze/RC and whitespace scans PASS. Temporary evidence:
+`/private/tmp/clef-split-recovery-red.log`, `/private/tmp/clef-split-recovery-green.log`,
+`/private/tmp/clef-rc-s32.log`. Commit subject: `fix: recover Clef songbook split saves`.
+No native PDF render/build/install claim. Remaining candidates include PDF-outline merge
+stale score snapshots, overlapping loads and source-profile deletion during pending saves.
+Next: late PDF/batch/image/shared import results after a library switch; reproduce before fixing.
 
 ## Verification Policy
 
