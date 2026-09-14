@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
 import 'package:in_c_sheet/sheet_file_import.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
+import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
 import 'package:in_c_sheet/sheet_library_view_settings.dart';
@@ -17,6 +21,7 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +53,1101 @@ void main() {
       await documentsDir.delete(recursive: true);
     }
   });
+
+  for (final scoped in [false, true]) {
+    for (final throws in [false, true]) {
+      for (final key in [
+        'clef_scores',
+        'clef_setlists',
+        'clef_automatic_metadata_backup',
+      ]) {
+        test(
+          'score removal recovers both lists on $key failure: scoped=$scoped throws=$throws',
+          () async {
+            final platform = _installFailingPreferences();
+            final store = SheetLibraryStore();
+            final suffix = scoped
+                ? '.${(await store.createLibraryProfile('Removal')).id}'
+                : '';
+            final now = DateTime(2026, 9, 14);
+            final source = File('${documentsDir.path}/preserved.pdf');
+            await source.writeAsString('source bytes');
+            final original = _score(now, filePath: source.path);
+            final keep = SheetScore.fromJson({
+              ...original.toJson(),
+              'id': 'keep',
+              'title': 'Keep',
+            });
+            await store.saveScores([original, keep]);
+            await store.saveSetlists([
+              SheetSetlist(
+                id: 'concert',
+                title: 'Concert',
+                scoreIds: [original.id, keep.id],
+                createdAt: now,
+                updatedAt: now,
+                scoreNotes: {original.id: 'Cue'},
+                scoreStartPages: {original.id: 2},
+              ),
+            ]);
+            final controller = SheetLibraryController(store: store);
+            await controller.load();
+            final before = await platform.getAll();
+            final scoresBefore = controller.scores
+                .map((s) => s.toJson())
+                .toList();
+            final setsBefore = controller.setlists
+                .map((s) => s.toJson())
+                .toList();
+            var notifications = 0;
+            controller.addListener(() => notifications++);
+            platform.failureKey = 'flutter.$key$suffix';
+            platform.throwOnFailure = throws;
+            await expectLater(
+              controller.deleteScoresByIds({original.id}),
+              throwsA(anything),
+            );
+            expect(await platform.getAll(), before);
+            expect(
+              controller.scores.map((s) => s.toJson()).toList(),
+              scoresBefore,
+            );
+            expect(
+              controller.setlists.map((s) => s.toJson()).toList(),
+              setsBefore,
+            );
+            expect(notifications, greaterThan(0));
+            await (await SharedPreferences.getInstance()).reload();
+            expect(
+              (await store.loadScores()).map((s) => s.toJson()).toList(),
+              scoresBefore,
+            );
+            expect(
+              (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+              setsBefore,
+            );
+            expect(await controller.deleteScoresByIds({original.id}), 1);
+            expect(controller.scores.single.id, 'keep');
+            expect(controller.setlists.single.scoreIds, ['keep']);
+            expect(controller.setlists.single.scoreNotes, isEmpty);
+            final backup = (await store.loadAutomaticMetadataBackup())!;
+            expect(backup.scores.single.id, 'keep');
+            expect(backup.setlists.single.scoreIds, ['keep']);
+            expect(await source.readAsString(), 'source bytes');
+          },
+        );
+      }
+    }
+  }
+
+  testWidgets('bulk removal keeps selection after linked metadata failure', (
+    tester,
+  ) async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Sonata').last);
+    await tester.pumpAndSettle();
+    platform.failureKey = 'flutter.clef_setlists';
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('선택한 악보의 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(find.byTooltip('선택 악보 라이브러리에서 제거'), findsOneWidget);
+    expect(controller.scores.single.id, original.id);
+    expect(controller.setlists.single.scoreIds, [original.id]);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('라이브러리에서 제거했습니다.'), findsNothing);
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(controller.scores, isEmpty);
+    expect(controller.setlists.single.scoreIds, isEmpty);
+    expect(find.text('1개 악보를 라이브러리에서 제거했습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('closed bulk removal ignores delayed save failure', (
+    tester,
+  ) async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.longPress(find.text('Sonata').last);
+    await tester.pumpAndSettle();
+    platform.delayKey = 'flutter.clef_scores';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    platform.failureKey = 'flutter.clef_setlists';
+    await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '제거'));
+    await tester.pumpAndSettle();
+    expect(platform.writeEntered!.isCompleted, isTrue);
+    await tester.pumpWidget(const SizedBox.shrink());
+    platform.releaseWrite!.complete();
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(controller.scores.single.id, original.id);
+    expect(controller.setlists.single.scoreIds, [original.id]);
+  });
+
+  test('score removal reports rollback failure instead of success', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final now = DateTime(2026, 9, 14);
+    final original = _score(now);
+    await store.saveScores([original]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    platform.failureKey = 'flutter.clef_setlists';
+    platform.failuresRemaining = 2;
+    await expectLater(
+      controller.deleteScoresByIds({original.id}),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('rollback failed'),
+        ),
+      ),
+    );
+    await (await SharedPreferences.getInstance()).reload();
+    await controller.load();
+    expect(await controller.deleteScoresByIds({original.id}), 1);
+  });
+
+  for (final failedKey in ['clef_scores', 'clef_automatic_metadata_backup']) {
+    test(
+      'controller recovers annotation after $failedKey returns false',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final now = DateTime(2026, 9, 13);
+        final original = _score(now);
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        platform.failureKey = 'flutter.$failedKey';
+        final text = SheetTextAnnotation(
+          id: 'cue',
+          pageNumber: 1,
+          position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+          text: 'Cue',
+          color: 0xff000000,
+          fontSize: 18,
+          createdAt: now,
+        );
+        await expectLater(
+          controller.addTextAnnotation(original, text),
+          throwsA(isA<StateError>()),
+        );
+        expect(controller.scores.single.toJson(), original.toJson());
+        await (await SharedPreferences.getInstance()).reload();
+        expect((await store.loadScores()).single.toJson(), original.toJson());
+        await controller.addTextAnnotation(controller.scores.single, text);
+        await controller.load();
+        expect(controller.scores.single.annotationLayer.texts.single.id, 'cue');
+      },
+    );
+  }
+
+  for (final throws in [false, true]) {
+    for (final empty in [false, true]) {
+      for (final failedKey in [
+        'clef_scores',
+        'clef_automatic_metadata_backup',
+      ]) {
+        test(
+          'score save rolls back $failedKey (empty: $empty, throws: $throws)',
+          () async {
+            final platform = _installFailingPreferences();
+            final store = SheetLibraryStore();
+            final original = _score(DateTime(2026, 9, 13));
+            await store.saveScores([original]);
+            final profile = await store.createLibraryProfile('Save target');
+            if (!empty) {
+              await store.saveScores([original]);
+            }
+            final before = await platform.getAll();
+            platform.failureKey = 'flutter.$failedKey.${profile.id}';
+            platform.throwOnFailure = throws;
+            final revised = original.copyWith(title: 'Revised');
+            await expectLater(store.saveScores([revised]), throwsA(anything));
+            expect(await platform.getAll(), before);
+            expect(
+              (await store.loadScores()).map((s) => s.title),
+              empty ? isEmpty : ['Sonata'],
+            );
+            await (await SharedPreferences.getInstance()).reload();
+            expect(
+              (await store.loadScores()).map((s) => s.title),
+              empty ? isEmpty : ['Sonata'],
+            );
+            await store.saveScores([revised]);
+            expect((await store.loadScores()).single.title, 'Revised');
+            expect(
+              (await store.loadAutomaticMetadataBackup())!.scores.single.title,
+              'Revised',
+            );
+            await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+            expect((await store.loadScores()).single.title, 'Sonata');
+          },
+        );
+      }
+    }
+  }
+
+  for (final kind in ['scores', 'setlists']) {
+    for (final throws in [false, true]) {
+      test(
+        'explicit $kind target keeps backup rollback scoped: $throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final now = DateTime(2026, 9, 14);
+          final original = _score(now);
+          final source = await store.createLibraryProfile('Source');
+          await store.saveScores([original]);
+          final setlist = SheetSetlist(
+            id: 'concert',
+            title: 'Concert',
+            scoreIds: [original.id],
+            createdAt: now,
+            updatedAt: now,
+          );
+          await store.saveSetlists([setlist]);
+          final destination = await store.createLibraryProfile('Destination');
+          final before = await platform.getAll();
+          Future<void> save() => kind == 'scores'
+              ? store.saveScores([
+                  original.copyWith(title: 'Revised'),
+                ], libraryId: source.id)
+              : store.saveSetlists([
+                  setlist.copyWith(title: 'Revised'),
+                ], libraryId: source.id);
+          platform.failureKey =
+              'flutter.clef_automatic_metadata_backup.${source.id}';
+          platform.throwOnFailure = throws;
+          await expectLater(save(), throwsA(anything));
+          expect(await platform.getAll(), before);
+          await save();
+          expect((await store.loadActiveLibraryProfile()).id, destination.id);
+          expect(await store.loadScores(), isEmpty);
+          expect(await store.loadSetlists(), isEmpty);
+          final after = await platform.getAll();
+          for (final key in before.keys) {
+            if (key != 'flutter.clef_$kind.${source.id}' &&
+                key != 'flutter.clef_automatic_metadata_backup.${source.id}') {
+              expect(after[key], before[key], reason: key);
+            }
+          }
+          await store.setActiveLibraryProfile(source.id);
+          final backup = (await store.loadAutomaticMetadataBackup())!;
+          expect(
+            kind == 'scores'
+                ? backup.scores.single.title
+                : backup.setlists.single.title,
+            'Revised',
+          );
+          expect(
+            kind == 'scores'
+                ? (await store.loadScores()).single.title
+                : (await store.loadSetlists()).single.title,
+            'Revised',
+          );
+        },
+      );
+    }
+  }
+
+  for (final raw in <String?>[
+    null,
+    'not valid JSON',
+    '[{"id":"named","name":"Concert","futureField":{"keep":true}}]',
+  ]) {
+    test('profile reads preserve raw storage: $raw', () async {
+      SharedPreferences.setMockInitialValues({'clef_library_profiles': ?raw});
+      final preferences = await SharedPreferences.getInstance();
+      final store = SheetLibraryStore();
+      final profiles = await store.loadLibraryProfiles();
+      expect(profiles.first.isDefault, isTrue);
+      expect(
+        profiles.any((p) => p.id == 'named'),
+        raw?.contains('named') ?? false,
+      );
+      await store.loadActiveLibraryProfile();
+      await store.loadScores();
+      expect(preferences.getString('clef_library_profiles'), raw);
+      await preferences.reload();
+      expect(preferences.getString('clef_library_profiles'), raw);
+    });
+  }
+
+  test(
+    'reading existing scores does not depend on profile index writes',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 14));
+      await store.saveScores([original]);
+      final before = await platform.getAll();
+      platform.failureKey = 'flutter.clef_library_profiles';
+      platform.throwOnFailure = true;
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.errorMessage, isNull);
+      expect(controller.scores.single.toJson(), original.toJson());
+      expect(await platform.getAll(), before);
+    },
+  );
+
+  for (final throws in [false, true]) {
+    for (final failedKey in [
+      'clef_scores',
+      'clef_setlists',
+      'clef_library_view_settings',
+      'clef_favorite_annotation_preset',
+      'clef_automatic_metadata_backup',
+    ]) {
+      test(
+        'library clear restores $failedKey failure: throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final profile = await store.createLibraryProfile('Concert');
+          final preferences = await SharedPreferences.getInstance();
+          final keys = [
+            'clef_scores',
+            'clef_setlists',
+            'clef_library_view_settings',
+            'clef_favorite_annotation_preset',
+            'clef_automatic_metadata_backup',
+          ];
+          for (final key in keys) {
+            await preferences.setString(
+              '$key.${profile.id}',
+              '{"keep":"$key"}',
+            );
+            await preferences.setString(key, '{"other":"$key"}');
+          }
+          final file = File('${documentsDir.path}/original.pdf');
+          await file.writeAsBytes([1, 2, 3]);
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.$failedKey.${profile.id}';
+          platform.throwOnFailure = throws;
+          await expectLater(
+            store.clearLibraryProfile(profile.id),
+            throwsA(anything),
+          );
+          expect(await platform.getAll(), before);
+          for (final key in keys) {
+            expect(
+              preferences.getString('$key.${profile.id}'),
+              '{"keep":"$key"}',
+            );
+          }
+          await preferences.reload();
+          expect(await store.clearLibraryProfile(profile.id), isTrue);
+          for (final key in keys) {
+            expect(preferences.getString('$key.${profile.id}'), isNull);
+            expect(preferences.getString(key), '{"other":"$key"}');
+          }
+          expect((await store.loadActiveLibraryProfile()).id, profile.id);
+          expect(
+            (await store.loadLibraryProfiles()).any((p) => p.id == profile.id),
+            isTrue,
+          );
+          expect(await file.readAsBytes(), [1, 2, 3]);
+        },
+      );
+    }
+  }
+
+  for (final clearFails in [false, true]) {
+    for (final edit in ['score', 'setlist', 'view', 'preset']) {
+      test(
+        'clear completion preserves queued $edit edit: clearFails=$clearFails',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final profile = await store.createLibraryProfile('Concert');
+          final score = _score(DateTime(2026, 9, 14));
+          await store.saveScores([score]);
+          final setlist = SheetSetlist(
+            id: 'setlist',
+            title: 'Concert',
+            scoreIds: const [],
+            createdAt: score.importedAt,
+            updatedAt: score.updatedAt,
+          );
+          await store.saveSetlists([setlist]);
+          final controller = SheetLibraryController(store: store);
+          await controller.load();
+          platform.delayKey = 'flutter.clef_scores.${profile.id}';
+          platform.writeEntered = Completer<void>();
+          platform.releaseWrite = Completer<void>();
+          if (clearFails) platform.failureKey = platform.delayKey;
+          final clear = controller.clearLibraryProfile(profile.id);
+          final clearResult = clearFails
+              ? expectLater(clear, throwsA(anything))
+              : expectLater(clear, completion(isTrue));
+          await platform.writeEntered!.future;
+          final Future<Object?> change = switch (edit) {
+            'score' => controller.updateScoreMetadata(
+              score,
+              title: 'Revised',
+              composer: '',
+              tags: '',
+              note: '',
+            ),
+            'setlist' => controller.renameSetlist(setlist, 'Revised'),
+            'view' => controller.updateFavoriteFilter(true),
+            _ => controller.updateFavoriteAnnotationPreset(
+              const SheetAnnotationToolPreset(
+                toolName: 'pen',
+                color: 0xff000000,
+                width: 3,
+              ),
+            ),
+          };
+          platform.releaseWrite!.complete();
+          await clearResult;
+          await change;
+          final preferences = await SharedPreferences.getInstance();
+          await preferences.reload();
+          expect(
+            controller.scores.map((s) => s.toJson()).toList(),
+            (await store.loadScores()).map((s) => s.toJson()).toList(),
+          );
+          expect(
+            controller.setlists.map((s) => s.toJson()).toList(),
+            (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+          );
+          expect(
+            controller.libraryViewSettings.toJson(),
+            (await store.loadLibraryViewSettings()).toJson(),
+          );
+          expect(
+            controller.favoriteAnnotationPreset?.toJson(),
+            (await store.loadFavoriteAnnotationPreset())?.toJson(),
+          );
+          switch (edit) {
+            case 'score':
+              expect(controller.scores.single.title, 'Revised');
+            case 'setlist':
+              expect(controller.setlists.single.title, 'Revised');
+            case 'view':
+              expect(controller.libraryViewSettings.favoriteOnly, isTrue);
+            case 'preset':
+              expect(controller.favoriteAnnotationPreset?.width, 3);
+          }
+        },
+      );
+    }
+  }
+
+  for (final edit in ['score', 'setlist']) {
+    test('failed $edit save after clear recovers cleared state', () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final profile = await store.createLibraryProfile('Concert');
+      final score = _score(DateTime(2026, 9, 14));
+      await store.saveScores([score]);
+      final setlist = SheetSetlist(
+        id: 'setlist',
+        title: 'Concert',
+        scoreIds: const [],
+        createdAt: score.importedAt,
+        updatedAt: score.updatedAt,
+      );
+      await store.saveSetlists([setlist]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      platform.delayKey = 'flutter.clef_scores.${profile.id}';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final clear = controller.clearLibraryProfile(profile.id);
+      await platform.writeEntered!.future;
+      platform.failWritesOnly = true;
+      platform.failureKey =
+          'flutter.${edit == 'score' ? 'clef_scores' : 'clef_setlists'}.${profile.id}';
+      final change = edit == 'score'
+          ? controller.updateScoreMetadata(
+              score,
+              title: 'Revised',
+              composer: '',
+              tags: '',
+              note: '',
+            )
+          : controller.renameSetlist(setlist, 'Revised');
+      final failed = expectLater(change, throwsA(anything));
+      platform.releaseWrite!.complete();
+      expect(await clear, isTrue);
+      await failed;
+      await (await SharedPreferences.getInstance()).reload();
+      expect(controller.scores, isEmpty);
+      expect(controller.setlists, isEmpty);
+      expect(await store.loadScores(), isEmpty);
+      expect(await store.loadSetlists(), isEmpty);
+      await controller.createSetlist('Retry');
+      expect(controller.setlists.single.title, 'Retry');
+      expect((await store.loadSetlists()).single.title, 'Retry');
+    });
+  }
+
+  for (final throws in [false, true]) {
+    test(
+      'profile rename restores failed index write: throws=$throws',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final target = await store.createLibraryProfile('Concert');
+        final other = await store.createLibraryProfile('Other');
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        final before = await platform.getAll();
+        platform.failureKey = 'flutter.clef_library_profiles';
+        platform.throwOnFailure = throws;
+        await expectLater(
+          controller.renameLibraryProfile(id: target.id, name: 'Revised'),
+          throwsA(anything),
+        );
+        expect(await platform.getAll(), before);
+        expect(
+          (await store.loadLibraryProfiles())
+              .firstWhere((p) => p.id == target.id)
+              .name,
+          'Concert',
+        );
+        expect(
+          controller.libraryProfiles.firstWhere((p) => p.id == target.id).name,
+          'Concert',
+        );
+        expect(controller.activeLibraryProfile.id, other.id);
+        expect(
+          await controller.renameLibraryProfile(id: target.id, name: 'Revised'),
+          isTrue,
+        );
+        await (await SharedPreferences.getInstance()).reload();
+        expect(
+          (await store.loadLibraryProfiles())
+              .firstWhere((p) => p.id == target.id)
+              .name,
+          'Revised',
+        );
+      },
+    );
+  }
+
+  for (final duplicate in [false, true]) {
+    test(
+      'queued profile renames preserve both latest names: duplicate=$duplicate',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final a = await store.createLibraryProfile('A');
+        final b = await store.createLibraryProfile('B');
+        platform.delayKey = 'flutter.clef_scores.${b.id}';
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final blocker = store.saveScores([_score(DateTime(2026, 9, 14))]);
+        await platform.writeEntered!.future;
+        final first = store.renameLibraryProfile(id: a.id, name: 'First');
+        final second = store.renameLibraryProfile(
+          id: b.id,
+          name: duplicate ? 'First' : 'Second',
+        );
+        await Future<void>.delayed(Duration.zero);
+        platform.releaseWrite!.complete();
+        await blocker;
+        expect((await first)?.name, 'First');
+        expect((await second)?.name, duplicate ? isNull : 'Second');
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.firstWhere((p) => p.id == a.id).name, 'First');
+        expect(
+          profiles.firstWhere((p) => p.id == b.id).name,
+          duplicate ? 'B' : 'Second',
+        );
+      },
+    );
+  }
+
+  test('slower profile rename cannot replace newer persisted name', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final target = await store.createLibraryProfile('Concert');
+    platform.delayKey = 'flutter.clef_library_profiles';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    final first = store.renameLibraryProfile(id: target.id, name: 'First');
+    await platform.writeEntered!.future;
+    final second = store.renameLibraryProfile(id: target.id, name: 'Second');
+    await Future<void>.delayed(Duration.zero);
+    platform.releaseWrite!.complete();
+    await first;
+    await second;
+    await (await SharedPreferences.getInstance()).reload();
+    expect(
+      (await store.loadLibraryProfiles())
+          .firstWhere((p) => p.id == target.id)
+          .name,
+      'Second',
+    );
+  });
+
+  for (final throws in [false, true]) {
+    test(
+      'failed profile rename does not overwrite the next rename: throws=$throws',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final a = await store.createLibraryProfile('A');
+        final b = await store.createLibraryProfile('B');
+        platform.delayKey = 'flutter.clef_library_profiles';
+        platform.failureKey = platform.delayKey;
+        platform.throwOnFailure = throws;
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final first = store.renameLibraryProfile(id: a.id, name: 'Failed');
+        final failure = expectLater(first, throwsA(anything));
+        await platform.writeEntered!.future;
+        final second = SheetLibraryStore().renameLibraryProfile(
+          id: b.id,
+          name: 'Saved',
+        );
+        platform.releaseWrite!.complete();
+        await failure;
+        expect((await second)?.name, 'Saved');
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.firstWhere((p) => p.id == a.id).name, 'A');
+        expect(profiles.firstWhere((p) => p.id == b.id).name, 'Saved');
+      },
+    );
+  }
+
+  for (final throws in [false, true]) {
+    for (final key in [
+      'clef_library_profiles',
+      'clef_active_library_profile',
+    ]) {
+      test(
+        'profile creation rolls back $key failure: throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          await store.saveScores([_score(DateTime(2026, 9, 14))]);
+          final controller = SheetLibraryController(store: store);
+          await controller.load();
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.$key';
+          platform.throwOnFailure = throws;
+          await controller.createLibraryProfile('Concert');
+          expect(controller.errorMessage, '라이브러리를 만들지 못했습니다.');
+          expect(await platform.getAll(), before);
+          expect((await store.loadLibraryProfiles()).length, 1);
+          expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+          expect(controller.scores.single.id, 'score-1');
+          await (await SharedPreferences.getInstance()).reload();
+          await controller.createLibraryProfile('Concert');
+          expect(controller.errorMessage, isNull);
+          expect(controller.activeLibraryProfile.name, 'Concert');
+          expect(controller.scores, isEmpty);
+          expect((await store.loadLibraryProfiles()).length, 2);
+        },
+      );
+    }
+    for (final duplicateCreate in [false, true]) {
+      test(
+        'activation failure preserves previous profile: duplicateCreate=$duplicateCreate throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final target = await store.createLibraryProfile('Concert');
+          await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+          final before = await platform.getAll();
+          platform.failureKey = 'flutter.clef_active_library_profile';
+          platform.throwOnFailure = throws;
+          await expectLater(
+            duplicateCreate
+                ? store.createLibraryProfile(' concert ')
+                : store.setActiveLibraryProfile(target.id),
+            throwsA(anything),
+          );
+          expect(await platform.getAll(), before);
+          expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+          await (await SharedPreferences.getInstance()).reload();
+          await store.setActiveLibraryProfile(target.id);
+          expect((await store.loadActiveLibraryProfile()).id, target.id);
+        },
+      );
+    }
+  }
+
+  for (final duplicate in [false, true]) {
+    test(
+      'queued profile creation retains both requests: duplicate=$duplicate',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        platform.delayKey = 'flutter.clef_library_profiles';
+        platform.writeEntered = Completer<void>();
+        platform.releaseWrite = Completer<void>();
+        final first = store.createLibraryProfile('First');
+        await platform.writeEntered!.future;
+        final second = SheetLibraryStore().createLibraryProfile(
+          duplicate ? 'first' : 'Second',
+        );
+        await Future<void>.delayed(Duration.zero);
+        platform.releaseWrite!.complete();
+        final a = await first;
+        final b = await second;
+        await (await SharedPreferences.getInstance()).reload();
+        final profiles = await store.loadLibraryProfiles();
+        expect(profiles.length, duplicate ? 2 : 3);
+        expect(profiles.any((p) => p.id == a.id), isTrue);
+        expect(profiles.any((p) => p.id == b.id), isTrue);
+        expect((await store.loadActiveLibraryProfile()).id, b.id);
+        if (duplicate) expect(a.id, b.id);
+      },
+    );
+  }
+
+  test(
+    'slower profile activation does not overwrite newer selection',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final target = await store.createLibraryProfile('Concert');
+      await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+      platform.delayKey = 'flutter.clef_active_library_profile';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final first = store.setActiveLibraryProfile(target.id);
+      await platform.writeEntered!.future;
+      final second = store.setActiveLibraryProfile(
+        SheetLibraryProfile.defaultId,
+      );
+      await Future<void>.delayed(Duration.zero);
+      platform.releaseWrite!.complete();
+      await first;
+      await second;
+      await (await SharedPreferences.getInstance()).reload();
+      expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+    },
+  );
+
+  for (final key in ['clef_library_profiles', 'clef_active_library_profile']) {
+    test('queued create retries after $key failure', () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      platform.delayKey = 'flutter.clef_library_profiles';
+      platform.failureKey = 'flutter.$key';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final first = store.createLibraryProfile('Concert');
+      final failure = expectLater(first, throwsA(anything));
+      await platform.writeEntered!.future;
+      final second = SheetLibraryStore().createLibraryProfile('Concert');
+      platform.releaseWrite!.complete();
+      await failure;
+      final result = await second;
+      await (await SharedPreferences.getInstance()).reload();
+      expect((await store.loadLibraryProfiles()).length, 2);
+      expect((await store.loadActiveLibraryProfile()).id, result.id);
+    });
+  }
+
+  test('queued creation and rename preserve each other', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final existing = await store.createLibraryProfile('Original');
+    platform.delayKey = 'flutter.clef_library_profiles';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    final created = store.createLibraryProfile('New');
+    await platform.writeEntered!.future;
+    final renamed = store.renameLibraryProfile(
+      id: existing.id,
+      name: 'Revised',
+    );
+    platform.releaseWrite!.complete();
+    final profile = await created;
+    await renamed;
+    await (await SharedPreferences.getInstance()).reload();
+    final profiles = await store.loadLibraryProfiles();
+    expect(profiles.length, 3);
+    expect(profiles.firstWhere((p) => p.id == existing.id).name, 'Revised');
+    expect((await store.loadActiveLibraryProfile()).id, profile.id);
+  });
+
+  final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
+    'clef_setlists': (store) => store.saveSetlists([]),
+    'clef_metronome_settings': (store) => store.saveMetronomeSettings(
+      SheetMetronomeSettings.defaultSettings.copyWith(bpm: 73),
+    ),
+    'clef_tuner_settings': (store) =>
+        store.saveTunerSettings(SheetTunerSettings(referencePitchA4: 442)),
+    'clef_tone_settings': (store) =>
+        store.saveToneSettings(const SheetToneSettings(volumePercent: 80)),
+    'clef_library_view_settings': (store) =>
+        store.saveLibraryViewSettings(SheetLibraryViewSettings.defaultSettings),
+    'clef_global_viewer_settings': (store) => store.saveGlobalViewerSettings(
+      SheetViewerSettings.defaultSettings.copyWith(halfPageTurn: true),
+    ),
+    'clef_performance_preset_templates': (store) =>
+        store.savePerformancePresetTemplates([]),
+    'clef_favorite_annotation_preset': (store) =>
+        store.saveFavoriteAnnotationPreset(null),
+  };
+  for (final entry in metadataSaves.entries) {
+    for (final backupFails in [false, true]) {
+      for (final throws in [false, true]) {
+        test(
+          'metadata save rolls back ${entry.key} (backup: $backupFails, throws: $throws)',
+          () async {
+            final platform = _installFailingPreferences();
+            final store = SheetLibraryStore();
+            await store.saveScores([_score(DateTime(2026, 9, 13))]);
+            await store.saveFavoriteAnnotationPreset(
+              const SheetAnnotationToolPreset(
+                toolName: 'pen',
+                color: 0xff000000,
+                width: 3,
+              ),
+            );
+            final before = await platform.getAll();
+            platform.failureKey =
+                'flutter.${backupFails ? 'clef_automatic_metadata_backup' : entry.key}';
+            platform.throwOnFailure = throws;
+            await expectLater(entry.value(store), throwsA(anything));
+            expect(await platform.getAll(), before);
+            final preferences = await SharedPreferences.getInstance();
+            final cached = preferences.getKeys().toList();
+            await preferences.reload();
+            expect(preferences.getKeys(), unorderedEquals(cached));
+            await entry.value(store);
+            expect(await platform.getAll(), isNot(before));
+          },
+        );
+      }
+    }
+  }
+
+  test(
+    'score save reports failed rollback and permits a later retry',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      platform.failureKey = 'flutter.clef_automatic_metadata_backup';
+      platform.failuresRemaining = 2;
+      await expectLater(
+        store.saveScores([original.copyWith(title: 'Failed')]),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('rollback failed'),
+          ),
+        ),
+      );
+      expect((await store.loadScores()).single.title, 'Sonata');
+      await store.saveScores([original.copyWith(title: 'Retry')]);
+      expect(
+        (await store.loadAutomaticMetadataBackup())!.scores.single.title,
+        'Retry',
+      );
+    },
+  );
+
+  test(
+    'failed score save cannot roll back a concurrent setlist save',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      platform.delayKey = 'flutter.clef_automatic_metadata_backup';
+      platform.failureKey = platform.delayKey;
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final failed = expectLater(
+        store.saveScores([original.copyWith(title: 'Failed')]),
+        throwsA(anything),
+      );
+      await platform.writeEntered!.future;
+      final setlist = SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: [original.id],
+        createdAt: original.importedAt,
+        updatedAt: original.updatedAt,
+      );
+      final next = SheetLibraryStore().saveSetlists([setlist]);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        (await platform.getAll()).containsKey('flutter.clef_setlists'),
+        isFalse,
+      );
+      platform.releaseWrite!.complete();
+      await failed;
+      await next;
+      await (await SharedPreferences.getInstance()).reload();
+      expect((await store.loadScores()).single.title, 'Sonata');
+      expect(
+        (await store.loadAutomaticMetadataBackup())!.scores.single.title,
+        'Sonata',
+      );
+      expect((await store.loadSetlists()).single.id, 'concert');
+      expect(
+        (await store.loadAutomaticMetadataBackup())!.setlists.single.id,
+        'concert',
+      );
+    },
+  );
+
+  for (final fullZip in <bool>[false, true]) {
+    for (final throws in <bool>[false, true]) {
+      for (final failedKey in <String>[
+        'clef_setlists',
+        'clef_tone_settings',
+        'clef_favorite_annotation_preset',
+        'clef_automatic_metadata_backup',
+      ]) {
+        test('restore rolls back $failedKey (ZIP: $fullZip, throws: $throws)', () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final source = await store.importPdfBytes(
+            bytes: await File('test-fixtures/pdfs/short-score.pdf')
+                .readAsBytes(),
+            fileName: 'rollback.pdf',
+          );
+          await store.saveScores(<SheetScore>[source]);
+          final profile = await store.createLibraryProfile('Restore target');
+          await store.saveScores(<SheetScore>[source]);
+          final metadata = await store.exportMetadataBackupJson();
+          final zip = await store.exportFullBackupZipBytes();
+          await store.saveScores(<SheetScore>[
+            source.copyWith(title: 'Current score'),
+          ]);
+          await store.saveMetronomeSettings(
+            const SheetMetronomeSettings(
+              bpm: 73,
+              meter: SheetMetronomeMeter.threeFour,
+            ),
+          );
+          await store.saveTunerSettings(
+            SheetTunerSettings(referencePitchA4: 442),
+          );
+          await store.saveFavoriteAnnotationPreset(
+            const SheetAnnotationToolPreset(
+              toolName: 'stamp',
+              color: 0xffd33232,
+              width: 8,
+              stampName: 'cue',
+            ),
+          );
+          final before = await platform.getAll();
+          platform.failureKey =
+              'flutter.$failedKey${failedKey == 'clef_tone_settings' ? '' : '.${profile.id}'}';
+          platform.throwOnFailure = throws;
+          final result = fullZip
+              ? await store.restoreFullBackupZipBytes(zip)
+              : await store.restoreMetadataBackupJson(metadata);
+          expect(result.status, SheetLibraryBackupRestoreStatus.error);
+          expect(await platform.getAll(), before);
+          final preferences = await SharedPreferences.getInstance();
+          await preferences.reload();
+          expect((await store.loadScores()).single.title, 'Current score');
+          expect((await store.loadMetronomeSettings()).bpm, 73);
+          expect((await store.loadTunerSettings()).referencePitchA4, 442);
+          expect(
+            (await store.loadFavoriteAnnotationPreset())?.toolName,
+            'stamp',
+          );
+          final retry = fullZip
+              ? await store.restoreFullBackupZipBytes(zip)
+              : await store.restoreMetadataBackupJson(metadata);
+          expect(retry.didRestore, isTrue);
+          final snapshot = (await store.loadAutomaticMetadataBackup())!;
+          final restoredScore = (await store.loadScores()).single;
+          expect(snapshot.scores.single.filePath, restoredScore.filePath);
+          expect(snapshot.scores.single.title, source.title);
+          expect(snapshot.tunerSettings.referencePitchA4, 440);
+          expect(await store.loadFavoriteAnnotationPreset(), isNull);
+          await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+          expect((await store.loadScores()).single.title, source.title);
+        });
+      }
+    }
+  }
+
+  test(
+    'restore reports a failed rollback and still attempts other keys',
+    () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final score = _score(DateTime(2026, 9, 13));
+      await store.saveScores(<SheetScore>[score]);
+      final metadata = await store.exportMetadataBackupJson();
+      await store.saveScores(<SheetScore>[
+        score.copyWith(title: 'Current score'),
+      ]);
+      platform.failureKey = 'flutter.clef_setlists';
+      platform.failuresRemaining = 2;
+      final result = await store.restoreMetadataBackupJson(metadata);
+      expect(result.status, SheetLibraryBackupRestoreStatus.error);
+      expect(result.failureReason, contains('rollback failed'));
+      expect((await store.loadScores()).single.title, 'Current score');
+    },
+  );
 
   test('persists scores and setlists in SharedPreferences', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -898,6 +1998,323 @@ void main() {
     expect(mappings.last.scoreId, 'score-1');
   });
 
+  test(
+    'full backup preserves shared songbook PDFs and distinct same-name files',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-09-13T10:00:00.000');
+      final bytes = await File('test-fixtures/pdfs/short-score.pdf')
+          .readAsBytes();
+      final source = await store.importPdfBytes(
+        bytes: bytes,
+        fileName: 'book.pdf',
+        importedAt: now,
+      );
+      final otherDirectory = await Directory('${documentsDir.path}/other')
+          .create();
+      final otherFile = await File('${otherDirectory.path}/book.pdf')
+          .writeAsBytes(bytes);
+      final first =
+          SheetScore.fromJson(<String, Object?>{
+            ...source.toJson(),
+            'id': 'movement-1',
+          }).copyWith(
+            title: 'First',
+            pageSettings: SheetPageSettings.empty.copyWith(pageOrder: <int>[1]),
+          );
+      final second =
+          SheetScore.fromJson(<String, Object?>{
+            ...source.toJson(),
+            'id': 'movement-2',
+          }).copyWith(
+            title: 'Second',
+            lastPage: 2,
+            pageSettings: SheetPageSettings.empty.copyWith(
+              pageOrder: <int>[2, 3],
+            ),
+          );
+      await store.saveScores(<SheetScore>[
+        source,
+        first,
+        second,
+        SheetScore.fromJson(<String, Object?>{
+          ...source.toJson(),
+          'id': 'other-book',
+          'filePath': otherFile.path,
+        }),
+      ]);
+      await store.saveSetlists(<SheetSetlist>[
+        SheetSetlist(
+          id: 'concert',
+          title: 'Concert',
+          scoreIds: <String>[first.id, second.id],
+          createdAt: now,
+          updatedAt: now,
+        ),
+      ]);
+
+      final zip = await store.exportFullBackupZipBytes();
+      final archive = ZipDecoder().decodeBytes(zip);
+      expect(
+        archive.files.where((file) => file.name.startsWith('scores/')),
+        hasLength(2),
+      );
+      final manifest = jsonDecode(
+        utf8.decode(
+          archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+        ),
+      ) as Map;
+      final mappings = (manifest['fileMappings'] as List).cast<Map>();
+      expect(mappings, hasLength(4));
+      expect(
+        mappings.take(3).map((mapping) => mapping['entryPath']).toSet(),
+        hasLength(1),
+      );
+
+      final oldDirectory = documentsDir;
+      documentsDir = await Directory.systemTemp.createTemp(
+        'clef-shared-restore-',
+      );
+      await oldDirectory.delete(recursive: true);
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final result = await store.restoreFullBackupZipBytes(zip);
+      expect(result.didRestore, isTrue);
+      expect(result.missingFileCount, 0);
+      final restored = await store.loadScores();
+      expect(
+        restored.take(3).map((score) => score.filePath).toSet(),
+        hasLength(1),
+      );
+      expect(restored.last.filePath, isNot(restored.first.filePath));
+      expect(await File(restored.first.filePath).readAsBytes(), bytes);
+      expect(await File(restored.last.filePath).readAsBytes(), bytes);
+      expect(restored[1].pageSettings.pageOrder, <int>[1]);
+      expect(restored[2].pageSettings.pageOrder, <int>[2, 3]);
+      expect(restored[2].lastPage, 2);
+      expect((await store.loadSetlists()).single.scoreIds, <String>[
+        first.id,
+        second.id,
+      ]);
+    },
+  );
+
+  for (final rejectWrite in <bool>[false, true]) {
+    test(
+      'repeated full restore preserves existing files (write failure: $rejectWrite)',
+      () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final source = await store.importPdfBytes(
+          bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+          fileName: 'concert.pdf',
+        );
+        final annotation = await File('${documentsDir.path}/concert-marks.json')
+            .writeAsString('{"strokes":[]}');
+        await store.saveScores(<SheetScore>[
+          source.copyWith(
+            annotationStorage: SheetAnnotationStorageReference(
+              mode: SheetAnnotationStorageReference.fileMode,
+              path: annotation.path,
+            ),
+          ),
+        ]);
+        final backupPdf = await File(source.filePath).readAsBytes();
+        final zip = await store.exportFullBackupZipBytes();
+        expect((await store.restoreFullBackupZipBytes(zip)).didRestore, isTrue);
+        final existing = (await store.loadScores()).single;
+        expect(existing.sourceFileDisplayName, source.sourceFileDisplayName);
+        final currentPdf = <int>[
+          ...backupPdf,
+          ...utf8.encode('\n% later edits\n'),
+        ];
+        await File(existing.filePath).writeAsBytes(currentPdf);
+        await File(existing.annotationStorage.path)
+            .writeAsString('{"later":"marks"}');
+
+        final targetProfile = await store.createLibraryProfile('Other library');
+        await store.saveScores(<SheetScore>[
+          existing.copyWith(title: 'Current target'),
+        ]);
+        if (rejectWrite) {
+          platform.failureKey = 'flutter.clef_scores.${targetProfile.id}';
+          platform.throwOnFailure = true;
+        }
+        final result = await store.restoreFullBackupZipBytes(zip);
+        expect(
+          result.status,
+          rejectWrite
+              ? SheetLibraryBackupRestoreStatus.error
+              : SheetLibraryBackupRestoreStatus.restored,
+        );
+        expect(await File(existing.filePath).readAsBytes(), currentPdf);
+        expect(
+          await File(existing.annotationStorage.path).readAsString(),
+          '{"later":"marks"}',
+        );
+        final target = (await store.loadScores()).single;
+        if (rejectWrite) {
+          expect(target.title, 'Current target');
+          expect(target.filePath, existing.filePath);
+        } else {
+          expect(target.id, existing.id);
+          expect(target.sourceFileDisplayName, source.sourceFileDisplayName);
+          expect(target.filePath, isNot(existing.filePath));
+          expect(
+            target.annotationStorage.path,
+            isNot(existing.annotationStorage.path),
+          );
+          expect(await File(target.filePath).readAsBytes(), backupPdf);
+          expect(
+            await File(target.annotationStorage.path).readAsString(),
+            '{"strokes":[]}',
+          );
+        }
+        await store.setActiveLibraryProfile(SheetLibraryProfile.defaultId);
+        final originalLibraryScore = (await store.loadScores()).single;
+        expect(originalLibraryScore.filePath, existing.filePath);
+        expect(
+          originalLibraryScore.annotationStorage.path,
+          existing.annotationStorage.path,
+        );
+      },
+    );
+  }
+
+  for (final damage in <String>[
+    'missing PDF',
+    'missing linked file',
+    'missing annotation file',
+    'missing mapping',
+    'malformed mapping',
+    'unsafe mapping',
+    'duplicate mapping',
+  ]) {
+    test('rejects $damage before changing the existing library', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final now = DateTime.parse('2026-09-13T10:00:00.000');
+      final source = await store.importPdfBytes(
+        bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+        fileName: 'preserved.pdf',
+        importedAt: now,
+      );
+      final linked = await store.importLinkedFileBytes(
+        bytes: utf8.encode('audio fixture'),
+        fileName: 'practice.mp3',
+        importedAt: now,
+      );
+      final annotation = await File('${documentsDir.path}/marks.json')
+          .writeAsString('{"strokes":[]}');
+      final score = source.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: SheetAnnotationStorageReference(
+          mode: SheetAnnotationStorageReference.fileMode,
+          path: annotation.path,
+        ),
+      );
+      await store.saveScores(<SheetScore>[score]);
+      final archive = ZipDecoder().decodeBytes(
+        await store.exportFullBackupZipBytes(),
+      );
+      final manifest = jsonDecode(
+        utf8.decode(
+          archive.findFile(SheetLibraryFullBackup.manifestFileName)!.content,
+        ),
+      ) as Map<String, dynamic>;
+      final mappings = (manifest['fileMappings'] as List).cast<Map>();
+      String? omittedEntry;
+      switch (damage) {
+        case 'missing PDF':
+          omittedEntry = mappings[0]['entryPath'] as String;
+        case 'missing linked file':
+          omittedEntry = mappings[1]['entryPath'] as String;
+        case 'missing annotation file':
+          omittedEntry = mappings[2]['entryPath'] as String;
+        case 'missing mapping':
+          mappings.removeAt(1);
+        case 'malformed mapping':
+          mappings[1].remove('scoreId');
+        case 'unsafe mapping':
+          mappings[1]['entryPath'] = 'linked-files/../escape.mp3';
+        case 'duplicate mapping':
+          mappings.add(Map.of(mappings[0]));
+      }
+      manifest['fileMappings'] = mappings;
+      final damaged = Archive();
+      for (final entry in archive.files) {
+        if (entry.name != SheetLibraryFullBackup.manifestFileName &&
+            entry.name != omittedEntry) {
+          damaged.addFile(ArchiveFile.bytes(entry.name, entry.content));
+        }
+      }
+      damaged.addFile(
+        ArchiveFile.string(
+          SheetLibraryFullBackup.manifestFileName,
+          jsonEncode(manifest),
+        ),
+      );
+
+      await File(score.filePath).writeAsString('newer local PDF');
+      await store.saveScores(<SheetScore>[
+        score.copyWith(title: 'Current library'),
+      ]);
+      final before = await store.exportMetadataBackupJson();
+      final result = await store.restoreFullBackupZipBytes(
+        ZipEncoder().encode(damaged),
+      );
+      expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
+      expect((await store.loadScores()).single.title, 'Current library');
+      expect(await File(score.filePath).readAsString(), 'newer local PDF');
+      final after = await store.exportMetadataBackupJson();
+      expect(
+        SheetLibraryBackupCodec.decode(after).scores.single.toJson(),
+        SheetLibraryBackupCodec.decode(before).scores.single.toJson(),
+      );
+    });
+  }
+
+  test('full backup retains explicitly missing source file metadata', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = SheetLibraryStore();
+    final source = await store.importPdfBytes(
+      bytes: await File('test-fixtures/pdfs/short-score.pdf').readAsBytes(),
+      fileName: 'offline.pdf',
+    );
+    final segment = SheetScore.fromJson(<String, Object?>{
+      ...source.toJson(),
+      'id': 'offline-movement',
+    });
+    final linked = await store.importLinkedFileBytes(
+      bytes: utf8.encode('audio'),
+      fileName: 'missing.mp3',
+    );
+    final annotationStorage = SheetAnnotationStorageReference(
+      mode: SheetAnnotationStorageReference.fileMode,
+      path: '${documentsDir.path}/missing-marks.json',
+    );
+    await store.saveScores(<SheetScore>[
+      source.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: annotationStorage,
+      ),
+      segment.copyWith(
+        linkedFiles: <SheetLinkedFile>[linked],
+        annotationStorage: annotationStorage,
+      ),
+    ]);
+    await File(source.filePath).delete();
+    await File(linked.path).delete();
+    final zip = await store.exportFullBackupZipBytes();
+    final result = await store.restoreFullBackupZipBytes(zip);
+    expect(result.didRestore, isTrue);
+    expect(result.missingFileCount, 3);
+    expect((await store.loadScores()).map((score) => score.filePath), <String>[
+      source.filePath,
+      source.filePath,
+    ]);
+  });
+
   test('exports and restores a full backup zip with PDF files', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1187,6 +2604,82 @@ void main() {
     expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
   });
 
+  for (final field in <String>['scores', 'setlists']) {
+    for (final damage in <String>[
+      'absent',
+      'not a list',
+      'invalid row',
+      'duplicate ID',
+    ]) {
+      test(
+        'rejects metadata backup $field $damage without replacing data',
+        () async {
+          SharedPreferences.setMockInitialValues(<String, Object>{});
+          final store = SheetLibraryStore();
+          final now = DateTime.parse('2026-09-13T10:00:00.000');
+          final score = await store.importPdfBytes(
+            bytes: await File('test-fixtures/pdfs/short-score.pdf')
+                .readAsBytes(),
+            fileName: 'keep.pdf',
+            importedAt: now,
+          );
+          await store.saveScores(<SheetScore>[score]);
+          await store.saveSetlists(<SheetSetlist>[
+            SheetSetlist(
+              id: 'keep-setlist',
+              title: 'Keep',
+              scoreIds: <String>[score.id],
+              createdAt: now,
+              updatedAt: now,
+            ),
+          ]);
+          final before = jsonDecode(
+            await store.exportMetadataBackupJson(),
+          ) as Map<String, dynamic>;
+          final damaged =
+              jsonDecode(jsonEncode(before)) as Map<String, dynamic>;
+          switch (damage) {
+            case 'absent':
+              damaged.remove(field);
+            case 'not a list':
+              damaged[field] = 'lost records';
+            case 'invalid row':
+              (damaged[field] as List).add(<String, Object?>{'title': 'No ID'});
+            case 'duplicate ID':
+              (damaged[field] as List).add((damaged[field] as List).first);
+          }
+          final result = await store.restoreMetadataBackupJson(
+            jsonEncode(damaged),
+          );
+          expect(result.status, SheetLibraryBackupRestoreStatus.invalid);
+          final after = jsonDecode(
+            await store.exportMetadataBackupJson(),
+          ) as Map<String, dynamic>;
+          expect(after..remove('exportedAt'), before..remove('exportedAt'));
+        },
+      );
+    }
+  }
+
+  test(
+    'accepts an explicitly empty legacy backup with settings defaults',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final result = await store.restoreMetadataBackupJson(
+        jsonEncode(<String, Object?>{
+          'version': 1,
+          'scores': <Object?>[],
+          'setlists': <Object?>[],
+        }),
+      );
+      expect(result.didRestore, isTrue);
+      expect(await store.loadScores(), isEmpty);
+      expect(await store.loadSetlists(), isEmpty);
+      expect((await store.loadTunerSettings()).referencePitchA4, 440);
+    },
+  );
+
   test('rejects invalid backup JSON', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1353,6 +2846,60 @@ void main() {
       );
     },
   );
+}
+
+_FailingPreferencesStore _installFailingPreferences() {
+  final previous = SharedPreferencesStorePlatform.instance;
+  final platform = _FailingPreferencesStore();
+  SharedPreferences.resetStatic();
+  SharedPreferencesStorePlatform.instance = platform;
+  addTearDown(() {
+    SharedPreferences.resetStatic();
+    SharedPreferencesStorePlatform.instance = previous;
+  });
+  return platform;
+}
+
+class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
+  _FailingPreferencesStore() : super.empty();
+
+  String? failureKey;
+  bool throwOnFailure = false;
+  bool failWritesOnly = false;
+  int failuresRemaining = 1;
+  String? delayKey;
+  Completer<void>? writeEntered;
+  Completer<void>? releaseWrite;
+
+  bool _shouldFail(String key) {
+    if (key != failureKey) return false;
+    failuresRemaining -= 1;
+    if (failuresRemaining <= 0) failureKey = null;
+    if (throwOnFailure) throw PlatformException(code: 'write_failed');
+    return true;
+  }
+
+  @override
+  Future<bool> setValue(String valueType, String key, Object value) async {
+    if (key == delayKey) {
+      delayKey = null;
+      writeEntered!.complete();
+      await releaseWrite!.future;
+    }
+    if (_shouldFail(key)) return false;
+    return super.setValue(valueType, key, value);
+  }
+
+  @override
+  Future<bool> remove(String key) async {
+    if (key == delayKey) {
+      delayKey = null;
+      writeEntered!.complete();
+      await releaseWrite!.future;
+    }
+    if (!failWritesOnly && _shouldFail(key)) return false;
+    return super.remove(key);
+  }
 }
 
 SheetScore _score(

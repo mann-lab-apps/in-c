@@ -8,7 +8,21 @@
 실행 순서대로 따라가며 결과만 기록한다. 이번 RC 준비는 새 기능 추가가 아니라, 연주 중
 헷갈리지 않고 metadata가 안전하게 보존되는지 확인하는 데 집중한다.
 
+## 최신 배포 준비 (2026-09-13)
+
+- 소스 후보: `Clef & Staff` `1.0.0+21`, Android applicationId/namespace `com.mannlab.clef`.
+  in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
+- Play Console code 21 미사용 여부는 아직 확인하지 않았다. 확인 후 새 release 빌드를 진행한다.
+- 서명 파일 누락/기존 디버그 키는 차단하고, 기록된 Clef 업로드 키는 Gradle 서명 검증을 통과했다.
+- `:app:bundleRelease --dry-run`으로 서명 검사 연결과 task graph를 확인했다.
+  실제 앱 컴파일, APK/AAB/iOS 생성, 설치 및 업로드는 수행하지 않았다.
+- 아래 20번 빌드/에뮬레이터 기록은 당시 근거다. 최신 변경의 실기기 QA 결과로 사용하지 않는다.
+
 ## 준비물
+
+- RC 자동 검사는 Flutter JSON reporter의 전체 성공 종료와 실제 실행된 테스트를 확인한다.
+  exit code가 0이어도 보고서 누락/중단/오류/미완료 테스트가 있으면 실패로 처리한다.
+  각 실행은 새 임시 보고서를 사용하며 이전 성공 기록을 재사용하지 않는다.
 
 - 설치 파일: Android debug/release APK, 가능하면 iPad용 TestFlight 또는 local iOS build.
 - 당일 실행표: [`clef-v1-device-qa-runbook.md`](clef-v1-device-qa-runbook.md).
@@ -44,6 +58,31 @@
 | 5 | 페이지 관리 | 숨김, duplicate, virtual order, page crop 요약이 이해된다. | UI 문구 혼동 여부, 원본 PDF 불변 안내 위치 |
 | 5-1 | 페이지 적용 사본 | crop/rotation/page arrangement 적용 사본 생성 후 원본 링크와 새 page metadata가 보존된다. Duplicate instance별 crop/rotation override는 출력 page metadata로 재배치된다. | 적용 전후 page 수, 연결 파일 label, bookmark/annotation page, instance crop/rotation |
 | 5-2 | 북마크 | 현재 페이지 북마크, PDF 목차 병합, CSV 북마크 병합, 목록 이동/이름 변경/삭제가 동작한다. | CSV 형식, 병합 수, 중복 page skip, 이동 page |
+| 5-3 | Songbook 곡 범위 | 분리 곡은 구간 안의 표시 페이지에서 시작하고 구간 밖 페이지/점프/리허설 마크를 숨긴다. 자동 스크롤도 곡 구간을 따른다. | 숨김 첫 페이지, 모두 숨긴 구간의 첫 페이지 fallback, 원본 보존, 재진입/재분할 중복 방지. Controller 자동 검증; 실제 PDF gesture/render QA 별도 |
+| 5-4 | Songbook 필기 보존 | 현재 앱의 구간 내 필기/텍스트를 독립 복사하고 원본 편집 이력/외부 필기 파일 참조는 공유하지 않는다. | 숨긴 페이지 필기, 표시/공유 flag, 재시작 복원, 분리 곡 수정 후 원본/다른 곡 보존. File-backed 자동 migration은 후속 |
+| 5-5 | 홈 목록 접근성 | 검색/필터/최근 영역과 악보 목록이 함께 세로 스크롤되며 악보는 필요한 부분만 렌더링한다. | 고정/즐겨찾기/최근/세트리스트가 모두 있는 30곡 fixture에서 휴대폰/태블릿/가로 화면 마지막 악보 선택; 빈 목록/검색 초기화 회귀. 최신 앱 실기기 QA 별도 |
+| 5-6 | 좁은 선택 툴바 | 선택 수, 전체 선택, 세트리스트 추가를 유지하고 컬렉션/정보 편집/제거는 더보기로 노출한다. | 320/360dp 문구 잘림 없음, 선택 0개 비활성화, 메뉴 진입/제거 취소, 태블릿으로 resize 시 기존 바로가기 유지 |
+| 5-7 | 작곡가 일괄 편집 | 선택한 악보의 작곡가를 기존 일괄 편집에서 지정한다. UI 빈 입력은 변경하지 않는다. | 앞뒤 공백 정리, 미선택 악보 보존, 검색/작곡가 facet 반영, 태그만 변경 시 유지, 재시작 복원 |
+| 5-8 | 빈 제목/파일명 식별 | 빈 제목은 파일명으로 표시하고 원본 파일명 검색을 지원한다. | model/codec 빈 문자열 보존, 제목/동률 정렬, 라이브러리/세트리스트/목록 복사 widget 검증. 실제 긴 파일명 가독성은 기기 QA |
+| 5-9 | 세트리스트 잔여 설정 정리 | 곡 목록에서 빠진 ID의 예상 시간/메트로놈 설정만 남아 있어도 로드 시 정리해 저장한다. | 두 종류의 잔여 설정 fixture, 유효한 설정/이어보기 보존, 재로드 시 불필요한 갱신 없음 |
+| 5-10 | 세트리스트 이전 상태 입력 | 추가/제거/이름 변경/이어보기 기록은 최신 목록에 적용한다. | 이전 snapshot 연속 명령, 선택창 대기 중 추가 후 중복 수/기존 순서 유지, 삭제된 세트리스트 비복구. 별도 프로세스 동시 저장은 검증 범위 밖 |
+| 5-11 | 세트리스트 대상 없음 | 상세 화면을 열어 둔 동안 대상이 사라지면 안내 화면으로 전환하고 추가 실패를 중복과 구분한다. | 대기 중인 추가/리허설 창의 결과 처리 widget 회귀, targetMissing 결과 모델. native 공유 타이밍은 기기 QA |
+| 5-12 | 순서 변경 충돌 | 화면이 가리키는 순서와 최신 순서가 다르면 변경을 보류한다. | 삭제 곡 비복구, 오래된 순번 거부/안내/재시도, 제목 변경 보존, 잘못된 범위/대상 없음, 같은 순번 무저장 |
+| 5-13 | 좁은 세트리스트 툴바 | 짧은 제목을 잘리지 않게 표시하고 보조 작업은 더보기로 모은다. | 320/360dp 제목/메뉴/복사/복제/이름 변경/삭제 취소, 빈 목록 재생 비활성, 넓은 화면 바로가기 |
+| 5-14 | 리허설/프리셋 일부 적용 | 변경 요청을 최신 세트리스트에 적용하며 전달하지 않은 설정은 유지한다. | 오래된 snapshot 적용 시 구성/제목/메트로놈/이어보기 보존, 제외 곡 설정 무시, 명시적 비우기, 재로드, 대상 없음 실패 |
+| 5-15 | 세트리스트 복제 이름 | 반복 복제 시 사본 이름이 같으면 번호로 구분한다. | 첫 copy 이름 유지, 대소문자/기존 번호 충돌, 재로드, 원본/ID 보존, 메뉴 반복 복제 |
+| 5-16 | 제거 되돌리기 대상 확인 | 라이브러리에서 삭제된 악보나 사라진 세트리스트에는 되돌리기로 잘못된 참조를 추가하지 않는다. | 정상 복원/악보 삭제/세트리스트 삭제 세 가지 widget 경로, 실패 이유 안내 |
+| 5-17 | 일괄 추가 악보 유효성 | 선택 중 라이브러리에서 제거된 악보는 추가하지 않고 중복과 다르게 집계한다. | 기존/새/제거/중복 혼합 controller, 단일 추가 경로, 일부/전체 제거된 선택창 widget 안내, 재로드 |
+| 5-18 | 메트로놈 저장 중 상태 보존 | 저장 대기 후 최신 악보에 설정만 적용하며 명시한 세트리스트 범위를 바꾸지 않는다. | 지연 저장 중 페이지/필기 변경, 세트리스트/멤버/악보 제거와 재로드 단위 테스트. 실제 오디오 QA 별도 |
+| 5-19 | 메트로놈 연속 저장 | 전역/악보/세트리스트 저장을 요청 순서대로 처리하고 실패 후에도 다음 저장을 진행한다. | 첫 저장 지연 후 최신 BPM 복원, 전역/악보 범위 혼합, 이전/최신 저장 오류 전달과 재시도 단위 테스트 |
+| 5-20 | 메트로놈 창 수명 | 박자 반영은 저장 지연과 분리하며 창 닫기/정지 후 늦은 응답이 타이머를 재시작하지 않는다. | 4종 설정 종료/정지, 즉시 BPM 반영, 역순 완료, 현재/이전/종료 후 저장 오류와 재시도 widget 검증. 실제 소리 QA 별도 |
+| 5-21 | 페이지/최근 기록 보존 | 오래된 화면 객체로 페이지/열기 기록을 요청해도 최신 필기/정보/설정은 유지한다. | codec 비기록 필드 전체 보존, 이전 페이지 복귀 저장, 현재/잘못된 페이지 no-op, 제거 악보 무시와 재로드 controller 검증 |
+| 5-22 | 정보 편집 수명/보존 | 편집창 종료 중 컨트롤러를 조기 해제하지 않고 최신 악보에 입력한 정보만 저장한다. | 실제 저장/취소/삭제 대상 widget 경로, 페이지/즐겨찾기 유지, 미입력 선택 필드 보존과 명시적 비우기, 제거 대상 false와 재로드 |
+| 5-23 | 북마크 최신 목록 반영 | 오래된 목록에서 요청해도 해당 페이지 외의 북마크/악보 정보는 유지하며 사라진 대상은 실패로 처리한다. | 추가/이름 변경/삭제 codec 보존, 현재 membership 토글, 없는 대상/잘못된 페이지 no-op과 재로드 controller 검증. viewer 안내는 기기 QA |
+| 5-24 | 카드 연속 토글 | 즐겨찾기/고정은 현재 값을 토글하며 다른 최신 악보 필드를 덮지 않는다. | 재빌드 전 카드 2회 탭 widget, 오래된 snapshot 연속 토글/codec 보존/제거 악보/재로드 controller 검증 |
+| 5-25 | 일반 metadata 저장 실패 | 저장과 자동 백업 중 쓰기/삭제 실패는 오류로 전달하고 이전 키 복구를 시도한다. 공유 저장 큐는 실패 후에도 다음 요청을 처리한다. | false/예외, 키 없음, 프리셋 삭제, cache/disk reload, 재시도, 복구 실패 보고, 지연 악보 실패 뒤 세트리스트 저장을 store 테스트로 검증. 컨트롤러 메모리 복구/강제 종료/다른 isolate/프로필 동시 삭제는 별도 확인 |
+| 5-26 | 개별 악보 편집 실패 복구 | 저장 실패 시 저장된 목록 재읽기로 화면 복구를 시도하되 최신 요청의 목록/라이브러리 소유권을 다시 확인한다. | 연속 성공/실패 조합, 늦은 실패, 삭제/편집/라이브러리 전환 보존, 재읽기 실패, 복구 알림, 실제 preferences false/재시도. bulk/import/setlist 메모리 복구는 별도 범위 |
+| 5-27 | 필기 오류 안내 | 저장 실패 후 취소/다시 적용/텍스트 작업이 대상 없음 또는 성공 안내를 추가하지 않는다. PDF 준비 전 undo/redo도 예외 없이 저장된 페이지를 사용한다. | 실제 viewer 툴바 widget: undo/redo 성공/대상 없음/실패 후 안내 만료/종료 후 응답. 파일 없음 fixture이며 PDF 렌더링/필기 제스처/텍스트 메뉴 실사용은 별도 QA |
 | 6 | PDF 본문 검색 | 텍스트 PDF는 결과 이동/이전/다음/clear가 동작한다. | 검색어, 결과 수, 이동 page |
 | 7 | 스캔 PDF 검색 | crash 없이 결과 없음 또는 unsupported 안내가 표시된다. | 표시 문구, OCR 기대 혼동 여부 |
 | 8 | 필기/주석 | pen/highlighter/text/line/shape/stamp/staff/grid, undo/redo, layer 표시/숨김, PDF 공유 포함/제외, 저장 복원이 유지된다. | stroke 수, S Pen pressure 폭 변화, layer 표시 상태, export 포함 여부, 저장 실패 문구, 복원 여부 |
@@ -59,6 +98,13 @@
 | 14-2 | 로컬 오디오 | MP3/M4A/WAV linked file이 가져와지고 파트/버전 sheet에서 재생/정지된다. | 파일 확장자, codec 실패 여부, latency/끊김, iOS 표시 문구 |
 | 15 | 백업/복원 | metadata/full backup과 자동 metadata snapshot 후 새 metadata가 보존/복원된다. | custom field, custom pedal, page crop, score duration, setlist preset override, performance preset template, annotation storage, active library profile 보존 여부 |
 | 15-0 | 자동 백업 복원 | 백업 메뉴의 자동 metadata 복원이 파일 picker 없이 active library profile의 최신 snapshot으로 되돌린다. | 복원 전후 악보 수, 활성 library profile, PDF filePath 접근 여부 |
+| 15-1 | Songbook 전체 백업 | 같은 PDF 참조를 ZIP에 한 번만 담고 복원 후에도 공유한다. 다른 경로의 동명 파일은 별도로 보존한다. | 곡 구간/pageOrder, 마지막 페이지, 세트리스트 순서, 공유 경로, PDF bytes; 로컬 fixture 검증과 기기 QA 구분 |
+| 15-2 | 불완전 ZIP 복원 차단 | 필요한 PDF/연결 파일/필기 파일 또는 매핑이 없는 ZIP은 쓰기 전 거부한다. 백업 당시 명시적으로 missing 기록된 파일은 기존 metadata 보존 정책을 따른다. | 거부 안내, 기존 라이브러리/파일 유지. 로컬 손상 fixture 테스트; 저장 중 디스크 오류의 전체 rollback은 별도 점검 |
+| 15-3 | Metadata 복원 검증 | 악보/세트리스트 목록 누락, 잘못된 레코드, 중복 ID는 복원 전에 거부하며 명시적인 빈 목록은 허용한다. | 기존 악보/세트리스트/설정 보존, 구버전 선택 설정 기본값, JSON/ZIP 공통 codec |
+| 15-4 | 누락 파일 복원 결과 | 백업 당시 missing으로 기록한 파일은 정보만 복원하고 확인 dialog에 누락 파일 수를 표시한다. 같은 원본 경로는 중복 집계하지 않는다. | PDF/연결 파일/필기 파일 누락 수, 지속 안내, 확인 후 닫기; widget/store 검증 |
+| 15-5 | 반복 복원 파일 격리 | 같은 ZIP을 다시 복원해도 기존 라이브러리에서 사용하는 PDF/필기 파일은 덮어쓰지 않는다. | 새 파일 경로, 기존 ID/공유 PDF 유지, 성공/첫 metadata 저장 실패 시 기존 bytes 보존. 전체 metadata transaction과 실패 후 미참조 파일 정리는 별도 |
+| 15-6 | 복원 저장 실패 | 쓰기/삭제 false 반환 또는 예외 시 시도한 metadata 키를 복원 직전 값으로 되돌린다. rollback 실패도 오류로 반환한다. | JSON/ZIP, 초기/후기 설정 키와 삭제, 이전 자동 백업/다른 라이브러리 보존, cache reload/재시도. 강제 종료/지속 저장소 오류/동시 변경은 이 검증에 포함하지 않음 |
+| 15-7 | 복원 진행 UI | 진행 창으로 편집/중복 진입/뒤로가기를 막고 종료 시 해제한다. 공유 PDF는 복원 뒤 처리하며 PDF 가져오기 중에는 백업 메뉴를 잠근다. | 지연 JSON/자동/ZIP 결과 성공/취소/오류, 화면 종료 후 늦은 응답, 공유 채널 순서 widget 검증. native picker/앱 강제 종료 QA 별도 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
@@ -318,7 +364,7 @@ flutter build ios --release --no-codesign
 
 - Play Console 내부 테스트 설치 링크는 게시 직후 지연 후 열리는 것을 확인했다.
 - 사용자가 설치한 앱 버전은 당시 Play 설치본 기준으로 확인했고, 이후 튜너/브랜딩/최종 UI/pitch
-  history chart/연주자 피드백 보강분은 현재 `1.0.0+20` RC 후보로 준비한다.
+  history chart/연주자 피드백 보강분은 이후 `1.0.0+20` RC 산출물에 반영했다.
 - IMSLP PDF 2개 중 사용자가 올린 Bach Minuet PDF는 실기기에서 정상 출력됐다.
 - 페이지 넘김/페이지 이동/마지막 페이지 저장은 실기기에서 합격선으로 확인됐다.
 - 페달 방향키 입력은 MobileSheets 기준처럼 좌/상은 이전 page, 우/하는 다음 page로 처리하고,
@@ -338,7 +384,7 @@ flutter build ios --release --no-codesign
 
 - SDK: Homebrew Flutter at `/opt/homebrew/bin/flutter`, Dart at `/opt/homebrew/bin/dart`.
   Flutter `3.47.2` stable, Dart `3.13.2`.
-- 현재 소스 version은 `1.0.0+20`이다.
+- 당시 준비한 소스 version은 `1.0.0+20`이며, 최신 후보는 배포 준비 기록을 따른다.
 - `adb devices -l`: PASS, ADB daemon은 실행됐지만 연결된 Android 기기는 없었다.
 - 따라서 실제 마이크 정확도/latency QA는 미실행이며, `clef-v1-device-qa-runbook.md`의
   튜너 정확도 비교표로 이어서 기록한다.
@@ -447,7 +493,7 @@ flutter build ios --release --no-codesign
 
 2026-09-07 연주자 피드백 최종 hotfix 확인:
 
-- 현재 소스 version과 앱 내 테스트 정보는 `1.0.0+20`이다.
+- 당시 소스 version과 앱 내 테스트 정보는 `1.0.0+20`이었다.
 - Android 앱 label resource를 `Clef & Staff`로 정정했다. `com.mannlab.clef` 패키지를 실행해도
   emulator task label이 `in C`로 보이던 문제를 제거했다.
 - `clef_rc_tablet_api35` emulator에서 `com.mannlab.clef/.MainActivity`가 foreground이고 task label이
@@ -503,5 +549,8 @@ flutter build ios --release --no-codesign
   태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 `조성` 같은 custom field도 여러 악보에 한 번에
   지정할 수 있다.
 - MobileSheets batch/bookmark import 중 v1에 바로 맞는 로컬 PDF 여러 개 가져오기, 여러 PDF를
-  세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. cloud browser, batch
-  audio, CSV songbook split은 후속으로 남긴다.
+  세트리스트에 추가하는 흐름, PDF 목차 병합, CSV 북마크 병합을 추가했다. CSV/PDF 북마크가 있는
+  긴 songbook은 원본 PDF를 수정하지 않고 같은 파일을 참조하는 곡 항목으로 나눌 수 있다. 각 곡
+  항목은 북마크 시작 page부터 다음 북마크 전 page까지의 pageOrder를 가진다. 생성 완료 안내의
+  `세트리스트 만들기` action으로 방금 만든 곡 항목을 북마크 순서대로 세트리스트에 담고 상세 화면으로
+  바로 이어갈 수 있다. cloud browser와 batch audio, 실제 PDF 파일 물리 분할은 후속으로 남긴다.

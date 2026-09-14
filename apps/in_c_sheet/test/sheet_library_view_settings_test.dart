@@ -3,6 +3,42 @@ import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 
 void main() {
+  test('sorts untitled scores by their visible filename without mutation', () {
+    final now = DateTime(2026, 9, 13);
+    final untitled = SheetScore(
+      id: 'blank',
+      title: '   ',
+      composer: '',
+      tags: const [],
+      note: '',
+      filePath: '/tmp/blank-Zebra.pdf',
+      importedAt: now,
+      updatedAt: now,
+      lastOpenedAt: now,
+      lastPage: 1,
+      isFavorite: false,
+      bookmarks: const [],
+    );
+    final named = SheetScore.fromJson({
+      ...untitled.toJson(),
+      'id': 'named',
+      'title': 'Alpha',
+    });
+    final input = [untitled, named];
+    for (final mode in [
+      SheetLibrarySortMode.title,
+      SheetLibrarySortMode.composer,
+      SheetLibrarySortMode.recent,
+    ]) {
+      expect(sortScores(input, mode).map((score) => score.id), [
+        'named',
+        'blank',
+      ]);
+    }
+    expect(input.first.title, '   ');
+    expect(input.first.id, 'blank');
+  });
+
   test('encodes and decodes library view settings', () {
     const settings = SheetLibraryViewSettings(
       sortMode: SheetLibrarySortMode.rating,

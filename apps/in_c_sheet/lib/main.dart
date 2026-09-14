@@ -40,7 +40,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+20';
+const String _clefAppVersion = '1.0.0+21';
 const bool _launchInCDiscoveryHome = bool.fromEnvironment(
   'IN_C_DISCOVERY_HOME',
 );
@@ -117,6 +117,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   final Set<String> _handledSharedImportPaths = <String>{};
   final Set<String> _bulkSelectedScoreIds = <String>{};
   bool _isBulkSelecting = false;
+  Completer<void>? _backupRestoreCompletion;
 
   SheetLibraryController get controller => widget.controller;
 
@@ -194,18 +195,21 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (!mounted || input == null) {
       return;
     }
-    final changedCount = await controller.bulkEditScores(
-      Set<String>.of(_bulkSelectedScoreIds),
-      addTags: input.addTags,
-      removeTags: input.removeTags,
-      collection: input.collection,
-      group: input.group,
-      rating: input.rating,
-      isFavorite: input.isFavorite,
-      isPinned: input.isPinned,
-      customFields: input.customFields,
+    final changedCount = await _saveBulkChanges(
+      () => controller.bulkEditScores(
+        Set<String>.of(_bulkSelectedScoreIds),
+        addTags: input.addTags,
+        removeTags: input.removeTags,
+        composer: input.composer,
+        collection: input.collection,
+        group: input.group,
+        rating: input.rating,
+        isFavorite: input.isFavorite,
+        isPinned: input.isPinned,
+        customFields: input.customFields,
+      ),
     );
-    if (!mounted) {
+    if (!mounted || changedCount == null) {
       return;
     }
     setState(() {
@@ -235,10 +239,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.addScoresToSetlist(target, selectedScores);
-    if (!mounted) {
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(target, selectedScores),
+    );
+    if (!mounted || result == null) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     setState(() {
       _isBulkSelecting = false;
       _bulkSelectedScoreIds.clear();
@@ -248,7 +256,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ? ''
         : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
     final message = result.didAddAny
-        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel'
+        ? '${result.addedCount}개 악보를 "${target.title}"에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '"${target.title}"에 이미 모두 포함되어 있습니다.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -276,11 +284,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final changedCount = await controller.bulkEditScores(
-      Set<String>.of(_bulkSelectedScoreIds),
-      collection: collection,
+    final changedCount = await _saveBulkChanges(
+      () => controller.bulkEditScores(
+        Set<String>.of(_bulkSelectedScoreIds),
+        collection: collection,
+      ),
     );
-    if (!mounted) {
+    if (!mounted || changedCount == null) {
       return;
     }
     setState(() {
@@ -298,6 +308,19 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         ),
       ),
     );
+  }
+
+  Future<int?> _saveBulkChanges(Future<int> Function() save) async {
+    try {
+      return await save();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('선택한 악보의 변경사항을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return null;
+    }
   }
 
   Future<void> _deleteBulkScores() async {
@@ -331,10 +354,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final deletedCount = await controller.deleteScoresByIds(
-      Set<String>.of(_bulkSelectedScoreIds),
+    final selectedIds = Set<String>.of(_bulkSelectedScoreIds);
+    final deletedCount = await _saveBulkChanges(
+      () => controller.deleteScoresByIds(selectedIds),
     );
-    if (!mounted) {
+    if (!mounted || deletedCount == null) {
       return;
     }
     setState(() {
@@ -377,7 +401,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         );
         return existing;
       }
-      return controller.createSetlist(title);
+      return _trySetlistSave(context, () => controller.createSetlist(title));
     }
     return action.setlist;
   }
@@ -423,14 +447,14 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     final openedExisting = controller.lastImportOpenedExistingScore;
-    if (openedExisting) {
+    if (openedExisting && !addToSetlist) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('"${score.title}"이 이미 있어 기존 악보를 엽니다.')),
+        SnackBar(content: Text('"${score.displayTitle}"은 이미 라이브러리에 있는 악보입니다.')),
       );
     }
     if (addToSetlist) {
-      await _addImportedScoreToSetlist(score);
-      if (!mounted) {
+      final added = await _addImportedScoreToSetlist(score);
+      if (!mounted || !added) {
         return;
       }
     }
@@ -447,22 +471,23 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       if (!mounted || target == null) {
         return;
       }
-      final setlistResult = await controller.addScoresToSetlist(
-        target,
-        result.scores,
+      final setlistResult = await _trySetlistSave(
+        context,
+        () => controller.addScoresToSetlist(target, result.scores),
+        errorMessage: _importedSetlistSaveFailure,
       );
-      if (!mounted) {
+      if (!mounted || setlistResult == null) {
         return;
       }
       final added = setlistResult.addedCount;
+      if (_showSetlistAddFailure(context, setlistResult)) return;
       final skipped = setlistResult.skippedDuplicateCount;
+      final message = skipped > 0
+          ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
+          : '"${target.title}"에 $added개 악보를 추가했습니다.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            skipped > 0
-                ? '"${target.title}"에 $added개 추가, $skipped개는 이미 있었습니다.'
-                : '"${target.title}"에 $added개 악보를 추가했습니다.',
-          ),
+          content: Text('$message${_setlistMissingScoreSuffix(setlistResult)}'),
         ),
       );
       return;
@@ -484,33 +509,37 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     if (addToSetlist) {
-      await _addImportedScoreToSetlist(score);
-      if (!mounted) {
+      final added = await _addImportedScoreToSetlist(score);
+      if (!mounted || !added) {
         return;
       }
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${score.title}" 이미지 PDF를 추가했습니다.')),
+      SnackBar(content: Text('"${score.displayTitle}" 이미지 PDF를 추가했습니다.')),
     );
     await _openScore(score, showImportNudge: true);
   }
 
-  Future<void> _addImportedScoreToSetlist(SheetScore score) async {
+  Future<bool> _addImportedScoreToSetlist(SheetScore score) async {
     final target = await _selectSetlistForBulkAdd(1);
     if (!mounted || target == null) {
-      return;
+      return false;
     }
-    final result = await controller.addScoresToSetlist(target, <SheetScore>[
-      score,
-    ]);
-    if (!mounted) {
-      return;
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(target, <SheetScore>[score]),
+      errorMessage: _importedSetlistSaveFailure,
+    );
+    if (!mounted || result == null) {
+      return false;
     }
+    if (_showSetlistAddFailure(context, result)) return false;
     final message = result.didAddAny
-        ? '"${score.title}"을 "${target.title}"에 추가했습니다.'
+        ? '"${score.displayTitle}"을 "${target.title}"에 추가했습니다.'
         : '"${target.title}"에 이미 포함되어 있습니다.';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
+    return true;
   }
 
   Future<void> _showTesterInfo() async {
@@ -605,8 +634,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     if (scores.isEmpty) {
-      await controller.markSetlistOpened(setlist);
-      if (!mounted) {
+      if (!await _prepareReadingVisit(
+            context,
+            controller,
+            setlistId: setlist.id,
+          ) ||
+          !mounted) {
         return;
       }
       await Navigator.of(context).push<void>(
@@ -620,9 +653,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     final score = _scoreToOpenForSetlistResume(setlist, scores);
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: setlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -641,8 +678,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (currentSetlist == null) {
       return;
     }
-    await controller.markSetlistOpened(currentSetlist);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: currentSetlist.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -709,17 +750,32 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || name == null) {
           return;
         }
-        final didRename = await controller.renameLibraryProfile(
-          id: action.libraryId,
-          name: name,
-        );
-        if (didRename && mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('라이브러리 이름을 변경했습니다.')));
-        } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('같은 이름의 라이브러리가 이미 있습니다.')),
+        final feedbackLibraryId = controller.activeLibraryProfile.id;
+        final route = ModalRoute.of(context);
+        bool canShowFeedback() =>
+            mounted &&
+            controller.activeLibraryProfile.id == feedbackLibraryId &&
+            (route == null || route.isCurrent);
+        try {
+          final didRename = await controller.renameLibraryProfile(
+            id: action.libraryId,
+            name: name,
           );
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  didRename ? '라이브러리 이름을 변경했습니다.' : '같은 이름의 라이브러리가 이미 있습니다.',
+                ),
+              ),
+            );
+          }
+        } catch (_) {
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('라이브러리 이름을 저장하지 못했습니다. 다시 시도해주세요.')),
+            );
+          }
         }
       case _LibraryProfileActionType.delete:
         final didConfirm = await showDialog<bool>(
@@ -744,10 +800,26 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         if (!mounted || didConfirm != true) {
           return;
         }
-        final didClear = await controller.clearLibraryProfile(action.libraryId);
-        if (didClear && mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(const SnackBar(content: Text('라이브러리를 비웠습니다.')));
+        final feedbackLibraryId = controller.activeLibraryProfile.id;
+        final route = ModalRoute.of(context);
+        bool canShowFeedback() =>
+            mounted &&
+            controller.activeLibraryProfile.id == feedbackLibraryId &&
+            (route == null || route.isCurrent);
+        try {
+          final didClear = await controller.clearLibraryProfile(
+            action.libraryId,
+          );
+          if (didClear && mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(const SnackBar(content: Text('라이브러리를 비웠습니다.')));
+          }
+        } catch (_) {
+          if (mounted && canShowFeedback()) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('라이브러리를 비우지 못했습니다. 다시 시도해주세요.')),
+            );
+          }
         }
     }
   }
@@ -776,7 +848,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: score.title,
+          subject: score.displayTitle,
           files: [
             XFile(
               candidate.path,
@@ -842,6 +914,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _importSharedFiles(Object? value) async {
+    await _backupRestoreCompletion?.future;
     final parsedFiles = _parseSharedImportFiles(value);
     final files = parsedFiles
         .where((file) => !_handledSharedImportPaths.contains(file.path))
@@ -878,8 +951,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     String? setlistId,
     bool showImportNudge = false,
   }) async {
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          scoreId: score.id,
+          setlistId: setlistId,
+        ) ||
+        !mounted) {
       return;
     }
 
@@ -901,11 +979,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       score: score,
       onAddLinkedFile: controller.pickLinkedFile,
     );
-    if (result == null) {
+    if (result == null || !mounted) {
       return;
     }
 
-    await controller.updateScoreMetadata(
+    final didSave = await controller.updateScoreMetadata(
       score,
       title: result.title,
       composer: result.composer,
@@ -917,6 +995,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       linkedFiles: result.linkedFiles,
       customFields: result.customFields,
     );
+    if (!mounted || didSave) return;
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('악보가 없어 정보를 저장하지 못했습니다.')));
   }
 
   Future<void> _selectSortMode() async {
@@ -1150,6 +1231,48 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         '(${_formatBytes(bytes)})가 포함됩니다$externalLabel.';
   }
 
+  Future<SheetLibraryBackupRestoreResult> _runBackupRestore(
+    Future<SheetLibraryBackupRestoreResult> Function() restore,
+  ) async {
+    if (_backupRestoreCompletion != null || controller.isImporting) {
+      return const SheetLibraryBackupRestoreResult(
+        status: SheetLibraryBackupRestoreStatus.canceled,
+      );
+    }
+    final completion = Completer<void>();
+    _backupRestoreCompletion = completion;
+    final navigator = Navigator.of(context);
+    final route = DialogRoute<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text('백업 복원 중'),
+          content: SizedBox(
+            height: 48,
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        ),
+      ),
+    );
+    try {
+      unawaited(navigator.push(route));
+      return await restore();
+    } catch (error) {
+      return SheetLibraryBackupRestoreResult(
+        status: SheetLibraryBackupRestoreStatus.error,
+        failureReason: error.toString(),
+      );
+    } finally {
+      if (navigator.mounted && route.isActive) {
+        navigator.removeRoute(route);
+      }
+      _backupRestoreCompletion = null;
+      completion.complete();
+    }
+  }
+
   Future<void> _importBackup() async {
     final didConfirm = await showDialog<bool>(
       context: context,
@@ -1174,7 +1297,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.importMetadataBackup();
+    final result = await _runBackupRestore(controller.importMetadataBackup);
     if (!mounted) {
       return;
     }
@@ -1214,7 +1337,9 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.restoreAutomaticMetadataBackup();
+    final result = await _runBackupRestore(
+      controller.restoreAutomaticMetadataBackup,
+    );
     if (!mounted) {
       return;
     }
@@ -1425,8 +1550,27 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.importFullBackup();
+    final result = await _runBackupRestore(controller.importFullBackup);
     if (!mounted) {
+      return;
+    }
+    if (result.didRestore && result.missingFileCount > 0) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('일부 파일은 복원되지 않았습니다'),
+          content: Text(
+            '${result.restoredScoreCount}개 악보와 ${result.restoredSetlistCount}개 세트리스트 정보를 복원했습니다.\n\n'
+            '${result.missingFileCount}개 파일은 백업에 포함되어 있지 않습니다. 해당 PDF, 연결 파일 또는 필기 파일을 확인해주세요.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
       return;
     }
     final message = switch (result.status) {
@@ -1435,7 +1579,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       SheetLibraryBackupRestoreStatus.canceled => '복원을 취소했습니다.',
       SheetLibraryBackupRestoreStatus.unsupportedVersion =>
         '지원하지 않는 전체 백업 버전입니다.',
-      SheetLibraryBackupRestoreStatus.invalid => '올바른 Clef 전체 백업 ZIP이 아닙니다.',
+      SheetLibraryBackupRestoreStatus.invalid =>
+        '백업 형식이 올바르지 않거나 필요한 파일이 빠져 있습니다.',
       SheetLibraryBackupRestoreStatus.error => '전체 백업을 복원하지 못했습니다.',
     };
     ScaffoldMessenger.of(context)
@@ -1452,11 +1597,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     final hasActiveLibraryCondition =
         controller.query.trim().isNotEmpty ||
         controller.libraryViewSettings.hasAnyFilter;
+    final compactSelectionActions = MediaQuery.sizeOf(context).width < 720;
 
     return Scaffold(
       appBar: AppBar(
         title: _isBulkSelecting
-            ? Text('${_bulkSelectedScoreIds.length}개 선택')
+            ? Text(
+                '${_bulkSelectedScoreIds.length}개 선택',
+                style: Theme.of(context).textTheme.titleMedium,
+              )
             : null,
         actions: [
           IconButton(
@@ -1486,7 +1635,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkSetlistAdd,
               icon: const Icon(Icons.playlist_add_check),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 컬렉션 지정',
               onPressed: _bulkSelectedScoreIds.isEmpty
@@ -1494,19 +1643,63 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   : _showBulkCollectionAssign,
               icon: const Icon(Icons.collections_bookmark_outlined),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 정보 일괄 편집',
               onPressed: _bulkSelectedScoreIds.isEmpty ? null : _showBulkEdit,
               icon: const Icon(Icons.edit_note),
             ),
-          if (_isBulkSelecting)
+          if (_isBulkSelecting && !compactSelectionActions)
             IconButton(
               tooltip: '선택 악보 라이브러리에서 제거',
               onPressed: _bulkSelectedScoreIds.isEmpty
                   ? null
                   : _deleteBulkScores,
               icon: const Icon(Icons.delete_outline),
+            ),
+          if (_isBulkSelecting && compactSelectionActions)
+            PopupMenuButton<_LibrarySelectionAction>(
+              tooltip: '선택 작업 더 보기',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) async {
+                switch (action) {
+                  case _LibrarySelectionAction.collection:
+                    await _showBulkCollectionAssign();
+                  case _LibrarySelectionAction.edit:
+                    await _showBulkEdit();
+                  case _LibrarySelectionAction.remove:
+                    await _deleteBulkScores();
+                }
+              },
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.collection,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.collections_bookmark_outlined),
+                    title: const Text('컬렉션 지정'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.edit,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.edit_note),
+                    title: const Text('정보 일괄 편집'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _LibrarySelectionAction.remove,
+                  enabled: _bulkSelectedScoreIds.isNotEmpty,
+                  child: ListTile(
+                    enabled: _bulkSelectedScoreIds.isNotEmpty,
+                    leading: const Icon(Icons.delete_outline),
+                    title: const Text('라이브러리에서 제거'),
+                  ),
+                ),
+              ],
             ),
           if (!_isBulkSelecting) ...[
             IconButton(
@@ -1533,6 +1726,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
             ),
             PopupMenuButton<_LibraryBackupAction>(
               tooltip: '백업/복원',
+              enabled: !controller.isImporting,
               icon: const Icon(Icons.inventory_2_outlined),
               onSelected: (action) {
                 switch (action) {
@@ -1613,153 +1807,175 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     isWide ? 28 : 16,
                     12,
                     isWide ? 28 : 16,
-                    isWide ? 24 : 96,
+                    24,
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SearchField(
-                        query: controller.query,
-                        onChanged: controller.updateQuery,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryProfileBar(
-                        activeLibrary: controller.activeLibraryProfile.name,
-                        visibleCount: scores.length,
-                        totalCount: controller.scores.length,
-                        onPressed: _showLibrarySwitcher,
-                      ),
-                      const SizedBox(height: 10),
-                      _LibraryViewBar(
-                        settings: controller.libraryViewSettings,
-                        onSortPressed: _selectSortMode,
-                        onFavoriteChanged: controller.updateFavoriteFilter,
-                        onTagPressed: _selectTagFilter,
-                        onCollectionPressed: _selectCollectionFilter,
-                        onGroupPressed: _selectGroupFilter,
-                        onRatingPressed: _selectRatingFilter,
-                      ),
-                      _ActiveLibraryFiltersBar(
-                        query: controller.query,
-                        settings: controller.libraryViewSettings,
-                        onClearQuery: () => controller.updateQuery(''),
-                        onClearFavorite: () =>
-                            controller.updateFavoriteFilter(false),
-                        onClearTag: () => controller.updateTagFilter(''),
-                        onClearComposer: () =>
-                            controller.updateComposerFilter(''),
-                        onClearCollection: () =>
-                            controller.updateCollectionFilter(''),
-                        onClearGroup: () => controller.updateGroupFilter(''),
-                        onClearRating: () =>
-                            controller.updateMinimumRatingFilter(0),
-                        onClearCustomField: (fieldKey) =>
-                            controller.updateCustomFieldFilter(fieldKey, ''),
-                        onClearAll: controller.clearLibrarySearchAndFilters,
-                      ),
-                      if (!hasActiveLibraryCondition) ...[
-                        const SizedBox(height: 10),
-                        _LibraryFacetExplorer(
-                          composerFacets: controller.composerFacets,
-                          collectionFacets: controller.collectionFacets,
-                          groupFacets: controller.groupFacets,
-                          ratingFacets: controller.ratingFacets,
-                          customFieldFacets: <String, List<SheetLibraryFacet>>{
-                            for (final key in _commonCustomMetadataFieldKeys)
-                              key: controller.customFieldFacets(key),
-                          },
-                          selectedCollection:
-                              controller.libraryViewSettings.collectionQuery,
-                          selectedComposer:
-                              controller.libraryViewSettings.composerQuery,
-                          selectedGroup:
-                              controller.libraryViewSettings.groupQuery,
-                          selectedMinimumRating:
-                              controller.libraryViewSettings.minimumRating,
-                          selectedCustomFieldFilters:
-                              controller.libraryViewSettings.customFieldFilters,
-                          onCollectionSelected:
-                              controller.updateCollectionFilter,
-                          onComposerSelected: controller.updateComposerFilter,
-                          onGroupSelected: controller.updateGroupFilter,
-                          onRatingSelected:
-                              controller.updateMinimumRatingFilter,
-                          onCustomFieldSelected:
-                              controller.updateCustomFieldFilter,
-                        ),
-                      ],
-                      const SizedBox(height: 14),
-                      if (controller.errorMessage != null)
-                        _NoticeBanner(message: controller.errorMessage!),
-                      if (controller.errorMessage != null)
-                        const SizedBox(height: 12),
-                      if (!hasActiveLibraryCondition &&
-                          !controller.isLoading &&
-                          (controller.pinnedScores.isNotEmpty ||
-                              controller.favoriteScores.isNotEmpty ||
-                              controller.recentScores.isNotEmpty ||
-                              controller
-                                  .scoresNeedingMetadataReview
-                                  .isNotEmpty ||
-                              controller.recentSetlists.isNotEmpty)) ...[
-                        _QuickAccessBand(
-                          pinnedScores: controller.pinnedScores
-                              .take(8)
-                              .toList(growable: false),
-                          favoriteScores: controller.favoriteScores
-                              .take(8)
-                              .toList(growable: false),
-                          recentScores: controller.recentScores
-                              .take(8)
-                              .toList(growable: false),
-                          metadataReviewScores: controller
-                              .scoresNeedingMetadataReview
-                              .take(8)
-                              .toList(growable: false),
-                          onOpen: _openScore,
-                          onEdit: _editScore,
-                          isSelecting: _isBulkSelecting,
-                          selectedIds: _bulkSelectedScoreIds,
-                          onSelectionChanged: _toggleBulkScoreSelection,
-                        ),
-                        if (controller.recentSetlists.isNotEmpty) ...[
-                          const SizedBox(height: 10),
-                          _RecentSetlistsBand(
-                            setlists: controller.recentSetlists
-                                .take(8)
-                                .toList(growable: false),
-                            scoreById: controller.scoreByIdOrNull,
-                            onOpen: _openRecentSetlist,
-                          ),
-                        ],
-                        const SizedBox(height: 14),
-                      ],
-                      Expanded(
-                        child: controller.isLoading
-                            ? const Center(child: CircularProgressIndicator())
-                            : scores.isEmpty
-                            ? _EmptyLibrary(
-                                hasQuery: controller.query.isNotEmpty,
-                                hasFilter:
-                                    controller.libraryViewSettings.hasAnyFilter,
-                                onImportPressed: _showImportOptions,
-                                onClearPressed:
-                                    controller.clearLibrarySearchAndFilters,
-                                onTesterInfoPressed: _showTesterInfo,
-                              )
-                            : _ScoreGrid(
-                                scores: scores,
-                                isWide: isWide,
+                  child: CustomScrollView(
+                    key: const ValueKey('clef-library-scroll'),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _SearchField(
+                              query: controller.query,
+                              onChanged: controller.updateQuery,
+                            ),
+                            const SizedBox(height: 10),
+                            _LibraryProfileBar(
+                              activeLibrary:
+                                  controller.activeLibraryProfile.name,
+                              visibleCount: scores.length,
+                              totalCount: controller.scores.length,
+                              onPressed: _showLibrarySwitcher,
+                            ),
+                            const SizedBox(height: 10),
+                            _LibraryViewBar(
+                              settings: controller.libraryViewSettings,
+                              onSortPressed: _selectSortMode,
+                              onFavoriteChanged:
+                                  controller.updateFavoriteFilter,
+                              onTagPressed: _selectTagFilter,
+                              onCollectionPressed: _selectCollectionFilter,
+                              onGroupPressed: _selectGroupFilter,
+                              onRatingPressed: _selectRatingFilter,
+                            ),
+                            _ActiveLibraryFiltersBar(
+                              query: controller.query,
+                              settings: controller.libraryViewSettings,
+                              onClearQuery: () => controller.updateQuery(''),
+                              onClearFavorite: () =>
+                                  controller.updateFavoriteFilter(false),
+                              onClearTag: () => controller.updateTagFilter(''),
+                              onClearComposer: () =>
+                                  controller.updateComposerFilter(''),
+                              onClearCollection: () =>
+                                  controller.updateCollectionFilter(''),
+                              onClearGroup: () =>
+                                  controller.updateGroupFilter(''),
+                              onClearRating: () =>
+                                  controller.updateMinimumRatingFilter(0),
+                              onClearCustomField: (fieldKey) => controller
+                                  .updateCustomFieldFilter(fieldKey, ''),
+                              onClearAll:
+                                  controller.clearLibrarySearchAndFilters,
+                            ),
+                            if (!hasActiveLibraryCondition) ...[
+                              const SizedBox(height: 10),
+                              _LibraryFacetExplorer(
+                                composerFacets: controller.composerFacets,
+                                collectionFacets: controller.collectionFacets,
+                                groupFacets: controller.groupFacets,
+                                ratingFacets: controller.ratingFacets,
+                                customFieldFacets:
+                                    <String, List<SheetLibraryFacet>>{
+                                      for (final key
+                                          in _commonCustomMetadataFieldKeys)
+                                        key: controller.customFieldFacets(key),
+                                    },
+                                selectedCollection: controller
+                                    .libraryViewSettings
+                                    .collectionQuery,
+                                selectedComposer: controller
+                                    .libraryViewSettings
+                                    .composerQuery,
+                                selectedGroup:
+                                    controller.libraryViewSettings.groupQuery,
+                                selectedMinimumRating: controller
+                                    .libraryViewSettings
+                                    .minimumRating,
+                                selectedCustomFieldFilters: controller
+                                    .libraryViewSettings
+                                    .customFieldFilters,
+                                onCollectionSelected:
+                                    controller.updateCollectionFilter,
+                                onComposerSelected:
+                                    controller.updateComposerFilter,
+                                onGroupSelected: controller.updateGroupFilter,
+                                onRatingSelected:
+                                    controller.updateMinimumRatingFilter,
+                                onCustomFieldSelected:
+                                    controller.updateCustomFieldFilter,
+                              ),
+                            ],
+                            const SizedBox(height: 14),
+                            if (controller.errorMessage != null)
+                              _NoticeBanner(message: controller.errorMessage!),
+                            if (controller.errorMessage != null)
+                              const SizedBox(height: 12),
+                            if (!hasActiveLibraryCondition &&
+                                !controller.isLoading &&
+                                (controller.pinnedScores.isNotEmpty ||
+                                    controller.favoriteScores.isNotEmpty ||
+                                    controller.recentScores.isNotEmpty ||
+                                    controller
+                                        .scoresNeedingMetadataReview
+                                        .isNotEmpty ||
+                                    controller.recentSetlists.isNotEmpty)) ...[
+                              _QuickAccessBand(
+                                pinnedScores: controller.pinnedScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                favoriteScores: controller.favoriteScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                recentScores: controller.recentScores
+                                    .take(8)
+                                    .toList(growable: false),
+                                metadataReviewScores: controller
+                                    .scoresNeedingMetadataReview
+                                    .take(8)
+                                    .toList(growable: false),
                                 onOpen: _openScore,
-                                onFavorite: controller.toggleFavorite,
-                                onPin: controller.togglePinned,
+                                onEdit: _editScore,
                                 isSelecting: _isBulkSelecting,
                                 selectedIds: _bulkSelectedScoreIds,
                                 onSelectionChanged: _toggleBulkScoreSelection,
-                                onEdit: _editScore,
-                                onShare: _shareScore,
                               ),
+                              if (controller.recentSetlists.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                _RecentSetlistsBand(
+                                  setlists: controller.recentSetlists
+                                      .take(8)
+                                      .toList(growable: false),
+                                  scoreById: controller.scoreByIdOrNull,
+                                  onOpen: _openRecentSetlist,
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                            ],
+                          ],
+                        ),
                       ),
+                      if (controller.isLoading)
+                        const SliverFillRemaining(
+                          hasScrollBody: false,
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else if (scores.isEmpty)
+                        SliverToBoxAdapter(
+                          child: _EmptyLibrary(
+                            hasQuery: controller.query.isNotEmpty,
+                            hasFilter:
+                                controller.libraryViewSettings.hasAnyFilter,
+                            onImportPressed: _showImportOptions,
+                            onClearPressed:
+                                controller.clearLibrarySearchAndFilters,
+                            onTesterInfoPressed: _showTesterInfo,
+                          ),
+                        )
+                      else
+                        _ScoreGrid(
+                          scores: scores,
+                          isWide: isWide,
+                          onOpen: _openScore,
+                          onFavorite: controller.toggleFavorite,
+                          onPin: controller.togglePinned,
+                          isSelecting: _isBulkSelecting,
+                          selectedIds: _bulkSelectedScoreIds,
+                          onSelectionChanged: _toggleBulkScoreSelection,
+                          onEdit: _editScore,
+                          onShare: _shareScore,
+                        ),
                     ],
                   ),
                 ),
@@ -1835,6 +2051,8 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
     _ => 'auto',
   };
 }
+
+enum _LibrarySelectionAction { collection, edit, remove }
 
 enum _LibraryBackupAction {
   exportMetadata,
@@ -2818,8 +3036,10 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
   var customFields = score.customFields.toList(growable: true);
   var rating = score.rating;
   try {
-    return await showDialog<_ScoreMetadataInput>(
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final route = DialogRoute<_ScoreMetadataInput>(
       context: context,
+      themes: InheritedTheme.capture(from: context, to: navigator.context),
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           title: const Text('악보 정보 편집'),
@@ -3015,6 +3235,9 @@ Future<_ScoreMetadataInput?> _showScoreMetadataDialog({
         ),
       ),
     );
+    final result = await navigator.push(route);
+    await route.completed;
+    return result;
   } finally {
     titleController.dispose();
     composerController.dispose();
@@ -3368,75 +3591,66 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isFilteredEmpty = hasQuery || hasFilter;
-    return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: constraints.hasBoundedHeight ? constraints.maxHeight : 0,
-          ),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 360),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    hasQuery ? Icons.search_off : Icons.library_music_outlined,
-                    size: 58,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    isFilteredEmpty
-                        ? '조건에 맞는 악보가 없습니다.'
-                        : '악보를 추가해 테스트를 시작하세요.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.titleMedium
-                        ?.copyWith(fontWeight: FontWeight.w900),
-                  ),
-                  if (isFilteredEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                hasQuery ? Icons.search_off : Icons.library_music_outlined,
+                size: 58,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                isFilteredEmpty ? '조건에 맞는 악보가 없습니다.' : '악보를 추가해 테스트를 시작하세요.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium
+                    ?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              if (isFilteredEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '검색어와 필터를 초기화하면 전체 라이브러리로 돌아갑니다.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 18),
+                OutlinedButton.icon(
+                  onPressed: onClearPressed,
+                  icon: const Icon(Icons.filter_alt_off_outlined),
+                  label: const Text('검색/필터 초기화'),
+                ),
+              ] else ...[
+                const SizedBox(height: 8),
+                Text(
+                  'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 18),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: onImportPressed,
+                      icon: const Icon(Icons.add_to_photos_outlined),
+                      label: const Text('악보 추가'),
                     ),
-                    const SizedBox(height: 18),
                     OutlinedButton.icon(
-                      onPressed: onClearPressed,
-                      icon: const Icon(Icons.filter_alt_off_outlined),
-                      label: const Text('검색/필터 초기화'),
-                    ),
-                  ] else ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'PDF 또는 JPG/PNG 이미지를 가져와 Clef & Staff 라이브러리에 등록할 수 있습니다.',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                    const SizedBox(height: 18),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        FilledButton.icon(
-                          onPressed: onImportPressed,
-                          icon: const Icon(Icons.add_to_photos_outlined),
-                          label: const Text('악보 추가'),
-                        ),
-                        OutlinedButton.icon(
-                          onPressed: onTesterInfoPressed,
-                          icon: const Icon(Icons.fact_check_outlined),
-                          label: const Text('테스트 항목'),
-                        ),
-                      ],
+                      onPressed: onTesterInfoPressed,
+                      icon: const Icon(Icons.fact_check_outlined),
+                      label: const Text('테스트 항목'),
                     ),
                   ],
-                ],
-              ),
-            ),
+                ),
+              ],
+            ],
           ),
         ),
       ),
@@ -3937,6 +4151,316 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
   return '${score.lastPage}쪽부터 열기 · $identity';
 }
 
+Future<bool> _prepareReadingVisit(
+  BuildContext context,
+  SheetLibraryController controller, {
+  String? scoreId,
+  String? setlistId,
+}) async {
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() {
+    if (!context.mounted ||
+        route?.isCurrent == false ||
+        controller.activeLibraryProfile.id != libraryId) {
+      return false;
+    }
+    if (scoreId != null && controller.scoreByIdOrNull(scoreId) == null) {
+      return false;
+    }
+    if (setlistId != null) {
+      final current = controller.setlistByIdOrNull(setlistId);
+      if (current == null ||
+          (scoreId != null && !current.scoreIds.contains(scoreId))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (!canContinue()) return false;
+  var saveFailed = false;
+  if (setlistId != null) {
+    try {
+      await controller.markSetlistOpened(
+        controller.setlistById(setlistId),
+        scoreId: scoreId,
+      );
+    } catch (_) {
+      saveFailed = true;
+    }
+  }
+  if (!canContinue()) return false;
+  if (scoreId != null) {
+    try {
+      await controller.markOpened(controller.scoreById(scoreId));
+    } catch (_) {
+      saveFailed = true;
+    }
+  }
+  if (!canContinue()) return false;
+  if (context.mounted && saveFailed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('최근 연주 위치를 저장하지 못했습니다. 악보는 계속 볼 수 있습니다.')),
+    );
+  }
+  return true;
+}
+
+const _importedSetlistSaveFailure =
+    '악보는 라이브러리에 있지만 세트리스트에 담지 못했습니다. 다시 추가해주세요.';
+
+Future<T?> _trySetlistSave<T>(
+  BuildContext context,
+  Future<T> Function() save, {
+  String errorMessage = '세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.',
+}) async {
+  try {
+    return await save();
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(errorMessage)));
+    }
+    return null;
+  }
+}
+
+@visibleForTesting
+Future<void> createSongbookScores(
+  BuildContext context,
+  SheetLibraryController controller, {
+  required SheetScore source,
+  required int pageCount,
+}) async {
+  if (!context.mounted) return;
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() =>
+      context.mounted &&
+      controller.activeLibraryProfile.id == libraryId &&
+      (route == null || route.isCurrent);
+  if (!canContinue()) return;
+  if (controller.scoreByIdOrNull(source.id) == null) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('악보가 없어 곡으로 나누지 못했습니다.')));
+    return;
+  }
+  final SheetSongbookSplitResult result;
+  try {
+    result = await controller.createScoresFromBookmarks(
+      source,
+      pageCount: pageCount,
+    );
+  } catch (_) {
+    if (context.mounted && canContinue()) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('곡 항목을 저장하지 못했습니다. 저장 공간을 확인한 뒤 다시 시도해주세요.'),
+            action: SnackBarAction(
+              label: '다시 시도',
+              onPressed: () {
+                if (!canContinue()) return;
+                unawaited(
+                  createSongbookScores(
+                    context,
+                    controller,
+                    source: source,
+                    pageCount: pageCount,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+    }
+    return;
+  }
+  if (!context.mounted || !canContinue()) return;
+  if (!result.didCreateAny) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.skippedDuplicateCount > 0
+              ? '이미 만든 곡 항목입니다.'
+              : '곡으로 나눌 북마크 구간이 없습니다.',
+        ),
+      ),
+    );
+    return;
+  }
+  final duplicateSuffix = result.skippedDuplicateCount > 0
+      ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+      : '';
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text('${result.createdCount}개 곡 항목을 만들었습니다$duplicateSuffix.'),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '세트리스트 만들기',
+          onPressed: () {
+            if (!canContinue()) return;
+            unawaited(
+              createSongbookSetlist(
+                context,
+                controller,
+                title: '${source.displayTitle} 곡 모음',
+                scores: result.createdScores,
+              ),
+            );
+          },
+        ),
+      ),
+    );
+}
+
+@visibleForTesting
+Future<void> createSongbookSetlist(
+  BuildContext context,
+  SheetLibraryController controller, {
+  required String title,
+  required List<SheetScore> scores,
+}) async {
+  if (scores.isEmpty || !context.mounted) return;
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() =>
+      context.mounted &&
+      controller.activeLibraryProfile.id == libraryId &&
+      (route == null || route.isCurrent);
+  if (!canContinue()) return;
+  final SheetSetlist setlist;
+  final SheetSetlistBulkAddResult result;
+  try {
+    final existing = controller.setlistByTitleOrNull(title);
+    setlist = existing ?? await controller.createSetlist(title);
+    if (!canContinue()) return;
+    result = await controller.addScoresToSetlist(setlist, scores);
+  } catch (_) {
+    if (context.mounted && canContinue()) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('곡 항목은 유지되지만 세트리스트에 담지 못했습니다.'),
+            action: SnackBarAction(
+              label: '다시 시도',
+              onPressed: () {
+                if (!canContinue()) return;
+                unawaited(
+                  createSongbookSetlist(
+                    context,
+                    controller,
+                    title: title,
+                    scores: scores,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+    }
+    return;
+  }
+  if (!context.mounted || !canContinue()) return;
+  if (_showSetlistAddFailure(context, result)) return;
+  final target = controller.setlistByIdOrNull(setlist.id) ?? setlist;
+  final skippedSuffix = result.skippedDuplicateCount > 0
+      ? ' · 중복 ${result.skippedDuplicateCount}개 제외'
+      : '';
+  ScaffoldMessenger.of(context)
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(
+          result.didAddAny
+              ? '${result.addedCount}개 곡을 "${target.title}"에 담았습니다$skippedSuffix.${_setlistMissingScoreSuffix(result)}'
+              : '"${target.title}"에 이미 모두 담겨 있습니다.',
+        ),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: '열기',
+          onPressed: () {
+            if (!canContinue()) return;
+            unawaited(
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (context) => SheetSetlistDetailScreen(
+                    controller: controller,
+                    setlistId: target.id,
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+}
+
+bool _showSetlistAddFailure(
+  BuildContext context,
+  SheetSetlistBulkAddResult result,
+) {
+  final message = result.targetMissing
+      ? '세트리스트가 없어 추가하지 못했습니다. 다시 선택해주세요.'
+      : !result.didAddAny && result.skippedMissingCount > 0
+      ? '선택한 악보 중 ${result.skippedMissingCount}개가 라이브러리에 없어 추가하지 못했습니다.'
+      : null;
+  if (message == null) return false;
+  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  return true;
+}
+
+String _setlistMissingScoreSuffix(SheetSetlistBulkAddResult result) =>
+    result.skippedMissingCount == 0
+    ? ''
+    : ' 라이브러리에서 제거된 ${result.skippedMissingCount}개는 건너뛰었습니다.';
+
+String _setlistShareText(SheetSetlist setlist, List<SheetScore> scores) {
+  final buffer = StringBuffer()
+    ..writeln(setlist.title)
+    ..writeln(
+      setlist.totalEstimatedSeconds > 0
+          ? '${scores.length}곡 · 총 ${_formatDuration(setlist.totalEstimatedSeconds)}'
+          : '${scores.length}곡',
+    );
+  if (setlist.transitionSeconds > 0 && scores.length > 1) {
+    buffer.writeln('전환 ${_formatDuration(setlist.transitionSeconds)}');
+  }
+  buffer.writeln();
+
+  for (var index = 0; index < scores.length; index += 1) {
+    final score = scores[index];
+    final composer = score.composer.trim();
+    final note = setlist.scoreNotes[score.id]?.trim();
+    final duration = setlist.scoreDurations[score.id] ?? 0;
+    final details = <String>[
+      if (composer.isNotEmpty) composer,
+      '${setlist.scoreStartPages[score.id] ?? score.lastPage}쪽부터',
+      if (duration > 0) _formatDuration(duration),
+      if (note?.isNotEmpty == true) note!,
+    ];
+    buffer.writeln('${index + 1}. ${score.displayTitle}');
+    if (details.isNotEmpty) {
+      buffer.writeln('   ${details.join(' · ')}');
+    }
+  }
+
+  return buffer.toString().trimRight();
+}
+
+@visibleForTesting
+String setlistShareTextForTest(SheetSetlist setlist, List<SheetScore> scores) {
+  return _setlistShareText(setlist, scores);
+}
+
 SheetScore _scoreToOpenForSetlistResume(
   SheetSetlist setlist,
   List<SheetScore> scores,
@@ -4021,7 +4545,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
@@ -4209,7 +4733,7 @@ class _RecentSetlistsBand extends StatelessWidget {
                               if (lastOpenedScore != null) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  '이어보기 · ${lastOpenedScore.title}',
+                                  '이어보기 · ${lastOpenedScore.displayTitle}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.labelSmall?.copyWith(
@@ -4240,6 +4764,7 @@ class _BulkEditInput {
     required this.addTags,
     required this.removeTags,
     required this.customFields,
+    this.composer,
     this.collection,
     this.group,
     this.rating,
@@ -4250,6 +4775,7 @@ class _BulkEditInput {
   final List<String> addTags;
   final List<String> removeTags;
   final List<SheetCustomMetadataField> customFields;
+  final String? composer;
   final String? collection;
   final String? group;
   final int? rating;
@@ -4265,6 +4791,7 @@ class _BulkEditSheet extends StatefulWidget {
 }
 
 class _BulkEditSheetState extends State<_BulkEditSheet> {
+  final _composerController = TextEditingController();
   final _addTagsController = TextEditingController();
   final _removeTagsController = TextEditingController();
   final _collectionController = TextEditingController();
@@ -4277,6 +4804,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
 
   @override
   void dispose() {
+    _composerController.dispose();
     _addTagsController.dispose();
     _removeTagsController.dispose();
     _collectionController.dispose();
@@ -4304,6 +4832,13 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                   ?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
+            TextField(
+              controller: _composerController,
+              decoration: const InputDecoration(
+                labelText: '작곡가 변경',
+                hintText: '변경 없음',
+              ),
+            ),
             TextField(
               controller: _addTagsController,
               decoration: const InputDecoration(
@@ -4390,6 +4925,7 @@ class _BulkEditSheetState extends State<_BulkEditSheet> {
                     _BulkEditInput(
                       addTags: _splitTags(_addTagsController.text),
                       removeTags: _splitTags(_removeTagsController.text),
+                      composer: _blankToNull(_composerController.text),
                       customFields: _customFieldInput(),
                       collection: _blankToNull(_collectionController.text),
                       group: _blankToNull(_groupController.text),
@@ -4661,7 +5197,7 @@ class _ScoreGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isWide) {
-      return ListView.separated(
+      return SliverList.separated(
         itemBuilder: (context, index) => SizedBox(
           height: 212,
           child: _ScoreTile(
@@ -4681,7 +5217,7 @@ class _ScoreGrid extends StatelessWidget {
       );
     }
 
-    return GridView.builder(
+    return SliverGrid.builder(
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
         maxCrossAxisExtent: 340,
         mainAxisExtent: 212,
@@ -4785,7 +5321,7 @@ class _ScoreTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -5023,8 +5559,11 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
       return;
     }
 
-    final setlist = await controller.createSetlist(title);
-    if (!mounted) {
+    final setlist = await _trySetlistSave(
+      context,
+      () => controller.createSetlist(title),
+    );
+    if (!mounted || setlist == null) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -5046,9 +5585,13 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     }
 
     final score = scores.first;
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: setlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -5133,6 +5676,8 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
   }
 }
 
+enum _SetlistDetailAction { copy, duplicate, rename, delete }
+
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
     required this.controller,
@@ -5192,15 +5737,19 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       );
       return;
     }
-    await controller.renameSetlist(currentSetlist, title);
+    await _trySetlistSave(
+      context,
+      () => controller.renameSetlist(currentSetlist, title),
+    );
   }
 
   Future<void> _deleteSetlist() async {
+    final currentSetlist = setlist;
     final didConfirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('세트리스트 삭제'),
-        content: Text('"${setlist.title}"을 삭제할까요?'),
+        content: Text('"${currentSetlist.title}"을 삭제할까요?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -5216,19 +5765,38 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted || didConfirm != true) {
       return;
     }
-    await controller.deleteSetlist(setlist);
-    if (mounted) {
+    final deleted = await _trySetlistSave(context, () async {
+      await controller.deleteSetlist(currentSetlist);
+      return true;
+    });
+    if (mounted && deleted == true) {
       Navigator.of(context).pop();
     }
   }
 
   Future<void> _duplicateSetlist() async {
-    final duplicate = await controller.duplicateSetlist(setlist);
-    if (!mounted) {
+    final duplicate = await _trySetlistSave(
+      context,
+      () => controller.duplicateSetlist(setlist),
+    );
+    if (!mounted || duplicate == null) {
       return;
     }
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text('"${duplicate.title}"을 만들었습니다.')));
+  }
+
+  Future<void> _copySetlistText() async {
+    final currentSetlist = setlist;
+    final scores = controller.scoresForSetlist(currentSetlist);
+    await Clipboard.setData(
+      ClipboardData(text: _setlistShareText(currentSetlist, scores)),
+    );
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('세트리스트 내용을 복사했습니다.')));
   }
 
   Future<void> _addScore() async {
@@ -5247,21 +5815,22 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       builder: (context) =>
           SafeArea(child: _ScoreMultiPickerSheet(scores: availableScores)),
     );
-    if (selectedScores == null || selectedScores.isEmpty) {
+    if (!mounted || selectedScores == null || selectedScores.isEmpty) {
       return;
     }
-    final result = await controller.addScoresToSetlist(
-      currentSetlist,
-      selectedScores,
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(currentSetlist, selectedScores),
     );
-    if (!mounted) {
+    if (!mounted || result == null) {
       return;
     }
+    if (_showSetlistAddFailure(context, result)) return;
     final skippedLabel = result.skippedDuplicateCount == 0
         ? ''
         : ' 이미 포함된 ${result.skippedDuplicateCount}개는 건너뛰었습니다.';
     final message = result.didAddAny
-        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel'
+        ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '이미 모두 세트리스트에 포함되어 있습니다.';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
@@ -5274,14 +5843,19 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           .showSnackBar(const SnackBar(content: Text('세트리스트에 악보가 없습니다.')));
       return;
     }
-    await controller.markSetlistOpened(setlist, scoreId: scores.first.id);
     await _openScore(scores.first);
   }
 
   Future<void> _openScore(SheetScore score) async {
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (currentSetlist == null) return;
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: currentSetlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -5289,34 +5863,39 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         builder: (context) => SheetViewerScreen(
           controller: controller,
           scoreId: score.id,
-          setlistId: setlist.id,
+          setlistId: currentSetlist.id,
         ),
       ),
     );
   }
 
   Future<void> _showRehearsalSettings() async {
+    final initialSetlist = setlist;
     final updated = await showModalBottomSheet<SheetSetlist>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
       builder: (context) => _SetlistRehearsalSheet(
-        setlist: setlist,
-        scores: controller.scoresForSetlist(setlist),
+        setlist: initialSetlist,
+        scores: controller.scoresForSetlist(initialSetlist),
       ),
     );
-    if (updated == null) {
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (!mounted || updated == null || currentSetlist == null) {
       return;
     }
-    await controller.updateSetlistRehearsalSettings(
-      setlist,
-      rehearsalMode: updated.rehearsalMode,
-      transitionSeconds: updated.transitionSeconds,
-      scoreStartPages: updated.scoreStartPages,
-      scoreNotes: updated.scoreNotes,
-      scoreDurations: updated.scoreDurations,
-      viewerSettingsOverride: updated.viewerSettingsOverride,
-      clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+    await _trySetlistSave(
+      context,
+      () => controller.updateSetlistRehearsalSettings(
+        currentSetlist,
+        rehearsalMode: updated.rehearsalMode,
+        transitionSeconds: updated.transitionSeconds,
+        scoreStartPages: updated.scoreStartPages,
+        scoreNotes: updated.scoreNotes,
+        scoreDurations: updated.scoreDurations,
+        viewerSettingsOverride: updated.viewerSettingsOverride,
+        clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+      ),
     );
   }
 
@@ -5329,7 +5908,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     final targetPosition = await showDialog<int>(
       context: context,
       builder: (context) => _SetlistOrderDialog(
-        scoreTitle: score.title,
+        scoreTitle: score.displayTitle,
         initialPosition: currentIndex + 1,
         totalCount: totalCount,
       ),
@@ -5341,16 +5920,33 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       return;
     }
     final targetIndex = targetPosition - 1;
-    if (targetIndex == currentIndex) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
-      return;
-    }
-    await controller.moveScoreInSetlist(
+    final applied = await _moveSetlistScore(
       currentSetlist,
       currentIndex,
       targetIndex,
     );
+    if (mounted && applied && targetIndex == currentIndex) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('현재 순서와 같습니다.')));
+    }
+  }
+
+  Future<bool> _moveSetlistScore(
+    SheetSetlist snapshot,
+    int fromIndex,
+    int toIndex,
+  ) async {
+    final applied = await _trySetlistSave(
+      context,
+      () => controller.moveScoreInSetlist(snapshot, fromIndex, toIndex),
+    );
+    if (applied == null) return false;
+    if (mounted && !applied) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('목록이 바뀌었습니다. 순서를 다시 선택해주세요.')),
+      );
+    }
+    return applied;
   }
 
   Future<void> _removeScoreFromSetlist(
@@ -5358,19 +5954,30 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     SheetScore score,
     int index,
   ) async {
-    await controller.removeScoreFromSetlist(currentSetlist, score);
-    if (!mounted) {
+    final removed = await _trySetlistSave(context, () async {
+      await controller.removeScoreFromSetlist(currentSetlist, score);
+      return true;
+    });
+    if (!mounted || removed != true) {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('"${score.title}"을 세트리스트에서 제거했습니다.'),
+        content: Text('"${score.displayTitle}"을 세트리스트에서 제거했습니다.'),
         action: SnackBarAction(
           label: '되돌리기',
-          onPressed: () {
-            unawaited(
-              controller.insertScoreInSetlist(currentSetlist, score, index),
+          onPressed: () async {
+            if (!mounted) return;
+            final restored = await _trySetlistSave(
+              context,
+              () =>
+                  controller.insertScoreInSetlist(currentSetlist, score, index),
             );
+            if (mounted && restored == false) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('악보 또는 세트리스트가 없어 되돌리지 못했습니다.')),
+              );
+            }
           },
         ),
       ),
@@ -5379,12 +5986,25 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentSetlist = setlist;
+    final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
+    if (currentSetlist == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('세트리스트')),
+        body: const SafeArea(child: Center(child: Text('세트리스트를 찾을 수 없습니다.'))),
+      );
+    }
     final scores = controller.scoresForSetlist(currentSetlist);
+    final compactActions = MediaQuery.sizeOf(context).width < 720;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(currentSetlist.title, overflow: TextOverflow.ellipsis),
+        title: Text(
+          currentSetlist.title,
+          overflow: TextOverflow.ellipsis,
+          style: compactActions
+              ? Theme.of(context).textTheme.titleMedium
+              : null,
+        ),
         actions: [
           IconButton(
             tooltip: '첫 곡 열기',
@@ -5400,21 +6020,77 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   : Icons.fact_check_outlined,
             ),
           ),
-          IconButton(
-            tooltip: '세트리스트 복제',
-            onPressed: _duplicateSetlist,
-            icon: const Icon(Icons.content_copy),
-          ),
-          IconButton(
-            tooltip: '이름 변경',
-            onPressed: _renameSetlist,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: '삭제',
-            onPressed: _deleteSetlist,
-            icon: const Icon(Icons.delete_outline),
-          ),
+          if (!compactActions) ...[
+            IconButton(
+              tooltip: '목록 복사',
+              onPressed: _copySetlistText,
+              icon: const Icon(Icons.content_paste_go_outlined),
+            ),
+            IconButton(
+              tooltip: '세트리스트 복제',
+              onPressed: _duplicateSetlist,
+              icon: const Icon(Icons.content_copy),
+            ),
+            IconButton(
+              tooltip: '이름 변경',
+              onPressed: _renameSetlist,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              tooltip: '삭제',
+              onPressed: _deleteSetlist,
+              icon: const Icon(Icons.delete_outline),
+            ),
+          ] else
+            PopupMenuButton<_SetlistDetailAction>(
+              tooltip: '세트리스트 작업 더 보기',
+              icon: const Icon(Icons.more_vert),
+              onSelected: (action) async {
+                if (controller.setlistByIdOrNull(widget.setlistId) == null) {
+                  return;
+                }
+                switch (action) {
+                  case _SetlistDetailAction.copy:
+                    await _copySetlistText();
+                  case _SetlistDetailAction.duplicate:
+                    await _duplicateSetlist();
+                  case _SetlistDetailAction.rename:
+                    await _renameSetlist();
+                  case _SetlistDetailAction.delete:
+                    await _deleteSetlist();
+                }
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(
+                  value: _SetlistDetailAction.copy,
+                  child: ListTile(
+                    leading: Icon(Icons.content_paste_go_outlined),
+                    title: Text('목록 복사'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.duplicate,
+                  child: ListTile(
+                    leading: Icon(Icons.content_copy),
+                    title: Text('세트리스트 복제'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.rename,
+                  child: ListTile(
+                    leading: Icon(Icons.edit_outlined),
+                    title: Text('이름 변경'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: _SetlistDetailAction.delete,
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline),
+                    title: Text('삭제'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
       floatingActionButton: scores.isEmpty
@@ -5432,11 +6108,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                 onReorderItem: (oldIndex, newIndex) {
                   unawaited(
-                    controller.moveScoreInSetlist(
-                      currentSetlist,
-                      oldIndex,
-                      newIndex,
-                    ),
+                    _moveSetlistScore(currentSetlist, oldIndex, newIndex),
                   );
                 },
                 itemBuilder: (context, index) {
@@ -5495,7 +6167,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                         ),
                       ),
                       title: Text(
-                        score.title,
+                        score.displayTitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -5512,7 +6184,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                             tooltip: '위로',
                             onPressed: index == 0
                                 ? null
-                                : () => controller.moveScoreInSetlist(
+                                : () => _moveSetlistScore(
                                     currentSetlist,
                                     index,
                                     index - 1,
@@ -5523,7 +6195,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                             tooltip: '아래로',
                             onPressed: index == scores.length - 1
                                 ? null
-                                : () => controller.moveScoreInSetlist(
+                                : () => _moveSetlistScore(
                                     currentSetlist,
                                     index,
                                     index + 1,
@@ -5801,7 +6473,7 @@ class _ScoreMultiPickerSheetState extends State<_ScoreMultiPickerSheet> {
                         value: isSelected,
                         onChanged: (_) => _toggleScore(score),
                       ),
-                      title: Text(score.title),
+                      title: Text(score.displayTitle),
                       subtitle: Text(_scoreIdentitySubtitle(score)),
                       selected: isSelected,
                       onTap: () => _toggleScore(score),
@@ -6021,7 +6693,7 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      score.title,
+                      score.displayTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontWeight: FontWeight.w900),
@@ -6363,6 +7035,7 @@ enum _ViewerMenuAction {
   manageRehearsalMarks,
   importPdfOutline,
   importBookmarkCsv,
+  createScoresFromBookmarks,
   cropPages,
   cropPresets,
   applyPageCrop,
@@ -6654,6 +7327,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
+  bool _isSavingFavoriteAnnotationPreset = false;
   int _annotationColor = 0xff111111;
   double _annotationWidth = 3.5;
   int? _draftAnnotationPageNumber;
@@ -7799,8 +8473,16 @@ setlist=$setlistLabel
       currentScore,
       pageNumber,
     );
-    await widget.controller.toggleBookmark(currentScore, pageNumber);
-    _showSnackBar(wasBookmarked ? '북마크를 해제했습니다.' : '북마크를 추가했습니다.');
+    final didChange = await widget.controller.toggleBookmark(
+      currentScore,
+      pageNumber,
+    );
+    if (!mounted) return;
+    _showSnackBar(
+      didChange
+          ? (wasBookmarked ? '북마크를 해제했습니다.' : '북마크를 추가했습니다.')
+          : '악보가 없어 북마크를 변경하지 못했습니다.',
+    );
   }
 
   Future<void> _showBookmarks() async {
@@ -7862,7 +8544,7 @@ setlist=$setlistLabel
         ),
       ),
     );
-    if (selected == null) {
+    if (selected == null || !mounted) {
       return;
     }
 
@@ -7885,18 +8567,25 @@ setlist=$setlistLabel
           label: '이름',
           initialValue: selected.bookmark.label,
         );
-        if (label == null) {
+        if (label == null || !mounted) {
           return;
         }
-        await widget.controller.renameBookmark(
+        final didRename = await widget.controller.renameBookmark(
           currentScore,
           selected.bookmark,
           label,
         );
+        if (mounted && !didRename) {
+          _showSnackBar('북마크가 없어 이름을 변경하지 못했습니다.');
+        }
         return;
       case _BookmarkListAction.delete:
-        await widget.controller.deleteBookmark(currentScore, selected.bookmark);
-        _showSnackBar('북마크를 삭제했습니다.');
+        final didDelete = await widget.controller.deleteBookmark(
+          currentScore,
+          selected.bookmark,
+        );
+        if (!mounted) return;
+        _showSnackBar(didDelete ? '북마크를 삭제했습니다.' : '이미 없어진 북마크입니다.');
         return;
     }
   }
@@ -7913,7 +8602,7 @@ setlist=$setlistLabel
           children: [
             ListTile(
               leading: const Icon(Icons.description_outlined),
-              title: Text(currentScore.title),
+              title: Text(currentScore.displayTitle),
               subtitle: Text(
                 '현재 열려 있는 악보 · ${File(currentScore.filePath).existsSync() ? '파일 확인됨' : '파일 없음'}',
               ),
@@ -8146,16 +8835,17 @@ setlist=$setlistLabel
   }
 
   Future<void> _editCurrentScoreMetadata() async {
+    final target = score;
     final result = await _showScoreMetadataDialog(
       context: context,
-      score: score,
+      score: target,
       onAddLinkedFile: widget.controller.pickLinkedFile,
     );
     if (result == null || !mounted) {
       return;
     }
-    await widget.controller.updateScoreMetadata(
-      score,
+    final didSave = await widget.controller.updateScoreMetadata(
+      target,
       title: result.title,
       composer: result.composer,
       tags: result.tags,
@@ -8166,13 +8856,14 @@ setlist=$setlistLabel
       linkedFiles: result.linkedFiles,
       customFields: result.customFields,
     );
-    _showSnackBar('악보 정보를 저장했습니다.');
+    if (!mounted) return;
+    _showSnackBar(didSave ? '악보 정보를 저장했습니다.' : '악보가 없어 정보를 저장하지 못했습니다.');
   }
 
   void _showImportedScoreNudge() {
     ScaffoldMessenger.of(context).showSnackBar(
       _buildImportedScoreNudgeSnackBar(
-        title: score.title,
+        title: score.displayTitle,
         onEdit: () => unawaited(_editCurrentScoreMetadata()),
       ),
     );
@@ -8200,10 +8891,14 @@ setlist=$setlistLabel
       _showSnackBar('PDF 페이지 수를 확인한 뒤 CSV 북마크를 가져올 수 있습니다.');
       return;
     }
+    final libraryId = widget.controller.activeLibraryProfile.id;
     final addedCount = await widget.controller.importBookmarksFromCsv(
       score,
       pageCount: pageCount,
     );
+    if (!mounted || widget.controller.activeLibraryProfile.id != libraryId) {
+      return;
+    }
     final errorMessage = widget.controller.errorMessage;
     if (errorMessage != null) {
       _showSnackBar(errorMessage);
@@ -8213,6 +8908,24 @@ setlist=$setlistLabel
       addedCount > 0
           ? '$addedCount개 CSV 북마크를 추가했습니다.'
           : '새로 가져올 CSV 북마크가 없습니다.',
+    );
+  }
+
+  Future<void> _createScoresFromBookmarks() async {
+    final pageCount = _pdfController.pageCount;
+    if (pageCount <= 0) {
+      _showSnackBar('PDF 페이지 수를 확인한 뒤 곡으로 나눌 수 있습니다.');
+      return;
+    }
+    if (score.bookmarks.isEmpty) {
+      _showSnackBar('북마크를 먼저 추가하거나 CSV로 가져오세요.');
+      return;
+    }
+    await createSongbookScores(
+      context,
+      widget.controller,
+      source: score,
+      pageCount: pageCount,
     );
   }
 
@@ -10171,7 +10884,7 @@ setlist=$setlistLabel
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: currentScore.title,
+          subject: currentScore.displayTitle,
           files: [
             XFile(
               candidate.path,
@@ -10241,12 +10954,12 @@ setlist=$setlistLabel
     try {
       await SharePlus.instance.share(
         ShareParams(
-          subject: currentScore.title,
+          subject: currentScore.displayTitle,
           files: [
             XFile(
               result.outputPath!,
               name: SheetScoreSharePolicy.exportFileName(
-                title: '${currentScore.title} annotated',
+                title: '${currentScore.displayTitle} annotated',
                 composer: currentScore.composer,
               ),
               mimeType: 'application/pdf',
@@ -10308,20 +11021,24 @@ setlist=$setlistLabel
   }
 
   Future<void> _undoCurrentPageAnnotation() async {
-    final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
+    final pageNumber = _pdfController.isReady
+        ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
+        : _pageNumber ?? score.lastPage;
     final didUndo = await _saveAnnotationChange(
       () => widget.controller.undoLastAnnotation(score, pageNumber),
     );
+    if (didUndo == null) return;
     _showSnackBar(didUndo ? '마지막 필기를 취소했습니다.' : '취소할 필기가 없습니다.');
   }
 
   Future<void> _redoCurrentPageAnnotation() async {
-    final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? score.lastPage;
+    final pageNumber = _pdfController.isReady
+        ? _pdfController.pageNumber ?? _pageNumber ?? score.lastPage
+        : _pageNumber ?? score.lastPage;
     final didRedo = await _saveAnnotationChange(
       () => widget.controller.redoLastAnnotation(score, pageNumber),
     );
+    if (didRedo == null) return;
     _showSnackBar(didRedo ? '마지막 필기를 다시 적용했습니다.' : '다시 적용할 필기가 없습니다.');
   }
 
@@ -10351,7 +11068,14 @@ setlist=$setlistLabel
     _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
   }
 
-  void _saveFavoriteAnnotationPreset() {
+  Future<void> _saveFavoriteAnnotationPreset() async {
+    if (_isSavingFavoriteAnnotationPreset) return;
+    final libraryId = widget.controller.activeLibraryProfile.id;
+    final route = ModalRoute.of(context);
+    bool canShowResult() =>
+        mounted &&
+        widget.controller.activeLibraryProfile.id == libraryId &&
+        (route == null || route.isCurrent);
     final preset = _AnnotationPreset(
       tool: _annotationTool,
       color: _annotationColor,
@@ -10359,12 +11083,29 @@ setlist=$setlistLabel
       stamp: _annotationStamp,
     );
     setState(() {
-      _favoriteAnnotationPreset = preset;
+      _isSavingFavoriteAnnotationPreset = true;
     });
-    unawaited(
-      widget.controller.updateFavoriteAnnotationPreset(preset.toSettings()),
-    );
-    _showSnackBar('현재 필기 도구를 즐겨찾기로 저장했습니다.');
+    try {
+      await widget.controller.updateFavoriteAnnotationPreset(
+        preset.toSettings(),
+      );
+      if (!mounted || widget.controller.activeLibraryProfile.id != libraryId) {
+        return;
+      }
+      setState(() {
+        final saved = widget.controller.favoriteAnnotationPreset;
+        _favoriteAnnotationPreset = saved == null
+            ? null
+            : _AnnotationPreset.fromSettings(saved);
+      });
+      if (canShowResult()) _showSnackBar('현재 필기 도구를 즐겨찾기로 저장했습니다.');
+    } catch (_) {
+      if (canShowResult()) {
+        _showSnackBar('즐겨찾기 필기 도구를 저장하지 못했습니다. 다시 시도해주세요.');
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingFavoriteAnnotationPreset = false);
+    }
   }
 
   void _applyFavoriteAnnotationPreset() {
@@ -10473,7 +11214,7 @@ setlist=$setlistLabel
     try {
       await widget.controller.addAnnotationStroke(score, stroke);
     } catch (_) {
-      _showSnackBar('필기를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+      _showSnackBar('필기를 저장하지 못했습니다. 저장 상태를 확인해주세요.');
     }
   }
 
@@ -10517,7 +11258,7 @@ setlist=$setlistLabel
           ),
         );
       } catch (_) {
-        _showSnackBar('스탬프를 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+        _showSnackBar('스탬프를 저장하지 못했습니다. 저장 상태를 확인해주세요.');
       }
       return;
     }
@@ -10548,7 +11289,7 @@ setlist=$setlistLabel
         ),
       );
     } catch (_) {
-      _showSnackBar('텍스트 주석을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
+      _showSnackBar('텍스트 주석을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
     }
   }
 
@@ -10599,6 +11340,7 @@ setlist=$setlistLabel
           final didRemove = await _saveAnnotationChange(
             () => widget.controller.removeTextAnnotation(score, annotation.id),
           );
+          if (didRemove == null) return;
           _showSnackBar(didRemove ? '텍스트 주석을 삭제했습니다.' : '삭제할 텍스트가 없습니다.');
           return;
         }
@@ -10608,12 +11350,14 @@ setlist=$setlistLabel
             annotation.copyWith(text: text),
           ),
         );
+        if (didUpdate == null) return;
         _showSnackBar(didUpdate ? '텍스트 주석을 수정했습니다.' : '수정할 텍스트가 없습니다.');
         return;
       case _TextAnnotationAction.delete:
         final didRemove = await _saveAnnotationChange(
           () => widget.controller.removeTextAnnotation(score, annotation.id),
         );
+        if (didRemove == null) return;
         _showSnackBar(didRemove ? '텍스트 주석을 삭제했습니다.' : '삭제할 텍스트가 없습니다.');
         return;
     }
@@ -10634,12 +11378,12 @@ setlist=$setlistLabel
     );
   }
 
-  Future<bool> _saveAnnotationChange(Future<bool> Function() save) async {
+  Future<bool?> _saveAnnotationChange(Future<bool> Function() save) async {
     try {
       return await save();
     } catch (_) {
-      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 기존 필기는 유지됩니다.');
-      return false;
+      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      return null;
     }
   }
 
@@ -11202,6 +11946,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.importBookmarkCsv:
         await _importCsvBookmarks();
         return;
+      case _ViewerMenuAction.createScoresFromBookmarks:
+        await _createScoresFromBookmarks();
+        return;
       case _ViewerMenuAction.cropPages:
         await _showCropSettings();
         return;
@@ -11356,8 +12103,8 @@ setlist=$setlistLabel
           title: Text(delta < 0 ? '이전 곡으로 이동' : '다음 곡으로 이동'),
           content: Text(
             transitionDetails.isEmpty
-                ? '"${nextScore.title}" 악보를 열까요?'
-                : '"${nextScore.title}"\n${transitionDetails.join(' · ')}',
+                ? '"${nextScore.displayTitle}" 악보를 열까요?'
+                : '"${nextScore.displayTitle}"\n${transitionDetails.join(' · ')}',
           ),
           actions: [
             TextButton(
@@ -11376,12 +12123,14 @@ setlist=$setlistLabel
       }
     }
 
-    final setlist = widget.controller.setlistByIdOrNull(setlistId);
-    if (setlist != null) {
-      await widget.controller.markSetlistOpened(setlist, scoreId: nextScore.id);
-    }
-    await widget.controller.markOpened(nextScore);
-    if (!mounted) {
+    if (!mounted ||
+        !await _prepareReadingVisit(
+          context,
+          widget.controller,
+          setlistId: setlistId,
+          scoreId: nextScore.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).pushReplacement<void, void>(
@@ -11503,7 +12252,7 @@ setlist=$setlistLabel
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(currentScore.title, overflow: TextOverflow.ellipsis),
+        Text(currentScore.displayTitle, overflow: TextOverflow.ellipsis),
         if (setlistContext != null)
           Text(
             _setlistContextSubtitle(setlistContext),
@@ -11752,6 +12501,17 @@ setlist=$setlistLabel
                 leading: Icon(Icons.table_rows_outlined),
                 title: Text('CSV 북마크 가져오기'),
                 subtitle: Text('page,label 또는 label,page'),
+              ),
+            ),
+            PopupMenuItem<_ViewerMenuAction>(
+              enabled: currentScore.bookmarks.isNotEmpty,
+              value: _ViewerMenuAction.createScoresFromBookmarks,
+              child: ListTile(
+                leading: const Icon(Icons.splitscreen_outlined),
+                title: const Text('북마크를 곡으로 나누기'),
+                subtitle: currentScore.bookmarks.isEmpty
+                    ? const Text('북마크를 먼저 추가하세요')
+                    : Text('${currentScore.bookmarks.length}개 구간 후보'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -12094,6 +12854,17 @@ setlist=$setlistLabel
                 leading: Icon(Icons.table_rows_outlined),
                 title: Text('CSV 북마크 가져오기'),
                 subtitle: Text('page,label 또는 label,page'),
+              ),
+            ),
+            PopupMenuItem<_ViewerMenuAction>(
+              enabled: currentScore.bookmarks.isNotEmpty,
+              value: _ViewerMenuAction.createScoresFromBookmarks,
+              child: ListTile(
+                leading: const Icon(Icons.splitscreen_outlined),
+                title: const Text('북마크를 곡으로 나누기'),
+                subtitle: currentScore.bookmarks.isEmpty
+                    ? const Text('북마크를 먼저 추가하세요')
+                    : Text('${currentScore.bookmarks.length}개 구간 후보'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -12560,7 +13331,9 @@ setlist=$setlistLabel
                           },
                           onUndo: _undoCurrentPageAnnotation,
                           onRedo: _redoCurrentPageAnnotation,
-                          onSaveFavorite: _saveFavoriteAnnotationPreset,
+                          onSaveFavorite: _isSavingFavoriteAnnotationPreset
+                              ? null
+                              : _saveFavoriteAnnotationPreset,
                           onApplyFavorite: _applyFavoriteAnnotationPreset,
                           onToggleLayerVisibility:
                               _toggleAnnotationLayerVisibility,
@@ -12648,7 +13421,7 @@ setlist=$setlistLabel
                               ? Alignment.topLeft
                               : Alignment.topCenter,
                           child: _SetlistProgressBadge(
-                            scoreTitle: currentScore.title,
+                            scoreTitle: currentScore.displayTitle,
                             subtitle: _setlistProgressSubtitle(setlistContext),
                           ),
                         ),
@@ -14677,7 +15450,7 @@ class _AnnotationToolbar extends StatelessWidget {
   final ValueChanged<double> onWidthChanged;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
-  final VoidCallback onSaveFavorite;
+  final VoidCallback? onSaveFavorite;
   final VoidCallback onApplyFavorite;
   final VoidCallback onToggleLayerVisibility;
   final VoidCallback onToggleLayerExport;
@@ -17251,12 +18024,13 @@ class _MetronomeSheet extends StatefulWidget {
 @visibleForTesting
 Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+  Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
 }) {
   return MaterialApp(
     home: Scaffold(
       body: _MetronomeSheet(
         initialSettings: settings,
-        onSettingsChanged: (_) async {},
+        onSettingsChanged: onSettingsChanged ?? (_) async {},
         onShowMiniPanel: () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
       ),
@@ -17356,6 +18130,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
   final List<DateTime> _tapTempoMarks = <DateTime>[];
+  int _settingsRequest = 0;
 
   @override
   void initState() {
@@ -17380,9 +18155,22 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
+    await _persistSettings(nextSettings, restartTimer: true);
+  }
+
+  Future<void> _persistSettings(
+    SheetMetronomeSettings settings, {
+    bool restartTimer = false,
+  }) async {
+    final request = ++_settingsRequest;
+    if (restartTimer && _isRunning) _restartTimer();
+    try {
+      await widget.onSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _settingsRequest) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('설정을 저장하지 못했습니다. 다시 변경해주세요.')),
+      );
     }
   }
 
@@ -17402,10 +18190,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _setSoundEnabled(bool enabled) async {
@@ -17413,7 +18198,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setVolumePercent(int volumePercent) async {
@@ -17421,7 +18206,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setAccentEnabled(bool enabled) async {
@@ -17429,7 +18214,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _toggleAccentBeat(int beatIndex) async {
@@ -17444,7 +18229,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistSettings(nextSettings);
   }
 
   Future<void> _setSubdivision(SheetMetronomeSubdivision subdivision) async {
@@ -17458,10 +18243,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _setCountInBars(int bars) async {
@@ -17476,10 +18258,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       );
       _lastBeatAt = null;
     });
-    await widget.onSettingsChanged(nextSettings);
-    if (_isRunning) {
-      _restartTimer();
-    }
+    await _persistSettings(nextSettings, restartTimer: true);
   }
 
   Future<void> _tapTempo() async {

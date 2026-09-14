@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'rc_flutter_test_evidence.dart';
+
 const _clefDocs = <String>[
   '../../docs/qa/clef-v1-device-qa-runbook.md',
   '../../docs/qa/clef-v1-rc-qa-plan.md',
@@ -28,7 +30,9 @@ Future<void> main() async {
       ..._sourceTargets,
     ]),
     _Check('Flutter analyze', 'flutter', <String>['analyze']),
-    _Check('Flutter test', 'flutter', <String>['test']),
+    _Check('Flutter test', 'flutter', <String>[
+      'test',
+    ], verifyFlutterCompletion: true),
     _Check('Git whitespace check', 'git', <String>['diff', '--check']),
     _Check(
       'Trailing whitespace scan',
@@ -128,12 +132,14 @@ class _Check {
     this.executable,
     this.arguments, {
     this.successExitCodes = const <int>{0},
+    this.verifyFlutterCompletion = false,
   });
 
   final String name;
   final String executable;
   final List<String> arguments;
   final Set<int> successExitCodes;
+  final bool verifyFlutterCompletion;
 
   String get displayCommand {
     return <String>[executable, ...arguments].join(' ');
@@ -141,17 +147,53 @@ class _Check {
 
   Future<_CheckResult> run() async {
     stdout.writeln('\n==> $name');
-    stdout.writeln('\$ $displayCommand');
+    Directory? reportDirectory;
     try {
-      final result = await Process.run(executable, arguments);
+      File? reportFile;
+      if (verifyFlutterCompletion) {
+        reportDirectory = Directory.systemTemp.createTempSync('clef-rc-tests-');
+        reportFile = File('${reportDirectory.path}/tests.json');
+      }
+      final actualArguments = [
+        ...arguments,
+        if (reportFile != null) ...[
+          '--file-reporter',
+          'json:${reportFile.path}',
+        ],
+      ];
+      stdout.writeln('\$ $executable ${actualArguments.join(' ')}');
+      final result = await Process.run(executable, actualArguments);
       stdout.write(result.stdout);
       stderr.write(result.stderr);
-      final didPass = successExitCodes.contains(result.exitCode);
+      final evidenceFailure = reportFile == null
+          ? null
+          : flutterTestFailure(
+              result.exitCode,
+              reportFile.existsSync() ? reportFile.readAsStringSync() : '',
+            );
+      final didPass =
+          successExitCodes.contains(result.exitCode) && evidenceFailure == null;
+      if (evidenceFailure != null) {
+        stderr.writeln(evidenceFailure);
+      }
       stdout.writeln(didPass ? 'PASS' : 'FAIL exit ${result.exitCode}');
       return _CheckResult(this, result.exitCode, didPass);
     } on ProcessException catch (error) {
       stderr.writeln(error.message);
       return _CheckResult(this, -1, false);
+    } on FileSystemException catch (error) {
+      stderr.writeln(
+        'Unable to read/write Flutter test evidence: ${error.message}',
+      );
+      return _CheckResult(this, -1, false);
+    } finally {
+      try {
+        reportDirectory?.deleteSync(recursive: true);
+      } on FileSystemException catch (error) {
+        stderr.writeln(
+          'Unable to remove temporary test report: ${error.message}',
+        );
+      }
     }
   }
 }

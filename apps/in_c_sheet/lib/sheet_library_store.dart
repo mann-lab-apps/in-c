@@ -41,6 +41,8 @@ Map<String, Object?>? _jsonMapFromString(String? value) {
 }
 
 class SheetLibraryStore {
+  // All instances share the preferences cache and automatic backup keys.
+  static Future<void>? _metadataWrites;
   static const _scoresKey = 'clef_scores';
   static const _setlistsKey = 'clef_setlists';
   static const _metronomeSettingsKey = 'clef_metronome_settings';
@@ -66,14 +68,9 @@ class SheetLibraryStore {
 
   Future<List<SheetLibraryProfile>> loadLibraryProfiles() async {
     final preferences = await SharedPreferences.getInstance();
-    final profiles = SheetLibraryProfileCodec.decode(
+    return SheetLibraryProfileCodec.decode(
       preferences.getString(_libraryProfilesKey),
     );
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(profiles),
-    );
-    return profiles;
   }
 
   Future<SheetLibraryProfile> loadActiveLibraryProfile() async {
@@ -88,10 +85,14 @@ class SheetLibraryStore {
 
   Future<void> setActiveLibraryProfile(String id) async {
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    final active =
-        _profileById(profiles, id) ?? SheetLibraryProfile.defaultProfile;
-    await preferences.setString(_activeLibraryProfileKey, active.id);
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      final active =
+          _profileById(profiles, id) ?? SheetLibraryProfile.defaultProfile;
+      await _commitMetadataValues(preferences, {
+        _activeLibraryProfileKey: active.id,
+      });
+    });
   }
 
   Future<SheetLibraryProfile> createLibraryProfile(String name) async {
@@ -100,30 +101,36 @@ class SheetLibraryStore {
       return loadActiveLibraryProfile();
     }
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    for (final profile in profiles) {
-      if (profile.name.toLowerCase() == normalized.toLowerCase()) {
-        await preferences.setString(_activeLibraryProfileKey, profile.id);
-        return profile;
+    late SheetLibraryProfile result;
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      for (final profile in profiles) {
+        if (profile.name.toLowerCase() == normalized.toLowerCase()) {
+          await _commitMetadataValues(preferences, {
+            _activeLibraryProfileKey: profile.id,
+          });
+          result = profile;
+          return;
+        }
       }
-    }
-    final now = DateTime.now();
-    final profile = SheetLibraryProfile(
-      id: _newLibraryProfileId(now),
-      name: normalized,
-      createdAt: now,
-      updatedAt: now,
-    );
-    final nextProfiles = SheetLibraryProfile.normalizeProfiles([
-      ...profiles,
-      profile,
-    ]);
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(nextProfiles),
-    );
-    await preferences.setString(_activeLibraryProfileKey, profile.id);
-    return profile;
+      final now = DateTime.now();
+      final profile = SheetLibraryProfile(
+        id: _newLibraryProfileId(now),
+        name: normalized,
+        createdAt: now,
+        updatedAt: now,
+      );
+      final nextProfiles = SheetLibraryProfile.normalizeProfiles([
+        ...profiles,
+        profile,
+      ]);
+      await _commitMetadataValues(preferences, {
+        _libraryProfilesKey: SheetLibraryProfileCodec.encode(nextProfiles),
+        _activeLibraryProfileKey: profile.id,
+      });
+      result = profile;
+    });
+    return result;
   }
 
   Future<SheetLibraryProfile?> renameLibraryProfile({
@@ -138,32 +145,29 @@ class SheetLibraryStore {
       return null;
     }
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    if (profiles.any(
-      (profile) =>
-          profile.id != id &&
-          profile.name.toLowerCase() == normalized.toLowerCase(),
-    )) {
-      return null;
-    }
-    final now = DateTime.now();
     SheetLibraryProfile? renamed;
-    final nextProfiles = profiles
-        .map((profile) {
-          if (profile.id != id) {
-            return profile;
-          }
-          renamed = profile.copyWith(name: normalized, updatedAt: now);
-          return renamed!;
-        })
-        .toList(growable: false);
-    if (renamed == null) {
-      return null;
-    }
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(nextProfiles),
-    );
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      if (profiles.any(
+        (profile) =>
+            profile.id != id &&
+            profile.name.toLowerCase() == normalized.toLowerCase(),
+      )) {
+        return;
+      }
+      final now = DateTime.now();
+      final nextProfiles = profiles
+          .map((profile) {
+            if (profile.id != id) return profile;
+            renamed = profile.copyWith(name: normalized, updatedAt: now);
+            return renamed!;
+          })
+          .toList(growable: false);
+      if (renamed == null) return;
+      await _commitMetadataValues(preferences, {
+        _libraryProfilesKey: SheetLibraryProfileCodec.encode(nextProfiles),
+      });
+    });
     return renamed;
   }
 
@@ -176,7 +180,13 @@ class SheetLibraryStore {
     if (_profileById(profiles, id) == null) {
       return false;
     }
-    await _removeLibraryData(preferences, id);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_scoresKey, id): null,
+      _scopedKey(_setlistsKey, id): null,
+      _scopedKey(_libraryViewSettingsKey, id): null,
+      _scopedKey(_favoriteAnnotationPresetKey, id): null,
+      _scopedKey(_automaticMetadataBackupKey, id): null,
+    });
     return true;
   }
 
@@ -355,59 +365,45 @@ class SheetLibraryStore {
     }
   }
 
-  Future<void> _saveAutomaticMetadataBackup(
+  String _encodeAutomaticMetadataBackup(
     SharedPreferences preferences,
-    String activeLibraryId, {
-    List<SheetScore>? scores,
-    List<SheetSetlist>? setlists,
-    SheetMetronomeSettings? metronomeSettings,
-    SheetTunerSettings? tunerSettings,
-    SheetToneSettings? toneSettings,
-    SheetLibraryViewSettings? libraryViewSettings,
-    SheetViewerSettings? globalViewerSettings,
-    List<SheetPerformancePresetTemplate>? performancePresetTemplates,
-    SheetAnnotationToolPreset? favoriteAnnotationPreset,
-  }) async {
+    String activeLibraryId,
+  ) {
     final backup = SheetLibraryBackup.fromState(
-      scores: scores ?? _readScores(preferences, activeLibraryId),
-      setlists: setlists ?? _readSetlists(preferences, activeLibraryId),
-      metronomeSettings:
-          metronomeSettings ??
-          SheetMetronomeCodec.decode(
-            _getStringWithLegacyFallback(
-              preferences,
-              _metronomeSettingsKey,
-              _legacyMetronomeSettingsKey,
-            ),
-          ),
-      tunerSettings:
-          tunerSettings ??
-          SheetTunerCodec.decode(
-            _getStringWithLegacyFallback(
-              preferences,
-              _tunerSettingsKey,
-              _legacyTunerSettingsKey,
-            ),
-          ),
-      toneSettings:
-          toneSettings ??
-          SheetToneCodec.decode(preferences.getString(_toneSettingsKey)),
-      libraryViewSettings:
-          libraryViewSettings ??
-          _readLibraryViewSettings(preferences, activeLibraryId),
-      globalViewerSettings:
-          globalViewerSettings ?? _readGlobalViewerSettings(preferences),
-      performancePresetTemplates:
-          performancePresetTemplates ??
-          _readPerformancePresetTemplates(preferences, activeLibraryId),
-      favoriteAnnotationPreset:
-          favoriteAnnotationPreset ??
-          _readFavoriteAnnotationPreset(preferences, activeLibraryId),
+      scores: _readScores(preferences, activeLibraryId),
+      setlists: _readSetlists(preferences, activeLibraryId),
+      metronomeSettings: SheetMetronomeCodec.decode(
+        _getStringWithLegacyFallback(
+          preferences,
+          _metronomeSettingsKey,
+          _legacyMetronomeSettingsKey,
+        ),
+      ),
+      tunerSettings: SheetTunerCodec.decode(
+        _getStringWithLegacyFallback(
+          preferences,
+          _tunerSettingsKey,
+          _legacyTunerSettingsKey,
+        ),
+      ),
+      toneSettings: SheetToneCodec.decode(
+        preferences.getString(_toneSettingsKey),
+      ),
+      libraryViewSettings: _readLibraryViewSettings(
+        preferences,
+        activeLibraryId,
+      ),
+      globalViewerSettings: _readGlobalViewerSettings(preferences),
+      performancePresetTemplates: _readPerformancePresetTemplates(
+        preferences,
+        activeLibraryId,
+      ),
+      favoriteAnnotationPreset: _readFavoriteAnnotationPreset(
+        preferences,
+        activeLibraryId,
+      ),
     );
-    await preferences.setString(
-      _scopedKey(_automaticMetadataBackupKey, activeLibraryId),
-      SheetLibraryBackupCodec.encode(backup),
-    );
+    return SheetLibraryBackupCodec.encode(backup);
   }
 
   Future<List<SheetScore>> loadScores() async {
@@ -417,18 +413,12 @@ class SheetLibraryStore {
     return _sortScores(scores);
   }
 
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
-    await preferences.setString(
-      _scopedKey(_scoresKey, activeLibraryId),
-      SheetScore.encodeList(scores),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      activeLibraryId,
-      scores: scores,
-    );
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_scoresKey, activeLibraryId): SheetScore.encodeList(scores),
+    }, automaticBackupLibraryId: activeLibraryId);
   }
 
   Future<List<SheetSetlist>> loadSetlists() async {
@@ -437,18 +427,29 @@ class SheetLibraryStore {
     return _readSetlists(preferences, activeLibraryId);
   }
 
-  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+  Future<void> saveScoresAndSetlists(
+    List<SheetScore> scores,
+    List<SheetSetlist> setlists, {
+    required String libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
-    await preferences.setString(
-      _scopedKey(_setlistsKey, activeLibraryId),
-      SheetSetlist.encodeList(setlists),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      activeLibraryId,
-      setlists: setlists,
-    );
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_scoresKey, libraryId): SheetScore.encodeList(scores),
+      _scopedKey(_setlistsKey, libraryId): SheetSetlist.encodeList(setlists),
+    }, automaticBackupLibraryId: libraryId);
+  }
+
+  Future<void> saveSetlists(
+    List<SheetSetlist> setlists, {
+    String? libraryId,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_setlistsKey, activeLibraryId): SheetSetlist.encodeList(
+        setlists,
+      ),
+    }, automaticBackupLibraryId: activeLibraryId);
   }
 
   Future<SheetMetronomeSettings> loadMetronomeSettings() async {
@@ -464,15 +465,9 @@ class SheetLibraryStore {
 
   Future<void> saveMetronomeSettings(SheetMetronomeSettings settings) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _metronomeSettingsKey,
-      SheetMetronomeCodec.encode(settings),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      await _activeLibraryId(preferences),
-      metronomeSettings: settings,
-    );
+    await _writeMetadataValues(preferences, {
+      _metronomeSettingsKey: SheetMetronomeCodec.encode(settings),
+    }, automaticBackupLibraryId: await _activeLibraryId(preferences));
   }
 
   Future<SheetTunerSettings> loadTunerSettings() async {
@@ -488,15 +483,9 @@ class SheetLibraryStore {
 
   Future<void> saveTunerSettings(SheetTunerSettings settings) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _tunerSettingsKey,
-      SheetTunerCodec.encode(settings),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      await _activeLibraryId(preferences),
-      tunerSettings: settings,
-    );
+    await _writeMetadataValues(preferences, {
+      _tunerSettingsKey: SheetTunerCodec.encode(settings),
+    }, automaticBackupLibraryId: await _activeLibraryId(preferences));
   }
 
   Future<SheetToneSettings> loadToneSettings() async {
@@ -506,15 +495,9 @@ class SheetLibraryStore {
 
   Future<void> saveToneSettings(SheetToneSettings settings) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _toneSettingsKey,
-      SheetToneCodec.encode(settings),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      await _activeLibraryId(preferences),
-      toneSettings: settings,
-    );
+    await _writeMetadataValues(preferences, {
+      _toneSettingsKey: SheetToneCodec.encode(settings),
+    }, automaticBackupLibraryId: await _activeLibraryId(preferences));
   }
 
   Future<SheetLibraryViewSettings> loadLibraryViewSettings() async {
@@ -524,19 +507,15 @@ class SheetLibraryStore {
   }
 
   Future<void> saveLibraryViewSettings(
-    SheetLibraryViewSettings settings,
-  ) async {
+    SheetLibraryViewSettings settings, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
-    await preferences.setString(
-      _scopedKey(_libraryViewSettingsKey, activeLibraryId),
-      SheetLibraryViewSettingsCodec.encode(settings),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      activeLibraryId,
-      libraryViewSettings: settings,
-    );
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_libraryViewSettingsKey, activeLibraryId):
+          SheetLibraryViewSettingsCodec.encode(settings),
+    }, automaticBackupLibraryId: activeLibraryId);
   }
 
   Future<SheetViewerSettings> loadGlobalViewerSettings() async {
@@ -546,15 +525,9 @@ class SheetLibraryStore {
 
   Future<void> saveGlobalViewerSettings(SheetViewerSettings settings) async {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      _globalViewerSettingsKey,
-      jsonEncode(settings.toJson()),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      await _activeLibraryId(preferences),
-      globalViewerSettings: settings,
-    );
+    await _writeMetadataValues(preferences, {
+      _globalViewerSettingsKey: jsonEncode(settings.toJson()),
+    }, automaticBackupLibraryId: await _activeLibraryId(preferences));
   }
 
   Future<List<SheetPerformancePresetTemplate>>
@@ -570,15 +543,10 @@ class SheetLibraryStore {
     final preferences = await SharedPreferences.getInstance();
     final activeLibraryId = await _activeLibraryId(preferences);
     final normalized = SheetPerformancePresetTemplate.normalizeList(templates);
-    await preferences.setString(
-      _scopedKey(_performancePresetTemplatesKey, activeLibraryId),
-      SheetPerformancePresetTemplateCodec.encode(normalized),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      activeLibraryId,
-      performancePresetTemplates: normalized,
-    );
+    await _writeMetadataValues(preferences, {
+      _scopedKey(_performancePresetTemplatesKey, activeLibraryId):
+          SheetPerformancePresetTemplateCodec.encode(normalized),
+    }, automaticBackupLibraryId: activeLibraryId);
   }
 
   Future<SheetAnnotationToolPreset?> loadFavoriteAnnotationPreset() async {
@@ -588,29 +556,17 @@ class SheetLibraryStore {
   }
 
   Future<void> saveFavoriteAnnotationPreset(
-    SheetAnnotationToolPreset? preset,
-  ) async {
+    SheetAnnotationToolPreset? preset, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     final key = _scopedKey(_favoriteAnnotationPresetKey, activeLibraryId);
-    if (preset == null || !preset.isValid) {
-      await preferences.remove(key);
-      await _saveAutomaticMetadataBackup(
-        preferences,
-        activeLibraryId,
-        favoriteAnnotationPreset: null,
-      );
-      return;
-    }
-    await preferences.setString(
-      key,
-      const JsonEncoder.withIndent('  ').convert(preset.toJson()),
-    );
-    await _saveAutomaticMetadataBackup(
-      preferences,
-      activeLibraryId,
-      favoriteAnnotationPreset: preset,
-    );
+    await _writeMetadataValues(preferences, {
+      key: preset != null && preset.isValid
+          ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
+          : null,
+    }, automaticBackupLibraryId: activeLibraryId);
   }
 
   Future<String?> loadAutomaticMetadataBackupJson() async {
@@ -1078,6 +1034,7 @@ class SheetLibraryStore {
     );
     final archive = Archive();
     final mappings = <SheetLibraryFullBackupFileMapping>[];
+    final scoreEntriesByPath = <String, String>{};
 
     for (final score in scores) {
       final originalFile = File(score.filePath);
@@ -1085,7 +1042,8 @@ class SheetLibraryStore {
           .split(Platform.pathSeparator)
           .last;
       final safeName = _safeFileName(originalFileName);
-      final entryPath = 'scores/${score.id}-$safeName';
+      final existingEntryPath = scoreEntriesByPath[score.filePath];
+      final entryPath = existingEntryPath ?? 'scores/${score.id}-$safeName';
       final exists = await originalFile.exists();
       mappings.add(
         SheetLibraryFullBackupFileMapping(
@@ -1095,10 +1053,11 @@ class SheetLibraryStore {
           missing: !exists,
         ),
       );
-      if (exists) {
+      if (exists && existingEntryPath == null) {
         archive.addFile(
           ArchiveFile.bytes(entryPath, await originalFile.readAsBytes()),
         );
+        scoreEntriesByPath[score.filePath] = entryPath;
       }
 
       for (var index = 0; index < score.linkedFiles.length; index += 1) {
@@ -1251,15 +1210,7 @@ class SheetLibraryStore {
   ) async {
     try {
       final backup = SheetLibraryBackupCodec.decode(value);
-      await saveScores(backup.scores);
-      await saveSetlists(backup.setlists);
-      await saveMetronomeSettings(backup.metronomeSettings);
-      await saveTunerSettings(backup.tunerSettings);
-      await saveToneSettings(backup.toneSettings);
-      await saveLibraryViewSettings(backup.libraryViewSettings);
-      await saveGlobalViewerSettings(backup.globalViewerSettings);
-      await savePerformancePresetTemplates(backup.performancePresetTemplates);
-      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
+      await _restoreBackupMetadata(backup);
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: backup.scores.length,
@@ -1311,6 +1262,12 @@ class SheetLibraryStore {
       final mappings = SheetLibraryFullBackupFileMapping.decodeList(
         manifestMap['fileMappings'],
       );
+      _validateFullBackupFiles(
+        archive,
+        backup,
+        manifestMap['fileMappings'],
+        mappings,
+      );
       final scoreFileMappingsByScoreId =
           <String, SheetLibraryFullBackupFileMapping>{
             for (final mapping in mappings.where(
@@ -1338,7 +1295,9 @@ class SheetLibraryStore {
               mapping.scoreId: mapping,
           };
       final restoredScores = <SheetScore>[];
+      final restoredScorePathsByEntry = <String, String>{};
 
+      // Other libraries may still reference files from an earlier restore.
       for (final score in backup.scores) {
         var restoredScore = score;
         final mapping = scoreFileMappingsByScoreId[score.id];
@@ -1348,11 +1307,13 @@ class SheetLibraryStore {
         } else {
           final entry = archive.findFile(mapping.entryPath);
           if (entry != null && entry.isFile) {
-            final restoredPath = await _writeImportedPdf(
-              bytes: entry.content,
-              id: score.id,
-              originalFileName: mapping.originalFileName,
-            );
+            final restoredPath =
+                restoredScorePathsByEntry[mapping.entryPath] ??
+                await _writeRestoredFile(
+                  bytes: entry.content,
+                  originalFileName: mapping.originalFileName,
+                );
+            restoredScorePathsByEntry[mapping.entryPath] = restoredPath;
             restoredScore = restoredScore.copyWith(filePath: restoredPath);
           }
         }
@@ -1395,9 +1356,8 @@ class SheetLibraryStore {
             _isSafeAnnotationZipEntryPath(annotationMapping.entryPath)) {
           final annotationEntry = archive.findFile(annotationMapping.entryPath);
           if (annotationEntry != null && annotationEntry.isFile) {
-            final restoredAnnotationPath = await _writeAnnotationFile(
+            final restoredAnnotationPath = await _writeRestoredFile(
               bytes: annotationEntry.content,
-              scoreId: score.id,
               originalFileName: annotationMapping.originalFileName,
             );
             restoredScore = restoredScore.copyWith(
@@ -1415,19 +1375,24 @@ class SheetLibraryStore {
         restoredScores.add(restoredScore);
       }
 
-      await saveScores(restoredScores);
-      await saveSetlists(backup.setlists);
-      await saveMetronomeSettings(backup.metronomeSettings);
-      await saveTunerSettings(backup.tunerSettings);
-      await saveToneSettings(backup.toneSettings);
-      await saveLibraryViewSettings(backup.libraryViewSettings);
-      await saveGlobalViewerSettings(backup.globalViewerSettings);
-      await savePerformancePresetTemplates(backup.performancePresetTemplates);
-      await saveFavoriteAnnotationPreset(backup.favoriteAnnotationPreset);
+      await _restoreBackupMetadata(backup, restoredScores: restoredScores);
+      final sourcePathsByScoreId = <String, String>{
+        for (final score in backup.scores) score.id: score.filePath,
+      };
       return SheetLibraryBackupRestoreResult(
         status: SheetLibraryBackupRestoreStatus.restored,
         restoredScoreCount: restoredScores.length,
         restoredSetlistCount: backup.setlists.length,
+        missingFileCount: mappings
+            .where((mapping) => mapping.missing)
+            .map(
+              (mapping) =>
+                  mapping.linkedFilePath ??
+                  mapping.annotationStoragePath ??
+                  sourcePathsByScoreId[mapping.scoreId]!,
+            )
+            .toSet()
+            .length,
       );
     } on UnsupportedError catch (error) {
       return SheetLibraryBackupRestoreResult(
@@ -1449,6 +1414,213 @@ class SheetLibraryStore {
         status: SheetLibraryBackupRestoreStatus.error,
         failureReason: error.toString(),
       );
+    }
+  }
+
+  Future<void> _restoreBackupMetadata(
+    SheetLibraryBackup backup, {
+    List<SheetScore>? restoredScores,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final libraryId = await _activeLibraryId(preferences);
+    final restored = SheetLibraryBackup.fromState(
+      scores: restoredScores ?? backup.scores,
+      setlists: backup.setlists,
+      metronomeSettings: backup.metronomeSettings,
+      tunerSettings: backup.tunerSettings,
+      toneSettings: backup.toneSettings,
+      libraryViewSettings: backup.libraryViewSettings,
+      globalViewerSettings: backup.globalViewerSettings,
+      performancePresetTemplates: backup.performancePresetTemplates,
+      favoriteAnnotationPreset: backup.favoriteAnnotationPreset,
+    );
+    final preset = restored.favoriteAnnotationPreset;
+    final values = <String, String?>{
+      _scopedKey(_scoresKey, libraryId): SheetScore.encodeList(restored.scores),
+      _scopedKey(_setlistsKey, libraryId): SheetSetlist.encodeList(
+        restored.setlists,
+      ),
+      _metronomeSettingsKey: SheetMetronomeCodec.encode(
+        restored.metronomeSettings,
+      ),
+      _tunerSettingsKey: SheetTunerCodec.encode(restored.tunerSettings),
+      _toneSettingsKey: SheetToneCodec.encode(restored.toneSettings),
+      _scopedKey(_libraryViewSettingsKey, libraryId):
+          SheetLibraryViewSettingsCodec.encode(restored.libraryViewSettings),
+      _globalViewerSettingsKey: jsonEncode(
+        restored.globalViewerSettings.toJson(),
+      ),
+      _scopedKey(
+        _performancePresetTemplatesKey,
+        libraryId,
+      ): SheetPerformancePresetTemplateCodec.encode(
+        restored.performancePresetTemplates,
+      ),
+      _scopedKey(
+        _favoriteAnnotationPresetKey,
+        libraryId,
+      ): preset != null && preset.isValid
+          ? const JsonEncoder.withIndent('  ').convert(preset.toJson())
+          : null,
+      _scopedKey(_automaticMetadataBackupKey, libraryId):
+          SheetLibraryBackupCodec.encode(restored),
+    };
+    await _writeMetadataValues(preferences, values);
+  }
+
+  Future<void> _writeMetadataValues(
+    SharedPreferences preferences,
+    Map<String, String?> values, {
+    String? automaticBackupLibraryId,
+  }) {
+    return _queueMetadataWrite(
+      () => _commitMetadataValues(
+        preferences,
+        values,
+        automaticBackupLibraryId: automaticBackupLibraryId,
+      ),
+    );
+  }
+
+  Future<void> _queueMetadataWrite(Future<void> Function() write) {
+    final previous = _metadataWrites;
+    final result = () async {
+      if (previous != null) {
+        try {
+          await previous;
+        } catch (_) {
+          // A failed request must not prevent a later save or retry.
+        }
+      }
+      await write();
+    }();
+    _metadataWrites = result;
+    return result.whenComplete(() {
+      if (identical(_metadataWrites, result)) _metadataWrites = null;
+    });
+  }
+
+  Future<void> _commitMetadataValues(
+    SharedPreferences preferences,
+    Map<String, String?> values, {
+    String? automaticBackupLibraryId,
+  }) async {
+    final backupKey = automaticBackupLibraryId == null
+        ? null
+        : _scopedKey(_automaticMetadataBackupKey, automaticBackupLibraryId);
+    final previous = <String, String?>{
+      for (final key in values.keys) key: preferences.getString(key),
+    };
+    if (backupKey != null) {
+      previous[backupKey] = preferences.getString(backupKey);
+    }
+    final attempted = <String>[];
+    try {
+      for (final entry in values.entries) {
+        // Include the failing key: SharedPreferences updates its cache before I/O.
+        attempted.add(entry.key);
+        final saved = entry.value == null
+            ? await preferences.remove(entry.key)
+            : await preferences.setString(entry.key, entry.value!);
+        if (!saved) {
+          throw StateError('Backup metadata write failed: ${entry.key}');
+        }
+      }
+      if (backupKey != null) {
+        final backup = _encodeAutomaticMetadataBackup(
+          preferences,
+          automaticBackupLibraryId!,
+        );
+        attempted.add(backupKey);
+        if (!await preferences.setString(backupKey, backup)) {
+          throw StateError(
+            'Automatic metadata backup write failed: $backupKey',
+          );
+        }
+      }
+    } catch (_) {
+      final rollbackFailures = <String>[];
+      for (final key in attempted.reversed) {
+        try {
+          final value = previous[key];
+          final saved = value == null
+              ? await preferences.remove(key)
+              : await preferences.setString(key, value);
+          if (!saved) rollbackFailures.add(key);
+        } catch (_) {
+          rollbackFailures.add(key);
+        }
+      }
+      if (rollbackFailures.isNotEmpty) {
+        throw StateError(
+          'Backup metadata rollback failed: ${rollbackFailures.join(', ')}',
+        );
+      }
+      rethrow;
+    }
+  }
+
+  void _validateFullBackupFiles(
+    Archive archive,
+    SheetLibraryBackup backup,
+    Object? rawMappings,
+    List<SheetLibraryFullBackupFileMapping> mappings,
+  ) {
+    if (rawMappings is! List || rawMappings.length != mappings.length) {
+      throw const FormatException('Invalid backup file mappings.');
+    }
+
+    // Validate every reference before restoring any file or replacing metadata.
+    final expected = <(String, String, String)>{};
+    for (final score in backup.scores) {
+      if (score.id.isEmpty ||
+          score.id == '.' ||
+          score.id == '..' ||
+          score.id.contains('/') ||
+          score.id.contains(r'\')) {
+        throw const FormatException('Invalid backup score ID.');
+      }
+      if (!expected.add((score.id, 'score', ''))) {
+        throw const FormatException('Duplicate backup score ID.');
+      }
+      for (final linked in score.linkedFiles) {
+        expected.add((score.id, 'linked', linked.path));
+      }
+      if (score.annotationStorage.isFileBacked) {
+        expected.add((score.id, 'annotation', score.annotationStorage.path));
+      }
+    }
+    for (final mapping in mappings) {
+      if (mapping.isLinkedFile && mapping.isAnnotationFile) {
+        throw const FormatException('Ambiguous backup file mapping.');
+      }
+      final key = mapping.isLinkedFile
+          ? (mapping.scoreId, 'linked', mapping.linkedFilePath!)
+          : mapping.isAnnotationFile
+          ? (mapping.scoreId, 'annotation', mapping.annotationStoragePath!)
+          : (mapping.scoreId, 'score', '');
+      if (!expected.remove(key)) {
+        throw const FormatException(
+          'Unexpected or duplicate backup file mapping.',
+        );
+      }
+      final safePath = mapping.isLinkedFile
+          ? _isSafeLinkedZipEntryPath(mapping.entryPath)
+          : mapping.isAnnotationFile
+          ? _isSafeAnnotationZipEntryPath(mapping.entryPath)
+          : _isSafeScoreZipEntryPath(mapping.entryPath);
+      if (!safePath) {
+        throw const FormatException('Invalid backup entry path.');
+      }
+      if (!mapping.missing) {
+        final entry = archive.findFile(mapping.entryPath);
+        if (entry == null || !entry.isFile) {
+          throw const FormatException('A required backup file is missing.');
+        }
+      }
+    }
+    if (expected.isNotEmpty) {
+      throw const FormatException('A required backup file mapping is missing.');
     }
   }
 
@@ -1489,19 +1661,16 @@ class SheetLibraryStore {
     return file.path;
   }
 
-  Future<String> _writeAnnotationFile({
+  Future<String> _writeRestoredFile({
     required List<int> bytes,
-    required String scoreId,
     required String originalFileName,
   }) async {
     final documents = await getApplicationDocumentsDirectory();
-    final annotationsDir = Directory('${documents.path}/annotations');
-    if (!annotationsDir.existsSync()) {
-      await annotationsDir.create(recursive: true);
-    }
-
+    final restoredFilesDir = await Directory('${documents.path}/restored-files')
+        .create(recursive: true);
+    final destination = await restoredFilesDir.createTemp('restore-');
     final safeName = _safeFileName(originalFileName);
-    final file = File('${annotationsDir.path}/$scoreId-$safeName');
+    final file = File('${destination.path}/$safeName');
     await file.writeAsBytes(bytes, flush: true);
     return file.path;
   }

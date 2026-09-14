@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_auto_scroll.dart';
@@ -15,6 +17,789 @@ import 'package:in_c_sheet/sheet_tuner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  for (final action in ['favorite', 'pin']) {
+    test(
+      'stale $action card callback toggles current flag without losing content',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = SheetLibraryStore();
+        final original = _score(DateTime(2026, 9, 13));
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await controller.updateScoreMetadata(
+          original,
+          title: 'Revised',
+          composer: 'Bach',
+          tags: '',
+          note: 'Cue',
+        );
+        await controller.updateLastPage(controller.scoreById(original.id), 4);
+        final before = controller.scoreById(original.id).toJson();
+        Future<void> toggle() => action == 'favorite'
+            ? controller.toggleFavorite(original)
+            : controller.togglePinned(original);
+        await toggle();
+        var current = controller.scoreById(original.id);
+        expect(
+          action == 'favorite' ? current.isFavorite : current.isPinned,
+          isTrue,
+        );
+        await toggle();
+        await controller.load();
+        current = controller.scoreById(original.id);
+        expect(
+          action == 'favorite' ? current.isFavorite : current.isPinned,
+          isFalse,
+        );
+        final after = current.toJson();
+        before.remove('updatedAt');
+        after.remove('updatedAt');
+        expect(after, before);
+        await controller.deleteScoresByIds({original.id});
+        await toggle();
+        await controller.load();
+        expect(controller.scores, isEmpty);
+      },
+    );
+  }
+
+  test(
+    'bookmark commands reject missing targets and toggle current membership',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final bookmark = SheetBookmark(
+        pageNumber: 1,
+        label: 'Intro',
+        createdAt: now,
+      );
+      final original = _score(now, bookmarks: [bookmark]);
+      final store = SheetLibraryStore();
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(await controller.toggleBookmark(original, 1), isTrue);
+      final without = controller.scoreById(original.id);
+      expect(
+        await controller.renameBookmark(original, bookmark, 'Lost'),
+        isFalse,
+      );
+      expect(await controller.deleteBookmark(original, bookmark), isFalse);
+      expect(await controller.toggleBookmark(original, 0), isFalse);
+      expect(identical(controller.scoreById(original.id), without), isTrue);
+      expect(await controller.toggleBookmark(original, 1), isTrue);
+      expect(controller.scoreById(original.id).bookmarks.single.label, '1쪽');
+      await controller.deleteScoresByIds({original.id});
+      expect(await controller.toggleBookmark(original, 2), isFalse);
+      expect(
+        await controller.renameBookmark(original, bookmark, 'Lost'),
+        isFalse,
+      );
+      expect(await controller.deleteBookmark(original, bookmark), isFalse);
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
+  for (final action in ['toggle', 'rename', 'delete']) {
+    test(
+      'stale bookmark $action preserves current score and other bookmarks',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final now = DateTime(2026, 9, 13);
+        final original = _score(
+          now,
+          bookmarks: [
+            SheetBookmark(pageNumber: 1, label: 'Intro', createdAt: now),
+          ],
+        );
+        final store = SheetLibraryStore();
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        await controller.toggleBookmark(original, 4);
+        await controller.updateScoreMetadata(
+          controller.scoreById(original.id),
+          title: 'Revised',
+          composer: 'Bach',
+          tags: '',
+          note: 'Cue',
+        );
+        final before = controller.scoreById(original.id).toJson();
+        switch (action) {
+          case 'toggle':
+            await controller.toggleBookmark(original, 2);
+          case 'rename':
+            await controller.renameBookmark(
+              original,
+              original.bookmarks.single,
+              'Start',
+            );
+          case 'delete':
+            await controller.deleteBookmark(
+              original,
+              original.bookmarks.single,
+            );
+        }
+        await controller.load();
+        final current = controller.scoreById(original.id);
+        expect(
+          current.bookmarks.map((bookmark) => bookmark.pageNumber),
+          action == 'toggle'
+              ? [1, 2, 4]
+              : action == 'rename'
+              ? [1, 4]
+              : [4],
+        );
+        if (action == 'rename') expect(current.bookmarks.first.label, 'Start');
+        final after = current.toJson();
+        for (final key in ['bookmarks', 'updatedAt']) {
+          before.remove(key);
+          after.remove(key);
+        }
+        expect(after, before);
+      },
+    );
+  }
+
+  test(
+    'metadata edit applies only submitted fields to current score',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateScoreMetadata(
+        original,
+        title: original.title,
+        composer: '',
+        tags: '',
+        note: '',
+        collection: 'Concert',
+        group: 'Brass',
+        rating: 4,
+      );
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.updateMetronomeSettingsForScore(
+        controller.scoreById(original.id),
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 120),
+      );
+      final before = controller.scoreById(original.id).toJson();
+      final result = await controller.updateScoreMetadata(
+        original,
+        title: 'Edited',
+        composer: ' Bach ',
+        tags: 'solo',
+        note: ' cue ',
+      );
+      expect(result, isTrue);
+      await controller.load();
+      final after = controller.scoreById(original.id).toJson();
+      expect(after['title'], 'Edited');
+      expect(after['composer'], 'Bach');
+      expect(after['note'], 'cue');
+      for (final key in ['title', 'composer', 'tags', 'note', 'updatedAt']) {
+        before.remove(key);
+        after.remove(key);
+      }
+      expect(after, before);
+      await controller.updateScoreMetadata(
+        original,
+        title: '',
+        composer: '',
+        tags: '',
+        note: '',
+        collection: '',
+        group: '',
+        rating: 0,
+      );
+      final cleared = controller.scoreById(original.id);
+      expect(cleared.title, 'Edited');
+      expect(cleared.collection, '');
+      expect(cleared.group, '');
+      expect(cleared.rating, 0);
+      await controller.deleteScoresByIds({original.id});
+      expect(
+        await controller.updateScoreMetadata(
+          original,
+          title: 'Lost',
+          composer: '',
+          tags: '',
+          note: '',
+        ),
+        isFalse,
+      );
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
+  for (final action in ['page', 'open']) {
+    test('stale $action callback preserves current score content', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateScoreMetadata(
+        original,
+        title: 'Revised',
+        composer: 'Bach',
+        tags: 'practice',
+        note: 'Solo',
+      );
+      await controller.toggleFavorite(controller.scoreById(original.id));
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.addAnnotationStroke(
+        controller.scoreById(original.id),
+        SheetAnnotationStroke(
+          id: 'fresh',
+          pageNumber: 4,
+          tool: SheetAnnotationTool.pen,
+          color: 0xff111111,
+          width: 2,
+          points: const [SheetAnnotationPoint(x: .1, y: .2)],
+          createdAt: DateTime(2026, 9, 13),
+        ),
+      );
+      final before = controller.scoreById(original.id).toJson();
+      if (action == 'page') {
+        await controller.updateLastPage(original, 5);
+      } else {
+        await controller.markOpened(original);
+      }
+      await controller.load();
+      final after = controller.scoreById(original.id).toJson();
+      expect(after['lastPage'], action == 'page' ? 5 : 4);
+      for (final field in ['lastPage', 'lastOpenedAt', 'updatedAt']) {
+        before.remove(field);
+        after.remove(field);
+      }
+      expect(after, before);
+    });
+  }
+
+  test(
+    'stale page snapshot cannot suppress a return to its old page',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      await controller.updateLastPage(original, 4);
+      await controller.updateLastPage(original, 1);
+      expect(controller.scoreById(original.id).lastPage, 1);
+      final current = controller.scoreById(original.id);
+      await controller.updateLastPage(original, 1);
+      expect(identical(controller.scoreById(original.id), current), isTrue);
+      await controller.updateLastPage(original, 0);
+      expect(identical(controller.scoreById(original.id), current), isTrue);
+      await controller.deleteScoresByIds({original.id});
+      await controller.markOpened(original);
+      await controller.updateLastPage(original, 2);
+      await controller.load();
+      expect(controller.scores, isEmpty);
+    },
+  );
+
+  test('global metronome save follows pending score save without changing its override', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final store = _DelayedMetronomeStore();
+    final original = _score(DateTime(2026, 9, 13));
+    await store.saveScores([original]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    store.delayNext = true;
+    final first = controller.updateMetronomeSettingsForScore(
+      original,
+      SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+    );
+    await store.entered.future;
+    final second = controller.updateMetronomeSettings(
+      SheetMetronomeSettings.defaultSettings.copyWith(bpm: 120),
+    );
+    store.release.complete();
+    await Future.wait([first, second]);
+    await controller.load();
+    expect(controller.metronomeSettings.bpm, 120);
+    expect(controller.scoreById(original.id).metronomeSettings?.bpm, 96);
+  });
+
+  for (final scope in ['global', 'score', 'setlist']) {
+    test('concurrent metronome saves retain latest $scope settings', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = _DelayedMetronomeStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, original);
+      Future<void> save(int bpm) {
+        final settings = SheetMetronomeSettings.defaultSettings.copyWith(
+          bpm: bpm,
+        );
+        if (scope == 'global') {
+          return controller.updateMetronomeSettings(settings);
+        }
+        return controller.updateMetronomeSettingsForScore(
+          original,
+          settings,
+          setlistId: scope == 'setlist' ? setlist.id : null,
+        );
+      }
+
+      store.delayNext = true;
+      final first = save(96);
+      await store.entered.future;
+      final second = save(120);
+      await Future<void>.delayed(Duration.zero);
+      store.release.complete();
+      await Future.wait([first, second]);
+      await controller.load();
+      expect(controller.metronomeSettings.bpm, 120);
+      if (scope == 'score') {
+        expect(controller.scoreById(original.id).metronomeSettings?.bpm, 120);
+      } else if (scope == 'setlist') {
+        expect(
+          controller.setlists.single.scoreMetronomeSettings[original.id]?.bpm,
+          120,
+        );
+        expect(controller.scoreById(original.id).metronomeSettings, isNull);
+      }
+    });
+  }
+
+  for (final failingBpm in [96, 120]) {
+    test(
+      'metronome save error at $failingBpm does not poison later writes',
+      () async {
+        SharedPreferences.setMockInitialValues(<String, Object>{});
+        final store = _DelayedMetronomeStore()..failingBpm = failingBpm;
+        final original = _score(DateTime(2026, 9, 13));
+        await store.saveScores([original]);
+        final controller = SheetLibraryController(store: store);
+        await controller.load();
+        Future<void> save(int bpm) =>
+            controller.updateMetronomeSettingsForScore(
+              original,
+              SheetMetronomeSettings.defaultSettings.copyWith(bpm: bpm),
+            );
+        store.delayNext = true;
+        final first = save(96);
+        final firstCheck = expectLater(
+          first,
+          failingBpm == 96 ? throwsStateError : completes,
+        );
+        await store.entered.future;
+        final second = save(120);
+        final secondCheck = expectLater(
+          second,
+          failingBpm == 120 ? throwsStateError : completes,
+        );
+        store.release.complete();
+        await Future.wait([firstCheck, secondCheck]);
+        final lastSuccessfulBpm = failingBpm == 96 ? 120 : 96;
+        await controller.load();
+        expect(controller.metronomeSettings.bpm, lastSuccessfulBpm);
+        expect(
+          controller.scoreById(original.id).metronomeSettings?.bpm,
+          lastSuccessfulBpm,
+        );
+        await save(132);
+        await controller.load();
+        expect(controller.metronomeSettings.bpm, 132);
+        expect(controller.scoreById(original.id).metronomeSettings?.bpm, 132);
+      },
+    );
+  }
+
+  for (final removal in ['setlist', 'membership', 'score']) {
+    test('delayed metronome save respects removed $removal scope', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = _DelayedMetronomeStore();
+      final original = _score(DateTime(2026, 9, 13));
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, original);
+      store.delayNext = true;
+      final pending = controller.updateMetronomeSettingsForScore(
+        original,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+        setlistId: setlist.id,
+      );
+      addTearDown(() async {
+        if (!store.release.isCompleted) store.release.complete();
+        await pending;
+      });
+      await store.entered.future;
+      switch (removal) {
+        case 'setlist':
+          await controller.deleteSetlist(setlist);
+        case 'membership':
+          await controller.removeScoreFromSetlist(setlist, original);
+        case 'score':
+          await controller.deleteScoresByIds({original.id});
+      }
+      store.release.complete();
+      await pending;
+      await controller.load();
+      expect(controller.metronomeSettings.bpm, 96);
+      expect(
+        controller.scoreByIdOrNull(original.id)?.metronomeSettings,
+        isNull,
+      );
+      if (removal == 'setlist') {
+        expect(controller.setlists, isEmpty);
+      } else {
+        expect(controller.setlists.single.scoreMetronomeSettings, isEmpty);
+        expect(controller.setlists.single.scoreIds, isEmpty);
+      }
+      if (removal == 'score') expect(controller.scores, isEmpty);
+    });
+  }
+
+  test(
+    'delayed metronome save preserves newer page and annotation state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = _DelayedMetronomeStore();
+      final original = _score(now);
+      await store.saveScores([original]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      store.delayNext = true;
+      final pending = controller.updateMetronomeSettingsForScore(
+        original,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+      );
+      addTearDown(() async {
+        if (!store.release.isCompleted) store.release.complete();
+        await pending;
+      });
+      await store.entered.future;
+      await controller.updateLastPage(controller.scoreById(original.id), 4);
+      await controller.addAnnotationStroke(
+        controller.scoreById(original.id),
+        SheetAnnotationStroke(
+          id: 'fresh',
+          pageNumber: 4,
+          tool: SheetAnnotationTool.pen,
+          color: 0xff111111,
+          width: 2,
+          points: const [SheetAnnotationPoint(x: .1, y: .2)],
+          createdAt: now,
+        ),
+      );
+      store.release.complete();
+      await pending;
+      expect(controller.scoreById(original.id).lastPage, 4);
+      expect(
+        controller.scoreById(original.id).annotationLayer.strokes.single.id,
+        'fresh',
+      );
+      expect(controller.scoreById(original.id).metronomeSettings?.bpm, 96);
+      await controller.load();
+      expect(controller.scoreById(original.id).lastPage, 4);
+      expect(
+        controller.scoreById(original.id).annotationLayer.strokes.single.id,
+        'fresh',
+      );
+    },
+  );
+
+  test(
+    'setlist add excludes removed scores without counting them as duplicates',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b', 'c']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final setlist = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(setlist, scores.first);
+      await controller.deleteScoresByIds({'c'});
+      final result = await controller.addScoresToSetlist(setlist, [
+        ...scores,
+        scores[1],
+      ]);
+      expect(result.addedCount, 1);
+      expect(result.skippedDuplicateCount, 2);
+      expect(result.skippedMissingCount, 1);
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+      final missingOnly = await controller.addScoresToSetlist(setlist, [
+        scores.last,
+      ]);
+      expect(missingOnly.didAddAny, isFalse);
+      expect(missingOnly.skippedDuplicateCount, 0);
+      expect(missingOnly.skippedMissingCount, 1);
+      await controller.addScoreToSetlist(setlist, scores.last);
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+      await controller.load();
+      expect(controller.setlists.single.scoreIds, ['a', 'b']);
+    },
+  );
+
+  test(
+    'repeated setlist duplicates receive distinct case-insensitive names',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final store = SheetLibraryStore();
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final original = await controller.createSetlist('Concert');
+      final first = await controller.duplicateSetlist(original);
+      expect(first.title, 'Concert copy');
+      await controller.renameSetlist(first, '  CONCERT COPY  ');
+      await controller.createSetlist('Concert copy (2)');
+      final third = await controller.duplicateSetlist(original);
+      expect(third.title, 'Concert copy (3)');
+      await controller.load();
+      final fourth = await controller.duplicateSetlist(
+        controller.setlistById(original.id),
+      );
+      expect(fourth.title, 'Concert copy (4)');
+      expect(controller.setlists.map((item) => item.id).toSet(), hasLength(5));
+      expect(controller.setlistById(original.id).title, 'Concert');
+      final persisted = await store.loadSetlists();
+      expect(
+        persisted.map((item) => item.title.toLowerCase()).toSet(),
+        hasLength(5),
+      );
+    },
+  );
+
+  test(
+    'partial setlist settings preserve newer membership and performance state',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final created = await controller.createSetlist('Concert');
+      await controller.addScoresToSetlist(created, scores);
+      final snapshot = controller.setlists.single;
+      await controller.removeScoreFromSetlist(snapshot, scores.first);
+      await controller.renameSetlist(controller.setlists.single, 'Evening');
+      await controller.markSetlistOpened(
+        controller.setlists.single,
+        scoreId: 'b',
+      );
+      await controller.updateMetronomeSettingsForScore(
+        scores.last,
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+        setlistId: snapshot.id,
+      );
+      await controller.updateSetlistRehearsalSettings(
+        snapshot,
+        transitionSeconds: 7,
+        scoreStartPages: const {'a': 2, 'b': 3},
+        scoreNotes: const {'a': 'Removed', 'b': 'Solo'},
+        scoreDurations: const {'a': 30, 'b': 90},
+      );
+      var current = controller.setlists.single;
+      expect(current.title, 'Evening');
+      expect(current.scoreIds, ['b']);
+      expect(current.scoreStartPages, {'b': 3});
+      expect(current.scoreNotes, {'b': 'Solo'});
+      expect(current.scoreDurations, {'b': 90});
+      expect(current.scoreMetronomeSettings['b']?.bpm, 96);
+      expect(current.lastOpenedScoreId, 'b');
+      final template = await controller.savePerformancePresetTemplate(
+        name: 'Stage',
+        viewerSettings: const SheetViewerSettings(
+          displayMode: 'twoPage',
+          halfPageTurn: false,
+        ),
+      );
+      expect(
+        await controller.applyPerformancePresetToSetlist(snapshot, template.id),
+        isTrue,
+      );
+      await controller.load();
+      current = controller.setlists.single;
+      expect(current.title, 'Evening');
+      expect(current.scoreIds, ['b']);
+      expect(current.scoreNotes, {'b': 'Solo'});
+      expect(current.transitionSeconds, 7);
+      expect(current.scoreMetronomeSettings['b']?.bpm, 96);
+      expect(current.viewerSettingsOverride?.displayMode, 'twoPage');
+      expect(
+        await controller.updateSetlistRehearsalSettings(
+          snapshot,
+          scoreNotes: const {},
+          clearViewerSettingsOverride: true,
+        ),
+        isTrue,
+      );
+      expect(controller.setlists.single.scoreNotes, isEmpty);
+      expect(controller.setlists.single.scoreDurations, {'b': 90});
+      expect(controller.setlists.single.viewerSettingsOverride, isNull);
+      await controller.deleteSetlist(current);
+      expect(
+        await controller.updateSetlistRehearsalSettings(
+          snapshot,
+          transitionSeconds: 20,
+        ),
+        isFalse,
+      );
+      expect(
+        await controller.applyPerformancePresetToSetlist(snapshot, template.id),
+        isFalse,
+      );
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
+  test(
+    'setlist reorder rejects stale indexes and preserves current metadata',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b', 'c']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final created = await controller.createSetlist('Concert');
+      await controller.addScoresToSetlist(created, scores);
+      final snapshot = controller.setlists.single;
+      await controller.removeScoreFromSetlist(snapshot, scores.first);
+      expect(await controller.moveScoreInSetlist(snapshot, 0, 2), isFalse);
+      expect(controller.setlists.single.scoreIds, ['b', 'c']);
+      final fresh = controller.setlists.single;
+      await controller.renameSetlist(fresh, 'Evening');
+      expect(await controller.moveScoreInSetlist(fresh, 0, 1), isTrue);
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      expect(await controller.moveScoreInSetlist(fresh, 0, 1), isFalse);
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      await controller.load();
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c', 'b']);
+      final latest = controller.setlists.single;
+      expect(await controller.moveScoreInSetlist(latest, -1, 0), isFalse);
+      expect(await controller.moveScoreInSetlist(latest, 0, 2), isFalse);
+      expect(await controller.moveScoreInSetlist(latest, 0, 0), isTrue);
+      expect(controller.setlists.single.updatedAt, latest.updatedAt);
+      await controller.deleteSetlist(latest);
+      expect(await controller.moveScoreInSetlist(latest, 0, 1), isFalse);
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
+  test(
+    'setlist actions preserve changes made after the displayed snapshot',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      final scores = [
+        _score(now, id: 'a'),
+        _score(now, id: 'b'),
+        _score(now, id: 'c'),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final snapshot = await controller.createSetlist('Concert');
+      await controller.addScoreToSetlist(snapshot, scores[0]);
+      final added = await controller.addScoresToSetlist(snapshot, scores);
+      expect(added.addedCount, 2);
+      expect(added.skippedDuplicateCount, 1);
+      expect(controller.setlists.single.scoreIds, ['a', 'b', 'c']);
+      final populated = controller.setlists.single;
+      await controller.removeScoreFromSetlist(populated, scores[0]);
+      await controller.removeScoreFromSetlist(populated, scores[1]);
+      expect(controller.setlists.single.scoreIds, ['c']);
+      await controller.renameSetlist(populated, 'Evening');
+      await controller.markSetlistOpened(populated, scoreId: 'c');
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c']);
+      expect(controller.setlists.single.lastOpenedScoreId, 'c');
+      await controller.markSetlistOpened(populated, scoreId: 'a');
+      expect(controller.setlists.single.lastOpenedScoreId, 'c');
+      await controller.load();
+      expect(controller.setlists.single.title, 'Evening');
+      expect(controller.setlists.single.scoreIds, ['c']);
+      await controller.deleteSetlist(populated);
+      final missing = await controller.addScoresToSetlist(populated, scores);
+      expect(missing.targetMissing, isTrue);
+      expect(missing.addedCount, 0);
+      expect(missing.skippedDuplicateCount, 0);
+      expect(missing.didAddAny, isFalse);
+      await controller.addScoreToSetlist(populated, scores[0]);
+      await controller.renameSetlist(populated, 'Deleted');
+      await controller.markSetlistOpened(populated, scoreId: 'a');
+      expect(controller.setlists, isEmpty);
+    },
+  );
+
+  for (final orphanKind in ['duration', 'metronome']) {
+    test('load persists orphaned setlist $orphanKind cleanup', () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final store = SheetLibraryStore();
+      await store.saveScores([_score(now, id: 'kept')]);
+      await store.saveSetlists([
+        SheetSetlist(
+          id: 'concert',
+          title: 'Concert',
+          scoreIds: const ['kept'],
+          createdAt: now,
+          updatedAt: now,
+          scoreDurations: {
+            'kept': 90,
+            if (orphanKind == 'duration') 'removed': 120,
+          },
+          scoreMetronomeSettings: {
+            'kept': SheetMetronomeSettings.defaultSettings.copyWith(bpm: 96),
+            if (orphanKind == 'metronome')
+              'removed': SheetMetronomeSettings.defaultSettings.copyWith(
+                bpm: 120,
+              ),
+          },
+          lastOpenedScoreId: 'kept',
+          lastOpenedAt: now,
+        ),
+      ]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      expect(controller.setlists.single.scoreDurations, {'kept': 90});
+      expect(controller.setlists.single.scoreMetronomeSettings.keys, ['kept']);
+      expect(
+        controller.setlists.single.scoreMetronomeSettings['kept']?.bpm,
+        96,
+      );
+      expect(controller.setlists.single.lastOpenedScoreId, 'kept');
+      final persisted = (await store.loadSetlists()).single;
+      expect(persisted.scoreDurations, {'kept': 90});
+      expect(persisted.scoreMetronomeSettings.keys, ['kept']);
+      await controller.load();
+      expect(controller.setlists.single.updatedAt, persisted.updatedAt);
+    });
+  }
+
   test('renames and deletes bookmarks with empty label fallback', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final now = DateTime.parse('2026-08-20T10:00:00.000');
@@ -1448,6 +2233,338 @@ void main() {
     );
   });
 
+  test('creates songbook score entries from bookmark ranges', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = SheetLibraryStore();
+    await store.saveScores(<SheetScore>[
+      _score(
+        now,
+        title: 'Real Book',
+        composer: 'Various',
+        tags: const <String>['jazz'],
+        collection: 'Gig book',
+        filePath: '/tmp/real-book.pdf',
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 1, label: 'Autumn Leaves', createdAt: now),
+          SheetBookmark(pageNumber: 4, label: 'Blue Bossa', createdAt: now),
+          SheetBookmark(pageNumber: 7, label: 'C Jam Blues', createdAt: now),
+        ],
+      ).copyWith(
+        pageSettings: SheetPageSettings.empty.copyWith(
+          instanceRotations: const <int, int>{0: 90},
+          instanceCrops: const <int, SheetCropSettings>{
+            0: SheetCropSettings(left: 0.1),
+          },
+        ),
+      ),
+    ]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final result = await controller.createScoresFromBookmarks(
+      controller.scores.single,
+      pageCount: 10,
+    );
+
+    expect(result.createdCount, 3);
+    expect(result.skippedDuplicateCount, 0);
+    expect(controller.scores, hasLength(4));
+    expect(result.createdScores.map((score) => score.title), <String>[
+      'Real Book - Autumn Leaves',
+      'Real Book - Blue Bossa',
+      'Real Book - C Jam Blues',
+    ]);
+    expect(
+      result.createdScores.map((score) => score.pageSettings.pageOrder),
+      <List<int>>[
+        <int>[1, 2, 3],
+        <int>[4, 5, 6],
+        <int>[7, 8, 9, 10],
+      ],
+    );
+    expect(result.createdScores.first.filePath, '/tmp/real-book.pdf');
+    expect(result.createdScores.first.composer, 'Various');
+    expect(result.createdScores.first.tags, <String>['jazz']);
+    expect(result.createdScores.first.collection, 'Gig book');
+    expect(result.createdScores.first.lastPage, 1);
+    expect(result.createdScores.first.pageSettings.instanceRotations, isEmpty);
+    expect(result.createdScores.first.pageSettings.instanceCrops, isEmpty);
+  });
+
+  test(
+    'skips duplicate songbook score entries for the same source range',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final source = _score(
+        now,
+        title: 'Binder',
+        filePath: '/tmp/binder.pdf',
+        bookmarks: <SheetBookmark>[
+          SheetBookmark(pageNumber: 2, label: 'March', createdAt: now),
+          SheetBookmark(pageNumber: 5, label: 'Finale', createdAt: now),
+        ],
+      );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final first = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 6,
+      );
+      final second = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 6,
+      );
+
+      expect(first.createdCount, 2);
+      expect(second.createdCount, 0);
+      expect(second.skippedDuplicateCount, 2);
+      expect(controller.scores, hasLength(3));
+    },
+  );
+
+  test(
+    'songbook entries keep navigation and auto-scroll inside their movement',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final source =
+          _score(
+            now,
+            title: 'Book',
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(pageNumber: 3, label: 'First', createdAt: now),
+              SheetBookmark(pageNumber: 6, label: 'Second', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[3],
+              jumpPoints: <SheetPageJumpPoint>[
+                SheetPageJumpPoint(
+                  id: 'inside',
+                  sourcePage: 4,
+                  targetPage: 5,
+                  label: 'A',
+                  createdAt: now,
+                ),
+                SheetPageJumpPoint(
+                  id: 'outside',
+                  sourcePage: 5,
+                  targetPage: 7,
+                  label: 'B',
+                  createdAt: now,
+                ),
+              ],
+              rehearsalMarks: <SheetRehearsalMark>[
+                SheetRehearsalMark(
+                  id: 'a',
+                  pageNumber: 4,
+                  label: 'A',
+                  kind: 'rehearsal',
+                  createdAt: now,
+                ),
+                SheetRehearsalMark(
+                  id: 'b',
+                  pageNumber: 7,
+                  label: 'B',
+                  kind: 'rehearsal',
+                  createdAt: now,
+                ),
+              ],
+            ),
+            autoScrollSettings: SheetAutoScrollSettings.defaultSettings
+                .copyWith(
+                  pausePageNumbers: <int>[4, 7],
+                  pageDurations: <int, int>{4: 60, 7: 80},
+                ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 9,
+      );
+      final first = result.createdScores.first;
+      expect(first.lastPage, 4);
+      expect(first.pageSettings.visiblePages(9), <int>[4, 5]);
+      expect(first.pageSettings.effectivePageOrder(9), <int>[4, 5]);
+      expect(
+        first.pageSettings.closestVisiblePage(fromPage: 7, pageCount: 9),
+        5,
+      );
+      expect(first.pageSettings.jumpPoints.map((point) => point.id), <String>[
+        'inside',
+      ]);
+      expect(first.pageSettings.rehearsalMarks.map((mark) => mark.id), <String>[
+        'a',
+      ]);
+      final plan = first.autoScrollSettings.plan(currentPage: 4, pageCount: 9);
+      expect(plan.startPage, 4);
+      expect(plan.endPage, 5);
+      expect(first.autoScrollSettings.pausePageNumbers, <int>[4]);
+      expect(first.autoScrollSettings.pageDurations, <int, int>{4: 60});
+      await controller.compactScoreForPageCount(first, 9);
+      await controller.load();
+      final repeated = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 9,
+      );
+      expect(repeated.createdCount, 0);
+      expect(repeated.skippedDuplicateCount, 2);
+      expect(controller.scoreById(source.id).toJson(), source.toJson());
+    },
+  );
+
+  test(
+    'songbook movement with every page hidden retains one in-range page',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      final source =
+          _score(
+            now,
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(
+                pageNumber: 2,
+                label: 'Hidden movement',
+                createdAt: now,
+              ),
+              SheetBookmark(pageNumber: 4, label: 'Next', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[2, 3],
+            ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 5,
+      );
+      final first = result.createdScores.first;
+      expect(first.lastPage, 2);
+      expect(first.pageSettings.visiblePages(5), <int>[2]);
+      expect(first.pageSettings.effectivePageOrder(5), <int>[2]);
+      expect(controller.scoreById(source.id).pageSettings.hiddenPages, <int>[
+        2,
+        3,
+      ]);
+    },
+  );
+
+  test(
+    'songbook copies in-range annotations independently without edit history',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 13);
+      SheetAnnotationStroke stroke(int page) => SheetAnnotationStroke(
+        id: 'stroke-$page',
+        pageNumber: page,
+        tool: SheetAnnotationTool.pen,
+        color: 0xff112233,
+        width: 3,
+        points: const <SheetAnnotationPoint>[
+          SheetAnnotationPoint(x: 0.1, y: 0.2),
+          SheetAnnotationPoint(x: 0.2, y: 0.3),
+        ],
+        createdAt: now,
+      );
+      SheetTextAnnotation text(int page) => SheetTextAnnotation(
+        id: 'text-$page',
+        pageNumber: page,
+        position: const SheetAnnotationPoint(x: 0.2, y: 0.3),
+        text: 'Practice $page',
+        color: 0xff112233,
+        fontSize: 16,
+        createdAt: now,
+      );
+      final source =
+          _score(
+            now,
+            bookmarks: <SheetBookmark>[
+              SheetBookmark(pageNumber: 2, label: 'First', createdAt: now),
+              SheetBookmark(pageNumber: 4, label: 'Second', createdAt: now),
+            ],
+          ).copyWith(
+            pageSettings: SheetPageSettings.empty.copyWith(
+              hiddenPages: <int>[2],
+            ),
+            annotationLayer: SheetAnnotationLayer(
+              strokes: <SheetAnnotationStroke>[stroke(1), stroke(2), stroke(4)],
+              texts: <SheetTextAnnotation>[text(3), text(5)],
+              redoStack: <SheetAnnotationRedoEntry>[
+                SheetAnnotationRedoEntry.stroke(stroke(3)),
+              ],
+              eraseUndoStack: <SheetAnnotationRedoEntry>[
+                SheetAnnotationRedoEntry.eraseText(text(2)),
+              ],
+              layers: <SheetAnnotationDisplayLayer>[
+                SheetAnnotationDisplayLayer.defaultLayer.copyWith(
+                  isVisible: false,
+                  includeInExport: false,
+                ),
+              ],
+            ),
+            annotationStorage: const SheetAnnotationStorageReference(
+              mode: SheetAnnotationStorageReference.fileMode,
+              path: '/tmp/source-marks.json',
+            ),
+          );
+      final store = SheetLibraryStore();
+      await store.saveScores(<SheetScore>[source]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final result = await controller.createScoresFromBookmarks(
+        source,
+        pageCount: 5,
+      );
+      final first = result.createdScores.first;
+      final second = result.createdScores.last;
+      expect(
+        first.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+        <int>[2],
+      );
+      expect(first.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+        3,
+      ]);
+      expect(
+        second.annotationLayer.strokes.map((stroke) => stroke.pageNumber),
+        <int>[4],
+      );
+      expect(second.annotationLayer.texts.map((text) => text.pageNumber), <int>[
+        5,
+      ]);
+      expect(first.annotationLayer.redoStack, isEmpty);
+      expect(first.annotationLayer.eraseUndoStack, isEmpty);
+      expect(first.annotationLayer.isDefaultLayerVisible, isFalse);
+      expect(first.annotationLayer.includeDefaultLayerInExport, isFalse);
+      expect(first.annotationStorage.isFileBacked, isFalse);
+      expect(first.annotationStorage.path, isEmpty);
+      await controller.removeTextAnnotation(first, 'text-3');
+      await controller.load();
+      expect(controller.scoreById(first.id).annotationLayer.texts, isEmpty);
+      expect(
+        controller.scoreById(source.id).annotationLayer.toJson(),
+        source.annotationLayer.toJson(),
+      );
+      expect(
+        controller.scoreById(second.id).annotationLayer.texts.single.text,
+        'Practice 5',
+      );
+    },
+  );
+
   test('updates metronome settings', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = SheetLibraryStore();
@@ -1896,7 +3013,12 @@ void main() {
         collection: 'Archive',
       ),
       _score(now, id: 'score-2', tags: const <String>['brass']),
-      _score(now, id: 'score-3', tags: const <String>['strings']),
+      _score(
+        now,
+        id: 'score-3',
+        composer: 'Composer',
+        tags: const <String>['strings'],
+      ),
     ]);
 
     final controller = SheetLibraryController(store: store);
@@ -1906,6 +3028,7 @@ void main() {
       <String>{'score-1', 'score-2'},
       addTags: const <String>['recital', 'Brass'],
       removeTags: const <String>['old'],
+      composer: '  J. S. Bach  ',
       collection: 'Recital',
       group: 'Finale',
       rating: 5,
@@ -1919,6 +3042,15 @@ void main() {
 
     expect(changedCount, 2);
     expect(controller.scoreById('score-1').tags, <String>['brass', 'recital']);
+    expect(controller.scoreById('score-1').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-2').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-3').composer, 'Composer');
+    expect(
+      controller.composerFacets
+          .singleWhere((facet) => facet.value == 'J. S. Bach')
+          .count,
+      2,
+    );
     expect(controller.scoreById('score-2').tags, <String>['brass', 'recital']);
     expect(controller.scoreById('score-1').collection, 'Recital');
     expect(controller.scoreById('score-2').group, 'Finale');
@@ -1933,6 +3065,19 @@ void main() {
     expect(controller.scoreById('score-2').isPinned, isTrue);
     expect(controller.scoreById('score-3').tags, <String>['strings']);
     expect(controller.scoreById('score-1').filePath, '/tmp/score-1.pdf');
+    await controller.bulkEditScores(
+      <String>{'score-1'},
+      addTags: <String>['practice'],
+    );
+    await controller.load();
+    expect(controller.scoreById('score-1').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-2').composer, 'J. S. Bach');
+    expect(controller.scoreById('score-3').composer, 'Composer');
+    controller.updateQuery('J. S. Bach');
+    expect(controller.filteredScores.map((score) => score.id).toSet(), <String>{
+      'score-1',
+      'score-2',
+    });
   });
 
   test(
@@ -2503,7 +3648,7 @@ class _PageRotationCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 
@@ -2563,7 +3708,7 @@ class _PageCropCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 
@@ -2625,7 +3770,7 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 
@@ -2659,6 +3804,24 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
     SheetScore score,
   ) async {
     return result;
+  }
+}
+
+class _DelayedMetronomeStore extends SheetLibraryStore {
+  bool delayNext = false;
+  int? failingBpm;
+  final entered = Completer<void>();
+  final release = Completer<void>();
+
+  @override
+  Future<void> saveMetronomeSettings(SheetMetronomeSettings settings) async {
+    if (delayNext) {
+      delayNext = false;
+      entered.complete();
+      await release.future;
+    }
+    if (settings.bpm == failingBpm) throw StateError('metronome write failed');
+    await super.saveMetronomeSettings(settings);
   }
 }
 
