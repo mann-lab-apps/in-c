@@ -1,5 +1,34 @@
 # Known Limitations
 
+## 2026-09-14 Recovery Follow-Up
+
+Latest segment follow-up writes native v4 and migrates v1/v2/v3, including v3
+independent part geometry. Exact part/staff/measure-boundary segments now support
+selection, independent placement/reset/inheritance, history and portable output.
+Changed boundaries retain but do not apply saved overrides. Inactive-state UI
+now labels these entries, disables geometry edits and offers undoable removal.
+Boundary deletion/save/undo/reopen and ensemble insertion/reorder have regression
+coverage. Broader structural editing and collision/ledger handling remain Required.
+The reproduced continuation/fermata/caesura intersections are fixed and checked
+in actual two-page PDF; this is not complete manual engraving signoff.
+
+Legacy v1/v2/v3 autosaves now migrate before current v4 validation; real disk/UI/package
+save-reopen tests cover the portable envelope. Unreadable recovery is protected
+from subsequent autosave and cleanup. Postponed recovery pauses autosave visibly
+until claimed/discarded; File provides retry. Retention/quarantine UI, actual
+crash/power-loss and cross-machine QA remain Required, not implied by this pass.
+Saved-part open/recovery now targets the visible part. The reproduced single-
+event rhythm deletion/native-save failure is fixed with undoable span cleanup.
+Other editing/clipboard transactions still require their whole-workflow audit.
+Independent slur/hairpin geometry now has native/UI/history/projection and
+actual Electron/PDF evidence, including the bounded segment contracts above.
+Broader geometry/collisions remain implementation blockers. The reproduced rich Piano staff-text/clef collision is
+fixed by adjacent annotation space reservation shared by renderer and print.
+Actual 960/1400 and PDF ink checks cover that fixture; extreme ledger/manual
+geometry, per-system collision handling and broader dense scores remain Required.
+The 960px File command row still needs a viewport-wide
+accessibility audit; recovery-modal checks do not establish whole-UI completion.
+
 ## 2026-09-13 Direct Span Inspector
 
 Follow-up: numeric placement/X/Y/height and auto reset now persist in native v2

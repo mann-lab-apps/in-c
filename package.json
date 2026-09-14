@@ -22,6 +22,7 @@
     "verify:mvp:ci": "npm run build && env -u ELECTRON_RUN_AS_NODE electron --no-sandbox scripts/verify-single-voice-mvp.cjs",
     "verify:e2e": "npm run verify:mvp",
     "verify:rest-hairpin": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-rest-hairpin.cjs",
+    "verify:part-span-geometry": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-part-span-geometry.cjs",
     "verify:notation-snapshots": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs",
     "verify:notation-snapshots:update": "npm run build && env -u ELECTRON_RUN_AS_NODE electron scripts/verify-notation-snapshots.cjs --update",
     "verify:visual-regression": "npm test -- src/musicxml/musicxml.test.ts src/renderer/src/notation/system-layout.test.ts && npm run verify:notation-snapshots",

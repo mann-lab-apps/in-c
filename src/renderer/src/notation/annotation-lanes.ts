@@ -35,6 +35,7 @@ export interface MeasureAnnotationLaneInput {
 }
 
 export interface MeasureAnnotationLanes {
+  contentBottom: number
   dynamicMarkYOffset?: number
   expressionTextYOffsets: number[]
   hairpinYOffset?: number
@@ -137,6 +138,8 @@ export function resolveMeasureAnnotationLanes({
   ].filter((offset): offset is number => offset !== undefined)
 
   return {
+    contentBottom: Math.max(80, lyricBottom, dynamicMarkYOffset === undefined ? 0 : dynamicMarkYOffset + 6,
+      hairpinYOffset === undefined ? 0 : hairpinYOffset + 10, ...expressionTextYOffsets.map(offset => offset + 4)),
     dynamicMarkYOffset,
     expressionTextYOffsets,
     hairpinYOffset,

@@ -31,19 +31,21 @@ describe('native project schema', () => {
     expect(reopened.score.parts[0]!.staves[0]!.measures[0]!.transposition?.chromatic).toBe(-2)
   })
 
-  it.each([0, 3, 100, '1'])('rejects unsupported version %s without silently migrating or stripping', version => {
+  it.each([0, 5, 100, '1'])('rejects unsupported version %s without silently migrating or stripping', version => {
     expect(() => validateNativeProject({ ...source(), version })).toThrow(/Unsupported.*version/)
   })
 
   it('migrates version 1 without changing its source and preserves version 2 span geometry', () => {
     const legacy = { ...source(), version: 1 }
     const contents = JSON.stringify(legacy)
-    expect(decodeNativeProject(contents)).toEqual({ ...legacy, version: 2 })
+    expect(decodeNativeProject(contents)).toEqual({ ...legacy, version: 4 })
     expect(JSON.stringify(legacy)).toBe(contents)
     const project = source()
     project.score.hairpins![0].engraving = { placement: 'above', offsetX: 0.5, offsetY: -1, height: 3 }
     project.score.slurs![0].engraving = { placement: 'below', height: 2 }
     expect(decodeNativeProject(encodeNativeProject(project))).toEqual(project)
+    const v2 = JSON.stringify({ ...project, version: 2 })
+    expect(decodeNativeProject(v2)).toEqual(project)
     expect(() => validateNativeProject({ ...project, version: 1 })).toThrow(/version 1/)
     project.score.hairpins![0].engraving.offsetX = 99
     expect(() => validateNativeProject(project)).toThrow()

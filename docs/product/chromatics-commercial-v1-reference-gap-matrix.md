@@ -1,5 +1,20 @@
 # Chromatics Commercial V1 Reference Gap Matrix
 
+Latest 2026-09-14: native v4 musical segment placement, inherited/local geometry,
+part history and four-system/two-page output cover another bounded span contract.
+Continuation collision reservation now includes manual depth and adjacent marks.
+Inactive segment UI, structural authoring and full manual engraving remain open.
+
+2026-09-14: native v3 adds independent part slur/hairpin geometry, automatic
+reset/relink, history and actual PDF projection. Legacy recovery migration and
+visible-part initial selection are verified through fresh package/App/disk gates.
+The [MuseScore parts handbook](https://handbook.musescore.org/basics/parts), living
+handbook checked 2026-09-14, distinguishes linked musical content from independent
+position properties. Chromatics covers a bounded slur/hairpin subset, not full
+part-style parity. Shared screen/print annotation clearance now fixes the
+reproduced rich Piano overlap. Multi-system segments, extreme manual/ledger
+collisions and remaining expanded umbrellas stay Required.
+
 2026-09-13 geometry follow-up: numeric placement/offset/height, auto reset/history,
 native v2 with v1 migration and actual SVG/PDF output partially satisfy span
 properties. Segment-level and multi-system collision work remains Required.

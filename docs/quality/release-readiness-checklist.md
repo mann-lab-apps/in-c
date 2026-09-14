@@ -1,5 +1,38 @@
 # Release Readiness Checklist
 
+## 2026-09-14 Development Checkpoint
+
+User requested commit/push only. Current full suite: 646 passed / 1 skipped;
+build/typecheck, queue/site-content/diff gates pass. Contained range span copying
+has first core/native tests. Omission feedback, effective part-copy geometry and
+latest source-span GUI/package gates remain pending. This checkpoint is neither
+merge approval nor expanded-V1/RC completion. See the versioned continuation prompt.
+
+## 2026-09-14 Recovery Checkpoint
+
+Native-v4/segment checkpoint: 641 tests pass / 1 skip, fresh macOS package smoke,
+sequential E2E, visual, XML/MIDI, save-policy/queue/site-content/diff gates pass.
+An overlapping build invalidated an initial E2E; standalone rerun passed.
+Subsequent clipboard safety changes: 643 tests pass / 1 skip and build pass;
+new App workflow test passes. Final latest GUI/package gates remain pending.
+Approval-service capacity interruption and recovery are recorded in evidence.
+
+Quota resumption reverified typecheck/build, E2E, visual regression, XML/MIDI,
+save-policy/queue/site gates and a fresh macOS package. Part geometry and stacked
+annotation clearance have actual 960/1400 renderer/native/PDF evidence. Full suite
+629 pass / 1 skip after test Storage isolation repair. The PDF timeout and subsequent
+test setup failures are retained in evidence. Later native-v4 segment changes
+need their own final full/package gates; do not reuse the pre-segment result.
+This supersedes neither whole Required acceptance nor human/installer gates.
+
+Explicit execution resumed in an isolated worktree based on `ff6c9c2`. Current
+recovery/visible-part/rhythm cleanup changes: 620 tests passed / 1 skipped,
+build, E2E, visual regression, MusicXML/MIDI fixture gates and fresh macOS
+unpacked package pass. V1 recovery migration is now tested through disk/UI/IPC;
+unclaimed/unreadable recovery is protected. Subsequent span work needs its own
+gates. No installer, manual native-dialog, listening, external-app, or current
+Windows/Linux run is implied. Expanded V1 implementation and RC remain incomplete.
+
 ## 2026-09-13 Integration Checkpoint
 
 User requested stop plus push/merge. Final local full suite: 607 passed / 1

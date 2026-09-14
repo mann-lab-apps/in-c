@@ -1,6 +1,7 @@
-import { RotateCcw, Trash2, X } from 'lucide-react'
+import { Link2, RotateCcw, Trash2, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import type { Score, SpanEngraving } from '../../score-core'
+import { isSpanSegmentAddressValid, replaceSpanSegmentEngraving, resolveSpanSegmentEngraving, spanSegmentKey,
+  type Score, type SpanEngraving, type SpanGeometry, type SpanSegmentAddress } from '../../score-core'
 import { locateEvent } from './editor/editor-state'
 import { findSpan, listSpans, spanEndpointOptions, type SpanReference } from './editor/span-editing'
 
@@ -12,14 +13,33 @@ interface Props {
   onEndpointChange: (patch: Partial<{ startEventId: string; endEventId: string }>) => void
   onDelete: () => void
   onEngravingChange: (engraving?: SpanEngraving) => void
+  independentGeometry?: boolean
+  onInheritEngraving?: () => void
+  renderedSegments?: SpanReference[]
 }
 
-export function SpanProperties({ score, partId, selected, onSelect, onEndpointChange, onDelete, onEngravingChange }: Props) {
+export function SpanProperties({ score, partId, selected, onSelect, onEndpointChange, onDelete, onEngravingChange, independentGeometry, onInheritEngraving, renderedSegments }: Props) {
   const references = listSpans(score, partId)
   const span = selected && findSpan(score, selected)
   const start = span && locateEvent(score, span.startEventId)
   const owner = score.parts.find(part => part.id === start?.address.partId)
   const options = selected ? spanEndpointOptions(score, selected) : []
+  const segment = selected?.segment
+  const geometry = span && (segment ? resolveSpanSegmentEngraving(span.engraving, segment) : span.engraving)
+  const segmentOverride = span?.engraving?.segments?.find(item => segment && spanSegmentKey(item) === spanSegmentKey(segment))
+  const segmentOptions = new Map<string, SpanSegmentAddress>()
+  const currentSegments = renderedSegments?.filter(reference => reference.kind === selected?.kind && reference.id === selected.id)
+    .flatMap(reference => reference.segment ? [reference.segment] : [])
+  for (const address of [...(currentSegments ?? []), ...(segment ? [segment] : []), ...(span?.engraving?.segments ?? [])]) segmentOptions.set(spanSegmentKey(address), address)
+  const isRendered = (address: SpanSegmentAddress) => currentSegments?.some(item => spanSegmentKey(item) === spanSegmentKey(address))
+  const inactiveSegment = Boolean(segment && (currentSegments ? !isRendered(segment) : span && !isSpanSegmentAddressValid(score, span, segment)))
+  const commitGeometry = (value?: SpanGeometry) => onEngravingChange(segment
+    ? replaceSpanSegmentEngraving(span?.engraving, segment, value ?? null)
+    : value ? { ...span?.engraving, ...value } : undefined)
+  const segmentLabel = (address: SpanSegmentAddress) => {
+    const staff = score.parts.find(part => part.id === address.partId)?.staves.find(staff => staff.id === address.staffId)
+    return `${staff?.measures.find(measure => measure.id === address.startMeasureId)?.number ?? '?'} - ${staff?.measures.find(measure => measure.id === address.endMeasureId)?.number ?? '?'}마디 구간`
+  }
   return (
     <section className="selection-properties span-properties" aria-label="범위 표기 속성">
       <h3>범위 표기</h3>
@@ -57,18 +77,31 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
         </label>)}
         <details className="span-properties__geometry">
           <summary>배치 · 형상</summary>
+          <dl><div className="selection-properties__row"><dt>배치 범위</dt><dd>{partId ? independentGeometry ? '독립 파트보' : '총보 연동' : '총보'}</dd></div></dl>
+          <label className="selection-properties__edit"><span>조정 대상</span>
+            <select aria-label="표기 조정 대상" value={segment ? spanSegmentKey(segment) : ''}
+              onChange={event => onSelect({ kind: selected.kind, id: selected.id, segment: segmentOptions.get(event.target.value) })}>
+              <option value="">객체 전체</option>
+              {[...segmentOptions].map(([key, address]) => <option key={key} value={key}>{segmentLabel(address)}{currentSegments && !isRendered(address) ? ' (비활성)' : ''}</option>)}
+            </select>
+          </label>
+          {segment && currentSegments ? <output aria-label="구간 배치 상태">{inactiveSegment ? '현재 배치에 없음' : '현재 배치에 적용'}</output> : null}
           <label className="selection-properties__edit"><span>배치</span>
-            <select aria-label="표기 배치" value={span.engraving?.placement ?? 'auto'} onChange={event => onEngravingChange({ ...span.engraving, placement: event.target.value === 'auto' ? undefined : event.target.value as 'above' | 'below' })}>
+            <select aria-label="표기 배치" disabled={inactiveSegment} value={geometry?.placement ?? 'auto'} onChange={event => commitGeometry({ ...geometry, placement: event.target.value === 'auto' ? undefined : event.target.value as 'above' | 'below' })}>
               <option value="auto">자동</option><option value="above">보표 위</option><option value="below">보표 아래</option>
             </select>
           </label>
           {(['offsetX', 'offsetY', 'height'] as const).map(field => <label className="selection-properties__edit" key={field}>
             <span>{field === 'offsetX' ? '가로 이동 (sp)' : field === 'offsetY' ? '세로 이동 (sp)' : selected.kind === 'slur' ? '곡률 높이 (sp)' : '벌어짐 (sp)'}</span>
-            <GeometryInput key={`${selected.kind}:${selected.id}:${field}`} label={field === 'offsetX' ? '표기 가로 이동' : field === 'offsetY' ? '표기 세로 이동' : '표기 높이'}
+            <GeometryInput key={`${selected.kind}:${selected.id}:${segment ? spanSegmentKey(segment) : ''}:${field}`} label={field === 'offsetX' ? '표기 가로 이동' : field === 'offsetY' ? '표기 세로 이동' : '표기 높이'}
               min={field === 'height' ? 0.5 : -8} placeholder={field === 'height' ? '자동' : '0'}
-              value={span.engraving?.[field]} onCommit={value => onEngravingChange({ ...span.engraving, [field]: value })} />
+              disabled={inactiveSegment}
+              value={geometry?.[field]} onCommit={value => commitGeometry({ ...geometry, [field]: value })} />
           </label>)}
-          <button type="button" className="icon-button" aria-label="표기 자동 배치 복원" title="표기 자동 배치 복원" disabled={!span.engraving} onClick={() => onEngravingChange(undefined)}><RotateCcw size={18} aria-hidden="true" /></button>
+          <button type="button" className="icon-button" aria-label="표기 자동 배치 복원" title="표기 자동 배치 복원" disabled={inactiveSegment || !geometry} onClick={() => commitGeometry(undefined)}><RotateCcw size={18} aria-hidden="true" /></button>
+          {segment ? <button type="button" className="icon-button" aria-label="객체 전체 배치 따르기" title="객체 전체 배치 따르기" disabled={!segmentOverride}
+            onClick={() => onEngravingChange(replaceSpanSegmentEngraving(span.engraving, segment, undefined))}><Link2 size={18} aria-hidden="true" /></button> : null}
+          {onInheritEngraving && !segment ? <button type="button" className="icon-button" aria-label="총보 배치 따르기" title="총보 배치 따르기" disabled={!independentGeometry} onClick={onInheritEngraving}><Link2 size={18} aria-hidden="true" /></button> : null}
         </details>
         <div className="span-properties__actions">
           <button aria-label="선택 표기 삭제" title="선택 표기 삭제" onClick={onDelete} type="button"><Trash2 size={18} aria-hidden="true" /></button>
@@ -79,12 +112,12 @@ export function SpanProperties({ score, partId, selected, onSelect, onEndpointCh
   )
 }
 
-function GeometryInput({ label, min, placeholder, value, onCommit }: {
-  label: string; min: number; placeholder: string; value?: number; onCommit: (value?: number) => void
+function GeometryInput({ label, min, placeholder, value, onCommit, disabled }: {
+  label: string; min: number; placeholder: string; value?: number; onCommit: (value?: number) => void; disabled?: boolean
 }) {
   const [draft, setDraft] = useState(value === undefined ? '' : String(value))
   useEffect(() => setDraft(value === undefined ? '' : String(value)), [value])
-  return <input aria-label={label} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
+  return <input aria-label={label} disabled={disabled} type="number" min={min} max={8} step={0.25} placeholder={placeholder} value={draft}
     onChange={event => setDraft(event.target.value)}
     onBlur={event => {
       if (!event.currentTarget.validity.valid) { setDraft(value === undefined ? '' : String(value)); return }

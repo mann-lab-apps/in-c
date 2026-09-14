@@ -16,6 +16,7 @@ import recentMusicXml from '../../musicxml/fixtures/single-part-treble.musicxml?
 import tupletInputProgressMusicXml from '../../musicxml/fixtures/tuplet-input-progress.musicxml?raw'
 import richPartExportMusicXml from '../../musicxml/fixtures/expanded-v1-part-export.musicxml?raw'
 import restHairpinMusicXml from '../../musicxml/fixtures/rest-hairpin-input.musicxml?raw'
+import releaseQaMusicXml from '../../musicxml/fixtures/release-qa.musicxml?raw'
 import { parseMusicXml } from '../../musicxml'
 import { TICKS_PER_QUARTER } from '../../score-core'
 import { unsavedScoreChangesMessage } from './editor/file-lifecycle'
@@ -641,14 +642,7 @@ const installPreloadStub = () => {
 }
 
 const installLocalStorageStub = () => {
-  try {
-    if (window.localStorage) {
-      return
-    }
-  } catch {
-    // jsdom can expose localStorage as unavailable for opaque origins.
-  }
-
+  // Isolate each test from jsdom origins and Node's partial global Storage stub.
   const store = new Map<string, string>()
   Object.defineProperty(window, 'localStorage', {
     configurable: true,
@@ -717,7 +711,7 @@ describe('App component shell', () => {
     expect(
       screen.getByRole('button', { name: /MusicXML 가져오기/ })
     ).toBeEnabled()
-    expect(screen.getByRole('button', { name: /복구본 없음/ })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: /복구본 없음/ })).toBeDisabled()
   })
 
   it('start-recovery.new-score starts from blank measures instead of demo notes', async () => {
@@ -1574,6 +1568,123 @@ describe('App component shell', () => {
     expect(screen.queryByText(/Stale recovery read/)).not.toBeInTheDocument()
     expect(window.inC.autosave.clear).not.toHaveBeenCalled()
     expect(screen.getByText('Expanded Part Export')).toBeInTheDocument()
+  })
+
+  it('retries failed recovery reading and saves a migrated v1 project without clearing it early', async () => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject, validateNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    project.partLayouts = [{ partId: 'P2', title: 'Legacy recovery piano', layout: { pageSetup: { staffSizePercent: 90 } } }]
+    const migrated = validateNativeProject({ ...project, version: 1 })
+    vi.mocked(window.inC.autosave.read).mockRejectedValueOnce(new Error('Temporary read failure')).mockResolvedValue({ score: migrated.score, project: migrated, metadata: { title: migrated.score.title, updatedAt: '2026-09-13', version: 'test' } })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(await screen.findByRole('button', { name: /복구본 다시 확인/ }))
+    fireEvent.click(await screen.findByRole('button', { name: /복구본 열기/ }))
+    await screen.findByText('프로젝트 복구본을 열었습니다. 새 파일로 저장해 주세요.')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const request = vi.mocked(window.inC.project.save).mock.calls[0]![0]
+    expect(request).not.toHaveProperty('filePath')
+    expect(decodeNativeProject(request.contents)).toMatchObject(JSON.parse(JSON.stringify({ version: 4, score: migrated.score, view: migrated.view, partLayouts: migrated.partLayouts })))
+    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+  })
+
+  it('reports invalid recovery and leaves its data untouched for retry', async () => {
+    window.history.replaceState({}, '', '/')
+    vi.mocked(window.inC.autosave.read).mockResolvedValue({ score: demoScore, project: { version: 999 } as never, metadata: { title: 'Future project', updatedAt: '2026-09-13', version: 'test' } })
+    const { App } = await import('./App')
+    render(<App />)
+    expect(await screen.findByRole('button', { name: /복구본 다시 확인/ })).toBeEnabled()
+    expect(screen.queryByRole('button', { name: /복구본 열기/ })).not.toBeInTheDocument()
+    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    expect(window.inC.autosave.write).not.toHaveBeenCalled()
+  })
+
+  it.each(['success', 'failure'] as const)('ignores late recovery discard %s after a document switch', async outcome => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    vi.mocked(window.inC.autosave.read).mockResolvedValueOnce(null).mockResolvedValue({ score: project.score, project, metadata: { title: project.score.title, updatedAt: '2026-09-13', version: 'test' } })
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/current.chromatics', fileName: 'current.chromatics', contents: encodeNativeProject(project) })
+    let finish!: () => void
+    let fail!: (error: Error) => void
+    vi.mocked(window.inC.autosave.clear).mockImplementationOnce(() => new Promise((resolve, reject) => { finish = resolve; fail = reject }))
+    const { App } = await import('./App')
+    render(<App />)
+    await waitFor(() => expect(window.inC.autosave.read).toHaveBeenCalledOnce())
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('current.chromatics을 열었습니다.')
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '자동저장 복구' }))
+    const dialog = await screen.findByRole('dialog', { name: '자동저장 복구' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
+    expect(within(dialog).getByRole('button', { name: '복구' })).toBeDisabled()
+    project.score.title = 'Switched document'
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/switched.chromatics', fileName: 'switched.chromatics', contents: encodeNativeProject(project) })
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('switched.chromatics을 열었습니다.')
+    await act(async () => outcome === 'success' ? finish() : fail(new Error('Stale discard failure')))
+    expect(screen.getByText('switched.chromatics을 열었습니다.')).toBeInTheDocument()
+    expect(screen.queryByText(/복구본을 삭제했습니다|Stale discard failure/)).not.toBeInTheDocument()
+  })
+
+  it.each(['native', 'xml'] as const)('keeps unclaimed recovery through another document %s save until explicit discard', async format => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject } = await import('../../project/schema')
+    const oldProject = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    vi.mocked(window.inC.autosave.read).mockResolvedValue({ score: oldProject.score, project: oldProject, metadata: { title: oldProject.score.title, updatedAt: '2026-09-13', version: 'test' } })
+    vi.mocked(window.inC.musicXml.open).mockResolvedValue({ fileName: 'new.musicxml', filePath: '/scores/new.musicxml', contents: recentMusicXml })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ fileName: 'new.chromatics', filePath: '/scores/new.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ fileName: 'new.musicxml', filePath: '/scores/new.musicxml' })
+    const { App } = await import('./App')
+    render(<App />)
+    await screen.findByRole('button', { name: /복구본 열기/ })
+    fireEvent.click(screen.getByRole('button', { name: /MusicXML 가져오기/ }))
+    await screen.findByText('new.musicxml을 가져왔습니다.')
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: format === 'native' ? '프로젝트 저장' : 'MusicXML로 저장' }))
+    await screen.findByText(format === 'native' ? 'new.chromatics에 저장했습니다.' : /^new.musicxml을 MusicXML로 내보냈습니다\./)
+    expect(window.inC.autosave.clear).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '자동저장 복구' }))
+    const dialog = await screen.findByRole('dialog', { name: '자동저장 복구' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '삭제' }))
+    await screen.findByText('복구본을 삭제했습니다.')
+    expect(window.inC.autosave.clear).toHaveBeenCalledOnce()
+  })
+
+  it.each(['open', 'recovery'] as const)('part-view %s targets the visible part when deleting the initial event', async entry => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/part.chromatics', fileName: 'part.chromatics', contents: encodeNativeProject(project) })
+    if (entry === 'recovery') vi.mocked(window.inC.autosave.read).mockResolvedValue({ score: project.score, project, metadata: { title: project.score.title, updatedAt: '2026-09-13', version: 'test' } })
+    const { App } = await import('./App')
+    render(<App />)
+    if (entry === 'open') fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    else fireEvent.click(await screen.findByRole('button', { name: /복구본 열기/ }))
+    await waitFor(() => expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2'))
+    expect(screen.getByLabelText('현재 작업 컨텍스트')).toHaveTextContent('Piano')
+    expect(screen.getByLabelText('현재 작업 컨텍스트')).not.toHaveTextContent('Clarinet')
+    fireEvent.keyDown(window, { code: 'Delete', key: 'Delete' })
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save, document.querySelector('.editor-status')?.textContent ?? '').toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score.parts[0]).toEqual(JSON.parse(JSON.stringify(project.score.parts[0])))
+    expect(saved.score.parts[1]!.staves[0]!.measures[0]!.voices[0]!.events[0]!.type).toBe('rest')
+    fireEvent.click(screen.getByRole('button', { name: '실행 취소' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    fireEvent.click(screen.getByRole('button', { name: '다시 실행' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(3))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[2]![0].contents).score).toEqual(saved.score)
   })
 
   it('native recovery restores portable settings and autosaves the whole envelope', async () => {
@@ -3920,7 +4031,7 @@ describe('App component shell', () => {
     render(<App />)
 
     const startActions = screen.getByLabelText('시작 작업')
-    const recoveryButton = within(startActions).getByRole('button', {
+    const recoveryButton = await within(startActions).findByRole('button', {
       name: /복구본 없음/
     })
 
@@ -4552,6 +4663,55 @@ describe('App component shell', () => {
         'true'
       )
     )
+  })
+
+  it('range paste keeps target selection and markings through native save undo and reopen', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const part = project.score.parts[0]!, staff = part.staves[0]!, measure = staff.measures[0]!
+    const [source, , target, end] = measure.voices[0]!.events
+    if (source?.type !== 'note' || !target || !end) throw new Error('Invalid clipboard fixture')
+    source.lyrics = [{ number: 1, text: 'copy', syllabic: 'single' }]
+    source.articulations = ['accent']
+    project.score.slurs = [{ id: 'replaced', startEventId: target.id, endEventId: end.id }]
+    project.partLayouts = [{ partId: part.id, layout: {}, spanEngravings: [{ kind: 'slur', spanId: 'replaced', engraving: { offsetY: 3 } }] }]
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/paste.chromatics', fileName: 'paste.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => { contents = request.contents; return { filePath: '/scores/paste.chromatics', fileName: 'paste.chromatics' } })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Release QA Scenario')
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.keyDown(window, { code: 'KeyC', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
+    const preview = screen.getByTestId('notation-preview')
+    const pastedId = preview.getAttribute('data-selected-event-id')!
+    expect(pastedId).toMatch(/^event-/)
+    expect(preview.getAttribute('data-selected-event-address')).toBe(`${part.id}:${staff.id}:${measure.id}:${measure.voices[0]!.id}`)
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('paste.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    const saved = await save()
+    expect(saved.score.slurs).toEqual([])
+    expect(saved.partLayouts[0]!.spanEngravings).toEqual([])
+    const pasted = saved.score.parts[0]!.staves[0]!.measures[0]!.voices[0]!.events.find(event => event.id === pastedId)!
+    expect(pasted).toMatchObject({ lyrics: source.lyrics, articulations: source.articulations })
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    const undone = await save()
+    expect(undone.score).toEqual(project.score)
+    expect(undone.partLayouts).toEqual(project.partLayouts)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).score).toEqual(saved.score)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('paste.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(saved.score)
   })
 
   it('range-editing.same-staff-voice-copy-paste keeps navigation in the pasted voice', async () => {
@@ -5282,6 +5442,178 @@ describe('App component shell', () => {
     expect(screen.queryByLabelText('표기 끝점')).not.toBeInTheDocument()
   })
 
+  it.each(['slur', 'hairpin'] as const)('independent part %s geometry supports history reset inheritance and native reopen', async kind => {
+    window.history.replaceState({}, '', '/')
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    const span = (kind === 'slur' ? project.score.slurs : project.score.hairpins)![0]!
+    span.engraving = { offsetY: -1 }
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/independent.chromatics', fileName: 'independent.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/scores/independent.chromatics', fileName: 'independent.chromatics' }
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await waitFor(() => expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2'))
+    const select = () => {
+      fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+      fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: `${kind}:${span.id}` } })
+    }
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('independent.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    select()
+    fireEvent.click(screen.getByText('배치 · 형상'))
+    const offset = screen.getByLabelText('표기 세로 이동')
+    expect(offset).toHaveValue(-1)
+    fireEvent.change(offset, { target: { value: '2' } })
+    fireEvent.blur(offset)
+    expect(screen.getByText('독립 파트보')).toBeInTheDocument()
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(offset).toHaveValue(-1)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect(offset).toHaveValue(2)
+    const saved = await save()
+    expect(saved.score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    expect(saved.partLayouts[0]!.spanEngravings).toEqual([{ kind, spanId: span.id, engraving: { offsetY: 2 } }])
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    fireEvent.change(screen.getByLabelText('악보 보기'), { target: { value: 'score' } })
+    select()
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(-1)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await waitFor(() => expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2'))
+    select()
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(2)
+    fireEvent.click(screen.getByRole('button', { name: '표기 자동 배치 복원' }))
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(null)
+    expect((await save()).partLayouts[0]!.spanEngravings![0]!.engraving).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '총보 배치 따르기' }))
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(-1)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(null)
+    fireEvent.click(screen.getByRole('button', { name: '선택 표기 삭제' }))
+    expect((await save()).partLayouts[0]!.spanEngravings).toEqual([])
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).partLayouts[0]!.spanEngravings![0]!.engraving).toBeNull()
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/scores/interchange.musicxml', fileName: 'interchange.musicxml' })
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(within(await screen.findByRole('region', { name: 'MusicXML 경고 상세' })).getByText(/Independent part span placement/)).toBeInTheDocument()
+  })
+
+  it.each(['slur', 'hairpin'] as const)('part %s segment editing preserves whole-score geometry through history native reopen and reset', async kind => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { spanSegmentKey } = await import('../../score-core')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    project.view = { mode: 'part', partId: 'P2' }
+    const span = (kind === 'slur' ? project.score.slurs : project.score.hairpins)![0]!
+    const staff = project.score.parts[1]!.staves[0]!
+    const segment = { partId: 'P2', staffId: staff.id, startMeasureId: staff.measures[0]!.id, endMeasureId: staff.measures[0]!.id }
+    span.engraving = { offsetY: -1, segments: [{ ...segment, geometry: { offsetY: 1 } }] }
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/segments.chromatics', fileName: 'segments.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/scores/segments.chromatics', fileName: 'segments.chromatics' }
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByTestId('notation-preview')
+    const select = () => {
+      fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+      fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: `${kind}:${span.id}` } })
+      fireEvent.change(screen.getByLabelText('표기 조정 대상'), { target: { value: spanSegmentKey(segment) } })
+    }
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('segments.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    select()
+    const input = screen.getByLabelText('표기 세로 이동')
+    expect(input).toHaveValue(1)
+    fireEvent.change(input, { target: { value: '3' } }); fireEvent.blur(input)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect(input).toHaveValue(1)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect(input).toHaveValue(3)
+    const saved = await save()
+    expect(saved.score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    expect(saved.partLayouts[0]!.spanEngravings![0]!.engraving).toEqual({ offsetY: -1, segments: [{ ...segment, geometry: { offsetY: 3 } }] })
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('segments.chromatics을 열었습니다.')
+    select()
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(3)
+    fireEvent.click(screen.getByRole('button', { name: '표기 자동 배치 복원' }))
+    expect((await save()).partLayouts[0]!.spanEngravings![0]!.engraving?.segments![0]!.geometry).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: '객체 전체 배치 따르기' }))
+    expect(screen.getByLabelText('표기 세로 이동')).toHaveValue(-1)
+    expect((await save()).partLayouts[0]!.spanEngravings![0]!.engraving?.segments).toBeUndefined()
+  })
+
+  it.each(['slur', 'hairpin'] as const)('deleting a segment boundary prunes saved %s overrides but saving does not erase undo geometry', async kind => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const part = project.score.parts[0]!, staff = part.staves[0]!
+    const notes = staff.measures.flatMap(measure => measure.voices.flatMap(voice => voice.events.filter(event => event.type === 'note')))
+    const deleted = staff.measures[1]!, retained = staff.measures[2]!
+    const address = (measureId: string) => ({ partId: part.id, staffId: staff.id, startMeasureId: measureId, endMeasureId: measureId })
+    const engraving = { offsetY: -1, segments: [
+      { ...address(deleted.id), geometry: { offsetY: 2 } }, { ...address(retained.id), geometry: { offsetY: 3 } }
+    ] }
+    const span = { id: 'structural-span', startEventId: notes[0]!.id, endEventId: notes.at(-1)!.id, engraving }
+    if (kind === 'slur') project.score.slurs = [span]
+    else project.score.hairpins = [{ ...span, type: 'crescendo' }]
+    project.partLayouts = [{ partId: part.id, layout: {}, spanEngravings: [{ kind, spanId: span.id,
+      engraving: { ...engraving, segments: engraving.segments.map(item => ({ ...item, geometry: { offsetY: 4 } })) } }] }]
+    project.view = { mode: 'part', partId: part.id }
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/structural.chromatics', fileName: 'structural.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => { contents = request.contents; return { filePath: '/scores/structural.chromatics', fileName: 'structural.chromatics' } })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Release QA Scenario')
+    fireEvent.click(screen.getByRole('button', { name: `${deleted.voices[0]!.events[0]!.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    fireEvent.click(screen.getByRole('button', { name: '마디 삭제' }))
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('structural.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    const pruned = await save()
+    const spans = (score: typeof project.score) => kind === 'slur' ? score.slurs! : score.hairpins!
+    expect(spans(pruned.score)[0]!.engraving!.segments).toEqual([engraving.segments[1]])
+    expect(pruned.partLayouts[0]!.spanEngravings![0]!.engraving!.segments).toEqual([project.partLayouts[0]!.spanEngravings![0]!.engraving!.segments![1]])
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    const restored = await save()
+    expect(spans(restored.score)).toEqual(spans(project.score))
+    expect(restored.partLayouts).toEqual(project.partLayouts)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).partLayouts).toEqual(pruned.partLayouts)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('structural.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(pruned.score)
+  })
+
   it('span geometry commits numeric drafts, cancels invalid edits and resets through native history', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { decodeNativeProject } = await import('../../project/schema')
@@ -5312,7 +5644,7 @@ describe('App component shell', () => {
     fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
     const native = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
-    expect(native.version).toBe(2)
+    expect(native.version).toBe(4)
     expect(native.score.hairpins?.find(span => `hairpin:${span.id}` === reference)?.engraving).toEqual({ placement: 'above', offsetY: -1.5 })
     fireEvent.click(screen.getByRole('button', { name: '파일' }))
     fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))

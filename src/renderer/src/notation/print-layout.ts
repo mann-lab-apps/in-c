@@ -1,5 +1,6 @@
 import type { Score, ScorePageSetup } from '../../../score-core'
 import { createSystemLayout } from './system-layout'
+import { resolveScoreVerticalLayout } from './score-vertical-layout'
 
 export type PrintPageTarget = 'auto' | number
 export type PrintEngravingStylePreset = 'default' | 'readable' | 'compact'
@@ -143,13 +144,14 @@ function evaluatePrintLayoutCandidate(
     pageSetup
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
+  const vertical = resolveScoreVerticalLayout(score, Math.max(0.82, normalizedCandidate.scale), normalizedCandidate.systemHeight, normalizedCandidate.systemTop)
   const layout = createSystemLayout(measures, normalizedCandidate.renderWidth, {
     compactSpacing: normalizedCandidate.compactSpacing,
     layout: score.layout,
     lyricScale: Math.max(0.82, normalizedCandidate.scale),
     pageHeight: normalizedCandidate.pageHeight,
-    systemHeight: normalizedCandidate.systemHeight,
-    systemTop: normalizedCandidate.systemTop
+    systemHeight: vertical.systemHeight,
+    systemTop: vertical.systemTop
   })
   const estimatedPageCount = estimatePrintedPageCount(
     layout.height,
@@ -376,7 +378,7 @@ function withTargetPageResult(
   }
 }
 
-function estimatePrintedPageCount(layoutHeight: number, pageHeight: number): number {
+export function estimatePrintedPageCount(layoutHeight: number, pageHeight: number): number {
   return Math.max(1, Math.ceil((layoutHeight + PAGE_COUNT_GUARD_HEIGHT) / pageHeight))
 }
 

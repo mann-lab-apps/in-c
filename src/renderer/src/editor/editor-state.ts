@@ -7,6 +7,8 @@ import type {
   Rest,
   Score,
   ScoreCommand,
+  Slur,
+  Hairpin,
   VoiceAddress,
   VoiceEvent
 } from '../../../score-core'
@@ -15,6 +17,7 @@ import {
   applyScoreCommand,
   buildRhythmDeleteCommand,
   buildRhythmEditCommand,
+  buildSpanCleanupCommands,
   createNote,
   createRest,
   createDuration as createScoreDuration,
@@ -78,6 +81,11 @@ export interface RangeClipboard {
   durationTicks: number
   eventCount: number
   events: RangeClipboardEvent[]
+  sourceAddress?: VoiceAddress
+  slurs?: Slur[]
+  hairpins?: Hairpin[]
+  excludedSpanCount?: number
+  excludedSegmentCount?: number
 }
 
 export const durationLabels: Record<DurationValue, string> = {
@@ -383,12 +391,29 @@ export function buildRangeClipboard(
   const startTick = range.events[0].position.tick
   const endTick = eventEndTick(range.events[range.events.length - 1])
 
+  const selectedIds = new Set(range.events.map(event => event.id))
+  let excludedSpanCount = 0, excludedSegmentCount = 0
+  const collectSpans = <T extends Slur | Hairpin>(spans: T[] | undefined): T[] => (spans ?? []).flatMap(span => {
+    const start = selectedIds.has(span.startEventId), end = selectedIds.has(span.endEventId)
+    if (!start || !end) { if (start || end) excludedSpanCount += 1; return [] }
+    const copy = structuredClone(span)
+    if (copy.engraving?.segments) {
+      const segments = copy.engraving.segments.filter(segment => segment.partId === range.address.partId &&
+        segment.staffId === range.address.staffId && segment.startMeasureId === range.address.measureId && segment.endMeasureId === range.address.measureId)
+      excludedSegmentCount += copy.engraving.segments.length - segments.length
+      copy.engraving.segments = segments.length ? segments : undefined
+    }
+    return [copy]
+  })
+  const slurs = collectSpans(score.slurs), hairpins = collectSpans(score.hairpins)
+
   return {
     durationTicks: endTick - startTick,
     eventCount: range.events.length,
+    sourceAddress: { ...range.address }, slurs, hairpins, excludedSpanCount, excludedSegmentCount,
     events: range.events.map((event) => ({
       relativeTick: event.position.tick - startTick,
-      event
+      event: structuredClone(event)
     }))
   }
 }
@@ -458,12 +483,28 @@ export function buildRangePasteCommand(
     return undefined
   }
 
-  return {
+  const replacement: ScoreCommand = {
     type: 'voice-events.replace',
     target: range.address,
     events: nextEvents,
     editedEventId: pastedEvents[0]?.id
   }
+  const cleanup = buildSpanCleanupCommands(score, range.voice.events, nextEvents)
+  const commands: ScoreCommand[] = [replacement, ...cleanup]
+  const eventIds = new Map(clipboard.events.map(({ event }, index) => [event.id, pastedEvents[index]!.id]))
+  const copySpans = <T extends Slur | Hairpin>(spans: T[] | undefined): T[] => (spans ?? []).flatMap(span => {
+    const startEventId = eventIds.get(span.startEventId), endEventId = eventIds.get(span.endEventId)
+    if (!startEventId || !endEventId) return []
+    const copy = { ...structuredClone(span), id: createId(), startEventId, endEventId }
+    if (copy.engraving?.segments) copy.engraving.segments = copy.engraving.segments.map(segment => ({ ...segment,
+      partId: range.address.partId, staffId: range.address.staffId, startMeasureId: range.address.measureId, endMeasureId: range.address.measureId }))
+    return [copy]
+  })
+  const copiedSlurs = copySpans(clipboard.slurs), copiedHairpins = copySpans(clipboard.hairpins)
+  const retained = <T extends Slur | Hairpin>(spans: T[] | undefined) => (spans ?? []).filter(span => !selectedIds.has(span.startEventId) && !selectedIds.has(span.endEventId))
+  if (copiedSlurs.length) commands.push({ type: 'score-slurs.update', slurs: [...retained(score.slurs), ...copiedSlurs] })
+  if (copiedHairpins.length) commands.push({ type: 'score-hairpins.update', hairpins: [...retained(score.hairpins), ...copiedHairpins] })
+  return commands.length > 1 ? { type: 'score.batch', commands } : replacement
 }
 
 export function buildFilteredRangePasteCommand(
@@ -1615,28 +1656,11 @@ function cloneClipboardEvent(
   tick: number,
   createId: () => string
 ): VoiceEvent {
-  if (event.type === 'rest') {
-    return {
-      type: 'rest',
-      id: createId(),
-      position: createTimePosition(tick),
-      duration: {
-        ...event.duration
-      }
-    } satisfies Rest
-  }
-
   return {
-    type: 'note',
+    ...structuredClone(event),
     id: createId(),
-    position: createTimePosition(tick),
-    pitch: {
-      ...event.pitch
-    },
-    duration: {
-      ...event.duration
-    }
-  } satisfies Note
+    position: createTimePosition(tick)
+  }
 }
 
 function eventEndTick(event: VoiceEvent): number {
