@@ -1,0 +1,314 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_library_controller.dart';
+import 'package:in_c_sheet/sheet_library_store.dart';
+import 'package:in_c_sheet/sheet_score.dart';
+import 'package:in_c_sheet/sheet_setlist.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  late _SetlistStore store;
+  late SheetLibraryController controller;
+  final failure = StateError('setlist save failed');
+
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    store = _SetlistStore(failure);
+    final now = DateTime(2026, 9, 14);
+    await store.saveScores([
+      for (final id in ['one', 'two', 'free'])
+        SheetScore(
+          id: id,
+          title: id,
+          composer: '',
+          tags: const [],
+          note: '',
+          filePath: '/tmp/$id.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const [],
+        ),
+    ]);
+    await store.saveSetlists([
+      SheetSetlist(
+        id: 'concert',
+        title: 'Concert',
+        scoreIds: const ['one', 'two'],
+        createdAt: now,
+        updatedAt: now,
+      ),
+      SheetSetlist(
+        id: 'other',
+        title: 'Other',
+        scoreIds: const [],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ]);
+    controller = SheetLibraryController(store: store);
+    await controller.load();
+  });
+
+  for (final action in [
+    'create',
+    'duplicate',
+    'delete',
+    'rename',
+    'add',
+    'remove',
+    'move',
+    'insert',
+    'settings',
+    'opened',
+  ]) {
+    test('$action failure restores durable setlists and notifies', () async {
+      final original = controller.setlists.map((s) => s.toJson()).toList();
+      var notifications = 0;
+      controller.addListener(() => notifications++);
+      store.failWrites = true;
+      await expectLater(_change(controller, action), throwsA(same(failure)));
+      expect(controller.setlists.map((s) => s.toJson()).toList(), original);
+      expect(
+        (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+        original,
+      );
+      expect(notifications, greaterThan(0));
+      store.failWrites = false;
+      await _change(controller, action);
+      expect(
+        controller.setlists.map((s) => s.toJson()).toList(),
+        (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+      );
+    });
+  }
+
+  for (final firstFails in [false, true]) {
+    for (final lastFails in [false, true]) {
+      test(
+        'consecutive setlist writes recover durable state $firstFails/$lastFails',
+        () async {
+          store.delayWrites = true;
+          final first = _change(controller, 'rename');
+          final checkedFirst = firstFails
+              ? expectLater(first, throwsA(same(failure)))
+              : first;
+          final last = _change(controller, 'add');
+          final checkedLast = lastFails
+              ? expectLater(last, throwsA(same(failure)))
+              : last;
+          if (firstFails) {
+            store.writes[0].completeError(failure);
+          } else {
+            store.writes[0].complete();
+          }
+          await checkedFirst;
+          if (lastFails) {
+            store.writes[1].completeError(failure);
+          } else {
+            store.writes[1].complete();
+          }
+          await checkedLast;
+          expect(
+            controller.setlists.map((s) => s.toJson()).toList(),
+            (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+          );
+        },
+      );
+    }
+  }
+
+  test('older failure cannot replace newer successful setlist state', () async {
+    store.delayWrites = true;
+    final first = expectLater(
+      _change(controller, 'rename'),
+      throwsA(same(failure)),
+    );
+    final last = _change(controller, 'add');
+    store.writes[1].complete();
+    await last;
+    final latest = controller.setlists.map((s) => s.toJson()).toList();
+    store.writes[0].completeError(failure);
+    await first;
+    expect(controller.setlists.map((s) => s.toJson()).toList(), latest);
+  });
+
+  for (final switchLibrary in [false, true]) {
+    test(
+      'delayed setlist recovery preserves newer state: $switchLibrary',
+      () async {
+        store.readEntered = Completer<void>();
+        store.releaseRead = Completer<void>();
+        store.failWrites = true;
+        final pending = expectLater(
+          _change(controller, 'rename'),
+          throwsA(same(failure)),
+        );
+        await store.readEntered!.future;
+        store.failWrites = false;
+        if (switchLibrary) {
+          await controller.createLibraryProfile('New library');
+        } else {
+          await _change(controller, 'delete');
+        }
+        final latest = controller.setlists.map((s) => s.toJson()).toList();
+        store.releaseRead!.complete();
+        await pending;
+        expect(controller.setlists.map((s) => s.toJson()).toList(), latest);
+      },
+    );
+  }
+
+  for (final create in [false, true]) {
+    testWidgets('closed bulk setlist UI ignores late failure: $create', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(2560, 1600);
+      tester.view.devicePixelRatio = 2;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(InCSheetApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.longPress(find.text('free').first);
+      await tester.pumpAndSettle();
+      store.delayWrites = true;
+      await _addSelected(tester, create: create);
+      await tester.pumpWidget(const SizedBox.shrink());
+      store.writes.single.completeError(failure);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(controller.setlists, hasLength(2));
+      expect(controller.setlistById('concert').scoreIds, ['one', 'two']);
+    });
+
+    testWidgets(
+      'bulk setlist failure keeps selection and allows retry: $create',
+      (tester) async {
+        tester.view.physicalSize = const Size(2560, 1600);
+        tester.view.devicePixelRatio = 2;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        await tester.pumpWidget(InCSheetApp(controller: controller));
+        await tester.pumpAndSettle();
+        await tester.longPress(find.text('free').first);
+        await tester.pumpAndSettle();
+        store.failWrites = true;
+        await _addSelected(tester, create: create);
+        expect(tester.takeException(), isNull);
+        expect(find.text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+        expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsOneWidget);
+        expect(controller.setlists, hasLength(2));
+        expect(controller.setlistById('concert').scoreIds, ['one', 'two']);
+        store.failWrites = false;
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+        await _addSelected(tester, create: create);
+        expect(
+          controller
+              .setlistByTitleOrNull(create ? 'Created' : 'Concert')!
+              .scoreIds,
+          contains('free'),
+        );
+        expect(find.byTooltip('선택 악보를 세트리스트에 추가'), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  test(
+    'setlist recovery read failure preserves the original write error',
+    () async {
+      store.failRead = true;
+      store.failWrites = true;
+      await expectLater(_change(controller, 'rename'), throwsA(same(failure)));
+      store.failRead = false;
+      await controller.load();
+      expect(controller.setlistById('concert').title, 'Concert');
+    },
+  );
+}
+
+Future<void> _addSelected(WidgetTester tester, {required bool create}) async {
+  await tester.tap(find.byTooltip('선택 악보를 세트리스트에 추가'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(create ? '새 세트리스트 만들기' : 'Concert').last);
+  await tester.pumpAndSettle();
+  if (create) {
+    await tester.enterText(find.widgetWithText(TextField, '이름'), 'Created');
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+  }
+}
+
+Future<void> _change(SheetLibraryController controller, String action) async {
+  final setlist = controller.setlistById('concert');
+  final free = controller.scoreById('free');
+  switch (action) {
+    case 'create':
+      await controller.createSetlist('Created');
+    case 'duplicate':
+      await controller.duplicateSetlist(setlist);
+    case 'delete':
+      await controller.deleteSetlist(setlist);
+    case 'rename':
+      await controller.renameSetlist(setlist, 'Renamed');
+    case 'add':
+      await controller.addScoresToSetlist(setlist, [free]);
+    case 'remove':
+      await controller.removeScoreFromSetlist(
+        setlist,
+        controller.scoreById('one'),
+      );
+    case 'move':
+      await controller.moveScoreInSetlist(setlist, 0, 1);
+    case 'insert':
+      await controller.insertScoreInSetlist(setlist, free, 1);
+    case 'settings':
+      await controller.updateSetlistRehearsalSettings(
+        setlist,
+        scoreNotes: {'one': 'Cue'},
+      );
+    case 'opened':
+      await controller.markSetlistOpened(setlist, scoreId: 'two');
+  }
+}
+
+class _SetlistStore extends SheetLibraryStore {
+  _SetlistStore(this.failure);
+  final Object failure;
+  bool failWrites = false;
+  bool delayWrites = false;
+  bool failRead = false;
+  final writes = <Completer<void>>[];
+  Completer<void>? readEntered;
+  Completer<void>? releaseRead;
+
+  @override
+  Future<List<SheetSetlist>> loadSetlists() async {
+    if (failRead) throw StateError('setlist read failed');
+    final result = await super.loadSetlists();
+    final entered = readEntered;
+    if (entered != null && !entered.isCompleted) {
+      entered.complete();
+      await releaseRead!.future;
+    }
+    return result;
+  }
+
+  @override
+  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+    if (delayWrites) {
+      final completion = Completer<void>();
+      writes.add(completion);
+      await completion.future;
+    }
+    if (failWrites) throw failure;
+    await super.saveSetlists(setlists);
+  }
+}

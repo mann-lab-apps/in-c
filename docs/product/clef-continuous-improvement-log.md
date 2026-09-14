@@ -33,7 +33,8 @@
 | Q2 | RC exit-code-only checks can accept an interrupted Flutter run. | Require valid JSON start/test completion/final success, zero process exit and at least one executed non-hidden test; reject errors even after test completion. | Eight false-success regressions reproduced in the extracted old predicate. Twelve fixtures plus actual Flutter file-reporter integration pass. Full suite 642/642, analyze/RC PASS. | VERIFIED LOCAL |
 | S20 | Bulk metadata/collection saves retain failed edits in memory and leak errors from selection UI. | Recover persisted scores only while the request owns the current list/profile; preserve selection on failure, no success notice, allow retry, ignore closed UI. No-op bulk calls must not invalidate pending recovery. | Six regression failures reproduced before fix. Fourteen new unit/widget cases plus S18 recovery regression; full suite 656/656, analyze/RC PASS. | VERIFIED LOCAL |
 | S21 | Single/batch/image/shared import leaves unsaved score cards after metadata failure. | Recover persisted scores with S18/S20 ownership guards, return no imported success, distinguish storage failure from file failure, release import state and allow retry. Never delete source files to compensate. | Four controller flows plus batch UI reproduced failure. Thirteen new tests; full suite 669/669, analyze/RC PASS. | VERIFIED LOCAL |
-| S22 | Setlist writes still bypass controller recovery and several UI actions lack error handling. | Reproduce each surface separately; preserve newer state and propagate save failures to actionable UI. | S18/S20 are the recovery reference. | TODO |
+| S22 | Setlist mutations retain unsaved state and bulk add/create leaks failures to the UI. | Recover durable setlists only for the owning list/profile; preserve newer writes, report original failure, retain bulk selection for retry and ignore closed UI. | Twenty-two mutation/race/recovery/bulk UI cases; full suite 691/691, analyze/RC PASS. | VERIFIED LOCAL |
+| S23 | Setlist detail/create/import/viewer actions still have uncaught save failures despite controller recovery. | Apply guarded error feedback at remaining entry points without false success/navigation or loss of retry context. | Inspect each callback; do not count S22 bulk UI coverage as detail/viewer coverage. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -84,6 +85,17 @@ same source filename to match actual import behavior. Both were corrected before
 Formatter changes were limited to the edited controller/new test file. Commit subject:
 `fix: recover Clef imports after metadata save failures`. No build/version change/push/merge.
 Next command: add setlist save-failure regression tests for S22; do not rerun completed slices.
+
+S22: create/duplicate/delete/replacement writes share ownership-aware setlist recovery,
+preserving newer mutations and profile switches. Bulk selection add/new-target creation now catches
+save errors and retains selection for retry. Setlist cleanup during score deletion/load remains a
+separate cross-collection concern. Initial state regressions reproduced unsaved mutations; two
+recovery-read tests timed out before the recovery path existed. After fix all initial 19 cases pass.
+Closed-UI/read-failure extensions pass: 22/22 targeted cases, 691/691 full tests, analyze,
+JSON completion gate and RC scans PASS (`/private/tmp/clef-rc-s22.log`). Remaining UI callbacks
+are S23. Earlier checkpoint commits: Q2 `4efe8bb`, S20 `72ae320`, S21 `32da0d3`.
+Commit subject: `fix: recover Clef setlists after save failures`. No build/version change/push/merge.
+Next: reproduce detail editing failures before applying guarded feedback at those entry points.
 
 ## Verification Policy
 

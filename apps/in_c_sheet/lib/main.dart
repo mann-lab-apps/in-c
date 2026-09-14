@@ -239,8 +239,11 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
 
-    final result = await controller.addScoresToSetlist(target, selectedScores);
-    if (!mounted) {
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(target, selectedScores),
+    );
+    if (!mounted || result == null) {
       return;
     }
     if (_showSetlistAddFailure(context, result)) return;
@@ -397,7 +400,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         );
         return existing;
       }
-      return controller.createSetlist(title);
+      return _trySetlistSave(context, () => controller.createSetlist(title));
     }
     return action.setlist;
   }
@@ -4093,6 +4096,22 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
         '${note?.isNotEmpty == true ? note : '메모 없음'} · $identity';
   }
   return '${score.lastPage}쪽부터 열기 · $identity';
+}
+
+Future<T?> _trySetlistSave<T>(
+  BuildContext context,
+  Future<T> Function() save,
+) async {
+  try {
+    return await save();
+  } catch (_) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.')),
+      );
+    }
+    return null;
+  }
 }
 
 bool _showSetlistAddFailure(

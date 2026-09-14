@@ -2280,8 +2280,7 @@ class SheetLibraryController extends ChangeNotifier {
       updatedAt: now,
     );
     _setlists = <SheetSetlist>[setlist, ..._setlists];
-    await store.saveSetlists(_setlists);
-    notifyListeners();
+    await _saveSetlistChanges();
     return setlist;
   }
 
@@ -2320,8 +2319,7 @@ class SheetLibraryController extends ChangeNotifier {
       viewerSettingsOverride: setlist.viewerSettingsOverride,
     );
     _setlists = <SheetSetlist>[duplicate, ..._setlists];
-    await store.saveSetlists(_setlists);
-    notifyListeners();
+    await _saveSetlistChanges();
     return duplicate;
   }
 
@@ -2329,8 +2327,7 @@ class SheetLibraryController extends ChangeNotifier {
     _setlists = _setlists
         .where((candidate) => candidate.id != setlist.id)
         .toList(growable: false);
-    await store.saveSetlists(_setlists);
-    notifyListeners();
+    await _saveSetlistChanges();
   }
 
   Future<void> addScoreToSetlist(SheetSetlist setlist, SheetScore score) async {
@@ -2946,7 +2943,30 @@ class SheetLibraryController extends ChangeNotifier {
     _setlists = _setlists
         .map((setlist) => setlist.id == updated.id ? updated : setlist)
         .toList(growable: false);
-    await store.saveSetlists(_setlists);
+    await _saveSetlistChanges();
+  }
+
+  Future<void> _saveSetlistChanges() async {
+    final pendingSetlists = _setlists;
+    final libraryId = _activeLibraryProfile.id;
+    try {
+      await store.saveSetlists(pendingSetlists);
+    } catch (_) {
+      if (identical(_setlists, pendingSetlists) &&
+          _activeLibraryProfile.id == libraryId) {
+        try {
+          final persisted = await store.loadSetlists();
+          if (identical(_setlists, pendingSetlists) &&
+              _activeLibraryProfile.id == libraryId) {
+            _setlists = persisted;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Surface the original write failure even when recovery is unavailable.
+        }
+      }
+      rethrow;
+    }
     notifyListeners();
   }
 
