@@ -245,22 +245,25 @@ class _VisitStore extends SheetLibraryStore {
   bool failSetlists = false;
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     scoreWrites++;
     final pending = pendingScoreWrite;
     pendingScoreWrite = null;
     await pending?.future;
     if (failScores) throw StateError('score visit failed');
-    await super.saveScores(scores);
+    await super.saveScores(scores, libraryId: libraryId);
   }
 
   @override
-  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+  Future<void> saveSetlists(
+    List<SheetSetlist> setlists, {
+    String? libraryId,
+  }) async {
     setlistWrites++;
     final pending = pendingSetlistWrite;
     pendingSetlistWrite = null;
     await pending?.future;
     if (failSetlists) throw StateError('setlist visit failed');
-    await super.saveSetlists(setlists);
+    await super.saveSetlists(setlists, libraryId: libraryId);
   }
 }

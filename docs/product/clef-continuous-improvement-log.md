@@ -44,6 +44,8 @@
 
 | S29 | CSV picker completion may edit a same-ID score in another library; all failures blame CSV format. | Reject results/errors from another library, preserve edits made during selection, distinguish missing score/read/format/persistence failures and retry safely. | Eight new controller cases; five initial red failures, targeted 88/88, full 807/807, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S30 | Delayed successful score/setlist/cleanup saves resolve the newly active library instead of their origin. | Pass captured library ID through owned score/setlist saves and startup cleanup; preserve existing rollback queue and backup scope. | Five red/green delay tests plus four explicit-target rollback/backup cases; targeted 61/61 and store 119/119, full 816/816, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -200,6 +202,18 @@ analyze/RC and whitespace scans PASS. Temporary evidence: `/private/tmp/clef-csv
 `/private/tmp/clef-rc-s29.log`. Commit subject: `fix: guard Clef CSV bookmark import outcomes`.
 This covers picker delay, not every store-write/profile-switch interleaving. No native picker
 or newest-build emulator claim. Next: full RC, then songbook setlist action or delayed save scope.
+
+S29 commit: `d85e3ff`. S30 reproduced late successful writes crossing libraries for scores,
+setlists (default and named profiles) and startup cleanup. Existing owned-save helpers now
+pass their captured library ID; store APIs accept an optional explicit scope and keep default
+active-library behavior for other callers. Test doubles forward the same optional parameter.
+Explicit-target backup write failures (false/throw) preserve all prior keys; retries update
+only source metadata/backup without switching the active library. Full suite 816/816,
+analyze/RC and whitespace scans PASS. Temporary evidence: `/private/tmp/clef-save-scope-red.log`,
+`/private/tmp/clef-save-scope-green.log`, `/private/tmp/clef-save-scope-store.log`, `/private/tmp/clef-rc-s30.log`.
+Commit subject: `fix: scope Clef delayed metadata saves to their origin`.
+This does not establish safety for overlapping full loads or removing the source profile
+while a save is pending. Next: songbook setlist action save failure and retry UX.
 
 ## Verification Policy
 

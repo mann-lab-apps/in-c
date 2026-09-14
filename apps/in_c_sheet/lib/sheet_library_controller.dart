@@ -2978,7 +2978,7 @@ class SheetLibraryController extends ChangeNotifier {
     final pendingScores = _scores;
     final libraryId = _activeLibraryProfile.id;
     try {
-      await store.saveScores(pendingScores);
+      await store.saveScores(pendingScores, libraryId: libraryId);
     } catch (_) {
       if (identical(_scores, pendingScores) &&
           _activeLibraryProfile.id == libraryId) {
@@ -3014,7 +3014,7 @@ class SheetLibraryController extends ChangeNotifier {
     final pendingSetlists = _setlists;
     final libraryId = _activeLibraryProfile.id;
     try {
-      await store.saveSetlists(pendingSetlists);
+      await store.saveSetlists(pendingSetlists, libraryId: libraryId);
     } catch (_) {
       if (identical(_setlists, pendingSetlists) &&
           _activeLibraryProfile.id == libraryId) {
@@ -3080,7 +3080,7 @@ class SheetLibraryController extends ChangeNotifier {
       _setlists = cleaned;
       final libraryId = _activeLibraryProfile.id;
       try {
-        await store.saveSetlists(cleaned);
+        await store.saveSetlists(cleaned, libraryId: libraryId);
       } catch (_) {
         // Keep usable references in memory; a later load retries durable cleanup.
         if (identical(_setlists, cleaned) &&

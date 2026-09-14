@@ -140,8 +140,8 @@ class _CsvStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     if (failSave) throw StateError('write failed');
-    await super.saveScores(scores);
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }

@@ -405,9 +405,9 @@ class SheetLibraryStore {
     return _sortScores(scores);
   }
 
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     await _writeMetadataValues(preferences, {
       _scopedKey(_scoresKey, activeLibraryId): SheetScore.encodeList(scores),
     }, automaticBackupLibraryId: activeLibraryId);
@@ -431,9 +431,12 @@ class SheetLibraryStore {
     }, automaticBackupLibraryId: libraryId);
   }
 
-  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+  Future<void> saveSetlists(
+    List<SheetSetlist> setlists, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     await _writeMetadataValues(preferences, {
       _scopedKey(_setlistsKey, activeLibraryId): SheetSetlist.encodeList(
         setlists,

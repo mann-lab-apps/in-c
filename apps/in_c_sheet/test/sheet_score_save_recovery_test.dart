@@ -52,6 +52,31 @@ void main() {
     store.delayWrites = true;
   });
 
+  for (final scoped in [false, true]) {
+    test(
+      'successful delayed score save stays in its source library: $scoped',
+      () async {
+        if (scoped) {
+          store.delayWrites = false;
+          await controller.createLibraryProfile('Source');
+          await store.saveScores([original]);
+          await controller.load();
+          store.delayWrites = true;
+        }
+        final sourceId = controller.activeLibraryProfile.id;
+        final pending = controller.addTextAnnotation(original, text);
+        store.delayWrites = false;
+        await controller.createLibraryProfile('Destination');
+        store.writes.single.complete();
+        await pending;
+        expect(controller.scores, isEmpty);
+        expect(await store.loadScores(), isEmpty);
+        await controller.switchLibraryProfile(sourceId);
+        expect(controller.scores.single.annotationLayer.texts, hasLength(2));
+      },
+    );
+  }
+
   test(
     'failed annotation save restores the persisted score before notifying',
     () async {
@@ -216,12 +241,12 @@ class _DelayedScoreStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     if (delayWrites) {
       final completion = Completer<void>();
       writes.add(completion);
       await completion.future;
     }
-    await super.saveScores(scores);
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }

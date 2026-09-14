@@ -357,10 +357,13 @@ class _ImportStore extends SheetLibraryStore {
   Completer<void>? pendingSetlistWrite;
 
   @override
-  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+  Future<void> saveSetlists(
+    List<SheetSetlist> setlists, {
+    String? libraryId,
+  }) async {
     await pendingSetlistWrite?.future;
     if (failSetlistSave) throw StateError('setlist save failed');
-    await super.saveSetlists(setlists);
+    await super.saveSetlists(setlists, libraryId: libraryId);
   }
 
   bool failSave = false;
@@ -393,7 +396,7 @@ class _ImportStore extends SheetLibraryStore {
       _imported();
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     saveCalls++;
     final shouldFail = failSave;
     final entered = writeEntered;
@@ -402,6 +405,6 @@ class _ImportStore extends SheetLibraryStore {
       await releaseWrite!.future;
     }
     if (shouldFail) throw StateError('metadata save failed');
-    await super.saveScores(scores);
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }

@@ -3648,7 +3648,7 @@ class _PageRotationCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 
@@ -3708,7 +3708,7 @@ class _PageCropCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 
@@ -3770,7 +3770,7 @@ class _PageArrangementCopyStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     savedScores = List<SheetScore>.unmodifiable(scores);
   }
 

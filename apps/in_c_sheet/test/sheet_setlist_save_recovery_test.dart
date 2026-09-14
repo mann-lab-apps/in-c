@@ -56,6 +56,54 @@ void main() {
     await controller.load();
   });
 
+  for (final scoped in [false, true]) {
+    test(
+      'successful delayed setlist save stays in its source library: $scoped',
+      () async {
+        if (scoped) {
+          final scores = controller.scores;
+          final setlists = controller.setlists;
+          await controller.createLibraryProfile('Source');
+          await store.saveScores(scores);
+          await store.saveSetlists(setlists);
+          await controller.load();
+        }
+        final sourceId = controller.activeLibraryProfile.id;
+        store.delayWrites = true;
+        final pending = controller.renameSetlist(
+          controller.setlistById('concert'),
+          'Revised',
+        );
+        store.delayWrites = false;
+        await controller.createLibraryProfile('Destination');
+        store.writes.single.complete();
+        await pending;
+        expect(controller.setlists, isEmpty);
+        expect(await store.loadSetlists(), isEmpty);
+        await controller.switchLibraryProfile(sourceId);
+        expect(controller.setlistById('concert').title, 'Revised');
+      },
+    );
+  }
+
+  test('successful delayed cleanup saves only the source library', () async {
+    final sourceId = controller.activeLibraryProfile.id;
+    await store.saveSetlists([
+      controller.setlistById('concert').copyWith(scoreIds: ['one', 'missing']),
+    ]);
+    store.delayWrites = true;
+    store.writeEntered = Completer<void>();
+    final pending = controller.load();
+    await store.writeEntered!.future;
+    store.delayWrites = false;
+    await controller.createLibraryProfile('Destination');
+    store.writes.single.complete();
+    await pending;
+    expect(await store.loadSetlists(), isEmpty);
+    await store.setActiveLibraryProfile(sourceId);
+    expect((await store.loadSetlists()).single.scoreIds, ['one']);
+  });
+
   for (final switching in [false, true]) {
     test(
       'cleanup write failure preserves usable library on switch=$switching',
@@ -586,7 +634,10 @@ class _SetlistStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveSetlists(List<SheetSetlist> setlists) async {
+  Future<void> saveSetlists(
+    List<SheetSetlist> setlists, {
+    String? libraryId,
+  }) async {
     if (delayWrites) {
       final completion = Completer<void>();
       writes.add(completion);
@@ -596,6 +647,6 @@ class _SetlistStore extends SheetLibraryStore {
       await completion.future;
     }
     if (failWrites) throw failure;
-    await super.saveSetlists(setlists);
+    await super.saveSetlists(setlists, libraryId: libraryId);
   }
 }

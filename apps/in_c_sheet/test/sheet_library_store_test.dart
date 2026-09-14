@@ -341,6 +341,69 @@ void main() {
     }
   }
 
+  for (final kind in ['scores', 'setlists']) {
+    for (final throws in [false, true]) {
+      test(
+        'explicit $kind target keeps backup rollback scoped: $throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final now = DateTime(2026, 9, 14);
+          final original = _score(now);
+          final source = await store.createLibraryProfile('Source');
+          await store.saveScores([original]);
+          final setlist = SheetSetlist(
+            id: 'concert',
+            title: 'Concert',
+            scoreIds: [original.id],
+            createdAt: now,
+            updatedAt: now,
+          );
+          await store.saveSetlists([setlist]);
+          final destination = await store.createLibraryProfile('Destination');
+          final before = await platform.getAll();
+          Future<void> save() => kind == 'scores'
+              ? store.saveScores([
+                  original.copyWith(title: 'Revised'),
+                ], libraryId: source.id)
+              : store.saveSetlists([
+                  setlist.copyWith(title: 'Revised'),
+                ], libraryId: source.id);
+          platform.failureKey =
+              'flutter.clef_automatic_metadata_backup.${source.id}';
+          platform.throwOnFailure = throws;
+          await expectLater(save(), throwsA(anything));
+          expect(await platform.getAll(), before);
+          await save();
+          expect((await store.loadActiveLibraryProfile()).id, destination.id);
+          expect(await store.loadScores(), isEmpty);
+          expect(await store.loadSetlists(), isEmpty);
+          final after = await platform.getAll();
+          for (final key in before.keys) {
+            if (key != 'flutter.clef_$kind.${source.id}' &&
+                key != 'flutter.clef_automatic_metadata_backup.${source.id}') {
+              expect(after[key], before[key], reason: key);
+            }
+          }
+          await store.setActiveLibraryProfile(source.id);
+          final backup = (await store.loadAutomaticMetadataBackup())!;
+          expect(
+            kind == 'scores'
+                ? backup.scores.single.title
+                : backup.setlists.single.title,
+            'Revised',
+          );
+          expect(
+            kind == 'scores'
+                ? (await store.loadScores()).single.title
+                : (await store.loadSetlists()).single.title,
+            'Revised',
+          );
+        },
+      );
+    }
+  }
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(

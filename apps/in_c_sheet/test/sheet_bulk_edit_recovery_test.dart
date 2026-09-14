@@ -278,12 +278,12 @@ class _BulkStore extends SheetLibraryStore {
   }
 
   @override
-  Future<void> saveScores(List<SheetScore> scores) async {
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
     if (delayWrites) {
       final completion = Completer<void>();
       writes.add(completion);
       await completion.future;
     }
-    await super.saveScores(scores);
+    await super.saveScores(scores, libraryId: libraryId);
   }
 }
