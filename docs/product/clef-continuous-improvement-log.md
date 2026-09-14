@@ -60,6 +60,8 @@
 
 | S37 | Favorite preset falsely announces early success and fails to recover or retain the origin library after delayed saves. | Await save, disable repeat UI submission, recover only request-owned state, scope writes and suppress late feedback. | Nine red cases; fourteen new cases, targeted 165/165, full 908/908, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S38 | Home sort/filter saves leave unsaved selections, leak exceptions and can cross library scope after delay. | Recover request-owned view settings, report failure through existing home notice, preserve newer state/unrelated errors, retry and scope original writes. | Fifteen initial red cases; eighteen new cases including real home filter UI and recovery reads; targeted 169/169, full 926/926, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -352,6 +354,20 @@ zero changes; full 908/908, analyze/RC and whitespace scans PASS (`/private/tmp/
 Feature map/tester checklist now reflect verified local behavior; device/stylus quality remains
 unverified. Commit subject: `fix: recover Clef favorite tool preset saves`.
 Next: reproduce home sort/filter persistence errors. No build/version change/push/merge.
+
+S37 commit: `f3efad4`. S38 covers home library view-setting persistence. The existing home
+notice now reports caught save failures; recovery applies only to the same request/profile/value.
+Successful retry clears only this view-save message, not unrelated load errors. Store accepts
+explicit libraryId, preserving the default active-library contract for other callers.
+Fifteen initial red tests; eighteen cases cover nine sort/filter/reset actions, old/new failures,
+origin switch, delayed/failed recovery reads and actual favorite-chip failure/exit/retry.
+Evidence: `/private/tmp/clef-view-settings-red.log`, `/private/tmp/clef-view-settings-green.log`.
+Full 926/926, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s38.log`).
+Commit subject: `fix: recover Clef library view settings saves`.
+The transient search query is not restored on filter-reset failure;
+only persisted view settings are covered. Collection rename direct-save and overlapping loads
+remain separate candidates. No build/version change/push/merge.
+Next: profile rename failure feedback and persistence, including queued rename read/modify/write.
 
 ## Verification Policy
 

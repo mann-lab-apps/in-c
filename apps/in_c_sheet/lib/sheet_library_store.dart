@@ -500,10 +500,11 @@ class SheetLibraryStore {
   }
 
   Future<void> saveLibraryViewSettings(
-    SheetLibraryViewSettings settings,
-  ) async {
+    SheetLibraryViewSettings settings, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     await _writeMetadataValues(preferences, {
       _scopedKey(_libraryViewSettingsKey, activeLibraryId):
           SheetLibraryViewSettingsCodec.encode(settings),

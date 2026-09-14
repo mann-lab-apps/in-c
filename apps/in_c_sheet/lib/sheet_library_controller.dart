@@ -99,6 +99,7 @@ class SheetLibraryController extends ChangeNotifier {
       SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   Object? _favoritePresetSaveRequest;
+  Object? _viewSettingsSaveRequest;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
@@ -276,6 +277,7 @@ class SheetLibraryController extends ChangeNotifier {
     _tunerSettings = await store.loadTunerSettings();
     _toneSettings = await store.loadToneSettings();
     _libraryViewSettings = await store.loadLibraryViewSettings();
+    _viewSettingsSaveRequest = null;
     _globalViewerSettings = await store.loadGlobalViewerSettings();
     _performancePresetTemplates = await store.loadPerformancePresetTemplates();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
@@ -746,6 +748,7 @@ class SheetLibraryController extends ChangeNotifier {
       if (identical(_setlists, setlists)) _setlists = const <SheetSetlist>[];
       if (identical(_libraryViewSettings, viewSettings)) {
         _libraryViewSettings = SheetLibraryViewSettings.defaultSettings;
+        _viewSettingsSaveRequest = null;
       }
       if (identical(_favoriteAnnotationPreset, favoritePreset)) {
         _favoriteAnnotationPreset = null;
@@ -3090,8 +3093,31 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> _updateLibraryViewSettings(
     SheetLibraryViewSettings settings,
   ) async {
+    const error = '보기 설정을 저장하지 못했습니다. 다시 시도해주세요.';
+    final libraryId = _activeLibraryProfile.id;
+    final request = Object();
+    _viewSettingsSaveRequest = request;
     _libraryViewSettings = settings;
-    await store.saveLibraryViewSettings(settings);
+    bool ownsState() =>
+        identical(_viewSettingsSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_libraryViewSettings, settings);
+    try {
+      await store.saveLibraryViewSettings(settings, libraryId: libraryId);
+      if (ownsState() && _errorMessage == error) _errorMessage = null;
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadLibraryViewSettings();
+          if (ownsState()) {
+            _libraryViewSettings = persisted;
+            _errorMessage = error;
+          }
+        } catch (_) {
+          if (ownsState()) _errorMessage = error;
+        }
+      }
+    }
     notifyListeners();
   }
 
