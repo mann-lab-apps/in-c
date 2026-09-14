@@ -117,12 +117,17 @@ class ClassicalDiscoveryStore {
       'preferredContextTags',
       'preferredInstruments',
       'notificationPreferences',
+      'excludedComposerIds',
     ]) {
       if (!json.containsKey(key)) continue;
       final values = json[key];
       if (values is! List || values.any((value) => value is! String)) {
         throw FormatException('Invalid $key');
       }
+    }
+    if (json.containsKey('excludeOperaticVocals') &&
+        json['excludeOperaticVocals'] is! bool) {
+      throw const FormatException('Invalid excludeOperaticVocals');
     }
     final concertRevisions = json['concertSaveUpdatedAt'];
     if (concertRevisions != null &&

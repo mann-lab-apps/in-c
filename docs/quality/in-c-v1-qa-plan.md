@@ -1,5 +1,26 @@
 # in C V1 QA Plan
 
+## Current Continuation: 2026-09-14
+
+- My Music -> 추천에서 제외: 한국어/원어 작곡가 검색, 체크/해제, 재열기, 저장 실패 안내/다시 저장을 검증한다. 제외해도 검색·직접 열기·저장·감상 이력은 남고, 새 Daily/Discover/작품 추천에는 나오지 않아야 한다. 현재 당일 pin은 유지한다.
+- 모든 작곡가 제외 시 임의로 제외 작품을 fallback하지 않는다. 추천 없음 상태에서 검색과 설정 복귀가 가능해야 한다. 잘못된 제외 JSON은 조용히 무시하지 않고 백업 복구/오류로 처리한다.
+- 같은 시각에 제외 후 해제하고 시계를 뒤로 돌려 플랫폼/알림 등 설정을 바꾼다. 예전 제외 snapshot과 양방향 병합해도 해제가 되살아나지 않아야 한다. 이는 remote 검증이 아니다.
+
+- [Current evidence](in-c-expanded-v1-evidence-2026-09-14.md) supersedes older counts/SKIP states below.
+- Search failure must recover as well as direct-link failure. Test failed preferred search,
+  same-provider direct fallback, total failure/copy query and leaving during delayed failure.
+  No intermediate error after successful fallback, no unbounded provider chain, no fake listens.
+- Automatic whole-symphony input must not become a claimed favorite movement in Daily reasons.
+  With multiple inputs, use a supported closer source; do not claim this proves recommendation value.
+- Load a legacy pin with the old favorite-movement assertion: withdraw that unsupported reason,
+  retain work/moment/date/completion/save/events, persist, reopen and merge an old snapshot in
+  both orders. Today's resolved reason and yesterday's history must not resurrect the assertion.
+- On a NEW dedicated simulator named `in C Isolated QA...`, use BOTH
+  `IN_C_SIMULATOR_QA=true` and `IN_C_ISOLATED_NOTIFICATION_QA=true` with the existing native target.
+  Provisional OS authorization enables real pending/cancel and next-minute foreground delivery
+  checks. Full permission choice, background banner, tap and physical-device delivery are separate.
+  Never enable this permission helper on a user's existing device or infer consent from provisional.
+
 ## Expanded V1 Audit: 2026-09-13
 
 - 내 기록 관리: JSON 확인/복사, 삭제 취소, 확인 후 in C 주 기록/내부 백업 삭제와 재열기를 검증한다. Clef 키는 유지돼야 한다. OS/외부/복사한 백업은 대상이 아니다.
@@ -176,6 +197,42 @@ Historical PASS counts below are not current release evidence.
 - local-first persistence and sync merge fallback
 
 ## Release Risks
+
+### Explicit Preview Approval
+
+- A `listen_direct` link is approval of the full-listening destination, not permission
+  to play any same-host preview URL. It must remain needsReview for preview playback.
+- Only `listen_preview_approved` with a valid direct destination and a non-search,
+  provider-matching preview URL can enable the preview control.
+- A search destination, search URL in previewUrl, wrong host, pending or rejected state
+  must never enable preview even when a native player reports available.
+- Test fixtures are synthetic URLs and must not enter the seed or content approval log.
+
+### Native Notification Entry Follow-Up (2026-09-14)
+
+- `RunnerTests` checks buffered delivery before engine setup, consume-once, duplicate
+  Scene/delegate reports, next delivery, dismissal, unrelated request and empty payload.
+  These are native contract tests, not an actual OS notification tap.
+- On the isolated simulator/physical QA device, schedule an invitation then background the
+  app. Tap the delivered invitation from My Music and verify today's work opens only once.
+- Repeat after terminating the app. Verify Scene connection preserves the notification
+  destination until Flutter is ready, and normal relaunch does not reopen a consumed alert.
+- Dismiss an invitation without opening it; no recommendation-open event should appear.
+- Repeat on a later delivery of the same recurring request ID; it must still be accepted.
+- Permission grant/denial, background banner, physical delivery and VoiceOver require their
+  own observations. Provisional simulator authorization does not count as user consent.
+- Current CLI has no notification tap command or installed UI automation helper. Do not
+  replace this evidence with `simctl push` or direct callback injection and label it a tap.
+
+2026-09-14 회피/푸가 추가 QA:
+- 신규 사용자의 오페라 노래 제외가 꺼져 있고 선율 입력만으로 말러·합창이 거부되지 않는다.
+- My Music 제외 설정에서 오페라 노래를 켜고 다시 끈 뒤 저장값·재열기·양방향 병합을 확인한다.
+- 오페라만 있는 테스트 catalog에서도 제외 해제 화면으로 돌아갈 수 있다.
+- 작품 분류는 JSON/import/admin metadata 수정에서 유지되며 잘못된 bool 값을 거부한다.
+- `바흐 푸가`는 정확 작품 매칭이 아닌 작곡가 단서이고 실제 BWV 578 후보가 나온다.
+- `바흐 BWV 578`과 다른 번호 BWV 542를 구분한다. 검색은 직접 재생이 아니다.
+- BWV 578의 표시 길이는 추정이며 실제 녹음 구간·청취를 검증한 것으로 보이지 않아야 한다.
+- 실제 오페라 제외 토글·저장 읽기 캡처는 시뮬레이터 증거이며 VoiceOver/실기기는 별도다.
 
 - 실제 KOPIS API 연동은 API key, rate limit, 필드 mapping을 운영 환경에서 확인해야 한다.
 - 실제 preview playback은 플랫폼별 native channel 구현과 provider preview URL 정책 검증이 필요하다.

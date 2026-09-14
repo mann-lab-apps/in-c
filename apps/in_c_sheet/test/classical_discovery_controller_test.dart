@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/classical_admin_commands.dart';
 import 'package:in_c_sheet/classical_concert_import.dart';
@@ -1864,7 +1865,7 @@ void main() {
     );
   });
 
-  test('preview review only approves non-search provider preview links', () {
+  test('preview review requires explicit preview approval separate from direct links', () {
     const policy = ClassicalLinkReviewPolicy();
     final searchPreview = policy.reviewProviderPreview(
       platformId: 'spotify',
@@ -1878,7 +1879,7 @@ void main() {
         previewUrl: 'https://open.spotify.com/preview/example',
       ),
     );
-    final approved = policy.reviewProviderPreview(
+    final directOnly = policy.reviewProviderPreview(
       platformId: 'spotify',
       label: 'Spotify',
       link: const ExternalLink(
@@ -1892,7 +1893,43 @@ void main() {
     );
 
     expect(searchPreview.status, ClassicalPreviewReviewStatus.needsReview);
-    expect(approved.status, ClassicalPreviewReviewStatus.approvedPreview);
+    expect(directOnly.status, ClassicalPreviewReviewStatus.needsReview);
+    for (final entry in <(String, String, ClassicalPreviewReviewStatus)>[
+      (
+        'https://open.spotify.com/track/example',
+        'https://open.spotify.com/preview/example',
+        ClassicalPreviewReviewStatus.approvedPreview,
+      ),
+      (
+        'https://open.spotify.com/search/Bach',
+        'https://open.spotify.com/preview/example',
+        ClassicalPreviewReviewStatus.needsReview,
+      ),
+      (
+        'https://open.spotify.com/track/example',
+        'https://open.spotify.com/search/Bach',
+        ClassicalPreviewReviewStatus.needsReview,
+      ),
+      (
+        'https://open.spotify.com/track/example',
+        'https://example.org/preview',
+        ClassicalPreviewReviewStatus.needsReview,
+      ),
+    ]) {
+      final reviewed = policy.reviewProviderPreview(
+        platformId: 'spotify',
+        label: 'Spotify',
+        link: ExternalLink(
+          id: 'explicit-fixture',
+          platformId: 'spotify',
+          label: 'Spotify',
+          url: entry.$1,
+          linkType: 'listen_preview_approved',
+          previewUrl: entry.$2,
+        ),
+      );
+      expect(reviewed.status, entry.$3, reason: '${entry.$1} ${entry.$2}');
+    }
   });
 
   test(
@@ -2460,41 +2497,78 @@ void main() {
     );
   });
 
-  testWidgets('unapproved preview URL does not show playback CTA', (
-    tester,
-  ) async {
-    final work = ClassicalDiscoveryCatalog.workById('bach-air')!.copyWith(
-      externalLinks: const [
-        ExternalLink(
-          id: 'spotify-search-preview',
-          platformId: 'spotify',
-          label: 'Spotify',
-          url: 'https://open.spotify.com/search/Bach%20Air',
-          linkType: 'listen_search',
-          previewUrl: 'https://open.spotify.com/preview/example',
-        ),
-      ],
-    );
-    final controller = ClassicalDiscoveryController(
-      store: _MemoryDiscoveryStore(),
-      works: [work],
-      composers: ClassicalDiscoveryCatalog.composers,
-      concerts: const [],
-      promotions: const [],
-      notificationGateway: const DisabledClassicalDailyNotificationGateway(),
-    );
-    await controller.load();
-    await controller.skipOnboarding();
-    await controller.setPreferredPlatform('spotify');
+  for (final linkType in [
+    'listen_search',
+    'listen_direct',
+    'listen_preview_approved',
+  ]) {
+    testWidgets(
+      '$linkType preview CTA requires explicit approval even with a player',
+      (tester) async {
+        const channel = MethodChannel('in_c/classical_preview');
+        final calls = <String>[];
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          (call) async {
+            calls.add(call.method);
+            return call.method == 'isAvailable' ? true : null;
+          },
+        );
+        addTearDown(
+          () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+            channel,
+            null,
+          ),
+        );
+        final work = ClassicalDiscoveryCatalog.workById('bach-air')!.copyWith(
+          externalLinks: [
+            ExternalLink(
+              id: 'spotify-search-preview',
+              platformId: 'spotify',
+              label: 'Spotify',
+              url: linkType == 'listen_search'
+                  ? 'https://open.spotify.com/search/Bach%20Air'
+                  : 'https://open.spotify.com/track/example',
+              linkType: linkType,
+              previewUrl: 'https://open.spotify.com/preview/example',
+            ),
+          ],
+        );
+        final controller = ClassicalDiscoveryController(
+          store: _MemoryDiscoveryStore(),
+          works: [work],
+          composers: ClassicalDiscoveryCatalog.composers,
+          concerts: const [],
+          promotions: const [],
+          notificationGateway:
+              const DisabledClassicalDailyNotificationGateway(),
+        );
+        await controller.load();
+        await controller.skipOnboarding();
+        await controller.setPreferredPlatform('spotify');
 
-    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('30초 포인트 보기').first);
-    await tester.pumpAndSettle();
+        await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('30초 포인트 보기').first);
+        await tester.pumpAndSettle();
 
-    expect(find.text('Preview 재생'), findsNothing);
-    expect(find.text('Spotify에서 검색'), findsWidgets);
-  });
+        if (linkType == 'listen_preview_approved') {
+          expect(find.text('Preview 재생'), findsOneWidget);
+          await tester.ensureVisible(find.text('Preview 재생'));
+          await tester.tap(find.text('Preview 재생'));
+          await tester.pumpAndSettle();
+          expect(calls.where((call) => call == 'playUrl'), hasLength(1));
+        } else {
+          expect(find.text('Preview 재생'), findsNothing);
+          expect(calls, isNot(contains('playUrl')));
+        }
+        expect(find.textContaining('Spotify'), findsWidgets);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+        controller.dispose();
+      },
+    );
+  }
 
   testWidgets('sponsored concert card opens concert detail from Today', (
     tester,

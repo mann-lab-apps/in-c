@@ -16,6 +16,18 @@ import 'package:in_c_sheet/classical_discovery_store.dart';
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
+  setUpAll(() async {
+    if (!const bool.fromEnvironment('IN_C_ISOLATED_NOTIFICATION_QA')) return;
+    expect(const bool.fromEnvironment('IN_C_SIMULATOR_QA'), isTrue);
+    expect(Platform.isIOS, isTrue);
+    const channel = MethodChannel('mannlab.in_c/daily_notifications');
+    expect(
+      await channel.invokeMethod<bool>('isIsolatedNotificationQa'),
+      isTrue,
+      reason: 'Never replace reminders on an existing user simulator.',
+    );
+  });
+
   testWidgets('native backup survives missing and wrong-type primary storage', (
     tester,
   ) async {
@@ -48,6 +60,60 @@ void main() {
       await preferences.remove('${key}_backup');
     }
   });
+
+  testWidgets(
+    'native fugue recommendation retains broad input and truthful metadata',
+    (tester) async {
+      final key = 'in_c_fugue_qa_${DateTime.now().microsecondsSinceEpoch}';
+      final store = ClassicalDiscoveryStore(storageKey: key);
+      final controller = ClassicalDiscoveryController(
+        store: store,
+        notificationGateway: const DisabledClassicalDailyNotificationGateway(),
+      );
+      try {
+        await controller.load();
+        await controller.setOperaticVocalsExcluded(true);
+        await controller.addTasteIntakeInputs(['바흐 푸가']);
+        final pick = await controller.ensureDailyPick();
+        expect(pick.workId, 'bach-little-fugue-bwv578');
+        expect(
+          (await store.loadState()).tasteIntakeItems.single.matchedWorkId,
+          isNull,
+        );
+        expect(pick.sourceEvidence, contains('바흐 푸가'));
+        await controller.skipOnboarding();
+        await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+        await tester.pumpAndSettle();
+        Navigator.of(tester.element(find.byType(ClassicalDiscoveryAppShell)))
+            .push<void>(
+              MaterialPageRoute(
+                builder: (_) => ClassicalWorkDetailScreen(
+                  controller: controller,
+                  work: controller.workById(pick.workId)!,
+                ),
+              ),
+            );
+        await tester.pumpAndSettle();
+        await binding.takeScreenshot('in-c-fugue-detail');
+        await tester.scrollUntilVisible(
+          find.text('약 4분'),
+          400,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('약 4분').hitTestable(), findsOneWidget);
+        expect(find.text('BWV 578'), findsWidgets);
+        await binding.takeScreenshot('in-c-fugue-metadata');
+        expect(tester.takeException(), isNull);
+      } finally {
+        await tester.pumpWidget(const SizedBox.shrink());
+        controller.dispose();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove(key);
+        await prefs.remove('${key}_backup');
+      }
+    },
+  );
 
   testWidgets('native unauthorized scheduler refuses false success', (
     tester,
@@ -85,7 +151,20 @@ void main() {
     (tester) async {
       if (!Platform.isIOS) return;
       const channel = MethodChannel('mannlab.in_c/daily_notifications');
-      final status = await channel.invokeMethod<String>('permissionStatus');
+      var status = await channel.invokeMethod<String>('permissionStatus');
+      if (const bool.fromEnvironment('IN_C_ISOLATED_NOTIFICATION_QA') &&
+          status == 'not-determined') {
+        expect(
+          await channel.invokeMethod<bool>(
+            'requestIsolatedQaProvisionalPermission',
+          ),
+          isTrue,
+        );
+        status = await channel.invokeMethod<String>('permissionStatus');
+        debugPrint(
+          'Isolated QA notification authorization: $status (not user consent evidence)',
+        );
+      }
       if (status != 'authorized' && status != 'provisional') {
         markTestSkipped(
           'Pending/delivery verification NOT_VERIFIED: authorize notifications on the simulator first ($status).',
@@ -142,6 +221,66 @@ void main() {
       // Pending requests do not prove permission, delivery, time-zone travel or taps.
     },
     skip: !const bool.fromEnvironment('IN_C_SIMULATOR_QA'),
+  );
+
+  testWidgets(
+    'isolated native calendar request reaches the foreground delegate',
+    (tester) async {
+      if (!Platform.isIOS) return;
+      const channel = MethodChannel('mannlab.in_c/daily_notifications');
+      final status = await channel.invokeMethod<String>('permissionStatus');
+      expect(['authorized', 'provisional'], contains(status));
+      final now = DateTime.now();
+      final due = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        now.hour,
+        now.minute + 1,
+      );
+      final payload =
+          '{"version":1,"route":"today","qa":"${now.microsecondsSinceEpoch}"}';
+      try {
+        await channel.invokeMethod<void>('scheduleDailyPick', {
+          'title': 'in C isolated delivery QA',
+          'body':
+              'Native calendar delivery evidence, not a user recommendation',
+          'payload': payload,
+          'hour': due.hour,
+          'minute': due.minute,
+        });
+        final received = await tester.runAsync(() async {
+          final deadline = due.add(const Duration(seconds: 20));
+          while (DateTime.now().isBefore(deadline)) {
+            final row = await channel.invokeMapMethod<String, Object?>(
+              'inspectLastForegroundDailyPick',
+            );
+            if (row?['payload'] == payload) return row;
+            await Future<void>.delayed(const Duration(seconds: 1));
+          }
+          return null;
+        });
+        expect(
+          received,
+          isNotNull,
+          reason: 'A pending request alone is not delivery evidence.',
+        );
+        expect(
+          received!['body'],
+          'Native calendar delivery evidence, not a user recommendation',
+        );
+        expect(
+          received['receivedAt'] as num,
+          greaterThanOrEqualTo(now.millisecondsSinceEpoch / 1000),
+        );
+        debugPrint(
+          'Actual foreground calendar delivery: $received; no background/banner/tap assertion.',
+        );
+      } finally {
+        await channel.invokeMethod<void>('cancelDailyPick');
+      }
+    },
+    skip: !const bool.fromEnvironment('IN_C_ISOLATED_NOTIFICATION_QA'),
   );
 
   testWidgets('native storage, daily guide, reaction and listening map', (
@@ -205,6 +344,37 @@ void main() {
     Navigator.of(tester.element(find.byType(BottomSheet))).pop();
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('추천에서 제외'));
+    await tester.pumpAndSettle();
+    expect(find.text('추천에서 제외').hitTestable(), findsOneWidget);
+    await tester.tap(find.text('추천에서 제외'));
+    await tester.pumpAndSettle();
+    final excludedOpera = find.byKey(const ValueKey('exclude-operatic-vocals'));
+    expect(excludedOpera.hitTestable(), findsOneWidget);
+    await tester.tap(excludedOpera);
+    await tester.pumpAndSettle();
+    expect((await store.loadState()).excludeOperaticVocals, isTrue);
+    await capture('in-c-opera-exclusion');
+    await tester.tap(excludedOpera);
+    await tester.pumpAndSettle();
+    expect((await store.loadState()).excludeOperaticVocals, isFalse);
+    await tester.enterText(find.byType(TextField), 'Mahler');
+    await tester.pumpAndSettle();
+    final excludedComposer = find.byKey(
+      const ValueKey('exclude-composer-mahler'),
+    );
+    await tester.tap(excludedComposer);
+    await tester.pumpAndSettle();
+    expect((await store.loadState()).excludedComposerIds, contains('mahler'));
+    await capture('in-c-composer-exclusions');
+    await tester.tap(excludedComposer);
+    await tester.pumpAndSettle();
+    expect((await store.loadState()).excludedComposerIds, isEmpty);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('음악 연결 확인'));
+    await tester.pumpAndSettle();
+    expect(find.text('음악 연결 확인').hitTestable(), findsOneWidget);
     await tester.tap(find.text('음악 연결 확인'));
     await tester.pumpAndSettle();
     await capture('in-c-taste-connections');

@@ -66,6 +66,9 @@ ClassicalComposer _composerFromJson(Map<String, Object?> json) {
 }
 
 ClassicalWork _workFromJson(Map<String, Object?> json) {
+  if (json.containsKey('isOperaticVocal') && json['isOperaticVocal'] is! bool) {
+    throw const FormatException('Invalid isOperaticVocal');
+  }
   return ClassicalWork(
     id: _string(json['id']),
     titleKo: _string(json['titleKo']),
@@ -80,6 +83,7 @@ ClassicalWork _workFromJson(Map<String, Object?> json) {
     movements: _maps(json['movements']).map(_movementFromJson).toList(),
     moodTags: _strings(json['moodTags']),
     contextTags: _strings(json['contextTags']),
+    isOperaticVocal: json['isOperaticVocal'] == true,
     difficultyForListening: _int(json['difficultyForListening'], fallback: 2),
     aliases: _strings(json['aliases']),
     listeningMoments: _maps(json['listeningMoments'])

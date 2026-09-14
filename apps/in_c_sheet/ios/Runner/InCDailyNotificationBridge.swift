@@ -8,13 +8,21 @@ final class InCDailyNotificationBridge: NSObject, UNUserNotificationCenterDelega
   private var channel: FlutterMethodChannel?
   private var launchPayload: String?
   private let notificationIdentifier = "in_c_daily_pick"
+  private var handledDeliveries: [Date] = []
+#if targetEnvironment(simulator)
+  private var lastForegroundQaDelivery: [String: Any]?
+#endif
+
+  func installNotificationDelegate() {
+    UNUserNotificationCenter.current().delegate = self
+  }
 
   func configure(messenger: FlutterBinaryMessenger) {
     channel = FlutterMethodChannel(
       name: "mannlab.in_c/daily_notifications",
       binaryMessenger: messenger
     )
-    UNUserNotificationCenter.current().delegate = self
+    installNotificationDelegate()
     channel?.setMethodCallHandler { [weak self] call, result in
       guard let self = self else {
         result(FlutterError(code: "deallocated", message: nil, details: nil))
@@ -40,10 +48,26 @@ final class InCDailyNotificationBridge: NSObject, UNUserNotificationCenterDelega
       case "cancelDailyPick":
         self.cancelDailyPick(result: result)
       case "consumeLaunchPayload":
-        let payload = self.launchPayload
-        self.launchPayload = nil
-        result(payload)
+        result(self.consumeOpenPayload())
 #if targetEnvironment(simulator)
+      case "isIsolatedNotificationQa":
+        result(ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"]?.hasPrefix("in C Isolated QA") == true)
+      case "requestIsolatedQaProvisionalPermission":
+        guard ProcessInfo.processInfo.environment["SIMULATOR_DEVICE_NAME"]?.hasPrefix("in C Isolated QA") == true else {
+          result(FlutterError(code: "not_isolated", message: "Use a dedicated in C Isolated QA simulator.", details: nil))
+          return
+        }
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .provisional]) { granted, error in
+          DispatchQueue.main.async {
+            if let error = error {
+              result(FlutterError(code: "permission_error", message: error.localizedDescription, details: nil))
+            } else {
+              result(granted)
+            }
+          }
+        }
+      case "inspectLastForegroundDailyPick":
+        result(self.lastForegroundQaDelivery)
       case "inspectPendingDailyPick":
         UNUserNotificationCenter.current().getPendingNotificationRequests { requests in
           let rows = requests.filter { $0.identifier == self.notificationIdentifier }.map { request -> [String: Any] in
@@ -142,17 +166,45 @@ final class InCDailyNotificationBridge: NSObject, UNUserNotificationCenterDelega
     result(nil)
   }
 
+  func consumeOpenPayload() -> String? {
+    defer { launchPayload = nil }
+    return launchPayload
+  }
+
+  func captureOpen(identifier: String, deliveredAt: Date, action: String, payload: String?) {
+    guard identifier == notificationIdentifier,
+          action == UNNotificationDefaultActionIdentifier,
+          let payload = payload, !payload.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+          !handledDeliveries.contains(deliveredAt) else { return }
+    // Scene connection and notification delegate can report the same delivery.
+    handledDeliveries.append(deliveredAt)
+    if handledDeliveries.count > 32 { handledDeliveries.removeFirst() }
+    launchPayload = payload
+    channel?.invokeMethod("dailyPickNotificationOpen", arguments: nil)
+  }
+
+  func handleNotificationResponse(_ response: UNNotificationResponse) {
+    let capture = {
+      self.captureOpen(
+        identifier: response.notification.request.identifier,
+        deliveredAt: response.notification.date,
+        action: response.actionIdentifier,
+        payload: response.notification.request.content.userInfo["payload"] as? String
+      )
+    }
+    if Thread.isMainThread {
+      capture()
+    } else {
+      DispatchQueue.main.async(execute: capture)
+    }
+  }
+
   func userNotificationCenter(
     _ center: UNUserNotificationCenter,
     didReceive response: UNNotificationResponse,
     withCompletionHandler completionHandler: @escaping () -> Void
   ) {
-    if let payload = response.notification.request.content.userInfo["payload"] as? String {
-      DispatchQueue.main.async {
-        self.launchPayload = payload
-        self.channel?.invokeMethod("dailyPickNotificationOpen", arguments: nil)
-      }
-    }
+    handleNotificationResponse(response)
     completionHandler()
   }
 
@@ -161,6 +213,15 @@ final class InCDailyNotificationBridge: NSObject, UNUserNotificationCenterDelega
     willPresent notification: UNNotification,
     withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
   ) {
+#if targetEnvironment(simulator)
+    if notification.request.identifier == notificationIdentifier {
+      lastForegroundQaDelivery = [
+        "payload": notification.request.content.userInfo["payload"] as? String ?? "",
+        "body": notification.request.content.body,
+        "receivedAt": Date().timeIntervalSince1970
+      ]
+    }
+#endif
     if #available(iOS 14.0, *) {
       completionHandler([.banner, .sound])
     } else {

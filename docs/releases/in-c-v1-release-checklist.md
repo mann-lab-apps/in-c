@@ -1,5 +1,28 @@
 # in C V1 Release Checklist
 
+## Current Continuation: 2026-09-14
+
+Latest expansion-bridge patch: scoped12/full574/analyze/format/diff and iOS no-codesign
+build (26.0MB) PASS. Actual device and human QA remain open. User authorized checkpoint
+commit/push, not merge/deploy/identity changes; older no-push instructions are historical.
+
+Public V1 remains NOT READY. [Latest evidence](../quality/in-c-expanded-v1-evidence-2026-09-14.md):
+574 full tests, 110 controller tests and analyze PASS. Search failure recovery, source-input
+reason correction and legacy pinned-claim withdrawal are implemented; actual provider
+playback/first30 windows are still unapproved. Final iOS no-codesign build PASS.
+Real provisional-authorization simulator calendar delivery now passes; old blanket delivery SKIP
+statements below are historical. Physical/background/tap/user-permission evidence is still absent.
+Current-main artifact reports `com.mannlab.inc.clefandstaff`; this run does not change identity.
+No commit/push/merge/deployment is authorized. Required39 counts and human approval remain separate.
+Explicit composer exclusions now filter new recommendations without erasing saved/listening
+records or the valid same-day pick. Retry/recovery, backward-clock preference revisions and
+empty-pool settings access are covered. Native exclusion toggle/store readback passed;
+final empty-pool recovery has widget/build evidence, not native interaction. Explicit opera-vocal
+exclusion is implemented; instrumental opera excerpts are not silently included. Melody preference
+no longer vetoes Mahler/choruses. BWV578 now provides a real fugue candidate without changing
+the first30 pool or claiming the generic input names that exact favorite. Playback and founder
+satisfaction remain open, not completed by this preference UI.
+
 ## Expanded V1 Status: 2026-09-13
 
 Latest continuation: E04 taste connection review/correction/unlink, full466 tests/analyze,
@@ -51,7 +74,7 @@ founder/five-user results remain unverified. See the dated evidence checkpoint f
 - Catalog Ops Daily Pick 규칙 검사에서 첫 7일 모의 실행과 실제 사용자 평가를 분리한다. 자동 PASS만으로 founder 승인이나 Public V1 READY를 표시하지 않는다.
 - `아직 모르겠음` reaction 직후에는 surprise 추천을 하지 않는다.
 - Daily step은 저장했지만 아직 전체 듣기 전인 작품, `아직 모르겠음` 회복용 쉬운 작품, 취향 기반 추천, founder pick 순서로 결정된다.
-- 오늘 reaction, 전체 듣기, listening moment 완료 중 하나가 있으면 Daily step은 완료 상태로 보인다.
+- 실제 반응 또는 사용자가 직접 확인한 감상 완료가 있어야 Daily step을 완료로 표시한다. 외부 링크 클릭만으로 완료하지 않는다.
 - Daily step reason은 사용자가 넣은 음악/OST/분위기 또는 reaction evidence를 직접 반영한다.
 - 선율-first 사용자에게는 선율, 일/독서/산책 맥락, 시대별 기법 힌트가 추천 이유와 Next Three reason에 반영된다.
 - Founder taste profile은 좋아하는 대중음악/클래식 입력, 피해야 할 오페라/바그너/말러, 바흐 푸가 예외, 배우고 싶은 시대별 기법을 명시적으로 가진다.

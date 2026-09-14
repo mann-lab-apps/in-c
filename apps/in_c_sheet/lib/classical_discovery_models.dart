@@ -185,6 +185,7 @@ class ClassicalWork {
     required this.scoreLinks,
     required this.concertIds,
     this.catalogStatusTags = const <String>[],
+    this.isOperaticVocal = false,
   });
 
   final String id;
@@ -209,6 +210,8 @@ class ClassicalWork {
   final List<ExternalLink> scoreLinks;
   final List<String> concertIds;
   final List<String> catalogStatusTags;
+  // Curated classification of this excerpt, not inferred from composer or voice.
+  final bool isOperaticVocal;
 
   String get displayTitle => '$titleKo · $composerNameKo';
   ListeningMoment? get primaryMoment =>
@@ -354,6 +357,7 @@ class ClassicalWork {
     List<ExternalLink>? scoreLinks,
     List<String>? concertIds,
     List<String>? catalogStatusTags,
+    bool? isOperaticVocal,
   }) {
     return ClassicalWork(
       id: id,
@@ -378,6 +382,7 @@ class ClassicalWork {
       scoreLinks: scoreLinks ?? this.scoreLinks,
       concertIds: concertIds ?? this.concertIds,
       catalogStatusTags: catalogStatusTags ?? this.catalogStatusTags,
+      isOperaticVocal: isOperaticVocal ?? this.isOperaticVocal,
     );
   }
 }
@@ -1620,6 +1625,8 @@ class UserDiscoveryState {
     required this.preferredInstruments,
     required this.notificationPreferences,
     required this.reminderPreference,
+    this.excludedComposerIds = const {},
+    this.excludeOperaticVocals = false,
     this.concertSaveUpdatedAt = const {},
     this.preferencesUpdatedAt,
     this.historyResetAt,
@@ -1689,6 +1696,9 @@ class UserDiscoveryState {
       notificationPreferences: _stringListFromJson(
         json['notificationPreferences'],
       ).toSet(),
+      excludedComposerIds: _stringListFromJson(json['excludedComposerIds'])
+          .toSet(),
+      excludeOperaticVocals: json['excludeOperaticVocals'] == true,
       reminderPreference: ReminderPreference.fromJson(
         _jsonMap(json['reminderPreference']),
       ),
@@ -1738,6 +1748,8 @@ class UserDiscoveryState {
   final Set<String> preferredInstruments;
   final Set<String> notificationPreferences;
   final ReminderPreference reminderPreference;
+  final Set<String> excludedComposerIds;
+  final bool excludeOperaticVocals;
   final DateTime? preferencesUpdatedAt;
   final DateTime? historyResetAt;
 
@@ -1766,6 +1778,8 @@ class UserDiscoveryState {
     Set<String>? preferredInstruments,
     Set<String>? notificationPreferences,
     ReminderPreference? reminderPreference,
+    Set<String>? excludedComposerIds,
+    bool? excludeOperaticVocals,
     DateTime? preferencesUpdatedAt,
     DateTime? historyResetAt,
   }) {
@@ -1792,6 +1806,9 @@ class UserDiscoveryState {
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
       reminderPreference: reminderPreference ?? this.reminderPreference,
+      excludedComposerIds: excludedComposerIds ?? this.excludedComposerIds,
+      excludeOperaticVocals:
+          excludeOperaticVocals ?? this.excludeOperaticVocals,
       preferencesUpdatedAt: preferencesUpdatedAt ?? this.preferencesUpdatedAt,
       historyResetAt: historyResetAt ?? this.historyResetAt,
     );
@@ -1834,6 +1851,8 @@ class UserDiscoveryState {
         growable: false,
       ),
       'reminderPreference': reminderPreference.toJson(),
+      'excludedComposerIds': excludedComposerIds.toList()..sort(),
+      'excludeOperaticVocals': excludeOperaticVocals,
       'preferencesUpdatedAt': preferencesUpdatedAt?.toIso8601String(),
       'historyResetAt': historyResetAt?.toIso8601String(),
     };
