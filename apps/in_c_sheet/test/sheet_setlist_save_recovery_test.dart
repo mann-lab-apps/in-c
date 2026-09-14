@@ -221,6 +221,88 @@ void main() {
     );
   }
 
+  for (final action in [
+    'rename',
+    'duplicate',
+    'delete',
+    'move',
+    'remove',
+    'settings',
+    'add',
+  ]) {
+    testWidgets('closed detail ignores late $action failure', (tester) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _openDetail(tester, controller);
+      store.delayWrites = true;
+      await _detailAction(tester, action);
+      expect(store.writes, hasLength(1));
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(SheetSetlistDetailScreen), findsNothing);
+      store.writes.single.completeError(failure);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Open'), findsOneWidget);
+      expect(find.byType(SnackBar), findsNothing);
+    });
+
+    testWidgets('detail $action reports save failure and supports retry', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await _openDetail(tester, controller);
+      final original = controller.setlists.map((s) => s.toJson()).toList();
+      store.failWrites = true;
+      await _detailAction(tester, action);
+      expect(tester.takeException(), isNull);
+      expect(find.text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+      expect(find.byType(SheetSetlistDetailScreen), findsOneWidget);
+      expect(controller.setlists.map((s) => s.toJson()).toList(), original);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      expect(find.text('목록이 바뀌었습니다. 순서를 다시 선택해주세요.'), findsNothing);
+      expect(find.textContaining('만들었습니다.'), findsNothing);
+      expect(find.textContaining('제거했습니다.'), findsNothing);
+      store.failWrites = false;
+      await _detailAction(tester, action);
+      expect(tester.takeException(), isNull);
+      expect(
+        controller.setlists.map((s) => s.toJson()).toList(),
+        isNot(original),
+      );
+      expect(
+        controller.setlists.map((s) => s.toJson()).toList(),
+        (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+      );
+      if (action == 'delete') {
+        expect(find.byType(SheetSetlistDetailScreen), findsNothing);
+      }
+    });
+  }
+
+  testWidgets('detail undo failure does not queue a missing-item message', (
+    tester,
+  ) async {
+    await _openDetail(tester, controller);
+    await _detailAction(tester, 'remove');
+    expect(controller.setlistById('concert').scoreIds, ['two']);
+    store.failWrites = true;
+    await tester.tap(find.text('되돌리기'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(controller.setlistById('concert').scoreIds, ['two']);
+    expect(find.text('세트리스트 변경사항을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
+    expect(find.text('악보 또는 세트리스트가 없어 되돌리지 못했습니다.'), findsNothing);
+  });
+
   test(
     'setlist recovery read failure preserves the original write error',
     () async {
@@ -232,6 +314,66 @@ void main() {
       expect(controller.setlistById('concert').title, 'Concert');
     },
   );
+}
+
+Future<void> _openDetail(
+  WidgetTester tester,
+  SheetLibraryController controller,
+) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () => Navigator.of(context).push<void>(
+              MaterialPageRoute(
+                builder: (_) => SheetSetlistDetailScreen(
+                  controller: controller,
+                  setlistId: 'concert',
+                ),
+              ),
+            ),
+            child: const Text('Open'),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('Open'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _detailAction(WidgetTester tester, String action) async {
+  switch (action) {
+    case 'rename':
+      await tester.tap(find.byTooltip('이름 변경'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.widgetWithText(TextField, '이름'), 'Renamed');
+      await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    case 'duplicate':
+      await tester.tap(find.byTooltip('세트리스트 복제'));
+    case 'delete':
+      await tester.tap(find.byTooltip('삭제'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '삭제'));
+    case 'move':
+      await tester.tap(find.byTooltip('아래로').first);
+    case 'remove':
+      await tester.tap(find.byTooltip('제거').first);
+    case 'settings':
+      await tester.tap(find.byTooltip('리허설 모드'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(SwitchListTile, '리허설 모드'));
+      await tester.ensureVisible(find.widgetWithText(FilledButton, '저장'));
+      await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    case 'add':
+      await tester.tap(find.text('악보 추가'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('free'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '추가'));
+  }
+  await tester.pumpAndSettle();
 }
 
 Future<void> _addSelected(WidgetTester tester, {required bool create}) async {

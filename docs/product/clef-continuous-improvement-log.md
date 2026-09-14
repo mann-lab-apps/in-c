@@ -34,7 +34,8 @@
 | S20 | Bulk metadata/collection saves retain failed edits in memory and leak errors from selection UI. | Recover persisted scores only while the request owns the current list/profile; preserve selection on failure, no success notice, allow retry, ignore closed UI. No-op bulk calls must not invalidate pending recovery. | Six regression failures reproduced before fix. Fourteen new unit/widget cases plus S18 recovery regression; full suite 656/656, analyze/RC PASS. | VERIFIED LOCAL |
 | S21 | Single/batch/image/shared import leaves unsaved score cards after metadata failure. | Recover persisted scores with S18/S20 ownership guards, return no imported success, distinguish storage failure from file failure, release import state and allow retry. Never delete source files to compensate. | Four controller flows plus batch UI reproduced failure. Thirteen new tests; full suite 669/669, analyze/RC PASS. | VERIFIED LOCAL |
 | S22 | Setlist mutations retain unsaved state and bulk add/create leaks failures to the UI. | Recover durable setlists only for the owning list/profile; preserve newer writes, report original failure, retain bulk selection for retry and ignore closed UI. | Twenty-two mutation/race/recovery/bulk UI cases; full suite 691/691, analyze/RC PASS. | VERIFIED LOCAL |
-| S23 | Setlist detail/create/import/viewer actions still have uncaught save failures despite controller recovery. | Apply guarded error feedback at remaining entry points without false success/navigation or loss of retry context. | Inspect each callback; do not count S22 bulk UI coverage as detail/viewer coverage. | TODO |
+| S23 | Setlist detail edits leak save failures, including reorder and removal undo. | Report storage failure without success/conflict feedback or delete navigation; allow retry and ignore late errors after route exit. | Fifteen new widget cases; 37/37 setlist recovery cases, full suite 706/706, analyze/RC PASS. | VERIFIED LOCAL |
+| S24 | Setlist list-create/import/viewer callbacks still await unguarded saves. | Separate import success from setlist-add failure; recent-position storage failure must not falsely claim navigation success or silently interrupt performance. | Inspect actual callbacks and reproduce before selecting a minimal policy. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -96,6 +97,17 @@ JSON completion gate and RC scans PASS (`/private/tmp/clef-rc-s22.log`). Remaini
 are S23. Earlier checkpoint commits: Q2 `4efe8bb`, S20 `72ae320`, S21 `32da0d3`.
 Commit subject: `fix: recover Clef setlists after save failures`. No build/version change/push/merge.
 Next: reproduce detail editing failures before applying guarded feedback at those entry points.
+
+S22 commit: `bd1546d`. S23 reuses the guarded save helper for detail rename, duplicate,
+delete, add, rehearsal settings, reorder, remove and undo. A storage failure must not queue
+a stale-order or missing-item message. Successful deletion alone pops the detail route.
+Initial seven widget cases failed with unhandled errors, then passed; add and closed-route
+cases extend coverage. The first close fixture replaced MaterialApp.home but preserved its
+Navigator stack; corrected to use actual pageBack and assert route disposal before completion.
+Final verification: 37/37 setlist cases, 706/706 full tests, analyze, JSON completion gate,
+RC/diff checks PASS (`/private/tmp/clef-rc-s23.log`). Formatter touched only the edited main/test
+files. Commit subject: `fix: handle Clef setlist detail save failures`. No app build, version
+change or remote mutation. S24 covers remaining list-create/import/viewer entry points.
 
 ## Verification Policy
 

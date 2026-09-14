@@ -5440,7 +5440,10 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       );
       return;
     }
-    await controller.renameSetlist(currentSetlist, title);
+    await _trySetlistSave(
+      context,
+      () => controller.renameSetlist(currentSetlist, title),
+    );
   }
 
   Future<void> _deleteSetlist() async {
@@ -5465,15 +5468,21 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted || didConfirm != true) {
       return;
     }
-    await controller.deleteSetlist(currentSetlist);
-    if (mounted) {
+    final deleted = await _trySetlistSave(context, () async {
+      await controller.deleteSetlist(currentSetlist);
+      return true;
+    });
+    if (mounted && deleted == true) {
       Navigator.of(context).pop();
     }
   }
 
   Future<void> _duplicateSetlist() async {
-    final duplicate = await controller.duplicateSetlist(setlist);
-    if (!mounted) {
+    final duplicate = await _trySetlistSave(
+      context,
+      () => controller.duplicateSetlist(setlist),
+    );
+    if (!mounted || duplicate == null) {
       return;
     }
     ScaffoldMessenger.of(context)
@@ -5509,14 +5518,14 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
       builder: (context) =>
           SafeArea(child: _ScoreMultiPickerSheet(scores: availableScores)),
     );
-    if (selectedScores == null || selectedScores.isEmpty) {
+    if (!mounted || selectedScores == null || selectedScores.isEmpty) {
       return;
     }
-    final result = await controller.addScoresToSetlist(
-      currentSetlist,
-      selectedScores,
+    final result = await _trySetlistSave(
+      context,
+      () => controller.addScoresToSetlist(currentSetlist, selectedScores),
     );
-    if (!mounted) {
+    if (!mounted || result == null) {
       return;
     }
     if (_showSetlistAddFailure(context, result)) return;
@@ -5575,15 +5584,18 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     if (!mounted || updated == null || currentSetlist == null) {
       return;
     }
-    await controller.updateSetlistRehearsalSettings(
-      currentSetlist,
-      rehearsalMode: updated.rehearsalMode,
-      transitionSeconds: updated.transitionSeconds,
-      scoreStartPages: updated.scoreStartPages,
-      scoreNotes: updated.scoreNotes,
-      scoreDurations: updated.scoreDurations,
-      viewerSettingsOverride: updated.viewerSettingsOverride,
-      clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+    await _trySetlistSave(
+      context,
+      () => controller.updateSetlistRehearsalSettings(
+        currentSetlist,
+        rehearsalMode: updated.rehearsalMode,
+        transitionSeconds: updated.transitionSeconds,
+        scoreStartPages: updated.scoreStartPages,
+        scoreNotes: updated.scoreNotes,
+        scoreDurations: updated.scoreDurations,
+        viewerSettingsOverride: updated.viewerSettingsOverride,
+        clearViewerSettingsOverride: updated.viewerSettingsOverride == null,
+      ),
     );
   }
 
@@ -5624,11 +5636,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     int fromIndex,
     int toIndex,
   ) async {
-    final applied = await controller.moveScoreInSetlist(
-      snapshot,
-      fromIndex,
-      toIndex,
+    final applied = await _trySetlistSave(
+      context,
+      () => controller.moveScoreInSetlist(snapshot, fromIndex, toIndex),
     );
+    if (applied == null) return false;
     if (mounted && !applied) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('목록이 바뀌었습니다. 순서를 다시 선택해주세요.')),
@@ -5642,8 +5654,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     SheetScore score,
     int index,
   ) async {
-    await controller.removeScoreFromSetlist(currentSetlist, score);
-    if (!mounted) {
+    final removed = await _trySetlistSave(context, () async {
+      await controller.removeScoreFromSetlist(currentSetlist, score);
+      return true;
+    });
+    if (!mounted || removed != true) {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
@@ -5652,12 +5667,13 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
         action: SnackBarAction(
           label: '되돌리기',
           onPressed: () async {
-            final restored = await controller.insertScoreInSetlist(
-              currentSetlist,
-              score,
-              index,
+            if (!mounted) return;
+            final restored = await _trySetlistSave(
+              context,
+              () =>
+                  controller.insertScoreInSetlist(currentSetlist, score, index),
             );
-            if (mounted && !restored) {
+            if (mounted && restored == false) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('악보 또는 세트리스트가 없어 되돌리지 못했습니다.')),
               );
