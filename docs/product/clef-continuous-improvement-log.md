@@ -402,6 +402,21 @@ writes are not made transactional. No build/version change/push/merge.
 Next: inspect actual viewer annotation layer visibility/export
 failure feedback before lower-priority store-only deletion paths.
 
+### User-requested pause and integration (2026-09-14)
+
+Paused after S40 at `dfae2c8`; S41 has not started and has no uncommitted changes.
+This run completed S36 `ce6eaa8`, S37 `f3efad4`, S38 `bcc2778`, S39 `0ff372e`,
+and S40 `dfae2c8`. Final source evidence is 957/957 tests, analyze and RC PASS.
+The user authorized push/merge at this checkpoint. A read-only merge-tree check
+against fetched origin/main found no conflicts; merged-tree verification and remote
+integration still need to complete before claiming merge success.
+No app build, version bump or new physical-device QA was performed; version remains
+1.0.0+21. Updated app binaries are needed to distribute these fixes to testers.
+Resume by checking git status/log and this checkpoint, then reproduce annotation
+layer visibility/export save failure feedback in actual viewer widget tests.
+Overlapping profile loads, profile deletion, rollback failure and cross-isolate
+writes remain unverified; physical audio/pedal/stylus quality remains DEVICE QA.
+
 ## Verification Policy
 
 S19: VERIFIED LOCAL. Actual viewer toolbar widget tests first exposed unsafe pageNumber
