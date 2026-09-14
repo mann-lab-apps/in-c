@@ -50,6 +50,8 @@
 
 | S32 | Split-score direct saves retain unsaved cards, mislead retries and may cross libraries; viewer errors are unhandled. | Use owned score save recovery/scope; no false split success; allow retry into setlist flow and suppress stale feedback after route/profile change. | Eight initial red cases; thirteen new cases, full 844/844, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S33 | Late PDF/batch/image/shared import may enter a newly active library or report stale results/errors there. | Check origin after file processing and persistence; stop uncommitted results after switch, preserve already-started original-library saves and suppress stale UI outcomes. | Sixteen initial red cases, eighteen new cases including real home-menu widget paths; targeted 47/47, full 862/862, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -245,6 +247,23 @@ Full suite 844/844, analyze/RC and whitespace scans PASS. Temporary evidence:
 No native PDF render/build/install claim. Remaining candidates include PDF-outline merge
 stale score snapshots, overlapping loads and source-profile deletion during pending saves.
 Next: late PDF/batch/image/shared import results after a library switch; reproduce before fixing.
+
+S32 commit: `317cbb9`. S33 reproduced stale file/save results and errors in all four import
+paths after a profile switch. File-stage results are ignored before metadata changes; already
+started saves retain S30 origin scoping but return no stale navigation result. Error messages
+are scoped to the initiating library. The shared-file loop stops at the first changed profile.
+Eighteen new cases cover file/save success/failure plus the actual home PDF and PDF-to-setlist
+menus; 47/47 targeted tests and complete full suite 862/862 pass; analyze/RC and whitespace scans PASS.
+Evidence: `/private/tmp/clef-import-scope-red.log`, `/private/tmp/clef-import-scope-green.log`,
+`/private/tmp/clef-rc-s33.log`. Automatic approval review temporarily rejected the checkpoint
+request because its model was at capacity. Read-only status verified the five Clef paths;
+explicit staging was then approved through the normal approval path. No workaround was used.
+Commit subject: `fix: isolate Clef late import outcomes`.
+Native file placement/unused imported copies
+are not cleaned or claimed transactional; source/created files are preserved.
+Next: profile-list reads rewrite stored JSON and depend on a successful write; reproduce
+read-only load failure/raw data replacement. Other candidates: overlapping library loads,
+source-profile removal during saves and remaining guarded viewer command failures.
 
 ## Verification Policy
 

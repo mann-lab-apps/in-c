@@ -24,6 +24,44 @@ void main() {
   });
 
   for (final kind in _Kind.values) {
+    for (final phase in ['file', 'save']) {
+      for (final fails in [false, true]) {
+        test(
+          '$kind late $phase completion after switch: failure=$fails',
+          () async {
+            final sourceId = controller.activeLibraryProfile.id;
+            if (phase == 'file') {
+              store.importGate = Completer<void>();
+              store.failImport = fails;
+            } else {
+              store.writeEntered = Completer<void>();
+              store.releaseWrite = Completer<void>();
+              store.failSave = fails;
+            }
+            final pending = _import(controller, kind);
+            if (phase == 'save') await store.writeEntered!.future;
+            await controller.createLibraryProfile('Destination');
+            if (phase == 'file') {
+              store.importGate!.complete();
+            } else {
+              store.releaseWrite!.complete();
+            }
+            expect(await pending, isEmpty);
+            expect(controller.scores, isEmpty);
+            expect(await store.loadScores(), isEmpty);
+            expect(controller.isImporting, isFalse);
+            expect(controller.errorMessage, isNull);
+            expect(controller.lastImportOpenedExistingScore, isFalse);
+            await controller.switchLibraryProfile(sourceId);
+            expect(
+              controller.scores,
+              hasLength(phase == 'save' && !fails ? 2 : 1),
+            );
+          },
+        );
+      }
+    }
+
     test(
       '$kind metadata failure removes unsaved cards and permits retry',
       () async {
@@ -52,6 +90,34 @@ void main() {
         expect(controller.scores.single.id, 'existing');
         expect(controller.errorMessage, isNotEmpty);
         expect(store.saveCalls, 1);
+      },
+    );
+  }
+
+  for (final addToSetlist in [false, true]) {
+    testWidgets(
+      'switched library ignores late PDF navigation: setlist=$addToSetlist',
+      (tester) async {
+        await controller.createSetlist('Concert');
+        await tester.pumpWidget(InCSheetApp(controller: controller));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byTooltip('악보 추가'));
+        await tester.pumpAndSettle();
+        store.importGate = Completer<void>();
+        await tester.tap(
+          find.text(addToSetlist ? 'PDF 가져와 세트리스트에 추가' : 'PDF 가져오기'),
+        );
+        await tester.pump();
+        await controller.createLibraryProfile('Destination');
+        await tester.pump();
+        store.importGate!.complete();
+        await tester.pumpAndSettle();
+        expect(find.byType(SheetViewerScreen), findsNothing);
+        expect(find.text('Concert'), findsNothing);
+        expect(find.text('새 세트리스트 만들기'), findsNothing);
+        expect(find.text('imported'), findsNothing);
+        expect(controller.scores, isEmpty);
+        expect(tester.takeException(), isNull);
       },
     );
   }
@@ -352,6 +418,7 @@ SheetScore _score(String id, {String? fileName}) {
 }
 
 class _ImportStore extends SheetLibraryStore {
+  Completer<void>? importGate;
   SheetScore? importedPdf;
   bool failSetlistSave = false;
   Completer<void>? pendingSetlistWrite;
@@ -386,14 +453,28 @@ class _ImportStore extends SheetLibraryStore {
   }
 
   @override
-  Future<SheetScore?> importPdf() async => importedPdf ?? _imported();
+  Future<SheetScore?> importPdf() async {
+    await importGate?.future;
+    return importedPdf ?? _imported();
+  }
+
   @override
-  Future<List<SheetScore>> importPdfs() async => importedBatch ?? [_imported()];
+  Future<List<SheetScore>> importPdfs() async {
+    await importGate?.future;
+    return importedBatch ?? [_imported()];
+  }
+
   @override
-  Future<SheetScore?> importImagesAsPdf() async => _imported();
+  Future<SheetScore?> importImagesAsPdf() async {
+    await importGate?.future;
+    return _imported();
+  }
+
   @override
-  Future<SheetScore> importPdfFile(File file, {String? fileName}) async =>
-      _imported();
+  Future<SheetScore> importPdfFile(File file, {String? fileName}) async {
+    await importGate?.future;
+    return _imported();
+  }
 
   @override
   Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
