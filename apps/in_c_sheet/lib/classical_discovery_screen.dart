@@ -3241,17 +3241,20 @@ class _NextThreePanel extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            recommendations.first.sourceEvidence,
-            style: theme.textTheme.bodySmall,
-          ),
           const SizedBox(height: 8),
           for (final recommendation in recommendations)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                child: Text(_laneShortLabel(recommendation.lane)),
+              leading: Tooltip(
+                message: switch (recommendation.lane) {
+                  'immediate' => '취향에서 이어보기',
+                  'stretch' => '한 걸음 넓혀보기',
+                  'later' => '다음에 들어보기',
+                  _ => '새로 열어보기',
+                },
+                child: CircleAvatar(
+                  child: Text(_laneShortLabel(recommendation.lane)),
+                ),
               ),
               title: Text(recommendation.work.titleKo),
               subtitle: Text(recommendation.reason),
@@ -5397,6 +5400,7 @@ String _laneShortLabel(String lane) {
     'immediate' => '맞',
     'stretch' => '확',
     'later' => '후',
+    'open_start' => '새',
     _ => '다',
   };
 }

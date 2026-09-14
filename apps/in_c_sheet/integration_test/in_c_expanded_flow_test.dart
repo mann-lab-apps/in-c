@@ -104,6 +104,17 @@ void main() {
         expect(find.text('약 4분').hitTestable(), findsOneWidget);
         expect(find.text('BWV 578'), findsWidgets);
         await binding.takeScreenshot('in-c-fugue-metadata');
+        await tester.scrollUntilVisible(
+          find.text('다음 세 작품'),
+          -250,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await Scrollable.ensureVisible(
+          tester.element(find.text('다음 세 작품')),
+          alignment: 0.05,
+        );
+        await tester.pumpAndSettle();
+        await binding.takeScreenshot('in-c-next-three-connections');
         expect(tester.takeException(), isNull);
       } finally {
         await tester.pumpWidget(const SizedBox.shrink());

@@ -421,7 +421,7 @@ class ClassicalDiscoveryCatalog {
       aliases: ['쇼팽 녹턴', 'Nocturne Op.9 No.2'],
       moodTags: ['로맨틱한', '밤', '선율'],
       contextTags: ['밤', '피아노', '처음 듣기'],
-      prompt: '멜로디가 말하듯 조금씩 늦춰지고 당겨지는 느낌을 들어보세요.',
+      prompt: '왼손의 반복되는 반주 위로 오른손 선율이 어떻게 이어지는지 들어보세요.',
       relatedWorkIds: ['debussy-clair-de-lune', 'beethoven-moonlight'],
       concertIds: ['concert-piano-evening'],
     ),

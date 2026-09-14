@@ -18,6 +18,210 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test(
+    'next three preserve broad input instead of substituting an excerpt title',
+    () async {
+      final source = _controller(_MemoryStore());
+      final anchor = source.workById('dvorak-new-world')!;
+      final candidate = source.workById('beethoven-symphony-5')!;
+      final controller = _controller(
+        _MemoryStore(),
+        works: [anchor, candidate],
+      );
+      await controller.load();
+      const input = '드보르작 - 교향곡 9번';
+      final preview = controller.previewTasteStart([input])!;
+      expect(preview.items.single.matchedWorkId, anchor.id);
+      expect(preview.nextThree.single.reason, contains(input));
+      await controller.addTasteIntakeInputs([input]);
+      final recommendation = controller.nextThreeRecommendations().single;
+      expect(recommendation.reason, contains(input));
+      expect(recommendation.reason, isNot(contains('2악장')));
+      controller.dispose();
+      source.dispose();
+    },
+  );
+
+  test(
+    'Chopin opening guide uses score evidence rather than assumed rubato',
+    () {
+      final work = ClassicalDiscoveryCatalog.works.firstWhere(
+        (work) => work.id == 'chopin-nocturne-op9-2',
+      );
+      expect(work.primaryMoment!.prompt, contains('왼손의 반복되는 반주'));
+      expect(work.primaryMoment!.prompt, contains('오른손 선율'));
+      expect(work.primaryMoment!.prompt, isNot(contains('늦춰지고')));
+      expect(
+        work.externalLinks.where(
+          (link) => link.linkType == 'listen_preview_approved',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  testWidgets('new-start recommendation is readable on a small work detail', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final source = _controller(_MemoryStore());
+    final candidate = source.workById('mozart-piano-sonata-k545')!;
+    final anchor = source.workById('bizet-carmen-habanera')!;
+    expect(candidate.composerId, isNot(anchor.composerId));
+    expect(candidate.instrumentation, isNot(anchor.instrumentation));
+    expect(candidate.moodTags.any(anchor.moodTags.contains), isFalse);
+    final controller = _controller(_MemoryStore(), works: [candidate]);
+    await controller.load();
+    await controller.addTasteIntakeInputs(['unknown music 123']);
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.4)),
+          child: child!,
+        ),
+        home: ClassicalWorkDetailScreen(controller: controller, work: anchor),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byTooltip('새로 열어보기'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+      maxScrolls: 30,
+    );
+    expect(find.byTooltip('새로 열어보기'), findsOneWidget);
+    expect(find.byTooltip('취향에서 이어보기'), findsNothing);
+    expect(find.byTooltip('한 걸음 넓혀보기'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    controller.dispose();
+    source.dispose();
+  });
+
+  test(
+    'next three explain the displayed anchor instead of stored taste',
+    () async {
+      final source = _controller(_MemoryStore());
+      final candidate = source.workById('mozart-piano-sonata-k545')!;
+      final anchor = source.workById('mozart-eine-kleine')!;
+      final controller = _controller(_MemoryStore(), works: [candidate]);
+      await controller.load();
+      await controller.addTasteIntakeInputs(['푸치니']);
+      final recommendation = controller
+          .nextThreeRecommendations(anchor: anchor)
+          .single;
+      expect(recommendation.lane, 'immediate');
+      expect(recommendation.reason, contains(anchor.titleKo));
+      expect(recommendation.reason, contains(candidate.composerNameKo));
+      expect(recommendation.reason, contains(candidate.instrumentation));
+      expect(recommendation.reason, isNot(contains('푸치니')));
+      expect(recommendation.sourceEvidence, recommendation.reason);
+      expect(
+        controller.listeningMapRoleForWork(anchor).nextPath.single.reason,
+        recommendation.reason,
+      );
+      controller.dispose();
+      source.dispose();
+    },
+  );
+
+  test('unmatched next three fallback slots are all new starts', () async {
+    final controller = _controller(_MemoryStore());
+    await controller.load();
+    final preview = controller.previewTasteStart(['unknown music 123'])!;
+    expect(preview.nextThree, hasLength(3));
+    expect(
+      preview.nextThree.map((item) => item.lane),
+      everyElement('open_start'),
+    );
+    await controller.addTasteIntakeInputs(['unknown music 123']);
+    final picks = controller.nextThreeRecommendations();
+    expect(picks, hasLength(3));
+    expect(picks.map((item) => item.lane), everyElement('open_start'));
+    expect(picks.map((item) => item.work.id).toSet(), hasLength(3));
+    controller.dispose();
+  });
+
+  test(
+    'next three do not call unrelated candidates a taste expansion',
+    () async {
+      final candidate = ClassicalDiscoveryCatalog.works.firstWhere(
+        (work) => work.id == 'mozart-piano-sonata-k545',
+      );
+      for (final input in ['푸치니', 'unknown music 123']) {
+        final controller = _controller(_MemoryStore(), works: [candidate]);
+        await controller.load();
+        final preview = controller.previewTasteStart([input])!;
+        expect(preview.nextThree.single.lane, 'open_start', reason: input);
+        expect(preview.nextThree.single.reason, contains('연결할 근거가 부족'));
+        expect(preview.dailyStep.reason, preview.nextThree.single.reason);
+        await controller.addTasteIntakeInputs([input]);
+        final recommendation = controller.nextThreeRecommendations().single;
+        expect(recommendation.lane, 'open_start', reason: input);
+        expect(recommendation.reason, contains('연결할 근거가 부족'));
+        expect(recommendation.sourceEvidence, recommendation.reason);
+        controller.dispose();
+      }
+    },
+  );
+
+  test(
+    'intake preview explains the draft rather than the saved taste',
+    () async {
+      final controller = _controller(_MemoryStore());
+      await controller.load();
+      await controller.addTasteIntakeInputs(['쇼팽 야상곡 Op.9 No.2']);
+      final before = UserDiscoveryState.encode(controller.state);
+      final preview = controller.previewTasteStart(['바흐 푸가'])!;
+      expect(preview.nextThree.first.work.id, 'bach-little-fugue-bwv578');
+      expect(preview.nextThree.first.reason, contains('바흐 푸가'));
+      expect(preview.nextThree.first.reason, isNot(contains('쇼팽')));
+      expect(UserDiscoveryState.encode(controller.state), before);
+      controller.dispose();
+    },
+  );
+
+  test('next three do not present the favorite anchor as a new work', () async {
+    final work = ClassicalDiscoveryCatalog.works.firstWhere(
+      (work) => work.id == 'chopin-nocturne-op9-2',
+    );
+    final controller = _controller(_MemoryStore(), works: [work]);
+    await controller.load();
+    await controller.addTasteIntakeInputs(['쇼팽 야상곡 9-2번']);
+    expect(controller.tasteIntakeItems.single.matchedWorkId, work.id);
+    final picks = controller.nextThreeRecommendations();
+    expect(picks, isEmpty);
+    controller.dispose();
+  });
+
+  for (final sparse in [false, true]) {
+    test('intake preview deduplicates candidates: $sparse', () {
+      final works = sparse
+          ? ClassicalDiscoveryCatalog.works
+                .where((w) => w.id == 'mozart-piano-sonata-k545')
+                .toList()
+          : null;
+      final controller = _controller(_MemoryStore(), works: works);
+      final before = UserDiscoveryState.encode(controller.state);
+      final preview = controller.previewTasteStart(['피아노'])!;
+      final ids = preview.nextThree.map((r) => r.work.id).toList();
+      for (final item in preview.nextThree) {
+        expect(
+          item.reason.split(item.work.primaryMoment!.prompt),
+          hasLength(2),
+        );
+      }
+      expect(ids.toSet(), hasLength(ids.length));
+      expect(ids, hasLength(sparse ? 1 : 3));
+      expect(UserDiscoveryState.encode(controller.state), before);
+      controller.dispose();
+    });
+  }
+
+  test(
     'day five cannot claim gentle expansion without a known bridge',
     () async {
       final source = _controller(_MemoryStore());

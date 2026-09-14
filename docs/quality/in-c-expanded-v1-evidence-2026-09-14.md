@@ -6,10 +6,73 @@ Full existing A-I/follow-up objective registered after the goal tool returned no
 This is not a replacement for a usage-limited goal. No partial completion claimed.
 PR #755 is MERGED at e3e634a. Fetched origin/main ff6c9c2 is the detached basis of
 `/private/tmp/in-c-v1-resume-20260914`; the original dirty worktree is untouched.
-No commit, push, merge, deployment or identity changes in this run.
+Initial implementation excluded git publication. The latest user request authorizes checkpoint
+commit/push/merge only; no deployment or identity changes are authorized.
 Required39: DONE11 / IN_PROGRESS26 / NOT_VERIFIED2. Historical DONE is scoped acceptance.
 
 ## Reproduced And Corrected
+
+### User-Requested Checkpoint Closeout
+
+The latest user request stops new feature work and authorizes commit/push/merge of this
+in C checkpoint. Earlier no-commit instructions below are historical. No release, identity
+change, media download, physical-device approval or whole-objective completion is implied.
+
+- A04/E01: runtime RED showed Puccini-only input receiving Mozart K545 as `immediate`.
+  Next Three/intake now prefer candidates with actual composer, ensemble, mood or explicit
+  input/preference evidence. Stretch needs a changed dimension too. Unsupported fallback
+  slots are `open_start`, not forced matched/stretch labels. Reasons retain the actual
+  listening prompt, and the UI gives category tooltips without duplicating the first reason.
+- A04: runtime RED showed a broad Dvorak Symphony9 input being replaced by the automatic
+  Symphony9 second-movement label in preview. Derived input anchors now quote raw input;
+  explicit Work Detail navigation still explains its displayed work without claiming a like.
+  Root recommendations exclude their best input anchor, even in a single-work pool.
+- E01/B02: draft preview does not mutate saved input/history. Founder test fixtures now
+  explicitly set exclusions, not infer dislikes from a favorite-input field or melody taste.
+  Unsure alone produces an easy new start, not an invented liked anchor.
+- K01: HN664 opening score inspected; Chopin guide narrowed from presumed timing/rubato to
+  melody over recurring accompaniment. See first30 source review. All recording-window,
+  listening, region and preview-rights approvals remain separate and unverified.
+- Targeted8 PASS: `/private/tmp/in-c-progressive-origin-targeted.log`.
+  Small-screen Work Detail (320px, text scale1.4) PASS, including new-start tooltip and no overflow.
+- Final full584 PASS: `/private/tmp/in-c-checkpoint-merge-full.log`; analyze PASS:
+  `/private/tmp/in-c-checkpoint-merge-analyze.log`. Dart format and diff check PASS.
+  Intermediate failures were corrected: missing prompt in new explanation, copy assertion
+  change, and invalid Wagner fixture ID (not in current composer catalog). No hidden global
+  exclusion was added to make old fixtures pass.
+- Native integration PASS: `/private/tmp/in-c-checkpoint-native-recheck.log`, six behavioral
+  cases plus setup/teardown. Actual provisional foreground calendar delivery was observed;
+  this still is not user permission acceptance, physical-device, background-banner or tap QA.
+  Initial added capture failed by scrolling down from metadata past the earlier recommendation
+  section. Corrected upward scroll and explicit alignment pass without changing app navigation.
+  Visually inspected `in-c-next-three-connections.png` in the temporary `in-c-expanded-v1-ui`
+  screenshot directory: three work rows, actual common/changed metadata, guides and controls
+  render without overlap. Screenshots/test storage are isolated; no production records used.
+- Exact checkpoint iOS no-codesign build PASS (26.0MB):
+  `/private/tmp/in-c-checkpoint-merge-ios.log`, with `IN_C_DISCOVERY_HOME=true`.
+  No signing, App Store submission or physical installation is implied.
+- Required39 stays DONE11/IN_PROGRESS26/NOT_VERIFIED2. Remaining implementation/evidence
+  work is tracked by existing IDs, not removed by checkpoint merge. Implementation completion,
+  perceived recommendation quality, physical-device QA and public launch are NOT approved.
+
+### Intake Preview Continuation After a310157
+
+- E01: three preview lanes could select the same work; each now excludes previously selected
+  IDs. Full and one-work catalog tests assert unique IDs and no forced duplicate slots.
+  The initial RED command was denied before starting, so no runtime RED is claimed for dedupe.
+- A04/B01: saved Chopin taste plus draft Bach fugue input reproduced Mozart K545 as the first
+  preview (/private/tmp/in-c-preview-draft-red.log). Explicit draft input now reaches scoring
+  and explanation instead of the saved input. No temporary mutation of real state is used.
+- A subsequent check selected Goldberg Aria. Explicit composer + fugue clues now add a bounded
+  match bonus only when the candidate title identifies a fugue. The reason names that form.
+  This works by supplied composer, not a founder-only Bach exception; unlinked inputs cannot
+  supply it. This is a narrow curated-title rule, not independent musical-quality approval.
+- Targeted3 PASS: /private/tmp/in-c-preview-draft-final.log. Snapshot equality proves saved
+  taste and listening state remain unchanged while drafting new input.
+- Full577 PASS: /private/tmp/in-c-preview-scope-full.log.
+- Analyze PASS: /private/tmp/in-c-preview-scope-analyze.log. Dart format/diff check PASS.
+- Required39 remains DONE11/IN_PROGRESS26/NOT_VERIFIED2. First30 audio/windows, physical
+  notification taps, VoiceOver and human quality remain open. No new commit/push authorized.
 
 - H01/H02: failing Apple Music search returned early instead of offering another safe
   destination. Today and Work Detail now share bounded recovery: same-provider search,

@@ -925,9 +925,10 @@ void main() {
     final controller = buildController(MemoryStore());
     await controller.load();
     final preview = controller.previewTasteStart(['unknown music 123'])!;
-    expect(preview.dailyStep.reason, contains('아직 곡을 연결하지 못해'));
+    expect(preview.dailyStep.reason, contains('연결할 근거가 부족'));
     for (final item in preview.nextThree) {
-      expect(item.sourceEvidence, contains('아직 곡을 연결하지 못해'));
+      expect(item.sourceEvidence, contains('연결할 근거가 부족'));
+      expect(item.lane, 'open_start');
     }
     controller.dispose();
   });

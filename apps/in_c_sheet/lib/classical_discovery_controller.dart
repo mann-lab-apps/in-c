@@ -581,7 +581,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final nextThree = _previewProgressiveRecommendations(
       axis: axis,
       anchor: anchor,
-      sourceEvidence: _sourceEvidenceForPreview(items, axis),
+      tasteItems: items,
     );
     final work = nextThree.firstOrNull?.work ?? anchor ?? _easyFounderWork(now);
     final moment = work.primaryMoment ?? work.listeningMoments.first;
@@ -595,7 +595,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       moment: moment,
       title: '오늘은 이 30초부터',
       prompt: translation.listenFor,
-      reason: _tasteBasedDailyReason(items.first, axis),
+      reason: nextThree.firstOrNull?.reason ?? translation.startingPoint,
       nextEffect: '반응을 남기면 다음 세 작품이 이 시작점에서 조금 더 가까워집니다.',
       estimatedSeconds: (moment.endSeconds - moment.startSeconds)
           .clamp(15, 180)
@@ -790,14 +790,18 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         ? '선율형'
         : tasteAxisScores().first.axis;
     final targetDifficulty = _targetDifficultyFor(level.level);
+    final source = anchor ?? _bestTasteAnchor();
+    // Derived input anchors must keep the user's original work/movement wording.
+    final explanationAnchor =
+        anchor ?? (_state.tasteIntakeItems.isEmpty ? source : null);
     final usedWorkIds = <String>{
-      if (anchor != null) anchor.id,
+      if (source != null) source.id,
       ..._state.reactions.take(8).map((reaction) => reaction.workId),
     };
     final candidates = _scoreProgressiveCandidates(
       axis: axis,
       targetDifficulty: targetDifficulty,
-      anchor: anchor ?? _bestTasteAnchor(),
+      anchor: source,
       usedWorkIds: usedWorkIds,
     );
 
@@ -806,18 +810,22 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       bool Function(ClassicalWork work) test,
     ) {
       for (final item in candidates) {
-        if (!test(item.work)) {
+        final connection = _progressiveConnection(
+          item.work,
+          anchor: explanationAnchor,
+        );
+        if (!test(item.work) ||
+            connection == null ||
+            (lane == 'stretch' && !connection.expands)) {
           continue;
         }
         usedWorkIds.add(item.work.id);
-        return ProgressiveRecommendation(
+        return _progressiveRecommendation(
           work: item.work,
           lane: lane,
-          reason: _progressiveReasonFor(item.work, lane, axis),
-          distance: (item.work.difficultyForListening - targetDifficulty).abs(),
           axis: axis,
-          difficulty: item.work.difficultyForListening,
-          sourceEvidence: _sourceEvidenceFor(axis),
+          targetDifficulty: targetDifficulty,
+          anchor: explanationAnchor,
         );
       }
       return null;
@@ -853,7 +861,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       candidates: candidates,
       usedWorkIds: usedWorkIds,
       axis: axis,
-      sourceEvidence: _sourceEvidenceFor(axis),
+      anchor: explanationAnchor,
       targetDifficulty: targetDifficulty,
     );
   }
@@ -1466,9 +1474,15 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
-  String _dailyPickSourceEvidence(String axis, ClassicalWork work) {
+  String _dailyPickSourceEvidence(
+    String axis,
+    ClassicalWork work, {
+    List<TasteIntakeItem>? tasteItems,
+  }) {
+    final inputs = tasteItems ?? _state.tasteIntakeItems;
     final descriptor = '${work.composerNameKo}의 ${work.instrumentation} 작품';
-    for (final reaction in _latestReactions) {
+    for (final reaction
+        in tasteItems == null ? _latestReactions : <ClassicalReaction>[]) {
       if (reaction.type != 'liked' && reaction.type != 'repeat') continue;
       final source = workById(reaction.workId);
       if (source == null ||
@@ -1480,8 +1494,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     }
     final connectedInputs =
         <({TasteIntakeItem item, int strength, int index})>[];
-    for (var index = 0; index < _state.tasteIntakeItems.length; index++) {
-      final item = _state.tasteIntakeItems[index];
+    for (var index = 0; index < inputs.length; index++) {
+      final item = inputs[index];
       final source = workById(item.matchedWorkId ?? '');
       if (source == null || !_axisWeightsForWork(source).containsKey(axis)) {
         continue;
@@ -1499,7 +1513,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       final order = b.strength.compareTo(a.strength);
       return order != 0 ? order : a.index.compareTo(b.index);
     });
-    final composerInput = _state.tasteIntakeItems
+    final composerInput = inputs
         .where(
           (item) =>
               item.matchOrigin != 'user_unlinked' &&
@@ -1520,7 +1534,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     final item =
         connectedInputs.firstOrNull?.item ??
         composerInput ??
-        _state.tasteIntakeItems.firstOrNull;
+        inputs.firstOrNull;
     if (item == null) {
       return '오늘은 $descriptor에서 시작합니다. ${work.primaryMoment?.prompt ?? ''}';
     }
@@ -1539,6 +1553,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     }
     if (item.matchOrigin != 'user_unlinked' &&
         item.matchedComposerId == work.composerId) {
+      if (_hasExplicitFugueConnection(work, [item])) {
+        return '남겨주신 "${item.rawInput.trim()}"에서 작곡가와 푸가 형식을 이어봅니다. 오늘은 ${work.titleKo}의 ${work.instrumentation} 소리를 들어봅니다.';
+      }
       return '남겨주신 "${item.rawInput.trim()}"에서 작곡가를 이어봅니다. 오늘은 ${work.titleKo}의 ${work.instrumentation} 소리를 들어봅니다.';
     }
     return '${_tasteEvidenceLabelFor(item)}는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 $descriptor에서 시작합니다.';
@@ -4473,7 +4490,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   List<ProgressiveRecommendation> _previewProgressiveRecommendations({
     required String axis,
     required ClassicalWork? anchor,
-    required String sourceEvidence,
+    required List<TasteIntakeItem> tasteItems,
   }) {
     final usedWorkIds = <String>{if (anchor != null) anchor.id};
     final candidates = _scoreProgressiveCandidates(
@@ -4481,6 +4498,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       targetDifficulty: 1,
       anchor: anchor,
       usedWorkIds: usedWorkIds,
+      tasteItems: tasteItems,
     );
 
     ProgressiveRecommendation? pick(
@@ -4488,18 +4506,24 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       bool Function(ClassicalWork work) test,
     ) {
       for (final item in candidates) {
-        if (!test(item.work)) {
+        final connection = _progressiveConnection(
+          item.work,
+          anchor: null,
+          tasteItems: tasteItems,
+        );
+        if (!test(item.work) ||
+            connection == null ||
+            (lane == 'stretch' && !connection.expands)) {
           continue;
         }
         usedWorkIds.add(item.work.id);
-        return ProgressiveRecommendation(
+        return _progressiveRecommendation(
           work: item.work,
           lane: lane,
-          reason: _progressiveReasonFor(item.work, lane, axis),
-          distance: (item.work.difficultyForListening - 1).abs(),
           axis: axis,
-          difficulty: item.work.difficultyForListening,
-          sourceEvidence: sourceEvidence,
+          targetDifficulty: 1,
+          anchor: null,
+          tasteItems: tasteItems,
         );
       }
       return null;
@@ -4507,15 +4531,31 @@ class ClassicalDiscoveryController extends ChangeNotifier {
 
     return _withProgressiveFallbacks(
       <ProgressiveRecommendation?>[
-        pick('immediate', (work) => work.difficultyForListening <= 2),
-        pick('stretch', (work) => work.difficultyForListening <= 3),
-        pick('later', (work) => work.difficultyForListening >= 2),
+        pick(
+          'immediate',
+          (work) =>
+              !usedWorkIds.contains(work.id) &&
+              work.difficultyForListening <= 2,
+        ),
+        pick(
+          'stretch',
+          (work) =>
+              !usedWorkIds.contains(work.id) &&
+              work.difficultyForListening <= 3,
+        ),
+        pick(
+          'later',
+          (work) =>
+              !usedWorkIds.contains(work.id) &&
+              work.difficultyForListening >= 2,
+        ),
       ].whereType<ProgressiveRecommendation>().toList(growable: true),
       candidates: candidates,
       usedWorkIds: usedWorkIds,
       axis: axis,
-      sourceEvidence: sourceEvidence,
+      anchor: null,
       targetDifficulty: 1,
+      tasteItems: tasteItems,
     );
   }
 
@@ -4524,8 +4564,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required List<({ClassicalWork work, int score})> candidates,
     required Set<String> usedWorkIds,
     required String axis,
-    required String sourceEvidence,
+    required ClassicalWork? anchor,
     required int targetDifficulty,
+    List<TasteIntakeItem>? tasteItems,
   }) {
     for (final item in candidates) {
       if (recommendations.length >= 3) {
@@ -4541,14 +4582,13 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       };
       usedWorkIds.add(item.work.id);
       recommendations.add(
-        ProgressiveRecommendation(
+        _progressiveRecommendation(
           work: item.work,
           lane: lane,
-          reason: _progressiveReasonFor(item.work, lane, axis),
-          distance: (item.work.difficultyForListening - targetDifficulty).abs(),
           axis: axis,
-          difficulty: item.work.difficultyForListening,
-          sourceEvidence: sourceEvidence,
+          targetDifficulty: targetDifficulty,
+          anchor: anchor,
+          tasteItems: tasteItems,
         ),
       );
     }
@@ -4589,42 +4629,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return sorted.first.key;
   }
 
-  String _sourceEvidenceForPreview(List<TasteIntakeItem> items, String axis) {
-    final item =
-        items
-            .where(
-              (item) =>
-                  item.matchedWorkId != null ||
-                  item.matchedComposerId != null ||
-                  _axisForTasteItem(item).isNotEmpty,
-            )
-            .firstOrNull ??
-        items.first;
-    final label = _tasteEvidenceLabelFor(item);
-    if (item.matchedWorkId == null &&
-        item.matchedComposerId == null &&
-        _axisForTasteItem(item).isEmpty) {
-      return '$label는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 들어볼 작품을 골랐습니다.';
-    }
-    return '$label에서 출발해 ${_axisNoun(axis)} 쪽으로 가까운 길을 잡았습니다.';
-  }
-
   String _dailyTasteEvidenceLabel() {
     if (_state.tasteIntakeItems.isEmpty) {
       return '';
     }
     return _tasteEvidenceLabelFor(_state.tasteIntakeItems.first);
-  }
-
-  String _tasteBasedDailyReason(TasteIntakeItem item, String axis) {
-    final label = _tasteEvidenceLabelFor(item);
-    if (item.matchedWorkId == null &&
-        item.matchedComposerId == null &&
-        _axisForTasteItem(item).isEmpty) {
-      return '$label는 기록해둘게요. 아직 곡을 연결하지 못해, 우선 한 곡을 들어보고 시작합니다.';
-    }
-    final action = _axisListeningAction(axis);
-    return '$label에서 시작했다면, 오늘은 $action 30초만 잡아봅니다.';
   }
 
   String _tasteEvidenceLabelFor(TasteIntakeItem item) {
@@ -4960,6 +4969,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required int targetDifficulty,
     required ClassicalWork? anchor,
     required Set<String> usedWorkIds,
+    List<TasteIntakeItem>? tasteItems,
   }) {
     final scored = <({ClassicalWork work, int score})>[];
     for (final work in _works) {
@@ -4985,7 +4995,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       if (work.concertIds.isNotEmpty) {
         score += 1;
       }
-      score += _personalDiscoveryFitScore(work);
+      score += _personalDiscoveryFitScore(work, tasteItems: tasteItems);
       if (score > 0) {
         scored.add((work: work, score: score));
       }
@@ -5002,21 +5012,132 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return scored;
   }
 
-  String _progressiveReasonFor(ClassicalWork work, String lane, String axis) {
-    final prompt = work.primaryMoment?.prompt ?? '한 지점에서 시작해 봅니다.';
-    return switch (lane) {
-      'immediate' => _dailyPickSourceEvidence(axis, work),
-      'stretch' => '${work.period}의 ${work.instrumentation} 작품입니다. $prompt',
-      'later' => '다음에는 ${work.composerNameKo}의 이 지점도 열어볼까요? $prompt',
-      _ => prompt,
-    };
+  ProgressiveRecommendation _progressiveRecommendation({
+    required ClassicalWork work,
+    required String lane,
+    required String axis,
+    required int targetDifficulty,
+    required ClassicalWork? anchor,
+    List<TasteIntakeItem>? tasteItems,
+  }) {
+    final connection = _progressiveConnection(
+      work,
+      anchor: anchor,
+      tasteItems: tasteItems,
+    );
+    final effectiveLane = connection == null
+        ? 'open_start'
+        : lane == 'stretch' && !connection.expands
+        ? 'immediate'
+        : lane;
+    final input = (tasteItems ?? _state.tasteIntakeItems).firstOrNull;
+    final inputNote = input == null
+        ? ''
+        : '남겨주신 "${_friendlyTasteLabel(input.rawInput)}"은 기록해둘게요. ';
+    final evidence =
+        connection?.reason ??
+        '$inputNote아직 좋아한 곡과 연결할 근거가 부족해요. ${work.composerNameKo}의 ${work.instrumentation} 작품을 새로 열어봅니다.';
+    final reason = '$evidence ${work.primaryMoment?.prompt ?? ''}'.trim();
+    return ProgressiveRecommendation(
+      work: work,
+      lane: effectiveLane,
+      reason: reason,
+      distance: (work.difficultyForListening - targetDifficulty).abs(),
+      axis: axis,
+      difficulty: work.difficultyForListening,
+      sourceEvidence: reason,
+    );
   }
 
-  int _personalDiscoveryFitScore(ClassicalWork work) {
-    final explicitWork = _state.tasteIntakeItems.any(
-      (item) => item.matchedWorkId == work.id,
-    );
-    final explicitComposer = _state.tasteIntakeItems.any(
+  ({String reason, bool expands})? _progressiveConnection(
+    ClassicalWork work, {
+    required ClassicalWork? anchor,
+    List<TasteIntakeItem>? tasteItems,
+  }) {
+    ({String reason, bool expands})? fromWork(
+      ClassicalWork source,
+      String label,
+    ) {
+      final mood = work.moodTags.where(source.moodTags.contains).firstOrNull;
+      final shared = work.composerId == source.composerId
+          ? '$label과 같은 작곡가, ${work.composerNameKo}의 작품입니다.'
+          : work.instrumentation == source.instrumentation
+          ? '$label과 같은 ${work.instrumentation} 편성입니다.'
+          : mood != null
+          ? '$label과 "$mood" 분위기를 이어갑니다.'
+          : null;
+      if (shared == null) return null;
+      final change = work.composerId != source.composerId
+          ? '${work.composerNameKo}의 음악'
+          : work.instrumentation != source.instrumentation
+          ? '${work.instrumentation} 편성'
+          : work.period != source.period
+          ? '${work.period} 시대'
+          : null;
+      return (
+        reason: '$shared${change == null ? '' : ' 새롭게 들을 부분은 $change입니다.'}',
+        expands: change != null,
+      );
+    }
+
+    // A displayed work is a navigation anchor, not evidence that the user liked it.
+    if (anchor != null) {
+      final connection = fromWork(anchor, anchor.titleKo);
+      if (connection != null) return connection;
+    }
+    final inputs = tasteItems ?? _state.tasteIntakeItems;
+    for (final item in inputs) {
+      if (item.matchOrigin == 'user_unlinked') continue;
+      final label = '남겨주신 "${item.rawInput.trim()}"';
+      final source = workById(item.matchedWorkId ?? '');
+      if (source != null) {
+        final connection = fromWork(source, label);
+        if (connection != null) return connection;
+      }
+      if (item.matchedComposerId == work.composerId) {
+        final shared = _hasExplicitFugueConnection(work, [item])
+            ? '작곡가와 푸가 형식'
+            : '${work.composerNameKo}의 음악';
+        return (reason: '$label에서 $shared을 이어봅니다.', expands: false);
+      }
+      final inputAxis = _axisForTasteItem(item);
+      if (source == null &&
+          item.matchedComposerId == null &&
+          _axisWeightsForWork(work).containsKey(inputAxis)) {
+        return (
+          reason: '$label에서 ${_axisNoun(inputAxis)} 쪽으로 시작합니다.',
+          expands: false,
+        );
+      }
+    }
+    if (_state.preferredInstruments.contains(work.instrumentation)) {
+      return (reason: '선택한 ${work.instrumentation} 소리를 이어봅니다.', expands: false);
+    }
+    final mood = work.moodTags
+        .where(_state.preferredMoodTags.contains)
+        .firstOrNull;
+    if (mood != null) {
+      return (reason: '선택한 "$mood" 분위기로 이어봅니다.', expands: false);
+    }
+    if (tasteItems == null) {
+      for (final reaction in _latestReactions) {
+        if (reaction.type != 'liked' && reaction.type != 'repeat') continue;
+        final source = workById(reaction.workId);
+        if (source == null) continue;
+        final connection = fromWork(source, '좋았던 ${source.titleKo}');
+        if (connection != null) return connection;
+      }
+    }
+    return null;
+  }
+
+  int _personalDiscoveryFitScore(
+    ClassicalWork work, {
+    List<TasteIntakeItem>? tasteItems,
+  }) {
+    final inputs = tasteItems ?? _state.tasteIntakeItems;
+    final explicitWork = inputs.any((item) => item.matchedWorkId == work.id);
+    final explicitComposer = inputs.any(
       (item) => item.matchedComposerId == work.composerId,
     );
     return (explicitWork
@@ -5024,25 +5145,28 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             : explicitComposer
             ? 10
             : 0) +
+        (_hasExplicitFugueConnection(work, inputs) ? 8 : 0) +
         work.contextTags.where(_state.preferredContextTags.contains).length *
             4 +
         work.moodTags.where(_state.preferredMoodTags.contains).length * 4 +
         (_state.preferredInstruments.contains(work.instrumentation) ? 4 : 0);
   }
 
+  bool _hasExplicitFugueConnection(
+    ClassicalWork work,
+    List<TasteIntakeItem> inputs,
+  ) =>
+      _containsAny('${work.titleKo} ${work.titleOriginal}', ['푸가', 'fugue']) &&
+      inputs.any(
+        (item) =>
+            item.matchOrigin != 'user_unlinked' &&
+            item.matchedComposerId == work.composerId &&
+            _containsAny(item.rawInput, ['푸가', 'fugue']),
+      );
+
   bool _isExcludedRecommendation(ClassicalWork work) =>
       _state.excludedComposerIds.contains(work.composerId) ||
       (_state.excludeOperaticVocals && work.isOperaticVocal);
-
-  String _sourceEvidenceFor(String axis) {
-    final score = tasteAxisScores()
-        .where((item) => item.axis == axis)
-        .firstOrNull;
-    if (score == null || score.evidenceCount == 0) {
-      return '아직 기록이 적어 잘 열리는 입구부터 시작합니다.';
-    }
-    return '저장/반응/입력 기록 ${score.evidenceCount}개에서 이어집니다.';
-  }
 
   String _reactionLabelFor(String type) {
     return switch (type) {

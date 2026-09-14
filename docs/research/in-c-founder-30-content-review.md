@@ -27,7 +27,7 @@ This is a partial source audit, not approval of 30 recordings or recommendation 
 | beethoven-moonlight | [Beethoven-Haus Op.27 catalogue](https://www.beethoven.de/en/work/view/6341812939653120/Two%2BSonatas%2Bfor%2Bpiano%2B%26%23040%3BE-flat%2Bmajor%2C%2BC-sharp%2Bminor%26%23041%3B%2Bop.%2B27) | Op.27 No.2 identity and first-edition locations supported. Removed unsupported left-hand attribution; catalogue index does not establish a recording's accompaniment window. |
 | beethoven-fur-elise | [Beethoven-Haus WoO59](https://www.beethoven.de/en/work/view/5327609864912896/Bagatelle%2Bfor%2Bpiano%2B%26%23040%3BA%2Bminor%26%23041%3B%2BWoO%2B59) | Original piano work identity supported. Recipient/title history is uncertain; do not invent a definite dedication story. Exact passage and recording remain unverified. |
 | vivaldi-spring | [LA Phil Spring/Summer](https://www.laphil.com/works/spring-and-summer-from-the-four-seasons-op-8-nos-1-and-2) | First-movement bird-call imagery supported. Locate the solo episode, not an assumed first 30 seconds. |
-| chopin-nocturne-op9-2 | [Chopin catalogue incipits](https://www.chopin.pl/katalog_part_05.en.html), [Chopin Online first-edition source index](https://chopinonline.ac.uk/ocve/browse/acview/a8fc0806d3ba1d0f8389829b0a058493/) | Op.9 No.2 E-flat identity and source locations supported. Index is not score-image inspection; performer timing remains unverified. |
+| chopin-nocturne-op9-2 | [Chopin catalogue incipits](https://www.chopin.pl/katalog_part_05.en.html), [Henle HN664 opening score](https://www.henle.de/media/35/03/6d/1692638562/0664_0004-1692638562-sync.jpg) | E-flat/12-8 opening score visually checked. Guide now follows upper melody over recurring left-hand accompaniment, not presumed performer rubato. Recording and time window remain unapproved. |
 | chopin-revolutionary | [LA Phil Etudes note](https://www.laphil.com/works/etudes-op-10-nos-1-2-3-4-12-and-etudes-op-25-nos-5-6-11) | Op.10 No.12 C minor, active left hand and march-like right-hand theme supported. No performer window approved; do not equate pianistic difficulty with listening level. |
 | debussy-clair-de-lune | [LA Phil original piano movement](https://www.laphil.com/works/clair-de-lune-from-suite-bergamasque) | Suite bergamasque movement III, solo piano supported. Do not accidentally link an orchestral/violin arrangement. Color prompt remains editorial, not measured listening evidence. |
 | ravel-bolero | [LA Phil Bolero](https://www.laphil.com/works/bolero) | Repetition and changing instrumental color supported. Reworded guide to distinguish rhythmic backing and melody handoff. Handoff exceeds some 30-second windows. |
@@ -99,6 +99,15 @@ No actual playback, region access, recording timing or user satisfaction is esta
 General `바흐 푸가` input remains composer/form evidence, not proof that BWV578 was already liked.
 
 ### 2026-09-14 Source Review (Not Playback Approval)
+
+- Chopin Op.9 No.2: [Henle HN664](https://www.henle.de/de/Nocturne-Es-dur-op.-9-Nr.-2/HN-664)
+  public preview, printed page2, was visually inspected at `/private/tmp/in-c-chopin-hn664-page4.jpg`.
+  The opening shows 12/8, E-flat major, an upper melody and recurring bass/chord accompaniment.
+  Later on that page, slowing and return-to-tempo markings exist; they do not establish
+  what happens in the first30 seconds of an unidentified recording. The guide was narrowed
+  to the opening texture. No audio, region, playback, recording-window or preview-rights approval.
+  Preview page3 is a title page, and page5 is a withheld-content notice, neither score evidence.
+  Temporary review images are not bundled assets or permission to redistribute this edition.
 
 - BWV1007: [Netherlands Bach Society official page](https://www.bachvereniging.nl/en/bwv/bwv-1007)
   identifies Lucia Swarts at Rijksmuseum, recorded 2014-06-30, released 2014-11-28.

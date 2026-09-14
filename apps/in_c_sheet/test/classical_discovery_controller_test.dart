@@ -277,7 +277,7 @@ void main() {
   );
 
   test(
-    'unsure reaction keeps the next recommendations close to anchors',
+    'unsure alone offers easy new starts without inventing a liked anchor',
     () async {
       final controller = _controller();
       await controller.load();
@@ -286,7 +286,8 @@ void main() {
 
       final immediate = controller.nextThreeRecommendations().first;
 
-      expect(immediate.lane, 'immediate');
+      expect(immediate.lane, 'open_start');
+      expect(immediate.reason, contains('연결할 근거가 부족'));
       expect(immediate.work.difficultyForListening, lessThanOrEqualTo(3));
     },
   );
@@ -397,6 +398,8 @@ void main() {
       '로꼬 - 잘가',
       '선율',
     ]);
+    await controller.setComposerExcluded('mahler', true);
+    await controller.setOperaticVocalsExcluded(true);
 
     final axes = controller.tasteAxisScores();
     final nextThree = controller.nextThreeRecommendations();
@@ -414,17 +417,19 @@ void main() {
 
     expect(axes.first.axis, '선율형');
     expect(nextThree, hasLength(3));
-    expect(recommendedText, contains('선율'));
-    expect(recommendedText, isNot(contains('오페라')));
+    final anchor = controller.workById('beethoven-symphony-9')!;
+    for (final recommendation in nextThree) {
+      final work = recommendation.work;
+      expect(
+        work.composerId == anchor.composerId ||
+            work.instrumentation == anchor.instrumentation ||
+            work.moodTags.any(anchor.moodTags.contains),
+        isTrue,
+      );
+      expect(recommendation.reason, contains('베토벤 - 교향곡 9번'));
+    }
     expect(recommendedText, isNot(contains('말러')));
-    expect(
-      nextThree.every(
-        (item) =>
-            item.work.instrumentation != '성악' &&
-            item.work.instrumentation != '합창',
-      ),
-      isTrue,
-    );
+    expect(nextThree.every((item) => !item.work.isOperaticVocal), isTrue);
   });
 
   test(
@@ -459,7 +464,9 @@ void main() {
         profile.fastReaction,
       ]);
       final bach = controller.previewTasteStart(profile.exceptions);
-      final opera = controller.previewTasteStart(profile.avoidInputs);
+      await controller.setComposerExcluded('mahler', true);
+      await controller.setOperaticVocalsExcluded(true);
+      final filtered = controller.previewTasteStart(profile.favoriteInputs)!;
 
       expect(profile.fastReaction, '선율');
       expect(profile.contexts, contains('산책할 때'));
@@ -467,8 +474,15 @@ void main() {
       expect(preview.translation.listenFor, preview.dailyStep.moment.prompt);
       expect(bach!.axis, '구조형');
       expect(bach.translation.listenFor, bach.dailyStep.moment.prompt);
-      expect(opera!.dailyStep.work.composerNameKo, isNot('바그너'));
-      expect(opera.dailyStep.work.composerNameKo, isNot('말러'));
+      expect(
+        filtered.nextThree.every(
+          (item) =>
+              item.work.composerId != 'wagner' &&
+              item.work.composerId != 'mahler' &&
+              !item.work.isOperaticVocal,
+        ),
+        isTrue,
+      );
     },
   );
 

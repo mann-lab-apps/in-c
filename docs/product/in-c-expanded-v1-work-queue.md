@@ -1,9 +1,11 @@
 # in C Expanded V1 Work Queue
 
 Audit started: 2026-09-13. Scope: inherited expansion A-I and follow-up acceptance.
-Current audit: 2026-09-14, detached ff6c9c2 in `/private/tmp/in-c-v1-resume-20260914`.
+Current audit: 2026-09-14, a310157 on feature/in-c-expanded-v1-checkpoint-20260914
+in `/private/tmp/in-c-v1-resume-20260914`. Continuation is being closed as a checkpoint.
 PR #755/e3e634a verified merged; original dirty worktree and other products preserved.
-No commit, push, merge or deployment authorized. Historical PASS is not current evidence.
+Latest user request authorizes checkpoint commit, push and merge, not deployment or identity changes.
+Historical PASS is not current evidence. The expanded V1 objective is not complete.
 
 ## Contract
 
@@ -64,6 +66,26 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | P03 | Inspect/copy personal records and explicitly erase in C data without Clef damage or backup resurrection | JSON surface, confirmation, cancellation-before-erase, persisted erase intent, per-key serialization and reset epoch; late notification navigation rejected | L01,L02,P01 | 10 data-control tests, 320px/1.6 confirmation/cancel, native isolated deletion/reload, previous-snapshot merge | DONE | PASS/PASS/PARTIAL/N | OS/external backups and actual notification authorization remain explicit limits |
 
 ## Verification Commands
+
+2026-09-14 closeout: Next Three and intake now require an actual input/work/preference
+connection; difficulty alone cannot imply a taste match. Stretch additionally names a changed
+composer/period/ensemble. Unconnected fallback slots are open_start, displayed separately.
+Draft input and automatic broad symphony wording remain separate from saved taste and displayed
+work anchors. No self-anchor/duplicate slot fill. Work-detail/map paths use the same contract.
+Small-screen 320px/1.4 text check PASS; source-backed Chopin opening guide narrowed to melody
+over left-hand accompaniment, without recording/timing approval. Full584/analyze/format/diff
+PASS before checkpoint packaging; see current evidence for final native results.
+Required39 remains DONE11/IN_PROGRESS26/NOT_VERIFIED2. Next: first30 recording/window review,
+actual notification taps/VoiceOver and founder quality evidence. Stop new implementation here
+per user request and commit/push/merge only the in C checkpoint.
+
+Latest E01/A04/B01 continuation: intake preview deduplicates works, including a one-work
+pool, and scores/explains the draft inputs without rewriting saved taste. Explicit composer
+plus fugue input prefers an actual fugue, not merely any piece by the same composer.
+Targeted3/full577/analyze/format/diff PASS; native/device/value evidence remains separate.
+Next: independently audit Next Three lane distances and map recommendations; do not infer
+those contracts from dedupe or nonmutation. Required39 counts unchanged. Prior checkpoint
+commit/push permission below does not authorize further commit/push in this continuation.
 
 Latest checkpoint: day-five gentle expansion requires a known bridge, with close/open-start
 fallback and explicit instrument/mood reasons. Scoped12/full574/analyze/format/diff and
