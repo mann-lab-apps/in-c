@@ -297,6 +297,11 @@ unauthorized. No build/version change. Next: reproduce concurrent edits during l
 Profile deletion/creation/rename transactions and concurrent edits during clearing remain
 separate unchecked gaps. Rollback failure/process termination guarantees are not claimed.
 
+S35 commit: `7403146`. Resume instructions are captured in
+`docs/product/clef-resume-goal-mode-prompt.md`. User requested commit/push and a new prompt;
+continuous implementation is paused at this verified checkpoint, not declared complete.
+The next execution must fetch and verify remote synchronization rather than reuse old ahead counts.
+
 ## Verification Policy
 
 S19: VERIFIED LOCAL. Actual viewer toolbar widget tests first exposed unsafe pageNumber
