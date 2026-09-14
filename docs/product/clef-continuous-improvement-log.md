@@ -30,6 +30,28 @@
 | U3 | Batch-imported scores can share a composer, but bulk editing omits this core metadata field. MobileSheets supports composer/artist assignment. | Add composer to existing bulk form/API, trim input, preserve unselected scores and omitted UI input. Search/facets/reload reflect the new value; no codec/schema change. | Missing field reproduced in widget test; apply/blank-preserve and selected/unselected/query/facet/reload regressions. Full suite 508/508, analyze/RC PASS (`/private/tmp/clef-rc-u3.log`). | VERIFIED LOCAL |
 | R1 | Installed Clef package differed from the source Android package. | Keep Clef separate from in C and retain its update identity. | User confirmed Clef & Staff is the renamed Clef, not in C. Restored `com.mannlab.clef` in the Clef worktree only; signing guard rejects missing/debug keys and accepts the recorded upload key. | VERIFIED LOCAL: configuration/signing; new app build and Play code availability remain unverified |
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
+| Q2 | RC exit-code-only checks can accept an interrupted Flutter run. | Require valid JSON start/test completion/final success, zero process exit and at least one executed non-hidden test; reject errors even after test completion. | Eight false-success regressions reproduced in the extracted old predicate. Twelve fixtures plus actual Flutter file-reporter integration pass. Full suite 642/642, analyze/RC PASS. | VERIFIED LOCAL |
+| S20 | Bulk edits and setlist/import writes still bypass controller recovery. | Reproduce failure retaining unsaved state, then recover persisted data only while the failing request owns the current library/list; preserve newer mutations. | Existing S18 score recovery tests are the reference; investigate each write surface separately. | TODO |
+
+## Resume Checkpoint (2026-09-14)
+
+- User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
+  clean `dev` matching fetched `origin/dev`. Root unrelated worktree is untouched.
+- Source identity: Clef & Staff, `lib/main.dart` (discovery flag defaults false),
+  `com.mannlab.clef`, `1.0.0+21`. No new build/version change/push/merge authorized.
+- Archived AAB 21 record in the original project's `apps/in_c_sheet/releases` confirms
+  the previous build completed after the historical build-preparation checkpoint below.
+  Play upload, tester installation and physical QA are still unconfirmed.
+- Q2 uses the installed test package's public JSON reporter protocol, not console wording.
+  A unique temporary file per invocation prevents stale earlier success from being reused.
+  Preserve normal console output; file/report/process failures must fail the check.
+  Tooling only: app UI, codecs, runtime behavior and dependencies are unchanged.
+- Q2 complete: `dart format lib test tool` changed only the three edited/new tool/test files;
+  diff reviewed. Analyze, 642/642 tests, JSON completion gate and RC scans passed
+  (`/private/tmp/clef-rc-q2.log`). Temporary report cleanup confirmed. No app build needed
+  for this tooling-only change. Commit subject: `fix: require complete Clef RC test evidence`.
+- Next: reproduce S20 bulk edit failure in controller and actual selection UI; preserve
+  selection for retry and do not report success after failed persistence.
 
 ## Verification Policy
 

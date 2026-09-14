@@ -20,6 +20,10 @@
 
 ## 준비물
 
+- RC 자동 검사는 Flutter JSON reporter의 전체 성공 종료와 실제 실행된 테스트를 확인한다.
+  exit code가 0이어도 보고서 누락/중단/오류/미완료 테스트가 있으면 실패로 처리한다.
+  각 실행은 새 임시 보고서를 사용하며 이전 성공 기록을 재사용하지 않는다.
+
 - 설치 파일: Android debug/release APK, 가능하면 iPad용 TestFlight 또는 local iOS build.
 - 당일 실행표: [`clef-v1-device-qa-runbook.md`](clef-v1-device-qa-runbook.md).
 - 에뮬레이터 사전 검증표: [`clef-v1-emulator-qa-tracker.md`](clef-v1-emulator-qa-tracker.md).
