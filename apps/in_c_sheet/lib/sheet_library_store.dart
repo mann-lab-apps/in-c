@@ -548,10 +548,11 @@ class SheetLibraryStore {
   }
 
   Future<void> saveFavoriteAnnotationPreset(
-    SheetAnnotationToolPreset? preset,
-  ) async {
+    SheetAnnotationToolPreset? preset, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     final key = _scopedKey(_favoriteAnnotationPresetKey, activeLibraryId);
     await _writeMetadataValues(preferences, {
       key: preset != null && preset.isValid

@@ -7312,6 +7312,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
+  bool _isSavingFavoriteAnnotationPreset = false;
   int _annotationColor = 0xff111111;
   double _annotationWidth = 3.5;
   int? _draftAnnotationPageNumber;
@@ -11052,7 +11053,14 @@ setlist=$setlistLabel
     _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
   }
 
-  void _saveFavoriteAnnotationPreset() {
+  Future<void> _saveFavoriteAnnotationPreset() async {
+    if (_isSavingFavoriteAnnotationPreset) return;
+    final libraryId = widget.controller.activeLibraryProfile.id;
+    final route = ModalRoute.of(context);
+    bool canShowResult() =>
+        mounted &&
+        widget.controller.activeLibraryProfile.id == libraryId &&
+        (route == null || route.isCurrent);
     final preset = _AnnotationPreset(
       tool: _annotationTool,
       color: _annotationColor,
@@ -11060,12 +11068,29 @@ setlist=$setlistLabel
       stamp: _annotationStamp,
     );
     setState(() {
-      _favoriteAnnotationPreset = preset;
+      _isSavingFavoriteAnnotationPreset = true;
     });
-    unawaited(
-      widget.controller.updateFavoriteAnnotationPreset(preset.toSettings()),
-    );
-    _showSnackBar('현재 필기 도구를 즐겨찾기로 저장했습니다.');
+    try {
+      await widget.controller.updateFavoriteAnnotationPreset(
+        preset.toSettings(),
+      );
+      if (!mounted || widget.controller.activeLibraryProfile.id != libraryId) {
+        return;
+      }
+      setState(() {
+        final saved = widget.controller.favoriteAnnotationPreset;
+        _favoriteAnnotationPreset = saved == null
+            ? null
+            : _AnnotationPreset.fromSettings(saved);
+      });
+      if (canShowResult()) _showSnackBar('현재 필기 도구를 즐겨찾기로 저장했습니다.');
+    } catch (_) {
+      if (canShowResult()) {
+        _showSnackBar('즐겨찾기 필기 도구를 저장하지 못했습니다. 다시 시도해주세요.');
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingFavoriteAnnotationPreset = false);
+    }
   }
 
   void _applyFavoriteAnnotationPreset() {
@@ -13291,7 +13316,9 @@ setlist=$setlistLabel
                           },
                           onUndo: _undoCurrentPageAnnotation,
                           onRedo: _redoCurrentPageAnnotation,
-                          onSaveFavorite: _saveFavoriteAnnotationPreset,
+                          onSaveFavorite: _isSavingFavoriteAnnotationPreset
+                              ? null
+                              : _saveFavoriteAnnotationPreset,
                           onApplyFavorite: _applyFavoriteAnnotationPreset,
                           onToggleLayerVisibility:
                               _toggleAnnotationLayerVisibility,
@@ -15408,7 +15435,7 @@ class _AnnotationToolbar extends StatelessWidget {
   final ValueChanged<double> onWidthChanged;
   final VoidCallback onUndo;
   final VoidCallback onRedo;
-  final VoidCallback onSaveFavorite;
+  final VoidCallback? onSaveFavorite;
   final VoidCallback onApplyFavorite;
   final VoidCallback onToggleLayerVisibility;
   final VoidCallback onToggleLayerExport;

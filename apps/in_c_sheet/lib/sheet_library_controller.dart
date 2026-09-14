@@ -98,6 +98,7 @@ class SheetLibraryController extends ChangeNotifier {
   SheetLibraryProfile _activeLibraryProfile =
       SheetLibraryProfile.defaultProfile;
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
+  Object? _favoritePresetSaveRequest;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
@@ -278,6 +279,7 @@ class SheetLibraryController extends ChangeNotifier {
     _globalViewerSettings = await store.loadGlobalViewerSettings();
     _performancePresetTemplates = await store.loadPerformancePresetTemplates();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
+    _favoritePresetSaveRequest = null;
     _errorMessage = null;
     await _removeMissingSetlistScores();
   }
@@ -747,6 +749,7 @@ class SheetLibraryController extends ChangeNotifier {
       }
       if (identical(_favoriteAnnotationPreset, favoritePreset)) {
         _favoriteAnnotationPreset = null;
+        _favoritePresetSaveRequest = null;
       }
     }
     notifyListeners();
@@ -1230,8 +1233,34 @@ class SheetLibraryController extends ChangeNotifier {
   Future<void> updateFavoriteAnnotationPreset(
     SheetAnnotationToolPreset? preset,
   ) async {
-    _favoriteAnnotationPreset = preset?.isValid == true ? preset : null;
-    await store.saveFavoriteAnnotationPreset(_favoriteAnnotationPreset);
+    final pendingPreset = preset?.isValid == true ? preset : null;
+    final libraryId = _activeLibraryProfile.id;
+    final request = Object();
+    _favoritePresetSaveRequest = request;
+    _favoriteAnnotationPreset = pendingPreset;
+    bool ownsState() =>
+        identical(_favoritePresetSaveRequest, request) &&
+        _activeLibraryProfile.id == libraryId &&
+        identical(_favoriteAnnotationPreset, pendingPreset);
+    try {
+      await store.saveFavoriteAnnotationPreset(
+        pendingPreset,
+        libraryId: libraryId,
+      );
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadFavoriteAnnotationPreset();
+          if (ownsState()) {
+            _favoriteAnnotationPreset = persisted;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Keep the original save failure when recovery is unavailable.
+        }
+      }
+      rethrow;
+    }
     notifyListeners();
   }
 

@@ -58,6 +58,8 @@
 
 | S36 | Queued clear completion erases newer score/setlist/view/preset edits from memory despite successful persistence. | Reset only state still owned by clear; preserve later queued edits, unchanged resets and score/setlist failure recovery/retry. | Four initial red cases; ten new cases with real preferences queue delays; targeted 151/151, full 894/894, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S37 | Favorite preset falsely announces early success and fails to recover or retain the origin library after delayed saves. | Await save, disable repeat UI submission, recover only request-owned state, scope writes and suppress late feedback. | Nine red cases; fourteen new cases, targeted 165/165, full 908/908, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -318,6 +320,38 @@ Commit subject: `fix: preserve Clef edits after queued library clear`.
 Next: favorite annotation preset reports success before saving and has no error handling;
 reproduce actual viewer feedback and controller recovery. View settings recovery remains separate.
 No build/version change/push/merge authorized or performed on this resumed execution.
+
+S36 commit: `ce6eaa8`. S37 interruption checkpoint (resolved by final verification below).
+At interruption the uncommitted modified files were main.dart,
+sheet_library_controller.dart, sheet_library_store.dart; new test:
+`apps/in_c_sheet/test/sheet_favorite_preset_recovery_test.dart`.
+Store accepts explicit libraryId; controller pins origin and recovers only request-owned state.
+Viewer awaits persistence, disables repeat submission, keeps previous local preset on failure,
+updates saved state under covered routes without late feedback and offers retry.
+Nine actual red cases reproduced after correcting a tooltip/button test-harness mistake.
+Fourteen new cases cover failure/removal/retry, newer failure after older success, delayed/failed
+recovery reads, origin switch and real viewer toolbar success/failure/exit. Targeted 165/165
+PASS including store/S35/S36 regressions. Evidence: `/private/tmp/clef-preset-recovery-red.log`
+and `/private/tmp/clef-preset-recovery-green.log`. Format completed (95 files, 3 changed), diff
+review and `git diff --check` PASS. Missing-file widget fixture is not PDF/stylus device QA.
+Automatic approval review then rejected documentation and full RC requests due to model capacity.
+No workaround was used. Full analyze/test/RC had not run at interruption; no commit/build/version change/
+push/merge. Next command from apps/in_c_sheet: `dart run tool/rc_release_check.dart`.
+After passing, update feature map/tester checklist with preset persistence/failure feedback,
+record actual full test count and focused commit. Then reproduce library view-setting save errors.
+Local dev remains one commit ahead of the fetched origin/dev. S36 full suite was 894/894 PASS.
+
+S37 continuation audit: current HEAD/status revalidated; full RC approval still failed with
+the same model-capacity condition. Source review found one multiline-if missing braces in
+the viewer result guard; braces added without behavior change. Feature map and tester checklist
+now explicitly mark S37 full validation pending. Run format/analyze/full tests/RC after approval
+service recovery; the earlier 165 targeted passes predate this brace-only cleanup.
+
+S37 final validation: approval service recovered via the normal approval path. Format 95 files,
+zero changes; full 908/908, analyze/RC and whitespace scans PASS (`/private/tmp/clef-rc-s37.log`).
+Feature map/tester checklist now reflect verified local behavior; device/stylus quality remains
+unverified. Commit subject: `fix: recover Clef favorite tool preset saves`.
+Next: reproduce home sort/filter persistence errors. No build/version change/push/merge.
 
 ## Verification Policy
 
