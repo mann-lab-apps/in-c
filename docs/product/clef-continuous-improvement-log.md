@@ -32,7 +32,8 @@
 | Q1 | Friend feedback touch, audio, pedal and mini-panel behavior needs real-use evidence. | Record physical touch/audio/pedal results separately from synthetic or historical emulator evidence. | Android tablet, microphone, pedal and PDF samples. | DEVICE QA |
 | Q2 | RC exit-code-only checks can accept an interrupted Flutter run. | Require valid JSON start/test completion/final success, zero process exit and at least one executed non-hidden test; reject errors even after test completion. | Eight false-success regressions reproduced in the extracted old predicate. Twelve fixtures plus actual Flutter file-reporter integration pass. Full suite 642/642, analyze/RC PASS. | VERIFIED LOCAL |
 | S20 | Bulk metadata/collection saves retain failed edits in memory and leak errors from selection UI. | Recover persisted scores only while the request owns the current list/profile; preserve selection on failure, no success notice, allow retry, ignore closed UI. No-op bulk calls must not invalidate pending recovery. | Six regression failures reproduced before fix. Fourteen new unit/widget cases plus S18 recovery regression; full suite 656/656, analyze/RC PASS. | VERIFIED LOCAL |
-| S21 | Setlist/import writes still bypass controller recovery. | Investigate and reproduce each surface separately; preserve newer state and propagate save failures to actionable UI. | S18/S20 are the recovery reference. | TODO |
+| S21 | Single/batch/image/shared import leaves unsaved score cards after metadata failure. | Recover persisted scores with S18/S20 ownership guards, return no imported success, distinguish storage failure from file failure, release import state and allow retry. Never delete source files to compensate. | Four controller flows plus batch UI reproduced failure. Thirteen new tests; full suite 669/669, analyze/RC PASS. | VERIFIED LOCAL |
+| S22 | Setlist writes still bypass controller recovery and several UI actions lack error handling. | Reproduce each surface separately; preserve newer state and propagate save failures to actionable UI. | S18/S20 are the recovery reference. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -69,6 +70,20 @@ runtime changes; version remains 21 and no build/push/merge was performed.
 Commit subject: `fix: recover Clef bulk edits after save failures`.
 Next: inspect imported-score failure recovery across single/batch/image/share entry points;
 setlist persistence recovery remains a separate S21 follow-up.
+
+S21: single/batch/image/share metadata saves now use the same ownership-aware score recovery.
+On failure, return no success and show a storage-specific notice; import decoding errors retain
+their existing file guidance. Tests use injected import records, not native picker/cloud/PDF rendering.
+Failed imports may leave copied files unreferenced; no deletion is attempted because a newer
+successful write may already reference them. Newer successful writes remain authoritative even
+if they include an optimistic imported score. Setlist failure recovery is tracked separately as S22.
+Final S21 verification: 13/13 targeted cases and 669/669 full tests, analyze, JSON completion
+gate and RC scans PASS (`/private/tmp/clef-rc-s21-verified.log`). The first full check caught
+a multiline-if lint and a fixture using the same ID for a reimport; use a fresh ID with the
+same source filename to match actual import behavior. Both were corrected before final PASS.
+Formatter changes were limited to the edited controller/new test file. Commit subject:
+`fix: recover Clef imports after metadata save failures`. No build/version change/push/merge.
+Next command: add setlist save-failure regression tests for S22; do not rerun completed slices.
 
 ## Verification Policy
 
