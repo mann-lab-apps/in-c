@@ -36,7 +36,9 @@
 | S22 | Setlist mutations retain unsaved state and bulk add/create leaks failures to the UI. | Recover durable setlists only for the owning list/profile; preserve newer writes, report original failure, retain bulk selection for retry and ignore closed UI. | Twenty-two mutation/race/recovery/bulk UI cases; full suite 691/691, analyze/RC PASS. | VERIFIED LOCAL |
 | S23 | Setlist detail edits leak save failures, including reorder and removal undo. | Report storage failure without success/conflict feedback or delete navigation; allow retry and ignore late errors after route exit. | Fifteen new widget cases; 37/37 setlist recovery cases, full suite 706/706, analyze/RC PASS. | VERIFIED LOCAL |
 | S24 | Setlist list creation and post-import addition await unguarded saves. | Distinguish successful library import from failed setlist addition; no automatic viewer navigation after failed/cancelled target selection, preserve imported scores for retry. | Fourteen new cases; full suite 720/720, analyze/RC PASS. | VERIFIED LOCAL |
-| S25 | Recent-position writes in setlist open/viewer transitions can interrupt reading on storage failure. | Define and test non-destructive reading fallback; no stale target navigation or false persistence claim. | Inspect home/list/detail/viewer paths and reproduce failures; actual PDF rendering remains separate. | TODO |
+| S25 | Recent-position writes in open/viewer transitions interrupt reading on storage failure. | Allow valid reading with a storage warning; recheck route/profile/score/setlist membership after each awaited write. No late navigation after context changes. | Forty new widget cases; full suite 760/760, analyze/RC PASS. | VERIFIED LOCAL |
+| S26 | Bulk score deletion saves scores and setlist cleanup separately, with unguarded UI failure. | Reproduce first/second/backup write failures; preserve durable linked metadata and recover UI without deleting source files. | Inspect existing metadata rollback helper before introducing any new transaction mechanism. | TODO |
+| S27 | Duplicate-import notice says the existing score opens before setlist target selection finishes. | Do not claim opening after target cancellation or failed addition. Preserve existing-score deduplication. | Actual duplicate-import widget flow; no new import policy. | TODO |
 
 ## Resume Checkpoint (2026-09-14)
 
@@ -124,6 +126,21 @@ tests plus docs. No build, version change, push or merge. Commit subject:
 `fix: distinguish Clef import and setlist save outcomes`.
 Next: S25 reading fallback. Also review duplicate-import copy timing: its existing-score
 notice currently precedes target selection, so cancellation can leave a misleading open notice.
+
+S24 commit: `57bf11d`. S25 shares a guarded reading-preparation helper between home score,
+recent setlist, list/detail first-song and viewer adjacent-song actions. Recent metadata save
+failures no longer abort reading; one warning discloses failure without claiming persistence.
+Both the owning route and profile plus current score membership are rechecked after awaits.
+Remove detail first-song's duplicate recent write. This does not add an audio/PDF engine,
+timeout for a permanently hanging store, or cross-process transaction guarantees.
+Initial regressions included fixture mistakes: the next-song confirmation was not accepted,
+and the first home score title belonged to metadata review rather than the reading card.
+Corrected those gestures; the first thirty cases now pass. Added second-write lifetime and
+empty recent-setlist coverage. Final 40/40 targeted and 760/760 full tests, analyze, JSON
+completion, RC/diff checks PASS (`/private/tmp/clef-rc-s25-final.log`). The first full check
+reported four multiline-if brace lints; corrected and reran the full checker to PASS.
+No new build/device evidence. Commit subject: `fix: keep Clef reading through visit save failures`.
+Next: S26 score deletion atomic metadata/selection recovery; prioritize data consistency over S27 copy timing.
 
 ## Verification Policy
 

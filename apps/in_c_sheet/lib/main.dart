@@ -633,8 +633,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     if (scores.isEmpty) {
-      await controller.markSetlistOpened(setlist);
-      if (!mounted) {
+      if (!await _prepareReadingVisit(
+            context,
+            controller,
+            setlistId: setlist.id,
+          ) ||
+          !mounted) {
         return;
       }
       await Navigator.of(context).push<void>(
@@ -648,9 +652,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       return;
     }
     final score = _scoreToOpenForSetlistResume(setlist, scores);
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: setlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -669,8 +677,12 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     if (currentSetlist == null) {
       return;
     }
-    await controller.markSetlistOpened(currentSetlist);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: currentSetlist.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -907,8 +919,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
     String? setlistId,
     bool showImportNudge = false,
   }) async {
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          scoreId: score.id,
+          setlistId: setlistId,
+        ) ||
+        !mounted) {
       return;
     }
 
@@ -4102,6 +4119,62 @@ String _setlistScoreSubtitle(SheetSetlist setlist, SheetScore score) {
   return '${score.lastPage}쪽부터 열기 · $identity';
 }
 
+Future<bool> _prepareReadingVisit(
+  BuildContext context,
+  SheetLibraryController controller, {
+  String? scoreId,
+  String? setlistId,
+}) async {
+  final libraryId = controller.activeLibraryProfile.id;
+  final route = ModalRoute.of(context);
+  bool canContinue() {
+    if (!context.mounted ||
+        route?.isCurrent == false ||
+        controller.activeLibraryProfile.id != libraryId) {
+      return false;
+    }
+    if (scoreId != null && controller.scoreByIdOrNull(scoreId) == null) {
+      return false;
+    }
+    if (setlistId != null) {
+      final current = controller.setlistByIdOrNull(setlistId);
+      if (current == null ||
+          (scoreId != null && !current.scoreIds.contains(scoreId))) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (!canContinue()) return false;
+  var saveFailed = false;
+  if (setlistId != null) {
+    try {
+      await controller.markSetlistOpened(
+        controller.setlistById(setlistId),
+        scoreId: scoreId,
+      );
+    } catch (_) {
+      saveFailed = true;
+    }
+  }
+  if (!canContinue()) return false;
+  if (scoreId != null) {
+    try {
+      await controller.markOpened(controller.scoreById(scoreId));
+    } catch (_) {
+      saveFailed = true;
+    }
+  }
+  if (!canContinue()) return false;
+  if (context.mounted && saveFailed) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('최근 연주 위치를 저장하지 못했습니다. 악보는 계속 볼 수 있습니다.')),
+    );
+  }
+  return true;
+}
+
 const _importedSetlistSaveFailure =
     '악보는 라이브러리에 있지만 세트리스트에 담지 못했습니다. 다시 추가해주세요.';
 
@@ -5302,9 +5375,13 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
     }
 
     final score = scores.first;
-    await controller.markSetlistOpened(setlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: setlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -5556,16 +5633,19 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
           .showSnackBar(const SnackBar(content: Text('세트리스트에 악보가 없습니다.')));
       return;
     }
-    await controller.markSetlistOpened(setlist, scoreId: scores.first.id);
     await _openScore(scores.first);
   }
 
   Future<void> _openScore(SheetScore score) async {
     final currentSetlist = controller.setlistByIdOrNull(widget.setlistId);
     if (currentSetlist == null) return;
-    await controller.markSetlistOpened(currentSetlist, scoreId: score.id);
-    await controller.markOpened(score);
-    if (!mounted) {
+    if (!await _prepareReadingVisit(
+          context,
+          controller,
+          setlistId: currentSetlist.id,
+          scoreId: score.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).push<void>(
@@ -11860,12 +11940,14 @@ setlist=$setlistLabel
       }
     }
 
-    final setlist = widget.controller.setlistByIdOrNull(setlistId);
-    if (setlist != null) {
-      await widget.controller.markSetlistOpened(setlist, scoreId: nextScore.id);
-    }
-    await widget.controller.markOpened(nextScore);
-    if (!mounted) {
+    if (!mounted ||
+        !await _prepareReadingVisit(
+          context,
+          widget.controller,
+          setlistId: setlistId,
+          scoreId: nextScore.id,
+        ) ||
+        !mounted) {
       return;
     }
     await Navigator.of(context).pushReplacement<void, void>(
