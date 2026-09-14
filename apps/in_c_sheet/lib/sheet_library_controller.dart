@@ -730,15 +730,24 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<bool> clearLibraryProfile(String id) async {
+    final scores = _scores;
+    final setlists = _setlists;
+    final viewSettings = _libraryViewSettings;
+    final favoritePreset = _favoriteAnnotationPreset;
     final didClear = await store.clearLibraryProfile(id);
     if (!didClear) {
       return false;
     }
     if (_activeLibraryProfile.id == id) {
-      _scores = const <SheetScore>[];
-      _setlists = const <SheetSetlist>[];
-      _libraryViewSettings = SheetLibraryViewSettings.defaultSettings;
-      _favoriteAnnotationPreset = null;
+      // Do not overwrite state claimed by an edit while clearing.
+      if (identical(_scores, scores)) _scores = const <SheetScore>[];
+      if (identical(_setlists, setlists)) _setlists = const <SheetSetlist>[];
+      if (identical(_libraryViewSettings, viewSettings)) {
+        _libraryViewSettings = SheetLibraryViewSettings.defaultSettings;
+      }
+      if (identical(_favoriteAnnotationPreset, favoritePreset)) {
+        _favoriteAnnotationPreset = null;
+      }
     }
     notifyListeners();
     return true;

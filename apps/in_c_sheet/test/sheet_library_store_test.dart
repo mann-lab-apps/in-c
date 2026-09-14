@@ -507,6 +507,138 @@ void main() {
     }
   }
 
+  for (final clearFails in [false, true]) {
+    for (final edit in ['score', 'setlist', 'view', 'preset']) {
+      test(
+        'clear completion preserves queued $edit edit: clearFails=$clearFails',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final profile = await store.createLibraryProfile('Concert');
+          final score = _score(DateTime(2026, 9, 14));
+          await store.saveScores([score]);
+          final setlist = SheetSetlist(
+            id: 'setlist',
+            title: 'Concert',
+            scoreIds: const [],
+            createdAt: score.importedAt,
+            updatedAt: score.updatedAt,
+          );
+          await store.saveSetlists([setlist]);
+          final controller = SheetLibraryController(store: store);
+          await controller.load();
+          platform.delayKey = 'flutter.clef_scores.${profile.id}';
+          platform.writeEntered = Completer<void>();
+          platform.releaseWrite = Completer<void>();
+          if (clearFails) platform.failureKey = platform.delayKey;
+          final clear = controller.clearLibraryProfile(profile.id);
+          final clearResult = clearFails
+              ? expectLater(clear, throwsA(anything))
+              : expectLater(clear, completion(isTrue));
+          await platform.writeEntered!.future;
+          final Future<Object?> change = switch (edit) {
+            'score' => controller.updateScoreMetadata(
+              score,
+              title: 'Revised',
+              composer: '',
+              tags: '',
+              note: '',
+            ),
+            'setlist' => controller.renameSetlist(setlist, 'Revised'),
+            'view' => controller.updateFavoriteFilter(true),
+            _ => controller.updateFavoriteAnnotationPreset(
+              const SheetAnnotationToolPreset(
+                toolName: 'pen',
+                color: 0xff000000,
+                width: 3,
+              ),
+            ),
+          };
+          platform.releaseWrite!.complete();
+          await clearResult;
+          await change;
+          final preferences = await SharedPreferences.getInstance();
+          await preferences.reload();
+          expect(
+            controller.scores.map((s) => s.toJson()).toList(),
+            (await store.loadScores()).map((s) => s.toJson()).toList(),
+          );
+          expect(
+            controller.setlists.map((s) => s.toJson()).toList(),
+            (await store.loadSetlists()).map((s) => s.toJson()).toList(),
+          );
+          expect(
+            controller.libraryViewSettings.toJson(),
+            (await store.loadLibraryViewSettings()).toJson(),
+          );
+          expect(
+            controller.favoriteAnnotationPreset?.toJson(),
+            (await store.loadFavoriteAnnotationPreset())?.toJson(),
+          );
+          switch (edit) {
+            case 'score':
+              expect(controller.scores.single.title, 'Revised');
+            case 'setlist':
+              expect(controller.setlists.single.title, 'Revised');
+            case 'view':
+              expect(controller.libraryViewSettings.favoriteOnly, isTrue);
+            case 'preset':
+              expect(controller.favoriteAnnotationPreset?.width, 3);
+          }
+        },
+      );
+    }
+  }
+
+  for (final edit in ['score', 'setlist']) {
+    test('failed $edit save after clear recovers cleared state', () async {
+      final platform = _installFailingPreferences();
+      final store = SheetLibraryStore();
+      final profile = await store.createLibraryProfile('Concert');
+      final score = _score(DateTime(2026, 9, 14));
+      await store.saveScores([score]);
+      final setlist = SheetSetlist(
+        id: 'setlist',
+        title: 'Concert',
+        scoreIds: const [],
+        createdAt: score.importedAt,
+        updatedAt: score.updatedAt,
+      );
+      await store.saveSetlists([setlist]);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      platform.delayKey = 'flutter.clef_scores.${profile.id}';
+      platform.writeEntered = Completer<void>();
+      platform.releaseWrite = Completer<void>();
+      final clear = controller.clearLibraryProfile(profile.id);
+      await platform.writeEntered!.future;
+      platform.failWritesOnly = true;
+      platform.failureKey =
+          'flutter.${edit == 'score' ? 'clef_scores' : 'clef_setlists'}.${profile.id}';
+      final change = edit == 'score'
+          ? controller.updateScoreMetadata(
+              score,
+              title: 'Revised',
+              composer: '',
+              tags: '',
+              note: '',
+            )
+          : controller.renameSetlist(setlist, 'Revised');
+      final failed = expectLater(change, throwsA(anything));
+      platform.releaseWrite!.complete();
+      expect(await clear, isTrue);
+      await failed;
+      await (await SharedPreferences.getInstance()).reload();
+      expect(controller.scores, isEmpty);
+      expect(controller.setlists, isEmpty);
+      expect(await store.loadScores(), isEmpty);
+      expect(await store.loadSetlists(), isEmpty);
+      await controller.createSetlist('Retry');
+      expect(controller.setlists.single.title, 'Retry');
+      expect((await store.loadSetlists()).single.title, 'Retry');
+    });
+  }
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(
@@ -2446,6 +2578,7 @@ class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
 
   String? failureKey;
   bool throwOnFailure = false;
+  bool failWritesOnly = false;
   int failuresRemaining = 1;
   String? delayKey;
   Completer<void>? writeEntered;
@@ -2472,7 +2605,12 @@ class _FailingPreferencesStore extends InMemorySharedPreferencesStore {
 
   @override
   Future<bool> remove(String key) async {
-    if (_shouldFail(key)) return false;
+    if (key == delayKey) {
+      delayKey = null;
+      writeEntered!.complete();
+      await releaseWrite!.future;
+    }
+    if (!failWritesOnly && _shouldFail(key)) return false;
     return super.remove(key);
   }
 }

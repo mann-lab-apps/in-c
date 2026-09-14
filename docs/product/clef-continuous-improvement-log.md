@@ -56,6 +56,8 @@
 
 | S35 | Clearing a library ignores failed removals or leaves partial metadata; late UI errors/feedback escape their initiating screen. | Group the five scoped removals in existing checked rollback writes; preserve original files/profile/other libraries, retry after failure and suppress stale UI feedback. | Ten injected storage failures and three UI failures reproduced; eighteen new store/widget cases including late success/failure, full 884/884, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S36 | Queued clear completion erases newer score/setlist/view/preset edits from memory despite successful persistence. | Reset only state still owned by clear; preserve later queued edits, unchanged resets and score/setlist failure recovery/retry. | Four initial red cases; ten new cases with real preferences queue delays; targeted 151/151, full 894/894, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -301,6 +303,21 @@ S35 commit: `7403146`. Resume instructions are captured in
 `docs/product/clef-resume-goal-mode-prompt.md`. User requested commit/push and a new prompt;
 continuous implementation is paused at this verified checkpoint, not declared complete.
 The next execution must fetch and verify remote synchronization rather than reuse old ahead counts.
+
+Resumed at `6b98ba6` with clean dev matching fetched origin/dev; identity remains
+Clef & Staff/com.mannlab.clef/1.0.0+21. S36 reproduces four memory/disk mismatches when
+clear succeeds before a later queued score/setlist/view/preset save. Capture per-field ownership
+before clearing and reset only unchanged fields. Ten new store/controller cases cover clear
+success/failure, later edits, later score/setlist save failures and retry; existing eight home
+widget lifecycle cases remain green. Targeted 151/151 and full 894/894 PASS; analyze/RC and
+whitespace scans PASS (`/private/tmp/clef-rc-s36.log`).
+Evidence: `/private/tmp/clef-clear-edit-red.log`, `/private/tmp/clef-clear-edit-green.log`.
+Scope excludes overlapping loads, work before clear reaches the queue, profile deletion races
+and view/preset save-error recovery; do not infer a general transaction across controller requests.
+Commit subject: `fix: preserve Clef edits after queued library clear`.
+Next: favorite annotation preset reports success before saving and has no error handling;
+reproduce actual viewer feedback and controller recovery. View settings recovery remains separate.
+No build/version change/push/merge authorized or performed on this resumed execution.
 
 ## Verification Policy
 
