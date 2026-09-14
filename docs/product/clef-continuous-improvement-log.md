@@ -40,6 +40,8 @@
 | S26 | Bulk score deletion saves scores and setlist cleanup separately, with unguarded UI failure. | Group linked metadata and automatic backup in the existing rollback operation; recover owned lists and retain selection on failure. Never delete source files. | Twenty-eight new failure/lifecycle cases; targeted store/removal 128/128, full suite 788/788, analyze/RC PASS. | VERIFIED LOCAL |
 | S27 | Duplicate-import notice says the existing score opens before setlist target selection finishes. | Do not claim opening after target cancellation or failed addition. Preserve existing-score deduplication. | Four red/green widget regressions; targeted 29/29, full suite 792/792, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S28 | Startup cleanup write failure claims the whole library cannot be read despite usable loaded scores. | Distinguish cleanup persistence failure from read failure; retain filtered usable references, warn and retry on next load; do not warn over newer list/profile state. | Seven new cases, three initial red regressions; complete full suite 799/799, analyze/RC PASS. | VERIFIED LOCAL |
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,
@@ -174,6 +176,18 @@ Temporary evidence: `/private/tmp/clef-duplicate-copy-red.log`,
 No model, codec, duplicate matching policy or native import changes.
 Commit subject: `fix: clarify Clef duplicate import feedback`.
 Next: reproduce startup setlist-reference cleanup write failure before choosing a fix.
+
+S27 commit: `b7adf53`. S28 reproduced misleading startup/switch failure and missing specific
+banner in three tests. Cleanup failure now preserves loaded scores and cleaned references
+in memory, distinguishes the failed persistence and retries on the next load. Disk cleanup
+is not claimed successful; actual read failures still use the load failure message.
+Late failed cleanup cannot add a warning over a newer list/profile. No cleanup schema or
+storage transaction changes; overlapping successful loads/writes are outside this slice.
+Complete full suite: 799/799; analyze/RC and whitespace scans PASS.
+Temporary evidence: `/private/tmp/clef-cleanup-red.log`, `/private/tmp/clef-rc-s28.log`.
+Commit subject: `fix: distinguish Clef cleanup persistence failures`.
+Next: CSV bookmark import conflates metadata save errors with file format errors;
+songbook setlist creation still needs guarded save/lifecycle UI coverage.
 
 ## Verification Policy
 

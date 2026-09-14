@@ -259,7 +259,6 @@ class SheetLibraryController extends ChangeNotifier {
     _setLoading(true);
     try {
       await _loadActiveLibraryState();
-      _errorMessage = null;
     } catch (error) {
       _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
     } finally {
@@ -279,6 +278,7 @@ class SheetLibraryController extends ChangeNotifier {
     _globalViewerSettings = await store.loadGlobalViewerSettings();
     _performancePresetTemplates = await store.loadPerformancePresetTemplates();
     _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
+    _errorMessage = null;
     await _removeMissingSetlistScores();
   }
 
@@ -674,7 +674,6 @@ class SheetLibraryController extends ChangeNotifier {
       await store.createLibraryProfile(name);
       _query = '';
       await _loadActiveLibraryState();
-      _errorMessage = null;
     } catch (_) {
       _errorMessage = '라이브러리를 만들지 못했습니다.';
     } finally {
@@ -691,7 +690,6 @@ class SheetLibraryController extends ChangeNotifier {
       await store.setActiveLibraryProfile(id);
       _query = '';
       await _loadActiveLibraryState();
-      _errorMessage = null;
     } catch (_) {
       _errorMessage = '라이브러리를 전환하지 못했습니다.';
     } finally {
@@ -3055,7 +3053,17 @@ class SheetLibraryController extends ChangeNotifier {
 
     if (changed) {
       _setlists = cleaned;
-      await store.saveSetlists(_setlists);
+      final libraryId = _activeLibraryProfile.id;
+      try {
+        await store.saveSetlists(cleaned);
+      } catch (_) {
+        // Keep usable references in memory; a later load retries durable cleanup.
+        if (identical(_setlists, cleaned) &&
+            _activeLibraryProfile.id == libraryId) {
+          _errorMessage =
+              '악보는 불러왔지만 세트리스트 정리 결과를 저장하지 못했습니다. 저장 공간을 확인한 뒤 앱을 다시 열어주세요.';
+        }
+      }
     }
   }
 

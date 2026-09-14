@@ -56,6 +56,103 @@ void main() {
     await controller.load();
   });
 
+  for (final switching in [false, true]) {
+    test(
+      'cleanup write failure preserves usable library on switch=$switching',
+      () async {
+        final originalProfile = controller.activeLibraryProfile.id;
+        final broken = controller
+            .setlistById('concert')
+            .copyWith(
+              scoreIds: ['one', 'missing', 'two'],
+              lastOpenedScoreId: 'missing',
+            );
+        await store.saveSetlists([broken]);
+        if (switching) {
+          await controller.createLibraryProfile('Other library');
+        }
+        store.failWrites = true;
+        if (switching) {
+          await controller.switchLibraryProfile(originalProfile);
+        } else {
+          await controller.load();
+        }
+        expect(controller.isLoading, isFalse);
+        expect(controller.activeLibraryProfile.id, originalProfile);
+        expect(controller.scores, hasLength(3));
+        expect(controller.setlists.single.scoreIds, ['one', 'two']);
+        expect(controller.setlists.single.lastOpenedScoreId, isNot('missing'));
+        expect(controller.errorMessage, _cleanupWarning);
+        expect((await store.loadSetlists()).single.scoreIds, broken.scoreIds);
+        store.failWrites = false;
+        await controller.load();
+        expect(controller.errorMessage, isNull);
+        expect((await store.loadSetlists()).single.scoreIds, ['one', 'two']);
+      },
+    );
+  }
+
+  test('valid startup does not require a setlist write', () async {
+    store.failWrites = true;
+    await controller.load();
+    expect(controller.errorMessage, isNull);
+    expect(controller.setlistById('concert').scoreIds, ['one', 'two']);
+  });
+
+  for (final switching in [false, true]) {
+    test(
+      'late cleanup failure does not warn over newer state: $switching',
+      () async {
+        await store.saveSetlists([
+          controller
+              .setlistById('concert')
+              .copyWith(scoreIds: ['one', 'missing']),
+        ]);
+        store.delayWrites = true;
+        store.writeEntered = Completer<void>();
+        final pendingLoad = controller.load();
+        await store.writeEntered!.future;
+        store.delayWrites = false;
+        if (switching) {
+          await controller.createLibraryProfile('New library');
+        } else {
+          await controller.renameSetlist(
+            controller.setlistById('concert'),
+            'Edited',
+          );
+        }
+        final latest = controller.setlists.map((s) => s.toJson()).toList();
+        store.writes.single.completeError(failure);
+        await pendingLoad;
+        expect(controller.errorMessage, isNull);
+        expect(controller.setlists.map((s) => s.toJson()).toList(), latest);
+      },
+    );
+  }
+
+  test('startup read failure remains distinct from cleanup warning', () async {
+    store.failRead = true;
+    await controller.load();
+    expect(controller.isLoading, isFalse);
+    expect(controller.errorMessage, contains('라이브러리를 불러오지 못했습니다'));
+    expect(controller.errorMessage, isNot(_cleanupWarning));
+  });
+
+  testWidgets('cleanup warning appears with usable score cards', (
+    tester,
+  ) async {
+    await store.saveSetlists([
+      controller.setlistById('concert').copyWith(scoreIds: ['one', 'missing']),
+    ]);
+    store.failWrites = true;
+    await controller.load();
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+    expect(find.text(_cleanupWarning), findsOneWidget);
+    expect(find.text('one'), findsWidgets);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final action in [
     'create',
     'duplicate',
@@ -462,6 +559,9 @@ Future<void> _change(SheetLibraryController controller, String action) async {
   }
 }
 
+const _cleanupWarning =
+    '악보는 불러왔지만 세트리스트 정리 결과를 저장하지 못했습니다. 저장 공간을 확인한 뒤 앱을 다시 열어주세요.';
+
 class _SetlistStore extends SheetLibraryStore {
   _SetlistStore(this.failure);
   final Object failure;
@@ -469,6 +569,7 @@ class _SetlistStore extends SheetLibraryStore {
   bool delayWrites = false;
   bool failRead = false;
   final writes = <Completer<void>>[];
+  Completer<void>? writeEntered;
   Completer<void>? readEntered;
   Completer<void>? releaseRead;
 
@@ -489,6 +590,9 @@ class _SetlistStore extends SheetLibraryStore {
     if (delayWrites) {
       final completion = Completer<void>();
       writes.add(completion);
+      if (writeEntered != null && !writeEntered!.isCompleted) {
+        writeEntered!.complete();
+      }
       await completion.future;
     }
     if (failWrites) throw failure;
