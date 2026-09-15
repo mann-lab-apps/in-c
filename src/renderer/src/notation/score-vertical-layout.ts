@@ -1,23 +1,25 @@
 import type { Score, Staff } from '../../../score-core'
+import { projectGlobalAnnotationsForRendering } from './global-annotation-projection'
 import {
   countMeasureLyricLines, resolveAnnotationSystemTop, resolveMeasureAnnotationLanes,
   type MeasureAnnotationLaneInput
 } from './annotation-lanes'
 
 export function createScoreAnnotationLanes(score: Score, lyricScale: number) {
+  score = projectGlobalAnnotationsForRendering(score)
   const inputs = new Map<string, MeasureAnnotationLaneInput>()
   const inputFor = (id: string) => {
     if (!inputs.has(id)) inputs.set(id, {})
     return inputs.get(id)!
   }
-  const count = (items: { measureId: string }[] | undefined, field: 'harmonyCount' | 'expressionTextCount' | 'systemTextCount' | 'tempoCount') => {
+  const count = (items: { measureId: string }[] | undefined, field: 'harmonyCount' | 'expressionTextCount' | 'systemTextCount' | 'tempoCount' | 'rehearsalMarkCount') => {
     for (const item of items ?? []) { const input = inputFor(item.measureId); input[field] = (input[field] ?? 0) + 1 }
   }
   count(score.harmonies, 'harmonyCount'); count(score.expressionTexts, 'expressionTextCount')
   count(score.systemTexts, 'systemTextCount'); count(score.tempoEvents, 'tempoCount')
   for (const item of score.dynamics ?? []) inputFor(item.measureId).hasDynamic = true
   for (const item of score.staffTexts ?? []) inputFor(item.measureId).hasStaffText = true
-  for (const item of score.rehearsalMarks ?? []) inputFor(item.measureId).hasRehearsalMark = true
+  count(score.rehearsalMarks, 'rehearsalMarkCount')
   const anchors = new Map<string, { staff: Staff; index: number }>()
   for (const part of score.parts) for (const staff of part.staves) staff.measures.forEach((measure, index) => {
     for (const voice of measure.voices) for (const event of voice.events) anchors.set(event.id, { staff, index })

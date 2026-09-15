@@ -24,6 +24,89 @@ function addMeasure(score: Score) {
 }
 
 describe('independent span clipboard', () => {
+  it.each(['slur', 'hairpin'] as const)('copies cross-voice %s only for explicitly selected destination endpoints', kind => {
+    const { score, staff, events } = setup()
+    const source = kind === 'slur' ? score.slurs![0] : score.hairpins![0]
+    source.startEventId = staff.measures[0].voices[0].events[0].id
+    source.endEventId = events[kind === 'slur' ? 1 : 3].id
+    source.engraving = { offsetY: 2 }
+    const clipboard = buildSpanClipboard(score, { kind, id: source.id })!
+    expect(clipboard).toBeDefined()
+    expect(clipboard.requiresExplicitEnd).toBe(true)
+    const target = addMeasure(score), start = target.voices[1].events[kind === 'slur' ? 1 : 0]
+    const end = target.voices[1].events[kind === 'slur' ? 2 : 3]
+    const selection = { type: 'event' as const, eventId: start.id }, before = structuredClone(score)
+    expect(buildSpanPaste(score, selection, { ...clipboard, requiresExplicitEnd: false }, () => 'auto')).toBeDefined()
+    expect(buildSpanPaste(score, selection, clipboard, () => 'auto')).toBeUndefined()
+    expect(buildSpanPaste(score, selection, clipboard, () => 'invalid', 'missing')).toBeUndefined()
+    const pasted = buildSpanPaste(score, selection, clipboard, () => 'explicit-cross-source', end.id)!
+    const result = applyScoreCommand(score, pasted.command)
+    const marks = kind === 'slur' ? result.score.slurs! : result.score.hairpins!
+    expect(marks[1]).toMatchObject({ startEventId: start.id, endEventId: end.id, engraving: { offsetY: 2 } })
+    expect(result.score.parts).toEqual(before.parts)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(before)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(JSON.parse(JSON.stringify(result.score)))
+    const reopened = parseMusicXml(serializeMusicXml(result.score))
+    const reopenedMarks = kind === 'slur' ? reopened.slurs : reopened.hairpins
+    const [originalMeasure, targetMeasure] = reopened.parts[0].staves[0].measures
+    expect(reopenedMarks).toHaveLength(2)
+    expect(reopenedMarks).toContainEqual(expect.objectContaining({
+      startEventId: originalMeasure.voices[0].events[0].id,
+      endEventId: originalMeasure.voices[1].events[kind === 'slur' ? 1 : 3].id
+    }))
+    expect(reopenedMarks).toContainEqual(expect.objectContaining({
+      startEventId: targetMeasure.voices[1].events[kind === 'slur' ? 1 : 0].id,
+      endEventId: targetMeasure.voices[1].events[kind === 'slur' ? 2 : 3].id
+    }))
+    expect(score).toEqual(before)
+  })
+  it.each(['slur', 'hairpin'] as const)('explicit %s targets choose a chord event across voices without replacing notes', kind => {
+    const { score, events } = setup()
+    const target = addMeasure(score), upper = target.voices[0].events[0]
+    const end = target.voices[1].events[2]
+    if (upper.type !== 'note' || end.type !== 'note') throw new Error('Expected chord notes')
+    upper.pitches = [upper.pitch, { step: 'B', octave: 5 }]
+    end.pitches = [end.pitch, { step: 'F', octave: 4 }]
+    const original = structuredClone(score)
+    const clipboard = buildSpanClipboard(score, { kind, id: `source-${kind}` })!
+    const selection = { type: 'event' as const, eventId: upper.id }
+    expect(buildSpanPaste(score, selection, clipboard, () => 'auto')).toBeUndefined()
+    const pasted = buildSpanPaste(score, selection, clipboard, () => 'explicit', end.id)!
+    expect(pasted).toBeDefined()
+    const result = applyScoreCommand(score, pasted.command)
+    const spans = kind === 'slur' ? result.score.slurs! : result.score.hairpins!
+    expect(spans[1]).toMatchObject({ id: 'explicit', startEventId: upper.id, endEventId: end.id })
+    expect(result.score.parts).toEqual(original.parts)
+    expect(applyScoreCommand(result.score, result.undo).score).toEqual(original)
+    expect(decodeNativeProject(encodeNativeProject(createNativeProject(result.score))).score).toEqual(JSON.parse(JSON.stringify(result.score)))
+    const reopened = parseMusicXml(serializeMusicXml(result.score))
+    const reStaff = reopened.parts[0].staves[0], reTarget = reStaff.measures[1]
+    expect(kind === 'slur' ? reopened.slurs : reopened.hairpins).toContainEqual(expect.objectContaining({
+      startEventId: reTarget.voices[0].events[0].id, endEventId: reTarget.voices[1].events[2].id
+    }))
+    expect(events[1].type).toBe('note')
+    expect(score).toEqual(original)
+  })
+
+  it('invalid explicit endpoints never fall back to a valid automatic endpoint', () => {
+    const { score, events } = setup()
+    const clipboard = buildSpanClipboard(score, { kind: 'slur', id: 'source-slur' })!
+    const selection = { type: 'event' as const, eventId: events[1].id }
+    expect(buildSpanPaste(score, selection, clipboard, () => 'auto')).toBeDefined()
+    const foreign = structuredClone(score.parts[0])
+    foreign.id = 'other'; foreign.staves[0].id = 'other-staff'
+    for (const measure of foreign.staves[0].measures) {
+      measure.id = 'other-' + measure.id
+      for (const voice of measure.voices) for (const event of voice.events) event.id = 'other-' + event.id
+    }
+    score.parts.push(foreign)
+    const original = structuredClone(score)
+    for (const id of ['', 'missing', events[0].id, events[1].id, events[3].id, 'other-' + events[2].id]) {
+      expect(buildSpanPaste(score, selection, clipboard, () => 'bad', id)).toBeUndefined()
+    }
+    expect(score).toEqual(original)
+  })
+
   it.each(['slur', 'hairpin'] as const)('copies %s without destination note mutation through history/native/XML', kind => {
     const { score: source } = setup()
     const span = kind === 'slur' ? source.slurs![0] : source.hairpins![0]
@@ -66,13 +149,13 @@ describe('independent span clipboard', () => {
     expect(buildSpanPaste(score, selection, clipboard, () => 'ambiguous')).toBeUndefined()
   })
 
-  it('rejects slur rest targets and foreign-voice sources without altering the score', () => {
+  it('rejects slur rest targets and missing source anchors without altering the score', () => {
     const { score, events } = setup(), snapshot = structuredClone(score)
     const clipboard = buildSpanClipboard(score, { kind: 'slur', id: 'source-slur' })!
     expect(buildSpanPaste(score, { type: 'event', eventId: events[0].id }, clipboard, () => 'bad')).toBeUndefined()
     expect(buildSpanPaste(score, { type: 'measure', measureId: score.parts[0].staves[0].measures[0].id }, clipboard, () => 'bad')).toBeUndefined()
     expect(score).toEqual(snapshot)
-    score.slurs![0].startEventId = score.parts[0].staves[0].measures[0].voices[0].events[0].id
+    score.slurs![0].startEventId = 'missing-source'
     expect(buildSpanClipboard(score, { kind: 'slur', id: 'source-slur' })).toBeUndefined()
   })
 })

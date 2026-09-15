@@ -15,6 +15,64 @@ Sibelius를 secondary commercial reference로 유지하면서 남은 Commercial 
 
 ## Queue
 
+### Integration Checkpoint (2026-09-15)
+
+The user approved commit/push/merge of the current Chromatics work, not release.
+Latest source passes 707 tests / 1 skip and build; exact renderer/package evidence
+is separated by bundle in evidence-log. Do not interpret this merge as V1 complete.
+Next implementation: preserve lower-staff system text through XML (current export
+silently omits it), then individual system-text editing without neighbor deletion.
+Global rehearsal edit/undo is now covered in actual Electron score/part workflows.
+Expression text uses normalized direction ticks; backup/native/visual extensions
+remain pending. Automatic approval capacity failures interrupted the last additions.
+
+### Scoped Rehearsal Resumption (2026-09-15)
+
+Explicit resumption found no existing goal and registered an active expanded-V1
+goal. Remote main remains `9d44696`; the existing uncommitted worktree is preserved.
+`CV1-X-XML-SCOPED-REHEARSAL` narrows the parent scope task to concrete measure-ID
+ownership: MusicXML `system="none"` plus staff number, global `only-top`, native v4
+without schema changes, cross-staff paste, and multiple rehearsal renderer lanes.
+Failure-first XML/clipboard/lane tests now pass. Follow-up fixes add lower-staff
+measure selection, preserve neighboring rehearsal objects during text editing,
+and remove part-owned rehearsal marks with their part instead of globalizing them.
+Current full suite: 699 pass / 1 skip; build/typecheck, 28-case Electron clipboard
+workflow and fresh macOS arm64 unsigned package smoke pass. Final E2E and unchanged
+960/1400px notation snapshots also pass on bundle `index-B-nOq9dA.js`.
+System text ownership, arbitrary tick identity, explicit scope UI and linked
+displays remain Required. The earlier usageLimited checkpoint is historical.
+
+### Explicit Endpoint Resumption (2026-09-15)
+
+Explicit user resumption supersedes the historical stop checkpoints below. Remote
+main was fetched at PR #757 merge `9d44696`; the old temporary worktree was absent.
+Current isolated worktree: `/private/tmp/chromatics-span-targets-20260915`, branch
+`feature/chromatics-span-targets-20260915`, base `9d44696`. Original Clef/quiz/site
+changes remain untouched. A matching goal was registered; no new Git integration
+or deployment is authorized.
+
+`CV1-X-SPAN-EXPLICIT-TARGETS` adds start/end event selectors after copying a span.
+Explicit endpoints override source duration, remain in the target staff, and may
+cross voices. Invalid explicit endpoints never fall back to automatic matching.
+Slurs require notes; hairpins accept notes/rests. Automatic paste retains the
+same-voice exact tick-distance policy. Chords are single events with `pitches`,
+not multiple same-tick event IDs; individual chord-notehead anchoring is not added.
+Cross-voice source copying now requires explicit destination endpoints; automatic
+paste remains rejected for those snapshots. Endpoint core/App/native/
+XML, 14-case renderer/disk, 673-test full suite, E2E and visual checks pass. Subsequent
+text-filter work passes 9 focused tests, 22 renderer/disk cases and a 682-test full
+suite. Standard-attribute checkpoint: 686 tests / 1 skip, build and fresh macOS
+package smoke pass. Subsequent all-part global-text import has 99 XML tests / 1 skip
+and typecheck; final gates are tracked separately. Next: scoped global-text XML ownership,
+then independent-object/list/range selection. All expanded Required umbrellas stay open.
+
+Latest checkpoint: 696 tests pass / 1 skip, build and 26 Electron cases pass,
+including cross-voice source snapshots requiring explicit destination ends. The
+960/1400px notation baseline is unchanged. Fresh E2E and macOS arm64 unsigned
+package smoke pass; see evidence-log for the exact checkpoint. Goal manager
+currently reports `usageLimited`; explicit user resumption permits this normal
+execution but does not reactivate automatic goal continuation.
+
 ### Clipboard Continuation (2026-09-14)
 
 User subsequently requested stopping feature work and committing/pushing/merging.
@@ -206,7 +264,19 @@ workflow and span umbrellas remain Partial even when a bounded child is Done.
 | CV1-X-STACKED-ANNOTATION-CLEARANCE | piano staff text and upper clef overlap | Layout / Engraving | reviewed rich Piano PDF; parent CV1-X-ENGRAVING | fixed 96px spacing ignores neighboring annotation ink | lane/layout/Electron/PDF | full engraving review | Done | Shared renderer/print staff extents, long-hairpin interior lanes and rich Piano ink/PDF checks, fresh macOS package and 629-test rerun pass. Extreme ledger/manual segment collision handling stays in parent. |
 | CV1-X-SPAN-SEGMENT-GEOMETRY | per-system span geometry | Layout / Engraving | expanded V1 contract; parent CV1-X-SPAN-PROPERTIES | uniform offset cannot adjust one segment or separate part layout | schema/layout/App/real export | engraving review | Partial | Native v4 musical boundaries, segment edit/reset/inherit, independent part history, actual four-system/two-page disk/PDF and inactive status/cleanup/undo/reapplication pass. Boundary deletion/save/undo/reopen and ensemble insertion/reorder regressions pass. Finish current gates, deleted-span clipboard geometry ownership and denser geometry QA; broad engraving remains in parent. |
 | CV1-X-RANGE-SPAN-COPY | contained span and segment ownership on paste | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | copied passage loses spans or retains source geometry anchors | core/App/native/XML | editing/engraving QA | Partial | Effective part object/null/inherit snapshots, omission feedback, source immutability, repeated cross-document IDs and octave conflict guards pass core/App/native/XML and actual renderer/disk QA. Broader cross-measure/partial-span policy remains Required. |
-| CV1-X-SPAN-OBJECT-COPY | independent slur/hairpin clipboard | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | selected object cannot be reused without replacing notes | core/App/native/XML/renderer | clipboard ergonomics and manual engraving | Partial | Exact same-voice rhythmic endpoint matching, geometry snapshot/remapping and unchanged notes pass four core, two App and four actual Electron cases. Reject missing, ambiguous chord and cross-voice endpoints explicitly. After user resumption address explicit chord/cross-voice targeting and other object types. |
+| CV1-X-SPAN-OBJECT-COPY | independent slur/hairpin clipboard | Editing Workflow | MuseScore copy-and-paste; parent CV1-X-OBJECT-CLIPBOARD | broader anchors and editing remain incomplete | core/App/native/XML/renderer | clipboard ergonomics and manual engraving | Partial | Automatic same-voice distance and explicit same-staff cross-voice destination selection preserve notes. Cross-voice sources now require explicit destination ends. Individual chord-notehead anchors, arbitrary tick/cross-staff and broader clipboard remain Required. See explicit-target/source children and current evidence. |
+| CV1-X-SPAN-EXPLICIT-TARGETS | explicit start/end chord-event paste | Editing Workflow | Parent CV1-X-SPAN-OBJECT-COPY; MuseScore slurs-and-ties / copy-and-paste | valid target requires another voice or different duration | core/App/native/XML/renderer | pointer ergonomics and engraving | Done | Bounded explicit same-staff destination contract passes core/App/native/XML, renderer/disk harness, E2E and unchanged visual snapshots. Wrapped address readback fixes narrow dock clipping. Cross-voice source support is tracked in its own completed child; individual notehead/rhythmic anchors remain parent work. |
+| CV1-X-TEXT-MARKING-CLIPBOARD | independent measure text filtering and reuse | Editing Workflow | Parents CV1-X-OBJECT-FILTERS / CV1-X-OBJECT-CLIPBOARD | individual/list/range text selection remains | core/App/native/XML/renderer | selection ergonomics and human engraving | Partial | Four text filters, snapshot copy, type-only replacement/deletion and fresh IDs pass core/App/native/XML and renderer/disk tests. Staff/expression/rehearsal text support other staves; system text still rejects non-primary staff. Expression ticks outside target reject. Individual/list/range selection remains Required. |
+| CV1-X-REHEARSAL-OBJECT-SELECTION | edit a specific rehearsal object without replacing its neighbors | Editing Workflow | Parents CV1-X-OBJECT-FILTERS / CV1-X-OBJECT-CLIPBOARD | bounded active-measure rehearsal chooser | App selection/edit/delete/history/native and Electron | manual usability review | Done | Stable-ID chooser, explicit new state, document-transition reset and undo-then-recreate pass. 700 tests and 28 Electron cases pass. Individual clipboard/range selection and other text types remain separate contracts. |
+| CV1-X-GLOBAL-ANNOTATION-PROJECTION | show generic global anchors on rich multipart staves | Layout / Engraving | Parent CV1-X-XML-SCOPED-GLOBAL-TEXT; rich part fixture | generic measure-N anchors missed lane and draw maps | shared projection/lane tests and actual renderer | human PDF review is a separate release gate | Done | Bounded render projection passes tests and six actual renderer cases with three inspected PDFs. Source anchors remain unchanged. Global rehearsal edit/undo also passes score/part App and Electron workflows. Scope conversion and general object editing remain in parent. |
+| CV1-X-PASSIVE-STAFF-ATTACHMENTS | keep note attachments visible in full score as in part view | Layout / Engraving | Parent CV1-X-WORKFLOW-AUDIT; global PDF comparison | full-score Piano omitted lyrics shown in its part view | actual full-score/part renderer and PDF; lyric selection | human engraving review | Partial | Shared drawing restores lyrics and tenuto in actual score/part/PDF checks; lyric edit/undo/native readback pass. Fermata/breath/grace/ornament/tremolo visual matrix and detailed placement still need verification. |
+| CV1-X-EXPRESSION-TEXT-TICKS | preserve imported expression text musical position | MusicXML Compatibility | Parent CV1-X-TEXT-MARKING-CLIPBOARD; ordered direction tick index | raw offset ignored divisions and preceding cursor | three signed-offset/divisions XML round trips pass | imported-position visual review | Partial | Parser uses indexed direction ticks; 707-test checkpoint passes. Add lower-staff backup/inherited-divisions/native cases and actual imported-position renderer evidence. |
+| CV1-X-XML-SCOPED-GLOBAL-TEXT | preserve non-primary system/rehearsal annotations | MusicXML Compatibility | Parent CV1-X-PART-XML; text clipboard cross-part regression | system-text ownership, tick identity and explicit scope editing remain | multi-part/grand-staff XML/native/renderer | external-app fidelity | Partial | Scoped rehearsal child preserves concrete measure anchors and lower-staff XML; system-text guard remains. Global import aggregation is not full explicit scope support. |
+| CV1-X-XML-SCOPED-REHEARSAL | preserve local rehearsal marks on another staff | MusicXML Compatibility | Parent CV1-X-XML-SCOPED-GLOBAL-TEXT; concrete measure IDs | bounded concrete measure-ID ownership contract | XML/native/clipboard/lane tests and Electron disk workflow | external-app and human engraving remain separate gates | Done | system=none plus staff number preserves local ownership; only-top preserves generic global marks. Multiple rehearsal lanes, lower-staff selection, cross-staff paste, part-view filtering, edit preservation and part removal/undo pass. Actual 960/1400 renderer/native/XML workflow passes. Explicit scope UI, arbitrary tick identity and system text remain in parent. |
+| CV1-X-XML-TEMPO-DUPLICATION | readable tempo in external notation apps | MusicXML Compatibility | Parent CV1-X-WORKFLOW-AUDIT; MuseScore CLI PDF observation | broader generated labels and custom display policy remain | serializer/parser/actual MuseScore PDF | custom tempo text fidelity | Partial | Exact generated quarter/eighth labels export once as a visible metronome; custom words preserved in separate direction-type. Five new tests and actual PDF visual check pass. MuseScore exits 134 after writing PDF on two attempts, so CLI gate remains failed. Dotted/other-unit labels and custom display choices remain Required. |
+| CV1-X-SPAN-CROSS-VOICE-SOURCE | reuse a span joining voices on one staff | Editing Workflow | Parent CV1-X-SPAN-OBJECT-COPY; explicit endpoint selectors | explicit source-to-target contract completed; broader anchors separate | core/component/Electron/native/XML | dense-span engraving remains parent work | Done | Copy snapshot records explicit-end requirement; automatic paste rejects even with a timed candidate. Core/component, 26-case renderer/disk, full 696-test suite and unchanged visual baseline pass. Cross-staff and chord-notehead anchors remain separate Required contracts; parent remains Partial. |
+| CV1-X-XML-SYSTEM-RELATION | standard system text attribute | MusicXML Compatibility | Parent CV1-X-XML-SCOPED-GLOBAL-TEXT; W3C MusicXML 4.0 system-relation | also-top placement and explicit ownership remain | MusicXML unit/fixture/native | external-app visual behavior | Partial | only-top reads/writes; legacy yes reads remain compatible; none stays local; also-top extra-placement loss warns. Standard-attribute checkpoint passed 686 tests and macOS package smoke. Later all-part import and tempo changes have separate current evidence. |
+| CV1-X-SPAN-PAIR-COLLISIONS | overlapping independent hairpin layout | Layout / Engraving | Parent CV1-X-ENGRAVING; explicit-target renderer QA | overlapping source and pasted hairpins share a lane and intersect in 1400px fixture | layout/renderer/PDF | human engraving | Todo | Reproduce two same-staff overlapping hairpins from explicit-target harness, reserve separate automatic lanes while preserving manual geometry priority, verify PDF and adjacent annotation clearance. |
 | CV1-X-RANGE-PASTE-MARKING-SAFETY | range paste drops markings and leaves dead span anchors | Editing Workflow | MuseScore copy-and-paste; parents CV1-X-WORKFLOW-AUDIT / CV1-X-OBJECT-CLIPBOARD | pasted notes lose attached markings and native save can reject deleted target endpoints | core/App/native/history | clipboard ergonomics | Partial | Current code audit found minimal pitch-duration clone and raw voice replacement. Reproduce deep-clone loss and dangling span anchors, fix one history transaction, verify target selection and native save/undo. Independent object clipboard and source span replication remain separate Required contracts. |
 | CV1-X-XML-OCTAVE-PITCH | octave-shift XML 음높이 의미 | MusicXML Compatibility | W3C MusicXML octave-shift; parent CV1-X-PART-XML | XML up/down and performed pitches differ from internal display-pitch convention | XML/MIDI/pitch fixture | external app comparison | Partial | Four octave types now use standard direction and performed pitch; stop at end-note duration, chord/native/MIDI/lower-staff instrument transpose tests pass. Remaining: legacy ambiguous XML recovery, rest/interior-tick/cross-staff anchors, 22 shifts, held notes/ties across boundaries, overlap and real external GUI comparison. |
 | CV1-X-SPAN-RHYTHMIC-ANCHORS | 음표 외 span endpoint | Editing Workflow | MuseScore Dynamics and hairpins; parent CV1-X-SPAN-PROPERTIES | interior-duration/end-of-measure positions cannot be preserved as event IDs alone | model/native/XML/layout/Electron | engraving QA | Partial | Rest-event hairpin input/undo/redo/native/XML/renderer and voice-scoped playback implemented. Add portable arbitrary-tick anchors, exact stop time and cross-staff spans; unsupported positions still reject. |

@@ -244,7 +244,8 @@ function buildMeasureElement(
       tempo: staffIndex === 0 ? score.tempo : undefined,
       rhythmFeel: staffIndex === 0 ? score.rhythmFeel : undefined,
       tempoEvents: staffIndex === 0 ? score.tempoEvents : undefined,
-      rehearsalMarks: staffIndex === 0 ? score.rehearsalMarks : undefined,
+      rehearsalMarks: score.rehearsalMarks?.filter(mark => mark.measureId === measure.id ||
+        (staffIndex === 0 && mark.measureId === `measure-${measure.number}`)),
       systemTexts: staffIndex === 0 ? score.systemTexts : undefined,
       harmonies: local(score.harmonies), staffTexts: local(score.staffTexts),
       expressionTexts: local(score.expressionTexts), dynamics: local(score.dynamics)
@@ -402,7 +403,8 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
     ...spans.filter(direction => 'octave-shift' in (direction['direction-type'] as object)),
     ...(score.rehearsalMarks ?? [])
       .filter((mark) => matchesMeasureReference(mark.measureId, measure))
-      .map((mark) => buildRehearsalDirection(mark.text)),
+      .map((mark) => ({ ...buildRehearsalDirection(mark.text),
+        '@_system': mark.measureId === `measure-${measure.number}` ? 'only-top' : 'none' })),
     ...(score.staffTexts ?? [])
       .filter((text) => matchesMeasureReference(text.measureId, measure))
       .map((text) => buildStaffTextDirection(text.text)),
@@ -438,6 +440,8 @@ function buildTempoDirection(
 ) {
   const beatUnit = tempo.beatUnit ?? 'quarter'
   const dots = Math.max(0, tempo.dots ?? 0)
+  const generatedLabel = dots === 0 && (beatUnit === 'quarter' || beatUnit === 'eighth') &&
+    tempo.text === `${beatUnit === 'eighth' ? '♪' : '♩'} = ${tempo.bpm}`
 
   return {
     '@_placement': 'above',
@@ -446,22 +450,20 @@ function buildTempoDirection(
           '@_print-object': 'no'
         }
       : {}),
-    'direction-type': {
-      ...(tempo.text
-        ? {
-            words: tempo.text
-          }
-        : {}),
-      metronome: {
-        'beat-unit': beatUnit,
-        ...(dots > 0
-          ? {
-              'beat-unit-dot': Array.from({ length: dots }, () => '')
-            }
-          : {}),
-        'per-minute': tempo.bpm
+    'direction-type': [
+      ...(tempo.text && !generatedLabel ? [{ words: tempo.text }] : []),
+      {
+        metronome: {
+          'beat-unit': beatUnit,
+          ...(dots > 0
+            ? {
+                'beat-unit-dot': Array.from({ length: dots }, () => '')
+              }
+            : {}),
+          'per-minute': tempo.bpm
+        }
       }
-    },
+    ],
     ...(offsetTicks && offsetTicks > 0
       ? {
           offset: offsetTicks
@@ -515,7 +517,7 @@ function buildStaffTextDirection(text: string) {
 function buildSystemTextDirection(text: string) {
   return {
     '@_placement': 'above',
-    '@_system': 'yes',
+    '@_system': 'only-top',
     'direction-type': {
       words: {
         '#text': text,

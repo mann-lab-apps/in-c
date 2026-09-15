@@ -8,6 +8,7 @@ export interface SpanClipboard {
   kind: SpanReference['kind']
   hairpinType?: Hairpin['type']
   durationTicks: number
+  requiresExplicitEnd?: boolean
   engraving?: Omit<SpanEngraving, 'segments'>
   segments: { startMeasureOffset: number; endMeasureOffset: number; geometry: SpanSegmentEngraving['geometry'] }[]
   excludedSegmentCount: number
@@ -32,7 +33,7 @@ export function buildSpanClipboard(score: Score, reference: SpanReference): Span
   if (!span) return undefined
   const start = staffTimeline(score, span.startEventId), end = staffTimeline(score, span.endEventId)
   if (!start || !end || start.location.address.partId !== end.location.address.partId ||
-    start.location.address.staffId !== end.location.address.staffId || start.location.address.voiceId !== end.location.address.voiceId ||
+    start.location.address.staffId !== end.location.address.staffId ||
     start.tick >= end.tick || (reference.kind === 'slur' && (start.location.event.type !== 'note' || end.location.event.type !== 'note'))) return undefined
   const { segments = [], ...engraving } = span.engraving ?? {}
   const copiedSegments: SpanClipboard['segments'] = []
@@ -43,22 +44,26 @@ export function buildSpanClipboard(score: Score, reference: SpanReference): Span
     copiedSegments.push({ startMeasureOffset: first - start.measureIndex, endMeasureOffset: last - start.measureIndex, geometry: segment.geometry })
   }
   return structuredClone({ kind: reference.kind, hairpinType: 'type' in span ? span.type : undefined,
+    ...(start.location.address.voiceId !== end.location.address.voiceId ? { requiresExplicitEnd: true } : {}),
     durationTicks: end.tick - start.tick, engraving: Object.keys(engraving).length ? engraving : undefined,
     segments: copiedSegments, excludedSegmentCount: segments.length - copiedSegments.length })
 }
 
-export function buildSpanPaste(score: Score, selection: EditorSelection, clipboard: SpanClipboard, createId: () => string):
+export function buildSpanPaste(score: Score, selection: EditorSelection, clipboard: SpanClipboard, createId: () => string, endEventId?: string):
   { command: ScoreCommand; excludedSegmentCount: number } | undefined {
   if (selection.type !== 'event') return undefined
+  if (clipboard.requiresExplicitEnd && endEventId === undefined) return undefined
   const addressed = locateEvent(score, selection.eventId, selection.address)
   const start = addressed && staffTimeline(score, addressed.event.id)
   if (!start || (clipboard.kind === 'slur' && start.location.event.type !== 'note')) return undefined
   const targetTick = start.tick + clipboard.durationTicks
   const candidates = start.staff.measures.flatMap((measure, index) => measure.voices
-    .filter(voice => voice.id === start.location.address.voiceId)
-    .flatMap(voice => voice.events.filter(event => start.starts[index] + event.position.tick === targetTick &&
+    .filter(voice => endEventId !== undefined || voice.id === start.location.address.voiceId)
+    .flatMap(voice => voice.events.filter(event => (endEventId !== undefined
+      ? event.id === endEventId && start.starts[index] + event.position.tick > start.tick
+      : start.starts[index] + event.position.tick === targetTick) &&
       (clipboard.kind === 'hairpin' || event.type === 'note')).map(event => ({ event, measureIndex: index }))))
-  // A chord can have multiple notes at the same onset. Do not guess its endpoint.
+  // Explicit selection overrides timing, never falls back to a different event.
   if (candidates.length !== 1) return undefined
   const end = candidates[0], id = createId()
   if ([...(score.slurs ?? []), ...(score.hairpins ?? [])].some(span => span.id === id)) return undefined
