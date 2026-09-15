@@ -70,6 +70,27 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S51 commit: `e0c3cce`. S52 VERIFIED LOCAL: five tone lifecycle defects reproduced with
+delayed settings/stop callbacks (`/private/tmp/clef-s52-red.log`). Volume/A4 saves
+could request playback after sheet exit, waited for storage before audible updates,
+and a late stop called setState after dispose. Acceptance: immediate playback
+settings, no replay from save completion, ignore stale play results after new
+play/stop/close, scoped current save errors with retry. Separate playback/save
+request identities and update stop intent before awaiting the platform. Existing
+tone gain/native engine/storage queue unchanged. Tuner setting error handling also
+covers notation, detector and legacy chromatic normalization callers.
+Initial 17/17, expanded 32/32 and shared-caller 38/38 targeted cases PASS.
+Two additional cases reproduced old save notices over a newer route
+(`/private/tmp/clef-s52-route-red.log`); feedback now also requires the current route.
+Full 1,161/1,161, analyze/RC PASS (`/private/tmp/clef-rc-s52.log`), formatter/diff PASS.
+Thirty new lifecycle cases include shared caller failures and newer-route guards.
+Method-channel mocks validate call/state ordering, not physical output or
+native worker shutdown. Controller recovery after failed global tone/tuner saves
+remains a separate candidate; this slice does not promise disk/memory rollback.
+Commit subject: `fix: guard Clef drone playback lifetimes`.
+Next: named mini-panel entry, then global tone/tuner failed-save recovery. No app
+build/version change/push/merge. Physical output latency and pedal remain DEVICE QA.
+
 S50 commit: `12ff46b`. S51 VERIFIED LOCAL: drone volume slider had no persistent
 name/value; its percent was visible only during interaction. Added `드론 음량`,
 current percentage and a slider semantic label, using the existing metronome

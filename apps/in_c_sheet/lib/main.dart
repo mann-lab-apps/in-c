@@ -16997,6 +16997,8 @@ class _TunerSheet extends StatefulWidget {
 Widget buildTunerSheetForTest({
   SheetTunerSettings settings = SheetTunerSettings.defaultSettings,
   SheetToneSettings toneSettings = SheetToneSettings.defaultSettings,
+  Future<void> Function(SheetTunerSettings)? onSettingsChanged,
+  Future<void> Function(SheetToneSettings)? onToneSettingsChanged,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -17004,8 +17006,8 @@ Widget buildTunerSheetForTest({
         initialSettings: settings,
         initialToneSettings: toneSettings,
         autoStartInput: false,
-        onSettingsChanged: (_) async {},
-        onToneSettingsChanged: (_) async {},
+        onSettingsChanged: onSettingsChanged ?? (_) async {},
+        onToneSettingsChanged: onToneSettingsChanged ?? (_) async {},
       ),
     ),
   );
@@ -17049,6 +17051,9 @@ class _TunerSheetState extends State<_TunerSheet> {
   final List<SheetTunerReading> _recentCalibrationReadings =
       <SheetTunerReading>[];
   bool _isTonePlaying = false;
+  int _tonePlaybackRequest = 0;
+  int _toneSettingsRequest = 0;
+  int _tunerSettingsRequest = 0;
   SheetTonePlaybackResult? _lastTonePlaybackResult;
 
   @override
@@ -17077,7 +17082,7 @@ class _TunerSheetState extends State<_TunerSheet> {
         return;
       }
       if (_needsChromaticOnlyNormalization(widget.initialSettings)) {
-        unawaited(widget.onSettingsChanged(_settings));
+        unawaited(_persistTunerSettings(_settings));
       }
       if (widget.autoStartInput) {
         unawaited(_inputService.start(settings: _settings));
@@ -17111,6 +17116,8 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   @override
   void dispose() {
+    _isTonePlaying = false;
+    _tonePlaybackRequest++;
     unawaited(_tonePlayer.stop());
     _inputSubscription?.cancel();
     unawaited(_inputService.dispose());
@@ -17134,10 +17141,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       }
     });
     _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
     if (_isTonePlaying) {
-      await _playTone();
+      unawaited(_playTone());
     }
+    await _persistTunerSettings(nextSettings);
   }
 
   Future<void> _setNotationPreference(
@@ -17149,37 +17156,67 @@ class _TunerSheetState extends State<_TunerSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistTunerSettings(nextSettings);
   }
 
   Future<void> _setToneSettings(SheetToneSettings settings) async {
+    final request = ++_toneSettingsRequest;
     setState(() {
       _toneSettings = settings;
     });
-    await widget.onToneSettingsChanged(settings);
     if (_isTonePlaying) {
-      await _playTone();
+      unawaited(_playTone());
     }
+    try {
+      await widget.onToneSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _toneSettingsRequest) return;
+      _showSettingsSaveError();
+    }
+  }
+
+  Future<void> _persistTunerSettings(SheetTunerSettings settings) async {
+    final request = ++_tunerSettingsRequest;
+    try {
+      await widget.onSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _tunerSettingsRequest) return;
+      _showSettingsSaveError();
+    }
+  }
+
+  void _showSettingsSaveError() {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('설정을 저장하지 못했습니다. 다시 변경해주세요.')));
   }
 
   Future<void> _toggleTone() async {
     if (_isTonePlaying) {
-      await _tonePlayer.stop();
+      _tonePlaybackRequest++;
       setState(() {
         _isTonePlaying = false;
         _lastTonePlaybackResult = null;
       });
+      await _tonePlayer.stop();
       return;
     }
+    setState(() {
+      _isTonePlaying = true;
+      _lastTonePlaybackResult = null;
+    });
     await _playTone();
   }
 
   Future<void> _playTone() async {
+    if (!mounted || !_isTonePlaying) return;
+    final request = ++_tonePlaybackRequest;
     final result = await _tonePlayer.play(
       settings: _toneSettings,
       referencePitchA4: _settings.referencePitchA4,
     );
-    if (!mounted) {
+    if (!mounted || request != _tonePlaybackRequest) {
       return;
     }
     setState(() {
@@ -17203,7 +17240,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       }
     });
     _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
+    await _persistTunerSettings(nextSettings);
   }
 
   void _setDemoFrequency(double value) {

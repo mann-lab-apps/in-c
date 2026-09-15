@@ -254,6 +254,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   빠른 BPM의 실제 불규칙 간격 보고는 미해결 QA이며 출력 지터/이어폰 비교가 필요하다.
   기준음/드론은 별도 `드론 음량`과 현재 백분율을 상시 표시한다. 기본 35%와 기존 합성 gain은 유지하며,
   이어폰에서 작게 들린다는 관찰은 실제 출력 경로/연습실 재확인으로 분리한다.
+  드론 음량/A4 변경은 저장 응답과 재생을 분리하며 닫기/정지 뒤 저장 완료로 재생을 재요청하지 않는다.
+  오래된 재생 응답은 새 상태를 바꾸지 않고 현재 설정 저장 실패만 안내한다. 네이티브 출력 종료와
+  실패 후 전역 설정의 디스크/메모리 복구는 별도 검증 범위다.
 - 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
   gate, confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing,
   no-signal debounce, octave/저음 3배음 guard, note hysteresis를 붙였다.
