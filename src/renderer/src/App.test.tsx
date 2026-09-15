@@ -3512,7 +3512,21 @@ describe('App component shell', () => {
   })
 
   it('import-export.save-pdf applies a strict target page count when possible', async () => {
-    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { createNativeProject, encodeNativeProject } = await import('../../project/schema')
+    const { applyScoreCommand } = await import('../../score-core')
+    const { buildInsertMeasureAfter } = await import('./editor/measure-management')
+    let largeScore = parseMusicXml(releaseQaMusicXml)
+    let nextId = 0
+    // This test targets PDF fitting; build most of its large fixture without UI rerenders.
+    for (let index = 0; index < 79; index += 1) {
+      const last = largeScore.parts[0].staves[0].measures.at(-1)!
+      const edit = buildInsertMeasureAfter(largeScore, last.id, kind => `pdf-${kind}-${nextId++}`)!
+      largeScore = applyScoreCommand(largeScore, edit.command).score
+    }
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/qa/large-pdf.chromatics', fileName: 'large-pdf.chromatics',
+      contents: encodeNativeProject(createNativeProject(largeScore))
+    })
     let finishPdfSave: ((value: { fileName: string }) => void) | undefined
     vi.mocked(window.inC.pdf.save).mockImplementation(
       () =>
@@ -3523,12 +3537,12 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('large-pdf.chromatics을 열었습니다.')
+
     fireEvent.click(screen.getByRole('button', { name: '악보' }))
     const addMeasureButton = screen.getByRole('button', { name: '마디 추가' })
-
-    for (let index = 0; index < 80; index += 1) {
-      fireEvent.click(addMeasureButton)
-    }
+    fireEvent.click(addMeasureButton)
 
     fireEvent.click(screen.getByRole('button', { name: '내보내기' }))
     fireEvent.change(screen.getByLabelText('PDF 목표 장수'), {
@@ -5470,8 +5484,9 @@ describe('App component shell', () => {
     fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
     const save = async () => {
       vi.mocked(window.inC.project!.save).mockClear()
-      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
-      await waitFor(() => expect(window.inC.project!.save).toHaveBeenCalled())
+      await act(async () => { fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true }) })
+      await waitFor(() => expect(window.inC.project!.save).toHaveBeenCalledOnce())
+      await waitFor(() => expect(screen.getByRole('button', { name: '프로젝트 저장' })).toBeEnabled())
       return decodeNativeProject(vi.mocked(window.inC.project!.save).mock.calls[0][0].contents)
     }
     const pasted = await save()
@@ -5487,7 +5502,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: `선택 마디 ${label} 지우기` }))
     expect((await save()).score[type]).toHaveLength(1)
     vi.mocked(window.inC.project!.open).mockResolvedValue({ filePath: '/qa/text-reopened.chromatics', fileName: 'text-reopened.chromatics', contents: encodeNativeProject(pasted) })
-    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' })) })
     await screen.findByText('text-reopened.chromatics을 열었습니다.')
     expect((await save()).score).toEqual(pasted.score)
   })

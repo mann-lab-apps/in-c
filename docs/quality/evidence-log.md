@@ -2326,6 +2326,21 @@ No fresh package smoke is claimed for this integration attempt. Queue (69 rows,
 16 Required), site-content and `git diff --check` pass. Remote PR CI is the next
 merge gate; the packaging/manual gaps remain explicit development-checkpoint gaps.
 
+### 2026-09-15 Alpha.15 Release Gate Follow-Up
+
+Feature PR #761 merged as `f545149`. Release PR #762 prepares alpha.15 as an
+unsigned prerelease, not expanded-V1 RC signoff. Initial release workflow
+34945029537 passed macOS/Linux packaging but Windows job 104302289965 failed
+two App tests: PDF target-page setup exceeded 10000ms after 80 UI insertions,
+and expression-text native reopen observed a save/open timing mismatch.
+
+The PDF test now prepares 79 measures through existing editor commands/native
+open and retains one real UI insertion. Its timeout and output assertions are
+unchanged. Clipboard tests await React async processing and save-button readiness
+before the next operation; all content equality assertions remain. Focused App
+tests passed (5 pass), and typecheck passed. Full-suite and current-head Windows
+rerun results are pending; this is not evidence of manual installer/PDF QA.
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.
