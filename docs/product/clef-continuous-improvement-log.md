@@ -66,6 +66,40 @@
 
 | S40 | Profile creation can partly persist its index/activation and slow activation can replace newer selection. | Queue latest duplicate lookup, group create keys with checked rollback, serialize activation, preserve existing profiles and retry after failure. | Ten initial red cases; sixteen new storage/home cases, targeted 174/174, full 957/957, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S41 | Viewer layer toggles leak storage errors and display late feedback over another route. | Recover/retry through existing store/controller; scope feedback to current route/library/latest toggle; preserve common annotation commands. | Eight initial widget failures, 32 new cases, targeted 216/216, full 989/989, analyze/RC PASS. | VERIFIED LOCAL |
+
+## Resume Checkpoint (2026-09-15)
+
+- Clef-only worktree `/private/tmp/clef-post22-stability`, branch
+  `feature/clef-post22-stability`, starts from local release `ff64d39` (1.0.0+22).
+- Fetched origin/dev remains `a26e84c`; origin/main is `9d44696` and contains
+  PR #756 plus subsequent unrelated app work. No merge is authorized in this run.
+- AAB 22 exists in the original project's releases directory, with matching upload
+  certificate and successful build/957 tests/analyze/RC evidence. Its Play upload
+  and physical-device results remain unknown. No new build or version change.
+- S41 IN PROGRESS: actual viewer layer visibility/export toggles await storage
+  without catch and only check mounted before success feedback. Reproduce first.
+- Acceptance: normal save; delayed failure preserves durable state and supports
+  retry; no late feedback after exit, coverage or library switch; rapid changes
+  preserve latest state; common undo/redo/text/erase paths remain compatible.
+- Evidence type: injected storage and widget tests, not PDF gesture/device QA.
+  Failure criteria: unhandled error, false/late success, memory/disk mismatch,
+  overwrite of newer edits. Existing rollback/read failure limits remain explicit.
+- Next command: `flutter test test/sheet_annotation_layer_feedback_test.dart`.
+
+S41 implementation: route/library guard in existing annotation save helper and latest
+layer-toggle request ownership; both toggles now await checked results before success.
+Eight initial failures reproduced in `/private/tmp/clef-s41-red.log`. Expanded fixture
+selectors were corrected for toggled tooltip labels and unrelated mode snackbars.
+Targeted 216/216 PASS (`/private/tmp/clef-s41-expanded.log`): 24 layer widget cases,
+four new covered-route undo/redo cases, four actual preferences false/throw cases,
+plus existing score recovery/store/annotation cases. Text and eraser controller
+coverage is retained; native PDF text/erase gestures are not newly device-verified.
+Full 989/989, analyze/RC and whitespace checks PASS (`/private/tmp/clef-rc-s41.log`).
+Commit subject: `fix: scope Clef annotation layer save feedback`.
+No build/version change/push/merge. Next: reproduce overlapping profile load/switch
+responses using delayed reads; no new load-race bug has been established yet.
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,

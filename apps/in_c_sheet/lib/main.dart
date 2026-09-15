@@ -7328,6 +7328,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
   bool _isSavingFavoriteAnnotationPreset = false;
+  Object? _annotationLayerSaveRequest;
   int _annotationColor = 0xff111111;
   double _annotationWidth = 3.5;
   int? _draftAnnotationPageNumber;
@@ -11044,26 +11045,30 @@ setlist=$setlistLabel
 
   Future<void> _toggleAnnotationLayerVisibility() async {
     final nextValue = !score.annotationLayer.isDefaultLayerVisible;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      isVisible: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        score,
+        isVisible: nextValue,
+      );
+      return true;
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기 layer를 표시합니다.' : '필기 layer를 숨깁니다.');
   }
 
   Future<void> _toggleAnnotationLayerExport() async {
     final nextValue = !score.annotationLayer.includeDefaultLayerInExport;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      includeInExport: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        score,
+        includeInExport: nextValue,
+      );
+      return true;
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
   }
@@ -11378,11 +11383,24 @@ setlist=$setlistLabel
     );
   }
 
-  Future<bool?> _saveAnnotationChange(Future<bool> Function() save) async {
+  Future<bool?> _saveAnnotationChange(
+    Future<bool> Function() save, {
+    bool Function()? isCurrent,
+  }) async {
+    final libraryId = widget.controller.activeLibraryProfile.id;
+    final route = ModalRoute.of(context);
+    bool canShowResult() =>
+        mounted &&
+        widget.controller.activeLibraryProfile.id == libraryId &&
+        (route == null || route.isCurrent) &&
+        (isCurrent?.call() ?? true);
     try {
-      return await save();
+      final saved = await save();
+      return canShowResult() ? saved : null;
     } catch (_) {
-      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      if (canShowResult()) {
+        _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      }
       return null;
     }
   }

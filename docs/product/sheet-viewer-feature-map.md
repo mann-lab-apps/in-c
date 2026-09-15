@@ -86,7 +86,7 @@
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
-| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. 다중 layer/annotation별 layer keying은 후속 |
+| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. S41: 저장 실패 안내/복구/재시도, 연속 변경 중 오래된 안내 차단, 종료/다른 화면/라이브러리 전환 후 결과 억제를 로컬 테스트로 검증. 실제 PDF 조작은 기기 QA, 다중 layer/annotation별 layer keying은 후속 |
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
 | 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 표준 annotation export mode는 capability flag/unsupported result로 분리. 편집 가능한 PDF 표준 객체 생성은 PDF writer API/fixture 필요 |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
