@@ -13772,7 +13772,6 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
       _countInPulsesLeft = _countInTotalPulses;
     });
     _playTick();
-    _consumeCountInPulse();
     _restartTimer();
   }
 
@@ -18368,7 +18367,6 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       _lastBeatAt = DateTime.now();
     });
     _playTick();
-    _consumeCountInPulse();
     _restartTimer();
   }
 

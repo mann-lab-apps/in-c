@@ -70,6 +70,22 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S47 commit: `42238f4`. S48 VERIFIED LOCAL: count-in consumed one pulse at the initial
+click and again on elapsed timer callbacks. Eight full/mini widget cases reproduced
+an early accent (fourth instead of fifth click in 4/4) or a half-length interval
+with eighth subdivisions (`/private/tmp/clef-s48-red.log`). Removed the initial
+decrement from both start paths; countdown now advances only after elapsed pulses.
+Acceptance: no missing/shortened final count-in beat, natural accent phase through
+0/1/2-bar count-in, no click after stop/close, restart begins on the first beat.
+Expanded 48-case matrix: BPM 96/240, all four subdivisions, full/mini surfaces.
+All 48 cases PASS (`/private/tmp/clef-s48-matrix.log`); full 1,098/1,098,
+analyze/RC PASS (`/private/tmp/clef-rc-s48.log`). Formatter and diff checks PASS.
+This observes method-channel invocation times under a fake clock, not audible output.
+The user did not confirm count-in was enabled; do not attribute their report solely
+to this defect. Actual Android output timing remains DEVICE QA. No new app build.
+Commit subject: `fix: preserve Clef count-in beat duration`.
+Next: reproduce skipped timer callbacks and avoid phase lag/catch-up playback.
+
 S46 commit: `f2a49d2`. S47 VERIFIED LOCAL: expose the existing viewer menu as a named
 `도구` entry at every width, group related actions, retain icon shortcuts, and allow
 labelled action width in the scrolling toolbar. No actions removed or engines changed.
