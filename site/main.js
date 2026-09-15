@@ -13,12 +13,12 @@ const platformMatchers = [
 ]
 
 const fallbackManifest = {
-  version: '0.1.0-alpha.14',
-  releaseTag: 'v0.1.0-alpha.14',
-  releaseDate: '2026-09-04',
+  version: '0.1.0-alpha.15',
+  releaseTag: 'v0.1.0-alpha.15',
+  releaseDate: '2026-09-15',
   releasePublished: true,
-  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.14',
-  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/SHA256SUMS.txt',
+  releaseUrl: 'https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.15',
+  checksumsUrl: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.15/SHA256SUMS.txt',
   downloads: [
     {
       id: 'macos',
@@ -27,9 +27,9 @@ const fallbackManifest = {
       architecture: 'Universal',
       format: 'DMG',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.14-mac-universal.dmg',
-      size: '226.4 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/in-C-0.1.0-alpha.14-mac-universal.dmg'
+      fileName: 'in-C-0.1.0-alpha.15-mac-universal.dmg',
+      size: '227.7 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.15/in-C-0.1.0-alpha.15-mac-universal.dmg'
     },
     {
       id: 'windows',
@@ -38,9 +38,9 @@ const fallbackManifest = {
       architecture: 'x64',
       format: 'NSIS installer',
       available: true,
-      fileName: 'in-C-0.1.0-alpha.14-windows-x64-setup.exe',
-      size: '112.1 MB',
-      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.14/in-C-0.1.0-alpha.14-windows-x64-setup.exe'
+      fileName: 'in-C-0.1.0-alpha.15-windows-x64-setup.exe',
+      size: '112.7 MB',
+      url: 'https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.15/in-C-0.1.0-alpha.15-windows-x64-setup.exe'
     },
     {
       id: 'linux',

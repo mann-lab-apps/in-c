@@ -2339,7 +2339,15 @@ open and retains one real UI insertion. Its timeout and output assertions are
 unchanged. Clipboard tests await React async processing and save-button readiness
 before the next operation; all content equality assertions remain. Focused App
 tests passed (5 pass), and typecheck passed. Full-suite and current-head Windows
-rerun results are pending; this is not evidence of manual installer/PDF QA.
+rerun results at that checkpoint were pending; this is not evidence of manual
+installer/PDF QA.
+
+Follow-up `7677f37`: full local suite passed 707 tests / 1 skip (114.04s).
+PR #762 CI run 34946055028 passed. Release PR run 34946055052 passed macOS
+(5m38s), Windows (6m1s) and Linux (3m24s), including artifact/package smoke.
+No timeout increase or assertion removal was needed. PR #762 merged as
+`e8aa558`; tag `v0.1.0-alpha.15` points to that commit. The tag publication
+workflow is 34946780145; its publication outcome is recorded separately.
 
 ## Evidence Retention Rules
 
