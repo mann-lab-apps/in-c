@@ -3,7 +3,15 @@
 이 문서는 App Store Connect와 Play Console에 옮기기 전의 Public V1 제출 문구 초안이다.
 실제 제출 전에는 스토어별 길이 제한, 스크린샷, privacy label, support URL을 다시 확인한다.
 
-## Identity
+## 최신 한국어 제출 문구: 2026-09-15
+
+현재 입력 문구와 URL은 [한국어 App Store 문구](../releases/in-c-app-store-ko.md)와
+[JSON 원본](../releases/in-c-app-store-ko.json)을 사용한다. 아래 초기 초안보다 우선한다.
+실제 업로드는 in C / com.mannlab.inc / 1.0.0 (2609.15.1)로 성공했다.
+이전 Clef 식별자와 임시 support@ 주소는 제출에 사용하지 않는다.
+홈페이지는 앱 소개 전용으로 전환하며 감상 글·다른 제품은 홈에서 제거한다.
+
+## Earlier Identity (Historical, Do Not Submit)
 
 - Target app name: in C (actual iOS archive still Clef & Staff; submission blocked)
 - Subtitle: 오늘 하나씩 여는 클래식

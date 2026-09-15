@@ -102,7 +102,8 @@ function getPages() {
     { filePath: 'metronome.html', publicPath: 'metronome.html' },
     { filePath: 'in-c-click-privacy.html', publicPath: 'in-c-click-privacy.html' },
     { filePath: 'support.html', publicPath: 'support.html' },
-    { filePath: 'privacy.html', publicPath: 'privacy.html' }
+    { filePath: 'privacy.html', publicPath: 'privacy.html' },
+    { filePath: 'in-c-app-privacy.html', publicPath: 'in-c-app-privacy.html' }
   ]
 
   const columnsRoot = resolve(siteRoot, 'columns')

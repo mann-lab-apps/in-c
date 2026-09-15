@@ -7,6 +7,8 @@ on:
       - "package.json"
       - "package-lock.json"
       - "site/**"
+      - "scripts/verify-*site*"
+      - "docs/releases/in-c-app-store-ko.json"
   push:
     branches:
       - main
@@ -15,6 +17,8 @@ on:
       - "package.json"
       - "package-lock.json"
       - "site/**"
+      - "scripts/verify-*site*"
+      - "docs/releases/in-c-app-store-ko.json"
   workflow_dispatch:
 
 permissions:
@@ -43,6 +47,12 @@ jobs:
           VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_NAVER_PROVIDER_ID: ${{ vars.VITE_SUPABASE_NAVER_PROVIDER_ID }}
+
+      - name: Verify app landing and store metadata
+        run: |
+          npm run verify:site-content
+          npm run verify:site-seo
+          node scripts/verify-in-c-store-site.mjs
 
       - name: Configure GitHub Pages
         if: github.event_name != 'pull_request'
