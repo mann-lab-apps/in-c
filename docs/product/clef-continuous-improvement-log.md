@@ -70,6 +70,25 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S50 commit: `12ff46b`. S51 VERIFIED LOCAL: drone volume slider had no persistent
+name/value; its percent was visible only during interaction. Added `드론 음량`,
+current percentage and a slider semantic label, using the existing metronome
+volume-control pattern. Three new widget cases first failed on the absent name.
+Acceptance: 0/default35/100 percent are visible and passed unchanged to the tone
+channel; changing to 50 updates display/playback; chromatic-only UI remains.
+No gain/default/native audio change. Source audit: SheetToneSettings defaults to35;
+SheetTonePlayer sends normalized volume; Android ClefTonePlayer uses STREAM_MUSIC,
+mixing sinusoids with gain `volume * 0.65 / frequencies.size` to bound their sum.
+Default single-tone peak is at most 0.2275 of PCM full scale before system volume.
+This is a code-derived bound, not measured loudness or the user's actual settings.
+Device/media volume, output route and earphone/room audibility remain DEVICE QA.
+No need to replace this uncertainty with arbitrary amplification. Targeted 10/10 PASS,
+then full 1,131/1,131 with volume-change assertions, analyze/RC PASS
+(`/private/tmp/clef-rc-s51.log`); formatter/diff checks PASS.
+Commit subject: `fix: make Clef drone volume visible`.
+Next: delayed tone/reference-setting saves may replay after sheet exit; reproduce
+with callback injection before changing playback lifetimes. No app build/push/merge.
+
 S49 commit: `c73d8fc`. S50 VERIFIED LOCAL: home settings/test information were icon-only.
 Added visible `메뉴` with named setlists, viewer defaults, tester information and
 backup/restore actions; frequent selection/import/setlist/backup shortcuts remain.

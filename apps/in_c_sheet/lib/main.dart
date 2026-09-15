@@ -17627,15 +17627,27 @@ class _TunerSheetState extends State<_TunerSheet> {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Slider(
-                    value: _toneSettings.volumePercent.toDouble(),
-                    min: 0,
-                    max: 100,
-                    divisions: 20,
-                    label: '${_toneSettings.volumePercent}%',
-                    onChanged: (value) => unawaited(
-                      _setToneSettings(
-                        _toneSettings.copyWith(volumePercent: value.round()),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('드론 음량'),
+                    trailing: Text('${_toneSettings.volumePercent}%'),
+                    subtitle: Semantics(
+                      label: '드론 음량',
+                      child: Slider(
+                        value: _toneSettings.volumePercent.toDouble(),
+                        min: 0,
+                        max: 100,
+                        divisions: 20,
+                        label: '${_toneSettings.volumePercent}%',
+                        semanticFormatterCallback: (value) =>
+                            '${value.round()}%',
+                        onChanged: (value) => unawaited(
+                          _setToneSettings(
+                            _toneSettings.copyWith(
+                              volumePercent: value.round(),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
