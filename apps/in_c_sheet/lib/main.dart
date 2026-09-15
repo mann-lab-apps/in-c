@@ -1380,12 +1380,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 children: [
                   Text(
                     '전역 보기/입력 기본값',
-                    style: Theme.of(context).textTheme.titleLarge
+                    style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: _globalViewerDisplayModeValue(settings),
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '보기 모드'),
                     items: const [
                       DropdownMenuItem<String>(
@@ -1414,6 +1415,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: settings.pageScale,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '페이지 맞춤'),
                     items: _SheetViewerPageScale.values
                         .map(
@@ -1447,6 +1449,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: settings.pedalMapping,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '페달 매핑'),
                     items: _SheetPedalMapping.values
                         .map(
@@ -1472,6 +1475,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           initialValue:
                               settings.customPedalMapping[inputId] ??
                               SheetViewerInputAction.none.value,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: _viewerInputLabel(inputId),
                           ),
@@ -1587,6 +1591,43 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _openSetlists() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetSetlistsScreen(controller: controller),
+      ),
+    );
+  }
+
+  Future<void> _selectBackupAction(_LibraryBackupAction action) async {
+    if (controller.isImporting) return;
+    switch (action) {
+      case _LibraryBackupAction.exportMetadata:
+        await _exportBackup();
+      case _LibraryBackupAction.importMetadata:
+        await _importBackup();
+      case _LibraryBackupAction.restoreAutomaticMetadata:
+        await _restoreAutomaticBackup();
+      case _LibraryBackupAction.exportFull:
+        await _exportFullBackup();
+      case _LibraryBackupAction.importFull:
+        await _importFullBackup();
+    }
+  }
+
+  Future<void> _selectLibraryTool(Object action) async {
+    switch (action) {
+      case _LibraryToolsAction.setlists:
+        _openSetlists();
+      case _LibraryToolsAction.viewerDefaults:
+        await _showGlobalViewerDefaults();
+      case _LibraryToolsAction.testerInfo:
+        await _showTesterInfo();
+      case _LibraryBackupAction():
+        await _selectBackupAction(action);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scores = controller.filteredScores;
@@ -1608,6 +1649,50 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               )
             : null,
         actions: [
+          if (!_isBulkSelecting)
+            PopupMenuButton<Object>(
+              tooltip: '라이브러리 메뉴',
+              onSelected: _selectLibraryTool,
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.setlists,
+                  child: ListTile(
+                    leading: Icon(Icons.queue_music),
+                    title: Text('세트리스트'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.viewerDefaults,
+                  child: ListTile(
+                    leading: Icon(Icons.settings_applications_outlined),
+                    title: Text('보기/입력 기본값'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.testerInfo,
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('테스트 정보'),
+                  ),
+                ),
+                const PopupMenuDivider(),
+                ..._libraryBackupMenuItems(enabled: !controller.isImporting),
+              ],
+              child: const SizedBox(
+                height: 48,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu),
+                      SizedBox(width: 6),
+                      Text('메뉴'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: _isBulkSelecting ? '선택 취소' : '여러 악보 선택',
             onPressed: _toggleBulkSelectionMode,
@@ -1704,82 +1789,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           if (!_isBulkSelecting) ...[
             IconButton(
               tooltip: '세트리스트',
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (context) =>
-                        SheetSetlistsScreen(controller: controller),
-                  ),
-                );
-              },
+              onPressed: _openSetlists,
               icon: const Icon(Icons.queue_music),
-            ),
-            IconButton(
-              tooltip: '테스트 정보',
-              onPressed: _showTesterInfo,
-              icon: const Icon(Icons.info_outline),
-            ),
-            IconButton(
-              tooltip: '전역 보기/입력 기본값',
-              onPressed: _showGlobalViewerDefaults,
-              icon: const Icon(Icons.settings_applications_outlined),
             ),
             PopupMenuButton<_LibraryBackupAction>(
               tooltip: '백업/복원',
               enabled: !controller.isImporting,
               icon: const Icon(Icons.inventory_2_outlined),
-              onSelected: (action) {
-                switch (action) {
-                  case _LibraryBackupAction.exportMetadata:
-                    _exportBackup();
-                  case _LibraryBackupAction.importMetadata:
-                    _importBackup();
-                  case _LibraryBackupAction.restoreAutomaticMetadata:
-                    _restoreAutomaticBackup();
-                  case _LibraryBackupAction.exportFull:
-                    _exportFullBackup();
-                  case _LibraryBackupAction.importFull:
-                    _importFullBackup();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.exportMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.ios_share),
-                    title: Text('정보 백업'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.importMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.restore),
-                    title: Text('정보 복원'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.restoreAutomaticMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.history),
-                    title: Text('자동 정보 복원'),
-                  ),
-                ),
-                PopupMenuDivider(),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.exportFull,
-                  child: ListTile(
-                    leading: Icon(Icons.archive_outlined),
-                    title: Text('PDF 포함 전체 백업'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.importFull,
-                  child: ListTile(
-                    leading: Icon(Icons.unarchive_outlined),
-                    title: Text('전체 백업 복원'),
-                  ),
-                ),
-              ],
+              onSelected: _selectBackupAction,
+              itemBuilder: (context) => _libraryBackupMenuItems(),
             ),
             IconButton(
               tooltip: '악보 추가',
@@ -2053,6 +2071,59 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
 }
 
 enum _LibrarySelectionAction { collection, edit, remove }
+
+enum _LibraryToolsAction { setlists, viewerDefaults, testerInfo }
+
+List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
+  bool enabled = true,
+}) => [
+  PopupMenuItem(
+    value: _LibraryBackupAction.exportMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.ios_share),
+      title: const Text('정보 백업'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.importMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.restore),
+      title: const Text('정보 복원'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.restoreAutomaticMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.history),
+      title: const Text('자동 정보 복원'),
+    ),
+  ),
+  const PopupMenuDivider(),
+  PopupMenuItem(
+    value: _LibraryBackupAction.exportFull,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.archive_outlined),
+      title: const Text('PDF 포함 전체 백업'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.importFull,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.unarchive_outlined),
+      title: const Text('전체 백업 복원'),
+    ),
+  ),
+];
 
 enum _LibraryBackupAction {
   exportMetadata,

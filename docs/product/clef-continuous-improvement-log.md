@@ -70,6 +70,26 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S49 commit: `c73d8fc`. S50 VERIFIED LOCAL: home settings/test information were icon-only.
+Added visible `메뉴` with named setlists, viewer defaults, tester information and
+backup/restore actions; frequent selection/import/setlist/backup shortcuts remain.
+Backup items share one builder/handler and stay disabled during PDF import.
+Acceptance: named entries reach existing screens, restore still requires confirmation,
+selection/import shortcuts remain reachable, phone/tablet/large text do not overflow.
+Eight missing-menu regressions first failed. New real-home route tests exposed
+31px overflow in viewer-default dropdowns at 320dp/1.6 text; expanded dropdowns
+within available width and reduced the compact panel heading. No settings/schema
+changes. Targeted 74/74 PASS (`/private/tmp/clef-s50-target-final.log`);
+eight local-font cases/captures PASS (`/private/tmp/clef-s50-visual-final.log`).
+Reviewed phone menu/defaults and tablet menu PNGs in `/private/tmp/clef-home-tools-qa`.
+Full 1,128/1,128, analyze/RC PASS (`/private/tmp/clef-rc-s50-final.log`), formatter/diff PASS.
+These are widget captures with a local font, not a new emulator build or Android QA.
+Commit subject: `feat: add named Clef library menu`.
+Next: drone level visibility and delayed tone-setting saves; do not raise gain
+without output evidence. Current drone default is 35%, native STREAM_MUSIC mix gain
+is volume * 0.65 / oscillator count. Actual device/media volume remains unknown.
+Official reference patterns and observation limits remain in reference-analysis.
+
 S48 commit: `9da54ee`. S49 VERIFIED LOCAL: six injected-timer full/mini cases reproduced
 bar accents lagging elapsed time when Timer.tick jumps from 1 to 4
 (`/private/tmp/clef-s49-red.log`). Acceptance: advance by elapsed periods, consume

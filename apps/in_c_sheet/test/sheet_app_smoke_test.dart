@@ -267,6 +267,15 @@ void main() {
       (widget) => widget is PopupMenuButton && widget.tooltip == '백업/복원',
     );
     expect(tester.widget<PopupMenuButton<dynamic>>(menu).enabled, isFalse);
+    await tester.tap(find.byTooltip('라이브러리 메뉴'));
+    await tester.pump(const Duration(milliseconds: 300));
+    final namedBackup = find.ancestor(
+      of: find.text('정보 복원'),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+    );
+    expect(tester.widget<PopupMenuItem<dynamic>>(namedBackup).enabled, isFalse);
+    Navigator.of(tester.element(find.text('정보 복원'))).pop();
+    await tester.pump(const Duration(milliseconds: 300));
     store.importCompletion.complete(null);
     await importing;
     await tester.pumpAndSettle();
@@ -577,7 +586,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byTooltip('악보 추가'), findsOneWidget);
-    expect(find.byTooltip('테스트 정보'), findsOneWidget);
+    await tester.tap(find.byTooltip('라이브러리 메뉴'));
+    await tester.pumpAndSettle();
+    expect(find.text('테스트 정보'), findsOneWidget);
     expect(find.byTooltip('클래식 듣기'), findsNothing);
   });
 
