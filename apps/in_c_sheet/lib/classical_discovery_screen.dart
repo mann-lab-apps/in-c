@@ -1914,6 +1914,9 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
       return null;
     }
     final translation = preview.translation;
+    final following = preview.nextThree
+        .where((item) => item.work.id != preview.dailyStep.work.id)
+        .toList(growable: false);
     return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1925,7 +1928,7 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
           Text(translation.familiarFeeling),
           if (translation.isSoftLanding) ...[
             const SizedBox(height: 4),
-            const Text('정확한 곡명이 아니어도 괜찮아요. 먼저 가까운 감각에서 시작합니다.'),
+            const Text('남겨주신 음악은 그대로 보관합니다. 오늘은 새 작품 하나를 열어봅니다.'),
           ],
           const SizedBox(height: 10),
           Text(preview.dailyStep.title),
@@ -1945,20 +1948,16 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
             runSpacing: 6,
             children: [
               for (final item in preview.items.take(3))
-                Chip(
-                  label: Text(
-                    item.sourceType == 'catalog_match'
-                        ? item.label
-                        : '${item.rawInput}에서 시작',
-                  ),
-                ),
+                Chip(label: Text(item.rawInput)),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '다음 길: ${preview.nextThree.map((item) => item.work.titleKo).take(3).join(', ')}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (following.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '다음 길: ${following.map((item) => item.work.titleKo).take(3).join(', ')}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );

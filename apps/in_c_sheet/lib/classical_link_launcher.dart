@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -82,7 +84,9 @@ Future<bool> launchClassicalWorkLink(
     if (!context.mounted) return false;
     final link = candidates[index];
     if (!link.isVerifiedDirect && !link.isSafeSearch) continue;
-    await onAttempt(link, index > 0);
+    // Queue the event before launch, but slow local writes must not delay listening.
+    // The controller retains its pending snapshot and persistence warning/retry flow.
+    unawaited(_recordAttempt(onAttempt, link, index > 0));
     if (!context.mounted) return false;
     if (await launchClassicalUrl(
       context,
@@ -126,6 +130,18 @@ Future<bool> launchClassicalWorkLink(
     ),
   );
   return false;
+}
+
+Future<void> _recordAttempt(
+  Future<void> Function(ExternalLink link, bool fallback) onAttempt,
+  ExternalLink link,
+  bool fallback,
+) async {
+  try {
+    await onAttempt(link, fallback);
+  } catch (_) {
+    debugPrint('in C: external link attempt could not be recorded.');
+  }
 }
 
 Future<bool> _tryLaunch(Uri uri, LaunchMode mode) async {

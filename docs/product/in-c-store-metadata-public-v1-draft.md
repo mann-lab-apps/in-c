@@ -5,13 +5,18 @@
 
 ## Identity
 
-- App name: in C
+- Target app name: in C (actual iOS archive still Clef & Staff; submission blocked)
 - Subtitle: 오늘 하나씩 여는 클래식
-- Version: 1.0.0+14 RC
+- Actual diagnostic iOS version: 1.0.0+21; unused submission build number not allocated
 - Android Public V1 applicationId: `com.mannlab.inc`
-- iOS Public V1 bundle id: `com.mannlab.inc.clef`
+- Actual iOS bundle id: `com.mannlab.inc.clefandstaff`, shared with Clef; NOT approved for separate in C submission
 - Android package requirement: Play Console expects `com.mannlab.inc`
 - Support contact placeholder: `support@mannlab.app`
+
+2026-09-15 archive inspection supersedes older identity drafts. No identifier was changed.
+See [TestFlight candidate blockers](../releases/in-c-testflight-internal-test-candidate.md)
+before copying any metadata into App Store Connect. Existing app record, monitored contact,
+signing profile and build uniqueness remain to be confirmed; target name is not actual packaging.
 - Category: Music / Entertainment
 - Age rating assumption: 4+ / Everyone. in C does not host audio, does not include public posting, and does not expose user-generated public content.
 - Permission summary: external link-out and local-first preferences only for in C discovery; no microphone, camera, or location permission is required by this surface.

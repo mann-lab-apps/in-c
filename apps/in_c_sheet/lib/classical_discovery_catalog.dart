@@ -583,7 +583,7 @@ class ClassicalDiscoveryCatalog {
       aliases: ['Gymnopedie', '사티 짐노페디'],
       moodTags: ['차분한', '몽환적인', '느린'],
       contextTags: ['밤', '피아노', '집중'],
-      prompt: '왼손의 느린 발걸음 위에 멜로디가 떠 있는 느낌만 들어보세요.',
+      prompt: '낮은 음과 화음이 번갈아 놓인 뒤, 그 위로 들어오는 선율을 따라가 보세요.',
       relatedWorkIds: ['debussy-clair-de-lune', 'beethoven-moonlight'],
       concertIds: ['concert-impression-night'],
     ),

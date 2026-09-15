@@ -417,16 +417,24 @@ void main() {
 
     expect(axes.first.axis, '선율형');
     expect(nextThree, hasLength(3));
-    final anchor = controller.workById('beethoven-symphony-9')!;
     for (final recommendation in nextThree) {
       final work = recommendation.work;
-      expect(
-        work.composerId == anchor.composerId ||
-            work.instrumentation == anchor.instrumentation ||
-            work.moodTags.any(anchor.moodTags.contains),
-        isTrue,
+      final quotedInputs = controller.state.tasteIntakeItems.where(
+        (item) =>
+            item.matchedWorkId != null &&
+            recommendation.reason.contains(item.rawInput),
       );
-      expect(recommendation.reason, contains('베토벤 - 교향곡 9번'));
+      expect(quotedInputs, isNotEmpty);
+      // The actual quoted favorite must connect; the first input is not mandatory.
+      for (final input in quotedInputs) {
+        final anchor = controller.workById(input.matchedWorkId!)!;
+        expect(
+          work.composerId == anchor.composerId ||
+              work.instrumentation == anchor.instrumentation ||
+              work.moodTags.any(anchor.moodTags.contains),
+          isTrue,
+        );
+      }
     }
     expect(recommendedText, isNot(contains('말러')));
     expect(nextThree.every((item) => !item.work.isOperaticVocal), isTrue);

@@ -583,7 +583,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       anchor: anchor,
       tasteItems: items,
     );
-    final work = nextThree.firstOrNull?.work ?? anchor ?? _easyFounderWork(now);
+    final work =
+        nextThree.firstOrNull?.work ??
+        (anchor != null && _isRecommendationReady(anchor) ? anchor : null) ??
+        _easyFounderWork(now);
     final moment = work.primaryMoment ?? work.listeningMoments.first;
     final translation = _tasteTranslationFor(
       items: items,
@@ -617,10 +620,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   TasteTranslation? currentTasteTranslation() {
-    if (_state.tasteIntakeItems.isEmpty) {
+    if (_state.tasteIntakeItems.isEmpty || !hasDailyRecommendation) {
       return null;
     }
-    final items = _state.tasteIntakeItems.take(3).toList(growable: false);
+    final items = _state.tasteIntakeItems;
     final axis = _primaryAxisForTasteItems(items);
     final anchor = items
         .map(
@@ -630,8 +633,8 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         .whereType<ClassicalWork>()
         .firstOrNull;
     final work =
-        nextThreeRecommendations(anchor: anchor).firstOrNull?.work ??
-        anchor ??
+        nextThreeRecommendations().firstOrNull?.work ??
+        (anchor != null && _isRecommendationReady(anchor) ? anchor : null) ??
         _easyFounderWork(_clock());
     return _tasteTranslationFor(items: items, axis: axis, work: work);
   }
@@ -738,27 +741,12 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   ListeningLevelSnapshot listeningLevelSnapshot() {
-    final evidenceCount =
-        _state.tasteIntakeItems.length +
-        _state.reactions.length +
-        _state.workStates.length +
-        _state.postConcertReflections.length;
-    final completedMoments = _state.events
-        .where((event) => event.eventType == 'listening_moment_complete')
+    // Recommendation pacing follows confirmed days, not clicks or repeated edits.
+    final today = _dateOnly(_clock());
+    final evidenceCount = _dailyCompletionDates()
+        .where((day) => !day.isAfter(today))
         .length;
-    final externalClicks = _state.events
-        .where((event) => event.eventType == 'external_platform_click')
-        .length;
-    final unsureCount = _state.reactions
-        .where((reaction) => reaction.type == 'unsure')
-        .length;
-    final savedCount = savedWorks.length;
-    final score =
-        evidenceCount +
-        completedMoments +
-        externalClicks +
-        savedCount -
-        unsureCount;
+    final score = evidenceCount;
     final level = switch (score) {
       <= 2 => '첫 입구',
       <= 7 => '익숙해지는 중',
@@ -796,6 +784,9 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         anchor ?? (_state.tasteIntakeItems.isEmpty ? source : null);
     final usedWorkIds = <String>{
       if (source != null) source.id,
+      ..._state.tasteIntakeItems
+          .map((item) => item.matchedWorkId)
+          .whereType<String>(),
       ..._state.reactions.take(8).map((reaction) => reaction.workId),
     };
     final candidates = _scoreProgressiveCandidates(
@@ -928,7 +919,25 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   DailyPick _withoutLegacyTasteClaim(DailyPick pick) {
     // Old snapshots lack the input provenance needed to assert a favorite movement.
     const legacyClaim = '을 좋아한다고 남겨주셨어요.';
-    if (!pick.sourceEvidence.contains(legacyClaim)) return pick;
+    final unsupportedTitleDistance =
+        const [
+          'close_step',
+          'gentle_expansion',
+          'surprise',
+        ].contains(pick.pickType) &&
+        _state.tasteIntakeItems.any(
+          (item) =>
+              item.matchedWorkId == null &&
+              item.matchedComposerId == null &&
+              _axisForTasteItem(item).isEmpty &&
+              pick.sourceEvidence.startsWith(
+                '${_tasteEvidenceLabelFor(item)}는 기록해둘게요. 아직 곡을 연결하지 못해',
+              ),
+        );
+    if (!pick.sourceEvidence.contains(legacyClaim) &&
+        !unsupportedTitleDistance) {
+      return pick;
+    }
     return pick.copyWith(
       reason: '이전 추천의 취향 연결을 다시 확인하고 있어요. 고른 작품은 그대로 이어갑니다.',
       sourceEvidence: '이전에 고른 작품',
@@ -1316,6 +1325,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       },
     );
     var selected = _pickDailyWork(
+      date: date,
       candidates: candidates,
       pickType: pickType,
       axis: axis,
@@ -1326,6 +1336,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         selected == null) {
       pickType = 'close_step';
       selected = _pickDailyWork(
+        date: date,
         candidates: candidates,
         pickType: pickType,
         axis: axis,
@@ -1341,21 +1352,28 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           .where((work) => !_isExcludedRecommendation(work))
           .firstOrNull;
     }
+    final exhausted =
+        unsureWork == null && savedWork == null && selected == null;
     final work = unsureWork ?? savedWork ?? selected ?? _easyFounderWork(now);
+    if (exhausted) pickType = 'revisit';
     final moment = work.primaryMoment ?? work.listeningMoments.first;
-    final sourceEvidence = _dailyPickSourceEvidence(axis, work);
+    final sourceEvidence = exhausted
+        ? '새로 이어갈 작품이 없어, 이미 만난 ${work.titleKo}을 다시 들어봅니다.'
+        : _dailyPickSourceEvidence(axis, work);
     return DailyPick(
       id: 'daily-pick-${_dateKey(date)}',
       date: date,
       workId: work.id,
       momentId: moment.id,
       pickType: pickType,
-      reason: _dailyPickReasonFor(
-        work,
-        pickType: pickType,
-        axis: axis,
-        sourceEvidence: sourceEvidence,
-      ),
+      reason: exhausted
+          ? sourceEvidence
+          : _dailyPickReasonFor(
+              work,
+              pickType: pickType,
+              axis: axis,
+              sourceEvidence: sourceEvidence,
+            ),
       listenFor: _translationListenFor(axis, work),
       whyNow: _dailyPickWhyNowFor(pickType),
       sourceEvidence: sourceEvidence,
@@ -1376,54 +1394,29 @@ class ClassicalDiscoveryController extends ChangeNotifier {
   }
 
   ClassicalWork? _pickDailyWork({
+    required DateTime date,
     required List<({ClassicalWork work, int score})> candidates,
     required String pickType,
     required String axis,
     required ClassicalWork? anchor,
     required int targetDifficulty,
   }) {
-    bool hasKnownBridge(ClassicalWork work) {
-      if (anchor != null) {
-        return work.composerId == anchor.composerId ||
-            work.instrumentation == anchor.instrumentation ||
-            work.moodTags.any(anchor.moodTags.contains);
-      }
-      // No identified work is not evidence that every candidate is familiar.
-      final weights = _axisWeightsForWork(work);
-      return _state.tasteIntakeItems.any(
-            (item) =>
-                item.matchOrigin != 'user_unlinked' &&
-                (item.matchedComposerId == work.composerId ||
-                    (item.matchedComposerId == null &&
-                        weights.containsKey(_axisForTasteItem(item)))),
-          ) ||
-          _state.preferredInstruments.contains(work.instrumentation) ||
-          work.moodTags.any(_state.preferredMoodTags.contains) ||
-          _latestReactions.any((reaction) {
-            if (reaction.type != 'liked' && reaction.type != 'repeat') {
-              return false;
-            }
-            final liked = workById(reaction.workId);
-            return liked != null &&
-                (work.composerId == liked.composerId ||
-                    work.instrumentation == liked.instrumentation ||
-                    work.moodTags.any(liked.moodTags.contains));
-          });
-    }
+    // Like Next Three, inspect every supplied input rather than only its first anchor.
+    ({String reason, bool expands, bool changesPeriodOrInstrumentation})?
+    connection(ClassicalWork work) => _progressiveConnection(
+      work,
+      anchor: _state.tasteIntakeItems.isEmpty ? anchor : null,
+    );
 
     bool isClose(ClassicalWork work) =>
         !_isExcludedRecommendation(work) &&
         work.difficultyForListening <= targetDifficulty + 1 &&
-        hasKnownBridge(work);
+        connection(work) != null;
 
     bool isGentleExpansion(ClassicalWork work) =>
         !_isExcludedRecommendation(work) &&
         work.difficultyForListening <= targetDifficulty + 2 &&
-        hasKnownBridge(work) &&
-        (anchor == null ||
-            work.composerId != anchor.composerId ||
-            work.period != anchor.period ||
-            work.instrumentation != anchor.instrumentation);
+        connection(work)?.expands == true;
 
     bool isSurprise(ClassicalWork work) =>
         !_isExcludedRecommendation(work) &&
@@ -1431,16 +1424,43 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         (_axisWeightsForWork(work)[axis] ?? 0) >= 3 &&
         _axisWeightsForWork(work).keys
             .any((candidateAxis) => candidateAxis != axis) &&
-        (anchor == null ||
-            work.period != anchor.period ||
-            work.instrumentation != anchor.instrumentation);
+        connection(work)?.changesPeriodOrInstrumentation == true;
 
     final predicate = switch (pickType) {
       'surprise' => isSurprise,
       'gentle_expansion' => isGentleExpansion,
       _ => isClose,
     };
-    return candidates.map((item) => item.work).where(predicate).firstOrNull;
+    final eligible = candidates
+        .map((item) => item.work)
+        .where(predicate)
+        .toList();
+    final previous =
+        _state.dailyPicks.where((pick) => pick.date.isBefore(date)).toList()
+          ..sort((a, b) => b.date.compareTo(a.date));
+    final recentComposers = previous
+        .take(2)
+        .map((pick) => workById(pick.workId)?.composerId)
+        .whereType<String>()
+        .toSet();
+    final suppliedComposers = _state.tasteIntakeItems
+        .where((item) => item.matchOrigin != 'user_unlinked')
+        .map((item) => item.matchedComposerId)
+        .whereType<String>()
+        .toSet();
+    // Rotate through actual supplied tastes, never an unrelated diversity quota.
+    // Sparse/single-composer catalogs retain their strongest eligible connection.
+    if (recentComposers.isNotEmpty) {
+      final alternative = eligible
+          .where(
+            (work) =>
+                suppliedComposers.contains(work.composerId) &&
+                !recentComposers.contains(work.composerId),
+          )
+          .firstOrNull;
+      if (alternative != null) return alternative;
+    }
+    return eligible.firstOrNull;
   }
 
   bool _shouldUseSurprisePick(DateTime date, DateTime now) {
@@ -1485,34 +1505,16 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         in tasteItems == null ? _latestReactions : <ClassicalReaction>[]) {
       if (reaction.type != 'liked' && reaction.type != 'repeat') continue;
       final source = workById(reaction.workId);
-      if (source == null ||
-          !_axisWeightsForWork(source).containsKey(axis) ||
-          !_axisWeightsForWork(work).containsKey(axis)) {
+      if (source == null || !_sharesRecommendationBridge(source, work)) {
         continue;
       }
-      return '좋았던 ${source.titleKo}에 이어, $descriptor에서 ${_axisNoun(axis)}을 따라가 봅니다.';
+      return _progressiveConnection(
+        work,
+        anchor: source,
+        anchorLabel: '좋았던 ${source.titleKo}',
+      )!.reason;
     }
-    final connectedInputs =
-        <({TasteIntakeItem item, int strength, int index})>[];
-    for (var index = 0; index < inputs.length; index++) {
-      final item = inputs[index];
-      final source = workById(item.matchedWorkId ?? '');
-      if (source == null || !_axisWeightsForWork(source).containsKey(axis)) {
-        continue;
-      }
-      connectedInputs.add((
-        item: item,
-        strength:
-            (source.composerId == work.composerId ? 4 : 0) +
-            (source.instrumentation == work.instrumentation ? 2 : 0) +
-            (source.period == work.period ? 1 : 0),
-        index: index,
-      ));
-    }
-    connectedInputs.sort((a, b) {
-      final order = b.strength.compareTo(a.strength);
-      return order != 0 ? order : a.index.compareTo(b.index);
-    });
+    final connectedInputs = _connectedTasteInputs(work, inputs);
     final composerInput = inputs
         .where(
           (item) =>
@@ -1532,24 +1534,21 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       }
     }
     final item =
-        connectedInputs.firstOrNull?.item ??
-        composerInput ??
-        inputs.firstOrNull;
+        connectedInputs.firstOrNull ?? composerInput ?? inputs.firstOrNull;
     if (item == null) {
       return '오늘은 $descriptor에서 시작합니다. ${work.primaryMoment?.prompt ?? ''}';
     }
     final source = workById(item.matchedWorkId ?? '');
-    if (source != null) {
-      final bridge = source.composerId == work.composerId
-          ? '같은 작곡가의 다른 작품을 들어봅니다.'
-          : source.instrumentation == work.instrumentation
-          ? '같은 편성으로 다른 작곡가를 만나봅니다.'
-          : '${work.instrumentation}에서 ${_axisNoun(axis)}을 따라가 봅니다.';
+    if (source != null && _sharesRecommendationBridge(source, work)) {
       // An automatic work link may identify an excerpt, not the user's preferred movement.
       final input = item.matchOrigin == 'user_selected'
           ? source.titleKo
           : item.rawInput.trim();
-      return '남겨주신 "$input"에서 이어봅니다. $bridge';
+      return _progressiveConnection(
+        work,
+        anchor: source,
+        anchorLabel: '남겨주신 "$input"',
+      )!.reason;
     }
     if (item.matchOrigin != 'user_unlinked' &&
         item.matchedComposerId == work.composerId) {
@@ -1612,7 +1611,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       'surprise' => '반응이 좋으면 옆길을 살리고, 낯설면 내일 가까운 곡으로 돌아옵니다.',
       'gentle_expansion' => '같은 감각을 다른 시대나 악기로 한 칸 옮깁니다.',
       'recovery' => '오늘은 거리를 줄이고, 반응이 쌓이면 다시 넓힙니다.',
-      'revisit' => '저장한 곡을 듣고 반응을 남기면 감상지도에 이어집니다.',
+      'revisit' => '다시 듣고 반응을 남기면 감상지도에 이어집니다.',
       _ => '먼저 익숙한 감각을 잡고, 다음 날 한 걸음만 넓힙니다.',
     };
   }
@@ -4390,79 +4389,31 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required String axis,
     required ClassicalWork work,
   }) {
-    final sourceLabel = items
-        .map(
-          (item) => item.matchedWorkId != null
-              ? item.label
-              : _friendlyTasteLabel(item.rawInput),
-        )
-        .take(2)
-        .join(', ');
-    final hasOnlyFreeText = items.every(
-      (item) => item.sourceType != 'catalog_match',
+    final sourceLabel = items.map((item) => item.rawInput).take(2).join(', ');
+    final connection = _progressiveConnection(
+      work,
+      anchor: null,
+      tasteItems: items,
     );
     return TasteTranslation(
       sourceLabel: sourceLabel,
       axis: axis,
-      startingPoint: hasOnlyFreeText
-          ? '$sourceLabel는 기록해둘게요. 아직 곡을 연결하지 못해, 오늘은 ${work.composerNameKo}의 ${work.instrumentation} 작품부터 들어봅니다.'
-          : _translationStartingPoint(axis, sourceLabel),
-      familiarFeeling: _translationFamiliarFeeling(axis, sourceLabel),
+      startingPoint:
+          connection?.reason ??
+          '$sourceLabel는 기록해둘게요. 아직 곡을 연결하지 못해, 오늘은 ${work.composerNameKo}의 ${work.instrumentation} 작품부터 들어봅니다.',
+      familiarFeeling: connection == null
+          ? '익숙하지 않아도 괜찮아요. 먼저 들리는 소리 하나만 찾아봅니다.'
+          : '어느 부분이 닮았고 다른지, 먼저 들리는 소리 하나만 따라가봅니다.',
       listenFor: _translationListenFor(axis, work),
-      nextDirection: _translationNextDirection(axis),
-      avoidForNow: _translationAvoidForNow(axis),
-      isSoftLanding: hasOnlyFreeText,
+      nextDirection: '다음 작품은 이번에 남긴 반응을 보고 골라봅니다.',
+      avoidForNow: '한 번에 전부 이해하지 않아도 됩니다.',
+      isSoftLanding: connection == null,
     );
-  }
-
-  String _translationStartingPoint(String axis, String sourceLabel) {
-    final label = sourceLabel.isEmpty ? '좋아하는 음악' : sourceLabel;
-    return switch (axis) {
-      '색채형' => '$label에서 시작하면, 소리의 색이 바뀌는 작품이 먼저 맞습니다.',
-      '리듬형' => '$label에서 시작하면, 몸이 먼저 반응하는 움직임부터 열어봅니다.',
-      '긴장형' => '$label에서 시작하면, 긴장이 쌓였다 풀리는 순간이 좋은 입구입니다.',
-      '구조형' => '$label에서 시작하면, 주제가 돌아오는 길을 잡아보면 좋습니다.',
-      '극적형' => '$label에서 시작하면, 장면이 바뀌는 음악부터 들어볼 만합니다.',
-      _ => '$label에서 시작하면, 선율이 또렷하게 앞으로 나오는 작품이 좋습니다.',
-    };
-  }
-
-  String _translationFamiliarFeeling(String axis, String sourceLabel) {
-    return switch (axis) {
-      '색채형' => '익숙한 건 멜로디보다 분위기와 질감일 수 있어요.',
-      '리듬형' => '익숙한 건 박자보다 몸이 먼저 따라가는 추진력일 수 있어요.',
-      '긴장형' => '익숙한 건 어두움 자체보다 버티다가 풀리는 힘일 수 있어요.',
-      '구조형' => '익숙한 건 지식보다 한 번 나온 생각이 다시 돌아오는 감각일 수 있어요.',
-      '극적형' => '익숙한 건 웅장함보다 화면이 전환되는 듯한 흐름일 수 있어요.',
-      _ => '익숙한 건 이름보다 오래 남는 한 줄의 선율일 수 있어요.',
-    };
   }
 
   String _translationListenFor(String axis, ClassicalWork work) {
     final moment = work.primaryMoment ?? work.listeningMoments.first;
     return moment.prompt;
-  }
-
-  String _translationNextDirection(String axis) {
-    return switch (axis) {
-      '색채형' => '다음에는 인상주의 색채나 작은 실내악으로 넓혀봅니다.',
-      '리듬형' => '다음에는 춤곡과 변주곡으로 움직임을 더 따라가봅니다.',
-      '긴장형' => '다음에는 더 선명한 단조 작품으로 깊이를 조금만 넓힙니다.',
-      '구조형' => '다음에는 소나타와 변주처럼 흐름이 보이는 작품으로 갑니다.',
-      '극적형' => '다음에는 협주곡과 관현악의 장면 전환으로 넓혀봅니다.',
-      _ => '다음에는 고전의 문답, 낭만의 긴 호흡, 바로크의 반복처럼 선율을 만드는 장치 하나를 열어봅니다.',
-    };
-  }
-
-  String _translationAvoidForNow(String axis) {
-    return switch (axis) {
-      '색채형' => '처음부터 긴 교향곡 전체를 붙잡으려 하지 않아도 됩니다.',
-      '리듬형' => '작품 번호나 형식 이름을 먼저 외우지 않아도 됩니다.',
-      '긴장형' => '너무 무거운 곡으로 바로 들어가지는 않습니다.',
-      '구조형' => '분석표처럼 듣기보다 돌아오는 느낌 하나만 잡습니다.',
-      '극적형' => '웅장한 곡만 계속 밀어붙이지 않습니다.',
-      _ => '한 번에 전부 이해하지 않아도 됩니다. 먼저 한 선율을 기억합니다.',
-    };
   }
 
   String _earOpeningQuestion(String axis) {
@@ -4492,7 +4443,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required ClassicalWork? anchor,
     required List<TasteIntakeItem> tasteItems,
   }) {
-    final usedWorkIds = <String>{if (anchor != null) anchor.id};
+    final usedWorkIds = <String>{
+      if (anchor != null) anchor.id,
+      ...tasteItems.map((item) => item.matchedWorkId).whereType<String>(),
+    };
     final candidates = _scoreProgressiveCandidates(
       axis: axis,
       targetDifficulty: 1,
@@ -4888,31 +4842,33 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
-  String _axisForTasteItem(TasteIntakeItem item) =>
-      item.matchOrigin == 'user_unlinked'
-      ? ''
-      : _axisForFreeText(item.rawInput);
-
-  String _axisForFreeText(String input) {
-    if (_containsAny(input, ['영화', 'ost', '게임', '드라마', '웅장'])) {
-      return '극적형';
-    }
-    if (_containsAny(input, ['재즈', '비트', '댄스', '리듬'])) {
-      return '리듬형';
-    }
-    if (_containsAny(input, ['밴드', '록', '어두', '강한'])) {
-      return '긴장형';
-    }
-    if (_containsAny(input, ['푸가', '바흐', '변주', '기법', '의도', '시대'])) {
+  String _axisForTasteItem(TasteIntakeItem item) {
+    if (item.matchOrigin == 'user_unlinked') return '';
+    if (item.matchedComposerId != null &&
+        _containsAny(item.rawInput, ['푸가', 'fugue', '변주', 'variation'])) {
       return '구조형';
     }
-    if (_containsAny(input, ['피아노', '발라드', '멜로디', '선율', '야상곡', '쇼팽'])) {
-      return '선율형';
-    }
-    if (_containsAny(input, ['앰비언트', '사운드', '분위기', '색'])) {
-      return '색채형';
-    }
-    return '';
+    return _axisForFreeText(item.rawInput);
+  }
+
+  String _axisForFreeText(String input) {
+    // Explicit descriptors are hints; substrings of unknown song titles are not.
+    return switch (normalizeDiscoveryText(input)) {
+      '영화' || '영화음악' || 'ost' || '게임음악' || '드라마음악' || '웅장' || '웅장한' => '극적형',
+      '재즈' || '비트' || '댄스' || '리듬' => '리듬형',
+      '밴드' || '록' || '어두운' || '강한' => '긴장형',
+      '푸가' || 'fugue' || '변주' || '변주곡' || '기법' || '작곡가의의도' || '시대' => '구조형',
+      '피아노' ||
+      '피아노음악' ||
+      '밤의피아노' ||
+      '라흐마니노프선율' ||
+      '발라드' ||
+      '멜로디' ||
+      '선율' ||
+      '야상곡' => '선율형',
+      '앰비언트' || '사운드' || '분위기' || '색' || '색채' || '현악소리' => '색채형',
+      _ => '',
+    };
   }
 
   String _nextGrowthAreaFor(List<String> strengths) {
@@ -5049,15 +5005,49 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     );
   }
 
-  ({String reason, bool expands})? _progressiveConnection(
+  bool _sharesRecommendationBridge(ClassicalWork source, ClassicalWork work) =>
+      source.composerId == work.composerId ||
+      source.instrumentation == work.instrumentation ||
+      work.moodTags.any(source.moodTags.contains);
+
+  List<TasteIntakeItem> _connectedTasteInputs(
+    ClassicalWork work,
+    List<TasteIntakeItem> inputs,
+  ) {
+    final connected = <({TasteIntakeItem item, int strength, int index})>[];
+    for (var index = 0; index < inputs.length; index++) {
+      final item = inputs[index];
+      final source = workById(item.matchedWorkId ?? '');
+      if (item.matchOrigin == 'user_unlinked' ||
+          source == null ||
+          !_sharesRecommendationBridge(source, work)) {
+        continue;
+      }
+      connected.add((
+        item: item,
+        strength:
+            (source.composerId == work.composerId ? 4 : 0) +
+            (source.instrumentation == work.instrumentation ? 2 : 0) +
+            (source.period == work.period ? 1 : 0),
+        index: index,
+      ));
+    }
+    connected.sort((a, b) {
+      final order = b.strength.compareTo(a.strength);
+      return order != 0 ? order : a.index.compareTo(b.index);
+    });
+    return connected.map((entry) => entry.item).toList();
+  }
+
+  ({String reason, bool expands, bool changesPeriodOrInstrumentation})?
+  _progressiveConnection(
     ClassicalWork work, {
     required ClassicalWork? anchor,
     List<TasteIntakeItem>? tasteItems,
+    String? anchorLabel,
   }) {
-    ({String reason, bool expands})? fromWork(
-      ClassicalWork source,
-      String label,
-    ) {
+    ({String reason, bool expands, bool changesPeriodOrInstrumentation})?
+    fromWork(ClassicalWork source, String label) {
       final mood = work.moodTags.where(source.moodTags.contains).firstOrNull;
       final shared = work.composerId == source.composerId
           ? '$label과 같은 작곡가, ${work.composerNameKo}의 작품입니다.'
@@ -5067,26 +5057,34 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           ? '$label과 "$mood" 분위기를 이어갑니다.'
           : null;
       if (shared == null) return null;
-      final change = work.composerId != source.composerId
-          ? '${work.composerNameKo}의 음악'
-          : work.instrumentation != source.instrumentation
+      final change = work.instrumentation != source.instrumentation
           ? '${work.instrumentation} 편성'
           : work.period != source.period
           ? '${work.period} 시대'
+          : work.composerId != source.composerId
+          ? '${work.composerNameKo}의 음악'
           : null;
       return (
         reason: '$shared${change == null ? '' : ' 새롭게 들을 부분은 $change입니다.'}',
         expands: change != null,
+        changesPeriodOrInstrumentation:
+            source.period != work.period ||
+            source.instrumentation != work.instrumentation,
       );
     }
 
     // A displayed work is a navigation anchor, not evidence that the user liked it.
     if (anchor != null) {
-      final connection = fromWork(anchor, anchor.titleKo);
+      final connection = fromWork(anchor, anchorLabel ?? anchor.titleKo);
       if (connection != null) return connection;
     }
     final inputs = tasteItems ?? _state.tasteIntakeItems;
-    for (final item in inputs) {
+    final connected = _connectedTasteInputs(work, inputs);
+    // Prefer the closest known work before a looser bridge from an earlier input.
+    for (final item in [
+      ...connected,
+      ...inputs.where((item) => !connected.contains(item)),
+    ]) {
       if (item.matchOrigin == 'user_unlinked') continue;
       final label = '남겨주신 "${item.rawInput.trim()}"';
       final source = workById(item.matchedWorkId ?? '');
@@ -5098,7 +5096,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         final shared = _hasExplicitFugueConnection(work, [item])
             ? '작곡가와 푸가 형식'
             : '${work.composerNameKo}의 음악';
-        return (reason: '$label에서 $shared을 이어봅니다.', expands: false);
+        return (
+          reason: '$label에서 $shared을 이어봅니다.',
+          expands: false,
+          changesPeriodOrInstrumentation: false,
+        );
       }
       final inputAxis = _axisForTasteItem(item);
       if (source == null &&
@@ -5107,17 +5109,26 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         return (
           reason: '$label에서 ${_axisNoun(inputAxis)} 쪽으로 시작합니다.',
           expands: false,
+          changesPeriodOrInstrumentation: false,
         );
       }
     }
     if (_state.preferredInstruments.contains(work.instrumentation)) {
-      return (reason: '선택한 ${work.instrumentation} 소리를 이어봅니다.', expands: false);
+      return (
+        reason: '선택한 ${work.instrumentation} 소리를 이어봅니다.',
+        expands: false,
+        changesPeriodOrInstrumentation: false,
+      );
     }
     final mood = work.moodTags
         .where(_state.preferredMoodTags.contains)
         .firstOrNull;
     if (mood != null) {
-      return (reason: '선택한 "$mood" 분위기로 이어봅니다.', expands: false);
+      return (
+        reason: '선택한 "$mood" 분위기로 이어봅니다.',
+        expands: false,
+        changesPeriodOrInstrumentation: false,
+      );
     }
     if (tasteItems == null) {
       for (final reaction in _latestReactions) {

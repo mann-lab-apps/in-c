@@ -1,13 +1,36 @@
 # in C Expanded V1 Work Queue
 
 Audit started: 2026-09-13. Scope: inherited expansion A-I and follow-up acceptance.
-Current audit: 2026-09-14, a310157 on feature/in-c-expanded-v1-checkpoint-20260914
-in `/private/tmp/in-c-v1-resume-20260914`. Continuation is being closed as a checkpoint.
-PR #755/e3e634a verified merged; original dirty worktree and other products preserved.
-Latest user request authorizes checkpoint commit, push and merge, not deployment or identity changes.
+Current audit: 2026-09-15, origin/main 9d44696 includes PR #758/8eef6a8 and 38fb38f.
+Worktree: `/private/tmp/in-c-expanded-v1-20260915`, branch
+`feature/in-c-expanded-v1-followup-20260915`. The old temporary worktree is absent;
+the original dirty repository and all other product changes are untouched.
+This continuation does NOT authorize commit, push, merge, deployment or identity changes.
+Historical permissions and test counts below do not override this execution.
 Historical PASS is not current evidence. The expanded V1 objective is not complete.
 
 ## Contract
+
+### TestFlight Milestone Freeze: 2026-09-15
+
+Feature expansion is paused by the user, not completed. The active sub-milestone is
+[founder TestFlight preparation](../releases/in-c-testflight-internal-test-candidate.md).
+Required39 stays DONE12 / IN_PROGRESS25 / NOT_VERIFIED2; no human/device acceptance is inferred.
+H01/L01 follow-up: provider launch no longer awaits serialized event disk persistence.
+Three added regressions cover delayed write, logging failure and Work Detail retained-event retry;
+link7/full1135/analyze/format11/native10 PASS. This does not claim actual provider playback or
+physical installation. Latest diagnostic archive retains the blocked Clef identity.
+A02/B02 repair: first-three founder simulation exposed Beethoven-only concentration; Daily
+selection now rotates among eligible explicitly supplied composers outside the last two picks,
+without changing pins, exclusions or sparse grounded fallback. RED/GREEN and full1132 PASS.
+R02 remains blocked for deployment: actual archive and sibling Clef share
+`com.mannlab.inc.clefandstaff`, name Clef & Staff, project/export profile Clef And Staff.
+Valid certificates exist, but separate in C identity/profile/build-number approval is pending.
+K01/H01 remain open: first listening candidates have source/recording metadata, not verified
+Korean-region playback, hearing or windows. Do not replace this with a fabricated direct URL.
+Next milestone actions: identity decision, approved isolated product configuration, actual
+first-recording review, signed artifact inspection, then separately authorized upload/install.
+New modes and broader queue expansion wait; first-use blockers/hotfixes only.
 
 Complete all inherited Required behavior; do not substitute a QA dashboard for product work.
 Status: TODO / READY / IN_PROGRESS / BLOCKED / DONE / NOT_VERIFIED.
@@ -34,7 +57,7 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | C01 | 7-day preview shows pick/reason/moment/next path without mutating real history | 7-day preview explicitly SIMULATION; nonmutation test passes | A01 | state equality + simulation labels | DONE | PASS/PASS/N/N | Keep simulation separate from real event evidence |
 | C02 | Automatic rule compliance never means founder approval | Rule compliance is separate; founder approval needs an identified observed response and otherwise stays NOT_VERIFIED | none | simulation nonmutation and observed/anonymous/latest-response tests | DONE | PASS/PASS/N/N | Actual founder response remains C03 |
 | C03 | Founder willingness and 5-user outcomes recorded honestly | no actual responses supplied | full flow | founder response; 4/5 reason, 3/5 return and map understanding | NOT_VERIFIED | N/N/N/N | Prepare evidence; await actual users after implementation |
-| D01 | Map distinguishes opened/revisited/familiar/unfamiliar/next | First-session clicks/save/like cannot claim familiar; two confirmed dates required; revised unsure changes map | A01 | single-session and two-day tests; simulator map capture | IN_PROGRESS | PASS/PASS/PARTIAL/N | Inspect final screenshots and obtain human map comprehension |
+| D01 | Map distinguishes opened/revisited/familiar/unfamiliar/next | First-session clicks/save/like cannot claim familiar; two confirmed dates required; revised unsure changes map. Listening-level pacing now counts distinct confirmed days, not intake/save/click volume | A01 | single-session/two-day map and four pacing-evidence regressions; simulator map capture | IN_PROGRESS | PASS/PASS/PARTIAL/N | Inspect final screenshots and obtain human map comprehension; pacing is not a competence test |
 | D02 | Daily completion and Work Detail map role survive reopen/edit | Legacy timestamps preserved but not trusted without completionConfirmed or actual evidence; UTC events use local dates | L01 | legacy red/green; reaction correction; native save/reopen | IN_PROGRESS | PASS/PASS/PARTIAL/N | Native final pass and cross-timezone device check |
 | E01 | Intake immediately gives specific starting point and Next Three | 24 inputs supported; founder's 11 no longer truncated; unknown songs produce no invented axes/map evidence | none | full founder, unknown and contrasting profiles; native immediate reward | IN_PROGRESS | PASS/PASS/PARTIAL/N | Individual first-impression evidence remains C03 |
 | E02 | First experience reaches listening and next path with one primary action | Daily panel removes duplicate title/tag wall and moves CTA upward | A01,H01 | actual widget flow + screenshots | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Native integration screenshot and overflow check |
@@ -52,8 +75,8 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | L02 | Unconfigured remote must not pretend sync succeeded; local state remains intact | Same-ID conflicts/bounds/provenance covered; composer exclusion joins preference codec/tie-break; local preference revisions remain monotonic across backward clocks | L01 | two/three-way merge/codec, removal vs stale snapshot, failed-write retry, original event/unsave cases | IN_PROGRESS | PASS/PASS/N/N | Broader data-control/recovery audit remains L01; actual remote absent, never claim sync success |
 | P01 | Privacy and sponsored disclosure consistent, ads below listening | Missing in-app notice discovered; My Music policy sheet now states actual local-only use and bounded records | E02 | public navigation/320px policy smoke; disclosure tests | IN_PROGRESS | PASS/PARTIAL/N/N | Legal/store review and data-control audit remain separate |
 | K01 | First exposure content individually accurate and links vetted | All30 rows have source notes; Swan Lake now explicitly Act II No.10, unsupported Brahms slow opening removed; remaining score claims and all recordings/windows unapproved | A04 | docs/research/in-c-founder-30-content-review.md; excerpt/guide regression | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Resolve remaining score details and all30 recording windows; official search links are not direct approval |
-| R01 | Current code formats, analyzes, tests with Clef regression | Historical439 superseded by resumed checks; current logs and counts are in dated evidence | code tasks | fresh scoped/full commands and logs | IN_PROGRESS | PASS/PARTIAL/N/N | Finish current full/controller/analyze/native verification and record exact results |
-| R02 | in C iOS build/install and notification/user flow verified | Native integration passes with screenshot capture and isolated preference reload; delivery not tested | G03,R01 | in C entry define, install/screenshots, notification tap | IN_PROGRESS | PASS/PARTIAL/PARTIAL/N | Final build; actual delivery/tap/signing and identity decision remain |
+| R01 | Current code formats, analyzes, tests with Clef regression | Current recommendation/pacing repair: scoped251/full1130, analyze, eight-file format and diff check pass; whole objective remains open | code tasks | 2026-09-15 evidence and exact logs; code validation only | DONE | PASS/PASS/N/N | Revalidate after any further code change; device/recording/value gates are separate |
+| R02 | in C iOS build/install and notification/user flow verified | No-codesign build and isolated integration verified; provisional foreground receipt observed, not full permission/background/physical delivery or OS taps | G03,R01 | in C entry define, install/screenshots, notification tap | IN_PROGRESS | PASS/PARTIAL/PARTIAL/N | Actual physical delivery/tap/signing and identity decision remain |
 | R03 | Implementation, recommendation value, device and public release judged separately | Removed hardcoded current build PASS; founder and rules separated in docs/UI | all | whole-table audit with explicit unresolved rows | IN_PROGRESS | PARTIAL/PARTIAL/N/N | Final full Required audit and unresolved evidence summary |
 | C04 | Human can judge each preview day's distance without fabricating listens | Explicit unanswered form, exact snapshot and observed_preview marker; actual widget choose/note/submit flow passes without completing Daily | C01 | snapshot mismatch, nonmutation, persistence and form submission smoke | DONE | PASS/PASS/N/N | Actual responses remain C03, not supplied by fixture tests |
 | D03 | Map and continuity survive recent log limits | confirmedListenDays and latestReactionType persisted; legacy completion provenance retained; calendar-day arithmetic | D02,L01 | compaction/reload/map/continuity/UTC tests | IN_PROGRESS | PASS/PASS/N/N | DST and timezone native test; remote conflict audit L02 |
@@ -66,6 +89,38 @@ Paths below are relative to apps/in_c_sheet unless they start with docs/.
 | P03 | Inspect/copy personal records and explicitly erase in C data without Clef damage or backup resurrection | JSON surface, confirmation, cancellation-before-erase, persisted erase intent, per-key serialization and reset epoch; late notification navigation rejected | L01,L02,P01 | 10 data-control tests, 320px/1.6 confirmation/cancel, native isolated deletion/reload, previous-snapshot merge | DONE | PASS/PASS/PARTIAL/N | OS/external backups and actual notification authorization remain explicit limits |
 
 ## Verification Commands
+
+Latest screen/pacing follow-up: native screenshot exposed the first work repeated under
+next path; sparse/full widget RED -> repaired, hiding an empty following list. Four additional
+RED cases exposed click/save/reaction-volume advancement. Pacing now uses distinct confirmed
+local dates, excludes future dates and survives log compaction/correction. Scoped251/full1130,
+analyze, eight-file format/diff and current iOS no-codesign build PASS. Final native10 PASS
+(8 behavioral plus setup/teardown, no SKIP); sparse onboarding/map screenshots inspected.
+Only provisional foreground receipt, not physical/banner/tap or audio approval. Details in
+dated evidence. Required39 stays12/25/2; no human approval implied.
+
+Latest 2026-09-15 A03/A04/B02/E01/F01 audit: Daily uses all supplied input bridges,
+and root/draft Next Three exclude all already supplied works. The strongest known work
+connection precedes a looser earlier input across reward/Next Three/Daily. Instrument-only
+preference does not invent expansion; surprise needs a connected period/instrument change.
+A real metadata-connected surprise remains covered. Sparse Daily fallback is a revisit,
+not invented discovery or saved-state evidence. Scoped245/full1124, iOS build and native10
+PASS; see dated evidence for final checks. Narrow repairs do not complete whole content/
+recommendation rows or substitute for founder assessment.
+
+2026-09-15 continuation: A04/E01/B02/L03 narrow repairs, not whole-row completion.
+Intake translation now uses the selected work's actual connection and original input rather
+than generic axis claims or automatically substituted movement names. Unknown title substrings
+cannot create axes/Next Three proximity/map progress; explicit descriptors remain supported.
+Empty catalog translation returns null and excluded anchors cannot return as fallback guides.
+Previously stored unsupported proximity copy is withdrawn without replacing music or history.
+K01: Satie HN1072 opening score inspected and listening guide made concrete; recording,
+regional playback and passage approval remain NOT_VERIFIED.
+See [2026-09-15 evidence](../quality/in-c-expanded-v1-evidence-2026-09-15.md) for fresh checks.
+Required39 is DONE12/IN_PROGRESS25/NOT_VERIFIED2 after R01 current-code verification;
+no human/device approval inferred. A04/B02/E01/K01 have narrow repairs, not whole-row completion.
+
+### Historical Checkpoints
 
 2026-09-14 closeout: Next Three and intake now require an actual input/work/preference
 connection; difficulty alone cannot imply a taste match. Stretch additionally names a changed
