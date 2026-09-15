@@ -10,11 +10,20 @@ interface SystemBounds {
 }
 
 interface HairpinSegment {
+  systemIndex: number
   x1: number
   x2: number
   staffY: number
   isFirst: boolean
   isLast: boolean
+}
+
+export function resolveHairpinStemClearance(
+  laneOffset: number,
+  stemBottomOffsets: Iterable<number>
+): number {
+  // Reserve the 10px wedge opening plus an 8px gap from every voice's stem.
+  return Math.max(laneOffset, ...Array.from(stemBottomOffsets, bottom => bottom + 18))
 }
 
 export function resolveHairpinOpenings(
@@ -52,7 +61,7 @@ export function resolveHairpinSegments(
     const x2 = isLast ? Math.max(x1 + 24, end.x + 22) : bounds.x2 - 18
 
     if (x2 > x1 + 8) {
-      segments.push({ x1, x2, staffY: bounds.y, isFirst, isLast })
+      segments.push({ systemIndex, x1, x2, staffY: bounds.y, isFirst, isLast })
     }
   }
 

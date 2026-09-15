@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'classical_concert_import.dart';
+import 'classical_data_controls_screen.dart';
 import 'classical_discovery_controller.dart';
 import 'classical_discovery_models.dart';
 import 'classical_discovery_ops.dart';
@@ -17,6 +19,43 @@ const _reactionLabels = <String, String>{
   'unsure': '아직 모르겠음',
 };
 
+const classicalPrivacyNotice = <String, String>{
+  '음악과 외부 서비스': 'in C는 음원을 직접 제공하거나 저장하지 않습니다. 전체 듣기는 외부 음악 서비스에서 열립니다. 검색 링크는 특정 연주를 바로 재생하는 링크가 아닙니다. 미리듣기는 제공자가 허용하고 검토된 주소만 사용합니다.',
+  '이 기기에 남는 기록': '좋아하는 음악, 추천에서 제외한 작곡가와 오페라 노래 설정, 저장, 반응, 감상한 날짜, 알림 설정과 최근 사용 기록을 이 기기에 저장합니다. 현재 계정 동기화와 원격 이벤트 전송은 연결되어 있지 않습니다.',
+  '최근 기록과 관찰 메모': '최근 반응 80개와 일반 이벤트 200개를 유지합니다. 테스트 관찰은 별도로 최근 100개를 유지합니다. 감상한 날짜는 지도 유지를 위해 남습니다. 관찰 메모에는 실명이나 연락처를 쓰지 마세요.',
+  '공연과 광고': '광고 공연에는 sponsored 표시가 붙습니다. 광고주에게 개인 원본 이벤트나 관찰 메모를 제공하지 않습니다. 광고 보고는 집계 리포트만 사용합니다. 예시 공연은 실제 일정이나 예매 정보가 아닙니다.',
+  '듣기 기록':
+      '외부 링크를 누른 사실만으로 청취 완료를 판단하지 않습니다. 반응이나 감상 완료를 직접 남긴 날을 감상지도에 반영합니다.',
+  '기록 관리': 'My Music의 내 기록 관리에서 JSON을 확인·복사하거나 in C 기록과 내부 백업을 삭제할 수 있습니다. Clef 악보, 외부 서비스, 별도로 복사한 자료와 운영체제 백업은 삭제하지 않습니다. 이전 기록의 복원을 막기 위한 삭제 시각은 남습니다.',
+};
+
+class ClassicalPrivacySheet extends StatelessWidget {
+  const ClassicalPrivacySheet({super.key});
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('개인정보와 콘텐츠 안내', style: Theme.of(context).textTheme.titleLarge),
+          for (final section in classicalPrivacyNotice.entries) ...[
+            const SizedBox(height: 20),
+            Text(section.key, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(section.value),
+          ],
+          const SizedBox(height: 20),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('닫기'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
 class ClassicalDiscoveryScreen extends StatefulWidget {
   const ClassicalDiscoveryScreen({required this.controller, super.key});
 
@@ -27,12 +66,320 @@ class ClassicalDiscoveryScreen extends StatefulWidget {
       _ClassicalDiscoveryScreenState();
 }
 
-class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
+class ClassicalTasteConnectionsScreen extends StatelessWidget {
+  const ClassicalTasteConnectionsScreen({required this.controller, super.key});
+
+  final ClassicalDiscoveryController controller;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('좋아하는 음악')),
+    body: AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) => ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (controller.tasteIntakeItems.isEmpty)
+            const Text('아직 입력한 음악이 없어요.'),
+          for (final item in controller.tasteIntakeItems)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(item.rawInput),
+              subtitle: Text(
+                '${item.label}\n${switch (item.matchOrigin) {
+                  'automatic' => '자동 연결',
+                  'user_selected' => '직접 선택',
+                  'user_unlinked' => '연결 해제',
+                  _ => '이전 기록 · 연결 확인 필요',
+                }}',
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => _TasteConnectionEditor(
+                    controller: controller,
+                    itemId: item.id,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
+
+class ClassicalComposerExclusionsScreen extends StatefulWidget {
+  const ClassicalComposerExclusionsScreen({
+    required this.controller,
+    super.key,
+  });
+  final ClassicalDiscoveryController controller;
+
+  @override
+  State<ClassicalComposerExclusionsScreen> createState() =>
+      _ComposerExclusionsState();
+}
+
+class _ComposerExclusionsState
+    extends State<ClassicalComposerExclusionsScreen> {
+  String query = '';
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('추천에서 제외')),
+    body: AnimatedBuilder(
+      animation: widget.controller,
+      builder: (context, _) {
+        final controller = widget.controller;
+        final composers = controller.composers
+            .where(
+              (composer) => normalizeDiscoveryText(
+                '${composer.nameKo} ${composer.nameOriginal} ${composer.aliases.join(' ')}',
+              ).contains(normalizeDiscoveryText(query)),
+            )
+            .toList();
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                decoration: const InputDecoration(
+                  labelText: '작곡가 검색',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: (value) => setState(() => query = value),
+              ),
+            ),
+            if (controller.persistenceMessage case final message?)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(
+                  children: [
+                    Text(message),
+                    TextButton(
+                      onPressed: controller.retryPersistence,
+                      child: const Text('다시 저장'),
+                    ),
+                  ],
+                ),
+              ),
+            Expanded(
+              child: ListView(
+                children: [
+                  if (query.trim().isEmpty) ...[
+                    SwitchListTile(
+                      key: const ValueKey('exclude-operatic-vocals'),
+                      title: const Text('오페라의 노래'),
+                      value: controller.state.excludeOperaticVocals,
+                      onChanged: controller.loadFailed
+                          ? null
+                          : controller.setOperaticVocalsExcluded,
+                    ),
+                    const Divider(),
+                  ],
+                  if (composers.isEmpty)
+                    const ListTile(title: Text('일치하는 작곡가가 없어요.')),
+                  for (final composer in composers)
+                    CheckboxListTile(
+                      key: ValueKey('exclude-composer-${composer.id}'),
+                      title: Text(composer.nameKo),
+                      subtitle: Text(composer.nameOriginal),
+                      value: controller.state.excludedComposerIds.contains(
+                        composer.id,
+                      ),
+                      onChanged: controller.loadFailed
+                          ? null
+                          : (value) => controller.setComposerExcluded(
+                              composer.id,
+                              value ?? false,
+                            ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+}
+
+class _TasteConnectionEditor extends StatefulWidget {
+  const _TasteConnectionEditor({
+    required this.controller,
+    required this.itemId,
+  });
+  final ClassicalDiscoveryController controller;
+  final String itemId;
+  @override
+  State<_TasteConnectionEditor> createState() => _TasteConnectionEditorState();
+}
+
+class _TasteConnectionEditorState extends State<_TasteConnectionEditor> {
+  String _query = '';
+  bool _saving = false;
+  String? _error;
+
+  Future<void> _save(String? workId) async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      await widget.controller.correctTasteIntakeMatch(
+        widget.itemId,
+        workId: workId,
+      );
+      if (!mounted) return;
+      if (widget.controller.persistenceMessage != null) {
+        setState(() {
+          _saving = false;
+          _error = widget.controller.persistenceMessage;
+        });
+      } else {
+        Navigator.of(context).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = '연결을 저장하지 못했어요. 다시 시도해 주세요.';
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final item = widget.controller.tasteIntakeItems
+        .where((item) => item.id == widget.itemId)
+        .firstOrNull;
+    final matches = _query.trim().isEmpty
+        ? <ClassicalWork>[]
+        : widget.controller.searchWorks(_query).take(30).toList();
+    return Scaffold(
+      appBar: AppBar(title: const Text('음악 연결')),
+      body: item == null
+          ? const Center(child: Text('이 기록을 찾을 수 없어요.'))
+          : ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text(
+                  item.rawInput,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.matchedWorkId != null || item.matchedComposerId != null
+                      ? '현재 연결: ${item.label}'
+                      : '연결된 작품 없음',
+                ),
+                TextButton.icon(
+                  onPressed: _saving ? null : () => _save(null),
+                  icon: const Icon(Icons.link_off),
+                  label: const Text('연결 없이 원문만 남기기'),
+                ),
+                if (_error != null) Text(_error!, semanticsLabel: _error),
+                const SizedBox(height: 16),
+                TextField(
+                  enabled: !_saving,
+                  decoration: const InputDecoration(
+                    labelText: '연결할 작품 검색',
+                    prefixIcon: Icon(Icons.search),
+                  ),
+                  onChanged: (value) => setState(() => _query = value),
+                ),
+                if (_query.trim().isNotEmpty && matches.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('일치하는 작품이 없어요.'),
+                  ),
+                for (final work in matches)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(work.titleKo),
+                    subtitle: Text(
+                      '${work.composerNameKo} · ${work.catalogNumber}',
+                    ),
+                    trailing: const Icon(Icons.check),
+                    onTap: _saving ? null : () => _save(work.id),
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen>
+    with WidgetsBindingObserver {
   int _selectedIndex = 0;
   String _query = '';
   bool _didShowOnboarding = false;
+  Timer? _dailyRefreshTimer;
 
   ClassicalDiscoveryController get controller => widget.controller;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    controller.notificationDestination.addListener(
+      _openNotificationDestination,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _openNotificationDestination();
+      unawaited(controller.refreshDailyExperience());
+      _scheduleDailyRefresh();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(controller.refreshDailyExperience());
+      _scheduleDailyRefresh();
+    } else {
+      _dailyRefreshTimer?.cancel();
+    }
+  }
+
+  void _scheduleDailyRefresh() {
+    _dailyRefreshTimer?.cancel();
+    _dailyRefreshTimer = Timer(controller.untilNextDailyPick, () async {
+      await controller.refreshDailyExperience();
+      if (mounted) _scheduleDailyRefresh();
+    });
+  }
+
+  void _openNotificationDestination() {
+    final pick = controller.notificationDestination.value;
+    if (!mounted || pick == null) return;
+    controller.notificationDestination.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final work = controller.workById(pick.workId);
+      if (work == null) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      setState(() => _selectedIndex = 0);
+      if (pick.replacementNotice case final notice?) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(notice)));
+      }
+      unawaited(_openWork(work));
+    });
+  }
+
+  @override
+  void dispose() {
+    _dailyRefreshTimer?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
+    controller.notificationDestination.removeListener(
+      _openNotificationDestination,
+    );
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +406,13 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
                 onPressed: _showFeedbackSheet,
                 icon: const Icon(Icons.feedback_outlined),
               ),
-              IconButton(
-                tooltip: 'Catalog Ops',
-                onPressed: _openCatalogOps,
-                icon: const Icon(Icons.fact_check_outlined),
-              ),
+              if (!kReleaseMode ||
+                  const bool.fromEnvironment('IN_C_CATALOG_OPS'))
+                IconButton(
+                  tooltip: 'Catalog Ops',
+                  onPressed: _openCatalogOps,
+                  icon: const Icon(Icons.fact_check_outlined),
+                ),
             ],
           ),
           bottomNavigationBar: NavigationBar(
@@ -100,7 +449,24 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
           body: SafeArea(
             child: controller.isLoading
                 ? const Center(child: CircularProgressIndicator())
-                : _buildSelectedPage(context),
+                : Column(
+                    children: [
+                      if (controller.persistenceMessage case final message?)
+                        MaterialBanner(
+                          content: Text(message),
+                          actions: [
+                            TextButton(
+                              onPressed: controller.retryPersistence,
+                              child: Text(
+                                controller.loadFailed ? '다시 불러오기' : '다시 저장',
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (!controller.loadFailed)
+                        Expanded(child: _buildSelectedPage(context)),
+                    ],
+                  ),
           ),
         );
       },
@@ -110,6 +476,8 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
   void _scheduleOnboardingIfNeeded() {
     if (_didShowOnboarding ||
         controller.isLoading ||
+        controller.loadFailed ||
+        !controller.hasDailyRecommendation ||
         !controller.needsOnboarding) {
       return;
     }
@@ -123,6 +491,46 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
   }
 
   Widget _buildSelectedPage(BuildContext context) {
+    if (!controller.hasDailyRecommendation && _selectedIndex <= 2) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.library_music_outlined, size: 32),
+              const SizedBox(height: 12),
+              Text(
+                !controller.hasRecommendationExclusions
+                    ? '지금은 추천할 작품을 준비 중이에요'
+                    : '선택한 조건에 맞는 추천이 없어요',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              const Text('저장한 기록은 그대로 보관됩니다.', textAlign: TextAlign.center),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => setState(() => _selectedIndex = 3),
+                icon: const Icon(Icons.search),
+                label: const Text('작품 찾아보기'),
+              ),
+              if (controller.hasRecommendationExclusions)
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => ClassicalComposerExclusionsScreen(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('추천에서 제외'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     return switch (_selectedIndex) {
       0 => _TodayView(
         controller: controller,
@@ -170,32 +578,21 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
   }
 
   Future<void> _openLink(ClassicalWork work, ExternalLink link) async {
-    await controller.recordProviderClick(
+    await launchClassicalWorkLink(
+      context,
       work,
       link,
-      surface: ClassicalLinkSurface.listening.name,
+      onAttempt: (candidate, fallback) => controller.recordProviderClick(
+        work,
+        candidate,
+        fallback: fallback,
+        surface: ClassicalLinkSurface.listening.name,
+      ),
     );
-    final opened = await _launchUrl(
-      link.url,
-      surface: ClassicalLinkSurface.listening,
-    );
-    if (opened || link.linkType == 'listen_search') {
-      return;
-    }
-    final fallback = _fallbackSearchLinkFor(work, except: link.id);
-    if (fallback == null) {
-      return;
-    }
-    await controller.recordProviderClick(
-      work,
-      fallback,
-      fallback: true,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    await _launchUrl(fallback.url, surface: ClassicalLinkSurface.listening);
   }
 
   Future<void> _openTicket(ClassicalPromotionView view) async {
+    if (view.concert.isDemonstration) return;
     await controller.recordPromotionClick(view.promotion.id);
     await controller.recordTicketDestinationClick(view.concert.id);
     await _launchUrl(
@@ -223,8 +620,14 @@ class _ClassicalDiscoveryScreenState extends State<ClassicalDiscoveryScreen> {
   Future<bool> _launchUrl(
     String value, {
     ClassicalLinkSurface surface = ClassicalLinkSurface.listening,
+    bool verifiedDirect = false,
   }) async {
-    return launchClassicalUrl(context, value, surface: surface);
+    return launchClassicalUrl(
+      context,
+      value,
+      surface: surface,
+      verifiedDirect: verifiedDirect,
+    );
   }
 
   Future<void> _showPlatformSheet() async {
@@ -318,15 +721,36 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
   final ClassicalDiscoveryController controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: controller,
+    builder: (context, _) => _buildContent(context),
+  );
+
+  Widget _buildContent(BuildContext context) {
     final summary = ClassicalCatalogOpsSummary.fromCatalog(
       catalog: controller.catalogSnapshot,
       recentEvents: controller.state.events,
     );
+    final sevenDayPreview = controller.founderSevenDayPreview();
+    final dailyPickQuality = controller.founderDailyPickQualitySnapshot();
     final report = summary.validationReport;
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Catalog Ops')),
+      appBar: AppBar(
+        title: const Text('Catalog Ops'),
+        actions: [
+          IconButton(
+            tooltip: '관찰 기록',
+            icon: const Icon(Icons.note_add_outlined),
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              builder: (_) => _QualityObservationSheet(controller: controller),
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: _PageFrame(
           child: ListView(
@@ -798,6 +1222,56 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
+              _SectionTitle(title: 'Daily Pick 규칙 검사'),
+              const SizedBox(height: 8),
+              _OpsSummaryPanel(
+                rows: [
+                  (
+                    '모의 실행',
+                    dailyPickQuality.ruleCompliancePassed
+                        ? 'PASS - 자동 규칙 충족 (감상 품질 평가 아님)'
+                        : 'FAIL - 자동 규칙 확인 필요 (감상 품질 평가 아님)',
+                  ),
+                  ('실제 사용자 평가', dailyPickQuality.founderApproval),
+                  ('첫 7일', '${dailyPickQuality.previewDays} days'),
+                  ('첫 3일 가까움', dailyPickQuality.closeFirstThree ? 'YES' : 'NO'),
+                  ('옆길 횟수', '${dailyPickQuality.surpriseCount}'),
+                  ('초기 회피 위반', '${dailyPickQuality.coldMismatchCount}'),
+                  ('evidence', dailyPickQuality.exportText),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _SectionTitle(title: '첫 7일 추천 미리보기'),
+              const Text('매일 완료했다고 가정한 모의 기록입니다. 실제 청취 기록에는 반영하지 않습니다.'),
+              const SizedBox(height: 8),
+              for (final item in sevenDayPreview)
+                _Panel(
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(child: Text('${item.day}')),
+                    title: Text(item.work.titleKo),
+                    subtitle: Text(
+                      '${item.pick.distanceLabel} · ${controller.dailyDistanceAssessment(item.pick)}\n'
+                      '${item.pick.reason}\n'
+                      '${item.moment.label}: ${item.pick.listenFor}\n'
+                      '${item.nextPath}',
+                    ),
+                    trailing: IconButton(
+                      tooltip: '추천 거리 평가',
+                      icon: const Icon(Icons.rate_review_outlined),
+                      onPressed: () => showModalBottomSheet<void>(
+                        context: context,
+                        isScrollControlled: true,
+                        builder: (_) => _QualityObservationSheet(
+                          controller: controller,
+                          pick: item.pick,
+                        ),
+                      ),
+                    ),
+                    isThreeLine: true,
+                  ),
+                ),
+              const SizedBox(height: 12),
               _SectionTitle(title: 'KOPIS Production'),
               const SizedBox(height: 8),
               _OpsSummaryPanel(
@@ -954,6 +1428,179 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _QualityObservationSheet extends StatefulWidget {
+  const _QualityObservationSheet({required this.controller, this.pick});
+  final ClassicalDiscoveryController controller;
+  final DailyPick? pick;
+
+  @override
+  State<_QualityObservationSheet> createState() =>
+      _QualityObservationSheetState();
+}
+
+class _QualityObservationSheetState extends State<_QualityObservationSheet> {
+  final _tester = TextEditingController(text: 'founder');
+  final _notes = TextEditingController();
+  final _answers = <String, bool>{};
+  String _category = 'founder_intent';
+  bool _saving = false;
+  String? _error;
+  String? _distance;
+
+  @override
+  void dispose() {
+    _tester.dispose();
+    _notes.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final questions = classicalQualityObservationQuestions[_category]!;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          8,
+          16,
+          MediaQuery.viewInsetsOf(context).bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.pick == null ? '실제 테스트 관찰' : '추천 거리 평가',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            Text(
+              widget.pick == null
+                  ? '모의 실행은 기록하지 않습니다. 실명 대신 참가자 코드를 사용하세요.'
+                  : '미리 본 추천에 대한 실제 응답입니다. 청취나 재방문 증거로 사용하지 않습니다.',
+            ),
+            if (widget.pick == null)
+              DropdownButtonFormField<String>(
+                initialValue: _category,
+                isExpanded: true,
+                items: const [
+                  DropdownMenuItem(
+                    value: 'founder_intent',
+                    child: Text('Founder의 사용 의향'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'founder_quality',
+                    child: Text('5명 사용자 관찰'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'first_use_wow',
+                    child: Text('첫 경험 관찰'),
+                  ),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (value) => setState(() {
+                        _category = value!;
+                        _answers.clear();
+                        _tester.text = _category == 'founder_intent'
+                            ? 'founder'
+                            : '';
+                      }),
+              ),
+            TextField(
+              controller: _tester,
+              readOnly: widget.pick == null && _category == 'founder_intent',
+              decoration: const InputDecoration(labelText: '참가자 코드'),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (widget.pick != null)
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: '내 취향에서 느껴지는 거리'),
+                items: const [
+                  DropdownMenuItem(value: 'too_close', child: Text('너무 가까움')),
+                  DropdownMenuItem(value: 'appropriate', child: Text('적절함')),
+                  DropdownMenuItem(value: 'too_far', child: Text('너무 멂')),
+                ],
+                onChanged: _saving
+                    ? null
+                    : (value) => setState(() => _distance = value),
+              ),
+            if (widget.pick == null)
+              for (final question in questions.entries)
+                DropdownButtonFormField<bool>(
+                  key: ValueKey('$_category-${question.key}'),
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: question.value),
+                  items: const [
+                    DropdownMenuItem(value: true, child: Text('예')),
+                    DropdownMenuItem(value: false, child: Text('아니요')),
+                  ],
+                  onChanged: _saving
+                      ? null
+                      : (value) => setState(() {
+                          _answers[question.key] = value!;
+                        }),
+                ),
+            TextField(
+              controller: _notes,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: '실제 응답 또는 관찰 메모'),
+              onChanged: (_) => setState(() {}),
+            ),
+            if (_error != null) Text(_error!),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              icon: const Icon(Icons.save_outlined),
+              label: const Text('관찰 저장'),
+              onPressed:
+                  _saving ||
+                      (widget.pick == null
+                          ? _answers.length != questions.length
+                          : _distance == null) ||
+                      _notes.text.trim().isEmpty ||
+                      _tester.text.trim().isEmpty
+                  ? null
+                  : _save,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    if (widget.pick case final pick?) {
+      await widget.controller.recordDailyDistanceEvaluation(
+        pick: pick,
+        testerId: _tester.text,
+        distance: _distance!,
+        notes: _notes.text,
+      );
+    } else {
+      await widget.controller.recordQualityObservation(
+        category: _category,
+        testerId: _tester.text,
+        answers: _answers,
+        notes: _notes.text,
+      );
+    }
+    if (!mounted) return;
+    if (widget.controller.persistenceMessage != null) {
+      setState(() {
+        _saving = false;
+        _error = widget.controller.persistenceMessage;
+      });
+    } else {
+      Navigator.of(context).pop();
+    }
   }
 }
 
@@ -1246,8 +1893,8 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
           contentPadding: EdgeInsets.zero,
           value: _notifications.contains('today_work'),
           onChanged: (_) => _toggle(_notifications, 'today_work'),
-          title: const Text('저녁에 30초 알림 준비하기'),
-          subtitle: const Text('실제 알림 예약은 출시 전 네이티브 설정 확인이 필요합니다.'),
+          title: const Text('하루 한 곡 알림 받기'),
+          subtitle: const Text('허용한 뒤 내 음악에서 시간을 바꿀 수 있어요.'),
         ),
       ],
     );
@@ -1267,6 +1914,9 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
       return null;
     }
     final translation = preview.translation;
+    final following = preview.nextThree
+        .where((item) => item.work.id != preview.dailyStep.work.id)
+        .toList(growable: false);
     return _Panel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1278,7 +1928,7 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
           Text(translation.familiarFeeling),
           if (translation.isSoftLanding) ...[
             const SizedBox(height: 4),
-            const Text('정확한 곡명이 아니어도 괜찮아요. 먼저 가까운 감각에서 시작합니다.'),
+            const Text('남겨주신 음악은 그대로 보관합니다. 오늘은 새 작품 하나를 열어봅니다.'),
           ],
           const SizedBox(height: 10),
           Text(preview.dailyStep.title),
@@ -1298,20 +1948,16 @@ class _OnboardingSheetState extends State<_OnboardingSheet> {
             runSpacing: 6,
             children: [
               for (final item in preview.items.take(3))
-                Chip(
-                  label: Text(
-                    item.sourceType == 'catalog_match'
-                        ? item.label
-                        : '${item.rawInput}에서 시작',
-                  ),
-                ),
+                Chip(label: Text(item.rawInput)),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            '다음 길: ${preview.nextThree.map((item) => item.work.titleKo).take(3).join(', ')}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (following.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              '다음 길: ${following.map((item) => item.work.titleKo).take(3).join(', ')}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );
@@ -1480,39 +2126,16 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
   }
 
   Future<void> _openLink(BuildContext context, ExternalLink link) async {
-    await controller.recordProviderClick(
+    await launchClassicalWorkLink(
+      context,
       work,
       link,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    final opened = await _launch(
-      context,
-      link.url,
-      surface: ClassicalLinkSurface.listening,
-    );
-    if (opened || link.linkType == 'listen_search') {
-      return;
-    }
-    final fallback = _fallbackSearchLinkFor(work, except: link.id);
-    if (fallback == null) {
-      return;
-    }
-    await controller.recordProviderClick(
-      work,
-      fallback,
-      fallback: true,
-      surface: ClassicalLinkSurface.listening.name,
-    );
-    if (!context.mounted) {
-      return;
-    }
-    await _launch(
-      context,
-      fallback.url,
-      surface: ClassicalLinkSurface.listening,
+      onAttempt: (candidate, fallback) => controller.recordProviderClick(
+        work,
+        candidate,
+        fallback: fallback,
+        surface: ClassicalLinkSurface.listening.name,
+      ),
     );
   }
 
@@ -1520,6 +2143,7 @@ class ClassicalWorkDetailScreen extends StatelessWidget {
     BuildContext context,
     ClassicalPromotionView view,
   ) async {
+    if (view.concert.isDemonstration) return;
     await controller.recordPromotionClick(view.promotion.id);
     await controller.recordTicketDestinationClick(view.concert.id);
     if (!context.mounted) {
@@ -1575,6 +2199,7 @@ class ClassicalConcertDetailScreen extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             children: [
+              if (concert.isDemonstration) const Text('예시 공연 · 실제 일정이 아닙니다'),
               _IntroBand(
                 title: concert.title,
                 subtitle:
@@ -1637,7 +2262,11 @@ class ClassicalConcertDetailScreen extends StatelessWidget {
               const SizedBox(height: 16),
               const _SectionTitle(title: '예매처'),
               const SizedBox(height: 8),
-              for (final destination in destinations)
+              if (concert.isDemonstration) const Text('실제 예매 정보가 없는 예시입니다.'),
+              for (final destination
+                  in concert.isDemonstration
+                      ? <TicketDestination>[]
+                      : destinations)
                 _LinkTile(
                   icon: Icons.confirmation_number_outlined,
                   title: destination.label,
@@ -1827,7 +2456,6 @@ class _DailyListeningStepPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final dailyPick = controller.dailyPick();
     final links = step.work.linksForPreferredPlatform(
       controller.preferredPlatformId,
     );
@@ -1850,15 +2478,8 @@ class _DailyListeningStepPanel extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            step.title,
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
             step.work.titleKo,
-            style: theme.textTheme.titleMedium?.copyWith(
+            style: theme.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -1867,6 +2488,16 @@ class _DailyListeningStepPanel extends StatelessWidget {
             '${step.work.composerNameKo} · ${step.work.instrumentation}',
             style: theme.textTheme.bodyMedium,
           ),
+          const SizedBox(height: 8),
+          Text(step.reason, style: theme.textTheme.bodySmall),
+          if (controller.dailyPick().replacementNotice case final notice?) ...[
+            const SizedBox(height: 8),
+            Text(
+              notice,
+              key: const ValueKey('daily-pick-replacement-notice'),
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
           const SizedBox(height: 12),
           Text(
             '${step.moment.label} · ${_formatMomentRange(step.moment)}',
@@ -1874,39 +2505,6 @@ class _DailyListeningStepPanel extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(step.prompt),
-          if (step.translation case final translation?) ...[
-            const SizedBox(height: 8),
-            Text(
-              translation.familiarFeeling,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(translation.nextDirection, style: theme.textTheme.bodySmall),
-          ],
-          const SizedBox(height: 10),
-          Text(step.reason, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 6),
-          Text(step.nextEffect, style: theme.textTheme.bodySmall),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              Chip(label: Text(dailyPick.distanceLabel)),
-              Chip(label: Text(step.axis)),
-              Chip(label: Text('입구 ${step.difficulty}')),
-            ],
-          ),
-          if (step.isCompleted) ...[
-            const SizedBox(height: 12),
-            _DailyMapRewardPanel(
-              controller: controller,
-              step: step,
-              onOpenWork: onOpenWork,
-            ),
-          ],
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
@@ -1938,6 +2536,14 @@ class _DailyListeningStepPanel extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          if (step.isCompleted) ...[
+            _DailyMapRewardPanel(
+              controller: controller,
+              step: step,
+              onOpenWork: onOpenWork,
+            ),
+            const SizedBox(height: 12),
+          ],
           _EarOpeningPromptPanel(
             prompt: controller.earOpeningPromptFor(step),
             onAnswer: controller.recordEarOpeningAnswer,
@@ -2222,7 +2828,7 @@ class _MyMusicView extends StatelessWidget {
           _IntroBand(
             title: '내 감상지도',
             subtitle:
-                '선호 플랫폼 ${controller.preferredPlatformId} · 지역 ${controller.region}',
+                '선호 플랫폼 ${_platformName(controller.preferredPlatformId)} · 지역 ${controller.region}',
             trailing: OutlinedButton.icon(
               onPressed: onPreferencesPressed,
               icon: const Icon(Icons.tune),
@@ -2232,10 +2838,55 @@ class _MyMusicView extends StatelessWidget {
           const SizedBox(height: 8),
           Align(
             alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: onPlatformPressed,
-              icon: const Icon(Icons.play_circle_outline),
-              label: const Text('플랫폼만 바꾸기'),
+            child: Wrap(
+              children: [
+                TextButton.icon(
+                  onPressed: onPlatformPressed,
+                  icon: const Icon(Icons.play_circle_outline),
+                  label: const Text('플랫폼만 바꾸기'),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => ClassicalTasteConnectionsScreen(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.library_music_outlined),
+                  label: const Text('음악 연결 확인'),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => ClassicalComposerExclusionsScreen(
+                        controller: controller,
+                      ),
+                    ),
+                  ),
+                  icon: const Icon(Icons.person_off_outlined),
+                  label: const Text('추천에서 제외'),
+                ),
+                TextButton.icon(
+                  onPressed: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          ClassicalDataControlsScreen(controller: controller),
+                    ),
+                  ),
+                  icon: const Icon(Icons.manage_accounts_outlined),
+                  label: const Text('내 기록 관리'),
+                ),
+                TextButton.icon(
+                  onPressed: () => showModalBottomSheet<void>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const ClassicalPrivacySheet(),
+                  ),
+                  icon: const Icon(Icons.privacy_tip_outlined),
+                  label: const Text('개인정보와 콘텐츠'),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -2390,7 +3041,9 @@ class _ConcertsView extends StatelessWidget {
               onTicket: () async {
                 final promotion = controller
                     .promotionsForWork(
-                      controller.workById(concert.programWorkIds.first) ??
+                      controller.workById(
+                            concert.programWorkIds.firstOrNull ?? '',
+                          ) ??
                           controller.todayWork,
                     )
                     .where((view) => view.concert.id == concert.id)
@@ -2489,15 +3142,40 @@ class _ContinuitySummaryPanel extends StatelessWidget {
             onChanged: (enabled) => unawaited(
               controller.configureDailyPickReminder(enabled: enabled),
             ),
-            title: Text(reminder.message),
-            subtitle: Text(
-              reminder.enabled
-                  ? '${reminder.timeLabel} · ${reminder.deliveryStatus}'
-                  : reminder.deliveryStatus == 'permission-denied'
-                  ? '알림 없이도 Today에서 매일 한 곡을 볼 수 있어요.'
-                  : '원할 때 오늘의 한 곡 초대 문구만 준비해둡니다.',
-            ),
+            title: const Text('하루 한 곡 알림'),
+            subtitle: Text(switch (reminder.deliveryStatus) {
+              'permission-denied' => '기기 설정에서 알림을 허용할 수 있어요.',
+              'unsupported' => '이 기기에서는 알림을 지원하지 않습니다.',
+              'permission-error' => '알림 권한을 확인하지 못했습니다. 다시 시도해 주세요.',
+              'schedule-failed' => '알림을 예약하지 못했습니다. 다시 켜 주세요.',
+              'cancel-failed' => '알림을 끄지 못했습니다. 다시 꺼 주세요.',
+              _ =>
+                reminder.enabled ? reminder.message : '원하는 시간에 오늘의 한 곡을 만나보세요.',
+            }),
           ),
+          if (reminder.enabled)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.schedule),
+              title: const Text('알림 시간'),
+              trailing: Text(reminder.timeLabel),
+              onTap: () async {
+                final parts = reminder.timeLabel.split(':');
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay(
+                    hour: (int.tryParse(parts.first) ?? 9).clamp(0, 23),
+                    minute: (int.tryParse(parts.last) ?? 0).clamp(0, 59),
+                  ),
+                );
+                if (time == null || !context.mounted) return;
+                await controller.configureDailyPickReminder(
+                  enabled: true,
+                  timeLabel:
+                      '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
+                );
+              },
+            ),
         ],
       ),
     );
@@ -2562,17 +3240,20 @@ class _NextThreePanel extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            recommendations.first.sourceEvidence,
-            style: theme.textTheme.bodySmall,
-          ),
           const SizedBox(height: 8),
           for (final recommendation in recommendations)
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: CircleAvatar(
-                child: Text(_laneShortLabel(recommendation.lane)),
+              leading: Tooltip(
+                message: switch (recommendation.lane) {
+                  'immediate' => '취향에서 이어보기',
+                  'stretch' => '한 걸음 넓혀보기',
+                  'later' => '다음에 들어보기',
+                  _ => '새로 열어보기',
+                },
+                child: CircleAvatar(
+                  child: Text(_laneShortLabel(recommendation.lane)),
+                ),
               ),
               title: Text(recommendation.work.titleKo),
               subtitle: Text(recommendation.reason),
@@ -3252,17 +3933,7 @@ class _WorkHero extends StatelessWidget {
     ListeningMoment moment,
     List<ExternalLink> links,
   ) {
-    final fallbackId = moment.fallbackExternalLinkId;
-    if (fallbackId == null) {
-      return links;
-    }
-    final ordered = [...links];
-    ordered.sort((a, b) {
-      final aScore = a.id == fallbackId ? 0 : 1;
-      final bScore = b.id == fallbackId ? 0 : 1;
-      return aScore.compareTo(bScore);
-    });
-    return ordered;
+    return links;
   }
 }
 
@@ -3540,13 +4211,29 @@ class _MomentPreviewSheet extends StatefulWidget {
 class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
   final ClassicalPreviewPlayer _previewPlayer = ClassicalPreviewPlayer();
   bool _isPlayingPreview = false;
+  bool _previewAvailable = false;
+  bool _previewBusy = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _previewPlayer.isAvailable().then((available) {
+      if (mounted) setState(() => _previewAvailable = available);
+    });
+  }
+
+  @override
+  void dispose() {
+    if (_isPlayingPreview) unawaited(_pausePreview());
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final preferred = widget.links.isEmpty ? null : widget.links.first;
-    final previewUrl = _previewUrlFor(preferred);
+    final previewUrl = _previewAvailable ? _previewUrlFor(preferred) : null;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -3690,7 +4377,10 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
   }
 
   Future<void> _playPreview(String previewUrl) async {
+    if (_previewBusy || _isPlayingPreview) return;
+    _previewBusy = true;
     final result = await _previewPlayer.playUrl(previewUrl);
+    _previewBusy = false;
     if (result.isPlaying) {
       await widget.controller.recordPreviewPlay(
         widget.work.id,
@@ -3699,6 +4389,12 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
       );
       if (mounted) {
         setState(() => _isPlayingPreview = true);
+      } else {
+        await _previewPlayer.pause();
+        await widget.controller.recordPreviewPause(
+          widget.work.id,
+          widget.moment.id,
+        );
       }
       return;
     }
@@ -3710,6 +4406,8 @@ class _MomentPreviewSheetState extends State<_MomentPreviewSheet> {
   }
 
   Future<void> _pausePreview() async {
+    if (!_isPlayingPreview) return;
+    _isPlayingPreview = false;
     await _previewPlayer.pause();
     await widget.controller.recordPreviewPause(
       widget.work.id,
@@ -3784,7 +4482,8 @@ class _MetadataPanel extends StatelessWidget {
           _MetadataRow(label: '편성', value: work.instrumentation),
           _MetadataRow(
             label: '길이',
-            value: _formatDuration(work.durationSeconds),
+            value:
+                '${work.catalogStatusTags.contains('duration_estimated') ? '약 ' : ''}${_formatDuration(work.durationSeconds)}',
           ),
           if (work.catalogNumber.isNotEmpty)
             _MetadataRow(label: '작품 번호', value: work.catalogNumber),
@@ -3822,7 +4521,7 @@ class _MomentTile extends StatelessWidget {
         leading: const Icon(Icons.graphic_eq),
         title: Text(moment.label),
         subtitle: Text(
-          '${_formatDuration(moment.endSeconds)} · ${moment.prompt}',
+          '${_formatDuration(moment.endSeconds - moment.startSeconds)} 감상 · ${moment.prompt}',
         ),
         trailing: IconButton(
           tooltip: '완료',
@@ -4043,6 +4742,8 @@ class _PromotionCard extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
+              if (view.concert.isDemonstration)
+                const Text('예시 공연 · 실제 일정이 아닙니다'),
               const SizedBox(height: 6),
               Text(
                 '${_formatDateTime(view.concert.startsAt)} · ${view.concert.venue}',
@@ -4052,7 +4753,7 @@ class _PromotionCard extends StatelessWidget {
               Text(view.concert.performers.join(', ')),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: onTicket,
+                onPressed: view.concert.isDemonstration ? null : onTicket,
                 icon: const Icon(Icons.confirmation_number_outlined),
                 label: const Text('예매처 보기'),
               ),
@@ -4087,6 +4788,7 @@ class _ConcertCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (concert.isDemonstration) const Text('예시 공연 · 실제 일정이 아닙니다'),
           Text(
             concert.title,
             style: Theme.of(context).textTheme.titleMedium
@@ -4119,7 +4821,7 @@ class _ConcertCard extends StatelessWidget {
                 label: const Text('10분 프리뷰'),
               ),
               OutlinedButton.icon(
-                onPressed: onTicket,
+                onPressed: concert.isDemonstration ? null : onTicket,
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('예매처 보기'),
               ),
@@ -4339,7 +5041,17 @@ class _ReactionHistory extends StatelessWidget {
                     reaction.workId,
               ),
               subtitle: Text(_reactionLabels[reaction.type] ?? reaction.type),
-              trailing: const Icon(Icons.chevron_right),
+              trailing: PopupMenuButton<String>(
+                tooltip: '반응 수정',
+                icon: const Icon(Icons.edit_outlined),
+                initialValue: reaction.type,
+                onSelected: (type) =>
+                    controller.updateReaction(reaction.id, type),
+                itemBuilder: (_) => [
+                  for (final entry in _reactionLabels.entries)
+                    PopupMenuItem(value: entry.key, child: Text(entry.value)),
+                ],
+              ),
               onTap: () {
                 final work = controller.workById(reaction.workId);
                 if (work != null) {
@@ -4381,7 +5093,9 @@ class _SavedConcertSummary extends StatelessWidget {
               leading: const Icon(Icons.event_available_outlined),
               title: Text(concert.title),
               subtitle: Text(
-                '${_formatDateTime(concert.startsAt)} · ${concert.venue}',
+                concert.isDemonstration
+                    ? '예시 공연 · 실제 일정이 아닙니다'
+                    : '${_formatDateTime(concert.startsAt)} · ${concert.venue}',
               ),
             ),
           ),
@@ -4650,39 +5364,42 @@ Future<bool> _launch(
   BuildContext context,
   String value, {
   ClassicalLinkSurface surface = ClassicalLinkSurface.listening,
+  bool verifiedDirect = false,
 }) {
-  return launchClassicalUrl(context, value, surface: surface);
-}
-
-ExternalLink? _fallbackSearchLinkFor(ClassicalWork work, {String? except}) {
-  final candidates = work.externalLinks
-      .where((link) => link.id != except)
-      .where((link) => link.linkType == 'listen_search')
-      .toList(growable: false);
-  if (candidates.isEmpty) {
-    return null;
-  }
-  candidates.sort((a, b) {
-    final aScore = a.platformId == 'youtube' ? 0 : 1;
-    final bScore = b.platformId == 'youtube' ? 0 : 1;
-    final byProvider = aScore.compareTo(bScore);
-    return byProvider != 0 ? byProvider : a.label.compareTo(b.label);
-  });
-  return candidates.first;
+  return launchClassicalUrl(
+    context,
+    value,
+    surface: surface,
+    verifiedDirect: verifiedDirect,
+  );
 }
 
 String _listenCtaLabel(ExternalLink link) {
+  final provider = _platformName(link.platformId, fallback: link.label);
   if (link.linkType == 'listen_search') {
-    return '${link.label}에서 검색';
+    return '$provider에서 검색';
   }
-  return '${link.label}에서 전체 듣기';
+  return '$provider에서 전체 듣기';
 }
+
+String _platformName(String id, {String? fallback}) => switch (id) {
+  'youtube' => 'YouTube',
+  'spotify' => 'Spotify',
+  'apple-music' => 'Apple Music',
+  'melon' => 'Melon',
+  'genie' => 'Genie',
+  'flo' => 'FLO',
+  'vibe' => 'VIBE',
+  'bugs' => 'Bugs',
+  _ => fallback ?? id,
+};
 
 String _laneShortLabel(String lane) {
   return switch (lane) {
     'immediate' => '맞',
     'stretch' => '확',
     'later' => '후',
+    'open_start' => '새',
     _ => '다',
   };
 }
@@ -4742,6 +5459,10 @@ String _formatDuration(int seconds) {
 }
 
 String _formatMomentRange(ListeningMoment moment) {
+  final evidence = Uri.tryParse(moment.timingEvidenceUrl ?? '');
+  if (evidence == null || evidence.scheme != 'https' || evidence.host.isEmpty) {
+    return '감상 가이드 · 연주마다 위치가 달라요';
+  }
   return '${_formatDuration(moment.startSeconds)}-${_formatDuration(moment.endSeconds)}';
 }
 

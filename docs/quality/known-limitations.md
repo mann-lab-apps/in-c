@@ -1,5 +1,131 @@
 # Known Limitations
 
+## 2026-09-14 Clipboard Continuation
+
+Range copy/paste now reports omitted partial spans and saved segments outside its
+single-measure range. Slur/hairpin geometry snapshots respect independent part
+object/null/inherit overrides; switching view does not change a captured snapshot.
+Core/App history and native round-trip tests pass. Actual renderer/disk clipboard
+QA passes six 960/1400px cases after the initial launch/approval interruption.
+DOM-driven Electron QA is not native file-dialog or human engraving signoff.
+Contained octave lines now copy with fresh endpoints; four-type native/XML/pitch
+tests pass. Identical staff-wide intervals are reused to avoid double transposition;
+conflicting/partial overlaps reject before editing. General octave overlap semantics
+remain Required.
+Independent slur/hairpin copy now supports exact same-voice endpoint distance,
+including cross-measure distance in core tests, without changing destination notes.
+Missing/ambiguous chord endpoints and cross-voice source spans explicitly reject.
+Other independent objects, cross-measure note ranges and broader editing remain
+Required implementation audits, not QA-only or permitted RC gaps.
+
+## 2026-09-14 Recovery Follow-Up
+
+Latest segment follow-up writes native v4 and migrates v1/v2/v3, including v3
+independent part geometry. Exact part/staff/measure-boundary segments now support
+selection, independent placement/reset/inheritance, history and portable output.
+Changed boundaries retain but do not apply saved overrides. Inactive-state UI
+now labels these entries, disables geometry edits and offers undoable removal.
+Boundary deletion/save/undo/reopen and ensemble insertion/reorder have regression
+coverage. Broader structural editing and collision/ledger handling remain Required.
+The reproduced continuation/fermata/caesura intersections are fixed and checked
+in actual two-page PDF; this is not complete manual engraving signoff.
+
+Legacy v1/v2/v3 autosaves now migrate before current v4 validation; real disk/UI/package
+save-reopen tests cover the portable envelope. Unreadable recovery is protected
+from subsequent autosave and cleanup. Postponed recovery pauses autosave visibly
+until claimed/discarded; File provides retry. Retention/quarantine UI, actual
+crash/power-loss and cross-machine QA remain Required, not implied by this pass.
+Saved-part open/recovery now targets the visible part. The reproduced single-
+event rhythm deletion/native-save failure is fixed with undoable span cleanup.
+Other editing/clipboard transactions still require their whole-workflow audit.
+Independent slur/hairpin geometry now has native/UI/history/projection and
+actual Electron/PDF evidence, including the bounded segment contracts above.
+Broader geometry/collisions remain implementation blockers. The reproduced rich Piano staff-text/clef collision is
+fixed by adjacent annotation space reservation shared by renderer and print.
+Actual 960/1400 and PDF ink checks cover that fixture; extreme ledger/manual
+geometry, per-system collision handling and broader dense scores remain Required.
+The 960px File command row still needs a viewport-wide
+accessibility audit; recovery-modal checks do not establish whole-UI completion.
+
+## 2026-09-13 Direct Span Inspector
+
+Follow-up: numeric placement/X/Y/height and auto reset now persist in native v2
+with v1 migration and SVG/PDF evidence. Manual outer bounds prevent clipping;
+they do not resolve collisions with adjacent staves/systems. Per-segment handles,
+independent part geometry and XML geometry interchange remain implementation work.
+The earlier missing-geometry statement below describes the endpoint-only slice.
+
+Slur/hairpin direct SVG/list selection and same-staff endpoint edit/delete/history
+now have App, native/XML and 960/1400 actual-renderer evidence. Hairpins accept
+rest events; slurs remain note-ended. This is not arbitrary tick, cross-staff,
+manual geometry or independent object clipboard support. Those are expanded V1
+implementation blockers. Human PDF engraving and native dialogs remain Not run.
+
+## 2026-09-13 Implementation Checkpoint
+
+The native schema and File-menu open/save/Save As are now partially implemented;
+the earlier "pending" statement is historical. Native recent files and envelope
+autosave/recovery have first implementation evidence. Backup discovery and
+read-only recovery UI are implemented; full recovery race audit, manual geometry
+and linked part-layout structural editing audits are still Required implementation
+blockers, not manual-QA-only. Part titles now support direct edit/reset/undo/redo
+and native reopen; page/system breaks support independent editing/removal and
+undo/redo from either staff. Part page-setting edits and complete override reset
+are undoable. Native snapshots prune removed break anchors while undo restores
+live anchors. Aligned score-wide measure insertion/deletion is implemented; repeat/
+volta and key/meter-boundary behavior and unaligned-import recovery still require
+implementation audit. Aligned signature/repeat/volta boundary tests and part
+removal/reordering regressions now cover initial contracts. Removed-staff break
+anchors remap by position within an equally sized surviving staff of the same
+part, with score/native layout undo/redo. Unequal-staff cases, complex endings
+and complete linked-layout authoring remain implementation audits.
+Selected-part MusicXML uses the independent
+title for the standalone document, without changing the source or instrument name.
+Page-setting loss is still reported explicitly. Valid system/page breaks now round-trip using
+MusicXML print flags; conflicting per-part external layouts and explicit no-break
+constraints are not represented. Cleanup
+across document switches preserves dirty native envelopes, startup recovery ignores
+stale replies, and native open reconfirms edits to part settings while waiting.
+See [native contract](../product/chromatics-native-project-format.md).
+Rich part XML now preserves secondary-part/lower-staff markings and shared
+repeats. Direction spans now preserve note-onset offset/voice anchors using
+ordered XML cursor timing. Hairpins now accept rest-event anchors in range input,
+native validation and XML interchange; playback is scoped to the owning staff and,
+for same-voice endpoints, that voice. Octave 8va/8vb/15ma/15mb now convert
+performed/display pitch and XML direction together, including chord pitches and
+instrument transposition in playback/MIDI. The conversion applies to note onsets
+in a same-staff interval. Free rhythmic endpoints, held-note/tie boundaries,
+overlap/22 shifts and ambiguous older XML recovery remain Required; see queue.
+Unrepresentable note anchors are rejected rather than silently snapped. Stop
+positions at note ends currently collapse onto that note's ID. Cross-staff spans
+and more than 16 same-kind spans occupying an exported measure are not yet supported.
+Hairpin clearance now accounts for stems within its staff/span, but extreme low
+register spacing and expression-lane interaction remain Required audits. Three-pass
+velocity now repeats for note/rest hairpins; cross-ending/missing-stop behavior
+still needs audit. The oversized context strip is fixed to 43px, while horizontal
+toolbar clipping/scroll access still needs audit. Successful SVG rendering is not
+full workspace or engraving signoff.
+Range hairpin/slur/octave commands now have a primary Notation Objects group
+that remains visible while selecting notes; 960/1400 hit bounds and pointer
+commands are covered. The docked dynamics range policy now matches toolbar/dock.
+This does not implement direct span selection, endpoint/shape editing or arbitrary
+rhythmic anchors; those are still Required implementation tasks, not QA-only.
+Native dialogs, external app reopen, listening/engraving and signed installers
+remain separate unexecuted release gates. Expanded V1 is not complete.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](../product/chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 기준일: 2026-09-01
 
 ## Document Control

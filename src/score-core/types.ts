@@ -266,11 +266,31 @@ export interface DynamicMark {
 
 export type HairpinType = 'crescendo' | 'diminuendo'
 
+// Distances use staff spaces. Omitted properties retain automatic placement.
+export interface SpanGeometry {
+  placement?: 'above' | 'below'
+  offsetX?: number
+  offsetY?: number
+  height?: number
+}
+
+export interface SpanSegmentAddress {
+  partId: string
+  staffId: string
+  startMeasureId: string
+  endMeasureId: string
+}
+
+export interface SpanEngraving extends SpanGeometry {
+  segments?: (SpanSegmentAddress & { geometry: SpanGeometry | null })[]
+}
+
 export interface Hairpin {
   id: string
   startEventId: VoiceEventId
   endEventId: VoiceEventId
   type: HairpinType
+  engraving?: SpanEngraving
 }
 
 export interface Slur {
@@ -278,6 +298,7 @@ export interface Slur {
   startEventId: VoiceEventId
   endEventId: VoiceEventId
   number?: number
+  engraving?: SpanEngraving
 }
 
 export interface Score {

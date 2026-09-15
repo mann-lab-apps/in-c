@@ -1,5 +1,57 @@
 # Chromatics Commercial V1 Reference Gap Matrix
 
+2026-09-14 clipboard follow-up: part geometry snapshots and explicit excluded-span/
+segment feedback now have slur/hairpin App history/native tests. Contained octave
+lines preserve four-type native/XML/playback pitch; staff-wide duplicate intervals
+reuse existing lines and conflicting overlaps reject. Actual clipboard renderer/
+disk harness passes six 960/1400px cases after initial launch/approval errors.
+Independent slur/hairpin clipboard now has exact same-voice endpoint, unchanged
+note, history/native/XML tests. Broader independent object/chord/cross-voice and
+cross-measure note-range reuse remain expanded Required implementation.
+
+Latest 2026-09-14: native v4 musical segment placement, inherited/local geometry,
+part history and four-system/two-page output cover another bounded span contract.
+Continuation collision reservation now includes manual depth and adjacent marks.
+Inactive segment UI, structural authoring and full manual engraving remain open.
+
+2026-09-14: native v3 adds independent part slur/hairpin geometry, automatic
+reset/relink, history and actual PDF projection. Legacy recovery migration and
+visible-part initial selection are verified through fresh package/App/disk gates.
+The [MuseScore parts handbook](https://handbook.musescore.org/basics/parts), living
+handbook checked 2026-09-14, distinguishes linked musical content from independent
+position properties. Chromatics covers a bounded slur/hairpin subset, not full
+part-style parity. Shared screen/print annotation clearance now fixes the
+reproduced rich Piano overlap. Multi-system segments, extreme manual/ledger
+collisions and remaining expanded umbrellas stay Required.
+
+2026-09-13 geometry follow-up: numeric placement/offset/height, auto reset/history,
+native v2 with v1 migration and actual SVG/PDF output partially satisfy span
+properties. Segment-level and multi-system collision work remains Required.
+
+2026-09-13 span inspector follow-up: direct SVG/list selection, ordered same-staff
+endpoint editing and delete/history/native/XML tests partially address
+CV1-X-SPAN-PROPERTIES. Geometry, rhythmic anchors and independent clipboard remain
+Required. Reference: [MuseScore adjusting elements directly](https://handbook.musescore.org/basics/adjusting-elements-directly),
+living handbook checked 2026-09-13; not an external GUI observation.
+
+2026-09-13 range-palette evidence: hairpin/slur/octave commands now live in
+Notation Objects, retain that mode during note selection, expose applicability
+and active markings, and pass 960/1400 pointer/file regression. This closes the
+narrow range-access task, not object selection/geometry or complete workspace UX.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 작성일: 2026-09-04  
 상태: 공식 문서 기반 제품 범위 재정의 초안
 

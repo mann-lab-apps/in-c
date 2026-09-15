@@ -1,5 +1,63 @@
 # Chromatics Desktop V1
 
+2026-09-13 geometry follow-up: span inspector now includes collapsible manual
+placement/offset/height controls, reset and history. Native v2 preserves them and
+reads v1 files through validation/migration. Screen/PDF use the same geometry;
+MusicXML reports its loss. Multi-system collisions/segment handles remain open.
+
+2026-09-13 direct span inspector: select a slur/hairpin in the score or Notation
+Objects property list, edit its same-staff endpoints, delete and undo/redo.
+Hairpins permit rest events; slurs require notes. The object context blocks note
+shortcuts and reports the owning voice. Endpoint edits persist through native
+save/reopen and supported MusicXML exchange. Manual geometry remains Required.
+
+2026-09-13 range-palette follow-up: Notation Objects owns hairpin/slur/octave
+commands in a stable leading group; selecting notes no longer exits this mode.
+Note Input retains note-entry controls. Valid endpoints and existing markings
+drive disabled/pressed state; S and undo/redo keep their existing behavior.
+Range-selected dynamics are disabled consistently in toolbar, palette and dock.
+Actual 960/1400 pointer/file tests pass, not human engraving or full V1 signoff.
+
+2026-09-13 continuation: note-onset span offset/voice interchange, native backup
+selection/recovery and stored part title/break screen/PDF application have new
+evidence. Part-title editing/reset/undo/redo and native reopen are implemented.
+Independent page/system break editing/history now works from lower-staff selections.
+Page-setting history and undoable override reset are implemented. Structural
+part-layout authoring audit, free rhythmic span anchors and octave
+XML pitch semantics remain implementation work in the expanded queue.
+
+Aligned measure insertion/deletion now affects the full score, including actions
+from a part view, with native/XML and undo regressions. Boundary cases for repeats,
+meter/key changes now have focused insertion/deletion tests, matched volta
+boundary shrink and native/XML/playback evidence. Complex endings and unaligned
+import recovery remain Required. Part reorder/removal preserves global directions,
+shared repeats and stable layout IDs; removed-staff layout policy remains open.
+
+Selected-part XML now writes explicit system/page breaks and uses the independent
+part title as the standalone exported document's work-title. Without an override
+it retains the source score title. Instrument names/composer and the live full-score
+title are unchanged; this is an independent interchange copy, not a linked native
+project. Page settings still warn. Rest-event hairpin input/history/native/XML is
+implemented; arbitrary ticks, cross-staff endpoints and octave pitch remain open.
+
+2026-09-13: native File-menu open/save/Save As first slice is implemented. See
+[native format contract](chromatics-native-project-format.md) for current behavior
+and remaining recovery/recent/geometry/part-layout work. This supersedes the dated
+"native pending" implementation description, not the outstanding V1 requirements.
+
+## 2026-09-12 Expanded V1 Scope Override
+
+The user-approved [Expanded V1 contracts](chromatics-expanded-v1.md) supersede
+earlier V1 exclusions for native project storage, MIDI/pitch-first input,
+templates/styles, object filters, command customization, docking and image export.
+These are now Required implementation tasks, not optional parity or QA-only work.
+Current implemented save: MusicXML/MXL and an initial native project slice.
+Required target: portable native project plus interchange. Native lifecycle remains
+partial; recent/recovery/manual geometry requirements are not completed.
+Earlier dated decisions below are historical, not the current release boundary.
+Implementation and RC approval are both incomplete until the expanded contracts
+and the separate manual/external gates have evidence.
+
 ## 2026-09-12 Local Workflow Update
 
 - Score Setup now supports part reordering and written-to-sounding instrument

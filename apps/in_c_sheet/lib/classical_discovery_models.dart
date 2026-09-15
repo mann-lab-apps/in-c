@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'classical_link_policy.dart';
+
 String _stringFromJson(Object? value) => value is String ? value : '';
 
 int _intFromJson(Object? value, {int fallback = 0}) {
@@ -88,6 +90,7 @@ class ListeningMoment {
     required this.tags,
     this.recommendedRecordingId,
     this.fallbackExternalLinkId,
+    this.timingEvidenceUrl,
   });
 
   final String id;
@@ -98,6 +101,7 @@ class ListeningMoment {
   final List<String> tags;
   final String? recommendedRecordingId;
   final String? fallbackExternalLinkId;
+  final String? timingEvidenceUrl;
 }
 
 class ExternalLink {
@@ -122,6 +126,15 @@ class ExternalLink {
   final String? embedUrl;
   final String? deepLink;
   final String openMode;
+
+  bool get isVerifiedDirect =>
+      const {'listen_direct', 'listen_preview_approved'}.contains(linkType) &&
+      classicalProviderDirectMatches(platformId, url);
+
+  bool get isSafeSearch =>
+      linkType == 'listen_search' &&
+      classicalProviderHostMatches(platformId, url) &&
+      isClassicalSearchUrl(url);
 }
 
 class ClassicalRecording {
@@ -172,6 +185,7 @@ class ClassicalWork {
     required this.scoreLinks,
     required this.concertIds,
     this.catalogStatusTags = const <String>[],
+    this.isOperaticVocal = false,
   });
 
   final String id;
@@ -196,6 +210,8 @@ class ClassicalWork {
   final List<ExternalLink> scoreLinks;
   final List<String> concertIds;
   final List<String> catalogStatusTags;
+  // Curated classification of this excerpt, not inferred from composer or voice.
+  final bool isOperaticVocal;
 
   String get displayTitle => '$titleKo · $composerNameKo';
   ListeningMoment? get primaryMoment =>
@@ -221,6 +237,28 @@ class ClassicalWork {
     if (catalogNumber.isNotEmpty &&
         normalizeDiscoveryText(catalogNumber) == compactQuery) {
       return 88;
+    }
+    for (final composer in [
+      composerNameKo,
+      composerNameOriginal,
+      composerNameOriginal.split(' ').last,
+    ]) {
+      final name = normalizeDiscoveryText(composer);
+      if (name.isEmpty || compactQuery == name) continue;
+      final remainder = compactQuery.startsWith(name)
+          ? compactQuery.substring(name.length)
+          : compactQuery.endsWith(name)
+          ? compactQuery.substring(0, compactQuery.length - name.length)
+          : '';
+      if (remainder.isNotEmpty &&
+          [
+            titleKo,
+            titleOriginal,
+            catalogNumber,
+            ...aliases,
+          ].any((field) => normalizeDiscoveryText(field).contains(remainder))) {
+        return 82;
+      }
     }
     if (titleFields.any(
       (field) => normalizeDiscoveryText(field).contains(compactQuery),
@@ -293,10 +331,15 @@ class ClassicalWork {
   }
 
   List<ExternalLink> linksForPreferredPlatform(String preferredPlatformId) {
-    final links = [...externalLinks];
+    final links = externalLinks
+        .where((link) => link.isVerifiedDirect || link.isSafeSearch)
+        .toList();
+    int priority(ExternalLink link) => link.isVerifiedDirect
+        ? (link.platformId == preferredPlatformId ? 0 : 1)
+        : (link.platformId == preferredPlatformId ? 2 : 3);
     links.sort((a, b) {
-      final aScore = a.platformId == preferredPlatformId ? 0 : 1;
-      final bScore = b.platformId == preferredPlatformId ? 0 : 1;
+      final aScore = priority(a);
+      final bScore = priority(b);
       final platform = aScore.compareTo(bScore);
       if (platform != 0) {
         return platform;
@@ -314,6 +357,7 @@ class ClassicalWork {
     List<ExternalLink>? scoreLinks,
     List<String>? concertIds,
     List<String>? catalogStatusTags,
+    bool? isOperaticVocal,
   }) {
     return ClassicalWork(
       id: id,
@@ -338,6 +382,7 @@ class ClassicalWork {
       scoreLinks: scoreLinks ?? this.scoreLinks,
       concertIds: concertIds ?? this.concertIds,
       catalogStatusTags: catalogStatusTags ?? this.catalogStatusTags,
+      isOperaticVocal: isOperaticVocal ?? this.isOperaticVocal,
     );
   }
 }
@@ -356,6 +401,7 @@ class ClassicalConcert {
     required this.ticketUrl,
     this.programRawText = '',
     this.ticketDestinations = const <TicketDestination>[],
+    this.isDemonstration = false,
   });
 
   final String id;
@@ -370,6 +416,7 @@ class ClassicalConcert {
   final String ticketUrl;
   final String programRawText;
   final List<TicketDestination> ticketDestinations;
+  final bool isDemonstration;
 
   bool isRelevantToWork(ClassicalWork work, {String? region}) {
     if (region != null && region.isNotEmpty && this.region == region) {
@@ -460,6 +507,8 @@ class TasteIntakeItem {
     required this.createdAt,
     this.matchedWorkId,
     this.matchedComposerId,
+    this.matchOrigin = 'legacy',
+    this.updatedAt,
   });
 
   factory TasteIntakeItem.fromJson(Map<String, Object?> json) {
@@ -477,6 +526,15 @@ class TasteIntakeItem {
           ? 'free_text'
           : _stringFromJson(json['sourceType']),
       confidence: _intFromJson(json['confidence']),
+      matchOrigin:
+          const {
+            'automatic',
+            'user_selected',
+            'user_unlinked',
+          }.contains(json['matchOrigin'])
+          ? json['matchOrigin']! as String
+          : 'legacy',
+      updatedAt: _dateFromJson(json['updatedAt']),
       createdAt:
           _dateFromJson(json['createdAt']) ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -491,6 +549,8 @@ class TasteIntakeItem {
   final String sourceType;
   final int confidence;
   final DateTime createdAt;
+  final String matchOrigin;
+  final DateTime? updatedAt;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -501,6 +561,8 @@ class TasteIntakeItem {
       'matchedComposerId': matchedComposerId,
       'sourceType': sourceType,
       'confidence': confidence,
+      'matchOrigin': matchOrigin,
+      'updatedAt': updatedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -626,7 +688,11 @@ class DailyPick {
     required this.distanceLabel,
     required this.createdAt,
     this.completedAt,
+    this.completionConfirmed = false,
     this.openedFromNotification = false,
+    this.catalogRevision = 0,
+    this.replacedWorkId,
+    this.replacementReason,
   });
 
   factory DailyPick.fromJson(Map<String, Object?> json) {
@@ -650,7 +716,11 @@ class DailyPick {
           _dateFromJson(json['createdAt']) ??
           DateTime.fromMillisecondsSinceEpoch(0),
       completedAt: _dateFromJson(json['completedAt']),
+      completionConfirmed: json['completionConfirmed'] == true,
       openedFromNotification: json['openedFromNotification'] == true,
+      catalogRevision: _intFromJson(json['catalogRevision']),
+      replacedWorkId: json['replacedWorkId'] as String?,
+      replacementReason: json['replacementReason'] as String?,
     );
   }
 
@@ -666,9 +736,17 @@ class DailyPick {
   final String distanceLabel;
   final DateTime createdAt;
   final DateTime? completedAt;
+  final bool completionConfirmed;
   final bool openedFromNotification;
+  final int catalogRevision;
+  final String? replacedWorkId;
+  final String? replacementReason;
 
-  bool get isCompleted => completedAt != null;
+  String? get replacementNotice => replacementReason == null
+      ? null
+      : '오늘 추천했던 작품 정보를 다시 확인 중이라 다른 작품으로 바꿨어요. 이전 감상 기록은 그대로 남아 있습니다.';
+
+  bool get isCompleted => completedAt != null && completionConfirmed;
 
   DailyPick copyWith({
     String? id,
@@ -683,7 +761,11 @@ class DailyPick {
     String? distanceLabel,
     DateTime? createdAt,
     DateTime? completedAt,
+    bool? completionConfirmed,
     bool? openedFromNotification,
+    int? catalogRevision,
+    String? replacedWorkId,
+    String? replacementReason,
   }) {
     return DailyPick(
       id: id ?? this.id,
@@ -698,8 +780,12 @@ class DailyPick {
       distanceLabel: distanceLabel ?? this.distanceLabel,
       createdAt: createdAt ?? this.createdAt,
       completedAt: completedAt ?? this.completedAt,
+      completionConfirmed: completionConfirmed ?? this.completionConfirmed,
       openedFromNotification:
           openedFromNotification ?? this.openedFromNotification,
+      catalogRevision: catalogRevision ?? this.catalogRevision,
+      replacedWorkId: replacedWorkId ?? this.replacedWorkId,
+      replacementReason: replacementReason ?? this.replacementReason,
     );
   }
 
@@ -718,8 +804,97 @@ class DailyPick {
       'createdAt': createdAt.toIso8601String(),
       'completedAt': completedAt?.toIso8601String(),
       'openedFromNotification': openedFromNotification,
+      'completionConfirmed': completionConfirmed,
+      'catalogRevision': catalogRevision,
+      'replacedWorkId': replacedWorkId,
+      'replacementReason': replacementReason,
     };
   }
+}
+
+class FounderTasteProfile {
+  const FounderTasteProfile({
+    required this.favoriteInputs,
+    required this.avoidInputs,
+    required this.exceptions,
+    required this.fastReaction,
+    required this.contexts,
+    required this.learningGoals,
+    required this.recommendationExpectation,
+    required this.primaryAxes,
+  });
+
+  static const current = FounderTasteProfile(
+    favoriteInputs: <String>[
+      '비와이 - 알면서도',
+      '베토벤 - 교향곡 9번',
+      '딕펑스 - VIVA청춘',
+      '벤치위레오 - 밤산책',
+      'Travis - Sailing Away',
+      '드보르작 - 교향곡 9번',
+      '하이든 - 건반 협주곡 2번',
+      '로꼬 - 잘가',
+      '리센느 - Glow Up',
+      '모차르트 - 교향곡 40번',
+      '쇼팽 - 야상곡 Op.9 No.2',
+    ],
+    avoidInputs: <String>['오페라 대부분', '바그너', '말러'],
+    exceptions: <String>['바흐 푸가'],
+    fastReaction: '선율',
+    contexts: <String>['일하면서 듣기', '독서할 때', '산책할 때'],
+    learningGoals: <String>['작곡가의 의도', '시대별 반복 기법'],
+    recommendationExpectation: '이런 좋은 곡도 있구나를 적절한 타이밍에 콕 찝어 발굴',
+    primaryAxes: <String>['선율형', '구조형', '밤/산책형'],
+  );
+
+  final List<String> favoriteInputs;
+  final List<String> avoidInputs;
+  final List<String> exceptions;
+  final String fastReaction;
+  final List<String> contexts;
+  final List<String> learningGoals;
+  final String recommendationExpectation;
+  final List<String> primaryAxes;
+}
+
+class FirstSevenDayDailyPickPreview {
+  const FirstSevenDayDailyPickPreview({
+    required this.day,
+    required this.date,
+    required this.pick,
+    required this.work,
+    required this.moment,
+    required this.judgement,
+    required this.nextPath,
+  });
+
+  final int day;
+  final DateTime date;
+  final DailyPick pick;
+  final ClassicalWork work;
+  final ListeningMoment moment;
+  final String judgement;
+  final String nextPath;
+}
+
+class FounderDailyPickQualitySnapshot {
+  const FounderDailyPickQualitySnapshot({
+    required this.previewDays,
+    required this.closeFirstThree,
+    required this.surpriseCount,
+    required this.coldMismatchCount,
+    required this.ruleCompliancePassed,
+    required this.exportText,
+    this.founderApproval = 'NOT_VERIFIED',
+  });
+
+  final int previewDays;
+  final bool closeFirstThree;
+  final int surpriseCount;
+  final int coldMismatchCount;
+  final bool ruleCompliancePassed;
+  final String founderApproval;
+  final String exportText;
 }
 
 class EarOpeningPrompt {
@@ -1030,6 +1205,8 @@ class UserWorkState {
     this.repeatDueAt,
     this.updatedAt,
     this.reactionCounts = const <String, int>{},
+    this.confirmedListenDays = const <String>{},
+    this.latestReactionType,
   });
 
   factory UserWorkState.fromJson(Map<String, Object?> json) {
@@ -1042,6 +1219,9 @@ class UserWorkState {
       repeatDueAt: _dateFromJson(json['repeatDueAt']),
       updatedAt: _dateFromJson(json['updatedAt']),
       reactionCounts: _mapIntFromJson(json['reactionCounts']),
+      confirmedListenDays: _stringListFromJson(json['confirmedListenDays'])
+          .toSet(),
+      latestReactionType: json['latestReactionType'] as String?,
     );
   }
 
@@ -1053,6 +1233,8 @@ class UserWorkState {
   final DateTime? repeatDueAt;
   final DateTime? updatedAt;
   final Map<String, int> reactionCounts;
+  final Set<String> confirmedListenDays;
+  final String? latestReactionType;
 
   UserWorkState copyWith({
     bool? saved,
@@ -1062,6 +1244,8 @@ class UserWorkState {
     DateTime? repeatDueAt,
     DateTime? updatedAt,
     Map<String, int>? reactionCounts,
+    Set<String>? confirmedListenDays,
+    String? latestReactionType,
   }) {
     return UserWorkState(
       workId: workId,
@@ -1072,6 +1256,8 @@ class UserWorkState {
       repeatDueAt: repeatDueAt ?? this.repeatDueAt,
       updatedAt: updatedAt ?? this.updatedAt,
       reactionCounts: reactionCounts ?? this.reactionCounts,
+      confirmedListenDays: confirmedListenDays ?? this.confirmedListenDays,
+      latestReactionType: latestReactionType ?? this.latestReactionType,
     );
   }
 
@@ -1085,6 +1271,8 @@ class UserWorkState {
       'repeatDueAt': repeatDueAt?.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'reactionCounts': reactionCounts,
+      'confirmedListenDays': confirmedListenDays.toList()..sort(),
+      'latestReactionType': latestReactionType,
     };
   }
 
@@ -1105,6 +1293,7 @@ class ClassicalReaction {
     required this.type,
     required this.occurredAt,
     this.momentId,
+    this.updatedAt,
   });
 
   factory ClassicalReaction.fromJson(Map<String, Object?> json) {
@@ -1115,6 +1304,7 @@ class ClassicalReaction {
       momentId: _stringFromJson(json['momentId']).isEmpty
           ? null
           : _stringFromJson(json['momentId']),
+      updatedAt: _dateFromJson(json['updatedAt']),
       occurredAt:
           _dateFromJson(json['occurredAt']) ??
           DateTime.fromMillisecondsSinceEpoch(0),
@@ -1126,6 +1316,7 @@ class ClassicalReaction {
   final String type;
   final String? momentId;
   final DateTime occurredAt;
+  final DateTime? updatedAt;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
@@ -1134,6 +1325,7 @@ class ClassicalReaction {
       'type': type,
       'momentId': momentId,
       'occurredAt': occurredAt.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 }
@@ -1388,6 +1580,31 @@ class PostConcertReflection {
   }
 }
 
+abstract final class DiscoveryHistoryLimits {
+  static const tasteInputs = 24;
+  static const reactions = 80;
+  static const dailyPicks = 30;
+  static const previewRoutes = 20;
+  static const reflections = 80;
+}
+
+List<DiscoveryEvent> retainDiscoveryEvents(Iterable<DiscoveryEvent> events) {
+  var routine = 0;
+  var observations = 0;
+  return events
+      .where((event) {
+        final observed =
+            event.eventType == 'feedback_submit' &&
+            const {
+              'observed',
+              'observed_preview',
+            }.contains(event.properties['evidenceKind']);
+        // Keep review evidence independently from the high-volume page-view stream.
+        return observed ? ++observations <= 100 : ++routine <= 200;
+      })
+      .toList(growable: false);
+}
+
 class UserDiscoveryState {
   const UserDiscoveryState({
     required this.workStates,
@@ -1408,7 +1625,11 @@ class UserDiscoveryState {
     required this.preferredInstruments,
     required this.notificationPreferences,
     required this.reminderPreference,
+    this.excludedComposerIds = const {},
+    this.excludeOperaticVocals = false,
+    this.concertSaveUpdatedAt = const {},
     this.preferencesUpdatedAt,
+    this.historyResetAt,
   });
 
   factory UserDiscoveryState.fromJson(Map<String, Object?>? json) {
@@ -1445,6 +1666,12 @@ class UserDiscoveryState {
           .where((reflection) => reflection.id.isNotEmpty)
           .toList(growable: false),
       savedConcertIds: _stringListFromJson(json['savedConcertIds']).toSet(),
+      concertSaveUpdatedAt: {
+        for (final entry
+            in (_jsonMap(json['concertSaveUpdatedAt']) ?? {}).entries)
+          if (_dateFromJson(entry.value) case final DateTime date)
+            entry.key: date,
+      },
       dismissedPromotionIds: _stringListFromJson(json['dismissedPromotionIds'])
           .toSet(),
       events: _jsonMapList(json['events'])
@@ -1469,10 +1696,14 @@ class UserDiscoveryState {
       notificationPreferences: _stringListFromJson(
         json['notificationPreferences'],
       ).toSet(),
+      excludedComposerIds: _stringListFromJson(json['excludedComposerIds'])
+          .toSet(),
+      excludeOperaticVocals: json['excludeOperaticVocals'] == true,
       reminderPreference: ReminderPreference.fromJson(
         _jsonMap(json['reminderPreference']),
       ),
       preferencesUpdatedAt: _dateFromJson(json['preferencesUpdatedAt']),
+      historyResetAt: _dateFromJson(json['historyResetAt']),
     );
   }
 
@@ -1504,6 +1735,8 @@ class UserDiscoveryState {
   final List<ConcertPreviewRoute> previewRoutes;
   final List<PostConcertReflection> postConcertReflections;
   final Set<String> savedConcertIds;
+  // Keep unsave revisions even after their event leaves the bounded event log.
+  final Map<String, DateTime> concertSaveUpdatedAt;
   final Set<String> dismissedPromotionIds;
   final List<DiscoveryEvent> events;
   final String preferredPlatformId;
@@ -1515,7 +1748,10 @@ class UserDiscoveryState {
   final Set<String> preferredInstruments;
   final Set<String> notificationPreferences;
   final ReminderPreference reminderPreference;
+  final Set<String> excludedComposerIds;
+  final bool excludeOperaticVocals;
   final DateTime? preferencesUpdatedAt;
+  final DateTime? historyResetAt;
 
   UserWorkState stateForWork(String workId) {
     return workStates[workId] ??
@@ -1530,6 +1766,7 @@ class UserDiscoveryState {
     List<ConcertPreviewRoute>? previewRoutes,
     List<PostConcertReflection>? postConcertReflections,
     Set<String>? savedConcertIds,
+    Map<String, DateTime>? concertSaveUpdatedAt,
     Set<String>? dismissedPromotionIds,
     List<DiscoveryEvent>? events,
     String? preferredPlatformId,
@@ -1541,7 +1778,10 @@ class UserDiscoveryState {
     Set<String>? preferredInstruments,
     Set<String>? notificationPreferences,
     ReminderPreference? reminderPreference,
+    Set<String>? excludedComposerIds,
+    bool? excludeOperaticVocals,
     DateTime? preferencesUpdatedAt,
+    DateTime? historyResetAt,
   }) {
     return UserDiscoveryState(
       workStates: workStates ?? this.workStates,
@@ -1552,6 +1792,7 @@ class UserDiscoveryState {
       postConcertReflections:
           postConcertReflections ?? this.postConcertReflections,
       savedConcertIds: savedConcertIds ?? this.savedConcertIds,
+      concertSaveUpdatedAt: concertSaveUpdatedAt ?? this.concertSaveUpdatedAt,
       dismissedPromotionIds:
           dismissedPromotionIds ?? this.dismissedPromotionIds,
       events: events ?? this.events,
@@ -1565,7 +1806,11 @@ class UserDiscoveryState {
       notificationPreferences:
           notificationPreferences ?? this.notificationPreferences,
       reminderPreference: reminderPreference ?? this.reminderPreference,
+      excludedComposerIds: excludedComposerIds ?? this.excludedComposerIds,
+      excludeOperaticVocals:
+          excludeOperaticVocals ?? this.excludeOperaticVocals,
       preferencesUpdatedAt: preferencesUpdatedAt ?? this.preferencesUpdatedAt,
+      historyResetAt: historyResetAt ?? this.historyResetAt,
     );
   }
 
@@ -1590,6 +1835,9 @@ class UserDiscoveryState {
           .map((reflection) => reflection.toJson())
           .toList(growable: false),
       'savedConcertIds': savedConcertIds.toList(growable: false),
+      'concertSaveUpdatedAt': concertSaveUpdatedAt.map(
+        (id, date) => MapEntry(id, date.toUtc().toIso8601String()),
+      ),
       'dismissedPromotionIds': dismissedPromotionIds.toList(growable: false),
       'events': events.map((event) => event.toJson()).toList(growable: false),
       'preferredPlatformId': preferredPlatformId,
@@ -1603,7 +1851,10 @@ class UserDiscoveryState {
         growable: false,
       ),
       'reminderPreference': reminderPreference.toJson(),
+      'excludedComposerIds': excludedComposerIds.toList()..sort(),
+      'excludeOperaticVocals': excludeOperaticVocals,
       'preferencesUpdatedAt': preferencesUpdatedAt?.toIso8601String(),
+      'historyResetAt': historyResetAt?.toIso8601String(),
     };
   }
 

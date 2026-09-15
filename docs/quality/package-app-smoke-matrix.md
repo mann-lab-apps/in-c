@@ -1,6 +1,53 @@
 # 패키지 앱 운영체제별 smoke matrix
 
+## 2026-09-14 Legacy Recovery
+
+Latest native-v4/segment build: fresh `package:dir` then `verify:package` passed,
+including legacy recovery, native backup UI and part XML/PDF/MIDI assertions.
+This checkpoint precedes the following range-paste safety changes.
+
+Fresh macOS arm64 unpacked smoke uses a temporary isolated userData directory.
+Real version-1 disk autosave migrates without source writes, restores selected
+Cello part/title/settings through the recovery dialog, saves as the current
+native format and reopens. 960/1400px modal bounds/button hit targets and restored
+editing part are checked. Original overwrite refusal remains an expected negative
+test. This is automated smoke with controlled file paths, not human native-dialog,
+installer, listening or cross-OS signoff. PR754 Windows/Linux passes are historical.
+
+## 2026-09-13 Native and Export Automation
+
+macOS arm64 unpacked app: export-copy IPC writes/reads a real file, does not add
+the copy to recent files, and rejects overwriting it once opened as an original.
+Native File-menu save/open uses actual renderer/IPC/validated disk storage with
+smoke-only dialog paths; quartet score, Cello view/page settings, native recent
+decode and envelope autosave read/write pass. Expected source-overwrite rejection
+appears in stderr while `hasExportCopyRoundTrip` succeeds.
+Follow-up smoke also creates a real native backup, lists it in the recovery UI,
+restores its Cello part state and checks the dialog at 960/1400px. Actual UI title
+editing and page-break insertion survive native reopen and PDF export. Cello-view
+measure insertion and undo are checked against all four saved part lengths
+(`hasScoreWideMeasureEdit`), not only renderer metadata. Actual PDF output is A4,
+two pages, with Cello Rehearsal as the part title. PDF raster inspection exposed
+and prompted a clef-dependent rest positioning correction. This is automated
+artifact inspection, not human engraving signoff. Smoke files/backups are cleaned
+before process exit; screenshots and the QA PDF remain in the OS temp directory.
+OS native dialogs, cross-machine reopen, DMG signing/installation and current
+Windows/Linux artifacts are Not run. These are not covered by macOS automation.
+
+Resumed build: `hasPartXmlLayout` additionally checks the actual exported Cello
+XML has `work-title` Cello Rehearsal and a new-page print flag before measure 2.
+Fresh package/build verification passed after rest-anchor and title changes,
+before the subsequent shell-height CSS adjustment. Standalone XML does not carry
+the full linked native envelope or unsupported page settings. Separate rest-hairpin
+headless authoring/save/reopen uses visible commands with intercepted file dialogs;
+it is not packaged OS-dialog evidence.
+
 ## 2026-09-12 Automated Update
+
+PR #753 (merge 3b344dd) subsequently passed macOS, Windows and Linux package jobs,
+including automated packaged smoke. This corrects the historical Windows
+automation gap below; human installer/native-dialog rows are still Not run.
+Expanded V1 native/project/image/part-XML paths require new candidate evidence.
 
 `npm run package:dir` and `npm run verify:package` passed for macOS arm64 unpacked
 `in-C.app`. Smoke now saves an actual compressed MXL, reopens it, overwrites its

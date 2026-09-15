@@ -5,6 +5,8 @@ import {
   pitchToMidi,
   effectiveAlterAt,
   resolveNotePitch,
+  convertOctaveShiftPitches,
+  scoreRepeatSource,
   sortVoiceEvents,
   transposeDiatonic,
   voiceEventDurationTicks,
@@ -80,6 +82,7 @@ interface RepeatPlaybackPlan {
 }
 
 export function createPlaybackTimeline(score: Score): PlaybackTimeline {
+  score = convertOctaveShiftPitches(score, 'performed')
   const events: PlaybackEvent[] = []
   let totalBeats = 0
   const scoreRepeatPlaybackPlan = createScoreRepeatPlaybackPlan(score)
@@ -268,25 +271,8 @@ function applyRepeatPlayback(
 function createScoreRepeatPlaybackPlan(
   score: Score
 ): RepeatPlaybackPlan | undefined {
-  const staves = score.parts.flatMap((part) => part.staves)
-  const canonicalStaff = staves.find((staff) =>
-    hasRepeatPlaybackMarks(staff.measures)
-  )
-
-  if (!canonicalStaff) {
-    return undefined
-  }
-
-  const canonicalDurations = canonicalStaff.measures.map(measureDurationTicks)
-  const canApplyScoreWidePlan = staves.every((staff) =>
-    staff.measures.length === canonicalStaff.measures.length &&
-    staff.measures.every(
-      (measure, index) =>
-        measureDurationTicks(measure) === canonicalDurations[index]
-    )
-  )
-
-  return canApplyScoreWidePlan
+  const canonicalStaff = scoreRepeatSource(score)
+  return canonicalStaff
     ? createRepeatPlaybackPlan(canonicalStaff.measures)
     : undefined
 }
@@ -729,48 +715,57 @@ function applyHairpinVelocity(
   const nextEvents = events.map((event) => ({ ...event }))
 
   for (const hairpin of score.hairpins ?? []) {
-    const startEvent = nextEvents.find((event) => event.eventId === hairpin.startEventId)
-    const endEvent = nextEvents.find((event) => event.eventId === hairpin.endEventId)
+    const starts = nextEvents.filter((event) => event.eventId === hairpin.startEventId)
+    for (const [index, startEvent] of starts.entries()) {
+      // Pair within this traversal; a missing stop must not spill into the next repeat.
+      const nextStartBeat = starts[index + 1]?.startBeat ?? Infinity
+      const endEvent = nextEvents.find((event) => event.eventId === hairpin.endEventId &&
+        event.startBeat >= startEvent.startBeat && event.startBeat < nextStartBeat)
 
-    if (!startEvent || !endEvent) {
-      continue
+      if (!endEvent) continue
+
+      applyHairpinTraversal(nextEvents, startEvent, endEvent, hairpin.type)
     }
-
-    const spanStart = startEvent.startBeat
-    const spanEnd = endEvent.startBeat + endEvent.durationBeats
-    const spanDuration = spanEnd - spanStart
-
-    if (spanDuration <= 0) {
-      continue
-    }
-
-    const baseVelocity = startEvent.velocityStart
-    const targetVelocity =
-      hairpin.type === 'crescendo'
-        ? clampVelocity(baseVelocity + HAIRPIN_DELTA)
-        : clampVelocity(baseVelocity - HAIRPIN_DELTA)
-
-    nextEvents.forEach((event) => {
-      const eventEnd = event.startBeat + event.durationBeats
-
-      if (eventEnd <= spanStart || event.startBeat >= spanEnd) {
-        return
-      }
-
-      event.velocityStart = interpolateVelocity(
-        baseVelocity,
-        targetVelocity,
-        (Math.max(event.startBeat, spanStart) - spanStart) / spanDuration
-      )
-      event.velocityEnd = interpolateVelocity(
-        baseVelocity,
-        targetVelocity,
-        (Math.min(eventEnd, spanEnd) - spanStart) / spanDuration
-      )
-    })
   }
 
   return nextEvents
+}
+
+function applyHairpinTraversal(
+  events: PlaybackEvent[],
+  startEvent: PlaybackEvent,
+  endEvent: PlaybackEvent,
+  type: NonNullable<Score['hairpins']>[number]['type']
+): void {
+  const spanStart = startEvent.startBeat
+  const spanEnd = endEvent.startBeat + endEvent.durationBeats
+  const spanDuration = spanEnd - spanStart
+
+  if (spanDuration <= 0) return
+
+  const baseVelocity = startEvent.velocityStart
+  const targetVelocity = type === 'crescendo'
+    ? clampVelocity(baseVelocity + HAIRPIN_DELTA)
+    : clampVelocity(baseVelocity - HAIRPIN_DELTA)
+
+  events.forEach((event) => {
+    if (event.partId !== startEvent.partId || event.staffId !== startEvent.staffId ||
+      (startEvent.voiceId === endEvent.voiceId && event.voiceId !== startEvent.voiceId)) return
+    const eventEnd = event.startBeat + event.durationBeats
+
+    if (eventEnd <= spanStart || event.startBeat >= spanEnd) return
+
+    event.velocityStart = interpolateVelocity(
+      baseVelocity,
+      targetVelocity,
+      (Math.max(event.startBeat, spanStart) - spanStart) / spanDuration
+    )
+    event.velocityEnd = interpolateVelocity(
+      baseVelocity,
+      targetVelocity,
+      (Math.min(eventEnd, spanEnd) - spanStart) / spanDuration
+    )
+  })
 }
 
 function interpolateVelocity(start: number, end: number, ratio: number): number {

@@ -1,10 +1,36 @@
-import { copyFile, mkdtemp, readFile, rm } from 'node:fs/promises'
+import { copyFile, link, mkdtemp, readFile, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { describe, expect, it } from 'vitest'
 import { MusicXmlFileSession } from './musicxml-files'
 
 describe('MusicXML save session', () => {
+  it('exports a copy without overwriting opened/saved originals or filesystem aliases', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'chromatics-part-export-'))
+    const source = join(directory, 'full.musicxml')
+    const target = join(directory, 'part.mxl')
+    const session = new MusicXmlFileSession(async () => {})
+    const full = '<score-partwise><work><work-title>Full</work-title></work></score-partwise>'
+    const part = full.replace('Full', 'Part')
+    try {
+      session.authorizeSave(source)
+      await session.save(source, full)
+      await symlink(source, join(directory, 'alias.musicxml'))
+      await link(source, join(directory, 'hard.musicxml'))
+      for (const path of [source, join(directory, '.', 'full.musicxml'), join(directory, 'alias.musicxml'), join(directory, 'hard.musicxml')]) {
+        await expect(session.exportCopy(path, part)).rejects.toThrow(/원본/)
+      }
+      expect(await readFile(source, 'utf8')).toBe(full)
+      await session.exportCopy(target, part)
+      await session.exportCopy(target, part.replace('Part', 'Revised'))
+      expect(await session.open(target)).toContain('Revised')
+      expect(await session.open(source)).toBe(full)
+      await expect(session.exportCopy(target, part)).rejects.toThrow(/원본/)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
   it('preserves the original file when backup fails and permits a later retry', async () => {
     const directory = await mkdtemp(join(tmpdir(), 'chromatics-save-failure-'))
     const filePath = join(directory, 'score.musicxml')

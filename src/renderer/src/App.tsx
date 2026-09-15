@@ -8,9 +8,17 @@ import {
   type KeyboardEvent as ReactKeyboardEvent
 } from 'react'
 import { createRoot } from 'react-dom/client'
+import { NativeBackupsDialog } from './NativeBackupsDialog'
+import { SpanProperties } from './SpanProperties'
+import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
+import { buildSpanClipboard, buildSpanPaste, type SpanClipboard } from './editor/span-clipboard'
+import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
+import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
 import {
   ArrowDown,
   ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   ChevronsDown,
   ChevronsUp,
   CircleMinus,
@@ -51,6 +59,7 @@ import {
   MAX_AUGMENTATION_DOTS,
   measureDurationTicks,
   resolveNotePitch,
+  scoreRepeatSource,
   sortVoiceEvents,
   voiceEventDurationTicks,
   type Duration,
@@ -70,6 +79,8 @@ import {
   type PitchStep,
   type RhythmFeelMarking,
   type Score,
+  type SpanEngraving,
+  pruneSpanSegmentEngravings,
   type ScoreCommand,
   type ScorePageSetup,
   type Staff,
@@ -252,17 +263,25 @@ const playbackStatusLabels = {
   stopped: '정지'
 } as const
 
+type EditorCommand = (ScoreCommand & { partLayoutState?: NativeProject['partLayouts'] }) | {
+  type: 'part-layout.replace'
+  partId: string
+  value?: NativeProject['partLayouts'][number]
+  pageSetupChange?: { value?: Required<ScorePageSetup> }
+}
+
 interface EditorHistoryEntry {
-  command: ScoreCommand
+  command: EditorCommand
   inputState?: NoteInputState
   selection: EditorSelection
 }
 
-type MetadataField = 'title' | 'composer'
+type MetadataField = 'title' | 'composer' | 'partTitle'
 
 interface MetadataEdit {
   field: MetadataField
   value: string
+  partId?: string
 }
 
 type MeasureMarkingClipboard =
@@ -326,6 +345,7 @@ interface NewScoreDraft {
 
 interface AutosaveRecoverySnapshot {
   score: Score
+  project?: NativeProject
   metadata: {
     title: string
     updatedAt: string
@@ -337,6 +357,7 @@ interface RecentMusicXmlFile {
   filePath: string
   fileName: string
   openedAt: string
+  format?: 'native'
 }
 
 type MeasureContextAction =
@@ -363,7 +384,8 @@ interface StaffTargetOption {
 
 const metadataMaxLength: Record<MetadataField, number> = {
   title: 120,
-  composer: 80
+  composer: 80,
+  partTitle: 120
 }
 
 const DEFAULT_TEMPO_BPM = 120
@@ -516,7 +538,8 @@ const shortcutReferenceSections = [
   {
     title: '파일과 편집',
     rows: [
-      ['MusicXML 저장', 'Cmd/Ctrl+S'],
+      ['악보 저장', 'Cmd/Ctrl+S'],
+      ['프로젝트 다른 이름 저장', 'Cmd/Ctrl+Shift+S'],
       ['실행 취소', 'Cmd/Ctrl+Z'],
       ['다시 실행', 'Cmd/Ctrl+Shift+Z'],
       ['복사/붙여넣기', 'Cmd/Ctrl+C / Cmd/Ctrl+V'],
@@ -543,6 +566,7 @@ export const App = () => {
   const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
     useState<SelectionObjectTypeFilter>('none')
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
+  const [spanClipboard, setSpanClipboard] = useState<SpanClipboard>()
   const [measureMarkingClipboard, setMeasureMarkingClipboard] =
     useState<MeasureMarkingClipboard>()
   const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
@@ -566,6 +590,8 @@ export const App = () => {
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
+  const [nativeBackupsOpen, setNativeBackupsOpen] = useState(false)
+  const backupRequest = useRef(0)
   const [partMixer, setPartMixer] =
     useState<PlaybackPartMixerMap>(readStoredPartMixer)
   const [dockVisibility, setDockVisibility] = useState(() => {
@@ -594,13 +620,54 @@ export const App = () => {
     useState<MusicXmlReportPanelState>()
   const [autosaveRevision, setAutosaveRevision] = useState(0)
   const documentGeneration = useRef(0)
+  const [renderedSpanState, setRenderedSpanState] = useState<{ score: Score; segments: SpanReference[] }>()
+  const receiveRenderedSpanSegments = useCallback((renderedScore: Score, segments: SpanReference[]) => {
+    setRenderedSpanState(previous => previous?.score === renderedScore && JSON.stringify(previous.segments) === JSON.stringify(segments)
+      ? previous : { score: renderedScore, segments })
+  }, [])
+  const [spanSelection, setSpanSelection] = useState<{
+    reference: SpanReference
+    baseSelection: EditorSelection
+    generation: number
+    viewKey: string
+  }>()
+  const spanViewKey = `${scoreViewMode}:${selectedScoreViewPartId ?? ''}`
+  const activeSpanReference = spanSelection?.baseSelection === selection &&
+    spanSelection.generation === documentGeneration.current && spanSelection.viewKey === spanViewKey
+    ? spanSelection.reference : undefined
   const currentScoreRef = useRef(score)
   currentScoreRef.current = score
   const saveInFlight = useRef(false)
   const [savingMusicXml, setSavingMusicXml] = useState(false)
+  const [savingNative, setSavingNative] = useState(false)
+  const nativeFile = useRef<{ filePath: string; fileName: string } | undefined>(undefined)
+  const nativeEnvelope = useRef<NativeProject | undefined>(undefined)
+  const nativeOpenInFlight = useRef(false)
+  const [recoveryPending, setRecoveryPending] = useState(() => !isFixtureMode())
+  const recoveryPendingRef = useRef(recoveryPending)
+  const setRecoveryProtection = useCallback((pending: boolean) => {
+    recoveryPendingRef.current = pending
+    setRecoveryPending(pending)
+  }, [])
+  const currentNativeContext = useRef({ score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision })
+  currentNativeContext.current = { score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId, autosaveRevision }
+  const restoreDirtyRecoveryAfterClear = useCallback(async () => {
+    if (recoveryPendingRef.current) return
+    const latest = currentNativeContext.current
+    if (latest.autosaveRevision === 0) return
+    await window.inC.autosave.write({ score: latest.score, title: latest.score.title,
+      ...(nativeEnvelope.current ? { project: createNativeSnapshot(latest.score, nativeEnvelope.current, latest.partPageSetupPreferences, latest.scoreViewMode, latest.selectedScoreViewPartId) } : {}) })
+  }, [])
+  const exportInFlight = useRef(false)
+  const [exportingMusicXml, setExportingMusicXml] = useState(false)
   useEffect(() => () => { documentGeneration.current += 1 }, [])
   const [recoverySnapshot, setRecoverySnapshot] =
     useState<AutosaveRecoverySnapshot>()
+  const [recoveryReadError, setRecoveryReadError] = useState<string>()
+  const [readingRecovery, setReadingRecovery] = useState(false)
+  const [discardingRecovery, setDiscardingRecovery] = useState(false)
+  const recoveryReadRequest = useRef(0)
+  const recoveryDiscardInFlight = useRef(false)
   const [recentMusicXmlFiles, setRecentMusicXmlFiles] = useState<
     RecentMusicXmlFile[]
   >([])
@@ -659,6 +726,7 @@ export const App = () => {
   )
   const eventLocation = useMemo(
     () => {
+      if (activeSpanReference) return undefined
       const eventId = getSelectionFocusEventId(selection)
 
       return eventId
@@ -669,7 +737,7 @@ export const App = () => {
           )
         : undefined
     },
-    [score, selection]
+    [activeSpanReference, score, selection]
   )
   const measureLocation = useMemo(
     () =>
@@ -684,23 +752,6 @@ export const App = () => {
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const measureCount = measures.length
-  const activeMeasureIndex = activeMeasureId
-    ? measures.findIndex((measure) => measure.id === activeMeasureId)
-    : -1
-  const systemBreakIds = useMemo(
-    () => new Set(score.layout?.systemBreakBeforeMeasureIds ?? []),
-    [score.layout?.systemBreakBeforeMeasureIds]
-  )
-  const pageBreakIds = useMemo(
-    () => new Set(score.layout?.pageBreakBeforeMeasureIds ?? []),
-    [score.layout?.pageBreakBeforeMeasureIds]
-  )
-  const activeMeasureHasSystemBreak = activeMeasureId
-    ? systemBreakIds.has(activeMeasureId)
-    : false
-  const activeMeasureHasPageBreak = activeMeasureId
-    ? pageBreakIds.has(activeMeasureId)
-    : false
   const activeMeasureRehearsalMark = activeMeasureId
     ? score.rehearsalMarks?.find((mark) => mark.measureId === activeMeasureId)
     : undefined
@@ -762,6 +813,19 @@ export const App = () => {
   const livePartViewPart = score.parts.find(
     (part) => part.id === livePartViewPartId
   )
+  const livePartLayout = nativeEnvelope.current?.partLayouts.find(part => part.partId === livePartViewPartId)
+  const livePartViewTitle = livePartLayout?.title ?? livePartViewPart?.name
+  const activeMeasureIndex = activeMeasureId
+    ? (activeStructureStaff?.measures ?? measures).findIndex(measure => measure.id === activeMeasureId)
+    : -1
+  const layoutMeasureId = scoreViewMode === 'part'
+    ? activeStructurePart?.id === livePartViewPartId ? livePartViewPart?.staves[0]?.measures[activeMeasureIndex]?.id : undefined
+    : measures[activeMeasureIndex]?.id
+  const activeLayout = useMemo(() => scoreViewMode === 'part' && livePartViewPartId
+    ? applyPortablePartLayout(createLivePartViewScore(score, livePartViewPartId), livePartLayout).layout
+    : score.layout, [score, scoreViewMode, livePartViewPartId, livePartLayout])
+  const activeMeasureHasSystemBreak = Boolean(layoutMeasureId && activeLayout?.systemBreakBeforeMeasureIds?.includes(layoutMeasureId))
+  const activeMeasureHasPageBreak = Boolean(layoutMeasureId && activeLayout?.pageBreakBeforeMeasureIds?.includes(layoutMeasureId))
   const pageSetup = useMemo(() => {
     const partPageSetup =
       scoreViewMode === 'part' && livePartViewPartId
@@ -792,7 +856,10 @@ export const App = () => {
   const activeToolbarCategoryLabel =
     toolbarCategories.find((category) => category.id === toolbarCategory)
       ?.label ?? '음표'
-  const activeScopeLabel = resolveActiveScopeLabel(score, activeAddress)
+  const selectedSpanObject = activeSpanReference && findSpan(score, activeSpanReference)
+  const activeScopeLabel = resolveActiveScopeLabel(score, activeSpanReference
+    ? selectedSpanObject && locateEvent(score, selectedSpanObject.startEventId)?.address
+    : activeAddress)
   const inputModeLabel = noteInputState
     ? noteInputState.mode === 'rest'
       ? '쉼표 입력'
@@ -858,19 +925,46 @@ export const App = () => {
     [eventLocation, score, tieSelected]
   )
 
+  const applyEditorCommand = useCallback((command: EditorCommand): EditorCommand => {
+    if (command.type === 'part-layout.replace') {
+      const project = nativeEnvelope.current ?? createNativeProject(score)
+      const previous = project.partLayouts.find(part => part.partId === command.partId)
+      nativeEnvelope.current = { ...project, partLayouts: [
+        ...project.partLayouts.filter(part => part.partId !== command.partId),
+        ...(command.value ? [command.value] : [])
+      ] }
+      if (command.pageSetupChange) {
+        const preferences = { ...partPageSetupPreferences }
+        if (command.pageSetupChange.value) preferences[command.partId] = command.pageSetupChange.value
+        else delete preferences[command.partId]
+        setPartPageSetupPreferences(preferences)
+        const filePath = currentMusicXmlFileRef.current?.filePath
+        if (filePath) writeStoredPartPageSetups(filePath, preferences)
+      }
+      return { type: 'part-layout.replace', partId: command.partId, value: previous,
+        ...(command.pageSetupChange ? { pageSetupChange: { value: partPageSetupPreferences[command.partId] } } : {}) }
+    }
+    const result = applyScoreCommand(score, command)
+    const previousLayouts = nativeEnvelope.current?.partLayouts ?? []
+    if (command.partLayoutState) {
+      nativeEnvelope.current = { ...(nativeEnvelope.current ?? createNativeProject(score)), partLayouts: command.partLayoutState }
+    }
+    setScore(result.score)
+    return command.partLayoutState ? { ...result.undo, partLayoutState: previousLayouts } : result.undo
+  }, [score, partPageSetupPreferences])
+
   const executeCommand = useCallback(
-    (command: ScoreCommand | undefined) => {
+    (command: EditorCommand | undefined) => {
       if (!command) {
         return false
       }
 
-      const result = applyScoreCommand(score, command)
-      setScore(result.score)
+      const inverse = applyEditorCommand(command)
       setAutosaveRevision((revision) => revision + 1)
       setUndoStack((entries) => [
         ...entries,
         {
-          command: result.undo,
+          command: inverse,
           inputState: noteInputState,
           selection
         }
@@ -879,8 +973,66 @@ export const App = () => {
       setPendingSlurAnchorEventId(undefined)
       return true
     },
-    [noteInputState, score, selection]
+    [applyEditorCommand, noteInputState, selection]
   )
+
+  const selectSpan = useCallback((reference?: SpanReference) => {
+    if (!reference) {
+      setSpanSelection(undefined)
+      return
+    }
+    if (!findSpan(score, reference)) return
+    setMode('select')
+    setNoteInputState(undefined)
+    setPendingSlurAnchorEventId(undefined)
+    setToolbarCategory('notation')
+    setDockVisibility(current => ({ ...current, properties: true }))
+    setSpanSelection({ reference, baseSelection: selection, generation: documentGeneration.current, viewKey: spanViewKey })
+  }, [score, selection, spanViewKey])
+
+  const updateSpanEndpoint = useCallback((patch: Partial<{ startEventId: string; endEventId: string }>) => {
+    if (!activeSpanReference) return
+    try {
+      executeCommand(buildSpanEndpointCommand(score, activeSpanReference, patch))
+      setFileStatus({ tone: 'neutral', message: '표기 끝점을 수정했습니다.' })
+    } catch (error) {
+      setFileStatus({ tone: 'error', message: getErrorMessage(error) })
+    }
+  }, [activeSpanReference, executeCommand, score])
+
+  const deleteSpan = useCallback(() => {
+    if (!activeSpanReference) return
+    const command = buildSpanDeleteCommand(score, activeSpanReference)
+    if (command) executeCommand(command)
+  }, [activeSpanReference, executeCommand, score])
+
+  const updateSpanEngraving = useCallback((engraving?: SpanEngraving) => {
+    if (!activeSpanReference) return
+    try {
+      const command = buildSpanEngravingCommand(score, activeSpanReference, engraving)
+      const project = nativeEnvelope.current ?? createNativeProject(score)
+      if (scoreViewMode === 'part' && livePartViewPartId) {
+        const item = findSpan(applyScoreCommand(score, command).score, activeSpanReference)!
+        const owner = locateEvent(score, item.startEventId)?.address.partId
+        if (owner !== livePartViewPartId) throw new Error('현재 파트의 표기를 선택해 주세요.')
+        const spanEngravings = livePartLayout?.spanEngravings?.filter(item => item.kind !== activeSpanReference.kind || item.spanId !== activeSpanReference.id) ?? []
+        executeCommand({ type: 'part-layout.replace', partId: livePartViewPartId,
+          value: { ...livePartLayout, partId: livePartViewPartId, layout: livePartLayout?.layout ?? {},
+            spanEngravings: [...spanEngravings, { kind: activeSpanReference.kind, spanId: activeSpanReference.id, engraving: item.engraving ?? null }] } })
+        return
+      }
+      if (executeCommand(command)) nativeEnvelope.current = project
+    } catch (error) {
+      setFileStatus({ tone: 'error', message: getErrorMessage(error) })
+    }
+  }, [activeSpanReference, executeCommand, score, scoreViewMode, livePartViewPartId, livePartLayout])
+
+  const inheritSpanEngraving = useCallback(() => {
+    if (!activeSpanReference || scoreViewMode !== 'part' || !livePartViewPartId || !livePartLayout) return
+    const spanEngravings = livePartLayout.spanEngravings?.filter(item => item.kind !== activeSpanReference.kind || item.spanId !== activeSpanReference.id)
+    executeCommand({ type: 'part-layout.replace', partId: livePartViewPartId,
+      value: { ...livePartLayout, spanEngravings: spanEngravings?.length ? spanEngravings : undefined } })
+  }, [activeSpanReference, scoreViewMode, livePartViewPartId, livePartLayout, executeCommand])
 
   const switchActiveVoice = useCallback(
     (voiceNumber: (typeof voiceNumbers)[number]) => {
@@ -1166,7 +1318,11 @@ export const App = () => {
     const partPreset = resolvePartPreset(selectedPartPresetId)
     const partId = createUniqueIdFromBase(
       partPreset.id,
-      new Set(score.parts.map((part) => part.id))
+      new Set([
+        ...score.parts.map(part => part.id),
+        ...(nativeEnvelope.current?.partLayouts.map(layout => layout.partId) ?? []),
+        ...Object.keys(partPageSetupPreferences)
+      ])
     )
     const duplicateCount = countExistingPartNames(score, partPreset.label)
     const suffix = duplicateCount > 0 ? ` ${duplicateCount + 1}` : ''
@@ -1201,7 +1357,7 @@ export const App = () => {
       tone: 'neutral',
       message: `${partName} 파트를 악기 라이브러리에서 추가했습니다.`
     })
-  }, [executeCommand, score, selectedPartPresetId])
+  }, [executeCommand, score, selectedPartPresetId, partPageSetupPreferences])
 
   const removeActivePart = useCallback(() => {
     if (!activeStructurePart || score.parts.length <= 1) {
@@ -1307,7 +1463,17 @@ export const App = () => {
           }
         : part
     )
-    const command = buildScorePartsReplaceCommand(score, nextParts)
+    const partLayouts = nativeEnvelope.current?.partLayouts
+    const command: EditorCommand = {
+      ...buildScorePartsReplaceCommand(score, nextParts),
+      ...(partLayouts ? { partLayoutState: partLayouts.map(layout => {
+        const previousPart = score.parts.find(part => part.id === layout.partId)
+        const nextPart = nextParts.find(part => part.id === layout.partId)
+        return previousPart && nextPart ? { ...layout,
+          layout: remapRemovedStaffLayoutAnchors(layout.layout, [previousPart], [nextPart]) ?? {}
+        } : layout
+      }) } : {})
+    }
 
     if (!executeCommand(command)) {
       return
@@ -1365,38 +1531,35 @@ export const App = () => {
     [activeStructureStaff, activeStructureTarget, executeCommand, score]
   )
 
+  const readAutosaveRecovery = useCallback(async () => {
+    const request = ++recoveryReadRequest.current
+    const generation = documentGeneration.current
+    const isCurrent = () => request === recoveryReadRequest.current && generation === documentGeneration.current
+    setReadingRecovery(true)
+    setRecoveryProtection(true)
+    setRecoveryReadError(undefined)
+    try {
+      const snapshot = await window.inC.autosave.read()
+      if (!isCurrent()) return
+      if (snapshot && !isAutosaveRecoverySnapshot(snapshot)) throw new Error('복구본 형식이 올바르지 않습니다. 원본은 보존됩니다.')
+      setRecoveryProtection(Boolean(snapshot))
+      setRecoverySnapshot(snapshot || undefined)
+    } catch (error) {
+      if (!isCurrent()) return
+      const message = `자동저장 복구본을 읽지 못했습니다. ${getErrorMessage(error)}`
+      setRecoveryReadError(message)
+      setFileStatus({ tone: 'error', message })
+    } finally {
+      if (request === recoveryReadRequest.current) setReadingRecovery(false)
+    }
+  }, [setRecoveryProtection])
+
   useEffect(() => {
-    if (isFixtureMode() || autosaveHasLoaded.current) {
-      return
-    }
-
+    if (isFixtureMode() || autosaveHasLoaded.current) return
     autosaveHasLoaded.current = true
-    let isActive = true
-
-    window.inC.autosave
-      .read()
-      .then((snapshot) => {
-        if (!isActive || !snapshot || !isAutosaveRecoverySnapshot(snapshot)) {
-          return
-        }
-
-        setRecoverySnapshot(snapshot)
-      })
-      .catch((error) => {
-        if (!isActive) {
-          return
-        }
-
-        setFileStatus({
-          tone: 'error',
-          message: `자동저장 복구본을 읽지 못했습니다. ${getErrorMessage(error)}`
-        })
-      })
-
-    return () => {
-      isActive = false
-    }
-  }, [])
+    void readAutosaveRecovery()
+    return () => { recoveryReadRequest.current += 1 }
+  }, [readAutosaveRecovery])
 
   useEffect(() => {
     if (isFixtureMode()) {
@@ -1427,17 +1590,19 @@ export const App = () => {
   }, [])
 
   useEffect(() => {
-    if (isFixtureMode() || autosaveRevision === 0 || recoverySnapshot) {
+    if (isFixtureMode() || autosaveRevision === 0 || recoverySnapshot || recoveryPending) {
       return
     }
 
+    let active = true
+    const envelope = nativeEnvelope.current
     const timeoutId = window.setTimeout(() => {
-      window.inC.autosave
-        .write({
-          score,
-          title: score.title
-        })
+      Promise.resolve().then(() => active && !recoveryPendingRef.current ? window.inC.autosave.write({
+        score, title: score.title,
+        ...(envelope ? { project: createNativeSnapshot(score, envelope, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId) } : {})
+      }) : undefined)
         .catch((error) => {
+          if (!active) return
           setFileStatus({
             tone: 'error',
             message: `자동저장에 실패했습니다. ${getErrorMessage(error)}`
@@ -1446,9 +1611,10 @@ export const App = () => {
     }, 1200)
 
     return () => {
+      active = false
       window.clearTimeout(timeoutId)
     }
-  }, [autosaveRevision, recoverySnapshot, score])
+  }, [autosaveRevision, recoverySnapshot, recoveryPending, score, partPageSetupPreferences, scoreViewMode, selectedScoreViewPartId])
 
   useEffect(() => {
     if (isFixtureMode()) {
@@ -1469,13 +1635,22 @@ export const App = () => {
   }, [autosaveRevision])
 
   const recoverAutosave = useCallback(() => {
-    if (!recoverySnapshot) {
+    if (!recoverySnapshot || recoveryDiscardInFlight.current) {
       return
     }
+    if (!shouldReplaceCurrentScore({ autosaveRevision }, window.confirm.bind(window))) return
+    setRecoveryProtection(false)
 
     playback.stop()
     documentGeneration.current += 1
+    nativeFile.current = undefined
+    nativeEnvelope.current = recoverySnapshot.project
     setScore(recoverySnapshot.score)
+    setScoreViewMode(recoverySnapshot.project?.view.mode ?? 'score')
+    setSelectedScoreViewPartId(recoverySnapshot.project?.view.mode === 'part' ? recoverySnapshot.project.view.partId : undefined)
+    setPartPageSetupPreferences(Object.fromEntries((recoverySnapshot.project?.partLayouts ?? [])
+      .filter(part => part.layout.pageSetup)
+      .map(part => [part.partId, normalizePrintPageSetup(part.layout.pageSetup)])))
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
     setRedoStack([])
@@ -1484,31 +1659,42 @@ export const App = () => {
     setMetadataEdit(undefined)
     setNewScoreDraft(undefined)
     setPendingSlurAnchorEventId(undefined)
-    setSelection(createInitialSelection(recoverySnapshot.score))
+    setSelection(createInitialSelection(recoverySnapshot.score, recoverySnapshot.project?.view.mode === 'part' ? recoverySnapshot.project.view.partId : undefined))
     setRecoverySnapshot(undefined)
     currentMusicXmlFileRef.current = undefined
     setStartScreenVisible(false)
     setFileStatus({
       tone: 'neutral',
-      message: '복구본을 열었습니다. 필요한 경우 MusicXML로 내보내 주세요.'
+      message: recoverySnapshot.project ? '프로젝트 복구본을 열었습니다. 새 파일로 저장해 주세요.' : '복구본을 열었습니다. 필요한 경우 MusicXML로 내보내 주세요.'
     })
-  }, [playback, recoverySnapshot])
+  }, [autosaveRevision, playback, recoverySnapshot, setRecoveryProtection])
 
   const discardAutosave = useCallback(async () => {
+    if (recoveryDiscardInFlight.current) return
+    recoveryDiscardInFlight.current = true
+    setDiscardingRecovery(true)
+    const generation = documentGeneration.current
     try {
       await window.inC.autosave.clear()
+      setRecoveryProtection(false)
+      await restoreDirtyRecoveryAfterClear()
+      if (generation !== documentGeneration.current) return
       setRecoverySnapshot(undefined)
       setFileStatus({
         tone: 'neutral',
         message: '복구본을 삭제했습니다.'
       })
     } catch (error) {
+      if (generation !== documentGeneration.current) return
       setFileStatus({
         tone: 'error',
         message: `복구본을 삭제하지 못했습니다. ${getErrorMessage(error)}`
       })
+    } finally {
+      recoveryDiscardInFlight.current = false
+      setDiscardingRecovery(false)
     }
-  }, [])
+  }, [restoreDirtyRecoveryAfterClear, setRecoveryProtection])
 
   const postponeAutosave = useCallback(() => {
     setRecoverySnapshot(undefined)
@@ -1525,14 +1711,13 @@ export const App = () => {
       return
     }
 
-    const result = applyScoreCommand(score, entry.command)
-    setScore(result.score)
+    const inverse = applyEditorCommand(entry.command)
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack((entries) => entries.slice(0, -1))
     setRedoStack((entries) => [
       ...entries,
       {
-        command: result.undo,
+        command: inverse,
         inputState: noteInputState,
         selection
       }
@@ -1540,7 +1725,7 @@ export const App = () => {
     setNoteInputState(entry.inputState)
     setPendingSlurAnchorEventId(undefined)
     setSelection(entry.selection)
-  }, [noteInputState, score, selection, undoStack])
+  }, [applyEditorCommand, noteInputState, selection, undoStack])
 
   const redo = useCallback(() => {
     const entry = redoStack.at(-1)
@@ -1549,14 +1734,13 @@ export const App = () => {
       return
     }
 
-    const result = applyScoreCommand(score, entry.command)
-    setScore(result.score)
+    const inverse = applyEditorCommand(entry.command)
     setAutosaveRevision((revision) => revision + 1)
     setRedoStack((entries) => entries.slice(0, -1))
     setUndoStack((entries) => [
       ...entries,
       {
-        command: result.undo,
+        command: inverse,
         inputState: noteInputState,
         selection
       }
@@ -1564,7 +1748,7 @@ export const App = () => {
     setNoteInputState(entry.inputState)
     setPendingSlurAnchorEventId(undefined)
     setSelection(entry.selection)
-  }, [noteInputState, redoStack, score, selection])
+  }, [applyEditorCommand, noteInputState, redoStack, selection])
 
   const beginMetadataEdit = useCallback(
     (field: MetadataField) => {
@@ -1572,10 +1756,11 @@ export const App = () => {
       setNoteInputState(undefined)
       setMetadataEdit({
         field,
-        value: field === 'title' ? score.title : score.composer ?? ''
+        value: field === 'title' ? score.title : field === 'partTitle' ? livePartViewTitle ?? '' : score.composer ?? '',
+        ...(field === 'partTitle' ? { partId: livePartViewPartId } : {})
       })
     },
-    [score.composer, score.title]
+    [score.composer, score.title, livePartViewPartId, livePartViewTitle]
   )
 
   const cancelMetadataEdit = useCallback(() => {
@@ -1585,6 +1770,16 @@ export const App = () => {
   const commitMetadataEdit = useCallback(
     (field: MetadataField, value: string) => {
       const trimmed = value.trim()
+      if (field === 'partTitle') {
+        const partId = metadataEdit?.partId
+        setMetadataEdit(undefined)
+        if (!partId || !score.parts.some(part => part.id === partId)) return
+        const previous = nativeEnvelope.current?.partLayouts.find(part => part.partId === partId)
+        const title = trimmed || undefined
+        if (previous?.title === title) return
+        executeCommand({ type: 'part-layout.replace', partId, value: { ...previous, partId, title, layout: previous?.layout ?? {} } })
+        return
+      }
       const title = field === 'title'
         ? trimmed || '제목 없는 악보'
         : score.title
@@ -1611,7 +1806,7 @@ export const App = () => {
         })
       }
     },
-    [executeCommand, score.composer, score.title]
+    [executeCommand, score.composer, score.title, score.parts, metadataEdit?.partId]
   )
 
   const handleMetadataKeyDown = useCallback(
@@ -1675,7 +1870,12 @@ export const App = () => {
 
     playback.stop()
     documentGeneration.current += 1
+    nativeFile.current = undefined
+    nativeEnvelope.current = undefined
     setScore(nextScore)
+    setScoreViewMode('score')
+    setSelectedScoreViewPartId(undefined)
+    setPartPageSetupPreferences({})
     setAutosaveRevision((revision) => revision + 1)
     setUndoStack([])
     setRedoStack([])
@@ -2397,6 +2597,22 @@ export const App = () => {
   ])
 
   const copySelection = useCallback(() => {
+    const sourceScore = scoreViewMode === 'part' && livePartViewPartId
+      ? applyPortablePartLayout(createLivePartViewScore(score, livePartViewPartId), livePartLayout)
+      : score
+    if (activeSpanReference) {
+      const clipboard = buildSpanClipboard(sourceScore, activeSpanReference)
+      if (!clipboard) {
+        setFileStatus({ tone: 'error', message: '같은 성부의 유효한 끝점을 가진 표기 객체만 복사할 수 있습니다.' })
+        return
+      }
+      setSpanClipboard(clipboard)
+      setRangeClipboard(undefined)
+      setMeasureMarkingClipboard(undefined)
+      setFileStatus({ tone: 'neutral', message: '표기 객체를 복사했습니다.' +
+        (clipboard.excludedSegmentCount ? ` 범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외` : '') })
+      return
+    }
     if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
       const clipboard = buildMeasureMarkingClipboard(
         score,
@@ -2414,6 +2630,7 @@ export const App = () => {
 
       setMeasureMarkingClipboard(clipboard)
       setRangeClipboard(undefined)
+      setSpanClipboard(undefined)
       setFileStatus({
         tone: 'neutral',
         message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 복사했습니다.`
@@ -2421,7 +2638,7 @@ export const App = () => {
       return
     }
 
-    const clipboard = buildFilteredRangeClipboard(score, selection, {
+    const clipboard = buildFilteredRangeClipboard(sourceScore, selection, {
       eventTypes: selectionEventTypeFilter
     })
 
@@ -2435,16 +2652,29 @@ export const App = () => {
 
     setRangeClipboard(clipboard)
     setMeasureMarkingClipboard(undefined)
+    setSpanClipboard(undefined)
     setFileStatus({
       tone: 'neutral',
       message:
-        selectionEventTypeFilter === 'notes-and-rests'
+        (selectionEventTypeFilter === 'notes-and-rests'
           ? `${clipboard.eventCount}개 이벤트를 복사했습니다.`
-          : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`
+          : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`) + describeRangeClipboardExclusions(clipboard)
     })
-  }, [score, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
+  }, [activeSpanReference, score, scoreViewMode, livePartViewPartId, livePartLayout, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
 
   const pasteSelection = useCallback(() => {
+    if (spanClipboard) {
+      const pasted = !activeSpanReference && buildSpanPaste(score, selection, spanClipboard, () => crypto.randomUUID())
+      if (!pasted) {
+        setFileStatus({ tone: 'error', message: '같은 성부에서 원본과 같은 틱 간격의 끝점이 필요합니다. 대상 음표 또는 쉼표를 선택해 주세요.' })
+        return
+      }
+      if (executeCommand(pasted.command)) {
+        setFileStatus({ tone: 'neutral', message: '표기 객체를 붙여넣었습니다.' +
+          (pasted.excludedSegmentCount ? ` 적용할 수 없는 구간 배치 ${pasted.excludedSegmentCount}개 제외` : '') })
+      }
+      return
+    }
     if (selection.type === 'measure' && measureMarkingClipboard) {
       const command = buildMeasureMarkingPasteCommand(
         score,
@@ -2482,7 +2712,7 @@ export const App = () => {
       setFileStatus({
         tone: 'error',
         message:
-          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이와 셋잇단음표는 아직 제외됩니다.'
+          '같은 길이의 단순 범위에만 붙여넣을 수 있습니다. 타이·셋잇단음표 또는 옥타브선 충돌이 있는 대상은 지원하지 않습니다.'
       })
       return
     }
@@ -2501,25 +2731,29 @@ export const App = () => {
     setRedoStack([])
     setNoteInputState(undefined)
 
-    if (command.type === 'voice-events.replace' && command.editedEventId) {
+    const replacement = command.type === 'score.batch'
+      ? command.commands.find(item => item.type === 'voice-events.replace') : command
+    if (replacement?.type === 'voice-events.replace' && replacement.editedEventId) {
       const pastedLocation = locateEvent(
         result.score,
-        command.editedEventId,
-        command.target
+        replacement.editedEventId,
+        replacement.target
       )
 
       setSelection({
         type: 'event',
-        eventId: command.editedEventId,
-        address: pastedLocation?.address ?? command.target
+        eventId: replacement.editedEventId,
+        address: pastedLocation?.address ?? replacement.target
       })
     }
 
     setFileStatus({
       tone: 'neutral',
-      message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.`
+      message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.` + describeRangeClipboardExclusions(rangeClipboard)
     })
   }, [
+    activeSpanReference,
+    spanClipboard,
     executeCommand,
     measureMarkingClipboard,
     noteInputState,
@@ -2556,6 +2790,7 @@ export const App = () => {
       return true
     }
 
+    setFileStatus({ tone: 'error', message: '마디를 추가할 수 없습니다. 선택 위치와 보표별 마디 수를 확인해 주세요.' })
     return false
   }, [executeCommand, noteInputState, score])
 
@@ -2589,6 +2824,7 @@ export const App = () => {
       return true
     }
 
+    setFileStatus({ tone: 'error', message: '마디를 삭제할 수 없습니다. 선택 위치와 보표별 마디 수를 확인해 주세요.' })
     return false
   }, [executeCommand, measureCount, noteInputState, score])
 
@@ -2777,83 +3013,25 @@ export const App = () => {
     updateMeasureById
   ])
 
-  const toggleSystemBreak = useCallback(() => {
-    if (!activeMeasureId || activeMeasureIndex <= 0) {
-      setFileStatus({
-        tone: 'error',
-        message: '첫 마디 앞에는 시스템 나누기를 추가할 수 없습니다.'
-      })
-      return
+  const toggleLayoutBreak = useCallback((kind: 'system' | 'page') => {
+    if (!layoutMeasureId || activeMeasureIndex <= 0) return
+    const key = kind === 'system' ? 'systemBreakBeforeMeasureIds' : 'pageBreakBeforeMeasureIds'
+    const current = activeLayout?.[key] ?? []
+    const removing = current.includes(layoutMeasureId)
+    const next = removing ? current.filter(id => id !== layoutMeasureId) : [...current, layoutMeasureId]
+    if (scoreViewMode === 'part' && livePartViewPartId) {
+      executeCommand({ type: 'part-layout.replace', partId: livePartViewPartId, value: {
+        ...livePartLayout, partId: livePartViewPartId,
+        layout: { ...livePartLayout?.layout, [key]: next }
+      } })
+    } else {
+      executeCommand({ type: 'score-layout.update', layout: { ...score.layout, [key]: next.length ? next : undefined } })
     }
-
-    const currentBreaks = score.layout?.systemBreakBeforeMeasureIds ?? []
-    const nextBreaks = activeMeasureHasSystemBreak
-      ? currentBreaks.filter((measureId) => measureId !== activeMeasureId)
-      : [...currentBreaks, activeMeasureId]
-    const layout = {
-      ...score.layout,
-      systemBreakBeforeMeasureIds: nextBreaks.length > 0 ? nextBreaks : undefined
-    }
-
-    if (
-      executeCommand({
-        type: 'score-layout.update',
-        layout
-      })
-    ) {
-      setFileStatus({
-        tone: 'neutral',
-        message: activeMeasureHasSystemBreak
-          ? '시스템 나누기를 해제했습니다.'
-          : '선택한 마디 앞에 시스템 나누기를 추가했습니다.'
-      })
-    }
-  }, [
-    activeMeasureHasSystemBreak,
-    activeMeasureId,
-    activeMeasureIndex,
-    executeCommand,
-    score.layout
-  ])
-
-  const togglePageBreak = useCallback(() => {
-    if (!activeMeasureId || activeMeasureIndex <= 0) {
-      setFileStatus({
-        tone: 'error',
-        message: '첫 마디 앞에는 페이지 나누기를 추가할 수 없습니다.'
-      })
-      return
-    }
-
-    const currentBreaks = score.layout?.pageBreakBeforeMeasureIds ?? []
-    const nextBreaks = activeMeasureHasPageBreak
-      ? currentBreaks.filter((measureId) => measureId !== activeMeasureId)
-      : [...currentBreaks, activeMeasureId]
-    const layout = {
-      ...score.layout,
-      pageBreakBeforeMeasureIds: nextBreaks.length > 0 ? nextBreaks : undefined
-    }
-
-    if (
-      executeCommand({
-        type: 'score-layout.update',
-        layout
-      })
-    ) {
-      setFileStatus({
-        tone: 'neutral',
-        message: activeMeasureHasPageBreak
-          ? '페이지 나누기를 해제했습니다.'
-          : '선택한 마디 앞에 페이지 나누기를 추가했습니다.'
-      })
-    }
-  }, [
-    activeMeasureHasPageBreak,
-    activeMeasureId,
-    activeMeasureIndex,
-    executeCommand,
-    score.layout
-  ])
+    const label = kind === 'system' ? '시스템' : '페이지'
+    setFileStatus({ tone: 'neutral', message: removing ? `${label} 나누기를 해제했습니다.` : `선택한 마디 앞에 ${label} 나누기를 추가했습니다.` })
+  }, [layoutMeasureId, activeMeasureIndex, activeLayout, scoreViewMode, livePartViewPartId, livePartLayout, score.layout, executeCommand])
+  const toggleSystemBreak = useCallback(() => toggleLayoutBreak('system'), [toggleLayoutBreak])
+  const togglePageBreak = useCallback(() => toggleLayoutBreak('page'), [toggleLayoutBreak])
 
   const updatePageSetup = useCallback(
     (patch: Partial<Required<ScorePageSetup>>) => {
@@ -2863,18 +3041,10 @@ export const App = () => {
       })
 
       if (scoreViewMode === 'part' && livePartViewPartId) {
-        setPartPageSetupPreferences((currentPreferences) => {
-          const nextPreferences = {
-            ...currentPreferences,
-            [livePartViewPartId]: nextPageSetup
-          }
-          const filePath = currentMusicXmlFileRef.current?.filePath
-
-          if (filePath) {
-            writeStoredPartPageSetups(filePath, nextPreferences)
-          }
-
-          return nextPreferences
+        if (samePageSetup(nextPageSetup, pageSetup)) return
+        executeCommand({ type: 'part-layout.replace', partId: livePartViewPartId,
+          value: { ...livePartLayout, partId: livePartViewPartId, layout: { ...livePartLayout?.layout, pageSetup: nextPageSetup } },
+          pageSetupChange: { value: nextPageSetup }
         })
         setFileStatus({
           tone: 'neutral',
@@ -2902,6 +3072,7 @@ export const App = () => {
     },
     [
       executeCommand,
+      livePartLayout,
       livePartViewPart?.name,
       livePartViewPartId,
       pageSetup,
@@ -3104,7 +3275,7 @@ export const App = () => {
 
   const updateActiveDynamic = useCallback(
     (value: string) => {
-      if (!activeMeasureId) {
+      if (!activeMeasureId || selection.type === 'range') {
         return
       }
 
@@ -3137,7 +3308,7 @@ export const App = () => {
         dynamics: dynamics.length > 0 ? dynamics : undefined
       })
     },
-    [activeMeasureId, executeCommand, score.dynamics]
+    [activeMeasureId, executeCommand, score.dynamics, selection.type]
   )
 
   const updateActiveMeasure = useCallback(
@@ -3627,7 +3798,7 @@ export const App = () => {
       if (selection.type !== 'range' || selection.eventIds.length < 2) {
         setFileStatus({
           tone: 'error',
-          message: '헤어핀을 넣을 음표 범위를 선택해 주세요.'
+          message: '헤어핀을 넣을 음표 또는 쉼표 범위를 선택해 주세요.'
         })
         return
       }
@@ -3640,12 +3811,12 @@ export const App = () => {
       if (
         !startLocation ||
         !endLocation ||
-        startLocation.event.type !== 'note' ||
-        endLocation.event.type !== 'note'
+        startLocation.address.partId !== endLocation.address.partId ||
+        startLocation.address.staffId !== endLocation.address.staffId
       ) {
         setFileStatus({
           tone: 'error',
-          message: '헤어핀은 음표에서 시작하고 음표에서 끝나야 합니다.'
+          message: '헤어핀은 같은 보표의 음표 또는 쉼표 범위에 넣을 수 있습니다.'
         })
         return
       }
@@ -4057,7 +4228,7 @@ export const App = () => {
       setMode('select')
       setNoteInputState(undefined)
       setMeasureContextMenu(undefined)
-      setToolbarCategory('note')
+      setToolbarCategory(current => current === 'notation' ? current : 'note')
 
       if (extendRange) {
         const anchorEventId =
@@ -4137,14 +4308,14 @@ export const App = () => {
       message: string,
       options: AppOpenScoreOptions = {}
     ) => {
-      const firstMeasure = nextScore.parts[0]?.staves[0]?.measures[0]
-      const firstEvent = firstMeasure?.voices[0]?.events[0]
       const scoreViewState = resolveStoredMusicXmlViewState(
         nextScore,
         options.viewState
       )
 
       documentGeneration.current += 1
+      nativeFile.current = undefined
+      nativeEnvelope.current = undefined
       setScore(nextScore)
       setAutosaveRevision((revision) =>
         options.markDirty === false ? 0 : revision + 1
@@ -4162,32 +4333,7 @@ export const App = () => {
         scoreViewState.mode === 'part' ? scoreViewState.partId : undefined
       )
       setPartPageSetupPreferences(options.partPageSetupPreferences ?? {})
-      setSelection(
-        firstEvent
-          ? {
-              type: 'event',
-              eventId: firstEvent.id,
-              address: {
-                partId: nextScore.parts[0]!.id,
-                staffId: nextScore.parts[0]!.staves[0]!.id,
-                measureId: firstMeasure!.id,
-                voiceId: firstMeasure!.voices[0]!.id
-              }
-            }
-          : {
-              type: 'measure',
-              measureId: firstMeasure?.id ?? 'measure-1',
-              address:
-                firstMeasure && nextScore.parts[0]?.staves[0]
-                  ? {
-                      partId: nextScore.parts[0].id,
-                      staffId: nextScore.parts[0].staves[0].id,
-                      measureId: firstMeasure.id,
-                      voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
-                    }
-                  : undefined
-            }
-      )
+      setSelection(createInitialSelection(nextScore, scoreViewState.mode === 'part' ? scoreViewState.partId : nextScore.parts[0]?.id))
       setFileStatus({
         tone: 'neutral',
         message
@@ -4195,6 +4341,106 @@ export const App = () => {
     },
     []
   )
+
+  const openNativeProject = useCallback(async (recent?: RecentMusicXmlFile) => {
+    if (nativeOpenInFlight.current || !window.inC?.project) return
+    if (!shouldReplaceCurrentScore({ autosaveRevision }, window.confirm.bind(window))) return
+    nativeOpenInFlight.current = true
+    const generation = documentGeneration.current
+    const initialContext = currentNativeContext.current
+    try {
+      const file = recent ? await window.inC.recentMusicXml.open({ filePath: recent.filePath }) : await window.inC.project.open()
+      if (!file || generation !== documentGeneration.current) return
+      if ((currentNativeContext.current.score !== initialContext.score || currentNativeContext.current.partPageSetupPreferences !== initialContext.partPageSetupPreferences || currentNativeContext.current.autosaveRevision !== initialContext.autosaveRevision) && !window.confirm('파일 선택 중 편집한 내용을 버리고 프로젝트를 열까요?')) return
+      const project = decodeNativeProject(file.contents)
+      const preferences: PartPageSetupPreferences = {}
+      for (const part of project.partLayouts) {
+        if (part.layout.pageSetup) preferences[part.partId] = normalizePrintPageSetup(part.layout.pageSetup)
+      }
+      playback.stop()
+      openScore(project.score, `${file.fileName}을 열었습니다.`, { markDirty: false, viewState: project.view, partPageSetupPreferences: preferences })
+      nativeFile.current = { filePath: file.filePath, fileName: file.fileName }
+      nativeEnvelope.current = project
+      currentMusicXmlFileRef.current = undefined
+      const openedGeneration = documentGeneration.current
+      try {
+        const files = await window.inC.recentMusicXml.add({ filePath: file.filePath, fileName: file.fileName, format: 'native' })
+        if (openedGeneration === documentGeneration.current) setRecentMusicXmlFiles(files)
+      } catch (error) {
+        if (openedGeneration === documentGeneration.current) setFileStatus({ tone: 'error', message: `프로젝트는 열었지만 최근 목록을 저장하지 못했습니다. ${getErrorMessage(error)}` })
+      }
+    } catch (error) {
+      if (generation === documentGeneration.current) {
+        const message = getErrorMessage(error)
+        if (recent && message.includes('최근 파일을 찾을 수 없습니다')) setMissingRecentFilePath(recent.filePath)
+        setFileStatus({ tone: 'error', message })
+      }
+    } finally { nativeOpenInFlight.current = false }
+  }, [autosaveRevision, openScore, playback])
+
+  const closeNativeBackups = useCallback(() => {
+    backupRequest.current += 1
+    setNativeBackupsOpen(false)
+  }, [])
+
+  const restoreNativeBackup = useCallback(async (id: string) => {
+    if (!shouldReplaceCurrentScore({ autosaveRevision }, window.confirm.bind(window))) return
+    const request = ++backupRequest.current
+    const generation = documentGeneration.current
+    const context = currentNativeContext.current
+    let file: { contents: string }
+    try { file = await window.inC.project.readBackup(id) } catch (error) {
+      if (request === backupRequest.current && generation === documentGeneration.current) throw error
+      return
+    }
+    if (request !== backupRequest.current || generation !== documentGeneration.current) return
+    if ((context.score !== currentNativeContext.current.score || context.partPageSetupPreferences !== currentNativeContext.current.partPageSetupPreferences || context.autosaveRevision !== currentNativeContext.current.autosaveRevision) &&
+      !window.confirm('복구 중 편집한 내용을 버리고 백업을 열까요?')) return
+    const project = decodeNativeProject(file.contents)
+    const preferences: PartPageSetupPreferences = Object.fromEntries(project.partLayouts
+      .filter(part => part.layout.pageSetup).map(part => [part.partId, normalizePrintPageSetup(part.layout.pageSetup)]))
+    playback.stop()
+    openScore(project.score, '백업을 복구했습니다. 새 프로젝트 파일로 저장해 주세요.', {
+      viewState: project.view, partPageSetupPreferences: preferences
+    })
+    nativeEnvelope.current = project
+    currentMusicXmlFileRef.current = undefined
+    closeNativeBackups()
+  }, [autosaveRevision, playback, openScore, closeNativeBackups])
+
+  const saveNativeProject = useCallback(async (saveAs = false) => {
+    if (saveInFlight.current || !window.inC?.project) return
+    saveInFlight.current = true
+    setSavingNative(true)
+    const generation = documentGeneration.current
+    const context = currentNativeContext.current
+    const sameDocument = () => generation === documentGeneration.current
+    const sameSnapshot = () => sameDocument() && currentNativeContext.current.score === context.score && currentNativeContext.current.partPageSetupPreferences === context.partPageSetupPreferences && currentNativeContext.current.scoreViewMode === context.scoreViewMode && currentNativeContext.current.selectedScoreViewPartId === context.selectedScoreViewPartId && currentNativeContext.current.autosaveRevision === context.autosaveRevision
+    try {
+      if (noteInputState?.tupletInput) throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 저장해 주세요.')
+      const project = createNativeSnapshot(score, nativeEnvelope.current, partPageSetupPreferences, scoreViewMode, livePartViewPartId)
+      const contents = encodeNativeProject(project)
+      const result = await window.inC.project.save({
+        ...(!saveAs && nativeFile.current ? { filePath: nativeFile.current.filePath } : {}),
+        suggestedName: `${toFileName(score.title)}.chromatics`, contents
+      })
+      if (!result || !sameDocument()) return
+      nativeFile.current = result
+      nativeEnvelope.current ??= project
+      currentMusicXmlFileRef.current = undefined
+      const files = await window.inC.recentMusicXml.add({ ...result, format: 'native' })
+      if (!sameDocument()) return
+      setRecentMusicXmlFiles(files)
+      if (sameSnapshot()) {
+        if (!recoveryPendingRef.current) await window.inC.autosave.clear()
+        if (sameSnapshot()) setAutosaveRevision(0)
+        else await restoreDirtyRecoveryAfterClear()
+      }
+      if (sameDocument()) setFileStatus({ tone: 'neutral', message: sameSnapshot() ? `${result.fileName}에 저장했습니다.` : `${result.fileName}에 저장했습니다. 저장 중 변경사항은 아직 저장되지 않았습니다.` })
+    } catch (error) {
+      if (sameDocument()) setFileStatus({ tone: 'error', message: getErrorMessage(error) })
+    } finally { saveInFlight.current = false; setSavingNative(false) }
+  }, [score, partPageSetupPreferences, scoreViewMode, livePartViewPartId, noteInputState?.tupletInput, restoreDirtyRecoveryAfterClear])
 
   const importMusicXml = useCallback(async () => {
     if (
@@ -4269,6 +4515,10 @@ export const App = () => {
 
   const openRecentMusicXml = useCallback(
     async (file: RecentMusicXmlFile) => {
+      if (file.format === 'native') {
+        await openNativeProject(file)
+        return
+      }
       if (
         !isFixtureMode() &&
         !shouldReplaceCurrentScore(
@@ -4341,7 +4591,7 @@ export const App = () => {
         })
       }
     },
-    [autosaveRevision, openScore]
+    [autosaveRevision, openScore, openNativeProject]
   )
 
   const removeMissingRecentMusicXml = useCallback(async () => {
@@ -4388,6 +4638,13 @@ export const App = () => {
       }
 
       const { contents, report } = serializeMusicXmlWithReport(score)
+      for (const [index, layout] of (nativeEnvelope.current?.partLayouts ?? []).entries()) {
+        if (!layout.spanEngravings?.some(override =>
+          (override.kind === 'slur' ? score.slurs : score.hairpins)?.some(span => span.id === override.spanId)
+        )) continue
+        report.warnings.push({ code: 'unsupported-layout', path: `project.partLayouts[${index}].spanEngravings`,
+          message: 'Independent part span placement is preserved in Chromatics projects, not full-score MusicXML save.' })
+      }
       assertMusicXmlSaveSafe(score, contents)
       const currentMusicXmlFile = currentMusicXmlFileRef.current
       const result = await window.inC.musicXml.save({
@@ -4417,13 +4674,12 @@ export const App = () => {
       writeStoredPartPageSetups(result.filePath, partPageSetupPreferences)
 
       try {
-        if (sameSnapshot()) {
-          await window.inC.autosave.clear()
+        if (sameSnapshot() && !nativeEnvelope.current) {
+          if (!recoveryPendingRef.current) await window.inC.autosave.clear()
           if (sameSnapshot()) {
             setAutosaveRevision(0)
           } else {
-            const latest = currentScoreRef.current
-            await window.inC.autosave.write({ score: latest, title: latest.title })
+            await restoreDirtyRecoveryAfterClear()
           }
         }
       } catch (autosaveError) {
@@ -4482,8 +4738,50 @@ export const App = () => {
     noteInputState?.tupletInput,
     partPageSetupPreferences,
     score,
-    scoreViewMode
+    scoreViewMode,
+    restoreDirtyRecoveryAfterClear
   ])
+
+  const exportMusicXml = useCallback(async () => {
+    if (exportInFlight.current) return
+    exportInFlight.current = true
+    setExportingMusicXml(true)
+    const generation = documentGeneration.current
+    try {
+      if (noteInputState?.tupletInput) {
+        throw new Error('셋잇단음표 입력을 완료하거나 취소한 뒤 내보내 주세요.')
+      }
+      const selectedPart = scoreViewMode === 'part'
+        ? score.parts.find(part => part.id === livePartViewPartId)
+        : undefined
+      if (scoreViewMode === 'part' && !selectedPart) {
+        throw new Error('내보낼 파트보를 선택해 주세요.')
+      }
+      const exportScore = selectedPart
+        ? {
+            ...applyPortablePartLayout(createPartExportScore(score, selectedPart.id), livePartLayout),
+            title: livePartLayout?.title ?? score.title
+          }
+        : score
+      const { contents, report } = serializeMusicXmlWithReport(exportScore)
+      assertMusicXmlSaveSafe(exportScore, contents)
+      const name = selectedPart ? `${score.title}-${selectedPart.name}` : score.title
+      const result = await window.inC.musicXml.exportCopy({
+        suggestedName: `${toFileName(name)}.musicxml`,
+        contents
+      })
+      if (!result || documentGeneration.current !== generation) return
+      setFileStatus({ tone: 'neutral', message: `${result.fileName}로 MusicXML을 내보냈습니다.` })
+      setMusicXmlReport(createMusicXmlReportPanelState('export', result.fileName, report))
+    } catch (error) {
+      if (documentGeneration.current === generation) {
+        setFileStatus({ tone: 'error', message: getErrorMessage(error) })
+      }
+    } finally {
+      exportInFlight.current = false
+      setExportingMusicXml(false)
+    }
+  }, [score, scoreViewMode, livePartViewPartId, livePartLayout, noteInputState?.tupletInput])
 
   const savePdf = useCallback(async () => {
     if (!parsePdfTargetPages(pdfTargetPages)) {
@@ -4501,7 +4799,7 @@ export const App = () => {
       const result = await window.inC.pdf.save({
         suggestedName: `${toFileName(
           scoreViewMode === 'part' && livePartViewPart
-            ? `${score.title}-${livePartViewPart.name}`
+            ? `${score.title}-${livePartViewTitle}`
             : score.title
         )}.pdf`
       })
@@ -4522,7 +4820,7 @@ export const App = () => {
     } finally {
       setPdfExporting(false)
     }
-  }, [livePartViewPart, pdfTargetPages, score.title, scoreViewMode])
+  }, [livePartViewPart, livePartViewTitle, pdfTargetPages, score.title, scoreViewMode])
 
   const saveMidi = useCallback(async () => {
     try {
@@ -4564,6 +4862,12 @@ export const App = () => {
         return
       }
 
+      if (usesCommandKey && !event.altKey && event.shiftKey && event.code === 'KeyS' && nativeEnvelope.current) {
+        event.preventDefault()
+        void saveNativeProject(true)
+        return
+      }
+
       if (
         usesCommandKey &&
         !event.altKey &&
@@ -4571,11 +4875,23 @@ export const App = () => {
         event.code === 'KeyS'
       ) {
         event.preventDefault()
-        void saveMusicXml()
+        if (nativeEnvelope.current) void saveNativeProject()
+        else void saveMusicXml()
         return
       }
 
       if (isTextEditingTarget(event.target)) {
+        return
+      }
+
+      if (activeSpanReference) {
+        if (isUndoShortcut(event)) { event.preventDefault(); undo() }
+        else if (isRedoShortcut(event)) { event.preventDefault(); redo() }
+        else if (usesCommandKey && !event.altKey && event.code === 'KeyC') { event.preventDefault(); copySelection() }
+        else if (event.key === 'Escape') { event.preventDefault(); setSpanSelection(undefined) }
+        else if (event.key === 'Delete' || event.key === 'Backspace') { event.preventDefault(); deleteSpan() }
+        else if (event.key === ' ') { event.preventDefault(); playback.status === 'playing' ? playback.pause() : playback.play() }
+        else if (event.key !== 'Tab' && !['Shift', 'Control', 'Meta', 'Alt'].includes(event.key)) event.preventDefault()
         return
       }
 
@@ -4805,6 +5121,8 @@ export const App = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
+    activeSpanReference,
+    deleteSpan,
     addChordPitchStep,
     activeVoiceNumber,
     changeDuration,
@@ -4832,6 +5150,7 @@ export const App = () => {
     pendingSlurAnchorEventId,
     redo,
     saveMusicXml,
+    saveNativeProject,
     switchActiveVoice,
     toggleSlur,
     toggleTie,
@@ -4866,23 +5185,23 @@ export const App = () => {
     () => {
       const baseScore =
         scoreViewMode === 'part' && livePartViewPartId
-          ? createLivePartViewScore(previewScore, livePartViewPartId)
+          ? applyPortablePartLayout(createLivePartViewScore(previewScore, livePartViewPartId), livePartLayout)
           : previewScore
 
       return applyPageSetupToScore(baseScore, pageSetup)
     },
-    [livePartViewPartId, pageSetup, previewScore, scoreViewMode]
+    [livePartViewPartId, livePartLayout, pageSetup, previewScore, scoreViewMode]
   )
   const printScore = useMemo(
     () => {
       const baseScore =
         scoreViewMode === 'part' && livePartViewPartId
-          ? createLivePartViewScore(score, livePartViewPartId)
+          ? applyPortablePartLayout(createLivePartViewScore(score, livePartViewPartId), livePartLayout)
           : score
 
       return applyPageSetupToScore(baseScore, pageSetup)
     },
-    [livePartViewPartId, pageSetup, score, scoreViewMode]
+    [livePartViewPartId, livePartLayout, pageSetup, score, scoreViewMode]
   )
   const pdfTargetPageCount = parsePdfTargetPages(pdfTargetPages)
   const pdfTargetPagesInvalid = !pdfTargetPageCount
@@ -4906,7 +5225,26 @@ export const App = () => {
       : undefined
   const accidentalEnabled = Boolean(noteInputState || canEditPitch)
   const canEditMeasureNotation =
-    Boolean(activeMeasureId) && selection.type !== 'range'
+    Boolean(activeMeasureId) && selection.type !== 'range' && !activeSpanReference
+  const rangeStart = selection.type === 'range' && selection.eventIds.length >= 2
+    ? locateEvent(score, selection.eventIds[0], selection.address)
+    : undefined
+  const rangeEnd = selection.type === 'range' && selection.eventIds.length >= 2
+    ? locateEvent(score, selection.eventIds[selection.eventIds.length - 1], selection.address)
+    : undefined
+  const canApplyRangeHairpin = !activeSpanReference && Boolean(rangeStart && rangeEnd &&
+    rangeStart.address.partId === rangeEnd.address.partId &&
+    rangeStart.address.staffId === rangeEnd.address.staffId)
+  const canApplyNoteSpan = canApplyRangeHairpin &&
+    rangeStart?.event.type === 'note' && rangeEnd?.event.type === 'note'
+  const canApplySlur = canApplyNoteSpan ||
+    (selection.type === 'event' && eventLocation?.event.type === 'note')
+  const matchesSelectedRange = (span: { startEventId: string; endEventId: string }) =>
+    canApplyRangeHairpin && span.startEventId === rangeStart?.event.id &&
+    span.endEventId === rangeEnd?.event.id
+  const selectedRangeHairpin = score.hairpins?.find(matchesSelectedRange)
+  const selectedRangeSlur = score.slurs?.some(matchesSelectedRange) ?? false
+  const selectedRangeOctave = score.octaveShifts?.find(matchesSelectedRange)
   const measureObjectDeleteCommand =
     selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
       ? buildMeasureObjectDeleteCommand(
@@ -4923,15 +5261,15 @@ export const App = () => {
       : eventLocation?.event.type === 'rest'
       ? '쉼표 지우기'
       : '음표 지우기'
-  const canClearSelection =
+  const canClearSelection = !activeSpanReference && (
     Boolean(measureObjectDeleteCommand) ||
     ((selection.type === 'event' || selection.type === 'range') &&
       Boolean(
         buildFilteredDeleteCommand(score, selection, {
           eventTypes: selectionEventTypeFilter
         })
-      ))
-  const canCopySelection = Boolean(
+      )))
+  const canCopySelection = activeSpanReference ? Boolean(buildSpanClipboard(score, activeSpanReference)) : Boolean(
     (selection.type === 'measure' &&
       selectionObjectTypeFilter !== 'none' &&
       buildMeasureMarkingClipboard(
@@ -4943,7 +5281,8 @@ export const App = () => {
         eventTypes: selectionEventTypeFilter
       })
   )
-  const canPasteSelection = Boolean(
+  const canPasteSelection = !activeSpanReference && Boolean(
+    (spanClipboard && buildSpanPaste(score, selection, spanClipboard, previewInputId)) ||
     (selection.type === 'measure' && measureMarkingClipboard) ||
       (rangeClipboard &&
       buildFilteredRangePasteCommand(
@@ -4954,11 +5293,11 @@ export const App = () => {
         { eventTypes: selectionEventTypeFilter }
       ))
   )
-  const canToggleSystemBreak = activeMeasureIndex > 0
+  const canToggleSystemBreak = Boolean(layoutMeasureId) && activeMeasureIndex > 0
   const systemBreakLabel = activeMeasureHasSystemBreak
     ? '시스템 나누기 해제'
     : '시스템 나누기 추가'
-  const canTogglePageBreak = activeMeasureIndex > 0
+  const canTogglePageBreak = Boolean(layoutMeasureId) && activeMeasureIndex > 0
   const pageBreakLabel = activeMeasureHasPageBreak
     ? '페이지 나누기 해제'
     : '페이지 나누기 추가'
@@ -5119,32 +5458,38 @@ export const App = () => {
 
               <button
                 className="start-action"
-                disabled={!recoverySnapshot}
-                onClick={recoverAutosave}
+                disabled={readingRecovery || discardingRecovery || (!recoverySnapshot && !recoveryReadError)}
+                onClick={recoveryReadError ? () => void readAutosaveRecovery() : recoverAutosave}
                 type="button"
               >
                 <RotateCcw aria-hidden="true" size={24} />
                 <span>
-                  {recoverySnapshot ? '복구본 열기' : '복구본 없음'}
+                  {readingRecovery ? '복구본 확인 중' : recoveryReadError ? '복구본 다시 확인' : recoverySnapshot ? '복구본 열기' : '복구본 없음'}
                 </span>
                 <small>
-                  {recoverySnapshot
+                  {recoveryReadError ?? (recoverySnapshot
                     ? `${recoverySnapshot.metadata.title} · ${formatRecoveryTime(
                         recoverySnapshot.metadata.updatedAt
                       )}`
-                    : '자동저장된 작업이 있으면 여기에 표시됩니다.'}
+                    : '자동저장된 작업이 있으면 여기에 표시됩니다.')}
                 </small>
+              </button>
+              <button className="start-action" type="button" onClick={() => void openNativeProject()} disabled={!window.inC?.project}>
+                <FileMusic aria-hidden="true" size={24} /><span>프로젝트 열기</span>
+              </button>
+              <button className="start-action" type="button" onClick={() => setNativeBackupsOpen(true)} disabled={!window.inC?.project?.listBackups}>
+                <RotateCcw aria-hidden="true" size={24} /><span>프로젝트 백업</span>
               </button>
             </div>
 
             <section
-              aria-label="최근 MusicXML 파일"
+              aria-label="최근 악보 파일"
               className="recent-files"
             >
               <header className="recent-files__header">
                 <div>
                   <Clock3 aria-hidden="true" size={18} />
-                  <h2>최근 MusicXML</h2>
+                  <h2>최근 악보</h2>
                 </div>
                 {missingRecentFilePath ? (
                   <button onClick={removeMissingRecentMusicXml} type="button">
@@ -5526,31 +5871,45 @@ export const App = () => {
             )}
           </section>
 
-          {selection.type === 'range' ? (
-            <section className="inspector-properties" aria-label="범위 기호">
+      </section>
+
+      <section
+        className="selection-toolbar"
+        aria-label="표기 객체"
+        hidden={toolbarCategory !== 'notation'}
+      >
+            <section className="inspector-properties range-notation-palette" aria-label="범위 기호">
               <h3>범위 기호</h3>
               <div className="inspector-properties__row">
                 <span>헤어핀</span>
                 <div className="inspector-properties__buttons">
                   <button
                     aria-label="크레셴도 헤어핀"
+                    aria-pressed={selectedRangeHairpin?.type === 'crescendo'}
+                    disabled={!canApplyRangeHairpin}
+                    title="크레셴도 헤어핀"
                     onClick={() => toggleHairpin('crescendo')}
                     type="button"
                   >
-                    &lt;
+                    <ChevronLeft aria-hidden="true" size={18} />
                   </button>
                   <button
                     aria-label="디미누엔도 헤어핀"
+                    aria-pressed={selectedRangeHairpin?.type === 'diminuendo'}
+                    disabled={!canApplyRangeHairpin}
+                    title="디미누엔도 헤어핀"
                     onClick={() => toggleHairpin('diminuendo')}
                     type="button"
                   >
-                    &gt;
+                    <ChevronRight aria-hidden="true" size={18} />
                   </button>
                 </div>
               </div>
               <button
                 aria-label="슬러 추가 또는 해제, 단축키 S"
+                aria-pressed={selectedRangeSlur || (selection.type === 'event' && pendingSlurAnchorEventId === selection.eventId)}
                 className="inspector-properties__command"
+                disabled={!canApplySlur}
                 onClick={toggleSlur}
                 title="슬러 추가 또는 해제 (S)"
                 type="button"
@@ -5563,8 +5922,11 @@ export const App = () => {
                 <div className="inspector-properties__buttons">
                   {octaveShiftOptions.map(([value, label]) => (
                     <button
+                      aria-pressed={selectedRangeOctave?.type === value}
+                      disabled={!canApplyNoteSpan}
                       key={value}
                       onClick={() => toggleOctaveShift(value)}
+                      title={`${label} 옥타브 표시`}
                       type="button"
                     >
                       {label}
@@ -5573,15 +5935,6 @@ export const App = () => {
                 </div>
               </div>
             </section>
-          ) : null}
-
-      </section>
-
-      <section
-        className="selection-toolbar"
-        aria-label="표기 객체"
-        hidden={toolbarCategory !== 'notation'}
-      >
         {activeMeasureId ? (
           <section
             className="inspector-properties"
@@ -6260,6 +6613,16 @@ export const App = () => {
         <section className="inspector-properties" aria-label="PDF 페이지 설정">
           <h3>PDF 설정</h3>
           <div className="inspector-properties__grid">
+            {scoreViewMode === 'part' && livePartViewPartId ? (
+              <button
+                aria-label="파트보 조판 초기화"
+                className="icon-button"
+                disabled={!livePartLayout && !partPageSetupPreferences[livePartViewPartId]}
+                onClick={() => executeCommand({ type: 'part-layout.replace', partId: livePartViewPartId, pageSetupChange: {} })}
+                title="파트보 조판 초기화"
+                type="button"
+              ><RotateCcw aria-hidden="true" size={18} /></button>
+            ) : null}
             <label>
               <span>프리셋</span>
               <select
@@ -6399,6 +6762,21 @@ export const App = () => {
                 <FilePlus2 aria-hidden="true" size={17} />
                 <span>새 악보</span>
               </button>
+              <button aria-label="프로젝트 열기" title="Chromatics 프로젝트 열기" type="button" onClick={() => void openNativeProject()} disabled={!window.inC?.project}>
+                <FileUp aria-hidden="true" size={17} /><span>프로젝트 열기</span>
+              </button>
+              <button aria-label="프로젝트 백업" title="프로젝트 백업" type="button" onClick={() => setNativeBackupsOpen(true)} disabled={!window.inC?.project?.listBackups}>
+                <RotateCcw aria-hidden="true" size={17} /><span>백업</span>
+              </button>
+              <button aria-label="자동저장 복구" title="자동저장 복구" type="button" onClick={() => void readAutosaveRecovery()} disabled={readingRecovery || discardingRecovery}>
+                <RotateCcw aria-hidden="true" size={17} />
+              </button>
+              <button aria-label="프로젝트 저장" title="Chromatics 프로젝트 저장" type="button" onClick={() => void saveNativeProject()} disabled={savingNative || savingMusicXml || !window.inC?.project}>
+                <FileMusic aria-hidden="true" size={17} /><span>프로젝트 저장</span>
+              </button>
+              <button aria-label="프로젝트 다른 이름으로 저장" title="프로젝트 다른 이름으로 저장" type="button" onClick={() => void saveNativeProject(true)} disabled={savingNative || savingMusicXml || !window.inC?.project}>
+                <FileDown aria-hidden="true" size={17} />
+              </button>
               <button
                 aria-label="MusicXML 가져오기"
                 onClick={importMusicXml}
@@ -6411,7 +6789,7 @@ export const App = () => {
               <button
                 aria-label="MusicXML로 저장"
                 aria-busy={savingMusicXml}
-                disabled={savingMusicXml}
+                disabled={savingMusicXml || savingNative}
                 onClick={saveMusicXml}
                 title="현재 악보를 MusicXML 파일로 저장"
                 type="button"
@@ -6458,6 +6836,17 @@ export const App = () => {
               >
                 <FileVolume aria-hidden="true" size={17} />
                 <span>MIDI</span>
+              </button>
+              <button
+                aria-label="MusicXML 내보내기"
+                aria-busy={exportingMusicXml}
+                disabled={exportingMusicXml}
+                onClick={exportMusicXml}
+                title={scoreViewMode === 'part' ? '선택 파트보 MusicXML 내보내기' : '총보 MusicXML 사본 내보내기'}
+                type="button"
+              >
+                <FileMusic aria-hidden="true" size={17} />
+                <span>MusicXML</span>
               </button>
               <label className="pdf-page-target-control">
                 <span>PDF 장수</span>
@@ -6970,6 +7359,7 @@ export const App = () => {
         </div>
 
         <div className="editor-status" aria-live="polite">
+          {recoveryPending ? <span>복구본 확인 필요 · 자동저장 대기</span> : null}
           {noteInputState ? (
             <span>
               {noteInputState.tupletInput ? '셋잇단음표 입력' : '입력 중'}
@@ -7043,7 +7433,7 @@ export const App = () => {
                           ? 'is-active'
                           : undefined
                       }
-                      disabled={!activeMeasureId}
+                      disabled={!canEditMeasureNotation}
                       key={value}
                       onClick={() => updateActiveDynamic(value)}
                       type="button"
@@ -7124,7 +7514,23 @@ export const App = () => {
                 aria-label="파트보 제목"
                 data-part-id={livePartViewPart.id}
               >
-                {livePartViewPart.name}
+                {metadataEdit?.field === 'partTitle' ? (
+                  <input
+                    aria-label="파트보 제목 입력"
+                    autoFocus
+                    className="metadata-input metadata-display--composer"
+                    maxLength={metadataMaxLength.title}
+                    onBlur={() => commitMetadataEdit('partTitle', metadataEdit.value)}
+                    onChange={event => setMetadataEdit({ ...metadataEdit, value: event.target.value })}
+                    onFocus={event => event.currentTarget.select()}
+                    onKeyDown={event => handleMetadataKeyDown(event, 'partTitle', metadataEdit.value)}
+                    value={metadataEdit.value}
+                  />
+                ) : (
+                  <button aria-label="파트보 제목 수정" className="metadata-display metadata-display--composer" onClick={() => beginMetadataEdit('partTitle')} type="button">
+                    {livePartViewTitle}
+                  </button>
+                )}
               </div>
             ) : null}
 
@@ -7163,6 +7569,9 @@ export const App = () => {
           </div>
 
           <NotationPreview
+            selectedSpan={pdfExporting ? undefined : activeSpanReference}
+            onSelectSpan={pdfExporting ? undefined : selectSpan}
+            onRenderedSpanSegments={pdfExporting ? undefined : receiveRenderedSpanSegments}
             inlineLyricEditor={
               !pdfExporting && toolbarCategory === 'lyrics' && selectedNote
                 ? {
@@ -7200,16 +7609,24 @@ export const App = () => {
                 ? undefined
                 : selection.address
             }
-            selectedEventId={pdfExporting ? undefined : selectedEventId}
-            selectedEventIds={pdfExporting ? [] : selectedEventIds}
-            selectedMeasureId={pdfExporting ? undefined : selectedMeasureId}
+            selectedEventId={pdfExporting || activeSpanReference ? undefined : selectedEventId}
+            selectedEventIds={pdfExporting || activeSpanReference ? [] : selectedEventIds}
+            selectedMeasureId={pdfExporting || activeSpanReference ? undefined : selectedMeasureId}
           />
         </div>
           </div>
 
           <aside className="docked-properties" aria-label="속성 도크" hidden={!dockVisibility.properties}>
+            {toolbarCategory === 'notation' ? <SpanProperties score={printScore}
+              partId={scoreViewMode === 'part' ? livePartViewPartId : undefined}
+              independentGeometry={scoreViewMode === 'part' && Boolean(livePartLayout?.spanEngravings?.some(item => item.kind === activeSpanReference?.kind && item.spanId === activeSpanReference.id))}
+              onInheritEngraving={scoreViewMode === 'part' ? inheritSpanEngraving : undefined}
+              selected={activeSpanReference} onSelect={selectSpan} onEngravingChange={updateSpanEngraving}
+              renderedSegments={renderedSpanState?.score === displayScore ? renderedSpanState.segments : undefined}
+              onEndpointChange={updateSpanEndpoint} onDelete={deleteSpan} /> : null}
             <section
               aria-label="선택 요약"
+              hidden={Boolean(activeSpanReference)}
               className="selection-properties"
               data-selection-kind={selectedProperties.kind}
             >
@@ -7592,7 +8009,9 @@ export const App = () => {
         </div>
       ) : null}
 
-      {recoverySnapshot && !startScreenVisible ? (
+      {nativeBackupsOpen ? <NativeBackupsDialog onClose={closeNativeBackups} onRestore={restoreNativeBackup} /> : null}
+
+      {recoverySnapshot && !startScreenVisible && !nativeBackupsOpen ? (
         <div className="modal-backdrop" role="presentation">
           <section
             aria-label="자동저장 복구"
@@ -7620,14 +8039,15 @@ export const App = () => {
             </dl>
 
             <footer className="dialog-actions">
-              <button onClick={discardAutosave} type="button">
+              <button onClick={discardAutosave} disabled={discardingRecovery} type="button">
                 삭제
               </button>
-              <button onClick={postponeAutosave} type="button">
+              <button onClick={postponeAutosave} disabled={discardingRecovery} type="button">
                 나중에
               </button>
               <button
                 className="primary-action"
+                disabled={discardingRecovery}
                 onClick={recoverAutosave}
                 type="button"
               >
@@ -7780,6 +8200,11 @@ function isAutosaveRecoverySnapshot(
   const snapshot = value as {
     score?: unknown
     metadata?: unknown
+    project?: unknown
+  }
+
+  if (snapshot.project !== undefined) {
+    try { validateNativeProject(snapshot.project) } catch { return false }
   }
 
   return isScoreLike(snapshot.score) && isRecoveryMetadata(snapshot.metadata)
@@ -7828,9 +8253,11 @@ function formatRecoveryTime(value: string): string {
   }).format(date)
 }
 
-function createInitialSelection(score: Score): EditorSelection {
-  const preferred = locateEvent(score, 'note-e4')
-  const firstMeasure = score.parts[0]?.staves[0]?.measures[0]
+function createInitialSelection(score: Score, partId?: string): EditorSelection {
+  const preferred = partId ? undefined : locateEvent(score, 'note-e4')
+  const part = score.parts.find(candidate => candidate.id === partId) ?? score.parts[0]
+  const staff = part?.staves[0]
+  const firstMeasure = staff?.measures[0]
   const firstEvent = firstMeasure?.voices[0]?.events[0]
 
   return preferred
@@ -7844,10 +8271,10 @@ function createInitialSelection(score: Score): EditorSelection {
           type: 'event',
           eventId: firstEvent.id,
           address:
-            firstMeasure && score.parts[0]?.staves[0]
+            firstMeasure && staff && part
               ? {
-                  partId: score.parts[0].id,
-                  staffId: score.parts[0].staves[0].id,
+                  partId: part.id,
+                  staffId: staff.id,
                   measureId: firstMeasure.id,
                   voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
                 }
@@ -7857,10 +8284,10 @@ function createInitialSelection(score: Score): EditorSelection {
           type: 'measure',
           measureId: firstMeasure?.id ?? 'measure-1',
           address:
-            firstMeasure && score.parts[0]?.staves[0]
+            firstMeasure && staff && part
               ? {
-                  partId: score.parts[0].id,
-                  staffId: score.parts[0].staves[0].id,
+                  partId: part.id,
+                  staffId: staff.id,
                   measureId: firstMeasure.id,
                   voiceId: firstMeasure.voices[0]?.id ?? 'voice-1'
                 }
@@ -8111,6 +8538,16 @@ function buildScorePartsReplaceCommand(
   score: Score,
   parts: Part[]
 ): ScoreCommand {
+  const repeatSource = scoreRepeatSource(score)
+  const repeatPartId = repeatSource ? score.parts.find(part => part.staves.includes(repeatSource))?.id : undefined
+  if (repeatSource && !parts.some(part => part.id === repeatPartId && part.staves.some(staff => staff.id === repeatSource.id))) {
+    parts = parts.map(part => ({ ...part, staves: part.staves.map(staff => ({ ...staff,
+      measures: staff.measures.map((measure, index) => ({ ...measure,
+        repeat: repeatSource.measures[index]?.repeat,
+        volta: repeatSource.measures[index]?.volta
+      }))
+    })) }))
+  }
   const commands: ScoreCommand[] = [
     {
       type: 'score-parts.replace',
@@ -8118,24 +8555,42 @@ function buildScorePartsReplaceCommand(
     }
   ]
   const measureIds = collectPartMeasureIds(parts)
+  const measureNumbers = collectPartMeasureNumbers(parts)
   const eventIds = collectPartEventIds(parts)
+  const globalMeasureSurvives = (measureId: string) =>
+    matchesPartViewMeasureReference(measureId, measureIds, measureNumbers, true)
+  const preserveGlobalMarkings = <T extends { measureId: string }>(
+    source: T[] | undefined, createCommand: (items: T[] | undefined) => ScoreCommand
+  ) => {
+    if (!source) return
+    const next = source.flatMap(item => {
+      if (globalMeasureSurvives(item.measureId)) return [item]
+      const original = score.parts.flatMap(part => part.staves.flatMap(staff => staff.measures))
+        .find(measure => measure.id === item.measureId)
+      return original && measureNumbers.has(original.number)
+        ? [{ ...item, measureId: `measure-${original.number}` }] : []
+    })
+    if (next.length !== source.length || next.some((item, index) => item !== source[index])) {
+      commands.push(createCommand(next.length ? next : undefined))
+    }
+  }
 
-  addFilteredCommand(commands, score.tempoEvents, (tempoEvents) => ({
+  preserveGlobalMarkings(score.tempoEvents, (tempoEvents) => ({
     type: 'score-tempo-events.update',
     tempoEvents
-  }), (tempoEvent) => measureIds.has(tempoEvent.measureId))
-  addFilteredCommand(commands, score.rehearsalMarks, (rehearsalMarks) => ({
+  }))
+  preserveGlobalMarkings(score.rehearsalMarks, (rehearsalMarks) => ({
     type: 'score-rehearsal-marks.update',
     rehearsalMarks
-  }), (mark) => measureIds.has(mark.measureId))
+  }))
   addFilteredCommand(commands, score.staffTexts, (staffTexts) => ({
     type: 'score-staff-texts.update',
     staffTexts
   }), (text) => measureIds.has(text.measureId))
-  addFilteredCommand(commands, score.systemTexts, (systemTexts) => ({
+  preserveGlobalMarkings(score.systemTexts, (systemTexts) => ({
     type: 'score-system-texts.update',
     systemTexts
-  }), (text) => measureIds.has(text.measureId))
+  }))
   addFilteredCommand(commands, score.expressionTexts, (expressionTexts) => ({
     type: 'score-expression-texts.update',
     expressionTexts
@@ -8163,7 +8618,7 @@ function buildScorePartsReplaceCommand(
     slurs
   }), (slur) => eventIds.has(slur.startEventId) && eventIds.has(slur.endEventId))
 
-  const nextLayout = filterLayoutForMeasureIds(score.layout, measureIds)
+  const nextLayout = filterLayoutForMeasureIds(remapRemovedStaffLayoutAnchors(score.layout, score.parts, parts), measureIds)
 
   if (JSON.stringify(nextLayout) !== JSON.stringify(score.layout)) {
     commands.push({
@@ -8263,6 +8718,67 @@ function filterLayoutForMeasureIds(
     nextLayout.pageBreakBeforeMeasureIds
     ? nextLayout
     : undefined
+}
+
+function createNativeSnapshot(score: Score, previous: NativeProject | undefined, preferences: PartPageSetupPreferences, mode: ScoreViewMode, partId: string | undefined): NativeProject {
+  const snapshotScore = { ...score,
+    slurs: score.slurs?.map(span => ({ ...span, engraving: pruneSpanSegmentEngravings(score, span, span.engraving) ?? undefined })),
+    hairpins: score.hairpins?.map(span => ({ ...span, engraving: pruneSpanSegmentEngravings(score, span, span.engraving) ?? undefined })) }
+  const project = previous ? { ...previous, score: snapshotScore } : createNativeProject(snapshotScore)
+  project.partLayouts = score.parts.flatMap(part => {
+    const saved = project.partLayouts.find(layout => layout.partId === part.id)
+    const pageSetup = preferences[part.id]
+    if (!saved && !pageSetup) return []
+    const layout = { ...saved?.layout, ...(pageSetup ? { pageSetup } : {}) }
+    const measureIds = new Set(part.staves.flatMap(staff => staff.measures.map(measure => measure.id)))
+    // Keep the live anchors for undo; only the saved snapshot drops deleted measures.
+    for (const key of ['systemBreakBeforeMeasureIds', 'pageBreakBeforeMeasureIds'] as const) {
+      if (layout[key]) layout[key] = layout[key].filter(id => measureIds.has(id))
+    }
+    const eventIds = new Set(part.staves.flatMap(staff => staff.measures.flatMap(measure => measure.voices.flatMap(voice => voice.events.map(event => event.id)))))
+    const spanEngravings = saved?.spanEngravings?.filter(override => {
+      const span = (override.kind === 'slur' ? score.slurs : score.hairpins)?.find(item => item.id === override.spanId)
+      return span && eventIds.has(span.startEventId) && eventIds.has(span.endEventId)
+    }).map(override => {
+      const span = (override.kind === 'slur' ? score.slurs : score.hairpins)!.find(item => item.id === override.spanId)!
+      return { ...override, engraving: pruneSpanSegmentEngravings(score, span, override.engraving) ?? null }
+    })
+    return [{ ...saved, partId: part.id, layout, ...(saved?.spanEngravings ? { spanEngravings } : {}) }]
+  })
+  project.view = mode === 'part' && partId ? { mode: 'part', partId } : { mode: 'score' }
+  return validateNativeProject(project)
+}
+
+function createPartExportScore(score: Score, partId: string): Score {
+  const projected = createLivePartViewScore(score, partId)
+  const repeatSource = scoreRepeatSource(score)
+  const primaryMeasures = projected.parts[0]?.staves[0]?.measures ?? []
+  // Global directions use generic measure IDs in the full score. Bind them to
+  // the extracted part before round-trip validation, without changing the source.
+  const anchor = <T extends { measureId: string }>(items: T[] | undefined) =>
+    items?.map(item => ({
+      ...item,
+      measureId: primaryMeasures.find(measure =>
+        item.measureId === `measure-${measure.number}`
+      )?.id ?? item.measureId
+    }))
+  return {
+    ...projected,
+    parts: repeatSource ? projected.parts.map(part => ({
+      ...part,
+      staves: part.staves.map(staff => ({
+        ...staff,
+        measures: staff.measures.map((measure, index) => ({
+          ...measure,
+          repeat: repeatSource.measures[index]!.repeat,
+          volta: repeatSource.measures[index]!.volta
+        }))
+      }))
+    })) : projected.parts,
+    tempoEvents: anchor(projected.tempoEvents),
+    rehearsalMarks: anchor(projected.rehearsalMarks),
+    systemTexts: anchor(projected.systemTexts)
+  }
 }
 
 function createLivePartViewScore(score: Score, partId: string): Score {
@@ -8441,6 +8957,13 @@ function describeStaffTarget(
   return part.staves.length === 1 || staffIndex < 0
     ? part.name
     : `${part.name} 보표 ${staffIndex + 1}`
+}
+
+function describeRangeClipboardExclusions(clipboard: RangeClipboard): string {
+  const exclusions: string[] = []
+  if (clipboard.excludedSpanCount) exclusions.push(`부분 포함 표기 ${clipboard.excludedSpanCount}개 제외`)
+  if (clipboard.excludedSegmentCount) exclusions.push(`범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외`)
+  return exclusions.length ? ` ${exclusions.join(', ')}.` : ''
 }
 
 function describeSelectionFilter(filter: SelectionEventTypeFilter): string {
@@ -9105,8 +9628,13 @@ function assertMusicXmlSaveSafe(score: Score, contents: string): void {
   const roundTripSignature = createSaveSignature(roundTripScore)
 
   if (originalSignature !== roundTripSignature) {
+    const original = JSON.parse(originalSignature) as Record<string, unknown>
+    const reopened = JSON.parse(roundTripSignature) as Record<string, unknown>
+    const differences = Object.keys(original).filter(
+      key => JSON.stringify(original[key]) !== JSON.stringify(reopened[key])
+    )
     throw new Error(
-      'MusicXML 저장 검증에 실패했습니다. 저장하면 악보 내용이 달라질 수 있어 파일을 쓰지 않았습니다.'
+      `MusicXML 저장 검증에 실패했습니다. 저장하면 악보 내용이 달라질 수 있어 파일을 쓰지 않았습니다. (${differences.join(', ')})`
     )
   }
 }
@@ -9304,6 +9832,10 @@ function normalizeRhythmFeelForSaveSignature(
 
 function createMeasureReferenceMap(score: Score): Map<string, string> {
   const references = new Map<string, string>()
+
+  score.parts[0]?.staves[0]?.measures.forEach((measure, index) => {
+    references.set(`measure-${measure.number}`, `0:0:${index}`)
+  })
 
   score.parts.forEach((part, partIndex) => {
     part.staves.forEach((staff, staffIndex) => {

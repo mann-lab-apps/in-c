@@ -11,7 +11,10 @@ import {
   createStaff,
   createTimePosition,
   createVoice,
+  convertOctaveShiftPitches,
   durationToTicks,
+  measureDurationTicks,
+  voiceEventDurationTicks,
   sortVoiceEvents,
   validateTieRelations,
   validateMeasureRhythm,
@@ -79,6 +82,9 @@ const parser = new XMLParser({
   trimValues: true
 })
 
+const orderedParser = new XMLParser({ ignoreAttributes: false, parseTagValue: false, preserveOrder: true })
+const directionTicks = new WeakMap<XmlNode, number>()
+
 const defaultMeasureState: MeasureState = {
   clef: {
     sign: 'G',
@@ -119,11 +125,64 @@ function parseMusicXmlString(xml: string): XmlNode {
 
   try {
     document = parser.parse(xml) as XmlNode
+    indexDirectionTicks(document, orderedParser.parse(xml) as XmlNode[])
   } catch (error) {
     throw new Error(`MusicXML 문서를 읽을 수 없습니다: ${getErrorMessage(error)}`)
   }
 
   return document
+}
+
+// The ordinary object tree groups siblings by name; keep musical cursor timing
+// from the ordered tree so backup/forward and relative offsets are not lost.
+function indexDirectionTicks(document: XmlNode, ordered: XmlNode[]): void {
+  const orderedRoot = ordered.find(node => 'score-partwise' in node)?.['score-partwise'] as XmlNode[] | undefined
+  if (!orderedRoot) return
+  const parts = toArray(readNode(document, 'score-partwise').part as XmlNode | XmlNode[] | undefined)
+  orderedRoot.filter(node => 'part' in node).forEach((orderedPart, partIndex) => {
+    const measures = toArray(parts[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
+    let divisions = TICKS_PER_QUARTER
+    ;(orderedPart.part as XmlNode[]).filter(node => 'measure' in node).forEach((orderedMeasure, measureIndex) => {
+      const measure = measures[measureIndex]
+      if (!measure) return
+      let cursor = 0
+      const indices = new Map<string, number>()
+      for (const child of orderedMeasure.measure as XmlNode[]) {
+        const key = Object.keys(child).find(name => name !== ':@')
+        if (!key) continue
+        const index = indices.get(key) ?? 0
+        indices.set(key, index + 1)
+        const node = toArray(measure[key] as XmlNode | XmlNode[] | undefined)[index]
+        if (!node || typeof node !== 'object') continue
+        if (key === 'attributes') divisions = readDivisions(node, divisions)
+        if (key === 'direction') {
+          const offset = Number(readOptionalString(node, 'offset') ?? 0) * TICKS_PER_QUARTER / divisions
+          const tick = cursor + offset
+          if (!Number.isSafeInteger(tick) || tick < 0) throw new Error('MusicXML direction offset을 유효한 tick으로 변환할 수 없습니다.')
+          directionTicks.set(node, tick)
+        }
+        if (key === 'backup' || key === 'forward') {
+          cursor += readMusicXmlDurationTicks(node, divisions) * (key === 'backup' ? -1 : 1)
+        } else if (key === 'note' && !('chord' in node) && !('grace' in node)) {
+          cursor += readMusicXmlDurationTicks(node, divisions)
+        }
+      }
+    })
+  })
+}
+
+function directionAnchor(direction: XmlNode, measure: Measure | undefined, stop: boolean, preferredVoice?: string, allowRest = false) {
+  const staff = readOptionalInteger(direction, 'staff') ?? 1
+  const voiceId = readOptionalString(direction, 'voice') === undefined
+    ? preferredVoice : readVoiceId(direction, staff, staff)
+  const voices = (measure?.voices ?? []).filter(voice => !voiceId || voice.id === voiceId)
+  const tick = directionTicks.get(direction) ?? 0
+  const candidates = voices.flatMap(voice => voice.events.filter(event => allowRest || event.type === 'note')
+    .map(event => ({ event, voiceId: voice.id })))
+  const anchor = candidates.find(({ event }) => event.position.tick === tick) ??
+    (stop ? candidates.find(({ event }) => event.position.tick + durationToTicks(event.duration) === tick) : undefined)
+  if (!anchor) throw new Error(`MusicXML span의 tick ${tick}에 연결할 note가 없습니다 (${voiceId ?? 'staff'}).`)
+  return anchor
 }
 
 function parseMusicXmlDocument(document: XmlNode): Score {
@@ -142,7 +201,6 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   const primaryMeasureNodes = toArray(
     parts[0]?.measure as XmlNode | XmlNode[] | undefined
   )
-  const primaryMeasures = parsedParts[0]?.staves[0]?.measures ?? []
 
   const title =
     readOptionalString(root, 'work', 'work-title') ??
@@ -152,34 +210,23 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   const tempo = readTempoMarking(primaryMeasureNodes)
   const tempoEvents = readTempoEvents(primaryMeasureNodes)
   const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes)
-  const harmonies = readHarmonies(primaryMeasureNodes)
   const rehearsalMarks = readRehearsalMarks(primaryMeasureNodes)
-  const staffTexts = readStaffTexts(primaryMeasureNodes)
   const systemTexts = readSystemTexts(primaryMeasureNodes)
-  const expressionTexts = readExpressionTexts(primaryMeasureNodes)
-  const dynamics = readDynamics(primaryMeasureNodes)
-  const hairpins = readHairpins(primaryMeasureNodes, primaryMeasures)
-  const slurs = readSlurs(primaryMeasureNodes, primaryMeasures)
-  const octaveShifts = readOctaveShifts(primaryMeasureNodes, primaryMeasures)
+  const markings = readPartStaffMarkings(parts, parsedParts)
 
-  const score = createScore({
+  const score = convertOctaveShiftPitches(createScore({
     id: 'musicxml-score',
     title,
     composer,
     tempo,
     tempoEvents,
     rhythmFeel,
-    octaveShifts,
-    harmonies,
+    ...markings,
     rehearsalMarks,
-    staffTexts,
     systemTexts,
-    expressionTexts,
-    dynamics,
-    hairpins,
-    slurs,
+    layout: readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? []),
     parts: parsedParts
-  })
+  }), 'display')
   const tieErrors = validateTieRelations(score)
 
   if (tieErrors.length > 0) {
@@ -187,6 +234,58 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   }
 
   return score
+}
+
+function readLayoutBreaks(nodes: XmlNode[], measures: Measure[]): Score['layout'] {
+  const system: string[] = []
+  const page: string[] = []
+  for (const [index, node] of nodes.entries()) {
+    const measure = measures[index]
+    if (!measure) continue
+    const prints = toArray(node.print as XmlNode | XmlNode[] | undefined)
+    if (prints.some(print => readOptionalString(print, '@_new-system') === 'yes')) system.push(measure.id)
+    if (prints.some(print => readOptionalString(print, '@_new-page') === 'yes')) page.push(measure.id)
+  }
+  return system.length || page.length ? {
+    ...(system.length ? { systemBreakBeforeMeasureIds: system } : {}),
+    ...(page.length ? { pageBreakBeforeMeasureIds: page } : {})
+  } : undefined
+}
+
+function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
+  type Markings = Pick<Score, 'harmonies' | 'staffTexts' | 'expressionTexts' | 'dynamics' | 'hairpins' | 'slurs' | 'octaveShifts'>
+  const result: Markings = {}
+  parts.forEach((part, partIndex) => {
+    const nodes = toArray(partNodes[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
+    part.staves.forEach((staff, staffIndex) => {
+      const staffNodes = nodes.map(node => {
+        const filter = (key: string) => toArray(node[key] as XmlNode | XmlNode[] | undefined)
+          .filter(item => (readOptionalInteger(item, 'staff') ?? 1) === staffIndex + 1)
+        return { ...node, note: filter('note'), direction: filter('direction'), harmony: filter('harmony') }
+      })
+      const prefix = parts.length === 1 && part.staves.length === 1 ? '' : `${part.id}:${staff.id}:`
+      const anchor = <T extends { id: string; measureId: string }>(items: T[] | undefined) => items?.map(item => ({
+        ...item, id: `${prefix}${item.id}`,
+        measureId: staff.measures.find(measure => `measure-${measure.number}` === item.measureId)?.id ?? item.measureId
+      }))
+      const identify = <T extends { id: string }>(items: T[] | undefined) => items?.map(item => ({ ...item, id: `${prefix}${item.id}` }))
+      const local: Markings = {
+        harmonies: anchor(readHarmonies(staffNodes)),
+        staffTexts: anchor(readStaffTexts(staffNodes)),
+        expressionTexts: anchor(readExpressionTexts(staffNodes)),
+        dynamics: anchor(readDynamics(staffNodes)),
+        hairpins: identify(readHairpins(staffNodes, staff.measures)),
+        slurs: identify(readSlurs(staffNodes, staff.measures)),
+        octaveShifts: identify(readOctaveShifts(staffNodes, staff.measures))
+      }
+      const append = <K extends keyof Markings>(key: K) => {
+        if (local[key]?.length) result[key] = [...(result[key] ?? []), ...local[key]!] as Markings[K]
+      }
+      append('harmonies'); append('staffTexts'); append('expressionTexts'); append('dynamics')
+      append('hairpins'); append('slurs'); append('octaveShifts')
+    })
+  })
+  return result
 }
 
 function parseMusicXmlPart(
@@ -892,14 +991,10 @@ function readHairpins(
 ): Score['hairpins'] {
   const activeHairpins = new Map<
     string,
-    { startEventId: string; type: HairpinType }
+    { startEventId: string; type: HairpinType; voiceId: string }
   >()
   const hairpins = measureNodes.flatMap((measureNode, measureIndex) => {
     const measure = measures[measureIndex]
-    const measureNoteIds =
-      measure?.voices[0]?.events
-        .filter((event) => event.type === 'note')
-        .map((event) => event.id) ?? []
     const directions = toArray(
       measureNode.direction as XmlNode | XmlNode[] | undefined
     )
@@ -915,14 +1010,9 @@ function readHairpins(
         const number = readOptionalString(wedge, '@_number') ?? '1'
 
         if (wedgeType === 'crescendo' || wedgeType === 'diminuendo') {
-          const startEventId = measureNoteIds[0]
-
-          if (startEventId) {
-            activeHairpins.set(number, {
-              startEventId,
-              type: wedgeType
-            })
-          }
+          const anchor = directionAnchor(direction, measure, false, undefined, true)
+          if (activeHairpins.has(number)) throw new Error('MusicXML hairpin number가 중복되었습니다.')
+          activeHairpins.set(number, { startEventId: anchor.event.id, voiceId: anchor.voiceId, type: wedgeType })
           return
         }
 
@@ -931,15 +1021,12 @@ function readHairpins(
         }
 
         const activeHairpin = activeHairpins.get(number)
-        const endEventId = measureNoteIds.at(-1)
 
         if (!activeHairpin) {
           throw new Error('MusicXML hairpin stop에 대응하는 시작 표식이 없습니다.')
         }
 
-        if (!endEventId) {
-          throw new Error('MusicXML hairpin stop을 연결할 note가 없습니다.')
-        }
+        const endEventId = directionAnchor(direction, measure, true, activeHairpin.voiceId, true).event.id
 
         completed.push({
           id: `hairpin-${completed.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
@@ -969,11 +1056,18 @@ function readSlurs(
   const slurs: NonNullable<Score['slurs']> = []
 
   measureNodes.forEach((measureNode, measureIndex) => {
-    const events = measures[measureIndex]?.voices[0]?.events ?? []
+    const voices = measures[measureIndex]?.voices ?? []
+    const nextIndex = new Map<number, number>()
     const noteNodes = toArray(measureNode.note as XmlNode | XmlNode[] | undefined)
 
-    noteNodes.forEach((noteNode, noteIndex) => {
-      const event = events[noteIndex]
+    noteNodes.forEach((noteNode) => {
+      if ('grace' in noteNode) return
+      const staffNumber = readOptionalInteger(noteNode, 'staff') ?? 1
+      const voiceNumber = readVoiceIdNumber(readVoiceId(noteNode, staffNumber, staffNumber))
+      const voice = voices.find(candidate => readVoiceIdNumber(candidate.id) === voiceNumber)
+      const index = nextIndex.get(voiceNumber) ?? 0
+      const event = voice?.events['chord' in noteNode ? index - 1 : index]
+      if (!('chord' in noteNode)) nextIndex.set(voiceNumber, index + 1)
 
       if (!event || event.type !== 'note') {
         return
@@ -1106,16 +1200,13 @@ function readOctaveShifts(
     {
       startEventId: string
       type: NonNullable<Score['octaveShifts']>[number]['type']
+      voiceId: string
     }
   >()
   const shifts: NonNullable<Score['octaveShifts']> = []
 
   measureNodes.forEach((measureNode, measureIndex) => {
     const measure = measures[measureIndex]
-    const measureNoteIds =
-      measure?.voices[0]?.events
-        .filter((event) => event.type === 'note')
-        .map((event) => event.id) ?? []
     const directions = toArray(
       measureNode.direction as XmlNode | XmlNode[] | undefined
     )
@@ -1133,14 +1224,12 @@ function readOctaveShifts(
         const size = readOptionalInteger(octaveShiftNode, '@_size') ?? 8
 
         if (markerType === 'up' || markerType === 'down') {
-          const startEventId = measureNoteIds[0]
-
-          if (startEventId) {
-            activeShifts.set(number, {
-              startEventId,
-              type: toOctaveShiftType(markerType, size)
-            })
-          }
+          const anchor = directionAnchor(direction, measure, false)
+          if (activeShifts.has(number)) throw new Error('MusicXML octave-shift number가 중복되었습니다.')
+          activeShifts.set(number, {
+            startEventId: anchor.event.id, voiceId: anchor.voiceId,
+            type: toOctaveShiftType(markerType, size)
+          })
           return
         }
 
@@ -1149,15 +1238,12 @@ function readOctaveShifts(
         }
 
         const activeShift = activeShifts.get(number)
-        const endEventId = measureNoteIds.at(-1)
 
         if (!activeShift) {
           throw new Error('MusicXML octave-shift stop에 대응하는 시작 표식이 없습니다.')
         }
 
-        if (!endEventId) {
-          throw new Error('MusicXML octave-shift stop을 연결할 note가 없습니다.')
-        }
+        const endEventId = octaveStopEventId(direction, measureIndex, measures, activeShift.voiceId)
 
         shifts.push({
           id: `octave-shift-${shifts.length + 1}-${measureIndex + 1}-${directionIndex + 1}`,
@@ -1181,11 +1267,22 @@ function toOctaveShiftType(
   direction: 'up' | 'down',
   size: number
 ): NonNullable<Score['octaveShifts']>[number]['type'] {
-  if (direction === 'down') {
-    return size === 15 ? '15mb' : '8vb'
-  }
+  if (size !== 8 && size !== 15) throw new Error(`Unsupported MusicXML octave-shift size: ${size}`)
+  if (direction === 'down') return size === 15 ? '15ma' : '8va'
+  return size === 15 ? '15mb' : '8vb'
+}
 
-  return size === 15 ? '15ma' : '8va'
+function octaveStopEventId(direction: XmlNode, index: number, measures: Measure[], voiceId: string): string {
+  const target = measures.slice(0, index).reduce((ticks, measure) => ticks + measureDurationTicks(measure), 0) + (directionTicks.get(direction) ?? 0)
+  let measureStart = 0
+  for (const measure of measures) {
+    const voice = measure.voices.find(voice => voice.id === voiceId)
+    const event = voice?.events.find(event => event.type === 'note' &&
+      measureStart + event.position.tick + voiceEventDurationTicks(event, measure) === target)
+    if (event) return event.id
+    measureStart += measureDurationTicks(measure)
+  }
+  throw new Error(`MusicXML octave-shift stop tick ${target} is not a supported note-end anchor.`)
 }
 
 function readDirectionTypes(direction: XmlNode): XmlNode[] {

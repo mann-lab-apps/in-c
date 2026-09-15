@@ -6,10 +6,23 @@ class ClassicalPreviewPlayer {
 
   final MethodChannel _channel;
 
+  Future<bool> isAvailable() async {
+    try {
+      return await _channel.invokeMethod<bool>('isAvailable') == true;
+    } on MissingPluginException {
+      return false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   Future<ClassicalPreviewPlaybackResult> playUrl(String previewUrl) async {
     final trimmed = previewUrl.trim();
     final uri = Uri.tryParse(trimmed);
-    if (uri == null || !uri.hasScheme) {
+    if (uri == null ||
+        !const {'http', 'https'}.contains(uri.scheme) ||
+        uri.host.isEmpty ||
+        uri.userInfo.isNotEmpty) {
       return ClassicalPreviewPlaybackResult.failed('Invalid preview URL.');
     }
     try {

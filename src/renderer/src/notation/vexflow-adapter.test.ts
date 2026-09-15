@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest'
+import { StaveNote } from 'vexflow'
+import type { Clef } from '../../../score-core'
 
 import {
   toVexFlowAccidental,
   toVexFlowClef,
   toVexFlowDuration,
   toVexFlowKey,
+  toVexFlowRestKey,
   toVexFlowKeySignature
 } from './vexflow-adapter'
 
@@ -32,6 +35,15 @@ describe('VexFlow adapter', () => {
     expect(toVexFlowClef({ sign: 'F', line: 4 })).toBe('bass')
     expect(toVexFlowClef({ sign: 'C', line: 4 })).toBe('tenor')
   })
+
+  it.each<Clef>([{ sign: 'G', line: 2 }, { sign: 'F', line: 4 }, { sign: 'C', line: 3 }, { sign: 'C', line: 4 }])(
+    'centers rest keys on the same staff line for clef %j', clef => {
+      for (const value of ['whole', 'half', 'quarter'] as const) {
+        const rest = new StaveNote({ clef: toVexFlowClef(clef), keys: [toVexFlowRestKey(clef, value)], duration: toVexFlowDuration({ value, dots: 0 }, true) })
+        expect(rest.getKeyProps()[0]!.line).toBe(value === 'whole' ? 4 : 3)
+      }
+    }
+  )
 
   it('maps major and minor key signatures', () => {
     expect(toVexFlowKeySignature({ fifths: 0, mode: 'major' })).toBe('C')

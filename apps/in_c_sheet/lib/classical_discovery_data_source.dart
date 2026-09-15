@@ -66,6 +66,9 @@ ClassicalComposer _composerFromJson(Map<String, Object?> json) {
 }
 
 ClassicalWork _workFromJson(Map<String, Object?> json) {
+  if (json.containsKey('isOperaticVocal') && json['isOperaticVocal'] is! bool) {
+    throw const FormatException('Invalid isOperaticVocal');
+  }
   return ClassicalWork(
     id: _string(json['id']),
     titleKo: _string(json['titleKo']),
@@ -80,6 +83,7 @@ ClassicalWork _workFromJson(Map<String, Object?> json) {
     movements: _maps(json['movements']).map(_movementFromJson).toList(),
     moodTags: _strings(json['moodTags']),
     contextTags: _strings(json['contextTags']),
+    isOperaticVocal: json['isOperaticVocal'] == true,
     difficultyForListening: _int(json['difficultyForListening'], fallback: 2),
     aliases: _strings(json['aliases']),
     listeningMoments: _maps(json['listeningMoments'])
@@ -113,6 +117,7 @@ ListeningMoment _momentFromJson(Map<String, Object?> json) {
     tags: _strings(json['tags']),
     recommendedRecordingId: _nullableString(json['recommendedRecordingId']),
     fallbackExternalLinkId: _nullableString(json['fallbackExternalLinkId']),
+    timingEvidenceUrl: _nullableString(json['timingEvidenceUrl']),
   );
 }
 
@@ -146,6 +151,7 @@ ClassicalRecording _recordingFromJson(Map<String, Object?> json) {
 
 ClassicalConcert _concertFromJson(Map<String, Object?> json) {
   return ClassicalConcert(
+    isDemonstration: json['isDemonstration'] == true,
     id: _string(json['id']),
     title: _string(json['title']),
     venue: _string(json['venue']),

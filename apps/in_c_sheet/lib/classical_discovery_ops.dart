@@ -3,6 +3,7 @@ import 'classical_discovery_data_source.dart';
 import 'classical_discovery_models.dart';
 import 'classical_discovery_validation.dart';
 import 'classical_promotion_reporting.dart';
+import 'classical_link_policy.dart';
 
 enum ClassicalReadinessStatus { ready, needsContentOps, blocked }
 
@@ -100,7 +101,7 @@ class ClassicalLinkReviewPolicy {
         status: ClassicalProviderLinkStatus.missing,
       );
     }
-    if (link.linkType == 'listen_search') {
+    if (link.linkType == 'listen_search' && link.isSafeSearch) {
       return ClassicalProviderLinkReview(
         platformId: platformId,
         label: link.label,
@@ -124,7 +125,8 @@ class ClassicalLinkReviewPolicy {
         url: link.url,
       );
     }
-    if (link.linkType == 'listen_direct') {
+    if (link.linkType == 'listen_direct' ||
+        link.linkType == 'listen_preview_approved') {
       if (_looksLikeSearchUrl(link.url)) {
         return ClassicalProviderLinkReview(
           platformId: platformId,
@@ -208,7 +210,10 @@ class ClassicalLinkReviewPolicy {
         previewUrl: link.previewUrl!,
       );
     }
-    if (link.linkType == 'listen_direct' &&
+    if (link.linkType == 'listen_preview_approved' &&
+        link.platformId == platformId &&
+        link.isVerifiedDirect &&
+        !_looksLikeSearchUrl(link.previewUrl!) &&
         _hostMatchesPlatform(platformId, link.previewUrl!)) {
       return ClassicalPreviewReview(
         platformId: platformId,
@@ -555,13 +560,8 @@ class ClassicalPublicCopyReadiness {
         .toList(growable: false);
     return ClassicalPublicCopyReadiness(
       checkedSurfaces: const <String>[
-        'Today',
-        'Work Detail',
-        'Discover',
-        'My Music',
-        'Concerts',
         'Store Metadata',
-        'Privacy Sheet',
+        'Store Privacy Summary',
       ],
       blockedTerms: blockedTerms,
       issues: issues,
@@ -590,17 +590,19 @@ class ClassicalBuildQaReadiness {
 
   factory ClassicalBuildQaReadiness.latestLocalEvidence() {
     return const ClassicalBuildQaReadiness(
-      androidDebugApk: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
-      androidReleaseApk: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
-      androidAppBundle:
-          'PASS · build/app/outputs/bundle/release/app-release.aab',
-      androidInstallSmoke: 'PASS · emulator-5554 Android 15 release APK install/launch; Today, preview, link-out, Work Detail, Discover, My Music, Concerts screenshots captured',
-      iosNoCodesignBuild: 'PASS · --dart-define=IN_C_DISCOVERY_HOME=true',
-      iosSimulatorInstallLaunchSmoke: 'PASS · iPhone 17 Pro simulator',
-      iosTestFlightUpload: 'BLOCKED · flutter build ipa archives, then fails codesign because provisioning profile "Clef" does not include Apple Distribution certificate',
+      androidDebugApk: 'NOT_VERIFIED · current build evidence required',
+      androidReleaseApk: 'NOT_VERIFIED · current build evidence required',
+      androidAppBundle: 'NOT_VERIFIED · current artifact evidence required',
+      androidInstallSmoke: 'NOT_VERIFIED · current install evidence required',
+      iosNoCodesignBuild: 'NOT_VERIFIED · current build evidence required',
+      iosSimulatorInstallLaunchSmoke:
+          'NOT_VERIFIED · current install evidence required',
+      iosTestFlightUpload:
+          'NOT_VERIFIED · signing and distribution evidence required',
       inCEntryFlag: '--dart-define=IN_C_DISCOVERY_HOME=true',
       gaps: <String>[
-        'iOS TestFlight upload requires provisioning profile/certificate repair.',
+        'Current artifact build/install evidence must be recorded; historical PASS cannot approve this build.',
+        'Signing and TestFlight distribution require independent verification.',
       ],
     );
   }
@@ -658,6 +660,64 @@ class ClassicalKopisProductionReadiness {
   bool get productionReady => gapCount == 0;
 }
 
+const classicalQualityObservationQuestions = <String, Map<String, String>>{
+  'founder_intent': {'wouldTryThreeDays': '실제로 3일간 써볼 의향이 있나요?'},
+  'founder_quality': {
+    'dailyStepTapped': '첫 1분 안에 오늘의 곡을 열었나요?',
+    'reasonAccepted': '추천 이유를 납득했나요?',
+    'openedFullListen': '외부 듣기로 이동했나요?',
+    'leftReaction': '저장 또는 반응을 남겼나요?',
+    'understoodListeningMap': '감상지도를 저장함 이상으로 이해했나요?',
+    'wouldReturnTomorrow': '내일 다시 열 이유를 말했나요?',
+  },
+  'first_use_wow': {
+    'personalRecommendation': '첫 추천이 자신의 음악에서 출발한다고 느꼈나요?',
+    'knewWhatToHear': '어디를 들어야 할지 알았나요?',
+    'pathFeltNonRandom': '다음 작품들이 서로 이어진다고 느꼈나요?',
+    'mapFeltPersonal': '지도에 자기 위치가 보인다고 느꼈나요?',
+    'tasteBridgeFeltNatural': '자기 취향과 클래식의 연결을 말했나요?',
+    'wouldReturnTomorrow': '내일 다시 열 이유를 말했나요?',
+  },
+};
+
+List<DiscoveryEvent> latestClassicalHumanObservations(
+  List<DiscoveryEvent> events,
+  String category,
+) {
+  final byTester = <String, DiscoveryEvent>{};
+  for (final event in events) {
+    final tester = event.properties['testerId']?.trim() ?? '';
+    if (event.eventType != 'feedback_submit' ||
+        tester.isEmpty ||
+        event.properties['evidenceKind'] != 'observed' ||
+        event.properties['mergeConflict'] == 'true' ||
+        (event.context != category &&
+            event.properties['category'] != category)) {
+      continue;
+    }
+    final previous = byTester[tester];
+    if (previous == null ||
+        event.occurredAt.isAfter(previous.occurredAt) ||
+        (event.occurredAt == previous.occurredAt &&
+            event.id.compareTo(previous.id) > 0)) {
+      byTester[tester] = event;
+    }
+  }
+  return byTester.values.toList();
+}
+
+String classicalFounderIntent(List<DiscoveryEvent> events) {
+  final responses = latestClassicalHumanObservations(events, 'founder_intent')
+      .where((event) => event.properties['testerId']?.trim() == 'founder')
+      .toList();
+  final value = responses.firstOrNull?.properties['wouldTryThreeDays'];
+  return value == 'true'
+      ? 'YES'
+      : value == 'false'
+      ? 'NO'
+      : 'NOT_VERIFIED';
+}
+
 class ClassicalFounderQualityGate {
   const ClassicalFounderQualityGate({
     required this.testedUserCount,
@@ -678,25 +738,10 @@ class ClassicalFounderQualityGate {
     '내일 다시 열 이유를 자기 말로 설명했는가',
   ];
 
-  static const decisionRule = '5명 중 3명 이상이 핵심 행동을 통과해야 Public V1 후보로 본다.';
+  static const decisionRule = '추천 이유는 5명 중 4명, 재방문과 감상지도는 5명 중 3명 이상 확인해야 합니다.';
 
   factory ClassicalFounderQualityGate.fromEvents(List<DiscoveryEvent> events) {
-    final probes = events
-        .where(
-          (event) =>
-              event.eventType == 'feedback_submit' &&
-              (event.context == 'founder_quality' ||
-                  event.properties['category'] == 'founder_quality'),
-        )
-        .toList(growable: false);
-    final byUser = <String, DiscoveryEvent>{};
-    for (final event in probes) {
-      final userId = event.properties['testerId']?.trim().isNotEmpty == true
-          ? event.properties['testerId']!
-          : event.id;
-      byUser[userId] = event;
-    }
-    final unique = byUser.values.toList(growable: false);
+    final unique = latestClassicalHumanObservations(events, 'founder_quality');
     return ClassicalFounderQualityGate(
       testedUserCount: unique.length,
       dailyStepTapCount: _probeTrueCount(unique, 'dailyStepTapped'),
@@ -719,7 +764,7 @@ class ClassicalFounderQualityGate {
   bool get ready =>
       testedUserCount >= 5 &&
       dailyStepTapCount >= 3 &&
-      reasonAcceptedCount >= 3 &&
+      reasonAcceptedCount >= 4 &&
       linkOutCount >= 3 &&
       reactionCount >= 3 &&
       mapUnderstandingCount >= 3 &&
@@ -758,22 +803,7 @@ class ClassicalFirstUseWowGate {
       '5명 중 4명 이상이 첫 추천 이유를 납득하고, 3명 이상이 재방문 이유와 취향 연결감을 말해야 Public V1 후보로 본다.';
 
   factory ClassicalFirstUseWowGate.fromEvents(List<DiscoveryEvent> events) {
-    final probes = events
-        .where(
-          (event) =>
-              event.eventType == 'feedback_submit' &&
-              (event.context == 'first_use_wow' ||
-                  event.properties['category'] == 'first_use_wow'),
-        )
-        .toList(growable: false);
-    final byUser = <String, DiscoveryEvent>{};
-    for (final event in probes) {
-      final userId = event.properties['testerId']?.trim().isNotEmpty == true
-          ? event.properties['testerId']!
-          : event.id;
-      byUser[userId] = event;
-    }
-    final unique = byUser.values.toList(growable: false);
+    final unique = latestClassicalHumanObservations(events, 'first_use_wow');
     return ClassicalFirstUseWowGate(
       testedUserCount: unique.length,
       personalRecommendationCount: _probeTrueCount(
@@ -1101,6 +1131,31 @@ class ClassicalCatalogOpsSummary {
 
     final publicGateItems = <ClassicalOpsGateItem>[
       _gate(
+        id: 'founder-intent',
+        label: 'founder willingness to try for three days',
+        current: classicalFounderIntent(recentEvents) == 'YES' ? 1 : 0,
+        target: 1,
+        category: ClassicalGapCategory.productQuality,
+        owner: 'founder',
+        nextAction: '첫 7일 제안을 본 founder의 실제 응답을 기록합니다.',
+        evidenceRequirement:
+            'observed founder_intent: wouldTryThreeDays=true; 시뮬레이션 제외',
+      ),
+      _gate(
+        id: 'concert-source',
+        label: 'production concert content',
+        current:
+            catalog.concerts.isNotEmpty &&
+                catalog.concerts.every((concert) => !concert.isDemonstration)
+            ? 1
+            : 0,
+        target: 1,
+        category: ClassicalGapCategory.contentOps,
+        owner: 'concert ops',
+        nextAction: '예시 공연을 검수된 실제 공연으로 교체합니다.',
+        evidenceRequirement: '실제 일정/프로그램/예매처 출처 확인; 예시 데이터를 출시 근거로 사용하지 않습니다.',
+      ),
+      _gate(
         id: 'catalog-300',
         label: 'release catalog size',
         current: catalog.works.length,
@@ -1144,14 +1199,13 @@ class ClassicalCatalogOpsSummary {
       ),
       _gate(
         id: 'public-copy',
-        label: 'public user copy review',
+        label: 'store metadata copy automated check',
         current: publicCopyReadiness.isVerified ? 1 : 0,
         target: 1,
         category: ClassicalGapCategory.productQuality,
         owner: 'product/marketing',
-        nextAction: 'Today, My Music, Concerts, store copy에서 내부 용어를 제거합니다.',
-        evidenceRequirement:
-            '사용자-facing 문구에 CTA/surface/funnel/fake URL 같은 내부 용어가 없습니다.',
+        nextAction: '스토어 문구의 내부 용어를 제거합니다. 앱 화면 검수는 별도 QA 증거가 필요합니다.',
+        evidenceRequirement: '검사 대상인 store metadata/privacy summary에 내부 용어가 없습니다. 전체 화면 검수나 사용자 만족의 증거는 아닙니다.',
       ),
       _gate(
         id: 'build-install-qa',
@@ -1473,6 +1527,11 @@ const _reviewPlatforms = <(String id, String label)>[
 const _previewSupportedPlatforms = <String>{'spotify', 'apple-music'};
 
 ExternalLink? _linkForPlatform(ClassicalWork work, String platformId) {
+  final usable = work
+      .linksForPreferredPlatform(platformId)
+      .where((link) => link.platformId == platformId && link.isVerifiedDirect)
+      .firstOrNull;
+  if (usable != null) return usable;
   for (final link in work.externalLinks) {
     if (link.platformId == platformId) {
       return link;
@@ -1482,27 +1541,12 @@ ExternalLink? _linkForPlatform(ClassicalWork work, String platformId) {
 }
 
 bool _looksLikeSearchUrl(String url) {
-  final lower = url.toLowerCase();
-  return lower.contains('/search') ||
-      lower.contains('search_query=') ||
-      lower.contains('search?term=') ||
-      lower.contains('/results?') ||
-      lower.contains('/search/total/');
+  return isClassicalSearchUrl(url);
 }
 
 bool _hostMatchesPlatform(String platformId, String url) {
-  final uri = Uri.tryParse(url);
-  final host = uri?.host.toLowerCase() ?? '';
-  if (host.isEmpty) {
-    return false;
-  }
-  return switch (platformId) {
-    'youtube' => host == 'youtu.be' || host.endsWith('youtube.com'),
-    'spotify' => host.endsWith('spotify.com'),
-    'apple-music' => host.endsWith('music.apple.com'),
-    'melon' => host.endsWith('melon.com'),
-    _ => true,
-  };
+  return classicalProviderHostMatches(platformId, url) ||
+      classicalProviderDirectMatches(platformId, url);
 }
 
 ClassicalOpsGateItem _gate({
@@ -1557,23 +1601,14 @@ bool _hasStatus(ClassicalWork work, String tag) {
 }
 
 bool _hasVerifiedDirectLink(ClassicalWork work) {
-  return work.catalogStatusTags.contains('direct_link_verified') ||
-      const ClassicalLinkReviewPolicy()
-          .reviewLinks(work)
-          .any(
-            (review) =>
-                review.status == ClassicalProviderLinkStatus.verifiedDirect,
-          );
+  return work.externalLinks.any((link) => link.isVerifiedDirect);
 }
 
 bool _hasSafeSearchFallback(ClassicalWork work) {
-  return work.externalLinks.any((link) => link.linkType == 'listen_search');
+  return work.externalLinks.any((link) => link.isSafeSearch);
 }
 
 bool _hasApprovedPreview(ClassicalWork work) {
-  if (work.catalogStatusTags.contains('preview_approved')) {
-    return true;
-  }
   return const ClassicalLinkReviewPolicy()
       .reviewPreviews(work)
       .any(
@@ -1966,7 +2001,12 @@ int _gapCount(List<ClassicalOpsGateItem> items, ClassicalGapCategory category) {
 
 ClassicalFeedbackSummary _feedbackSummary(List<DiscoveryEvent> events) {
   final feedbackEvents = events
-      .where((event) => event.eventType == 'feedback_submit')
+      .where(
+        (event) =>
+            event.eventType == 'feedback_submit' &&
+            !classicalQualityObservationQuestions.containsKey(event.context) &&
+            event.context != 'daily_distance',
+      )
       .toList(growable: false);
   final counts = <String, int>{};
   final latestMessages = <String, String>{};

@@ -2395,6 +2395,62 @@ async function verifyPartViewHeadlessExportState(window) {
   return result
 }
 
+async function verifyPartXmlExportRoundTrip(window) {
+  // The preceding workflow leaves a Viola part view. Intercept only file I/O;
+  // App projection, serializer, parser and notation renderer remain real.
+  const exported = await window.webContents.executeJavaScript(`
+    (async () => {
+      let request
+      window.inC = {
+        musicXml: { exportCopy: async input => {
+          request = input
+          return { fileName: input.suggestedName, filePath: '/headless/viola.musicxml' }
+        } }
+      }
+      document.querySelector('button[aria-label="MusicXML 내보내기"]').click()
+      await new Promise(resolve => setTimeout(resolve, 250))
+      if (!request) throw new Error('Part XML request missing: ' + document.querySelector('.editor-status').textContent)
+      const xml = new DOMParser().parseFromString(request.contents, 'application/xml')
+      return {
+        ...request,
+        partNames: [...xml.querySelectorAll('score-part > part-name')].map(node => node.textContent),
+        partCount: xml.querySelectorAll('score-partwise > part').length,
+        noteCount: xml.querySelectorAll('note').length,
+        parseError: Boolean(xml.querySelector('parsererror'))
+      }
+    })()
+  `)
+  if (exported.parseError || exported.partCount !== 1 ||
+      exported.partNames.join('|') !== 'Viola' || exported.noteCount !== 8 ||
+      !exported.suggestedName.endsWith('-viola.musicxml') || exported.filePath) {
+    throw new Error('Selected part XML export failed: ' + JSON.stringify(exported))
+  }
+  const artifact = path.join(app.getPath('temp'), 'chromatics-headless-part-export.musicxml')
+  fs.writeFileSync(artifact, exported.contents)
+  const contents = fs.readFileSync(artifact, 'utf8')
+  const reopened = await window.webContents.executeJavaScript(`
+    (async () => {
+      window.inC.musicXml.open = async () => ({
+        filePath: ${JSON.stringify(artifact)},
+        fileName: 'chromatics-headless-part-export.musicxml',
+        contents: ${JSON.stringify(contents)}
+      })
+      window.inC.recentMusicXml = { add: async () => [] }
+      window.inC.autosave = { clear: async () => {}, write: async () => {} }
+      document.querySelector('button[aria-label="MusicXML 가져오기"]').click()
+      await new Promise(resolve => setTimeout(resolve, 400))
+      return {
+        parts: [...document.querySelectorAll('select[aria-label="파트보 선택"] option')].map(node => node.textContent),
+        events: document.querySelectorAll('.notation-event').length
+      }
+    })()
+  `)
+  if (reopened.parts.join('|') !== 'Viola' || reopened.events !== 8) {
+    throw new Error('Part XML renderer reopen failed: ' + JSON.stringify(reopened))
+  }
+  return { artifact, partNames: exported.partNames, noteCount: exported.noteCount, reopened }
+}
+
 async function verifyPlaybackMixerHeadlessState(window) {
   await loadFixture(window)
   window.setSize(1280, 900)
@@ -3361,6 +3417,7 @@ app.whenReady().then(async () => {
   const propertiesDockEditing = await verifyPropertiesDockEditing(window)
   const partViewHeadlessExportState =
     await verifyPartViewHeadlessExportState(window)
+  const partXmlExportRoundTrip = await verifyPartXmlExportRoundTrip(window)
   const playbackMixerHeadlessState =
     await verifyPlaybackMixerHeadlessState(window)
   const newScore = await verifyNewScoreWizard(window)
@@ -3413,6 +3470,7 @@ app.whenReady().then(async () => {
         commercialHeadlessViewports,
         propertiesDockEditing,
         partViewHeadlessExportState,
+        partXmlExportRoundTrip,
         playbackMixerHeadlessState,
         newScore,
         grandStaffPreview,

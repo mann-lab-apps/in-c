@@ -1,5 +1,100 @@
 # in C V1 Release Checklist
 
+## TestFlight Upload: 2026-09-15
+
+- User confirmed `com.mannlab.inc` and authorized internal-test distribution.
+- Independent `inc` flavor preserves all nine original Clef build configurations.
+- `in C` 1.0.0(2609.15.1): archive built, App Store-signed IPA exported and signature verified.
+- App Store Connect upload succeeded for record6804194541; Apple processing started.
+- Processing completion, tester-group assignment, installation and founder satisfaction:
+  NOT_VERIFIED. This is NOT expanded/Public V1 completion.
+- Nonblocking warning: PDFium dSYM missing. Default launch-image placeholder remains.
+- Current full1135/analyze/format/diff PASS. Build paths and exact commands:
+  [candidate manifest](in-c-testflight-internal-test-candidate.md).
+- No Git publication, public App Store release or tester invitations performed.
+
+## Earlier TestFlight Milestone: HOLD (2026-09-15, Historical)
+
+- Latest listening-wait repair: link7/full1135/analyze/format11/native10 PASS. Slow click-event
+  persistence no longer blocks external launch; retained-event retry/no-false-listen tests pass.
+  New diagnostic archive/log hashes supersede the older1132 artifact in dated evidence.
+
+- [Candidate manifest and handoff](in-c-testflight-internal-test-candidate.md): feature freeze,
+  not Public V1 completion. Final full1132/analyze PASS supersede the older counts below.
+- Actual iOS archive: Clef & Staff, `com.mannlab.inc.clefandstaff`, 1.0.0(21), unsigned.
+  Same identifier/profile as Clef release22. DO NOT UPLOAD or replace Clef with this artifact.
+- Certificate identities exist. Need approved in C identity/profile and unused ASC build number;
+  do not blindly reuse `ios/ExportOptions.plist`, which maps the Clef ID/profile.
+- Founder first3 simulation is now Moonlight/Raindrop/Eine kleine Nachtmusik rather than
+  all Beethoven. This is not founder approval, novelty evidence or verified playback.
+- First-recording hearing/region/window, physical notifications/VoiceOver and signed install
+  remain open. No upload/invitation/identity change/commit/push/merge is authorized or performed.
+
+## Current Continuation: 2026-09-15
+
+Public V1 remains NOT READY. [Current evidence](../quality/in-c-expanded-v1-evidence-2026-09-15.md)
+records the fresh main-based worktree, scoped152/full1116 tests and analysis. First-reward
+grounding, unknown-title inference, empty/excluded fallback and stale proximity copy are repaired.
+Native provisional foreground delivery is not physical/background/tap or listening approval.
+Required39 is DONE12/IN_PROGRESS25/NOT_VERIFIED2; only R01 code verification is newly complete.
+No publication or identity change is
+authorized in this continuation; all conflicting permissions/counts below are historical.
+
+## Current Continuation: 2026-09-14
+
+Latest expansion-bridge patch: scoped12/full574/analyze/format/diff and iOS no-codesign
+build (26.0MB) PASS. Actual device and human QA remain open. User authorized checkpoint
+commit/push, not merge/deploy/identity changes; older no-push instructions are historical.
+
+Public V1 remains NOT READY. [Latest evidence](../quality/in-c-expanded-v1-evidence-2026-09-14.md):
+574 full tests, 110 controller tests and analyze PASS. Search failure recovery, source-input
+reason correction and legacy pinned-claim withdrawal are implemented; actual provider
+playback/first30 windows are still unapproved. Final iOS no-codesign build PASS.
+Real provisional-authorization simulator calendar delivery now passes; old blanket delivery SKIP
+statements below are historical. Physical/background/tap/user-permission evidence is still absent.
+Current-main artifact reports `com.mannlab.inc.clefandstaff`; this run does not change identity.
+No commit/push/merge/deployment is authorized. Required39 counts and human approval remain separate.
+Explicit composer exclusions now filter new recommendations without erasing saved/listening
+records or the valid same-day pick. Retry/recovery, backward-clock preference revisions and
+empty-pool settings access are covered. Native exclusion toggle/store readback passed;
+final empty-pool recovery has widget/build evidence, not native interaction. Explicit opera-vocal
+exclusion is implemented; instrumental opera excerpts are not silently included. Melody preference
+no longer vetoes Mahler/choruses. BWV578 now provides a real fugue candidate without changing
+the first30 pool or claiming the generic input names that exact favorite. Playback and founder
+satisfaction remain open, not completed by this preference UI.
+
+## Expanded V1 Status: 2026-09-13
+
+Latest continuation: E04 taste connection review/correction/unlink, full466 tests/analyze,
+native recovery/connection QA and final iOS no-codesign build PASS after the recovery-warning fix.
+Native edit/unlink/reload inspected; actual authorized notification/audio/user-value
+evidence still absent. Historical checkpoints below do not override current evidence.
+
+Public V1 implementation complete: NO. Recommendation quality confirmed: NOT_VERIFIED.
+Physical-device notification QA: NOT_VERIFIED. Public release approval: NO.
+[Current work queue](../product/in-c-expanded-v1-work-queue.md) and
+[execution evidence](../quality/in-c-expanded-v1-evidence-2026-09-13.md) supersede historical PASS counts.
+
+- [ ] First 30 recording-specific listening points, real provider playback and recommendation bridges reviewed.
+- [ ] Founder explicitly wants to try three days; actual five-user observations satisfy the original thresholds.
+- [ ] iOS permission/denial/timezone/pending request/delivery/tap checked; no-codesign build alone is insufficient.
+- [ ] Identity confirmed: current iOS bundle is `com.mannlab.inc.clef`, Android is `com.mannlab.inc`. Do not silently migrate identifiers.
+- [ ] Local data-control/backup disclosure and store privacy notice reviewed for this build.
+- [ ] Latest complete test/analyze/build logs and visual evidence recorded; remaining implementation IDs closed.
+- [ ] Real concert inventory distinguished from demonstration fixtures; no demonstration booking CTA.
+- [ ] No commit/push/merge/deploy without separate authorization.
+
+Resumed checks: Daily catalog withdrawals and deterministic bounded snapshot merging are implemented.
+Compound composer/title intake was repaired after an independent first-week failure.
+Actual iOS simulator authorization is currently not-determined: native refusal passes,
+authorized scheduling/delivery/tap remain unverified. Read the per-test log, not only the
+integration runner's successful exit status. First30 official sources do not approve recordings.
+
+Latest user-requested pause: full459 PASS, analyze PASS, iOS no-codesign build PASS.
+Native isolated backup recovery and main flow passed before the final input-number refinement.
+Recording windows, authorized notification delivery/tap, physical accessibility and actual
+founder/five-user results remain unverified. See the dated evidence checkpoint for exact logs.
+
 목표: in C를 좋아하는 음악에서 시작하는 클래식 감상 성장 앱으로 공개 V1 배포 가능한
 상태까지 검증한다. 공연 전 10분 프리뷰와 공연 후 회고는 핵심 보조 루프로 유지한다.
 
@@ -15,11 +110,14 @@
 - 같은 날짜의 Daily Pick은 여러 번 열어도 유지되고, 다음 날짜에는 새 pick으로 넘어간다.
 - Daily Pick은 아주 가까움 / 한 걸음 확장 / 의외의 우회로 / 다시 들어볼 때 중 하나의 거리감을 보여준다.
 - 첫 3일은 가까운 추천 중심이며, 4-7일 안 surprise 추천은 최대 1회만 허용된다.
+- Catalog Ops 첫 7일 추천 미리보기에서 날짜별 작품, 거리감, 들을 지점, 다음 길을 확인할 수 있다.
+- Catalog Ops Daily Pick 규칙 검사에서 첫 7일 모의 실행과 실제 사용자 평가를 분리한다. 자동 PASS만으로 founder 승인이나 Public V1 READY를 표시하지 않는다.
 - `아직 모르겠음` reaction 직후에는 surprise 추천을 하지 않는다.
 - Daily step은 저장했지만 아직 전체 듣기 전인 작품, `아직 모르겠음` 회복용 쉬운 작품, 취향 기반 추천, founder pick 순서로 결정된다.
-- 오늘 reaction, 전체 듣기, listening moment 완료 중 하나가 있으면 Daily step은 완료 상태로 보인다.
+- 실제 반응 또는 사용자가 직접 확인한 감상 완료가 있어야 Daily step을 완료로 표시한다. 외부 링크 클릭만으로 완료하지 않는다.
 - Daily step reason은 사용자가 넣은 음악/OST/분위기 또는 reaction evidence를 직접 반영한다.
 - 선율-first 사용자에게는 선율, 일/독서/산책 맥락, 시대별 기법 힌트가 추천 이유와 Next Three reason에 반영된다.
+- Founder taste profile은 좋아하는 대중음악/클래식 입력, 피해야 할 오페라/바그너/말러, 바흐 푸가 예외, 배우고 싶은 시대별 기법을 명시적으로 가진다.
 - 오페라/성악 중심 또는 바그너/말러식 확장은 사용자가 명시적으로 좋아한 경우가 아니면 첫 추천에서 뒤로 밀린다.
 - 온보딩 보상은 입력을 감상 시작점, 오늘 들을 지점, 다음 방향으로 즉시 바꿔 보여준다.
 - 10초 귀 트임은 정답/점수/랭킹 없이 내가 먼저 들은 단서만 남긴다.
@@ -88,6 +186,7 @@
 - ReminderPreference는 local-first로 저장된다.
 - iOS local notification은 MethodChannel bridge로 permission request, schedule, cancel, notification open event를 처리한다.
 - remote push/APNs 서버 운영은 Public V1 이후 production verification GAP으로 둔다.
+- local notification copy는 기본/저장 후/좋음 후/아직 모르겠음 후/놓친 날 상태에 맞춰 초대형 문장으로 바뀐다.
 - 로그인/Supabase sync는 conflict-safe codec과 merge 정책을 통과한다.
 - Admin command reducer로 external link, score link, concert program raw text, promotion create/update/pause를 처리할 수 있다.
 - 실제 preview playback은 provider preview URL이 있는 경우에만 시도한다.

@@ -22,6 +22,12 @@ class _ClassicalDiscoveryAppState extends State<ClassicalDiscoveryApp> {
       : Future<void>.value();
 
   @override
+  void dispose() {
+    if (widget.controller == null) _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'in C',

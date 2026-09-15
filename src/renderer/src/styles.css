@@ -58,8 +58,8 @@ button:disabled {
 }
 
 .app-shell {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   min-height: 100vh;
   background:
     linear-gradient(90deg, rgba(32, 35, 38, 0.05) 1px, transparent 1px) 0 0 / 40px
@@ -514,6 +514,18 @@ h2 {
   box-shadow: 0 1px 2px rgba(20, 23, 26, 0.08);
 }
 
+.range-notation-palette button {
+  flex: 0 0 auto;
+  min-width: 32px;
+  height: 30px;
+}
+
+.range-notation-palette button[aria-pressed="true"] {
+  border-color: #3d6770;
+  color: #193e47;
+  background: #e0eef0;
+}
+
 .inspector-properties__command {
   width: auto;
   padding: 0 9px;
@@ -528,13 +540,16 @@ h2 {
 }
 
 .workspace {
-  display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
   min-width: 0;
 }
 
 .docked-workspace {
   display: grid;
+  flex: 1;
+  align-content: start;
   grid-template-columns: minmax(132px, 168px) minmax(0, 1fr) minmax(180px, 236px);
   min-width: 0;
 }
@@ -1247,9 +1262,17 @@ h2 {
 }
 
 .score-part-title {
+  width: min(100%, 520px);
   color: #2f3a40;
   font-size: 1.05rem;
   font-weight: 700;
+}
+
+.score-part-title .metadata-display,
+.score-part-title .metadata-input {
+  color: inherit;
+  font: inherit;
+  overflow-wrap: anywhere;
 }
 
 .metadata-input {
@@ -1289,7 +1312,9 @@ h2 {
 }
 
 .notation-staff-label {
+  stroke: none;
   fill: #5d594f;
+  font-family: Arial, sans-serif;
   font-size: 12px;
   font-weight: 700;
   pointer-events: none;
@@ -1422,21 +1447,27 @@ h2 {
 }
 
 .notation-staff-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
 }
 
 .notation-system-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 14px;
   font-weight: 700;
   pointer-events: none;
 }
 
 .notation-expression-text {
+  stroke: none;
   fill: #111827;
+  font-family: Georgia, 'Times New Roman', serif;
   font-size: 13px;
   font-style: italic;
   font-weight: 600;
@@ -1493,6 +1524,35 @@ h2 {
   stroke: #111827;
   stroke-linecap: round;
   stroke-width: 1.6;
+}
+
+.notation-span-target { cursor: pointer; }
+.notation-span-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 12;
+  pointer-events: stroke;
+}
+.notation-span-target.is-selected .notation-slur,
+.notation-span-target.is-selected .notation-hairpin,
+.notation-span-target:focus-visible .notation-slur,
+.notation-span-target:focus-visible .notation-hairpin { stroke: #007a84; }
+.notation-span-target:focus-visible { outline: none; }
+.span-properties { min-width: 0; }
+.span-properties .selection-properties__edit { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+.span-properties__address { font-size: 0.74rem; font-weight: 400; overflow-wrap: anywhere; }
+.span-properties__geometry summary { cursor: pointer; font-size: 0.78rem; font-weight: 700; }
+.span-properties__geometry[open] .selection-properties__edit { margin-top: 8px; }
+.span-properties__geometry .icon-button { margin-top: 8px; }
+.span-properties select { min-width: 0; max-width: 100%; }
+.span-properties dd { overflow-wrap: anywhere; }
+.span-properties__actions { display: flex; gap: 8px; margin-top: 8px; }
+.span-properties__actions button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
 }
 
 .notation-articulation {
@@ -2099,3 +2159,14 @@ h2 {
     stroke: #000000 !important;
   }
 }
+.native-backups-dialog {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+}
+.native-backups-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.native-backups-list { padding: 0; list-style: none; }
+.native-backups-list li { display: grid; grid-template-columns: minmax(0, 1fr) 40px; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #ccc; }
+.native-backups-list li div { display: grid; gap: 4px; overflow-wrap: anywhere; }
+.native-backups-list span, .native-backups-list time { font-size: 12px; }
+.native-backups-list button { width: 40px; height: 40px; padding: 8px; }
