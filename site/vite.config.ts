@@ -51,6 +51,7 @@ export default defineConfig({
         inCClickPrivacy: resolve(__dirname, 'in-c-click-privacy.html'),
         support: resolve(__dirname, 'support.html'),
         privacy: resolve(__dirname, 'privacy.html'),
+        inCAppPrivacy: resolve(__dirname, 'in-c-app-privacy.html'),
         ...columnPages
       }
     }

@@ -437,7 +437,7 @@ function verifyProductSurfaceStates() {
   }
 }
 
-function verifyPersonalBlogHomeSurface() {
+function verifyAppHomeAndLegacyArticles() {
   const indexPage = readFileSync(indexPagePath, 'utf8')
   const columnDetailPage = readFileSync(columnDetailPagePath, 'utf8')
   const columnsScript = readFileSync(resolve(siteRoot, 'columns.js'), 'utf8')
@@ -449,21 +449,20 @@ function verifyPersonalBlogHomeSurface() {
   const promotionInterestMigration = readFileSync(promotionInterestMigrationPath, 'utf8')
 
   for (const phrase of [
-    'in C | 클래식 감상 글',
-    '클래식 감상 글',
-    '합창교향곡이 힙합인 이유',
-    '반복의 힘',
-    '장르의 매력',
-    '출발',
-    'data-site-header',
-    'data-site-footer',
-    './main.js',
-    './columns/choral-symphony-hiphop.html',
-    'opentutorials-home',
-    'inc-sketch-theme',
-    'ot-recent-list'
+    'in C | 내 취향에서 시작하는 클래식',
+    '오늘의 한 곡',
+    '내 감상지도',
+    '감상 가이드',
+    './assets/in-c-app/in-c-daily-pick.png',
+    './support.html',
+    './in-c-app-privacy.html',
+    '공개 준비 중',
+    '검색 링크는 바로 재생되는 링크가 아닙니다'
   ]) {
-    assert(indexPage.includes(phrase), `personal blog home missing: ${phrase}`)
+    assert(indexPage.includes(phrase), `in C app home missing: ${phrase}`)
+  }
+  for (const phrase of ['ot-recent-list', './columns/', './chromatics.html', 'data-pilot-form', './main.js']) {
+    assert(!indexPage.includes(phrase), `app-only home must not include: ${phrase}`)
   }
 
   for (const phrase of [
@@ -510,7 +509,6 @@ function verifyPersonalBlogHomeSurface() {
   for (const phrase of [
     'Module 6',
     'Course 3',
-    '감상지도',
     'Listening Map',
     'in C YouTube',
     '채널 준비 중',
@@ -1075,7 +1073,7 @@ try {
   verifyColumnAssets()
   verifyProductRelations()
   verifyProductSurfaceStates()
-  verifyPersonalBlogHomeSurface()
+  verifyAppHomeAndLegacyArticles()
   verifyUtilityAppRequestSurface()
   verifyMetronomeSurface()
   verifyPrivacyNoticeSurface()
