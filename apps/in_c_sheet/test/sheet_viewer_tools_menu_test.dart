@@ -109,7 +109,8 @@ void main() {
         const captureDirectory = String.fromEnvironment(
           'CLEF_QA_SCREENSHOT_DIR',
         );
-        if (captureDirectory.isNotEmpty) {
+        Future<void> capture(String name) async {
+          if (captureDirectory.isEmpty) return;
           await tester.runAsync(() async {
             final boundary =
                 captureKey.currentContext!.findRenderObject()!
@@ -121,18 +122,36 @@ void main() {
             final directory = await Directory(captureDirectory)
                 .create(recursive: true);
             await File(
-              '${directory.path}/tools-${size.width.toInt()}x${size.height.toInt()}-$scale.png',
+              '${directory.path}/$name-${size.width.toInt()}x${size.height.toInt()}-$scale.png',
             ).writeAsBytes(bytes!.buffer.asUint8List());
             image.dispose();
           });
         }
+
+        await capture('tools');
         await tester.ensureVisible(find.text('메트로놈'));
         await tester.tap(find.text('메트로놈'));
         await tester.pumpAndSettle();
         expect(find.text('시작'), findsOneWidget);
         expect(tester.takeException(), isNull);
-        Navigator.of(tester.element(find.byType(BottomSheet))).pop();
+        expect(find.text('작은 창').hitTestable(), findsOneWidget);
+        await capture('metronome');
+        await tester.tap(find.text('작은 창'));
         await tester.pumpAndSettle();
+        expect(find.byType(BottomSheet), findsNothing);
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is Semantics &&
+                widget.properties.label == '메트로놈 시각 박자 표시',
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('시작'), findsOneWidget);
+        await capture('mini');
+        await tester.tap(find.byTooltip('닫기'));
+        await tester.pumpAndSettle();
+        expect(find.text('시작'), findsNothing);
         await tester.tap(find.text('도구'));
         await tester.pumpAndSettle();
         await tester.ensureVisible(find.text('필기 모드'));

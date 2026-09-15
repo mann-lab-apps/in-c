@@ -70,6 +70,26 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
+in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
+target and retained its tooltip. Metronome places it beside the save-scope label
+to keep start/stop and the title readable on narrow screens.
+Acceptance: first-screen named action at phone/tablet and 1.0/1.6 text; same callback;
+actual viewer -> metronome sheet -> mini panel -> close flow remains functional.
+Eight initial missing-label regressions failed; 18/18 entry/actual-viewer cases PASS
+(`/private/tmp/clef-s53-target.log`). Ten local-font screenshot cases PASS;
+reviewed metronome/mini at phone large text in `/private/tmp/clef-mini-entry-qa`.
+First full run failed one old stop test: its tap used a pre-layout scroll position
+at y=-4, so it never stopped playback. Added post-scroll layout/hit-test checks;
+do not suppress missed-tap warnings. Final targeted 32/32 and full 1,169/1,169,
+analyze/RC PASS (`/private/tmp/clef-rc-s53-final.log`); formatter/diff PASS.
+Commit subject: `feat: label Clef mini tool entrypoints`.
+Important discovered gap: `_ViewerMiniToolPanel._buildTuner` only provides a return
+button to full tuner; it has no live input/note readout. Do not call that live mini
+tuning verified. Next verify pending microphone permission/start cancellation,
+then reuse the chromatic input service in a compact live panel with lifecycle tests.
+No app build/version change/push/merge. Physical audio/pedal remain DEVICE QA.
+
 S51 commit: `e0c3cce`. S52 VERIFIED LOCAL: five tone lifecycle defects reproduced with
 delayed settings/stop callbacks (`/private/tmp/clef-s52-red.log`). Volume/A4 saves
 could request playback after sheet exit, waited for storage before audible updates,

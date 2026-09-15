@@ -16999,6 +16999,7 @@ Widget buildTunerSheetForTest({
   SheetToneSettings toneSettings = SheetToneSettings.defaultSettings,
   Future<void> Function(SheetTunerSettings)? onSettingsChanged,
   Future<void> Function(SheetToneSettings)? onToneSettingsChanged,
+  VoidCallback? onShowMiniPanel,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -17008,6 +17009,7 @@ Widget buildTunerSheetForTest({
         autoStartInput: false,
         onSettingsChanged: onSettingsChanged ?? (_) async {},
         onToneSettingsChanged: onToneSettingsChanged ?? (_) async {},
+        onShowMiniPanel: onShowMiniPanel,
       ),
     ),
   );
@@ -17423,11 +17425,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                     ),
                   ),
                   if (widget.onShowMiniPanel != null)
-                    IconButton(
-                      onPressed: widget.onShowMiniPanel,
-                      icon: const Icon(Icons.picture_in_picture_alt_outlined),
-                      tooltip: '악보 위에 작게 띄우기',
-                    ),
+                    _miniToolEntryButton(widget.onShowMiniPanel!),
                   IconButton.filledTonal(
                     onPressed: _toggleListening,
                     icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
@@ -18180,6 +18178,18 @@ class _TunerPitchHistoryPainter extends CustomPainter {
   }
 }
 
+Widget _miniToolEntryButton(VoidCallback onPressed) {
+  return Tooltip(
+    message: '악보 위에 작게 띄우기',
+    child: TextButton.icon(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+      icon: const Icon(Icons.picture_in_picture_alt_outlined),
+      label: const Text('작은 창'),
+    ),
+  );
+}
+
 class _MetronomeSheet extends StatefulWidget {
   const _MetronomeSheet({
     required this.initialSettings,
@@ -18202,13 +18212,14 @@ class _MetronomeSheet extends StatefulWidget {
 Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
   Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
+  VoidCallback? onShowMiniPanel,
 }) {
   return MaterialApp(
     home: Scaffold(
       body: _MetronomeSheet(
         initialSettings: settings,
         onSettingsChanged: onSettingsChanged ?? (_) async {},
-        onShowMiniPanel: () {},
+        onShowMiniPanel: onShowMiniPanel ?? () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
       ),
     ),
@@ -18587,11 +18598,6 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: widget.onShowMiniPanel,
-                  icon: const Icon(Icons.picture_in_picture_alt_outlined),
-                  tooltip: '악보 위에 작게 띄우기',
-                ),
                 FilledButton.icon(
                   onPressed: _toggleRunning,
                   icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
@@ -18599,15 +18605,23 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 ),
               ],
             ),
-            if (widget.settingsScopeLabel != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                widget.settingsScopeLabel!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (widget.settingsScopeLabel != null)
+                  Expanded(
+                    child: Text(
+                      widget.settingsScopeLabel!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                _miniToolEntryButton(widget.onShowMiniPanel),
+              ],
+            ),
             const SizedBox(height: 22),
             Center(
               child: Text(
