@@ -244,6 +244,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   세트리스트별 score metronome override,
   start/stop, 첫 박 강조, subdivision, Tap tempo, 0/1/2마디 count-in, 기본 ON tick 소리,
   `소리`/`시각만` 상태 표시, viewer mini panel과 시각 박자 strip을 제공한다.
+  Android 클릭 출력은 강세/일반 PCM과 AudioTrack 두 개를 재사용하며 매 박 스레드를 만들지 않는다.
+  초기화/재생 오류 전달, 자원 해제/재시도는 네이티브 단위 검증 범위다.
+  빠른 BPM의 실제 불규칙 간격 보고는 미해결 QA이며 출력 지터/이어폰 비교가 필요하다.
 - 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
   gate, confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing,
   no-signal debounce, octave/저음 3배음 guard, note hysteresis를 붙였다.

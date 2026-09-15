@@ -79,7 +79,8 @@ Full 1,040/1,040, analyze/RC PASS (`/private/tmp/clef-rc-s45-s46.log`).
 Commit subject: `fix: recover Clef performance template saves`.
 UI error handling is a separate remaining gap, not fixed here.
 
-S46 IN PROGRESS: Android click playback allocates a thread/AudioTrack per beat.
+S45 commit: `b01bd66`. S46 VERIFIED LOCAL (resource lifecycle only): Android click
+playback allocated a thread/AudioTrack per beat.
 Extracted the player, cached two preloaded static tracks and reset their playback
 cursor for reuse. Errors now reach the method-channel handler synchronously;
 partial initialization/playback failures release tracks; activity destruction closes
@@ -88,6 +89,17 @@ checks pass: 960 requests create only two tracks, accents/volume, retry, close a
 PCM bounds. This measures resource behavior, NOT audible jitter/latency.
 No package build. Flutter timer/channel/output-device jitter remains a candidate;
 the user's fast-BPM ISSUE stays open until repeatable output/physical verification.
+Native runner: `ANDROID_JAR=... KOTLIN_COMPILER_CP=... bash tool/check_metronome_native.sh`
+from apps/in_c_sheet. Used installed Android 37.0 SDK, Kotlin 2.2.21 compiler/runtime
+with cached coroutines 1.8.0 and JetBrains annotations 13.0, Java 17. The runner
+compiles the actual Android player against android.jar and runs injected-track tests;
+it does not invoke Gradle or package an app. Existing AudioTrack constructor API is
+deprecated but compiled successfully. Full Flutter 1,040/analyze/RC PASS as above.
+Official API checked 2026-09-15: static data preloading and stopped/paused cursor reset,
+https://developer.android.com/reference/android/media/AudioTrack#setPlaybackHeadPosition(int).
+Commit subject: `fix: reuse Clef Android metronome click outputs`.
+Next: icon-only viewer entrypoints and timer/count-in behavior under delayed ticks.
+
 
 User QA priority update: fast metronome playback is audibly uneven (ISSUE).
 Drone sounds quiet through earphones (DEVICE QA, not a confirmed gain defect);
