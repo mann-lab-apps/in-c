@@ -70,6 +70,21 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S46 commit: `f2a49d2`. S47 VERIFIED LOCAL: expose the existing viewer menu as a named
+`도구` entry at every width, group related actions, retain icon shortcuts, and allow
+labelled action width in the scrolling toolbar. No actions removed or engines changed.
+New actual-viewer tests found two issues: labelled controls in fixed icon slots, and
+menu construction reading pageCount before the PDF controller is ready. Guarded
+both tools/page menus. Also made the missing/error-PDF panel scroll on short screens.
+Ten sizes/text-scale cases and ten optional local-font screenshot cases PASS
+(`/private/tmp/clef-s47-screenshots.log`, `clef-s47-font.log`). Captures in
+`/private/tmp/clef-tools-qa-font`; reviewed phone and large-text tablet images.
+Missing-PDF fixtures exercise menu/UI, NOT actual PDF rendering or emulator behavior.
+Full 1,050/1,050, analyze/RC PASS (`/private/tmp/clef-rc-s47.log`).
+Commit subject: `feat: expose named Clef viewer tools on tablets`.
+Competitor sources and remaining home/annotation/mini-panel gaps
+are recorded in sheet-viewer-reference-analysis.md. No app build/push/merge.
+
 S45 VERIFIED LOCAL: fixed the draft's constructor arguments, then reproduced eight
 template save/delete recovery or cross-library failures (`/private/tmp/clef-s45-reproduced.log`).
 Save/delete now use the existing scoped store writer and ownership-checked reload
