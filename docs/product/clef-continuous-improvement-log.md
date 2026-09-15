@@ -70,6 +70,23 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S43 commit: `377b33f`. S44 VERIFIED LOCAL: ten delayed same-library reload tests
+reproduced loss of later saved edits in scores/setlists/settings/templates/profiles.
+Reload now publishes only fields it still owns; global settings preserve later edits
+even on a library switch. View/favorite request identity also protects pending saves:
+a second red case reproduced null -> preset -> null clearing a newer recovery token.
+Acceptance: later saved or pending edits survive old reads; failed saves still recover;
+destination library fields replace origin fields on switch; newer errors remain visible.
+Twenty added cases cover ten saved edits, eight pending success/failure paths, a switch
+with global edits and an error raised during reload. Targeted 40/40 PASS
+(`/private/tmp/clef-s44-final-target.log`); red evidence in `clef-s44-red.log` and
+`clef-s44-pending.log` under `/private/tmp`. Full 1,029/1,029, analyze/RC PASS
+(`/private/tmp/clef-rc-s44-final.log`); two test-only brace lints were corrected.
+Commit subject: `fix: retain Clef edits during library reloads`.
+No schema/backup changes; cross-controller writes and rollback failure guarantees
+remain excluded. Next: reproduce performance-template save failure/library scope.
+No build/version change/push/merge. Earlier checkpoint limitations below are historical.
+
 S42 commit: `5766b77`. S43 VERIFIED LOCAL: failed profile content reads leave the
 persisted active ID different from the previously visible complete library.
 Two regression tests reproduced this after creation and switching. Latest failed

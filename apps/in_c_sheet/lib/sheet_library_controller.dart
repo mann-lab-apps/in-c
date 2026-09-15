@@ -309,6 +309,20 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> _loadActiveLibraryState(Object request) async {
+    final previousProfiles = _libraryProfiles;
+    final previousActive = _activeLibraryProfile;
+    final previousScores = _scores;
+    final previousSetlists = _setlists;
+    final previousMetronome = _metronomeSettings;
+    final previousTuner = _tunerSettings;
+    final previousTone = _toneSettings;
+    final previousView = _libraryViewSettings;
+    final previousViewRequest = _viewSettingsSaveRequest;
+    final previousViewer = _globalViewerSettings;
+    final previousTemplates = _performancePresetTemplates;
+    final previousFavorite = _favoriteAnnotationPreset;
+    final previousFavoriteRequest = _favoritePresetSaveRequest;
+    final previousError = _errorMessage;
     final profiles = await store.loadLibraryProfiles();
     final active = await store.loadActiveLibraryProfile();
     final scores = await store.loadScores();
@@ -322,20 +336,43 @@ class SheetLibraryController extends ChangeNotifier {
     final favorite = await store.loadFavoriteAnnotationPreset();
     if (!identical(_libraryLoadRequest, request)) return;
     // Publish one completed load; superseded reads must never clean up newer data.
-    _libraryProfiles = profiles;
-    _activeLibraryProfile = active;
-    _scores = scores;
-    _setlists = setlists;
-    _metronomeSettings = metronome;
-    _tunerSettings = tuner;
-    _toneSettings = tone;
-    _libraryViewSettings = view;
-    _viewSettingsSaveRequest = null;
-    _globalViewerSettings = viewer;
-    _performancePresetTemplates = templates;
-    _favoriteAnnotationPreset = favorite;
-    _favoritePresetSaveRequest = null;
-    _errorMessage = null;
+    final sameLibrary = active.id == previousActive.id;
+    if (identical(_libraryProfiles, previousProfiles)) {
+      _libraryProfiles = profiles;
+    }
+    if (!sameLibrary || identical(_activeLibraryProfile, previousActive)) {
+      _activeLibraryProfile = active;
+    }
+    if (!sameLibrary || identical(_scores, previousScores)) _scores = scores;
+    if (!sameLibrary || identical(_setlists, previousSetlists)) {
+      _setlists = setlists;
+    }
+    // Global settings remain global even when the selected library changes.
+    if (identical(_metronomeSettings, previousMetronome)) {
+      _metronomeSettings = metronome;
+    }
+    if (identical(_tunerSettings, previousTuner)) _tunerSettings = tuner;
+    if (identical(_toneSettings, previousTone)) _toneSettings = tone;
+    if (!sameLibrary ||
+        (identical(_libraryViewSettings, previousView) &&
+            identical(_viewSettingsSaveRequest, previousViewRequest))) {
+      _libraryViewSettings = view;
+      _viewSettingsSaveRequest = null;
+    }
+    if (identical(_globalViewerSettings, previousViewer)) {
+      _globalViewerSettings = viewer;
+    }
+    if (!sameLibrary ||
+        identical(_performancePresetTemplates, previousTemplates)) {
+      _performancePresetTemplates = templates;
+    }
+    if (!sameLibrary ||
+        (identical(_favoriteAnnotationPreset, previousFavorite) &&
+            identical(_favoritePresetSaveRequest, previousFavoriteRequest))) {
+      _favoriteAnnotationPreset = favorite;
+      _favoritePresetSaveRequest = null;
+    }
+    if (!sameLibrary || _errorMessage == previousError) _errorMessage = null;
     await _removeMissingSetlistScores();
   }
 

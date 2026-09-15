@@ -5,6 +5,7 @@ import 'package:in_c_sheet/sheet_annotation.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_profile.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
+import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -112,6 +113,160 @@ void main() {
     await older;
     expectLibrary('A');
     expect((await store.loadActiveLibraryProfile()).id, profiles.first);
+  });
+
+  for (final edit in [
+    'score',
+    'setlist',
+    'view',
+    'preset',
+    'metronome',
+    'tuner',
+    'tone',
+    'viewer',
+    'template',
+    'profile',
+  ]) {
+    test('reload retains later saved $edit edit', () async {
+      final pending = store.nextFinalRead = _PendingRead();
+      final reading = controller.load();
+      await pending.entered.future;
+      switch (edit) {
+        case 'score':
+          await controller.toggleFavorite(controller.scores.single);
+        case 'setlist':
+          await controller.renameSetlist(
+            controller.setlists.single,
+            'New setlist',
+          );
+        case 'view':
+          await controller.updateFavoriteFilter(true);
+        case 'preset':
+          await controller.updateFavoriteAnnotationPreset(
+            const SheetAnnotationToolPreset(
+              toolName: 'pen',
+              color: 0xff123456,
+              width: 4,
+            ),
+          );
+        case 'metronome':
+          await controller.updateMetronomeSettings(
+            controller.metronomeSettings.copyWith(bpm: 123),
+          );
+        case 'tuner':
+          await controller.updateTunerSettings(
+            controller.tunerSettings.copyWith(referencePitchA4: 442),
+          );
+        case 'tone':
+          await controller.updateToneSettings(
+            controller.toneSettings.copyWith(volumePercent: 33),
+          );
+        case 'viewer':
+          await controller.updateGlobalViewerSettings(
+            controller.globalViewerSettings.copyWith(halfPageTurn: true),
+          );
+        case 'template':
+          await controller.savePerformancePresetTemplate(
+            name: 'Concert',
+            viewerSettings: controller.globalViewerSettings,
+          );
+        case 'profile':
+          await controller.renameLibraryProfile(
+            id: profiles.first,
+            name: 'New name',
+          );
+      }
+      final saved = _snapshot(controller);
+      pending.complete(false);
+      await reading;
+      expect(_snapshot(controller), saved);
+      await controller.load();
+      expect(_snapshot(controller), saved);
+    });
+  }
+
+  for (final edit in ['score', 'view', 'preset', 'preset-clear']) {
+    for (final fails in [false, true]) {
+      test(
+        'reload preserves pending $edit save and recovery fails=$fails',
+        () async {
+          final read = store.nextFinalRead = _PendingRead();
+          final reading = controller.load();
+          await read.entered.future;
+          const preset = SheetAnnotationToolPreset(
+            toolName: 'pen',
+            color: 0xff123456,
+            width: 4,
+          );
+          if (edit == 'preset-clear') {
+            await controller.updateFavoriteAnnotationPreset(preset);
+          }
+          final before = _snapshot(controller);
+          final write = store.nextWrite = _PendingRead();
+          final editing = switch (edit) {
+            'score' => controller.toggleFavorite(controller.scores.single),
+            'view' => controller.updateFavoriteFilter(true),
+            'preset-clear' => controller.updateFavoriteAnnotationPreset(null),
+            _ => controller.updateFavoriteAnnotationPreset(preset),
+          };
+          final checked = fails && edit != 'view'
+              ? expectLater(editing, throwsStateError)
+              : editing;
+          await write.entered.future;
+          final optimistic = _snapshot(controller);
+          read.complete(false);
+          await reading;
+          expect(_snapshot(controller), optimistic);
+          write.complete(fails);
+          await checked;
+          expect(_snapshot(controller), fails ? before : optimistic);
+          if (edit == 'view' && fails) {
+            expect(controller.errorMessage, contains('보기 설정을 저장하지 못했습니다'));
+          }
+          await controller.load();
+          expect(_snapshot(controller), fails ? before : optimistic);
+        },
+      );
+    }
+  }
+
+  test(
+    'switch uses destination fields but preserves new global settings',
+    () async {
+      final read = store.nextFinalRead = _PendingRead();
+      final switching = controller.switchLibraryProfile(profiles[1]);
+      await read.entered.future;
+      await controller.toggleFavorite(controller.scores.single);
+      await controller.updateFavoriteFilter(true);
+      await controller.updateMetronomeSettings(
+        controller.metronomeSettings.copyWith(bpm: 123),
+      );
+      read.complete(false);
+      await switching;
+      expectLibrary('B');
+      expect(controller.scores.single.isFavorite, isFalse);
+      expect(controller.libraryViewSettings.favoriteOnly, isFalse);
+      expect(controller.metronomeSettings.bpm, 123);
+      await controller.switchLibraryProfile(profiles.first);
+      expect(controller.scores.single.isFavorite, isTrue);
+      expect(controller.libraryViewSettings.favoriteOnly, isTrue);
+    },
+  );
+
+  test('reload does not dismiss a new settings save error', () async {
+    final read = store.nextFinalRead = _PendingRead();
+    final reading = controller.load();
+    await read.entered.future;
+    final write = store.nextWrite = _PendingRead();
+    final editing = controller.updateFavoriteFilter(true);
+    await write.entered.future;
+    write.complete(true);
+    await editing;
+    final error = controller.errorMessage;
+    expect(error, isNotNull);
+    read.complete(false);
+    await reading;
+    expect(controller.errorMessage, error);
   });
 
   for (final create in [false, true]) {
@@ -268,6 +423,22 @@ void main() {
   });
 }
 
+Map<String, Object?> _snapshot(SheetLibraryController controller) => {
+  'scores': controller.scores.map((s) => s.toJson()).toList(),
+  'setlists': controller.setlists.map((s) => s.toJson()).toList(),
+  'view': controller.libraryViewSettings.toJson(),
+  'preset': controller.favoriteAnnotationPreset?.toJson(),
+  'metronome': controller.metronomeSettings.toJson(),
+  'tuner': controller.tunerSettings.toJson(),
+  'tone': controller.toneSettings.toJson(),
+  'viewer': controller.globalViewerSettings.toJson(),
+  'templates': controller.performancePresetTemplates
+      .map((t) => t.toJson())
+      .toList(),
+  'profiles': controller.libraryProfiles.map((p) => p.toJson()).toList(),
+  'active': controller.activeLibraryProfile.toJson(),
+};
+
 class _PendingRead {
   final entered = Completer<void>();
   final release = Completer<void>();
@@ -285,12 +456,43 @@ class _ReadStore extends SheetLibraryStore {
   _PendingRead? nextFinalRead;
   _PendingRead? nextPrepare;
   _PendingRead? nextDelete;
+  _PendingRead? nextWrite;
   bool failNextActivation = false;
 
   Future<void> _wait(_PendingRead? pending) async {
     if (pending == null) return;
     pending.entered.complete();
     await pending.release.future;
+  }
+
+  Future<void> _waitWrite() async {
+    final pending = nextWrite;
+    nextWrite = null;
+    await _wait(pending);
+  }
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    await _waitWrite();
+    await super.saveScores(scores, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> saveLibraryViewSettings(
+    SheetLibraryViewSettings settings, {
+    String? libraryId,
+  }) async {
+    await _waitWrite();
+    await super.saveLibraryViewSettings(settings, libraryId: libraryId);
+  }
+
+  @override
+  Future<void> saveFavoriteAnnotationPreset(
+    SheetAnnotationToolPreset? preset, {
+    String? libraryId,
+  }) async {
+    await _waitWrite();
+    await super.saveFavoriteAnnotationPreset(preset, libraryId: libraryId);
   }
 
   @override
