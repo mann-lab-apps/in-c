@@ -114,6 +114,45 @@ void main() {
     expect((await store.loadActiveLibraryProfile()).id, profiles.first);
   });
 
+  for (final create in [false, true]) {
+    test(
+      'failed profile content read restores visible activation create=$create',
+      () async {
+        final pending = store.nextFinalRead = _PendingRead();
+        final before = (await store.loadScores()).single.toJson();
+        final changing = create
+            ? controller.createLibraryProfile('D')
+            : controller.switchLibraryProfile(profiles[1]);
+        await pending.entered.future;
+        pending.complete(true);
+        await changing;
+        expectLibrary('A');
+        expect((await store.loadActiveLibraryProfile()).id, profiles.first);
+        expect((await store.loadScores()).single.toJson(), before);
+        expect(controller.errorMessage, isNotNull);
+        expect(controller.isLoading, isFalse);
+        if (create) {
+          expect(
+            (await store.loadLibraryProfiles()).where(
+              (profile) => profile.name == 'D',
+            ),
+            hasLength(1),
+          );
+          await controller.createLibraryProfile('D');
+          expect(controller.activeLibraryProfile.name, 'D');
+          expect(
+            controller.libraryProfiles.where((profile) => profile.name == 'D'),
+            hasLength(1),
+          );
+        } else {
+          await controller.switchLibraryProfile(profiles[1]);
+          expectLibrary('B');
+        }
+        expect(controller.errorMessage, isNull);
+      },
+    );
+  }
+
   for (final fails in [false, true]) {
     test(
       'late final read fails=$fails leaves previous complete state until commit',
@@ -136,6 +175,46 @@ void main() {
       },
     );
   }
+
+  for (final fails in [false, true]) {
+    test(
+      'late selection recovery fails=$fails cannot replace newer success',
+      () async {
+        final read = store.nextFinalRead = _PendingRead();
+        final older = controller.switchLibraryProfile(profiles[1]);
+        await read.entered.future;
+        final restore = store.nextPrepare = _PendingRead();
+        read.complete(true);
+        await restore.entered.future;
+        await controller.switchLibraryProfile(profiles[2]);
+        restore.complete(fails);
+        await older;
+        expectLibrary('C');
+        expect((await store.loadActiveLibraryProfile()).id, profiles[2]);
+        expect(controller.errorMessage, isNull);
+        expect(controller.isLoading, isFalse);
+      },
+    );
+  }
+
+  test(
+    'failed selection recovery is explicit and reload can reconcile',
+    () async {
+      final read = store.nextFinalRead = _PendingRead();
+      final changing = controller.switchLibraryProfile(profiles[1]);
+      await read.entered.future;
+      store.failNextActivation = true;
+      read.complete(true);
+      await changing;
+      expectLibrary('A');
+      expect((await store.loadActiveLibraryProfile()).id, profiles[1]);
+      expect(controller.errorMessage, contains('이전 라이브러리 선택도 복구하지 못했습니다'));
+      expect(controller.isLoading, isFalse);
+      await controller.load();
+      expectLibrary('B');
+      expect(controller.errorMessage, isNull);
+    },
+  );
 
   for (final create in [false, true]) {
     for (final fails in [false, true]) {
@@ -206,6 +285,7 @@ class _ReadStore extends SheetLibraryStore {
   _PendingRead? nextFinalRead;
   _PendingRead? nextPrepare;
   _PendingRead? nextDelete;
+  bool failNextActivation = false;
 
   Future<void> _wait(_PendingRead? pending) async {
     if (pending == null) return;
@@ -215,6 +295,10 @@ class _ReadStore extends SheetLibraryStore {
 
   @override
   Future<void> setActiveLibraryProfile(String id) async {
+    if (failNextActivation) {
+      failNextActivation = false;
+      throw StateError('activation failed');
+    }
     final pending = nextPrepare;
     nextPrepare = null;
     await super.setActiveLibraryProfile(id);

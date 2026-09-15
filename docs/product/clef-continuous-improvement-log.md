@@ -70,6 +70,20 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S42 commit: `5766b77`. S43 VERIFIED LOCAL: failed profile content reads leave the
+persisted active ID different from the previously visible complete library.
+Two regression tests reproduced this after creation and switching. Latest failed
+transition now attempts to restore the previously visible activation; a newer
+request suppresses old recovery feedback. Failed restoration is explicitly reported.
+Creation keeps the newly created profile and retry reuses it rather than duplicating.
+Five new cases cover create/switch read failure+retry, late restoration success/error
+after newer switching and restoration failure followed by reload. Targeted 198/198
+PASS (`/private/tmp/clef-s43-green.log`), red: `/private/tmp/clef-s43-red.log`.
+Full 1,009/1,009, analyze/RC and whitespace PASS (`/private/tmp/clef-rc-s43.log`).
+Commit subject: `fix: restore Clef activation after failed profile reads`.
+Excludes rollback guarantees, cross-controller changes and real storage failure QA.
+Next: same-library reload completion after a new edit. No build/push/merge.
+
 S41 commit: `54ba221`. S42 VERIFIED LOCAL: seven delayed read regressions reproduced
 stale scores/setlist cleanup, old error feedback and premature loading completion.
 Acceptance: latest reload/switch/create owns published state/error/loading; read all

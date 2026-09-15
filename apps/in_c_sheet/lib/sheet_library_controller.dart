@@ -270,6 +270,7 @@ class SheetLibraryController extends ChangeNotifier {
     bool resetQuery = false,
   }) async {
     final request = _libraryLoadRequest = Object();
+    final previousLibraryId = _activeLibraryProfile.id;
     _setLoading(true);
     try {
       if (prepare != null) await prepare();
@@ -277,7 +278,28 @@ class SheetLibraryController extends ChangeNotifier {
       await _loadActiveLibraryState(request);
       if (identical(_libraryLoadRequest, request) && resetQuery) _query = '';
     } catch (_) {
-      if (identical(_libraryLoadRequest, request)) _errorMessage = errorMessage;
+      if (identical(_libraryLoadRequest, request)) {
+        var restored = true;
+        if (prepare != null) {
+          try {
+            final active = await store.loadActiveLibraryProfile();
+            if (identical(_libraryLoadRequest, request) &&
+                active.id != previousLibraryId) {
+              await store.setActiveLibraryProfile(previousLibraryId);
+              restored =
+                  (await store.loadActiveLibraryProfile()).id ==
+                  previousLibraryId;
+            }
+          } catch (_) {
+            restored = false;
+          }
+        }
+        if (identical(_libraryLoadRequest, request)) {
+          _errorMessage = restored
+              ? errorMessage
+              : '$errorMessage 이전 라이브러리 선택도 복구하지 못했습니다. 앱을 다시 열어 저장 상태를 확인해주세요.';
+        }
+      }
     } finally {
       if (identical(_libraryLoadRequest, request)) {
         _libraryLoadRequest = null;
