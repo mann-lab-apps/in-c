@@ -29,7 +29,7 @@
 | 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 순서/시작 쪽/시간/메모를 담은 세트리스트 목록 복사, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |
-| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경은 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리 |
+| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경은 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리. S42: 최신 읽기 요청만 완성된 상태/오류/로딩 종료를 반영. S43: 내용 읽기 실패 후 이전 활성 ID 복구 시도/복구 실패 안내. S44: 같은 라이브러리 재로드 중 새 편집/저장 복구 요청/오류를 보존하고, 전환 중 새 전역 설정도 유지 |
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
 | 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
@@ -86,7 +86,7 @@
 | 주석 | nudge tool | MobileSheets 지원 | V2 | 중간 | selection model |
 | 주석 | 스타일러스 pressure | MobileSheets 지원 | V1 | 중간 | 구현됨: stylus pointer pressure를 normalized point metadata로 저장하고 화면/PDF export stroke width에 반영. Galaxy Tab S Pen QA 필요 |
 | 주석 | palm rejection | Piascore 지원 | V1 | 높음 | 구현됨: stylus 입력 직후 touch gesture rejection window 1차 적용. Galaxy Tab S Pen/palm QA tuning 필요 |
-| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. 다중 layer/annotation별 layer keying은 후속 |
+| 주석 | annotation layer | MobileSheets 강점 | V1 | 높음 | 구현됨: 기본 필기 layer visibility와 PDF 공유 포함/제외 flag, viewer/export 반영, metadata/backup round-trip. S41: 저장 실패 안내/복구/재시도, 연속 변경 중 오래된 안내 차단, 종료/다른 화면/라이브러리 전환 후 결과 억제를 로컬 테스트로 검증. 실제 PDF 조작은 기기 QA, 다중 layer/annotation별 layer keying은 후속 |
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
 | 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 표준 annotation export mode는 capability flag/unsupported result로 분리. 편집 가능한 PDF 표준 객체 생성은 PDF writer API/fixture 필요 |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
@@ -116,6 +116,7 @@
 | 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
 | 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | merge/conflict rules |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
+| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·테스트 정보·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 자주 쓰는 아이콘 바로가기 유지. 개별 필기 발견성과 미니 튜너 실시간 감지는 후속 gap |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
 | 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
@@ -183,6 +184,8 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 좁은 세트리스트 상세 화면은 첫 곡/리허설을 바로 유지하고 복사/복제/이름 변경/삭제를
   `세트리스트 작업 더 보기`에 모아 제목 공간을 확보한다. 넓은 화면은 기존 바로가기를 유지한다.
 - 리허설/보기 프리셋의 일부 설정 적용은 최신 곡 구성/제목/메트로놈/이어보기 정보를 보존한다.
+- 공연 보기 프리셋 저장/삭제 실패 시 요청이 소유한 목록만 저장소에서 복구하며,
+  지연 저장 대상은 시작한 라이브러리로 고정한다. 새 편집/전환은 이전 복구가 덮어쓰지 않는다.
   전달된 곡별 설정은 현재 포함된 곡에만 적용하고 대상이 없으면 적용 실패로 처리한다.
 - 세트리스트 복제 이름이 겹치면 사용하지 않은 번호를 붙여 구분한다. 기존 첫 `copy` 이름은
   유지하고, 대소문자/앞뒤 공백이 다른 기존 이름도 충돌로 취급한다.
@@ -242,6 +245,18 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   세트리스트별 score metronome override,
   start/stop, 첫 박 강조, subdivision, Tap tempo, 0/1/2마디 count-in, 기본 ON tick 소리,
   `소리`/`시각만` 상태 표시, viewer mini panel과 시각 박자 strip을 제공한다.
+  전체 창과 미니 패널의 카운트인은 시작음을 친 직후가 아니라 시간이 지난 pulse에서 차감하여
+  마지막 예비 박을 줄이거나 첫 박 강세를 일찍 재생하지 않도록 한다. 로컬 callback 간격과 실제 출력은 구분한다.
+  지연된 Timer.tick의 경과 pulse 수만큼 강세/카운트인 위치를 맞추고 놓친 클릭을 몰아서 재생하지 않는다.
+  정지/재시작/종료한 타이머의 늦은 callback은 무시한다. 오디오 기준 스케줄링은 아직 아니다.
+  Android 클릭 출력은 강세/일반 PCM과 AudioTrack 두 개를 재사용하며 매 박 스레드를 만들지 않는다.
+  초기화/재생 오류 전달, 자원 해제/재시도는 네이티브 단위 검증 범위다.
+  빠른 BPM의 실제 불규칙 간격 보고는 미해결 QA이며 출력 지터/이어폰 비교가 필요하다.
+  기준음/드론은 별도 `드론 음량`과 현재 백분율을 상시 표시한다. 기본 35%와 기존 합성 gain은 유지하며,
+  이어폰에서 작게 들린다는 관찰은 실제 출력 경로/연습실 재확인으로 분리한다.
+  드론 음량/A4 변경은 저장 응답과 재생을 분리하며 닫기/정지 뒤 저장 완료로 재생을 재요청하지 않는다.
+  오래된 재생 응답은 새 상태를 바꾸지 않고 현재 설정 저장 실패만 안내한다. 네이티브 출력 종료와
+  실패 후 전역 설정의 디스크/메모리 복구는 별도 검증 범위다.
 - 크로매틱 튜너. `record` 기반 microphone PCM stream, Hybrid/YIN/autocorrelation pitch detector, RMS
   gate, confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing,
   no-signal debounce, octave/저음 3배음 guard, note hysteresis를 붙였다.

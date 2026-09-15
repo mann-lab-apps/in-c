@@ -18,6 +18,16 @@ const _clefDocs = <String>[
 
 const _sourceTargets = <String>['lib', 'test'];
 
+// Discovery is a separate app; shared and future unnamed files stay covered.
+const clefDebugScanOptions = <String>[
+  '-n',
+  '--glob',
+  '!classical_*.dart',
+  '--glob',
+  '!in_c_*.dart',
+  r'TODO|FIXME|debugPrint\(|print\(',
+];
+
 Future<void> main() async {
   final checks = <_Check>[
     _Check('PDF fixture inspection', 'dart', <String>[
@@ -59,7 +69,7 @@ Future<void> main() async {
     _Check(
       'Debug print scan',
       'rg',
-      <String>['-n', r'TODO|FIXME|debugPrint\(|print\(', ..._sourceTargets],
+      <String>[...clefDebugScanOptions, ..._sourceTargets],
       successExitCodes: <int>{1},
     ),
   ];

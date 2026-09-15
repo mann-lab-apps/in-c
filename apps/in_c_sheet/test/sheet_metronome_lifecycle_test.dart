@@ -39,6 +39,10 @@ void main() {
             -250,
             scrollable: find.byType(Scrollable).first,
           );
+          await tester.pump();
+          await tester.ensureVisible(find.text('정지'));
+          await tester.pump();
+          expect(find.text('정지').hitTestable(), findsOneWidget);
           await tester.tap(find.text('정지'));
           await tester.pump();
         }

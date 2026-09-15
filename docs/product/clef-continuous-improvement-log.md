@@ -66,6 +66,292 @@
 
 | S40 | Profile creation can partly persist its index/activation and slow activation can replace newer selection. | Queue latest duplicate lookup, group create keys with checked rollback, serialize activation, preserve existing profiles and retry after failure. | Ten initial red cases; sixteen new storage/home cases, targeted 174/174, full 957/957, analyze/RC PASS. | VERIFIED LOCAL |
 
+| S41 | Viewer layer toggles leak storage errors and display late feedback over another route. | Recover/retry through existing store/controller; scope feedback to current route/library/latest toggle; preserve common annotation commands. | Eight initial widget failures, 32 new cases, targeted 216/216, full 989/989, analyze/RC PASS. | VERIFIED LOCAL |
+
+## Resume Checkpoint (2026-09-15)
+
+Push/merge integration (2026-09-15): PR #759, main advanced from `9d44696` to
+`46eda04` while CI was running. Integration commit `b953065` preserves Clef
+1.0.0+22 and the new in C flavor entry condition; no app build or upload.
+The new integration passes all 1,347 Flutter tests and analyze, but the Clef
+RC debug scan also included the separate in C app's intentional diagnostics.
+Scope only that scan with discovery filename exclusions; keep main.dart,
+sheet files, shared PDF code and otherwise unnamed future files covered.
+Eight process-level rg fixtures PASS (`/private/tmp/clef-rc-scope-test.log`),
+including print/debug/TODO/FIXME rejection in Clef/shared fixtures. Analyze,
+full tests and all other RC checks still cover the complete package.
+S54 draft remains untracked and excluded from this PR. Final integrated RC
+evidence is recorded in PR #759 after the scope fix is validated.
+
+S53 committed as `2b3e343`. S54 IN PROGRESS: metronome native output failures fall
+back to SystemSound without reporting the output path, and fallback failures are
+not caught. Full/mini callers discard results. Draft regression:
+`test/sheet_metronome_output_feedback_test.dart` (uncommitted).
+Acceptance: report degraded/unavailable output without repeated notices; successful
+retry clears the status; delayed native failure after stop/close must not trigger
+a fallback click. Preserve timing/settings and distinguish API success from sound.
+First run failed eight cases (`/private/tmp/clef-s54-red.log`), but Android button
+tap feedback also calls SystemSound and contaminated call counts/failure injection.
+The draft now invokes the actual button callback directly to isolate metronome
+output. Its rerun was denied twice by approval-service capacity errors; do not
+treat the revised draft as reproduced or passing. No production S54 edits yet.
+Next command in apps/in_c_sheet:
+`flutter test test/sheet_metronome_output_feedback_test.dart`.
+Then add scoped output results/cancellation only after isolated reproduction,
+cover old/new success/failure and retry, and run full RC before committing S54.
+Approval errors are environment blockers, not additional test failures.
+
+S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
+in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
+target and retained its tooltip. Metronome places it beside the save-scope label
+to keep start/stop and the title readable on narrow screens.
+Acceptance: first-screen named action at phone/tablet and 1.0/1.6 text; same callback;
+actual viewer -> metronome sheet -> mini panel -> close flow remains functional.
+Eight initial missing-label regressions failed; 18/18 entry/actual-viewer cases PASS
+(`/private/tmp/clef-s53-target.log`). Ten local-font screenshot cases PASS;
+reviewed metronome/mini at phone large text in `/private/tmp/clef-mini-entry-qa`.
+First full run failed one old stop test: its tap used a pre-layout scroll position
+at y=-4, so it never stopped playback. Added post-scroll layout/hit-test checks;
+do not suppress missed-tap warnings. Final targeted 32/32 and full 1,169/1,169,
+analyze/RC PASS (`/private/tmp/clef-rc-s53-final.log`); formatter/diff PASS.
+Commit subject: `feat: label Clef mini tool entrypoints`.
+Important discovered gap: `_ViewerMiniToolPanel._buildTuner` only provides a return
+button to full tuner; it has no live input/note readout. Do not call that live mini
+tuning verified. Next verify pending microphone permission/start cancellation,
+then reuse the chromatic input service in a compact live panel with lifecycle tests.
+No app build/version change/push/merge. Physical audio/pedal remain DEVICE QA.
+
+S51 commit: `e0c3cce`. S52 VERIFIED LOCAL: five tone lifecycle defects reproduced with
+delayed settings/stop callbacks (`/private/tmp/clef-s52-red.log`). Volume/A4 saves
+could request playback after sheet exit, waited for storage before audible updates,
+and a late stop called setState after dispose. Acceptance: immediate playback
+settings, no replay from save completion, ignore stale play results after new
+play/stop/close, scoped current save errors with retry. Separate playback/save
+request identities and update stop intent before awaiting the platform. Existing
+tone gain/native engine/storage queue unchanged. Tuner setting error handling also
+covers notation, detector and legacy chromatic normalization callers.
+Initial 17/17, expanded 32/32 and shared-caller 38/38 targeted cases PASS.
+Two additional cases reproduced old save notices over a newer route
+(`/private/tmp/clef-s52-route-red.log`); feedback now also requires the current route.
+Full 1,161/1,161, analyze/RC PASS (`/private/tmp/clef-rc-s52.log`), formatter/diff PASS.
+Thirty new lifecycle cases include shared caller failures and newer-route guards.
+Method-channel mocks validate call/state ordering, not physical output or
+native worker shutdown. Controller recovery after failed global tone/tuner saves
+remains a separate candidate; this slice does not promise disk/memory rollback.
+Commit subject: `fix: guard Clef drone playback lifetimes`.
+Next: named mini-panel entry, then global tone/tuner failed-save recovery. No app
+build/version change/push/merge. Physical output latency and pedal remain DEVICE QA.
+
+S50 commit: `12ff46b`. S51 VERIFIED LOCAL: drone volume slider had no persistent
+name/value; its percent was visible only during interaction. Added `드론 음량`,
+current percentage and a slider semantic label, using the existing metronome
+volume-control pattern. Three new widget cases first failed on the absent name.
+Acceptance: 0/default35/100 percent are visible and passed unchanged to the tone
+channel; changing to 50 updates display/playback; chromatic-only UI remains.
+No gain/default/native audio change. Source audit: SheetToneSettings defaults to35;
+SheetTonePlayer sends normalized volume; Android ClefTonePlayer uses STREAM_MUSIC,
+mixing sinusoids with gain `volume * 0.65 / frequencies.size` to bound their sum.
+Default single-tone peak is at most 0.2275 of PCM full scale before system volume.
+This is a code-derived bound, not measured loudness or the user's actual settings.
+Device/media volume, output route and earphone/room audibility remain DEVICE QA.
+No need to replace this uncertainty with arbitrary amplification. Targeted 10/10 PASS,
+then full 1,131/1,131 with volume-change assertions, analyze/RC PASS
+(`/private/tmp/clef-rc-s51.log`); formatter/diff checks PASS.
+Commit subject: `fix: make Clef drone volume visible`.
+Next: delayed tone/reference-setting saves may replay after sheet exit; reproduce
+with callback injection before changing playback lifetimes. No app build/push/merge.
+
+S49 commit: `c73d8fc`. S50 VERIFIED LOCAL: home settings/test information were icon-only.
+Added visible `메뉴` with named setlists, viewer defaults, tester information and
+backup/restore actions; frequent selection/import/setlist/backup shortcuts remain.
+Backup items share one builder/handler and stay disabled during PDF import.
+Acceptance: named entries reach existing screens, restore still requires confirmation,
+selection/import shortcuts remain reachable, phone/tablet/large text do not overflow.
+Eight missing-menu regressions first failed. New real-home route tests exposed
+31px overflow in viewer-default dropdowns at 320dp/1.6 text; expanded dropdowns
+within available width and reduced the compact panel heading. No settings/schema
+changes. Targeted 74/74 PASS (`/private/tmp/clef-s50-target-final.log`);
+eight local-font cases/captures PASS (`/private/tmp/clef-s50-visual-final.log`).
+Reviewed phone menu/defaults and tablet menu PNGs in `/private/tmp/clef-home-tools-qa`.
+Full 1,128/1,128, analyze/RC PASS (`/private/tmp/clef-rc-s50-final.log`), formatter/diff PASS.
+These are widget captures with a local font, not a new emulator build or Android QA.
+Commit subject: `feat: add named Clef library menu`.
+Next: drone level visibility and delayed tone-setting saves; do not raise gain
+without output evidence. Current drone default is 35%, native STREAM_MUSIC mix gain
+is volume * 0.65 / oscillator count. Actual device/media volume remains unknown.
+Official reference patterns and observation limits remain in reference-analysis.
+
+S48 commit: `9da54ee`. S49 VERIFIED LOCAL: six injected-timer full/mini cases reproduced
+bar accents lagging elapsed time when Timer.tick jumps from 1 to 4
+(`/private/tmp/clef-s49-red.log`). Acceptance: advance by elapsed periods, consume
+count-in by the same amount, emit at most one current click (no catch-up loop),
+ignore old/duplicate timer callbacks after stop/restart/close. Preserve settings
+save lifetimes and normal count-in timing. Existing periodic timers remain; no
+audio-clock scheduling or realtime guarantee is claimed. Added constant-time beat
+advance and elapsed-tick handling in both surfaces; expanded phase/lifecycle tests
+and all meter/subdivision model cases. Targeted 94/94 PASS
+(`/private/tmp/clef-s49-green.log`); full 1,120/1,120, analyze/RC PASS
+(`/private/tmp/clef-rc-s49.log`), formatter/diff checks PASS.
+Commit subject: `fix: keep Clef metronome phase after delayed ticks`.
+Next: named home actions for settings/backup discovery; actual output jitter remains
+DEVICE QA, not fixed by the callback tests. No new app build/push/merge.
+Official Dart Timer docs checked 2026-09-15: tick includes missed periods and
+periodic callbacks do not guarantee identical intervals:
+https://api.dart.dev/dart-async/Timer/tick.html and
+https://api.dart.dev/dart-async/Timer/Timer.periodic.html.
+
+S47 commit: `42238f4`. S48 VERIFIED LOCAL: count-in consumed one pulse at the initial
+click and again on elapsed timer callbacks. Eight full/mini widget cases reproduced
+an early accent (fourth instead of fifth click in 4/4) or a half-length interval
+with eighth subdivisions (`/private/tmp/clef-s48-red.log`). Removed the initial
+decrement from both start paths; countdown now advances only after elapsed pulses.
+Acceptance: no missing/shortened final count-in beat, natural accent phase through
+0/1/2-bar count-in, no click after stop/close, restart begins on the first beat.
+Expanded 48-case matrix: BPM 96/240, all four subdivisions, full/mini surfaces.
+All 48 cases PASS (`/private/tmp/clef-s48-matrix.log`); full 1,098/1,098,
+analyze/RC PASS (`/private/tmp/clef-rc-s48.log`). Formatter and diff checks PASS.
+This observes method-channel invocation times under a fake clock, not audible output.
+The user did not confirm count-in was enabled; do not attribute their report solely
+to this defect. Actual Android output timing remains DEVICE QA. No new app build.
+Commit subject: `fix: preserve Clef count-in beat duration`.
+Next: reproduce skipped timer callbacks and avoid phase lag/catch-up playback.
+
+S46 commit: `f2a49d2`. S47 VERIFIED LOCAL: expose the existing viewer menu as a named
+`도구` entry at every width, group related actions, retain icon shortcuts, and allow
+labelled action width in the scrolling toolbar. No actions removed or engines changed.
+New actual-viewer tests found two issues: labelled controls in fixed icon slots, and
+menu construction reading pageCount before the PDF controller is ready. Guarded
+both tools/page menus. Also made the missing/error-PDF panel scroll on short screens.
+Ten sizes/text-scale cases and ten optional local-font screenshot cases PASS
+(`/private/tmp/clef-s47-screenshots.log`, `clef-s47-font.log`). Captures in
+`/private/tmp/clef-tools-qa-font`; reviewed phone and large-text tablet images.
+Missing-PDF fixtures exercise menu/UI, NOT actual PDF rendering or emulator behavior.
+Full 1,050/1,050, analyze/RC PASS (`/private/tmp/clef-rc-s47.log`).
+Commit subject: `feat: expose named Clef viewer tools on tablets`.
+Competitor sources and remaining home/annotation/mini-panel gaps
+are recorded in sheet-viewer-reference-analysis.md. No app build/push/merge.
+
+S45 VERIFIED LOCAL: fixed the draft's constructor arguments, then reproduced eight
+template save/delete recovery or cross-library failures (`/private/tmp/clef-s45-reproduced.log`).
+Save/delete now use the existing scoped store writer and ownership-checked reload
+on failure. Eleven cases cover retry, late success/failure after switching, old/new
+writes and recovery reads. Targeted 219/219 PASS (`/private/tmp/clef-s45-green.log`).
+Full 1,040/1,040, analyze/RC PASS (`/private/tmp/clef-rc-s45-s46.log`).
+Commit subject: `fix: recover Clef performance template saves`.
+UI error handling is a separate remaining gap, not fixed here.
+
+S45 commit: `b01bd66`. S46 VERIFIED LOCAL (resource lifecycle only): Android click
+playback allocated a thread/AudioTrack per beat.
+Extracted the player, cached two preloaded static tracks and reset their playback
+cursor for reuse. Errors now reach the method-channel handler synchronously;
+partial initialization/playback failures release tracks; activity destruction closes
+the player. Standalone Kotlin compilation against Android SDK and injected-track
+checks pass: 960 requests create only two tracks, accents/volume, retry, close and
+PCM bounds. This measures resource behavior, NOT audible jitter/latency.
+No package build. Flutter timer/channel/output-device jitter remains a candidate;
+the user's fast-BPM ISSUE stays open until repeatable output/physical verification.
+Native runner: `ANDROID_JAR=... KOTLIN_COMPILER_CP=... bash tool/check_metronome_native.sh`
+from apps/in_c_sheet. Used installed Android 37.0 SDK, Kotlin 2.2.21 compiler/runtime
+with cached coroutines 1.8.0 and JetBrains annotations 13.0, Java 17. The runner
+compiles the actual Android player against android.jar and runs injected-track tests;
+it does not invoke Gradle or package an app. Existing AudioTrack constructor API is
+deprecated but compiled successfully. Full Flutter 1,040/analyze/RC PASS as above.
+Official API checked 2026-09-15: static data preloading and stopped/paused cursor reset,
+https://developer.android.com/reference/android/media/AudioTrack#setPlaybackHeadPosition(int).
+Commit subject: `fix: reuse Clef Android metronome click outputs`.
+Next: icon-only viewer entrypoints and timer/count-in behavior under delayed ticks.
+
+
+User QA priority update: fast metronome playback is audibly uneven (ISSUE).
+Drone sounds quiet through earphones (DEVICE QA, not a confirmed gain defect);
+remaining exercised smoke checks reportedly showed no issue; pedal not tested.
+Build/device/BPM/subdivision/output route remain unconfirmed. See RC QA plan.
+Android creates a Thread/AudioTrack per click: a timing risk, not yet a reproduced
+root cause. Prioritize timing/audio regression investigation before template work.
+S44 commit: `ccd598c`, full 1,029/analyze/RC PASS. S45 was interrupted after adding
+untracked `sheet_performance_template_recovery_test.dart`; its first run failed to
+compile (missing required SheetViewerSettings constructor arguments), so no S45
+bug reproduction or production fix is claimed. Preserve the test draft; do not
+include it in release checks/commits as verified work. No new build/push/merge.
+
+S43 commit: `377b33f`. S44 VERIFIED LOCAL: ten delayed same-library reload tests
+reproduced loss of later saved edits in scores/setlists/settings/templates/profiles.
+Reload now publishes only fields it still owns; global settings preserve later edits
+even on a library switch. View/favorite request identity also protects pending saves:
+a second red case reproduced null -> preset -> null clearing a newer recovery token.
+Acceptance: later saved or pending edits survive old reads; failed saves still recover;
+destination library fields replace origin fields on switch; newer errors remain visible.
+Twenty added cases cover ten saved edits, eight pending success/failure paths, a switch
+with global edits and an error raised during reload. Targeted 40/40 PASS
+(`/private/tmp/clef-s44-final-target.log`); red evidence in `clef-s44-red.log` and
+`clef-s44-pending.log` under `/private/tmp`. Full 1,029/1,029, analyze/RC PASS
+(`/private/tmp/clef-rc-s44-final.log`); two test-only brace lints were corrected.
+Commit subject: `fix: retain Clef edits during library reloads`.
+No schema/backup changes; cross-controller writes and rollback failure guarantees
+remain excluded. Next: reproduce performance-template save failure/library scope.
+No build/version change/push/merge. Earlier checkpoint limitations below are historical.
+
+S42 commit: `5766b77`. S43 VERIFIED LOCAL: failed profile content reads leave the
+persisted active ID different from the previously visible complete library.
+Two regression tests reproduced this after creation and switching. Latest failed
+transition now attempts to restore the previously visible activation; a newer
+request suppresses old recovery feedback. Failed restoration is explicitly reported.
+Creation keeps the newly created profile and retry reuses it rather than duplicating.
+Five new cases cover create/switch read failure+retry, late restoration success/error
+after newer switching and restoration failure followed by reload. Targeted 198/198
+PASS (`/private/tmp/clef-s43-green.log`), red: `/private/tmp/clef-s43-red.log`.
+Full 1,009/1,009, analyze/RC and whitespace PASS (`/private/tmp/clef-rc-s43.log`).
+Commit subject: `fix: restore Clef activation after failed profile reads`.
+Excludes rollback guarantees, cross-controller changes and real storage failure QA.
+Next: same-library reload completion after a new edit. No build/push/merge.
+
+S41 commit: `54ba221`. S42 VERIFIED LOCAL: seven delayed read regressions reproduced
+stale scores/setlist cleanup, old error feedback and premature loading completion.
+Acceptance: latest reload/switch/create owns published state/error/loading; read all
+fields before publishing; returning to the original library supersedes a pending
+switch. Delete keeps its exception contract but its late read cannot supersede a
+new selection. Store-level deletion transactions remain outside this slice.
+Implementation: shared request ownership for load/create/switch, completed-state
+publication and request-scoped completion; deletion uses the same ownership policy.
+Fifteen new tests plus prior profile/controller/storage coverage: targeted 277/277
+PASS (`/private/tmp/clef-s42-expanded.log`); original red evidence in
+`/private/tmp/clef-s42-red.log`. Full 1,004/1,004, analyze/RC and whitespace PASS
+(`/private/tmp/clef-rc-s42.log`). Commit subject: `fix: publish only current Clef library loads`.
+Not guaranteed: edits made during same-library reads, failed-read recovery of the
+persisted active ID, cross-controller/cross-isolate changes, deletion rollback.
+Next command: `dart run tool/rc_release_check.dart`; then investigate failed switch
+reads leaving the persisted active profile different from the visible old library.
+
+- Clef-only worktree `/private/tmp/clef-post22-stability`, branch
+  `feature/clef-post22-stability`, starts from local release `ff64d39` (1.0.0+22).
+- Fetched origin/dev remains `a26e84c`; origin/main is `9d44696` and contains
+  PR #756 plus subsequent unrelated app work. No merge is authorized in this run.
+- AAB 22 exists in the original project's releases directory, with matching upload
+  certificate and successful build/957 tests/analyze/RC evidence. Its Play upload
+  and physical-device results remain unknown. No new build or version change.
+- S41 IN PROGRESS: actual viewer layer visibility/export toggles await storage
+  without catch and only check mounted before success feedback. Reproduce first.
+- Acceptance: normal save; delayed failure preserves durable state and supports
+  retry; no late feedback after exit, coverage or library switch; rapid changes
+  preserve latest state; common undo/redo/text/erase paths remain compatible.
+- Evidence type: injected storage and widget tests, not PDF gesture/device QA.
+  Failure criteria: unhandled error, false/late success, memory/disk mismatch,
+  overwrite of newer edits. Existing rollback/read failure limits remain explicit.
+- Next command: `flutter test test/sheet_annotation_layer_feedback_test.dart`.
+
+S41 implementation: route/library guard in existing annotation save helper and latest
+layer-toggle request ownership; both toggles now await checked results before success.
+Eight initial failures reproduced in `/private/tmp/clef-s41-red.log`. Expanded fixture
+selectors were corrected for toggled tooltip labels and unrelated mode snackbars.
+Targeted 216/216 PASS (`/private/tmp/clef-s41-expanded.log`): 24 layer widget cases,
+four new covered-route undo/redo cases, four actual preferences false/throw cases,
+plus existing score recovery/store/annotation cases. Text and eraser controller
+coverage is retained; native PDF text/erase gestures are not newly device-verified.
+Full 989/989, analyze/RC and whitespace checks PASS (`/private/tmp/clef-rc-s41.log`).
+Commit subject: `fix: scope Clef annotation layer save feedback`.
+No build/version change/push/merge. Next: reproduce overlapping profile load/switch
+responses using delayed reads; no new load-race bug has been established yet.
+
 ## Resume Checkpoint (2026-09-14)
 
 - User resumed continuous implementation; restored deleted worktree at `1f1f2fd`,

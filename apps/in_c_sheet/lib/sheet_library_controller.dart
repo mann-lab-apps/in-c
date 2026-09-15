@@ -100,6 +100,7 @@ class SheetLibraryController extends ChangeNotifier {
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   Object? _favoritePresetSaveRequest;
   Object? _viewSettingsSaveRequest;
+  Object? _libraryLoadRequest;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
@@ -258,31 +259,120 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.',
+    );
+  }
+
+  Future<void> _runLibraryLoad({
+    required String errorMessage,
+    Future<void> Function()? prepare,
+    bool resetQuery = false,
+  }) async {
+    final request = _libraryLoadRequest = Object();
+    final previousLibraryId = _activeLibraryProfile.id;
     _setLoading(true);
     try {
-      await _loadActiveLibraryState();
-    } catch (error) {
-      _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
+      if (prepare != null) await prepare();
+      if (!identical(_libraryLoadRequest, request)) return;
+      await _loadActiveLibraryState(request);
+      if (identical(_libraryLoadRequest, request) && resetQuery) _query = '';
+    } catch (_) {
+      if (identical(_libraryLoadRequest, request)) {
+        var restored = true;
+        if (prepare != null) {
+          try {
+            final active = await store.loadActiveLibraryProfile();
+            if (identical(_libraryLoadRequest, request) &&
+                active.id != previousLibraryId) {
+              await store.setActiveLibraryProfile(previousLibraryId);
+              restored =
+                  (await store.loadActiveLibraryProfile()).id ==
+                  previousLibraryId;
+            }
+          } catch (_) {
+            restored = false;
+          }
+        }
+        if (identical(_libraryLoadRequest, request)) {
+          _errorMessage = restored
+              ? errorMessage
+              : '$errorMessage 이전 라이브러리 선택도 복구하지 못했습니다. 앱을 다시 열어 저장 상태를 확인해주세요.';
+        }
+      }
     } finally {
-      _setLoading(false);
+      if (identical(_libraryLoadRequest, request)) {
+        _libraryLoadRequest = null;
+        _setLoading(false);
+      }
     }
   }
 
-  Future<void> _loadActiveLibraryState() async {
-    _libraryProfiles = await store.loadLibraryProfiles();
-    _activeLibraryProfile = await store.loadActiveLibraryProfile();
-    _scores = await store.loadScores();
-    _setlists = await store.loadSetlists();
-    _metronomeSettings = await store.loadMetronomeSettings();
-    _tunerSettings = await store.loadTunerSettings();
-    _toneSettings = await store.loadToneSettings();
-    _libraryViewSettings = await store.loadLibraryViewSettings();
-    _viewSettingsSaveRequest = null;
-    _globalViewerSettings = await store.loadGlobalViewerSettings();
-    _performancePresetTemplates = await store.loadPerformancePresetTemplates();
-    _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
-    _favoritePresetSaveRequest = null;
-    _errorMessage = null;
+  Future<void> _loadActiveLibraryState(Object request) async {
+    final previousProfiles = _libraryProfiles;
+    final previousActive = _activeLibraryProfile;
+    final previousScores = _scores;
+    final previousSetlists = _setlists;
+    final previousMetronome = _metronomeSettings;
+    final previousTuner = _tunerSettings;
+    final previousTone = _toneSettings;
+    final previousView = _libraryViewSettings;
+    final previousViewRequest = _viewSettingsSaveRequest;
+    final previousViewer = _globalViewerSettings;
+    final previousTemplates = _performancePresetTemplates;
+    final previousFavorite = _favoriteAnnotationPreset;
+    final previousFavoriteRequest = _favoritePresetSaveRequest;
+    final previousError = _errorMessage;
+    final profiles = await store.loadLibraryProfiles();
+    final active = await store.loadActiveLibraryProfile();
+    final scores = await store.loadScores();
+    final setlists = await store.loadSetlists();
+    final metronome = await store.loadMetronomeSettings();
+    final tuner = await store.loadTunerSettings();
+    final tone = await store.loadToneSettings();
+    final view = await store.loadLibraryViewSettings();
+    final viewer = await store.loadGlobalViewerSettings();
+    final templates = await store.loadPerformancePresetTemplates();
+    final favorite = await store.loadFavoriteAnnotationPreset();
+    if (!identical(_libraryLoadRequest, request)) return;
+    // Publish one completed load; superseded reads must never clean up newer data.
+    final sameLibrary = active.id == previousActive.id;
+    if (identical(_libraryProfiles, previousProfiles)) {
+      _libraryProfiles = profiles;
+    }
+    if (!sameLibrary || identical(_activeLibraryProfile, previousActive)) {
+      _activeLibraryProfile = active;
+    }
+    if (!sameLibrary || identical(_scores, previousScores)) _scores = scores;
+    if (!sameLibrary || identical(_setlists, previousSetlists)) {
+      _setlists = setlists;
+    }
+    // Global settings remain global even when the selected library changes.
+    if (identical(_metronomeSettings, previousMetronome)) {
+      _metronomeSettings = metronome;
+    }
+    if (identical(_tunerSettings, previousTuner)) _tunerSettings = tuner;
+    if (identical(_toneSettings, previousTone)) _toneSettings = tone;
+    if (!sameLibrary ||
+        (identical(_libraryViewSettings, previousView) &&
+            identical(_viewSettingsSaveRequest, previousViewRequest))) {
+      _libraryViewSettings = view;
+      _viewSettingsSaveRequest = null;
+    }
+    if (identical(_globalViewerSettings, previousViewer)) {
+      _globalViewerSettings = viewer;
+    }
+    if (!sameLibrary ||
+        identical(_performancePresetTemplates, previousTemplates)) {
+      _performancePresetTemplates = templates;
+    }
+    if (!sameLibrary ||
+        (identical(_favoriteAnnotationPreset, previousFavorite) &&
+            identical(_favoritePresetSaveRequest, previousFavoriteRequest))) {
+      _favoriteAnnotationPreset = favorite;
+      _favoritePresetSaveRequest = null;
+    }
+    if (!sameLibrary || _errorMessage == previousError) _errorMessage = null;
     await _removeMissingSetlistScores();
   }
 
@@ -689,32 +779,24 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> createLibraryProfile(String name) async {
-    _setLoading(true);
-    try {
-      await store.createLibraryProfile(name);
-      _query = '';
-      await _loadActiveLibraryState();
-    } catch (_) {
-      _errorMessage = '라이브러리를 만들지 못했습니다.';
-    } finally {
-      _setLoading(false);
-    }
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 만들지 못했습니다.',
+      prepare: () async {
+        await store.createLibraryProfile(name);
+      },
+      resetQuery: true,
+    );
   }
 
   Future<void> switchLibraryProfile(String id) async {
-    if (id == _activeLibraryProfile.id) {
+    if (id == _activeLibraryProfile.id && !_isLoading) {
       return;
     }
-    _setLoading(true);
-    try {
-      await store.setActiveLibraryProfile(id);
-      _query = '';
-      await _loadActiveLibraryState();
-    } catch (_) {
-      _errorMessage = '라이브러리를 전환하지 못했습니다.';
-    } finally {
-      _setLoading(false);
-    }
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 전환하지 못했습니다.',
+      prepare: () => store.setActiveLibraryProfile(id),
+      resetQuery: true,
+    );
   }
 
   Future<bool> renameLibraryProfile({
@@ -760,13 +842,21 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<bool> deleteLibraryProfile(String id) async {
-    final didDelete = await store.deleteLibraryProfile(id);
-    if (!didDelete) {
-      return false;
+    final request = _libraryLoadRequest = Object();
+    _setLoading(true);
+    try {
+      final didDelete = await store.deleteLibraryProfile(id);
+      if (!didDelete) return false;
+      if (identical(_libraryLoadRequest, request)) {
+        await _loadActiveLibraryState(request);
+      }
+      return true;
+    } finally {
+      if (identical(_libraryLoadRequest, request)) {
+        _libraryLoadRequest = null;
+        _setLoading(false);
+      }
     }
-    await _loadActiveLibraryState();
-    notifyListeners();
-    return true;
   }
 
   Future<int> renameCollectionLibrary({
@@ -1045,8 +1135,7 @@ class SheetLibraryController extends ChangeNotifier {
     _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
       next,
     );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
-    notifyListeners();
+    await _savePerformanceTemplateChanges();
     return template;
   }
 
@@ -1060,9 +1149,33 @@ class SheetLibraryController extends ChangeNotifier {
     _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
       next,
     );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
-    notifyListeners();
+    await _savePerformanceTemplateChanges();
     return true;
+  }
+
+  Future<void> _savePerformanceTemplateChanges() async {
+    final pending = _performancePresetTemplates;
+    final libraryId = _activeLibraryProfile.id;
+    bool ownsState() =>
+        identical(_performancePresetTemplates, pending) &&
+        _activeLibraryProfile.id == libraryId;
+    try {
+      await store.savePerformancePresetTemplates(pending, libraryId: libraryId);
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadPerformancePresetTemplates();
+          if (ownsState()) {
+            _performancePresetTemplates = persisted;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Preserve the write failure when recovery cannot read storage.
+        }
+      }
+      rethrow;
+    }
+    notifyListeners();
   }
 
   Future<bool> applyPerformancePresetToScore(
