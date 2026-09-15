@@ -27,6 +27,7 @@ export interface MeasureAnnotationLaneInput {
   hasDynamic?: boolean
   hasHairpin?: boolean
   hasRehearsalMark?: boolean
+  rehearsalMarkCount?: number
   hasStaffText?: boolean
   lyricLineCount?: number
   lyricScale?: number
@@ -41,6 +42,7 @@ export interface MeasureAnnotationLanes {
   hairpinYOffset?: number
   harmonyMarkYOffsets: number[]
   rehearsalMarkYOffset?: number
+  rehearsalMarkYOffsets: number[]
   requiredAbove: number
   requiredBelow: number
   staffTextYOffset?: number
@@ -73,6 +75,7 @@ export function resolveMeasureAnnotationLanes({
   hasDynamic = false,
   hasHairpin = false,
   hasRehearsalMark = false,
+  rehearsalMarkCount = hasRehearsalMark ? 1 : 0,
   hasStaffText = false,
   lyricLineCount = 0,
   lyricScale = 1,
@@ -87,14 +90,16 @@ export function resolveMeasureAnnotationLanes({
     : undefined
   const harmonyMarkYOffsets = createHarmonyMarkYOffsets(
     harmonyCount,
-    hasRehearsalMark,
+    rehearsalMarkCount > 0,
     staffTextYOffset
   )
   const rehearsalMarkYOffset = resolveRehearsalMarkYOffset(
-    hasRehearsalMark,
+    rehearsalMarkCount > 0,
     harmonyMarkYOffsets,
     systemTextYOffsets
   )
+  const rehearsalMarkYOffsets = Array.from({ length: rehearsalMarkCount },
+    (_, index) => (rehearsalMarkYOffset ?? REHEARSAL_MARK_Y_OFFSET) - index * 32)
   const lyricBottom = resolveLyricBottom(lyricLineCount, lyricScale)
   let lowerCursor = Math.max(
     DYNAMIC_MARK_Y_OFFSET,
@@ -121,7 +126,7 @@ export function resolveMeasureAnnotationLanes({
   )
   const upperOffsets = [
     ...systemTextYOffsets.map((offset) => offset - UPPER_TOP_PADDING),
-    rehearsalMarkYOffset,
+    ...rehearsalMarkYOffsets,
     ...harmonyMarkYOffsets.map((offset) => offset - UPPER_TOP_PADDING),
     staffTextYOffset === undefined
       ? undefined
@@ -145,6 +150,7 @@ export function resolveMeasureAnnotationLanes({
     hairpinYOffset,
     harmonyMarkYOffsets,
     rehearsalMarkYOffset,
+    rehearsalMarkYOffsets,
     requiredAbove:
       upperOffsets.length > 0 ? Math.abs(Math.min(...upperOffsets)) : 0,
     requiredBelow: Math.max(SYSTEM_HEIGHT_BASELINE, ...lowerOffsets),

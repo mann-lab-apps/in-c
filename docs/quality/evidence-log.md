@@ -1935,6 +1935,397 @@ The upcoming PR includes c105c7e plus this follow-up, targets main, and must hav
 current CI results checked before merge. Git integration is authorized by the
 latest user request; no release tag or installer publication is requested.
 
+### 2026-09-15 Explicit Span Target Resumption
+
+Worktree `/private/tmp/chromatics-span-targets-20260915`, branch
+`feature/chromatics-span-targets-20260915`, base remote main `9d44696` (PR #757).
+Old temporary worktree absent; original dirty worktree untouched. No commit/push/
+merge/release authorized. Remote CI lookup failed to connect; prior CI is not
+current-source evidence. `npm ci` succeeded.
+
+Baseline clipboard/editing tests: 8 pass. Failure-first explicit endpoint tests:
+3 fail / 4 pass because the fifth endpoint argument was ignored and bad explicit
+targets silently used automatic matching. New same-staff exact-ID path rejects
+invalid targets without fallback and accepts cross-voice chord events. Chords are
+single events with multiple pitches, not ambiguous duplicate events. Existing
+cross-voice source rejection is retained. Native/XML/history preserve event voices
+and unchanged notes. Focused core/editing/component suite: 13 pass. Focused App
+suite (`paste targets a chord|object clipboard keeps`): 4 pass / 154 filtered out.
+`npm run typecheck` and production build pass. Component tests cover backward
+targets, slur/rest exclusion and stale draft reset on selection/document changes.
+
+Actual Electron harness extended from ten to fourteen cases. First sandbox launch
+aborted SIGABRT; approved local launch then reached a renderer command exception.
+Diagnostics added before retry; no renderer or full-suite pass claimed yet.
+UI failure-first run result was lost in a tool-output truncation; it is not counted
+as a confirmed failure result. Current App pass above was rerun and observed.
+
+Electron retry isolated a harness selector-quoting syntax error, not an application
+exception. Corrected diagnostics/selector; fourteen cases pass with native disk
+readback and actual slur/hairpin rendering. Screenshot review found clipped target
+labels at narrow dock widths. Added stacked controls and wrapping selected-address
+readback, rebuilt and reran all fourteen cases successfully. Latest artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-ujxwwR`.
+Reviewed `960-explicit-slur-targets.png`; full target address is readable below the
+native select. Original/pasted shapes and history/reopened files are verified.
+This does not prove native dialogs or human engraving. The deliberately overlapping
+source/target hairpins expose remaining span-to-span collision handling, not fixed
+by this clipboard work; keep it in the engraving queue.
+
+First full suite: 665 pass / 8 timeout failures / 1 skip, 203.39s. Ten targeted
+PDF/range/part-geometry/octave cases then yielded 6 pass / 4 timeouts. No timeout
+or acceptance criterion was increased. Detached baseline `9d44696` comparison:
+10 pass (16.77s); subsequent current-source identical selection: 10 pass (20.73s).
+Timing varies; this is not enough to mark the whole suite passed. A fresh full
+run is pending. XML fixture, save-policy, queue and diff gates pass. Site verifier
+initially failed because the isolated worktree lacked `out/site/download-manifest.json`;
+`npm run site:build` generated it and `verify-site-content.mjs` then passed.
+
+Fresh full suite on the endpoint implementation: 673 pass / 1 skip, 121.62s.
+Same latest build passes direct `verify-single-voice-mvp.cjs` Electron E2E and
+`verify-notation-snapshots.cjs` unchanged baselines; visual prerequisite unit suite
+84 pass. MIDI fixture 3 pass; native file-dialog/manual/packaged gates are not
+implied by these renderer runs. Proceeding to the next Required text-type filter
+and independent clipboard child; later source changes need fresh gates.
+
+### 2026-09-15 Measure Text Clipboard (In Progress)
+
+Failure-first App tests: initial three fixtures incorrectly added `tick` to strict
+non-expression schema and were fixed; all four then failed on absent filter options.
+Added staff/system/rehearsal/expression filters using existing File copy/delete
+commands. Text clipboard is a detached snapshot; paste replaces only the chosen
+type in one target measure with fresh IDs. Expression ticks beyond target measure
+and duplicate IDs reject before mutation. Native history tests now pass after
+completing backup mocks and waiting for the distinct reopened filename status.
+
+Cross-part XML tests discovered genuine pre-existing loss: system/rehearsal import
+reads primary part only. The clipboard now explicitly rejects non-primary staff
+targets for those two types instead of silently losing data. This is not a fix to
+XML interchange; `CV1-X-XML-SCOPED-GLOBAL-TEXT` remains Required. Staff/expression
+cross-part XML and primary-staff system/rehearsal XML pass. Focused core/App suite
+9 pass; typecheck/build pass. Actual 22-case renderer harness and final whole-suite
+gates are pending. Preview started at `http://127.0.0.1:5173/` (session 87134).
+
+The 22-case Electron harness passes. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-b2bgYk`.
+Reviewed `960-text-systemTexts.png` and `1400-text-expressionTexts.png`: source and
+target text render with the selected measure and existing annotations. Disk snapshots
+cover delete/history/reopen; dialogs are intercepted, not manual QA. Full suite
+after text filters: 682 pass / 1 skip, 100.71s. Initial sandbox preview bind/read
+failed EPERM/connection; approved Vite launch and HTTP read succeeded.
+
+### 2026-09-15 Standard System Text Attribute
+
+W3C MusicXML 4.0 direction/system-relation documentation (linked in gap matrix)
+confirmed `only-top`, `also-top`, `none`; current exporter used `yes`, and parser
+recognized only that legacy value. Failure-first: 3 fail / 1 pass (only-top import,
+also-top classification/report, standard export; legacy import already passed).
+Parser/export now use only-top while keeping old yes reads. none remains local;
+also-top display semantics are not implemented and warn explicitly. Updated the
+existing export assertion intentionally, without changing external fixture provenance.
+All MusicXML suites plus text clipboard: 102 pass / 1 skip; typecheck passes.
+Follow-up: full suite 686 pass / 1 skip (100.91s), typecheck/build pass. package:dir
+initially failed sandbox DNS; approved retry and verify:package pass on macOS arm64.
+The expected original-path XML export refusal is a negative smoke assertion, not
+a package failure. No new Windows/Linux installer or signing claim.
+Latest 22-case Electron renderer/disk harness passes, including actual XML writes:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-EYijIR`.
+
+### 2026-09-15 All-Part Global Text Import And External PDF
+
+Installed MuseScore 4.7.5 CLI converted `1400-text-systemTexts.musicxml` from the
+above artifact directory using `-F --musicxml-use-default-font -o` to
+`/private/tmp/chromatics-system-text.pdf` (35675 bytes, exit 0). Poppler text extraction
+finds both QA copy texts; rendered first page `/private/tmp/chromatics-system-text.png`
+was inspected at 1400px. Both appear, but generated tempo label and metronome display
+twice. This is a newly queued implementation issue, not clean overall engraving QA.
+Input is Chromatics-generated; it is not a MuseScore-origin fixture. No manual GUI
+or native-dialog signoff.
+
+Failure-first multi-part global import returned only Shared, losing three marks.
+Parser now collects all parts and merges identical global measure/text occurrences
+across parts, preserving repetitions within a part. Secondary-part IDs are unique.
+A lower-staff fixture first failed because its empty first part omitted divisions;
+fixed the fixture rather than relaxing duration validation. `npx vitest run
+src/musicxml`: 99 pass / 1 skip; typecheck passes. Explicit part ownership, lower-staff
+export and rendering multiple rehearsal marks remain open. Existing clipboard guard
+is intentionally retained. These parser changes follow the 686-test checkpoint.
+
+### 2026-09-15 Tempo Display Follow-Up (In Progress)
+
+Initial unit fixture incorrectly indexed a singleton XML measure as an array;
+corrected, then reproduced 3 missing print-object failures / 1 passing no-text case.
+Hiding the metronome inside the existing combined words/metronome direction-type
+passed local contracts but MuseScore PDF hid the tempo text too. That external
+visual check is Fail, not Pass: `/private/tmp/chromatics-system-text-fixed.pdf`.
+W3C direction-type content requires separate elements (reference links in gap matrix).
+An intermediate attempt separated words/metronome direction-types; parser associated sibling
+words only with a hidden metronome, retaining the existing visible-metronome plus
+independent dolce contract. An initially broad association failed that existing test
+and was narrowed. MusicXML tests: 103 pass / 1 skip; build passes. External rerender
+and full gates are pending for the corrected structure.
+
+The separated hidden-metronome variant also hid all tempo text in MuseScore;
+`/private/tmp/chromatics-tempo-separated.pdf` text extraction confirms absence.
+Removed that strategy. The bounded fix now omits words only for exact generated
+undotted quarter/eighth labels, leaving their visible metronome. Custom text remains
+in a separate valid direction-type and round-trips; an exact two-type tempo pair
+is recognized without swallowing words in the existing mixed four-type fixture.
+Latest XML tests: 104 pass / 1 skip. Generated dotted/other-unit labels and custom
+text display preferences remain Required, not silently discarded or marked Done.
+
+Final bounded tempo change: build and 22-case actual Electron/native/XML harness
+pass, artifacts `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-Aho4HU`.
+MuseScore generated `/private/tmp/chromatics-tempo-visible.pdf`; Poppler extraction
+shows one numeric tempo and both copied texts. Inspected 1400px PNG confirms one
+visible tempo. However MuseScore terminated with `mutex lock failed: Invalid argument`,
+exit 134 after writing; one retry to `chromatics-tempo-visible-retry.pdf` also exited
+134. External process gate is Fail, output visual observation is recorded separately.
+No more identical retries. Full suite for this checkpoint: 693 pass / 1 skip,
+99.96s. Site-content and save-policy gates pass.
+
+### 2026-09-15 Cross-Voice Source Clipboard
+
+Two source-copy tests initially failed because different voices were rejected.
+Snapshots now flag `requiresExplicitEnd`; the automatic path rejects even when a
+same-voice timed destination exists. Explicit target validation is unchanged.
+Component displays an endpoint-required state, and App keyboard paste reports the
+requirement without modifying the score. Core/component tests: 12 pass, including
+notes preserved, undo, native and XML. Build and expanded 26-case actual Electron
+renderer/disk QA pass. Artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-dMwHHd`.
+Inspected `960-cross-voice-source-slur-targets.png`: endpoint controls remain in
+the panel, wrapped address output is readable. Dense fixture annotations still
+need separate collision work; no general engraving completion claim.
+Full suite: 696 pass / 1 skip, 100.64s. Strengthened source/destination voice/rest
+XML assertions and valid global-direction fixture structures rerun: 15 pass.
+`verify-notation-snapshots.cjs` passes unchanged 960/1400px baselines. Cross-staff
+sources remain rejected; parent clipboard umbrella is Partial. Fresh E2E/package
+validation is pending at this checkpoint.
+
+### 2026-09-15 Current Validation Checkpoint
+
+Current worktree `/private/tmp/chromatics-span-targets-20260915`, branch
+`feature/chromatics-span-targets-20260915`, base `9d44696`; all changes uncommitted.
+Final source bundle `out/renderer/assets/index-OHYEjt6e.js`:
+
+- Full suite: 696 pass / 1 skip; strengthened two-file follow-up: 15 pass.
+- Typecheck/build pass; actual 26-case range/span/text harness pass.
+- `verify-single-voice-mvp.cjs` pass; notation snapshots unchanged at 960/1400px.
+- Fresh `npm run package:dir` and `npm run verify:package` pass on macOS arm64,
+  unsigned. Expected original-file export refusal remains a negative assertion.
+- `verify:musicxml-fixtures`: 1 selected test pass; `verify:midi-fixtures`: 3 pass.
+- Queue, save-policy, site-content and `git diff --check` pass.
+
+No current remote CI, Windows/Linux installer, manual native dialog, physical MIDI,
+listening, signing or notarization claim. MuseScore CLI mutex/exit-134 failure stays
+open despite usable generated PDF. The goal tool reports `usageLimited`; this
+explicitly requested normal execution did not reactivate automatic continuation.
+No commit/push/merge/deployment. Validation processes have finished; the intentionally
+running preview is `http://127.0.0.1:5173/`, Vite session 87134.
+
+Next implementation: `CV1-X-XML-SCOPED-GLOBAL-TEXT`, specifically define/preserve
+explicit part/staff ownership and lower-staff export before removing the system/
+rehearsal clipboard guard. Global import aggregation is not that ownership contract.
+Then individual/list/range text selection and dense span pair collision handling.
+Other expanded Required umbrellas remain open; neither implementation completion
+nor RC signoff is claimed.
+
+### 2026-09-15 Scoped Rehearsal And Staff Selection
+
+Same isolated worktree/branch, base `9d44696`, all changes uncommitted. Goal lookup
+returned no goal; a new active expanded-V1 goal was registered. Read-only remote
+main check confirms `9d44696`; sandbox DNS initially failed, approved retry passed.
+Original Clef/quiz/site worktrees were not modified. Reference interpretation:
+[MusicXML 4.0 system-relation](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/system-relation/)
+and [MuseScore living text handbook](https://handbook.musescore.org/text/staff-system-and-expression-text),
+checked 2026-09-15. No external GUI observation claimed.
+
+Bounded implementation: concrete rehearsal measure IDs retain part/staff ownership
+using `system="none"` plus staff number; generic global anchors use `only-top`.
+Native v4 already carries these IDs, so no schema change is made. Multiple rehearsal
+marks now render in distinct 32px lanes with shared screen/print vertical reservation.
+Other-staff paste preserves notes; additional-staff blank measures can be selected.
+Editing the first rehearsal mark preserves adjacent objects; removing a part removes
+its concrete-owned marks instead of converting them to global. Undo restores both.
+
+Failures and fixes:
+- Scoped XML test initially merged three equal local labels into `measure-1`.
+- Lane test initially had no multi-marker offsets; clipboard rejected other staves.
+- App part-removal test reproduced unintended global conversion; four history cases pass after correction.
+- App text-edit test reproduced loss of the second mark; six focused editing/history cases pass after correction.
+- Electron harness first returned an uncloneable function; `void` corrected the harness.
+- Imported XML Ctrl+S correctly saved XML; harness now explicitly chooses project save before native readback.
+- Actual lower-staff measure selector was absent; implemented concrete per-staff hit targets.
+- Font line-box `getBBox()` was 60px for a 24px rehearsal frame. Inspected screenshots showed separated glyphs.
+  Validation now checks each frame and canvas actual glyph bounds independently, including glyph containment;
+  no baseline or collision threshold was loosened to conceal an observed glyph collision.
+- E2E expected three primary-only grand-staff hit targets. New contract requires six total and three owned lower-staff targets;
+  that verifier was updated and rerun, with final result recorded below.
+
+Current bundle: `out/renderer/assets/index-B-nOq9dA.js`.
+- `npm test`: 699 pass / 1 skip (110.65s); build/typecheck pass.
+- XML/layout/MIDI targeted files: 90 pass; fixture scripts separately pass (XML 1, MIDI 3 selected cases).
+- Actual Electron `verify-range-span-copy.cjs`: all 28 cases pass. Scoped-only retry: two cases pass.
+  Full artifacts: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-kNQbMt`.
+  Inspected scoped 960/1400px screenshots from `chromatics-range-span-NC20qA` and prior diagnostic `chromatics-range-span-AvT0Nc`.
+  Evidence uses DOM-dispatched commands, real renderer, disk native/XML readback, part switches and undo/redo;
+  OS file dialogs are intercepted and this is not human/manual QA.
+- Fresh `package:dir` and `verify:package`: macOS arm64 unsigned Pass. Original-file export refusal is expected negative coverage.
+- Queue, save-policy, site-content and diff checks pass at this stage; final documentation rerun follows.
+- Existing preview process PID 78068 serves `http://127.0.0.1:5173/` with HTTP 200.
+  Default sandbox ps/curl could not inspect/reach it; approved read-only checks succeeded. No unrelated process was killed.
+
+Parent scoped-text task remains Partial: explicit scope UI, system-text ownership,
+same-text arbitrary-tick identity and linked displays are not implemented by this
+child. General object-list/range editing and dense engraving remain Required.
+No new manual PDF, listening, MIDI-device, external-app or OS installer approval.
+No commit/push/merge/deployment. Final `verify-single-voice-mvp.cjs` passes with
+six grand-staff measure targets, including three owned lower-staff targets.
+Final `verify-notation-snapshots.cjs` passes unchanged 960/1400px baselines.
+All validation processes have exited; only the intentional Vite preview remains.
+
+### 2026-09-15 Rehearsal Object Chooser Follow-Up
+
+`CV1-X-REHEARSAL-OBJECT-SELECTION`: notation palette exposes stable-ID selection
+for active-measure rehearsal marks, including an explicit new-marker state.
+The selected mark drives both palette and properties dock editing. New/open/recovery
+clears ephemeral object selection. Same-label objects remain distinguishable by
+ordinal and ID; no model/native version change is needed for this UI state.
+
+- Failure-first App test could not find the chooser; implementation now edits the
+  selected second object while preserving the first, notes and native history.
+- Typecheck caught an undefined-target empty-state access; explicit presence check fixes it.
+- Undoing a new object left a stale ID and silently rejected new text. Regression
+  reproduced missing E after A/B; new-marker editing no longer targets a deleted ID.
+- Focused App tests: 6 pass, including properties, edit/delete/add/undo, native
+  readback and reopening another document with the same IDs.
+- Full suite before the final stale-ID fix: 700 pass / 1 skip, E2E and visual pass.
+  Latest rerun/package results follow separately; do not reuse these as final gates.
+- Actual Electron scoped-only workflow passes at 960/1400px after changing the
+  hidden-window harness from blur alone to the existing explicit focusout pattern.
+  Artifacts: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-q7Cid4`.
+  Both `*-object-selection.png` images were inspected: chooser/edit values fit,
+  selected lower-staff object changes while source markers stay unchanged.
+  Checks cover new object, single deletion, undo, part views and real native/XML files.
+  DOM events/intercepted dialogs are not manual UI or human engraving approval.
+
+Other text-object types, direct score hit selection, individual clipboard and
+range selection remain implementation work. Global generic-anchor projection on
+rich multipart scores needs the next dedicated renderer/print audit; scope editing,
+MusicXML arbitrary-tick identity and system-text ownership are still Partial.
+
+Final chooser checkpoint: bundle `index-BoXPNcHV.js`, full suite 700 pass / 1 skip
+(106.10s), typecheck/build, fresh macOS arm64 unsigned package and notation snapshots
+pass. All 28 Electron clipboard cases pass with object editing included; artifacts
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-rdCHop`.
+Site/diff pass; E2E rerun also passes for this exact final bundle.
+
+### 2026-09-15 Global Annotation Render Projection
+
+Next task `CV1-X-GLOBAL-ANNOTATION-PROJECTION` reproduced zero rehearsal lanes for
+a generic `measure-1` global anchor on the rich multipart fixture. Shared render
+projection now resolves global aliases onto the visible primary staff for drawing
+and vertical/print calculation, while concrete local anchors and the source score
+stay unchanged. Equal local/global text objects remain distinct; projection is
+idempotent. Focused projection/vertical/print tests: 13 pass; typecheck/build pass.
+Actual score/part/PDF checks and latest full suite are in progress. No final gate
+or manual PDF claim is made from these unit tests.
+
+Actual `--global-only` harness subsequently passed six 960/1400px score/Piano/
+Clarinet cases, with three PDFs written through the live PDF render state.
+Source native readback is unchanged. First artifacts `chromatics-range-span-jo7qvF`
+passed global visibility but PDF image comparison exposed missing full-score Sing
+lyrics. This was recorded as a new implementation task rather than declaring
+general PDF fidelity complete.
+
+### 2026-09-15 Additional Staff Attachments
+
+`CV1-X-PASSIVE-STAFF-ATTACHMENTS` reproduced `[]` versus expected `['Sing']` in
+the actual full-score renderer. Additional staff drawing did not call existing
+note-attachment helpers. A shared helper now draws lyrics/articulations/fermata/
+breath/tremolo/ornaments/grace notes and the inline lyric editor on both paths.
+Current focused renderer checks assert Sing and tenuto in score/Piano, absent from
+Clarinet, and click/edit/undo of the actual additional-staff lyric with native disk
+readback. Other attachment types and their detailed placement remain a Partial
+task, not assumed complete because helpers are connected.
+
+Corrected six-case artifacts:
+`/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-1VMSX0`.
+`pdfinfo` confirms the full-score output is one A4 page. All three output PDFs were
+rendered with `pdftoppm -scale-to 1400 -png` and inspected:
+`/private/tmp/chromatics-global-fixed-{score,piano,clarinet}-1.png`.
+Global QA/Tutti QA/positioned 112 appear in each relevant view; Local QA remains
+with Piano; the full-score Sing lyric is restored. No observed clipping of these
+tested objects. Existing spacing/attachment placement needs further production
+polish. This is automated PDF capture and assistant image inspection, not a human
+manual file-dialog or commercial engraving approval. Final broad gates follow.
+
+### 2026-09-15 Global Rehearsal Editing Checkpoint
+
+The rich-score rehearsal chooser now includes generic global measure anchors and
+labels global/local scope separately. Editing or deleting the selected global
+object preserves local objects and the native anchor. Failure-first App coverage
+reproduced the missing global option in score and Piano views; both cases pass.
+Current bundle `index-C7QZBF3e.js`: typecheck/build and full suite 704 pass / 1 skip;
+MusicXML/MIDI fixtures, save-policy, queue, site-content and diff checks pass.
+
+Before this final chooser change, bundle `index-rI14IDAV.js` passed 702 tests,
+E2E, notation snapshots, fresh unsigned macOS arm64 package smoke and 34 actual
+Electron cases. Artifacts: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-fTiBAr`.
+These earlier renderer/package results do not validate the final chooser change.
+Its additional Electron editing assertions and latest GUI rerun were not executed:
+automatic approval review failed with a model-capacity error. No manual Pass.
+
+A read-only, in-memory parser/serializer probe on expanded-v1-part-export.musicxml
+confirmed a remaining implementation failure: system text anchored to
+`P2-staff-2-measure-1` disappears from export and reopen with empty export/import
+warning arrays. Initial probe calls used a non-exported function and wrong output
+key; after checking the public API, serializeMusicXmlWithReport(...).contents and
+parseMusicXmlWithReport reproduced the loss. No files were written by the probe.
+Next: preserve scoped system text through model/serializer/renderer and round-trip;
+do not solve this Required contract only by adding a warning. Scope switching,
+new global-object creation and arbitrary-tick identity remain incomplete.
+
+### 2026-09-15 User-Approved Integration Checkpoint
+
+The user requested commit, push and merge of the current development worktree.
+This approval does not declare expanded V1 or public RC complete. Base is
+`9d44696`; branch is `feature/chromatics-span-targets-20260915`.
+
+Approval service briefly recovered: the pending global-rehearsal Electron editing
+checks were added and all six score/Piano/Clarinet cases at 960/1400px passed,
+including edit/undo with native disk readback and unchanged local objects/notes.
+Artifacts: `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-range-span-inLWNf`.
+Two App cases also verify edited global rehearsal anchors through MusicXML.
+
+Expression text incorrectly imported raw MusicXML offsets. It now uses indexed
+cursor/divisions-aware direction ticks. Three failure-first cases cover signed
+offsets and different divisions, followed by MusicXML round-trip. Initial test
+expectations incorrectly assumed 480 ticks per quarter; they now use the actual
+TICKS_PER_QUARTER constant. The focused MusicXML run passed 62 tests.
+
+Latest source bundle `index-DsXADQYJ.js`: full suite 707 pass / 1 skip (106.58s),
+build/typecheck, XML/MIDI fixtures, queue, site-content and diff checks passed.
+Additional lower-staff backup/native tests and the final documentation patch were
+blocked by intermittent approval-service capacity errors, not test failures.
+Those extra tests were not applied. The broader renderer/package evidence above
+predates this last parser correction; integration reruns are recorded separately.
+
+Still Required: scoped system text silently disappears from lower-staff XML export;
+system-text object editing still replaces neighbors on the same measure; explicit
+scope switching, tick identity, remaining attachment visual cases and manual QA.
+No installer signing, human listening, physical MIDI or external-app GUI signoff
+is implied. Resume with these concrete implementation gaps, not a QA-only claim.
+
+Integration rerun: `npm run package:dir` rebuilt `index-DsXADQYJ.js` successfully,
+but packaging failed resolving github.com (`ENOTFOUND`) in the restricted sandbox.
+The additional Electron 34-case rerun was rejected before process creation by the
+approval service capacity error. E2E/snapshot calls after it were not executed.
+No fresh package smoke is claimed for this integration attempt. Queue (69 rows,
+16 Required), site-content and `git diff --check` pass. Remote PR CI is the next
+merge gate; the packaging/manual gaps remain explicit development-checkpoint gaps.
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.

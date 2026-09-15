@@ -17,6 +17,15 @@ import {
 } from './annotation-lanes'
 
 describe('annotation lanes', () => {
+  it('reserves separate boxes for every rehearsal mark in the same measure', () => {
+    const lanes = resolveMeasureAnnotationLanes({ rehearsalMarkCount: 3, systemTextCount: 1, tempoCount: 1 })
+    expect(lanes.rehearsalMarkYOffsets).toHaveLength(3)
+    expect(lanes.rehearsalMarkYOffsets[0]! - lanes.rehearsalMarkYOffsets[1]!).toBe(32)
+    expect(lanes.rehearsalMarkYOffsets[1]! - lanes.rehearsalMarkYOffsets[2]!).toBe(32)
+    expect(lanes.tempoYOffsets[0]).toBeLessThan(lanes.rehearsalMarkYOffsets[2]! - 12)
+    expect(lanes.requiredAbove).toBeGreaterThan(-lanes.rehearsalMarkYOffsets[2]!)
+  })
+
   it('reserves header space and tempo lanes above rehearsal and system text even without harmonies', () => {
     const lanes = resolveMeasureAnnotationLanes({
       hasRehearsalMark: true,

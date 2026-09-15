@@ -1,5 +1,49 @@
 # Chromatics Commercial V1 Reference Gap Matrix
 
+2026-09-15 scoped rehearsal follow-up: concrete part/staff measure IDs now round-trip
+as `system="none"`, while generic global anchors use `only-top`. Native v4 already
+preserves these IDs. Rehearsal clipboard and multiple-marker lane rendering are
+implemented and pass actual 960/1400px renderer/native/XML workflows. System text scope, tick
+identity, scope editing and linked displays remain Required. This supersedes the
+earlier primary-staff-only rehearsal restriction below, not the system-text guard.
+The active-measure rehearsal chooser now permits selecting another object by ID,
+editing/deleting it, and adding another with native/history/renderer evidence.
+This does not complete other text types, independent clipboard or range selection.
+
+2026-09-15 text follow-up: measure filters copy/delete/replace four text types and
+preserve unrelated notes. Staff/expression cross-part reuse and primary-staff
+system/rehearsal reuse have core/App/native/XML and 22-case renderer/disk evidence.
+[MuseScore text reference](https://handbook.musescore.org/text/staff-system-and-expression-text)
+(living handbook checked 2026-09-15) distinguishes local staff text from system
+text visible in all parts. Chromatics' non-primary system/rehearsal XML ownership
+is still incomplete; temporary paste rejection protects against observed loss.
+[MusicXML 4.0 system-relation](https://www.w3.org/2021/06/musicxml40/musicxml-reference/data-types/system-relation/)
+and [direction](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/direction/)
+(checked 2026-09-15) prompted standard only-top serialization/import; legacy yes
+remains readable. also-top classification preserves text but warns that additional
+staff display relation is not preserved. No external GUI observation is claimed.
+Global-text import now collects every part and merges repeated global occurrences;
+this does not solve explicit part ownership or lower-staff export. MuseScore 4.7.5
+CLI PDF inspection confirmed copied text and exposed duplicate tempo display.
+[MusicXML metronome](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/metronome/)
+and [direction-type](https://www.w3.org/2021/06/musicxml40/musicxml-reference/elements/direction-type/)
+(checked 2026-09-15) require separate words/metronome direction-type elements and
+allow metronome print-object. Automated external render verification is distinct
+from human GUI/engraving signoff.
+
+2026-09-15: explicit start/end chord-event selectors extend independent span paste
+to same-staff cross-voice destinations without changing notes. Automatic matching
+still uses source duration and the selected voice. Cross-voice source copying now
+requires explicit destination ends, never automatic voice inference. Sources checked
+2026-09-15 (living handbook, document interpretation only):
+[copy and paste](https://handbook.musescore.org/basics/copy-and-paste),
+[slurs and ties](https://handbook.musescore.org/en_gb/notation/expressive-markings/slurs-and-ties),
+[adjusting elements directly](https://handbook.musescore.org/basics/adjusting-elements-directly).
+References distinguish endpoint changes from geometry and support broader voice/
+staff authoring. Chromatics does not yet implement individual chord-notehead or
+free rhythmic/cross-staff endpoints. This is a bounded Required improvement, not
+feature parity or RC signoff; verification is recorded in evidence-log.
+
 2026-09-14 clipboard follow-up: part geometry snapshots and explicit excluded-span/
 segment feedback now have slur/hairpin App history/native tests. Contained octave
 lines preserve four-type native/XML/playback pitch; staff-wide duplicate intervals

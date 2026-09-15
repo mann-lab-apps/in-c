@@ -23,17 +23,21 @@ export function listSpans(score: Score, partId?: string): SpanReference[] {
 
 export function spanEndpointOptions(score: Score, reference: SpanReference) {
   const span = findSpan(score, reference)
-  const start = span && locateEvent(score, span.startEventId)
+  return span ? staffEndpointOptions(score, span.startEventId, reference.kind) : []
+}
+
+export function staffEndpointOptions(score: Score, startEventId: string, kind: SpanReference['kind']) {
+  const start = locateEvent(score, startEventId)
   const staff = score.parts.find(part => part.id === start?.address.partId)?.staves
     .find(candidate => candidate.id === start?.address.staffId)
   return (staff?.measures ?? []).flatMap((measure, measureIndex) =>
     measure.voices.flatMap(voice => voice.events
-      .filter(event => reference.kind === 'hairpin' || event.type === 'note')
+      .filter(event => kind === 'hairpin' || event.type === 'note')
       .map(event => ({
         id: event.id,
         measureIndex,
         tick: event.position.tick,
-        label: `${measure.number}마디 · ${event.position.tick}틱 · 성부 ${voice.id.replace('voice-', '')} · ${event.type === 'rest' ? '쉼표' : `${event.pitch.step}${event.pitch.alter === 1 ? '#' : event.pitch.alter === -1 ? 'b' : ''}${event.pitch.octave}`}`
+        label: `${measure.number}마디 · ${event.position.tick}틱 · 성부 ${voice.id.replace('voice-', '')} · ${event.type === 'rest' ? '쉼표' : (event.pitches?.length ? event.pitches : [event.pitch]).map(pitch => `${pitch.step}${pitch.alter === 1 ? '#' : pitch.alter === -1 ? 'b' : ''}${pitch.octave}`).join('/')}`
       }))))
     .sort((a, b) => a.measureIndex - b.measureIndex || a.tick - b.tick)
 }

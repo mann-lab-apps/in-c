@@ -1,5 +1,77 @@
 # Known Limitations
 
+## 2026-09-15 Integration Checkpoint
+
+Expanded V1 remains incomplete. A read-only serializer probe confirmed that a
+system text at `P2-staff-2-measure-1` disappears from MusicXML with no export/import
+warning. Preserve its intended scope before relaxing non-primary system-text paste.
+System-text editing also still replaces neighboring objects in one measure.
+Generic global rehearsal objects are now selectable/editable separately from
+local objects in score and part views; scope conversion and arbitrary tick anchors
+are not implemented. Expression-text import now normalizes cursor/divisions/offset
+to score ticks; lower-staff backup/native and imported-position visual cases remain.
+The user approved a development checkpoint merge, not a public RC release.
+
+## 2026-09-15 Render Projection And Attachments
+
+Generic global rehearsal/system/positioned-tempo anchors now resolve onto the
+visible primary staff for screen and print layout without changing the saved score.
+Six actual full-score/part renderer cases and three generated PDF inspections cover
+this bounded projection. They do not add explicit scope editing or arbitrary-tick
+identity. Those remain implementation blockers under scoped global text.
+
+PDF comparison exposed lyrics omitted from additional staves in the full score.
+Primary and additional staves now share note-attachment drawing. Actual renderer
+checks cover lyrics and tenuto, lyric click/edit/undo and native readback; corrected
+PDFs show Sing in both full score and piano part. Fermata/breath/grace/ornament/
+tremolo helpers are connected but their additional-staff visual matrix and detailed
+placement remain to be verified. General engraving and human PDF signoff are not
+complete.
+
+## 2026-09-15 Text And XML Scope
+
+Measure text filters now copy/delete/replace staff/system/rehearsal/expression text
+without editing notes. Staff/expression text can target another part. Rehearsal
+marks with concrete part/staff measure IDs now use MusicXML `system="none"` and
+retain lower-staff ownership on reopen; global measure anchors use `only-top`.
+Multiple rehearsal marks receive separate renderer lanes and shared print spacing.
+Rehearsal paste can target another staff. Core/native/XML and actual 960/1400px
+renderer workflows pass. Additional-staff blank measures are now selectable;
+editing one rehearsal mark preserves neighboring marks, and removing its part
+removes concrete-owned marks without converting them to global. System-text paste outside
+the primary staff remains rejected: its explicit ownership/round-trip contract is
+not implemented. Global import aggregation still merges repeated part exports by
+measure/text occurrence count; different tick positions, explicit scope editing,
+and linked `also-top` displays remain implementation blockers, not completed QA.
+The notation palette now selects rehearsal objects by stable ID within the active
+measure and supports adding, editing and deleting one without changing neighbors.
+Document open/new/recovery resets that ephemeral selection. Other text types,
+individual-object clipboard, direct score-object selection and cross-measure range
+selection remain Required; a rehearsal chooser does not complete the umbrella.
+
+System text now exports standard MusicXML `system="only-top"`; that value and
+legacy `yes` import as system text. `none` remains local text. `also-top` text is
+classified as system text but its additional staff display relation is not modeled
+or preserved and produces an import warning. This does not fix non-primary global
+text ownership or establish full text/engraving parity.
+
+Generated undotted quarter/eighth tempo labels no longer duplicate the numeric
+metronome in MusicXML. Other generated labels and custom-text display policy remain
+open. MuseScore's generated PDF shows the corrected tempo once, but its CLI exited
+134 after writing on two attempts; external runtime verification is not a clean Pass.
+
+## 2026-09-15 Explicit Span Paste Targets
+
+Start/end selectors now address chord events and same-staff cross-voice destination
+endpoints; explicit selection overrides automatic duration matching. Invalid or
+foreign-staff targets reject without changing notes or markings. Source spans
+across voices on one staff can now be copied only for explicit destination-end
+selection; automatic paste rejects those snapshots. Chords use one event with multiple pitches;
+individual pitch/notehead anchoring is not implemented. Older references below to
+"ambiguous chord endpoints" described defensive duplicate-event rejection, not
+this actual chord model. Arbitrary ticks, cross-staff anchors, broader independent
+objects and human engraving remain Required; current gate evidence is separate.
+
 ## 2026-09-14 Clipboard Continuation
 
 Range copy/paste now reports omitted partial spans and saved segments outside its
