@@ -100,6 +100,7 @@ class SheetLibraryController extends ChangeNotifier {
   SheetAnnotationToolPreset? _favoriteAnnotationPreset;
   Object? _favoritePresetSaveRequest;
   Object? _viewSettingsSaveRequest;
+  Object? _libraryLoadRequest;
   String _query = '';
   bool _isLoading = true;
   bool _isImporting = false;
@@ -258,29 +259,59 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> load() async {
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.',
+    );
+  }
+
+  Future<void> _runLibraryLoad({
+    required String errorMessage,
+    Future<void> Function()? prepare,
+    bool resetQuery = false,
+  }) async {
+    final request = _libraryLoadRequest = Object();
     _setLoading(true);
     try {
-      await _loadActiveLibraryState();
-    } catch (error) {
-      _errorMessage = '라이브러리를 불러오지 못했습니다. 앱을 다시 열어도 반복되면 백업 복원을 시도해주세요.';
+      if (prepare != null) await prepare();
+      if (!identical(_libraryLoadRequest, request)) return;
+      await _loadActiveLibraryState(request);
+      if (identical(_libraryLoadRequest, request) && resetQuery) _query = '';
+    } catch (_) {
+      if (identical(_libraryLoadRequest, request)) _errorMessage = errorMessage;
     } finally {
-      _setLoading(false);
+      if (identical(_libraryLoadRequest, request)) {
+        _libraryLoadRequest = null;
+        _setLoading(false);
+      }
     }
   }
 
-  Future<void> _loadActiveLibraryState() async {
-    _libraryProfiles = await store.loadLibraryProfiles();
-    _activeLibraryProfile = await store.loadActiveLibraryProfile();
-    _scores = await store.loadScores();
-    _setlists = await store.loadSetlists();
-    _metronomeSettings = await store.loadMetronomeSettings();
-    _tunerSettings = await store.loadTunerSettings();
-    _toneSettings = await store.loadToneSettings();
-    _libraryViewSettings = await store.loadLibraryViewSettings();
+  Future<void> _loadActiveLibraryState(Object request) async {
+    final profiles = await store.loadLibraryProfiles();
+    final active = await store.loadActiveLibraryProfile();
+    final scores = await store.loadScores();
+    final setlists = await store.loadSetlists();
+    final metronome = await store.loadMetronomeSettings();
+    final tuner = await store.loadTunerSettings();
+    final tone = await store.loadToneSettings();
+    final view = await store.loadLibraryViewSettings();
+    final viewer = await store.loadGlobalViewerSettings();
+    final templates = await store.loadPerformancePresetTemplates();
+    final favorite = await store.loadFavoriteAnnotationPreset();
+    if (!identical(_libraryLoadRequest, request)) return;
+    // Publish one completed load; superseded reads must never clean up newer data.
+    _libraryProfiles = profiles;
+    _activeLibraryProfile = active;
+    _scores = scores;
+    _setlists = setlists;
+    _metronomeSettings = metronome;
+    _tunerSettings = tuner;
+    _toneSettings = tone;
+    _libraryViewSettings = view;
     _viewSettingsSaveRequest = null;
-    _globalViewerSettings = await store.loadGlobalViewerSettings();
-    _performancePresetTemplates = await store.loadPerformancePresetTemplates();
-    _favoriteAnnotationPreset = await store.loadFavoriteAnnotationPreset();
+    _globalViewerSettings = viewer;
+    _performancePresetTemplates = templates;
+    _favoriteAnnotationPreset = favorite;
     _favoritePresetSaveRequest = null;
     _errorMessage = null;
     await _removeMissingSetlistScores();
@@ -689,32 +720,24 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<void> createLibraryProfile(String name) async {
-    _setLoading(true);
-    try {
-      await store.createLibraryProfile(name);
-      _query = '';
-      await _loadActiveLibraryState();
-    } catch (_) {
-      _errorMessage = '라이브러리를 만들지 못했습니다.';
-    } finally {
-      _setLoading(false);
-    }
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 만들지 못했습니다.',
+      prepare: () async {
+        await store.createLibraryProfile(name);
+      },
+      resetQuery: true,
+    );
   }
 
   Future<void> switchLibraryProfile(String id) async {
-    if (id == _activeLibraryProfile.id) {
+    if (id == _activeLibraryProfile.id && !_isLoading) {
       return;
     }
-    _setLoading(true);
-    try {
-      await store.setActiveLibraryProfile(id);
-      _query = '';
-      await _loadActiveLibraryState();
-    } catch (_) {
-      _errorMessage = '라이브러리를 전환하지 못했습니다.';
-    } finally {
-      _setLoading(false);
-    }
+    await _runLibraryLoad(
+      errorMessage: '라이브러리를 전환하지 못했습니다.',
+      prepare: () => store.setActiveLibraryProfile(id),
+      resetQuery: true,
+    );
   }
 
   Future<bool> renameLibraryProfile({
@@ -760,13 +783,21 @@ class SheetLibraryController extends ChangeNotifier {
   }
 
   Future<bool> deleteLibraryProfile(String id) async {
-    final didDelete = await store.deleteLibraryProfile(id);
-    if (!didDelete) {
-      return false;
+    final request = _libraryLoadRequest = Object();
+    _setLoading(true);
+    try {
+      final didDelete = await store.deleteLibraryProfile(id);
+      if (!didDelete) return false;
+      if (identical(_libraryLoadRequest, request)) {
+        await _loadActiveLibraryState(request);
+      }
+      return true;
+    } finally {
+      if (identical(_libraryLoadRequest, request)) {
+        _libraryLoadRequest = null;
+        _setLoading(false);
+      }
     }
-    await _loadActiveLibraryState();
-    notifyListeners();
-    return true;
   }
 
   Future<int> renameCollectionLibrary({

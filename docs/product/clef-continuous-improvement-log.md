@@ -70,6 +70,23 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S41 commit: `54ba221`. S42 VERIFIED LOCAL: seven delayed read regressions reproduced
+stale scores/setlist cleanup, old error feedback and premature loading completion.
+Acceptance: latest reload/switch/create owns published state/error/loading; read all
+fields before publishing; returning to the original library supersedes a pending
+switch. Delete keeps its exception contract but its late read cannot supersede a
+new selection. Store-level deletion transactions remain outside this slice.
+Implementation: shared request ownership for load/create/switch, completed-state
+publication and request-scoped completion; deletion uses the same ownership policy.
+Fifteen new tests plus prior profile/controller/storage coverage: targeted 277/277
+PASS (`/private/tmp/clef-s42-expanded.log`); original red evidence in
+`/private/tmp/clef-s42-red.log`. Full 1,004/1,004, analyze/RC and whitespace PASS
+(`/private/tmp/clef-rc-s42.log`). Commit subject: `fix: publish only current Clef library loads`.
+Not guaranteed: edits made during same-library reads, failed-read recovery of the
+persisted active ID, cross-controller/cross-isolate changes, deletion rollback.
+Next command: `dart run tool/rc_release_check.dart`; then investigate failed switch
+reads leaving the persisted active profile different from the visible old library.
+
 - Clef-only worktree `/private/tmp/clef-post22-stability`, branch
   `feature/clef-post22-stability`, starts from local release `ff64d39` (1.0.0+22).
 - Fetched origin/dev remains `a26e84c`; origin/main is `9d44696` and contains
