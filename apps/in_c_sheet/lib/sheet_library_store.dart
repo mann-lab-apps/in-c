@@ -538,10 +538,11 @@ class SheetLibraryStore {
   }
 
   Future<void> savePerformancePresetTemplates(
-    List<SheetPerformancePresetTemplate> templates,
-  ) async {
+    List<SheetPerformancePresetTemplate> templates, {
+    String? libraryId,
+  }) async {
     final preferences = await SharedPreferences.getInstance();
-    final activeLibraryId = await _activeLibraryId(preferences);
+    final activeLibraryId = libraryId ?? await _activeLibraryId(preferences);
     final normalized = SheetPerformancePresetTemplate.normalizeList(templates);
     await _writeMetadataValues(preferences, {
       _scopedKey(_performancePresetTemplatesKey, activeLibraryId):

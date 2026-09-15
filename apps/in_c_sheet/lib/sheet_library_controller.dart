@@ -1135,8 +1135,7 @@ class SheetLibraryController extends ChangeNotifier {
     _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
       next,
     );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
-    notifyListeners();
+    await _savePerformanceTemplateChanges();
     return template;
   }
 
@@ -1150,9 +1149,33 @@ class SheetLibraryController extends ChangeNotifier {
     _performancePresetTemplates = SheetPerformancePresetTemplate.normalizeList(
       next,
     );
-    await store.savePerformancePresetTemplates(_performancePresetTemplates);
-    notifyListeners();
+    await _savePerformanceTemplateChanges();
     return true;
+  }
+
+  Future<void> _savePerformanceTemplateChanges() async {
+    final pending = _performancePresetTemplates;
+    final libraryId = _activeLibraryProfile.id;
+    bool ownsState() =>
+        identical(_performancePresetTemplates, pending) &&
+        _activeLibraryProfile.id == libraryId;
+    try {
+      await store.savePerformancePresetTemplates(pending, libraryId: libraryId);
+    } catch (_) {
+      if (ownsState()) {
+        try {
+          final persisted = await store.loadPerformancePresetTemplates();
+          if (ownsState()) {
+            _performancePresetTemplates = persisted;
+            notifyListeners();
+          }
+        } catch (_) {
+          // Preserve the write failure when recovery cannot read storage.
+        }
+      }
+      rethrow;
+    }
+    notifyListeners();
   }
 
   Future<bool> applyPerformancePresetToScore(

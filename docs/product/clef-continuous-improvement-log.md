@@ -70,6 +70,25 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S45 VERIFIED LOCAL: fixed the draft's constructor arguments, then reproduced eight
+template save/delete recovery or cross-library failures (`/private/tmp/clef-s45-reproduced.log`).
+Save/delete now use the existing scoped store writer and ownership-checked reload
+on failure. Eleven cases cover retry, late success/failure after switching, old/new
+writes and recovery reads. Targeted 219/219 PASS (`/private/tmp/clef-s45-green.log`).
+Full 1,040/1,040, analyze/RC PASS (`/private/tmp/clef-rc-s45-s46.log`).
+Commit subject: `fix: recover Clef performance template saves`.
+UI error handling is a separate remaining gap, not fixed here.
+
+S46 IN PROGRESS: Android click playback allocates a thread/AudioTrack per beat.
+Extracted the player, cached two preloaded static tracks and reset their playback
+cursor for reuse. Errors now reach the method-channel handler synchronously;
+partial initialization/playback failures release tracks; activity destruction closes
+the player. Standalone Kotlin compilation against Android SDK and injected-track
+checks pass: 960 requests create only two tracks, accents/volume, retry, close and
+PCM bounds. This measures resource behavior, NOT audible jitter/latency.
+No package build. Flutter timer/channel/output-device jitter remains a candidate;
+the user's fast-BPM ISSUE stays open until repeatable output/physical verification.
+
 User QA priority update: fast metronome playback is audibly uneven (ISSUE).
 Drone sounds quiet through earphones (DEVICE QA, not a confirmed gain defect);
 remaining exercised smoke checks reportedly showed no issue; pedal not tested.
