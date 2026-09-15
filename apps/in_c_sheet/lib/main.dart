@@ -13720,6 +13720,7 @@ class _ViewerMiniToolPanel extends StatefulWidget {
 class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   late final SheetMetronomeSoundPlayer _soundPlayer;
   Timer? _timer;
+  int _lastTimerTick = 0;
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
@@ -13777,19 +13778,23 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   void _restartTimer() {
     _timer?.cancel();
+    _lastTimerTick = 0;
     _timer = Timer.periodic(
       widget.metronomeSettings.pulseDuration,
-      (_) => _advanceBeat(),
+      _advanceBeat,
     );
   }
 
-  void _advanceBeat() {
-    if (!mounted) {
+  void _advanceBeat(Timer timer) {
+    if (!mounted || !_isRunning || !identical(timer, _timer)) {
       return;
     }
+    final elapsedPulses = timer.tick - _lastTimerTick;
+    if (elapsedPulses <= 0) return;
+    _lastTimerTick = timer.tick;
     setState(() {
-      _beat = _beat.next();
-      _consumeCountInPulse();
+      _beat = _beat.advance(elapsedPulses);
+      _consumeCountInPulses(elapsedPulses);
     });
     _playTick();
   }
@@ -13801,14 +13806,11 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
 
-  void _consumeCountInPulse() {
+  void _consumeCountInPulses(int pulses) {
     if (_countInPulsesLeft <= 0) {
       return;
     }
-    _countInPulsesLeft--;
-    if (_countInPulsesLeft == 0) {
-      _beat = _initialBeat(widget.metronomeSettings);
-    }
+    _countInPulsesLeft = math.max(0, _countInPulsesLeft - pulses);
   }
 
   void _playTick() {
@@ -18181,6 +18183,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   late SheetMetronomeSettings _settings;
   late SheetMetronomeBeat _beat;
   Timer? _timer;
+  int _lastTimerTick = 0;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
@@ -18372,17 +18375,20 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   void _restartTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(_settings.pulseDuration, (_) => _advanceBeat());
+    _lastTimerTick = 0;
+    _timer = Timer.periodic(_settings.pulseDuration, _advanceBeat);
   }
 
-  void _advanceBeat() {
-    if (!mounted) {
+  void _advanceBeat(Timer timer) {
+    if (!mounted || !_isRunning || !identical(timer, _timer)) {
       return;
     }
-
+    final elapsedPulses = timer.tick - _lastTimerTick;
+    if (elapsedPulses <= 0) return;
+    _lastTimerTick = timer.tick;
     setState(() {
-      _beat = _beat.next();
-      _consumeCountInPulse();
+      _beat = _beat.advance(elapsedPulses);
+      _consumeCountInPulses(elapsedPulses);
       _lastBeatAt = DateTime.now();
     });
     _playTick();
@@ -18395,18 +18401,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
 
-  void _consumeCountInPulse() {
+  void _consumeCountInPulses(int pulses) {
     if (_countInPulsesLeft <= 0) {
       return;
     }
-    _countInPulsesLeft--;
-    if (_countInPulsesLeft == 0) {
-      _beat = SheetMetronomeBeat(
-        beatIndex: 0,
-        beatsPerBar: _settings.meter.beatsPerBar,
-        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
-      );
-    }
+    _countInPulsesLeft = math.max(0, _countInPulsesLeft - pulses);
   }
 
   void _playTick() {

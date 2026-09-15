@@ -167,6 +167,32 @@ void main() {
     expect(fourth.subdivisionIndex, 1);
   });
 
+  for (final meter in SheetMetronomeMeter.values) {
+    for (final subdivision in SheetMetronomeSubdivision.values) {
+      test('advance skipped pulses $meter $subdivision', () {
+        final first = SheetMetronomeBeat(
+          beatIndex: meter.beatsPerBar - 1,
+          beatsPerBar: meter.beatsPerBar,
+          subdivisionIndex: subdivision.pulsesPerBeat - 1,
+          pulsesPerBeat: subdivision.pulsesPerBeat,
+        );
+        var stepped = first;
+        for (var delta = 0; delta < 50; delta++) {
+          final advanced = first.advance(delta);
+          expect(advanced.beatIndex, stepped.beatIndex);
+          expect(advanced.subdivisionIndex, stepped.subdivisionIndex);
+          stepped = stepped.next();
+        }
+        final wrapped = first.advance(
+          meter.beatsPerBar * subdivision.pulsesPerBeat * 1000000 + 1,
+        );
+        expect(wrapped.beatIndex, 0);
+        expect(wrapped.subdivisionIndex, 0);
+        expect(() => first.advance(-1), throwsRangeError);
+      });
+    }
+  }
+
   test('supports customizable accent patterns per meter', () {
     final sixEight = SheetMetronomeSettings.fromJson(<String, Object?>{
       'meter': 'sixEight',

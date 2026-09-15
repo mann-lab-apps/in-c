@@ -70,6 +70,25 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+S48 commit: `9da54ee`. S49 VERIFIED LOCAL: six injected-timer full/mini cases reproduced
+bar accents lagging elapsed time when Timer.tick jumps from 1 to 4
+(`/private/tmp/clef-s49-red.log`). Acceptance: advance by elapsed periods, consume
+count-in by the same amount, emit at most one current click (no catch-up loop),
+ignore old/duplicate timer callbacks after stop/restart/close. Preserve settings
+save lifetimes and normal count-in timing. Existing periodic timers remain; no
+audio-clock scheduling or realtime guarantee is claimed. Added constant-time beat
+advance and elapsed-tick handling in both surfaces; expanded phase/lifecycle tests
+and all meter/subdivision model cases. Targeted 94/94 PASS
+(`/private/tmp/clef-s49-green.log`); full 1,120/1,120, analyze/RC PASS
+(`/private/tmp/clef-rc-s49.log`), formatter/diff checks PASS.
+Commit subject: `fix: keep Clef metronome phase after delayed ticks`.
+Next: named home actions for settings/backup discovery; actual output jitter remains
+DEVICE QA, not fixed by the callback tests. No new app build/push/merge.
+Official Dart Timer docs checked 2026-09-15: tick includes missed periods and
+periodic callbacks do not guarantee identical intervals:
+https://api.dart.dev/dart-async/Timer/tick.html and
+https://api.dart.dev/dart-async/Timer/Timer.periodic.html.
+
 S47 commit: `42238f4`. S48 VERIFIED LOCAL: count-in consumed one pulse at the initial
 click and again on elapsed timer callbacks. Eight full/mini widget cases reproduced
 an early accent (fourth instead of fifth click in 4/4) or a half-length interval
