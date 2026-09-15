@@ -73,7 +73,7 @@ Build outputs:
 Android release signing:
 
 - Clef & Staff uses Android applicationId/namespace `com.mannlab.clef`, not the separate in C app.
-  The next source candidate is `1.0.0+21`; verify that code 21 is unused in Play Console before upload.
+  The next source candidate is `1.0.0+22`; verify that code 22 is unused in Play Console before upload.
 - `android/app/build.gradle.kts` requires `android/key.properties` for release APK/AAB signing.
   Missing keys or a certificate other than the recorded Clef upload key fail release tasks;
   there is no debug-signing fallback. From `android/`, run the following without building the app:

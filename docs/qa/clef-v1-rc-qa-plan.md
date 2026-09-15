@@ -10,7 +10,7 @@
 
 ## 최신 배포 준비 (2026-09-13)
 
-- 소스 후보: `Clef & Staff` `1.0.0+21`, Android applicationId/namespace `com.mannlab.clef`.
+- 소스 후보: `Clef & Staff` `1.0.0+22`, Android applicationId/namespace `com.mannlab.clef`.
   in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
 - Play Console code 21 미사용 여부는 아직 확인하지 않았다. 확인 후 새 release 빌드를 진행한다.
 - 서명 파일 누락/기존 디버그 키는 차단하고, 기록된 Clef 업로드 키는 Gradle 서명 검증을 통과했다.

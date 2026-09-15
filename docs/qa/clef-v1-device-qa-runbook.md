@@ -14,7 +14,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 ## 2026-09-13 다음 배포 준비
 
 - Clef & Staff Android applicationId/namespace는 `com.mannlab.clef`다. in C는 별도 앱이다.
-- 최신 소스와 앱 내 테스트 정보는 `1.0.0+21`이다. Play Console의 code 21 사용 여부는 미확인이다.
+- 2026-09-15 소스와 앱 내 테스트 정보는 `1.0.0+22`이다. Play Console의 code 22 사용 여부는 미확인이다.
 - 서명 파일 누락과 디버그 키를 사용한 검증은 의도대로 실패했고, 기존 Clef 업로드 키 검증은 통과했다.
 - `android/`에서 `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`로
   앱 빌드 없이 서명을 재확인할 수 있다. 키 파일은 git에 포함하지 않는다.
