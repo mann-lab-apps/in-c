@@ -70,6 +70,19 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+Push/merge integration (2026-09-15): PR #759, main advanced from `9d44696` to
+`46eda04` while CI was running. Integration commit `b953065` preserves Clef
+1.0.0+22 and the new in C flavor entry condition; no app build or upload.
+The new integration passes all 1,347 Flutter tests and analyze, but the Clef
+RC debug scan also included the separate in C app's intentional diagnostics.
+Scope only that scan with discovery filename exclusions; keep main.dart,
+sheet files, shared PDF code and otherwise unnamed future files covered.
+Eight process-level rg fixtures PASS (`/private/tmp/clef-rc-scope-test.log`),
+including print/debug/TODO/FIXME rejection in Clef/shared fixtures. Analyze,
+full tests and all other RC checks still cover the complete package.
+S54 draft remains untracked and excluded from this PR. Final integrated RC
+evidence is recorded in PR #759 after the scope fix is validated.
+
 S53 committed as `2b3e343`. S54 IN PROGRESS: metronome native output failures fall
 back to SystemSound without reporting the output path, and fallback failures are
 not caught. Full/mini callers discard results. Draft regression:
