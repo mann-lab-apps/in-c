@@ -70,6 +70,18 @@
 
 ## Resume Checkpoint (2026-09-15)
 
+User QA priority update: fast metronome playback is audibly uneven (ISSUE).
+Drone sounds quiet through earphones (DEVICE QA, not a confirmed gain defect);
+remaining exercised smoke checks reportedly showed no issue; pedal not tested.
+Build/device/BPM/subdivision/output route remain unconfirmed. See RC QA plan.
+Android creates a Thread/AudioTrack per click: a timing risk, not yet a reproduced
+root cause. Prioritize timing/audio regression investigation before template work.
+S44 commit: `ccd598c`, full 1,029/analyze/RC PASS. S45 was interrupted after adding
+untracked `sheet_performance_template_recovery_test.dart`; its first run failed to
+compile (missing required SheetViewerSettings constructor arguments), so no S45
+bug reproduction or production fix is claimed. Preserve the test draft; do not
+include it in release checks/commits as verified work. No new build/push/merge.
+
 S43 commit: `377b33f`. S44 VERIFIED LOCAL: ten delayed same-library reload tests
 reproduced loss of later saved edits in scores/setlists/settings/templates/profiles.
 Reload now publishes only fields it still owns; global settings preserve later edits
