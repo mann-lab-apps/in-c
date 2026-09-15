@@ -41,9 +41,8 @@ import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
 const String _clefAppVersion = '1.0.0+21';
-const bool _launchInCDiscoveryHome = bool.fromEnvironment(
-  'IN_C_DISCOVERY_HOME',
-);
+const bool _launchInCDiscoveryHome =
+    bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

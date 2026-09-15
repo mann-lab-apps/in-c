@@ -1,5 +1,45 @@
 # in C V1 Release Checklist
 
+## TestFlight Upload: 2026-09-15
+
+- User confirmed `com.mannlab.inc` and authorized internal-test distribution.
+- Independent `inc` flavor preserves all nine original Clef build configurations.
+- `in C` 1.0.0(2609.15.1): archive built, App Store-signed IPA exported and signature verified.
+- App Store Connect upload succeeded for record6804194541; Apple processing started.
+- Processing completion, tester-group assignment, installation and founder satisfaction:
+  NOT_VERIFIED. This is NOT expanded/Public V1 completion.
+- Nonblocking warning: PDFium dSYM missing. Default launch-image placeholder remains.
+- Current full1135/analyze/format/diff PASS. Build paths and exact commands:
+  [candidate manifest](in-c-testflight-internal-test-candidate.md).
+- No Git publication, public App Store release or tester invitations performed.
+
+## Earlier TestFlight Milestone: HOLD (2026-09-15, Historical)
+
+- Latest listening-wait repair: link7/full1135/analyze/format11/native10 PASS. Slow click-event
+  persistence no longer blocks external launch; retained-event retry/no-false-listen tests pass.
+  New diagnostic archive/log hashes supersede the older1132 artifact in dated evidence.
+
+- [Candidate manifest and handoff](in-c-testflight-internal-test-candidate.md): feature freeze,
+  not Public V1 completion. Final full1132/analyze PASS supersede the older counts below.
+- Actual iOS archive: Clef & Staff, `com.mannlab.inc.clefandstaff`, 1.0.0(21), unsigned.
+  Same identifier/profile as Clef release22. DO NOT UPLOAD or replace Clef with this artifact.
+- Certificate identities exist. Need approved in C identity/profile and unused ASC build number;
+  do not blindly reuse `ios/ExportOptions.plist`, which maps the Clef ID/profile.
+- Founder first3 simulation is now Moonlight/Raindrop/Eine kleine Nachtmusik rather than
+  all Beethoven. This is not founder approval, novelty evidence or verified playback.
+- First-recording hearing/region/window, physical notifications/VoiceOver and signed install
+  remain open. No upload/invitation/identity change/commit/push/merge is authorized or performed.
+
+## Current Continuation: 2026-09-15
+
+Public V1 remains NOT READY. [Current evidence](../quality/in-c-expanded-v1-evidence-2026-09-15.md)
+records the fresh main-based worktree, scoped152/full1116 tests and analysis. First-reward
+grounding, unknown-title inference, empty/excluded fallback and stale proximity copy are repaired.
+Native provisional foreground delivery is not physical/background/tap or listening approval.
+Required39 is DONE12/IN_PROGRESS25/NOT_VERIFIED2; only R01 code verification is newly complete.
+No publication or identity change is
+authorized in this continuation; all conflicting permissions/counts below are historical.
+
 ## Current Continuation: 2026-09-14
 
 Latest expansion-bridge patch: scoped12/full574/analyze/format/diff and iOS no-codesign

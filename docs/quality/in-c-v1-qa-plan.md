@@ -1,5 +1,39 @@
 # in C V1 QA Plan
 
+## TestFlight Candidate Freeze: 2026-09-15
+
+Latest first-listen regression: delay local event storage, tap YouTube, and assert launch occurs
+before save finishes. Fail storage, verify the warning and same event ID after retry;
+listening completion must remain absent. Rejected logging must not trigger provider fallback.
+Link7/full1135/analyze/format11/native10 PASS; channel mocks do not verify provider playback.
+
+[Candidate scope, blockers and device checklist](../releases/in-c-testflight-internal-test-candidate.md)
+supersede historical shipping claims. Full1132/analyze PASS after a reproduced first-three
+composer-concentration defect. The new candidate test proves repeatable simulation/no writes,
+known-favorite exclusion, sparse connected fallback and same-day pin survival, not satisfaction.
+Do not install the current unsigned archive: it uses Clef's ID and name. Signing identities
+exist, but independent in C configuration and App Store Connect checks require owner input.
+Actual recording playback/region/window, physical warm/cold notification taps and VoiceOver
+remain unverified. Freeze feature work; collect only first-use blockers and test-session feedback.
+User evaluation has no mandatory multi-day quota: song fit, listening friction, next-pick trust.
+
+## Current Continuation: 2026-09-15
+
+- [Current evidence](in-c-expanded-v1-evidence-2026-09-15.md) supersedes the historical counts below.
+- Onboarding: broad Dvorak Symphony9 input stays verbatim in translation and chips; the candidate
+  guide/reason uses the actual selected work. Puccini with only unrelated Mozart candidates must
+  not promise familiar melody. Draft preview cannot overwrite saved inputs.
+- Unknown titles Lost Stars/Ghost/Interstellar OST/나의 기록/색연필 must not create taste axes,
+  matched Next Three lanes or map evidence from title substrings. Explicit listening descriptors
+  and all four quick intake choices still work. Unrecognized sentences remain honestly unclassified.
+- Reopen stored intake against an empty catalog: no translation and no crash. Excluded anchors
+  must not return as a fallback guide when other candidates have already been heard.
+- Old unknown-title proximity: withdraw unsupported distance copy while preserving pick identity,
+  listening/save/raw input and both stale merge orders. Actual founder quality remains unanswered.
+- New isolated simulator64D3F002-45AC-4980-B2AE-D6C5AE6497C3: provisional foreground delivery
+  and screenshot evidence are separate from physical permission choice, background banner/tap,
+  VoiceOver and actual audio. See dated evidence for the exact code stage covered.
+
 ## Current Continuation: 2026-09-14
 
 - My Music -> 추천에서 제외: 한국어/원어 작곡가 검색, 체크/해제, 재열기, 저장 실패 안내/다시 저장을 검증한다. 제외해도 검색·직접 열기·저장·감상 이력은 남고, 새 Daily/Discover/작품 추천에는 나오지 않아야 한다. 현재 당일 pin은 유지한다.
@@ -207,6 +241,26 @@ Historical PASS counts below are not current release evidence.
 - A search destination, search URL in previewUrl, wrong host, pending or rejected state
   must never enable preview even when a native player reports available.
 - Test fixtures are synthetic URLs and must not enter the seed or content approval log.
+
+### Multiple Taste Sources Follow-Up (2026-09-15)
+
+- Supply Carmen Habanera and Chopin Op.9 No.2 in both orders. A new Chopin piano work
+  must use the Chopin evidence, not imply a Carmen connection from a global axis.
+- Supply Bach Air and Chopin Raindrop. A candidate Chopin nocturne must explain the
+  stronger piano/composer connection consistently in draft reward, Next Three and Daily.
+- No root/draft novelty slot should contain either supplied favorite. With no novel work
+  left, Daily can offer an honest revisit without inventing a saved state.
+- Instrument-only input establishes proximity, not a changed musical dimension. Retain
+  a positive connected surprise case alongside the unconnected/default-axis rejection.
+- Simulated completed dates test scheduling only. First-week human quality remains open.
+- Native controlled-catalog onboarding screenshot: `in-c-intake-strongest-bridge.png`.
+  Judge original input chips, grounded source/guide, wrapping and overflow independently.
+- The first work must not repeat under next path. With only one novel candidate, omit
+  the following list instead of displaying a duplicate or inventing extra content.
+- Repeated links, saves and intake must leave listening level at its initial state.
+  Reactions/completions on one local day count once; three separate confirmed dates survive
+  reaction correction and recent-log compaction. Future dates cannot advance current pacing.
+  Treat these as pacing checks, never musical-ability or audio-verification evidence.
 
 ### Native Notification Entry Follow-Up (2026-09-14)
 

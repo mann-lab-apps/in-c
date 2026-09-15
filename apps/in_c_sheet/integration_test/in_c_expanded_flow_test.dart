@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:in_c_sheet/classical_daily_notification.dart';
 import 'package:in_c_sheet/classical_discovery_app.dart';
+import 'package:in_c_sheet/classical_discovery_catalog.dart';
 import 'package:in_c_sheet/classical_discovery_controller.dart';
 import 'package:in_c_sheet/classical_discovery_models.dart';
 import 'package:in_c_sheet/classical_discovery_screen.dart';
@@ -27,6 +28,80 @@ void main() {
       reason: 'Never replace reminders on an existing user simulator.',
     );
   });
+
+  for (final fixture in [
+    (
+      inputs: ['드보르작 - 교향곡 9번'],
+      evidence: '드보르작 - 교향곡 9번',
+      workIds: <String>[],
+      screenshot: 'in-c-intake-original-evidence',
+    ),
+    (
+      inputs: ['G선상의 아리아', '쇼팽 빗방울'],
+      evidence: '쇼팽 빗방울',
+      workIds: ['bach-air', 'chopin-raindrop-prelude', 'chopin-nocturne-op9-2'],
+      screenshot: 'in-c-intake-strongest-bridge',
+    ),
+  ]) {
+    testWidgets(
+      'native intake reward uses original grounded evidence: ${fixture.screenshot}',
+      (tester) async {
+        final key = 'in_c_reward_qa_${DateTime.now().microsecondsSinceEpoch}';
+        final controller = ClassicalDiscoveryController(
+          store: ClassicalDiscoveryStore(storageKey: key),
+          works: fixture.workIds.isEmpty
+              ? null
+              : ClassicalDiscoveryCatalog.works
+                    .where((work) => fixture.workIds.contains(work.id))
+                    .toList(),
+          notificationGateway:
+              const DisabledClassicalDailyNotificationGateway(),
+        );
+        try {
+          await controller.load();
+          await tester.pumpWidget(
+            ClassicalDiscoveryApp(controller: controller),
+          );
+          await tester.pumpAndSettle();
+          await tester.enterText(
+            find.byKey(const ValueKey('taste-intake-field')),
+            fixture.inputs.join(', '),
+          );
+          FocusManager.instance.primaryFocus?.unfocus();
+          await tester.pumpAndSettle();
+          await tester.scrollUntilVisible(
+            find.text('내 감상 시작점'),
+            180,
+            scrollable: find.byType(Scrollable).last,
+          );
+          await Scrollable.ensureVisible(
+            tester.element(find.text('내 감상 시작점')),
+            alignment: 0.05,
+          );
+          await tester.pumpAndSettle();
+          expect(
+            find.textContaining('남겨주신 "${fixture.evidence}"'),
+            findsWidgets,
+          );
+          for (final input in fixture.inputs) {
+            expect(find.widgetWithText(Chip, input), findsOneWidget);
+          }
+          expect(controller.state.tasteIntakeItems, isEmpty);
+          if (fixture.workIds.isNotEmpty) {
+            expect(find.textContaining('다음 길:'), findsNothing);
+          }
+          await binding.takeScreenshot(fixture.screenshot);
+          expect(tester.takeException(), isNull);
+        } finally {
+          await tester.pumpWidget(const SizedBox.shrink());
+          controller.dispose();
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove(key);
+          await prefs.remove('${key}_backup');
+        }
+      },
+    );
+  }
 
   testWidgets('native backup survives missing and wrong-type primary storage', (
     tester,
@@ -308,6 +383,8 @@ void main() {
     await controller.addTasteIntakeInputs(['쇼팽 야상곡 9-2번', '드보르작 교향곡 9번']);
     await controller.skipOnboarding();
     final pick = controller.dailyPick();
+    expect(controller.listeningLevelSnapshot().level, '첫 입구');
+    expect(controller.listeningLevelSnapshot().confidence, 0);
     await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
     await tester.pumpAndSettle();
 
@@ -417,6 +494,8 @@ void main() {
     expect(restored.state.stateForWork(pick.workId).saved, isTrue);
     expect(restored.dailyPick().workId, pick.workId);
     expect(restored.state.reactions.first.type, 'liked');
+    expect(restored.listeningLevelSnapshot().level, '첫 입구');
+    expect(restored.listeningLevelSnapshot().confidence, 1);
     expect(restored.listeningMapProgress().userState.openedNodeIds, isNotEmpty);
     // This checks the real bridge, not permission grant, delivery, or notification taps.
     if (Platform.isIOS) {

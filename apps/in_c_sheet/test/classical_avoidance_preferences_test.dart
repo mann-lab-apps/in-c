@@ -17,6 +17,250 @@ import 'package:in_c_sheet/classical_discovery_store.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('legacy unknown-title proximity claim is withdrawn without replacing the pick', () async {
+    final store = _MemoryStore();
+    final original = _controller(store);
+    await original.load();
+    await original.addTasteIntakeInputs(['Lost Stars']);
+    final pin = await original.ensureDailyPick();
+    expect(pin.pickType, 'open_start');
+    expect(pin.sourceEvidence, contains('아직 곡을 연결하지 못해'));
+    await original.toggleSaveWork(pin.workId);
+    final legacy = pin.copyWith(
+      pickType: 'close_step',
+      distanceLabel: '아주 가까움',
+      reason: '익숙한 감각에서 이어봅니다.',
+    );
+    store.state = store.state.copyWith(dailyPicks: [legacy]);
+    final stale = store.state;
+    final records = jsonEncode(stale.toJson()['workStates']);
+    original.dispose();
+    final reopened = _controller(store);
+    await reopened.load();
+    final shown = reopened.dailyPick();
+    expect(shown.distanceLabel, '이전에 고른 작품');
+    expect(shown.reason, contains('다시 확인'));
+    expect(shown.workId, pin.workId);
+    expect(shown.momentId, pin.momentId);
+    expect(shown.createdAt, pin.createdAt);
+    expect(shown.catalogRevision, pin.catalogRevision);
+    await reopened.ensureDailyPick();
+    expect(jsonEncode(store.state.toJson()['workStates']), records);
+    expect(store.state.tasteIntakeItems.single.rawInput, 'Lost Stars');
+    const merger = DiscoveryStateMerger();
+    for (final merged in [
+      merger.merge(stale, store.state),
+      merger.merge(store.state, stale),
+    ]) {
+      final mergedStore = _MemoryStore()
+        ..state = UserDiscoveryState.fromJson(merged.toJson());
+      final reloaded = _controller(mergedStore);
+      await reloaded.load();
+      expect(reloaded.dailyPick().distanceLabel, '이전에 고른 작품');
+      expect(reloaded.dailyPickHistory.single.distanceLabel, '이전에 고른 작품');
+      reloaded.dispose();
+    }
+    reopened.dispose();
+  });
+
+  test(
+    'Satie opening guide follows the score without approving a recording',
+    () {
+      final work = ClassicalDiscoveryCatalog.works.firstWhere(
+        (work) => work.id == 'satie-gymnopedie-1',
+      );
+      expect(work.primaryMoment!.prompt, contains('낮은 음과 화음이 번갈아'));
+      expect(work.primaryMoment!.prompt, contains('그 위로 들어오는 선율'));
+      expect(
+        work.externalLinks.where(
+          (link) => link.linkType == 'listen_preview_approved',
+        ),
+        isEmpty,
+      );
+    },
+  );
+
+  for (final input in [
+    'Lost Stars',
+    'Ghost',
+    'Interstellar OST',
+    '나의 기록',
+    '색연필',
+  ]) {
+    test('unknown title does not manufacture a musical axis: $input', () async {
+      final store = _MemoryStore();
+      final controller = _controller(store);
+      await controller.load();
+      final preview = controller.previewTasteStart([input])!;
+      expect(preview.items.single.sourceType, 'free_text');
+      expect(
+        preview.nextThree.map((item) => item.lane),
+        everyElement('open_start'),
+      );
+      expect(preview.translation.isSoftLanding, isTrue);
+      await controller.addTasteIntakeInputs([input]);
+      expect(controller.tasteAxisScores(), isEmpty);
+      expect(
+        controller.listeningMapProgress().userState.openedNodeIds,
+        isEmpty,
+      );
+      expect(
+        controller.nextThreeRecommendations().map((item) => item.lane),
+        everyElement('open_start'),
+      );
+      expect(controller.state.tasteIntakeItems.single.rawInput, input);
+      final reopened = _controller(store);
+      await reopened.load();
+      expect(reopened.tasteAxisScores(), isEmpty);
+      expect(reopened.listeningMapProgress().userState.openedNodeIds, isEmpty);
+      reopened.dispose();
+      controller.dispose();
+    });
+  }
+
+  for (final input in [
+    '영화음악',
+    '선율',
+    '피아노',
+    '리듬',
+    'OST',
+    '밤의 피아노',
+    '현악 소리',
+    '라흐마니노프 선율',
+  ]) {
+    test(
+      'explicit listening descriptor still supplies an axis: $input',
+      () async {
+        final controller = _controller(_MemoryStore());
+        await controller.load();
+        await controller.addTasteIntakeInputs([input]);
+        expect(controller.tasteAxisScores(), isNotEmpty);
+        expect(
+          controller.nextThreeRecommendations().first.reason,
+          contains(input),
+        );
+        controller.dispose();
+      },
+    );
+  }
+
+  test('taste translation preserves the original symphony input', () async {
+    final controller = _controller(_MemoryStore());
+    await controller.load();
+    const input = '드보르작 - 교향곡 9번';
+    final preview = controller.previewTasteStart([input])!;
+    expect(preview.translation.sourceLabel, input);
+    expect(preview.translation.startingPoint, contains(input));
+    expect(preview.translation.startingPoint, isNot(contains('2악장')));
+    await controller.addTasteIntakeInputs([input]);
+    final translation = controller.currentTasteTranslation()!;
+    expect(translation.sourceLabel, input);
+    expect(translation.startingPoint, isNot(contains('2악장')));
+    controller.dispose();
+  });
+
+  test('unrelated taste reward does not promise a familiar melody', () async {
+    final candidate = ClassicalDiscoveryCatalog.works.firstWhere(
+      (work) => work.id == 'mozart-piano-sonata-k545',
+    );
+    final controller = _controller(_MemoryStore(), works: [candidate]);
+    await controller.load();
+    for (final input in ['푸치니', 'unknown music 123']) {
+      final preview = controller.previewTasteStart([input])!;
+      expect(preview.nextThree.single.lane, 'open_start');
+      expect(preview.translation.isSoftLanding, isTrue);
+      expect(preview.translation.startingPoint, contains('연결'));
+      expect(preview.translation.startingPoint, isNot(contains('먼저 맞습니다')));
+      expect(preview.translation.familiarFeeling, isNot(contains('익숙한 건')));
+      expect(preview.translation.listenFor, candidate.primaryMoment!.prompt);
+    }
+    controller.dispose();
+  });
+
+  test(
+    'stored taste translation is absent when the catalog has no candidate',
+    () async {
+      final store = _MemoryStore();
+      final source = _controller(store);
+      await source.load();
+      await source.addTasteIntakeInputs(['바흐 푸가']);
+      final original = UserDiscoveryState.encode(store.state);
+      source.dispose();
+      final controller = _controller(store, works: []);
+      await controller.load();
+      expect(controller.currentTasteTranslation(), isNull);
+      expect(UserDiscoveryState.encode(controller.state), original);
+      controller.dispose();
+    },
+  );
+
+  test('stored taste reward never falls back to an excluded anchor', () async {
+    final source = _controller(_MemoryStore());
+    final anchor = source.workById('chopin-nocturne-op9-2')!;
+    final candidate = source.workById('mozart-piano-sonata-k545')!;
+    final store = _MemoryStore();
+    final controller = _controller(store, works: [anchor, candidate]);
+    await controller.load();
+    await controller.addTasteIntakeInputs(['쇼팽 야상곡 9-2번']);
+    await controller.setComposerExcluded(anchor.composerId, true);
+    await controller.addReaction(candidate.id, 'liked');
+    expect(controller.nextThreeRecommendations(), isEmpty);
+    expect(
+      controller.currentTasteTranslation()!.listenFor,
+      candidate.primaryMoment!.prompt,
+    );
+    final reopened = _controller(store, works: [anchor, candidate]);
+    await reopened.load();
+    expect(
+      reopened.currentTasteTranslation()!.listenFor,
+      candidate.primaryMoment!.prompt,
+    );
+    reopened.dispose();
+    controller.dispose();
+    source.dispose();
+  });
+
+  testWidgets(
+    'onboarding reward keeps raw input at small width and large text',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final controller = _controller(_MemoryStore());
+      await controller.load();
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!,
+          ),
+          home: ClassicalDiscoveryAppShell(controller: controller),
+        ),
+      );
+      await tester.pumpAndSettle();
+      const input = '드보르작 - 교향곡 9번';
+      await tester.enterText(
+        find.byKey(const ValueKey('taste-intake-field')),
+        input,
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('내 감상 시작점'),
+        180,
+        scrollable: find.byType(Scrollable).last,
+      );
+      expect(find.textContaining('남겨주신 "$input"'), findsWidgets);
+      expect(find.widgetWithText(Chip, input), findsOneWidget);
+      expect(find.widgetWithText(Chip, '신세계 교향곡 2악장'), findsNothing);
+      expect(controller.state.tasteIntakeItems, isEmpty);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      controller.dispose();
+    },
+  );
+
   test(
     'next three preserve broad input instead of substituting an excerpt title',
     () async {
@@ -270,7 +514,8 @@ void main() {
       final connected = _controller(connectedStore, works: [candidate]);
       await connected.load();
       final connectedPick = await connected.ensureDailyPick();
-      expect(connectedPick.pickType, 'gentle_expansion');
+      // Instrument preference supplies a bridge, not evidence of a changed dimension.
+      expect(connectedPick.pickType, 'close_step');
       expect(connectedPick.sourceEvidence, contains('선택한 피아노'));
       expect(connectedPick.sourceEvidence, isNot(contains('곡을 연결하지 못해')));
       connected.dispose();

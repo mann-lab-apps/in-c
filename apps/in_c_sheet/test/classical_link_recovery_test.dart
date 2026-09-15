@@ -178,6 +178,131 @@ void main() {
   );
 
   testWidgets(
+    'pending local event persistence does not hold up external listening',
+    (tester) async {
+      final persistence = Completer<void>();
+      final work = ClassicalDiscoveryCatalog.works.first;
+      final selected = work.externalLinks.firstWhere(
+        (link) => link.platformId == 'youtube',
+      );
+      var attempts = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => launchClassicalWorkLink(
+                  context,
+                  work,
+                  selected,
+                  onAttempt: (link, fallback) {
+                    attempts += 1;
+                    return persistence.future;
+                  },
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      final launchedBeforeSave = calls.length;
+      persistence.complete();
+      await tester.pumpAndSettle();
+      expect(launchedBeforeSave, 1);
+      expect(attempts, 1);
+      expect(calls, hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'event sink failure does not block listening or invent a fallback',
+    (tester) async {
+      final work = ClassicalDiscoveryCatalog.works.first;
+      final selected = work.externalLinks.firstWhere(
+        (link) => link.platformId == 'youtube',
+      );
+      var attempts = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => launchClassicalWorkLink(
+                  context,
+                  work,
+                  selected,
+                  onAttempt: (link, fallback) async {
+                    attempts += 1;
+                    throw StateError('fixture event sink failure');
+                  },
+                ),
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+      expect(calls, hasLength(1));
+      expect(attempts, 1);
+      expect(find.text('음악 서비스를 열지 못했어요.'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'work detail opens while disk is pending and retries the retained click after failure',
+    (tester) async {
+      final store = _DelayedStore();
+      final controller = ClassicalDiscoveryController(
+        store: store,
+        notificationGateway: const DisabledClassicalDailyNotificationGateway(),
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      final work = controller.works.first;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ClassicalWorkDetailScreen(controller: controller, work: work),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final button = find.text('YouTube에서 검색').first;
+      await tester.ensureVisible(button);
+      final pending = Completer<void>();
+      store.pending = pending;
+      await tester.tap(button);
+      await tester.pumpAndSettle();
+      final launchedBeforeDisk = calls.length;
+      final clicksBeforeDisk = controller.state.events
+          .where((event) => event.eventType == 'external_platform_click')
+          .toList();
+      pending.completeError(StateError('fixture disk unavailable'));
+      await tester.pumpAndSettle();
+      expect(launchedBeforeDisk, 1);
+      expect(clicksBeforeDisk, hasLength(1));
+      expect(controller.persistenceMessage, contains('저장하지 못했습니다'));
+      store.pending = null;
+      await controller.retryPersistence();
+      expect(
+        store.state.events
+            .where((event) => event.eventType == 'external_platform_click')
+            .single
+            .id,
+        clicksBeforeDisk.single.id,
+      );
+      expect(controller.state.stateForWork(work.id).lastListenedAt, isNull);
+      expect(calls, hasLength(1));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'late failure after leaving screen cannot open another destination',
     (tester) async {
       final result = Completer<bool>();
@@ -218,4 +343,18 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+class _DelayedStore extends ClassicalDiscoveryStore {
+  UserDiscoveryState state = UserDiscoveryState.defaultState;
+  Completer<void>? pending;
+
+  @override
+  Future<UserDiscoveryState> loadState() async => state;
+
+  @override
+  Future<void> saveState(UserDiscoveryState next) async {
+    await pending?.future;
+    state = next;
+  }
 }
