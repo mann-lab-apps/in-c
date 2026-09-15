@@ -28,6 +28,51 @@ void main() {
 
   late Directory documentsDir;
 
+  for (final export in [false, true]) {
+    for (final throws in [false, true]) {
+      test(
+        'layer flags recover failed preferences export=$export throws=$throws',
+        () async {
+          final platform = _installFailingPreferences();
+          final store = SheetLibraryStore();
+          final original = _score(DateTime(2026, 9, 15));
+          await store.saveScores([original]);
+          final controller = SheetLibraryController(store: store);
+          await controller.load();
+          final before = Map<String, Object>.from(await platform.getAll());
+          platform.failureKey = 'flutter.clef_scores';
+          platform.throwOnFailure = throws;
+          await expectLater(
+            controller.updateAnnotationLayerState(
+              controller.scores.single,
+              isVisible: export ? null : false,
+              includeInExport: export ? false : null,
+            ),
+            throwsA(anything),
+          );
+          expect(await platform.getAll(), before);
+          expect(controller.scores.single.toJson(), original.toJson());
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.reload();
+          expect((await store.loadScores()).single.toJson(), original.toJson());
+          await controller.updateAnnotationLayerState(
+            controller.scores.single,
+            isVisible: export ? null : false,
+            includeInExport: export ? false : null,
+          );
+          final saved = (await store.loadScores()).single.annotationLayer;
+          expect(
+            export
+                ? saved.includeDefaultLayerInExport
+                : saved.isDefaultLayerVisible,
+            isFalse,
+          );
+          controller.dispose();
+        },
+      );
+    }
+  }
+
   setUp(() async {
     documentsDir = await Directory.systemTemp.createTemp('clef-store-test-');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

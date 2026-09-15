@@ -590,7 +590,7 @@ describe('MusicXML MVP', () => {
     const exported = serializeMusicXml(score)
     const roundTrip = parseMusicXml(exported)
 
-    expect(exported).toContain('system="yes"')
+    expect(exported).toContain('system="only-top"')
     expect(exported).toContain('<words font-weight="bold">Chorus</words>')
     expect(roundTrip.systemTexts).toEqual([
       {

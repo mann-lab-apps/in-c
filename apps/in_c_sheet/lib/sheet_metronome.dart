@@ -243,18 +243,17 @@ class SheetMetronomeBeat {
   bool get isBeatStart => subdivisionIndex == 0;
   bool get isAccent => beatIndex == 0 && isBeatStart;
 
-  SheetMetronomeBeat next() {
-    if (subdivisionIndex + 1 < pulsesPerBeat) {
-      return SheetMetronomeBeat(
-        beatIndex: beatIndex,
-        beatsPerBar: beatsPerBar,
-        subdivisionIndex: subdivisionIndex + 1,
-        pulsesPerBeat: pulsesPerBeat,
-      );
-    }
+  SheetMetronomeBeat next() => advance(1);
+
+  SheetMetronomeBeat advance(int pulses) {
+    if (pulses < 0) throw RangeError.value(pulses, 'pulses');
+    final position =
+        (beatIndex * pulsesPerBeat + subdivisionIndex + pulses) %
+        (beatsPerBar * pulsesPerBeat);
     return SheetMetronomeBeat(
-      beatIndex: (beatIndex + 1) % beatsPerBar,
+      beatIndex: position ~/ pulsesPerBeat,
       beatsPerBar: beatsPerBar,
+      subdivisionIndex: position % pulsesPerBeat,
       pulsesPerBeat: pulsesPerBeat,
     );
   }

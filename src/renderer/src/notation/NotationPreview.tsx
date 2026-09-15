@@ -35,6 +35,7 @@ import {
   type VoiceEvent
 } from '../../../score-core'
 import { createBeamGroups } from './beam-groups'
+import { projectGlobalAnnotationsForRendering } from './global-annotation-projection'
 import { resolveSpanViewport } from './span-viewport'
 import type { SpanReference } from '../editor/span-editing'
 import {
@@ -171,7 +172,7 @@ interface MeasureAnnotationMaps {
   dynamicsByMeasureId: Map<string, NonNullable<Score['dynamics']>[number]>
   expressionTextsByMeasureId: Map<string, NonNullable<Score['expressionTexts']>>
   harmoniesByMeasureId: Map<string, NonNullable<Score['harmonies']>>
-  rehearsalMarksByMeasureId: Map<string, NonNullable<Score['rehearsalMarks']>[number]>
+  rehearsalMarksByMeasureId: Map<string, NonNullable<Score['rehearsalMarks']>>
   staffTextsByMeasureId: Map<string, NonNullable<Score['staffTexts']>[number]>
   systemTextsByMeasureId: Map<string, NonNullable<Score['systemTexts']>>
   tempoEventsByMeasureId: Map<string, NonNullable<Score['tempoEvents']>>
@@ -195,6 +196,13 @@ interface RenderedStaffTarget {
 }
 
 interface RenderedStaffInteraction {
+  lyricScale: number
+  onSelectLyric: NotationPreviewProps['onSelectLyric']
+  inlineLyricEditor?: InlineLyricEditor
+  selectedMeasureId?: string
+  onSelectMeasure: NotationPreviewProps['onSelectMeasure']
+  onOpenMeasureContextMenu: NotationPreviewProps['onOpenMeasureContextMenu']
+  measureContextTargets: MeasureContextTarget[]
   selectedEventAddress?: VoiceAddress
   selectedEventId?: string
   selectedEventIdSet: Set<string>
@@ -850,66 +858,7 @@ export function NotationPreview({
           })
           firstEventX = Math.min(firstEventX ?? eventX, eventX)
 
-          if (svg && event?.type === 'note' && event.articulations?.length) {
-            drawArticulations(
-              svg,
-              eventX,
-              placement.y,
-              event.articulations
-            )
-          }
-
-          if (svg && event?.fermata) {
-            drawFermata(svg, eventX, placement.y)
-          }
-
-          if (svg && event?.breathMark) {
-            drawBreathMark(
-              svg,
-              eventX,
-              placement.y,
-              event.breathMark,
-              Boolean(event.fermata)
-            )
-          }
-
-          if (svg && event?.type === 'note' && event.tremolo) {
-            drawTremoloMark(
-              svg,
-              placement.y,
-              note,
-              event.tremolo.marks
-            )
-          }
-
-          if (svg && event?.type === 'note' && event.ornaments?.length) {
-            drawOrnaments(svg, eventX, placement.y, event.ornaments)
-          }
-
-          if (svg && event?.type === 'note' && event.graceNotes?.length) {
-            drawGraceNotes(svg, eventX, placement.y, event.graceNotes)
-          }
-
-          if (svg && event?.type === 'note' && event.lyrics?.length) {
-            drawLyrics(
-              svg,
-              eventId,
-              eventX,
-              placement.y,
-              event.lyrics,
-              lyricScale,
-              onSelectLyric
-            )
-          }
-
-          if (svg && eventId === inlineLyricEditor?.eventId) {
-            drawInlineLyricEditor(
-              svg,
-              eventX,
-              placement.y,
-              inlineLyricEditor
-            )
-          }
+          drawEventAttachments(svg, event, note, eventX, placement.y, { lyricScale, onSelectLyric, inlineLyricEditor })
         })
       })
 
@@ -949,6 +898,13 @@ export function NotationPreview({
           annotationMaps,
           annotationLanesByMeasureId,
           {
+            lyricScale,
+            onSelectLyric,
+            inlineLyricEditor,
+            selectedMeasureId,
+            onSelectMeasure,
+            onOpenMeasureContextMenu,
+            measureContextTargets,
             selectedEventAddress,
             selectedEventId,
             selectedEventIdSet,
@@ -1287,20 +1243,25 @@ function resolveEventStaffSystemBounds(
 }
 
 function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
+  score = projectGlobalAnnotationsForRendering(score)
   const annotationMaps: MeasureAnnotationMaps = {
     dynamicsByMeasureId: new Map(
       (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
     ),
     expressionTextsByMeasureId: new Map(),
     harmoniesByMeasureId: new Map(),
-    rehearsalMarksByMeasureId: new Map(
-      (score.rehearsalMarks ?? []).map((mark) => [mark.measureId, mark])
-    ),
+    rehearsalMarksByMeasureId: new Map(),
     staffTextsByMeasureId: new Map(
       (score.staffTexts ?? []).map((text) => [text.measureId, text])
     ),
     systemTextsByMeasureId: new Map(),
     tempoEventsByMeasureId: new Map()
+  }
+
+  for (const mark of score.rehearsalMarks ?? []) {
+    annotationMaps.rehearsalMarksByMeasureId.set(mark.measureId, [
+      ...(annotationMaps.rehearsalMarksByMeasureId.get(mark.measureId) ?? []), mark
+    ])
   }
 
   for (const harmony of score.harmonies ?? []) {
@@ -1409,13 +1370,13 @@ function drawMeasureAnnotations(
     resolveMeasureAnnotationLanes({
       lyricLineCount: countMeasureLyricLines(measure)
     })
-  const rehearsalMark = annotationMaps.rehearsalMarksByMeasureId.get(measure.id)
-
-  if (rehearsalMark) {
+  for (const [index, rehearsalMark] of (
+    annotationMaps.rehearsalMarksByMeasureId.get(measure.id) ?? []
+  ).entries()) {
     drawRehearsalMark(
       svg,
       placement.x + 14,
-      staffY + (lanes.rehearsalMarkYOffset ?? REHEARSAL_MARK_Y_OFFSET),
+      staffY + (lanes.rehearsalMarkYOffsets[index] ?? REHEARSAL_MARK_Y_OFFSET),
       rehearsalMark.text
     )
   }
@@ -1503,6 +1464,27 @@ function resolveTickX(
   )
 }
 
+function drawEventAttachments(
+  svg: SVGSVGElement | null,
+  event: VoiceEvent | undefined,
+  note: StaveNote,
+  x: number,
+  y: number,
+  interaction: Pick<RenderedStaffInteraction, 'lyricScale' | 'onSelectLyric' | 'inlineLyricEditor'>
+): void {
+  if (!svg || !event) return
+  if (event.fermata) drawFermata(svg, x, y)
+  if (event.breathMark) drawBreathMark(svg, x, y, event.breathMark, Boolean(event.fermata))
+  if (event.type === 'note') {
+    if (event.articulations?.length) drawArticulations(svg, x, y, event.articulations)
+    if (event.tremolo) drawTremoloMark(svg, y, note, event.tremolo.marks)
+    if (event.ornaments?.length) drawOrnaments(svg, x, y, event.ornaments)
+    if (event.graceNotes?.length) drawGraceNotes(svg, x, y, event.graceNotes)
+    if (event.lyrics?.length) drawLyrics(svg, event.id, x, y, event.lyrics, interaction.lyricScale, interaction.onSelectLyric)
+  }
+  if (event.id === interaction.inlineLyricEditor?.eventId) drawInlineLyricEditor(svg, x, y, interaction.inlineLyricEditor)
+}
+
 function drawPassiveStaffMeasure(
   context: ReturnType<Renderer['getContext']>,
   svg: SVGSVGElement | null,
@@ -1518,6 +1500,29 @@ function drawPassiveStaffMeasure(
 ): void {
   const y = placement.y + staffOffset
   const stave = new Stave(placement.x, y, placement.width)
+  if (svg) {
+    const bounds = resolveMeasureStaffTarget(measure.id, placement.x, placement.width, stave)
+    interaction.measureContextTargets.push(bounds)
+    const selectionTarget = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
+    selectionTarget.classList.add('notation-measure')
+    selectionTarget.classList.toggle('is-selected', measure.id === interaction.selectedMeasureId)
+    selectionTarget.setAttribute('data-measure-id', measure.id)
+    selectionTarget.setAttribute('data-system-index', String(placement.systemIndex))
+    selectionTarget.setAttribute('data-part-id', target.partId)
+    selectionTarget.setAttribute('data-staff-id', target.staffId)
+    selectionTarget.setAttribute('x', String(bounds.x1))
+    selectionTarget.setAttribute('y', String(bounds.y1))
+    selectionTarget.setAttribute('width', String(bounds.x2 - bounds.x1))
+    selectionTarget.setAttribute('height', String(bounds.y2 - bounds.y1))
+    selectionTarget.setAttribute('rx', '4')
+    selectionTarget.addEventListener('click', () => interaction.onSelectMeasure(measure.id))
+    selectionTarget.addEventListener('contextmenu', event => {
+      event.preventDefault()
+      event.stopPropagation()
+      interaction.onOpenMeasureContextMenu(measure.id, { x: event.clientX, y: event.clientY })
+    })
+    svg.append(selectionTarget)
+  }
   const showsClef =
     placement.isSystemStart ||
     !previousMeasure ||
@@ -1805,6 +1810,8 @@ function drawPassiveStaffMeasure(
       if (isPreviewEventId(event.id)) {
         return
       }
+
+      drawEventAttachments(svg, event, note, eventX, y, interaction)
 
       svgElement.setAttribute('role', 'button')
       svgElement.setAttribute('tabindex', '0')

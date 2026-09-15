@@ -1,9 +1,64 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/main.dart';
+import 'package:in_c_sheet/sheet_tone.dart';
 import 'package:in_c_sheet/sheet_tuner.dart';
 
 void main() {
+  for (final volume in [0, 35, 100]) {
+    testWidgets('drone volume is named and visible at $volume percent', (
+      tester,
+    ) async {
+      const channel = MethodChannel('clef/tone_player');
+      final calls = <MethodCall>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (
+        call,
+      ) async {
+        calls.add(call);
+        return null;
+      });
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          channel,
+          null,
+        ),
+      );
+      await tester.pumpWidget(
+        buildTunerSheetForTest(
+          toneSettings: SheetToneSettings(volumePercent: volume),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('세부 설정'));
+      await tester.tap(find.text('세부 설정'));
+      await tester.pumpAndSettle();
+      expect(find.text('드론 음량'), findsOneWidget);
+      expect(find.text('$volume%'), findsOneWidget);
+      await tester.ensureVisible(find.text('드론 재생'));
+      await tester.tap(find.text('드론 재생'));
+      await tester.pump();
+      expect((calls.last.arguments as Map)['volume'], volume / 100);
+      await tester.tap(find.text('드론 정지'));
+      await tester.pump();
+      final slider = find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) => widget is Semantics && widget.properties.label == '드론 음량',
+        ),
+        matching: find.byType(Slider),
+      );
+      tester.widget<Slider>(slider).onChanged!(50);
+      await tester.pump();
+      expect(find.text('50%'), findsOneWidget);
+      await tester.tap(find.text('드론 재생'));
+      await tester.pump();
+      expect((calls.last.arguments as Map)['volume'], 0.5);
+      await tester.pumpWidget(const SizedBox());
+      expect(calls.last.method, 'stop');
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets(
     'tuner sheet is chromatic-only and keeps instrument presets out',
     (tester) async {

@@ -40,7 +40,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+21';
+const String _clefAppVersion = '1.0.0+22';
 const bool _launchInCDiscoveryHome =
     bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
@@ -1379,12 +1379,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 children: [
                   Text(
                     '전역 보기/입력 기본값',
-                    style: Theme.of(context).textTheme.titleLarge
+                    style: Theme.of(context).textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.w900),
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: _globalViewerDisplayModeValue(settings),
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '보기 모드'),
                     items: const [
                       DropdownMenuItem<String>(
@@ -1413,6 +1414,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     initialValue: settings.pageScale,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '페이지 맞춤'),
                     items: _SheetViewerPageScale.values
                         .map(
@@ -1446,6 +1448,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   ),
                   DropdownButtonFormField<String>(
                     initialValue: settings.pedalMapping,
+                    isExpanded: true,
                     decoration: const InputDecoration(labelText: '페달 매핑'),
                     items: _SheetPedalMapping.values
                         .map(
@@ -1471,6 +1474,7 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                           initialValue:
                               settings.customPedalMapping[inputId] ??
                               SheetViewerInputAction.none.value,
+                          isExpanded: true,
                           decoration: InputDecoration(
                             labelText: _viewerInputLabel(inputId),
                           ),
@@ -1586,6 +1590,43 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
+  void _openSetlists() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetSetlistsScreen(controller: controller),
+      ),
+    );
+  }
+
+  Future<void> _selectBackupAction(_LibraryBackupAction action) async {
+    if (controller.isImporting) return;
+    switch (action) {
+      case _LibraryBackupAction.exportMetadata:
+        await _exportBackup();
+      case _LibraryBackupAction.importMetadata:
+        await _importBackup();
+      case _LibraryBackupAction.restoreAutomaticMetadata:
+        await _restoreAutomaticBackup();
+      case _LibraryBackupAction.exportFull:
+        await _exportFullBackup();
+      case _LibraryBackupAction.importFull:
+        await _importFullBackup();
+    }
+  }
+
+  Future<void> _selectLibraryTool(Object action) async {
+    switch (action) {
+      case _LibraryToolsAction.setlists:
+        _openSetlists();
+      case _LibraryToolsAction.viewerDefaults:
+        await _showGlobalViewerDefaults();
+      case _LibraryToolsAction.testerInfo:
+        await _showTesterInfo();
+      case _LibraryBackupAction():
+        await _selectBackupAction(action);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final scores = controller.filteredScores;
@@ -1607,6 +1648,50 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
               )
             : null,
         actions: [
+          if (!_isBulkSelecting)
+            PopupMenuButton<Object>(
+              tooltip: '라이브러리 메뉴',
+              onSelected: _selectLibraryTool,
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.setlists,
+                  child: ListTile(
+                    leading: Icon(Icons.queue_music),
+                    title: Text('세트리스트'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.viewerDefaults,
+                  child: ListTile(
+                    leading: Icon(Icons.settings_applications_outlined),
+                    title: Text('보기/입력 기본값'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.testerInfo,
+                  child: ListTile(
+                    leading: Icon(Icons.info_outline),
+                    title: Text('테스트 정보'),
+                  ),
+                ),
+                const PopupMenuDivider(),
+                ..._libraryBackupMenuItems(enabled: !controller.isImporting),
+              ],
+              child: const SizedBox(
+                height: 48,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.menu),
+                      SizedBox(width: 6),
+                      Text('메뉴'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: _isBulkSelecting ? '선택 취소' : '여러 악보 선택',
             onPressed: _toggleBulkSelectionMode,
@@ -1703,82 +1788,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
           if (!_isBulkSelecting) ...[
             IconButton(
               tooltip: '세트리스트',
-              onPressed: () {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(
-                    builder: (context) =>
-                        SheetSetlistsScreen(controller: controller),
-                  ),
-                );
-              },
+              onPressed: _openSetlists,
               icon: const Icon(Icons.queue_music),
-            ),
-            IconButton(
-              tooltip: '테스트 정보',
-              onPressed: _showTesterInfo,
-              icon: const Icon(Icons.info_outline),
-            ),
-            IconButton(
-              tooltip: '전역 보기/입력 기본값',
-              onPressed: _showGlobalViewerDefaults,
-              icon: const Icon(Icons.settings_applications_outlined),
             ),
             PopupMenuButton<_LibraryBackupAction>(
               tooltip: '백업/복원',
               enabled: !controller.isImporting,
               icon: const Icon(Icons.inventory_2_outlined),
-              onSelected: (action) {
-                switch (action) {
-                  case _LibraryBackupAction.exportMetadata:
-                    _exportBackup();
-                  case _LibraryBackupAction.importMetadata:
-                    _importBackup();
-                  case _LibraryBackupAction.restoreAutomaticMetadata:
-                    _restoreAutomaticBackup();
-                  case _LibraryBackupAction.exportFull:
-                    _exportFullBackup();
-                  case _LibraryBackupAction.importFull:
-                    _importFullBackup();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.exportMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.ios_share),
-                    title: Text('정보 백업'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.importMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.restore),
-                    title: Text('정보 복원'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.restoreAutomaticMetadata,
-                  child: ListTile(
-                    leading: Icon(Icons.history),
-                    title: Text('자동 정보 복원'),
-                  ),
-                ),
-                PopupMenuDivider(),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.exportFull,
-                  child: ListTile(
-                    leading: Icon(Icons.archive_outlined),
-                    title: Text('PDF 포함 전체 백업'),
-                  ),
-                ),
-                PopupMenuItem<_LibraryBackupAction>(
-                  value: _LibraryBackupAction.importFull,
-                  child: ListTile(
-                    leading: Icon(Icons.unarchive_outlined),
-                    title: Text('전체 백업 복원'),
-                  ),
-                ),
-              ],
+              onSelected: _selectBackupAction,
+              itemBuilder: (context) => _libraryBackupMenuItems(),
             ),
             IconButton(
               tooltip: '악보 추가',
@@ -2052,6 +2070,59 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
 }
 
 enum _LibrarySelectionAction { collection, edit, remove }
+
+enum _LibraryToolsAction { setlists, viewerDefaults, testerInfo }
+
+List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
+  bool enabled = true,
+}) => [
+  PopupMenuItem(
+    value: _LibraryBackupAction.exportMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.ios_share),
+      title: const Text('정보 백업'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.importMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.restore),
+      title: const Text('정보 복원'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.restoreAutomaticMetadata,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.history),
+      title: const Text('자동 정보 복원'),
+    ),
+  ),
+  const PopupMenuDivider(),
+  PopupMenuItem(
+    value: _LibraryBackupAction.exportFull,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.archive_outlined),
+      title: const Text('PDF 포함 전체 백업'),
+    ),
+  ),
+  PopupMenuItem(
+    value: _LibraryBackupAction.importFull,
+    enabled: enabled,
+    child: ListTile(
+      enabled: enabled,
+      leading: const Icon(Icons.unarchive_outlined),
+      title: const Text('전체 백업 복원'),
+    ),
+  ),
+];
 
 enum _LibraryBackupAction {
   exportMetadata,
@@ -7052,6 +7123,16 @@ enum _ViewerMenuAction {
 
 enum _ViewerMiniTool { metronome, tuner }
 
+PopupMenuEntry<_ViewerMenuAction> _viewerToolSection(String title) =>
+    PopupMenuItem<_ViewerMenuAction>(
+      enabled: false,
+      height: 36,
+      child: Semantics(
+        header: true,
+        child: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+    );
+
 List<PopupMenuEntry<_ViewerMenuAction>> _viewerCompactLibraryMenuItems() =>
     const [
       PopupMenuItem<_ViewerMenuAction>(
@@ -7327,6 +7408,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
   bool _isSavingFavoriteAnnotationPreset = false;
+  Object? _annotationLayerSaveRequest;
   int _annotationColor = 0xff111111;
   double _annotationWidth = 3.5;
   int? _draftAnnotationPageNumber;
@@ -11043,26 +11125,30 @@ setlist=$setlistLabel
 
   Future<void> _toggleAnnotationLayerVisibility() async {
     final nextValue = !score.annotationLayer.isDefaultLayerVisible;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      isVisible: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        score,
+        isVisible: nextValue,
+      );
+      return true;
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기 layer를 표시합니다.' : '필기 layer를 숨깁니다.');
   }
 
   Future<void> _toggleAnnotationLayerExport() async {
     final nextValue = !score.annotationLayer.includeDefaultLayerInExport;
-    await widget.controller.updateAnnotationLayerState(
-      score,
-      includeInExport: nextValue,
-    );
-    if (!mounted) {
-      return;
-    }
+    final request = _annotationLayerSaveRequest = Object();
+    final saved = await _saveAnnotationChange(() async {
+      await widget.controller.updateAnnotationLayerState(
+        score,
+        includeInExport: nextValue,
+      );
+      return true;
+    }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
+    if (saved != true) return;
     setState(() {});
     _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
   }
@@ -11377,11 +11463,24 @@ setlist=$setlistLabel
     );
   }
 
-  Future<bool?> _saveAnnotationChange(Future<bool> Function() save) async {
+  Future<bool?> _saveAnnotationChange(
+    Future<bool> Function() save, {
+    bool Function()? isCurrent,
+  }) async {
+    final libraryId = widget.controller.activeLibraryProfile.id;
+    final route = ModalRoute.of(context);
+    bool canShowResult() =>
+        mounted &&
+        widget.controller.activeLibraryProfile.id == libraryId &&
+        (route == null || route.isCurrent) &&
+        (isCurrent?.call() ?? true);
     try {
-      return await save();
+      final saved = await save();
+      return canShowResult() ? saved : null;
     } catch (_) {
-      _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      if (canShowResult()) {
+        _showSnackBar('필기 변경사항을 저장하지 못했습니다. 저장 상태를 확인해주세요.');
+      }
       return null;
     }
   }
@@ -12241,7 +12340,7 @@ setlist=$setlistLabel
           );
     final viewerWidth = MediaQuery.sizeOf(context).width;
     final isCompactViewer = viewerWidth < 720;
-    final usesScrollableViewerToolbar = viewerWidth < 1100;
+    final usesScrollableViewerToolbar = viewerWidth < 1600;
     final viewerMargin = switch (_pageScale) {
       _SheetViewerPageScale.fitPage => 14.0,
       _SheetViewerPageScale.fitWidth => 6.0,
@@ -12261,7 +12360,367 @@ setlist=$setlistLabel
           ),
       ],
     );
+    final toolsMenu = PopupMenuButton<_ViewerMenuAction>(
+      tooltip: '악보 도구',
+      child: const SizedBox(
+        height: 48,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 12),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune, size: 20),
+              SizedBox(width: 6),
+              Text('도구'),
+            ],
+          ),
+        ),
+      ),
+      onSelected: (action) => _handleViewerMenuAction(action),
+      itemBuilder: (context) => [
+        _viewerToolSection('연습과 공연'),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.metronome,
+          child: ListTile(leading: Icon(Icons.speed), title: Text('메트로놈')),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.tuner,
+          child: ListTile(leading: Icon(Icons.tune), title: Text('튜너')),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.performanceSettings,
+          child: ListTile(
+            leading: Icon(Icons.lock_outline),
+            title: Text('공연 설정'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.togglePerformanceMode,
+          child: ListTile(
+            leading: Icon(Icons.fullscreen),
+            title: Text('공연 모드'),
+          ),
+        ),
+        _viewerToolSection('악보 정보'),
+        ..._viewerCompactLibraryMenuItems(),
+        _viewerToolSection('보기와 넘김'),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.displayMode,
+          child: ListTile(
+            leading: Icon(_displayMode.icon),
+            title: Text('보기 모드: ${_displayMode.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.displayEffect,
+          child: ListTile(
+            leading: Icon(_displayEffect.icon),
+            title: Text('표시 효과: ${_displayEffect.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pageScale,
+          child: ListTile(
+            leading: Icon(_pageScale.icon),
+            title: Text('페이지 맞춤: ${_pageScale.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pedalMapping,
+          child: ListTile(
+            leading: Icon(_pedalMapping.icon),
+            title: Text('페달 매핑: ${_pedalMapping.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.renderProfile,
+          child: ListTile(
+            leading: Icon(_renderProfile.icon),
+            title: Text('렌더링: ${_renderProfile.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pageTurnAnimation,
+          child: ListTile(
+            leading: Icon(_pageTurnAnimation.icon),
+            title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.showTapZoneHint,
+          child: ListTile(
+            leading: Icon(Icons.touch_app_outlined),
+            title: Text('터치 영역 다시 보기'),
+            subtitle: Text('왼쪽 이전 · 가운데 메뉴 · 오른쪽 다음'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: _displayMode != _SheetViewerDisplayMode.twoPage,
+          value: _ViewerMenuAction.toggleHalfPageTurn,
+          child: ListTile(
+            leading: Icon(
+              _useHalfPageTurn ? Icons.splitscreen : Icons.splitscreen_outlined,
+            ),
+            title: Text(_useHalfPageTurn ? '반 페이지 넘김 끄기' : '반 페이지 넘김'),
+            subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
+                ? const Text('2페이지 보기에서는 비활성화')
+                : null,
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.autoScroll,
+          child: ListTile(
+            leading: Icon(
+              _isAutoScrolling
+                  ? _isAutoScrollPaused
+                        ? Icons.play_circle_outline
+                        : Icons.pause_circle_outline
+                  : Icons.play_circle_outline,
+            ),
+            title: const Text('자동 스크롤'),
+            subtitle: _isAutoScrolling
+                ? Text(_isAutoScrollPaused ? '일시정지' : '실행 중')
+                : null,
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pagePicker,
+          child: ListTile(
+            leading: Icon(Icons.grid_view_outlined),
+            title: Text('페이지 탐색'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pdfTextSearch,
+          child: ListTile(
+            leading: Icon(Icons.find_in_page_outlined),
+            title: Text('PDF 본문 검색'),
+          ),
+        ),
+        _viewerToolSection('필기'),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.toggleAnnotationMode,
+          child: ListTile(
+            leading: Icon(_isAnnotationMode ? Icons.draw : Icons.draw_outlined),
+            title: Text(_isAnnotationMode ? '필기 모드 끄기' : '필기 모드'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: _isAnnotationMode,
+          value: _ViewerMenuAction.undoAnnotation,
+          child: const ListTile(
+            leading: Icon(Icons.undo),
+            title: Text('마지막 필기 취소'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: _isAnnotationMode,
+          value: _ViewerMenuAction.redoAnnotation,
+          child: const ListTile(
+            leading: Icon(Icons.redo),
+            title: Text('마지막 필기 다시 적용'),
+          ),
+        ),
+        _viewerToolSection('페이지 정리'),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.hideCurrentPage,
+          child: ListTile(
+            leading: Icon(Icons.visibility_off_outlined),
+            title: Text('현재 페이지 숨김'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.manageHiddenPages,
+          child: ListTile(
+            leading: const Icon(Icons.visibility_outlined),
+            title: const Text('숨김 페이지 관리'),
+            subtitle: Text(
+              currentScore.pageSettings.hiddenPages.isEmpty
+                  ? '숨긴 페이지 없음'
+                  : '${currentScore.pageSettings.hiddenPages.length}쪽 숨김',
+            ),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.managePageOrder,
+          child: ListTile(
+            leading: const Icon(Icons.reorder),
+            title: const Text('페이지 순서/복제'),
+            subtitle: currentScore.pageSettings.hasCustomPageOrder
+                ? Text('${_pageOrderDisplayCount(currentScore)}개 표시 항목')
+                : const Text('원본 PDF 보존'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.manageJumpPoints,
+          child: ListTile(
+            leading: const Icon(Icons.add_link),
+            title: const Text('점프 포인트'),
+            subtitle: currentScore.pageSettings.hasJumpPoints
+                ? Text('${currentScore.pageSettings.jumpPoints.length}개 점프')
+                : const Text('D.S./Coda 이동 설정'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.manageRehearsalMarks,
+          child: ListTile(
+            leading: Icon(Icons.flag_outlined),
+            title: Text('리허설 마크'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.importPdfOutline,
+          child: ListTile(
+            leading: const Icon(Icons.account_tree_outlined),
+            title: const Text('PDF 목차 가져오기'),
+            subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.importBookmarkCsv,
+          child: ListTile(
+            leading: Icon(Icons.table_rows_outlined),
+            title: Text('CSV 북마크 가져오기'),
+            subtitle: Text('page,label 또는 label,page'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: currentScore.bookmarks.isNotEmpty,
+          value: _ViewerMenuAction.createScoresFromBookmarks,
+          child: ListTile(
+            leading: const Icon(Icons.splitscreen_outlined),
+            title: const Text('북마크를 곡으로 나누기'),
+            subtitle: currentScore.bookmarks.isEmpty
+                ? const Text('북마크를 먼저 추가하세요')
+                : Text('${currentScore.bookmarks.length}개 구간 후보'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.rotateCurrentPage,
+          child: ListTile(
+            leading: Icon(Icons.rotate_90_degrees_cw_outlined),
+            title: Text('회전값 저장'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: currentScore.pageSettings.pageRotations.isNotEmpty,
+          value: _ViewerMenuAction.applyPageRotations,
+          child: ListTile(
+            leading: const Icon(Icons.rotate_right_outlined),
+            title: const Text('회전 적용 사본 생성'),
+            subtitle: currentScore.pageSettings.pageRotations.isEmpty
+                ? const Text('저장된 회전 없음')
+                : Text('${currentScore.pageSettings.pageRotations.length}쪽 회전'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.cropPages,
+          child: ListTile(
+            leading: const Icon(Icons.crop_outlined),
+            title: const Text('자르기 맞춤'),
+            subtitle: currentScore.pageSettings.crop.hasCrop
+                ? const Text('앱 설정 적용 중')
+                : const Text('원본 PDF 보존'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled:
+              currentScore.pageSettings.crop.hasCrop ||
+              currentScore.pageSettings.pageCrops.isNotEmpty,
+          value: _ViewerMenuAction.applyPageCrop,
+          child: ListTile(
+            leading: const Icon(Icons.crop_free_outlined),
+            title: const Text('자르기 적용 사본 생성'),
+            subtitle:
+                currentScore.pageSettings.crop.hasCrop ||
+                    currentScore.pageSettings.pageCrops.isNotEmpty
+                ? Text(
+                    '전체 자르기'
+                    '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
+                    '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
+                  )
+                : const Text('저장된 자르기 없음'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.cropPresets,
+          child: ListTile(
+            leading: Icon(Icons.crop_free_outlined),
+            title: Text('자르기 프리셋'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.pageTemplates,
+          child: ListTile(
+            leading: Icon(Icons.dashboard_customize_outlined),
+            title: Text('페이지 템플릿'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled:
+              currentScore.pageSettings.hiddenPages.isNotEmpty ||
+              currentScore.pageSettings.pageOrder.isNotEmpty ||
+              currentScore.pageSettings.blankPageInsertions.isNotEmpty,
+          value: _ViewerMenuAction.applyPageArrangement,
+          child: ListTile(
+            leading: const Icon(Icons.library_books_outlined),
+            title: const Text('페이지 정리 적용 사본 생성'),
+            subtitle: Text(
+              _pageTemplateSummary(
+                currentScore,
+                _pdfController.isReady ? _pdfController.pageCount : 0,
+              ),
+            ),
+          ),
+        ),
+        _viewerToolSection('공유와 입력'),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: !_isSanitizingPdfLinks,
+          value: _ViewerMenuAction.sanitizePdfLinks,
+          child: ListTile(
+            leading: const Icon(Icons.link_off_outlined),
+            title: const Text('PDF 링크 제거 사본 만들기'),
+            subtitle: currentScore.pdfLinkSanitization.hasSanitizedCopy
+                ? Text(
+                    '이전 제거 ${currentScore.pdfLinkSanitization.removedUrlLinkCount}개',
+                  )
+                : const Text('외부 URL 링크만 제거'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.sharePdf,
+          child: ListTile(
+            leading: Icon(Icons.ios_share),
+            title: Text('PDF 공유'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.shareAnnotatedPdf,
+          child: ListTile(
+            leading: Icon(Icons.draw_outlined),
+            title: Text('필기 포함 PDF 공유'),
+          ),
+        ),
+        const PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.inputDiagnostic,
+          child: ListTile(
+            leading: Icon(Icons.keyboard_alt_outlined),
+            title: Text('입력 진단'),
+            subtitle: Text('페달/키보드 입력 기록'),
+          ),
+        ),
+        const PopupMenuDivider(),
+        PopupMenuItem<_ViewerMenuAction>(
+          value: _ViewerMenuAction.togglePdfLinks,
+          child: ListTile(
+            leading: Icon(_showPdfLinks ? Icons.link : Icons.link_off),
+            title: Text(_showPdfLinks ? 'PDF 링크 영역 숨기기' : 'PDF 링크 영역 표시'),
+          ),
+        ),
+      ],
+    );
     final appBarActions = <Widget>[
+      if (!_isPerformanceMode) toolsMenu,
       if (!_isPerformanceMode || !isCompactViewer)
         IconButton(
           tooltip: isBookmarked ? '현재 페이지 북마크 해제' : '현재 페이지 북마크',
@@ -12586,7 +13045,10 @@ setlist=$setlistLabel
                 leading: const Icon(Icons.library_books_outlined),
                 title: const Text('페이지 정리 적용 사본 생성'),
                 subtitle: Text(
-                  _pageTemplateSummary(currentScore, _pdfController.pageCount),
+                  _pageTemplateSummary(
+                    currentScore,
+                    _pdfController.isReady ? _pdfController.pageCount : 0,
+                  ),
                 ),
               ),
             ),
@@ -12650,350 +13112,6 @@ setlist=$setlistLabel
           onPressed: () =>
               _handleViewerMenuAction(_ViewerMenuAction.togglePerformanceMode),
           icon: const Icon(Icons.fullscreen_exit),
-        ),
-      if (isCompactViewer && !_isPerformanceMode)
-        PopupMenuButton<_ViewerMenuAction>(
-          tooltip: '보기 옵션',
-          onSelected: (action) => _handleViewerMenuAction(action),
-          itemBuilder: (context) => [
-            ..._viewerCompactLibraryMenuItems(),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.displayMode,
-              child: ListTile(
-                leading: Icon(_displayMode.icon),
-                title: Text('보기 모드: ${_displayMode.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.displayEffect,
-              child: ListTile(
-                leading: Icon(_displayEffect.icon),
-                title: Text('표시 효과: ${_displayEffect.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageScale,
-              child: ListTile(
-                leading: Icon(_pageScale.icon),
-                title: Text('페이지 맞춤: ${_pageScale.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pedalMapping,
-              child: ListTile(
-                leading: Icon(_pedalMapping.icon),
-                title: Text('페달 매핑: ${_pedalMapping.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.renderProfile,
-              child: ListTile(
-                leading: Icon(_renderProfile.icon),
-                title: Text('렌더링: ${_renderProfile.label}'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageTurnAnimation,
-              child: ListTile(
-                leading: Icon(_pageTurnAnimation.icon),
-                title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.showTapZoneHint,
-              child: ListTile(
-                leading: Icon(Icons.touch_app_outlined),
-                title: Text('터치 영역 다시 보기'),
-                subtitle: Text('왼쪽 이전 · 가운데 메뉴 · 오른쪽 다음'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.performanceSettings,
-              child: const ListTile(
-                leading: Icon(Icons.lock_outline),
-                title: Text('공연 설정'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _displayMode != _SheetViewerDisplayMode.twoPage,
-              value: _ViewerMenuAction.toggleHalfPageTurn,
-              child: ListTile(
-                leading: Icon(
-                  _useHalfPageTurn
-                      ? Icons.splitscreen
-                      : Icons.splitscreen_outlined,
-                ),
-                title: Text(_useHalfPageTurn ? '반 페이지 넘김 끄기' : '반 페이지 넘김'),
-                subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
-                    ? const Text('2페이지 보기에서는 비활성화')
-                    : null,
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.autoScroll,
-              child: ListTile(
-                leading: Icon(
-                  _isAutoScrolling
-                      ? _isAutoScrollPaused
-                            ? Icons.play_circle_outline
-                            : Icons.pause_circle_outline
-                      : Icons.play_circle_outline,
-                ),
-                title: const Text('자동 스크롤'),
-                subtitle: _isAutoScrolling
-                    ? Text(_isAutoScrollPaused ? '일시정지' : '실행 중')
-                    : null,
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.metronome,
-              child: ListTile(leading: Icon(Icons.speed), title: Text('메트로놈')),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.tuner,
-              child: ListTile(leading: Icon(Icons.tune), title: Text('튜너')),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pagePicker,
-              child: ListTile(
-                leading: Icon(Icons.grid_view_outlined),
-                title: Text('페이지 탐색'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pdfTextSearch,
-              child: ListTile(
-                leading: Icon(Icons.find_in_page_outlined),
-                title: Text('PDF 본문 검색'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.toggleAnnotationMode,
-              child: ListTile(
-                leading: Icon(
-                  _isAnnotationMode ? Icons.draw : Icons.draw_outlined,
-                ),
-                title: Text(_isAnnotationMode ? '필기 모드 끄기' : '필기 모드'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _isAnnotationMode,
-              value: _ViewerMenuAction.undoAnnotation,
-              child: const ListTile(
-                leading: Icon(Icons.undo),
-                title: Text('마지막 필기 취소'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: _isAnnotationMode,
-              value: _ViewerMenuAction.redoAnnotation,
-              child: const ListTile(
-                leading: Icon(Icons.redo),
-                title: Text('마지막 필기 다시 적용'),
-              ),
-            ),
-            const PopupMenuDivider(),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.hideCurrentPage,
-              child: ListTile(
-                leading: Icon(Icons.visibility_off_outlined),
-                title: Text('현재 페이지 숨김'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageHiddenPages,
-              child: ListTile(
-                leading: const Icon(Icons.visibility_outlined),
-                title: const Text('숨김 페이지 관리'),
-                subtitle: Text(
-                  currentScore.pageSettings.hiddenPages.isEmpty
-                      ? '숨긴 페이지 없음'
-                      : '${currentScore.pageSettings.hiddenPages.length}쪽 숨김',
-                ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.managePageOrder,
-              child: ListTile(
-                leading: const Icon(Icons.reorder),
-                title: const Text('페이지 순서/복제'),
-                subtitle: currentScore.pageSettings.hasCustomPageOrder
-                    ? Text('${_pageOrderDisplayCount(currentScore)}개 표시 항목')
-                    : const Text('원본 PDF 보존'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageJumpPoints,
-              child: ListTile(
-                leading: const Icon(Icons.add_link),
-                title: const Text('점프 포인트'),
-                subtitle: currentScore.pageSettings.hasJumpPoints
-                    ? Text('${currentScore.pageSettings.jumpPoints.length}개 점프')
-                    : const Text('D.S./Coda 이동 설정'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.manageRehearsalMarks,
-              child: ListTile(
-                leading: Icon(Icons.flag_outlined),
-                title: Text('리허설 마크'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.importPdfOutline,
-              child: ListTile(
-                leading: const Icon(Icons.account_tree_outlined),
-                title: const Text('PDF 목차 가져오기'),
-                subtitle: Text('${_pdfOutlineBookmarks.length}개 후보'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.importBookmarkCsv,
-              child: ListTile(
-                leading: Icon(Icons.table_rows_outlined),
-                title: Text('CSV 북마크 가져오기'),
-                subtitle: Text('page,label 또는 label,page'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: currentScore.bookmarks.isNotEmpty,
-              value: _ViewerMenuAction.createScoresFromBookmarks,
-              child: ListTile(
-                leading: const Icon(Icons.splitscreen_outlined),
-                title: const Text('북마크를 곡으로 나누기'),
-                subtitle: currentScore.bookmarks.isEmpty
-                    ? const Text('북마크를 먼저 추가하세요')
-                    : Text('${currentScore.bookmarks.length}개 구간 후보'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.rotateCurrentPage,
-              child: ListTile(
-                leading: Icon(Icons.rotate_90_degrees_cw_outlined),
-                title: Text('회전값 저장'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: currentScore.pageSettings.pageRotations.isNotEmpty,
-              value: _ViewerMenuAction.applyPageRotations,
-              child: ListTile(
-                leading: const Icon(Icons.rotate_right_outlined),
-                title: const Text('회전 적용 사본 생성'),
-                subtitle: currentScore.pageSettings.pageRotations.isEmpty
-                    ? const Text('저장된 회전 없음')
-                    : Text(
-                        '${currentScore.pageSettings.pageRotations.length}쪽 회전',
-                      ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.cropPages,
-              child: ListTile(
-                leading: const Icon(Icons.crop_outlined),
-                title: const Text('자르기 맞춤'),
-                subtitle: currentScore.pageSettings.crop.hasCrop
-                    ? const Text('앱 설정 적용 중')
-                    : const Text('원본 PDF 보존'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled:
-                  currentScore.pageSettings.crop.hasCrop ||
-                  currentScore.pageSettings.pageCrops.isNotEmpty,
-              value: _ViewerMenuAction.applyPageCrop,
-              child: ListTile(
-                leading: const Icon(Icons.crop_free_outlined),
-                title: const Text('자르기 적용 사본 생성'),
-                subtitle:
-                    currentScore.pageSettings.crop.hasCrop ||
-                        currentScore.pageSettings.pageCrops.isNotEmpty
-                    ? Text(
-                        '전체 자르기'
-                        '${currentScore.pageSettings.crop.hasCrop ? " 적용" : " 없음"} · '
-                        '페이지별 ${currentScore.pageSettings.pageCrops.length}쪽',
-                      )
-                    : const Text('저장된 자르기 없음'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.cropPresets,
-              child: ListTile(
-                leading: Icon(Icons.crop_free_outlined),
-                title: Text('자르기 프리셋'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.pageTemplates,
-              child: ListTile(
-                leading: Icon(Icons.dashboard_customize_outlined),
-                title: Text('페이지 템플릿'),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled:
-                  currentScore.pageSettings.hiddenPages.isNotEmpty ||
-                  currentScore.pageSettings.pageOrder.isNotEmpty ||
-                  currentScore.pageSettings.blankPageInsertions.isNotEmpty,
-              value: _ViewerMenuAction.applyPageArrangement,
-              child: ListTile(
-                leading: const Icon(Icons.library_books_outlined),
-                title: const Text('페이지 정리 적용 사본 생성'),
-                subtitle: Text(
-                  _pageTemplateSummary(currentScore, _pdfController.pageCount),
-                ),
-              ),
-            ),
-            PopupMenuItem<_ViewerMenuAction>(
-              enabled: !_isSanitizingPdfLinks,
-              value: _ViewerMenuAction.sanitizePdfLinks,
-              child: ListTile(
-                leading: const Icon(Icons.link_off_outlined),
-                title: const Text('PDF 링크 제거 사본 만들기'),
-                subtitle: currentScore.pdfLinkSanitization.hasSanitizedCopy
-                    ? Text(
-                        '이전 제거 ${currentScore.pdfLinkSanitization.removedUrlLinkCount}개',
-                      )
-                    : const Text('외부 URL 링크만 제거'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.sharePdf,
-              child: ListTile(
-                leading: Icon(Icons.ios_share),
-                title: Text('PDF 공유'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.shareAnnotatedPdf,
-              child: ListTile(
-                leading: Icon(Icons.draw_outlined),
-                title: Text('필기 포함 PDF 공유'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.inputDiagnostic,
-              child: ListTile(
-                leading: Icon(Icons.keyboard_alt_outlined),
-                title: Text('입력 진단'),
-                subtitle: Text('페달/키보드 입력 기록'),
-              ),
-            ),
-            const PopupMenuDivider(),
-            PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.togglePdfLinks,
-              child: ListTile(
-                leading: Icon(_showPdfLinks ? Icons.link : Icons.link_off),
-                title: Text(_showPdfLinks ? 'PDF 링크 영역 숨기기' : 'PDF 링크 영역 표시'),
-              ),
-            ),
-            const PopupMenuItem<_ViewerMenuAction>(
-              value: _ViewerMenuAction.togglePerformanceMode,
-              child: ListTile(
-                leading: Icon(Icons.fullscreen),
-                title: Text('공연 모드'),
-              ),
-            ),
-          ],
         ),
       Center(
         child: Padding(
@@ -13672,6 +13790,7 @@ class _ViewerMiniToolPanel extends StatefulWidget {
 class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   late final SheetMetronomeSoundPlayer _soundPlayer;
   Timer? _timer;
+  int _lastTimerTick = 0;
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
@@ -13724,25 +13843,28 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
       _countInPulsesLeft = _countInTotalPulses;
     });
     _playTick();
-    _consumeCountInPulse();
     _restartTimer();
   }
 
   void _restartTimer() {
     _timer?.cancel();
+    _lastTimerTick = 0;
     _timer = Timer.periodic(
       widget.metronomeSettings.pulseDuration,
-      (_) => _advanceBeat(),
+      _advanceBeat,
     );
   }
 
-  void _advanceBeat() {
-    if (!mounted) {
+  void _advanceBeat(Timer timer) {
+    if (!mounted || !_isRunning || !identical(timer, _timer)) {
       return;
     }
+    final elapsedPulses = timer.tick - _lastTimerTick;
+    if (elapsedPulses <= 0) return;
+    _lastTimerTick = timer.tick;
     setState(() {
-      _beat = _beat.next();
-      _consumeCountInPulse();
+      _beat = _beat.advance(elapsedPulses);
+      _consumeCountInPulses(elapsedPulses);
     });
     _playTick();
   }
@@ -13754,14 +13876,11 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
 
-  void _consumeCountInPulse() {
+  void _consumeCountInPulses(int pulses) {
     if (_countInPulsesLeft <= 0) {
       return;
     }
-    _countInPulsesLeft--;
-    if (_countInPulsesLeft == 0) {
-      _beat = _initialBeat(widget.metronomeSettings);
-    }
+    _countInPulsesLeft = math.max(0, _countInPulsesLeft - pulses);
   }
 
   void _playTick() {
@@ -14020,6 +14139,13 @@ class _AppBarActionSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (child is PopupMenuButton<_ViewerMenuAction> &&
+        (child as PopupMenuButton<_ViewerMenuAction>).child != null) {
+      return SizedBox(
+        height: kToolbarHeight,
+        child: Center(widthFactor: 1, child: child),
+      );
+    }
     final minWidth = child is Center ? 72.0 : kToolbarHeight;
     return SizedBox(
       width: minWidth,
@@ -14544,29 +14670,31 @@ class _ViewerProblemBanner extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 42, color: theme.colorScheme.error),
-                const SizedBox(height: 12),
-                Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, size: 42, color: theme.colorScheme.error),
+                  const SizedBox(height: 12),
+                  Text(
+                    title,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(message, textAlign: TextAlign.center),
-                const SizedBox(height: 12),
-                SelectableText(
-                  detail,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 8),
+                  Text(message, textAlign: TextAlign.center),
+                  const SizedBox(height: 12),
+                  SelectableText(
+                    detail,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -16868,6 +16996,9 @@ class _TunerSheet extends StatefulWidget {
 Widget buildTunerSheetForTest({
   SheetTunerSettings settings = SheetTunerSettings.defaultSettings,
   SheetToneSettings toneSettings = SheetToneSettings.defaultSettings,
+  Future<void> Function(SheetTunerSettings)? onSettingsChanged,
+  Future<void> Function(SheetToneSettings)? onToneSettingsChanged,
+  VoidCallback? onShowMiniPanel,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -16875,8 +17006,9 @@ Widget buildTunerSheetForTest({
         initialSettings: settings,
         initialToneSettings: toneSettings,
         autoStartInput: false,
-        onSettingsChanged: (_) async {},
-        onToneSettingsChanged: (_) async {},
+        onSettingsChanged: onSettingsChanged ?? (_) async {},
+        onToneSettingsChanged: onToneSettingsChanged ?? (_) async {},
+        onShowMiniPanel: onShowMiniPanel,
       ),
     ),
   );
@@ -16920,6 +17052,9 @@ class _TunerSheetState extends State<_TunerSheet> {
   final List<SheetTunerReading> _recentCalibrationReadings =
       <SheetTunerReading>[];
   bool _isTonePlaying = false;
+  int _tonePlaybackRequest = 0;
+  int _toneSettingsRequest = 0;
+  int _tunerSettingsRequest = 0;
   SheetTonePlaybackResult? _lastTonePlaybackResult;
 
   @override
@@ -16948,7 +17083,7 @@ class _TunerSheetState extends State<_TunerSheet> {
         return;
       }
       if (_needsChromaticOnlyNormalization(widget.initialSettings)) {
-        unawaited(widget.onSettingsChanged(_settings));
+        unawaited(_persistTunerSettings(_settings));
       }
       if (widget.autoStartInput) {
         unawaited(_inputService.start(settings: _settings));
@@ -16982,6 +17117,8 @@ class _TunerSheetState extends State<_TunerSheet> {
 
   @override
   void dispose() {
+    _isTonePlaying = false;
+    _tonePlaybackRequest++;
     unawaited(_tonePlayer.stop());
     _inputSubscription?.cancel();
     unawaited(_inputService.dispose());
@@ -17005,10 +17142,10 @@ class _TunerSheetState extends State<_TunerSheet> {
       }
     });
     _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
     if (_isTonePlaying) {
-      await _playTone();
+      unawaited(_playTone());
     }
+    await _persistTunerSettings(nextSettings);
   }
 
   Future<void> _setNotationPreference(
@@ -17020,37 +17157,67 @@ class _TunerSheetState extends State<_TunerSheet> {
     setState(() {
       _settings = nextSettings;
     });
-    await widget.onSettingsChanged(nextSettings);
+    await _persistTunerSettings(nextSettings);
   }
 
   Future<void> _setToneSettings(SheetToneSettings settings) async {
+    final request = ++_toneSettingsRequest;
     setState(() {
       _toneSettings = settings;
     });
-    await widget.onToneSettingsChanged(settings);
     if (_isTonePlaying) {
-      await _playTone();
+      unawaited(_playTone());
     }
+    try {
+      await widget.onToneSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _toneSettingsRequest) return;
+      _showSettingsSaveError();
+    }
+  }
+
+  Future<void> _persistTunerSettings(SheetTunerSettings settings) async {
+    final request = ++_tunerSettingsRequest;
+    try {
+      await widget.onSettingsChanged(settings);
+    } catch (_) {
+      if (!mounted || request != _tunerSettingsRequest) return;
+      _showSettingsSaveError();
+    }
+  }
+
+  void _showSettingsSaveError() {
+    if (ModalRoute.of(context)?.isCurrent != true) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('설정을 저장하지 못했습니다. 다시 변경해주세요.')));
   }
 
   Future<void> _toggleTone() async {
     if (_isTonePlaying) {
-      await _tonePlayer.stop();
+      _tonePlaybackRequest++;
       setState(() {
         _isTonePlaying = false;
         _lastTonePlaybackResult = null;
       });
+      await _tonePlayer.stop();
       return;
     }
+    setState(() {
+      _isTonePlaying = true;
+      _lastTonePlaybackResult = null;
+    });
     await _playTone();
   }
 
   Future<void> _playTone() async {
+    if (!mounted || !_isTonePlaying) return;
+    final request = ++_tonePlaybackRequest;
     final result = await _tonePlayer.play(
       settings: _toneSettings,
       referencePitchA4: _settings.referencePitchA4,
     );
-    if (!mounted) {
+    if (!mounted || request != _tonePlaybackRequest) {
       return;
     }
     setState(() {
@@ -17074,7 +17241,7 @@ class _TunerSheetState extends State<_TunerSheet> {
       }
     });
     _inputService.updateSettings(nextSettings);
-    await widget.onSettingsChanged(nextSettings);
+    await _persistTunerSettings(nextSettings);
   }
 
   void _setDemoFrequency(double value) {
@@ -17257,11 +17424,7 @@ class _TunerSheetState extends State<_TunerSheet> {
                     ),
                   ),
                   if (widget.onShowMiniPanel != null)
-                    IconButton(
-                      onPressed: widget.onShowMiniPanel,
-                      icon: const Icon(Icons.picture_in_picture_alt_outlined),
-                      tooltip: '악보 위에 작게 띄우기',
-                    ),
+                    _miniToolEntryButton(widget.onShowMiniPanel!),
                   IconButton.filledTonal(
                     onPressed: _toggleListening,
                     icon: Icon(_state.isListening ? Icons.stop : Icons.mic),
@@ -17498,15 +17661,27 @@ class _TunerSheetState extends State<_TunerSheet> {
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
-                  Slider(
-                    value: _toneSettings.volumePercent.toDouble(),
-                    min: 0,
-                    max: 100,
-                    divisions: 20,
-                    label: '${_toneSettings.volumePercent}%',
-                    onChanged: (value) => unawaited(
-                      _setToneSettings(
-                        _toneSettings.copyWith(volumePercent: value.round()),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('드론 음량'),
+                    trailing: Text('${_toneSettings.volumePercent}%'),
+                    subtitle: Semantics(
+                      label: '드론 음량',
+                      child: Slider(
+                        value: _toneSettings.volumePercent.toDouble(),
+                        min: 0,
+                        max: 100,
+                        divisions: 20,
+                        label: '${_toneSettings.volumePercent}%',
+                        semanticFormatterCallback: (value) =>
+                            '${value.round()}%',
+                        onChanged: (value) => unawaited(
+                          _setToneSettings(
+                            _toneSettings.copyWith(
+                              volumePercent: value.round(),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -18002,6 +18177,18 @@ class _TunerPitchHistoryPainter extends CustomPainter {
   }
 }
 
+Widget _miniToolEntryButton(VoidCallback onPressed) {
+  return Tooltip(
+    message: '악보 위에 작게 띄우기',
+    child: TextButton.icon(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(minimumSize: const Size(48, 48)),
+      icon: const Icon(Icons.picture_in_picture_alt_outlined),
+      label: const Text('작은 창'),
+    ),
+  );
+}
+
 class _MetronomeSheet extends StatefulWidget {
   const _MetronomeSheet({
     required this.initialSettings,
@@ -18024,13 +18211,14 @@ class _MetronomeSheet extends StatefulWidget {
 Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
   Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
+  VoidCallback? onShowMiniPanel,
 }) {
   return MaterialApp(
     home: Scaffold(
       body: _MetronomeSheet(
         initialSettings: settings,
         onSettingsChanged: onSettingsChanged ?? (_) async {},
-        onShowMiniPanel: () {},
+        onShowMiniPanel: onShowMiniPanel ?? () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
       ),
     ),
@@ -18125,6 +18313,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   late SheetMetronomeSettings _settings;
   late SheetMetronomeBeat _beat;
   Timer? _timer;
+  int _lastTimerTick = 0;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
   DateTime? _lastBeatAt;
@@ -18311,23 +18500,25 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       _lastBeatAt = DateTime.now();
     });
     _playTick();
-    _consumeCountInPulse();
     _restartTimer();
   }
 
   void _restartTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(_settings.pulseDuration, (_) => _advanceBeat());
+    _lastTimerTick = 0;
+    _timer = Timer.periodic(_settings.pulseDuration, _advanceBeat);
   }
 
-  void _advanceBeat() {
-    if (!mounted) {
+  void _advanceBeat(Timer timer) {
+    if (!mounted || !_isRunning || !identical(timer, _timer)) {
       return;
     }
-
+    final elapsedPulses = timer.tick - _lastTimerTick;
+    if (elapsedPulses <= 0) return;
+    _lastTimerTick = timer.tick;
     setState(() {
-      _beat = _beat.next();
-      _consumeCountInPulse();
+      _beat = _beat.advance(elapsedPulses);
+      _consumeCountInPulses(elapsedPulses);
       _lastBeatAt = DateTime.now();
     });
     _playTick();
@@ -18340,18 +18531,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   bool get _isCountingIn => _isRunning && _countInPulsesLeft > 0;
 
-  void _consumeCountInPulse() {
+  void _consumeCountInPulses(int pulses) {
     if (_countInPulsesLeft <= 0) {
       return;
     }
-    _countInPulsesLeft--;
-    if (_countInPulsesLeft == 0) {
-      _beat = SheetMetronomeBeat(
-        beatIndex: 0,
-        beatsPerBar: _settings.meter.beatsPerBar,
-        pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
-      );
-    }
+    _countInPulsesLeft = math.max(0, _countInPulsesLeft - pulses);
   }
 
   void _playTick() {
@@ -18413,11 +18597,6 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                     ),
                   ),
                 ),
-                IconButton(
-                  onPressed: widget.onShowMiniPanel,
-                  icon: const Icon(Icons.picture_in_picture_alt_outlined),
-                  tooltip: '악보 위에 작게 띄우기',
-                ),
                 FilledButton.icon(
                   onPressed: _toggleRunning,
                   icon: Icon(_isRunning ? Icons.stop : Icons.play_arrow),
@@ -18425,15 +18604,23 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 ),
               ],
             ),
-            if (widget.settingsScopeLabel != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                widget.settingsScopeLabel!,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                if (widget.settingsScopeLabel != null)
+                  Expanded(
+                    child: Text(
+                      widget.settingsScopeLabel!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  )
+                else
+                  const Spacer(),
+                _miniToolEntryButton(widget.onShowMiniPanel),
+              ],
+            ),
             const SizedBox(height: 22),
             Center(
               child: Text(

@@ -1,5 +1,39 @@
 # Release Readiness Checklist
 
+## 2026-09-15 Integration Request
+
+User approval now covers commit/push/merge of this development checkpoint, not
+release or RC signoff. Latest source: 707 tests pass / 1 skip, build/typecheck,
+XML/MIDI fixtures, queue/site/diff checks pass. Global rehearsal editing passed six
+actual Electron cases before the final expression-tick parser fix. See evidence-log
+for exact artifact/bundle scope and integration reruns. Expanded Required tasks and
+manual gates remain open, particularly silent lower-staff system-text XML loss.
+
+## 2026-09-15 Resumed Development
+
+Latest scoped rehearsal checkpoint: 699 tests pass / 1 skip, build/typecheck,
+28 actual Electron clipboard cases, E2E, unchanged 960/1400px notation snapshots,
+XML/MIDI fixtures and fresh macOS arm64 unsigned package smoke pass. Concrete
+rehearsal anchors survive lower-staff clipboard/native/XML workflows. Additional
+staff measures are selectable; neighboring marks survive text editing. Parent
+system-text scope, object selection and other expanded Required features remain
+incomplete. This is a development checkpoint, not public RC signoff.
+Subsequent rehearsal object chooser: 700 tests pass / 1 skip, 28 actual Electron
+cases, build and fresh macOS package smoke pass. Latest exact-bundle E2E is recorded
+in evidence-log. Parent Required tasks remain open.
+
+Base `9d44696` includes PR #757. Explicit span destination selectors add chord-event
+and same-staff cross-voice targeting with no automatic fallback on invalid input.
+Latest standard-attribute checkpoint: 686 tests pass / 1 skip, build and fresh
+macOS arm64 unpacked package smoke pass; 22 Electron renderer/disk cases pass.
+Subsequent all-part global-text import, bounded tempo-label fix and cross-voice
+source clipboard: 696 tests pass / 1 skip, build, 26 actual Electron cases and
+unchanged notation snapshots at 960/1400px pass. Fresh E2E and macOS arm64 unsigned
+package smoke also pass for the latest source; see current evidence checkpoint.
+MuseScore CLI PDF conversion and visual inspection cover one system-text fixture,
+not manual GUI signoff; duplicate tempo rendering was found. Native dialogs, human engraving and other
+expanded Required features remain open. No integration/release approval this run.
+
 ## 2026-09-14 Clipboard Follow-Up
 
 Final in-flight independent object addition: 666 tests pass / 1 skip; ten actual

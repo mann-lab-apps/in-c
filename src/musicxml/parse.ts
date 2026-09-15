@@ -210,9 +210,9 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   const tempo = readTempoMarking(primaryMeasureNodes)
   const tempoEvents = readTempoEvents(primaryMeasureNodes)
   const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes)
-  const rehearsalMarks = readRehearsalMarks(primaryMeasureNodes)
-  const systemTexts = readSystemTexts(primaryMeasureNodes)
+  const systemTexts = readGlobalTextMarkings(parts, readSystemTexts)
   const markings = readPartStaffMarkings(parts, parsedParts)
+  const rehearsalMarks = [...(readGlobalTextMarkings(parts, readRehearsalMarks) ?? []), ...(markings.rehearsalMarks ?? [])]
 
   const score = convertOctaveShiftPitches(createScore({
     id: 'musicxml-score',
@@ -222,7 +222,7 @@ function parseMusicXmlDocument(document: XmlNode): Score {
     tempoEvents,
     rhythmFeel,
     ...markings,
-    rehearsalMarks,
+    rehearsalMarks: rehearsalMarks.length ? rehearsalMarks : undefined,
     systemTexts,
     layout: readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? []),
     parts: parsedParts
@@ -234,6 +234,28 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   }
 
   return score
+}
+
+function readGlobalTextMarkings(
+  parts: XmlNode[],
+  read: (nodes: XmlNode[]) => Score['systemTexts']
+): Score['systemTexts'] {
+  const result: NonNullable<Score['systemTexts']> = []
+  const counts = new Map<string, number>()
+  parts.forEach((part, partIndex) => {
+    const localCounts = new Map<string, number>()
+    const marks = read(toArray(part.measure as XmlNode | XmlNode[] | undefined)) ?? []
+    for (const mark of marks) {
+      const key = JSON.stringify([mark.measureId, mark.text])
+      const occurrence = (localCounts.get(key) ?? 0) + 1
+      localCounts.set(key, occurrence)
+      // Parts often repeat global directions. Preserve repeated marks within a part.
+      if (occurrence <= (counts.get(key) ?? 0)) continue
+      result.push({ ...mark, id: partIndex === 0 ? mark.id : `part-${partIndex + 1}:${mark.id}` })
+    }
+    for (const [key, count] of localCounts) counts.set(key, Math.max(counts.get(key) ?? 0, count))
+  })
+  return result.length ? result : undefined
 }
 
 function readLayoutBreaks(nodes: XmlNode[], measures: Measure[]): Score['layout'] {
@@ -253,7 +275,7 @@ function readLayoutBreaks(nodes: XmlNode[], measures: Measure[]): Score['layout'
 }
 
 function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
-  type Markings = Pick<Score, 'harmonies' | 'staffTexts' | 'expressionTexts' | 'dynamics' | 'hairpins' | 'slurs' | 'octaveShifts'>
+  type Markings = Pick<Score, 'harmonies' | 'staffTexts' | 'expressionTexts' | 'dynamics' | 'hairpins' | 'slurs' | 'octaveShifts' | 'rehearsalMarks'>
   const result: Markings = {}
   parts.forEach((part, partIndex) => {
     const nodes = toArray(partNodes[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
@@ -272,6 +294,7 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
       const local: Markings = {
         harmonies: anchor(readHarmonies(staffNodes)),
         staffTexts: anchor(readStaffTexts(staffNodes)),
+        rehearsalMarks: anchor(readRehearsalMarks(staffNodes, true)),
         expressionTexts: anchor(readExpressionTexts(staffNodes)),
         dynamics: anchor(readDynamics(staffNodes)),
         hairpins: identify(readHairpins(staffNodes, staff.measures)),
@@ -282,6 +305,7 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
         if (local[key]?.length) result[key] = [...(result[key] ?? []), ...local[key]!] as Markings[K]
       }
       append('harmonies'); append('staffTexts'); append('expressionTexts'); append('dynamics')
+      append('rehearsalMarks')
       append('hairpins'); append('slurs'); append('octaveShifts')
     })
   })
@@ -568,13 +592,22 @@ function readTempoEvents(measureNodes: XmlNode[]): Score['tempoEvents'] {
   return events.length > 0 ? events : undefined
 }
 
+function isTempoTextPair(types: XmlNode[]): boolean {
+  return types.length === 2 && types.some(type => 'metronome' in type) &&
+    types.some(type => 'words' in type) && types.every(type =>
+      Object.keys(type).every(key => key.startsWith('@_') || key === 'words' || key === 'metronome'))
+}
+
 function readTempoFromDirection(direction: XmlNode): Score['tempo'] {
   const directionTypes = readDirectionTypes(direction)
   const metronomeDirectionType = directionTypes.find((directionType) =>
     Boolean(readOptionalNode(directionType, 'metronome'))
   )
   const words = metronomeDirectionType
-    ? readOptionalString(metronomeDirectionType, 'words')
+    ? readOptionalString(metronomeDirectionType, 'words') ??
+      (isTempoTextPair(directionTypes)
+        ? directionTypes.map(type => readOptionalString(type, 'words')).find(text => text !== undefined)
+        : undefined)
     : undefined
   const metronome = metronomeDirectionType
     ? readOptionalNode(metronomeDirectionType, 'metronome')
@@ -690,7 +723,7 @@ function tempoLabel(bpm: number, beatUnit: string | undefined): string {
   return `${beatUnit === 'eighth' ? '♪' : '♩'} = ${bpm}`
 }
 
-function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
+function readRehearsalMarks(measureNodes: XmlNode[], local = false): Score['rehearsalMarks'] {
   const marks = measureNodes.flatMap((measureNode, measureIndex) => {
     const measureNumber =
       readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
@@ -700,6 +733,7 @@ function readRehearsalMarks(measureNodes: XmlNode[]): Score['rehearsalMarks'] {
     )
 
     return directions.flatMap((direction, directionIndex) => {
+      if ((readOptionalString(direction, '@_system') === 'none') !== local) return []
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
@@ -736,7 +770,7 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
-        if (readOptionalNode(directionType, 'metronome')) {
+        if (readOptionalNode(directionType, 'metronome') || isTempoTextPair(directionTypes)) {
           return []
         }
 
@@ -831,7 +865,7 @@ function readExpressionTexts(
           {
             id: `${measureId}-expression-text-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
             measureId,
-            tick: readOptionalInteger(direction, 'offset') ?? 0,
+            tick: directionTicks.get(direction) ?? 0,
             text: words
           }
         ]
@@ -843,7 +877,8 @@ function readExpressionTexts(
 }
 
 function isSystemTextDirection(direction: XmlNode): boolean {
-  return readOptionalString(direction, '@_system') === 'yes'
+  const relation = readOptionalString(direction, '@_system')
+  return relation === 'only-top' || relation === 'also-top' || relation === 'yes'
 }
 
 function isExpressionTextDirection(
@@ -2077,7 +2112,7 @@ function collectUnsupportedDirectionWarnings(
     'words'
   ])
 
-  return readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
+  const warnings = readDirectionTypes(direction).flatMap((directionType, typeIndex) =>
     Object.keys(directionType)
       .filter((key) => !key.startsWith('@_') && !supportedDirectionTypes.has(key))
       .map((key) => ({
@@ -2089,6 +2124,13 @@ function collectUnsupportedDirectionWarnings(
         }].${key}`
       }))
   )
+  if (readOptionalString(direction, '@_system') === 'also-top') warnings.push({
+    code: 'unsupported-direction',
+    message: 'also-top staff/system display relation is not preserved.',
+    measureNumber,
+    path: `measure[${measureNumber}].direction[${directionIndex}].@system`
+  })
+  return warnings
 }
 
 function dedupeWarnings(

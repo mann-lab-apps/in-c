@@ -2172,7 +2172,8 @@ describe('App component shell', () => {
     expect(saved.score.parts.map(part => part.id)).toEqual(action === 'reorder' ? ['P2', 'P1'] : ['P2'])
     expect(saved.partLayouts[0]).toMatchObject(project.partLayouts[0]!)
     expect(saved.score.tempoEvents).toEqual(project.score.tempoEvents?.map(mark => ({ ...mark, measureId: action === 'remove' && reference === 'concrete' ? 'measure-2' : mark.measureId })))
-    expect(saved.score.rehearsalMarks).toEqual(project.score.rehearsalMarks?.map(mark => ({ ...mark, measureId: action === 'remove' && reference === 'concrete' ? 'measure-1' : mark.measureId })))
+    expect(saved.score.rehearsalMarks).toEqual(action === 'remove' && reference === 'concrete'
+      ? undefined : project.score.rehearsalMarks)
     const { createPlaybackTimeline } = await import('./playback/timeline')
     expect(createPlaybackTimeline(saved.score).totalBeats).toBe(createPlaybackTimeline(project.score).totalBeats)
     fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
@@ -5439,6 +5440,161 @@ describe('App component shell', () => {
     ).toBe(true)
   })
 
+  it.each([
+    ['staffTexts', '보표 글자'], ['systemTexts', '시스템 텍스트'],
+    ['rehearsalMarks', '연습표'], ['expressionTexts', '표현 텍스트']
+  ] as const)('text marking filter %s copies only the chosen type through native history', async (type, label) => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const [first, second] = project.score.parts[0].staves[0].measures
+    const texts = [{ id: 'text-source', measureId: first.id, text: 'dolce source' },
+      { id: 'text-target', measureId: second.id, text: 'old target' }]
+    if (type === 'expressionTexts') project.score.expressionTexts = texts.map(text => ({ ...text, tick: 0 }))
+    else project.score[type] = texts
+    const original = JSON.parse(JSON.stringify(project.score))
+    const contents = encodeNativeProject(project)
+    window.inC.project = {
+      listBackups: vi.fn().mockResolvedValue([]), readBackup: vi.fn().mockResolvedValue(null),
+      open: vi.fn().mockResolvedValue({ filePath: '/qa/text.chromatics', fileName: 'text.chromatics', contents }),
+      save: vi.fn().mockResolvedValue({ filePath: '/qa/text.chromatics', fileName: 'text.chromatics' })
+    }
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('text.chromatics을 열었습니다.')
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    expect(within(screen.getByLabelText('표기 필터')).getByRole('option', { name: label })).toBeInTheDocument()
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: type } })
+    fireEvent.keyDown(window, { code: 'KeyC', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyV', ctrlKey: true })
+    const save = async () => {
+      vi.mocked(window.inC.project!.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project!.save).toHaveBeenCalled())
+      return decodeNativeProject(vi.mocked(window.inC.project!.save).mock.calls[0][0].contents)
+    }
+    const pasted = await save()
+    expect(pasted.score.parts).toEqual(original.parts)
+    expect(pasted.score[type]).toHaveLength(2)
+    expect(pasted.score[type]![1]).toMatchObject({ measureId: second.id, text: 'dolce source' })
+    expect(pasted.score[type]![1].id).not.toBe('text-source')
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).score).toEqual(original)
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).score).toEqual(pasted.score)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: `선택 마디 ${label} 지우기` }))
+    expect((await save()).score[type]).toHaveLength(1)
+    vi.mocked(window.inC.project!.open).mockResolvedValue({ filePath: '/qa/text-reopened.chromatics', fileName: 'text-reopened.chromatics', contents: encodeNativeProject(pasted) })
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('text-reopened.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(pasted.score)
+  })
+
+  it.each([false, true])('global rehearsal editing preserves scope and local objects (part=%s)', async partView => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    if (partView) project.view = { mode: 'part', partId: 'P2' }
+    const measureId = project.score.parts[partView ? 1 : 0].staves[0].measures[0].id
+    project.score.rehearsalMarks = [
+      { id: 'global-mark', measureId: 'measure-1', text: 'A' },
+      { id: 'local-mark', measureId, text: 'A' }
+    ]
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/qa/global.chromatics', fileName: 'global.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/qa/global.chromatics', fileName: 'global.chromatics' }
+    })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('global.chromatics을 열었습니다.')
+    fireEvent.click(screen.getAllByRole('button', { name: '1마디 선택' })[0])
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const chooser = screen.getByLabelText('연습표 객체 선택')
+    expect(within(chooser).getByRole('option', { name: /전체.*A/ })).toHaveValue('global-mark')
+    expect(within(chooser).getByRole('option', { name: /보표.*A/ })).toHaveValue('local-mark')
+    fireEvent.change(chooser, { target: { value: 'global-mark' } })
+    const field = screen.getByRole('textbox', { name: '연습표' })
+    fireEvent.change(field, { target: { value: 'B' } }); fireEvent.blur(field)
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      return decodeNativeProject(contents)
+    }
+    const edited = (await save()).score
+    expect(edited.rehearsalMarks).toEqual([
+      { ...project.score.rehearsalMarks[0], text: 'B' }, project.score.rehearsalMarks[1]
+    ])
+    const { serializeMusicXml } = await import('../../musicxml')
+    expect(parseMusicXml(serializeMusicXml(edited)).rehearsalMarks?.map(({ measureId, text }) => ({ measureId, text })))
+      .toEqual(edited.rehearsalMarks?.map(({ measureId, text }) => ({ measureId, text })))
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).score).toEqual(project.score)
+    fireEvent.change(screen.getByRole('textbox', { name: '연습표' }), { target: { value: '' } })
+    fireEvent.blur(screen.getByRole('textbox', { name: '연습표' }))
+    expect((await save()).score.rehearsalMarks).toEqual([project.score.rehearsalMarks[1]])
+  })
+
+  it.each([false, true])('editing a selected rehearsal mark preserves other objects (second=%s)', async (selectSecond) => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const measureId = project.score.parts[0].staves[0].measures[0].id
+    project.score.rehearsalMarks = [{ id: 'edit-one', measureId, text: 'A' }, { id: 'keep-two', measureId, text: 'B' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/marks.chromatics', fileName: 'marks.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/marks.chromatics', fileName: 'marks.chromatics' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('marks.chromatics을 열었습니다.')
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    if (selectSecond) fireEvent.change(screen.getByLabelText('연습표 객체 선택'), { target: { value: 'keep-two' } })
+    const field = screen.getByRole('textbox', { name: '연습표' })
+    fireEvent.change(field, { target: { value: 'C' } }); fireEvent.blur(field)
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents)
+    expect(saved.score.rehearsalMarks).toEqual([{ id: 'edit-one', measureId, text: selectSecond ? 'A' : 'C' }, { id: 'keep-two', measureId, text: selectSecond ? 'C' : 'B' }])
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1][0].contents).score).toEqual(project.score)
+    if (selectSecond) {
+      const edit = screen.getByRole('textbox', { name: '연습표' })
+      fireEvent.change(edit, { target: { value: '' } }); fireEvent.blur(edit)
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(3))
+      expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[2][0].contents).score.rehearsalMarks)
+        .toEqual([project.score.rehearsalMarks![0]])
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      fireEvent.change(screen.getByLabelText('연습표 객체 선택'), { target: { value: '' } })
+      const draft = screen.getByRole('textbox', { name: '연습표' })
+      fireEvent.change(draft, { target: { value: 'D' } }); fireEvent.blur(draft)
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(4))
+      const added = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[3][0].contents)
+      expect(added.score.rehearsalMarks?.map(mark => mark.text)).toEqual(['A', 'B', 'D'])
+      expect(added.score.parts).toEqual(project.score.parts)
+      fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+      expect(screen.getByLabelText('연습표 객체 선택')).toHaveValue('')
+      const afterUndo = screen.getByRole('textbox', { name: '연습표' })
+      fireEvent.change(afterUndo, { target: { value: 'E' } }); fireEvent.blur(afterUndo)
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(5))
+      expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[4][0].contents).score.rehearsalMarks?.map(mark => mark.text)).toEqual(['A', 'B', 'E'])
+      vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/other.chromatics', fileName: 'other.chromatics', contents: encodeNativeProject(project) })
+      fireEvent.click(screen.getByRole('button', { name: '파일' }))
+      fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+      await screen.findByText('other.chromatics을 열었습니다.')
+      fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+      fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+      expect(screen.getByLabelText('연습표 객체 선택')).toHaveValue('edit-one')
+      expect(screen.getByRole('textbox', { name: '연습표' })).toHaveValue('A')
+    }
+  })
+
   it('palette.range-notation keeps visible commands in notation mode as selection changes', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
@@ -5515,6 +5671,57 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '파일' }))
     fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
     await screen.findByText('object.chromatics을 열었습니다.')
+    expect((await save()).score).toEqual(saved.score)
+  })
+
+  it.each(['slur', 'hairpin'] as const)('explicit %s paste targets a chord across voices through native history', async kind => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(restHairpinMusicXml))
+    const voices = project.score.parts[0].staves[0].measures[0].voices
+    const upper = voices[0].events[0], events = voices[1].events, end = events[2]
+    if (upper.type !== 'note' || end.type !== 'note') throw new Error('Expected notes')
+    upper.pitches = [upper.pitch, { step: 'B', octave: 5 }]
+    end.pitches = [end.pitch, { step: 'F', octave: 4 }]
+    const source = { id: 'copy-source', startEventId: events[1].id, endEventId: end.id }
+    project.score.slurs = kind === 'slur' ? [source] : []
+    project.score.hairpins = kind === 'hairpin' ? [{ ...source, type: 'crescendo' }] : []
+    let contents = encodeNativeProject(project)
+    vi.mocked(window.inC.project.open).mockImplementation(async () => ({ filePath: '/scores/targets.chromatics', fileName: 'targets.chromatics', contents }))
+    vi.mocked(window.inC.project.save).mockImplementation(async request => {
+      contents = request.contents
+      return { filePath: '/scores/targets.chromatics', fileName: 'targets.chromatics' }
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('Rest Hairpin Input')
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    fireEvent.change(screen.getByLabelText('표기 객체 선택'), { target: { value: `${kind}:${source.id}` } })
+    fireEvent.keyDown(window, { code: 'KeyC', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: `${upper.id} 선택` }))
+    expect(screen.getByLabelText('붙여넣기 시작점')).toHaveValue(upper.id)
+    expect(screen.getByRole('button', { name: '표기 대상에 붙여넣기' })).toBeDisabled()
+    fireEvent.change(screen.getByLabelText('붙여넣기 끝점'), { target: { value: end.id } })
+    expect(screen.getByRole('button', { name: '표기 대상에 붙여넣기' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: '표기 대상에 붙여넣기' }))
+    const save = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      await screen.findByText('targets.chromatics에 저장했습니다.')
+      return decodeNativeProject(contents)
+    }
+    const saved = await save(), spans = kind === 'slur' ? saved.score.slurs! : saved.score.hairpins!
+    expect(saved.score.parts).toEqual(project.score.parts)
+    expect(spans).toHaveLength(2)
+    expect(spans[1]).toMatchObject({ startEventId: upper.id, endEventId: end.id })
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    expect((await save()).score).toEqual(JSON.parse(JSON.stringify(project.score)))
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    expect((await save()).score).toEqual(saved.score)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('targets.chromatics을 열었습니다.')
     expect((await save()).score).toEqual(saved.score)
   })
 

@@ -7,6 +7,24 @@ import { resolvePrintLayoutPlan, estimatePrintedPageCount } from './print-layout
 import { createNewScore } from '../editor/new-score'
 
 describe('stacked staff annotation clearance', () => {
+  it('reserves global generic annotations on the visible primary staff of rich scores and parts', () => {
+    const score = parseMusicXml(readFileSync('src/musicxml/fixtures/expanded-v1-part-export.musicxml', 'utf8'))
+    score.rehearsalMarks = [{ id: 'global-rehearsal', measureId: 'measure-1', text: 'Global' }]
+    score.systemTexts = [{ id: 'global-system', measureId: 'measure-1', text: 'Tutti' }]
+    score.tempoEvents = [{ id: 'global-tempo', measureId: 'measure-1', tick: 0, bpm: 112 }]
+    const before = structuredClone(score)
+    for (const visible of [score, { ...score, parts: [score.parts[1]] }]) {
+      const geometry = resolveScoreVerticalLayout(visible, 1, 154, 72)
+      const top = geometry.lanesByMeasureId.get(visible.parts[0].staves[0].measures[0].id)!
+      expect(top.rehearsalMarkYOffsets).toHaveLength(1)
+      expect(top.systemTextYOffsets).toHaveLength(1)
+      expect(top.tempoYOffsets).toHaveLength(1)
+      const lower = geometry.lanesByMeasureId.get(score.parts[1].staves[1].measures[0].id)!
+      expect(lower.rehearsalMarkYOffsets).toHaveLength(0)
+    }
+    expect(score).toEqual(before)
+  })
+
   it('reserves manual hairpin depth and next-system fermata clearance', () => {
     const score = parseMusicXml(readFileSync('src/musicxml/fixtures/release-qa.musicxml', 'utf8'))
     const staff = score.parts[0]!.staves[0]!

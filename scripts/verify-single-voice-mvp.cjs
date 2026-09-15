@@ -2753,6 +2753,7 @@ async function verifyGrandStaffPreview(window) {
         measureCount: document.querySelectorAll('.notation-measure').length,
         eventCount: document.querySelectorAll('.notation-event').length,
         passiveEventCount: passiveEvents.length,
+        lowerStaffMeasureCount: document.querySelectorAll('.notation-measure[data-part-id="part-1"][data-staff-id="staff-2"]').length,
         lowerStaffEventCount: passiveEvents.filter(
           (event) => event.partId === 'part-1' && event.staffId === 'staff-2'
         ).length,
@@ -2772,7 +2773,8 @@ async function verifyGrandStaffPreview(window) {
 
   if (
     result.title !== 'Grand Staff Smoke' ||
-    result.measureCount !== 3 ||
+    result.measureCount !== 6 ||
+    result.lowerStaffMeasureCount !== 3 ||
     result.eventCount !== 6 ||
     result.passiveEventCount !== 3 ||
     result.lowerStaffEventCount !== 3 ||

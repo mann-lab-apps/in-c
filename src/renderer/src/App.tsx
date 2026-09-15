@@ -10,8 +10,11 @@ import {
 import { createRoot } from 'react-dom/client'
 import { NativeBackupsDialog } from './NativeBackupsDialog'
 import { SpanProperties } from './SpanProperties'
+import { SpanPasteTargets } from './SpanPasteTargets'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
 import { buildSpanClipboard, buildSpanPaste, type SpanClipboard } from './editor/span-clipboard'
+import { buildTextMarkingClipboard, buildTextMarkingDeleteCommand, buildTextMarkingPasteCommand, isTextMarkingType,
+  type TextMarkingClipboard, type TextMarkingType } from './editor/text-marking-clipboard'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
 import {
@@ -285,6 +288,7 @@ interface MetadataEdit {
 }
 
 type MeasureMarkingClipboard =
+  | TextMarkingClipboard
   | {
       type: 'dynamics'
       dynamics: NonNullable<Score['dynamics']>
@@ -305,7 +309,7 @@ const toolbarCategories = [
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
-type SelectionObjectTypeFilter = 'none' | 'dynamics' | 'harmonies'
+type SelectionObjectTypeFilter = 'none' | 'dynamics' | 'harmonies' | TextMarkingType
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
 type PdfTargetPagesValue = string
@@ -511,7 +515,11 @@ const selectionFilterOptions = [
 const selectionObjectFilterOptions = [
   ['none', '없음'],
   ['dynamics', '셈여림'],
-  ['harmonies', '코드']
+  ['harmonies', '코드'],
+  ['staffTexts', '보표 글자'],
+  ['systemTexts', '시스템 텍스트'],
+  ['rehearsalMarks', '연습표'],
+  ['expressionTexts', '표현 텍스트']
 ] as const satisfies ReadonlyArray<
   readonly [SelectionObjectTypeFilter, string]
 >
@@ -561,6 +569,7 @@ export const App = () => {
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [activeLyricVerse, setActiveLyricVerse] = useState(1)
+  const [rehearsalTarget, setRehearsalTarget] = useState<{ measureId: string; id: string }>()
   const [selectionEventTypeFilter, setSelectionEventTypeFilter] =
     useState<SelectionEventTypeFilter>('notes-and-rests')
   const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
@@ -752,9 +761,16 @@ export const App = () => {
   )
   const measures = score.parts[0]?.staves[0]?.measures ?? []
   const measureCount = measures.length
-  const activeMeasureRehearsalMark = activeMeasureId
-    ? score.rehearsalMarks?.find((mark) => mark.measureId === activeMeasureId)
-    : undefined
+  const activeMeasureNumber = activeMeasureId ? locateMeasure(score, activeMeasureId)?.measure.number : undefined
+  const globalMeasureAlias = activeMeasureNumber === undefined ? undefined : `measure-${activeMeasureNumber}`
+  const activeGlobalMeasureAlias = globalMeasureAlias && !locateMeasure(score, globalMeasureAlias)
+    ? globalMeasureAlias : undefined
+  const activeMeasureRehearsalMarks = score.rehearsalMarks?.filter(mark =>
+    mark.measureId === activeMeasureId || mark.measureId === activeGlobalMeasureAlias) ?? []
+  const activeRehearsalTargetId = rehearsalTarget && rehearsalTarget.measureId === activeMeasureId ? rehearsalTarget.id : undefined
+  const activeMeasureRehearsalMark = activeRehearsalTargetId === undefined
+    ? activeMeasureRehearsalMarks[0]
+    : activeMeasureRehearsalMarks.find(mark => mark.id === activeRehearsalTargetId)
   const activeMeasureStaffText = activeMeasureId
     ? score.staffTexts?.find((text) => text.measureId === activeMeasureId)
     : undefined
@@ -1646,6 +1662,7 @@ export const App = () => {
     nativeFile.current = undefined
     nativeEnvelope.current = recoverySnapshot.project
     setScore(recoverySnapshot.score)
+    setRehearsalTarget(undefined)
     setScoreViewMode(recoverySnapshot.project?.view.mode ?? 'score')
     setSelectedScoreViewPartId(recoverySnapshot.project?.view.mode === 'part' ? recoverySnapshot.project.view.partId : undefined)
     setPartPageSetupPreferences(Object.fromEntries((recoverySnapshot.project?.partLayouts ?? [])
@@ -1873,6 +1890,7 @@ export const App = () => {
     nativeFile.current = undefined
     nativeEnvelope.current = undefined
     setScore(nextScore)
+    setRehearsalTarget(undefined)
     setScoreViewMode('score')
     setSelectedScoreViewPartId(undefined)
     setPartPageSetupPreferences({})
@@ -2603,13 +2621,14 @@ export const App = () => {
     if (activeSpanReference) {
       const clipboard = buildSpanClipboard(sourceScore, activeSpanReference)
       if (!clipboard) {
-        setFileStatus({ tone: 'error', message: '같은 성부의 유효한 끝점을 가진 표기 객체만 복사할 수 있습니다.' })
+        setFileStatus({ tone: 'error', message: '같은 보표의 유효한 끝점을 가진 표기 객체만 복사할 수 있습니다.' })
         return
       }
       setSpanClipboard(clipboard)
       setRangeClipboard(undefined)
       setMeasureMarkingClipboard(undefined)
       setFileStatus({ tone: 'neutral', message: '표기 객체를 복사했습니다.' +
+        (clipboard.requiresExplicitEnd ? ' 붙여넣기 끝점 지정 필요' : '') +
         (clipboard.excludedSegmentCount ? ` 범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외` : '') })
       return
     }
@@ -2662,17 +2681,27 @@ export const App = () => {
     })
   }, [activeSpanReference, score, scoreViewMode, livePartViewPartId, livePartLayout, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
 
-  const pasteSelection = useCallback(() => {
+  const pasteSpanAt = useCallback((startEventId: string, endEventId?: string) => {
     if (spanClipboard) {
-      const pasted = !activeSpanReference && buildSpanPaste(score, selection, spanClipboard, () => crypto.randomUUID())
+      const pasted = !activeSpanReference && buildSpanPaste(score, { type: 'event', eventId: startEventId }, spanClipboard, () => crypto.randomUUID(), endEventId)
       if (!pasted) {
-        setFileStatus({ tone: 'error', message: '같은 성부에서 원본과 같은 틱 간격의 끝점이 필요합니다. 대상 음표 또는 쉼표를 선택해 주세요.' })
+        setFileStatus({ tone: 'error', message: endEventId !== undefined
+          ? '같은 보표에서 시작점보다 뒤에 있는 유효한 끝점을 선택해 주세요.'
+          : spanClipboard.requiresExplicitEnd ? '서로 다른 성부를 잇는 표기는 붙여넣기 끝점을 지정해야 합니다.'
+          : '같은 성부에서 원본과 같은 틱 간격의 끝점이 필요합니다. 대상 음표 또는 쉼표를 선택해 주세요.' })
         return
       }
       if (executeCommand(pasted.command)) {
+        setSelection({ type: 'event', eventId: startEventId, address: locateEvent(score, startEventId)?.address })
         setFileStatus({ tone: 'neutral', message: '표기 객체를 붙여넣었습니다.' +
           (pasted.excludedSegmentCount ? ` 적용할 수 없는 구간 배치 ${pasted.excludedSegmentCount}개 제외` : '') })
       }
+    }
+  }, [activeSpanReference, executeCommand, score, spanClipboard])
+
+  const pasteSelection = useCallback(() => {
+    if (spanClipboard) {
+      pasteSpanAt(selection.type === 'event' ? selection.eventId : '')
       return
     }
     if (selection.type === 'measure' && measureMarkingClipboard) {
@@ -2683,6 +2712,12 @@ export const App = () => {
         () => crypto.randomUUID()
       )
 
+      if (!command && 'marks' in measureMarkingClipboard) {
+        setFileStatus({ tone: 'error', message: measureMarkingClipboard.type === 'systemTexts'
+          ? '시스템 텍스트는 현재 첫 파트의 첫 보표에만 붙여넣을 수 있습니다.'
+          : '텍스트 표기의 위치가 대상 마디에 맞지 않아 붙여넣지 않았습니다.' })
+        return
+      }
       if (executeCommand(command)) {
         setFileStatus({
           tone: 'neutral',
@@ -2752,7 +2787,7 @@ export const App = () => {
       message: `${rangeClipboard.eventCount}개 이벤트를 붙여넣었습니다.` + describeRangeClipboardExclusions(rangeClipboard)
     })
   }, [
-    activeSpanReference,
+    pasteSpanAt,
     spanClipboard,
     executeCommand,
     measureMarkingClipboard,
@@ -3104,35 +3139,26 @@ export const App = () => {
 
       const text = value.trim()
       const currentMarks = score.rehearsalMarks ?? []
-      const existingMark = currentMarks.find(
-        (mark) => mark.measureId === activeMeasureId
-      )
+      const existingMark = activeMeasureRehearsalMark
 
       if ((existingMark?.text ?? '') === text) {
         return
       }
 
-      const otherMarks = currentMarks.filter(
-        (mark) => mark.measureId !== activeMeasureId
-      )
-      const rehearsalMarks =
-        text.length > 0
-          ? [
-              ...otherMarks,
-              {
-                id: existingMark?.id ?? `rehearsal-${crypto.randomUUID()}`,
-                measureId: activeMeasureId,
-                text
-              }
-            ]
-          : otherMarks
+      const newId = existingMark?.id ?? `rehearsal-${crypto.randomUUID()}`
+      const rehearsalMarks = existingMark
+        ? currentMarks.flatMap(mark => mark.id !== existingMark.id ? [mark]
+          : text.length ? [{ ...mark, text }] : [])
+        : text.length ? [...currentMarks, { id: newId, measureId: activeMeasureId, text }]
+          : currentMarks
 
       executeCommand({
         type: 'score-rehearsal-marks.update',
         rehearsalMarks: rehearsalMarks.length > 0 ? rehearsalMarks : undefined
       })
+      setRehearsalTarget({ measureId: activeMeasureId, id: text.length ? newId : '' })
     },
-    [activeMeasureId, executeCommand, score.rehearsalMarks]
+    [activeMeasureId, activeMeasureRehearsalMark, executeCommand, score.rehearsalMarks]
   )
 
   const updateActiveStaffText = useCallback(
@@ -4317,6 +4343,7 @@ export const App = () => {
       nativeFile.current = undefined
       nativeEnvelope.current = undefined
       setScore(nextScore)
+      setRehearsalTarget(undefined)
       setAutosaveRevision((revision) =>
         options.markDirty === false ? 0 : revision + 1
       )
@@ -5946,12 +5973,23 @@ export const App = () => {
             <h3>마디 표기</h3>
             <div className="inspector-properties__grid">
               <label>
+                <span>연습표 선택</span>
+                <select aria-label="연습표 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeMeasureRehearsalMark?.id ?? ''}
+                  onChange={event => setRehearsalTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 연습표</option>
+                  {activeMeasureRehearsalMarks.map((mark, index) => (
+                    <option key={mark.id} value={mark.id}>{index + 1}. {mark.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: {mark.text}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
                 <span>{koreanMusicTerms.rehearsalMark}</span>
                 <input
                   aria-label={koreanMusicTerms.rehearsalMark}
                   defaultValue={activeMeasureRehearsalMark?.text ?? ''}
                   disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${
+                  key={`${activeMeasureId}-${activeMeasureRehearsalMark?.id ?? 'new'}-${
                     activeMeasureRehearsalMark?.text ?? ''
                   }`}
                   maxLength={12}
@@ -7624,6 +7662,8 @@ export const App = () => {
               selected={activeSpanReference} onSelect={selectSpan} onEngravingChange={updateSpanEngraving}
               renderedSegments={renderedSpanState?.score === displayScore ? renderedSpanState.segments : undefined}
               onEndpointChange={updateSpanEndpoint} onDelete={deleteSpan} /> : null}
+            {toolbarCategory === 'notation' && spanClipboard && !activeSpanReference
+              ? <SpanPasteTargets score={printScore} selection={selection} clipboard={spanClipboard} onPaste={pasteSpanAt} /> : null}
             <section
               aria-label="선택 요약"
               hidden={Boolean(activeSpanReference)}
@@ -8579,10 +8619,10 @@ function buildScorePartsReplaceCommand(
     type: 'score-tempo-events.update',
     tempoEvents
   }))
-  preserveGlobalMarkings(score.rehearsalMarks, (rehearsalMarks) => ({
+  addFilteredCommand(commands, score.rehearsalMarks, (rehearsalMarks) => ({
     type: 'score-rehearsal-marks.update',
     rehearsalMarks
-  }))
+  }), (mark) => globalMeasureSurvives(mark.measureId))
   addFilteredCommand(commands, score.staffTexts, (staffTexts) => ({
     type: 'score-staff-texts.update',
     staffTexts
@@ -8981,6 +9021,7 @@ function buildMeasureObjectDeleteCommand(
   measureId: string,
   filter: SelectionObjectTypeFilter
 ): ScoreCommand | undefined {
+  if (isTextMarkingType(filter)) return buildTextMarkingDeleteCommand(score, measureId, filter)
   if (filter === 'dynamics') {
     const currentDynamics = score.dynamics ?? []
     const dynamics = currentDynamics.filter(
@@ -9021,6 +9062,7 @@ function buildMeasureMarkingClipboard(
   measureId: string,
   filter: SelectionObjectTypeFilter
 ): MeasureMarkingClipboard | undefined {
+  if (isTextMarkingType(filter)) return buildTextMarkingClipboard(score, measureId, filter)
   if (filter === 'dynamics') {
     const dynamics = (score.dynamics ?? []).filter(
       (dynamic) => dynamic.measureId === measureId
@@ -9046,6 +9088,7 @@ function buildMeasureMarkingPasteCommand(
   clipboard: MeasureMarkingClipboard,
   createId: () => string
 ): ScoreCommand | undefined {
+  if ('marks' in clipboard) return buildTextMarkingPasteCommand(score, targetMeasureId, clipboard, createId)
   if (clipboard.type === 'dynamics') {
     const otherDynamics = (score.dynamics ?? []).filter(
       (dynamic) => dynamic.measureId !== targetMeasureId
