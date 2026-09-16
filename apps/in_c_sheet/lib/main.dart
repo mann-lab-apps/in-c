@@ -13774,6 +13774,7 @@ class _ViewerMiniToolPanel extends StatefulWidget {
     required this.onMetronomeSettingsChanged,
     required this.onOpenTuner,
     required this.onClose,
+    this.soundPlayer,
   });
 
   final _ViewerMiniTool tool;
@@ -13782,6 +13783,7 @@ class _ViewerMiniToolPanel extends StatefulWidget {
   onMetronomeSettingsChanged;
   final VoidCallback onOpenTuner;
   final VoidCallback onClose;
+  final SheetMetronomeSoundPlayer? soundPlayer;
 
   @override
   State<_ViewerMiniToolPanel> createState() => _ViewerMiniToolPanelState();
@@ -13794,11 +13796,13 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
+  int _playbackRequest = 0;
+  String? _metronomeOutputWarning;
 
   @override
   void initState() {
     super.initState();
-    _soundPlayer = SheetMetronomeSoundPlayer();
+    _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _beat = _initialBeat(widget.metronomeSettings);
   }
 
@@ -13816,6 +13820,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   @override
   void dispose() {
+    _playbackRequest++;
     _timer?.cancel();
     super.dispose();
   }
@@ -13830,6 +13835,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   void _toggleRunning() {
     if (_isRunning) {
+      _playbackRequest++;
       _timer?.cancel();
       setState(() {
         _isRunning = false;
@@ -13887,12 +13893,33 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (!widget.metronomeSettings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: widget.metronomeSettings,
-        accent: widget.metronomeSettings.isAccentBeat(_beat),
-      ),
+      _soundPlayer
+          .playClick(
+            settings: widget.metronomeSettings,
+            accent: widget.metronomeSettings.isAccentBeat(_beat),
+            shouldFallback: () =>
+                mounted && _isRunning && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || !_isRunning || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
+  }
+
+  void _handleMetronomeOutput(SheetMetronomeOutputStatus status) {
+    final nextWarning = switch (status) {
+      SheetMetronomeOutputStatus.native ||
+      SheetMetronomeOutputStatus.skipped => null,
+      SheetMetronomeOutputStatus.fallback => '기본 클릭음으로 재생 중입니다',
+      SheetMetronomeOutputStatus.unavailable => '메트로놈 소리를 내지 못했습니다',
+    };
+    if (_metronomeOutputWarning == nextWarning) return;
+    setState(() {
+      _metronomeOutputWarning = nextWarning;
+    });
   }
 
   @override
@@ -13957,6 +13984,18 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           isCountingIn: _isCountingIn,
           settings: settings,
         ),
+        if (_metronomeOutputWarning != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _metronomeOutputWarning!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           children: [
@@ -18195,6 +18234,7 @@ class _MetronomeSheet extends StatefulWidget {
     required this.onSettingsChanged,
     required this.onShowMiniPanel,
     this.settingsScopeLabel,
+    this.soundPlayer,
   });
 
   final SheetMetronomeSettings initialSettings;
@@ -18202,6 +18242,7 @@ class _MetronomeSheet extends StatefulWidget {
   onSettingsChanged;
   final VoidCallback onShowMiniPanel;
   final String? settingsScopeLabel;
+  final SheetMetronomeSoundPlayer? soundPlayer;
 
   @override
   State<_MetronomeSheet> createState() => _MetronomeSheetState();
@@ -18212,6 +18253,7 @@ Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
   Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
   VoidCallback? onShowMiniPanel,
+  SheetMetronomeSoundPlayer? soundPlayer,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -18220,6 +18262,7 @@ Widget buildMetronomeSheetForTest({
         onSettingsChanged: onSettingsChanged ?? (_) async {},
         onShowMiniPanel: onShowMiniPanel ?? () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
+        soundPlayer: soundPlayer,
       ),
     ),
   );
@@ -18228,6 +18271,7 @@ Widget buildMetronomeSheetForTest({
 @visibleForTesting
 Widget buildViewerMiniMetronomePanelForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+  SheetMetronomeSoundPlayer? soundPlayer,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -18238,6 +18282,7 @@ Widget buildViewerMiniMetronomePanelForTest({
           onMetronomeSettingsChanged: (_) async {},
           onOpenTuner: () {},
           onClose: () {},
+          soundPlayer: soundPlayer,
         ),
       ),
     ),
@@ -18319,11 +18364,13 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   DateTime? _lastBeatAt;
   final List<DateTime> _tapTempoMarks = <DateTime>[];
   int _settingsRequest = 0;
+  int _playbackRequest = 0;
+  String? _metronomeOutputWarning;
 
   @override
   void initState() {
     super.initState();
-    _soundPlayer = SheetMetronomeSoundPlayer();
+    _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _settings = widget.initialSettings;
     _beat = SheetMetronomeBeat(
       beatIndex: 0,
@@ -18334,6 +18381,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   @override
   void dispose() {
+    _playbackRequest++;
     _timer?.cancel();
     super.dispose();
   }
@@ -18481,6 +18529,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
 
   void _toggleRunning() {
     if (_isRunning) {
+      _playbackRequest++;
       _timer?.cancel();
       setState(() {
         _isRunning = false;
@@ -18542,23 +18591,58 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     if (!_settings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: _settings,
-        accent: _settings.isAccentBeat(_beat),
-      ),
+      _soundPlayer
+          .playClick(
+            settings: _settings,
+            accent: _settings.isAccentBeat(_beat),
+            shouldFallback: () =>
+                mounted && _isRunning && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || !_isRunning || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
   }
 
   void _previewTickSound() {
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: _settings.copyWith(soundEnabled: true),
-        accent: true,
-      ),
+      _soundPlayer
+          .playClick(
+            settings: _settings.copyWith(soundEnabled: true),
+            accent: true,
+            shouldFallback: () => mounted && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('소리가 들리지 않으면 기기 볼륨, 무음 모드, 이어폰 연결을 확인하세요.')),
+    );
+  }
+
+  void _handleMetronomeOutput(SheetMetronomeOutputStatus status) {
+    final nextWarning = switch (status) {
+      SheetMetronomeOutputStatus.native ||
+      SheetMetronomeOutputStatus.skipped => null,
+      SheetMetronomeOutputStatus.fallback => '기본 클릭음으로 재생 중입니다',
+      SheetMetronomeOutputStatus.unavailable => '메트로놈 소리를 내지 못했습니다',
+    };
+    if (_metronomeOutputWarning == nextWarning) return;
+    setState(() {
+      _metronomeOutputWarning = nextWarning;
+    });
+    if (nextWarning == null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$nextWarning. 기기 볼륨과 출력 장치를 확인하세요.')),
     );
   }
 
@@ -18621,6 +18705,17 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 _miniToolEntryButton(widget.onShowMiniPanel),
               ],
             ),
+            if (_metronomeOutputWarning != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _metronomeOutputWarning!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
             Center(
               child: Text(

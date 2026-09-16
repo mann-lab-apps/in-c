@@ -83,23 +83,20 @@ full tests and all other RC checks still cover the complete package.
 S54 draft remains untracked and excluded from this PR. Final integrated RC
 evidence is recorded in PR #759 after the scope fix is validated.
 
-S53 committed as `2b3e343`. S54 IN PROGRESS: metronome native output failures fall
-back to SystemSound without reporting the output path, and fallback failures are
-not caught. Full/mini callers discard results. Draft regression:
-`test/sheet_metronome_output_feedback_test.dart` (uncommitted).
-Acceptance: report degraded/unavailable output without repeated notices; successful
-retry clears the status; delayed native failure after stop/close must not trigger
-a fallback click. Preserve timing/settings and distinguish API success from sound.
-First run failed eight cases (`/private/tmp/clef-s54-red.log`), but Android button
-tap feedback also calls SystemSound and contaminated call counts/failure injection.
-The draft now invokes the actual button callback directly to isolate metronome
-output. Its rerun was denied twice by approval-service capacity errors; do not
-treat the revised draft as reproduced or passing. No production S54 edits yet.
-Next command in apps/in_c_sheet:
-`flutter test test/sheet_metronome_output_feedback_test.dart`.
-Then add scoped output results/cancellation only after isolated reproduction,
-cover old/new success/failure and retry, and run full RC before committing S54.
-Approval errors are environment blockers, not additional test failures.
+S53 committed as `2b3e343`. S54 VERIFIED LOCAL: metronome native output failures used
+to fall back to SystemSound without reporting the output path, and fallback
+failures were not caught. Full/mini callers discarded results, so users saw no
+reason when sound was degraded or unavailable. Recreated the slice without the
+lost untracked draft: `SheetMetronomeSoundPlayer.playClick` now returns
+native/fallback/unavailable/skipped status and checks caller ownership before
+playing fallback. Full metronome and mini panel show scoped fallback/unavailable
+warnings, clear them after a native retry, and ignore delayed failures after
+stop/close. Acceptance still distinguishes API success from audible quality:
+this does not prove fast-BPM physical timing is fixed. Targeted metronome
+unit/widget tests 45/45 PASS after one red widget location failure moved the
+warning to the first-screen area. Full 1,360/1,360, analyze and RC PASS.
+No app build/version change/push/merge. Fast-BPM audible timing, output route
+volume, Bluetooth/earphone behavior and iOS parity remain DEVICE QA.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
