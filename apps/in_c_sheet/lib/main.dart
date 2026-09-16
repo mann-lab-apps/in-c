@@ -9567,11 +9567,15 @@ setlist=$setlistLabel
       fromPage: pageNumber,
       pageCount: pageCount,
     );
-    final didHide = await widget.controller.hidePage(
-      currentScore,
-      pageNumber: pageNumber,
-      pageCount: pageCount,
+    final didHide = await _runViewerScoreMutation(
+      () => widget.controller.hidePage(
+        currentScore,
+        pageNumber: pageNumber,
+        pageCount: pageCount,
+      ),
+      '페이지 숨김을 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didHide == null) return;
     if (!didHide || !_pdfController.isReady) {
       return;
     }
@@ -9621,7 +9625,12 @@ setlist=$setlistLabel
       return;
     }
 
-    await widget.controller.unhidePage(currentScore, selectedPage);
+    try {
+      await widget.controller.unhidePage(currentScore, selectedPage);
+    } catch (_) {
+      _showSnackBar('페이지 숨김 해제를 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
+    }
     if (_pdfController.isReady) {
       await _pdfController.goToPage(
         pageNumber: selectedPage,
@@ -9725,36 +9734,34 @@ setlist=$setlistLabel
       return;
     }
 
-    late final bool didUpdate;
-    switch (request.action) {
-      case _PageOrderAction.reset:
-        didUpdate = await widget.controller.resetPageOrder(currentScore);
-        break;
-      case _PageOrderAction.moveUp:
-        didUpdate = await widget.controller.movePageInOrder(
-          currentScore,
-          fromIndex: request.index ?? -1,
-          toIndex: (request.index ?? 0) - 1,
-          pageCount: pageCount,
-        );
-        break;
-      case _PageOrderAction.moveDown:
-        didUpdate = await widget.controller.movePageInOrder(
-          currentScore,
-          fromIndex: request.index ?? -1,
-          toIndex: (request.index ?? 0) + 1,
-          pageCount: pageCount,
-        );
-        break;
-      case _PageOrderAction.duplicate:
-        didUpdate = await widget.controller.duplicatePageInOrder(
-          currentScore,
-          pageNumber: request.index == null ? 0 : order[request.index!],
-          orderIndex: request.index,
-          pageCount: pageCount,
-        );
-        break;
-    }
+    final didUpdate = await _runViewerScoreMutation(() async {
+      switch (request.action) {
+        case _PageOrderAction.reset:
+          return widget.controller.resetPageOrder(currentScore);
+        case _PageOrderAction.moveUp:
+          return widget.controller.movePageInOrder(
+            currentScore,
+            fromIndex: request.index ?? -1,
+            toIndex: (request.index ?? 0) - 1,
+            pageCount: pageCount,
+          );
+        case _PageOrderAction.moveDown:
+          return widget.controller.movePageInOrder(
+            currentScore,
+            fromIndex: request.index ?? -1,
+            toIndex: (request.index ?? 0) + 1,
+            pageCount: pageCount,
+          );
+        case _PageOrderAction.duplicate:
+          return widget.controller.duplicatePageInOrder(
+            currentScore,
+            pageNumber: request.index == null ? 0 : order[request.index!],
+            orderIndex: request.index,
+            pageCount: pageCount,
+          );
+      }
+    }, '페이지 순서를 저장하지 못했습니다. 다시 시도해주세요.');
+    if (didUpdate == null) return;
     if (!didUpdate) {
       _showSnackBar('페이지 순서를 변경하지 않았습니다.');
       return;
@@ -10231,16 +10238,27 @@ setlist=$setlistLabel
   Future<void> _rotateCurrentPageMetadata() async {
     final currentScore = score;
     final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
+        (_pdfController.isReady ? _pdfController.pageNumber : null) ??
+        _pageNumber ??
+        currentScore.lastPage;
     final orderIndex = _effectiveOrderIndexForPage(currentScore, pageNumber);
-    final degrees = orderIndex == null
-        ? await widget.controller.rotatePageClockwise(currentScore, pageNumber)
-        : await widget.controller.rotatePageInstanceClockwise(
-            currentScore,
-            orderIndex: orderIndex,
-            pageNumber: pageNumber,
-            pageCount: _pdfController.pageCount,
-          );
+    late final int degrees;
+    try {
+      degrees = orderIndex == null
+          ? await widget.controller.rotatePageClockwise(
+              currentScore,
+              pageNumber,
+            )
+          : await widget.controller.rotatePageInstanceClockwise(
+              currentScore,
+              orderIndex: orderIndex,
+              pageNumber: pageNumber,
+              pageCount: _pdfController.pageCount,
+            );
+    } catch (_) {
+      _showSnackBar('회전값을 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -10432,15 +10450,20 @@ setlist=$setlistLabel
       return;
     }
 
-    if (orderIndex == null) {
-      await widget.controller.updatePageCrop(currentScore, selected);
-    } else {
-      await widget.controller.updatePageInstanceCrop(
-        currentScore,
-        orderIndex: orderIndex,
-        pageCount: _pdfController.pageCount,
-        crop: selected,
-      );
+    try {
+      if (orderIndex == null) {
+        await widget.controller.updatePageCrop(currentScore, selected);
+      } else {
+        await widget.controller.updatePageInstanceCrop(
+          currentScore,
+          orderIndex: orderIndex,
+          pageCount: _pdfController.pageCount,
+          crop: selected,
+        );
+      }
+    } catch (_) {
+      _showSnackBar('자르기 맞춤을 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
     }
     _resetCropFitPosition();
     if (selected.hasCrop) {

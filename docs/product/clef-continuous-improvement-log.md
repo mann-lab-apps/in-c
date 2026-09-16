@@ -147,6 +147,14 @@ page template add/apply/remove exceptions through scoped snackbar retry messages
 Targeted crop-preset failure widget PASS; sheet viewer tools suite 11/11 PASS;
 full 1,374/1,374 PASS, analyze PASS, and RC PASS. No app build/version
 change/push/merge.
+S60 VERIFIED LOCAL: direct viewer page-organization commands still had unguarded
+storage and readiness edges. A new actual `회전값 저장` widget test first failed
+because the PDF controller page number was read before readiness, before it could
+reach the injected storage failure. Guard current-page rotation with the stored
+page fallback and retry snackbar, and route page hide/unhide, page order/duplicate
+and crop-setting save exceptions through scoped retry guidance. Targeted viewer
+tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

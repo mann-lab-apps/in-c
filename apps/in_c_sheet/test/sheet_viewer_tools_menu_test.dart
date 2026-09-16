@@ -217,6 +217,55 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
   });
+
+  testWidgets('page rotation save failure shows retry notice', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final now = DateTime(2026, 9, 16);
+    final store = _FailingScoreSaveStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score',
+        title: 'Concert',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/clef-missing-rotation-fixture.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetViewerScreen(controller: controller, scoreId: 'score'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('페이지 정리'));
+    await tester.pumpAndSettle();
+    store.failNextSave = true;
+    await tester.tap(find.text('회전값 저장'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('회전값을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(controller.scores.single.pageSettings.pageRotations, isEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
 }
 
 class _FailingScoreSaveStore extends SheetLibraryStore {

@@ -156,7 +156,9 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   넓은 화면 2페이지 spread와 visible viewport 기반 반 페이지 넘김을 추가했다. 5차 구현에서
   보기 모드와 반 페이지 넘김을 곡별 metadata로 저장한다.
 - 페이지 숨김. 5차 구현은 원본 PDF를 수정하지 않고 hidden page metadata로 이전/다음 이동에서
-  건너뛰는 방식이다.
+  건너뛰는 방식이다. 페이지 숨김/해제, 페이지 순서/복제, 회전값, 자르기 맞춤 저장 실패는
+  viewer를 끊지 않고 재시도 안내로 표시하며, PDF controller가 준비되기 전에는 저장된 현재 쪽
+  fallback을 사용한다.
 - 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
   확인한다.
 - 세트리스트, 세트리스트 연속 넘김. 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, 일괄 선택 bulk add와 추가 후 상세 열기, bulk collection 지정, 제거 후 되돌리기, drag reorder/위아래 이동/직접 순서 입력,
