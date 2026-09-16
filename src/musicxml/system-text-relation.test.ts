@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { createScore } from '../score-core'
 import { parseMusicXmlWithReport, serializeMusicXml } from './index'
+import fixture from './fixtures/expanded-v1-part-export.musicxml?raw'
 
 function xml(system: string) {
   return `<score-partwise version="4.0"><part-list><score-part id="P1"><part-name>Piano</part-name></score-part></part-list>
@@ -10,6 +11,30 @@ function xml(system: string) {
 }
 
 describe('MusicXML system text relation', () => {
+  it('preserves concrete lower-staff system text across export and reopen', () => {
+    const score = parseMusicXmlWithReport(fixture).score
+    const upper = score.parts[1]!.staves[0]!.measures[0]!
+    const lower = score.parts[1]!.staves[1]!.measures[0]!
+    score.systemTexts = [
+      { id: 'global-system', measureId: 'measure-1', text: 'Shared cue' },
+      { id: 'lower-system', measureId: lower.id, text: 'Lower staff cue' },
+      { id: 'upper-same-text', measureId: upper.id, text: 'Same text' },
+      { id: 'lower-same-text', measureId: lower.id, text: 'Same text' }
+    ]
+    const exported = serializeMusicXml(score)
+    const reopened = parseMusicXmlWithReport(exported).score
+    const reopenedUpper = reopened.parts[1]!.staves[0]!.measures[0]!
+    const reopenedLower = reopened.parts[1]!.staves[1]!.measures[0]!
+
+    expect(exported).toContain('system="none"')
+    expect(reopened.systemTexts?.map(({ measureId, text }) => ({ measureId, text }))).toEqual([
+      { measureId: 'measure-1', text: 'Shared cue' },
+      { measureId: reopenedUpper.id, text: 'Same text' },
+      { measureId: reopenedLower.id, text: 'Lower staff cue' },
+      { measureId: reopenedLower.id, text: 'Same text' }
+    ])
+  })
+
   it('collects global text from every part without multiplying repeated part exports', () => {
     const part = (id: string, texts: string[]) => `<part id="${id}"><measure number="1"><attributes><divisions>1</divisions></attributes>${texts.map(text =>
       `<direction system="only-top"><direction-type><words>${text}</words></direction-type><direction-type><rehearsal>${text}</rehearsal></direction-type></direction>`).join('')}<note><rest/><duration>4</duration><type>whole</type></note></measure></part>`

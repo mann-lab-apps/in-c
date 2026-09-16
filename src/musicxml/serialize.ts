@@ -246,7 +246,8 @@ function buildMeasureElement(
       tempoEvents: staffIndex === 0 ? score.tempoEvents : undefined,
       rehearsalMarks: score.rehearsalMarks?.filter(mark => mark.measureId === measure.id ||
         (staffIndex === 0 && mark.measureId === `measure-${measure.number}`)),
-      systemTexts: staffIndex === 0 ? score.systemTexts : undefined,
+      systemTexts: score.systemTexts?.filter(text => text.measureId === measure.id ||
+        (staffIndex === 0 && text.measureId === `measure-${measure.number}`)),
       harmonies: local(score.harmonies), staffTexts: local(score.staffTexts),
       expressionTexts: local(score.expressionTexts), dynamics: local(score.dynamics)
     }
@@ -410,7 +411,10 @@ function buildMeasureDirections(score: Score, measure: Measure, spanDirections: 
       .map((text) => buildStaffTextDirection(text.text)),
     ...(score.systemTexts ?? [])
       .filter((text) => matchesMeasureReference(text.measureId, measure))
-      .map((text) => buildSystemTextDirection(text.text)),
+      .map((text) => buildSystemTextDirection(
+        text.text,
+        text.measureId === `measure-${measure.number}` ? 'only-top' : 'none'
+      )),
     ...(score.expressionTexts ?? [])
       .filter((text) => matchesMeasureReference(text.measureId, measure))
       .map((text) => buildExpressionTextDirection(text.text, text.tick)),
@@ -514,10 +518,10 @@ function buildStaffTextDirection(text: string) {
   }
 }
 
-function buildSystemTextDirection(text: string) {
+function buildSystemTextDirection(text: string, system: 'only-top' | 'none' = 'only-top') {
   return {
     '@_placement': 'above',
-    '@_system': 'only-top',
+    '@_system': system,
     'direction-type': {
       words: {
         '#text': text,

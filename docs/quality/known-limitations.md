@@ -9,8 +9,21 @@ System-text editing also still replaces neighboring objects in one measure.
 Generic global rehearsal objects are now selectable/editable separately from
 local objects in score and part views; scope conversion and arbitrary tick anchors
 are not implemented. Expression-text import now normalizes cursor/divisions/offset
-to score ticks; lower-staff backup/native and imported-position visual cases remain.
+to score ticks, and 2026-09-16 follow-up covers lower-staff backup timing with
+inherited divisions plus native/App preview ownership. `verify:expression-text-pdf`
+adds bounded Electron screen/PDF print-layout DOM proof and an actual PDF artifact
+for a lower-staff expression text at tick 1.5 quarters. External-app visual
+comparison and broader expression-text editing/filter workflows remain.
 The user approved a development checkpoint merge, not a public RC release.
+
+2026-09-16 follow-up: concrete lower/non-primary staff system text now exports as
+local `system="none"` text and reopens as `systemTexts` when it carries the
+Chromatics bold system-text marker. The `P2` lower-staff loss case and cross-part
+system-text clipboard path are covered by focused tests. System-text object
+selection now mirrors the rehearsal chooser enough to edit/delete one same-measure
+system-text object without replacing its neighbors. Explicit scope-switching UI,
+arbitrary tick identity, list/range selection, external-app fidelity and human
+engraving review remain Required.
 
 ## 2026-09-15 Render Projection And Attachments
 
@@ -23,10 +36,17 @@ identity. Those remain implementation blockers under scoped global text.
 PDF comparison exposed lyrics omitted from additional staves in the full score.
 Primary and additional staves now share note-attachment drawing. Actual renderer
 checks cover lyrics and tenuto, lyric click/edit/undo and native readback; corrected
-PDFs show Sing in both full score and piano part. Fermata/breath/grace/ornament/
-tremolo helpers are connected but their additional-staff visual matrix and detailed
-placement remain to be verified. General engraving and human PDF signoff are not
-complete.
+PDFs show Sing in both full score and piano part. 2026-09-16 App/native preview
+coverage confirms lower-staff fermata, caesura, grace note, ornaments and tremolo
+remain attached to the same event after native reopen/save. A follow-up
+NotationPreview SVG tests confirm lower-staff fermata, caesura, tremolo,
+ornaments and grace markers retain the source event id in both screen and
+print-layout renderer paths. `verify:passive-attachments-pdf` additionally writes
+an actual Electron `printToPDF` artifact for a bounded lower-staff passive marker
+fixture, validates native readback and checks same-note marker boxes do not overlap
+in that fixture. Broader generated-PDF fixture matrix and detailed human engraving
+review for those markings remain to be verified. General engraving and human PDF
+signoff are not complete.
 
 ## 2026-09-15 Text And XML Scope
 
@@ -38,22 +58,38 @@ Multiple rehearsal marks receive separate renderer lanes and shared print spacin
 Rehearsal paste can target another staff. Core/native/XML and actual 960/1400px
 renderer workflows pass. Additional-staff blank measures are now selectable;
 editing one rehearsal mark preserves neighboring marks, and removing its part
-removes concrete-owned marks without converting them to global. System-text paste outside
-the primary staff remains rejected: its explicit ownership/round-trip contract is
-not implemented. Global import aggregation still merges repeated part exports by
-measure/text occurrence count; different tick positions, explicit scope editing,
-and linked `also-top` displays remain implementation blockers, not completed QA.
+removes concrete-owned marks without converting them to global. 2026-09-16
+follow-up allows Chromatics-authored system text paste outside the primary staff
+and preserves that concrete ownership through MusicXML reopen. Global import
+aggregation still merges repeated part exports by measure/text occurrence count;
+different tick positions, explicit scope editing, external-app system-text
+semantics and linked `also-top` displays remain implementation blockers, not
+completed QA.
 The notation palette now selects rehearsal objects by stable ID within the active
 measure and supports adding, editing and deleting one without changing neighbors.
-Document open/new/recovery resets that ephemeral selection. Other text types,
-individual-object clipboard, direct score-object selection and cross-measure range
-selection remain Required; a rehearsal chooser does not complete the umbrella.
+Chord symbols, staff text, system text, expression text and dynamics now have
+matching active-measure object selectors: chord symbols and expression text can
+edit/delete one same-measure/same-tick object, while staff/system text and
+dynamics can edit/delete one same-measure object without changing neighbors.
+Document open/new/recovery resets those ephemeral selections. The measure object
+copy/delete path can now use the selected object target for chord symbols,
+dynamics, staff text, system text, rehearsal marks and expression text; selected
+object paste appends a fresh object without replacing target-measure neighbors.
+Direct score-object selection has a bounded implementation for visible chord
+symbols, dynamics, rehearsal marks, staff text, system text and expression text:
+clicking the score object selects its measure and stable object target for
+editing. Staff text is still limited by the current renderer map to the visible
+staff-text object for that measure; multi-object/lane rendering, cross-measure
+range selection and broader independent object clipboard remain Required. These
+choosers do not complete the umbrella.
 
-System text now exports standard MusicXML `system="only-top"`; that value and
-legacy `yes` import as system text. `none` remains local text. `also-top` text is
-classified as system text but its additional staff display relation is not modeled
-or preserved and produces an import warning. This does not fix non-primary global
-text ownership or establish full text/engraving parity.
+System text now exports standard MusicXML `system="only-top"` for generic global
+objects; that value and legacy `yes` import as system text. Ordinary `none`
+remains local staff text, while Chromatics-authored local system text uses the
+existing bold marker to reopen as `systemTexts`. `also-top` text is classified as
+system text but its additional staff display relation is not modeled or preserved
+and produces an import warning. This does not establish full external-app
+system-text semantics, explicit scope editing or full text/engraving parity.
 
 Generated undotted quarter/eighth tempo labels no longer duplicate the numeric
 metronome in MusicXML. Other generated labels and custom-text display policy remain
