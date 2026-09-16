@@ -13550,6 +13550,7 @@ setlist=$setlistLabel
                         child: _ViewerMiniToolPanel(
                           tool: _miniTool!,
                           metronomeSettings: _effectiveMetronomeSettings,
+                          tunerSettings: widget.controller.tunerSettings,
                           onMetronomeSettingsChanged: (settings) =>
                               widget.controller.updateMetronomeSettingsForScore(
                                 currentScore,
@@ -13771,19 +13772,25 @@ class _ViewerMiniToolPanel extends StatefulWidget {
   const _ViewerMiniToolPanel({
     required this.tool,
     required this.metronomeSettings,
+    required this.tunerSettings,
     required this.onMetronomeSettingsChanged,
     required this.onOpenTuner,
     required this.onClose,
     this.soundPlayer,
+    this.tunerStateStream,
+    this.autoStartTunerInput = true,
   });
 
   final _ViewerMiniTool tool;
   final SheetMetronomeSettings metronomeSettings;
+  final SheetTunerSettings tunerSettings;
   final Future<void> Function(SheetMetronomeSettings settings)
   onMetronomeSettingsChanged;
   final VoidCallback onOpenTuner;
   final VoidCallback onClose;
   final SheetMetronomeSoundPlayer? soundPlayer;
+  final Stream<SheetTunerState>? tunerStateStream;
+  final bool autoStartTunerInput;
 
   @override
   State<_ViewerMiniToolPanel> createState() => _ViewerMiniToolPanelState();
@@ -13798,12 +13805,16 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   int _countInPulsesLeft = 0;
   int _playbackRequest = 0;
   String? _metronomeOutputWarning;
+  SheetTunerInputService? _miniTunerInputService;
+  StreamSubscription<SheetTunerState>? _miniTunerSubscription;
+  SheetTunerState _miniTunerState = SheetTunerState.idle;
 
   @override
   void initState() {
     super.initState();
     _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _beat = _initialBeat(widget.metronomeSettings);
+    _syncMiniTunerInput();
   }
 
   @override
@@ -13816,13 +13827,78 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
         _restartTimer();
       }
     }
+    if (oldWidget.tool != widget.tool ||
+        oldWidget.tunerSettings != widget.tunerSettings ||
+        oldWidget.tunerStateStream != widget.tunerStateStream) {
+      _syncMiniTunerInput();
+    }
   }
 
   @override
   void dispose() {
     _playbackRequest++;
     _timer?.cancel();
+    _stopMiniTunerInput(resetState: false);
     super.dispose();
+  }
+
+  void _syncMiniTunerInput() {
+    _stopMiniTunerInput(resetState: widget.tool != _ViewerMiniTool.tuner);
+    if (widget.tool != _ViewerMiniTool.tuner) {
+      return;
+    }
+    if (widget.tunerStateStream != null) {
+      _miniTunerSubscription = widget.tunerStateStream!.listen(
+        _handleMiniTunerState,
+      );
+      return;
+    }
+    if (!widget.autoStartTunerInput) {
+      return;
+    }
+    final settings = _chromaticOnlyMiniTunerSettings(widget.tunerSettings);
+    _miniTunerInputService = SheetTunerInputService();
+    _miniTunerSubscription = _miniTunerInputService!.states.listen(
+      _handleMiniTunerState,
+    );
+    unawaited(_miniTunerInputService!.start(settings: settings));
+  }
+
+  void _stopMiniTunerInput({required bool resetState}) {
+    unawaited(_miniTunerSubscription?.cancel());
+    _miniTunerSubscription = null;
+    final inputService = _miniTunerInputService;
+    _miniTunerInputService = null;
+    if (inputService != null) {
+      unawaited(inputService.dispose());
+    }
+    if (resetState) {
+      _miniTunerState = SheetTunerState.idle;
+    }
+  }
+
+  void _handleMiniTunerState(SheetTunerState state) {
+    if (!mounted || widget.tool != _ViewerMiniTool.tuner) {
+      return;
+    }
+    setState(() {
+      _miniTunerState = state;
+    });
+  }
+
+  SheetTunerSettings _chromaticOnlyMiniTunerSettings(
+    SheetTunerSettings settings,
+  ) {
+    return settings.copyWith(
+      tuningMode: SheetTunerMode.chromatic,
+      tuningPreset: SheetTunerPreset.chromatic,
+      displayMode: SheetTunerDisplayMode.concert,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+      targetLockEnabled: false,
+      clearTargetConcertMidiNumber: true,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
+    );
   }
 
   SheetMetronomeBeat _initialBeat(SheetMetronomeSettings settings) {
@@ -14027,6 +14103,31 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   Widget _buildTuner(BuildContext context) {
     final theme = Theme.of(context);
+    final reading = _miniTunerState.reading;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: _miniTunerState.inputStatus,
+      reading: reading,
+      centsOffset: reading?.centsOffset ?? 0,
+    );
+    final preferFlats = widget.tunerSettings.notationPreference.preferFlatsFor(
+      SheetTunerDisplayMode.concert,
+    );
+    final displayedPitch = reading == null
+        ? null
+        : SheetTunerPitch.displayPitch(
+            reading: reading,
+            displayMode: SheetTunerDisplayMode.concert,
+            referencePitchA4: widget.tunerSettings.referencePitchA4,
+          );
+    final noteLabel =
+        displayedPitch?.primaryLabelWith(preferFlats: preferFlats) ?? '--';
+    final centsLabel = reading == null
+        ? '소리를 내면 표시합니다'
+        : '${feedback.displayCents >= 0 ? '+' : ''}'
+              '${feedback.displayCents.toStringAsFixed(1)} cents';
+    final signalLabel = reading == null
+        ? feedback.label
+        : '${feedback.label} · 신호 ${(reading.signalLevel * 100).round()}%';
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -14051,9 +14152,51 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          '상세 화면에서 현재 음과 pitch history를 봅니다.',
-          style: theme.textTheme.bodySmall,
+        Semantics(
+          label: '미니 튜너 현재 음 $noteLabel',
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Text(
+                    noteLabel,
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          centsLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          signalLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Align(
@@ -14061,7 +14204,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           child: FilledButton.tonalIcon(
             onPressed: widget.onOpenTuner,
             icon: const Icon(Icons.open_in_full),
-            label: const Text('튜너 열기'),
+            label: const Text('상세 튜너'),
           ),
         ),
       ],
@@ -18334,10 +18477,35 @@ Widget buildViewerMiniMetronomePanelForTest({
         child: _ViewerMiniToolPanel(
           tool: _ViewerMiniTool.metronome,
           metronomeSettings: settings,
+          tunerSettings: SheetTunerSettings.defaultSettings,
           onMetronomeSettingsChanged: (_) async {},
           onOpenTuner: () {},
           onClose: () {},
           soundPlayer: soundPlayer,
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildViewerMiniTunerPanelForTest({
+  SheetTunerSettings settings = SheetTunerSettings.defaultSettings,
+  Stream<SheetTunerState>? tunerStateStream,
+  VoidCallback? onOpenTuner,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _ViewerMiniToolPanel(
+          tool: _ViewerMiniTool.tuner,
+          metronomeSettings: SheetMetronomeSettings.defaultSettings,
+          tunerSettings: settings,
+          onMetronomeSettingsChanged: (_) async {},
+          onOpenTuner: onOpenTuner ?? () {},
+          onClose: () {},
+          tunerStateStream: tunerStateStream,
+          autoStartTunerInput: false,
         ),
       ),
     ),

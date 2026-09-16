@@ -112,6 +112,14 @@ stays visible, stamp picker still exposes rehearsal marks, and no tool/storage
 behavior changed. First targeted run caught duplicate tooltip targets; removed the
 nested tooltip and kept one accessible target. Targeted 76/76 PASS. Full 1,362/1,362,
 analyze and RC PASS. No app build/version change/push/merge.
+S56 VERIFIED LOCAL: mini tuner panel still acted as a shortcut back to the full tuner,
+which weakened the promised mini-tool flow. Add a lightweight live chromatic readout
+inside the viewer panel: current note, cents/status, signal summary and a `상세 튜너`
+escape hatch. Reuse chromatic-only settings and keep drone/settings/history in the
+full tuner. Acceptance: injected state stream shows A4/in-tune and no-signal states,
+production panel starts/stops its own input service with panel lifecycle, and actual
+microphone accuracy remains DEVICE QA. Targeted 17/17 PASS, full 1,363/1,363 PASS,
+analyze PASS, and RC PASS. No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

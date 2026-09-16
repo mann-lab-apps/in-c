@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -118,6 +120,62 @@ void main() {
     expect(find.text('감지 엔진'), findsOneWidget);
     expect(find.text('튜닝 프리셋'), findsNothing);
     expect(find.text('악기/표시 기준'), findsNothing);
+  });
+
+  testWidgets('mini tuner panel shows live chromatic reading', (tester) async {
+    final states = StreamController<SheetTunerState>();
+    var opened = 0;
+    addTearDown(states.close);
+    await tester.pumpWidget(
+      buildViewerMiniTunerPanelForTest(
+        tunerStateStream: states.stream,
+        onOpenTuner: () => opened++,
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('크로매틱 튜너'), findsOneWidget);
+    expect(find.text('--'), findsOneWidget);
+    expect(find.text('상세 튜너'), findsOneWidget);
+
+    states.add(
+      SheetTunerState(
+        isListening: true,
+        reading: SheetTunerReading(
+          frequency: 440,
+          note: SheetTunerPitch.noteFromMidi(69),
+          centsOffset: 0,
+          signalLevel: 0.92,
+        ),
+        inputStatus: SheetTunerInputStatus.listening,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('A4'), findsOneWidget);
+    expect(find.text('+0.0 cents'), findsOneWidget);
+    expect(find.textContaining('맞았습니다'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics && widget.properties.label == '미니 튜너 현재 음 A4',
+      ),
+      findsOneWidget,
+    );
+
+    states.add(
+      const SheetTunerState(
+        isListening: true,
+        reading: null,
+        inputStatus: SheetTunerInputStatus.noSignal,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('--'), findsOneWidget);
+    expect(find.text('소리가 작거나 주변 소음이 큽니다'), findsOneWidget);
+    await tester.tap(find.text('상세 튜너'));
+    expect(opened, 1);
   });
 
   testWidgets('pitch history chart paints empty and sampled states', (
