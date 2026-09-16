@@ -292,10 +292,12 @@ type MeasureMarkingClipboard =
   | {
       type: 'dynamics'
       dynamics: NonNullable<Score['dynamics']>
+      scope?: 'measure' | 'object'
     }
   | {
       type: 'harmonies'
       harmonies: HarmonyMark[]
+      scope?: 'measure' | 'object'
     }
 
 const toolbarCategories = [
@@ -569,7 +571,12 @@ export const App = () => {
   const [noteInputState, setNoteInputState] = useState<NoteInputState>()
   const [durationValue, setDurationValue] = useState<DurationValue>('quarter')
   const [activeLyricVerse, setActiveLyricVerse] = useState(1)
+  const [harmonyTarget, setHarmonyTarget] = useState<{ measureId: string; id: string }>()
   const [rehearsalTarget, setRehearsalTarget] = useState<{ measureId: string; id: string }>()
+  const [dynamicTarget, setDynamicTarget] = useState<{ measureId: string; id: string }>()
+  const [staffTextTarget, setStaffTextTarget] = useState<{ measureId: string; id: string }>()
+  const [systemTextTarget, setSystemTextTarget] = useState<{ measureId: string; id: string }>()
+  const [expressionTextTarget, setExpressionTextTarget] = useState<{ measureId: string; id: string }>()
   const [selectionEventTypeFilter, setSelectionEventTypeFilter] =
     useState<SelectionEventTypeFilter>('notes-and-rests')
   const [selectionObjectTypeFilter, setSelectionObjectTypeFilter] =
@@ -771,15 +778,32 @@ export const App = () => {
   const activeMeasureRehearsalMark = activeRehearsalTargetId === undefined
     ? activeMeasureRehearsalMarks[0]
     : activeMeasureRehearsalMarks.find(mark => mark.id === activeRehearsalTargetId)
-  const activeMeasureStaffText = activeMeasureId
-    ? score.staffTexts?.find((text) => text.measureId === activeMeasureId)
-    : undefined
+  const activeMeasureStaffTexts = activeMeasureId
+    ? score.staffTexts?.filter((text) => text.measureId === activeMeasureId) ?? []
+    : []
+  const activeStaffTextTargetId = staffTextTarget && staffTextTarget.measureId === activeMeasureId ? staffTextTarget.id : undefined
+  const activeMeasureStaffText = activeStaffTextTargetId === undefined
+    ? activeMeasureStaffTexts[0]
+    : activeMeasureStaffTexts.find(text => text.id === activeStaffTextTargetId)
   const activeMeasureSystemText = activeMeasureId
-    ? score.systemTexts?.find((text) => text.measureId === activeMeasureId)
-    : undefined
-  const activeMeasureDynamic = activeMeasureId
-    ? score.dynamics?.find((dynamic) => dynamic.measureId === activeMeasureId)
-    : undefined
+    ? score.systemTexts?.filter(text => text.measureId === activeMeasureId ||
+      text.measureId === activeGlobalMeasureAlias) ?? []
+    : []
+  const activeSystemTextTargetId = systemTextTarget && systemTextTarget.measureId === activeMeasureId ? systemTextTarget.id : undefined
+  const activeSystemText = activeSystemTextTargetId === undefined
+    ? activeMeasureSystemText[0]
+    : activeMeasureSystemText.find(text => text.id === activeSystemTextTargetId)
+  const activeMeasureExpressionTexts = activeMeasureId
+    ? score.expressionTexts?.filter(text => text.measureId === activeMeasureId) ?? []
+    : []
+  const activeExpressionTextTargetId = expressionTextTarget && expressionTextTarget.measureId === activeMeasureId ? expressionTextTarget.id : undefined
+  const activeMeasureDynamics = activeMeasureId
+    ? score.dynamics?.filter((dynamic) => dynamic.measureId === activeMeasureId) ?? []
+    : []
+  const activeDynamicTargetId = dynamicTarget && dynamicTarget.measureId === activeMeasureId ? dynamicTarget.id : undefined
+  const activeMeasureDynamic = activeDynamicTargetId === undefined
+    ? activeMeasureDynamics[0]
+    : activeMeasureDynamics.find(dynamic => dynamic.id === activeDynamicTargetId)
   const activeDots =
     noteInputState?.duration.dots ??
     eventLocation?.event.duration.dots ??
@@ -1662,7 +1686,12 @@ export const App = () => {
     nativeFile.current = undefined
     nativeEnvelope.current = recoverySnapshot.project
     setScore(recoverySnapshot.score)
+    setHarmonyTarget(undefined)
     setRehearsalTarget(undefined)
+    setDynamicTarget(undefined)
+    setStaffTextTarget(undefined)
+    setSystemTextTarget(undefined)
+    setExpressionTextTarget(undefined)
     setScoreViewMode(recoverySnapshot.project?.view.mode ?? 'score')
     setSelectedScoreViewPartId(recoverySnapshot.project?.view.mode === 'part' ? recoverySnapshot.project.view.partId : undefined)
     setPartPageSetupPreferences(Object.fromEntries((recoverySnapshot.project?.partLayouts ?? [])
@@ -1890,7 +1919,12 @@ export const App = () => {
     nativeFile.current = undefined
     nativeEnvelope.current = undefined
     setScore(nextScore)
+    setHarmonyTarget(undefined)
     setRehearsalTarget(undefined)
+    setDynamicTarget(undefined)
+    setStaffTextTarget(undefined)
+    setSystemTextTarget(undefined)
+    setExpressionTextTarget(undefined)
     setScoreViewMode('score')
     setSelectedScoreViewPartId(undefined)
     setPartPageSetupPreferences({})
@@ -2519,10 +2553,19 @@ export const App = () => {
 
   const clearSelection = useCallback(() => {
     if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
+      const selectedObjectId = getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
+        dynamicTarget,
+        expressionTextTarget,
+        harmonyTarget,
+        rehearsalTarget,
+        staffTextTarget,
+        systemTextTarget
+      })
       const command = buildMeasureObjectDeleteCommand(
         score,
         selection.measureId,
-        selectionObjectTypeFilter
+        selectionObjectTypeFilter,
+        selectedObjectId
       )
 
       if (!command) {
@@ -2605,13 +2648,19 @@ export const App = () => {
           : '음표를 지웠습니다.'
     })
   }, [
+    dynamicTarget,
     eventLocation,
     executeCommand,
+    expressionTextTarget,
+    harmonyTarget,
     noteInputState,
+    rehearsalTarget,
     score,
     selection,
     selectionEventTypeFilter,
-    selectionObjectTypeFilter
+    selectionObjectTypeFilter,
+    staffTextTarget,
+    systemTextTarget
   ])
 
   const copySelection = useCallback(() => {
@@ -2633,10 +2682,19 @@ export const App = () => {
       return
     }
     if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
+      const selectedObjectId = getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
+        dynamicTarget,
+        expressionTextTarget,
+        harmonyTarget,
+        rehearsalTarget,
+        staffTextTarget,
+        systemTextTarget
+      })
       const clipboard = buildMeasureMarkingClipboard(
         score,
         selection.measureId,
-        selectionObjectTypeFilter
+        selectionObjectTypeFilter,
+        selectedObjectId
       )
 
       if (!clipboard) {
@@ -2679,7 +2737,7 @@ export const App = () => {
           ? `${clipboard.eventCount}개 이벤트를 복사했습니다.`
           : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`) + describeRangeClipboardExclusions(clipboard)
     })
-  }, [activeSpanReference, score, scoreViewMode, livePartViewPartId, livePartLayout, selection, selectionEventTypeFilter, selectionObjectTypeFilter])
+  }, [activeSpanReference, dynamicTarget, expressionTextTarget, harmonyTarget, livePartLayout, livePartViewPartId, rehearsalTarget, score, scoreViewMode, selection, selectionEventTypeFilter, selectionObjectTypeFilter, staffTextTarget, systemTextTarget])
 
   const pasteSpanAt = useCallback((startEventId: string, endEventId?: string) => {
     if (spanClipboard) {
@@ -3169,35 +3227,30 @@ export const App = () => {
 
       const text = value.trim()
       const currentTexts = score.staffTexts ?? []
-      const existingText = currentTexts.find(
-        (staffText) => staffText.measureId === activeMeasureId
-      )
+      const existingText = activeMeasureStaffText
 
       if ((existingText?.text ?? '') === text) {
         return
       }
 
-      const otherTexts = currentTexts.filter(
-        (staffText) => staffText.measureId !== activeMeasureId
-      )
-      const staffTexts =
-        text.length > 0
-          ? [
-              ...otherTexts,
-              {
-                id: existingText?.id ?? `staff-text-${crypto.randomUUID()}`,
-                measureId: activeMeasureId,
-                text
-              }
-            ]
-          : otherTexts
+      const newId = existingText?.id ?? `staff-text-${crypto.randomUUID()}`
+      const staffTexts = existingText
+        ? currentTexts.flatMap(staffText => staffText.id !== existingText.id ? [staffText]
+          : text.length ? [{ ...staffText, text }] : [])
+        : text.length ? [...currentTexts, { id: newId, measureId: activeMeasureId, text }]
+          : currentTexts
 
       executeCommand({
         type: 'score-staff-texts.update',
         staffTexts: staffTexts.length > 0 ? staffTexts : undefined
       })
+      setStaffTextTarget({ measureId: activeMeasureId, id: text.length ? newId : '' })
+      setFileStatus({
+        tone: 'neutral',
+        message: text.length > 0 ? '보표 글자를 갱신했습니다.' : '보표 글자를 삭제했습니다.'
+      })
     },
-    [activeMeasureId, executeCommand, score.staffTexts]
+    [activeMeasureId, activeMeasureStaffText, executeCommand, score.staffTexts]
   )
 
   const updateActiveSystemText = useCallback(
@@ -3208,83 +3261,82 @@ export const App = () => {
 
       const text = value.trim()
       const currentTexts = score.systemTexts ?? []
-      const existingText = currentTexts.find(
-        (systemText) => systemText.measureId === activeMeasureId
-      )
+      const existingText = activeSystemText
 
       if ((existingText?.text ?? '') === text) {
         return
       }
 
-      const otherTexts = currentTexts.filter(
-        (systemText) => systemText.measureId !== activeMeasureId
-      )
-      const systemTexts =
-        text.length > 0
-          ? [
-              ...otherTexts,
-              {
-                id: existingText?.id ?? `system-text-${crypto.randomUUID()}`,
-                measureId: activeMeasureId,
-                text
-              }
-            ]
-          : otherTexts
+      const newId = existingText?.id ?? `system-text-${crypto.randomUUID()}`
+      const systemTexts = existingText
+        ? currentTexts.flatMap(systemText => systemText.id !== existingText.id ? [systemText]
+          : text.length ? [{ ...systemText, text }] : [])
+        : text.length ? [...currentTexts, { id: newId, measureId: activeMeasureId, text }]
+          : currentTexts
 
       executeCommand({
         type: 'score-system-texts.update',
         systemTexts: systemTexts.length > 0 ? systemTexts : undefined
       })
+      setSystemTextTarget({ measureId: activeMeasureId, id: text.length ? newId : '' })
       setFileStatus({
         tone: 'neutral',
         message: text.length > 0 ? '시스템 텍스트를 갱신했습니다.' : '시스템 텍스트를 삭제했습니다.'
       })
     },
-    [activeMeasureId, executeCommand, score.systemTexts]
+    [activeMeasureId, activeSystemText, executeCommand, score.systemTexts]
   )
 
   const updateActiveExpressionText = useCallback(
     (value: string) => {
-      const targetMeasureId = eventLocation?.measure.id ?? activeMeasureId
-      const targetTick =
-        eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
+      const fallbackMeasureId = eventLocation?.measure.id ?? activeMeasureId
+      const fallbackTick = eventLocation?.event.position.tick ?? noteInputState?.tick ?? 0
 
-      if (!targetMeasureId) {
+      if (!fallbackMeasureId) {
         return
       }
 
       const text = value.trim()
       const currentTexts = score.expressionTexts ?? []
-      const existingText = currentTexts.find(
-        (expressionText) =>
-          expressionText.measureId === targetMeasureId &&
-          expressionText.tick === targetTick
-      )
+      const existingText = activeExpressionTextTargetId === undefined
+        ? currentTexts.find(
+          (expressionText) =>
+            expressionText.measureId === fallbackMeasureId &&
+            expressionText.tick === fallbackTick
+        )
+        : currentTexts.find(
+          (expressionText) => expressionText.id === activeExpressionTextTargetId
+        )
+      const targetMeasureId = existingText?.measureId ?? fallbackMeasureId
+      const targetTick = existingText?.tick ?? fallbackTick
 
       if ((existingText?.text ?? '') === text) {
         return
       }
 
-      const otherTexts = currentTexts.filter(
-        (expressionText) => expressionText.id !== existingText?.id
-      )
-      const expressionTexts =
-        text.length > 0
+      const newId = existingText?.id ?? `expression-text-${crypto.randomUUID()}`
+      const expressionTexts = existingText
+        ? currentTexts.flatMap((expressionText) =>
+          expressionText.id !== existingText.id ? [expressionText]
+            : text.length ? [{ ...expressionText, text }] : []
+        )
+        : text.length
           ? [
-              ...otherTexts,
+              ...currentTexts,
               {
-                id: existingText?.id ?? `expression-text-${crypto.randomUUID()}`,
+                id: newId,
                 measureId: targetMeasureId,
                 tick: targetTick,
                 text
               }
             ]
-          : otherTexts
+          : currentTexts
 
       executeCommand({
         type: 'score-expression-texts.update',
         expressionTexts: expressionTexts.length > 0 ? expressionTexts : undefined
       })
+      setExpressionTextTarget({ measureId: targetMeasureId, id: text.length ? newId : '' })
       setFileStatus({
         tone: 'neutral',
         message: text.length > 0 ? '표현 텍스트를 갱신했습니다.' : '표현 텍스트를 삭제했습니다.'
@@ -3292,6 +3344,7 @@ export const App = () => {
     },
     [
       activeMeasureId,
+      activeExpressionTextTargetId,
       eventLocation,
       executeCommand,
       noteInputState?.tick,
@@ -3307,34 +3360,26 @@ export const App = () => {
 
       const dynamic = dynamicValues.find((candidate) => candidate === value)
       const currentDynamics = score.dynamics ?? []
-      const existingDynamic = currentDynamics.find(
-        (mark) => mark.measureId === activeMeasureId
-      )
+      const existingDynamic = activeMeasureDynamic
 
       if ((existingDynamic?.value ?? '') === (dynamic ?? '')) {
         return
       }
 
-      const otherDynamics = currentDynamics.filter(
-        (mark) => mark.measureId !== activeMeasureId
-      )
-      const dynamics = dynamic
-        ? [
-            ...otherDynamics,
-            {
-              id: existingDynamic?.id ?? `dynamic-${crypto.randomUUID()}`,
-              measureId: activeMeasureId,
-              value: dynamic
-            }
-          ]
-        : otherDynamics
+      const newId = existingDynamic?.id ?? `dynamic-${crypto.randomUUID()}`
+      const dynamics = existingDynamic
+        ? currentDynamics.flatMap(mark => mark.id !== existingDynamic.id ? [mark]
+          : dynamic ? [{ ...mark, value: dynamic }] : [])
+        : dynamic ? [...currentDynamics, { id: newId, measureId: activeMeasureId, value: dynamic }]
+          : currentDynamics
 
       executeCommand({
         type: 'score-dynamics.update',
         dynamics: dynamics.length > 0 ? dynamics : undefined
       })
+      setDynamicTarget({ measureId: activeMeasureId, id: dynamic ? newId : '' })
     },
-    [activeMeasureId, executeCommand, score.dynamics, selection.type]
+    [activeMeasureDynamic, activeMeasureId, executeCommand, score.dynamics, selection.type]
   )
 
   const updateActiveMeasure = useCallback(
@@ -3699,13 +3744,13 @@ export const App = () => {
       }
 
       const currentHarmonies = score.harmonies ?? []
-      const existingHarmony = currentHarmonies.find(
-        (harmony) =>
-          harmony.measureId === targetMeasureId && harmony.tick === targetTick
-      )
-      const otherHarmonies = currentHarmonies.filter(
-        (harmony) => harmony.id !== existingHarmony?.id
-      )
+      const activeHarmonyTargetId = harmonyTarget && harmonyTarget.measureId === targetMeasureId ? harmonyTarget.id : undefined
+      const existingHarmony = activeHarmonyTargetId === undefined
+        ? currentHarmonies.find(
+          (harmony) =>
+            harmony.measureId === targetMeasureId && harmony.tick === targetTick
+        )
+        : currentHarmonies.find((harmony) => harmony.id === activeHarmonyTargetId)
       const parsedHarmony = text.length > 0 ? parseHarmonyText(text) : undefined
 
       if (text.length > 0 && !parsedHarmony) {
@@ -3716,29 +3761,35 @@ export const App = () => {
         return
       }
 
-      const harmonies =
-        parsedHarmony
+      const newId = existingHarmony?.id ?? `harmony-${crypto.randomUUID()}`
+      const harmonies = existingHarmony
+        ? currentHarmonies.flatMap((harmony) =>
+          harmony.id !== existingHarmony.id ? [harmony]
+            : parsedHarmony ? [{ ...harmony, ...parsedHarmony }] : []
+        )
+        : parsedHarmony
           ? [
-              ...otherHarmonies,
+              ...currentHarmonies,
               {
-                id: existingHarmony?.id ?? `harmony-${crypto.randomUUID()}`,
+                id: newId,
                 measureId: targetMeasureId,
                 tick: targetTick,
                 ...parsedHarmony
               }
             ]
-          : otherHarmonies
+          : currentHarmonies
 
       executeCommand({
         type: 'score-harmonies.update',
         harmonies: harmonies.length > 0 ? harmonies : undefined
       })
+      setHarmonyTarget({ measureId: targetMeasureId, id: parsedHarmony ? newId : '' })
       setFileStatus({
         tone: 'neutral',
         message: parsedHarmony ? '코드 심벌을 갱신했습니다.' : '코드 심벌을 삭제했습니다.'
       })
     },
-    [activeMeasureId, eventLocation, executeCommand, noteInputState?.tick, score.harmonies]
+    [activeMeasureId, eventLocation, executeCommand, harmonyTarget, noteInputState?.tick, score.harmonies]
   )
 
   const updateTempoEvent = useCallback(
@@ -4328,6 +4379,31 @@ export const App = () => {
     setSelection(createMeasureSelection(score, measureId))
   }, [score])
 
+  const selectNotationObject = useCallback((
+    type: 'harmonies' | 'dynamics' | TextMarkingType,
+    measureId: string,
+    id: string
+  ) => {
+    setMode('select')
+    setNoteInputState(undefined)
+    setPendingSlurAnchorEventId(undefined)
+    setMeasureContextMenu(undefined)
+    setSelection(createMeasureSelection(score, measureId))
+    if (type === 'harmonies') {
+      setHarmonyTarget({ measureId, id })
+      setToolbarCategory('lyrics')
+    } else if (type === 'dynamics') {
+      setDynamicTarget({ measureId, id })
+      setToolbarCategory('notation')
+    } else {
+      if (type === 'staffTexts') setStaffTextTarget({ measureId, id })
+      else if (type === 'systemTexts') setSystemTextTarget({ measureId, id })
+      else if (type === 'rehearsalMarks') setRehearsalTarget({ measureId, id })
+      else setExpressionTextTarget({ measureId, id })
+      setToolbarCategory('notation')
+    }
+  }, [score])
+
   const openScore = useCallback(
     (
       nextScore: Score,
@@ -4341,9 +4417,14 @@ export const App = () => {
 
       documentGeneration.current += 1
       nativeFile.current = undefined
-      nativeEnvelope.current = undefined
-      setScore(nextScore)
-      setRehearsalTarget(undefined)
+    nativeEnvelope.current = undefined
+    setScore(nextScore)
+    setHarmonyTarget(undefined)
+    setRehearsalTarget(undefined)
+    setDynamicTarget(undefined)
+    setStaffTextTarget(undefined)
+    setSystemTextTarget(undefined)
+    setExpressionTextTarget(undefined)
       setAutosaveRevision((revision) =>
         options.markDirty === false ? 0 : revision + 1
       )
@@ -5421,12 +5502,16 @@ export const App = () => {
     selection,
     selectionEventTypeFilter
   ])
-  const activeHarmony = activeMeasureId
-    ? score.harmonies?.find(
+  const activeMeasureHarmonies = activeMeasureId
+    ? score.harmonies?.filter(
         (harmony) =>
           harmony.measureId === activeMeasureId && harmony.tick === activeTick
-      )
-    : undefined
+      ) ?? []
+    : []
+  const activeHarmonyTargetId = harmonyTarget && harmonyTarget.measureId === activeMeasureId ? harmonyTarget.id : undefined
+  const activeHarmony = activeHarmonyTargetId === undefined
+    ? activeMeasureHarmonies[0]
+    : activeMeasureHarmonies.find(harmony => harmony.id === activeHarmonyTargetId)
   const activeTempoEvent = activeMeasureId
     ? score.tempoEvents?.find(
         (tempoEvent) =>
@@ -5434,10 +5519,14 @@ export const App = () => {
       )
     : undefined
   const activeExpressionText = activeMeasureId
-    ? score.expressionTexts?.find(
+    ? activeExpressionTextTargetId === undefined
+      ? score.expressionTexts?.find(
         (expressionText) =>
           expressionText.measureId === activeMeasureId &&
           expressionText.tick === activeTick
+      )
+      : activeMeasureExpressionTexts.find(
+        (expressionText) => expressionText.id === activeExpressionTextTargetId
       )
     : undefined
 
@@ -6011,12 +6100,24 @@ export const App = () => {
               </label>
 
               <label>
+                <span>보표 글자 선택</span>
+                <select aria-label="보표 글자 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeMeasureStaffText?.id ?? ''}
+                  onChange={event => setStaffTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 보표 글자</option>
+                  {activeMeasureStaffTexts.map((text, index) => (
+                    <option key={text.id} value={text.id}>{index + 1}. {text.text}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
                 <span>{koreanMusicTerms.staffText}</span>
                 <input
                   aria-label={koreanMusicTerms.staffText}
                   defaultValue={activeMeasureStaffText?.text ?? ''}
                   disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${
+                  key={`${activeMeasureId}-${activeMeasureStaffText?.id ?? 'new'}-${
                     activeMeasureStaffText?.text ?? ''
                   }-staff-text`}
                   maxLength={80}
@@ -6038,13 +6139,27 @@ export const App = () => {
               </label>
 
               <label>
+                <span>시스템 텍스트 선택</span>
+                <select aria-label="시스템 텍스트 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeSystemText?.id ?? ''}
+                  onChange={event => setSystemTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 시스템 텍스트</option>
+                  {activeMeasureSystemText.map((text, index) => (
+                    <option key={text.id} value={text.id}>{index + 1}. {text.measureId === activeGlobalMeasureAlias ? '전체' : '보표'}: {text.text}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
                 <span>시스템 텍스트</span>
                 <input
                   aria-label="시스템 텍스트"
-                  defaultValue={activeMeasureSystemText?.text ?? ''}
+                  defaultValue={activeSystemText?.text ?? ''}
                   disabled={!canEditMeasureNotation}
                   key={`${activeMeasureId}-${
-                    activeMeasureSystemText?.text ?? ''
+                    activeSystemText?.id ?? 'new'
+                  }-${
+                    activeSystemText?.text ?? ''
                   }-system-text`}
                   maxLength={80}
                   onBlur={(event) =>
@@ -6055,7 +6170,7 @@ export const App = () => {
                       event.currentTarget.blur()
                     } else if (event.key === 'Escape') {
                       event.currentTarget.value =
-                        activeMeasureSystemText?.text ?? ''
+                        activeSystemText?.text ?? ''
                       event.currentTarget.blur()
                     }
                   }}
@@ -6065,12 +6180,24 @@ export const App = () => {
               </label>
 
               <label>
+                <span>표현 텍스트 선택</span>
+                <select aria-label="표현 텍스트 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeExpressionText?.id ?? ''}
+                  onChange={event => setExpressionTextTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 표현 텍스트</option>
+                  {activeMeasureExpressionTexts.map((text, index) => (
+                    <option key={text.id} value={text.id}>{index + 1}. {text.tick}틱: {text.text}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
                 <span>표현 텍스트</span>
                 <input
                   aria-label="표현 텍스트"
                   defaultValue={activeExpressionText?.text ?? ''}
                   disabled={!canEditMeasureNotation}
-                  key={`${activeMeasureId}-${activeTick}-${
+                  key={`${activeMeasureId}-${activeExpressionText?.id ?? activeTick}-${
                     activeExpressionText?.text ?? ''
                   }-expression-text`}
                   maxLength={80}
@@ -6089,6 +6216,18 @@ export const App = () => {
                   placeholder="espressivo"
                   type="text"
                 />
+              </label>
+
+              <label>
+                <span>셈여림 선택</span>
+                <select aria-label="셈여림 객체 선택" disabled={!canEditMeasureNotation}
+                  value={activeMeasureDynamic?.id ?? ''}
+                  onChange={event => setDynamicTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 셈여림</option>
+                  {activeMeasureDynamics.map((dynamic, index) => (
+                    <option key={dynamic.id} value={dynamic.id}>{index + 1}. {dynamic.value}</option>
+                  ))}
+                </select>
               </label>
 
               <label>
@@ -6303,11 +6442,23 @@ export const App = () => {
               </label>
 
               <label>
+                <span>코드 심벌 선택</span>
+                <select aria-label="코드 심벌 객체 선택"
+                  value={activeHarmony?.id ?? ''}
+                  onChange={event => setHarmonyTarget({ measureId: activeMeasureId, id: event.currentTarget.value })}>
+                  <option value="">새 코드 심벌</option>
+                  {activeMeasureHarmonies.map((harmony, index) => (
+                    <option key={harmony.id} value={harmony.id}>{index + 1}. {harmony.text}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
                 <span>코드 심벌</span>
                 <input
                   aria-label="코드 심벌"
                   defaultValue={activeHarmony?.text ?? ''}
-                  key={`${activeMeasureId}-${activeTick}-${
+                  key={`${activeMeasureId}-${activeTick}-${activeHarmony?.id ?? 'new'}-${
                     activeHarmony?.text ?? ''
                   }-harmony`}
                   maxLength={24}
@@ -7626,6 +7777,7 @@ export const App = () => {
             onSelectEvent={selectEvent}
             onSelectEventRange={selectEventRange}
             onSelectLyric={selectLyric}
+            onSelectObject={selectNotationObject}
             onSelectMeasure={selectMeasure}
             onOpenMeasureContextMenu={openMeasureContextMenu}
             score={pdfExporting ? printScore : displayScore}
@@ -7699,7 +7851,7 @@ export const App = () => {
                 { label: '코드', value: activeHarmony?.text, update: updateHarmonyText },
                 { label: '연습표', value: activeMeasureRehearsalMark?.text, update: updateActiveRehearsalMark },
                 { label: '보표 글자', value: activeMeasureStaffText?.text, update: updateActiveStaffText },
-                { label: '시스템 텍스트', value: activeMeasureSystemText?.text, update: updateActiveSystemText },
+                { label: '시스템 텍스트', value: activeSystemText?.text, update: updateActiveSystemText },
                 { label: '표현 텍스트', value: activeExpressionText?.text, update: updateActiveExpressionText }
               ].map((property) => (
                 <label className="selection-properties__edit" key={property.label}>
@@ -9016,16 +9168,55 @@ function describeSelectionObjectFilter(
   return selectionObjectFilterOptions.find(([value]) => value === filter)?.[1] ?? '없음'
 }
 
+function getSelectedMeasureMarkingId(
+  score: Score,
+  measureId: string,
+  filter: SelectionObjectTypeFilter,
+  targets: {
+    dynamicTarget?: { measureId: string; id: string }
+    expressionTextTarget?: { measureId: string; id: string }
+    harmonyTarget?: { measureId: string; id: string }
+    rehearsalTarget?: { measureId: string; id: string }
+    staffTextTarget?: { measureId: string; id: string }
+    systemTextTarget?: { measureId: string; id: string }
+  }
+): string | undefined {
+  const target =
+    filter === 'dynamics' ? targets.dynamicTarget :
+      filter === 'harmonies' ? targets.harmonyTarget :
+        filter === 'expressionTexts' ? targets.expressionTextTarget :
+          filter === 'rehearsalMarks' ? targets.rehearsalTarget :
+            filter === 'staffTexts' ? targets.staffTextTarget :
+              filter === 'systemTexts' ? targets.systemTextTarget :
+                undefined
+
+  if (target?.measureId !== measureId || !target.id) {
+    return undefined
+  }
+
+  const exists =
+    filter === 'dynamics' ? score.dynamics?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+      filter === 'harmonies' ? score.harmonies?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+        filter === 'expressionTexts' ? score.expressionTexts?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+          filter === 'rehearsalMarks' ? score.rehearsalMarks?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+            filter === 'staffTexts' ? score.staffTexts?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+              filter === 'systemTexts' ? score.systemTexts?.some(mark => mark.measureId === measureId && mark.id === target.id) :
+                false
+
+  return exists ? target.id : undefined
+}
+
 function buildMeasureObjectDeleteCommand(
   score: Score,
   measureId: string,
-  filter: SelectionObjectTypeFilter
+  filter: SelectionObjectTypeFilter,
+  selectedId?: string
 ): ScoreCommand | undefined {
-  if (isTextMarkingType(filter)) return buildTextMarkingDeleteCommand(score, measureId, filter)
+  if (isTextMarkingType(filter)) return buildTextMarkingDeleteCommand(score, measureId, filter, selectedId)
   if (filter === 'dynamics') {
     const currentDynamics = score.dynamics ?? []
     const dynamics = currentDynamics.filter(
-      (dynamic) => dynamic.measureId !== measureId
+      (dynamic) => selectedId === undefined ? dynamic.measureId !== measureId : dynamic.id !== selectedId
     )
 
     if (dynamics.length === currentDynamics.length) {
@@ -9041,7 +9232,7 @@ function buildMeasureObjectDeleteCommand(
   if (filter === 'harmonies') {
     const currentHarmonies = score.harmonies ?? []
     const harmonies = currentHarmonies.filter(
-      (harmony) => harmony.measureId !== measureId
+      (harmony) => selectedId === undefined ? harmony.measureId !== measureId : harmony.id !== selectedId
     )
 
     if (harmonies.length === currentHarmonies.length) {
@@ -9060,23 +9251,24 @@ function buildMeasureObjectDeleteCommand(
 function buildMeasureMarkingClipboard(
   score: Score,
   measureId: string,
-  filter: SelectionObjectTypeFilter
+  filter: SelectionObjectTypeFilter,
+  selectedId?: string
 ): MeasureMarkingClipboard | undefined {
-  if (isTextMarkingType(filter)) return buildTextMarkingClipboard(score, measureId, filter)
+  if (isTextMarkingType(filter)) return buildTextMarkingClipboard(score, measureId, filter, selectedId)
   if (filter === 'dynamics') {
     const dynamics = (score.dynamics ?? []).filter(
-      (dynamic) => dynamic.measureId === measureId
+      (dynamic) => dynamic.measureId === measureId && (selectedId === undefined || dynamic.id === selectedId)
     )
 
-    return dynamics.length > 0 ? { type: 'dynamics', dynamics } : undefined
+    return dynamics.length > 0 ? { type: 'dynamics', dynamics, scope: selectedId === undefined ? 'measure' : 'object' } : undefined
   }
 
   if (filter === 'harmonies') {
     const harmonies = (score.harmonies ?? []).filter(
-      (harmony) => harmony.measureId === measureId
+      (harmony) => harmony.measureId === measureId && (selectedId === undefined || harmony.id === selectedId)
     )
 
-    return harmonies.length > 0 ? { type: 'harmonies', harmonies } : undefined
+    return harmonies.length > 0 ? { type: 'harmonies', harmonies, scope: selectedId === undefined ? 'measure' : 'object' } : undefined
   }
 
   return undefined
@@ -9090,9 +9282,11 @@ function buildMeasureMarkingPasteCommand(
 ): ScoreCommand | undefined {
   if ('marks' in clipboard) return buildTextMarkingPasteCommand(score, targetMeasureId, clipboard, createId)
   if (clipboard.type === 'dynamics') {
-    const otherDynamics = (score.dynamics ?? []).filter(
-      (dynamic) => dynamic.measureId !== targetMeasureId
-    )
+    const otherDynamics = clipboard.scope === 'object'
+      ? score.dynamics ?? []
+      : (score.dynamics ?? []).filter(
+        (dynamic) => dynamic.measureId !== targetMeasureId
+      )
     const dynamics = [
       ...otherDynamics,
       ...clipboard.dynamics.map((dynamic) => ({
@@ -9108,9 +9302,11 @@ function buildMeasureMarkingPasteCommand(
     }
   }
 
-  const otherHarmonies = (score.harmonies ?? []).filter(
-    (harmony) => harmony.measureId !== targetMeasureId
-  )
+  const otherHarmonies = clipboard.scope === 'object'
+    ? score.harmonies ?? []
+    : (score.harmonies ?? []).filter(
+      (harmony) => harmony.measureId !== targetMeasureId
+    )
   const harmonies = [
     ...otherHarmonies,
     ...clipboard.harmonies.map((harmony) => ({

@@ -2287,6 +2287,315 @@ Next: preserve scoped system text through model/serializer/renderer and round-tr
 do not solve this Required contract only by adding a warning. Scope switching,
 new global-object creation and arbitrary-tick identity remain incomplete.
 
+### 2026-09-16 Scoped System Text MusicXML Slice
+
+Worktree: `/private/tmp/chromatics-scoped-text-20260916`, branch
+`feature/chromatics-scoped-text-20260916`, base `d56208d` from `origin/main`.
+The original dirty in-c worktree was not modified. PR #761, #762 and #764 were
+verified merged; `v0.1.0-alpha.15` remains a published unsigned prerelease, not
+expanded V1 or RC completion.
+
+Implementation: concrete staff-owned system text now exports on its owning staff
+with MusicXML `system="none"` and the existing bold system-text words marker.
+Chromatics imports that local marker back into `score.systemTexts`, while generic
+`only-top`/legacy `yes` still import as global system text and ordinary `none`
+words remain staff text. This preserves the previous standard relation behavior
+while allowing Chromatics-authored lower/non-primary system text to round-trip.
+The text clipboard guard that rejected non-primary system text paste was removed
+after the scoped round-trip contract was added. Follow-up App work adds a system
+text object chooser next to the existing rehearsal chooser; selecting one object
+edits or deletes only that ID, preserving neighboring system text objects in the
+same measure. This is not explicit scope-switching UI, arbitrary tick identity,
+list/range object selection, or external-app fidelity signoff.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/musicxml/system-text-relation.test.ts -t "preserves concrete lower-staff system text"` | Pass | First attempt failed because the new test used empty measures and hit serializer rhythm validation; the test was corrected to use `expanded-v1-part-export.musicxml`. The final test covers a global text, upper/lower staff concrete text and identical strings in different positions. |
+| `npm test -- src/renderer/src/editor/text-marking-clipboard.test.ts -t "systemTexts"` | Pass | System text clipboard now targets another part/staff and reopens through MusicXML without the old non-primary guard. |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected system text"` | Pass | 2 App tests pass; selected first/second system text edits one object, undo restores the original score, deleting the selected second object preserves the first, and MusicXML round-trip keeps the selected-object result. |
+| `npm test -- src/musicxml/system-text-relation.test.ts src/musicxml/scoped-rehearsal.test.ts src/musicxml/part-markings.test.ts src/renderer/src/editor/text-marking-clipboard.test.ts` | Pass | 4 files / 16 tests passed; scoped rehearsal and part/staff annotation ownership remained intact. |
+| `npm run typecheck` | Pass | Initial typecheck caught an undefined `words` node guard in the new local-system-text classifier; later App changes also caught one stale array property access. Both were fixed and reruns passed. |
+| `npm test` | Pass | Latest rerun after the passive lower-staff print-layout renderer slice: 61 files passed / 1 skipped; 715 tests passed / 1 skipped. |
+| `npm run verify:musicxml-fixtures` | Pass | External fixture QA command passed; 1 test passed / 58 skipped in the targeted fixture suite. |
+| `npm run build` | Pass | Electron/Vite app build passed, latest renderer bundle `index-CpnQV-12.js`. |
+| `npm run verify:visual-regression` | Fail, then Pass | First sandbox run passed 84 unit/layout tests but Electron snapshot exited with `SIGABRT` after downloading the binary. Elevated reruns passed; latest run still passes 84 unit/layout tests and writes 960/1400 screenshots under `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/`. |
+| `node scripts/verify-site-content.mjs` | Fail, then Pass | First run failed because `out/site/download-manifest.json` was absent in the fresh worktree. `npm run site:build` generated the site bundle, then site-content verification passed. |
+| `git diff --check` | Pass | No whitespace errors. |
+| `curl -I -L https://in-c.mannlab.app/chromatics.html` | Pass | Production Chromatics page returned HTTP 200, last-modified `Tue, 15 Sep 2026 08:43:19 GMT`. |
+| `curl -L https://in-c.mannlab.app/download-manifest.json` | Pass | Production manifest reports `0.1.0-alpha.15`, release tag `v0.1.0-alpha.15`, macOS DMG and Windows installer links. |
+| `gh run list --branch main --limit 10 --json ...` | Pass | Latest `Site` and `CI` on main at `d56208d` both succeeded. |
+
+Still Required: explicit global/local scope editing, arbitrary tick identity,
+list/range object selection, external app reopen behavior and renderer/PDF human
+QA remain separate Required work. Fresh package, native dialog, signed installer,
+external-app GUI and human PDF/engraving gates were not run for this small slice.
+
+### 2026-09-16 Expression Text Lower-Staff Timing Slice
+
+Implementation: no parser code change was needed beyond the existing ordered
+direction-tick indexing, but new coverage now pins a grand-staff lower staff case
+where measure 2 inherits divisions from measure 1, uses `<backup>`, places the
+expression text on staff 2 after a lower-staff quarter rest and adds a positive
+offset. The parsed expression text remains owned by the lower staff measure,
+round-trips through MusicXML, and survives native project encode/decode. An App
+workflow opens a native project containing lower-staff expression text and confirms
+the preview data exposes the lower measure ID and tick before saving the native
+project again. Follow-up renderer work stamps expression SVG text with `data-tick`
+and adds an Electron harness that checks screen and PDF print-layout x-position
+against the musical tick, writes a real PDF and verifies native readback. This is
+bounded renderer/PDF artifact evidence, not external-app visual comparison or the
+broader list/range text-selection contract.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/musicxml/expression-text-tick.test.ts` | Fail, then Pass | First new fixture used an invalid non-dotted half rest for duration 6; after adding `<dot/>`, the test exposed only an over-specific generated ID expectation. Final run passed 4 tests. |
+| `npm test -- src/musicxml/expression-text-tick.test.ts src/renderer/src/App.test.tsx -t "expression text\\|selected system text"` | Pass | 2 files / 7 tests passed; includes expression text lower-staff native/App preview plus system-text chooser regression. |
+| `npm run typecheck` | Pass | Expression/App changes passed typecheck. |
+| `node --check scripts/verify-expression-text-pdf.cjs` | Pass | New bounded Electron/PDF harness parses as valid CommonJS. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/musicxml/expression-text-tick.test.ts` | Pass | 2 files / 6 tests passed after adding expression-text renderer tick metadata. |
+| `npm run verify:expression-text-pdf` | Fail, then Pass | First sandbox run built successfully but Electron exited with `SIGABRT`. Elevated rerun passed and wrote `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-expression-text-k8UkjM/expression-text.pdf` plus a screen PNG. Screen and PDF print-layout DOM both showed `cantabile` on lower-staff `bass-measure-2` at `data-tick="20160"` with x-position matching tick 1.5 quarters, aligned to the upper measure, below the lower-staff measure target, and native save readback preserved the expression text. |
+| `npm test` | Pass | Current full suite passed after expression-text PDF harness and renderer tick metadata: 61 files passed / 1 skipped; 715 tests passed / 1 skipped. |
+| `npm run verify:visual-regression` | Pass | 84 MusicXML/system-layout tests passed and notation snapshots remained unchanged at 960/1400px after adding expression text `data-tick`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports `automationQueueDrained: false` with remaining Required rows. |
+
+Still Required: lower-staff expression text external app visual exchange and
+broader list/range text selection remain open under the parent Required rows.
+
+### 2026-09-16 Expression Text Object Chooser Slice
+
+Implementation: the Notation Objects palette now exposes `표현 텍스트 객체 선택`
+for the active measure, mirroring the rehearsal/system text chooser pattern. When
+multiple expression texts share the same measure and tick, editing or deleting a
+selected object updates by stable ID and preserves neighboring expression texts,
+their tick values and their order. Choosing `새 표현 텍스트` still creates a new
+object at the current active tick. New/open/recovery document transitions reset
+the ephemeral expression text selection along with the existing text-object
+targets. This is individual active-measure object selection; list/range selection
+and independent expression-object clipboard remain Required.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected expression text\\|selected system text\\|native reopen preview keeps lower-staff expression"` | Fail, then Pass | First run caught a TDZ regression from referencing `activeExpressionText` before declaration. After recalculating the target object inside the callback, the next run caught expression-text order churn. The final implementation preserves order and passed 5 focused App tests / 167 skipped. |
+| `npm run typecheck` | Fail, then Pass | First run reported the same block-scoped variable use-before-declaration; final rerun passed. |
+| `npm test` | Pass | Full suite after expression text chooser passed: 61 files passed / 1 skipped; 717 tests passed / 1 skipped. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed after documentation updates; queue still reports `automationQueueDrained: false` with remaining Required rows. |
+| `npm run build` | Pass | Production Electron/Vite build passed after the expression text chooser UI change; latest renderer bundle `index-B03H2U1t.js`. |
+
+Still Required: direct score-object selection, expression text list/range
+selection, expression-object clipboard and external app visual exchange.
+
+### 2026-09-16 Staff Text Object Chooser Slice
+
+Implementation: the Notation Objects palette now exposes `보표 글자 객체 선택`
+for the active measure. Editing or deleting a selected staff text updates by
+stable ID and preserves neighboring staff text objects, order and MusicXML/native
+round-trip. Choosing `새 보표 글자` still creates a new object at the active
+measure. New/open/recovery document transitions reset the ephemeral staff text
+selection alongside rehearsal/system/expression targets. This is active-measure
+individual object editing, not list/range selection or independent object
+clipboard.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected staff text\\|selected expression text\\|selected system text"` | Pass | 6 focused App tests passed / 168 skipped. Staff text selector edits the first or second same-measure object, preserves the neighbor, supports delete of the selected second object, undo restores the original score, and MusicXML round-trip keeps text/measure ownership. |
+| `npm run typecheck` | Pass | Staff text chooser state and App changes passed typecheck. |
+| `npm test` | Pass | Full suite after the staff text chooser passed: 61 files passed / 1 skipped; 719 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after the staff text chooser UI change; latest renderer bundle `index-iTWJFFpL.js`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Site content manifest/product relation guard and whitespace gate passed after the staff text chooser documentation update. |
+
+Still Required: direct score-object selection, staff/system/expression text
+list/range selection and independent object clipboard.
+
+### 2026-09-16 Dynamics Object Chooser Slice
+
+Implementation: the Notation Objects palette now exposes `셈여림 객체 선택`
+for the active measure. Editing or clearing the dynamics select updates the
+selected dynamic by stable ID, preserves neighboring same-measure dynamics and
+keeps the existing new-dynamic flow through the `새 셈여림` option. New/open/
+recovery document transitions reset the ephemeral dynamic selection alongside the
+existing rehearsal/text object targets. This is active-measure individual object
+editing, not direct score-object selection, list/range selection or independent
+object clipboard.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected dynamic\\|selected staff text\\|selected expression text\\|selected system text"` | Fail, then Pass | First run exposed an ambiguous test query because both the Notation Objects toolbar and selection summary expose a dynamics select. The test now targets the toolbar select explicitly. Final run passed 8 focused App tests / 168 skipped, including editing first/second dynamics, deleting the selected second dynamic, undo/native save and MusicXML round-trip without replacing neighboring dynamics. |
+| `npm run typecheck` | Pass | Dynamic target state, chooser UI and App tests passed typecheck. |
+| `npm test` | Pass | Full suite after the dynamics chooser passed: 61 files passed / 1 skipped; 721 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after the dynamics chooser UI change; latest renderer bundle `index-BBaMkh2x.js`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Site content manifest/product relation guard and whitespace gate passed after the dynamics chooser documentation update. |
+
+Still Required: direct score-object selection, dynamics/text list/range
+selection and independent object clipboard.
+
+### 2026-09-16 Chord Symbol Object Chooser Slice
+
+Implementation: the Lyrics/Chords code panel now exposes `코드 심벌 객체 선택`
+for the active measure/tick. Editing or clearing the chord symbol input updates
+the selected harmony by stable ID, preserves neighboring same-tick chord symbols
+and keeps the existing new-chord flow through the `새 코드 심벌` option. New/open/
+recovery document transitions reset the ephemeral chord selection alongside the
+existing notation object targets. This is active-measure/tick individual object
+editing, not direct score-object selection, list/range selection or independent
+object clipboard.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected chord symbol\\|selected dynamic\\|selected staff text\\|selected expression text\\|selected system text"` | Pass | 10 focused App tests passed / 168 skipped. The chord symbol case edits the first or second same-measure/same-tick harmony, preserves the neighbor, supports delete of the selected second object, undo restores the original score, and MusicXML round-trip keeps text/tick ownership. |
+| `npm run typecheck` | Pass | Harmony target state, chooser UI and App tests passed typecheck. |
+| `npm test` | Pass | Full suite after the chord symbol chooser passed: 61 files passed / 1 skipped; 723 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after the chord symbol chooser UI change; latest renderer bundle `index-BAMbILrP.js`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Site content manifest/product relation guard and whitespace gate passed after the chord symbol chooser documentation update. |
+
+Still Required: direct score-object selection, chord/dynamics/text list/range
+selection and independent object clipboard.
+
+### 2026-09-16 Selected Object Clipboard Slice
+
+Implementation: measure-object copy/delete can now honor the active object
+chooser instead of always operating on every object of the filtered type in the
+measure. Chord symbols and dynamics use the selected stable ID for the actual
+File-mode copy/paste/delete workflow; object-scope paste appends the copied
+object with a fresh ID and preserves existing target-measure neighbors. The shared
+text marking clipboard helper also supports selected single-object snapshot and
+delete without replacing target-measure neighbors. This is still a bounded
+active-measure workflow, not direct score-object clicking or list/range object
+selection.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste\\|selected chord symbol\\|selected dynamic"` | Pass | 5 focused App tests passed / 174 skipped. The object-filter workflow selected the second chord and second dynamic, copied them through File-mode object filters, pasted them into measure 2 while preserving target neighbors, then deleted the selected target-neighbor chord/dynamic only. |
+| `npm test -- src/renderer/src/editor/text-marking-clipboard.test.ts src/renderer/src/App.test.tsx -t "selected text object\\|object filter copy paste\\|independent measure text clipboard\\|selected chord symbol\\|selected dynamic"` | Pass | 2 files passed; 11 tests passed / 174 skipped. The helper test snapshots one selected staff text, appends it to a target measure without replacing an existing target text, deletes only a selected target text, and verifies undo restores it. |
+| `npm test -- src/renderer/src/App.test.tsx -t "selected .*object clipboard\\|object filter copy paste\\|text marking filter"` | Pass | 9 focused App tests passed / 174 skipped. Staff text, system text, rehearsal mark and expression text each use the object chooser, File-mode object filter copy, target-measure paste and selected target-neighbor delete while preserving source objects and the pasted selected object. |
+| `npm run typecheck` | Pass | Selected-object clipboard scope changes passed typecheck. |
+| `npm test` | Fail, then Pass | First full-suite run exposed stale object-target state after measure-level paste: a removed target harmony ID was still treated as an active selected object and prevented the legacy whole-measure delete path from running. The final implementation validates that a chooser target still exists in the current score before using object-scope copy/delete. Rerun passed: 61 files passed / 1 skipped; 725 tests passed / 1 skipped. |
+| `npm test` | Pass | Full suite after extending selected text-object App coverage passed: 61 files passed / 1 skipped; 729 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after selected-object clipboard changes; latest renderer bundle `index-DlGoYH_m.js`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Site content manifest/product relation guard and whitespace gate passed after selected-object clipboard documentation updates. |
+
+Still Required: direct score-object selection, full UI clipboard coverage for all
+text/object types, list/range object selection and broader independent object
+clipboard.
+
+### 2026-09-16 Direct Chord/Dynamic Score-Object Selection Slice
+
+Implementation: visible chord symbol and dynamic SVG annotations now expose a
+stable `data-object-id` and call back into the App when clicked. Clicking a chord
+symbol selects its measure, opens the Lyrics/Chords workflow and targets the
+clicked harmony object; clicking a dynamic selects its measure, opens Notation
+Objects and targets the clicked dynamic. This is the first bounded direct
+score-object selection path. Text objects, list/range object selection and
+broader independent-object editing remain Required.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/App.test.tsx -t "direct score-object selection\\|direct notation object click\\|exposes chord and dynamic object ids"` | Pass | 2 files passed; 2 tests passed / 185 skipped. The renderer test verifies chord/dynamic annotations carry stable object IDs and invoke `onSelectObject`; the App test clicks score objects, verifies the correct workflow tab and chooser target, edits the clicked objects and saves only the selected chord/dynamic changes. |
+| `npm run typecheck` | Pass | Direct object-selection prop, renderer handler and App callback passed typecheck. |
+| `npm test` | Pass | Full suite after direct chord/dynamic score-object selection passed: 61 files passed / 1 skipped; 731 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after renderer object-click changes; latest renderer bundle `index-CqOgwRUh.js`. |
+| `npm run verify:visual-regression` | Pass | 84 MusicXML/system-layout tests and unchanged 960/1400 notation snapshots passed; SVG object metadata/click handlers did not change visual baselines. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy` | Pass | Queue and save-policy guards passed; queue still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Site content manifest/product relation guard and whitespace gate passed after direct-selection documentation updates. |
+
+Still Required: direct score-object selection for staff/system/rehearsal/
+expression text, list/range object selection and broader independent object
+clipboard.
+
+### 2026-09-16 Direct Text Score-Object Selection Slice
+
+Implementation: visible rehearsal mark, staff text, system text and expression
+text SVG annotations now expose stable `data-object-id` metadata and call the
+same direct object-selection path as chord symbols and dynamics. Clicking one of
+those visible text objects selects its measure, opens Notation Objects and targets
+the clicked object in the matching active-measure chooser, so editing preserves
+neighboring objects in the same measure. Staff text remains bounded to the
+currently rendered staff-text object for the measure; multi-object/lane rendering,
+list/range object selection and broader independent-object clipboard remain
+Required.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "direct notation object click\|exposes text object ids\|exposes chord and dynamic object ids"` | Pass | 2 files passed; 7 tests passed / 185 skipped. The real renderer test verifies rehearsal/staff/system/expression text objects carry stable object IDs and invoke `onSelectObject`; the App tests click visible text objects, verify Notation Objects mode and chooser target, edit the clicked object and save only that object while preserving its same-measure neighbor. Existing chord/dynamic direct-selection evidence still passes. |
+| `npm run typecheck` | Pass | Extended direct object-selection prop, App callback and text-object tests passed TypeScript. |
+| `npm test` | Fail, then Pass | First full-suite rerun exposed a race-prone lower-staff expression text native-save test that used the global shortcut immediately after native reopen and observed a missing `expressionTexts` payload in one run. The test now uses the actual File-mode project save button for that native reopen check. Rerun passed: 61 files passed / 1 skipped; 736 tests passed / 1 skipped. |
+| `npm run build` | Pass | Production Electron/Vite build passed after direct text-object selection and native-save test stabilization; latest renderer bundle `index-Cad5dBPi.js`. |
+| `npm run verify:chromatics-v1-work-queue`, `npm run verify:chromatics-v1-save-policy`, `git diff --check` | Pass | Queue guard still reports 69 rows, 16 Required umbrellas and `automationQueueDrained: false`; save-policy guard still reports expanded native lifecycle incomplete; whitespace gate passed. |
+
+Still Required: staff text multi-object/lane rendering, list/range object
+selection, cross-measure selection and broader independent object clipboard.
+
+### 2026-09-16 Passive Lower-Staff Attachment Preview Slice
+
+Implementation: no production renderer change was needed in this slice. The App
+preview test double now exposes grace-note markers alongside existing fermata,
+breath/caesura, tremolo and ornament markers. A native project workflow attaches
+fermata, caesura, grace note, `trill`/`mordent`/`turn` and single-note tremolo to
+a Piano lower-staff note, opens it through the app shell, verifies every marker
+is still associated with that lower-staff event in the preview data, then saves
+the native project and verifies the same event still carries those attachments.
+Follow-up renderer work stamps passive attachment SVG markers with the source
+event id and adds real `NotationPreview` tests for lower-staff fermata, caesura,
+tremolo, ornaments and grace-note markers in both screen and print-layout paths.
+The new `verify:passive-attachments-pdf` harness opens a native lower-staff
+passive attachment fixture in Electron, verifies screen and PDF print-layout DOM
+markers carry the lower-staff event id, writes a real `printToPDF` file and checks
+native JSON readback. Follow-up placement polish lifts ornaments above fermatas
+and moves breath/caesura marks to the right when a fermata is present; the PDF
+harness now fails on marker-box overlap in this bounded fixture. This is a bounded
+automated PDF-file smoke, not a broad generated-PDF fixture matrix or human
+engraving signoff.
+
+Verification:
+
+| 명령 | 결과 | 비고 |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "passive lower-staff\\|expression text\\|selected system text"` | Pass | 1 file / 4 focused tests passed; includes lower-staff passive attachment preview/native check plus the preceding system/expression text regressions. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` | Fail, then Pass | First attempt exposed jsdom/VexFlow fixture/test-environment gaps: empty voice formatter failure, missing SVG `getBBox`, and canvas text metrics. The final renderer test uses a rhythmically complete lower-staff fixture and local canvas/SVG stubs, then verifies fermata, caesura, tremolo, ornament and grace SVG markers carry the lower-staff event id in screen and print-layout paths. Latest focused run passed 1 file / 2 tests. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/App.test.tsx -t "passive lower-staff\\|NotationPreview passive"` | Pass | Latest focused run passed 2 files; 3 tests passed / 169 skipped, covering actual screen/print renderer event-id stamping and App/native preview ownership. |
+| `npm run typecheck` | Pass | Passive attachment test-helper change and App tests passed typecheck. |
+| `npm run verify:visual-regression` | Fail, update, then Pass | The renderer metadata change intentionally changed the fermata snapshot id from the glyph `𝄐` to the source event id `m1-c4`; positions, sizes, event count and SVG dimensions were unchanged. `npm run verify:notation-snapshots:update` updated `docs/testing/notation-snapshot-baseline.json`, and the follow-up visual regression passed 84 MusicXML/system-layout tests plus 960/1400 notation snapshots. |
+| `npm test` | Pass | 61 files passed / 1 skipped; 715 tests passed / 1 skipped after the passive lower-staff print-layout renderer slice. |
+| `npm run build` | Pass | Electron/Vite production build passed with bundle `index-CpnQV-12.js`. |
+| `npm run verify:e2e` | Pass | Current Electron MVP workflow passed after build, including existing keyboard/selection, toolbar mode sweep, grand-staff preview, part-view XML export, mixer and release bounds checks. A temporary attempt to extend this script for lower-staff passive-attachment insertion was not kept because the current new-score E2E path selects a lower-staff full-measure rest and did not provide reliable fermata/caesura/tremolo/ornament insertion evidence; that UI-level insertion coverage remains a separate Required task. |
+| `npm run verify:musicxml-fixtures` | Pass | External fixture QA command passed after the passive lower-staff preview slice. |
+| `npm run verify:visual-regression` | Pass | Current rerun passed 84 MusicXML/system-layout tests plus unchanged 960/1400 notation snapshots. |
+| `node scripts/verify-site-content.mjs` | Pass | Current site content manifest/product relation/feature map path verification passed. |
+| `git diff --check` | Pass | Whitespace gate passed before the final documentation consistency edits. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue schema/status passed after documentation edits; 69 rows, 16 Required umbrellas, `automationQueueDrained: false`, with remaining automatable Required rows. |
+| `npm run verify:chromatics-v1-save-policy` | Pass | Save-policy guard still reports MusicXML/MXL plus first native slice implemented and expanded native lifecycle incomplete. |
+| `node scripts/verify-site-content.mjs`, `git diff --check` | Pass | Final documentation consistency rerun passed site content and whitespace gates. |
+| `node --check scripts/verify-passive-attachments-pdf.cjs` | Pass | New bounded Electron/PDF harness parses as valid CommonJS. |
+| `npm run verify:passive-attachments-pdf` | Fail, then Pass | First sandbox run built successfully but Electron exited with `SIGABRT`. Elevated rerun passed and wrote `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-passive-attachments-LsfEeJ/passive-attachments.pdf` plus a screen PNG. Screen and PDF print-layout markers for fermata, caesura, tremolo, ornaments and grace notes all retained `data-event-id="lower-staff-marked-note"` and native save readback preserved those attachments. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` | Pass | After placement polish, screen and print-layout renderer tests still pass and additionally assert ornaments sit at least 24px above the fermata anchor while breath/caesura sits at least 24px to the right. |
+| `npm run verify:passive-attachments-pdf` | Pass | Elevated rerun after adding overlap assertions passed and wrote `/var/folders/7t/fwnpt1816d1_v7lympf0jnsw0000gn/T/chromatics-passive-attachments-8pdsLZ/passive-attachments.pdf`. Screen and print-layout marker boxes no longer overlap in the bounded lower-staff same-note fixture: ornament y moved to 160 and caesura x moved to 130.7 while all markers retained the lower-staff event id. |
+| `npm test` | Pass | Full suite after passive marker placement polish passed: 61 files passed / 1 skipped; 715 tests passed / 1 skipped. |
+| `npm run verify:visual-regression` | Pass | 84 MusicXML/system-layout tests and 960/1400 notation snapshots passed after the passive marker placement change. |
+
+Still Required: broader renderer/PDF fixture matrix for lower-staff fermata,
+breath, grace, ornament and tremolo placement and human engraving review.
+
 ### 2026-09-15 User-Approved Integration Checkpoint
 
 The user requested commit, push and merge of the current development worktree.

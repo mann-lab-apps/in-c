@@ -19,8 +19,7 @@ describe('independent measure text clipboard', () => {
         }
       }
       score.parts.push(targetPart)
-      const global = type === 'systemTexts'
-      const target = global ? score.parts[0].staves[0].measures[1] : targetPart.staves[0].measures[0]
+      const target = targetPart.staves[0].measures[0]
       const marks = [{ id: 'copy-source', measureId: source.id, text: 'source text' },
         { id: 'replace-target', measureId: target.id, text: 'old target' }]
       if (type === 'expressionTexts') score.expressionTexts = marks.map(mark => ({ ...mark, tick: 13440 }))
@@ -37,8 +36,7 @@ describe('independent measure text clipboard', () => {
       expect(decodeNativeProject(encodeNativeProject(createNativeProject(pasted.score))).score).toEqual(JSON.parse(JSON.stringify(pasted.score)))
       const reopened = parseMusicXml(serializeMusicXml(pasted.score))
       expect(reopened[type]).toContainEqual(expect.objectContaining({ text: 'source text',
-        measureId: global ? `measure-${target.number}` : reopened.parts[1].staves[0].measures[0].id }))
-      if (global) expect(buildTextMarkingPasteCommand(score, targetPart.staves[0].measures[0].id, clipboard, () => 'unsupported')).toBeUndefined()
+        measureId: reopened.parts[1].staves[0].measures[0].id }))
       const deletion = buildTextMarkingDeleteCommand(pasted.score, target.id, type)!
       const deleted = applyScoreCommand(pasted.score, deletion)
       expect(deleted.score[type]).toHaveLength(1)
@@ -66,5 +64,31 @@ describe('independent measure text clipboard', () => {
     expect(buildTextMarkingPasteCommand(score, target.id, clipboard, () => 'duplicate')).toBeUndefined()
     expect(buildTextMarkingPasteCommand(score, 'missing', clipboard, () => 'bad')).toBeUndefined()
     expect(score).toEqual(before)
+  })
+
+  it('copies and deletes one selected text object without replacing target neighbors', () => {
+    const score = parseMusicXml(fixture)
+    const [source, target] = score.parts[0].staves[0].measures
+    score.staffTexts = [
+      { id: 'source-one', measureId: source.id, text: 'dolce' },
+      { id: 'source-two', measureId: source.id, text: 'cantabile' },
+      { id: 'target-keep', measureId: target.id, text: 'marcato' }
+    ]
+    const clipboard = buildTextMarkingClipboard(score, source.id, 'staffTexts', 'source-two')!
+    expect(clipboard.marks).toEqual([{ id: 'source-two', measureId: source.id, text: 'cantabile' }])
+    const pasted = applyScoreCommand(score, buildTextMarkingPasteCommand(score, target.id, clipboard, () => 'selected')!)
+    expect(pasted.score.staffTexts).toEqual([
+      { id: 'source-one', measureId: source.id, text: 'dolce' },
+      { id: 'source-two', measureId: source.id, text: 'cantabile' },
+      { id: 'target-keep', measureId: target.id, text: 'marcato' },
+      { id: 'text-selected', measureId: target.id, text: 'cantabile' }
+    ])
+    const deleted = applyScoreCommand(pasted.score, buildTextMarkingDeleteCommand(pasted.score, target.id, 'staffTexts', 'target-keep')!)
+    expect(deleted.score.staffTexts).toEqual([
+      { id: 'source-one', measureId: source.id, text: 'dolce' },
+      { id: 'source-two', measureId: source.id, text: 'cantabile' },
+      { id: 'text-selected', measureId: target.id, text: 'cantabile' }
+    ])
+    expect(applyScoreCommand(deleted.score, deleted.undo).score).toEqual(pasted.score)
   })
 })

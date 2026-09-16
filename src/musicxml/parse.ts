@@ -210,8 +210,11 @@ function parseMusicXmlDocument(document: XmlNode): Score {
   const tempo = readTempoMarking(primaryMeasureNodes)
   const tempoEvents = readTempoEvents(primaryMeasureNodes)
   const rhythmFeel = readRhythmFeelMarking(primaryMeasureNodes)
-  const systemTexts = readGlobalTextMarkings(parts, readSystemTexts)
   const markings = readPartStaffMarkings(parts, parsedParts)
+  const systemTexts = [
+    ...(readGlobalTextMarkings(parts, readSystemTexts) ?? []),
+    ...(markings.systemTexts ?? [])
+  ]
   const rehearsalMarks = [...(readGlobalTextMarkings(parts, readRehearsalMarks) ?? []), ...(markings.rehearsalMarks ?? [])]
 
   const score = convertOctaveShiftPitches(createScore({
@@ -223,7 +226,7 @@ function parseMusicXmlDocument(document: XmlNode): Score {
     rhythmFeel,
     ...markings,
     rehearsalMarks: rehearsalMarks.length ? rehearsalMarks : undefined,
-    systemTexts,
+    systemTexts: systemTexts.length ? systemTexts : undefined,
     layout: readLayoutBreaks(primaryMeasureNodes, parsedParts[0]?.staves[0]?.measures ?? []),
     parts: parsedParts
   }), 'display')
@@ -275,7 +278,7 @@ function readLayoutBreaks(nodes: XmlNode[], measures: Measure[]): Score['layout'
 }
 
 function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
-  type Markings = Pick<Score, 'harmonies' | 'staffTexts' | 'expressionTexts' | 'dynamics' | 'hairpins' | 'slurs' | 'octaveShifts' | 'rehearsalMarks'>
+  type Markings = Pick<Score, 'harmonies' | 'staffTexts' | 'systemTexts' | 'expressionTexts' | 'dynamics' | 'hairpins' | 'slurs' | 'octaveShifts' | 'rehearsalMarks'>
   const result: Markings = {}
   parts.forEach((part, partIndex) => {
     const nodes = toArray(partNodes[partIndex]?.measure as XmlNode | XmlNode[] | undefined)
@@ -294,6 +297,7 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
       const local: Markings = {
         harmonies: anchor(readHarmonies(staffNodes)),
         staffTexts: anchor(readStaffTexts(staffNodes)),
+        systemTexts: anchor(readLocalSystemTexts(staffNodes)),
         rehearsalMarks: anchor(readRehearsalMarks(staffNodes, true)),
         expressionTexts: anchor(readExpressionTexts(staffNodes)),
         dynamics: anchor(readDynamics(staffNodes)),
@@ -304,7 +308,7 @@ function readPartStaffMarkings(partNodes: XmlNode[], parts: Score['parts']) {
       const append = <K extends keyof Markings>(key: K) => {
         if (local[key]?.length) result[key] = [...(result[key] ?? []), ...local[key]!] as Markings[K]
       }
-      append('harmonies'); append('staffTexts'); append('expressionTexts'); append('dynamics')
+      append('harmonies'); append('staffTexts'); append('systemTexts'); append('expressionTexts'); append('dynamics')
       append('rehearsalMarks')
       append('hairpins'); append('slurs'); append('octaveShifts')
     })
@@ -780,6 +784,7 @@ function readStaffTexts(measureNodes: XmlNode[]): Score['staffTexts'] {
           !words ||
           parseRhythmFeelText(words) ||
           isSystemTextDirection(direction) ||
+          isLocalSystemTextDirection(direction, directionType) ||
           isExpressionTextDirection(direction, directionType)
         ) {
           return []
@@ -816,6 +821,43 @@ function readSystemTexts(measureNodes: XmlNode[]): Score['systemTexts'] {
       const directionTypes = readDirectionTypes(direction)
 
       return directionTypes.flatMap((directionType, typeIndex) => {
+        const words = readOptionalString(directionType, 'words')
+
+        if (!words || parseRhythmFeelText(words)) {
+          return []
+        }
+
+        return [
+          {
+            id: `${measureId}-system-text-${directionIndex + 1}${directionTypeIdSuffix(directionTypes, typeIndex)}`,
+            measureId,
+            text: words
+          }
+        ]
+      })
+    })
+  })
+
+  return texts.length > 0 ? texts : undefined
+}
+
+function readLocalSystemTexts(measureNodes: XmlNode[]): Score['systemTexts'] {
+  const texts = measureNodes.flatMap((measureNode, measureIndex) => {
+    const measureNumber =
+      readOptionalInteger(measureNode, '@_number') ?? measureIndex + 1
+    const measureId = `measure-${measureNumber}`
+    const directions = toArray(
+      measureNode.direction as XmlNode | XmlNode[] | undefined
+    )
+
+    return directions.flatMap((direction, directionIndex) => {
+      const directionTypes = readDirectionTypes(direction)
+
+      return directionTypes.flatMap((directionType, typeIndex) => {
+        if (!isLocalSystemTextDirection(direction, directionType)) {
+          return []
+        }
+
         const words = readOptionalString(directionType, 'words')
 
         if (!words || parseRhythmFeelText(words)) {
@@ -879,6 +921,13 @@ function readExpressionTexts(
 function isSystemTextDirection(direction: XmlNode): boolean {
   const relation = readOptionalString(direction, '@_system')
   return relation === 'only-top' || relation === 'also-top' || relation === 'yes'
+}
+
+function isLocalSystemTextDirection(direction: XmlNode, directionType: XmlNode): boolean {
+  const wordsNode = readOptionalNode(directionType, 'words')
+  return readOptionalString(direction, '@_system') === 'none' &&
+    wordsNode !== undefined &&
+    readOptionalString(wordsNode, '@_font-weight') === 'bold'
 }
 
 function isExpressionTextDirection(

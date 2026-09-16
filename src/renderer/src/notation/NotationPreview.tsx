@@ -108,6 +108,11 @@ interface NotationPreviewProps {
     address?: VoiceAddress
   ) => void
   onSelectLyric: (eventId: string, verse: number) => void
+  onSelectObject?: (
+    type: 'harmonies' | 'dynamics' | 'staffTexts' | 'systemTexts' | 'rehearsalMarks' | 'expressionTexts',
+    measureId: string,
+    id: string
+  ) => void
   onSelectMeasure: (measureId: string) => void
   onOpenMeasureContextMenu: (
     measureId: string,
@@ -198,6 +203,7 @@ interface RenderedStaffTarget {
 interface RenderedStaffInteraction {
   lyricScale: number
   onSelectLyric: NotationPreviewProps['onSelectLyric']
+  onSelectObject?: NotationPreviewProps['onSelectObject']
   inlineLyricEditor?: InlineLyricEditor
   selectedMeasureId?: string
   onSelectMeasure: NotationPreviewProps['onSelectMeasure']
@@ -244,6 +250,7 @@ export function NotationPreview({
   onSelectEvent,
   onSelectEventRange,
   onSelectLyric,
+  onSelectObject,
   onSelectMeasure,
   onOpenMeasureContextMenu
 }: NotationPreviewProps) {
@@ -869,7 +876,8 @@ export function NotationPreview({
         placement.y,
         annotationMaps,
         annotationLanesByMeasureId,
-        firstEventX
+        firstEventX,
+        onSelectObject
       )
     })
 
@@ -903,6 +911,7 @@ export function NotationPreview({
             inlineLyricEditor,
             selectedMeasureId,
             onSelectMeasure,
+            onSelectObject,
             onOpenMeasureContextMenu,
             measureContextTargets,
             selectedEventAddress,
@@ -1359,7 +1368,8 @@ function drawMeasureAnnotations(
   staffY: number,
   annotationMaps: MeasureAnnotationMaps,
   annotationLanesByMeasureId: Map<string, MeasureAnnotationLanes>,
-  firstEventX: number | undefined
+  firstEventX: number | undefined,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   if (!svg) {
     return
@@ -1377,7 +1387,10 @@ function drawMeasureAnnotations(
       svg,
       placement.x + 14,
       staffY + (lanes.rehearsalMarkYOffsets[index] ?? REHEARSAL_MARK_Y_OFFSET),
-      rehearsalMark.text
+      rehearsalMark.text,
+      measure.id,
+      rehearsalMark.id,
+      onSelectObject
     )
   }
 
@@ -1389,7 +1402,9 @@ function drawMeasureAnnotations(
       placement.x + 14,
       staffY + (lanes.systemTextYOffsets[index] ?? SYSTEM_TEXT_Y_OFFSET),
       systemText.text,
-      measure.id
+      measure.id,
+      systemText.id,
+      onSelectObject
     )
   }
 
@@ -1401,7 +1416,9 @@ function drawMeasureAnnotations(
       placement.x + 14,
       staffY + (lanes.staffTextYOffset ?? STAFF_TEXT_Y_OFFSET),
       staffText.text,
-      measure.id
+      measure.id,
+      staffText.id,
+      onSelectObject
     )
   }
 
@@ -1413,7 +1430,9 @@ function drawMeasureAnnotations(
       (firstEventX ?? placement.x + 88) - 2,
       staffY + (lanes.dynamicMarkYOffset ?? DYNAMIC_MARK_Y_OFFSET),
       dynamic.value,
-      measure.id
+      measure.id,
+      dynamic.id,
+      onSelectObject
     )
   }
 
@@ -1435,7 +1454,9 @@ function drawMeasureAnnotations(
       resolveTickX(placement, measure, harmony.tick),
       staffY + (lanes.harmonyMarkYOffsets[index] ?? HARMONY_MARK_Y_OFFSET),
       harmony.text,
-      measure.id
+      measure.id,
+      harmony.id,
+      onSelectObject
     )
   }
 
@@ -1447,7 +1468,10 @@ function drawMeasureAnnotations(
       resolveTickX(placement, measure, expressionText.tick),
       staffY + (lanes.expressionTextYOffsets[index] ?? EXPRESSION_TEXT_Y_OFFSET),
       expressionText.text,
-      measure.id
+      measure.id,
+      expressionText.tick,
+      expressionText.id,
+      onSelectObject
     )
   }
 }
@@ -1473,13 +1497,13 @@ function drawEventAttachments(
   interaction: Pick<RenderedStaffInteraction, 'lyricScale' | 'onSelectLyric' | 'inlineLyricEditor'>
 ): void {
   if (!svg || !event) return
-  if (event.fermata) drawFermata(svg, x, y)
-  if (event.breathMark) drawBreathMark(svg, x, y, event.breathMark, Boolean(event.fermata))
+  if (event.fermata) drawFermata(svg, event.id, x, y)
+  if (event.breathMark) drawBreathMark(svg, event.id, x, y, event.breathMark, Boolean(event.fermata))
   if (event.type === 'note') {
-    if (event.articulations?.length) drawArticulations(svg, x, y, event.articulations)
-    if (event.tremolo) drawTremoloMark(svg, y, note, event.tremolo.marks)
-    if (event.ornaments?.length) drawOrnaments(svg, x, y, event.ornaments)
-    if (event.graceNotes?.length) drawGraceNotes(svg, x, y, event.graceNotes)
+    if (event.articulations?.length) drawArticulations(svg, event.id, x, y, event.articulations)
+    if (event.tremolo) drawTremoloMark(svg, event.id, y, note, event.tremolo.marks)
+    if (event.ornaments?.length) drawOrnaments(svg, event.id, x, y, event.ornaments, event.fermata ? 58 : 34)
+    if (event.graceNotes?.length) drawGraceNotes(svg, event.id, x, y, event.graceNotes)
     if (event.lyrics?.length) drawLyrics(svg, event.id, x, y, event.lyrics, interaction.lyricScale, interaction.onSelectLyric)
   }
   if (event.id === interaction.inlineLyricEditor?.eventId) drawInlineLyricEditor(svg, x, y, interaction.inlineLyricEditor)
@@ -1857,7 +1881,8 @@ function drawPassiveStaffMeasure(
     y,
     annotationMaps,
     annotationLanesByMeasureId,
-    firstEventX
+    firstEventX,
+    interaction.onSelectObject
   )
 }
 
@@ -2094,7 +2119,10 @@ function drawRehearsalMark(
   svg: SVGSVGElement,
   x: number,
   y: number,
-  label: string
+  label: string,
+  measureId?: string,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const group = document.createElementNS('http://www.w3.org/2000/svg', 'g')
   const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect')
@@ -2103,6 +2131,20 @@ function drawRehearsalMark(
 
   group.classList.add('notation-rehearsal-mark')
   group.setAttribute('data-annotation-lane', 'upper-rehearsal')
+  if (measureId) {
+    group.setAttribute('data-measure-id', measureId)
+  }
+  if (id) {
+    group.setAttribute('data-object-id', id)
+  }
+  if (measureId && id && onSelectObject) {
+    group.setAttribute('role', 'button')
+    group.setAttribute('tabindex', '0')
+    group.addEventListener('click', (event) => {
+      event.stopPropagation()
+      onSelectObject('rehearsalMarks', measureId, id)
+    })
+  }
   rect.setAttribute('x', String(x))
   rect.setAttribute('y', String(y))
   rect.setAttribute('width', String(width))
@@ -2120,7 +2162,9 @@ function drawStaffText(
   x: number,
   y: number,
   label: string,
-  measureId?: string
+  measureId?: string,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -2128,6 +2172,17 @@ function drawStaffText(
   text.setAttribute('data-annotation-lane', 'upper-staff-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
+  }
+  if (id) {
+    text.setAttribute('data-object-id', id)
+  }
+  if (measureId && id && onSelectObject) {
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
+    text.addEventListener('click', (event) => {
+      event.stopPropagation()
+      onSelectObject('staffTexts', measureId, id)
+    })
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2158,7 +2213,9 @@ function drawSystemText(
   x: number,
   y: number,
   label: string,
-  measureId?: string
+  measureId?: string,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -2166,6 +2223,17 @@ function drawSystemText(
   text.setAttribute('data-annotation-lane', 'upper-system-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
+  }
+  if (id) {
+    text.setAttribute('data-object-id', id)
+  }
+  if (measureId && id && onSelectObject) {
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
+    text.addEventListener('click', (event) => {
+      event.stopPropagation()
+      onSelectObject('systemTexts', measureId, id)
+    })
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2178,7 +2246,10 @@ function drawExpressionText(
   x: number,
   y: number,
   label: string,
-  measureId?: string
+  measureId?: string,
+  tick?: number,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -2186,6 +2257,20 @@ function drawExpressionText(
   text.setAttribute('data-annotation-lane', 'lower-expression-text')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
+  }
+  if (tick !== undefined) {
+    text.setAttribute('data-tick', String(tick))
+  }
+  if (id) {
+    text.setAttribute('data-object-id', id)
+  }
+  if (measureId && id && onSelectObject) {
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
+    text.addEventListener('click', (event) => {
+      event.stopPropagation()
+      onSelectObject('expressionTexts', measureId, id)
+    })
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2198,7 +2283,9 @@ function drawHarmonyMark(
   x: number,
   y: number,
   label: string,
-  measureId?: string
+  measureId: string | undefined,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
@@ -2206,6 +2293,17 @@ function drawHarmonyMark(
   text.setAttribute('data-annotation-lane', 'upper-chord-symbol')
   if (measureId) {
     text.setAttribute('data-measure-id', measureId)
+  }
+  if (id) {
+    text.setAttribute('data-object-id', id)
+  }
+  if (id && measureId && onSelectObject) {
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
+    text.addEventListener('click', event => {
+      event.stopPropagation()
+      onSelectObject('harmonies', measureId, id)
+    })
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2218,13 +2316,26 @@ function drawDynamicMark(
   x: number,
   y: number,
   label: string,
-  measureId: string
+  measureId: string,
+  id?: string,
+  onSelectObject?: NotationPreviewProps['onSelectObject']
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-dynamic-mark')
   text.setAttribute('data-annotation-lane', 'lower-dynamics')
   text.setAttribute('data-measure-id', measureId)
+  if (id) {
+    text.setAttribute('data-object-id', id)
+  }
+  if (id && onSelectObject) {
+    text.setAttribute('role', 'button')
+    text.setAttribute('tabindex', '0')
+    text.addEventListener('click', event => {
+      event.stopPropagation()
+      onSelectObject('dynamics', measureId, id)
+    })
+  }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
@@ -2593,6 +2704,7 @@ function resolveSlurContinuationY(
 
 function drawArticulations(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
   articulations: string[]
@@ -2604,6 +2716,7 @@ function drawArticulations(
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
 
       dot.classList.add('notation-articulation')
+      dot.setAttribute('data-event-id', eventId)
       dot.setAttribute('cx', String(x + 4))
       dot.setAttribute('cy', String(y))
       dot.setAttribute('r', '2.6')
@@ -2622,6 +2735,7 @@ function drawArticulations(
       }
 
       text.classList.add('notation-articulation')
+      text.setAttribute('data-event-id', eventId)
       text.setAttribute('x', String(x))
       text.setAttribute('y', String(y + 4))
       text.textContent = symbol
@@ -2630,10 +2744,11 @@ function drawArticulations(
   })
 }
 
-function drawFermata(svg: SVGSVGElement, x: number, staffY: number): void {
+function drawFermata(svg: SVGSVGElement, eventId: string, x: number, staffY: number): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-fermata')
+  text.setAttribute('data-event-id', eventId)
   text.setAttribute('x', String(x + 4))
   text.setAttribute('y', String(staffY - 22))
   text.textContent = '𝄐'
@@ -2642,6 +2757,7 @@ function drawFermata(svg: SVGSVGElement, x: number, staffY: number): void {
 
 function drawBreathMark(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
   breathMark: string,
@@ -2650,7 +2766,8 @@ function drawBreathMark(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-breath-mark')
-  text.setAttribute('x', String(x + 14))
+  text.setAttribute('data-event-id', eventId)
+  text.setAttribute('x', String(x + (hasFermata ? 30 : 14)))
   text.setAttribute('y', String(staffY - (hasFermata ? 2 : 16)))
   text.textContent = breathMark === 'caesura' ? '//' : ','
   svg.append(text)
@@ -2658,6 +2775,7 @@ function drawBreathMark(
 
 function drawTremoloMark(
   svg: SVGSVGElement,
+  eventId: string,
   staffY: number,
   note: StaveNote,
   marks: number
@@ -2668,6 +2786,7 @@ function drawTremoloMark(
   const firstY = centerY - ((marks - 1) * 5) / 2
 
   group.classList.add('notation-tremolo-mark')
+  group.setAttribute('data-event-id', eventId)
 
   for (let index = 0; index < marks; index += 1) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line')
@@ -2709,15 +2828,18 @@ function resolveStemGeometry(
 
 function drawOrnaments(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
-  ornaments: string[]
+  ornaments: string[],
+  yOffset = 34
 ): void {
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-ornament')
+  text.setAttribute('data-event-id', eventId)
   text.setAttribute('x', String(x + 4))
-  text.setAttribute('y', String(staffY - 34))
+  text.setAttribute('y', String(staffY - yOffset))
   text.textContent = ornaments.map(ornamentLabel).join(' ')
   svg.append(text)
 }
@@ -2736,6 +2858,7 @@ function ornamentLabel(ornament: string): string {
 
 function drawGraceNotes(
   svg: SVGSVGElement,
+  eventId: string,
   x: number,
   staffY: number,
   graceNotes: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>
@@ -2743,6 +2866,7 @@ function drawGraceNotes(
   const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
 
   text.classList.add('notation-grace-notes')
+  text.setAttribute('data-event-id', eventId)
   text.setAttribute('x', String(x - 22))
   text.setAttribute('y', String(staffY + 2))
   text.textContent = graceNotes.map((note) => note.pitch.step.toLowerCase()).join('')
