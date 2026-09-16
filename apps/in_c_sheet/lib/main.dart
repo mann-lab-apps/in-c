@@ -11870,6 +11870,7 @@ setlist=$setlistLabel
     }
     final textSearcher = _ensureTextSearcher();
     final queryController = TextEditingController();
+    final queryFocusNode = FocusNode(debugLabel: 'PDF text search');
     final currentPattern = textSearcher.pattern;
     if (currentPattern != null) {
       queryController.text = currentPattern.toString();
@@ -11883,6 +11884,11 @@ setlist=$setlistLabel
         isScrollControlled: true,
         builder: (context) => StatefulBuilder(
           builder: (context, setModalState) {
+            void dismissSearchKeyboard() {
+              queryFocusNode.unfocus();
+              FocusScope.of(context).unfocus();
+            }
+
             void refreshWhileSearching() {
               Future<void>.delayed(const Duration(milliseconds: 200), () {
                 if (!context.mounted) {
@@ -11896,6 +11902,7 @@ setlist=$setlistLabel
             }
 
             void startSearch() {
+              dismissSearchKeyboard();
               final query = queryController.text.trim();
               if (query.isEmpty) {
                 textSearcher.resetTextSearch();
@@ -11928,6 +11935,7 @@ setlist=$setlistLabel
             void clearSearch() {
               queryController.clear();
               textSearcher.resetTextSearch();
+              queryFocusNode.requestFocus();
               setModalState(() {
                 didSearch = false;
                 errorMessage = null;
@@ -11973,6 +11981,7 @@ setlist=$setlistLabel
                       const SizedBox(height: 10),
                       TextField(
                         controller: queryController,
+                        focusNode: queryFocusNode,
                         decoration: InputDecoration(
                           labelText: '검색어',
                           helperText:
@@ -11998,6 +12007,7 @@ setlist=$setlistLabel
                         textInputAction: TextInputAction.search,
                         onSubmitted: (_) => startSearch(),
                         onChanged: (_) => setModalState(() {}),
+                        onTapOutside: (_) => dismissSearchKeyboard(),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -12076,6 +12086,7 @@ setlist=$setlistLabel
                                         ? const Icon(Icons.check)
                                         : null,
                                     onTap: () async {
+                                      dismissSearchKeyboard();
                                       await textSearcher.goToMatchOfIndex(
                                         index,
                                       );
@@ -12100,7 +12111,9 @@ setlist=$setlistLabel
         ),
       );
     } finally {
+      queryFocusNode.unfocus();
       queryController.dispose();
+      queryFocusNode.dispose();
     }
   }
 
