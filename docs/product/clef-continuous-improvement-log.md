@@ -138,6 +138,15 @@ scoped scores and active profile all roll back to the previous disk/cache state;
 retry succeeds; delayed deletion preserves a following creation. Targeted 7/7 PASS;
 store suite 175/175 PASS; full 1,373/1,373 PASS, analyze PASS, and RC PASS.
 No app build/version change/push/merge.
+S59 VERIFIED LOCAL: viewer page-organization preset actions still surfaced storage
+exceptions instead of retry guidance. A new actual viewer test first exposed a
+crop preset dialog lifecycle bug: its TextEditingController was disposed before
+the DialogRoute fully completed. Move the crop preset dialog to the same
+DialogRoute.completed pattern used by score metadata, and route crop preset plus
+page template add/apply/remove exceptions through scoped snackbar retry messages.
+Targeted crop-preset failure widget PASS; sheet viewer tools suite 11/11 PASS;
+full 1,374/1,374 PASS, analyze PASS, and RC PASS. No app build/version
+change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

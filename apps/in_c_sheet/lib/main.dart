@@ -10514,13 +10514,17 @@ setlist=$setlistLabel
     if (selected?.type == _CropPresetActionType.apply &&
         selected?.preset != null) {
       final preset = selected!.preset!;
-      final didApply = await widget.controller.applyCropPreset(
-        currentScore,
-        preset.id,
-        pageCount: _pdfController.isReady
-            ? _pdfController.pageCount
-            : _pageCount,
+      final didApply = await _runViewerScoreMutation(
+        () => widget.controller.applyCropPreset(
+          currentScore,
+          preset.id,
+          pageCount: _pdfController.isReady
+              ? _pdfController.pageCount
+              : _pageCount,
+        ),
+        '자르기 프리셋을 적용하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didApply == null) return;
       if (didApply) {
         _resetCropFitPosition();
         _scheduleCropToFit(_pageNumber ?? currentScore.lastPage, force: true);
@@ -10535,10 +10539,11 @@ setlist=$setlistLabel
     if (selected?.type == _CropPresetActionType.remove &&
         selected?.preset != null) {
       final preset = selected!.preset!;
-      final didRemove = await widget.controller.removeCropPreset(
-        currentScore,
-        preset.id,
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeCropPreset(currentScore, preset.id),
+        '자르기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '자르기 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
@@ -10557,19 +10562,23 @@ setlist=$setlistLabel
       return;
     }
     final now = DateTime.now();
-    final didAdd = await widget.controller.addCropPreset(
-      currentScore,
-      SheetCropPreset(
-        id: '${now.microsecondsSinceEpoch}-crop',
-        label: input.label,
-        scope: input.scope,
-        crop: currentScore.pageSettings.crop,
-        alternateCrop: input.scope == SheetCropPreset.oddEvenScope
-            ? SheetCropSettings.none
-            : currentScore.pageSettings.crop,
-        createdAt: now,
+    final didAdd = await _runViewerScoreMutation(
+      () => widget.controller.addCropPreset(
+        currentScore,
+        SheetCropPreset(
+          id: '${now.microsecondsSinceEpoch}-crop',
+          label: input.label,
+          scope: input.scope,
+          crop: currentScore.pageSettings.crop,
+          alternateCrop: input.scope == SheetCropPreset.oddEvenScope
+              ? SheetCropSettings.none
+              : currentScore.pageSettings.crop,
+          createdAt: now,
+        ),
       ),
+      '자르기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didAdd == null) return;
     _showSnackBar(didAdd ? '자르기 프리셋을 저장했습니다.' : '자르기 프리셋을 저장하지 못했습니다.');
   }
 
@@ -10592,8 +10601,10 @@ setlist=$setlistLabel
     final labelController = TextEditingController(text: initialLabel);
     var selectedScope = initialScope;
     try {
-      return await showDialog<({String label, String scope})>(
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final route = DialogRoute<({String label, String scope})>(
         context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
         builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: const Text('자르기 프리셋 저장'),
@@ -10655,6 +10666,9 @@ setlist=$setlistLabel
           ),
         ),
       );
+      final result = await navigator.push(route);
+      await route.completed;
+      return result;
     } finally {
       labelController.dispose();
     }
@@ -10740,16 +10754,20 @@ setlist=$setlistLabel
     if (action == 'blank') {
       final pageNumber =
           _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
-      final didAdd = await widget.controller.addBlankPageInsertion(
-        currentScore,
-        pageCount: pageCount,
-        insertion: SheetBlankPageInsertion(
-          id: '${now.microsecondsSinceEpoch}-blank',
-          afterPage: pageNumber,
-          label: '$pageNumber쪽 뒤 빈 페이지',
-          createdAt: now,
+      final didAdd = await _runViewerScoreMutation(
+        () => widget.controller.addBlankPageInsertion(
+          currentScore,
+          pageCount: pageCount,
+          insertion: SheetBlankPageInsertion(
+            id: '${now.microsecondsSinceEpoch}-blank',
+            afterPage: pageNumber,
+            label: '$pageNumber쪽 뒤 빈 페이지',
+            createdAt: now,
+          ),
         ),
+        '빈 페이지를 저장하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didAdd == null) return;
       _showSnackBar(didAdd ? '빈 페이지를 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
@@ -10757,41 +10775,57 @@ setlist=$setlistLabel
       final hiddenPages = action == 'cover'
           ? const <int>[1]
           : currentScore.pageSettings.hiddenPages;
-      final didAdd = await widget.controller.addVisibilityPreset(
-        currentScore,
-        pageCount: pageCount,
-        preset: SheetPageVisibilityPreset(
-          id: '${now.microsecondsSinceEpoch}-visibility',
-          label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
-          hiddenPages: hiddenPages,
-          createdAt: now,
+      final didAdd = await _runViewerScoreMutation(
+        () => widget.controller.addVisibilityPreset(
+          currentScore,
+          pageCount: pageCount,
+          preset: SheetPageVisibilityPreset(
+            id: '${now.microsecondsSinceEpoch}-visibility',
+            label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
+            hiddenPages: hiddenPages,
+            createdAt: now,
+          ),
         ),
+        '숨김 프리셋을 저장하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didAdd == null) return;
       _showSnackBar(didAdd ? '숨김 프리셋을 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action.startsWith('apply:')) {
-      final didApply = await widget.controller.applyVisibilityPreset(
-        currentScore,
-        presetId: action.substring('apply:'.length),
-        pageCount: pageCount,
+      final didApply = await _runViewerScoreMutation(
+        () => widget.controller.applyVisibilityPreset(
+          currentScore,
+          presetId: action.substring('apply:'.length),
+          pageCount: pageCount,
+        ),
+        '숨김 프리셋을 적용하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didApply == null) return;
       _showSnackBar(didApply ? '숨김 프리셋을 적용했습니다.' : '적용하지 못했습니다.');
       return;
     }
     if (action.startsWith('removeVisibility:')) {
-      final didRemove = await widget.controller.removeVisibilityPreset(
-        currentScore,
-        action.substring('removeVisibility:'.length),
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeVisibilityPreset(
+          currentScore,
+          action.substring('removeVisibility:'.length),
+        ),
+        '숨김 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '숨김 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (action.startsWith('removeBlank:')) {
-      final didRemove = await widget.controller.removeBlankPageInsertion(
-        currentScore,
-        action.substring('removeBlank:'.length),
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeBlankPageInsertion(
+          currentScore,
+          action.substring('removeBlank:'.length),
+        ),
+        '빈 페이지를 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '빈 페이지를 삭제했습니다.' : '삭제할 항목이 없습니다.');
     }
   }
@@ -12300,6 +12334,18 @@ setlist=$setlistLabel
       case SheetPdfLinkTapAction.ignore:
         _showSnackBar('지원하지 않는 PDF 링크입니다.');
         return;
+    }
+  }
+
+  Future<bool?> _runViewerScoreMutation(
+    Future<bool> Function() mutation,
+    String failureMessage,
+  ) async {
+    try {
+      return await mutation();
+    } catch (_) {
+      _showSnackBar(failureMessage);
+      return null;
     }
   }
 
