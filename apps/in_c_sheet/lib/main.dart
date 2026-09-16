@@ -9798,7 +9798,7 @@ setlist=$setlistLabel
           itemBuilder: (context, index) {
             if (index == 0) {
               final currentPage =
-                  _pdfController.pageNumber ??
+                  (_pdfController.isReady ? _pdfController.pageNumber : null) ??
                   _pageNumber ??
                   currentScore.lastPage;
               return ListTile(
@@ -9890,11 +9890,15 @@ setlist=$setlistLabel
         if (label == null) {
           return;
         }
-        final didUpdate = await widget.controller.updatePageJumpPoint(
-          currentScore,
-          pageCount: pageCount,
-          jumpPoint: jumpPoint.copyWith(label: label),
+        final didUpdate = await _runViewerScoreMutation(
+          () => widget.controller.updatePageJumpPoint(
+            currentScore,
+            pageCount: pageCount,
+            jumpPoint: jumpPoint.copyWith(label: label),
+          ),
+          '점프 포인트를 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didUpdate == null) return;
         _showSnackBar(didUpdate ? '점프 포인트 이름을 수정했습니다.' : '점프 포인트를 수정하지 못했습니다.');
         return;
       case _JumpPointAction.delete:
@@ -9902,10 +9906,12 @@ setlist=$setlistLabel
         if (jumpPoint == null) {
           return;
         }
-        final didRemove = await widget.controller.removePageJumpPoint(
-          currentScore,
-          jumpPoint.id,
+        final didRemove = await _runViewerScoreMutation(
+          () =>
+              widget.controller.removePageJumpPoint(currentScore, jumpPoint.id),
+          '점프 포인트를 삭제하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didRemove == null) return;
         final message = didRemove ? '점프 포인트를 삭제했습니다.' : '삭제할 점프 포인트가 없습니다.';
         _showSnackBar(message);
         return;
@@ -9915,7 +9921,9 @@ setlist=$setlistLabel
   Future<void> _createJumpPointFromCurrentPage(int pageCount) async {
     final currentScore = score;
     final sourcePage =
-        _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
+        (_pdfController.isReady ? _pdfController.pageNumber : null) ??
+        _pageNumber ??
+        currentScore.lastPage;
     final targetPages = currentScore.pageSettings
         .visiblePages(pageCount)
         .where((pageNumber) => pageNumber != sourcePage)
@@ -9949,17 +9957,21 @@ setlist=$setlistLabel
     }
 
     final now = DateTime.now();
-    final didAdd = await widget.controller.addPageJumpPoint(
-      currentScore,
-      pageCount: pageCount,
-      jumpPoint: SheetPageJumpPoint(
-        id: '${now.microsecondsSinceEpoch}-jump-$sourcePage-$targetPage',
-        sourcePage: sourcePage,
-        targetPage: targetPage,
-        label: '$targetPage쪽으로',
-        createdAt: now,
+    final didAdd = await _runViewerScoreMutation(
+      () => widget.controller.addPageJumpPoint(
+        currentScore,
+        pageCount: pageCount,
+        jumpPoint: SheetPageJumpPoint(
+          id: '${now.microsecondsSinceEpoch}-jump-$sourcePage-$targetPage',
+          sourcePage: sourcePage,
+          targetPage: targetPage,
+          label: '$targetPage쪽으로',
+          createdAt: now,
+        ),
       ),
+      '점프 포인트를 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didAdd == null) return;
     _showSnackBar(
       didAdd ? '$sourcePage쪽에 점프 포인트를 추가했습니다.' : '점프 포인트를 추가하지 못했습니다.',
     );
@@ -10087,10 +10099,14 @@ setlist=$setlistLabel
     }
     if (selected?.type == _RehearsalMarkActionType.remove &&
         selected?.mark != null) {
-      final didRemove = await widget.controller.removeRehearsalMark(
-        currentScore,
-        selected!.mark!.id,
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeRehearsalMark(
+          currentScore,
+          selected!.mark!.id,
+        ),
+        '리허설 마크를 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '리허설 마크를 삭제했습니다.' : '삭제할 마크가 없습니다.');
       return;
     }
@@ -10106,7 +10122,7 @@ setlist=$setlistLabel
       context: context,
       pageNumber:
           existingMark?.pageNumber ??
-          _pdfController.pageNumber ??
+          (_pdfController.isReady ? _pdfController.pageNumber : null) ??
           _pageNumber ??
           currentScore.lastPage,
       pageCount: pageCount,
@@ -10128,17 +10144,21 @@ setlist=$setlistLabel
       kind: input.kind,
       createdAt: existingMark?.createdAt ?? now,
     );
-    final didSave = existingMark == null
-        ? await widget.controller.addRehearsalMark(
-            currentScore,
-            pageCount: pageCount,
-            mark: mark,
-          )
-        : await widget.controller.updateRehearsalMark(
-            currentScore,
-            pageCount: pageCount,
-            mark: mark,
-          );
+    final didSave = await _runViewerScoreMutation(
+      () => existingMark == null
+          ? widget.controller.addRehearsalMark(
+              currentScore,
+              pageCount: pageCount,
+              mark: mark,
+            )
+          : widget.controller.updateRehearsalMark(
+              currentScore,
+              pageCount: pageCount,
+              mark: mark,
+            ),
+      '리허설 마크를 저장하지 못했습니다. 다시 시도해주세요.',
+    );
+    if (didSave == null) return;
     _showSnackBar(didSave ? '리허설 마크를 저장했습니다.' : '리허설 마크를 저장하지 못했습니다.');
   }
 

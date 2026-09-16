@@ -155,6 +155,13 @@ page fallback and retry snackbar, and route page hide/unhide, page order/duplica
 and crop-setting save exceptions through scoped retry guidance. Targeted viewer
 tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
 No app build/version change/push/merge.
+S61 VERIFIED LOCAL: jump point and rehearsal mark edits shared the remaining direct
+viewer page-organization save calls. Route add/rename/delete failures through
+scoped retry snackbars and use the stored page fallback when the PDF controller
+is not ready. The attempted actual jump-point widget regression was discarded as
+an unstable PopupMenu/PDF-render hit-test harness, not product evidence. Viewer
+tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
