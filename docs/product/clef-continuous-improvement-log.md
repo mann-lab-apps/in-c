@@ -101,6 +101,9 @@ unit/widget tests 45/45 PASS after one red widget location failure moved the
 warning to the first-screen area. Full 1,360/1,360, analyze and RC PASS.
 No app build/version change/push/merge. Fast-BPM audible timing, output route
 volume, Bluetooth/earphone behavior and iOS parity remain DEVICE QA.
+Follow-up test-only hardening: mini panel also clears fallback output after a
+native retry and ignores delayed unavailable output after stop. Targeted
+`sheet_metronome_lifecycle_test.dart` 19/19 PASS. No production code change.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

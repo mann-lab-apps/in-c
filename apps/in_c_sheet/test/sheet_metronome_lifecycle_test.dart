@@ -235,6 +235,62 @@ void main() {
     expect(find.text('메트로놈 소리를 내지 못했습니다'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'mini metronome panel clears fallback output after native retry',
+    (tester) async {
+      final player = _QueuedMetronomeSoundPlayer(
+        <Future<SheetMetronomeOutputStatus>>[
+          Future<SheetMetronomeOutputStatus>.value(
+            SheetMetronomeOutputStatus.fallback,
+          ),
+          Future<SheetMetronomeOutputStatus>.value(
+            SheetMetronomeOutputStatus.native,
+          ),
+        ],
+      );
+      await tester.pumpWidget(
+        buildViewerMiniMetronomePanelForTest(soundPlayer: player),
+      );
+
+      await tester.tap(find.text('시작'));
+      await tester.pump();
+      await tester.pump();
+      expect(find.text('기본 클릭음으로 재생 중입니다'), findsOneWidget);
+
+      await tester.tap(find.text('정지'));
+      await tester.pump();
+      await tester.tap(find.text('시작'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('기본 클릭음으로 재생 중입니다'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'mini metronome panel ignores delayed unavailable output after stop',
+    (tester) async {
+      final delayed = Completer<SheetMetronomeOutputStatus>();
+      final player = _QueuedMetronomeSoundPlayer(
+        <Future<SheetMetronomeOutputStatus>>[delayed.future],
+      );
+      await tester.pumpWidget(
+        buildViewerMiniMetronomePanelForTest(soundPlayer: player),
+      );
+
+      await tester.tap(find.text('시작'));
+      await tester.pump();
+      await tester.tap(find.text('정지'));
+      await tester.pump();
+      delayed.complete(SheetMetronomeOutputStatus.unavailable);
+      await tester.pump();
+
+      expect(find.text('메트로놈 소리를 내지 못했습니다'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 class _QueuedMetronomeSoundPlayer extends SheetMetronomeSoundPlayer {
