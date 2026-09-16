@@ -16,6 +16,17 @@
 스토어/런처 표시 이름은 `Clef & Staff`로 정한다. 패키지명과 내부 코드 네임은 배포 연속성을
 위해 `com.mannlab.clef` / Clef 계열을 유지한다.
 
+## V1 RC 상태 해석
+
+- `구현됨`은 코드/UI/model/test가 연결된 상태를 뜻한다. 실제 악기, 페달, 스타일러스, 장시간 공연,
+  Bluetooth/이어폰 출력처럼 물리 환경이 필요한 품질까지 자동으로 보장하지 않는다.
+- `로컬 검증됨`은 Flutter/Kotlin 단위·위젯·RC 검사로 확인한 범위다. 새 설치본이나 실기기 결과가
+  필요하면 QA 문서에서 `DEVICE QA`로 별도 표시한다.
+- 내부테스트 배포 후보는 자동 검증과 signing/version 산출물 확인을 기준으로 판단한다. 정식 출시
+  준비 완료는 Android/iOS 실기기 smoke와 스토어 자료까지 포함한다.
+- 현재 튜너는 Chromatic-only 정책을 유지한다. 악기별 preset, 기타 줄 맞춤, custom target lock은
+  v1 전면 UI에 다시 넣지 않는다.
+
 ## Feature Coverage Matrix
 
 | 범주 | 기능 | 레퍼런스 기준 | 단계 | 난이도 | 주요 의존성/메모 |

@@ -169,6 +169,19 @@ rename and delete through scoped retry snackbars while preserving the existing
 missing-target messages. Targeted bookmark failure widget PASS; full
 1,376/1,376 PASS, analyze PASS, and RC PASS. No app build/version
 change/push/merge.
+S63 DOCS VERIFIED: v1 RC finish criteria were easy to misread because source
+version, archived AAB versions and 실기기 QA status were scattered across QA docs.
+Clarified that current Clef worktree source remains `1.0.0+22`, archived AABs
+must not be reused as evidence for post-build source changes, and every device
+run must record the installed app version/build. Added a 10-15 minute 실기기
+smoke table with PASS/ISSUE/DEVICE QA CONTINUES/BLOCKER/NOT TESTED states,
+split internal-test candidate criteria from formal release readiness, refreshed
+tester messaging for backup/performance-update/copyright-safe feedback, and
+documented feature-map status wording so `구현됨` does not imply physical device
+quality. Docs-only verification: `git diff --check`, trailing whitespace scan
+and tab scan PASS; stale version scan found only explicitly dated historical
+build records, not current release guidance. No app code, version change, build,
+push or merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
@@ -1044,7 +1057,8 @@ No app build performed; new changes have widget/source evidence only.
 - User confirmed Clef was renamed Clef & Staff and in C/classical discovery is separate.
   Restored the Clef Android namespace/applicationId/activity package to `com.mannlab.clef`
   in `/private/tmp/clef-next-polish` only. Root worktree changes were not modified or staged.
-- Candidate source/app-info version: `1.0.0+21`. Play Console code 21 availability is unverified.
+- Candidate source/app-info version at that time: `1.0.0+21`; Play Console availability was not
+  checked during that preparation step.
 - Removed release debug-signing fallback. Added a pre-release guard requiring the recorded
   upload certificate SHA1 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
   Local signing files were copied from the existing valid root files and remain ignored secrets.

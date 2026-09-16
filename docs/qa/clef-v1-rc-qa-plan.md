@@ -54,11 +54,36 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 
 - 소스 후보: `Clef & Staff` `1.0.0+22`, Android applicationId/namespace `com.mannlab.clef`.
   in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
-- Play Console code 21 미사용 여부는 아직 확인하지 않았다. 확인 후 새 release 빌드를 진행한다.
+- 이 문서의 과거 기록에는 `1.0.0+20`, `1.0.0+22`, `1.0.0+24` 산출물이 함께 남아 있다.
+  QA 대상은 항상 앱 내 `테스트 정보`의 version/build, 설치 파일명, Play Console 업로드 code를
+  같이 기록해 구분한다.
+- 현재 작업 브랜치에 새 코드 변경이 있으면 기존 AAB를 최신 검증 근거로 재사용하지 않는다.
+  내부테스트에 반영하려면 미사용 versionCode를 확인하고 새 signed AAB를 만든다.
 - 서명 파일 누락/기존 디버그 키는 차단하고, 기록된 Clef 업로드 키는 Gradle 서명 검증을 통과했다.
 - `:app:bundleRelease --dry-run`으로 서명 검사 연결과 task graph를 확인했다.
   실제 앱 컴파일, APK/AAB/iOS 생성, 설치 및 업로드는 수행하지 않았다.
 - 아래 20번 빌드/에뮬레이터 기록은 당시 근거다. 최신 변경의 실기기 QA 결과로 사용하지 않는다.
+
+## RC Gate 구분
+
+내부테스트 배포 후보와 정식 출시 준비 완료는 서로 다른 기준이다. 10-15분 수동 QA가 번거롭다는
+이유만으로 내부테스트 배포를 항상 막지는 않지만, 알려진 blocker나 필수 자동 검증 실패를 숨기지 않는다.
+
+### 내부테스트 배포 후보
+
+- `flutter analyze`, 전체 `flutter test`, `dart run tool/rc_release_check.dart`가 통과한다.
+- versionCode가 Play Console에서 아직 쓰이지 않은 값이다.
+- release signing 검증과 산출물 경로/크기/해시 기록이 있다.
+- 최근 변경의 알려진 data loss, crash, import/export 불가, page turn 불가 blocker가 없다.
+- 실기기 미확인 항목은 테스터 안내문과 이 문서에 `DEVICE QA CONTINUES` 또는 `NOT TESTED`로 남긴다.
+
+### 정식 출시 준비 완료
+
+- Android 태블릿 smoke가 `PASS`이고, 가능하면 iPad/iPhone smoke도 `PASS`다.
+- 메트로놈 빠른 BPM, 드론/기준음 음량, 튜너 정확도, 페달/키보드, S Pen, 큰 PDF, backup/restore의
+  주요 항목이 `PASS`이거나 제한사항으로 명확히 고지되어 있다.
+- 스토어 개인정보/콘텐츠 등급/스크린샷/지원 URL/마케팅 URL/테스터 안내가 최신 상태다.
+- 남은 항목이 v1.1 spike 또는 Later로 분류되어 있고 v1 blocker로 남아 있지 않다.
 
 ## 준비물
 

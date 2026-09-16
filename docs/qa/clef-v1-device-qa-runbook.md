@@ -14,13 +14,38 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 ## 2026-09-13 다음 배포 준비
 
 - Clef & Staff Android applicationId/namespace는 `com.mannlab.clef`다. in C는 별도 앱이다.
-- 2026-09-15 소스와 앱 내 테스트 정보는 `1.0.0+22`이다. Play Console의 code 22 사용 여부는 미확인이다.
+- 이 문서를 읽는 시점에는 반드시 앱 내 `테스트 정보`의 version/build와 설치 파일명을 함께 기록한다.
+  현재 Clef 작업 브랜치의 소스 버전은 `1.0.0+22`이지만, 과거 보관 AAB에는 `1.0.0+24`도 있다.
+  새 내부테스트 배포는 Play Console에서 미사용 versionCode를 확인한 뒤 새로 빌드한 산출물만 QA 대상으로 삼는다.
 - 서명 파일 누락과 디버그 키를 사용한 검증은 의도대로 실패했고, 기존 Clef 업로드 키 검증은 통과했다.
 - `android/`에서 `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`로
   앱 빌드 없이 서명을 재확인할 수 있다. 키 파일은 git에 포함하지 않는다.
 - 이번 준비 작업에서는 APK/AAB/iOS 빌드를 하지 않았다. 아래 20번 산출물은 과거 기록이며,
   최신 코드가 반영된 배포 파일이 아니다. 새 빌드 후 실제 경로/해시/버전/서명을 기록한다.
 - 새로운 소스의 실기기 메트로놈, 튜너, 페달, 스타일러스 품질은 별도 QA가 필요하다.
+
+## 10-15분 RC Smoke 결과표
+
+오늘 실기기 QA는 아래 표를 먼저 채운다. 로컬 자동 테스트나 에뮬레이터 확인만으로 `PASS`를
+쓰지 않는다. 시간이 부족하면 `NOT TESTED`로 남기고, 계속 확인 중이면 `DEVICE QA CONTINUES`로
+기록한다.
+
+| 영역 | 빠른 확인 | 상태 | 기록할 정보 |
+| --- | --- | --- | --- |
+| 설치/첫 실행 | 앱 이름 `Clef & Staff`, 테스트 정보 version/build, 홈 진입 | NOT TESTED | 설치 파일, 기기/OS, buildCode |
+| PDF 가져오기/뷰어 | 평소 쓰는 PDF 1개 import, 좌/우 tap, swipe, 마지막 위치 | NOT TESTED | PDF 유형, page 수, blank/crash 여부 |
+| 50쪽 이상 PDF | 큰 PDF 첫 렌더, page 이동, 배경/여백 | NOT TESTED | 렌더 지연, blank page, paper/white 체감 |
+| 세트리스트 | bulk add, drag reorder, 최근 세트리스트, 이전/다음 곡 | NOT TESTED | 곡 수, 중복/건너뜀 안내, 진행 위치 |
+| 필기/S Pen | pen/highlighter/text/eraser, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
+| 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
+| 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
+| 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
+| 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 페이지 단위 이동, 곡 처음/끝 안내 |
+| Import/export/backup | PDF 공유, 필기 포함 공유, metadata backup/restore | NOT TESTED | 공유 대상, 필기 포함 여부, 복원 결과 |
+
+상태 값은 `PASS`, `ISSUE`, `DEVICE QA CONTINUES`, `BLOCKER`, `NOT TESTED` 중 하나만 쓴다.
+`ISSUE`와 `BLOCKER`는 재현 단계, 기대 결과, 실제 결과, 스크린샷/화면녹화 가능 여부를 아래 기록
+양식으로 남긴다.
 
 ## 사전 확인
 
