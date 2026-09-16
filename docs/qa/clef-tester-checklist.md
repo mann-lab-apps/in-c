@@ -8,8 +8,8 @@
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
 - 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `테스트 정보`에서 앱 이름, 버전/build를 확인한다.
-- 현재 소스 RC 후보는 `1.0.0+20`이다. 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를
-  함께 기록한다.
+- 현재 Clef 개발선은 `1.0.0+22`이고, 최근 보관된 Android 내부테스트 AAB는 `1.0.0+24`다.
+  실제 내부테스트 설치본은 Play Console 업로드 시점의 buildCode를 함께 기록한다.
 - TestFlight 또는 APK 설치 방식과 기기명/OS 버전을 기록한다.
 - 가능하면 평소 쓰는 텍스트 PDF 악보 1개, 스캔/이미지 악보 1개, 큰 PDF 1개를 준비한다.
 - iPad/TestFlight와 Android 태블릿/APK를 모두 테스트할 수 있으면 화면 크기별 표시 차이를 함께 기록한다.

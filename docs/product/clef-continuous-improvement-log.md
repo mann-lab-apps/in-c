@@ -4,8 +4,12 @@
 
 - Started: 2026-09-13, `dev` at `72b9314`, three local commits ahead of fetched `origin/dev`.
 - Restored worktree: `/private/tmp/clef-next-polish` (previous directory was removed).
-- Source: Clef & Staff, `lib/main.dart`, discovery home defaults to false,
-  Android applicationId `com.mannlab.inc`, version `1.0.0+20`.
+- Historical source at this execution start: Clef & Staff, `lib/main.dart`,
+  discovery home defaults to false, Android applicationId `com.mannlab.inc`,
+  version `1.0.0+20`.
+- Current continuation source after R1/release prep: Android applicationId
+  `com.mannlab.clef`, source/app info `1.0.0+22`; latest archived Android
+  internal-test AAB is `1.0.0+24` and does not include post-24 source changes.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
   installation is this source revision. No connected emulator at baseline.
 - No app builds, push, or merge authorized for this execution.
