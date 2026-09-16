@@ -2254,8 +2254,20 @@ void main() {
   ) async {
     await tester.pumpWidget(buildAnnotationToolbarForTest());
 
+    expect(find.text('필기 도구'), findsOneWidget);
+    expect(find.text('스탬프'), findsOneWidget);
     expect(find.byTooltip('오선'), findsOneWidget);
     expect(find.byTooltip('격자'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('필기 도구 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('펜'), findsOneWidget);
+    expect(find.text('형광펜'), findsOneWidget);
+    expect(find.text('오선'), findsOneWidget);
+    expect(find.text('지우개'), findsOneWidget);
+    await tester.tap(find.text('지우개'));
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
       find.byTooltip('스탬프 선택'),

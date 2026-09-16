@@ -15637,6 +15637,61 @@ class _AnnotationToolbar extends StatelessWidget {
       spacing: isCompact ? 6 : 10,
       runSpacing: 8,
       children: [
+        PopupMenuButton<_AnnotationToolbarTool>(
+          tooltip: '필기 도구 선택',
+          initialValue: selectedTool,
+          onSelected: onToolSelected,
+          itemBuilder: (context) => _AnnotationToolbarTool.values
+              .map(
+                (tool) => PopupMenuItem<_AnnotationToolbarTool>(
+                  value: tool,
+                  child: ListTile(
+                    leading: Icon(tool.icon),
+                    title: Text(tool.label),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          child: Semantics(
+            button: true,
+            label: '필기 도구 ${selectedTool.label}',
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer.withValues(
+                  alpha: 0.64,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 10 : 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(selectedTool.icon, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '필기 도구',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      selectedTool.label,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         SegmentedButton<_AnnotationToolbarTool>(
           showSelectedIcon: false,
           segments: _AnnotationToolbarTool.values

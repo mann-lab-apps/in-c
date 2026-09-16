@@ -104,6 +104,14 @@ volume, Bluetooth/earphone behavior and iOS parity remain DEVICE QA.
 Follow-up test-only hardening: mini panel also clears fallback output after a
 native retry and ignores delayed unavailable output after stop. Targeted
 `sheet_metronome_lifecycle_test.dart` 19/19 PASS. No production code change.
+S55 VERIFIED LOCAL: icon-only annotation tools remained a discoverability risk
+after viewer/home/tool entrypoints gained names. Added a `필기 도구` named picker
+inside the annotation toolbar while retaining the fast segmented icon strip.
+Acceptance: named picker opens every annotation tool by label, selected tool name
+stays visible, stamp picker still exposes rehearsal marks, and no tool/storage
+behavior changed. First targeted run caught duplicate tooltip targets; removed the
+nested tooltip and kept one accessible target. Targeted 76/76 PASS. Full 1,362/1,362,
+analyze and RC PASS. No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
