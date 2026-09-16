@@ -182,6 +182,23 @@ quality. Docs-only verification: `git diff --check`, trailing whitespace scan
 and tab scan PASS; stale version scan found only explicitly dated historical
 build records, not current release guidance. No app code, version change, build,
 push or merge.
+S64 VERIFIED LOCAL: user reported home quick sections made `최근` and `정리 필요`
+feel similar, and questioned whether fixed two-page `1 / 2-3 / 4-5` spread
+behavior was the right default. Implemented clearer quick-section semantics:
+`정리 필요` now has task-oriented copy and a different accent, while `최근`
+states it is the last-opened score group. Based on forScore/Piascore/MobileSheets
+reference patterns, keep 2페이지 보기 but make its start policy explicit:
+`표지 단독` preserves the book-cover layout and `1-2쪽부터` supports scan/PDF
+pairs from the first page. 2페이지 previous/next now advances by spread anchors
+for ordinary page order; custom page-order scores keep the existing page-order
+navigation. Added `sheet_two_page_spread.dart` so the spread-anchor policy is
+unit-tested; the first targeted run caught the cover-single bug where page 1
+advanced to page 3 instead of the 2-3 spread, and the fix is covered by
+`sheet_two_page_spread_test.dart`. Added persistence to `SheetViewerSettings`,
+viewer menu/defaults/setlist preset UI, model tests and named-tools smoke
+expectations. Verification PASS: `dart format lib test tool`, `flutter analyze`,
+`flutter test` (1,379/1,379), and `dart run tool/rc_release_check.dart`.
+No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

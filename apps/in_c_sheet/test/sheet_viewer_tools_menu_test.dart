@@ -104,6 +104,8 @@ void main() {
         expect(find.text('연습과 공연'), findsOneWidget);
         expect(find.text('악보 정보'), findsOneWidget);
         expect(find.text('보기와 넘김'), findsOneWidget);
+        expect(find.text('2페이지 시작: 표지 단독'), findsOneWidget);
+        expect(find.text('2페이지 보기에서 설정'), findsOneWidget);
         expect(find.text('필기'), findsOneWidget);
         expect(find.text('공유와 입력'), findsOneWidget);
         const captureDirectory = String.fromEnvironment(

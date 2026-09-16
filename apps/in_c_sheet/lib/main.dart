@@ -36,6 +36,7 @@ import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_tuner_input_service.dart';
+import 'sheet_two_page_spread.dart';
 import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
@@ -1408,6 +1409,27 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                     onChanged: (value) {
                       if (value != null) {
                         updateSettings(settings.copyWith(displayMode: value));
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: settings.twoPageSpreadStart,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '2페이지 시작'),
+                    items: _SheetTwoPageSpreadStart.values
+                        .map(
+                          (start) => DropdownMenuItem<String>(
+                            value: start.settingValue,
+                            child: Text(start.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        updateSettings(
+                          settings.copyWith(twoPageSpreadStart: value),
+                        );
                       }
                     },
                   ),
@@ -4095,9 +4117,11 @@ class _QuickAccessBand extends StatelessWidget {
       if (!isSelecting)
         _QuickAccessGroup(
           label: '정리 필요',
+          description: '정보를 채우면 검색과 세트리스트에서 찾기 쉬워져요.',
           icon: Icons.edit_note,
           scores: metadataReviewScores,
           opensForEdit: true,
+          emphasized: true,
         ),
       _QuickAccessGroup(
         label: '고정',
@@ -4109,7 +4133,12 @@ class _QuickAccessBand extends StatelessWidget {
         icon: Icons.star,
         scores: favoriteScores,
       ),
-      _QuickAccessGroup(label: '최근', icon: Icons.history, scores: recentScores),
+      _QuickAccessGroup(
+        label: '최근',
+        description: '마지막으로 연 악보',
+        icon: Icons.history,
+        scores: recentScores,
+      ),
     ].where((group) => group.scores.isNotEmpty).toList(growable: false);
     if (groups.isEmpty) {
       return const SizedBox.shrink();
@@ -4122,17 +4151,22 @@ class _QuickAccessBand extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
           final group = groups[groupIndex];
+          final groupColor = group.emphasized
+              ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.38)
+              : Colors.white;
+          final borderColor = group.emphasized
+              ? theme.colorScheme.tertiary.withValues(alpha: 0.58)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.7);
+          final iconColor = group.emphasized
+              ? theme.colorScheme.tertiary
+              : theme.colorScheme.onSurfaceVariant;
           return SizedBox(
             width: 350,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: groupColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.7,
-                  ),
-                ),
+                border: Border.all(color: borderColor),
               ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -4141,17 +4175,31 @@ class _QuickAccessBand extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(group.icon, size: 18),
+                        Icon(group.icon, size: 18, color: iconColor),
                         const SizedBox(width: 6),
                         Text(
                           group.label,
                           style: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.w900,
+                            color: group.emphasized
+                                ? theme.colorScheme.onTertiaryContainer
+                                : null,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    if (group.description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        group.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     Expanded(
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
@@ -4188,13 +4236,17 @@ class _QuickAccessGroup {
     required this.label,
     required this.icon,
     required this.scores,
+    this.description,
     this.opensForEdit = false,
+    this.emphasized = false,
   });
 
   final String label;
+  final String? description;
   final IconData icon;
   final List<SheetScore> scores;
   final bool opensForEdit;
+  final bool emphasized;
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {
@@ -6683,6 +6735,28 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
+                initialValue: _viewerOverride.twoPageSpreadStart,
+                decoration: const InputDecoration(labelText: '2페이지 시작'),
+                items: _SheetTwoPageSpreadStart.values
+                    .map(
+                      (start) => DropdownMenuItem<String>(
+                        value: start.settingValue,
+                        child: Text(start.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _viewerOverride = _viewerOverride.copyWith(
+                        twoPageSpreadStart: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
                 initialValue: _viewerOverride.pageScale,
                 decoration: const InputDecoration(labelText: '페이지 맞춤'),
                 items: _SheetViewerPageScale.values
@@ -7048,6 +7122,36 @@ extension _SheetPageTurnAnimationSettings on _SheetPageTurnAnimation {
   }
 }
 
+enum _SheetTwoPageSpreadStart {
+  coverSingle('표지 단독', '1쪽 단독 · 2-3쪽부터 나란히', Icons.looks_one_outlined),
+  paired('1-2쪽부터', '1-2 · 3-4처럼 두 쪽씩 나란히', Icons.view_week_outlined);
+
+  const _SheetTwoPageSpreadStart(this.label, this.description, this.icon);
+
+  final String label;
+  final String description;
+  final IconData icon;
+}
+
+extension _SheetTwoPageSpreadStartSettings on _SheetTwoPageSpreadStart {
+  String get settingValue {
+    return switch (this) {
+      _SheetTwoPageSpreadStart.coverSingle =>
+        SheetViewerSettings.twoPageStartCoverSingle,
+      _SheetTwoPageSpreadStart.paired => SheetViewerSettings.twoPageStartPaired,
+    };
+  }
+}
+
+_SheetTwoPageSpreadStart _twoPageSpreadStartFromSettings(
+  SheetViewerSettings settings,
+) {
+  return switch (settings.twoPageSpreadStart) {
+    SheetViewerSettings.twoPageStartPaired => _SheetTwoPageSpreadStart.paired,
+    _ => _SheetTwoPageSpreadStart.coverSingle,
+  };
+}
+
 _SheetPageTurnAnimation _pageTurnAnimationFromSettings(
   SheetViewerSettings settings,
 ) {
@@ -7087,6 +7191,7 @@ enum _ViewerMenuAction {
   pedalMapping,
   renderProfile,
   pageTurnAnimation,
+  twoPageSpreadStart,
   showTapZoneHint,
   performanceSettings,
   toggleHalfPageTurn,
@@ -7388,6 +7493,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _SheetPedalMapping _pedalMapping = _SheetPedalMapping.standard;
   _SheetRenderProfile _renderProfile = _SheetRenderProfile.balanced;
   _SheetPageTurnAnimation _pageTurnAnimation = _SheetPageTurnAnimation.natural;
+  _SheetTwoPageSpreadStart _twoPageSpreadStart =
+      _SheetTwoPageSpreadStart.coverSingle;
   bool _useHalfPageTurn = false;
   bool _isAnnotationMode = false;
   bool _isSanitizingPdfLinks = false;
@@ -7636,6 +7743,7 @@ setlist=$setlistLabel
     _pedalMapping = _pedalMappingFromSettings(viewerSettings);
     _renderProfile = _renderProfileFromSettings(viewerSettings);
     _pageTurnAnimation = _pageTurnAnimationFromSettings(viewerSettings);
+    _twoPageSpreadStart = _twoPageSpreadStartFromSettings(viewerSettings);
     final favoritePreset = widget.controller.favoriteAnnotationPreset;
     _favoriteAnnotationPreset = favoritePreset == null
         ? null
@@ -7978,6 +8086,35 @@ setlist=$setlistLabel
     }
 
     final current = _pdfController.pageNumber ?? _pageNumber ?? 1;
+    if (_displayMode == _SheetViewerDisplayMode.twoPage &&
+        !score.pageSettings.hasCustomPageOrder) {
+      final target = twoPageSpreadTarget(
+        currentPage: current,
+        delta: delta,
+        pageCount: _pdfController.pageCount,
+        spreadStart: _twoPageSpreadStart.settingValue,
+        nextVisiblePage: (fromPage, step) => score.pageSettings.nextVisiblePage(
+          fromPage: fromPage,
+          delta: step,
+          pageCount: _pdfController.pageCount,
+        ),
+      );
+      if (target == null || target == current) {
+        if (_shouldAutoAdvanceSetlist(delta)) {
+          await _goToAdjacentSetlistScore(delta);
+          return;
+        }
+        _showSnackBar(_songPageBoundaryMessage(delta));
+        return;
+      }
+      await _pdfController.goToPage(
+        pageNumber: target,
+        duration: _pageTurnDuration,
+      );
+      _showPageControlsTemporarily();
+      return;
+    }
+
     final orderedTarget = score.pageSettings.nextPageOrderTarget(
       currentPage: current,
       currentIndex: _pageOrderCursor,
@@ -9106,6 +9243,48 @@ setlist=$setlistLabel
       score,
       score.viewerSettings.copyWith(displayEffect: selected.settingValue),
     );
+    _showPageControlsTemporarily();
+  }
+
+  Future<void> _selectTwoPageSpreadStart() async {
+    final selected = await showModalBottomSheet<_SheetTwoPageSpreadStart>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _SheetTwoPageSpreadStart.values
+              .map(
+                (start) => ListTile(
+                  leading: Icon(start.icon),
+                  title: Text(start.label),
+                  subtitle: Text(start.description),
+                  trailing: start == _twoPageSpreadStart
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(start),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
+    if (selected == null || selected == _twoPageSpreadStart) {
+      return;
+    }
+    _stopAutoScroll(showMessage: false);
+    setState(() {
+      _twoPageSpreadStart = selected;
+    });
+    await widget.controller.updateViewerSettings(
+      score,
+      score.viewerSettings.copyWith(
+        displayMode: _displayMode.settingValue,
+        halfPageTurn: _useHalfPageTurn,
+        twoPageSpreadStart: _twoPageSpreadStart.settingValue,
+      ),
+    );
+    _pdfController.invalidate();
     _showPageControlsTemporarily();
   }
 
@@ -12055,6 +12234,13 @@ setlist=$setlistLabel
       case _ViewerMenuAction.pageTurnAnimation:
         await _selectPageTurnAnimation();
         return;
+      case _ViewerMenuAction.twoPageSpreadStart:
+        if (_displayMode != _SheetViewerDisplayMode.twoPage) {
+          _showSnackBar('2페이지 보기에서만 시작 쪽을 바꿀 수 있습니다.');
+          return;
+        }
+        await _selectTwoPageSpreadStart();
+        return;
       case _ViewerMenuAction.showTapZoneHint:
         setState(() {
           _showTapZoneHint = true;
@@ -12540,6 +12726,17 @@ setlist=$setlistLabel
           child: ListTile(
             leading: Icon(_pageTurnAnimation.icon),
             title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: _displayMode == _SheetViewerDisplayMode.twoPage,
+          value: _ViewerMenuAction.twoPageSpreadStart,
+          child: ListTile(
+            leading: Icon(_twoPageSpreadStart.icon),
+            title: Text('2페이지 시작: ${_twoPageSpreadStart.label}'),
+            subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
+                ? Text(_twoPageSpreadStart.description)
+                : const Text('2페이지 보기에서 설정'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
@@ -13290,7 +13487,8 @@ setlist=$setlistLabel
                             key: ValueKey(
                               '${currentScore.filePath}-${_displayMode.name}-'
                               '${_displayEffect.name}-${_pageScale.name}-'
-                              '${_renderProfile.name}-${status.sizeBytes}',
+                              '${_renderProfile.name}-'
+                              '${_twoPageSpreadStart.name}-${status.sizeBytes}',
                             ),
                             controller: _pdfController,
                             initialPageNumber: _initialViewerPage,
@@ -13326,7 +13524,11 @@ setlist=$setlistLabel
                                 _SheetViewerDisplayMode.singlePage =>
                                   _layoutPagesHorizontally,
                                 _SheetViewerDisplayMode.twoPage =>
-                                  _layoutPagesAsSpreads,
+                                  (pages, params) => _layoutPagesAsSpreads(
+                                    pages,
+                                    params,
+                                    spreadStart: _twoPageSpreadStart,
+                                  ),
                                 _SheetViewerDisplayMode.continuousVertical =>
                                   null,
                               },
@@ -19366,8 +19568,9 @@ double _initialFitWidthZoom({
 
 PdfPageLayout _layoutPagesAsSpreads(
   List<PdfPage> pages,
-  PdfViewerParams params,
-) {
+  PdfViewerParams params, {
+  required _SheetTwoPageSpreadStart spreadStart,
+}) {
   var height = 0.0;
   var widestPage = 0.0;
   for (final page in pages) {
@@ -19379,10 +19582,13 @@ PdfPageLayout _layoutPagesAsSpreads(
   final innerGap = math.max(params.margin * 2, widestPage * 0.04);
   final spreadGap = math.max(params.margin * 10, widestPage * 0.32);
   final groups = <List<PdfPage>>[];
-  if (pages.isNotEmpty) {
+  if (pages.isNotEmpty && spreadStart == _SheetTwoPageSpreadStart.coverSingle) {
     groups.add(<PdfPage>[pages.first]);
   }
-  for (var index = 1; index < pages.length; index += 2) {
+  final startIndex = spreadStart == _SheetTwoPageSpreadStart.coverSingle
+      ? 1
+      : 0;
+  for (var index = startIndex; index < pages.length; index += 2) {
     groups.add(pages.sublist(index, math.min(index + 2, pages.length)));
   }
 

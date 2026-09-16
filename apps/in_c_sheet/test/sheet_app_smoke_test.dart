@@ -1504,6 +1504,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('정리 필요'), findsOneWidget);
+    expect(find.text('정보를 채우면 검색과 세트리스트에서 찾기 쉬워져요.'), findsOneWidget);
+    expect(find.text('최근'), findsOneWidget);
+    expect(find.text('마지막으로 연 악보'), findsOneWidget);
     expect(find.text('clef imported score'), findsWidgets);
     expect(find.textContaining('파일 · clef-imported-score'), findsWidgets);
 

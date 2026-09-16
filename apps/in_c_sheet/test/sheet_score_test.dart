@@ -44,6 +44,7 @@ void main() {
         pedalMapping: SheetViewerSettings.reversedSetlistPedalMapping,
         renderProfile: SheetViewerSettings.largePdfRenderProfile,
         pageTurnAnimation: SheetViewerSettings.fastPageTurnAnimation,
+        twoPageSpreadStart: SheetViewerSettings.twoPageStartPaired,
         keepAwakeInPerformance: true,
         showPerformancePrepNotice: false,
         confirmSetlistTransition: false,
@@ -201,6 +202,10 @@ void main() {
     expect(
       decoded.single.viewerSettings.pageTurnAnimation,
       SheetViewerSettings.fastPageTurnAnimation,
+    );
+    expect(
+      decoded.single.viewerSettings.twoPageSpreadStart,
+      SheetViewerSettings.twoPageStartPaired,
     );
     expect(decoded.single.viewerSettings.keepAwakeInPerformance, isTrue);
     expect(decoded.single.viewerSettings.showPerformancePrepNotice, isFalse);
@@ -736,6 +741,7 @@ void main() {
             'displayMode': 7,
             'halfPageTurn': 'yes',
             'displayEffect': false,
+            'twoPageSpreadStart': 'bad',
           },
         },
       ]);
@@ -764,6 +770,10 @@ void main() {
       expect(
         decoded.single.viewerSettings.displayEffect,
         SheetViewerSettings.normalDisplayEffect,
+      );
+      expect(
+        decoded.single.viewerSettings.twoPageSpreadStart,
+        SheetViewerSettings.twoPageStartCoverSingle,
       );
     },
   );
