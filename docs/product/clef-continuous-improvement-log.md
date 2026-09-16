@@ -127,6 +127,17 @@ and existing template list. Acceptance: injected save exception keeps input and
 reports retry guidance; delete false/exception keeps the preset and reports retry
 guidance; existing controller recovery remains covered. Targeted 80/80 PASS, full
 1,366/1,366 PASS, analyze PASS, and RC PASS. No app build/version change/push/merge.
+S58 VERIFIED LOCAL: the store-only profile deletion path still wrote the profile
+index, active profile and scoped library data with unchecked preferences calls,
+outside the shared metadata queue. Red tests reproduced false success on failed
+writes, partial deletion after exceptions and a delayed deletion overwriting the
+next profile creation. Delete now reuses the checked metadata commit and removes
+scores, setlists, view settings, favorite preset and automatic backup together
+with the profile index/active fallback. Acceptance: false/throw at profile index,
+scoped scores and active profile all roll back to the previous disk/cache state;
+retry succeeds; delayed deletion preserves a following creation. Targeted 7/7 PASS;
+store suite 175/175 PASS; full 1,373/1,373 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

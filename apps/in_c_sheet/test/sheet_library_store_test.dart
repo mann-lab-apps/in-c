@@ -971,6 +971,83 @@ void main() {
     expect((await store.loadActiveLibraryProfile()).id, profile.id);
   });
 
+  for (final throws in [false, true]) {
+    for (final key in [
+      'clef_library_profiles',
+      'clef_scores',
+      'clef_active_library_profile',
+    ]) {
+      test('profile deletion restores $key failure: throws=$throws', () async {
+        final platform = _installFailingPreferences();
+        final store = SheetLibraryStore();
+        final profile = await store.createLibraryProfile('Concert');
+        final preferences = await SharedPreferences.getInstance();
+        for (final scopedKey in [
+          'clef_scores',
+          'clef_setlists',
+          'clef_library_view_settings',
+          'clef_favorite_annotation_preset',
+          'clef_automatic_metadata_backup',
+        ]) {
+          await preferences.setString(
+            '$scopedKey.${profile.id}',
+            '{"keep":"$scopedKey"}',
+          );
+        }
+        final before = await platform.getAll();
+        platform.failureKey =
+            'flutter.$key${key == 'clef_scores' ? '.${profile.id}' : ''}';
+        platform.throwOnFailure = throws;
+        await expectLater(
+          store.deleteLibraryProfile(profile.id),
+          throwsA(anything),
+        );
+        expect(await platform.getAll(), before);
+        await preferences.reload();
+        expect((await store.loadActiveLibraryProfile()).id, profile.id);
+        expect(
+          (await store.loadLibraryProfiles()).any((p) => p.id == profile.id),
+          isTrue,
+        );
+        expect(
+          preferences.getString('clef_scores.${profile.id}'),
+          '{"keep":"clef_scores"}',
+        );
+
+        expect(await store.deleteLibraryProfile(profile.id), isTrue);
+        await preferences.reload();
+        expect((await store.loadActiveLibraryProfile()).isDefault, isTrue);
+        expect(
+          (await store.loadLibraryProfiles()).any((p) => p.id == profile.id),
+          isFalse,
+        );
+        expect(preferences.getString('clef_scores.${profile.id}'), isNull);
+      });
+    }
+  }
+
+  test('queued profile deletion preserves the next creation', () async {
+    final platform = _installFailingPreferences();
+    final store = SheetLibraryStore();
+    final deleted = await store.createLibraryProfile('Deleted');
+    await store.createLibraryProfile('Kept');
+    platform.delayKey = 'flutter.clef_library_profiles';
+    platform.writeEntered = Completer<void>();
+    platform.releaseWrite = Completer<void>();
+    final deletion = store.deleteLibraryProfile(deleted.id);
+    await platform.writeEntered!.future;
+    final created = SheetLibraryStore().createLibraryProfile('Created');
+    await Future<void>.delayed(Duration.zero);
+    platform.releaseWrite!.complete();
+    expect(await deletion, isTrue);
+    final newProfile = await created;
+    await (await SharedPreferences.getInstance()).reload();
+    final profiles = await store.loadLibraryProfiles();
+    expect(profiles.any((p) => p.id == deleted.id), isFalse);
+    expect(profiles.any((p) => p.id == newProfile.id), isTrue);
+    expect((await store.loadActiveLibraryProfile()).id, newProfile.id);
+  });
+
   final metadataSaves = <String, Future<void> Function(SheetLibraryStore)>{
     'clef_setlists': (store) => store.saveSetlists([]),
     'clef_metronome_settings': (store) => store.saveMetronomeSettings(
