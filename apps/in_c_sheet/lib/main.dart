@@ -14708,11 +14708,21 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   }
 
   Future<void> _saveCurrentPresetTemplate() async {
-    final template = await widget.onSavePresetTemplate(
-      _templateNameController.text,
-      _settings,
-      _templateDeviceController.text,
-    );
+    final SheetPerformancePresetTemplate template;
+    try {
+      template = await widget.onSavePresetTemplate(
+        _templateNameController.text,
+        _settings,
+        _templateDeviceController.text,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('공연 보기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -14730,8 +14740,24 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   Future<void> _deletePresetTemplate(
     SheetPerformancePresetTemplate template,
   ) async {
-    final didDelete = await widget.onDeletePresetTemplate(template.id);
-    if (!mounted || !didDelete) {
+    final bool didDelete;
+    try {
+      didDelete = await widget.onDeletePresetTemplate(template.id);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    if (!didDelete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.')),
+      );
       return;
     }
     setState(() {
@@ -18507,6 +18533,40 @@ Widget buildViewerMiniTunerPanelForTest({
           tunerStateStream: tunerStateStream,
           autoStartTunerInput: false,
         ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildPerformanceSettingsSheetForTest({
+  SheetViewerSettings initialSettings = SheetViewerSettings.defaultSettings,
+  List<SheetPerformancePresetTemplate> presetTemplates = const [],
+  Future<SheetPerformancePresetTemplate> Function(
+    String name,
+    SheetViewerSettings viewerSettings,
+    String deviceProfile,
+  )?
+  onSavePresetTemplate,
+  Future<bool> Function(String templateId)? onDeletePresetTemplate,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _PerformanceSettingsSheet(
+        initialSettings: initialSettings,
+        presetTemplates: presetTemplates,
+        onSavePresetTemplate:
+            onSavePresetTemplate ??
+            (name, viewerSettings, deviceProfile) async =>
+                SheetPerformancePresetTemplate(
+                  id: 'test-template',
+                  name: name.trim().isEmpty
+                      ? SheetPerformancePresetTemplate.defaultName
+                      : name.trim(),
+                  viewerSettings: viewerSettings,
+                  deviceProfile: deviceProfile.trim(),
+                ),
+        onDeletePresetTemplate: onDeletePresetTemplate ?? (_) async => true,
       ),
     ),
   );

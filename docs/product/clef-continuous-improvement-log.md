@@ -120,6 +120,13 @@ full tuner. Acceptance: injected state stream shows A4/in-tune and no-signal sta
 production panel starts/stops its own input service with panel lifecycle, and actual
 microphone accuracy remains DEVICE QA. Targeted 17/17 PASS, full 1,363/1,363 PASS,
 analyze PASS, and RC PASS. No app build/version change/push/merge.
+S57 VERIFIED LOCAL: performance preset storage had controller-level rollback coverage
+but the settings sheet did not convert save/delete callback failure into visible user
+feedback. Add sheet-level failure snackbars while preserving the typed preset name
+and existing template list. Acceptance: injected save exception keeps input and
+reports retry guidance; delete false/exception keeps the preset and reports retry
+guidance; existing controller recovery remains covered. Targeted 80/80 PASS, full
+1,366/1,366 PASS, analyze PASS, and RC PASS. No app build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

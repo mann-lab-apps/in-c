@@ -8,6 +8,7 @@ import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
+import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
@@ -2285,6 +2286,79 @@ void main() {
     expect(find.text('accel.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('performance preset save failure reports and preserves input', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      buildPerformanceSettingsSheetForTest(
+        onSavePresetTemplate: (_, _, _) async {
+          throw StateError('injected save failure');
+        },
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'Tablet preset');
+    await tester.scrollUntilVisible(
+      find.text('현재 설정 저장'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('현재 설정 저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('공연 보기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(find.text('Tablet preset'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final mode in ['false', 'throw']) {
+    testWidgets('performance preset delete $mode reports and keeps preset', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        buildPerformanceSettingsSheetForTest(
+          presetTemplates: const [
+            SheetPerformancePresetTemplate(
+              id: 'concert',
+              name: 'Concert setup',
+              viewerSettings: SheetViewerSettings.defaultSettings,
+            ),
+          ],
+          onDeletePresetTemplate: (_) async {
+            if (mode == 'throw') {
+              throw StateError('injected delete failure');
+            }
+            return false;
+          },
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('삭제'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('삭제'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+      expect(find.text('Concert setup'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('import nudge offers immediate score metadata editing', (
     tester,
