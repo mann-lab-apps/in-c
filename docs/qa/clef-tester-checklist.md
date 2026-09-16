@@ -308,8 +308,9 @@
   별도 meter/LED/input bar는 제거했다.
   기타 줄 맞춤, 악기별 preset, custom target/preset, target lock은 선택지 과다로 v1 UI에서 제외했다.
   실제 악기 기준 정확도, latency, 외부 마이크 안정성은 Android/iOS 실기기 검증 중이다.
-- 2026-09-07 기준 현재 소스 RC 후보는 `1.0.0+20`이다. 실제 마이크 정확도/latency QA는 아직
-  기록되지 않았다.
+- 현재 Clef 개발선의 소스 버전은 `1.0.0+22`이고, 최근 보관된 Android 내부테스트 AAB는
+  `1.0.0+24`다. 새 내부테스트 배포 전에는 현재 브랜치의 versionCode와 Play Console 사용 여부를
+  다시 확인한다. 실제 마이크 정확도/latency QA는 아직 기록되지 않았다.
 - iOS Simulator는 튜너 정확도 판단 대상이 아니다.
 - 한글/비ASCII 텍스트 주석은 PDF export에서 제한될 수 있고, 이 경우 원본 PDF 공유로 fallback한다.
 - 카메라로 종이 악보를 직접 촬영해 PDF로 만드는 내장 스캐너는 v1 범위가 아니다. v1에서는 이미
