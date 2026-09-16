@@ -266,6 +266,53 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     controller.dispose();
   });
+
+  testWidgets('bookmark save failure shows retry notice', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final now = DateTime(2026, 9, 16);
+    final store = _FailingScoreSaveStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score',
+        title: 'Concert',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/clef-missing-bookmark-fixture.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetViewerScreen(controller: controller, scoreId: 'score'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    store.failNextSave = true;
+    await tester.tap(find.byTooltip('현재 페이지 북마크'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('북마크를 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(controller.scores.single.bookmarks, isEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
 }
 
 class _FailingScoreSaveStore extends SheetLibraryStore {

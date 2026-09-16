@@ -162,6 +162,13 @@ is not ready. The attempted actual jump-point widget regression was discarded as
 an unstable PopupMenu/PDF-render hit-test harness, not product evidence. Viewer
 tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
 No app build/version change/push/merge.
+S62 VERIFIED LOCAL: viewer bookmark add/remove/rename still let storage exceptions
+escape to the framework. New actual missing-PDF viewer test reproduced a
+`StateError` when the bookmark toolbar save failed. Route bookmark toggle,
+rename and delete through scoped retry snackbars while preserving the existing
+missing-target messages. Targeted bookmark failure widget PASS; full
+1,376/1,376 PASS, analyze PASS, and RC PASS. No app build/version
+change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

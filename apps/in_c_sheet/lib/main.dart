@@ -8554,10 +8554,11 @@ setlist=$setlistLabel
       currentScore,
       pageNumber,
     );
-    final didChange = await widget.controller.toggleBookmark(
-      currentScore,
-      pageNumber,
+    final didChange = await _runViewerScoreMutation(
+      () => widget.controller.toggleBookmark(currentScore, pageNumber),
+      '북마크를 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didChange == null) return;
     if (!mounted) return;
     _showSnackBar(
       didChange
@@ -8651,20 +8652,26 @@ setlist=$setlistLabel
         if (label == null || !mounted) {
           return;
         }
-        final didRename = await widget.controller.renameBookmark(
-          currentScore,
-          selected.bookmark,
-          label,
+        final didRename = await _runViewerScoreMutation(
+          () => widget.controller.renameBookmark(
+            currentScore,
+            selected.bookmark,
+            label,
+          ),
+          '북마크 이름을 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didRename == null) return;
         if (mounted && !didRename) {
           _showSnackBar('북마크가 없어 이름을 변경하지 못했습니다.');
         }
         return;
       case _BookmarkListAction.delete:
-        final didDelete = await widget.controller.deleteBookmark(
-          currentScore,
-          selected.bookmark,
+        final didDelete = await _runViewerScoreMutation(
+          () =>
+              widget.controller.deleteBookmark(currentScore, selected.bookmark),
+          '북마크 삭제를 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didDelete == null) return;
         if (!mounted) return;
         _showSnackBar(didDelete ? '북마크를 삭제했습니다.' : '이미 없어진 북마크입니다.');
         return;

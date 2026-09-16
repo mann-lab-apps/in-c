@@ -40,6 +40,8 @@
 8. 텍스트 주석을 하나 추가하고 다시 탭해 수정 또는 삭제한다.
 9. 북마크를 추가하고 북마크 목록에서 해당 페이지로 이동한다. 긴 PDF/songbook은 가능하면
    `CSV 북마크 가져오기`로 `page,label` 또는 `label,page` CSV가 잘 병합되는지도 확인한다.
+   북마크 추가/이름 변경/삭제 저장 실패는 framework 예외나 성공 안내 없이 재시도 안내를
+   표시해야 한다.
 10. 튜너를 열었을 때 시작 버튼 없이 확대된 pitch history chart 안에 현재 음/cents/frequency/signal이 먼저 보이고, 기타 줄 맞춤이나 악기별
    preset 선택 없이 가장 가까운 음을 바로 표시하는지 확인한다.
 11. 조용한 상태, 440/441/442Hz A4 quick action, 440Hz reference tone, 실제 악기 입력에서 sharp/flat
