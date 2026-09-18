@@ -16,6 +16,7 @@ Chromatics 화면에서 PDF로 변환한다. 저품질 정적 PDF를 기본 다�
 - 공연 배너: 별도 탭이 아니라 홈/작품 흐름 안에서 노출되는 홍보 배너와 등록 후보 UI.
 - Community: 감상 질문, 학습 후보, 향후 대화 흐름을 작품과 Columns 관계 안에 모으는 영역.
 - Chromatics: in C 안에서 MusicXML과 단선율 사보를 담당하는 무료 창작/편집 표면.
+- Clef & Staff: App Store/Play review용 공개 소개, 지원, 개인정보 처리방침 페이지.
 - 클래스 내용은 Community 안에서 먼저 검증하고, 양이 많아지면 하위 탭으로 분리한다.
 
 사이트 문구가 Chromatics 단독 제품처럼 흐르지 않도록
