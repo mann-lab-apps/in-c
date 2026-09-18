@@ -1669,6 +1669,7 @@ h2 {
 }
 
 .new-score-dialog,
+.command-palette-dialog,
 .shortcut-help-dialog,
 .recovery-dialog {
   display: grid;
@@ -1684,10 +1685,94 @@ h2 {
 }
 
 .new-score-dialog h2,
+.command-palette-dialog h2,
 .shortcut-help-dialog h2,
 .recovery-dialog h2 {
   color: #14171a;
   font-size: 1.25rem;
+}
+
+.command-palette-search {
+  display: grid;
+  gap: 8px;
+}
+
+.command-palette-search span {
+  color: #65717a;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.command-palette-search input {
+  min-height: 42px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid #c7c0b3;
+  border-radius: 6px;
+  background: #fffefa;
+  color: #20262a;
+  font: inherit;
+}
+
+.command-palette-results {
+  display: grid;
+  gap: 6px;
+}
+
+.command-palette-results button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 46px;
+  padding: 8px 10px;
+  border: 1px solid #ded7ca;
+  border-radius: 6px;
+  background: #fbfaf6;
+  color: #283035;
+  text-align: left;
+  cursor: pointer;
+}
+
+.command-palette-results button:hover,
+.command-palette-results button:focus-visible,
+.command-palette-results button.is-active {
+  border-color: #47616c;
+  outline: none;
+  background: #f1f4f3;
+}
+
+.command-palette-results span {
+  display: grid;
+  gap: 2px;
+}
+
+.command-palette-results strong {
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+}
+
+.command-palette-results small {
+  color: #65717a;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.command-palette-results kbd {
+  padding: 3px 7px;
+  border: 1px solid #d7d0c2;
+  border-radius: 4px;
+  background: #f8f5ec;
+  color: #25292d;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.command-palette-results p {
+  margin: 0;
+  color: #65717a;
+  font-size: 0.85rem;
 }
 
 .shortcut-help-sections {

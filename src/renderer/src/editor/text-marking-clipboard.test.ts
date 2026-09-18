@@ -3,7 +3,14 @@ import { applyScoreCommand, measureDurationTicks } from '../../../score-core'
 import { parseMusicXml, serializeMusicXml } from '../../../musicxml'
 import { createNativeProject, decodeNativeProject, encodeNativeProject } from '../../../project/schema'
 import fixture from '../../../musicxml/fixtures/release-qa.musicxml?raw'
-import { buildTextMarkingClipboard, buildTextMarkingDeleteCommand, buildTextMarkingPasteCommand } from './text-marking-clipboard'
+import {
+  buildTextMarkingClipboard,
+  buildTextMarkingDeleteCommand,
+  buildTextMarkingPasteCommand,
+  buildTextMarkingRangeClipboard,
+  buildTextMarkingRangeDeleteCommand,
+  buildTextMarkingRangePasteCommand
+} from './text-marking-clipboard'
 
 describe('independent measure text clipboard', () => {
   it.each(['staffTexts', 'systemTexts', 'rehearsalMarks', 'expressionTexts'] as const)(
@@ -88,6 +95,33 @@ describe('independent measure text clipboard', () => {
       { id: 'source-one', measureId: source.id, text: 'dolce' },
       { id: 'source-two', measureId: source.id, text: 'cantabile' },
       { id: 'text-selected', measureId: target.id, text: 'cantabile' }
+    ])
+    expect(applyScoreCommand(deleted.score, deleted.undo).score).toEqual(pasted.score)
+  })
+
+  it('range clipboard maps text marks by relative measure and replaces only target range', () => {
+    const score = parseMusicXml(fixture)
+    const measures = score.parts[0].staves[0].measures
+    const [sourceOne, sourceTwo, targetOne, targetTwo] = measures
+    score.staffTexts = [
+      { id: 'source-one', measureId: sourceOne.id, text: 'dolce' },
+      { id: 'source-two', measureId: sourceTwo.id, text: 'cantabile' },
+      { id: 'target-one', measureId: targetOne.id, text: 'old one' },
+      { id: 'target-two', measureId: targetTwo.id, text: 'old two' }
+    ]
+    const clipboard = buildTextMarkingRangeClipboard(score, [sourceOne.id, sourceTwo.id], 'staffTexts')!
+    let id = 0
+    const pasted = applyScoreCommand(score, buildTextMarkingRangePasteCommand(score, [targetOne.id, targetTwo.id], clipboard, () => `range-${id++}`)!)
+    expect(pasted.score.staffTexts).toEqual([
+      { id: 'source-one', measureId: sourceOne.id, text: 'dolce' },
+      { id: 'source-two', measureId: sourceTwo.id, text: 'cantabile' },
+      { id: 'text-range-0', measureId: targetOne.id, text: 'dolce' },
+      { id: 'text-range-1', measureId: targetTwo.id, text: 'cantabile' }
+    ])
+    const deleted = applyScoreCommand(pasted.score, buildTextMarkingRangeDeleteCommand(pasted.score, [sourceOne.id, sourceTwo.id], 'staffTexts')!)
+    expect(deleted.score.staffTexts).toEqual([
+      { id: 'text-range-0', measureId: targetOne.id, text: 'dolce' },
+      { id: 'text-range-1', measureId: targetTwo.id, text: 'cantabile' }
     ])
     expect(applyScoreCommand(deleted.score, deleted.undo).score).toEqual(pasted.score)
   })

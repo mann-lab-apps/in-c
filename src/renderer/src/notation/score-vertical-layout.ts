@@ -12,13 +12,13 @@ export function createScoreAnnotationLanes(score: Score, lyricScale: number) {
     if (!inputs.has(id)) inputs.set(id, {})
     return inputs.get(id)!
   }
-  const count = (items: { measureId: string }[] | undefined, field: 'harmonyCount' | 'expressionTextCount' | 'systemTextCount' | 'tempoCount' | 'rehearsalMarkCount') => {
+  const count = (items: { measureId: string }[] | undefined, field: 'harmonyCount' | 'expressionTextCount' | 'systemTextCount' | 'tempoCount' | 'rehearsalMarkCount' | 'staffTextCount' | 'dynamicCount') => {
     for (const item of items ?? []) { const input = inputFor(item.measureId); input[field] = (input[field] ?? 0) + 1 }
   }
   count(score.harmonies, 'harmonyCount'); count(score.expressionTexts, 'expressionTextCount')
   count(score.systemTexts, 'systemTextCount'); count(score.tempoEvents, 'tempoCount')
-  for (const item of score.dynamics ?? []) inputFor(item.measureId).hasDynamic = true
-  for (const item of score.staffTexts ?? []) inputFor(item.measureId).hasStaffText = true
+  count(score.dynamics, 'dynamicCount')
+  count(score.staffTexts, 'staffTextCount')
   count(score.rehearsalMarks, 'rehearsalMarkCount')
   const anchors = new Map<string, { staff: Staff; index: number }>()
   for (const part of score.parts) for (const staff of part.staves) staff.measures.forEach((measure, index) => {

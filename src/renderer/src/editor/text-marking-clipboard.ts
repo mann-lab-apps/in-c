@@ -2,8 +2,8 @@ import { measureDurationTicks, type ExpressionText, type Score, type ScoreComman
 
 export type TextMarkingType = 'staffTexts' | 'systemTexts' | 'rehearsalMarks' | 'expressionTexts'
 export type TextMarkingClipboard =
-  | { type: Exclude<TextMarkingType, 'expressionTexts'>; marks: StaffText[]; scope?: 'measure' | 'object' }
-  | { type: 'expressionTexts'; marks: ExpressionText[]; scope?: 'measure' | 'object' }
+  | { type: Exclude<TextMarkingType, 'expressionTexts'>; marks: StaffText[]; scope?: 'measure' | 'object' | 'range'; sourceMeasureIds?: string[] }
+  | { type: 'expressionTexts'; marks: ExpressionText[]; scope?: 'measure' | 'object' | 'range'; sourceMeasureIds?: string[] }
 
 export function isTextMarkingType(type: string): type is TextMarkingType {
   return ['staffTexts', 'systemTexts', 'rehearsalMarks', 'expressionTexts'].includes(type)
@@ -18,6 +18,17 @@ export function buildTextMarkingClipboard(score: Score, measureId: string, type:
   const marks = score[type]?.filter(mark => mark.measureId === measureId &&
     (selectedId === undefined || mark.id === selectedId))
   return marks?.length ? structuredClone({ type, marks, scope: selectedId === undefined ? 'measure' : 'object' }) : undefined
+}
+
+export function buildTextMarkingRangeClipboard(score: Score, measureIds: string[], type: TextMarkingType): TextMarkingClipboard | undefined {
+  const sourceMeasureIds = [...measureIds]
+  const sourceMeasureSet = new Set(sourceMeasureIds)
+  if (type === 'expressionTexts') {
+    const marks = score.expressionTexts?.filter(mark => sourceMeasureSet.has(mark.measureId))
+    return marks?.length ? structuredClone({ type, marks, scope: 'range', sourceMeasureIds }) : undefined
+  }
+  const marks = score[type]?.filter(mark => sourceMeasureSet.has(mark.measureId))
+  return marks?.length ? structuredClone({ type, marks, scope: 'range', sourceMeasureIds }) : undefined
 }
 
 function replaceTextMarks<T extends StaffText>(current: T[] | undefined, incoming: T[], measureId: string, scope: TextMarkingClipboard['scope'] = 'measure') {
@@ -53,6 +64,19 @@ export function buildTextMarkingDeleteCommand(score: Score, measureId: string, t
   return clipboard ? textCommand(score, measureId, { ...clipboard, marks: [] }) : undefined
 }
 
+export function buildTextMarkingRangeDeleteCommand(score: Score, measureIds: string[], type: TextMarkingType): ScoreCommand | undefined {
+  const measureSet = new Set(measureIds)
+  const current = score[type]
+  if (!current?.some(mark => measureSet.has(mark.measureId))) return undefined
+  const remaining = current.filter(mark => !measureSet.has(mark.measureId))
+  switch (type) {
+    case 'staffTexts': return { type: 'score-staff-texts.update', staffTexts: remaining.length ? remaining as StaffText[] : undefined }
+    case 'systemTexts': return { type: 'score-system-texts.update', systemTexts: remaining.length ? remaining as StaffText[] : undefined }
+    case 'rehearsalMarks': return { type: 'score-rehearsal-marks.update', rehearsalMarks: remaining.length ? remaining as StaffText[] : undefined }
+    case 'expressionTexts': return { type: 'score-expression-texts.update', expressionTexts: remaining.length ? remaining as ExpressionText[] : undefined }
+  }
+}
+
 export function buildTextMarkingPasteCommand(score: Score, measureId: string, clipboard: TextMarkingClipboard, createId: () => string): ScoreCommand | undefined {
   const targets = score.parts.flatMap(part => part.staves.flatMap(staff => staff.measures.filter(measure => measure.id === measureId)))
   if (targets.length !== 1 || !clipboard.marks.length) return undefined
@@ -70,4 +94,62 @@ export function buildTextMarkingPasteCommand(score: Score, measureId: string, cl
     mark.measureId = measureId
   }
   return textCommand(score, measureId, copied)
+}
+
+function findMeasureById(score: Score, measureId: string) {
+  return score.parts.flatMap(part => part.staves.flatMap(staff => staff.measures)).find(measure => measure.id === measureId)
+}
+
+function mapRangeClipboardMeasure(sourceMeasureId: string, sourceMeasureIds: string[], targetMeasureIds: string[]) {
+  const index = sourceMeasureIds.indexOf(sourceMeasureId)
+  return index >= 0 ? targetMeasureIds[index] : undefined
+}
+
+function existingTextIds(score: Score) {
+  return new Set([score.tempoEvents, score.harmonies, score.dynamics, score.staffTexts, score.systemTexts,
+    score.rehearsalMarks, score.expressionTexts, score.slurs, score.hairpins, score.octaveShifts]
+    .flatMap(marks => (marks ?? []).map(mark => mark.id)))
+}
+
+export function buildTextMarkingRangePasteCommand(score: Score, targetMeasureIds: string[], clipboard: TextMarkingClipboard, createId: () => string): ScoreCommand | undefined {
+  if (clipboard.scope !== 'range' || !clipboard.sourceMeasureIds?.length || !clipboard.marks.length) return undefined
+  if (targetMeasureIds.length < clipboard.sourceMeasureIds.length) return undefined
+  const pasteMeasureIds = targetMeasureIds.slice(0, clipboard.sourceMeasureIds.length)
+  const pasteMeasureSet = new Set(pasteMeasureIds)
+  const ids = existingTextIds(score)
+  const copied = structuredClone(clipboard)
+  for (const mark of copied.marks) {
+    const measureId = mapRangeClipboardMeasure(mark.measureId, clipboard.sourceMeasureIds, pasteMeasureIds)
+    if (!measureId) return undefined
+    if (copied.type === 'expressionTexts') {
+      const measure = findMeasureById(score, measureId)
+      const expression = mark as ExpressionText
+      if (!measure || !Number.isInteger(expression.tick) || expression.tick < 0 || expression.tick >= measureDurationTicks(measure)) {
+        return undefined
+      }
+    }
+    const id = `text-${createId()}`
+    if (ids.has(id)) return undefined
+    ids.add(id)
+    mark.id = id
+    mark.measureId = measureId
+  }
+  switch (copied.type) {
+    case 'staffTexts': return {
+      type: 'score-staff-texts.update',
+      staffTexts: [...(score.staffTexts ?? []).filter(mark => !pasteMeasureSet.has(mark.measureId)), ...copied.marks]
+    }
+    case 'systemTexts': return {
+      type: 'score-system-texts.update',
+      systemTexts: [...(score.systemTexts ?? []).filter(mark => !pasteMeasureSet.has(mark.measureId)), ...copied.marks]
+    }
+    case 'rehearsalMarks': return {
+      type: 'score-rehearsal-marks.update',
+      rehearsalMarks: [...(score.rehearsalMarks ?? []).filter(mark => !pasteMeasureSet.has(mark.measureId)), ...copied.marks]
+    }
+    case 'expressionTexts': return {
+      type: 'score-expression-texts.update',
+      expressionTexts: [...(score.expressionTexts ?? []).filter(mark => !pasteMeasureSet.has(mark.measureId)), ...copied.marks]
+    }
+  }
 }

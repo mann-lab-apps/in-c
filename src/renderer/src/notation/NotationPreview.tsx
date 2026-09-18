@@ -174,11 +174,11 @@ interface RenderedSpanSegment {
 }
 
 interface MeasureAnnotationMaps {
-  dynamicsByMeasureId: Map<string, NonNullable<Score['dynamics']>[number]>
+  dynamicsByMeasureId: Map<string, NonNullable<Score['dynamics']>>
   expressionTextsByMeasureId: Map<string, NonNullable<Score['expressionTexts']>>
   harmoniesByMeasureId: Map<string, NonNullable<Score['harmonies']>>
   rehearsalMarksByMeasureId: Map<string, NonNullable<Score['rehearsalMarks']>>
-  staffTextsByMeasureId: Map<string, NonNullable<Score['staffTexts']>[number]>
+  staffTextsByMeasureId: Map<string, NonNullable<Score['staffTexts']>>
   systemTextsByMeasureId: Map<string, NonNullable<Score['systemTexts']>>
   tempoEventsByMeasureId: Map<string, NonNullable<Score['tempoEvents']>>
 }
@@ -1254,15 +1254,11 @@ function resolveEventStaffSystemBounds(
 function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
   score = projectGlobalAnnotationsForRendering(score)
   const annotationMaps: MeasureAnnotationMaps = {
-    dynamicsByMeasureId: new Map(
-      (score.dynamics ?? []).map((dynamic) => [dynamic.measureId, dynamic])
-    ),
+    dynamicsByMeasureId: new Map(),
     expressionTextsByMeasureId: new Map(),
     harmoniesByMeasureId: new Map(),
     rehearsalMarksByMeasureId: new Map(),
-    staffTextsByMeasureId: new Map(
-      (score.staffTexts ?? []).map((text) => [text.measureId, text])
-    ),
+    staffTextsByMeasureId: new Map(),
     systemTextsByMeasureId: new Map(),
     tempoEventsByMeasureId: new Map()
   }
@@ -1270,6 +1266,13 @@ function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
   for (const mark of score.rehearsalMarks ?? []) {
     annotationMaps.rehearsalMarksByMeasureId.set(mark.measureId, [
       ...(annotationMaps.rehearsalMarksByMeasureId.get(mark.measureId) ?? []), mark
+    ])
+  }
+
+  for (const dynamic of score.dynamics ?? []) {
+    annotationMaps.dynamicsByMeasureId.set(dynamic.measureId, [
+      ...(annotationMaps.dynamicsByMeasureId.get(dynamic.measureId) ?? []),
+      dynamic
     ])
   }
 
@@ -1291,6 +1294,13 @@ function createMeasureAnnotationMaps(score: Score): MeasureAnnotationMaps {
     annotationMaps.systemTextsByMeasureId.set(systemText.measureId, [
       ...(annotationMaps.systemTextsByMeasureId.get(systemText.measureId) ?? []),
       systemText
+    ])
+  }
+
+  for (const staffText of score.staffTexts ?? []) {
+    annotationMaps.staffTextsByMeasureId.set(staffText.measureId, [
+      ...(annotationMaps.staffTextsByMeasureId.get(staffText.measureId) ?? []),
+      staffText
     ])
   }
 
@@ -1408,13 +1418,13 @@ function drawMeasureAnnotations(
     )
   }
 
-  const staffText = annotationMaps.staffTextsByMeasureId.get(measure.id)
-
-  if (staffText) {
+  for (const [index, staffText] of (
+    annotationMaps.staffTextsByMeasureId.get(measure.id) ?? []
+  ).entries()) {
     drawStaffText(
       svg,
       placement.x + 14,
-      staffY + (lanes.staffTextYOffset ?? STAFF_TEXT_Y_OFFSET),
+      staffY + (lanes.staffTextYOffsets[index] ?? lanes.staffTextYOffset ?? STAFF_TEXT_Y_OFFSET),
       staffText.text,
       measure.id,
       staffText.id,
@@ -1422,13 +1432,13 @@ function drawMeasureAnnotations(
     )
   }
 
-  const dynamic = annotationMaps.dynamicsByMeasureId.get(measure.id)
-
-  if (dynamic) {
+  for (const [index, dynamic] of (
+    annotationMaps.dynamicsByMeasureId.get(measure.id) ?? []
+  ).entries()) {
     drawDynamicMark(
       svg,
       (firstEventX ?? placement.x + 88) - 2,
-      staffY + (lanes.dynamicMarkYOffset ?? DYNAMIC_MARK_Y_OFFSET),
+      staffY + (lanes.dynamicMarkYOffsets[index] ?? lanes.dynamicMarkYOffset ?? DYNAMIC_MARK_Y_OFFSET),
       dynamic.value,
       measure.id,
       dynamic.id,
@@ -2138,12 +2148,7 @@ function drawRehearsalMark(
     group.setAttribute('data-object-id', id)
   }
   if (measureId && id && onSelectObject) {
-    group.setAttribute('role', 'button')
-    group.setAttribute('tabindex', '0')
-    group.addEventListener('click', (event) => {
-      event.stopPropagation()
-      onSelectObject('rehearsalMarks', measureId, id)
-    })
+    bindNotationObjectSelection(group, `연습표 ${label} 객체 선택`, () => onSelectObject('rehearsalMarks', measureId, id))
   }
   rect.setAttribute('x', String(x))
   rect.setAttribute('y', String(y))
@@ -2177,12 +2182,7 @@ function drawStaffText(
     text.setAttribute('data-object-id', id)
   }
   if (measureId && id && onSelectObject) {
-    text.setAttribute('role', 'button')
-    text.setAttribute('tabindex', '0')
-    text.addEventListener('click', (event) => {
-      event.stopPropagation()
-      onSelectObject('staffTexts', measureId, id)
-    })
+    bindNotationObjectSelection(text, `보표 글자 ${label} 객체 선택`, () => onSelectObject('staffTexts', measureId, id))
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2228,12 +2228,7 @@ function drawSystemText(
     text.setAttribute('data-object-id', id)
   }
   if (measureId && id && onSelectObject) {
-    text.setAttribute('role', 'button')
-    text.setAttribute('tabindex', '0')
-    text.addEventListener('click', (event) => {
-      event.stopPropagation()
-      onSelectObject('systemTexts', measureId, id)
-    })
+    bindNotationObjectSelection(text, `시스템 텍스트 ${label} 객체 선택`, () => onSelectObject('systemTexts', measureId, id))
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2265,12 +2260,7 @@ function drawExpressionText(
     text.setAttribute('data-object-id', id)
   }
   if (measureId && id && onSelectObject) {
-    text.setAttribute('role', 'button')
-    text.setAttribute('tabindex', '0')
-    text.addEventListener('click', (event) => {
-      event.stopPropagation()
-      onSelectObject('expressionTexts', measureId, id)
-    })
+    bindNotationObjectSelection(text, `표현 텍스트 ${label} 객체 선택`, () => onSelectObject('expressionTexts', measureId, id))
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2298,12 +2288,7 @@ function drawHarmonyMark(
     text.setAttribute('data-object-id', id)
   }
   if (id && measureId && onSelectObject) {
-    text.setAttribute('role', 'button')
-    text.setAttribute('tabindex', '0')
-    text.addEventListener('click', event => {
-      event.stopPropagation()
-      onSelectObject('harmonies', measureId, id)
-    })
+    bindNotationObjectSelection(text, `코드 ${label} 객체 선택`, () => onSelectObject('harmonies', measureId, id))
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
@@ -2329,17 +2314,32 @@ function drawDynamicMark(
     text.setAttribute('data-object-id', id)
   }
   if (id && onSelectObject) {
-    text.setAttribute('role', 'button')
-    text.setAttribute('tabindex', '0')
-    text.addEventListener('click', event => {
-      event.stopPropagation()
-      onSelectObject('dynamics', measureId, id)
-    })
+    bindNotationObjectSelection(text, `셈여림 ${label} 객체 선택`, () => onSelectObject('dynamics', measureId, id))
   }
   text.setAttribute('x', String(x))
   text.setAttribute('y', String(y))
   text.textContent = label
   svg.append(text)
+}
+
+function bindNotationObjectSelection(
+  element: SVGElement,
+  ariaLabel: string,
+  onActivate: () => void
+): void {
+  element.setAttribute('role', 'button')
+  element.setAttribute('tabindex', '0')
+  element.setAttribute('aria-label', ariaLabel)
+  element.addEventListener('click', event => {
+    event.stopPropagation()
+    onActivate()
+  })
+  element.addEventListener('keydown', event => {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+    event.preventDefault()
+    event.stopPropagation()
+    onActivate()
+  })
 }
 
 function centerFullMeasureRest(

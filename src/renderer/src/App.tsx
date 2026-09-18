@@ -13,7 +13,8 @@ import { SpanProperties } from './SpanProperties'
 import { SpanPasteTargets } from './SpanPasteTargets'
 import { buildSpanDeleteCommand, buildSpanEndpointCommand, buildSpanEngravingCommand, findSpan, type SpanReference } from './editor/span-editing'
 import { buildSpanClipboard, buildSpanPaste, type SpanClipboard } from './editor/span-clipboard'
-import { buildTextMarkingClipboard, buildTextMarkingDeleteCommand, buildTextMarkingPasteCommand, isTextMarkingType,
+import { buildTextMarkingClipboard, buildTextMarkingDeleteCommand, buildTextMarkingPasteCommand,
+  buildTextMarkingRangeClipboard, buildTextMarkingRangeDeleteCommand, buildTextMarkingRangePasteCommand, isTextMarkingType,
   type TextMarkingClipboard, type TextMarkingType } from './editor/text-marking-clipboard'
 import { applyPortablePartLayout, remapRemovedStaffLayoutAnchors } from '../../project/part-layout'
 import { createNativeProject, decodeNativeProject, encodeNativeProject, validateNativeProject, type NativeProject } from '../../project/schema'
@@ -45,6 +46,7 @@ import {
   Plus,
   RotateCcw,
   RotateCw,
+  Search,
   SkipBack,
   Square,
   Unlink2
@@ -70,6 +72,7 @@ import {
   type DynamicValue,
   type BreathMark,
   type Clef,
+  type GraceNote,
   type HairpinType,
   type HarmonyMark,
   type LyricSyllable,
@@ -90,6 +93,7 @@ import {
   type Articulation,
   type TempoEvent,
   type TempoMarking,
+  type TremoloMark,
   type TimeSignature,
   type VoiceAddress
 } from '../../score-core'
@@ -290,14 +294,130 @@ interface MetadataEdit {
 type MeasureMarkingClipboard =
   | TextMarkingClipboard
   | {
+      type: 'lyrics'
+      lyrics: LyricSyllable[]
+      scope: 'object'
+      verse: number
+    }
+  | {
+      type: 'lyrics'
+      entries: Array<{ voiceId: string; index: number; lyrics: LyricSyllable[] }>
+      scope: 'measure'
+      verse: number
+    }
+  | {
+      type: 'lyrics'
+      entries: Array<{ index: number; lyrics: LyricSyllable[] }>
+      eventCount: number
+      scope: 'range'
+      verse: number
+    }
+  | {
+      type: 'articulations'
+      articulations: Articulation[]
+      scope: 'object'
+    }
+  | {
+      type: 'articulations'
+      entries: Array<{ voiceId: string; index: number; articulations: Articulation[] }>
+      scope: 'measure'
+    }
+  | {
+      type: 'articulations'
+      entries: Array<{ index: number; articulations: Articulation[] }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
+      type: 'ornaments'
+      ornaments: Ornament[]
+      scope: 'object'
+    }
+  | {
+      type: 'ornaments'
+      entries: Array<{ voiceId: string; index: number; ornaments: Ornament[] }>
+      scope: 'measure'
+    }
+  | {
+      type: 'ornaments'
+      entries: Array<{ index: number; ornaments: Ornament[] }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
+      type: 'tremolos'
+      scope: 'object'
+      tremolo: TremoloMark
+    }
+  | {
+      type: 'tremolos'
+      entries: Array<{ voiceId: string; index: number; tremolo: TremoloMark }>
+      scope: 'measure'
+    }
+  | {
+      type: 'tremolos'
+      entries: Array<{ index: number; tremolo: TremoloMark }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
+      type: 'graceNotes'
+      graceNotes: GraceNote[]
+      scope: 'object'
+    }
+  | {
+      type: 'graceNotes'
+      entries: Array<{ voiceId: string; index: number; graceNotes: GraceNote[] }>
+      scope: 'measure'
+    }
+  | {
+      type: 'graceNotes'
+      entries: Array<{ index: number; graceNotes: GraceNote[] }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
+      type: 'fermatas'
+      scope: 'object'
+    }
+  | {
+      type: 'fermatas'
+      entries: Array<{ voiceId: string; index: number }>
+      scope: 'measure'
+    }
+  | {
+      type: 'fermatas'
+      entries: Array<{ index: number }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
+      type: 'breathMarks'
+      breathMark: BreathMark
+      scope: 'object'
+    }
+  | {
+      type: 'breathMarks'
+      entries: Array<{ voiceId: string; index: number; breathMark: BreathMark }>
+      scope: 'measure'
+    }
+  | {
+      type: 'breathMarks'
+      entries: Array<{ index: number; breathMark: BreathMark }>
+      eventCount: number
+      scope: 'range'
+    }
+  | {
       type: 'dynamics'
       dynamics: NonNullable<Score['dynamics']>
-      scope?: 'measure' | 'object'
+      scope?: 'measure' | 'object' | 'range'
+      sourceMeasureIds?: string[]
     }
   | {
       type: 'harmonies'
       harmonies: HarmonyMark[]
-      scope?: 'measure' | 'object'
+      scope?: 'measure' | 'object' | 'range'
+      sourceMeasureIds?: string[]
     }
 
 const toolbarCategories = [
@@ -311,7 +431,18 @@ const toolbarCategories = [
 ] as const
 
 type ToolbarCategory = (typeof toolbarCategories)[number]['id']
-type SelectionObjectTypeFilter = 'none' | 'dynamics' | 'harmonies' | TextMarkingType
+type SelectionObjectTypeFilter =
+  | 'none'
+  | 'dynamics'
+  | 'harmonies'
+  | 'lyrics'
+  | 'articulations'
+  | 'ornaments'
+  | 'tremolos'
+  | 'graceNotes'
+  | 'fermatas'
+  | 'breathMarks'
+  | TextMarkingType
 type TempoBeatDots = 0 | 1 | 2
 type TempoBeatSelectorValue = `${DurationValue}:${TempoBeatDots}`
 type PdfTargetPagesValue = string
@@ -518,6 +649,13 @@ const selectionObjectFilterOptions = [
   ['none', '없음'],
   ['dynamics', '셈여림'],
   ['harmonies', '코드'],
+  ['lyrics', '가사'],
+  ['articulations', '표현 기호'],
+  ['ornaments', '꾸밈음 기호'],
+  ['tremolos', '트레몰로'],
+  ['graceNotes', '장식음'],
+  ['fermatas', '페르마타'],
+  ['breathMarks', '숨표/중지표'],
   ['staffTexts', '보표 글자'],
   ['systemTexts', '시스템 텍스트'],
   ['rehearsalMarks', '연습표'],
@@ -533,6 +671,9 @@ const shortcutReferenceSections = [
       ['셋잇단음표', tripletPreset.shortcut],
       ['타이', 'T'],
       ['슬러', 'S'],
+      ['음높이 한 칸 이동', '↑ / ↓'],
+      ['반음 이동', 'Alt/Option+↑ / ↓'],
+      ['옥타브 이동', 'Shift+↑ / ↓'],
       ['이명동음 바꾸기', 'J']
     ]
   },
@@ -541,7 +682,7 @@ const shortcutReferenceSections = [
     rows: [
       ['성부 순환', 'V'],
       ['성부 직접 선택', 'Cmd/Ctrl+Alt+1-4'],
-      ['인접 보표 이동', 'Up/Down'],
+      ['인접 보표 이동', 'Cmd/Ctrl+↑ / ↓'],
       ['선택 범위 확장', 'Shift+Click']
     ]
   },
@@ -557,6 +698,13 @@ const shortcutReferenceSections = [
     ]
   }
 ] as const
+type CommandPaletteItem = {
+  category: string
+  id: string
+  label: string
+  run: () => void
+  shortcut?: string
+}
 const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
@@ -601,11 +749,16 @@ export const App = () => {
     useState<PartPageSetupPreferences>({})
   const [toolbarCategory, setToolbarCategory] =
     useState<ToolbarCategory>('note')
+  const [paletteCategory, setPaletteCategory] =
+    useState<ToolbarCategory>('note')
   const [pdfExporting, setPdfExporting] = useState(false)
   const [pdfTargetPages, setPdfTargetPages] =
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
+  const [commandPaletteQuery, setCommandPaletteQuery] = useState('')
+  const [commandPaletteActiveIndex, setCommandPaletteActiveIndex] = useState(0)
   const [nativeBackupsOpen, setNativeBackupsOpen] = useState(false)
   const backupRequest = useRef(0)
   const [partMixer, setPartMixer] =
@@ -2065,6 +2218,160 @@ export const App = () => {
     [eventLocation, executeCommand, noteInputState, score, selection]
   )
 
+  const commandPaletteItems = useMemo<CommandPaletteItem[]>(() => {
+    const closeCommandPalette = () => {
+      setCommandPaletteOpen(false)
+      setCommandPaletteQuery('')
+    }
+    const openToolbarCategory = (category: ToolbarCategory) => () => {
+      setToolbarCategory(category)
+      closeCommandPalette()
+    }
+    const openShortcutHelp = () => {
+      closeCommandPalette()
+      setShortcutHelpOpen(true)
+    }
+
+    return [
+      ...toolbarCategories.map((category) => ({
+        category: '작업 모드',
+        id: `toolbar-${category.id}`,
+        label: `${category.label} 탭 열기`,
+        run: openToolbarCategory(category.id)
+      })),
+      {
+        category: '파일',
+        id: 'new-score',
+        label: '새 악보 만들기',
+        run: () => {
+          openNewScoreWizard()
+          closeCommandPalette()
+        }
+      },
+      ...toolbarCategories.map((category) => ({
+        category: '팔레트',
+        id: `palette-${category.id}`,
+        label: `${category.label} 팔레트 열기`,
+        run: () => {
+          setPaletteCategory(category.id)
+          closeCommandPalette()
+        }
+      })),
+      ...durations.map((duration) => ({
+        category: '음표 입력',
+        id: `duration-${duration}`,
+        label: `${durationLabels[duration]} 음가 적용`,
+        run: () => {
+          changeDuration(duration)
+          closeCommandPalette()
+        },
+        shortcut: durationShortcuts[duration]
+      })),
+      ...voiceNumbers.map((voiceNumber) => ({
+        category: '성부와 선택',
+        id: `voice-${voiceNumber}`,
+        label: `${voiceNumber}성부로 전환`,
+        run: () => {
+          switchActiveVoice(voiceNumber)
+          closeCommandPalette()
+        },
+        shortcut: `Cmd/Ctrl+Alt+${voiceNumber}`
+      })),
+      ...shortcutReferenceSections.flatMap((section) =>
+        section.rows.map(([label, shortcut]) => ({
+          category: `단축키 · ${section.title}`,
+          id: `shortcut-${section.title}-${label}`,
+          label,
+          run: openShortcutHelp,
+          shortcut
+        }))
+      ),
+      {
+        category: '도움말',
+        id: 'shortcut-help',
+        label: '단축키 도움말 열기',
+        run: openShortcutHelp,
+        shortcut: 'Cmd/Ctrl+K 검색'
+      },
+      {
+        category: '작업공간',
+        id: 'toggle-palette',
+        label: dockVisibility.palette ? '좌측 팔레트 숨기기' : '좌측 팔레트 보이기',
+        run: () => {
+          setDockVisibility((value) => ({ ...value, palette: !value.palette }))
+          closeCommandPalette()
+        }
+      },
+      {
+        category: '작업공간',
+        id: 'toggle-properties',
+        label: dockVisibility.properties ? '우측 속성 도크 숨기기' : '우측 속성 도크 보이기',
+        run: () => {
+          setDockVisibility((value) => ({ ...value, properties: !value.properties }))
+          closeCommandPalette()
+        }
+      },
+      {
+        category: '재생',
+        id: 'toggle-playback',
+        label: playback.status === 'playing' ? '재생 일시정지' : '재생 시작',
+        run: () => {
+          if (playback.status === 'playing') playback.pause()
+          else playback.play()
+          closeCommandPalette()
+        },
+        shortcut: 'Space'
+      },
+      {
+        category: '편집',
+        id: 'undo',
+        label: '실행 취소',
+        run: () => {
+          undo()
+          closeCommandPalette()
+        },
+        shortcut: 'Cmd/Ctrl+Z'
+      },
+      {
+        category: '편집',
+        id: 'redo',
+        label: '다시 실행',
+        run: () => {
+          redo()
+          closeCommandPalette()
+        },
+        shortcut: 'Cmd/Ctrl+Shift+Z'
+      }
+    ]
+  }, [
+    changeDuration,
+    dockVisibility.palette,
+    dockVisibility.properties,
+    openNewScoreWizard,
+    playback,
+    redo,
+    switchActiveVoice,
+    undo
+  ])
+  const visibleCommandPaletteItems = useMemo(() => {
+    const query = commandPaletteQuery.trim().toLowerCase()
+    if (!query) {
+      return commandPaletteItems
+    }
+    return commandPaletteItems.filter((item) =>
+      [item.label, item.category, item.shortcut]
+        .filter(Boolean)
+        .some((text) => text!.toLowerCase().includes(query))
+    )
+  }, [commandPaletteItems, commandPaletteQuery])
+  useEffect(() => {
+    setCommandPaletteActiveIndex(0)
+  }, [commandPaletteOpen, commandPaletteQuery])
+  const boundedCommandPaletteActiveIndex =
+    visibleCommandPaletteItems.length > 0
+      ? Math.min(commandPaletteActiveIndex, visibleCommandPaletteItems.length - 1)
+      : -1
+
   const toggleNoteInputMode = useCallback(() => {
     if (noteInputState) {
       setMode('select')
@@ -2552,27 +2859,38 @@ export const App = () => {
   }, [eventLocation, executeCommand, score, selection])
 
   const clearSelection = useCallback(() => {
-    if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
-      const selectedObjectId = getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
-        dynamicTarget,
-        expressionTextTarget,
-        harmonyTarget,
-        rehearsalTarget,
-        staffTextTarget,
-        systemTextTarget
-      })
-      const command = buildMeasureObjectDeleteCommand(
+    if (
+      ((selection.type === 'measure' || selection.type === 'range') ||
+        (selection.type === 'event' && ['lyrics', 'articulations', 'ornaments', 'tremolos', 'graceNotes', 'fermatas', 'breathMarks'].includes(selectionObjectTypeFilter))) &&
+      selectionObjectTypeFilter !== 'none'
+    ) {
+      const selectedObjectId = selection.type === 'measure'
+        ? getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
+            dynamicTarget,
+            expressionTextTarget,
+            harmonyTarget,
+            rehearsalTarget,
+            staffTextTarget,
+            systemTextTarget
+          })
+        : undefined
+      const command = buildSelectionObjectDeleteCommand(
         score,
-        selection.measureId,
+        selection,
         selectionObjectTypeFilter,
-        selectedObjectId
+        selectedObjectId,
+        activeLyricVerse
       )
 
       if (!command) {
         setFileStatus({
           tone: 'error',
-          message: '선택한 마디에 필터와 일치하는 표기가 없습니다.'
-        })
+        message: selection.type === 'range'
+          ? '선택한 범위에 필터와 일치하는 표기가 없습니다.'
+          : selection.type === 'event'
+            ? `선택한 음표에 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기가 없습니다.`
+          : '선택한 마디에 필터와 일치하는 표기가 없습니다.'
+      })
         return
       }
 
@@ -2648,6 +2966,7 @@ export const App = () => {
           : '음표를 지웠습니다.'
     })
   }, [
+    activeLyricVerse,
     dynamicTarget,
     eventLocation,
     executeCommand,
@@ -2681,26 +3000,37 @@ export const App = () => {
         (clipboard.excludedSegmentCount ? ` 범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외` : '') })
       return
     }
-    if (selection.type === 'measure' && selectionObjectTypeFilter !== 'none') {
-      const selectedObjectId = getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
-        dynamicTarget,
-        expressionTextTarget,
-        harmonyTarget,
-        rehearsalTarget,
-        staffTextTarget,
-        systemTextTarget
-      })
-      const clipboard = buildMeasureMarkingClipboard(
+    if (
+      ((selection.type === 'measure' || selection.type === 'range') ||
+        (selection.type === 'event' && ['lyrics', 'articulations', 'ornaments', 'tremolos', 'graceNotes', 'fermatas', 'breathMarks'].includes(selectionObjectTypeFilter))) &&
+      selectionObjectTypeFilter !== 'none'
+    ) {
+      const selectedObjectId = selection.type === 'measure'
+        ? getSelectedMeasureMarkingId(score, selection.measureId, selectionObjectTypeFilter, {
+            dynamicTarget,
+            expressionTextTarget,
+            harmonyTarget,
+            rehearsalTarget,
+            staffTextTarget,
+            systemTextTarget
+          })
+        : undefined
+      const clipboard = buildSelectionMarkingClipboard(
         score,
-        selection.measureId,
+        selection,
         selectionObjectTypeFilter,
-        selectedObjectId
+        selectedObjectId,
+        activeLyricVerse
       )
 
       if (!clipboard) {
         setFileStatus({
           tone: 'error',
-          message: '선택한 마디에 필터와 일치하는 표기가 없습니다.'
+          message: selection.type === 'range'
+            ? '선택한 범위에 필터와 일치하는 표기가 없습니다.'
+            : selection.type === 'event'
+              ? `선택한 음표에 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기가 없습니다.`
+            : '선택한 마디에 필터와 일치하는 표기가 없습니다.'
         })
         return
       }
@@ -2737,7 +3067,7 @@ export const App = () => {
           ? `${clipboard.eventCount}개 이벤트를 복사했습니다.`
           : `${clipboard.eventCount}개 필터된 이벤트를 복사했습니다.`) + describeRangeClipboardExclusions(clipboard)
     })
-  }, [activeSpanReference, dynamicTarget, expressionTextTarget, harmonyTarget, livePartLayout, livePartViewPartId, rehearsalTarget, score, scoreViewMode, selection, selectionEventTypeFilter, selectionObjectTypeFilter, staffTextTarget, systemTextTarget])
+  }, [activeLyricVerse, activeSpanReference, dynamicTarget, expressionTextTarget, harmonyTarget, livePartLayout, livePartViewPartId, rehearsalTarget, score, scoreViewMode, selection, selectionEventTypeFilter, selectionObjectTypeFilter, staffTextTarget, systemTextTarget])
 
   const pasteSpanAt = useCallback((startEventId: string, endEventId?: string) => {
     if (spanClipboard) {
@@ -2762,10 +3092,10 @@ export const App = () => {
       pasteSpanAt(selection.type === 'event' ? selection.eventId : '')
       return
     }
-    if (selection.type === 'measure' && measureMarkingClipboard) {
-      const command = buildMeasureMarkingPasteCommand(
+    if (measureMarkingClipboard) {
+      const command = buildSelectionMarkingPasteCommand(
         score,
-        selection.measureId,
+        selection,
         measureMarkingClipboard,
         () => crypto.randomUUID()
       )
@@ -4980,6 +5310,17 @@ export const App = () => {
         usesCommandKey &&
         !event.altKey &&
         !event.shiftKey &&
+        event.code === 'KeyK'
+      ) {
+        event.preventDefault()
+        setCommandPaletteOpen(true)
+        return
+      }
+
+      if (
+        usesCommandKey &&
+        !event.altKey &&
+        !event.shiftKey &&
         event.code === 'KeyS'
       ) {
         event.preventDefault()
@@ -5181,13 +5522,9 @@ export const App = () => {
         case 'ArrowUp':
         case 'ArrowDown':
           event.preventDefault()
-          if ((event.metaKey || event.ctrlKey) && event.altKey) {
-            movePitch('octave', event.key === 'ArrowUp' ? 1 : -1)
-          } else if (event.altKey && event.shiftKey) {
-            movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
-          } else if (event.altKey) {
-            movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
-          } else if (
+          if (
+            usesCommandKey &&
+            !event.altKey &&
             moveSelectionVertically(event.key === 'ArrowUp' ? -1 : 1)
           ) {
             setFileStatus({
@@ -5198,10 +5535,13 @@ export const App = () => {
                   : '아래 보표로 이동했습니다.'
             })
           } else if (eventLocation?.event.type === 'note') {
-            setFileStatus({
-              tone: 'neutral',
-              message: '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
-            })
+            if (event.shiftKey && !event.altKey && !usesCommandKey) {
+              movePitch('octave', event.key === 'ArrowUp' ? 1 : -1)
+            } else if (event.altKey && !usesCommandKey) {
+              movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
+            } else if (!event.shiftKey && !event.altKey && !usesCommandKey) {
+              movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
+            }
           }
           break
         case 'Escape':
@@ -5353,24 +5693,34 @@ export const App = () => {
   const selectedRangeHairpin = score.hairpins?.find(matchesSelectedRange)
   const selectedRangeSlur = score.slurs?.some(matchesSelectedRange) ?? false
   const selectedRangeOctave = score.octaveShifts?.find(matchesSelectedRange)
+  const selectionHasObjectFilter =
+    ((selection.type === 'measure' || selection.type === 'range') ||
+      (selection.type === 'event' && ['lyrics', 'articulations', 'ornaments', 'tremolos', 'graceNotes', 'fermatas', 'breathMarks'].includes(selectionObjectTypeFilter))) &&
+    selectionObjectTypeFilter !== 'none'
   const measureObjectDeleteCommand =
-    selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
-      ? buildMeasureObjectDeleteCommand(
+    selectionHasObjectFilter
+      ? buildSelectionObjectDeleteCommand(
           score,
-          selection.measureId,
-          selectionObjectTypeFilter
+          selection,
+          selectionObjectTypeFilter,
+          undefined,
+          activeLyricVerse
         )
       : undefined
   const clearSelectionLabel =
     selection.type === 'measure' && selectionObjectTypeFilter !== 'none'
       ? `선택 마디 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 지우기`
-      : selection.type === 'range'
+    : selection.type === 'range' && selectionObjectTypeFilter !== 'none'
+      ? `선택 범위 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 지우기`
+    : selection.type === 'event' && selectionObjectTypeFilter !== 'none'
+      ? `선택 음표 ${describeSelectionObjectFilter(selectionObjectTypeFilter)} 지우기`
+    : selection.type === 'range'
       ? '선택 범위 지우기'
       : eventLocation?.event.type === 'rest'
       ? '쉼표 지우기'
       : '음표 지우기'
   const canClearSelection = !activeSpanReference && (
-    Boolean(measureObjectDeleteCommand) ||
+    selectionHasObjectFilter ? Boolean(measureObjectDeleteCommand) :
     ((selection.type === 'event' || selection.type === 'range') &&
       Boolean(
         buildFilteredDeleteCommand(score, selection, {
@@ -5378,20 +5728,26 @@ export const App = () => {
         })
       )))
   const canCopySelection = activeSpanReference ? Boolean(buildSpanClipboard(score, activeSpanReference)) : Boolean(
-    (selection.type === 'measure' &&
-      selectionObjectTypeFilter !== 'none' &&
-      buildMeasureMarkingClipboard(
-        score,
-        selection.measureId,
-        selectionObjectTypeFilter
-      )) ||
-      buildFilteredRangeClipboard(score, selection, {
-        eventTypes: selectionEventTypeFilter
-      })
+    selectionHasObjectFilter
+      ? buildSelectionMarkingClipboard(
+          score,
+          selection,
+          selectionObjectTypeFilter,
+          undefined,
+          activeLyricVerse
+        )
+      : buildFilteredRangeClipboard(score, selection, {
+          eventTypes: selectionEventTypeFilter
+        })
   )
   const canPasteSelection = !activeSpanReference && Boolean(
     (spanClipboard && buildSpanPaste(score, selection, spanClipboard, previewInputId)) ||
-    (selection.type === 'measure' && measureMarkingClipboard) ||
+    (measureMarkingClipboard && buildSelectionMarkingPasteCommand(
+      score,
+      selection,
+      measureMarkingClipboard,
+      previewInputId
+    )) ||
       (rangeClipboard &&
       buildFilteredRangePasteCommand(
         score,
@@ -5691,6 +6047,22 @@ export const App = () => {
           onClick={() => setDockVisibility((value) => ({ ...value, properties: !value.properties }))}
         >
           <PanelRight aria-hidden="true" size={18} />
+        </button>
+        <button
+          aria-label="단축키 도움말"
+          title="단축키 도움말"
+          type="button"
+          onClick={() => setShortcutHelpOpen(true)}
+        >
+          <Keyboard aria-hidden="true" size={18} />
+        </button>
+        <button
+          aria-label="명령 검색"
+          title="명령 검색"
+          type="button"
+          onClick={() => setCommandPaletteOpen(true)}
+        >
+          <Search aria-hidden="true" size={18} />
         </button>
         <div>
           <span>작업</span>
@@ -7165,6 +7537,26 @@ export const App = () => {
               </select>
             </label>
 
+            <label
+              className="selection-filter-control"
+              hidden={toolbarCategory !== 'file' || selectionObjectTypeFilter !== 'lyrics'}
+            >
+              <span>가사 절</span>
+              <select
+                aria-label="가사 필터 절"
+                onChange={(event) =>
+                  setActiveLyricVerse(Number.parseInt(event.currentTarget.value, 10))
+                }
+                value={activeLyricVerse}
+              >
+                {lyricVerseOptions.map((verse) => (
+                  <option key={verse} value={verse}>
+                    {verse}절
+                  </option>
+                ))}
+              </select>
+            </label>
+
             <button
               aria-label="마디 추가"
               className="icon-button"
@@ -7594,19 +7986,19 @@ export const App = () => {
               {toolbarCategories.map((category) => (
                 <button
                   aria-label={`${category.label} 팔레트 열기`}
-                  aria-pressed={toolbarCategory === category.id}
+                  aria-pressed={paletteCategory === category.id}
                   className={
-                    toolbarCategory === category.id ? 'is-active' : undefined
+                    paletteCategory === category.id ? 'is-active' : undefined
                   }
                   key={category.id}
-                  onClick={() => setToolbarCategory(category.id)}
+                  onClick={() => setPaletteCategory(category.id)}
                   type="button"
                 >
                   {category.label}
                 </button>
               ))}
             </div>
-            {toolbarCategory === 'notation' ? (
+            {paletteCategory === 'notation' ? (
               <section
                 aria-label="셈여림 팔레트"
                 className="docked-palette__section"
@@ -8201,6 +8593,100 @@ export const App = () => {
         </div>
       ) : null}
 
+      {commandPaletteOpen ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            aria-label="명령 검색"
+            className="command-palette-dialog"
+            role="dialog"
+          >
+            <header>
+              <h2>명령 검색</h2>
+            </header>
+
+            <label className="command-palette-search">
+              <span>검색</span>
+              <input
+                autoFocus
+                aria-label="명령 검색어"
+                onChange={(event) => setCommandPaletteQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    setCommandPaletteOpen(false)
+                    setCommandPaletteQuery('')
+                  } else if (event.key === 'ArrowDown') {
+                    event.preventDefault()
+                    setCommandPaletteActiveIndex((index) =>
+                      visibleCommandPaletteItems.length > 0
+                        ? (index + 1) % visibleCommandPaletteItems.length
+                        : 0
+                    )
+                  } else if (event.key === 'ArrowUp') {
+                    event.preventDefault()
+                    setCommandPaletteActiveIndex((index) =>
+                      visibleCommandPaletteItems.length > 0
+                        ? (index - 1 + visibleCommandPaletteItems.length) %
+                          visibleCommandPaletteItems.length
+                        : 0
+                    )
+                  } else if (event.key === 'Enter') {
+                    event.preventDefault()
+                    if (boundedCommandPaletteActiveIndex >= 0) {
+                      visibleCommandPaletteItems[boundedCommandPaletteActiveIndex]?.run()
+                    }
+                  }
+                }}
+                placeholder="예: 옥타브, 표기 객체, 재생"
+                type="search"
+                value={commandPaletteQuery}
+              />
+            </label>
+
+            <div className="command-palette-results">
+              {visibleCommandPaletteItems.length > 0 ? (
+                visibleCommandPaletteItems.map((item, index) => (
+                  <button
+                    aria-label={item.label}
+                    aria-current={
+                      index === boundedCommandPaletteActiveIndex ? 'true' : undefined
+                    }
+                    className={
+                      index === boundedCommandPaletteActiveIndex
+                        ? 'is-active'
+                        : undefined
+                    }
+                    key={item.id}
+                    onClick={item.run}
+                    type="button"
+                  >
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.category}</small>
+                    </span>
+                    {item.shortcut ? <kbd>{item.shortcut}</kbd> : null}
+                  </button>
+                ))
+              ) : (
+                <p>일치하는 명령이 없습니다.</p>
+              )}
+            </div>
+
+            <footer className="dialog-actions">
+              <button
+                onClick={() => {
+                  setCommandPaletteOpen(false)
+                  setCommandPaletteQuery('')
+                }}
+                type="button"
+              >
+                닫기
+              </button>
+            </footer>
+          </section>
+        </div>
+      ) : null}
+
       {nativeBackupsOpen ? <NativeBackupsDialog onClose={closeNativeBackups} onRestore={restoreNativeBackup} /> : null}
 
       {recoverySnapshot && !startScreenVisible && !nativeBackupsOpen ? (
@@ -8771,6 +9257,20 @@ function buildScorePartsReplaceCommand(
     type: 'score-tempo-events.update',
     tempoEvents
   }))
+  const preserveScopedSystemTexts = (source: Score['systemTexts']) => {
+    if (!source) return
+    const next = source.filter((text) =>
+      measureIds.has(text.measureId) ||
+      (readGenericMeasureReference(text.measureId) !== undefined && globalMeasureSurvives(text.measureId))
+    )
+    if (next.length !== source.length) {
+      commands.push({
+        type: 'score-system-texts.update',
+        systemTexts: next.length ? next : undefined
+      })
+    }
+  }
+
   addFilteredCommand(commands, score.rehearsalMarks, (rehearsalMarks) => ({
     type: 'score-rehearsal-marks.update',
     rehearsalMarks
@@ -8779,10 +9279,7 @@ function buildScorePartsReplaceCommand(
     type: 'score-staff-texts.update',
     staffTexts
   }), (text) => measureIds.has(text.measureId))
-  preserveGlobalMarkings(score.systemTexts, (systemTexts) => ({
-    type: 'score-system-texts.update',
-    systemTexts
-  }))
+  preserveScopedSystemTexts(score.systemTexts)
   addFilteredCommand(commands, score.expressionTexts, (expressionTexts) => ({
     type: 'score-expression-texts.update',
     expressionTexts
@@ -9206,12 +9703,137 @@ function getSelectedMeasureMarkingId(
   return exists ? target.id : undefined
 }
 
+function resolveSelectionMeasureIds(
+  score: Score,
+  selection: EditorSelection
+): string[] {
+  if (selection.type === 'measure') {
+    return [selection.measureId]
+  }
+
+  if (selection.type !== 'range') {
+    return []
+  }
+
+  const measureIds: string[] = []
+  const seen = new Set<string>()
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (location && !seen.has(location.address.measureId)) {
+      seen.add(location.address.measureId)
+      measureIds.push(location.address.measureId)
+    }
+  }
+
+  return measureIds
+}
+
+function buildSelectionObjectDeleteCommand(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionObjectTypeFilter,
+  selectedId?: string,
+  lyricVerse = 1
+): ScoreCommand | undefined {
+  if (selection.type === 'event') {
+    if (filter === 'lyrics') return buildLyricEventDeleteCommand(score, selection, lyricVerse)
+    if (filter === 'articulations') return buildArticulationEventDeleteCommand(score, selection)
+    if (filter === 'ornaments') return buildOrnamentEventDeleteCommand(score, selection)
+    if (filter === 'tremolos') return buildTremoloEventDeleteCommand(score, selection)
+    if (filter === 'graceNotes') return buildGraceNoteEventDeleteCommand(score, selection)
+    if (filter === 'fermatas') return buildFermataEventDeleteCommand(score, selection)
+    if (filter === 'breathMarks') return buildBreathMarkEventDeleteCommand(score, selection)
+    return undefined
+  }
+
+  if (selection.type === 'measure') {
+    return buildMeasureObjectDeleteCommand(score, selection.measureId, filter, selectedId, lyricVerse)
+  }
+
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  if (filter === 'lyrics') {
+    return buildLyricRangeDeleteCommand(score, selection, lyricVerse)
+  }
+  if (filter === 'articulations') {
+    return buildArticulationRangeDeleteCommand(score, selection)
+  }
+  if (filter === 'ornaments') {
+    return buildOrnamentRangeDeleteCommand(score, selection)
+  }
+  if (filter === 'tremolos') {
+    return buildTremoloRangeDeleteCommand(score, selection)
+  }
+  if (filter === 'graceNotes') {
+    return buildGraceNoteRangeDeleteCommand(score, selection)
+  }
+  if (filter === 'fermatas') {
+    return buildFermataRangeDeleteCommand(score, selection)
+  }
+  if (filter === 'breathMarks') {
+    return buildBreathMarkRangeDeleteCommand(score, selection)
+  }
+
+  const measureIdList = resolveSelectionMeasureIds(score, selection)
+  if (isTextMarkingType(filter)) {
+    return buildTextMarkingRangeDeleteCommand(score, measureIdList, filter)
+  }
+  const measureIds = new Set(measureIdList)
+  if (measureIds.size === 0) {
+    return undefined
+  }
+
+  if (filter === 'dynamics') {
+    const currentDynamics = score.dynamics ?? []
+    const dynamics = currentDynamics.filter(
+      (dynamic) => !measureIds.has(dynamic.measureId)
+    )
+
+    if (dynamics.length === currentDynamics.length) {
+      return undefined
+    }
+
+    return {
+      type: 'score-dynamics.update',
+      dynamics: dynamics.length > 0 ? dynamics : undefined
+    }
+  }
+
+  if (filter === 'harmonies') {
+    const currentHarmonies = score.harmonies ?? []
+    const harmonies = currentHarmonies.filter(
+      (harmony) => !measureIds.has(harmony.measureId)
+    )
+
+    if (harmonies.length === currentHarmonies.length) {
+      return undefined
+    }
+
+    return {
+      type: 'score-harmonies.update',
+      harmonies: harmonies.length > 0 ? harmonies : undefined
+    }
+  }
+
+  return undefined
+}
+
 function buildMeasureObjectDeleteCommand(
   score: Score,
   measureId: string,
   filter: SelectionObjectTypeFilter,
-  selectedId?: string
+  selectedId?: string,
+  lyricVerse = 1
 ): ScoreCommand | undefined {
+  if (filter === 'lyrics') return buildLyricMeasureDeleteCommand(score, measureId, lyricVerse)
+  if (filter === 'articulations') return buildArticulationMeasureDeleteCommand(score, measureId)
+  if (filter === 'ornaments') return buildOrnamentMeasureDeleteCommand(score, measureId)
+  if (filter === 'tremolos') return buildTremoloMeasureDeleteCommand(score, measureId)
+  if (filter === 'graceNotes') return buildGraceNoteMeasureDeleteCommand(score, measureId)
+  if (filter === 'fermatas') return buildFermataMeasureDeleteCommand(score, measureId)
+  if (filter === 'breathMarks') return buildBreathMarkMeasureDeleteCommand(score, measureId)
   if (isTextMarkingType(filter)) return buildTextMarkingDeleteCommand(score, measureId, filter, selectedId)
   if (filter === 'dynamics') {
     const currentDynamics = score.dynamics ?? []
@@ -9248,12 +9870,2300 @@ function buildMeasureObjectDeleteCommand(
   return undefined
 }
 
+function buildSelectionMarkingClipboard(
+  score: Score,
+  selection: EditorSelection,
+  filter: SelectionObjectTypeFilter,
+  selectedId?: string,
+  lyricVerse = 1
+): MeasureMarkingClipboard | undefined {
+  if (selection.type === 'event') {
+    if (filter === 'lyrics') return buildLyricEventClipboard(score, selection, lyricVerse)
+    if (filter === 'articulations') return buildArticulationEventClipboard(score, selection)
+    if (filter === 'ornaments') return buildOrnamentEventClipboard(score, selection)
+    if (filter === 'tremolos') return buildTremoloEventClipboard(score, selection)
+    if (filter === 'graceNotes') return buildGraceNoteEventClipboard(score, selection)
+    if (filter === 'fermatas') return buildFermataEventClipboard(score, selection)
+    if (filter === 'breathMarks') return buildBreathMarkEventClipboard(score, selection)
+    return undefined
+  }
+
+  if (selection.type === 'measure') {
+    return buildMeasureMarkingClipboard(score, selection.measureId, filter, selectedId, lyricVerse)
+  }
+
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const sourceMeasureIds = resolveSelectionMeasureIds(score, selection)
+  if (sourceMeasureIds.length === 0) {
+    return undefined
+  }
+  if (filter === 'lyrics') {
+    return buildLyricRangeClipboard(score, selection, lyricVerse)
+  }
+  if (filter === 'articulations') {
+    return buildArticulationRangeClipboard(score, selection)
+  }
+  if (filter === 'ornaments') {
+    return buildOrnamentRangeClipboard(score, selection)
+  }
+  if (filter === 'tremolos') {
+    return buildTremoloRangeClipboard(score, selection)
+  }
+  if (filter === 'graceNotes') {
+    return buildGraceNoteRangeClipboard(score, selection)
+  }
+  if (filter === 'fermatas') {
+    return buildFermataRangeClipboard(score, selection)
+  }
+  if (filter === 'breathMarks') {
+    return buildBreathMarkRangeClipboard(score, selection)
+  }
+  if (isTextMarkingType(filter)) {
+    return buildTextMarkingRangeClipboard(score, sourceMeasureIds, filter)
+  }
+  const sourceMeasureSet = new Set(sourceMeasureIds)
+
+  if (filter === 'dynamics') {
+    const dynamics = (score.dynamics ?? []).filter((dynamic) =>
+      sourceMeasureSet.has(dynamic.measureId)
+    )
+
+    return dynamics.length > 0
+      ? { type: 'dynamics', dynamics: structuredClone(dynamics), scope: 'range', sourceMeasureIds }
+      : undefined
+  }
+
+  if (filter === 'harmonies') {
+    const harmonies = (score.harmonies ?? []).filter((harmony) =>
+      sourceMeasureSet.has(harmony.measureId)
+    )
+
+    return harmonies.length > 0
+      ? { type: 'harmonies', harmonies: structuredClone(harmonies), scope: 'range', sourceMeasureIds }
+      : undefined
+  }
+
+  return undefined
+}
+
+function voiceAddressKey(address: VoiceAddress): string {
+  return [address.partId, address.staffId, address.measureId, address.voiceId].join('\u0000')
+}
+
+function findVoiceAtAddress(score: Score, address: VoiceAddress) {
+  return score.parts
+    .find((part) => part.id === address.partId)?.staves
+    .find((staff) => staff.id === address.staffId)?.measures
+    .find((measure) => measure.id === address.measureId)?.voices
+    .find((voice) => voice.id === address.voiceId)
+}
+
+function buildArticulationEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.type === 'note' && location.event.articulations?.length
+    ? { type: 'articulations', articulations: structuredClone(location.event.articulations), scope: 'object' }
+    : undefined
+}
+
+function buildArticulationEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note' || !location.event.articulations?.length) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, articulations: undefined }
+        : event
+    )
+  }
+}
+
+function buildArticulationEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'articulations'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, articulations: structuredClone(clipboard.articulations) }
+        : event
+    )
+  }
+}
+
+function buildArticulationRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.type === 'note' && location.event.articulations?.length
+      ? [{ index, articulations: structuredClone(location.event.articulations) }]
+      : []
+  })
+
+  return entries.length
+    ? { type: 'articulations', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildArticulationMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.type === 'note' && event.articulations?.length
+        ? [{ voiceId: voice.id, index, articulations: structuredClone(event.articulations) }]
+        : []
+    )
+  )
+
+  return entries.length ? { type: 'articulations', entries, scope: 'measure' } : undefined
+}
+
+function buildArticulationMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) =>
+      event.type === 'note' && event.articulations?.length
+        ? { ...event, articulations: undefined }
+        : event
+    )
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildArticulationMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'articulations'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const articulationMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.articulations])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const articulations = articulationMap.get(`${voice.id}\u0000${index}`)
+      if (!articulations) {
+        return event.type === 'note' && event.articulations?.length
+          ? { ...event, articulations: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, articulations: structuredClone(articulations) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events: nextEvents
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildArticulationRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.type === 'note' && event.articulations?.length
+        ? { ...event, articulations: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildArticulationRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'articulations'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const articulationMap = new Map(
+    clipboard.entries.map((entry) => [targetIds[entry.index], entry.articulations])
+  )
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const articulations = articulationMap.get(event.id)
+      if (!articulations) {
+        return event.type === 'note' && event.articulations?.length
+          ? { ...event, articulations: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, articulations: structuredClone(articulations) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events: nextEvents })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+    ? commands[0]
+    : { type: 'score.batch', commands }
+}
+
+function buildOrnamentEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.type === 'note' && location.event.ornaments?.length
+    ? { type: 'ornaments', ornaments: structuredClone(location.event.ornaments), scope: 'object' }
+    : undefined
+}
+
+function buildOrnamentEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note' || !location.event.ornaments?.length) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, ornaments: undefined }
+        : event
+    )
+  }
+}
+
+function buildOrnamentEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'ornaments'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, ornaments: structuredClone(clipboard.ornaments) }
+        : event
+    )
+  }
+}
+
+function buildOrnamentRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.type === 'note' && location.event.ornaments?.length
+      ? [{ index, ornaments: structuredClone(location.event.ornaments) }]
+      : []
+  })
+
+  return entries.length
+    ? { type: 'ornaments', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildOrnamentMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.type === 'note' && event.ornaments?.length
+        ? [{ voiceId: voice.id, index, ornaments: structuredClone(event.ornaments) }]
+        : []
+    )
+  )
+
+  return entries.length ? { type: 'ornaments', entries, scope: 'measure' } : undefined
+}
+
+function buildOrnamentMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) =>
+      event.type === 'note' && event.ornaments?.length
+        ? { ...event, ornaments: undefined }
+        : event
+    )
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildOrnamentMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'ornaments'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const ornamentMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.ornaments])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const ornaments = ornamentMap.get(`${voice.id}\u0000${index}`)
+      if (!ornaments) {
+        return event.type === 'note' && event.ornaments?.length
+          ? { ...event, ornaments: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, ornaments: structuredClone(ornaments) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events: nextEvents
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildOrnamentRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.type === 'note' && event.ornaments?.length
+        ? { ...event, ornaments: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildOrnamentRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'ornaments'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const ornamentMap = new Map(
+    clipboard.entries.map((entry) => [targetIds[entry.index], entry.ornaments])
+  )
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const ornaments = ornamentMap.get(event.id)
+      if (!ornaments) {
+        return event.type === 'note' && event.ornaments?.length
+          ? { ...event, ornaments: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, ornaments: structuredClone(ornaments) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events: nextEvents })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+    ? commands[0]
+    : { type: 'score.batch', commands }
+}
+
+function buildTremoloEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.type === 'note' && location.event.tremolo
+    ? { type: 'tremolos', tremolo: structuredClone(location.event.tremolo), scope: 'object' }
+    : undefined
+}
+
+function buildTremoloEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note' || !location.event.tremolo) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, tremolo: undefined }
+        : event
+    )
+  }
+}
+
+function buildTremoloEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'tremolos'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, tremolo: structuredClone(clipboard.tremolo) }
+        : event
+    )
+  }
+}
+
+function buildTremoloRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.type === 'note' && location.event.tremolo
+      ? [{ index, tremolo: structuredClone(location.event.tremolo) }]
+      : []
+  })
+
+  return entries.length
+    ? { type: 'tremolos', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildTremoloMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.type === 'note' && event.tremolo
+        ? [{ voiceId: voice.id, index, tremolo: structuredClone(event.tremolo) }]
+        : []
+    )
+  )
+
+  return entries.length ? { type: 'tremolos', entries, scope: 'measure' } : undefined
+}
+
+function buildTremoloMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) =>
+      event.type === 'note' && event.tremolo
+        ? { ...event, tremolo: undefined }
+        : event
+    )
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildTremoloMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'tremolos'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const tremoloMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.tremolo])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const tremolo = tremoloMap.get(`${voice.id}\u0000${index}`)
+      if (!tremolo) {
+        return event.type === 'note' && event.tremolo
+          ? { ...event, tremolo: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, tremolo: structuredClone(tremolo) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events: nextEvents
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildTremoloRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.type === 'note' && event.tremolo
+        ? { ...event, tremolo: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildTremoloRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'tremolos'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const tremoloMap = new Map(
+    clipboard.entries.map((entry) => [targetIds[entry.index], entry.tremolo])
+  )
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const tremolo = tremoloMap.get(event.id)
+      if (!tremolo) {
+        return event.type === 'note' && event.tremolo
+          ? { ...event, tremolo: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, tremolo: structuredClone(tremolo) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events: nextEvents })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+    ? commands[0]
+    : { type: 'score.batch', commands }
+}
+
+function buildGraceNoteEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.type === 'note' && location.event.graceNotes?.length
+    ? { type: 'graceNotes', graceNotes: structuredClone(location.event.graceNotes), scope: 'object' }
+    : undefined
+}
+
+function buildGraceNoteEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note' || !location.event.graceNotes?.length) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, graceNotes: undefined }
+        : event
+    )
+  }
+}
+
+function buildGraceNoteEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'graceNotes'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, graceNotes: structuredClone(clipboard.graceNotes) }
+        : event
+    )
+  }
+}
+
+function buildGraceNoteRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.type === 'note' && location.event.graceNotes?.length
+      ? [{ index, graceNotes: structuredClone(location.event.graceNotes) }]
+      : []
+  })
+
+  return entries.length
+    ? { type: 'graceNotes', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildGraceNoteMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.type === 'note' && event.graceNotes?.length
+        ? [{ voiceId: voice.id, index, graceNotes: structuredClone(event.graceNotes) }]
+        : []
+    )
+  )
+
+  return entries.length ? { type: 'graceNotes', entries, scope: 'measure' } : undefined
+}
+
+function buildGraceNoteMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) =>
+      event.type === 'note' && event.graceNotes?.length
+        ? { ...event, graceNotes: undefined }
+        : event
+    )
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildGraceNoteMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'graceNotes'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const graceNoteMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.graceNotes])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const graceNotes = graceNoteMap.get(`${voice.id}\u0000${index}`)
+      if (!graceNotes) {
+        return event.type === 'note' && event.graceNotes?.length
+          ? { ...event, graceNotes: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, graceNotes: structuredClone(graceNotes) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events: nextEvents
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildGraceNoteRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.type === 'note' && event.graceNotes?.length
+        ? { ...event, graceNotes: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildGraceNoteRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'graceNotes'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const graceNoteMap = new Map(
+    clipboard.entries.map((entry) => [targetIds[entry.index], entry.graceNotes])
+  )
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const graceNotes = graceNoteMap.get(event.id)
+      if (!graceNotes) {
+        return event.type === 'note' && event.graceNotes?.length
+          ? { ...event, graceNotes: undefined }
+          : event
+      }
+      return event.type === 'note'
+        ? { ...event, graceNotes: structuredClone(graceNotes) }
+        : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events: nextEvents })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildFermataEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.fermata ? { type: 'fermatas', scope: 'object' } : undefined
+}
+
+function buildFermataEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location?.event.fermata) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId ? { ...event, fermata: undefined } : event
+    )
+  }
+}
+
+function buildFermataEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  _clipboard: Extract<MeasureMarkingClipboard, { type: 'fermatas'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId ? { ...event, fermata: true } : event
+    )
+  }
+}
+
+function buildFermataRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.fermata ? [{ index }] : []
+  })
+
+  return entries.length
+    ? { type: 'fermatas', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildFermataMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.fermata ? [{ voiceId: voice.id, index }] : []
+    )
+  )
+
+  return entries.length ? { type: 'fermatas', entries, scope: 'measure' } : undefined
+}
+
+function buildFermataMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) => event.fermata ? { ...event, fermata: undefined } : event)
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildFermataMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'fermatas'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const fermataKeys = new Set(clipboard.entries.map((entry) => `${entry.voiceId}\u0000${entry.index}`))
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const shouldHaveFermata = fermataKeys.has(`${voice.id}\u0000${index}`)
+      if (shouldHaveFermata) {
+        return event.fermata ? event : { ...event, fermata: true }
+      }
+      return event.fermata ? { ...event, fermata: undefined } : event
+    })
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildFermataRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.fermata
+        ? { ...event, fermata: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildFermataRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'fermatas'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const fermataIds = new Set(clipboard.entries.map((entry) => targetIds[entry.index]))
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      if (fermataIds.has(event.id)) {
+        return event.fermata ? event : { ...event, fermata: true }
+      }
+      return event.fermata ? { ...event, fermata: undefined } : event
+    })
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+    ? commands[0]
+    : { type: 'score.batch', commands }
+}
+
+function buildBreathMarkEventClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  return location?.event.breathMark
+    ? { type: 'breathMarks', breathMark: location.event.breathMark, scope: 'object' }
+    : undefined
+}
+
+function buildBreathMarkEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location?.event.breathMark) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId ? { ...event, breathMark: undefined } : event
+    )
+  }
+}
+
+function buildBreathMarkEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'breathMarks'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId ? { ...event, breathMark: clipboard.breathMark } : event
+    )
+  }
+}
+
+function buildBreathMarkRangeClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    return location?.event.breathMark
+      ? [{ index, breathMark: location.event.breathMark }]
+      : []
+  })
+
+  return entries.length
+    ? { type: 'breathMarks', entries, eventCount: selection.eventIds.length, scope: 'range' }
+    : undefined
+}
+
+function buildBreathMarkMeasureClipboard(
+  score: Score,
+  measureId: string
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) =>
+      event.breathMark ? [{ voiceId: voice.id, index, breathMark: event.breathMark }] : []
+    )
+  )
+
+  return entries.length ? { type: 'breathMarks', entries, scope: 'measure' } : undefined
+}
+
+function buildBreathMarkMeasureDeleteCommand(
+  score: Score,
+  measureId: string
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) => event.breathMark ? { ...event, breathMark: undefined } : event)
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildBreathMarkMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'breathMarks'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const breathMarkMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.breathMark])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const breathMark = breathMarkMap.get(`${voice.id}\u0000${index}`)
+      if (breathMark) {
+        return event.breathMark === breathMark ? event : { ...event, breathMark }
+      }
+      return event.breathMark ? { ...event, breathMark: undefined } : event
+    })
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildBreathMarkRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.breathMark
+        ? { ...event, breathMark: undefined }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildBreathMarkRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'breathMarks'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const breathMarkMap = new Map(clipboard.entries.map((entry) => [targetIds[entry.index], entry.breathMark]))
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const breathMark = breathMarkMap.get(event.id)
+      if (breathMark) {
+        return event.breathMark === breathMark ? event : { ...event, breathMark }
+      }
+      return event.breathMark ? { ...event, breathMark: undefined } : event
+    })
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function lyricNumber(lyric: LyricSyllable): number {
+  return lyric.number ?? 1
+}
+
+function lyricsForVerse(lyrics: LyricSyllable[] | undefined, verse: number): LyricSyllable[] {
+  return (lyrics ?? []).filter((lyric) => lyricNumber(lyric) === verse)
+}
+
+function replaceLyricsForVerse(
+  lyrics: LyricSyllable[] | undefined,
+  verse: number,
+  replacement: LyricSyllable[] | undefined
+): LyricSyllable[] | undefined {
+  const retained = (lyrics ?? []).filter((lyric) => lyricNumber(lyric) !== verse)
+  const next = [
+    ...retained,
+    ...(replacement?.length ? structuredClone(replacement) : [])
+  ].sort((a, b) => lyricNumber(a) - lyricNumber(b))
+
+  return next.length ? next : undefined
+}
+
+function buildLyricEventClipboard(
+  score: Score,
+  selection: EditorSelection,
+  verse: number
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  const lyrics = location?.event.type === 'note'
+    ? lyricsForVerse(location.event.lyrics, verse)
+    : []
+  return lyrics.length
+    ? { type: 'lyrics', lyrics: structuredClone(lyrics), scope: 'object', verse }
+    : undefined
+}
+
+function buildLyricEventDeleteCommand(
+  score: Score,
+  selection: EditorSelection,
+  verse: number
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note' || lyricsForVerse(location.event.lyrics, verse).length === 0) {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, verse, undefined) }
+        : event
+    )
+  }
+}
+
+function buildLyricEventPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'lyrics'; scope: 'object' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'event') {
+    return undefined
+  }
+
+  const location = locateEvent(score, selection.eventId, selection.address)
+  if (!location || location.event.type !== 'note') {
+    return undefined
+  }
+
+  const voice = findVoiceAtAddress(score, location.address)
+  if (!voice) {
+    return undefined
+  }
+
+  return {
+    type: 'voice-events.replace',
+    target: location.address,
+    events: voice.events.map((event) =>
+      event.id === selection.eventId && event.type === 'note'
+        ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, clipboard.verse, clipboard.lyrics) }
+        : event
+    )
+  }
+}
+
+function locateMeasureVoices(score: Score, measureId: string) {
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      const measure = staff.measures.find((candidate) => candidate.id === measureId)
+      if (measure) {
+        return {
+          partId: part.id,
+          staffId: staff.id,
+          measure,
+          voices: measure.voices
+        }
+      }
+    }
+  }
+  return undefined
+}
+
+function buildLyricMeasureClipboard(
+  score: Score,
+  measureId: string,
+  verse: number
+): MeasureMarkingClipboard | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const entries = location.voices.flatMap((voice) =>
+    voice.events.flatMap((event, index) => {
+      const lyrics = event.type === 'note' ? lyricsForVerse(event.lyrics, verse) : []
+      return lyrics.length
+        ? [{ voiceId: voice.id, index, lyrics: structuredClone(lyrics) }]
+        : []
+    })
+  )
+  return entries.length ? { type: 'lyrics', entries, scope: 'measure', verse } : undefined
+}
+
+function buildLyricMeasureDeleteCommand(
+  score: Score,
+  measureId: string,
+  verse: number
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  const commands = location.voices.flatMap((voice) => {
+    const events = voice.events.map((event) =>
+      event.type === 'note' && lyricsForVerse(event.lyrics, verse).length
+        ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, verse, undefined) }
+        : event
+    )
+    return events.some((event, index) => event !== voice.events[index])
+      ? [{
+          type: 'voice-events.replace' as const,
+          target: {
+            partId: location.partId,
+            staffId: location.staffId,
+            measureId,
+            voiceId: voice.id
+          },
+          events
+        }]
+      : []
+  })
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildLyricMeasurePasteCommand(
+  score: Score,
+  measureId: string,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'lyrics'; scope: 'measure' }>
+): ScoreCommand | undefined {
+  const location = locateMeasureVoices(score, measureId)
+  if (!location) {
+    return undefined
+  }
+
+  if (clipboard.entries.some((entry) => {
+    const voice = location.voices.find((candidate) => candidate.id === entry.voiceId)
+    return !voice || entry.index >= voice.events.length
+  })) {
+    return undefined
+  }
+
+  const lyricMap = new Map(
+    clipboard.entries.map((entry) => [`${entry.voiceId}\u0000${entry.index}`, entry.lyrics])
+  )
+  const copiedVoiceIds = new Set(clipboard.entries.map((entry) => entry.voiceId))
+  const commands: ScoreCommand[] = []
+  for (const voice of location.voices) {
+    if (!copiedVoiceIds.has(voice.id)) {
+      continue
+    }
+
+    const events = voice.events.map((event, index) => {
+      const lyrics = lyricMap.get(`${voice.id}\u0000${index}`)
+      if (!lyrics) {
+        return event.type === 'note' && lyricsForVerse(event.lyrics, clipboard.verse).length
+          ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, clipboard.verse, undefined) }
+          : event
+      }
+      return event.type === 'note' ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, clipboard.verse, lyrics) } : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({
+        type: 'voice-events.replace',
+        target: {
+          partId: location.partId,
+          staffId: location.staffId,
+          measureId,
+          voiceId: voice.id
+        },
+        events: nextEvents
+      })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildLyricRangeClipboard(
+  score: Score,
+  selection: EditorSelection,
+  verse: number
+): MeasureMarkingClipboard | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const entries = selection.eventIds.flatMap((eventId, index) => {
+    const location = locateEvent(score, eventId, selection.address)
+    const lyrics = location?.event.type === 'note'
+      ? lyricsForVerse(location.event.lyrics, verse)
+      : []
+    return lyrics.length ? [{ index, lyrics: structuredClone(lyrics) }] : []
+  })
+
+  return entries.length ? { type: 'lyrics', entries, eventCount: selection.eventIds.length, scope: 'range', verse } : undefined
+}
+
+function buildLyricRangeDeleteCommand(
+  score: Score,
+  selection: EditorSelection,
+  verse: number
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const selectedIds = new Set(selection.eventIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of selection.eventIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) =>
+      selectedIds.has(event.id) && event.type === 'note' && lyricsForVerse(event.lyrics, verse).length
+        ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, verse, undefined) }
+        : event
+    )
+    if (events.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
+function buildLyricRangePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: Extract<MeasureMarkingClipboard, { type: 'lyrics'; scope: 'range' }>
+): ScoreCommand | undefined {
+  if (selection.type !== 'range') {
+    return undefined
+  }
+
+  const targetIds = selection.eventIds.slice(0, clipboard.eventCount)
+  if (
+    targetIds.length !== clipboard.eventCount ||
+    clipboard.entries.some((entry) => entry.index >= targetIds.length)
+  ) {
+    return undefined
+  }
+
+  const lyricMap = new Map(clipboard.entries.map((entry) => [targetIds[entry.index], entry.lyrics]))
+  const targetIdSet = new Set(targetIds)
+  const commands: ScoreCommand[] = []
+  const handledVoices = new Set<string>()
+
+  for (const eventId of targetIds) {
+    const location = locateEvent(score, eventId, selection.address)
+    if (!location || handledVoices.has(voiceAddressKey(location.address))) {
+      continue
+    }
+    handledVoices.add(voiceAddressKey(location.address))
+    const voice = findVoiceAtAddress(score, location.address)
+    if (!voice) {
+      continue
+    }
+    const events = voice.events.map((event) => {
+      if (!targetIdSet.has(event.id)) {
+        return event
+      }
+      const lyrics = lyricMap.get(event.id)
+      if (!lyrics) {
+        return event.type === 'note' && lyricsForVerse(event.lyrics, clipboard.verse).length
+          ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, clipboard.verse, undefined) }
+          : event
+      }
+      return event.type === 'note' ? { ...event, lyrics: replaceLyricsForVerse(event.lyrics, clipboard.verse, lyrics) } : undefined
+    })
+    if (events.some((event) => event === undefined)) {
+      return undefined
+    }
+    const nextEvents = events as typeof voice.events
+    if (nextEvents.some((event, index) => event !== voice.events[index])) {
+      commands.push({ type: 'voice-events.replace', target: location.address, events: nextEvents })
+    }
+  }
+
+  return commands.length === 0
+    ? undefined
+    : commands.length === 1
+      ? commands[0]
+      : { type: 'score.batch', commands }
+}
+
 function buildMeasureMarkingClipboard(
   score: Score,
   measureId: string,
   filter: SelectionObjectTypeFilter,
-  selectedId?: string
+  selectedId?: string,
+  lyricVerse = 1
 ): MeasureMarkingClipboard | undefined {
+  if (filter === 'lyrics') return buildLyricMeasureClipboard(score, measureId, lyricVerse)
+  if (filter === 'articulations') return buildArticulationMeasureClipboard(score, measureId)
+  if (filter === 'ornaments') return buildOrnamentMeasureClipboard(score, measureId)
+  if (filter === 'tremolos') return buildTremoloMeasureClipboard(score, measureId)
+  if (filter === 'graceNotes') return buildGraceNoteMeasureClipboard(score, measureId)
+  if (filter === 'fermatas') return buildFermataMeasureClipboard(score, measureId)
+  if (filter === 'breathMarks') return buildBreathMarkMeasureClipboard(score, measureId)
   if (isTextMarkingType(filter)) return buildTextMarkingClipboard(score, measureId, filter, selectedId)
   if (filter === 'dynamics') {
     const dynamics = (score.dynamics ?? []).filter(
@@ -9274,6 +12184,195 @@ function buildMeasureMarkingClipboard(
   return undefined
 }
 
+function mapRangeClipboardMeasure(
+  sourceMeasureId: string,
+  sourceMeasureIds: string[],
+  targetMeasureIds: string[]
+): string | undefined {
+  const index = sourceMeasureIds.indexOf(sourceMeasureId)
+  return index >= 0 ? targetMeasureIds[index] : undefined
+}
+
+function buildSelectionMarkingPasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: MeasureMarkingClipboard,
+  createId: () => string
+): ScoreCommand | undefined {
+  if (selection.type === 'event') {
+    if (clipboard.type === 'lyrics' && clipboard.scope === 'object') {
+      return buildLyricEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'articulations' && clipboard.scope === 'object') {
+      return buildArticulationEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'ornaments' && clipboard.scope === 'object') {
+      return buildOrnamentEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'tremolos' && clipboard.scope === 'object') {
+      return buildTremoloEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'graceNotes' && clipboard.scope === 'object') {
+      return buildGraceNoteEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'fermatas' && clipboard.scope === 'object') {
+      return buildFermataEventPasteCommand(score, selection, clipboard)
+    }
+    if (clipboard.type === 'breathMarks' && clipboard.scope === 'object') {
+      return buildBreathMarkEventPasteCommand(score, selection, clipboard)
+    }
+    return undefined
+  }
+
+  if (selection.type === 'measure') {
+    if (clipboard.scope === 'range') {
+      return undefined
+    }
+    if (clipboard.type === 'articulations') {
+      return clipboard.scope === 'measure'
+        ? buildArticulationMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'ornaments') {
+      return clipboard.scope === 'measure'
+        ? buildOrnamentMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'tremolos') {
+      return clipboard.scope === 'measure'
+        ? buildTremoloMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'graceNotes') {
+      return clipboard.scope === 'measure'
+        ? buildGraceNoteMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'fermatas') {
+      return clipboard.scope === 'measure'
+        ? buildFermataMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'breathMarks') {
+      return clipboard.scope === 'measure'
+        ? buildBreathMarkMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    if (clipboard.type === 'lyrics') {
+      return clipboard.scope === 'measure'
+        ? buildLyricMeasurePasteCommand(score, selection.measureId, clipboard)
+        : undefined
+    }
+    return buildMeasureMarkingPasteCommand(score, selection.measureId, clipboard, createId)
+  }
+
+  if (
+    selection.type !== 'range' ||
+    clipboard.scope !== 'range' ||
+    (clipboard.type !== 'lyrics' &&
+      clipboard.type !== 'articulations' &&
+      clipboard.type !== 'ornaments' &&
+      clipboard.type !== 'tremolos' &&
+      clipboard.type !== 'graceNotes' &&
+      clipboard.type !== 'fermatas' &&
+      clipboard.type !== 'breathMarks' &&
+      !('sourceMeasureIds' in clipboard))
+  ) {
+    return undefined
+  }
+
+  if (clipboard.type === 'lyrics') {
+    return buildLyricRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'articulations') {
+    return buildArticulationRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'ornaments') {
+    return buildOrnamentRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'tremolos') {
+    return buildTremoloRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'graceNotes') {
+    return buildGraceNoteRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'fermatas') {
+    return buildFermataRangePasteCommand(score, selection, clipboard)
+  }
+  if (clipboard.type === 'breathMarks') {
+    return buildBreathMarkRangePasteCommand(score, selection, clipboard)
+  }
+
+  if (!clipboard.sourceMeasureIds?.length) {
+    return undefined
+  }
+
+  const targetMeasureIds = resolveSelectionMeasureIds(score, selection)
+  if (targetMeasureIds.length < clipboard.sourceMeasureIds.length) {
+    return undefined
+  }
+  const pasteMeasureIds = targetMeasureIds.slice(0, clipboard.sourceMeasureIds.length)
+  const pasteMeasureSet = new Set(pasteMeasureIds)
+
+  if ('marks' in clipboard) {
+    return buildTextMarkingRangePasteCommand(score, pasteMeasureIds, clipboard, createId)
+  }
+
+  if (clipboard.type === 'dynamics') {
+    const copied = clipboard.dynamics.flatMap((dynamic) => {
+      const measureId = mapRangeClipboardMeasure(
+        dynamic.measureId,
+        clipboard.sourceMeasureIds ?? [],
+        pasteMeasureIds
+      )
+      return measureId
+        ? [{ ...dynamic, id: `dynamic-${createId()}`, measureId }]
+        : []
+    })
+
+    if (copied.length !== clipboard.dynamics.length) {
+      return undefined
+    }
+
+    const dynamics = [
+      ...(score.dynamics ?? []).filter((dynamic) => !pasteMeasureSet.has(dynamic.measureId)),
+      ...copied
+    ]
+    return {
+      type: 'score-dynamics.update',
+      dynamics: dynamics.length > 0 ? dynamics : undefined
+    }
+  }
+
+  if (clipboard.type === 'harmonies') {
+    const copied = clipboard.harmonies.flatMap((harmony) => {
+      const measureId = mapRangeClipboardMeasure(
+        harmony.measureId,
+        clipboard.sourceMeasureIds ?? [],
+        pasteMeasureIds
+      )
+      return measureId
+        ? [{ ...harmony, id: `harmony-${createId()}`, measureId }]
+        : []
+    })
+
+    if (copied.length !== clipboard.harmonies.length) {
+      return undefined
+    }
+
+    const harmonies = [
+      ...(score.harmonies ?? []).filter((harmony) => !pasteMeasureSet.has(harmony.measureId)),
+      ...copied
+    ]
+    return {
+      type: 'score-harmonies.update',
+      harmonies: harmonies.length > 0 ? harmonies : undefined
+    }
+  }
+
+  return undefined
+}
+
 function buildMeasureMarkingPasteCommand(
   score: Score,
   targetMeasureId: string,
@@ -9281,6 +12380,13 @@ function buildMeasureMarkingPasteCommand(
   createId: () => string
 ): ScoreCommand | undefined {
   if ('marks' in clipboard) return buildTextMarkingPasteCommand(score, targetMeasureId, clipboard, createId)
+  if (clipboard.type === 'lyrics') return undefined
+  if (clipboard.type === 'articulations') return undefined
+  if (clipboard.type === 'ornaments') return undefined
+  if (clipboard.type === 'tremolos') return undefined
+  if (clipboard.type === 'graceNotes') return undefined
+  if (clipboard.type === 'fermatas') return undefined
+  if (clipboard.type === 'breathMarks') return undefined
   if (clipboard.type === 'dynamics') {
     const otherDynamics = clipboard.scope === 'object'
       ? score.dynamics ?? []

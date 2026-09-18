@@ -2714,6 +2714,84 @@ describe('MusicXML MVP', () => {
       ornaments: ['trill', 'mordent', 'turn']
     })
   })
+
+  it('grace-notes.musicxml-round-trip preserves lower-staff voice ownership', () => {
+    const score = createScore({
+      title: 'Lower Staff Grace Sketch',
+      parts: [
+        createPart({
+          staves: [
+            createStaff({
+              id: 'upper-staff',
+              measures: [
+                createMeasure({
+                  id: 'upper-measure',
+                  voices: [
+                    createVoice({
+                      events: [
+                        createRest({
+                          id: 'upper-rest',
+                          duration: createDuration('whole'),
+                          fullMeasure: true
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            }),
+            createStaff({
+              id: 'lower-staff',
+              measures: [
+                createMeasure({
+                  id: 'lower-measure',
+                  clef: { sign: 'F', line: 4 },
+                  voices: [
+                    createVoice({
+                      id: 'voice-2',
+                      events: [
+                        createNote({
+                          id: 'lower-grace-target',
+                          position: createTimePosition(0),
+                          pitch: { step: 'G', octave: 3 },
+                          graceNotes: [
+                            {
+                              pitch: { step: 'F', octave: 3 },
+                              slash: true
+                            }
+                          ]
+                        }),
+                        createRest({
+                          id: 'lower-fill',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: createDuration('half', 1)
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const exported = serializeMusicXml(score)
+    const lowerVoice = parseMusicXml(exported).parts[0].staves[1].measures[0].voices[0]
+
+    expect(exported).toContain('<staff>2</staff>')
+    expect(exported).toContain('<voice>2</voice>')
+    expect(lowerVoice.id).toBe('voice-2')
+    expect(lowerVoice.events[0]).toMatchObject({
+      type: 'note',
+      graceNotes: [
+        {
+          pitch: { step: 'F', octave: 3 },
+          slash: true
+        }
+      ]
+    })
+  })
 })
 
 function readScoreClefs(score: ReturnType<typeof parseMusicXml>): string[] {

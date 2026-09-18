@@ -2,10 +2,13 @@
 
 ## 2026-09-15 Integration Checkpoint
 
-Expanded V1 remains incomplete. A read-only serializer probe confirmed that a
-system text at `P2-staff-2-measure-1` disappears from MusicXML with no export/import
-warning. Preserve its intended scope before relaxing non-primary system-text paste.
-System-text editing also still replaces neighboring objects in one measure.
+Expanded V1 remains incomplete. An earlier read-only serializer probe confirmed
+that a system text at `P2-staff-2-measure-1` disappeared from MusicXML with no
+export/import warning; the 2026-09-16 and 2026-09-18 follow-ups now preserve that
+bounded Chromatics-authored concrete lower-staff system text path and prevent a
+deleted part's local system text from being promoted to a global `measure-N`
+object. Broader explicit scope editing, arbitrary tick identity and external-app
+fidelity remain incomplete.
 Generic global rehearsal objects are now selectable/editable separately from
 local objects in score and part views; scope conversion and arbitrary tick anchors
 are not implemented. Expression-text import now normalizes cursor/divisions/offset
@@ -75,13 +78,55 @@ Document open/new/recovery resets those ephemeral selections. The measure object
 copy/delete path can now use the selected object target for chord symbols,
 dynamics, staff text, system text, rehearsal marks and expression text; selected
 object paste appends a fresh object without replacing target-measure neighbors.
+Range selection object filters now support bounded chord-symbol, dynamics, staff
+text, system text, rehearsal mark, expression text and note lyric
+copy/paste/delete with relative source-to-target mapping; lyric range paste also
+clears stale target lyrics where the source range has no lyric. Note-selected lyric
+object copy/paste/delete is also supported for one selected note, and
+measure-selected lyric object copy/paste/delete maps lyrics by event index within
+the target measure, preserves same-staff multi-voice voice ownership and leaves
+target voices outside the copied source voices unchanged.
+The File-mode `가사 필터 절` selector makes note-selected, range and
+measure-selected lyric object copy/paste/delete follow the active lyric verse, so
+copying/deleting verse 2 preserves verse 1 on the source and target notes.
+Selected-note, range and measure-selected articulation object copy/paste/delete
+are supported; they preserve notes, durations, lyrics and unrelated target voices
+while moving only articulations.
+Selected-note, range and measure-selected ornament object copy/paste/delete are
+supported for `trill`, `mordent` and `turn`, preserving notes, lyrics,
+articulations and unrelated target voices through native save and MusicXML
+evidence.
+Selected-note, range and measure-selected single-note tremolo object
+copy/paste/delete preserve the `marks` value while leaving notes, lyrics,
+articulations and unrelated target voices unchanged through native save and
+MusicXML evidence.
+Selected-note, range and measure-selected grace-note object copy/paste/delete
+preserve the grace-note pitch list and slash flags while leaving notes, lyrics,
+articulations and unrelated target voices unchanged through native save and
+MusicXML evidence. MusicXML export now includes voice/staff ownership on grace
+notes so lower-staff and voice-2 grace notes reattach to the original target note
+on reopen.
+Selected-note, range and measure-selected fermata object copy/paste/delete are
+also supported; they preserve notes, lyrics, articulations and unrelated target
+voices while moving only fermatas through native save and MusicXML evidence.
+Selected-note, range and measure-selected breath/caesura object copy/paste/delete
+preserve the concrete `breath` or `caesura` value while leaving notes, lyrics,
+articulations and unrelated target voices unchanged through native save and
+MusicXML evidence.
 Direct score-object selection has a bounded implementation for visible chord
 symbols, dynamics, rehearsal marks, staff text, system text and expression text:
 clicking the score object selects its measure and stable object target for
-editing. Staff text is still limited by the current renderer map to the visible
-staff-text object for that measure; multi-object/lane rendering, cross-measure
-range selection and broader independent object clipboard remain Required. These
-choosers do not complete the umbrella.
+editing. A 2026-09-18 renderer follow-up fixes same-measure staff text visibility
+so multiple staff text objects draw in separate lanes and can each be clicked by
+stable object id. A second 2026-09-18 renderer follow-up applies the same direct
+selection guarantee to multiple same-measure dynamics by stacking them in lower
+lanes. Visible chord, dynamic and text objects also expose accessible `role`
+and `aria-label` names plus Enter/Space keyboard activation for direct object
+selection. Visible slur/hairpin segment targets expose accessible labels plus
+Enter/Space keyboard activation for direct span selection. This is still not full
+list selection: multi-type object lists, span object clipboard/filter workflows
+and broader independent object clipboard remain Required. These choosers do not
+complete the umbrella.
 
 System text now exports standard MusicXML `system="only-top"` for generic global
 objects; that value and legacy `yes` import as system text. Ordinary `none`
@@ -216,8 +261,11 @@ full workspace or engraving signoff.
 Range hairpin/slur/octave commands now have a primary Notation Objects group
 that remains visible while selecting notes; 960/1400 hit bounds and pointer
 commands are covered. The docked dynamics range policy now matches toolbar/dock.
-This does not implement direct span selection, endpoint/shape editing or arbitrary
-rhythmic anchors; those are still Required implementation tasks, not QA-only.
+This historical checkpoint did not complete span selection, endpoint/shape editing
+or arbitrary rhythmic anchors; later slices added bounded direct span selection
+and same-staff endpoint/shape editing, while arbitrary rhythmic anchors,
+cross-staff spans and list/filter/clipboard workflows are still Required
+implementation tasks, not QA-only.
 Native dialogs, external app reopen, listening/engraving and signed installers
 remain separate unexecuted release gates. Expanded V1 is not complete.
 
@@ -283,9 +331,9 @@ still an RC blocker. The current queue/evidence supersedes historical drained co
 | --- | --- |
 | 유형 | 부분 지원 |
 | 연결 이슈 | Commercial V1 UX information architecture slice |
-| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07에 measure-level notation objects를 `표기 객체` 탭으로 분리했으며, chord symbol input을 `가사` 탭의 별도 코드 group으로 옮겼고, PDF/MIDI export와 PDF page setup controls를 `내보내기` 탭으로 분리했다. 2026-09-11에는 Electron E2E가 960px compact desktop에서 모든 work mode를 순회하며 command placement와 overflow를 자동 점검하도록 보강했고, MuseScore Properties parity 첫 조각으로 우측 `속성 도크`의 `선택 요약`과 active measure dynamics 편집을 추가했으며, 좌측 `고정 팔레트`와 notation-mode `셈여림 팔레트`, File mode `단축키 도움말` dialog, measure selection용 `표기 필터`를 노출했다. 다만 slur/hairpin 등 추가 객체별 Properties inspector, text/lyric/slur/hairpin object filter, rehearsal/system text and list-selection object copy, freeform drag-docking (기본 표시 설정은 구현됨), 사람이 실제 화면 밀도/naming을 보는 compact desktop visual QA는 아직 완료되지 않았다. |
+| 제한 | 2026-09-04에 현재 작업 컨텍스트 strip과 compact inspector/panel layout을 추가했고, 2026-09-07에 measure-level notation objects를 `표기 객체` 탭으로 분리했으며, chord symbol input을 `가사` 탭의 별도 코드 group으로 옮겼고, PDF/MIDI export와 PDF page setup controls를 `내보내기` 탭으로 분리했다. 2026-09-11에는 Electron E2E가 960px compact desktop에서 모든 work mode를 순회하며 command placement와 overflow를 자동 점검하도록 보강했고, MuseScore Properties parity 첫 조각으로 우측 `속성 도크`의 `선택 요약`과 active measure dynamics 편집을 추가했으며, 좌측 `고정 팔레트`와 notation-mode `셈여림 팔레트`, File mode `단축키 도움말` dialog, measure selection용 `표기 필터`를 노출했다. 2026-09-18에는 단축키 도움말을 전역 context strip에서 열 수 있게 하고, 좌측 팔레트 버튼이 상단 work mode를 바꾸지 않게 분리했으며, 선택 음표에서 plain ↑/↓는 온음계 음높이 이동, Alt/Option+↑/↓는 반음 이동, Shift+↑/↓는 옥타브 이동, Cmd/Ctrl+↑/↓는 인접 보표 이동으로 고정했다. 같은 날 command palette 첫 slice는 Cmd/Ctrl+K 또는 context strip 검색 버튼에서 열리고 work-mode/palette/duration/voice-switch/new-score 명령과 shortcut reference row를 검색하며 ↑/↓ active result 이동과 Enter 실행을 지원한다. 다만 complete command inventory, 사용자 단축키 설정/충돌 감지, slur/hairpin 등 추가 객체별 Properties inspector, list-selection object copy, freeform drag-docking (기본 표시 설정은 구현됨), 사람이 실제 화면 밀도/naming을 보는 compact desktop visual QA는 아직 완료되지 않았다. |
 | 사용자 영향 | 개인용 MVP보다 현재 입력 대상과 상태, 마디 단위 표기 객체 위치, 가사/코드 입력 위치, 출력/페이지 설정 위치를 파악하기 쉬워졌지만, 전문 사보앱 수준의 최종 palette/inspector/work mode 체계로 보려면 release candidate 전 사람 기준 시각 QA가 필요하다. |
-| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태, 선택 필터를 상단 context strip에서 확인할 수 있고, 좌측 `고정 팔레트`에서 같은 work mode를 열 수 있다. 선택된 event/measure/range의 위치, 성부, 음가, 박자 같은 핵심 속성은 우측 `속성 도크`의 `선택 요약`에서 확인한다. active measure dynamics는 `선택 요약`과 좌측 `셈여림 팔레트`에서도 바로 편집할 수 있고, rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef는 `표기 객체` 탭에서 조작한다. Range selection에서는 measure-level text/dynamics controls가 disabled 상태로 남아 현재 선택에 바로 적용 가능한지 구분된다. File command surface의 `표기 필터`는 measure selection에서 `코드` 또는 `셈여림`만 골라 삭제하거나 별도 object clipboard로 복사/붙여넣기 할 수 있다. Score Setup의 `악보` 탭은 빠르기와 파트/보표 같은 구조 설정 중심으로 남아 있다. 코드 심벌은 `음표` 탭이 아니라 `가사` 탭의 코드 group에서 입력하며, note/rest 선택은 해당 event tick, measure 선택은 tick 0에 붙는다. `내보내기` 탭은 PDF 변환, MIDI 내보내기, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset controls와 page margin guide preview를 제공한다. MusicXML save는 full-score primary save이고, PDF/MIDI export는 현재 full score 또는 selected part view를 따른다. E2E compact/headless guard는 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, 960 compact short/tall 및 1400 desktop-short overflow/page visibility, selected part view export state, playback mixer persistence/activity를 확인한다. |
+| 현재 가능 | 현재 작업, 입력 모드, part/staff/voice 대상, 음가, 재생 상태, 선택 필터를 상단 context strip에서 확인할 수 있고, 같은 strip의 키보드 버튼에서 핵심 단축키를 바로 확인할 수 있다. 같은 strip의 검색 버튼 또는 Cmd/Ctrl+K로 명령 검색을 열어 work mode를 전환하거나 `옥타브` 같은 단축키 항목을 찾아 도움말로 이동할 수 있으며, 검색 결과는 ↑/↓와 Enter로도 실행할 수 있다. 명령 검색에서 duration 명령은 기존 duration toolbar와 같은 편집 경로로 적용되고, voice-switch 명령은 기존 성부 전환 경로를 사용하며, palette 명령은 상단 work mode를 유지한 채 좌측 팔레트 category만 바꾸고, `새 악보` 명령은 새 악보 만들기 dialog를 연다. 좌측 `고정 팔레트`는 팔레트 category만 바꾸며 상단 work mode는 유지한다. 선택된 event/measure/range의 위치, 성부, 음가, 박자 같은 핵심 속성은 우측 `속성 도크`의 `선택 요약`에서 확인한다. active measure dynamics는 `선택 요약`과 좌측 `셈여림 팔레트`에서도 바로 편집할 수 있고, rehearsal mark, staff/system/expression text, dynamics, repeat/volta, measure clef는 `표기 객체` 탭에서 조작한다. Range selection에서는 measure-level text/dynamics controls가 disabled 상태로 남아 현재 선택에 바로 적용 가능한지 구분된다. File command surface의 `표기 필터`는 measure selection에서 `코드` 또는 `셈여림`만 골라 삭제하거나 별도 object clipboard로 복사/붙여넣기 할 수 있다. Score Setup의 `악보` 탭은 빠르기와 파트/보표 같은 구조 설정 중심으로 남아 있다. 코드 심벌은 `음표` 탭이 아니라 `가사` 탭의 코드 group에서 입력하며, note/rest 선택은 해당 event tick, measure 선택은 tick 0에 붙는다. `내보내기` 탭은 PDF 변환, MIDI 내보내기, PDF 목표 장수, page size/orientation/margins/staff size/system spacing/preset controls와 page margin guide preview를 제공한다. MusicXML save는 full-score primary save이고, PDF/MIDI export는 현재 full score 또는 selected part view를 따른다. E2E compact/headless guard는 File/Export 분리, Lyrics/Chords chord input 위치, Notation Objects 노출, playback controls, 960 compact short/tall 및 1400 desktop-short overflow/page visibility, selected part view export state, playback mixer persistence/activity를 확인한다. |
 | 문서 근거 | [Commercial V1 Reference Gap Matrix](../product/chromatics-commercial-v1-reference-gap-matrix.md#commercial-v1에서-반드시-줄여야-할-blocker) |
 
 ## Backend Is Not Live

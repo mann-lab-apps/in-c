@@ -737,7 +737,7 @@ function buildNoteElements(
       ? event.pitches
       : [resolveNotePitch(measure, voice, event)]
     const graceNotes = (event.graceNotes ?? []).map((graceNote) =>
-      buildGraceNote(graceNote)
+      buildGraceNote(graceNote, voiceNumber, staffNumber)
     )
     const mainNote = buildNote(
       event,
@@ -782,7 +782,11 @@ function readVoiceEndTick(measure: Measure, voice: Voice): number {
   )
 }
 
-function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number]) {
+function buildGraceNote(
+  graceNote: NonNullable<Extract<VoiceEvent, { type: 'note' }>['graceNotes']>[number],
+  voiceNumber: number,
+  staffNumber: number | undefined
+) {
   return {
     grace: graceNote.slash
       ? {
@@ -798,6 +802,8 @@ function buildGraceNote(graceNote: NonNullable<Extract<VoiceEvent, { type: 'note
         : {}),
       octave: graceNote.pitch.octave
     },
+    voice: voiceNumber,
+    ...(staffNumber !== undefined ? { staff: staffNumber } : {}),
     type: 'eighth'
   }
 }
