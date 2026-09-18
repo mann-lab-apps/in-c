@@ -197,6 +197,19 @@ describe('annotation lanes', () => {
     expect(denseEnd.hairpinYOffset).toBeGreaterThan(175)
   })
 
+  it('layout.annotation-lanes stacks multiple dynamics before hairpins and expression text', () => {
+    const lanes = resolveMeasureAnnotationLanes({
+      dynamicCount: 2,
+      expressionTextCount: 1,
+      hasHairpin: true
+    })
+
+    expect(lanes.dynamicMarkYOffsets).toEqual([122, 144])
+    expect(lanes.dynamicMarkYOffset).toBe(122)
+    expect(lanes.hairpinYOffset).toBeGreaterThan(lanes.dynamicMarkYOffsets[1]!)
+    expect(lanes.expressionTextYOffsets[0]).toBeGreaterThan(lanes.hairpinYOffset!)
+  })
+
   it('layout.annotation-lanes moves lower slurs away from lyric/dynamic lanes', () => {
     const lowerAnnotations = resolveMeasureAnnotationLanes({
       expressionTextCount: 1,

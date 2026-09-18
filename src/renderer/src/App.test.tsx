@@ -2290,6 +2290,44 @@ describe('App component shell', () => {
     expect(undone.partLayouts[0]).toMatchObject(project.partLayouts[0]!)
   })
 
+  it('removing a part drops local system text instead of promoting it to global text', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(richPartExportMusicXml))
+    const deletedPart = project.score.parts[1]!
+    const deletedMeasure = deletedPart.staves[1]!.measures[0]!
+    project.score.systemTexts = [
+      { id: 'global-system', measureId: 'measure-1', text: 'Everyone' },
+      { id: 'deleted-local-system', measureId: deletedMeasure.id, text: 'Piano lower only' }
+    ]
+    project.view = { mode: 'part', partId: deletedPart.id }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/scores/system-prune.chromatics', fileName: 'system-prune.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/scores/system-prune.chromatics', fileName: 'system-prune.chromatics' })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('system-prune.chromatics을 열었습니다.')
+    const scoreTab = screen.getByRole('button', { name: '악보' })
+    fireEvent.click(scoreTab)
+    await waitFor(() => expect(scoreTab).toHaveAttribute('aria-pressed', 'true'))
+    fireEvent.change(screen.getByLabelText('입력 보표'), { target: { value: `${deletedPart.id}:${deletedPart.staves[0]!.id}` } })
+    fireEvent.click(screen.getByRole('button', { name: '악보' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: '파트 삭제' })).toBeEnabled())
+    fireEvent.click(screen.getByRole('button', { name: '파트 삭제' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score.parts.some((part) => part.id === deletedPart.id)).toBe(false)
+    expect(saved.score.systemTexts).toEqual([
+      { id: 'global-system', measureId: 'measure-1', text: 'Everyone' }
+    ])
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 저장' }))
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(2))
+    expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[1]![0].contents).score.systemTexts)
+      .toEqual(project.score.systemTexts)
+  })
+
   it('score-setup.transposing-instrument preserves written notes and saves selected part transposition', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
@@ -2783,7 +2821,8 @@ describe('App component shell', () => {
 
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
     expect(within(contextStrip).getByText('가사')).toBeInTheDocument()
-    expect(screen.getByLabelText('가사 절')).toBeVisible()
+    const lyricVerseSelect = screen.getByRole('combobox', { name: /^가사 절$/ })
+    expect(lyricVerseSelect).toBeVisible()
     const preview = screen.getByLabelText('악보 미리보기 테스트 더블')
     const lyricInput = within(preview).getByLabelText('선택 음표 가사')
     const initialEventCount = preview.getAttribute('data-event-count')
@@ -2791,7 +2830,7 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('가사 음절')).toBeVisible()
     expect(screen.getByText('멜리스마')).toBeVisible()
     expect(
-      within(screen.getByLabelText('가사 절')).getAllByRole('option').map(
+      within(lyricVerseSelect).getAllByRole('option').map(
         (option) => option.textContent
       )
     ).toEqual(['1절', '2절', '3절', '4절'])
@@ -2801,7 +2840,7 @@ describe('App component shell', () => {
       '선택 이벤트 tick 0'
     )
     fireEvent.keyDown(lyricInput, { key: 'ArrowDown' })
-    expect(screen.getByLabelText('가사 절')).toHaveValue('2')
+    expect(lyricVerseSelect).toHaveValue('2')
     expect(
       screen.getByText('2절 가사 입력으로 전환했습니다.')
     ).toBeInTheDocument()
@@ -2811,7 +2850,7 @@ describe('App component shell', () => {
       ),
       { key: 'ArrowUp' }
     )
-    expect(screen.getByLabelText('가사 절')).toHaveValue('1')
+    expect(lyricVerseSelect).toHaveValue('1')
     const firstVerseInput = within(
       screen.getByTestId('notation-preview')
     ).getByLabelText('선택 음표 가사')
@@ -2844,7 +2883,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
     expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
     fireEvent.click(within(toolbarTabs).getByRole('button', { name: '가사' }))
-    fireEvent.change(screen.getByLabelText('가사 절'), {
+    fireEvent.change(screen.getByRole('combobox', { name: /^가사 절$/ }), {
       target: { value: '4' }
     })
     const fourthVerseInput = within(preview).getByLabelText('선택 음표 가사')
@@ -2865,7 +2904,7 @@ describe('App component shell', () => {
       screen.getByRole('button', { name: 'm1-c4 4절 가사 선택' })
     )
     expect(screen.getByRole('region', { name: '가사 편집' })).toBeVisible()
-    expect(screen.getByLabelText('가사 절')).toHaveValue('4')
+    expect(screen.getByRole('combobox', { name: /^가사 절$/ })).toHaveValue('4')
     expect(within(preview).getByLabelText('선택 음표 가사')).toBeVisible()
     fireEvent.click(screen.getByRole('button', { name: 'm1-d4 선택' }))
     expect(screen.getByRole('region', { name: '음표 편집' })).toBeVisible()
@@ -2903,19 +2942,21 @@ describe('App component shell', () => {
         name: '표기 객체 팔레트 열기'
       })
     )
-    expect(within(contextStrip).getByText('표기 객체')).toBeInTheDocument()
+    expect(within(contextStrip).getByText('재생')).toBeInTheDocument()
     expect(
       within(dockedPalette).getByRole('button', {
         name: '표기 객체 팔레트 열기'
       })
     ).toHaveAttribute('aria-pressed', 'true')
+    const dockedDynamics = within(dockedPalette).getByRole('region', {
+      name: '셈여림 팔레트'
+    })
+    fireEvent.click(within(toolbarTabs).getByRole('button', { name: '표기 객체' }))
+    expect(within(contextStrip).getByText('표기 객체')).toBeInTheDocument()
     const notationObjects = screen.getByRole('region', { name: '표기 객체' })
     expect(within(notationObjects).getByLabelText('연습표')).toBeVisible()
     expect(within(notationObjects).getByLabelText('보표 글자')).toBeVisible()
     expect(within(notationObjects).getByLabelText('표현 텍스트')).toBeVisible()
-    const dockedDynamics = within(dockedPalette).getByRole('region', {
-      name: '셈여림 팔레트'
-    })
     fireEvent.click(
       within(dockedDynamics).getByRole('button', { name: 'mf 셈여림 적용' })
     )
@@ -3888,26 +3929,150 @@ describe('App component shell', () => {
     expect(vi.mocked(window.inC.musicXml.save).mock.calls[1][0].contents).toContain('retain-on-failure')
   })
 
-  it('ui.shortcut-help exposes the V1 command reference from File mode', async () => {
+  it('ui.shortcut-help exposes the V1 command reference from the global context strip', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '파일' }))
     fireEvent.click(screen.getByRole('button', { name: '단축키 도움말' }))
 
     const dialog = screen.getByRole('dialog', { name: '단축키 도움말' })
     expect(within(dialog).getByText('음표 입력')).toBeInTheDocument()
     expect(within(dialog).getByText('음가 선택')).toBeInTheDocument()
     expect(within(dialog).getByText('1-7')).toBeInTheDocument()
+    expect(within(dialog).getByText('음높이 한 칸 이동')).toBeInTheDocument()
+    expect(within(dialog).getByText('↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByText('반음 이동')).toBeInTheDocument()
+    expect(within(dialog).getByText('Alt/Option+↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByText('옥타브 이동')).toBeInTheDocument()
+    expect(within(dialog).getByText('Shift+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
     expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
     expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
+    expect(within(dialog).getByText('인접 보표 이동')).toBeInTheDocument()
+    expect(within(dialog).getByText('Cmd/Ctrl+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
 
     fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
+  })
+
+  it('ui.command-palette searches shortcuts and runs work-mode commands', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    let dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '옥타브' }
+    })
+    expect(within(dialog).getByRole('button', { name: /옥타브 이동/ })).toHaveTextContent(
+      'Shift+↑ / ↓'
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: /옥타브 이동/ }))
+    expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '단축키 도움말' })).toBeInTheDocument()
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByRole(
+        'button',
+        { name: '닫기' }
+      )
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '명령 검색' }))
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '표기 객체' }
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: '표기 객체 탭 열기' }))
+    expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText('표기 객체')
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '명령 검색' }))
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    const searchInput = within(dialog).getByRole('searchbox', { name: '명령 검색어' })
+    expect(within(dialog).getByRole('button', { name: '파일 탭 열기' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    )
+    fireEvent.keyDown(searchInput, { key: 'ArrowDown' })
+    expect(within(dialog).getByRole('button', { name: '악보 탭 열기' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    )
+    fireEvent.keyDown(searchInput, { key: 'Enter' })
+    expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText('악보')
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '가사' }
+    })
+    fireEvent.keyDown(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      key: 'Enter'
+    })
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText('가사')
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '8분음표' }
+    })
+    expect(within(dialog).getByRole('button', { name: '8분음표 음가 적용' })).toHaveTextContent('4')
+    fireEvent.keyDown(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      key: 'Enter'
+    })
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText('8분음표')
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '2성부' }
+    })
+    fireEvent.keyDown(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      key: 'Enter'
+    })
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText(/성부 2/)
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '표기 객체 팔레트' }
+    })
+    fireEvent.keyDown(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      key: 'Enter'
+    })
+    const dockedPalette = screen.getByRole('complementary', { name: '고정 팔레트' })
+    expect(
+      within(dockedPalette).getByRole('button', { name: '표기 객체 팔레트 열기' })
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(
+      within(screen.getByRole('region', { name: '현재 작업 컨텍스트' })).getByText('음표')
+    ).toBeInTheDocument()
+
+    fireEvent.keyDown(window, { ctrlKey: true, code: 'KeyK', key: 'k' })
+    dialog = screen.getByRole('dialog', { name: '명령 검색' })
+    fireEvent.change(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      target: { value: '새 악보' }
+    })
+    fireEvent.keyDown(within(dialog).getByRole('searchbox', { name: '명령 검색어' }), {
+      key: 'Enter'
+    })
+    expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
+    expect(screen.getByRole('dialog', { name: '새 악보 만들기' })).toBeInTheDocument()
   })
 
   it('ui.dock-visibility persists independent panels without changing the selected score', async () => {
@@ -5167,29 +5332,27 @@ describe('App component shell', () => {
     )
   })
 
-  it('keyboard.navigation-first keeps plain vertical arrows from editing pitch', async () => {
+  it('keyboard.note-pitch-editing uses plain arrows for steps and Shift for octaves', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: 'm1-c4 선택' }))
     const preview = screen.getByTestId('notation-preview')
-    const initialPitches = preview.getAttribute('data-event-pitches')
 
     fireEvent.keyDown(window, { key: 'ArrowUp' })
-    expect(preview).toHaveAttribute('data-event-pitches', initialPitches)
-    expect(document.querySelector('.editor-status')).toHaveTextContent(
-      '음높이 변경은 Alt/Option+↑/↓를 사용하세요.'
-    )
-
-    fireEvent.keyDown(window, { altKey: true, key: 'ArrowUp' })
-
     await waitFor(() => {
       expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D04')
     })
+
+    fireEvent.keyDown(window, { key: 'ArrowUp', shiftKey: true })
+
+    await waitFor(() => {
+      expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D05')
+    })
   })
 
-  it('keyboard.navigation-first moves plain vertical arrows between grand staff lanes', async () => {
+  it('keyboard.staff-navigation uses Cmd/Ctrl vertical arrows between grand staff lanes', async () => {
     const { App } = await import('./App')
     render(<App />)
 
@@ -5205,7 +5368,7 @@ describe('App component shell', () => {
         name: 'part-1-staff-1-measure-1-full-measure-rest 선택'
       })
     )
-    fireEvent.keyDown(window, { key: 'ArrowDown' })
+    fireEvent.keyDown(window, { ctrlKey: true, key: 'ArrowDown' })
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -5219,7 +5382,7 @@ describe('App component shell', () => {
     })
     expect(screen.getByText('아래 보표로 이동했습니다.')).toBeInTheDocument()
 
-    fireEvent.keyDown(window, { key: 'ArrowUp' })
+    fireEvent.keyDown(window, { ctrlKey: true, key: 'ArrowUp' })
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -5349,6 +5512,7 @@ describe('App component shell', () => {
     expect(within(measureNotation).getByLabelText('시스템 텍스트')).toBeDisabled()
     expect(within(measureNotation).getByLabelText('표현 텍스트')).toBeDisabled()
     expect(within(measureNotation).getByLabelText('셈여림')).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체 팔레트 열기' }))
     const dockedDynamics = screen.getByRole('region', { name: '셈여림 팔레트' })
     for (const button of within(dockedDynamics).getAllByRole('button')) {
       expect(button).toBeDisabled()
@@ -5369,7 +5533,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '가사' }))
     expect(screen.getByRole('region', { name: '가사 속성' })).toBeVisible()
     expect(screen.getByRole('region', { name: '코드 심벌 속성' })).toBeVisible()
-    expect(screen.getByLabelText('가사 절')).toBeVisible()
+    expect(screen.getByRole('combobox', { name: /^가사 절$/ })).toBeVisible()
     expect(screen.getByLabelText('코드 심벌')).toBeVisible()
 
     fireEvent.change(
@@ -5593,6 +5757,1766 @@ describe('App component shell', () => {
       { measureId: source.id, text: `${label} source two` },
       { measureId: target.id, text: `${label} source two` }
     ])
+  })
+
+  it.each([
+    ['staffTexts', '보표 글자'],
+    ['systemTexts', '시스템 텍스트'],
+    ['rehearsalMarks', '연습표'],
+    ['expressionTexts', '표현 텍스트']
+  ] as const)('text marking range filter %s maps source measures onto target measures', async (type, label) => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const measures = project.score.parts[0].staves[0].measures
+    const sourceOne = measures[0]!
+    const sourceTwo = measures[1]!
+    const targetOne = measures[2]!
+    const targetTwo = measures[3]!
+    const marks = [
+      { id: `${type}-range-source-one`, measureId: sourceOne.id, text: `${label} A` },
+      { id: `${type}-range-source-two`, measureId: sourceTwo.id, text: `${label} B` },
+      { id: `${type}-range-target-one`, measureId: targetOne.id, text: `${label} old C` },
+      { id: `${type}-range-target-two`, measureId: targetTwo.id, text: `${label} old D` }
+    ]
+    if (type === 'expressionTexts') project.score.expressionTexts = marks.map(mark => ({ ...mark, tick: 0 }))
+    else project.score[type] = marks
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: `/qa/${type}-range-clipboard.chromatics`, fileName: `${type}-range-clipboard.chromatics`, contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: `/qa/${type}-range-clipboard.chromatics`, fileName: `${type}-range-clipboard.chromatics` })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText(`${type}-range-clipboard.chromatics을 열었습니다.`)
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    const sourceStart = sourceOne.voices[0]!.events[0]!.id
+    const sourceEnd = sourceTwo.voices[0]!.events[0]!.id
+    const targetStart = targetOne.voices[0]!.events[0]!.id
+    const targetEnd = targetTwo.voices[0]!.events[0]!.id
+
+    selectEventRange(sourceStart, sourceEnd)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: type } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetStart, targetEnd)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceStart, sourceEnd)
+    fireEvent.click(screen.getByLabelText(`선택 범위 ${label} 지우기`))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score[type]?.map(({ measureId, text }) => ({ measureId, text }))).toEqual([
+      { measureId: targetOne.id, text: `${label} A` },
+      { measureId: targetTwo.id, text: `${label} B` }
+    ])
+  })
+
+  it('lyric object filter copies and deletes lyrics across selected note ranges without replacing notes', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Lyric Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `lyric-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in lyric range clipboard fixture')
+    }
+    sourceFirst.lyrics = [
+      { number: 1, text: 'keep-source', syllabic: 'single' },
+      { number: 2, text: 'Sing', syllabic: 'begin' }
+    ]
+    sourceSecond.lyrics = [{ number: 1, text: 'keep-source-second', syllabic: 'single' }]
+    targetFirst.lyrics = [
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'stale', syllabic: 'single' }
+    ]
+    targetSecond.lyrics = [
+      { number: 1, text: 'words', syllabic: 'single' },
+      { number: 2, text: 'stale-two', syllabic: 'single' }
+    ]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/lyric-range-clipboard.chromatics', fileName: 'lyric-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/lyric-range-clipboard.chromatics', fileName: 'lyric-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/lyric-range-clipboard.musicxml', fileName: 'lyric-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('lyric-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'lyrics' } })
+    fireEvent.change(screen.getByLabelText('가사 필터 절'), { target: { value: '2' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 가사 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedSourceOne = savedEvents.find((event) => event.id === sourceFirst.id)!
+    const savedSourceTwo = savedEvents.find((event) => event.id === sourceSecond.id)!
+    const savedTargetOne = savedEvents.find((event) => event.id === targetFirst.id)!
+    const savedTargetTwo = savedEvents.find((event) => event.id === targetSecond.id)!
+    expect(savedSourceOne.type === 'note' ? savedSourceOne.lyrics : undefined).toEqual([
+      { number: 1, text: 'keep-source', syllabic: 'single' }
+    ])
+    expect(savedSourceTwo.type === 'note' ? savedSourceTwo.lyrics : undefined).toEqual([
+      { number: 1, text: 'keep-source-second', syllabic: 'single' }
+    ])
+    expect(savedTargetOne.type === 'note' ? savedTargetOne.lyrics : undefined).toEqual([
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'Sing', syllabic: 'begin' }
+    ])
+    expect(savedTargetTwo.type === 'note' ? savedTargetTwo.lyrics : undefined).toEqual([
+      { number: 1, text: 'words', syllabic: 'single' }
+    ])
+    expect(savedTargetOne).toMatchObject({ id: targetFirst.id, duration: targetFirst.duration })
+    expect(savedTargetTwo).toMatchObject({ id: targetSecond.id, duration: targetSecond.duration })
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    const reopenedEvents = reopened.parts[0].staves[0].measures[0].voices[0].events
+    expect(reopenedEvents.map((event) => event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined)).toEqual([
+      ['keep-source'],
+      ['keep-source-second'],
+      ['old', 'Sing'],
+      ['words']
+    ])
+  })
+
+  it('lyric object filter copies and deletes the active selected-note lyric verse without replacing the note', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Lyric Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `lyric-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in lyric object clipboard fixture')
+    }
+    source.lyrics = [
+      { number: 1, text: 'Solo', syllabic: 'single' },
+      { number: 2, text: 'VerseTwo', syllabic: 'single' }
+    ]
+    target.lyrics = [{ number: 1, text: 'old', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/lyric-object-clipboard.chromatics', fileName: 'lyric-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/lyric-object-clipboard.chromatics', fileName: 'lyric-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/lyric-object-clipboard.musicxml', fileName: 'lyric-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('lyric-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'lyrics' } })
+    fireEvent.change(screen.getByLabelText('가사 필터 절'), { target: { value: '2' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 가사 지우기'))
+
+    const saveProject = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      return decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    }
+
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    const undone = await saveProject()
+    const undoneEvents = undone.score.parts[0].staves[0].measures[0].voices[0].events
+    const undoneSource = undoneEvents.find((event) => event.id === source.id)!
+    const undoneTarget = undoneEvents.find((event) => event.id === target.id)!
+    expect(undoneSource.type === 'note' ? undoneSource.lyrics : undefined).toEqual([
+      { number: 1, text: 'Solo', syllabic: 'single' },
+      { number: 2, text: 'VerseTwo', syllabic: 'single' }
+    ])
+    expect(undoneTarget.type === 'note' ? undoneTarget.lyrics : undefined).toEqual([
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'VerseTwo', syllabic: 'single' }
+    ])
+
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    const saved = await saveProject()
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedSource = savedEvents.find((event) => event.id === source.id)!
+    const savedTarget = savedEvents.find((event) => event.id === target.id)!
+    expect(savedSource.type === 'note' ? savedSource.lyrics : undefined).toEqual([
+      { number: 1, text: 'Solo', syllabic: 'single' }
+    ])
+    expect(savedTarget.type === 'note' ? savedTarget.lyrics : undefined).toEqual([
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'VerseTwo', syllabic: 'single' }
+    ])
+    expect(savedTarget).toMatchObject({ id: target.id, duration: target.duration })
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    const reopenedSource = reopened.parts[0].staves[0].measures[0].voices[0].events[0]
+    const reopenedTarget = reopened.parts[0].staves[0].measures[0].voices[0].events[1]
+    expect(reopenedSource.type === 'note'
+      ? reopenedSource.lyrics
+      : undefined).toEqual([{ number: 1, text: 'Solo', syllabic: 'single' }])
+    expect(reopenedTarget.type === 'note' ? reopenedTarget.lyrics : undefined).toEqual([
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'VerseTwo', syllabic: 'single' }
+    ])
+  })
+
+  it('lyric object filter copies and deletes measure lyrics without replacing notes', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Lyric Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-lyric-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+      measure.voices.push({
+        id: 'voice-2',
+        events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+          id: `${measure.id}-lyric-measure-voice-2-note-${index + 1}`,
+          type: 'note',
+          position: { tick: index * TICKS_PER_QUARTER },
+          pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+          duration: { value: 'quarter', dots: 0 }
+        }))
+      })
+    }
+    const sourceEvents = measures[0].voices[0].events
+    const sourceLowerEvents = measures[0].voices[1].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[0]?.type !== 'note' ||
+      sourceEvents[2]?.type !== 'note' ||
+      sourceLowerEvents[1]?.type !== 'note' ||
+      targetEvents[0]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in lyric measure clipboard fixture')
+    }
+    sourceEvents[0].lyrics = [
+      { number: 1, text: 'keep-measure', syllabic: 'single' },
+      { number: 2, text: 'Measure', syllabic: 'begin' }
+    ]
+    sourceEvents[2].lyrics = [
+      { number: 1, text: 'keep-copy', syllabic: 'single' },
+      { number: 2, text: 'copy', syllabic: 'end' }
+    ]
+    sourceLowerEvents[1].lyrics = [
+      { number: 1, text: 'keep-lower-source', syllabic: 'single' },
+      { number: 2, text: 'lower', syllabic: 'single' }
+    ]
+    targetEvents[0].lyrics = [
+      { number: 1, text: 'old', syllabic: 'single' },
+      { number: 2, text: 'stale-old', syllabic: 'single' }
+    ]
+    targetEvents[1].lyrics = [
+      { number: 1, text: 'target-mid', syllabic: 'single' },
+      { number: 2, text: 'stale-mid', syllabic: 'single' }
+    ]
+    targetEvents[2].lyrics = [
+      { number: 1, text: 'words', syllabic: 'single' },
+      { number: 2, text: 'stale-copy', syllabic: 'single' }
+    ]
+    targetLowerEvents[1].lyrics = [
+      { number: 1, text: 'stale', syllabic: 'single' },
+      { number: 2, text: 'stale-lower', syllabic: 'single' }
+    ]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/lyric-measure-clipboard.chromatics', fileName: 'lyric-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/lyric-measure-clipboard.chromatics', fileName: 'lyric-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/lyric-measure-clipboard.musicxml', fileName: 'lyric-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('lyric-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'lyrics' } })
+    fireEvent.change(screen.getByLabelText('가사 필터 절'), { target: { value: '2' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 가사 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedLowerSource = saved.score.parts[0].staves[0].measures[0].voices[1].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined)).toEqual([
+      ['keep-measure'],
+      undefined,
+      ['keep-copy'],
+      undefined
+    ])
+    expect(savedLowerSource.map((event) => event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined)).toEqual([
+      undefined,
+      ['keep-lower-source'],
+      undefined,
+      undefined
+    ])
+    expect(savedTarget.map((event) => event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined)).toEqual([
+      ['old', 'Measure'],
+      ['target-mid'],
+      ['words', 'copy'],
+      undefined
+    ])
+    expect(savedLowerTarget.map((event) => event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined)).toEqual([
+      undefined,
+      ['stale', 'lower'],
+      undefined,
+      undefined
+    ])
+    expect(savedTarget[0]).toMatchObject({ id: targetEvents[0].id, duration: targetEvents[0].duration })
+    expect(savedTarget[2]).toMatchObject({ id: targetEvents[2].id, duration: targetEvents[2].duration })
+    expect(savedLowerTarget[1]).toMatchObject({ id: targetLowerEvents[1].id, duration: targetLowerEvents[1].duration })
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined
+    )).toEqual([
+      ['keep-measure'],
+      undefined,
+      ['keep-copy'],
+      undefined
+    ])
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined
+    )).toEqual([
+      ['old', 'Measure'],
+      ['target-mid'],
+      ['words', 'copy'],
+      undefined
+    ])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.lyrics?.map((lyric) => lyric.text) : undefined
+    )).toEqual([
+      undefined,
+      ['stale', 'lower'],
+      undefined,
+      undefined
+    ])
+  })
+
+  it('lyric object filter measure paste preserves target voices outside the copied measure voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Lyric Partial Voice Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-partial-voice-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-partial-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (sourceEvents[1]?.type !== 'note' || targetEvents[1]?.type !== 'note' || targetLowerEvents[1]?.type !== 'note') {
+      throw new Error('Expected note events in partial voice lyric fixture')
+    }
+    sourceEvents[1].lyrics = [{ number: 1, text: 'upper-only', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'old-upper', syllabic: 'single' }]
+    targetLowerEvents[1].lyrics = [{ number: 1, text: 'keep-lower', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/lyric-partial-voice.chromatics', fileName: 'lyric-partial-voice.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/lyric-partial-voice.chromatics', fileName: 'lyric-partial-voice.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/lyric-partial-voice.musicxml', fileName: 'lyric-partial-voice.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('lyric-partial-voice.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'lyrics' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedTarget.map((event) => event.type === 'note' ? event.lyrics?.[0]?.text : undefined)).toEqual([undefined, 'upper-only', undefined, undefined])
+    expect(savedLowerTarget.map((event) => event.type === 'note' ? event.lyrics?.[0]?.text : undefined)).toEqual([undefined, 'keep-lower', undefined, undefined])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.lyrics?.[0]?.text : undefined
+    )).toEqual([undefined, 'upper-only', undefined, undefined])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.lyrics?.[0]?.text : undefined
+    )).toEqual([undefined, 'keep-lower', undefined, undefined])
+  })
+
+  it('articulation object filter copies and deletes selected-note articulations without replacing notes or lyrics', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Articulation Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `articulation-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in articulation object clipboard fixture')
+    }
+    source.articulations = ['accent', 'tenuto']
+    source.lyrics = [{ number: 1, text: 'source-lyric', syllabic: 'single' }]
+    target.articulations = ['marcato']
+    target.lyrics = [{ number: 1, text: 'target-lyric', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/articulation-object-clipboard.chromatics', fileName: 'articulation-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/articulation-object-clipboard.chromatics', fileName: 'articulation-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/articulation-object-clipboard.musicxml', fileName: 'articulation-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('articulation-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'articulations' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 표현 기호 지우기'))
+
+    const saveProject = async () => {
+      vi.mocked(window.inC.project.save).mockClear()
+      fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+      await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+      return decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    }
+
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true })
+    const undone = await saveProject()
+    const undoneEvents = undone.score.parts[0].staves[0].measures[0].voices[0].events
+    const undoneSource = undoneEvents.find((event) => event.id === source.id)!
+    const undoneTarget = undoneEvents.find((event) => event.id === target.id)!
+    expect(undoneSource.type === 'note' ? undoneSource.articulations : undefined).toEqual(['accent', 'tenuto'])
+    expect(undoneTarget.type === 'note' ? undoneTarget.articulations : undefined).toEqual(['accent', 'tenuto'])
+
+    fireEvent.keyDown(window, { code: 'KeyZ', ctrlKey: true, shiftKey: true })
+    const saved = await saveProject()
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedSource = savedEvents.find((event) => event.id === source.id)!
+    const savedTarget = savedEvents.find((event) => event.id === target.id)!
+    expect(savedSource.type === 'note' ? savedSource.articulations : undefined).toBeUndefined()
+    expect(savedSource.type === 'note' ? savedSource.lyrics : undefined).toEqual([{ number: 1, text: 'source-lyric', syllabic: 'single' }])
+    expect(savedTarget.type === 'note' ? savedTarget.articulations : undefined).toEqual(['accent', 'tenuto'])
+    expect(savedTarget.type === 'note' ? savedTarget.lyrics : undefined).toEqual([{ number: 1, text: 'target-lyric', syllabic: 'single' }])
+    expect(savedTarget).toMatchObject({ id: target.id, duration: target.duration })
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    const reopenedSource = reopened.parts[0].staves[0].measures[0].voices[0].events[0]
+    const reopenedTarget = reopened.parts[0].staves[0].measures[0].voices[0].events[1]
+    expect(reopenedSource.type === 'note' ? reopenedSource.articulations : undefined).toBeUndefined()
+    expect(reopenedSource.type === 'note' ? reopenedSource.lyrics : undefined).toEqual([{ number: 1, text: 'source-lyric', syllabic: 'single' }])
+    expect(reopenedTarget.type === 'note' ? reopenedTarget.articulations : undefined).toEqual(['accent', 'tenuto'])
+    expect(reopenedTarget.type === 'note' ? reopenedTarget.lyrics : undefined).toEqual([{ number: 1, text: 'target-lyric', syllabic: 'single' }])
+  })
+
+  it('articulation object filter copies and deletes articulations across selected note ranges without replacing notes or lyrics', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Articulation Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `articulation-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in articulation range clipboard fixture')
+    }
+    sourceFirst.articulations = ['accent']
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    sourceSecond.lyrics = [{ number: 1, text: 'source-two', syllabic: 'single' }]
+    targetFirst.articulations = ['marcato']
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetSecond.articulations = ['tenuto']
+    targetSecond.lyrics = [{ number: 1, text: 'target-two', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/articulation-range-clipboard.chromatics', fileName: 'articulation-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/articulation-range-clipboard.chromatics', fileName: 'articulation-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/articulation-range-clipboard.musicxml', fileName: 'articulation-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('articulation-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'articulations' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 표현 기호 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedSourceOne = savedEvents.find((event) => event.id === sourceFirst.id)!
+    const savedSourceTwo = savedEvents.find((event) => event.id === sourceSecond.id)!
+    const savedTargetOne = savedEvents.find((event) => event.id === targetFirst.id)!
+    const savedTargetTwo = savedEvents.find((event) => event.id === targetSecond.id)!
+    expect(savedSourceOne.type === 'note' ? savedSourceOne.articulations : undefined).toBeUndefined()
+    expect(savedSourceOne.type === 'note' ? savedSourceOne.lyrics : undefined).toEqual([{ number: 1, text: 'source-one', syllabic: 'single' }])
+    expect(savedSourceTwo.type === 'note' ? savedSourceTwo.lyrics : undefined).toEqual([{ number: 1, text: 'source-two', syllabic: 'single' }])
+    expect(savedTargetOne.type === 'note' ? savedTargetOne.articulations : undefined).toEqual(['accent'])
+    expect(savedTargetOne.type === 'note' ? savedTargetOne.lyrics : undefined).toEqual([{ number: 1, text: 'target-one', syllabic: 'single' }])
+    expect(savedTargetTwo.type === 'note' ? savedTargetTwo.articulations : undefined).toBeUndefined()
+    expect(savedTargetTwo.type === 'note' ? savedTargetTwo.lyrics : undefined).toEqual([{ number: 1, text: 'target-two', syllabic: 'single' }])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    const reopenedEvents = reopened.parts[0].staves[0].measures[0].voices[0].events
+    expect(reopenedEvents.map((event) => event.type === 'note' ? event.articulations : undefined)).toEqual([
+      undefined,
+      undefined,
+      ['accent'],
+      undefined
+    ])
+    expect(reopenedEvents.map((event) => event.type === 'note' ? event.lyrics?.[0]?.text : undefined)).toEqual([
+      'source-one',
+      'source-two',
+      'target-one',
+      'target-two'
+    ])
+  })
+
+  it('articulation object filter copies and deletes measure articulations without replacing notes lyrics or unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Articulation Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-articulation-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-articulation-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in articulation measure clipboard fixture')
+    }
+    sourceEvents[1].articulations = ['accent', 'tenuto']
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-articulation', syllabic: 'single' }]
+    targetEvents[1].articulations = ['marcato']
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-articulation', syllabic: 'single' }]
+    targetEvents[2].articulations = ['staccato']
+    targetEvents[2].lyrics = [{ number: 1, text: 'target-stale-slot', syllabic: 'single' }]
+    targetLowerEvents[1].articulations = ['tenuto']
+    targetLowerEvents[1].lyrics = [{ number: 1, text: 'keep-lower-articulation', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/articulation-measure-clipboard.chromatics', fileName: 'articulation-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/articulation-measure-clipboard.chromatics', fileName: 'articulation-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/articulation-measure-clipboard.musicxml', fileName: 'articulation-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('articulation-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'articulations' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 표현 기호 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource[1].type === 'note' ? savedSource[1].articulations : undefined).toBeUndefined()
+    expect(savedSource[1].type === 'note' ? savedSource[1].lyrics : undefined).toEqual([{ number: 1, text: 'source-articulation', syllabic: 'single' }])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].articulations : undefined).toEqual(['accent', 'tenuto'])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics : undefined).toEqual([{ number: 1, text: 'target-articulation', syllabic: 'single' }])
+    expect(savedTarget[2].type === 'note' ? savedTarget[2].articulations : undefined).toBeUndefined()
+    expect(savedTarget[2].type === 'note' ? savedTarget[2].lyrics : undefined).toEqual([{ number: 1, text: 'target-stale-slot', syllabic: 'single' }])
+    expect(savedLowerTarget[1].type === 'note' ? savedLowerTarget[1].articulations : undefined).toEqual(['tenuto'])
+    expect(savedLowerTarget[1].type === 'note' ? savedLowerTarget[1].lyrics : undefined).toEqual([{ number: 1, text: 'keep-lower-articulation', syllabic: 'single' }])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.articulations : undefined
+    )).toEqual([undefined, ['accent', 'tenuto'], undefined, undefined])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.articulations : undefined
+    )).toEqual([undefined, ['tenuto'], undefined, undefined])
+  })
+
+  it('fermata object filter copies and deletes selected-note fermatas without replacing notes lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Fermata Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `fermata-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in fermata object clipboard fixture')
+    }
+    source.fermata = true
+    source.lyrics = [{ number: 1, text: 'source-lyric', syllabic: 'single' }]
+    source.articulations = ['accent']
+    target.lyrics = [{ number: 1, text: 'target-lyric', syllabic: 'single' }]
+    target.articulations = ['tenuto']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/fermata-object-clipboard.chromatics', fileName: 'fermata-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/fermata-object-clipboard.chromatics', fileName: 'fermata-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/fermata-object-clipboard.musicxml', fileName: 'fermata-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('fermata-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'fermatas' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 페르마타 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedSource = savedEvents.find((event) => event.id === source.id)!
+    const savedTarget = savedEvents.find((event) => event.id === target.id)!
+    expect(savedSource.fermata).toBeUndefined()
+    expect(savedSource.type === 'note' ? savedSource.lyrics : undefined).toEqual([{ number: 1, text: 'source-lyric', syllabic: 'single' }])
+    expect(savedSource.type === 'note' ? savedSource.articulations : undefined).toEqual(['accent'])
+    expect(savedTarget.fermata).toBe(true)
+    expect(savedTarget.type === 'note' ? savedTarget.lyrics : undefined).toEqual([{ number: 1, text: 'target-lyric', syllabic: 'single' }])
+    expect(savedTarget.type === 'note' ? savedTarget.articulations : undefined).toEqual(['tenuto'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[0].voices[0].events.map((event) => event.fermata)).toEqual([
+      undefined,
+      true,
+      undefined,
+      undefined
+    ])
+  })
+
+  it('fermata object filter copies and deletes fermatas across selected ranges without replacing lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Fermata Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measure = project.score.parts[0].staves[0].measures[0]
+    const voice = measure.voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `fermata-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in fermata range clipboard fixture')
+    }
+    sourceFirst.fermata = true
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    sourceFirst.articulations = ['accent']
+    sourceSecond.lyrics = [{ number: 1, text: 'source-two', syllabic: 'single' }]
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetFirst.articulations = ['tenuto']
+    targetSecond.fermata = true
+    targetSecond.lyrics = [{ number: 1, text: 'target-two', syllabic: 'single' }]
+    targetSecond.articulations = ['marcato']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/fermata-range-clipboard.chromatics', fileName: 'fermata-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/fermata-range-clipboard.chromatics', fileName: 'fermata-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/fermata-range-clipboard.musicxml', fileName: 'fermata-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('fermata-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'fermatas' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 페르마타 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.fermata)).toEqual([undefined, undefined, true, undefined])
+    expect(savedEvents.map((event) => event.type === 'note' ? event.lyrics?.[0]?.text : undefined)).toEqual([
+      'source-one',
+      'source-two',
+      'target-one',
+      'target-two'
+    ])
+    expect(savedEvents.map((event) => event.type === 'note' ? event.articulations : undefined)).toEqual([
+      ['accent'],
+      undefined,
+      ['tenuto'],
+      ['marcato']
+    ])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[0].voices[0].events.map((event) => event.fermata)).toEqual([
+      undefined,
+      undefined,
+      true,
+      undefined
+    ])
+  })
+
+  it('fermata object filter copies and deletes measure fermatas without replacing unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Fermata Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-fermata-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-fermata-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in fermata measure clipboard fixture')
+    }
+    sourceEvents[1].fermata = true
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-fermata', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-fermata', syllabic: 'single' }]
+    targetEvents[2].fermata = true
+    targetEvents[2].lyrics = [{ number: 1, text: 'target-stale-slot', syllabic: 'single' }]
+    targetLowerEvents[1].fermata = true
+    targetLowerEvents[1].lyrics = [{ number: 1, text: 'keep-lower-fermata', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/fermata-measure-clipboard.chromatics', fileName: 'fermata-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/fermata-measure-clipboard.chromatics', fileName: 'fermata-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/fermata-measure-clipboard.musicxml', fileName: 'fermata-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('fermata-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'fermatas' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 페르마타 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.fermata)).toEqual([undefined, undefined, undefined, undefined])
+    expect(savedTarget.map((event) => event.fermata)).toEqual([undefined, true, undefined, undefined])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics : undefined).toEqual([{ number: 1, text: 'target-fermata', syllabic: 'single' }])
+    expect(savedTarget[2].type === 'note' ? savedTarget[2].lyrics : undefined).toEqual([{ number: 1, text: 'target-stale-slot', syllabic: 'single' }])
+    expect(savedLowerTarget.map((event) => event.fermata)).toEqual([undefined, true, undefined, undefined])
+    expect(savedLowerTarget[1].type === 'note' ? savedLowerTarget[1].lyrics : undefined).toEqual([{ number: 1, text: 'keep-lower-fermata', syllabic: 'single' }])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) => event.fermata)).toEqual([
+      undefined,
+      true,
+      undefined,
+      undefined
+    ])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) => event.fermata)).toEqual([
+      undefined,
+      true,
+      undefined,
+      undefined
+    ])
+  })
+
+  it('breath mark object filter copies and deletes selected-note breath marks without replacing notes lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Breath Mark Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `breath-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in breath mark object clipboard fixture')
+    }
+    source.breathMark = 'caesura'
+    source.lyrics = [{ number: 1, text: 'source-breath', syllabic: 'single' }]
+    source.articulations = ['accent']
+    target.breathMark = 'breath'
+    target.lyrics = [{ number: 1, text: 'target-breath', syllabic: 'single' }]
+    target.articulations = ['tenuto']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/breath-object-clipboard.chromatics', fileName: 'breath-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/breath-object-clipboard.chromatics', fileName: 'breath-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/breath-object-clipboard.musicxml', fileName: 'breath-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('breath-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'breathMarks' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 숨표/중지표 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.breathMark)).toEqual([undefined, 'caesura', undefined, undefined])
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].lyrics?.[0]?.text : undefined).toBe('source-breath')
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].articulations : undefined).toEqual(['tenuto'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) => event.breathMark))
+      .toEqual([undefined, 'caesura', undefined, undefined])
+  })
+
+  it('breath mark object filter copies and deletes ranges while preserving note-owned data', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Breath Mark Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `breath-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in breath mark range clipboard fixture')
+    }
+    sourceFirst.breathMark = 'breath'
+    sourceSecond.breathMark = 'caesura'
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetSecond.breathMark = 'breath'
+    targetSecond.articulations = ['marcato']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/breath-range-clipboard.chromatics', fileName: 'breath-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/breath-range-clipboard.chromatics', fileName: 'breath-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/breath-range-clipboard.musicxml', fileName: 'breath-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('breath-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'breathMarks' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 숨표/중지표 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.breathMark)).toEqual([undefined, undefined, 'breath', 'caesura'])
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].lyrics?.[0]?.text : undefined).toBe('source-one')
+    expect(savedEvents[2].type === 'note' ? savedEvents[2].lyrics?.[0]?.text : undefined).toBe('target-one')
+    expect(savedEvents[3].type === 'note' ? savedEvents[3].articulations : undefined).toEqual(['marcato'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) => event.breathMark))
+      .toEqual([undefined, undefined, 'breath', 'caesura'])
+  })
+
+  it('breath mark object filter copies and deletes measure breath marks without replacing unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Breath Mark Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-breath-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-breath-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in breath mark measure clipboard fixture')
+    }
+    sourceEvents[1].breathMark = 'caesura'
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-caesura', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-caesura', syllabic: 'single' }]
+    targetEvents[2].breathMark = 'breath'
+    targetEvents[2].lyrics = [{ number: 1, text: 'target-stale-breath', syllabic: 'single' }]
+    targetLowerEvents[1].breathMark = 'breath'
+    targetLowerEvents[1].lyrics = [{ number: 1, text: 'keep-lower-breath', syllabic: 'single' }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/breath-measure-clipboard.chromatics', fileName: 'breath-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/breath-measure-clipboard.chromatics', fileName: 'breath-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/breath-measure-clipboard.musicxml', fileName: 'breath-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('breath-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'breathMarks' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 숨표/중지표 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.breathMark)).toEqual([undefined, undefined, undefined, undefined])
+    expect(savedTarget.map((event) => event.breathMark)).toEqual([undefined, 'caesura', undefined, undefined])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics?.[0]?.text : undefined).toBe('target-caesura')
+    expect(savedTarget[2].type === 'note' ? savedTarget[2].lyrics?.[0]?.text : undefined).toBe('target-stale-breath')
+    expect(savedLowerTarget.map((event) => event.breathMark)).toEqual([undefined, 'breath', undefined, undefined])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) => event.breathMark)).toEqual([
+      undefined,
+      'caesura',
+      undefined,
+      undefined
+    ])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) => event.breathMark)).toEqual([
+      undefined,
+      'breath',
+      undefined,
+      undefined
+    ])
+  })
+
+  it('ornament object filter copies and deletes selected-note ornaments without replacing notes lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Ornament Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `ornament-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in ornament object clipboard fixture')
+    }
+    source.ornaments = ['trill', 'mordent']
+    source.lyrics = [{ number: 1, text: 'source-ornament', syllabic: 'single' }]
+    source.articulations = ['accent']
+    target.ornaments = ['turn']
+    target.lyrics = [{ number: 1, text: 'target-ornament', syllabic: 'single' }]
+    target.articulations = ['tenuto']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/ornament-object-clipboard.chromatics', fileName: 'ornament-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/ornament-object-clipboard.chromatics', fileName: 'ornament-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/ornament-object-clipboard.musicxml', fileName: 'ornament-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('ornament-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'ornaments' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 꾸밈음 기호 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].ornaments : undefined).toBeUndefined()
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].lyrics?.[0]?.text : undefined).toBe('source-ornament')
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].articulations : undefined).toEqual(['accent'])
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].ornaments : undefined).toEqual(['trill', 'mordent'])
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].lyrics?.[0]?.text : undefined).toBe('target-ornament')
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].articulations : undefined).toEqual(['tenuto'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.ornaments : undefined
+    )).toEqual([undefined, ['trill', 'mordent'], undefined, undefined])
+  })
+
+  it('ornament object filter copies and deletes ranges while clearing stale target ornaments', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Ornament Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `ornament-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in ornament range clipboard fixture')
+    }
+    sourceFirst.ornaments = ['turn']
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    sourceSecond.lyrics = [{ number: 1, text: 'source-two', syllabic: 'single' }]
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetSecond.ornaments = ['trill']
+    targetSecond.articulations = ['marcato']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/ornament-range-clipboard.chromatics', fileName: 'ornament-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/ornament-range-clipboard.chromatics', fileName: 'ornament-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/ornament-range-clipboard.musicxml', fileName: 'ornament-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('ornament-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'ornaments' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 꾸밈음 기호 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.type === 'note' ? event.ornaments : undefined)).toEqual([
+      undefined,
+      undefined,
+      ['turn'],
+      undefined
+    ])
+    expect(savedEvents[3].type === 'note' ? savedEvents[3].articulations : undefined).toEqual(['marcato'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.ornaments : undefined
+    )).toEqual([undefined, undefined, ['turn'], undefined])
+  })
+
+  it('ornament object filter copies and deletes measure ornaments without replacing unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Ornament Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-ornament-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-ornament-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in ornament measure clipboard fixture')
+    }
+    sourceEvents[1].ornaments = ['mordent', 'turn']
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-ornament', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-ornament', syllabic: 'single' }]
+    targetEvents[2].ornaments = ['trill']
+    targetLowerEvents[1].ornaments = ['turn']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/ornament-measure-clipboard.chromatics', fileName: 'ornament-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/ornament-measure-clipboard.chromatics', fileName: 'ornament-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/ornament-measure-clipboard.musicxml', fileName: 'ornament-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('ornament-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'ornaments' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 꾸밈음 기호 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.type === 'note' ? event.ornaments : undefined)).toEqual([undefined, undefined, undefined, undefined])
+    expect(savedTarget.map((event) => event.type === 'note' ? event.ornaments : undefined)).toEqual([undefined, ['mordent', 'turn'], undefined, undefined])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics?.[0]?.text : undefined).toBe('target-ornament')
+    expect(savedLowerTarget.map((event) => event.type === 'note' ? event.ornaments : undefined)).toEqual([undefined, ['turn'], undefined, undefined])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.ornaments : undefined
+    )).toEqual([undefined, ['mordent', 'turn'], undefined, undefined])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.ornaments : undefined
+    )).toEqual([undefined, ['turn'], undefined, undefined])
+  })
+
+  it('tremolo object filter copies and deletes selected-note tremolos without replacing notes lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Tremolo Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `tremolo-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in tremolo object clipboard fixture')
+    }
+    source.tremolo = { type: 'single', marks: 3 }
+    source.lyrics = [{ number: 1, text: 'source-tremolo', syllabic: 'single' }]
+    source.articulations = ['accent']
+    target.tremolo = { type: 'single', marks: 1 }
+    target.lyrics = [{ number: 1, text: 'target-tremolo', syllabic: 'single' }]
+    target.articulations = ['tenuto']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/tremolo-object-clipboard.chromatics', fileName: 'tremolo-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/tremolo-object-clipboard.chromatics', fileName: 'tremolo-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/tremolo-object-clipboard.musicxml', fileName: 'tremolo-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('tremolo-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'tremolos' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 트레몰로 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].tremolo : undefined).toBeUndefined()
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].lyrics?.[0]?.text : undefined).toBe('source-tremolo')
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].articulations : undefined).toEqual(['accent'])
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].tremolo : undefined).toEqual({ type: 'single', marks: 3 })
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].lyrics?.[0]?.text : undefined).toBe('target-tremolo')
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].articulations : undefined).toEqual(['tenuto'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.tremolo : undefined
+    )).toEqual([undefined, { type: 'single', marks: 3 }, undefined, undefined])
+  })
+
+  it('tremolo object filter copies and deletes ranges while clearing stale target tremolos', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Tremolo Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `tremolo-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in tremolo range clipboard fixture')
+    }
+    sourceFirst.tremolo = { type: 'single', marks: 2 }
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    sourceSecond.lyrics = [{ number: 1, text: 'source-two', syllabic: 'single' }]
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetSecond.tremolo = { type: 'single', marks: 1 }
+    targetSecond.articulations = ['marcato']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/tremolo-range-clipboard.chromatics', fileName: 'tremolo-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/tremolo-range-clipboard.chromatics', fileName: 'tremolo-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/tremolo-range-clipboard.musicxml', fileName: 'tremolo-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('tremolo-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'tremolos' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 트레몰로 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.type === 'note' ? event.tremolo : undefined)).toEqual([
+      undefined,
+      undefined,
+      { type: 'single', marks: 2 },
+      undefined
+    ])
+    expect(savedEvents[3].type === 'note' ? savedEvents[3].articulations : undefined).toEqual(['marcato'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.tremolo : undefined
+    )).toEqual([undefined, undefined, { type: 'single', marks: 2 }, undefined])
+  })
+
+  it('tremolo object filter copies and deletes measure tremolos without replacing unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Tremolo Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-tremolo-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-tremolo-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in tremolo measure clipboard fixture')
+    }
+    sourceEvents[1].tremolo = { type: 'single', marks: 3 }
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-tremolo', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-tremolo', syllabic: 'single' }]
+    targetEvents[2].tremolo = { type: 'single', marks: 1 }
+    targetLowerEvents[1].tremolo = { type: 'single', marks: 2 }
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/tremolo-measure-clipboard.chromatics', fileName: 'tremolo-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/tremolo-measure-clipboard.chromatics', fileName: 'tremolo-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/tremolo-measure-clipboard.musicxml', fileName: 'tremolo-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('tremolo-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'tremolos' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 트레몰로 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.type === 'note' ? event.tremolo : undefined)).toEqual([undefined, undefined, undefined, undefined])
+    expect(savedTarget.map((event) => event.type === 'note' ? event.tremolo : undefined)).toEqual([undefined, { type: 'single', marks: 3 }, undefined, undefined])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics?.[0]?.text : undefined).toBe('target-tremolo')
+    expect(savedLowerTarget.map((event) => event.type === 'note' ? event.tremolo : undefined)).toEqual([undefined, { type: 'single', marks: 2 }, undefined, undefined])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.tremolo : undefined
+    )).toEqual([undefined, { type: 'single', marks: 3 }, undefined, undefined])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.tremolo : undefined
+    )).toEqual([undefined, { type: 'single', marks: 2 }, undefined, undefined])
+  })
+
+  it('grace note object filter copies and deletes selected-note grace notes without replacing notes lyrics or articulations', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Grace Note Object Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `grace-object-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [source, target] = voice.events
+    if (source?.type !== 'note' || target?.type !== 'note') {
+      throw new Error('Expected note events in grace note object clipboard fixture')
+    }
+    source.graceNotes = [
+      { pitch: { step: 'B', octave: 3 }, slash: true },
+      { pitch: { step: 'C', octave: 4 } }
+    ]
+    source.lyrics = [{ number: 1, text: 'source-grace', syllabic: 'single' }]
+    source.articulations = ['accent']
+    target.graceNotes = [{ pitch: { step: 'A', octave: 3 }, slash: true }]
+    target.lyrics = [{ number: 1, text: 'target-grace', syllabic: 'single' }]
+    target.articulations = ['tenuto']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/grace-object-clipboard.chromatics', fileName: 'grace-object-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/grace-object-clipboard.chromatics', fileName: 'grace-object-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/grace-object-clipboard.musicxml', fileName: 'grace-object-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('grace-object-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'graceNotes' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: `${target.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: `${source.id} 선택` }))
+    fireEvent.click(screen.getByLabelText('선택 음표 장식음 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].graceNotes : undefined).toBeUndefined()
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].lyrics?.[0]?.text : undefined).toBe('source-grace')
+    expect(savedEvents[0].type === 'note' ? savedEvents[0].articulations : undefined).toEqual(['accent'])
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].graceNotes : undefined).toEqual([
+      { pitch: { step: 'B', octave: 3 }, slash: true },
+      { pitch: { step: 'C', octave: 4 } }
+    ])
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].lyrics?.[0]?.text : undefined).toBe('target-grace')
+    expect(savedEvents[1].type === 'note' ? savedEvents[1].articulations : undefined).toEqual(['tenuto'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.graceNotes : undefined
+    )).toEqual([
+      undefined,
+      [
+        { pitch: { step: 'B', alter: undefined, octave: 3 }, slash: true },
+        { pitch: { step: 'C', alter: undefined, octave: 4 }, slash: undefined }
+      ],
+      undefined,
+      undefined
+    ])
+  })
+
+  it('grace note object filter copies and deletes ranges while clearing stale target grace notes', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Grace Note Range Clipboard', measureCount: 1, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const voice = project.score.parts[0].staves[0].measures[0].voices[0]
+    voice.events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+      id: `grace-range-note-${index + 1}`,
+      type: 'note',
+      position: { tick: index * TICKS_PER_QUARTER },
+      pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+      duration: { value: 'quarter', dots: 0 }
+    }))
+    const [sourceFirst, sourceSecond, targetFirst, targetSecond] = voice.events
+    if (
+      sourceFirst?.type !== 'note' ||
+      sourceSecond?.type !== 'note' ||
+      targetFirst?.type !== 'note' ||
+      targetSecond?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in grace note range clipboard fixture')
+    }
+    sourceFirst.graceNotes = [{ pitch: { step: 'B', octave: 3 }, slash: true }]
+    sourceFirst.lyrics = [{ number: 1, text: 'source-one', syllabic: 'single' }]
+    sourceSecond.lyrics = [{ number: 1, text: 'source-two', syllabic: 'single' }]
+    targetFirst.lyrics = [{ number: 1, text: 'target-one', syllabic: 'single' }]
+    targetSecond.graceNotes = [{ pitch: { step: 'A', octave: 3 }, slash: true }]
+    targetSecond.articulations = ['marcato']
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/grace-range-clipboard.chromatics', fileName: 'grace-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/grace-range-clipboard.chromatics', fileName: 'grace-range-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/grace-range-clipboard.musicxml', fileName: 'grace-range-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('grace-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'graceNotes' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetFirst.id, targetSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceFirst.id, sourceSecond.id)
+    fireEvent.click(screen.getByLabelText('선택 범위 장식음 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedEvents = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    expect(savedEvents.map((event) => event.type === 'note' ? event.graceNotes : undefined)).toEqual([
+      undefined,
+      undefined,
+      [{ pitch: { step: 'B', octave: 3 }, slash: true }],
+      undefined
+    ])
+    expect(savedEvents[3].type === 'note' ? savedEvents[3].articulations : undefined).toEqual(['marcato'])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    expect(parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents).parts[0].staves[0].measures[0].voices[0].events.map((event) =>
+      event.type === 'note' ? event.graceNotes : undefined
+    )).toEqual([undefined, undefined, [{ pitch: { step: 'B', octave: 3 }, slash: true }], undefined])
+  })
+
+  it('grace note object filter copies and deletes measure grace notes without replacing unrelated voices', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const { createNewScore } = await import('./editor/new-score')
+    const project = createNativeProject(createNewScore({ title: 'Grace Note Measure Clipboard', measureCount: 2, keySignature: { fifths: 0 }, timeSignature: { beats: 4, beatType: 4 } }))
+    const measures = project.score.parts[0].staves[0].measures
+    for (const measure of measures) {
+      measure.voices[0].events = ['C', 'D', 'E', 'F'].map((step, index) => ({
+        id: `${measure.id}-grace-measure-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'C' | 'D' | 'E' | 'F', octave: 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    }
+    measures[1].voices.push({
+      id: 'voice-2',
+      events: ['G', 'A', 'B', 'C'].map((step, index) => ({
+        id: `${measures[1].id}-grace-measure-voice-2-note-${index + 1}`,
+        type: 'note',
+        position: { tick: index * TICKS_PER_QUARTER },
+        pitch: { step: step as 'G' | 'A' | 'B' | 'C', octave: index === 3 ? 5 : 4 },
+        duration: { value: 'quarter', dots: 0 }
+      }))
+    })
+    const sourceEvents = measures[0].voices[0].events
+    const targetEvents = measures[1].voices[0].events
+    const targetLowerEvents = measures[1].voices[1].events
+    if (
+      sourceEvents[1]?.type !== 'note' ||
+      targetEvents[1]?.type !== 'note' ||
+      targetEvents[2]?.type !== 'note' ||
+      targetLowerEvents[1]?.type !== 'note'
+    ) {
+      throw new Error('Expected note events in grace note measure clipboard fixture')
+    }
+    sourceEvents[1].graceNotes = [{ pitch: { step: 'B', octave: 3 }, slash: true }]
+    sourceEvents[1].lyrics = [{ number: 1, text: 'source-grace', syllabic: 'single' }]
+    targetEvents[1].lyrics = [{ number: 1, text: 'target-grace', syllabic: 'single' }]
+    targetEvents[2].graceNotes = [{ pitch: { step: 'A', octave: 3 }, slash: true }]
+    targetLowerEvents[1].graceNotes = [{ pitch: { step: 'F', octave: 4 } }]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/grace-measure-clipboard.chromatics', fileName: 'grace-measure-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/grace-measure-clipboard.chromatics', fileName: 'grace-measure-clipboard.chromatics' })
+    vi.mocked(window.inC.musicXml.save).mockResolvedValue({ filePath: '/qa/grace-measure-clipboard.musicxml', fileName: 'grace-measure-clipboard.musicxml' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('grace-measure-clipboard.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'graceNotes' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.click(screen.getByLabelText('선택 마디 장식음 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    const savedSource = saved.score.parts[0].staves[0].measures[0].voices[0].events
+    const savedTarget = saved.score.parts[0].staves[0].measures[1].voices[0].events
+    const savedLowerTarget = saved.score.parts[0].staves[0].measures[1].voices[1].events
+    expect(savedSource.map((event) => event.type === 'note' ? event.graceNotes : undefined)).toEqual([undefined, undefined, undefined, undefined])
+    expect(savedTarget.map((event) => event.type === 'note' ? event.graceNotes : undefined)).toEqual([undefined, [{ pitch: { step: 'B', octave: 3 }, slash: true }], undefined, undefined])
+    expect(savedTarget[1].type === 'note' ? savedTarget[1].lyrics?.[0]?.text : undefined).toBe('target-grace')
+    expect(savedLowerTarget.map((event) => event.type === 'note' ? event.graceNotes : undefined)).toEqual([undefined, [{ pitch: { step: 'F', octave: 4 } }], undefined, undefined])
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+    await waitFor(() => expect(window.inC.musicXml.save).toHaveBeenCalledOnce())
+    const reopened = parseMusicXml(vi.mocked(window.inC.musicXml.save).mock.calls[0]![0].contents)
+    expect(reopened.parts[0].staves[0].measures[1].voices[0].events.map((event) =>
+      event.type === 'note' ? event.graceNotes : undefined
+    )).toEqual([undefined, [{ pitch: { step: 'B', octave: 3 }, slash: true }], undefined, undefined])
+    expect(reopened.parts[0].staves[0].measures[1].voices[1].events.map((event) =>
+      event.type === 'note' ? event.graceNotes : undefined
+    )).toEqual([undefined, [{ pitch: { step: 'F', alter: undefined, octave: 4 }, slash: undefined }], undefined, undefined])
   })
 
   it.each([false, true])('global rehearsal editing preserves scope and local objects (part=%s)', async partView => {
@@ -5885,6 +7809,71 @@ describe('App component shell', () => {
     ])
   })
 
+  it('object filter copy paste and delete operate across selected chord and dynamic ranges', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const measures = project.score.parts[0].staves[0].measures
+    const sourceOne = measures[0]!
+    const sourceTwo = measures[1]!
+    const targetOne = measures[2]!
+    const targetTwo = measures[3]!
+    project.score.harmonies = [
+      { id: 'range-chord-source-one', measureId: sourceOne.id, tick: 0, text: 'C', root: { step: 'C', alter: 0 }, kind: 'major' },
+      { id: 'range-chord-source-two', measureId: sourceTwo.id, tick: 0, text: 'Dm', root: { step: 'D', alter: 0 }, kind: 'minor' },
+      { id: 'range-chord-target-one', measureId: targetOne.id, tick: 0, text: 'F', root: { step: 'F', alter: 0 }, kind: 'major' },
+      { id: 'range-chord-target-two', measureId: targetTwo.id, tick: 0, text: 'G7', root: { step: 'G', alter: 0 }, kind: 'dominant' }
+    ]
+    project.score.dynamics = [
+      { id: 'range-dynamic-source-one', measureId: sourceOne.id, value: 'p' },
+      { id: 'range-dynamic-source-two', measureId: sourceTwo.id, value: 'ff' },
+      { id: 'range-dynamic-target-one', measureId: targetOne.id, value: 'mp' },
+      { id: 'range-dynamic-target-two', measureId: targetTwo.id, value: 'mf' }
+    ]
+    vi.mocked(window.inC.project.open).mockResolvedValue({ filePath: '/qa/object-range-clipboard.chromatics', fileName: 'object-range-clipboard.chromatics', contents: encodeNativeProject(project) })
+    vi.mocked(window.inC.project.save).mockResolvedValue({ filePath: '/qa/object-range-clipboard.chromatics', fileName: 'object-range-clipboard.chromatics' })
+    const { App } = await import('./App'); render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('object-range-clipboard.chromatics을 열었습니다.')
+
+    const selectEventRange = (from: string, to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: `${from} 선택` }))
+      fireEvent.click(screen.getByRole('button', { name: `${to} 선택` }), { shiftKey: true })
+    }
+    const sourceStart = sourceOne.voices[0]!.events[0]!.id
+    const sourceEnd = sourceTwo.voices[0]!.events[0]!.id
+    const targetStart = targetOne.voices[0]!.events[0]!.id
+    const targetEnd = targetTwo.voices[0]!.events[0]!.id
+
+    selectEventRange(sourceStart, sourceEnd)
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'harmonies' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetStart, targetEnd)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+
+    selectEventRange(sourceStart, sourceEnd)
+    fireEvent.change(screen.getByLabelText('표기 필터'), { target: { value: 'dynamics' } })
+    fireEvent.click(screen.getByLabelText('선택 범위 복사'))
+    selectEventRange(targetStart, targetEnd)
+    fireEvent.click(screen.getByLabelText('선택 범위에 붙여넣기'))
+    selectEventRange(sourceStart, sourceEnd)
+    fireEvent.click(screen.getByLabelText('선택 범위 셈여림 지우기'))
+
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0]![0].contents)
+    expect(saved.score.harmonies?.map(({ measureId, text }) => ({ measureId, text }))).toEqual([
+      { measureId: sourceOne.id, text: 'C' },
+      { measureId: sourceTwo.id, text: 'Dm' },
+      { measureId: targetOne.id, text: 'C' },
+      { measureId: targetTwo.id, text: 'Dm' }
+    ])
+    expect(saved.score.dynamics?.map(({ measureId, value }) => ({ measureId, value }))).toEqual([
+      { measureId: targetOne.id, value: 'p' },
+      { measureId: targetTwo.id, value: 'ff' }
+    ])
+  })
+
   it('direct notation object click selects chord and dynamic targets for editing', async () => {
     const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
     const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
@@ -5999,6 +7988,45 @@ describe('App component shell', () => {
       expect(decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[2][0].contents).score.dynamics)
         .toEqual([project.score.dynamics![0]])
     }
+  })
+
+  it('clicking a visible dynamic object selects only that object for editing', async () => {
+    const { createNativeProject, encodeNativeProject, decodeNativeProject } = await import('../../project/schema')
+    const project = createNativeProject(parseMusicXml(releaseQaMusicXml))
+    const measureId = project.score.parts[0].staves[0].measures[0].id
+    project.score.dynamics = [
+      { id: 'direct-dynamic-one', measureId, value: 'p' },
+      { id: 'direct-dynamic-two', measureId, value: 'ff' }
+    ]
+    vi.mocked(window.inC.project.open).mockResolvedValue({
+      filePath: '/qa/direct-dynamics.chromatics',
+      fileName: 'direct-dynamics.chromatics',
+      contents: encodeNativeProject(project)
+    })
+    vi.mocked(window.inC.project.save).mockResolvedValue({
+      filePath: '/qa/direct-dynamics.chromatics',
+      fileName: 'direct-dynamics.chromatics'
+    })
+    const { App } = await import('./App')
+    render(<App />)
+    fireEvent.click(screen.getByRole('button', { name: '프로젝트 열기' }))
+    await screen.findByText('direct-dynamics.chromatics을 열었습니다.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'direct-dynamic-two 셈여림 객체 선택' }))
+
+    expect(screen.getByRole('button', { name: '표기 객체' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-selected-measure-id', measureId)
+    expect(screen.getByLabelText('셈여림 객체 선택')).toHaveValue('direct-dynamic-two')
+
+    fireEvent.change(screen.getAllByLabelText('셈여림')[0], { target: { value: 'mf' } })
+    fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
+    await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledOnce())
+
+    const saved = decodeNativeProject(vi.mocked(window.inC.project.save).mock.calls[0][0].contents)
+    expect(saved.score.dynamics).toEqual([
+      { id: 'direct-dynamic-one', measureId, value: 'p' },
+      { id: 'direct-dynamic-two', measureId, value: 'mf' }
+    ])
   })
 
   it.each([false, true])('editing a selected expression text preserves same-tick neighbors (second=%s)', async (selectSecond) => {

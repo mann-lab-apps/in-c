@@ -2658,6 +2658,118 @@ No timeout increase or assertion removal was needed. PR #762 merged as
 `e8aa558`; tag `v0.1.0-alpha.15` points to that commit. The tag publication
 workflow is 34946780145; its publication outcome is recorded separately.
 
+### 2026-09-18 Range Object Filter Clipboard Slice
+
+Worktree: `/private/tmp/chromatics-object-range-20260918`, branch
+`feature/chromatics-object-range-20260918`, base `cb92b89` from `origin/main`.
+
+Implementation: File-mode object filters now operate on range selections for
+chord symbols, dynamics, staff text, system text, rehearsal marks, expression
+text and note lyrics. A copied marking range stores source measure order and
+paste maps matching objects onto the target range by relative measure position
+with new IDs. Lyric range copy stores selected note positions and remaps them to
+the target note range without replacing target notes; paste clears stale target
+lyrics at positions where the source range has no lyric. Measure-selected and
+note-selected lyric object copy/paste/delete now move only the selected lyrics and
+preserve target notes; measure lyric clipboard keeps same-staff multi-voice
+ownership by voice id and event index, preserves unrelated target voices when the
+copied source measure has only a subset of voices, and selected-note lyric
+clipboard follows the active lyric verse so verse 2 can be copied/deleted without
+removing verse 1 on selected-note, range and measure workflows. The File-mode
+`가사 필터 절` selector exposes that active-verse policy directly in the object-filter
+workflow. The resulting lyrics round-trip through MusicXML
+save/reopen. Range delete removes only the selected object type from the selected range. Single-measure and
+selected-object clipboard behavior remains unchanged. Selected-note, range and
+measure-selected articulation object copy/paste/delete now move only articulations
+while preserving notes, durations, lyrics and unrelated target voices through
+undo/native/MusicXML evidence. Selected-note, range and measure-selected fermata
+object copy/paste/delete now move only fermatas while preserving notes, lyrics,
+articulations and unrelated target voices through native/MusicXML evidence.
+Selected-note, range and measure-selected breath/caesura object copy/paste/delete
+also preserve the concrete mark value while leaving notes, lyrics, articulations
+and unrelated target voices unchanged through native/MusicXML evidence.
+Selected-note, range and measure-selected ornament object copy/paste/delete
+preserve `trill`, `mordent` and `turn` arrays while leaving notes, lyrics,
+articulations and unrelated target voices unchanged through native/MusicXML
+evidence. Selected-note, range and measure-selected single-note tremolo object
+copy/paste/delete preserve the `marks` value while leaving notes, lyrics,
+articulations and unrelated target voices unchanged through native/MusicXML
+evidence. Selected-note, range and measure-selected grace-note object
+copy/paste/delete preserve grace-note pitch/slash arrays while leaving notes,
+lyrics, articulations and unrelated target voices unchanged through
+native/MusicXML evidence. MusicXML grace-note export now includes voice/staff
+ownership so lower-staff and voice-2 grace notes reattach to the original target
+note on reopen. A scoped system-text cleanup follow-up fixes part deletion so a
+concrete local system text on the removed part is dropped instead of being
+rewritten as a global `measure-N` system text; true global system text survives
+and undo restores the original local object. A direct-selection renderer follow-up
+fixes same-measure staff text rendering so multiple staff text objects draw in
+separate upper lanes and each exposes its own stable `data-object-id` click
+target; the previous renderer map kept only the last staff text for a measure.
+The same direct-selection renderer path now groups multiple same-measure dynamics
+and stacks them in lower lanes so each dynamic exposes its own stable click
+target. Visible rehearsal, staff/system/expression text, chord and dynamic
+objects now expose meaningful `role="button"` accessible names for direct object
+selection, so renderer tests can address them by user-facing object labels rather
+than CSS selectors alone. Enter and Space now activate those visible object
+buttons with the same stable object target as pointer selection. Visible
+slur/hairpin segment targets expose accessible labels and Enter/Space keyboard
+activation for direct span selection. A UX follow-up decouples docked palette
+category buttons from the top work-mode tabs, exposes shortcut help from the
+global context strip instead of requiring File mode discovery, and changes
+selected-note pitch movement to plain ↑/↓ for diatonic steps, Alt/Option+↑/↓ for
+chromatic steps, Shift+↑/↓ for octaves and Cmd/Ctrl+↑/↓ for adjacent-staff
+navigation. A command palette first slice opens from Cmd/Ctrl+K or the context
+strip search button, searches work-mode commands and shortcut reference rows,
+supports ↑/↓ active result movement plus Enter execution, can switch work-mode
+tabs, applies duration commands through the existing duration edit path, switches
+voices through the existing voice-switch path, opens left-palette categories
+without changing the top work mode, opens the new-score dialog from the file
+lifecycle command, and can open shortcut help from a found shortcut row.
+List selection, span object clipboard, complete command inventory, custom
+shortcuts and broader object clipboard remain Required follow-up work.
+
+| Command | Result | Notes |
+| --- | --- | --- |
+| `npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste and delete operate across selected chord and dynamic ranges"` | Fail | Fresh worktree had no local `node_modules`; `vitest` was not found. |
+| `PATH=/Users/jaemankim/Desktop/privates/coding/in-c/node_modules/.bin:$PATH npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste and delete operate across selected chord and dynamic ranges"` | Fail | Vite resolved from the fresh worktree and could not find `react/jsx-dev-runtime`. |
+| `npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste and delete operate across selected chord and dynamic ranges"` | Pass | After linking the existing root `node_modules` into the fresh worktree for local verification only: 1 App workflow test passed / 188 skipped. The test copies chord symbols across a two-measure range, copies and deletes dynamics across the same range, saves native project state and checks relative measure mapping. |
+| `npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste and delete operate"` | Fail, then Pass | A first rerun after tightening disabled-state logic caught duplicate `activeKeySignature`/break-label declarations from a bad patch hunk. After removing the stray block, 2 focused App tests passed / 187 skipped; existing selected chord/dynamic object workflow still passes. |
+| `npm test -- src/renderer/src/App.test.tsx -t "text marking range filter"` | Pass | 4 focused App tests passed / 189 skipped; staff text, system text, rehearsal marks and expression text copy from a two-measure source range to a two-measure target range, delete the source range and save native project state with relative measure mapping preserved. |
+| `npm test -- src/renderer/src/App.test.tsx -t "lyric object filter"` | Fail, then Pass | First failure exposed a brittle release-QA fixture expectation, then an implementation bug where range lyric delete/paste attempted to read a non-existent `location.voice`. The selected-note lyric follow-up first used an inexact two-quarter-note 4/4 fixture and score-core correctly rejected the gap. A later active-verse pass narrowed lyric clipboard from all verses to the current lyric verse and added a File-mode `가사 필터 절` selector. 4 focused App tests now pass. The tests cover range, measure-selected and selected-note lyric copy/delete/paste, stale target active-verse lyric cleanup when the source range has no lyric at the matching position, same-staff voice-2 measure lyric ownership, selected-note/range/measure verse-2 copy/delete preserving verse 1, undo/redo native save for selected-note lyrics, note ID/duration preservation and MusicXML save/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "active selected-note lyric"` | Pass | 1 focused App test passed / 196 skipped; changing the active lyric verse to 2 before object-filter copy/delete preserves verse 1 on the source note and target note while verse 2 is copied, deleted, undone/redone, saved as native and exported/reopened through MusicXML. |
+| `npm test -- src/renderer/src/App.test.tsx -t "articulation object filter"` | Fail, then Pass | The range follow-up first exposed the paste guard rejecting articulation range clipboards without `sourceMeasureIds` and a TypeScript union narrowing issue between object/range articulation clipboards. After narrowing by `scope` and allowing articulation range paste, 3 focused App tests pass / 197 skipped. Selected-note, range and measure-selected articulation object copy/paste/delete preserve source/target notes and lyrics, preserve unrelated lower voice target articulations, replace/clear only target articulations, support undo/redo native save for selected-note articulations and round-trip through MusicXML. |
+| `npm test -- src/renderer/src/App.test.tsx -t "fermata object filter"` | Fail, then Pass | The first run exposed that UI enablement allowed event-level fermata filters but the actual copy/delete callbacks still treated only lyrics and articulations as event-level object filters, causing a normal note delete path that removed the source note. After adding fermatas to the callbacks and implementing event/range/measure fermata clipboard helpers, 3 focused App tests passed / 200 skipped. Selected-note, range and measure-selected fermata object copy/paste/delete preserve notes, lyrics, articulations and unrelated target voices, clear stale target fermatas where the copied range/measure has no fermata, and round-trip through native save and MusicXML export/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "breath mark object filter"` | Pass | 3 focused App tests passed / 203 skipped. Selected-note, range and measure-selected breath/caesura object copy/paste/delete preserve notes, lyrics, articulations and unrelated target voices, replace or clear only target breath marks, keep the copied `breath` versus `caesura` value distinct and round-trip through native save and MusicXML export/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ornament object filter"` | Pass | 3 focused App tests passed / 206 skipped. Selected-note, range and measure-selected ornament object copy/paste/delete preserve notes, lyrics, articulations and unrelated target voices, replace or clear only target ornaments, keep the copied `trill`/`mordent`/`turn` array and round-trip through native save and MusicXML export/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "tremolo object filter"` | Pass | 3 focused App tests passed / 209 skipped. Selected-note, range and measure-selected single-note tremolo object copy/paste/delete preserve notes, lyrics, articulations and unrelated target voices, replace or clear only target tremolos, keep the copied `marks` value and round-trip through native save and MusicXML export/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "grace note object filter"` | Fail, then Pass | First run exposed two real contracts: MusicXML parse leaves omitted grace-note `alter`/`slash` as `undefined`, and lower-staff voice grace notes were not safe to export because serialized grace notes lacked `voice`/`staff` ownership. After updating expectations to match parser output and writing voice/staff on exported grace notes, 3 focused App tests passed / 212 skipped. Selected-note, range and measure-selected grace-note object copy/paste/delete preserve notes, lyrics, articulations and unrelated target voices, replace or clear only target grace-note arrays and round-trip through native save and MusicXML export/reopen. |
+| `npm test -- src/musicxml/musicxml.test.ts -t "grace-notes.musicxml-round-trip\\|ornaments.musicxml-round-trip"` | Pass | 2 focused MusicXML tests passed / 58 skipped. The new unit test verifies a lower-staff `voice-2` grace note exports `<voice>2</voice>` and `<staff>2</staff>` and reopens on the original lower-staff voice target. |
+| `npm test -- src/renderer/src/App.test.tsx -t "removing a part drops local system text"` | Fail, then Pass | Failure-first App workflow reproduced the data-loss/scope bug: deleting the `P2` part rewrote `deleted-local-system` from concrete `P2-staff-2-measure-1` to global `measure-1`. `buildScorePartsReplaceCommand` now preserves generic global system texts and surviving concrete system texts, but drops concrete system texts whose owning part/staff/measure was removed. The final test passed 1 focused App test / 215 skipped and also verifies undo restores the original local system text. |
+| `npm test -- src/musicxml/system-text-relation.test.ts src/musicxml/scoped-rehearsal.test.ts` | Pass | 2 files / 8 tests passed; existing lower-staff system text, global collection and scoped rehearsal MusicXML contracts still pass after changing part-removal system-text cleanup. |
+| `npm test -- src/renderer/src/App.test.tsx -t "adding the same instrument after removal\\|removing a part drops local system text\\|global rehearsal editing preserves scope"` | Pass | 4 focused App tests passed / 212 skipped; deleted part layout cleanup, new system-text cleanup and score/part global rehearsal editing remain compatible. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "multiple same-measure staff text"` | Fail, then Pass | Failure-first renderer test reproduced that only `staff-text-two` appeared because `staffTextsByMeasureId` stored a single object per measure. `NotationPreview` now groups staff texts by measure, draws each object in a separate `staffTextYOffsets` lane and keeps each click target addressable by stable object id. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "multiple same-measure dynamic"` | Fail, then Pass | Failure-first renderer test reproduced that only `dynamic-two` appeared because `dynamicsByMeasureId` stored a single object per measure. `NotationPreview` now groups dynamics by measure, draws each object in a separate `dynamicMarkYOffsets` lane and keeps each click target addressable by stable object id. |
+| `npm test -- src/renderer/src/notation/annotation-lanes.test.ts src/renderer/src/notation/score-vertical-layout.test.ts` | Pass | 2 files / 18 tests passed after adding staff-text and dynamic count/offset lanes and preserving existing dense annotation spacing contracts. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` | Pass | Full passive-attachment renderer file passed: 6 tests. Existing lower-staff passive object evidence, multi-staff-text direct selection, multi-dynamic direct selection and role/name-based object targeting pass together. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "activates visible score objects"` | Fail, then Pass | Failure-first renderer test reproduced that SVG object `role="button"` labels did not respond to Enter/Space. Shared object-selection binding now activates visible chord/dynamic/text objects by pointer or keyboard with the same stable object id. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx -t "activates visible span objects"` | Pass | 1 focused renderer test passed / 7 skipped. Visible slur and hairpin segment targets expose accessible labels and Enter/Space activation that calls `onSelectSpan` with the stable span id; this fixes evidence for direct keyboard span selection but does not complete span clipboard/list-selection workflows. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx` | Pass | Full passive-attachment renderer file rerun passed: 8 tests including keyboard object and span activation. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ui.shortcut-help\|keyboard.note-pitch-editing\|keyboard.staff-navigation\|playback.global-tempo"` | Fail, then Pass | First run exposed an ambiguous App test query after the object-filter UI added both `가사 절` and `가사 필터 절`. The test now uses the exact `가사 절` combobox. Follow-up passed 4 focused App tests / 213 skipped. Coverage confirms global shortcut help lists pitch/chromatic/octave/staff shortcuts, plain ↑/↓ moves selected-note pitch, Shift+↑/↓ moves by octave, Cmd/Ctrl+↑/↓ moves between grand-staff lanes, and left docked palette selection no longer changes the top work mode. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ui.command-palette\|ui.shortcut-help\|keyboard.note-pitch-editing\|keyboard.staff-navigation\|playback.global-tempo"` | Fail, then Pass | First command-palette run exposed that result button accessible names included category text. Result buttons now expose the command label as `aria-label`. Follow-up passed 5 focused App tests / 213 skipped. Coverage confirms Cmd/Ctrl+K opens command search, searching `옥타브` exposes `Shift+↑ / ↓`, selecting that row opens shortcut help, searching `표기 객체` runs the work-mode command, ↑/↓ plus Enter can execute active command results without mouse interaction, `8분음표` applies the existing duration edit path, `2성부` runs the existing voice-switch path, `표기 객체 팔레트` opens the left palette category while preserving the top work mode and `새 악보` opens the new-score dialog. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the shortcut-discovery, arrow-key policy, docked-palette independence and command-palette first slice follow-ups. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue schema/status passed with 69 rows, 16 Required umbrellas and `automationQueueDrained: false` after marking Commands/Shortcuts as Partial and documenting remaining command palette/custom shortcut work. |
+| `git diff --check` | Pass | No whitespace errors after the UX follow-up and documentation updates. |
+| `npm test -- src/renderer/src/App.test.tsx -t "clicking a visible dynamic object"` | Pass | 1 focused App workflow passed / 216 skipped; clicking the second visible dynamic object switches to Notation Objects, selects its stable object id and edits only that object while preserving the first dynamic. |
+| `npm test -- src/renderer/src/notation/NotationPreview.passive-attachments.test.tsx src/renderer/src/notation/annotation-lanes.test.ts src/renderer/src/notation/score-vertical-layout.test.ts` | Pass | 3 files / 24 tests passed; renderer object click targets, accessible role/name labels and annotation lane/vertical layout contracts pass together after staff-text and dynamics lane changes. |
+| `npm test -- src/renderer/src/App.test.tsx -t "editing a selected dynamic\|editing a selected staff text\|object filter copy paste and delete operate on selected chord"` | Pass | 5 focused App tests passed / 211 skipped; existing stable-object editing and selected chord/dynamic clipboard workflows remain compatible with the renderer lane changes. |
+| `npm test -- src/renderer/src/App.test.tsx -t "outside the copied"` | Pass | 1 focused App test passed / 196 skipped; measure lyric paste from an upper-voice-only source replaces target upper voice lyrics while preserving existing target voice-2 lyrics through native save and MusicXML save/reopen. |
+| `npm test -- src/renderer/src/App.test.tsx -t "object filter copy paste and delete operate\\|text marking range filter\\|lyric object filter\\|articulation object filter\\|ornament object filter\\|tremolo object filter\\|grace note object filter\\|fermata object filter\\|breath mark object filter\\|outside the copied"` | Pass | 28 focused App tests passed / 187 skipped; chord/dynamic, text, lyric, selected-note/range/measure articulation, ornament, tremolo, grace-note, fermata and breath/caesura object/range filter workflows pass together. |
+| `npm test -- src/renderer/src/editor/text-marking-clipboard.test.ts` | Pass | 7 text clipboard unit tests passed, including range paste/delete preserving relative measure mapping and undo for staff text. |
+| `npm run typecheck` | Fail, then Pass | The first lyric follow-up run caught missing note narrowing in the App test and a `lyrics` union branch leaking into measure-level harmony paste. The selected-note lyric follow-up also required narrowing the lyric range paste helper to `scope: 'range'`. The File-mode lyric-verse selector follow-up caught one more missing test fixture narrowing for `targetEvents[1]`. The fermata measure fixture similarly required narrowing `targetEvents[1]` before assigning lyrics. After those fixes, and again after the same-measure staff-text/dynamics renderer, object-accessible-name, keyboard-activation and span-keyboard evidence follow-ups, `tsc --noEmit` passed. |
+| `npm run verify:chromatics-v1-work-queue` | Pass | Queue schema/status passed after documentation edits; 69 rows, 16 Required umbrellas, `automationQueueDrained: false`, with list selection, span object clipboard, broader lyric workflows and broader object clipboard still present in next automatable rows. Reran after marking object filters Partial and documenting the staff-text/dynamics direct-selection, accessible-name, keyboard-activation and span-selection follow-ups. |
+| `git diff --check` | Pass | No whitespace errors in the code/documentation diff after the same-measure staff-text/dynamics renderer, object-accessible-name, keyboard-activation and span-selection follow-ups. |
+
 ## Evidence Retention Rules
 
 - 명령 결과는 이 문서에 요약하고, 실패가 있으면 GitHub issue에 원문 로그 또는 핵심 error를 남긴다.
