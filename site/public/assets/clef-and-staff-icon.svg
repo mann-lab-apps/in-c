@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Clef &amp; Staff app icon">
+  <rect width="512" height="512" fill="#103437"/>
+  <g fill="none" stroke="#315b58" stroke-linecap="round" stroke-width="18">
+    <path d="M96 164h320"/>
+    <path d="M96 210h320"/>
+    <path d="M96 256h320"/>
+    <path d="M96 302h320"/>
+    <path d="M96 348h320"/>
+  </g>
+  <path fill="#f8f4e8" d="M145 84h52c12 0 22 10 22 22s-10 22-22 22h-6v256h6c12 0 22 10 22 22s-10 22-22 22h-52c-12 0-22-10-22-22s10-22 22-22h6V128h-6c-12 0-22-10-22-22s10-22 22-22z"/>
+  <path fill="none" stroke="#f8f4e8" stroke-width="43" stroke-linecap="round" stroke-linejoin="round" d="M350 134c-66-55-154-13-154 64 0 62 76 76 116 37M350 378c-66 55-154 13-154-64 0-62 76-76 116-37"/>
+  <circle cx="394" cy="198" r="23" fill="#f8f4e8"/>
+  <circle cx="394" cy="314" r="23" fill="#f8f4e8"/>
+</svg>
