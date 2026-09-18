@@ -636,6 +636,10 @@ void main() {
       );
       expect(
         snapshot.exportText,
+        contains('nextActionCopy=direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.'),
+      );
+      expect(
+        snapshot.exportText,
         contains('firstListenComparison option=bach-little-fugue-bwv578'),
       );
       expect(snapshot.exportText, contains('path=search_fallback_not_direct'));

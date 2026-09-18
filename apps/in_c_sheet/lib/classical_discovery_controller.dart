@@ -488,7 +488,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
           in firstListenComparisonWorkIds
               .map(workById)
               .whereType<ClassicalWork>())
-        'firstListenComparison option=${work.id} / path=${_listeningPathEvidenceFor(work)} / nextAction=${firstListenNextActionForOption(work.id)} / guide=${work.primaryMoment?.prompt ?? 'NOT_VERIFIED'}',
+        _firstListenComparisonEvidenceLine(work),
       for (final item in firstListenReactionPreviews(startDate: startDate))
         'firstListenReaction day${item.firstListen.day} ${item.reactionType}: next=${item.nextWork.id} / path=${_listeningPathEvidenceFor(item.nextWork)} / reason=${item.nextPick.reason} / ${item.mapProgressCopy}',
     ];
@@ -508,6 +508,11 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       firstListenNextActionCopy: firstListenNextActionCopy,
       exportText: lines.join('\n'),
     );
+  }
+
+  String _firstListenComparisonEvidenceLine(ClassicalWork work) {
+    final nextAction = firstListenNextActionForOption(work.id);
+    return 'firstListenComparison option=${work.id} / path=${_listeningPathEvidenceFor(work)} / nextAction=$nextAction / nextActionCopy=${firstListenNextActionCopyForEvidence(nextAction)} / guide=${work.primaryMoment?.prompt ?? 'NOT_VERIFIED'}';
   }
 
   List<DiscoveryEvent> _eventsWithVerifiedFirstListenFounderEvidence() {

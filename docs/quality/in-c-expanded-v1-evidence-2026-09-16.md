@@ -279,6 +279,16 @@ This keeps approval-related fields as `NOT_VERIFIED` while still telling the rev
 safe action. It is review guidance only; it does not approve links, recordings, timing windows,
 actual listening or founder satisfaction.
 
+## FL-036 Exported Comparison Next-Action Copy
+
+The copied first-listen comparison rows now include a readable `nextActionCopy` beside the raw
+`nextAction` code. This makes the copied review packet actionable without requiring the reviewer
+to translate codes such as `approve_direct_or_preview_link_before_promoting_candidate`.
+
+This is evidence readability only. It does not promote Brahms/BWV578-style stronger candidates,
+approve direct links, approve preview URLs, verify recordings, verify timing windows, prove
+actual listening or record founder satisfaction.
+
 ## Verification
 
 | Check | Result | Notes |
@@ -341,6 +351,12 @@ actual listening or founder satisfaction.
 | `flutter analyze` | PASS | Rerun after FL-035 passed with no issues. |
 | `flutter test --reporter=compact` | PASS1363 | Full in C/Clef regression suite passed after FL-035 fallback action copy. |
 | `git diff --check` | PASS | Rerun after FL-035 evidence/work-queue update. |
+| `dart format lib/classical_discovery_controller.dart test/classical_discovery_controller_test.dart` | PASS | Rerun after FL-036 exported comparison next-action copy. |
+| `flutter test test/classical_discovery_controller_test.dart --plain-name "founder simulation reports rules separately from human approval"` | PASS1 | Verifies comparison export rows include readable `nextActionCopy` beside raw next-action evidence. |
+| `flutter test test/classical_discovery_controller_test.dart` | PASS118 | Rerun after FL-036; covers first-listen export, summary, observation and feedback paths. |
+| `flutter analyze` | PASS | Rerun after FL-036 passed with no issues. |
+| `flutter test --reporter=compact` | PASS1363 | Full in C/Clef regression suite passed after FL-036 exported comparison next-action copy. |
+| `git diff --check` | PASS | Rerun after FL-036 evidence/work-queue update. |
 | `flutter test test/classical_discovery_controller_test.dart` | PASS116 | Rerun after FL-030; covers controller evidence/export text, stored response copy, Catalog Ops snapshot/copy action, first-listen candidate review/reaction preview, Catalog Ops observation sheet and public first-listen feedback. |
 | `flutter analyze` | PASS | Rerun after FL-030 passed with no issues. |
 | `flutter test` | PASS1361 | Full in C/Clef regression suite passed after the FL-030 controller-level evidence contract update. |
