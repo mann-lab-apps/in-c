@@ -602,8 +602,366 @@ void main() {
       expect(snapshot.coldMismatchCount, 0);
       expect(snapshot.ruleCompliancePassed, isTrue);
       expect(snapshot.founderApproval, 'NOT_VERIFIED');
+      expect(snapshot.firstListenDecision, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredOption, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredOptionLabel, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
+      expect(snapshot.firstListenNextAction, 'await_founder_response');
       expect(snapshot.exportText, contains('SIMULATION'));
       expect(snapshot.exportText, contains('founderApproval=NOT_VERIFIED'));
+      expect(snapshot.exportText, contains('firstListenDecision=NOT_VERIFIED'));
+      expect(
+        snapshot.exportText,
+        contains('firstListenPreferredOption=NOT_VERIFIED'),
+      );
+      expect(
+        snapshot.exportText,
+        contains('firstListenPreferredPathStatus=NOT_VERIFIED'),
+      );
+      expect(
+        snapshot.exportText,
+        contains('firstListenNextAction=await_founder_response'),
+      );
+      expect(snapshot.exportText, contains('firstListenCandidate day1:'));
+      expect(
+        snapshot.exportText,
+        contains(
+          'firstListenComparison option=brahms-symphony-3-iii / path=search_fallback_not_direct / nextAction=approve_direct_or_preview_link_before_promoting_candidate',
+        ),
+      );
+      expect(
+        snapshot.exportText,
+        contains('firstListenComparison option=bach-little-fugue-bwv578'),
+      );
+      expect(snapshot.exportText, contains('path=search_fallback_not_direct'));
+      expect(snapshot.exportText, contains('firstListenReaction day1 liked:'));
+      expect(snapshot.exportText, contains('firstListenReaction day1 unsure:'));
+      expect(snapshot.exportText, contains('simulation only:'));
+    },
+  );
+
+  test('founder first listen response stores preferred option evidence', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'tester-1',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+        evidence: {
+          ..._founderFirstListenEvidence(controller: controller),
+          'preferredOptionCopy': 'safe_first_three=현재 첫 3곡 흐름|brahms-symphony-3-iii=베토벤 - 월광 소나타|bach-little-fugue-bwv578=바흐 - 작은 푸가 사단조|beethoven-pathetique-ii=베토벤 - 비창 2악장|haydn-surprise-symphony=하이든 - 놀람 교향곡 2악장|none_yet=아직 없음 / 모르겠음',
+        },
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+        evidence: _founderFirstListenEvidence(
+          controller: controller,
+          pathStatus: 'verified_direct_link',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+        evidence: _founderFirstListenEvidence(
+          controller: controller,
+          nextAction: 'verify_recording_window_and_collect_founder_response',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+        evidence: _founderFirstListenEvidence(
+          controller: controller,
+          pathStatusCopy: '검증된 direct link가 있습니다.',
+        ),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: 'founder',
+        answers: const {
+          'firstThreeEnough': true,
+          'strongerCandidateNeeded': false,
+          'listeningPathAcceptable': true,
+          'wouldTrustTomorrow': true,
+        },
+        notes: '좋았음',
+        evidence: _founderFirstListenEvidence(
+          controller: controller,
+          nextActionCopy: '녹음과 들을 구간을 확인한 뒤 실제 응답을 받습니다.',
+        ),
+      ),
+      throwsArgumentError,
+    );
+
+    await controller.recordQualityObservation(
+      category: 'first_listen_founder',
+      testerId: 'founder',
+      answers: const {
+        'firstThreeEnough': true,
+        'strongerCandidateNeeded': false,
+        'listeningPathAcceptable': true,
+        'wouldTrustTomorrow': true,
+      },
+      notes: 'Brahms 후보가 가장 끌렸음',
+      evidence: _founderFirstListenEvidence(controller: controller),
+    );
+
+    final snapshot = controller.founderDailyPickQualitySnapshot();
+
+    expect(snapshot.firstListenDecision, 'YES');
+    expect(snapshot.firstListenPreferredOption, 'brahms-symphony-3-iii');
+    expect(snapshot.firstListenPreferredOptionLabel, '브람스 - 교향곡 3번 3악장');
+    expect(
+      snapshot.firstListenPreferredPathStatus,
+      'search_fallback_not_direct',
+    );
+    expect(
+      snapshot.firstListenPreferredPathStatusCopy,
+      '검색 fallback이며 direct 재생 승인이 아닙니다.',
+    );
+    expect(
+      snapshot.firstListenNextAction,
+      'approve_direct_or_preview_link_before_promoting_candidate',
+    );
+    expect(
+      snapshot.firstListenNextActionCopy,
+      'direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.',
+    );
+    expect(snapshot.exportText, contains('firstListenDecision=YES'));
+    expect(
+      snapshot.exportText,
+      contains('firstListenPreferredOption=brahms-symphony-3-iii'),
+    );
+    expect(
+      snapshot.exportText,
+      contains('firstListenPreferredPathStatus=search_fallback_not_direct'),
+    );
+    expect(
+      snapshot.exportText,
+      contains(
+        'firstListenPreferredPathStatusCopy=검색 fallback이며 direct 재생 승인이 아닙니다.',
+      ),
+    );
+    expect(
+      snapshot.exportText,
+      contains(
+        'firstListenNextAction=approve_direct_or_preview_link_before_promoting_candidate',
+      ),
+    );
+    expect(
+      snapshot.exportText,
+      contains(
+        'firstListenNextActionCopy=direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.',
+      ),
+    );
+  });
+
+  test(
+    'founder first listen snapshot ignores malformed legacy evidence',
+    () async {
+      final templateController = _controller(
+        clock: () => DateTime(2026, 9, 1, 9),
+      );
+      await templateController.load();
+      final malformedEvidence = {
+        ..._founderFirstListenEvidence(controller: templateController),
+        'preferredFirstListenPathStatusCopy': '검증된 direct link가 있습니다.',
+      };
+      final store = _MemoryDiscoveryStore()
+        ..savedState = UserDiscoveryState.defaultState.copyWith(
+          events: [
+            _event(
+              'feedback_submit',
+              'app',
+              'in-c',
+              context: 'first_listen_founder',
+              properties: {
+                'category': 'first_listen_founder',
+                'evidenceKind': 'observed',
+                'testerId': 'founder',
+                'message':
+                    'legacy imported event with misleading readable copy',
+                ...malformedEvidence,
+                'firstThreeEnough': 'true',
+                'strongerCandidateNeeded': 'true',
+                'listeningPathAcceptable': 'true',
+                'wouldTrustTomorrow': 'true',
+              },
+            ),
+          ],
+        );
+      final controller = _controller(
+        store: store,
+        clock: () => DateTime(2026, 9, 1, 9),
+      );
+      await controller.load();
+
+      final snapshot = controller.founderDailyPickQualitySnapshot();
+
+      expect(snapshot.firstListenDecision, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredOption, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredOptionLabel, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredPathStatusCopy, 'NOT_VERIFIED');
+      expect(snapshot.firstListenNextAction, 'await_founder_response');
+      expect(snapshot.firstListenNextActionCopy, 'NOT_VERIFIED');
+      expect(snapshot.exportText, contains('firstListenDecision=NOT_VERIFIED'));
+      expect(
+        snapshot.exportText,
+        contains('firstListenPreferredOption=NOT_VERIFIED'),
+      );
+      expect(
+        snapshot.exportText,
+        contains('firstListenPreferredPathStatus=NOT_VERIFIED'),
+      );
+      expect(snapshot.exportText, isNot(contains('firstListenDecision=YES')));
+      expect(snapshot.exportText, isNot(contains('검증된 direct link가 있습니다.')));
+    },
+  );
+
+  test(
+    'latest malformed founder first listen evidence blocks stale approval',
+    () async {
+      final templateController = _controller(
+        clock: () => DateTime(2026, 9, 1, 9),
+      );
+      await templateController.load();
+      final validEvidence = _founderFirstListenEvidence(
+        controller: templateController,
+      );
+      final malformedEvidence = {
+        ...validEvidence,
+        'preferredFirstListenNextActionCopy': '녹음과 들을 구간 검수가 끝났습니다.',
+      };
+      final store = _MemoryDiscoveryStore()
+        ..savedState = UserDiscoveryState.defaultState.copyWith(
+          events: [
+            _event(
+              'feedback_submit',
+              'app',
+              'in-c',
+              id: 'a-valid-first-listen',
+              context: 'first_listen_founder',
+              properties: {
+                'category': 'first_listen_founder',
+                'evidenceKind': 'observed',
+                'testerId': 'founder',
+                'message': 'older valid response',
+                ...validEvidence,
+                'firstThreeEnough': 'true',
+                'strongerCandidateNeeded': 'true',
+                'listeningPathAcceptable': 'true',
+                'wouldTrustTomorrow': 'true',
+              },
+            ),
+            _event(
+              'feedback_submit',
+              'app',
+              'in-c',
+              id: 'z-malformed-first-listen',
+              context: 'first_listen_founder',
+              properties: {
+                'category': 'first_listen_founder',
+                'evidenceKind': 'observed',
+                'testerId': 'founder',
+                'message': 'newer malformed response',
+                ...malformedEvidence,
+                'firstThreeEnough': 'true',
+                'strongerCandidateNeeded': 'true',
+                'listeningPathAcceptable': 'true',
+                'wouldTrustTomorrow': 'true',
+              },
+            ),
+          ],
+        );
+      final controller = _controller(
+        store: store,
+        clock: () => DateTime(2026, 9, 1, 9),
+      );
+      await controller.load();
+
+      final snapshot = controller.founderDailyPickQualitySnapshot();
+
+      expect(snapshot.firstListenDecision, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredOption, 'NOT_VERIFIED');
+      expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
+      expect(snapshot.firstListenNextAction, 'await_founder_response');
+      expect(snapshot.exportText, isNot(contains('firstListenDecision=YES')));
+      expect(
+        snapshot.exportText,
+        isNot(contains('firstListenPreferredOption=brahms-symphony-3-iii')),
+      );
+      expect(snapshot.exportText, isNot(contains('녹음과 들을 구간 검수가 끝났습니다.')));
     },
   );
 
@@ -2381,6 +2739,22 @@ void main() {
     final controller = _controller();
     await controller.load();
     await controller.skipOnboarding();
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
 
     await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
     await tester.pumpAndSettle();
@@ -2397,6 +2771,269 @@ void main() {
     expect(find.text('Daily Pick 규칙 검사'), findsOneWidget);
     expect(find.textContaining('감상 품질 평가 아님'), findsOneWidget);
     expect(find.textContaining('founderApproval=NOT_VERIFIED'), findsOneWidget);
+    expect(find.text('첫 추천 판단'), findsOneWidget);
+    expect(find.text('가장 끌린 선택'), findsOneWidget);
+    expect(find.text('선택 경로'), findsOneWidget);
+    expect(find.text('다음 행동'), findsOneWidget);
+    expect(find.text('실제 응답을 기다립니다.'), findsWidgets);
+    expect(
+      find.textContaining('firstListenDecision=NOT_VERIFIED'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('firstListenNextAction=await_founder_response'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('firstListenPreferredPathStatus=NOT_VERIFIED'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byTooltip('evidence 복사').last);
+    await tester.pumpAndSettle();
+    expect(copied, contains('firstListenCandidate day1:'));
+    expect(
+      copied,
+      contains(
+        'firstListenComparison option=brahms-symphony-3-iii / path=search_fallback_not_direct / nextAction=approve_direct_or_preview_link_before_promoting_candidate',
+      ),
+    );
+    expect(copied, contains('firstListenReaction day1 liked:'));
+    expect(copied, contains('search_fallback_not_direct'));
+    expect(copied, contains('firstListenPreferredPathStatus=NOT_VERIFIED'));
+    expect(copied, contains('firstListenNextAction=await_founder_response'));
+    expect(copied, contains('simulation only:'));
+  });
+
+  testWidgets('Catalog Ops summary uses stored first-listen response copy', (
+    tester,
+  ) async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    await controller.skipOnboarding();
+    await controller.recordQualityObservation(
+      category: 'first_listen_founder',
+      testerId: 'founder',
+      answers: const {
+        'firstThreeEnough': true,
+        'strongerCandidateNeeded': true,
+        'listeningPathAcceptable': true,
+        'wouldTrustTomorrow': true,
+      },
+      notes: '저장 당시 copy 보존 확인',
+      evidence: _founderFirstListenEvidence(controller: controller),
+    );
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Catalog Ops'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Daily Pick 규칙 검사'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('검색 fallback이며 direct 재생 승인이 아닙니다.'), findsOneWidget);
+    expect(find.text('direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.'), findsOneWidget);
+  });
+
+  testWidgets('Catalog Ops exposes first-listen candidate review honestly', (
+    tester,
+  ) async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Catalog Ops'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('첫 추천 후보 리뷰'),
+      500,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('첫 추천 후보 리뷰'), findsOneWidget);
+    expect(
+      find.text('검색 fallback은 direct link나 실제 청취 승인으로 세지 않습니다.'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Day 1 · 현재 첫 3곡'), findsOneWidget);
+    expect(
+      find.textContaining('비교 · 비교 후보 · 브람스 - 교향곡 3번 3악장'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('비교 · 비교 후보 · 바흐 - 작은 푸가 사단조'), findsOneWidget);
+    expect(find.textContaining('search fallback - direct 아님'), findsWidgets);
+    expect(
+      find.byKey(
+        const ValueKey(
+          'first-listen-candidate-next-action-brahms-symphony-3-iii',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'first-listen-candidate-next-action-bach-little-fugue-bwv578',
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(find.textContaining('direct 또는 preview 링크를 검수'), findsWidgets);
+    expect(find.textContaining('verified direct link'), findsNothing);
+    expect(find.textContaining('approved preview available'), findsNothing);
+    expect(find.text('반응 후 내일 추천 미리보기'), findsOneWidget);
+    expect(find.textContaining('실제 기록에 쓰지 않는 simulation'), findsOneWidget);
+    expect(find.textContaining('좋음 후'), findsWidgets);
+    expect(find.textContaining('아직 모르겠음 후'), findsWidgets);
+    expect(find.textContaining('Day 1 좋음 후'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey('first-listen-reaction-path-1-liked')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('first-listen-reaction-path-1-unsure')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('simulation only:'), findsWidgets);
+  });
+
+  test('first listen reaction previews do not mutate user state', () async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    await controller.skipOnboarding();
+
+    final reactionsBefore = controller.state.reactions.length;
+    final dailyPicksBefore = controller.state.dailyPicks.length;
+    final eventsBefore = controller.state.events.length;
+    final openedBefore = controller.listeningMapProgress().openedCount;
+
+    final previews = controller.firstListenReactionPreviews();
+
+    expect(previews, isNotEmpty);
+    expect(previews.map((preview) => preview.reactionType).toSet(), {
+      'liked',
+      'unsure',
+    });
+    expect(
+      previews.every((preview) => preview.nextPick.reason.isNotEmpty),
+      true,
+    );
+    expect(
+      previews.every(
+        (preview) => preview.mapProgressCopy.startsWith('simulation only:'),
+      ),
+      true,
+    );
+    expect(controller.state.reactions.length, reactionsBefore);
+    expect(controller.state.dailyPicks.length, dailyPicksBefore);
+    expect(controller.state.events.length, eventsBefore);
+    expect(controller.listeningMapProgress().openedCount, openedBefore);
+  });
+
+  testWidgets('Catalog Ops observation sheet captures founder first listen', (
+    tester,
+  ) async {
+    final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+    await controller.load();
+    await controller.skipOnboarding();
+
+    await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Catalog Ops'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('관찰 기록'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Founder의 사용 의향').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Founder 첫 추천 판단').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('가장 끌린 선택지'), findsOneWidget);
+    expect(find.text('Brahms/BWV578 같은 더 강한 발견 후보가 필요했나요?'), findsOneWidget);
+    expect(find.text('보내기'), findsNothing);
+    expect(find.text('관찰 저장'), findsOneWidget);
+
+    for (final key in const [
+      'firstThreeEnough',
+      'strongerCandidateNeeded',
+      'listeningPathAcceptable',
+      'wouldTrustTomorrow',
+    ]) {
+      await tester.tap(find.byKey(ValueKey('first_listen_founder-$key')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('예').last);
+      await tester.pumpAndSettle();
+    }
+
+    final opsPreferredFinder = find.byKey(
+      const ValueKey('ops-first-listen-preferred-brahms-symphony-3-iii'),
+    );
+    await tester.ensureVisible(opsPreferredFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(opsPreferredFinder);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('ops-first-listen-next-action-copy')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('direct 또는 preview 링크를 검수'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, '실제 응답 또는 관찰 메모'),
+      '브람스 쪽이 더 오늘 들어보고 싶었음',
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('관찰 저장'));
+    await tester.tap(find.text('관찰 저장'));
+    await tester.pumpAndSettle();
+
+    final event = _latestFeedbackEvent(controller);
+    expect(event.eventType, 'feedback_submit');
+    expect(event.context, 'first_listen_founder');
+    expect(
+      event.properties['feedbackSurface'],
+      'catalog_ops_observation_sheet',
+    );
+    expect(
+      event.properties['preferredFirstListenOption'],
+      'brahms-symphony-3-iii',
+    );
+    expect(
+      event.properties['preferredFirstListenNextAction'],
+      'approve_direct_or_preview_link_before_promoting_candidate',
+    );
+    expect(
+      event.properties['preferredFirstListenPathStatus'],
+      'search_fallback_not_direct',
+    );
+    expect(
+      event.properties['preferredFirstListenPathStatusCopy'],
+      contains('검색 fallback'),
+    );
+    expect(
+      event.properties['preferredFirstListenNextActionCopy'],
+      contains('direct 또는 preview 링크를 검수'),
+    );
+    expect(
+      event.properties['preferredOptionCopy'],
+      contains('브람스 - 교향곡 3번 3악장'),
+    );
+
+    final snapshot = controller.founderDailyPickQualitySnapshot();
+    expect(snapshot.firstListenDecision, 'YES');
+    expect(snapshot.firstListenPreferredOptionLabel, '브람스 - 교향곡 3번 3악장');
+    expect(
+      snapshot.firstListenNextAction,
+      'approve_direct_or_preview_link_before_promoting_candidate',
+    );
   });
 
   testWidgets('My Music empty state shows listening map start copy', (
@@ -2636,16 +3273,161 @@ void main() {
     await tester.tap(find.byTooltip('의견 보내기'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, '오늘 화면은 괜찮았어요.');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('보내기'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('보내기'));
     await tester.pumpAndSettle();
 
-    expect(controller.state.events.first.eventType, 'feedback_submit');
-    expect(
-      controller.state.events.first.properties['category'],
-      'product_quality',
-    );
+    final event = _latestFeedbackEvent(controller);
+    expect(event.eventType, 'feedback_submit');
+    expect(event.properties['category'], 'product_quality');
     expect(find.text('의견을 남겼습니다.'), findsOneWidget);
   });
+
+  testWidgets(
+    'feedback sheet records structured founder first listen response',
+    (tester) async {
+      final controller = _controller(clock: () => DateTime(2026, 9, 1, 9));
+      await controller.load();
+      await controller.skipOnboarding();
+
+      await tester.pumpWidget(ClassicalDiscoveryApp(controller: controller));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('의견 보내기'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('오늘 추천'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('테스터 코드'), findsOneWidget);
+      expect(find.text('가장 끌린 선택지'), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton).last).enabled,
+        isFalse,
+      );
+
+      for (final key in const [
+        'firstThreeEnough',
+        'strongerCandidateNeeded',
+        'listeningPathAcceptable',
+        'wouldTrustTomorrow',
+      ]) {
+        await tester.tap(find.byKey(ValueKey('feedback-first-listen-$key')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('예').last);
+        await tester.pumpAndSettle();
+      }
+
+      final feedbackPreferredFinder = find.byKey(
+        const ValueKey('feedback-first-listen-preferred-brahms-symphony-3-iii'),
+      );
+      await tester.ensureVisible(feedbackPreferredFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(feedbackPreferredFinder);
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('feedback-first-listen-next-action-copy')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('direct 또는 preview 링크를 검수'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextField, '내용'),
+        '브람스 후보로 내일도 맡겨볼 수 있겠음',
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('보내기'));
+      await tester.tap(find.text('보내기'));
+      await tester.pumpAndSettle();
+
+      final event = _latestFeedbackEvent(controller);
+      expect(event.eventType, 'feedback_submit');
+      expect(event.context, 'first_listen_founder');
+      expect(event.properties['feedbackSurface'], 'public_feedback_sheet');
+      expect(event.properties['firstThreeWorkIds'], isNotEmpty);
+      expect(
+        event.properties['comparisonWorkIds'],
+        contains('bach-little-fugue-bwv578'),
+      );
+      expect(event.properties['questionSetId'], 'first_listen_founder_v1');
+      expect(
+        event.properties['preferredOptionIds'],
+        contains('safe_first_three'),
+      );
+      expect(
+        event.properties['preferredFirstListenOption'],
+        'brahms-symphony-3-iii',
+      );
+      expect(
+        event.properties['preferredFirstListenNextAction'],
+        'approve_direct_or_preview_link_before_promoting_candidate',
+      );
+      expect(
+        event.properties['preferredFirstListenPathStatus'],
+        'search_fallback_not_direct',
+      );
+      expect(
+        event.properties['preferredFirstListenPathStatusCopy'],
+        contains('검색 fallback'),
+      );
+      expect(
+        event.properties['preferredFirstListenNextActionCopy'],
+        contains('direct 또는 preview 링크를 검수'),
+      );
+      expect(
+        event.properties['preferredOptionCopy'],
+        contains('브람스 - 교향곡 3번 3악장'),
+      );
+      expect(find.text('의견을 남겼습니다.'), findsOneWidget);
+    },
+  );
+}
+
+DiscoveryEvent _latestFeedbackEvent(ClassicalDiscoveryController controller) =>
+    controller.state.events.firstWhere(
+      (event) => event.eventType == 'feedback_submit',
+    );
+
+Map<String, String> _founderFirstListenEvidence({
+  required ClassicalDiscoveryController controller,
+  String surface = 'catalog_ops_observation_sheet',
+  String preferredOption = 'brahms-symphony-3-iii',
+  String pathStatus = 'search_fallback_not_direct',
+  String pathStatusCopy = '검색 fallback이며 direct 재생 승인이 아닙니다.',
+  String nextAction =
+      'approve_direct_or_preview_link_before_promoting_candidate',
+  String nextActionCopy = 'direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.',
+}) {
+  return {
+    'feedbackSurface': surface,
+    'firstThreeWorkIds': controller
+        .founderSevenDayPreview()
+        .take(3)
+        .map((item) => item.work.id)
+        .join(','),
+    'comparisonWorkIds': controller
+        .firstListenPreferredOptions()
+        .where(
+          (option) =>
+              option.id != 'safe_first_three' && option.id != 'none_yet',
+        )
+        .map((option) => option.id)
+        .join(','),
+    'questionSetId': 'first_listen_founder_v1',
+    'questionKeys': 'firstThreeEnough,strongerCandidateNeeded,listeningPathAcceptable,wouldTrustTomorrow',
+    'questionCopy':
+        classicalQualityObservationQuestions['first_listen_founder']!.entries
+            .map((entry) => '${entry.key}=${entry.value}')
+            .join('|'),
+    'answerOptions': 'yes,no',
+    'preferredOptionIds': controller.firstListenPreferredOptionIdsForEvidence(),
+    'preferredOptionCopy': controller
+        .firstListenPreferredOptionCopyForEvidence(),
+    'preferredFirstListenOption': preferredOption,
+    'preferredFirstListenPathStatus': pathStatus,
+    'preferredFirstListenPathStatusCopy': pathStatusCopy,
+    'preferredFirstListenNextAction': nextAction,
+    'preferredFirstListenNextActionCopy': nextActionCopy,
+  };
 }
 
 ClassicalDiscoveryController _controller({

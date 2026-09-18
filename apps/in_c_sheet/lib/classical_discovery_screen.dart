@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'classical_concert_import.dart';
 import 'classical_data_controls_screen.dart';
@@ -64,6 +65,256 @@ class ClassicalDiscoveryScreen extends StatefulWidget {
   @override
   State<ClassicalDiscoveryScreen> createState() =>
       _ClassicalDiscoveryScreenState();
+}
+
+List<({String id, String label})> _firstListenPreferredOptionsForController(
+  ClassicalDiscoveryController controller,
+) => controller.firstListenPreferredOptions();
+
+Map<String, String> _firstListenEvidenceForController(
+  ClassicalDiscoveryController controller, {
+  required String surface,
+  String? preferredOption,
+}) {
+  final firstThreeIds = controller
+      .founderSevenDayPreview()
+      .take(3)
+      .map((item) => item.work.id)
+      .join(',');
+  final options = _firstListenPreferredOptionsForController(controller);
+  final nextAction = preferredOption == null
+      ? 'await_founder_response'
+      : controller.firstListenNextActionForOption(preferredOption);
+  final pathEvidence = preferredOption == null
+      ? 'await_founder_response'
+      : controller.firstListenListeningPathEvidenceForOption(preferredOption);
+  return {
+    'feedbackSurface': surface,
+    'firstThreeWorkIds': firstThreeIds,
+    'comparisonWorkIds': options
+        .where(
+          (option) =>
+              option.id != 'safe_first_three' && option.id != 'none_yet',
+        )
+        .map((option) => option.id)
+        .join(','),
+    'questionSetId': 'first_listen_founder_v1',
+    'questionKeys':
+        classicalQualityObservationQuestions['first_listen_founder']!.keys.join(
+          ',',
+        ),
+    'questionCopy':
+        classicalQualityObservationQuestions['first_listen_founder']!.entries
+            .map((entry) => '${entry.key}=${entry.value}')
+            .join('|'),
+    'answerOptions': 'yes,no',
+    'preferredOptionIds': options.map((option) => option.id).join(','),
+    'preferredOptionCopy': options
+        .map((option) => '${option.id}=${option.label}')
+        .join('|'),
+    'preferredFirstListenOption': ?preferredOption,
+    'preferredFirstListenPathStatus': pathEvidence,
+    'preferredFirstListenPathStatusCopy': controller
+        .firstListenPathStatusCopyForEvidence(pathEvidence),
+    'preferredFirstListenNextAction': nextAction,
+    'preferredFirstListenNextActionCopy': controller
+        .firstListenNextActionCopyForEvidence(nextAction),
+  };
+}
+
+String _firstListenListeningPathStatus(ClassicalWork work) {
+  if (work.externalLinks.any(
+    (link) =>
+        link.linkType == 'listen_preview_approved' && link.previewUrl != null,
+  )) {
+    return 'approved preview available';
+  }
+  if (work.externalLinks.any((link) => link.isVerifiedDirect)) {
+    return 'verified direct link';
+  }
+  if (work.externalLinks.any((link) => link.isSafeSearch)) {
+    return 'search fallback - direct 아님';
+  }
+  return 'listening path missing';
+}
+
+String _firstListenNextActionCopy(String action) {
+  return switch (action) {
+    'await_founder_response' => '실제 응답을 기다립니다.',
+    'revise_first_listen_candidates_before_claiming_fit' =>
+      '첫 추천 후보를 다시 다듬습니다.',
+    'run_actual_first_three_listen_review' => '현재 첫 3곡으로 실제 듣기 평가를 진행합니다.',
+    'verify_recording_window_and_collect_founder_response' =>
+      '녹음과 들을 구간을 확인한 뒤 실제 응답을 받습니다.',
+    'approve_direct_or_preview_link_before_promoting_candidate' =>
+      'direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.',
+    'add_listening_path_before_promoting_candidate' => '듣기 경로를 먼저 보강합니다.',
+    'review_unknown_preferred_option' => '알 수 없는 선택지를 확인합니다.',
+    _ => action,
+  };
+}
+
+String _firstListenPathStatusCopy(String status) {
+  return switch (status) {
+    'await_founder_response' => '아직 선택지 응답이 없습니다.',
+    'NOT_VERIFIED' => '실제 응답을 기다립니다.',
+    'no_preferred_option' => '끌린 선택지가 아직 없습니다.',
+    'current_first_three_requires_actual_listen' => '현재 첫 3곡은 실제 듣기 평가가 필요합니다.',
+    'approved_preview_available' => '검수된 preview 경로가 있습니다.',
+    'verified_direct_link' => '검증된 direct link가 있습니다.',
+    'search_fallback_not_direct' => '검색 fallback이며 direct 재생 승인이 아닙니다.',
+    'listening_path_missing' => '듣기 경로 보강이 필요합니다.',
+    'unknown_preferred_option' => '알 수 없는 선택지입니다.',
+    _ => status,
+  };
+}
+
+class _FirstListenCandidateReviewPanel extends StatelessWidget {
+  const _FirstListenCandidateReviewPanel({required this.controller});
+
+  final ClassicalDiscoveryController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final firstThree = controller.founderSevenDayPreview().take(3).toList();
+    final reactionPreviews = controller.firstListenReactionPreviews();
+    final comparisonOptions =
+        _firstListenPreferredOptionsForController(controller)
+            .where(
+              (option) =>
+                  option.id != 'safe_first_three' && option.id != 'none_yet',
+            )
+            .map((option) => controller.workById(option.id))
+            .whereType<ClassicalWork>()
+            .toList(growable: false);
+    return _Panel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '첫 추천 후보 리뷰',
+            style: Theme.of(context).textTheme.titleSmall
+                ?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          const Text('검색 fallback은 direct link나 실제 청취 승인으로 세지 않습니다.'),
+          const SizedBox(height: 8),
+          for (final item in firstThree)
+            _FirstListenCandidateRow(
+              label: 'Day ${item.day}',
+              work: item.work,
+              role: '현재 첫 3곡',
+              note: item.pick.reason,
+              nextAction: '실제 듣기 평가 후 유지 여부를 판단합니다.',
+            ),
+          if (comparisonOptions.isNotEmpty) ...[
+            const Divider(height: 20),
+            for (final work in comparisonOptions)
+              _FirstListenCandidateRow(
+                label: '비교',
+                work: work,
+                role: '비교 후보',
+                note: work.primaryMoment?.prompt ?? '감상 포인트 미검수',
+                nextAction: _firstListenNextActionCopy(
+                  controller.firstListenNextActionForOption(work.id),
+                ),
+              ),
+          ],
+          if (reactionPreviews.isNotEmpty) ...[
+            const Divider(height: 20),
+            Text(
+              '반응 후 내일 추천 미리보기',
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              '실제 기록에 쓰지 않는 simulation입니다. 클릭/링크 열림만으로 지도 단계가 오르지 않습니다.',
+            ),
+            const SizedBox(height: 8),
+            for (final preview in reactionPreviews)
+              _FirstListenReactionPreviewRow(preview: preview),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _FirstListenCandidateRow extends StatelessWidget {
+  const _FirstListenCandidateRow({
+    required this.label,
+    required this.work,
+    required this.role,
+    required this.note,
+    required this.nextAction,
+  });
+
+  final String label;
+  final ClassicalWork work;
+  final String role;
+  final String note;
+  final String nextAction;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '$label · $role · ${work.composerNameKo} - ${work.titleKo}',
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 2),
+        Text(_firstListenListeningPathStatus(work)),
+        const SizedBox(height: 2),
+        Text(note),
+        const SizedBox(height: 2),
+        Text(
+          '다음 행동: $nextAction',
+          key: ValueKey('first-listen-candidate-next-action-${work.id}'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _FirstListenReactionPreviewRow extends StatelessWidget {
+  const _FirstListenReactionPreviewRow({required this.preview});
+
+  final FirstListenReactionPreview preview;
+
+  @override
+  Widget build(BuildContext context) {
+    final reactionLabel =
+        _reactionLabels[preview.reactionType] ?? preview.reactionType;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Day ${preview.firstListen.day} $reactionLabel 후 · ${preview.nextWork.composerNameKo} - ${preview.nextWork.titleKo}',
+            style: Theme.of(context).textTheme.bodyMedium
+                ?.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            _firstListenListeningPathStatus(preview.nextWork),
+            key: ValueKey(
+              'first-listen-reaction-path-${preview.firstListen.day}-${preview.reactionType}',
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(preview.nextPick.reason),
+          const SizedBox(height: 2),
+          Text(preview.mapProgressCopy),
+        ],
+      ),
+    );
+  }
 }
 
 class ClassicalTasteConnectionsScreen extends StatelessWidget {
@@ -1233,6 +1484,29 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                         : 'FAIL - 자동 규칙 확인 필요 (감상 품질 평가 아님)',
                   ),
                   ('실제 사용자 평가', dailyPickQuality.founderApproval),
+                  ('첫 추천 판단', dailyPickQuality.firstListenDecision),
+                  (
+                    '가장 끌린 선택',
+                    dailyPickQuality.firstListenPreferredOptionLabel,
+                  ),
+                  ('선택 ID', dailyPickQuality.firstListenPreferredOption),
+                  (
+                    '선택 경로',
+                    dailyPickQuality.firstListenPreferredPathStatusCopy ==
+                            'NOT_VERIFIED'
+                        ? _firstListenPathStatusCopy(
+                            dailyPickQuality.firstListenPreferredPathStatus,
+                          )
+                        : dailyPickQuality.firstListenPreferredPathStatusCopy,
+                  ),
+                  (
+                    '다음 행동',
+                    dailyPickQuality.firstListenNextActionCopy == 'NOT_VERIFIED'
+                        ? _firstListenNextActionCopy(
+                            dailyPickQuality.firstListenNextAction,
+                          )
+                        : dailyPickQuality.firstListenNextActionCopy,
+                  ),
                   ('첫 7일', '${dailyPickQuality.previewDays} days'),
                   ('첫 3일 가까움', dailyPickQuality.closeFirstThree ? 'YES' : 'NO'),
                   ('옆길 횟수', '${dailyPickQuality.surpriseCount}'),
@@ -1240,6 +1514,8 @@ class ClassicalCatalogOpsScreen extends StatelessWidget {
                   ('evidence', dailyPickQuality.exportText),
                 ],
               ),
+              const SizedBox(height: 8),
+              _FirstListenCandidateReviewPanel(controller: controller),
               const SizedBox(height: 12),
               _SectionTitle(title: '첫 7일 추천 미리보기'),
               const Text('매일 완료했다고 가정한 모의 기록입니다. 실제 청취 기록에는 반영하지 않습니다.'),
@@ -1449,6 +1725,7 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
   bool _saving = false;
   String? _error;
   String? _distance;
+  String? _firstListenPreferredOption;
 
   @override
   void dispose() {
@@ -1491,6 +1768,10 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
                     child: Text('Founder의 사용 의향'),
                   ),
                   DropdownMenuItem(
+                    value: 'first_listen_founder',
+                    child: Text('Founder 첫 추천 판단'),
+                  ),
+                  DropdownMenuItem(
                     value: 'founder_quality',
                     child: Text('5명 사용자 관찰'),
                   ),
@@ -1504,14 +1785,20 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
                     : (value) => setState(() {
                         _category = value!;
                         _answers.clear();
-                        _tester.text = _category == 'founder_intent'
+                        _firstListenPreferredOption = null;
+                        _tester.text =
+                            (_category == 'founder_intent' ||
+                                _category == 'first_listen_founder')
                             ? 'founder'
                             : '';
                       }),
               ),
             TextField(
               controller: _tester,
-              readOnly: widget.pick == null && _category == 'founder_intent',
+              readOnly:
+                  widget.pick == null &&
+                  (_category == 'founder_intent' ||
+                      _category == 'first_listen_founder'),
               decoration: const InputDecoration(labelText: '참가자 코드'),
               onChanged: (_) => setState(() {}),
             ),
@@ -1544,6 +1831,38 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
                           _answers[question.key] = value!;
                         }),
                 ),
+            if (widget.pick == null && _category == 'first_listen_founder') ...[
+              const SizedBox(height: 12),
+              Text('가장 끌린 선택지', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final option
+                      in _firstListenPreferredOptionsForController(
+                        widget.controller,
+                      ))
+                    ChoiceChip(
+                      key: ValueKey('ops-first-listen-preferred-${option.id}'),
+                      label: Text(option.label),
+                      selected: _firstListenPreferredOption == option.id,
+                      onSelected: _saving
+                          ? null
+                          : (_) => setState(
+                              () => _firstListenPreferredOption = option.id,
+                            ),
+                    ),
+                ],
+              ),
+              if (_firstListenPreferredOption case final selectedOption?) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '다음 행동: ${_firstListenNextActionCopy(widget.controller.firstListenNextActionForOption(selectedOption))}',
+                  key: const ValueKey('ops-first-listen-next-action-copy'),
+                ),
+              ],
+            ],
             TextField(
               controller: _notes,
               minLines: 2,
@@ -1561,6 +1880,9 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
                       (widget.pick == null
                           ? _answers.length != questions.length
                           : _distance == null) ||
+                      (widget.pick == null &&
+                          _category == 'first_listen_founder' &&
+                          _firstListenPreferredOption == null) ||
                       _notes.text.trim().isEmpty ||
                       _tester.text.trim().isEmpty
                   ? null
@@ -1590,6 +1912,13 @@ class _QualityObservationSheetState extends State<_QualityObservationSheet> {
         testerId: _tester.text,
         answers: _answers,
         notes: _notes.text,
+        evidence: _category == 'first_listen_founder'
+            ? _firstListenEvidenceForController(
+                widget.controller,
+                surface: 'catalog_ops_observation_sheet',
+                preferredOption: _firstListenPreferredOption,
+              )
+            : const {},
       );
     }
     if (!mounted) return;
@@ -1616,18 +1945,38 @@ class _FeedbackSheet extends StatefulWidget {
 class _FeedbackSheetState extends State<_FeedbackSheet> {
   String _category = 'product_quality';
   final TextEditingController _messageController = TextEditingController();
+  final TextEditingController _testerController = TextEditingController();
+  final _firstListenAnswers = <String, bool>{};
+  String? _firstListenPreferredOption;
 
   @override
   void dispose() {
     _messageController.dispose();
+    _testerController.dispose();
     super.dispose();
+  }
+
+  bool get _isFirstListenFeedback => _category == 'first_listen_founder';
+
+  bool get _canSubmit {
+    final messageReady = _messageController.text.trim().isNotEmpty;
+    if (!_isFirstListenFeedback) {
+      return messageReady;
+    }
+    final questions =
+        classicalQualityObservationQuestions['first_listen_founder']!;
+    return messageReady &&
+        _testerController.text.trim() == 'founder' &&
+        _firstListenAnswers.length == questions.length &&
+        questions.keys.every(_firstListenAnswers.containsKey) &&
+        _firstListenPreferredOption != null;
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(16, 8, 16, 20 + bottomInset),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1655,14 +2004,77 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                   (id: 'copy_issue', label: '문구'),
                   (id: 'retention_issue', label: '다시 열 이유'),
                   (id: 'crash_or_blocker', label: '멈춤/오류'),
+                  (id: 'first_listen_founder', label: '오늘 추천'),
                 ])
                   ChoiceChip(
                     label: Text(item.label),
                     selected: _category == item.id,
-                    onSelected: (_) => setState(() => _category = item.id),
+                    onSelected: (_) => setState(() {
+                      _category = item.id;
+                      _firstListenAnswers.clear();
+                      _firstListenPreferredOption = null;
+                      if (_isFirstListenFeedback &&
+                          _testerController.text.isEmpty) {
+                        _testerController.text = 'founder';
+                      }
+                    }),
                   ),
               ],
             ),
+            if (_isFirstListenFeedback) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _testerController,
+                decoration: const InputDecoration(labelText: '테스터 코드'),
+                onChanged: (_) => setState(() {}),
+              ),
+              const SizedBox(height: 12),
+              for (final question
+                  in classicalQualityObservationQuestions['first_listen_founder']!
+                      .entries)
+                DropdownButtonFormField<bool>(
+                  key: ValueKey('feedback-first-listen-${question.key}'),
+                  isExpanded: true,
+                  decoration: InputDecoration(labelText: question.value),
+                  items: const [
+                    DropdownMenuItem(value: true, child: Text('예')),
+                    DropdownMenuItem(value: false, child: Text('아니요')),
+                  ],
+                  onChanged: (value) => setState(() {
+                    _firstListenAnswers[question.key] = value!;
+                  }),
+                ),
+              const SizedBox(height: 12),
+              Text('가장 끌린 선택지', style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final option
+                      in _firstListenPreferredOptionsForController(
+                        widget.controller,
+                      ))
+                    ChoiceChip(
+                      key: ValueKey(
+                        'feedback-first-listen-preferred-${option.id}',
+                      ),
+                      label: Text(option.label),
+                      selected: _firstListenPreferredOption == option.id,
+                      onSelected: (_) => setState(
+                        () => _firstListenPreferredOption = option.id,
+                      ),
+                    ),
+                ],
+              ),
+              if (_firstListenPreferredOption case final selectedOption?) ...[
+                const SizedBox(height: 8),
+                Text(
+                  '다음 행동: ${_firstListenNextActionCopy(widget.controller.firstListenNextActionForOption(selectedOption))}',
+                  key: const ValueKey('feedback-first-listen-next-action-copy'),
+                ),
+              ],
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _messageController,
@@ -1672,6 +2084,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 hintText: '예: 오늘 화면에서 뭘 눌러야 할지 애매했어요.',
                 border: OutlineInputBorder(),
               ),
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
             Row(
@@ -1682,7 +2095,7 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
                 ),
                 const Spacer(),
                 FilledButton.icon(
-                  onPressed: _submit,
+                  onPressed: _canSubmit ? _submit : null,
                   icon: const Icon(Icons.send_outlined),
                   label: const Text('보내기'),
                 ),
@@ -1695,10 +2108,24 @@ class _FeedbackSheetState extends State<_FeedbackSheet> {
   }
 
   Future<void> _submit() async {
-    await widget.controller.submitFeedback(
-      category: _category,
-      message: _messageController.text,
-    );
+    if (_isFirstListenFeedback) {
+      await widget.controller.recordQualityObservation(
+        category: 'first_listen_founder',
+        testerId: _testerController.text,
+        answers: _firstListenAnswers,
+        notes: _messageController.text,
+        evidence: _firstListenEvidenceForController(
+          widget.controller,
+          surface: 'public_feedback_sheet',
+          preferredOption: _firstListenPreferredOption,
+        ),
+      );
+    } else {
+      await widget.controller.submitFeedback(
+        category: _category,
+        message: _messageController.text,
+      );
+    }
     if (!mounted) {
       return;
     }
@@ -5228,6 +5655,9 @@ class _OpsSummaryPanel extends StatelessWidget {
 
   final List<(String label, String value)> rows;
 
+  bool _isCopyable(String label, String value) =>
+      value.trim().isNotEmpty && (label == 'evidence' || label == 'export');
+
   @override
   Widget build(BuildContext context) {
     return _Panel(
@@ -5247,6 +5677,25 @@ class _OpsSummaryPanel extends StatelessWidget {
                     ),
                   ),
                   Expanded(child: Text(row.$2)),
+                  if (_isCopyable(row.$1, row.$2))
+                    IconButton(
+                      tooltip: '${row.$1} 복사',
+                      icon: const Icon(Icons.copy, size: 18),
+                      onPressed: () async {
+                        try {
+                          await Clipboard.setData(ClipboardData(text: row.$2));
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${row.$1}를 복사했어요.')),
+                          );
+                        } catch (_) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${row.$1}를 복사하지 못했어요.')),
+                          );
+                        }
+                      },
+                    ),
                 ],
               ),
             ),
