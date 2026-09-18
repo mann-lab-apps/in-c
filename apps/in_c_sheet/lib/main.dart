@@ -41,7 +41,7 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+22';
+const String _clefAppVersion = '1.0.0+25';
 const bool _launchInCDiscoveryHome =
     bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
@@ -7511,6 +7511,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   Set<int> _autoScrollConsumedPausePages = const <int>{};
   Set<String> _autoScrollConsumedCueKeys = const <String>{};
   bool _didAutoStartScroll = false;
+  DateTime? _lastViewerSheetDismissedAt;
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
@@ -11877,6 +11878,12 @@ setlist=$setlistLabel
     }
     var didSearch = currentPattern != null;
     String? errorMessage;
+    Future<void> dismissSearchKeyboard() async {
+      queryFocusNode.unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    }
+
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -11884,11 +11891,6 @@ setlist=$setlistLabel
         isScrollControlled: true,
         builder: (context) => StatefulBuilder(
           builder: (context, setModalState) {
-            void dismissSearchKeyboard() {
-              queryFocusNode.unfocus();
-              FocusScope.of(context).unfocus();
-            }
-
             void refreshWhileSearching() {
               Future<void>.delayed(const Duration(milliseconds: 200), () {
                 if (!context.mounted) {
@@ -11902,7 +11904,7 @@ setlist=$setlistLabel
             }
 
             void startSearch() {
-              dismissSearchKeyboard();
+              unawaited(dismissSearchKeyboard());
               final query = queryController.text.trim();
               if (query.isEmpty) {
                 textSearcher.resetTextSearch();
@@ -12086,7 +12088,7 @@ setlist=$setlistLabel
                                         ? const Icon(Icons.check)
                                         : null,
                                     onTap: () async {
-                                      dismissSearchKeyboard();
+                                      await dismissSearchKeyboard();
                                       await textSearcher.goToMatchOfIndex(
                                         index,
                                       );
@@ -12111,13 +12113,35 @@ setlist=$setlistLabel
         ),
       );
     } finally {
-      queryFocusNode.unfocus();
+      await dismissSearchKeyboard();
       queryController.dispose();
       queryFocusNode.dispose();
+      _lastViewerSheetDismissedAt = DateTime.now();
+    }
+  }
+
+  Future<void> _settleAfterViewerSheetDismissal() async {
+    final dismissedAt = _lastViewerSheetDismissedAt;
+    if (dismissedAt == null) {
+      return;
+    }
+    final elapsed = DateTime.now().difference(dismissedAt);
+    const settleDelay = Duration(milliseconds: 180);
+    if (elapsed < settleDelay) {
+      await Future<void>.delayed(settleDelay - elapsed);
+    } else {
+      await Future<void>.delayed(Duration.zero);
+    }
+    if (mounted) {
+      _lastViewerSheetDismissedAt = null;
     }
   }
 
   Future<void> _showMetronome() async {
+    await _settleAfterViewerSheetDismissal();
+    if (!mounted) {
+      return;
+    }
     final currentScore = score;
     final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
@@ -12148,6 +12172,10 @@ setlist=$setlistLabel
   }
 
   Future<void> _showTuner() async {
+    await _settleAfterViewerSheetDismissal();
+    if (!mounted) {
+      return;
+    }
     final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
