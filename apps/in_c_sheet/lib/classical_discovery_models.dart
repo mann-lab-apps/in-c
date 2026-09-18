@@ -877,6 +877,22 @@ class FirstSevenDayDailyPickPreview {
   final String nextPath;
 }
 
+class FirstListenReactionPreview {
+  const FirstListenReactionPreview({
+    required this.firstListen,
+    required this.reactionType,
+    required this.nextPick,
+    required this.nextWork,
+    required this.mapProgressCopy,
+  });
+
+  final FirstSevenDayDailyPickPreview firstListen;
+  final String reactionType;
+  final DailyPick nextPick;
+  final ClassicalWork nextWork;
+  final String mapProgressCopy;
+}
+
 class FounderDailyPickQualitySnapshot {
   const FounderDailyPickQualitySnapshot({
     required this.previewDays,
@@ -886,6 +902,13 @@ class FounderDailyPickQualitySnapshot {
     required this.ruleCompliancePassed,
     required this.exportText,
     this.founderApproval = 'NOT_VERIFIED',
+    this.firstListenDecision = 'NOT_VERIFIED',
+    this.firstListenPreferredOption = 'NOT_VERIFIED',
+    this.firstListenPreferredOptionLabel = 'NOT_VERIFIED',
+    this.firstListenPreferredPathStatus = 'NOT_VERIFIED',
+    this.firstListenPreferredPathStatusCopy = 'NOT_VERIFIED',
+    this.firstListenNextAction = 'NOT_VERIFIED',
+    this.firstListenNextActionCopy = 'NOT_VERIFIED',
   });
 
   final int previewDays;
@@ -894,6 +917,13 @@ class FounderDailyPickQualitySnapshot {
   final int coldMismatchCount;
   final bool ruleCompliancePassed;
   final String founderApproval;
+  final String firstListenDecision;
+  final String firstListenPreferredOption;
+  final String firstListenPreferredOptionLabel;
+  final String firstListenPreferredPathStatus;
+  final String firstListenPreferredPathStatusCopy;
+  final String firstListenNextAction;
+  final String firstListenNextActionCopy;
   final String exportText;
 }
 

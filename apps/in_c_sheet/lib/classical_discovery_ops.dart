@@ -662,6 +662,12 @@ class ClassicalKopisProductionReadiness {
 
 const classicalQualityObservationQuestions = <String, Map<String, String>>{
   'founder_intent': {'wouldTryThreeDays': '실제로 3일간 써볼 의향이 있나요?'},
+  'first_listen_founder': {
+    'firstThreeEnough': '현재 첫 3곡만으로도 들어볼 마음이 생겼나요?',
+    'strongerCandidateNeeded': 'Brahms/BWV578 같은 더 강한 발견 후보가 필요했나요?',
+    'listeningPathAcceptable': '검색 fallback 방식이 오늘 들어보기에 감당 가능했나요?',
+    'wouldTrustTomorrow': '반응 후 내일의 한 곡도 맡겨보고 싶나요?',
+  },
   'founder_quality': {
     'dailyStepTapped': '첫 1분 안에 오늘의 곡을 열었나요?',
     'reasonAccepted': '추천 이유를 납득했나요?',
@@ -716,6 +722,123 @@ String classicalFounderIntent(List<DiscoveryEvent> events) {
       : value == 'false'
       ? 'NO'
       : 'NOT_VERIFIED';
+}
+
+String classicalFounderFirstListenDecision(List<DiscoveryEvent> events) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final response = responses.firstOrNull;
+  if (response == null) {
+    return 'NOT_VERIFIED';
+  }
+  final trustsTomorrow = response.properties['wouldTrustTomorrow'] == 'true';
+  final pathAcceptable =
+      response.properties['listeningPathAcceptable'] == 'true';
+  if (trustsTomorrow && pathAcceptable) {
+    return 'YES';
+  }
+  if (!trustsTomorrow) {
+    return 'NO';
+  }
+  return 'PARTIAL';
+}
+
+String classicalFounderFirstListenPreferredOption(List<DiscoveryEvent> events) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final value = responses.firstOrNull?.properties['preferredFirstListenOption']
+      ?.trim();
+  return value == null || value.isEmpty ? 'NOT_VERIFIED' : value;
+}
+
+String classicalFounderFirstListenPreferredOptionLabel(
+  List<DiscoveryEvent> events,
+) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final response = responses.firstOrNull;
+  final preferredId = response?.properties['preferredFirstListenOption']
+      ?.trim();
+  if (preferredId == null || preferredId.isEmpty) {
+    return 'NOT_VERIFIED';
+  }
+  final optionCopy = response?.properties['preferredOptionCopy'] ?? '';
+  for (final entry in optionCopy.split('|')) {
+    final separator = entry.indexOf('=');
+    if (separator <= 0) {
+      continue;
+    }
+    final id = entry.substring(0, separator).trim();
+    if (id == preferredId) {
+      final label = entry.substring(separator + 1).trim();
+      if (label.isNotEmpty) {
+        return label;
+      }
+    }
+  }
+  return preferredId;
+}
+
+String classicalFounderFirstListenPreferredPathStatus(
+  List<DiscoveryEvent> events,
+) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final value = responses
+      .firstOrNull
+      ?.properties['preferredFirstListenPathStatus']
+      ?.trim();
+  return value == null || value.isEmpty ? 'NOT_VERIFIED' : value;
+}
+
+String classicalFounderFirstListenPreferredPathStatusCopy(
+  List<DiscoveryEvent> events,
+) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final value = responses
+      .firstOrNull
+      ?.properties['preferredFirstListenPathStatusCopy']
+      ?.trim();
+  return value == null || value.isEmpty ? 'NOT_VERIFIED' : value;
+}
+
+String classicalFounderFirstListenPreferredNextAction(
+  List<DiscoveryEvent> events,
+) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final value = responses
+      .firstOrNull
+      ?.properties['preferredFirstListenNextAction']
+      ?.trim();
+  return value == null || value.isEmpty ? 'NOT_VERIFIED' : value;
+}
+
+String classicalFounderFirstListenPreferredNextActionCopy(
+  List<DiscoveryEvent> events,
+) {
+  final responses =
+      latestClassicalHumanObservations(events, 'first_listen_founder')
+          .where((event) => event.properties['testerId']?.trim() == 'founder')
+          .toList();
+  final value = responses
+      .firstOrNull
+      ?.properties['preferredFirstListenNextActionCopy']
+      ?.trim();
+  return value == null || value.isEmpty ? 'NOT_VERIFIED' : value;
 }
 
 class ClassicalFounderQualityGate {

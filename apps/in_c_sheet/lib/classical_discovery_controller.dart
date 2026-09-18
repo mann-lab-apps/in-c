@@ -10,10 +10,26 @@ import 'classical_concert_import.dart';
 import 'classical_discovery_data_source.dart';
 import 'classical_discovery_models.dart';
 import 'classical_discovery_ops.dart'
-    show classicalFounderIntent, classicalQualityObservationQuestions;
+    show
+        classicalFounderFirstListenDecision,
+        classicalFounderFirstListenPreferredOption,
+        classicalFounderFirstListenPreferredOptionLabel,
+        classicalFounderFirstListenPreferredNextAction,
+        classicalFounderFirstListenPreferredNextActionCopy,
+        classicalFounderFirstListenPreferredPathStatus,
+        classicalFounderFirstListenPreferredPathStatusCopy,
+        classicalFounderIntent,
+        classicalQualityObservationQuestions;
 import 'classical_discovery_store.dart';
 
 typedef ClassicalDiscoveryClock = DateTime Function();
+
+const firstListenComparisonWorkIds = [
+  'brahms-symphony-3-iii',
+  'bach-little-fugue-bwv578',
+  'beethoven-pathetique-ii',
+  'haydn-surprise-symphony',
+];
 
 final _discoveryIdRandom = Random.secure();
 String _discoveryIdSuffix() =>
@@ -258,6 +274,132 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     return List<FirstSevenDayDailyPickPreview>.unmodifiable(result);
   }
 
+  List<FirstListenReactionPreview> firstListenReactionPreviews({
+    DateTime? startDate,
+  }) {
+    final start = _dateOnly(startDate ?? _clock());
+    final firstThree = founderSevenDayPreview(startDate: start)
+        .take(3)
+        .toList(growable: false);
+    final result = <FirstListenReactionPreview>[];
+    for (final item in firstThree) {
+      final reactionAt = DateTime(
+        item.date.year,
+        item.date.month,
+        item.date.day,
+        10,
+      );
+      for (final reactionType in const ['liked', 'unsure']) {
+        final previewController = ClassicalDiscoveryController(
+          store: store,
+          composers: _composers,
+          works: _works,
+          concerts: _concerts,
+          promotions: _promotions,
+          clock: () => reactionAt,
+          notificationGateway:
+              const DisabledClassicalDailyNotificationGateway(),
+        );
+        final currentWorkState = _state.stateForWork(item.work.id);
+        final reactionCounts = Map<String, int>.of(
+          currentWorkState.reactionCounts,
+        );
+        reactionCounts[reactionType] = (reactionCounts[reactionType] ?? 0) + 1;
+        final nextWorkState = currentWorkState.copyWith(
+          firstListenedAt: currentWorkState.firstListenedAt ?? reactionAt,
+          lastListenedAt: reactionAt,
+          confirmedListenDays: {
+            ...currentWorkState.confirmedListenDays,
+            _dateKey(item.date),
+          },
+          latestReactionType: reactionType,
+          reactionCounts: reactionCounts,
+          updatedAt: reactionAt,
+        );
+        final tasteItems = _state.tasteIntakeItems.isNotEmpty
+            ? _state.tasteIntakeItems.take(24).toList(growable: false)
+            : _buildTasteIntakeItems([
+                ...FounderTasteProfile.current.favoriteInputs,
+                FounderTasteProfile.current.fastReaction,
+              ], reactionAt);
+        previewController._state = _state.copyWith(
+          tasteIntakeItems: tasteItems,
+          workStates: <String, UserWorkState>{
+            ..._state.workStates,
+            item.work.id: nextWorkState,
+          },
+          dailyPicks: <DailyPick>[
+            item.pick.copyWith(
+              completedAt: reactionAt,
+              completionConfirmed: true,
+            ),
+          ],
+          reactions: <ClassicalReaction>[
+            ClassicalReaction(
+              id: 'simulated-first-listen-${item.day}-$reactionType',
+              workId: item.work.id,
+              type: reactionType,
+              momentId: item.moment.id,
+              occurredAt: reactionAt,
+            ),
+            ..._state.reactions,
+          ],
+          excludedComposerIds: _state.tasteIntakeItems.isEmpty
+              ? {..._state.excludedComposerIds, ..._founderExcludedComposerIds}
+              : _state.excludedComposerIds,
+          excludeOperaticVocals: _state.tasteIntakeItems.isEmpty
+              ? true
+              : _state.excludeOperaticVocals,
+        );
+        final nextDate = DateTime(
+          item.date.year,
+          item.date.month,
+          item.date.day + 1,
+        );
+        final nextNow = DateTime(
+          nextDate.year,
+          nextDate.month,
+          nextDate.day,
+          9,
+        );
+        final nextPick = previewController._buildDailyPick(
+          date: nextDate,
+          now: nextNow,
+        );
+        final nextWork = previewController.workById(nextPick.workId);
+        if (nextWork == null) continue;
+        final progress = previewController.listeningMapProgress();
+        result.add(
+          FirstListenReactionPreview(
+            firstListen: item,
+            reactionType: reactionType,
+            nextPick: nextPick,
+            nextWork: nextWork,
+            mapProgressCopy:
+                'simulation only: opened=${progress.openedCount}, familiar=${progress.familiarCount}, conquered=${progress.conqueredCount}',
+          ),
+        );
+      }
+    }
+    return List<FirstListenReactionPreview>.unmodifiable(result);
+  }
+
+  String _listeningPathEvidenceFor(ClassicalWork work) {
+    if (work.externalLinks.any(
+      (link) =>
+          link.linkType == 'listen_preview_approved' && link.previewUrl != null,
+    )) {
+      return 'approved_preview_available';
+    }
+    if (work.externalLinks.any((link) => link.isVerifiedDirect)) {
+      return 'verified_direct_link';
+    }
+    if (work.externalLinks.any((link) => link.isSafeSearch)) {
+      return 'search_fallback_not_direct';
+    }
+    return 'listening_path_missing';
+  }
+
   FounderDailyPickQualitySnapshot founderDailyPickQualitySnapshot({
     DateTime? startDate,
   }) {
@@ -286,6 +428,40 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         surpriseCount <= 1 &&
         coldMismatchCount == 0 &&
         hasListeningPoint;
+    final founderApproval = classicalFounderIntent(_state.events);
+    final verifiedFirstListenEvents =
+        _eventsWithVerifiedFirstListenFounderEvidence();
+    final firstListenDecision = classicalFounderFirstListenDecision(
+      verifiedFirstListenEvents,
+    );
+    final firstListenPreferredOption =
+        classicalFounderFirstListenPreferredOption(verifiedFirstListenEvents);
+    final firstListenPreferredOptionLabel =
+        classicalFounderFirstListenPreferredOptionLabel(
+          verifiedFirstListenEvents,
+        );
+    final firstListenPreferredPathStatus =
+        classicalFounderFirstListenPreferredPathStatus(
+          verifiedFirstListenEvents,
+        );
+    final storedFirstListenPreferredPathStatusCopy =
+        classicalFounderFirstListenPreferredPathStatusCopy(
+          verifiedFirstListenEvents,
+        );
+    final storedFirstListenNextAction =
+        classicalFounderFirstListenPreferredNextAction(
+          verifiedFirstListenEvents,
+        );
+    final storedFirstListenNextActionCopy =
+        classicalFounderFirstListenPreferredNextActionCopy(
+          verifiedFirstListenEvents,
+        );
+    final firstListenNextAction = storedFirstListenNextAction == 'NOT_VERIFIED'
+        ? firstListenNextActionForOption(firstListenPreferredOption)
+        : storedFirstListenNextAction;
+    final firstListenPreferredPathStatusCopy =
+        storedFirstListenPreferredPathStatusCopy;
+    final firstListenNextActionCopy = storedFirstListenNextActionCopy;
     final lines = <String>[
       'Daily Pick first 7 days: SIMULATION (assumes completion each day)',
       'previewDays=${preview.length}',
@@ -293,9 +469,25 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       'surpriseCount=$surpriseCount',
       'coldMismatchCount=$coldMismatchCount',
       'ruleCompliancePassed=$ready',
-      'founderApproval=${classicalFounderIntent(_state.events)}',
+      'founderApproval=$founderApproval',
+      'firstListenDecision=$firstListenDecision',
+      'firstListenPreferredOption=$firstListenPreferredOption',
+      'firstListenPreferredOptionLabel=$firstListenPreferredOptionLabel',
+      'firstListenPreferredPathStatus=$firstListenPreferredPathStatus',
+      'firstListenPreferredPathStatusCopy=$firstListenPreferredPathStatusCopy',
+      'firstListenNextAction=$firstListenNextAction',
+      'firstListenNextActionCopy=$firstListenNextActionCopy',
       for (final item in preview)
         'day${item.day}: ${item.work.titleKo} / ${item.pick.distanceLabel} / ${item.judgement}',
+      for (final item in preview.take(3))
+        'firstListenCandidate day${item.day}: work=${item.work.id} / path=${_listeningPathEvidenceFor(item.work)} / reason=${item.pick.reason}',
+      for (final work
+          in firstListenComparisonWorkIds
+              .map(workById)
+              .whereType<ClassicalWork>())
+        'firstListenComparison option=${work.id} / path=${_listeningPathEvidenceFor(work)} / nextAction=${firstListenNextActionForOption(work.id)} / guide=${work.primaryMoment?.prompt ?? 'NOT_VERIFIED'}',
+      for (final item in firstListenReactionPreviews(startDate: startDate))
+        'firstListenReaction day${item.firstListen.day} ${item.reactionType}: next=${item.nextWork.id} / path=${_listeningPathEvidenceFor(item.nextWork)} / reason=${item.nextPick.reason} / ${item.mapProgressCopy}',
     ];
     return FounderDailyPickQualitySnapshot(
       previewDays: preview.length,
@@ -303,9 +495,158 @@ class ClassicalDiscoveryController extends ChangeNotifier {
       surpriseCount: surpriseCount,
       coldMismatchCount: coldMismatchCount,
       ruleCompliancePassed: ready,
-      founderApproval: classicalFounderIntent(_state.events),
+      founderApproval: founderApproval,
+      firstListenDecision: firstListenDecision,
+      firstListenPreferredOption: firstListenPreferredOption,
+      firstListenPreferredOptionLabel: firstListenPreferredOptionLabel,
+      firstListenPreferredPathStatus: firstListenPreferredPathStatus,
+      firstListenPreferredPathStatusCopy: firstListenPreferredPathStatusCopy,
+      firstListenNextAction: firstListenNextAction,
+      firstListenNextActionCopy: firstListenNextActionCopy,
       exportText: lines.join('\n'),
     );
+  }
+
+  List<DiscoveryEvent> _eventsWithVerifiedFirstListenFounderEvidence() {
+    final latestFirstListen = _latestFounderFirstListenObservation();
+    final latestIsValid =
+        latestFirstListen != null &&
+        _hasCompleteFirstListenFounderEvidence(latestFirstListen.properties);
+    return _state.events
+        .where((event) {
+          if (!_isFounderFirstListenObservation(event)) {
+            return true;
+          }
+          return latestIsValid &&
+              latestFirstListen.id == event.id &&
+              latestFirstListen.occurredAt == event.occurredAt;
+        })
+        .toList(growable: false);
+  }
+
+  DiscoveryEvent? _latestFounderFirstListenObservation() {
+    DiscoveryEvent? latest;
+    for (final event in _state.events) {
+      if (!_isFounderFirstListenObservation(event)) {
+        continue;
+      }
+      if (latest == null ||
+          event.occurredAt.isAfter(latest.occurredAt) ||
+          (event.occurredAt == latest.occurredAt &&
+              event.id.compareTo(latest.id) > 0)) {
+        latest = event;
+      }
+    }
+    return latest;
+  }
+
+  bool _isFounderFirstListenObservation(DiscoveryEvent event) {
+    return event.eventType == 'feedback_submit' &&
+        event.properties['testerId']?.trim() == 'founder' &&
+        event.properties['evidenceKind'] == 'observed' &&
+        event.properties['mergeConflict'] != 'true' &&
+        (event.context == 'first_listen_founder' ||
+            event.properties['category'] == 'first_listen_founder');
+  }
+
+  String firstListenNextActionForOption(String optionId) {
+    final id = optionId.trim();
+    if (id.isEmpty || id == 'NOT_VERIFIED') {
+      return 'await_founder_response';
+    }
+    if (id == 'none_yet') {
+      return 'revise_first_listen_candidates_before_claiming_fit';
+    }
+    if (id == 'safe_first_three') {
+      return 'run_actual_first_three_listen_review';
+    }
+    final work = workById(id);
+    if (work == null) {
+      return 'review_unknown_preferred_option';
+    }
+    final path = _listeningPathEvidenceFor(work);
+    if (path == 'verified_direct_link' ||
+        path == 'approved_preview_available') {
+      return 'verify_recording_window_and_collect_founder_response';
+    }
+    if (path == 'search_fallback_not_direct') {
+      return 'approve_direct_or_preview_link_before_promoting_candidate';
+    }
+    return 'add_listening_path_before_promoting_candidate';
+  }
+
+  String firstListenListeningPathEvidenceForOption(String optionId) {
+    final id = optionId.trim();
+    if (id.isEmpty || id == 'NOT_VERIFIED') {
+      return 'await_founder_response';
+    }
+    if (id == 'none_yet') {
+      return 'no_preferred_option';
+    }
+    if (id == 'safe_first_three') {
+      return 'current_first_three_requires_actual_listen';
+    }
+    final work = workById(id);
+    if (work == null) {
+      return 'unknown_preferred_option';
+    }
+    return _listeningPathEvidenceFor(work);
+  }
+
+  List<({String id, String label})> firstListenPreferredOptions() {
+    final comparisonOptions = firstListenComparisonWorkIds
+        .map(workById)
+        .whereType<ClassicalWork>()
+        .map(
+          (work) =>
+              (id: work.id, label: '${work.composerNameKo} - ${work.titleKo}'),
+        )
+        .toList(growable: false);
+    return [
+      (id: 'safe_first_three', label: '현재 첫 3곡 흐름'),
+      ...comparisonOptions,
+      (id: 'none_yet', label: '아직 없음 / 모르겠음'),
+    ];
+  }
+
+  String firstListenPreferredOptionIdsForEvidence() =>
+      firstListenPreferredOptions().map((option) => option.id).join(',');
+
+  String firstListenPreferredOptionCopyForEvidence() =>
+      firstListenPreferredOptions()
+          .map((option) => '${option.id}=${option.label}')
+          .join('|');
+
+  String firstListenPathStatusCopyForEvidence(String status) {
+    return switch (status) {
+      'await_founder_response' => '아직 선택지 응답이 없습니다.',
+      'NOT_VERIFIED' => '실제 응답을 기다립니다.',
+      'no_preferred_option' => '끌린 선택지가 아직 없습니다.',
+      'current_first_three_requires_actual_listen' =>
+        '현재 첫 3곡은 실제 듣기 평가가 필요합니다.',
+      'approved_preview_available' => '검수된 preview 경로가 있습니다.',
+      'verified_direct_link' => '검증된 direct link가 있습니다.',
+      'search_fallback_not_direct' => '검색 fallback이며 direct 재생 승인이 아닙니다.',
+      'listening_path_missing' => '듣기 경로 보강이 필요합니다.',
+      'unknown_preferred_option' => '알 수 없는 선택지입니다.',
+      _ => status,
+    };
+  }
+
+  String firstListenNextActionCopyForEvidence(String action) {
+    return switch (action) {
+      'await_founder_response' => '실제 응답을 기다립니다.',
+      'revise_first_listen_candidates_before_claiming_fit' =>
+        '첫 추천 후보를 다시 다듬습니다.',
+      'run_actual_first_three_listen_review' => '현재 첫 3곡으로 실제 듣기 평가를 진행합니다.',
+      'verify_recording_window_and_collect_founder_response' =>
+        '녹음과 들을 구간을 확인한 뒤 실제 응답을 받습니다.',
+      'approve_direct_or_preview_link_before_promoting_candidate' =>
+        'direct 또는 preview 링크를 검수한 뒤 후보에 반영합니다.',
+      'add_listening_path_before_promoting_candidate' => '듣기 경로를 먼저 보강합니다.',
+      'review_unknown_preferred_option' => '알 수 없는 선택지를 확인합니다.',
+      _ => action,
+    };
   }
 
   ClassicalWork get todayWork {
@@ -3190,6 +3531,7 @@ class ClassicalDiscoveryController extends ChangeNotifier {
     required String testerId,
     required Map<String, bool> answers,
     required String notes,
+    Map<String, String> evidence = const {},
   }) async {
     final questions = classicalQualityObservationQuestions[category];
     if (questions == null ||
@@ -3197,7 +3539,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         notes.trim().isEmpty ||
         answers.length != questions.length ||
         !questions.keys.every(answers.containsKey) ||
-        (category == 'founder_intent' && testerId.trim() != 'founder')) {
+        ((category == 'founder_intent' || category == 'first_listen_founder') &&
+            testerId.trim() != 'founder') ||
+        (category == 'first_listen_founder' &&
+            !_hasCompleteFirstListenFounderEvidence(evidence))) {
       throw ArgumentError('An identified observation and notes are required');
     }
     await _setState(
@@ -3212,12 +3557,93 @@ class ClassicalDiscoveryController extends ChangeNotifier {
             'evidenceKind': 'observed',
             'testerId': testerId.trim(),
             'message': notes.trim(),
+            ...evidence,
             for (final entry in answers.entries)
               entry.key: entry.value.toString(),
           },
         ),
       ),
     );
+  }
+
+  bool _hasCompleteFirstListenFounderEvidence(Map<String, String> evidence) {
+    const allowedSurfaces = {
+      'catalog_ops_observation_sheet',
+      'public_feedback_sheet',
+    };
+    const requiredFields = {
+      'feedbackSurface',
+      'firstThreeWorkIds',
+      'comparisonWorkIds',
+      'questionSetId',
+      'questionKeys',
+      'questionCopy',
+      'answerOptions',
+      'preferredOptionIds',
+      'preferredOptionCopy',
+      'preferredFirstListenOption',
+      'preferredFirstListenPathStatus',
+      'preferredFirstListenPathStatusCopy',
+      'preferredFirstListenNextAction',
+      'preferredFirstListenNextActionCopy',
+    };
+    if (!requiredFields.every(
+      (field) => evidence[field]?.trim().isNotEmpty ?? false,
+    )) {
+      return false;
+    }
+    if (!allowedSurfaces.contains(evidence['feedbackSurface']!.trim()) ||
+        evidence['questionSetId']!.trim() != 'first_listen_founder_v1') {
+      return false;
+    }
+    final preferredOption = evidence['preferredFirstListenOption']!.trim();
+    final firstThreeWorkIds = founderSevenDayPreview()
+        .take(3)
+        .map((item) => item.work.id)
+        .join(',');
+    final comparisonWorkIds = firstListenComparisonWorkIds
+        .where((id) => workById(id) != null)
+        .join(',');
+    final questionKeys =
+        classicalQualityObservationQuestions['first_listen_founder']!.keys.join(
+          ',',
+        );
+    final questionCopy =
+        classicalQualityObservationQuestions['first_listen_founder']!.entries
+            .map((entry) => '${entry.key}=${entry.value}')
+            .join('|');
+    final expectedPathStatus = firstListenListeningPathEvidenceForOption(
+      preferredOption,
+    );
+    final expectedNextAction = firstListenNextActionForOption(preferredOption);
+    if (evidence['firstThreeWorkIds']!.trim() != firstThreeWorkIds ||
+        evidence['comparisonWorkIds']!.trim() != comparisonWorkIds ||
+        evidence['questionKeys']!.trim() != questionKeys ||
+        evidence['questionCopy']!.trim() != questionCopy ||
+        evidence['answerOptions']!.trim() != 'yes,no' ||
+        evidence['preferredOptionIds']!.trim() !=
+            firstListenPreferredOptionIdsForEvidence() ||
+        evidence['preferredOptionCopy']!.trim() !=
+            firstListenPreferredOptionCopyForEvidence() ||
+        evidence['preferredFirstListenPathStatus']!.trim() !=
+            expectedPathStatus ||
+        evidence['preferredFirstListenPathStatusCopy']!.trim() !=
+            firstListenPathStatusCopyForEvidence(expectedPathStatus) ||
+        evidence['preferredFirstListenNextAction']!.trim() !=
+            expectedNextAction ||
+        evidence['preferredFirstListenNextActionCopy']!.trim() !=
+            firstListenNextActionCopyForEvidence(expectedNextAction)) {
+      return false;
+    }
+    final optionIds = evidence['preferredOptionIds']!
+        .split(',')
+        .map((value) => value.trim())
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    if (!optionIds.contains(preferredOption)) {
+      return false;
+    }
+    return true;
   }
 
   String _pickReviewSnapshot(DailyPick pick) => jsonEncode({
