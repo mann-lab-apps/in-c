@@ -6,9 +6,9 @@ Use the following public pages for App Store Connect review metadata.
 
 | Field | URL |
 | --- | --- |
-| Marketing URL | https://in-c.mannlab.app/clef-and-staff.html |
-| Support URL | https://in-c.mannlab.app/clef-and-staff-support.html |
-| Privacy Policy URL | https://in-c.mannlab.app/clef-and-staff-privacy.html |
+| Marketing URL | https://in-c.mannlab.app/clef-and-staff/ |
+| Support URL | https://in-c.mannlab.app/clef-and-staff/support.html |
+| Privacy Policy URL | https://in-c.mannlab.app/clef-and-staff/privacy.html |
 
 The pages are hosted on the existing `in-c.mannlab.app` static site.
 Clef & Staff is presented as a separate app from the in C classical discovery
