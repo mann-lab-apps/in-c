@@ -607,6 +607,7 @@ void main() {
       expect(snapshot.firstListenPreferredOptionLabel, 'NOT_VERIFIED');
       expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
       expect(snapshot.firstListenNextAction, 'await_founder_response');
+      expect(snapshot.firstListenNextActionCopy, '실제 응답을 기다립니다.');
       expect(snapshot.exportText, contains('SIMULATION'));
       expect(snapshot.exportText, contains('founderApproval=NOT_VERIFIED'));
       expect(snapshot.exportText, contains('firstListenDecision=NOT_VERIFIED'));
@@ -621,6 +622,10 @@ void main() {
       expect(
         snapshot.exportText,
         contains('firstListenNextAction=await_founder_response'),
+      );
+      expect(
+        snapshot.exportText,
+        contains('firstListenNextActionCopy=실제 응답을 기다립니다.'),
       );
       expect(snapshot.exportText, contains('firstListenCandidate day1:'));
       expect(
@@ -874,7 +879,7 @@ void main() {
       expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
       expect(snapshot.firstListenPreferredPathStatusCopy, 'NOT_VERIFIED');
       expect(snapshot.firstListenNextAction, 'await_founder_response');
-      expect(snapshot.firstListenNextActionCopy, 'NOT_VERIFIED');
+      expect(snapshot.firstListenNextActionCopy, '실제 응답을 기다립니다.');
       expect(snapshot.exportText, contains('firstListenDecision=NOT_VERIFIED'));
       expect(
         snapshot.exportText,
@@ -886,6 +891,10 @@ void main() {
       );
       expect(snapshot.exportText, isNot(contains('firstListenDecision=YES')));
       expect(snapshot.exportText, isNot(contains('검증된 direct link가 있습니다.')));
+      expect(
+        snapshot.exportText,
+        contains('firstListenNextActionCopy=실제 응답을 기다립니다.'),
+      );
     },
   );
 
@@ -956,12 +965,17 @@ void main() {
       expect(snapshot.firstListenPreferredOption, 'NOT_VERIFIED');
       expect(snapshot.firstListenPreferredPathStatus, 'NOT_VERIFIED');
       expect(snapshot.firstListenNextAction, 'await_founder_response');
+      expect(snapshot.firstListenNextActionCopy, '실제 응답을 기다립니다.');
       expect(snapshot.exportText, isNot(contains('firstListenDecision=YES')));
       expect(
         snapshot.exportText,
         isNot(contains('firstListenPreferredOption=brahms-symphony-3-iii')),
       );
       expect(snapshot.exportText, isNot(contains('녹음과 들을 구간 검수가 끝났습니다.')));
+      expect(
+        snapshot.exportText,
+        contains('firstListenNextActionCopy=실제 응답을 기다립니다.'),
+      );
     },
   );
 

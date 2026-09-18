@@ -461,7 +461,10 @@ class ClassicalDiscoveryController extends ChangeNotifier {
         : storedFirstListenNextAction;
     final firstListenPreferredPathStatusCopy =
         storedFirstListenPreferredPathStatusCopy;
-    final firstListenNextActionCopy = storedFirstListenNextActionCopy;
+    final firstListenNextActionCopy =
+        storedFirstListenNextActionCopy == 'NOT_VERIFIED'
+        ? firstListenNextActionCopyForEvidence(firstListenNextAction)
+        : storedFirstListenNextActionCopy;
     final lines = <String>[
       'Daily Pick first 7 days: SIMULATION (assumes completion each day)',
       'previewDays=${preview.length}',
