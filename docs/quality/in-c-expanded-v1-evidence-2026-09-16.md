@@ -268,6 +268,17 @@ This protects the founder review from showing an older `YES` after a newer impor
 response contradicted the evidence contract. Historical events are not deleted, and the fix
 does not approve links, recordings, timing windows, actual listening or founder satisfaction.
 
+## FL-035 First-Listen Fallback Action Copy
+
+When there is no valid founder first-listen response, or when the latest response is
+quarantined as malformed, `FounderDailyPickQualitySnapshot` still computes the raw next action
+as `await_founder_response`. The summary/export now derives the matching readable copy,
+`실제 응답을 기다립니다.`, instead of leaving `firstListenNextActionCopy=NOT_VERIFIED`.
+
+This keeps approval-related fields as `NOT_VERIFIED` while still telling the reviewer the next
+safe action. It is review guidance only; it does not approve links, recordings, timing windows,
+actual listening or founder satisfaction.
+
 ## Verification
 
 | Check | Result | Notes |
@@ -322,6 +333,14 @@ does not approve links, recordings, timing windows, actual listening or founder 
 | `flutter test test/classical_discovery_controller_test.dart` | PASS118 | Rerun after FL-034; covers latest-response freshness plus malformed legacy quarantine and existing first-listen paths. |
 | `flutter analyze` | PASS | Rerun after FL-034 passed with no issues. |
 | `flutter test` | PASS1363 | Full in C/Clef regression suite passed after FL-034 latest-response freshness. |
+| `dart format lib/classical_discovery_controller.dart test/classical_discovery_controller_test.dart` | PASS | Rerun after FL-035 fallback action copy. |
+| `flutter test test/classical_discovery_controller_test.dart --plain-name "founder simulation reports rules separately from human approval"` | PASS1 | Verifies no-response summary/export pairs `await_founder_response` with readable copy. |
+| `flutter test test/classical_discovery_controller_test.dart --plain-name "founder first listen snapshot ignores malformed legacy evidence"` | PASS1 | Verifies quarantined malformed evidence still shows readable await-response next-action copy. |
+| `flutter test test/classical_discovery_controller_test.dart --plain-name "latest malformed founder first listen evidence blocks stale approval"` | PASS1 | Verifies newest malformed evidence blocks stale approval while preserving readable await-response next-action copy. |
+| `flutter test test/classical_discovery_controller_test.dart` | PASS118 | Rerun after FL-035; covers fallback action copy plus existing first-listen controller/widget paths. |
+| `flutter analyze` | PASS | Rerun after FL-035 passed with no issues. |
+| `flutter test --reporter=compact` | PASS1363 | Full in C/Clef regression suite passed after FL-035 fallback action copy. |
+| `git diff --check` | PASS | Rerun after FL-035 evidence/work-queue update. |
 | `flutter test test/classical_discovery_controller_test.dart` | PASS116 | Rerun after FL-030; covers controller evidence/export text, stored response copy, Catalog Ops snapshot/copy action, first-listen candidate review/reaction preview, Catalog Ops observation sheet and public first-listen feedback. |
 | `flutter analyze` | PASS | Rerun after FL-030 passed with no issues. |
 | `flutter test` | PASS1361 | Full in C/Clef regression suite passed after the FL-030 controller-level evidence contract update. |
