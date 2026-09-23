@@ -2292,6 +2292,7 @@ async function verifyPartViewHeadlessExportState(window) {
         await wait()
 
         chooseScoreStructure('string-quartet')
+        await wait()
         document
           .querySelector('form[aria-label="새 악보 만들기"]')
           ?.dispatchEvent(
@@ -2732,6 +2733,7 @@ async function verifyGrandStaffPreview(window) {
 
     setInputValue(field('제목'), 'Grand Staff Smoke')
     chooseScoreStructure('piano-grand-staff')
+    await new Promise((resolve) => setTimeout(resolve, 120))
     setInputValue(field('마디 수'), '3')
     document
       .querySelector('form[aria-label="새 악보 만들기"]')

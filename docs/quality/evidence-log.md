@@ -2788,6 +2788,11 @@ shortcuts and broader object clipboard remain Required follow-up work.
 | `npm run build` | Pass | `tsc --noEmit && electron-vite build` passed after the latest shortcut-hint slice; Rollup emitted existing zod pure-comment warnings only. |
 | `npm run verify:chromatics-v1-work-queue` | Pass | Queue schema/status passed after documenting the Commands/Shortcuts follow-up; 69 rows, 16 Required umbrellas and `automationQueueDrained: false`. |
 | `git diff --check` | Pass | No whitespace errors after the shortcut hint and accidental shortcut slice. |
+| PR #770 CI | Fail | Initial package workflow failed on macOS/Linux because packaged smoke submitted the new-score form before the unified score-structure card selection had committed, creating the default Melody score instead of string quartet and failing the Cello part-view assertion. Windows also timed out a command-palette integration test at the default 5s threshold. |
+| `npm test -- src/renderer/src/App.test.tsx -t "ui.command-palette\|shortcut-hints\|single-structure-picker"` | Pass | 3 focused App tests passed / 217 skipped after giving the command-palette integration test a 15s timeout and preserving the shortcut-hint/new-score picker contracts. |
+| `npm run typecheck` | Pass | `tsc --noEmit` passed after the CI follow-up. |
+| `npm run package:dir` | Pass | Fresh macOS arm64 unpacked package built after the packaged-smoke score-structure commit wait fix; Rollup emitted existing zod pure-comment warnings only. |
+| `npm run verify:package` | Pass | Fresh packaged smoke passed on macOS arm64. The smoke now waits for the string quartet card selection to commit before submitting; Cello part-view PDF target/write/native layout checks pass. The intentional export-overwrite rejection still logs the expected Korean error before the smoke reports `PACKAGED_APP_SMOKE_OK`. |
 
 ## Evidence Retention Rules
 

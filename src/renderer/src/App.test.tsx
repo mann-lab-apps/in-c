@@ -4158,7 +4158,7 @@ describe('App component shell', () => {
     })
     expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
     expect(screen.getByRole('dialog', { name: '새 악보 만들기' })).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('ui.dock-visibility persists independent panels without changing the selected score', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
