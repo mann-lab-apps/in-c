@@ -194,6 +194,7 @@ import {
   isTieShortcut,
   isTupletShortcut,
   isUndoShortcut,
+  resolveAccidentalShortcut,
   resolveDotShortcut,
   resolveDurationShortcut,
   resolvePitchKeyboardAction,
@@ -236,6 +237,11 @@ const durationShortcuts: Partial<Record<DurationValue, string>> = {
   quarter: '5',
   half: '6',
   whole: '7'
+}
+const accidentalShortcuts: Record<-1 | 0 | 1, string> = {
+  [-1]: 'Alt/⌥+-',
+  [0]: 'Alt/⌥+0',
+  [1]: 'Alt/⌥+='
 }
 const durationToolbarLabels: Record<DurationValue, string> = {
   '64th': '64',
@@ -477,6 +483,7 @@ interface NewScoreDraft {
   keySignatureId: string
   timeSignatureId: string
   measureCount: number
+  pickupMeasureBeats: number
   tempo: number
 }
 
@@ -671,6 +678,9 @@ const shortcutReferenceSections = [
       ['셋잇단음표', tripletPreset.shortcut],
       ['타이', 'T'],
       ['슬러', 'S'],
+      ['플랫', accidentalShortcuts[-1]],
+      ['제자리표', accidentalShortcuts[0]],
+      ['샤프', accidentalShortcuts[1]],
       ['음높이 한 칸 이동', '↑ / ↓'],
       ['반음 이동', 'Alt/Option+↑ / ↓'],
       ['옥타브 이동', 'Shift+↑ / ↓'],
@@ -709,6 +719,7 @@ const musicXmlViewStateStorageKey = 'chromatics.musicxml-view-state.v1'
 const partPageSetupStorageKey = 'chromatics.part-page-setup.v1'
 const partMixerStorageKey = 'chromatics.part-mixer.v1'
 const dockVisibilityStorageKey = 'chromatics.dock-visibility.v1'
+const shortcutHintsStorageKey = 'chromatics.shortcut-hints.v1'
 
 export const App = () => {
   const [score, setScore] = useState(createInitialScore)
@@ -756,6 +767,14 @@ export const App = () => {
     useState<PdfTargetPagesValue>('2')
   const [showPageMarginGuides, setShowPageMarginGuides] = useState(false)
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
+  const [showShortcutHints, setShowShortcutHints] = useState(() => {
+    try {
+      const value = window.localStorage.getItem(shortcutHintsStorageKey)
+      return value === null ? true : value === 'true'
+    } catch {
+      return true
+    }
+  })
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const [commandPaletteQuery, setCommandPaletteQuery] = useState('')
   const [commandPaletteActiveIndex, setCommandPaletteActiveIndex] = useState(0)
@@ -778,6 +797,16 @@ export const App = () => {
       // Workspace controls remain usable when browser storage is unavailable.
     }
   }, [dockVisibility])
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        shortcutHintsStorageKey,
+        showShortcutHints ? 'true' : 'false'
+      )
+    } catch {
+      // Shortcut badges are still controlled in-session when storage is unavailable.
+    }
+  }, [showShortcutHints])
   const [startScreenVisible, setStartScreenVisible] = useState(
     () => !isFixtureMode()
   )
@@ -2055,6 +2084,10 @@ export const App = () => {
     const timeSignature = resolveTimeSignaturePreset(
       newScoreDraft.timeSignatureId
     ).value
+    const pickupMeasureBeats = normalizePickupMeasureBeats(
+      newScoreDraft.timeSignatureId,
+      newScoreDraft.pickupMeasureBeats
+    )
     const nextScore = createNewScore({
       title: newScoreDraft.title,
       composer: newScoreDraft.composer,
@@ -2064,6 +2097,7 @@ export const App = () => {
       keySignature,
       timeSignature,
       measureCount: newScoreDraft.measureCount,
+      pickupMeasureBeats,
       tempo: newScoreDraft.tempo
     })
 
@@ -5413,6 +5447,14 @@ export const App = () => {
         return
       }
 
+      const accidental = resolveAccidentalShortcut(event)
+
+      if (accidental !== undefined) {
+        event.preventDefault()
+        changeAccidental(accidental)
+        return
+      }
+
       const duration = resolveDurationShortcut(event)
 
       if (duration) {
@@ -6057,6 +6099,17 @@ export const App = () => {
           <Keyboard aria-hidden="true" size={18} />
         </button>
         <button
+          aria-label={
+            showShortcutHints ? '단축키 힌트 숨기기' : '단축키 힌트 표시'
+          }
+          aria-pressed={showShortcutHints}
+          title={showShortcutHints ? '단축키 힌트 숨기기' : '단축키 힌트 표시'}
+          type="button"
+          onClick={() => setShowShortcutHints((value) => !value)}
+        >
+          <span aria-hidden="true" className="shortcut-toggle-mark">⌘</span>
+        </button>
+        <button
           aria-label="명령 검색"
           title="명령 검색"
           type="button"
@@ -6180,21 +6233,30 @@ export const App = () => {
                       [-1, '♭', '플랫'],
                       [0, '♮', '제자리표'],
                       [1, '♯', '샤프']
-                    ] as const).map(([alter, symbol, label]) => (
-                      <button
-                        aria-label={label}
-                        aria-pressed={selectedPitchAlter === alter}
-                        className={
-                          selectedPitchAlter === alter ? 'is-active' : undefined
-                        }
-                        disabled={!canEditPitch}
-                        key={alter}
-                        onClick={() => changeAccidental(alter)}
-                        type="button"
-                      >
-                        {symbol}
-                      </button>
-                    ))}
+                    ] as const).map(([alter, symbol, label]) => {
+                      const shortcut = accidentalShortcuts[alter]
+                      const buttonLabel = `${label}, 단축키 ${shortcut}`
+
+                      return (
+                        <button
+                          aria-label={buttonLabel}
+                          aria-pressed={selectedPitchAlter === alter}
+                          className={
+                            selectedPitchAlter === alter ? 'is-active' : undefined
+                          }
+                          disabled={!canEditPitch}
+                          key={alter}
+                          onClick={() => changeAccidental(alter)}
+                          title={buttonLabel}
+                          type="button"
+                        >
+                          {symbol}
+                          {showShortcutHints ? (
+                  <span className="shortcut-badge">{shortcut}</span>
+                          ) : null}
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
@@ -6337,6 +6399,7 @@ export const App = () => {
                           </button>
                         ))}
                         <button
+                          aria-label="짧은 꾸밈음"
                           aria-pressed={Boolean(selectedNote.graceNotes?.length)}
                           className={
                             selectedNote.graceNotes?.length ? 'is-active' : undefined
@@ -6344,7 +6407,7 @@ export const App = () => {
                           onClick={toggleGraceNote}
                           type="button"
                         >
-                          grace
+                          짧은 꾸밈음
                         </button>
                       </div>
                     </div>
@@ -6400,10 +6463,12 @@ export const App = () => {
                 disabled={!canApplySlur}
                 onClick={toggleSlur}
                 title="슬러 추가 또는 해제 (S)"
-                type="button"
-              >
-                슬러
-                <span className="shortcut-badge">S</span>
+              type="button"
+            >
+              슬러
+                {showShortcutHints ? (
+                  <span className="shortcut-badge">S</span>
+                ) : null}
               </button>
               <div className="inspector-properties__row">
                 <span>옥타브</span>
@@ -7616,24 +7681,32 @@ export const App = () => {
                 [-1, '♭', '플랫'],
                 [0, '♮', '제자리표'],
                 [1, '♯', '샤프']
-              ] as const).map(([alter, symbol, label]) => (
-                <button
-                  aria-label={label}
-                  aria-pressed={noteInputState?.accidental === alter}
-                  className={
-                    noteInputState?.accidental === alter
-                      ? 'is-active'
-                      : undefined
-                  }
-                  disabled={!accidentalEnabled}
-                  key={alter}
-                  onClick={() => changeAccidental(alter)}
-                  title={label}
-                  type="button"
-                >
-                  {symbol}
-                </button>
-              ))}
+              ] as const).map(([alter, symbol, label]) => {
+                const shortcut = accidentalShortcuts[alter]
+                const buttonLabel = `${label}, 단축키 ${shortcut}`
+
+                return (
+                  <button
+                    aria-label={buttonLabel}
+                    aria-pressed={noteInputState?.accidental === alter}
+                    className={
+                      noteInputState?.accidental === alter
+                        ? 'is-active'
+                        : undefined
+                    }
+                    disabled={!accidentalEnabled}
+                    key={alter}
+                    onClick={() => changeAccidental(alter)}
+                    title={buttonLabel}
+                    type="button"
+                  >
+                    {symbol}
+                    {showShortcutHints ? (
+                      <span className="shortcut-badge">{shortcut}</span>
+                    ) : null}
+                  </button>
+                )
+              })}
             </div>
 
             <label
@@ -7761,6 +7834,9 @@ export const App = () => {
                   type="button"
                 >
                   {durationToolbarLabels[duration]}
+                  {showShortcutHints && shortcut ? (
+                    <span className="shortcut-badge">{shortcut}</span>
+                  ) : null}
                 </button>
               )
             })}
@@ -7804,7 +7880,9 @@ export const App = () => {
               ) : (
                 <Link2 aria-hidden="true" size={17} />
               )}
-              <span className="shortcut-badge">T</span>
+              {showShortcutHints ? (
+                <span className="shortcut-badge">T</span>
+              ) : null}
             </button>
 
             <button
@@ -7825,7 +7903,9 @@ export const App = () => {
             >
               <span aria-hidden="true">3</span>
               <span className="tuplet-duration-label">8</span>
-              <span className="shortcut-badge">{tripletPreset.shortcut}</span>
+              {showShortcutHints ? (
+                <span className="shortcut-badge">{tripletPreset.shortcut}</span>
+              ) : null}
             </button>
           </div>
 
@@ -8366,18 +8446,29 @@ export const App = () => {
               <h2>새 악보</h2>
             </header>
 
-            <section aria-label="내장 템플릿" className="new-score-templates">
-              <h3>내장 템플릿</h3>
-              <div className="new-score-template-grid">
+            <section
+              aria-labelledby="new-score-structure-heading"
+              className="new-score-templates"
+            >
+              <div className="new-score-templates__header">
+                <h3 id="new-score-structure-heading">악보 구성</h3>
+                <p>시작할 악보의 편성과 보표 구성을 선택합니다.</p>
+              </div>
+              <div
+                aria-label="악보 구성"
+                className="new-score-template-grid"
+                role="radiogroup"
+              >
                 {scoreStructurePresets.map((preset) => {
                   const selected = newScoreDraft.templateId === preset.id
 
                   return (
                     <button
-                      aria-label={`${preset.label} 템플릿`}
-                      aria-pressed={selected}
+                      aria-checked={selected}
+                      aria-label={`${preset.label} 악보 구성`}
                       className="new-score-template-option"
                       data-selected={selected ? 'true' : 'false'}
+                      data-template-id={preset.id}
                       key={preset.id}
                       onClick={() =>
                         setNewScoreDraft({
@@ -8385,6 +8476,7 @@ export const App = () => {
                           templateId: preset.id
                         })
                       }
+                      role="radio"
                       type="button"
                     >
                       <span className="new-score-template-option__label">
@@ -8431,27 +8523,6 @@ export const App = () => {
               </label>
 
               <label>
-                <span>악보 구성</span>
-                <select
-                  aria-label="악보 구성"
-                  onChange={(event) =>
-                    setNewScoreDraft({
-                      ...newScoreDraft,
-                      templateId: event.target
-                        .value as NewScoreDraft['templateId']
-                    })
-                  }
-                  value={newScoreDraft.templateId}
-                >
-                  {scoreStructurePresets.map((preset) => (
-                    <option key={preset.id} value={preset.id}>
-                      {preset.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label>
                 <span>조표</span>
                 <select
                   onChange={(event) =>
@@ -8476,7 +8547,11 @@ export const App = () => {
                   onChange={(event) =>
                     setNewScoreDraft({
                       ...newScoreDraft,
-                      timeSignatureId: event.target.value
+                      timeSignatureId: event.target.value,
+                      pickupMeasureBeats: normalizePickupMeasureBeats(
+                        event.target.value,
+                        newScoreDraft.pickupMeasureBeats
+                      )
                     })
                   }
                   value={newScoreDraft.timeSignatureId}
@@ -8508,6 +8583,37 @@ export const App = () => {
                   type="number"
                   value={newScoreDraft.measureCount}
                 />
+              </label>
+
+              <label>
+                <span>못갖춘마디</span>
+                <select
+                  aria-label="못갖춘마디"
+                  onChange={(event) =>
+                    setNewScoreDraft({
+                      ...newScoreDraft,
+                      pickupMeasureBeats: normalizePickupMeasureBeats(
+                        newScoreDraft.timeSignatureId,
+                        Number(event.target.value)
+                      )
+                    })
+                  }
+                  value={String(
+                    normalizePickupMeasureBeats(
+                      newScoreDraft.timeSignatureId,
+                      newScoreDraft.pickupMeasureBeats
+                    )
+                  )}
+                >
+                  <option value="0">없음</option>
+                  {resolvePickupMeasureBeatOptions(
+                    newScoreDraft.timeSignatureId
+                  ).map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label>
@@ -8821,8 +8927,39 @@ function createDefaultNewScoreDraft(tempo: number): NewScoreDraft {
     keySignatureId: 'c-major',
     timeSignatureId: '4-4',
     measureCount: 8,
+    pickupMeasureBeats: 0,
     tempo
   }
+}
+
+function resolvePickupMeasureBeatOptions(
+  timeSignatureId: string
+): Array<{ value: number; label: string }> {
+  const timeSignature = resolveTimeSignaturePreset(timeSignatureId).value
+  const maxPickupBeats = Math.max(0, timeSignature.beats - 1)
+
+  return Array.from({ length: maxPickupBeats }, (_, index) => {
+    const value = index + 1
+
+    return {
+      value,
+      label: `${timeSignature.beatType}분음표 ${value}개`
+    }
+  })
+}
+
+function normalizePickupMeasureBeats(
+  timeSignatureId: string,
+  value: number
+): number {
+  const timeSignature = resolveTimeSignaturePreset(timeSignatureId).value
+  const maxPickupBeats = Math.max(0, timeSignature.beats - 1)
+
+  if (!Number.isFinite(value) || value <= 0 || maxPickupBeats <= 0) {
+    return 0
+  }
+
+  return Math.min(maxPickupBeats, Math.max(0, Math.floor(value)))
 }
 
 function normalizeNumberInput(

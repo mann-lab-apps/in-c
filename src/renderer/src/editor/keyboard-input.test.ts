@@ -9,6 +9,7 @@ import {
   isTextEditingTarget,
   isTupletShortcut,
   isUndoShortcut,
+  resolveAccidentalShortcut,
   resolveDotShortcut,
   resolveDurationShortcut,
   resolvePitchKeyboardAction,
@@ -56,6 +57,20 @@ describe('keyboard input routing', () => {
   it('maps physical punctuation keys to dot edits', () => {
     expect(resolveDotShortcut(keyEvent({ code: 'Period', key: 'ㄹ' }))).toBe(1)
     expect(resolveDotShortcut(keyEvent({ code: 'Comma', key: ',' }))).toBe(-1)
+  })
+
+  it('maps option-modified physical keys to accidentals without stealing the rest shortcut', () => {
+    expect(
+      resolveAccidentalShortcut(keyEvent({ altKey: true, code: 'Minus', key: '-' }))
+    ).toBe(-1)
+    expect(
+      resolveAccidentalShortcut(keyEvent({ altKey: true, code: 'Digit0', key: '0' }))
+    ).toBe(0)
+    expect(
+      resolveAccidentalShortcut(keyEvent({ altKey: true, code: 'Equal', key: '=' }))
+    ).toBe(1)
+    expect(resolveAccidentalShortcut(keyEvent({ code: 'Digit0', key: '0' }))).toBeUndefined()
+    expect(isRestShortcut(keyEvent({ code: 'Digit0', key: '0' }))).toBe(true)
   })
 
   it('maps physical command keys for note input, rest, tuplet, tie, slur, undo, and redo', () => {

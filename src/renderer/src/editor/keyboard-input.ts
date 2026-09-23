@@ -29,6 +29,15 @@ const durationByCode: Partial<Record<string, DurationValue>> = {
   Numpad7: 'whole'
 }
 
+const accidentalByCode: Partial<Record<string, -1 | 0 | 1>> = {
+  Digit0: 0,
+  Equal: 1,
+  Minus: -1,
+  Numpad0: 0,
+  NumpadAdd: 1,
+  NumpadSubtract: -1
+}
+
 export type PitchKeyboardAction = 'edit-selection' | 'enter-note'
 
 export interface PitchShortcutEvent {
@@ -109,6 +118,41 @@ export function resolveDotShortcut(
 
   if (event.code === 'Comma' || event.key === ',') {
     return -1
+  }
+
+  return undefined
+}
+
+export function resolveAccidentalShortcut(
+  event: PitchShortcutEvent
+): -1 | 0 | 1 | undefined {
+  if (
+    event.isComposing ||
+    event.key === 'Process' ||
+    !event.altKey ||
+    event.ctrlKey ||
+    event.metaKey ||
+    event.shiftKey
+  ) {
+    return undefined
+  }
+
+  const physicalAccidental = accidentalByCode[event.code]
+
+  if (physicalAccidental !== undefined) {
+    return physicalAccidental
+  }
+
+  if (event.key === '-' || event.key === '_') {
+    return -1
+  }
+
+  if (event.key === '0') {
+    return 0
+  }
+
+  if (event.key === '=' || event.key === '+') {
+    return 1
   }
 
   return undefined

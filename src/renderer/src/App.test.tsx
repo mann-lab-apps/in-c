@@ -22,6 +22,15 @@ import { TICKS_PER_QUARTER } from '../../score-core'
 import { unsavedScoreChangesMessage } from './editor/file-lifecycle'
 import { demoScore } from './notation/demo-score'
 
+function chooseNewScoreStructure(dialog: HTMLElement, templateId: string) {
+  const option = dialog.querySelector<HTMLButtonElement>(
+    `[data-template-id="${templateId}"]`
+  )
+
+  expect(option).not.toBeNull()
+  fireEvent.click(option as HTMLButtonElement)
+}
+
 const withPercussionClef = (musicXml: string) =>
   musicXml.replace(
     /<clef>\s*<sign>G<\/sign>\s*<line>2<\/line>\s*<\/clef>/,
@@ -780,9 +789,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreStructure(dialog, 'piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -801,9 +808,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreStructure(dialog, 'piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     fireEvent.click(
@@ -866,9 +871,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -881,36 +884,52 @@ describe('App component shell', () => {
     )
   })
 
-  it('score-setup.built-in-template-picker creates an ensemble from the template surface', async () => {
+  it('score-setup.single-structure-picker creates an ensemble without a duplicate template selector', async () => {
     const { App } = await import('./App')
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    const templateRegion = within(dialog).getByRole('region', {
-      name: '내장 템플릿'
+    const structureGroup = within(dialog).getByRole('radiogroup', {
+      name: '악보 구성'
     })
 
     expect(
-      within(templateRegion).getByRole('button', {
-        name: '솔로 멜로디 템플릿'
+      within(structureGroup).getByRole('radio', {
+        name: '솔로 멜로디 악보 구성'
       })
-    ).toHaveAttribute('aria-pressed', 'true')
+    ).toHaveAttribute('aria-checked', 'true')
 
     fireEvent.click(
-      within(templateRegion).getByRole('button', {
-        name: '현악 4중주 템플릿'
+      within(structureGroup).getByRole('radio', {
+        name: '현악 4중주 악보 구성'
       })
     )
 
-    expect(within(dialog).getByLabelText('악보 구성')).toHaveValue(
+    expect(
+      within(structureGroup).getByRole('radio', {
+        name: '현악 4중주 악보 구성'
+      })
+    ).toHaveAttribute('aria-checked', 'true')
+    expect(
+      within(dialog).queryByRole('combobox', { name: '악보 구성' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(dialog).queryByRole('region', { name: '내장 템플릿' })
+    ).not.toBeInTheDocument()
+    expect(
+      within(structureGroup).getByRole('radio', {
+        name: '솔로 멜로디 악보 구성'
+      })
+    ).toHaveAttribute('aria-checked', 'false')
+    expect(
+      within(structureGroup).getByRole('radio', {
+        name: '현악 4중주 악보 구성'
+      })
+    ).toHaveAttribute(
+      'data-template-id',
       'string-quartet'
     )
-    expect(
-      within(templateRegion).getByRole('button', {
-        name: '현악 4중주 템플릿'
-      })
-    ).toHaveAttribute('aria-pressed', 'true')
 
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
@@ -918,6 +937,37 @@ describe('App component shell', () => {
       'data-part-structure',
       'violin-1:Violin I:1|violin-2:Violin II:1|viola:Viola:1|cello:Cello:1'
     )
+  })
+
+  it('score-setup.pickup-measure creates a MusicXML pickup measure from the wizard', async () => {
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
+    const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
+    fireEvent.change(within(dialog).getByLabelText('못갖춘마디'), {
+      target: { value: '1' }
+    })
+    fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: 'MusicXML로 저장' }))
+
+    await waitFor(() => {
+      expect(window.inC.musicXml.save).toHaveBeenCalled()
+    })
+
+    const saved = parseMusicXml(
+      vi.mocked(window.inC.musicXml.save).mock.calls.at(-1)![0].contents
+    )
+    const firstMeasure = saved.parts[0].staves[0].measures[0]
+    const secondMeasure = saved.parts[0].staves[0].measures[1]
+
+    expect(firstMeasure.timing).toEqual({
+      type: 'pickup',
+      durationTicks: TICKS_PER_QUARTER
+    })
+    expect(secondMeasure.timing).toEqual({ type: 'regular' })
   })
 
   it('layout.live-part-view previews and exports the selected ensemble part', async () => {
@@ -936,9 +986,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
     fireEvent.click(screen.getByRole('button', { name: '악보' }))
 
@@ -1984,9 +2032,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
     fireEvent.click(screen.getByRole('button', { name: '악보' }))
     fireEvent.change(screen.getByLabelText('악보 보기'), {
@@ -2063,9 +2109,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'duet' }
-    })
+    chooseNewScoreStructure(dialog, 'duet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
     fireEvent.click(screen.getByRole('button', { name: '악보' }))
 
@@ -3120,9 +3164,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     playbackMockState.value = {
@@ -3250,9 +3292,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
     playbackMockState.value = {
       ...playbackMockState.value,
@@ -3948,6 +3988,10 @@ describe('App component shell', () => {
     expect(within(dialog).getByText('Shift+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
     expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
+    expect(within(dialog).getByText('제자리표')).toBeInTheDocument()
+    expect(within(dialog).getByText('Alt/⌥+0')).toBeInTheDocument()
+    expect(within(dialog).getByText('샤프')).toBeInTheDocument()
+    expect(within(dialog).getByText('Alt/⌥+=')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
     expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
     expect(within(dialog).getByText('인접 보표 이동')).toBeInTheDocument()
@@ -3956,6 +4000,47 @@ describe('App component shell', () => {
 
     fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
     expect(screen.queryByRole('dialog', { name: '단축키 도움말' })).not.toBeInTheDocument()
+  })
+
+  it('ui.shortcut-hints toggles visible shortcut badges without hiding the command reference', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const durationPalette = screen.getByLabelText('음가')
+    const accidentalPalette = screen.getByLabelText('임시표')
+
+    expect(within(durationPalette).getByText('5')).toBeInTheDocument()
+    expect(within(accidentalPalette).getByText('Alt/⌥+0')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 숨기기' }))
+
+    expect(screen.getByRole('button', { name: '단축키 힌트 표시' })).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    )
+    expect(within(accidentalPalette).queryByText('Alt/⌥+0')).not.toBeInTheDocument()
+    expect(
+      within(durationPalette).getByRole('button', {
+        name: '4분음표, 단축키 5'
+      })
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '단축키 도움말' }))
+    expect(
+      within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByText(
+        'Alt/⌥+0'
+      )
+    ).toBeInTheDocument()
+
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByRole(
+        'button',
+        { name: '닫기' }
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 표시' }))
+    expect(within(accidentalPalette).getByText('Alt/⌥+0')).toBeInTheDocument()
   })
 
   it('ui.command-palette searches shortcuts and runs work-mode commands', async () => {
@@ -4429,9 +4514,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'string-quartet' }
-    })
+    chooseNewScoreStructure(dialog, 'string-quartet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     const entries = [
@@ -4781,9 +4864,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreStructure(dialog, 'piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     const staffTarget = screen.getByLabelText('입력 보표')
@@ -4820,9 +4901,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'duet' }
-    })
+    chooseNewScoreStructure(dialog, 'duet')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     const staffTarget = screen.getByLabelText('입력 보표')
@@ -5358,9 +5437,7 @@ describe('App component shell', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /새 악보 만들기/ }))
     const dialog = screen.getByRole('dialog', { name: '새 악보 만들기' })
-    fireEvent.change(within(dialog).getByLabelText('악보 구성'), {
-      target: { value: 'piano-grand-staff' }
-    })
+    chooseNewScoreStructure(dialog, 'piano-grand-staff')
     fireEvent.click(within(dialog).getByRole('button', { name: '만들기' }))
 
     fireEvent.click(
@@ -8768,9 +8845,18 @@ describe('App component shell', () => {
       within(inspector).getByLabelText('선택 이벤트 점 개수')
     ).toHaveTextContent('0')
 
-    const sharp = within(inspector).getByRole('button', { name: '샤프' })
+    const sharp = within(inspector).getByRole('button', {
+      name: '샤프, 단축키 Alt/⌥+='
+    })
     fireEvent.click(sharp)
     expect(sharp).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.keyDown(window, { altKey: true, code: 'Digit0', key: '0' })
+    expect(
+      within(inspector).getByRole('button', {
+        name: '제자리표, 단축키 Alt/⌥+0'
+      })
+    ).toHaveAttribute('aria-pressed', 'true')
 
     const convertToRest = within(inspector).getByRole('button', {
       name: '쉼표로 변환'

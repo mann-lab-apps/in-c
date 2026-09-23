@@ -2265,6 +2265,15 @@ async function verifyPartViewHeadlessExportState(window) {
         setter.call(select, value)
         select.dispatchEvent(new Event('change', { bubbles: true }))
       }
+      const chooseScoreStructure = (value) => {
+        const option = document.querySelector(
+          \`.new-score-template-option[data-template-id="\${value}"]\`
+        )
+        if (!option) {
+          throw new Error('New score structure option not found: ' + value)
+        }
+        option.click()
+      }
       const clickToolbar = async (label) => {
         const button = [...document.querySelectorAll('.toolbar-tabs button')]
           .find((candidate) => candidate.textContent.trim() === label)
@@ -2282,12 +2291,7 @@ async function verifyPartViewHeadlessExportState(window) {
           ?.click()
         await wait()
 
-        setSelectValue(
-          [...document.querySelectorAll('.new-score-form label')]
-            .find((label) => label.textContent?.includes('악보 구성'))
-            ?.querySelector('select'),
-          'string-quartet'
-        )
+        chooseScoreStructure('string-quartet')
         document
           .querySelector('form[aria-label="새 악보 만들기"]')
           ?.dispatchEvent(
@@ -2712,13 +2716,22 @@ async function verifyGrandStaffPreview(window) {
       setter.call(select, value)
       select.dispatchEvent(new Event('change', { bubbles: true }))
     }
+    const chooseScoreStructure = (value) => {
+      const option = document.querySelector(
+        \`.new-score-template-option[data-template-id="\${value}"]\`
+      )
+      if (!option) {
+        throw new Error('Grand staff structure option not found: ' + value)
+      }
+      option.click()
+    }
     const labels = [...document.querySelectorAll('.new-score-form label')]
     const field = (name) =>
       labels.find((label) => label.textContent?.includes(name))
         ?.querySelector('input, select')
 
     setInputValue(field('제목'), 'Grand Staff Smoke')
-    setSelectValue(field('악보 구성'), 'piano-grand-staff')
+    chooseScoreStructure('piano-grand-staff')
     setInputValue(field('마디 수'), '3')
     document
       .querySelector('form[aria-label="새 악보 만들기"]')
