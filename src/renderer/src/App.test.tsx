@@ -1816,6 +1816,11 @@ describe('App component shell', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Backup piano 복구' }))
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '프로젝트 백업' })).not.toBeInTheDocument())
     expect(screen.getByTestId('notation-preview')).toHaveAttribute('data-part-structure', 'P2:Piano:2')
+    await waitFor(() => {
+      expect(screen.getByLabelText('악보 페이지')).toHaveAttribute('data-view-mode', 'part')
+      expect(screen.getByLabelText('악보 페이지')).toHaveAttribute('data-part-id', 'P2')
+      expect(screen.getByLabelText('파트보 제목')).toHaveTextContent('Recovered piano')
+    })
     fireEvent.keyDown(window, { code: 'KeyS', ctrlKey: true })
     await waitFor(() => expect(window.inC.project.save).toHaveBeenCalledTimes(1))
     const input = vi.mocked(window.inC.project.save).mock.calls[0]![0]
