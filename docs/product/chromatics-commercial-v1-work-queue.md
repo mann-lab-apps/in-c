@@ -15,6 +15,39 @@ Sibelius를 secondary commercial reference로 유지하면서 남은 Commercial 
 
 ## Queue
 
+### Editing UX Slice (2026-09-25)
+
+`CV1-X-EDITING-UX-SHORTCUTS` is in progress. The current slice adds a visible
+File-toolbar "new window" command backed by Electron IPC, remaps duration entry
+to the Finale-style high-frequency order `1=whole, 2=half, 3=quarter, 4=eighth,
+5=16th, 6=32nd, 7=64th`, and changes notation-surface navigation to
+`Tab`/`Shift+Tab` for measure movement plus `Enter`/`Shift+Enter` for voice
+movement. Plain `Up/Down` now edits selected note pitch diatonically, with
+`Alt/Option+Up/Down` chromatic and `Cmd/Ctrl+Up/Down` octave movement. Shortcut
+help and shortcut badges are updated.
+
+Follow-up in the same slice adds Finale-style interval chord input for selected
+notes: `2-9` stack diatonic chord tones above the selected note, `Shift+2-9`
+stack them below, and note-input caret state keeps the duration shortcuts. The
+older `Shift+A-G` absolute pitch shortcut stays as a secondary command. Focused
+App tests also confirm that selected-measure clef changes are performed from the
+`표기 객체` category rather than structural setup. Beat/tick-internal clef changes,
+per-notehead chord selection, MIDI chord capture and user shortcut preferences
+remain Required follow-up.
+
+`CV1-X-MEASURE-CLIPBOARD` receives a first single-measure internal clipboard:
+measure selection can copy/cut/paste the aligned full-score measure contents
+for notes, rests, chords and tuplets while preserving target measure IDs and
+issuing new event IDs. Score-level markings, spans, repeats/voltas and
+measure-level clef/key/time interchange across clipboard boundaries remain
+Required follow-up, not completed by this slice.
+
+`CV1-X-MULTI-WINDOW` receives only the first independent-window launcher. Each
+new BrowserWindow owns an independent renderer state, but window/document-scoped
+autosave, recovery, dirty-state coordination, quit dialog aggregation and
+packaged multi-window smoke remain Required follow-up before this umbrella can
+be marked Done.
+
 ### Integration Checkpoint (2026-09-15)
 
 The user approved commit/push/merge of the current Chromatics work, not release.
@@ -246,7 +279,7 @@ CV1-X-WORKSPACE; existing bounds checks are not ergonomic completion evidence.
 | CV1-X-MIDI-INPUT | MIDI step/chord input | Editing Workflow | MuseScore input-by-duration; Expanded V1 | 장치 기반 입력 부재 | simulated MIDI/App | physical device | Todo | permission/device adapter와 안전한 note-on/off 처리 |
 | CV1-X-PITCH-FIRST | pitch-first 입력 | Editing Workflow | MuseScore input-by-duration | 음높이 먼저 고르는 입력 부재 | state/App | keyboard ergonomics | Todo | pitch preview와 duration commit 상태 구현 |
 | CV1-X-TEMPLATES-STYLES | 사용자 template/style | Document Lifecycle | Expanded V1 customization contract | 반복 편성/서식 재사용 불가 | App/import/export | 사용자 작업 확인 | Todo | native/schema 이후 저장/재사용/교환/초기화 구현 |
-| CV1-X-COMMANDS-SHORTCUTS | 명령 검색/단축키 설정 | UI Information Architecture | Expanded V1 commands contract | 기능 탐색과 개인화 부족 | App/conflict tests | keyboard/IME | Partial | Global context-strip shortcut help exposes pitch movement, chromatic movement, octave movement and staff navigation shortcuts from every work mode. Plain ↑/↓ now edits selected-note pitch diatonically, Alt/Option+↑/↓ moves chromatically, Shift+↑/↓ moves by octave and Cmd/Ctrl+↑/↓ navigates adjacent staves. 2026-09-18 searchable command palette first slice opens from Cmd/Ctrl+K or the context strip, searches work-mode commands, independent palette commands, note duration commands, voice-switch commands, the new-score lifecycle command and shortcut reference entries, supports ↑/↓ active result movement plus Enter execution, can switch tabs, can switch the left palette category without changing the top work mode, can apply durations, can switch voices, can open the new-score dialog and can open shortcut help from a found shortcut row. 2026-09-23 note-entry discoverability follow-up adds a context-strip shortcut-hint toggle, inline badges for duration/tie/tuplet/accidental controls, and `Alt/⌥+-`, `Alt/⌥+0`, `Alt/⌥+=` flat/natural/sharp shortcuts without stealing the plain `0` rest shortcut. Remaining: complete command inventory, user shortcut settings, conflict detection and reset. |
+| CV1-X-COMMANDS-SHORTCUTS | 명령 검색/단축키 설정 | UI Information Architecture | Expanded V1 commands contract | 기능 탐색과 개인화 부족 | App/conflict tests | keyboard/IME | Partial | Global context-strip shortcut help exposes pitch movement, chromatic movement, octave movement, measure navigation and voice navigation from every work mode. Plain ↑/↓ edits selected-note pitch diatonically, Alt/Option+↑/↓ moves chromatically, Cmd/Ctrl+↑/↓ moves by octave, Tab/Shift+Tab moves by measure and Enter/Shift+Enter cycles voices. 2026-09-18 searchable command palette first slice opens from Cmd/Ctrl+K or the context strip, searches work-mode commands, independent palette commands, note duration commands, voice-switch commands, the new-score lifecycle command and shortcut reference entries, supports ↑/↓ active result movement plus Enter execution, can switch tabs, can switch the left palette category without changing the top work mode, can apply durations, can switch voices, can open the new-score dialog and can open shortcut help from a found shortcut row. 2026-09-23 note-entry discoverability follow-up adds a context-strip shortcut-hint toggle, inline badges for duration/tie/tuplet/accidental controls, and `Alt/⌥+-`, `Alt/⌥+0`, `Alt/⌥+=` flat/natural/sharp shortcuts without stealing the plain `0` rest shortcut. 2026-09-25 remaps duration entry to `1=whole` through `7=64th` and adds the Electron new-window command plus first measure clipboard slice. Remaining: complete command inventory, user shortcut settings, conflict detection and reset. |
 | CV1-X-WORKSPACE | 도킹/크기/배치 저장 | UI Information Architecture | Expanded V1 workspace contract | visibility 외 배치 조정 불가 | pointer/keyboard/visual | ergonomics | Partial | Context-strip grid expansion fixed (152px to 43px at 960); visible command headless regression. 2026-09-18 docked palette category buttons no longer change the top work mode, so palette browsing and task-mode switching are independent. Resize/reorder/dock/reset and complete compact command access remain Required. |
 | CV1-X-IMAGE-EXPORT | PNG/SVG 출력 | PDF / Page Setup | MuseScore File export | 악보 이미지 공유 불가 | render/pixel/disk | viewer QA | Todo | self-contained page/part/range capture 구현 |
 | CV1-X-WORKFLOW-AUDIT | 확장 V1 실전 감사 | Same-Staff Multi-Voice | Expanded V1 audit contract | 큐 밖 누락 기능 방치 | fixtures/headless | 청감/engraving | Todo | 각 slice 후 Required 재감사, 새 누락은 별도 ID 등록 |

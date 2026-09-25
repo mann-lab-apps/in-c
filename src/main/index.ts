@@ -1125,6 +1125,10 @@ const createWindow = (): void => {
   void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
 }
 
+ipcMain.handle('window:new', () => {
+  createWindow()
+})
+
 void app.whenReady().then(() => {
   createWindow()
 

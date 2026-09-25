@@ -1,5 +1,18 @@
 # Chromatics Desktop V1
 
+2026-09-25 editing UX follow-up: File mode now exposes a "새 창" command that
+opens another Electron BrowserWindow with independent renderer state. The
+notation-surface keyboard map now uses `Tab`/`Shift+Tab` for next/previous
+measure, `Enter`/`Shift+Enter` for next/previous voice, plain `Up/Down` for
+diatonic pitch edits, `Alt/Option+Up/Down` for chromatic edits and
+`Cmd/Ctrl+Up/Down` for octave edits. Duration shortcuts now follow the more
+frequent notation-entry order `1=whole`, `2=half`, `3=quarter`, `4=eighth`,
+`5=16th`, `6=32nd`, `7=64th`; the shortcut help and hint badges reflect this.
+Single-measure selection can copy, paste and cut aligned full-score measure
+contents for notes/rests/chords/tuplets with fresh event IDs and undo support.
+This does not complete multi-window autosave/recovery isolation or full
+score-level marking/span/repeat clipboard coverage.
+
 2026-09-13 geometry follow-up: span inspector now includes collapsible manual
 placement/offset/height controls, reset and history. Native v2 preserves them and
 reads v1 files through validation/migration. Screen/PDF use the same geometry;
@@ -279,6 +292,12 @@ measure/tick-level notation objects. Further work is still needed for final
 Commercial V1 work-mode naming, Export/Page Setup command-surface polish, and
 compact desktop visual QA.
 
+2026-09-25 clef-change polish: selected-measure clef changes are regression
+tested through the `표기 객체` category and affect only that staff measure. This
+covers measure-start clef changes. Beat/tick-internal clef changes, full
+MusicXML/native round-trip review for every clef position, and manual engraving
+QA remain Commercial V1 Required follow-up.
+
 2026-09-11 MuseScore Properties parity slice: the editor now shows a compact
 `선택 요약` panel in the right properties dock. It summarizes selected
 event/measure/range context such as target type, part/staff location, voice,
@@ -457,13 +476,13 @@ V1 uses an industry-compatible duration map by default.
 
 | Key | V1 target | Current beta |
 | --- | --- | --- |
-| `1` | 64th | whole |
-| `2` | 32nd | half |
-| `3` | 16th | quarter |
+| `1` | whole | whole |
+| `2` | half | half |
+| `3` | quarter | quarter |
 | `4` | eighth | eighth |
-| `5` | quarter | 16th |
-| `6` | half | none |
-| `7` | whole | none |
+| `5` | 16th | 16th |
+| `6` | 32nd | none |
+| `7` | 64th | none |
 | `8` | breve | none |
 | `9` | reserved for longer duration or no default | triplet |
 
@@ -480,7 +499,9 @@ Implementation policy:
 | Toggle note input | `N` |
 | Exit note input | `Esc` |
 | Enter pitch | `A-G` |
-| Add pitch to chord | `Shift-A` to `Shift-G` |
+| Add absolute pitch to chord | `Shift-A` to `Shift-G` |
+| Stack chord tone above selected note | `2-9` while a note is selected |
+| Stack chord tone below selected note | `Shift+2-9` while a note is selected |
 | Enter rest | `0` |
 | Enter rest alias | `R`, kept as Chromatics convenience |
 | Add tie | `T` |
@@ -494,6 +515,13 @@ Implementation policy:
 duration maps. The active V1 map leaves plain `9` unbound and exposes triplet as
 `Cmd/Ctrl-3`.
 
+2026-09-25 interval chord input slice: when a concrete note is selected, plain
+`2-9` stack the corresponding diatonic interval above that selected note and
+`Shift+2-9` stack the interval below it. This scope takes precedence over
+duration shortcuts only for selected-note editing. Note-input caret state keeps
+the duration map above, and text fields still consume digits normally. The older
+`Shift+A-G` absolute pitch shortcut remains available as a secondary command.
+
 ### Accidentals And Pitch
 
 | Action | Shortcut |
@@ -502,16 +530,17 @@ duration maps. The active V1 map leaves plain `9` unbound and exposes triplet as
 | Flat | `-` |
 | Natural | `=` |
 | Respell enharmonically | `J` |
-| Transpose selected note diatonically | `Alt/Opt-Up/Down` |
-| Transpose selected note chromatically | `Shift-Alt/Opt-Up/Down` |
-| Transpose selected note by octave | `Cmd/Ctrl-Alt/Opt-Up/Down` |
+| Transpose selected note diatonically | `Up/Down` |
+| Transpose selected note chromatically | `Alt/Opt-Up/Down` |
+| Transpose selected note by octave | `Cmd/Ctrl-Up/Down` |
 
 `J` respells the selected note enharmonically without changing the sounding
 pitch, and the operation is undoable.
 
-Plain `Up/Down` navigates vertical selection where possible. The first V1
-navigation-first slice moves between adjacent part/staff/voice lanes by measure
-index and nearest tick; modifier arrows remain the pitch transformation path.
+Plain `Up/Down` edits the selected note diatonically. `Alt/Opt-Up/Down` keeps
+the chromatic edit path and `Cmd/Ctrl-Up/Down` moves the selected note by octave.
+Measure and voice navigation moved to `Tab`/`Shift-Tab` and
+`Enter`/`Shift-Enter` so pitch editing stays discoverable without an Alt chord.
 
 ### Navigation And Selection
 
@@ -519,8 +548,8 @@ index and nearest tick; modifier arrows remain the pitch transformation path.
 | --- | --- |
 | Previous/next event | `Left/Right` |
 | Extend range selection | `Shift-Left/Right` |
-| Previous/next measure | `Cmd/Ctrl-Left/Right` |
-| Previous/next part or staff | `Up/Down` |
+| Previous/next measure | `Tab` / `Shift-Tab` |
+| Previous/next part or staff | P1 after the editing UX remap |
 | Start/end of score | `Cmd/Ctrl-Home/End` |
 | Delete selection | `Backspace` or `Delete` |
 | Select all | `Cmd/Ctrl-A` |
@@ -535,8 +564,8 @@ instead of editing pitch directly.
 | Action | Shortcut |
 | --- | --- |
 | Voice 1-4 | `Cmd/Ctrl-Alt/Opt-1` to `4` |
-| Next voice | `V` |
-| Previous voice | `Shift-V` |
+| Next voice | `Enter` |
+| Previous voice | `Shift-Enter` |
 | Next part/staff | `Cmd/Ctrl-Alt/Opt-Down` |
 | Previous part/staff | `Cmd/Ctrl-Alt/Opt-Up` |
 
@@ -584,11 +613,14 @@ When a text editor is focused, `Space` is text input, not playback.
 구체 작업 순서와 release blocker 목록은
 [`chromatics-v1-blocker-backlog.md`](chromatics-v1-blocker-backlog.md)를 따른다.
 
-- Duration shortcuts now use the V1 notation map (`1..7` from 64th to whole).
+- Duration shortcuts now use the Finale-style frequent notation map
+  (`1=whole`, `2=half`, `3=quarter`, `4=eighth`, `5=16th`, `6=32nd`,
+  `7=64th`).
   The legacy `9` triplet shortcut has been removed from the active shortcut map;
   triplet uses `Cmd/Ctrl-3`.
-- Plain `Up/Down` no longer edits pitch directly. It navigates to adjacent
-  vertical lanes where possible and shows a transpose hint when no target exists.
+- Plain `Up/Down` edits selected-note pitch directly. `Tab`/`Shift-Tab` moves
+  between measures, `Enter`/`Shift-Enter` switches voices, and
+  `Cmd/Ctrl-Up/Down` performs octave pitch movement.
 - Multi-voice editing is partial and blocks professional V1 release.
   The 2026-09-12 MuseScore parity slice adds an explicit same-staff
   voice presentation policy in the renderer: voice 1/3 use upper/up-stem

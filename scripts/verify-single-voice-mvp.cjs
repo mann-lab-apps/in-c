@@ -27,6 +27,15 @@ async function loadFixture(window, fixture = 'single-voice-mvp') {
   await new Promise((resolve) => setTimeout(resolve, 800))
 }
 
+async function runStep(name, action) {
+  try {
+    return await action()
+  } catch (error) {
+    const detail = error instanceof Error ? error.stack || error.message : String(error)
+    throw new Error(`${name} failed: ${detail}`)
+  }
+}
+
 async function verifyKeyboardRouting(window) {
   const initialEventCount = await window.webContents.executeJavaScript(`
     document.querySelectorAll('.notation-event').length
@@ -466,8 +475,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit6',
-        key: '6'
+        code: 'Digit2',
+        key: '2'
       })
     )
   `)
@@ -499,8 +508,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit6',
-        key: '6'
+        code: 'Digit2',
+        key: '2'
       })
     )
   `)
@@ -531,8 +540,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit5',
-        key: '5'
+        code: 'Digit3',
+        key: '3'
       })
     )
   `)
@@ -573,8 +582,8 @@ async function verifyKeyboardRouting(window) {
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
-        code: 'Digit5',
-        key: '5'
+        code: 'Digit3',
+        key: '3'
       })
     )
   `)
@@ -2742,7 +2751,8 @@ async function verifyGrandStaffPreview(window) {
   )
   await new Promise((resolve) => setTimeout(resolve, 450))
 
-  const result = await window.webContents.executeJavaScript(`
+  const result = await runStep('grand staff preview read initial render state', () =>
+    window.webContents.executeJavaScript(`
     (() => {
       const staffLabels = [
         ...document.querySelectorAll('.notation-staff-label')
@@ -2780,6 +2790,7 @@ async function verifyGrandStaffPreview(window) {
       }
     })()
   `)
+  )
 
   const labelTexts = result.staffLabels.map((label) => label.text)
   const staffKeys = result.staffLabels.map(
@@ -2822,7 +2833,8 @@ async function verifyGrandStaffPreview(window) {
   )
   await new Promise((resolve) => setTimeout(resolve, 200))
 
-  const selectedLowerStaff = await window.webContents.executeJavaScript(`
+  const selectedLowerStaff = await runStep('grand staff preview read lower staff selection', () =>
+    window.webContents.executeJavaScript(`
     (() => {
       const selected = document.querySelector('.notation-event.is-selected')
 
@@ -2833,8 +2845,10 @@ async function verifyGrandStaffPreview(window) {
       }
     })()
   `)
+  )
 
-  await window.webContents.executeJavaScript(`
+  await runStep('grand staff preview toggle note input', () =>
+    window.webContents.executeJavaScript(`
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
@@ -2843,9 +2857,11 @@ async function verifyGrandStaffPreview(window) {
       })
     )
   `)
+  )
   await new Promise((resolve) => setTimeout(resolve, 150))
 
-  await window.webContents.executeJavaScript(`
+  await runStep('grand staff preview enter lower staff note', () =>
+    window.webContents.executeJavaScript(`
     window.dispatchEvent(
       new KeyboardEvent('keydown', {
         bubbles: true,
@@ -2854,9 +2870,11 @@ async function verifyGrandStaffPreview(window) {
       })
     )
   `)
+  )
   await new Promise((resolve) => setTimeout(resolve, 300))
 
-  const lowerStaffInput = await window.webContents.executeJavaScript(`
+  const lowerStaffInput = await runStep('grand staff preview read lower staff input', () =>
+    window.webContents.executeJavaScript(`
     (() => {
       const selected = document.querySelector('.notation-event.is-selected')
       const lowerStaffEvents = [
@@ -2884,6 +2902,7 @@ async function verifyGrandStaffPreview(window) {
       }
     })()
   `)
+  )
 
   if (
     selectedLowerStaff.partId !== 'part-1' ||
@@ -3327,7 +3346,7 @@ async function openMetadataField(window, field) {
 
 async function executeMetadataStep(window, label, body) {
   const result = await window.webContents.executeJavaScript(`
-    (() => {
+    (async () => {
       try {
         ${body}
         return { ok: true }
@@ -3426,27 +3445,61 @@ app.whenReady().then(async () => {
   })
 
   await loadFixture(window)
-  const keyboard = await verifyKeyboardRouting(window)
-  const fileActions = await verifyFileActions(window)
-  const compactToolbarModes = await verifyCompactToolbarModes(window)
-  const commercialHeadlessViewports =
-    await verifyCommercialHeadlessViewports(window)
-  const propertiesDockEditing = await verifyPropertiesDockEditing(window)
-  const partViewHeadlessExportState =
-    await verifyPartViewHeadlessExportState(window)
-  const partXmlExportRoundTrip = await verifyPartXmlExportRoundTrip(window)
-  const playbackMixerHeadlessState =
-    await verifyPlaybackMixerHeadlessState(window)
-  const newScore = await verifyNewScoreWizard(window)
-  const grandStaffPreview = await verifyGrandStaffPreview(window)
-  const keySignature = await verifyKeySignatureControl(window)
-  const timeSignature = await verifyTimeSignatureControl(window)
-  const measureDeletion = await verifyMeasureDeletion(window)
-  const metadata = await verifyMetadataEditing(window)
-  const beams = await verifyBeamRendering(window)
-  const ties = await verifyTieEditing(window)
-  const outOfStaffNotes = await verifyOutOfStaffNotes(window)
-  const releaseScenarioBounds = await verifyReleaseScenarioBounds(window)
+  const keyboard = await runStep('keyboard routing', () =>
+    verifyKeyboardRouting(window)
+  )
+  const fileActions = await runStep('file actions', () =>
+    verifyFileActions(window)
+  )
+  const compactToolbarModes = await runStep('compact toolbar modes', () =>
+    verifyCompactToolbarModes(window)
+  )
+  const commercialHeadlessViewports = await runStep(
+    'commercial headless viewports',
+    () => verifyCommercialHeadlessViewports(window)
+  )
+  const propertiesDockEditing = await runStep('properties dock editing', () =>
+    verifyPropertiesDockEditing(window)
+  )
+  const partViewHeadlessExportState = await runStep(
+    'part view headless export state',
+    () => verifyPartViewHeadlessExportState(window)
+  )
+  const partXmlExportRoundTrip = await runStep('part XML export round trip', () =>
+    verifyPartXmlExportRoundTrip(window)
+  )
+  const playbackMixerHeadlessState = await runStep(
+    'playback mixer headless state',
+    () => verifyPlaybackMixerHeadlessState(window)
+  )
+  const newScore = await runStep('new score wizard', () =>
+    verifyNewScoreWizard(window)
+  )
+  const grandStaffPreview = await runStep('grand staff preview', () =>
+    verifyGrandStaffPreview(window)
+  )
+  const keySignature = await runStep('key signature control', () =>
+    verifyKeySignatureControl(window)
+  )
+  const timeSignature = await runStep('time signature control', () =>
+    verifyTimeSignatureControl(window)
+  )
+  const measureDeletion = await runStep('measure deletion', () =>
+    verifyMeasureDeletion(window)
+  )
+  const metadata = await runStep('metadata editing', () =>
+    verifyMetadataEditing(window)
+  )
+  const beams = await runStep('beam rendering', () =>
+    verifyBeamRendering(window)
+  )
+  const ties = await runStep('tie editing', () => verifyTieEditing(window))
+  const outOfStaffNotes = await runStep('out-of-staff notes', () =>
+    verifyOutOfStaffNotes(window)
+  )
+  const releaseScenarioBounds = await runStep('release scenario bounds', () =>
+    verifyReleaseScenarioBounds(window)
+  )
   await loadFixture(window)
 
   const desktop = await inspect(

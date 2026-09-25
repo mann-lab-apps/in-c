@@ -2,6 +2,35 @@
 
 기준일: 2026-07-15
 
+## 2026-09-25 Chromatics Editing UX Slice
+
+| 순서 | 명령 | 결과 | 비고 |
+| --- | --- | --- | --- |
+| 1 | `npm ci` | Pass | isolated worktree dependency install |
+| 2 | `npm test -- src/renderer/src/editor/keyboard-input.test.ts` | Pass | 24 tests; duration shortcut remap `1=whole` through `7=64th` and accidental shortcuts |
+| 3 | `npm test -- src/renderer/src/App.test.tsx -t "keyboard.note-pitch-editing\|keyboard.pitch-editing\|duration-shortcuts\|shortcut-help\|shortcut-hints\|excel-style-navigation\|measure-clipboard\|new-window"` | Pass | 8 tests / 215 skipped; shortcut help/hints, Electron new-window bridge call, Tab/Enter navigation, plain pitch movement, Cmd/Ctrl octave movement and measure copy/cut/paste |
+| 4 | `npm run typecheck` | Pass | Electron main/preload/renderer contracts compile |
+| 5 | `npm run build` | Pass | Electron/Vite production build succeeds; Rollup zod comment warnings only |
+| 6 | `npm test` | Pass | 61 files passed / 1 skipped; 781 tests passed / 1 skipped |
+| 7 | `npm run site:build` | Pass | regenerated `out/site` including download manifest |
+| 8 | `node scripts/verify-site-content.mjs` | Pass | site content manifests, Compositions assets, product relations and feature map paths verified |
+| 9 | `npm run verify:e2e` | Fail, then Pass | First rerun exposed stale verifier assumptions for the duration shortcut remap. Follow-up fixed E2E key expectations, changed a parser-sensitive metadata helper to async for steps that use `await`, and wrapped E2E stages with labels. A later run exposed 1100px toolbar overflow after shortcut badges/new-window controls; toolbar wrapping fixed it. Final run passed with `toolbarOverflow: false` at 1100/1400 and keyboard routing confirming `1=whole`, `2=half`, `3=quarter`, `4=eighth`, `5=16th`, `6=32nd`, `7=64th`. |
+| 10 | `npm run verify:visual-regression` | Fail, then Pass | Layout/MusicXML tests passed. Snapshot metrics differed only because the rehearsal mark identifier is now read from `data-measure-id` (`measure-1`) instead of text `A`; coordinates and sizes were unchanged. Updated `docs/testing/notation-snapshot-baseline.json` and reran successfully. Screenshots: `$TMPDIR/in-c-notation-snapshot-960.png`, `$TMPDIR/in-c-notation-snapshot-1400.png`. |
+| 11 | `npm run package:dir` | Pass | fresh unsigned macOS arm64 unpacked package at `release/mac-arm64`; code signing skipped by config |
+| 12 | `npm run verify:package` | Pass | `PACKAGED_APP_SMOKE_OK`; file bridges, start screen, MusicXML/MXL/export-copy/native/recovery/part layout/PDF/MIDI smoke paths pass. Expected same-path export guard logs an error but the smoke reports success. |
+| 13 | `git diff --check` | Pass | no whitespace errors |
+| 14 | `npm test -- src/renderer/src/editor/keyboard-input.test.ts` | Pass | 26 tests; added interval chord shortcut resolver plus logical-key duration fallback aligned with `1=whole` through `7=64th` |
+| 15 | `npm test -- src/renderer/src/App.test.tsx -t "interval-chord-input\|clef.change-selected-measure\|runs notation extension controls\|duration-shortcuts\|shortcut-help\|shortcut-hints"` | Pass | 6 tests / 218 skipped; selected-note `2-9`/`Shift+2-9` interval chord input, shortcut help/hints, duration shortcut policy and `표기 객체` measure clef workflow pass |
+| 16 | `npm run typecheck` | Pass | interval chord input, shortcut routing and documentation changes compile |
+| 17 | `npm test` | Fail, then Pass | First full run exposed one intentional shortcut-contract conflict in the tuplet member duration test after selected-note digits became chord intervals, plus one 5s App timeout. The tuplet test now uses the duration toolbar for selected-member duration edits; rerunning the two failures passed. Final full rerun passed 61 files / 1 skipped; 784 tests / 1 skipped. |
+| 18 | `npm run build` | Pass | Electron/Vite production build succeeds; Rollup zod comment warnings only |
+| 19 | `git diff --check` | Pass | no whitespace errors after interval chord and clef-change polish |
+
+Notes: An initial parallel Electron E2E/visual attempt raced Electron binary setup
+and left a missing framework symlink. Restoring the symlink and rerunning Electron
+checks sequentially resolved the environment issue; the final pass evidence above
+comes from sequential runs.
+
 ## Document Control
 
 | 항목 | 값 |

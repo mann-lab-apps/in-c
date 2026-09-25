@@ -1,5 +1,30 @@
 # Release Readiness Checklist
 
+## 2026-09-25 Editing UX Development Slice
+
+Keyboard/editor UX has a bounded implementation checkpoint: shortcut help and
+hint badges match the new duration and navigation policy; targeted App tests
+cover new-window IPC invocation, `Tab`/`Shift+Tab` measure movement,
+`Enter`/`Shift+Enter` voice movement, plain/modified arrow pitch edits and
+single-measure copy/cut/paste. The final local gate set for this slice passes:
+full `npm test` (781 pass / 1 skip), typecheck, build, E2E, visual regression,
+site-content, package:dir, verify:package and diff check. The E2E verifier now
+tracks the new duration shortcut map and caught/fixed an 1100px toolbar overflow;
+the notation snapshot baseline changed only for rehearsal-mark identifier source,
+not for coordinates. This is not RC signoff: actual multi-window packaged
+behavior, window/document-scoped autosave/recovery and broader measure-object
+clipboard contracts remain open.
+
+Follow-up in the same 2026-09-25 development slice adds selected-note interval
+chord input: `2-9` stack diatonic chord tones above the selected note, and
+`Shift+2-9` stack them below, while note-input caret state keeps the duration
+shortcut map. The focused App regression also fixes selected-measure clef change
+coverage to the `표기 객체` work mode. Current local evidence: keyboard helper
+tests pass, focused App tests pass, typecheck passes, full `npm test` passes
+(784 pass / 1 skip), build passes and `git diff --check` passes. Remaining RC
+work includes beat/tick-internal clef changes, per-notehead chord selection,
+MIDI chord capture, user shortcut preferences and manual engraving/export QA.
+
 ## 2026-09-15 Integration Request
 
 User approval now covers commit/push/merge of this development checkpoint, not
