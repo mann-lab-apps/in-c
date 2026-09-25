@@ -170,6 +170,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - custom stamp import보다 먼저 stamp set 관리/검색.
 - field schema 확장: album/year/signature/source type을 Clef에 맞게 단순화.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.
+  홈 `메뉴`의 `도움말/피드백`에서 처음 쓰는 흐름, 앱/build 정보, 테스트 항목,
+  피드백 템플릿 복사를 한곳에 묶는다.
 
 ### Later / Spike 후보
 

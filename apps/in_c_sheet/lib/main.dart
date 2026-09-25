@@ -1692,8 +1692,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                 const PopupMenuItem(
                   value: _LibraryToolsAction.testerInfo,
                   child: ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('테스트 정보'),
+                    leading: Icon(Icons.help_outline),
+                    title: Text('도움말/피드백'),
                   ),
                 ),
                 const PopupMenuDivider(),
@@ -3736,8 +3736,8 @@ class _EmptyLibrary extends StatelessWidget {
                     ),
                     OutlinedButton.icon(
                       onPressed: onTesterInfoPressed,
-                      icon: const Icon(Icons.fact_check_outlined),
-                      label: const Text('테스트 항목'),
+                      icon: const Icon(Icons.help_outline),
+                      label: const Text('도움말/피드백'),
                     ),
                   ],
                 ),
@@ -3755,6 +3755,13 @@ class _TesterInfoSheet extends StatelessWidget {
 
   final String appVersion;
   final SheetLibraryController controller;
+
+  static const List<String> _quickHelpItems = <String>[
+    '악보 추가: PDF 또는 이미지를 가져온 뒤 정보 편집으로 제목/작곡가를 정리합니다.',
+    '연주: 악보를 열고 좌우 터치, 스와이프, 페달/키보드로 페이지를 넘깁니다.',
+    '도구: 악보 화면의 도구 메뉴에서 메트로놈, 튜너, 필기, 페이지 정리를 찾습니다.',
+    '피드백: 아래 템플릿을 복사해 기기, OS, 파일 정보와 재현 단계를 함께 보냅니다.',
+  ];
 
   static const List<String> _testItems = <String>[
     'PDF 가져오기와 페이지 넘김',
@@ -3861,11 +3868,11 @@ pageMetadataScores=$pageMetadataCount
         children: [
           Row(
             children: [
-              const Icon(Icons.info_outline),
+              const Icon(Icons.help_outline),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef & Staff 테스트 정보',
+                  'Clef & Staff 도움말/피드백',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -3873,6 +3880,21 @@ pageMetadataScores=$pageMetadataCount
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            '처음 쓰는 흐름',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final item in _quickHelpItems)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.arrow_right_alt),
+              title: Text(item),
+            ),
           const SizedBox(height: 12),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
@@ -3886,7 +3908,7 @@ pageMetadataScores=$pageMetadataCount
           _InfoRow(label: '페이지 설정', value: '$pageMetadataCount개 악보'),
           const SizedBox(height: 18),
           Text(
-            '확인할 항목',
+            '테스트할 항목',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w900,
             ),

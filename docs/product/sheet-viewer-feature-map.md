@@ -129,10 +129,10 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
 | 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | merge/conflict rules |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
-| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·테스트 정보·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
+| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
-| 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
+| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |
 

@@ -79,7 +79,8 @@ void main() {
         await tester.tap(menu);
         await tester.pumpAndSettle();
         expect(find.text('보기/입력 기본값'), findsOneWidget);
-        expect(find.text('테스트 정보'), findsOneWidget);
+        final helpMenuItem = find.widgetWithText(ListTile, '도움말/피드백');
+        expect(helpMenuItem, findsOneWidget);
         expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'menu');
         await capture('menu');
@@ -92,11 +93,13 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('테스트 정보'));
+        await tester.tap(find.widgetWithText(ListTile, '도움말/피드백'));
         await tester.pumpAndSettle();
-        expect(find.text('Clef & Staff 테스트 정보'), findsOneWidget);
+        expect(find.text('Clef & Staff 도움말/피드백'), findsOneWidget);
+        expect(find.text('처음 쓰는 흐름'), findsOneWidget);
+        expect(find.textContaining('악보 추가: PDF 또는 이미지를 가져온 뒤'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
-        Navigator.of(tester.element(find.text('Clef & Staff 테스트 정보'))).pop();
+        Navigator.of(tester.element(find.text('Clef & Staff 도움말/피드백'))).pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();

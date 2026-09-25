@@ -1132,3 +1132,14 @@ No app build performed; new changes have widget/source evidence only.
   full `flutter test` (1,379 tests), `dart run tool/rc_release_check.dart`, `git diff --check`,
   and RC whitespace/tab/stale wording scans passed. Device QA should still check
   tablet-distance readability.
+
+## Low-Risk Help/Feedback Surface (2026-09-25)
+
+- Selected slice: make the existing tester/debug entry read as a user-facing help and
+  feedback surface. This addresses the low-risk MobileSheets gap around discoverability
+  without adding a dense manual or copying competitor screen structure.
+- Implementation intent: rename the home menu entry and empty-library CTA from tester
+  wording to `도움말/피드백`, keep app/build diagnostics and feedback template copy, and
+  add a short first-use flow for import, playing, tools and feedback.
+- This does not add an external help center, online support form or App Store support
+  URL change. It is an in-app discoverability/polish slice only.
