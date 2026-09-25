@@ -10,6 +10,8 @@
 - Later: 협업, 크로스 플랫폼, 기관/팀 운영처럼 제품 검증 후 확장할 기능.
 
 상세 v1.1 spike backlog는 [`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)에 분리한다.
+MobileSheets 기능별 인벤토리와 Clef 반영 상태는
+[`clef-mobilesheets-feature-inventory.md`](clef-mobilesheets-feature-inventory.md)에 별도로 정리한다.
 
 난이도는 Android 태블릿 앱 기준으로 낮음, 중간, 높음으로 표시한다.
 
