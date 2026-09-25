@@ -116,10 +116,11 @@ code. Research or manual labels must not conceal missing local implementation.
 - 2026-09-11: File mode에 `단축키 도움말` dialog를 추가했다. 현재 V1 shortcut
   policy인 음가 1-7, triplet `⌘/Ctrl+3`, tie/slur, voice switching, navigation,
   save/undo/redo/copy/paste/delete를 노출하고 legacy `9 = triplet`은 노출하지 않는다.
-- 2026-09-11: MuseScore template/style parity 첫 조각으로 새 악보 dialog에
-  `내장 템플릿` picker를 추가했다. Solo melody, piano grand staff, 2-part ensemble,
-  string quartet 버튼은 기존 `악보 구성` select와 같은 `templateId`를 갱신하며,
-  현악 4중주 템플릿 선택 후 4파트 skeleton이 생성되는 App regression을 추가했다.
+- 2026-09-23: 새 악보 dialog의 중복된 `내장 템플릿` picker와 `악보 구성`
+  select를 `악보 구성` 단일 템플릿 선택 그룹으로 통합했다. Solo melody,
+  piano grand staff, 2-part ensemble, string quartet 선택은 같은 `templateId`
+  계약을 사용하며, 현악 4중주 선택 후 4파트 skeleton이 생성되는 App
+  regression을 유지한다.
 - 2026-09-11: MuseScore palette/properties workspace parity 첫 조각으로 score
   workspace 안에 좌측 `고정 팔레트`와 우측 `속성 도크`를 추가했다. 좌측 팔레트는
   top work mode와 같은 `toolbarCategory`를 갱신하고, `표기 객체` mode에서는 active

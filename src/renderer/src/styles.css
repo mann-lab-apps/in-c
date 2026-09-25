@@ -508,6 +508,13 @@ h2 {
   background: #ffffff;
 }
 
+.inspector-properties__buttons button:has(.shortcut-badge) {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
 .inspector-properties .is-active {
   border-color: #b9b7a7;
   background: #ffffff;
@@ -867,13 +874,16 @@ h2 {
 }
 
 .accidental-control button {
-  display: inline-grid;
-  width: 30px;
-  padding: 0;
+  display: inline-flex;
+  gap: 4px;
+  justify-content: center;
+  width: auto;
+  min-width: 30px;
+  padding: 0 7px;
   border-radius: 0;
   font-family: Georgia, serif;
   font-size: 1.25rem;
-  place-items: center;
+  align-items: center;
 }
 
 .accidental-control button + button {
@@ -997,6 +1007,18 @@ h2 {
   font-size: 0.72rem;
   line-height: 1;
   place-items: center;
+}
+
+.accidental-control .shortcut-badge,
+.inspector-properties__buttons .shortcut-badge {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.66rem;
+}
+
+.shortcut-toggle-mark {
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
 }
 
 .duration-strip > svg {
@@ -1863,10 +1885,25 @@ h2 {
   gap: 10px;
 }
 
-.new-score-templates h3 {
+.new-score-templates__header {
+  display: grid;
+  gap: 4px;
+}
+
+.new-score-templates h3,
+.new-score-templates p {
   margin: 0;
+}
+
+.new-score-templates h3 {
   color: #3f494f;
   font-size: 0.9rem;
+}
+
+.new-score-templates p {
+  color: #65717a;
+  font-size: 0.82rem;
+  line-height: 1.35;
 }
 
 .new-score-template-grid {

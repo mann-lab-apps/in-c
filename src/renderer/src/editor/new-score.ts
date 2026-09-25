@@ -3,6 +3,8 @@ import {
   createPart,
   createScore,
   createStaff,
+  TICKS_PER_QUARTER,
+  timeSignatureDurationTicks,
   type Clef,
   type InstrumentTransposition,
   type KeySignature,
@@ -27,6 +29,7 @@ export interface NewScoreOptions {
   measureCount: number
   tempo?: number
   templateId?: NewScoreTemplateId
+  pickupMeasureBeats?: number
 }
 
 export const keySignaturePresets = [
@@ -317,6 +320,10 @@ export const scoreStructurePresets = [
 export function createNewScore(options: NewScoreOptions): Score {
   const measureCount = Math.max(1, Math.floor(options.measureCount))
   const tempo = options.tempo ?? 120
+  const pickupMeasureTicks = resolvePickupMeasureTicks(
+    options.timeSignature,
+    options.pickupMeasureBeats
+  )
   const template = resolveScoreStructurePreset(
     options.templateId ?? 'solo-melody'
   )
@@ -343,6 +350,7 @@ export function createNewScore(options: NewScoreOptions): Score {
               timeSignature: options.timeSignature,
               clef: template.parts[0].staves[0].clef,
               idPrefix: 'staff-1',
+              pickupMeasureTicks,
               preserveLegacyMeasureIds: true
             })
           })
@@ -362,7 +370,8 @@ export function createNewScore(options: NewScoreOptions): Score {
                   keySignature: options.keySignature,
                   timeSignature: options.timeSignature,
                   clef: staff.clef,
-                  idPrefix: `${part.id}-${staff.id}`
+                  idPrefix: `${part.id}-${staff.id}`,
+                  pickupMeasureTicks
                 })
               })
             )
@@ -377,6 +386,7 @@ function createTemplateMeasures({
   timeSignature,
   clef,
   idPrefix,
+  pickupMeasureTicks,
   preserveLegacyMeasureIds = false
 }: {
   measureCount: number
@@ -384,6 +394,7 @@ function createTemplateMeasures({
   timeSignature: TimeSignature
   clef: Clef
   idPrefix: string
+  pickupMeasureTicks?: number
   preserveLegacyMeasureIds?: boolean
 }) {
   return Array.from({ length: measureCount }, (_, index) =>
@@ -394,9 +405,33 @@ function createTemplateMeasures({
       number: index + 1,
       keySignature,
       timeSignature,
-      clef
+      clef,
+      timing:
+        index === 0 && pickupMeasureTicks
+          ? {
+              type: 'pickup',
+              durationTicks: pickupMeasureTicks
+            }
+          : undefined
     })
   )
+}
+
+function resolvePickupMeasureTicks(
+  timeSignature: TimeSignature,
+  pickupMeasureBeats?: number
+): number | undefined {
+  const beats = Math.floor(pickupMeasureBeats ?? 0)
+
+  if (beats <= 0) {
+    return undefined
+  }
+
+  const beatTicks = TICKS_PER_QUARTER * (4 / timeSignature.beatType)
+  const ticks = beats * beatTicks
+  const regularTicks = timeSignatureDurationTicks(timeSignature)
+
+  return ticks > 0 && ticks < regularTicks ? ticks : undefined
 }
 
 export function createTempoMarkingForTimeSignature(

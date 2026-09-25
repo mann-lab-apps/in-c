@@ -605,6 +605,15 @@ const createWindow = (): void => {
             setter.call(select, value)
             select.dispatchEvent(new Event('change', { bubbles: true }))
           }
+          const chooseScoreStructure = (value) => {
+            const option = document.querySelector(
+              \`.new-score-template-option[data-template-id="\${value}"]\`
+            )
+            if (!option) {
+              throw new Error('Packaged smoke score structure option not found: ' + value)
+            }
+            option.click()
+          }
           const waitForCondition = async (predicate, message, timeoutMs = 1000) => {
             const deadline = performance.now() + timeoutMs
             while (performance.now() < deadline) {
@@ -624,7 +633,14 @@ const createWindow = (): void => {
 
           setInputValue(field('제목'), 'Packaged Smoke Score')
           setInputValue(field('작곡가'), 'Codex QA')
-          setSelectValue(field('악보 구성'), 'string-quartet')
+          chooseScoreStructure('string-quartet')
+          await waitForCondition(
+            () =>
+              document
+                .querySelector('.new-score-template-option[data-template-id="string-quartet"]')
+                ?.getAttribute('aria-checked') === 'true',
+            'Packaged smoke score structure selection did not commit.'
+          )
           setSelectValue(field('조표'), 'c-major')
           setSelectValue(field('박자표'), '4-4')
           setInputValue(field('마디 수'), '4')

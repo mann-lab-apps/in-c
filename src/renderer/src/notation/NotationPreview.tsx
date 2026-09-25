@@ -1510,7 +1510,7 @@ function drawEventAttachments(
   if (event.fermata) drawFermata(svg, event.id, x, y)
   if (event.breathMark) drawBreathMark(svg, event.id, x, y, event.breathMark, Boolean(event.fermata))
   if (event.type === 'note') {
-    if (event.articulations?.length) drawArticulations(svg, event.id, x, y, event.articulations)
+    if (event.articulations?.length) drawArticulations(svg, event.id, x, y, note, event.articulations)
     if (event.tremolo) drawTremoloMark(svg, event.id, y, note, event.tremolo.marks)
     if (event.ornaments?.length) drawOrnaments(svg, event.id, x, y, event.ornaments, event.fermata ? 58 : 34)
     if (event.graceNotes?.length) drawGraceNotes(svg, event.id, x, y, event.graceNotes)
@@ -2707,19 +2707,21 @@ function drawArticulations(
   eventId: string,
   x: number,
   staffY: number,
+  note: StaveNote,
   articulations: string[]
 ): void {
   articulations.forEach((articulation, index) => {
-    const y = staffY - 12 - index * 12
+    const placement = resolveArticulationPlacement(note, staffY, index)
 
     if (articulation === 'staccato') {
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle')
 
       dot.classList.add('notation-articulation')
       dot.setAttribute('data-event-id', eventId)
+      dot.setAttribute('data-notehead-y', String(placement.noteheadY))
       dot.setAttribute('cx', String(x + 4))
-      dot.setAttribute('cy', String(y))
-      dot.setAttribute('r', '2.6')
+      dot.setAttribute('cy', String(placement.y))
+      dot.setAttribute('r', '1.9')
       svg.append(dot)
     } else {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text')
@@ -2736,12 +2738,48 @@ function drawArticulations(
 
       text.classList.add('notation-articulation')
       text.setAttribute('data-event-id', eventId)
+      text.setAttribute('data-notehead-y', String(placement.noteheadY))
       text.setAttribute('x', String(x))
-      text.setAttribute('y', String(y + 4))
+      text.setAttribute('y', String(placement.y + 4))
       text.textContent = symbol
       svg.append(text)
     }
   })
+}
+
+function resolveArticulationPlacement(
+  note: StaveNote,
+  staffY: number,
+  index: number
+): { noteheadY: number; y: number } {
+  const noteheadYs = resolveNoteheadYs(note, staffY)
+  const staffMiddleY = staffY + 60
+  const noteheadY =
+    Math.min(...noteheadYs) <= staffMiddleY
+      ? Math.min(...noteheadYs)
+      : Math.max(...noteheadYs)
+  const placeAbove = noteheadY <= staffMiddleY
+  const offset = 9 + index * 10
+
+  return {
+    noteheadY,
+    y: placeAbove ? noteheadY - offset : noteheadY + offset
+  }
+}
+
+function resolveNoteheadYs(note: StaveNote, staffY: number): number[] {
+  try {
+    const ys = note.getYs()
+
+    if (Array.isArray(ys) && ys.every((y) => Number.isFinite(y))) {
+      return ys
+    }
+  } catch {
+    // Fall back to staff middle when VexFlow cannot expose notehead coordinates
+    // in the current renderer/test environment.
+  }
+
+  return [staffY + 60]
 }
 
 function drawFermata(svg: SVGSVGElement, eventId: string, x: number, staffY: number): void {

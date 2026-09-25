@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { TICKS_PER_QUARTER, measureDurationTicks } from '../../../score-core'
 import { createNewScore } from './new-score'
 
 const commonOptions = {
@@ -70,5 +71,21 @@ describe('new score setup', () => {
         )
       )
     ).size)
+  })
+
+  it('score-setup.create-pickup-measure marks the first measure as a shorter pickup', () => {
+    const score = createNewScore({
+      ...commonOptions,
+      pickupMeasureBeats: 1
+    })
+    const firstMeasure = score.parts[0].staves[0].measures[0]
+    const secondMeasure = score.parts[0].staves[0].measures[1]
+
+    expect(firstMeasure.timing).toEqual({
+      type: 'pickup',
+      durationTicks: TICKS_PER_QUARTER
+    })
+    expect(measureDurationTicks(firstMeasure)).toBe(TICKS_PER_QUARTER)
+    expect(secondMeasure.timing).toEqual({ type: 'regular' })
   })
 })

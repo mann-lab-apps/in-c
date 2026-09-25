@@ -139,8 +139,8 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 ### Document Lifecycle
 
 - 시작 화면: 새 악보, 최근 파일, MusicXML 열기.
-- 새 악보 wizard: 제목, 작곡가, 내장 템플릿, 악기/파트, 조표, 박자표,
-  템포, 마디 수.
+- 새 악보 wizard: 제목, 작곡가, 악보 구성 템플릿, 악기/파트, 조표, 박자표,
+  못갖춘마디, 템포, 마디 수.
 - 로컬 저장: V1 primary save는 MusicXML이다. 전용 프로젝트 포맷은 post-V1로
   미루며, MusicXML이 보존하지 못하는 앱 전용 상태는 warning/report와 release
   notes에 명확히 쓴다.
@@ -197,10 +197,9 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 - note input state는 기존처럼 `target: VoiceAddress`를 보존하며, cursor 복귀와
   selection 생성 경로가 이 address를 유지한다.
 - playback timeline event는 `partId`, `staffId`, `voiceId`, `measureId`를 포함한다.
-- 새 악보 마법사는 `내장 템플릿` picker와 `악보 구성` select를 같은
-  `templateId`로 동기화해 solo melody, piano grand staff, 2-part ensemble,
-  string quartet skeleton을 만들고, NotationPreview는 생성된 추가 staff를 stacked
-  staff로 표시한다.
+- 새 악보 마법사는 `악보 구성` 단일 템플릿 선택 그룹으로 solo melody,
+  piano grand staff, 2-part ensemble, string quartet skeleton을 만들고,
+  NotationPreview는 생성된 추가 staff를 stacked staff로 표시한다.
 - 추가 staff SVG event는 `partId/staffId`를 가진 선택 대상으로 동작하며, grand staff
   lower staff에서 note input target이 staff-2에 유지되는 Electron smoke가 있다.
 - Note toolbar의 입력 보표 select는 grand staff와 multi-part score에서 active part/staff를
@@ -257,7 +256,11 @@ V1은 단성부 MVP나 데모 편집기가 아니다. 작곡가, 편곡가, 교�
 
 - clef, key signature, time signature, tempo marking.
 - dynamics: ppp, pp, p, mp, mf, f, ff, fff, sfz, crescendo, diminuendo.
-- articulations: staccato, accent, tenuto, marcato.
+- articulations: staccato, accent, tenuto, marcato. Staccato is rendered near
+  the notehead rather than as a fixed upper annotation marker.
+- grace notes and ornaments: bounded selected-note input/copy/delete,
+  MusicXML round-trip and renderer marker support exist; full professional
+  grace-note engraving remains part of broader engraving polish.
 - slur.
 - fermata, breath mark, caesura.
 - rehearsal mark.
@@ -308,6 +311,13 @@ copy remain follow-up parity items.
 triplet `⌘/Ctrl+3`, tie/slur, enharmonic respell, voice switching,
 navigation-first Up/Down, save, undo/redo, copy/paste, and delete. The legacy
 plain `9 = triplet` shortcut is not advertised.
+
+2026-09-23 shortcut hint slice: the global context strip adds a `단축키 힌트`
+toggle. When enabled, note-entry buttons show inline badges for duration, tie,
+tuplet and accidental shortcuts; when disabled, the buttons keep the same
+tooltip/aria labels and the full shortcut help dialog remains available. Flat,
+natural and sharp are bound to `Alt/⌥+-`, `Alt/⌥+0` and `Alt/⌥+=` so the plain
+`0` rest shortcut remains unambiguous.
 
 ### Lyrics And Chords
 
@@ -422,7 +432,8 @@ on the score page while PDF export capture hides the guide.
 - Plain destructive keys require visible selection and must be undoable.
 - Plain arrow keys should navigate by default. Destructive musical transforms
   should use modifiers.
-- Every toolbar button with a shortcut shows it in tooltip/aria text.
+- Every toolbar button with a shortcut shows it in tooltip/aria text, and core
+  note-entry shortcuts can be shown inline with the `단축키 힌트` toggle.
 - Shortcut conflicts are resolved by scope in this order:
   1. modal/dialog local commands
   2. active text editor commands

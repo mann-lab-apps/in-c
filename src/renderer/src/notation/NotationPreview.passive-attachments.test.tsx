@@ -5,6 +5,7 @@ import { fireEvent, render, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  TICKS_PER_QUARTER,
   type Score,
   createMeasure,
   createNote,
@@ -157,6 +158,70 @@ describe('NotationPreview passive lower-staff attachments', () => {
 
     expect(ornamentY).toBeLessThanOrEqual(fermataY - 24)
     expect(breathX).toBeGreaterThanOrEqual(fermataX + 24)
+  })
+
+  it('places staccato dots near the rendered notehead instead of a fixed upper annotation lane', async () => {
+    const score = createScore({
+      parts: [
+        createPart({
+          id: 'P1',
+          name: 'Piano',
+          staves: [
+            createStaff({
+              id: 'P1-S1',
+              measures: [
+                createMeasure({
+                  id: 'P1-S1-M1',
+                  voices: [
+                    createVoice({
+                      events: [
+                        createNote({
+                          id: 'staccato-note',
+                          position: createTimePosition(0),
+                          pitch: { step: 'C', octave: 5 },
+                          articulations: ['staccato']
+                        }),
+                        createRest({
+                          id: 'staccato-fill-rest',
+                          position: createTimePosition(TICKS_PER_QUARTER),
+                          duration: { value: 'half', dots: 1 }
+                        })
+                      ]
+                    })
+                  ]
+                })
+              ]
+            })
+          ]
+        })
+      ]
+    })
+    const { container } = render(
+      <NotationPreview
+        score={score}
+        onSelectEvent={vi.fn()}
+        onSelectEventRange={vi.fn()}
+        onSelectLyric={vi.fn()}
+        onSelectMeasure={vi.fn()}
+        onOpenMeasureContextMenu={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        container.querySelector('.notation-articulation[data-event-id="staccato-note"]')
+      ).toBeInTheDocument()
+    })
+
+    const dot = container.querySelector(
+      '.notation-articulation[data-event-id="staccato-note"]'
+    )
+    if (!dot) throw new Error('Missing staccato dot')
+    const cy = Number(dot.getAttribute('cy'))
+    const noteheadY = Number(dot.getAttribute('data-notehead-y'))
+
+    expect(dot).toHaveAttribute('r', '1.9')
+    expect(Math.abs(cy - noteheadY)).toBeLessThanOrEqual(12)
   })
 
   it('exposes chord and dynamic object ids for direct score-object selection', async () => {
