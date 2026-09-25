@@ -1097,3 +1097,21 @@ No app build performed; new changes have widget/source evidence only.
 - Next release action: confirm code 21 is unused in Play Console, then on user build request
   run `flutter build appbundle --release` from this worktree's `apps/in_c_sheet` and archive
   the verified artifact inside the project. Actual compile success and physical QA remain open.
+
+## MobileSheets-Informed Polish (2026-09-25)
+
+- Worktree: `/private/tmp/clef-mobilesheets-polish-20260925`, branch `dev`, based on
+  `410e350 fix: nest Clef app store pages`.
+- User resumed MobileSheets-reference polish after App Store review passed. This pass does not
+  introduce camera scanning, MusicXML/Chromatics linking, or passive practice-habit tracking.
+- Selected slice: home quick access clarity. User previously noted that recent items and items
+  needing information updates could read as adjacent but conceptually similar sections.
+- Implementation intent: distinguish metadata cleanup from recency without adopting
+  MobileSheets' denser tab/list UI. Home now labels the cleanup rail as `정보 정리 필요`,
+  describes it as missing title/composer information, and marks each cleanup card footer as
+  `정보 편집`. The recency rail is labelled `최근 악보` so it is distinct from
+  `최근 세트리스트`.
+- Verification: `dart format lib test tool`, focused widget smoke test, `flutter analyze`,
+  full `flutter test` (1,379 tests), `dart run tool/rc_release_check.dart`, `git diff --check`,
+  and RC whitespace/tab/stale wording scans passed. Device QA should still check
+  tablet-distance readability.

@@ -4116,28 +4116,33 @@ class _QuickAccessBand extends StatelessWidget {
     final groups = <_QuickAccessGroup>[
       if (!isSelecting)
         _QuickAccessGroup(
-          label: '정리 필요',
-          description: '정보를 채우면 검색과 세트리스트에서 찾기 쉬워져요.',
+          label: '정보 정리 필요',
+          description: '제목/작곡가 등이 비어 있어요. 누르면 정보 편집.',
           icon: Icons.edit_note,
           scores: metadataReviewScores,
           opensForEdit: true,
           emphasized: true,
+          chipIcon: Icons.edit_note,
+          chipFooterLabel: (score) => '정보 편집',
         ),
       _QuickAccessGroup(
         label: '고정',
         icon: Icons.push_pin,
         scores: pinnedScores,
+        chipIcon: Icons.push_pin,
       ),
       _QuickAccessGroup(
         label: '즐겨찾기',
         icon: Icons.star,
         scores: favoriteScores,
+        chipIcon: Icons.star,
       ),
       _QuickAccessGroup(
-        label: '최근',
+        label: '최근 악보',
         description: '마지막으로 연 악보',
         icon: Icons.history,
         scores: recentScores,
+        chipIcon: Icons.history,
       ),
     ].where((group) => group.scores.isNotEmpty).toList(growable: false);
     if (groups.isEmpty) {
@@ -4211,6 +4216,8 @@ class _QuickAccessBand extends StatelessWidget {
                             isSelecting: isSelecting,
                             isSelected: selectedIds.contains(score.id),
                             onSelectionChanged: onSelectionChanged,
+                            footerIcon: group.chipIcon,
+                            footerLabel: group.chipFooterLabel?.call(score),
                           );
                         },
                         separatorBuilder: (context, index) =>
@@ -4239,6 +4246,8 @@ class _QuickAccessGroup {
     this.description,
     this.opensForEdit = false,
     this.emphasized = false,
+    this.chipIcon,
+    this.chipFooterLabel,
   });
 
   final String label;
@@ -4247,6 +4256,8 @@ class _QuickAccessGroup {
   final List<SheetScore> scores;
   final bool opensForEdit;
   final bool emphasized;
+  final IconData? chipIcon;
+  final String Function(SheetScore score)? chipFooterLabel;
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {
@@ -4626,6 +4637,8 @@ class _QuickAccessScoreChip extends StatelessWidget {
     required this.isSelecting,
     required this.isSelected,
     required this.onSelectionChanged,
+    this.footerIcon,
+    this.footerLabel,
   });
 
   final SheetScore score;
@@ -4633,6 +4646,8 @@ class _QuickAccessScoreChip extends StatelessWidget {
   final bool isSelecting;
   final bool isSelected;
   final ValueChanged<SheetScore> onSelectionChanged;
+  final IconData? footerIcon;
+  final String? footerLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -4641,6 +4656,14 @@ class _QuickAccessScoreChip extends StatelessWidget {
     final openedLabel = score.lastOpenedAt == null
         ? '마지막 ${score.lastPage}쪽'
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
+    final resolvedFooterIcon =
+        footerIcon ??
+        (score.isPinned
+            ? Icons.push_pin
+            : score.isFavorite
+            ? Icons.star
+            : Icons.history);
+    final resolvedFooterLabel = footerLabel ?? openedLabel;
     return SizedBox(
       width: 176,
       height: 144,
@@ -4682,16 +4705,11 @@ class _QuickAccessScoreChip extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        if (score.isPinned)
-                          const Icon(Icons.push_pin, size: 14)
-                        else if (score.isFavorite)
-                          const Icon(Icons.star, size: 14)
-                        else
-                          const Icon(Icons.history, size: 14),
+                        Icon(resolvedFooterIcon, size: 14),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            openedLabel,
+                            resolvedFooterLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall,

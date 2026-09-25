@@ -1503,9 +1503,10 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    expect(find.text('정리 필요'), findsOneWidget);
-    expect(find.text('정보를 채우면 검색과 세트리스트에서 찾기 쉬워져요.'), findsOneWidget);
-    expect(find.text('최근'), findsOneWidget);
+    expect(find.text('정보 정리 필요'), findsOneWidget);
+    expect(find.text('제목/작곡가 등이 비어 있어요. 누르면 정보 편집.'), findsOneWidget);
+    expect(find.text('정보 편집'), findsOneWidget);
+    expect(find.text('최근 악보'), findsOneWidget);
     expect(find.text('마지막으로 연 악보'), findsOneWidget);
     expect(find.text('clef imported score'), findsWidgets);
     expect(find.textContaining('파일 · clef-imported-score'), findsWidgets);
