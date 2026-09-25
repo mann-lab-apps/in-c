@@ -1,11 +1,11 @@
 {
-  "version": "0.1.0-alpha.16",
-  "releaseTag": "v0.1.0-alpha.16",
+  "version": "0.1.0-alpha.17",
+  "releaseTag": "v0.1.0-alpha.17",
   "releaseDate": "2026-09-25",
   "releasePublished": true,
   "repositoryUrl": "https://github.com/mann-lab-apps/in-c",
-  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.16",
-  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.16/SHA256SUMS.txt",
+  "releaseUrl": "https://github.com/mann-lab-apps/in-c/releases/tag/v0.1.0-alpha.17",
+  "checksumsUrl": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.17/SHA256SUMS.txt",
   "signing": {
     "macOS": "미서명 prerelease. Gatekeeper 경고가 표시될 수 있습니다.",
     "Windows": "미서명 prerelease. SmartScreen 경고가 표시될 수 있습니다.",
@@ -19,9 +19,9 @@
       "architecture": "Universal",
       "format": "DMG",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.16-mac-universal.dmg",
+      "fileName": "in-C-0.1.0-alpha.17-mac-universal.dmg",
       "size": "227.7 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.16/in-C-0.1.0-alpha.16-mac-universal.dmg"
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.17/in-C-0.1.0-alpha.17-mac-universal.dmg"
     },
     {
       "id": "windows",
@@ -30,9 +30,9 @@
       "architecture": "x64",
       "format": "NSIS installer",
       "available": true,
-      "fileName": "in-C-0.1.0-alpha.16-windows-x64-setup.exe",
+      "fileName": "in-C-0.1.0-alpha.17-windows-x64-setup.exe",
       "size": "112.7 MB",
-      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.16/in-C-0.1.0-alpha.16-windows-x64-setup.exe"
+      "url": "https://github.com/mann-lab-apps/in-c/releases/download/v0.1.0-alpha.17/in-C-0.1.0-alpha.17-windows-x64-setup.exe"
     },
     {
       "id": "linux",
