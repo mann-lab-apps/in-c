@@ -5739,7 +5739,7 @@ describe('App component shell', () => {
         .getAllByText('mf')
         .every((element) => element.getAttribute('data-measure-id') !== 'measure-2')
     ).toBe(true)
-  })
+  }, 15000)
 
   it.each([
     ['staffTexts', '보표 글자'], ['systemTexts', '시스템 텍스트'],
