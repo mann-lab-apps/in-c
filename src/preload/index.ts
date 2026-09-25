@@ -10,6 +10,7 @@ const saveMidiChannel = 'midi:save'
 const readAutosaveChannel = 'autosave:read'
 const writeAutosaveChannel = 'autosave:write'
 const clearAutosaveChannel = 'autosave:clear'
+const newWindowChannel = 'window:new'
 const listRecentMusicXmlChannel = 'recent-musicxml:list'
 const addRecentMusicXmlChannel = 'recent-musicxml:add'
 const openRecentMusicXmlChannel = 'recent-musicxml:open'
@@ -36,6 +37,9 @@ const api = {
     node: process.versions.node,
     chrome: process.versions.chrome,
     electron: process.versions.electron
+  },
+  window: {
+    new: () => ipcRenderer.invoke(newWindowChannel) as Promise<void>
   },
   musicXml: {
     exportCopy: (input: { filePath?: string; suggestedName: string; contents: string }) =>

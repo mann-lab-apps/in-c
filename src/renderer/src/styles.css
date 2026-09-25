@@ -678,13 +678,13 @@ h2 {
 
 .toolbar {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   min-height: 46px;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow-x: hidden;
+  overflow-y: visible;
   padding: 6px 18px;
   border-bottom: 1px solid #d3cdbf;
   background: rgba(255, 255, 255, 0.58);
@@ -695,7 +695,7 @@ h2 {
 .toolbar__group {
   display: flex;
   flex: 0 0 auto;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   gap: 5px;
   min-width: 0;

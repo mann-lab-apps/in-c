@@ -195,6 +195,7 @@ import {
   isTupletShortcut,
   isUndoShortcut,
   resolveAccidentalShortcut,
+  resolveChordIntervalShortcut,
   resolveDotShortcut,
   resolveDurationShortcut,
   resolvePitchKeyboardAction,
@@ -230,13 +231,13 @@ const durations: DurationValue[] = [
   'whole'
 ]
 const durationShortcuts: Partial<Record<DurationValue, string>> = {
-  '64th': '1',
-  '32nd': '2',
-  '16th': '3',
+  whole: '1',
+  half: '2',
+  quarter: '3',
   eighth: '4',
-  quarter: '5',
-  half: '6',
-  whole: '7'
+  '16th': '5',
+  '32nd': '6',
+  '64th': '7'
 }
 const accidentalShortcuts: Record<-1 | 0 | 1, string> = {
   [-1]: 'Alt/⌥+-',
@@ -519,6 +520,15 @@ interface MeasureContextMenuState {
   y: number
 }
 
+interface MeasureClipboard {
+  measureCount: number
+  measuresByStaff: Array<{
+    partId: string
+    staffId: string
+    measure: Measure
+  }>
+}
+
 interface StaffTargetOption {
   value: string
   label: string
@@ -683,16 +693,19 @@ const shortcutReferenceSections = [
       ['샤프', accidentalShortcuts[1]],
       ['음높이 한 칸 이동', '↑ / ↓'],
       ['반음 이동', 'Alt/Option+↑ / ↓'],
-      ['옥타브 이동', 'Shift+↑ / ↓'],
+      ['옥타브 이동', 'Cmd/Ctrl+↑ / ↓'],
+      ['화음 위로 쌓기', '선택 음표에서 2-9'],
+      ['화음 아래로 쌓기', '선택 음표에서 Shift+2-9'],
       ['이명동음 바꾸기', 'J']
     ]
   },
   {
     title: '성부와 선택',
     rows: [
+      ['다음/이전 마디', 'Tab / Shift+Tab'],
+      ['다음/이전 성부', 'Enter / Shift+Enter'],
       ['성부 순환', 'V'],
       ['성부 직접 선택', 'Cmd/Ctrl+Alt+1-4'],
-      ['인접 보표 이동', 'Cmd/Ctrl+↑ / ↓'],
       ['선택 범위 확장', 'Shift+Click']
     ]
   },
@@ -703,7 +716,7 @@ const shortcutReferenceSections = [
       ['프로젝트 다른 이름 저장', 'Cmd/Ctrl+Shift+S'],
       ['실행 취소', 'Cmd/Ctrl+Z'],
       ['다시 실행', 'Cmd/Ctrl+Shift+Z'],
-      ['복사/붙여넣기', 'Cmd/Ctrl+C / Cmd/Ctrl+V'],
+      ['복사/잘라내기/붙여넣기', 'Cmd/Ctrl+C / Cmd/Ctrl+X / Cmd/Ctrl+V'],
       ['삭제', 'Delete/Backspace']
     ]
   }
@@ -742,6 +755,7 @@ export const App = () => {
     useState<SelectionObjectTypeFilter>('none')
   const [rangeClipboard, setRangeClipboard] = useState<RangeClipboard>()
   const [spanClipboard, setSpanClipboard] = useState<SpanClipboard>()
+  const [measureClipboard, setMeasureClipboard] = useState<MeasureClipboard>()
   const [measureMarkingClipboard, setMeasureMarkingClipboard] =
     useState<MeasureMarkingClipboard>()
   const [pendingSlurAnchorEventId, setPendingSlurAnchorEventId] =
@@ -3016,6 +3030,39 @@ export const App = () => {
     systemTextTarget
   ])
 
+  const pasteMeasureSelection = useCallback(() => {
+    if (!measureClipboard) {
+      return false
+    }
+
+    const paste = buildMeasurePasteCommand(
+      score,
+      selection,
+      measureClipboard,
+      () => crypto.randomUUID()
+    )
+
+    if (!paste) {
+      setFileStatus({
+        tone: 'error',
+        message: '같은 구조의 대상 마디를 선택해야 마디를 붙여넣을 수 있습니다.'
+      })
+      return true
+    }
+
+    if (executeCommand(paste.command)) {
+      setSelection(createMeasureSelection(score, paste.measureId, paste.address))
+      setNoteInputState(undefined)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message: '마디를 붙여넣었습니다.'
+      })
+    }
+
+    return true
+  }, [executeCommand, measureClipboard, score, selection])
+
   const copySelection = useCallback(() => {
     const sourceScore = scoreViewMode === 'part' && livePartViewPartId
       ? applyPortablePartLayout(createLivePartViewScore(score, livePartViewPartId), livePartLayout)
@@ -3029,9 +3076,31 @@ export const App = () => {
       setSpanClipboard(clipboard)
       setRangeClipboard(undefined)
       setMeasureMarkingClipboard(undefined)
+      setMeasureClipboard(undefined)
       setFileStatus({ tone: 'neutral', message: '표기 객체를 복사했습니다.' +
         (clipboard.requiresExplicitEnd ? ' 붙여넣기 끝점 지정 필요' : '') +
         (clipboard.excludedSegmentCount ? ` 범위 밖 구간 배치 ${clipboard.excludedSegmentCount}개 제외` : '') })
+      return
+    }
+    if (selection.type === 'measure' && selectionObjectTypeFilter === 'none') {
+      const clipboard = buildMeasureClipboard(score, selection)
+
+      if (!clipboard) {
+        setFileStatus({
+          tone: 'error',
+          message: '복사할 마디를 먼저 선택해 주세요.'
+        })
+        return
+      }
+
+      setMeasureClipboard(clipboard)
+      setRangeClipboard(undefined)
+      setMeasureMarkingClipboard(undefined)
+      setSpanClipboard(undefined)
+      setFileStatus({
+        tone: 'neutral',
+        message: '마디 내용(음표·쉼표·화음·잇단음표)을 복사했습니다.'
+      })
       return
     }
     if (
@@ -3072,6 +3141,7 @@ export const App = () => {
       setMeasureMarkingClipboard(clipboard)
       setRangeClipboard(undefined)
       setSpanClipboard(undefined)
+      setMeasureClipboard(undefined)
       setFileStatus({
         tone: 'neutral',
         message: `${describeSelectionObjectFilter(selectionObjectTypeFilter)} 표기를 복사했습니다.`
@@ -3094,6 +3164,7 @@ export const App = () => {
     setRangeClipboard(clipboard)
     setMeasureMarkingClipboard(undefined)
     setSpanClipboard(undefined)
+    setMeasureClipboard(undefined)
     setFileStatus({
       tone: 'neutral',
       message:
@@ -3147,6 +3218,11 @@ export const App = () => {
         })
       }
       return
+    }
+    if (measureClipboard && selection.type === 'measure') {
+      if (pasteMeasureSelection()) {
+        return
+      }
     }
 
     if (!rangeClipboard) {
@@ -3213,7 +3289,9 @@ export const App = () => {
     spanClipboard,
     executeCommand,
     measureMarkingClipboard,
+    measureClipboard,
     noteInputState,
+    pasteMeasureSelection,
     rangeClipboard,
     score,
     selection,
@@ -3296,6 +3374,47 @@ export const App = () => {
 
     removeMeasureById(activeMeasureId)
   }, [activeMeasureId, removeMeasureById])
+
+  const cutMeasureSelection = useCallback(() => {
+    const clipboard = buildMeasureClipboard(score, selection)
+
+    if (!clipboard || selection.type !== 'measure') {
+      setFileStatus({
+        tone: 'error',
+        message: '잘라낼 마디를 먼저 선택해 주세요.'
+      })
+      return
+    }
+
+    if (measureCount <= 1) {
+      setFileStatus({
+        tone: 'error',
+        message: '마지막 남은 마디는 잘라낼 수 없습니다.'
+      })
+      return
+    }
+
+    const edit = buildRemoveMeasure(score, selection.measureId, noteInputState)
+
+    if (edit && executeCommand(edit.command)) {
+      setMeasureClipboard(clipboard)
+      setRangeClipboard(undefined)
+      setMeasureMarkingClipboard(undefined)
+      setSpanClipboard(undefined)
+      setSelection(edit.selection)
+      setNoteInputState(edit.inputState)
+      setMode('select')
+      setFileStatus({
+        tone: 'neutral',
+        message: '마디를 잘라냈습니다.'
+      })
+    } else {
+      setFileStatus({
+        tone: 'error',
+        message: '마디를 잘라낼 수 없습니다. 선택 위치와 보표별 마디 수를 확인해 주세요.'
+      })
+    }
+  }, [executeCommand, measureCount, noteInputState, score, selection])
 
   const updateMeasureById = useCallback(
     (
@@ -3929,6 +4048,33 @@ export const App = () => {
           pitches: [...pitches, pitch].sort(comparePitch)
         }
       }, '화음 구성음을 추가했습니다.')
+    },
+    [replaceSelectedNote]
+  )
+
+  const addChordInterval = useCallback(
+    (interval: number, direction: -1 | 1) => {
+      if (interval === 1) {
+        setFileStatus({
+          tone: 'neutral',
+          message: '1도는 기존 음과 같아 화음 구성음을 추가하지 않았습니다.'
+        })
+        return
+      }
+
+      replaceSelectedNote((note) => {
+        const pitches = normalizeChordPitches(note)
+        const pitch = transposeChordPitch(note.pitch, direction * (interval - 1))
+
+        if (pitches.some((candidate) => samePitch(candidate, pitch))) {
+          return note
+        }
+
+        return {
+          ...note,
+          pitches: [...pitches, pitch].sort(comparePitch)
+        }
+      }, direction > 0 ? `${interval}도 위 화음 구성음을 추가했습니다.` : `${interval}도 아래 화음 구성음을 추가했습니다.`)
     },
     [replaceSelectedNote]
   )
@@ -4585,35 +4731,62 @@ export const App = () => {
     [executeCommand, noteInputState, pendingSlurAnchorEventId, score, selection]
   )
 
-  const moveSelectionVertically = useCallback(
+  const moveToAdjacentMeasure = useCallback(
     (direction: -1 | 1): boolean => {
-      if (noteInputState) {
+      if (!activeMeasureId) {
         return false
       }
 
-      const currentEventId = getSelectionFocusEventId(selection)
-
-      if (!currentEventId) {
-        return false
-      }
-
-      const target = resolveVerticalEventSelection(
-        score,
-        currentEventId,
-        direction,
-        selection.type === 'measure' ? undefined : selection.address
+      const baseAddress = activeAddress
+      const part = baseAddress
+        ? score.parts.find((candidate) => candidate.id === baseAddress.partId)
+        : undefined
+      const staff = part?.staves.find(
+        (candidate) => candidate.id === baseAddress?.staffId
       )
+      const fallback = findMeasureIndexById(score, activeMeasureId)
+      const currentMeasureIndex = staff
+        ? staff.measures.findIndex((measure) => measure.id === activeMeasureId)
+        : fallback?.measureIndex ?? -1
+      const targetMeasureIndex = currentMeasureIndex + direction
+      const targetMeasure = staff?.measures[targetMeasureIndex]
 
-      if (!target) {
+      if (!targetMeasure) {
         return false
       }
+
+      const targetVoice =
+        targetMeasure.voices.find(
+          (voice) => voice.id === baseAddress?.voiceId
+        ) ?? targetMeasure.voices[0]
+
+      if (!targetVoice) {
+        return false
+      }
+
+      const targetAddress: VoiceAddress = {
+        partId: part?.id ?? fallback?.address.partId ?? score.parts[0]?.id ?? '',
+        staffId: staff?.id ?? fallback?.address.staffId ?? score.parts[0]?.staves[0]?.id ?? '',
+        measureId: targetMeasure.id,
+        voiceId: targetVoice.id
+      }
+      const firstEvent = sortVoiceEvents(targetVoice.events)[0]
 
       setMode('select')
       setNoteInputState(undefined)
-      setSelection(createEventSelection(score, target.eventId, target.address))
+      setMeasureContextMenu(undefined)
+      setSelection(
+        firstEvent && selection.type !== 'measure'
+          ? createEventSelection(score, firstEvent.id, targetAddress)
+          : createMeasureSelection(score, targetMeasure.id, targetAddress)
+      )
+      setFileStatus({
+        tone: 'neutral',
+        message: direction === 1 ? '다음 마디로 이동했습니다.' : '이전 마디로 이동했습니다.'
+      })
       return true
     },
-    [noteInputState, score, selection]
+    [activeAddress, activeMeasureId, score, selection.type]
   )
 
   const moveToNextLyricNote = useCallback(() => {
@@ -5409,6 +5582,17 @@ export const App = () => {
         return
       }
 
+      if (usesCommandKey && !event.altKey && event.code === 'KeyX') {
+        event.preventDefault()
+        if (selection.type === 'measure') {
+          cutMeasureSelection()
+        } else {
+          copySelection()
+          deleteSelection()
+        }
+        return
+      }
+
       if (usesCommandKey && !event.altKey && event.code === 'KeyV') {
         event.preventDefault()
         pasteSelection()
@@ -5441,6 +5625,30 @@ export const App = () => {
         return
       }
 
+      if (!event.altKey && !usesCommandKey && event.key === 'Tab') {
+        if (moveToAdjacentMeasure(event.shiftKey ? -1 : 1)) {
+          event.preventDefault()
+        }
+        return
+      }
+
+      if (!event.altKey && !usesCommandKey && event.key === 'Enter') {
+        event.preventDefault()
+        const currentVoiceNumber = voiceNumbers.includes(
+          activeVoiceNumber as (typeof voiceNumbers)[number]
+        )
+          ? (activeVoiceNumber as (typeof voiceNumbers)[number])
+          : 1
+        const currentIndex = voiceNumbers.indexOf(currentVoiceNumber)
+        const offset = event.shiftKey ? -1 : 1
+        const nextVoice =
+          voiceNumbers[
+            (currentIndex + offset + voiceNumbers.length) % voiceNumbers.length
+          ]
+        switchActiveVoice(nextVoice)
+        return
+      }
+
       if (!event.altKey && !usesCommandKey && event.code === 'KeyJ') {
         event.preventDefault()
         respellEnharmonically()
@@ -5452,6 +5660,14 @@ export const App = () => {
       if (accidental !== undefined) {
         event.preventDefault()
         changeAccidental(accidental)
+        return
+      }
+
+      const chordInterval = resolveChordIntervalShortcut(event)
+
+      if (chordInterval && !noteInputState && eventLocation?.event.type === 'note') {
+        event.preventDefault()
+        addChordInterval(chordInterval.interval, chordInterval.direction)
         return
       }
 
@@ -5564,24 +5780,12 @@ export const App = () => {
         case 'ArrowUp':
         case 'ArrowDown':
           event.preventDefault()
-          if (
-            usesCommandKey &&
-            !event.altKey &&
-            moveSelectionVertically(event.key === 'ArrowUp' ? -1 : 1)
-          ) {
-            setFileStatus({
-              tone: 'neutral',
-              message:
-                event.key === 'ArrowUp'
-                  ? '위 보표로 이동했습니다.'
-                  : '아래 보표로 이동했습니다.'
-            })
-          } else if (eventLocation?.event.type === 'note') {
-            if (event.shiftKey && !event.altKey && !usesCommandKey) {
+          if (eventLocation?.event.type === 'note') {
+            if (usesCommandKey && !event.altKey) {
               movePitch('octave', event.key === 'ArrowUp' ? 1 : -1)
             } else if (event.altKey && !usesCommandKey) {
               movePitch('chromatic', event.key === 'ArrowUp' ? 1 : -1)
-            } else if (!event.shiftKey && !event.altKey && !usesCommandKey) {
+            } else if (!event.altKey && !usesCommandKey) {
               movePitch('diatonic', event.key === 'ArrowUp' ? 1 : -1)
             }
           }
@@ -5613,6 +5817,7 @@ export const App = () => {
   }, [
     activeSpanReference,
     deleteSpan,
+    addChordInterval,
     addChordPitchStep,
     activeVoiceNumber,
     changeDuration,
@@ -5621,13 +5826,14 @@ export const App = () => {
     clearSelection,
     convertSelectionToRest,
     copySelection,
+    cutMeasureSelection,
     deleteSelection,
     enterNote,
     enterRest,
     moveActiveLyricVerse,
     movePitch,
     moveSelection,
-    moveSelectionVertically,
+    moveToAdjacentMeasure,
     moveToNextLyricNote,
     respellEnharmonically,
     mode,
@@ -6326,11 +6532,21 @@ export const App = () => {
                     <div className="inspector-properties__row">
                       <span>화음</span>
                       <div className="inspector-properties__buttons">
-                        <button onClick={() => addChordTone(2)} type="button">
-                          3도 추가
+                        <button
+                          aria-label="3도 위 화음 추가, 단축키 3"
+                          onClick={() => addChordTone(2)}
+                          type="button"
+                        >
+                          3도 위 추가
+                          {showShortcutHints ? <span className="shortcut-badge">3</span> : null}
                         </button>
-                        <button onClick={() => addChordTone(4)} type="button">
-                          5도 추가
+                        <button
+                          aria-label="5도 위 화음 추가, 단축키 5"
+                          onClick={() => addChordTone(4)}
+                          type="button"
+                        >
+                          5도 위 추가
+                          {showShortcutHints ? <span className="shortcut-badge">5</span> : null}
                         </button>
                       </div>
                     </div>
@@ -7387,6 +7603,16 @@ export const App = () => {
               >
                 <FilePlus2 aria-hidden="true" size={17} />
                 <span>새 악보</span>
+              </button>
+              <button
+                aria-label="새 창 열기"
+                disabled={!window.inC?.window?.new}
+                onClick={() => void window.inC.window?.new()}
+                title="독립 편집 창 열기"
+                type="button"
+              >
+                <PanelRight aria-hidden="true" size={17} />
+                <span>새 창</span>
               </button>
               <button aria-label="프로젝트 열기" title="Chromatics 프로젝트 열기" type="button" onClick={() => void openNativeProject()} disabled={!window.inC?.project}>
                 <FileUp aria-hidden="true" size={17} /><span>프로젝트 열기</span>
@@ -12583,102 +12809,6 @@ function findStaffMeasures(
     ?.measures
 }
 
-function resolveVerticalEventSelection(
-  score: Score,
-  eventId: string,
-  direction: -1 | 1,
-  address?: VoiceAddress
-): { address: VoiceAddress; eventId: string } | undefined {
-  const location = locateEvent(score, eventId, address)
-
-  if (!location) {
-    return undefined
-  }
-
-  const measureIndex = findMeasureIndex(score, location.address)
-  const lanes = createVoiceLanes(score, measureIndex)
-  const currentLaneIndex = lanes.findIndex(
-    (lane) =>
-      lane.address.partId === location.address.partId &&
-      lane.address.staffId === location.address.staffId &&
-      lane.address.voiceId === location.address.voiceId
-  )
-
-  if (measureIndex < 0 || currentLaneIndex < 0) {
-    return undefined
-  }
-
-  for (
-    let laneIndex = currentLaneIndex + direction;
-    laneIndex >= 0 && laneIndex < lanes.length;
-    laneIndex += direction
-  ) {
-    const lane = lanes[laneIndex]
-    const events = sortVoiceEvents(lane.voice.events)
-
-    if (events.length === 0) {
-      continue
-    }
-
-    const targetEvent = findNearestEventAtTick(events, location.event.position.tick)
-
-    return {
-      address: {
-        ...lane.address,
-        measureId: lane.measure.id
-      },
-      eventId: targetEvent.id
-    }
-  }
-
-  return undefined
-}
-
-function createVoiceLanes(
-  score: Score,
-  measureIndex: number
-): Array<{
-  address: Omit<VoiceAddress, 'measureId'>
-  measure: Measure
-  voice: Measure['voices'][number]
-}> {
-  if (measureIndex < 0) {
-    return []
-  }
-
-  return score.parts.flatMap((part) =>
-    part.staves.flatMap((staff) => {
-      const measure = staff.measures[measureIndex]
-
-      if (!measure) {
-        return []
-      }
-
-      return measure.voices.map((voice) => ({
-        address: {
-          partId: part.id,
-          staffId: staff.id,
-          voiceId: voice.id
-        },
-        measure,
-        voice
-      }))
-    })
-  )
-}
-
-function findNearestEventAtTick(
-  events: Measure['voices'][number]['events'],
-  tick: number
-): Measure['voices'][number]['events'][number] {
-  return events.reduce((nearest, event) =>
-    Math.abs(event.position.tick - tick) <
-    Math.abs(nearest.position.tick - tick)
-      ? event
-      : nearest
-  )
-}
-
 function parseVoiceNumber(voiceId: string | undefined): number {
   const match = voiceId ? /^voice-(\d+)$/.exec(voiceId) : undefined
 
@@ -12712,6 +12842,165 @@ function samePageSetup(
     left.staffSizePercent === right.staffSizePercent &&
     left.systemSpacingPercent === right.systemSpacingPercent
   )
+}
+
+function buildMeasureClipboard(
+  score: Score,
+  selection: EditorSelection
+): MeasureClipboard | undefined {
+  if (selection.type !== 'measure') {
+    return undefined
+  }
+
+  const location = findMeasureIndexById(score, selection.measureId)
+
+  if (!location) {
+    return undefined
+  }
+
+  const measuresByStaff = score.parts.flatMap((part) =>
+    part.staves.flatMap((staff) => {
+      const measure = staff.measures[location.measureIndex]
+
+      return measure
+        ? [{
+            partId: part.id,
+            staffId: staff.id,
+            measure: structuredClone(measure)
+          }]
+        : []
+    })
+  )
+
+  const staffCount = score.parts.reduce(
+    (count, part) => count + part.staves.length,
+    0
+  )
+
+  return measuresByStaff.length === staffCount
+    ? { measureCount: 1, measuresByStaff }
+    : undefined
+}
+
+function buildMeasurePasteCommand(
+  score: Score,
+  selection: EditorSelection,
+  clipboard: MeasureClipboard,
+  createId: () => string
+): { command: ScoreCommand; measureId: string; address?: VoiceAddress } | undefined {
+  if (selection.type !== 'measure' || clipboard.measureCount !== 1) {
+    return undefined
+  }
+
+  const target = findMeasureIndexById(score, selection.measureId)
+
+  if (!target) {
+    return undefined
+  }
+
+  const sourceByStaff = new Map(
+    clipboard.measuresByStaff.map((item) => [
+      `${item.partId}\u0000${item.staffId}`,
+      item.measure
+    ])
+  )
+  let replaced = 0
+  const parts = score.parts.map((part) => ({
+    ...part,
+    staves: part.staves.map((staff) => {
+      const source = sourceByStaff.get(`${part.id}\u0000${staff.id}`)
+      const existing = staff.measures[target.measureIndex]
+
+      if (!source || !existing) {
+        return staff
+      }
+
+      replaced += 1
+      return {
+        ...staff,
+        measures: staff.measures.map((measure, index) =>
+          index === target.measureIndex
+            ? cloneMeasureForPaste(source, existing, createId)
+            : measure
+        )
+      }
+    })
+  }))
+
+  if (replaced !== clipboard.measuresByStaff.length) {
+    return undefined
+  }
+
+  return {
+    command: { type: 'score-parts.replace', parts },
+    measureId: target.measure.id,
+    address: target.address
+  }
+}
+
+function cloneMeasureForPaste(
+  source: Measure,
+  target: Measure,
+  createId: () => string
+): Measure {
+  const eventIds = new Map<string, string>()
+  const voices = source.voices.map((voice) => {
+    const events = voice.events.map((event) => {
+      const id = createId()
+      eventIds.set(event.id, id)
+      return { ...structuredClone(event), id }
+    })
+
+    return {
+      ...structuredClone(voice),
+      events,
+      tuplets: voice.tuplets?.map((tuplet) => ({
+        ...structuredClone(tuplet),
+        id: createId(),
+        eventIds: tuplet.eventIds.flatMap((id) => {
+          const nextId = eventIds.get(id)
+          return nextId ? [nextId] : []
+        })
+      }))
+    }
+  })
+
+  return {
+    ...structuredClone(source),
+    id: target.id,
+    number: target.number,
+    voices
+  }
+}
+
+function findMeasureIndexById(
+  score: Score,
+  measureId: string
+): { measure: Measure; measureIndex: number; address: VoiceAddress } | undefined {
+  for (const part of score.parts) {
+    for (const staff of part.staves) {
+      const measureIndex = staff.measures.findIndex(
+        (measure) => measure.id === measureId
+      )
+      const measure = staff.measures[measureIndex]
+      const voice = measure?.voices[0]
+
+      if (measure && voice) {
+        return {
+          measure,
+          measureIndex,
+          address: {
+            partId: part.id,
+            staffId: staff.id,
+            measureId: measure.id,
+            voiceId: voice.id
+          }
+        }
+      }
+    }
+  }
+
+  return undefined
 }
 
 function resolveVoiceShortcut(

@@ -9,6 +9,7 @@ import {
   isTextEditingTarget,
   isTupletShortcut,
   isUndoShortcut,
+  resolveChordIntervalShortcut,
   resolveAccidentalShortcut,
   resolveDotShortcut,
   resolveDurationShortcut,
@@ -37,14 +38,14 @@ describe('keyboard input routing', () => {
   })
 
   it.each([
-    ['Digit1', '!', '64th'],
-    ['Digit2', '@', '32nd'],
-    ['Digit3', '#', '16th'],
+    ['Digit1', '!', 'whole'],
+    ['Digit2', '@', 'half'],
+    ['Digit3', '#', 'quarter'],
     ['Digit4', '$', 'eighth'],
-    ['Digit5', '%', 'quarter'],
-    ['Digit6', '^', 'half'],
-    ['Digit7', '&', 'whole'],
-    ['Numpad5', '5', 'quarter']
+    ['Digit5', '%', '16th'],
+    ['Digit6', '^', '32nd'],
+    ['Digit7', '&', '64th'],
+    ['Numpad5', '5', '16th']
   ])('[note-input.korean-editing-keys] maps physical %s to %s duration regardless of the logical key', (code, key, duration) => {
     expect(resolveDurationShortcut(keyEvent({ code, key }))).toBe(duration)
   })
@@ -52,6 +53,24 @@ describe('keyboard input routing', () => {
   it('leaves unsupported duration slots unbound until the score model supports them', () => {
     expect(resolveDurationShortcut(keyEvent({ code: 'Digit8', key: '8' }))).toBeUndefined()
     expect(resolveDurationShortcut(keyEvent({ code: 'Digit9', key: '9' }))).toBeUndefined()
+  })
+
+  it('keeps logical digit fallback aligned with the V1 duration map', () => {
+    expect(resolveDurationShortcut(keyEvent({ code: '', key: '1' }))).toBe('whole')
+    expect(resolveDurationShortcut(keyEvent({ code: '', key: '3' }))).toBe('quarter')
+    expect(resolveDurationShortcut(keyEvent({ code: '', key: '7' }))).toBe('64th')
+  })
+
+  it('maps selected-note interval chord shortcuts above and below the reference note', () => {
+    expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit3', key: '#' })))
+      .toEqual({ direction: 1, interval: 3 })
+    expect(
+      resolveChordIntervalShortcut(
+        keyEvent({ code: 'Numpad5', key: '5', shiftKey: true })
+      )
+    ).toEqual({ direction: -1, interval: 5 })
+    expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit1', key: '1' }))).toBeUndefined()
+    expect(resolveChordIntervalShortcut(keyEvent({ code: 'Digit9', key: '9', metaKey: true }))).toBeUndefined()
   })
 
   it('maps physical punctuation keys to dot edits', () => {

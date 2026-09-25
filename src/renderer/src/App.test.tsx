@@ -288,6 +288,19 @@ vi.mock('./notation/NotationPreview', () => ({
           )
         )
         .join(',')}
+      data-event-chord-pitches={score.parts[0]?.staves[0]?.measures
+        .flatMap((measure) =>
+          measure.voices.flatMap((voice) =>
+            voice.events.map((event) =>
+              event.type === 'note'
+                ? `${event.id}:${(event.pitches?.length ? event.pitches : [event.pitch])
+                    .map((pitch) => `${pitch.step}${pitch.alter ?? ''}${pitch.octave}`)
+                    .join('/')}`
+                : `${event.id}:rest`
+            )
+          )
+        )
+        .join(',')}
       data-all-event-pitches={score.parts
         .flatMap((part) =>
           part.staves.flatMap((staff) =>
@@ -687,6 +700,9 @@ const installPreloadStub = () => {
       chrome: 'test',
       electron: 'test',
       node: 'test'
+    },
+    window: {
+      new: vi.fn().mockResolvedValue(undefined)
     }
   }
 }
@@ -3400,8 +3416,9 @@ describe('App component shell', () => {
     render(<App />)
 
     fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
-    fireEvent.click(screen.getByRole('button', { name: '악보' }))
-    const clefSelect = screen.getByLabelText('선택 마디 음자리표')
+    fireEvent.click(screen.getByRole('button', { name: '표기 객체' }))
+    const notationObjects = screen.getByRole('region', { name: '표기 객체' })
+    const clefSelect = within(notationObjects).getByLabelText('선택 마디 음자리표')
     const preview = screen.getByTestId('notation-preview')
     const initialClefs = preview.getAttribute('data-measure-clefs')?.split(',')
 
@@ -3990,17 +4007,19 @@ describe('App component shell', () => {
     expect(within(dialog).getByText('반음 이동')).toBeInTheDocument()
     expect(within(dialog).getByText('Alt/Option+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('옥타브 이동')).toBeInTheDocument()
-    expect(within(dialog).getByText('Shift+↑ / ↓')).toBeInTheDocument()
+    expect(within(dialog).getByText('Cmd/Ctrl+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
     expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
     expect(within(dialog).getByText('제자리표')).toBeInTheDocument()
     expect(within(dialog).getByText('Alt/⌥+0')).toBeInTheDocument()
     expect(within(dialog).getByText('샤프')).toBeInTheDocument()
     expect(within(dialog).getByText('Alt/⌥+=')).toBeInTheDocument()
+    expect(within(dialog).getByText('다음/이전 마디')).toBeInTheDocument()
+    expect(within(dialog).getByText('Tab / Shift+Tab')).toBeInTheDocument()
+    expect(within(dialog).getByText('다음/이전 성부')).toBeInTheDocument()
+    expect(within(dialog).getByText('Enter / Shift+Enter')).toBeInTheDocument()
     expect(within(dialog).getByText('성부 직접 선택')).toBeInTheDocument()
     expect(within(dialog).getByText('Cmd/Ctrl+Alt+1-4')).toBeInTheDocument()
-    expect(within(dialog).getByText('인접 보표 이동')).toBeInTheDocument()
-    expect(within(dialog).getByText('Cmd/Ctrl+↑ / ↓')).toBeInTheDocument()
     expect(within(dialog).queryByText('9')).not.toBeInTheDocument()
 
     fireEvent.click(within(dialog).getByRole('button', { name: '닫기' }))
@@ -4027,7 +4046,7 @@ describe('App component shell', () => {
     expect(within(accidentalPalette).queryByText('Alt/⌥+0')).not.toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 5'
+        name: '4분음표, 단축키 3'
       })
     ).toBeInTheDocument()
 
@@ -4048,6 +4067,115 @@ describe('App component shell', () => {
     expect(within(accidentalPalette).getByText('Alt/⌥+0')).toBeInTheDocument()
   })
 
+  it('file.new-window opens an independent Electron editing window', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: '파일' }))
+    fireEvent.click(screen.getByRole('button', { name: '새 창 열기' }))
+
+    await waitFor(() => expect(window.inC.window.new).toHaveBeenCalledOnce())
+  })
+
+  it('keyboard.excel-style-navigation moves by measure and voice without hiding pitch editing', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'note-c4 선택' }))
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'note-c4'
+    )
+
+    fireEvent.keyDown(window, { code: 'Tab', key: 'Tab' })
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '다음 마디로 이동했습니다.'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'note-g4'
+    )
+
+    fireEvent.keyDown(window, { code: 'Tab', key: 'Tab', shiftKey: true })
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '이전 마디로 이동했습니다.'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-event-id',
+      'note-c4'
+    )
+
+    fireEvent.keyDown(window, { code: 'Enter', key: 'Enter' })
+    expect(screen.getByRole('button', { name: '2성부' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+    fireEvent.keyDown(window, { code: 'Enter', key: 'Enter', shiftKey: true })
+    expect(screen.getByRole('button', { name: '1성부' })).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
+
+    fireEvent.keyDown(window, { code: 'ArrowUp', key: 'ArrowUp' })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-all-event-pitches',
+      expect.stringContaining('note-c4:D04')
+    )
+    fireEvent.keyDown(window, {
+      code: 'ArrowDown',
+      key: 'ArrowDown',
+      metaKey: true
+    })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-all-event-pitches',
+      expect.stringContaining('note-c4:D03')
+    )
+  })
+
+  it('editing.measure-clipboard copies pastes cuts and undoes whole-measure content', async () => {
+    window.history.replaceState({}, '', '/?fixture=demo')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    expect(preview).toHaveAttribute('data-event-count', '9')
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c', metaKey: true })
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '마디 내용(음표·쉼표·화음·잇단음표)을 복사했습니다.'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '2마디 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyV', key: 'v', metaKey: true })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-count',
+      '8'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-selected-measure-id',
+      'measure-2'
+    )
+
+    fireEvent.keyDown(window, { code: 'KeyZ', key: 'z', metaKey: true })
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-event-count',
+      '9'
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '1마디 선택' }))
+    fireEvent.keyDown(window, { code: 'KeyX', key: 'x', metaKey: true })
+    expect(document.querySelector('.editor-status')).toHaveTextContent(
+      '마디를 잘라냈습니다.'
+    )
+    expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+      'data-measure-count',
+      '1'
+    )
+  })
+
   it('ui.command-palette searches shortcuts and runs work-mode commands', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
@@ -4059,7 +4187,7 @@ describe('App component shell', () => {
       target: { value: '옥타브' }
     })
     expect(within(dialog).getByRole('button', { name: /옥타브 이동/ })).toHaveTextContent(
-      'Shift+↑ / ↓'
+      'Cmd/Ctrl+↑ / ↓'
     )
     fireEvent.click(within(dialog).getByRole('button', { name: /옥타브 이동/ }))
     expect(screen.queryByRole('dialog', { name: '명령 검색' })).not.toBeInTheDocument()
@@ -5259,7 +5387,7 @@ describe('App component shell', () => {
 
     fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
     const quarterButton = screen.getByRole('button', {
-      name: '4분음표, 단축키 5'
+      name: '4분음표, 단축키 3'
     })
     expect(quarterButton).not.toBeDisabled()
     fireEvent.click(quarterButton)
@@ -5272,7 +5400,7 @@ describe('App component shell', () => {
     })
   })
 
-  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter with Digit5', async () => {
+  it('tuplets.edit-member-duration changes a selected tuplet eighth to a quarter from the duration toolbar', async () => {
     window.history.replaceState({}, '', '/?fixture=demo')
     const { App } = await import('./App')
     render(<App />)
@@ -5284,10 +5412,7 @@ describe('App component shell', () => {
       })
     )
     fireEvent.click(screen.getByRole('button', { name: 'note-a4 선택' }))
-    fireEvent.keyDown(window, {
-      code: 'Digit5',
-      key: '5'
-    })
+    fireEvent.click(screen.getByRole('button', { name: '4분음표, 단축키 3' }))
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
@@ -5303,10 +5428,7 @@ describe('App component shell', () => {
       screen.queryByText('셋잇단음표 구성음의 음가는 아직 따로 바꿀 수 없습니다.')
     ).not.toBeInTheDocument()
 
-    fireEvent.keyDown(window, {
-      code: 'Digit4',
-      key: '4'
-    })
+    fireEvent.click(screen.getByRole('button', { name: '8분음표, 단축키 4' }))
 
     await waitFor(() => {
       const durations = screen
@@ -5416,7 +5538,7 @@ describe('App component shell', () => {
     )
   })
 
-  it('keyboard.note-pitch-editing uses plain arrows for steps and Shift for octaves', async () => {
+  it('keyboard.note-pitch-editing uses plain arrows for steps and Cmd/Ctrl for octaves', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -5429,14 +5551,14 @@ describe('App component shell', () => {
       expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D04')
     })
 
-    fireEvent.keyDown(window, { key: 'ArrowUp', shiftKey: true })
+    fireEvent.keyDown(window, { key: 'ArrowUp', metaKey: true })
 
     await waitFor(() => {
       expect(preview.getAttribute('data-event-pitches')).toContain('m1-c4:D05')
     })
   })
 
-  it('keyboard.staff-navigation uses Cmd/Ctrl vertical arrows between grand staff lanes', async () => {
+  it('keyboard.pitch-editing keeps Cmd/Ctrl vertical arrows on octave edits in grand staff scores', async () => {
     const { App } = await import('./App')
     render(<App />)
 
@@ -5450,19 +5572,20 @@ describe('App component shell', () => {
         name: 'part-1-staff-1-measure-1-full-measure-rest 선택'
       })
     )
-    fireEvent.keyDown(window, { ctrlKey: true, key: 'ArrowDown' })
+    fireEvent.click(screen.getByRole('button', { name: '음표' }))
+    fireEvent.click(screen.getByRole('button', { name: '4분음표, 단축키 3' }))
+    fireEvent.keyDown(window, { code: 'KeyC', key: 'c' })
 
     await waitFor(() => {
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-id',
-        'part-1-staff-2-measure-1-full-measure-rest'
+        'data-selected-event-address',
+        'part-1:staff-1:part-1-staff-1-measure-1:voice-1'
       )
       expect(screen.getByTestId('notation-preview')).toHaveAttribute(
-        'data-selected-event-address',
-        'part-1:staff-2:part-1-staff-2-measure-1:voice-1'
+        'data-event-pitches',
+        expect.stringContaining('part-1-staff-1-measure-1-full-measure-rest:C04')
       )
     })
-    expect(screen.getByText('아래 보표로 이동했습니다.')).toBeInTheDocument()
 
     fireEvent.keyDown(window, { ctrlKey: true, key: 'ArrowUp' })
 
@@ -5475,8 +5598,19 @@ describe('App component shell', () => {
         'data-selected-event-address',
         'part-1:staff-1:part-1-staff-1-measure-1:voice-1'
       )
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-event-pitches',
+        expect.stringContaining('part-1-staff-1-measure-1-full-measure-rest:C05')
+      )
     })
-    expect(screen.getByText('위 보표로 이동했습니다.')).toBeInTheDocument()
+    fireEvent.keyDown(window, { ctrlKey: true, key: 'ArrowDown' })
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notation-preview')).toHaveAttribute(
+        'data-event-pitches',
+        expect.stringContaining('part-1-staff-1-measure-1-full-measure-rest:C04')
+      )
+    })
   })
 
   it('keyboard.enharmonic-respell changes spelling without moving the selected pitch', async () => {
@@ -8361,7 +8495,7 @@ describe('App component shell', () => {
     expect(screen.getByLabelText('표기 끝점')).toHaveValue(events[2]!.id)
     fireEvent.change(screen.getByLabelText('표기 시작점'), { target: { value: events[3]!.id } })
     expect(screen.getByLabelText('표기 시작점')).toHaveValue(events[0]!.id)
-    fireEvent.keyDown(window, { key: '5', code: 'Digit5' })
+    fireEvent.keyDown(window, { key: '3', code: 'Digit3' })
     fireEvent.keyDown(window, { key: 'ArrowUp', code: 'ArrowUp', altKey: true })
     fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
     fireEvent.keyDown(window, { key: 'Delete', code: 'Delete' })
@@ -8831,7 +8965,7 @@ describe('App component shell', () => {
       name: '8분음표, 단축키 4'
     })
     const quarterDuration = within(durationPalette).getByRole('button', {
-      name: '4분음표, 단축키 5'
+      name: '4분음표, 단축키 3'
     })
 
     expect(within(inspector).queryByLabelText('선택 이벤트 음가')).not.toBeInTheDocument()
@@ -8883,17 +9017,17 @@ describe('App component shell', () => {
 
     expect(
       within(durationPalette).getByRole('button', {
-        name: '64분음표, 단축키 1'
+        name: '64분음표, 단축키 7'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '32분음표, 단축키 2'
+        name: '32분음표, 단축키 6'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '16분음표, 단축키 3'
+        name: '16분음표, 단축키 5'
       })
     ).toBeInTheDocument()
     expect(
@@ -8903,22 +9037,22 @@ describe('App component shell', () => {
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 5'
+        name: '4분음표, 단축키 3'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '4분음표, 단축키 5'
+        name: '4분음표, 단축키 3'
       })
-    ).toHaveTextContent('4')
+    ).toHaveTextContent('3')
     expect(
       within(durationPalette).getByRole('button', {
-        name: '2분음표, 단축키 6'
+        name: '2분음표, 단축키 2'
       })
     ).toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
-        name: '온음표, 단축키 7'
+        name: '온음표, 단축키 1'
       })
     ).toBeInTheDocument()
     expect(
@@ -8937,6 +9071,37 @@ describe('App component shell', () => {
         name: /단축키 9/
       })
     ).not.toBeInTheDocument()
+  })
+
+  it('keyboard.interval-chord-input stacks diatonic chord tones from the selected note before duration shortcuts', async () => {
+    window.history.replaceState({}, '', '/?fixture=release-test')
+    const { App } = await import('./App')
+    render(<App />)
+
+    const preview = screen.getByTestId('notation-preview')
+    const initialDurations = preview.getAttribute('data-event-durations')
+
+    fireEvent.keyDown(window, { code: 'Digit3', key: '3' })
+    expect(screen.getByText('3도 위 화음 구성음을 추가했습니다.')).toBeInTheDocument()
+    expect(preview).toHaveAttribute(
+      'data-event-chord-pitches',
+      expect.stringContaining('m1-c4:C4/E4')
+    )
+    expect(preview).toHaveAttribute('data-event-durations', initialDurations)
+
+    fireEvent.keyDown(window, { code: 'Digit5', key: '5' })
+    expect(screen.getByText('5도 위 화음 구성음을 추가했습니다.')).toBeInTheDocument()
+    expect(preview).toHaveAttribute(
+      'data-event-chord-pitches',
+      expect.stringContaining('m1-c4:C4/E4/G4')
+    )
+
+    fireEvent.keyDown(window, { code: 'Digit3', key: '#', shiftKey: true })
+    expect(screen.getByText('3도 아래 화음 구성음을 추가했습니다.')).toBeInTheDocument()
+    expect(preview).toHaveAttribute(
+      'data-event-chord-pitches',
+      expect.stringContaining('m1-c4:A3/C4/E4/G4')
+    )
   })
 
   it('layout.breath-marks replaces a breath mark with a caesura on the selected event', async () => {
@@ -9043,7 +9208,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '3도 추가' }))
+    fireEvent.click(screen.getByRole('button', { name: '3도 위 화음 추가, 단축키 3' }))
     expect(screen.getByText('화음 구성음을 추가했습니다.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '가사' }))

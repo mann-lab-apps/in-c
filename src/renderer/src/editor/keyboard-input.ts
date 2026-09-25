@@ -13,20 +13,20 @@ const pitchByCode: Partial<Record<string, PitchStep>> = {
 }
 
 const durationByCode: Partial<Record<string, DurationValue>> = {
-  Digit1: '64th',
-  Digit2: '32nd',
-  Digit3: '16th',
+  Digit1: 'whole',
+  Digit2: 'half',
+  Digit3: 'quarter',
   Digit4: 'eighth',
-  Digit5: 'quarter',
-  Digit6: 'half',
-  Digit7: 'whole',
-  Numpad1: '64th',
-  Numpad2: '32nd',
-  Numpad3: '16th',
+  Digit5: '16th',
+  Digit6: '32nd',
+  Digit7: '64th',
+  Numpad1: 'whole',
+  Numpad2: 'half',
+  Numpad3: 'quarter',
   Numpad4: 'eighth',
-  Numpad5: 'quarter',
-  Numpad6: 'half',
-  Numpad7: 'whole'
+  Numpad5: '16th',
+  Numpad6: '32nd',
+  Numpad7: '64th'
 }
 
 const accidentalByCode: Partial<Record<string, -1 | 0 | 1>> = {
@@ -103,6 +103,36 @@ export function resolveDurationShortcut(
   }
 
   return durationByCode[event.code] ?? durationByKey(event.key)
+}
+
+export interface ChordIntervalShortcut {
+  direction: -1 | 1
+  interval: number
+}
+
+export function resolveChordIntervalShortcut(
+  event: PitchShortcutEvent
+): ChordIntervalShortcut | undefined {
+  if (
+    event.isComposing ||
+    event.key === 'Process' ||
+    event.altKey ||
+    event.ctrlKey ||
+    event.metaKey
+  ) {
+    return undefined
+  }
+
+  const interval = intervalByCode(event.code) ?? intervalByKey(event.key)
+
+  if (!interval || interval < 2 || interval > 9) {
+    return undefined
+  }
+
+  return {
+    direction: event.shiftKey ? -1 : 1,
+    interval
+  }
 }
 
 export function resolveDotShortcut(
@@ -277,20 +307,29 @@ function hasCommandModifier(event: PitchShortcutEvent): boolean {
 function durationByKey(key: string): DurationValue | undefined {
   switch (key) {
     case '1':
-      return '64th'
+      return 'whole'
     case '2':
-      return '32nd'
+      return 'half'
     case '3':
-      return '16th'
+      return 'quarter'
     case '4':
       return 'eighth'
     case '5':
-      return 'quarter'
+      return '16th'
     case '6':
-      return 'half'
+      return '32nd'
     case '7':
-      return 'whole'
+      return '64th'
     default:
       return undefined
   }
+}
+
+function intervalByCode(code: string): number | undefined {
+  const match = /^(?:Digit|Numpad)([2-9])$/.exec(code)
+  return match ? Number(match[1]) : undefined
+}
+
+function intervalByKey(key: string): number | undefined {
+  return /^[2-9]$/.test(key) ? Number(key) : undefined
 }
