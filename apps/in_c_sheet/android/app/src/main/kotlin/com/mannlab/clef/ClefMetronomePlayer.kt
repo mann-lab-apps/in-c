@@ -20,15 +20,25 @@ internal class ClefMetronomePlayer(
     private var closed = false
 
     @Synchronized
+    fun prepare() {
+        check(!closed) { "Metronome player is closed." }
+        try {
+            if (regular == null) regular = createTrack(makeMetronomeClick(false))
+            if (accented == null) accented = createTrack(makeMetronomeClick(true))
+        } catch (error: Exception) {
+            releaseTracks()
+            throw error
+        }
+    }
+
+    @Synchronized
     fun playClick(accent: Boolean, volume: Double) {
         check(!closed) { "Metronome player is closed." }
         require(volume.isFinite()) { "Invalid metronome volume." }
         val gain = volume.coerceIn(0.0, 1.0).toFloat()
         if (gain <= 0f) return
         try {
-            // Prepare both sounds once, before the first audible beat.
-            if (regular == null) regular = createTrack(makeMetronomeClick(false))
-            if (accented == null) accented = createTrack(makeMetronomeClick(true))
+            prepare()
             (if (accent) accented else regular)!!.restart(gain)
         } catch (error: Exception) {
             releaseTracks()

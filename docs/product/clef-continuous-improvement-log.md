@@ -199,6 +199,23 @@ viewer menu/defaults/setlist preset UI, model tests and named-tools smoke
 expectations. Verification PASS: `dart format lib test tool`, `flutter analyze`,
 `flutter test` (1,379/1,379), and `dart run tool/rc_release_check.dart`.
 No app build/version change/push/merge.
+S65 VERIFIED LOCAL: fast-BPM metronome device QA reported audibly uneven click
+spacing. Existing S46/S49/S54 work already reused Android `AudioTrack`, skipped
+catch-up clicks and surfaced output failures, so this slice avoided a large audio
+engine rewrite and removed another plausible first-beat timing source. Android
+now exposes `prepare`, creates both regular/accented static click tracks before
+the first audible beat, and full/mini metronome start waits for that prepare
+before playing the first click. Sound-enabled settings also opportunistically
+prepare on sheet/panel open and when sound is re-enabled. Acceptance: unit
+channel tests verify `prepare` and silent/zero-volume no-op behavior; full and
+mini widget tests prove delayed prepare does not play or switch to `정지` until
+the preload completes. Targeted metronome tests 51/51 PASS; full 1,383/1,383,
+analyze and RC PASS. Native standalone script was updated for prepare coverage;
+its local Kotlin CLI classpath was unavailable, so the Android Kotlin path was
+verified instead with `flutter build apk --debug`, which completed
+`assembleDebug` and produced `build/app/outputs/flutter-apk/app-debug.apk`.
+Fast-BPM audible timing, Bluetooth/earphone output and physical latency remain
+DEVICE QA. No release build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp

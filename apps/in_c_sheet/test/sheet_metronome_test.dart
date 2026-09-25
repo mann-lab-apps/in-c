@@ -308,6 +308,68 @@ void main() {
   });
 
   test(
+    'metronome sound player prepares native output before playback',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/clef_metronome_player_prepare');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return null;
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      final player = SheetMetronomeSoundPlayer(channel: channel);
+      await player.prepare(
+        const SheetMetronomeSettings(
+          bpm: 192,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+      );
+
+      expect(calls, hasLength(1));
+      expect(calls.single.method, 'prepare');
+    },
+  );
+
+  test('metronome sound player skips prepare for silent output', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('test/clef_metronome_player_prepare_skip');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final player = SheetMetronomeSoundPlayer(channel: channel);
+    await player.prepare(
+      const SheetMetronomeSettings(
+        bpm: 192,
+        meter: SheetMetronomeMeter.fourFour,
+        soundEnabled: false,
+      ),
+    );
+    await player.prepare(
+      const SheetMetronomeSettings(
+        bpm: 192,
+        meter: SheetMetronomeMeter.fourFour,
+        volumePercent: 0,
+      ),
+    );
+
+    expect(calls, isEmpty);
+  });
+
+  test(
     'metronome sound player reports fallback and unavailable output',
     () async {
       TestWidgetsFlutterBinding.ensureInitialized();

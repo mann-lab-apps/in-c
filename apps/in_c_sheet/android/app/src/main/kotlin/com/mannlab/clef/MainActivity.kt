@@ -92,6 +92,18 @@ class MainActivity : FlutterActivity() {
         )
         metronomePlayerChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
+                "prepare" -> {
+                    try {
+                        metronomePlayer.prepare()
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "playback_error",
+                            error.message ?: "Metronome playback failed.",
+                            null,
+                        )
+                    }
+                }
                 "playClick" -> {
                     val accent = call.argument<Boolean>("accent") ?: false
                     val volume =

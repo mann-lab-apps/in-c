@@ -14,6 +14,19 @@ class SheetMetronomeSoundPlayer {
   final MethodChannel _channel;
   final Future<void> Function(SystemSoundType type) _systemSoundPlay;
 
+  Future<void> prepare(SheetMetronomeSettings settings) async {
+    if (!settings.soundEnabled || settings.volumePercent <= 0) {
+      return;
+    }
+    try {
+      await _channel.invokeMethod<void>('prepare');
+    } on MissingPluginException {
+      // Fallback output does not need a preload step.
+    } on PlatformException {
+      // playClick will surface fallback or unavailable output on the audible beat.
+    }
+  }
+
   Future<SheetMetronomeOutputStatus> playClick({
     required SheetMetronomeSettings settings,
     required bool accent,

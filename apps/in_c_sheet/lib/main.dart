@@ -14171,6 +14171,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     super.initState();
     _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _beat = _initialBeat(widget.metronomeSettings);
+    unawaited(_soundPlayer.prepare(widget.metronomeSettings));
     _syncMiniTunerInput();
   }
 
@@ -14180,6 +14181,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (oldWidget.metronomeSettings != widget.metronomeSettings ||
         oldWidget.tool != widget.tool) {
       _beat = _initialBeat(widget.metronomeSettings);
+      unawaited(_soundPlayer.prepare(widget.metronomeSettings));
       if (_isRunning) {
         _restartTimer();
       }
@@ -14266,7 +14268,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     );
   }
 
-  void _toggleRunning() {
+  Future<void> _toggleRunning() async {
     if (_isRunning) {
       _playbackRequest++;
       _timer?.cancel();
@@ -14274,6 +14276,11 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
         _isRunning = false;
         _countInPulsesLeft = 0;
       });
+      return;
+    }
+    final request = ++_playbackRequest;
+    await _soundPlayer.prepare(widget.metronomeSettings);
+    if (!mounted || _isRunning || request != _playbackRequest) {
       return;
     }
     setState(() {
@@ -19017,6 +19024,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       beatsPerBar: _settings.meter.beatsPerBar,
       pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
     );
+    unawaited(_soundPlayer.prepare(_settings));
   }
 
   @override
@@ -19074,6 +19082,9 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
+    if (enabled) {
+      unawaited(_soundPlayer.prepare(nextSettings));
+    }
     await _persistSettings(nextSettings);
   }
 
@@ -19167,7 +19178,7 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     await _setBpm((60000 / averageMs).round());
   }
 
-  void _toggleRunning() {
+  Future<void> _toggleRunning() async {
     if (_isRunning) {
       _playbackRequest++;
       _timer?.cancel();
@@ -19178,6 +19189,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       return;
     }
 
+    final request = ++_playbackRequest;
+    await _soundPlayer.prepare(_settings);
+    if (!mounted || _isRunning || request != _playbackRequest) {
+      return;
+    }
     setState(() {
       _isRunning = true;
       _beat = SheetMetronomeBeat(

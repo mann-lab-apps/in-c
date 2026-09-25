@@ -194,6 +194,35 @@ void main() {
     },
   );
 
+  testWidgets('metronome sheet waits for prepare before first click', (
+    tester,
+  ) async {
+    final prepare = Completer<void>();
+    final player = _QueuedMetronomeSoundPlayer(
+      <Future<SheetMetronomeOutputStatus>>[
+        Future<SheetMetronomeOutputStatus>.value(
+          SheetMetronomeOutputStatus.native,
+        ),
+      ],
+    );
+    await tester.pumpWidget(buildMetronomeSheetForTest(soundPlayer: player));
+    player.nextPrepare = prepare.future;
+
+    await tester.tap(find.text('시작'));
+    await tester.pump();
+
+    expect(player.prepareCalls, 2);
+    expect(player.calls, 0);
+    expect(find.text('시작'), findsOneWidget);
+
+    prepare.complete();
+    await tester.pump();
+
+    expect(player.calls, 1);
+    expect(find.text('정지'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('metronome sheet ignores delayed unavailable output after stop', (
     tester,
   ) async {
@@ -233,6 +262,37 @@ void main() {
     await tester.pump();
 
     expect(find.text('메트로놈 소리를 내지 못했습니다'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mini metronome panel waits for prepare before first click', (
+    tester,
+  ) async {
+    final prepare = Completer<void>();
+    final player = _QueuedMetronomeSoundPlayer(
+      <Future<SheetMetronomeOutputStatus>>[
+        Future<SheetMetronomeOutputStatus>.value(
+          SheetMetronomeOutputStatus.native,
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      buildViewerMiniMetronomePanelForTest(soundPlayer: player),
+    );
+    player.nextPrepare = prepare.future;
+
+    await tester.tap(find.text('시작'));
+    await tester.pump();
+
+    expect(player.prepareCalls, 2);
+    expect(player.calls, 0);
+    expect(find.text('시작'), findsOneWidget);
+
+    prepare.complete();
+    await tester.pump();
+
+    expect(player.calls, 1);
+    expect(find.text('정지'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -298,6 +358,16 @@ class _QueuedMetronomeSoundPlayer extends SheetMetronomeSoundPlayer {
 
   final List<Future<SheetMetronomeOutputStatus>> _results;
   int calls = 0;
+  int prepareCalls = 0;
+  Future<void>? nextPrepare;
+
+  @override
+  Future<void> prepare(SheetMetronomeSettings settings) {
+    prepareCalls++;
+    final future = nextPrepare;
+    nextPrepare = null;
+    return future ?? Future<void>.value();
+  }
 
   @override
   Future<SheetMetronomeOutputStatus> playClick({
