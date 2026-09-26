@@ -1244,3 +1244,16 @@ No app build performed; new changes have widget/source evidence only.
   this worktree because no Gradle wrapper/system Gradle/Kotlin CLI is available; the
   next debug/release Android build must be treated as the native compile gate. iOS audio
   parity and real playback timing remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: PDF Replacement/Swap (2026-09-26)
+
+- Selected slice: cover the common MobileSheets-style "Swapping Files" need without
+  adding direct-folder references or a dense file manager. Clef now exposes `현재 PDF 교체`
+  from the viewer's named tool menu.
+- Implementation intent: pick a PDF-only replacement, copy it through the existing linked
+  file import path, promote it to the score's current `filePath`, and keep the previous
+  current PDF as an `Edited copy` linked file. Metadata, setlists, notes and annotations
+  stay attached to the score record; original source files are not modified or deleted.
+- Regression evidence: controller tests cover successful replacement and picker cancel;
+  viewer smoke keeps the named menu entry discoverable. Page-count mismatch handling and
+  real file-provider picker behavior remain DEVICE QA.

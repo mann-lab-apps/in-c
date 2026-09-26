@@ -7385,6 +7385,7 @@ enum _JumpPointAction { add, open, rename, delete }
 enum _ViewerMenuAction {
   bookmarks,
   scoreParts,
+  replaceScorePdf,
   editScoreMetadata,
   scoreNotes,
   displayMode,
@@ -7454,6 +7455,14 @@ List<PopupMenuEntry<_ViewerMenuAction>> _viewerCompactLibraryMenuItems() =>
         child: ListTile(
           leading: Icon(Icons.library_music_outlined),
           title: Text('파트/버전'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.replaceScorePdf,
+        child: ListTile(
+          leading: Icon(Icons.find_replace_outlined),
+          title: Text('현재 PDF 교체'),
+          subtitle: Text('기존 PDF는 연결 파일로 보존'),
         ),
       ),
       PopupMenuItem<_ViewerMenuAction>(
@@ -9426,6 +9435,31 @@ setlist=$setlistLabel
         ),
       );
     }
+  }
+
+  Future<void> _replaceCurrentScorePdf() async {
+    final currentScore = score;
+    final didReplace = await _runViewerScoreMutation(
+      () => widget.controller.replaceScorePdf(currentScore),
+      '현재 PDF를 교체하지 못했습니다. 기존 PDF는 그대로 유지됩니다.',
+    );
+    if (didReplace == null || !mounted) {
+      return;
+    }
+    if (!didReplace) {
+      _showSnackBar('PDF 교체를 취소했습니다.');
+      return;
+    }
+    _showSnackBar('새 PDF로 교체했습니다. 기존 PDF는 연결 파일로 보존됩니다.');
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetViewerScreen(
+          controller: widget.controller,
+          scoreId: currentScore.id,
+          setlistId: widget.setlistId,
+        ),
+      ),
+    );
   }
 
   Future<void> _showLinkedAudioPlayer(SheetLinkedFile linkedFile) async {
@@ -12638,6 +12672,9 @@ setlist=$setlistLabel
         return;
       case _ViewerMenuAction.scoreParts:
         await _showScoreParts();
+        return;
+      case _ViewerMenuAction.replaceScorePdf:
+        await _replaceCurrentScorePdf();
         return;
       case _ViewerMenuAction.editScoreMetadata:
         await _editCurrentScoreMetadata();

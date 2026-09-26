@@ -788,6 +788,22 @@ class SheetLibraryStore {
     );
   }
 
+  Future<SheetLinkedFile?> pickLinkedPdfFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf'],
+    );
+
+    if (file == null) {
+      return null;
+    }
+
+    return importLinkedFileBytes(
+      bytes: await file.readAsBytes(),
+      fileName: file.name,
+    );
+  }
+
   Future<SheetLinkedFile> importLinkedFileBytes({
     required List<int> bytes,
     required String fileName,

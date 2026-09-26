@@ -1005,6 +1005,10 @@ class SheetLibraryController extends ChangeNotifier {
     return store.pickLinkedFile();
   }
 
+  Future<SheetLinkedFile?> pickLinkedPdfFile() {
+    return store.pickLinkedPdfFile();
+  }
+
   Future<SheetLinkedFile?> addLinkedFile(SheetScore score) async {
     final linkedFile = await pickLinkedFile();
     if (linkedFile == null) {
@@ -1050,6 +1054,14 @@ class SheetLibraryController extends ChangeNotifier {
       ),
     );
     return true;
+  }
+
+  Future<bool> replaceScorePdf(SheetScore score) async {
+    final linkedFile = await pickLinkedPdfFile();
+    if (linkedFile == null) {
+      return false;
+    }
+    return switchToLinkedFile(score, linkedFile);
   }
 
   Future<bool> updateLinkedFile(

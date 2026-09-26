@@ -1308,6 +1308,54 @@ void main() {
   );
 
   test(
+    'replaces the current PDF while keeping the old file as a linked copy',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final replacement = SheetLinkedFile(
+        path: '/tmp/revised-score.pdf',
+        type: 'pdf',
+        label: 'Revised score',
+        role: SheetLinkedFile.fullScoreRole,
+        createdAt: now,
+      );
+      final store = _LinkedPdfPickerStore(replacement);
+      await store.saveScores(<SheetScore>[_score(now)]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScorePdf(
+        controller.scores.single,
+      );
+
+      final updated = controller.scores.single;
+      expect(didReplace, isTrue);
+      expect(updated.filePath, '/tmp/revised-score.pdf');
+      expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
+      expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
+    },
+  );
+
+  test('cancelled replacement keeps the current PDF unchanged', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = _LinkedPdfPickerStore(null);
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final didReplace = await controller.replaceScorePdf(
+      controller.scores.single,
+    );
+
+    expect(didReplace, isFalse);
+    expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+    expect(controller.scores.single.linkedFiles, isEmpty);
+  });
+
+  test(
     'updates and removes linked file metadata without deleting files',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -3918,6 +3966,17 @@ class _ImportScoreStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> importPdfs() async {
     return batchScores;
+  }
+}
+
+class _LinkedPdfPickerStore extends SheetLibraryStore {
+  _LinkedPdfPickerStore(this.file);
+
+  final SheetLinkedFile? file;
+
+  @override
+  Future<SheetLinkedFile?> pickLinkedPdfFile() async {
+    return file;
   }
 }
 
