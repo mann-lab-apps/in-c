@@ -3809,7 +3809,7 @@ class _TesterInfoSheet extends StatelessWidget {
     'PDF 본문 검색과 OCR 미지원 안내',
     'URL 링크 제거 사본',
     '필기/텍스트 주석',
-    '필기 포함 PDF 공유',
+    'PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄',
     '페이지 적용 사본과 원본 보존',
     '튜너와 Bb Trumpet 표시',
     '메트로놈',
@@ -6134,7 +6134,7 @@ class _ScoreTile extends StatelessWidget {
                               value: _ScoreTileAction.share,
                               child: ListTile(
                                 leading: Icon(Icons.ios_share),
-                                title: Text('PDF 공유'),
+                                title: Text('PDF 공유/인쇄'),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
@@ -12298,7 +12298,7 @@ setlist=$setlistLabel
 
   Future<void> _shareCurrentScorePdf() async {
     if (_isPerformanceMode) {
-      _showSnackBar('공연 모드에서는 공유 기능을 숨깁니다.');
+      _showSnackBar('공연 모드에서는 공유/인쇄 기능을 숨깁니다.');
       return;
     }
     final currentScore = score;
@@ -12335,7 +12335,7 @@ setlist=$setlistLabel
 
   Future<void> _shareCurrentScoreAnnotatedPdf() async {
     if (_isPerformanceMode) {
-      _showSnackBar('공연 모드에서는 공유 기능을 숨깁니다.');
+      _showSnackBar('공연 모드에서는 공유/인쇄 기능을 숨깁니다.');
       return;
     }
 
@@ -12503,7 +12503,9 @@ setlist=$setlistLabel
     }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
     if (saved != true) return;
     setState(() {});
-    _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
+    _showSnackBar(
+      nextValue ? '필기를 PDF 공유/인쇄에 포함합니다.' : '필기를 PDF 공유/인쇄에서 제외합니다.',
+    );
   }
 
   Future<void> _saveFavoriteAnnotationPreset() async {
@@ -14049,14 +14051,14 @@ setlist=$setlistLabel
           value: _ViewerMenuAction.sharePdf,
           child: ListTile(
             leading: Icon(Icons.ios_share),
-            title: Text('PDF 공유'),
+            title: Text('PDF 공유/인쇄'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
           value: _ViewerMenuAction.shareAnnotatedPdf,
           child: ListTile(
             leading: Icon(Icons.draw_outlined),
-            title: Text('필기 포함 PDF 공유'),
+            title: Text('필기 포함 PDF 공유/인쇄'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
@@ -14427,14 +14429,14 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.sharePdf,
               child: ListTile(
                 leading: Icon(Icons.ios_share),
-                title: Text('PDF 공유'),
+                title: Text('PDF 공유/인쇄'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.shareAnnotatedPdf,
               child: ListTile(
                 leading: Icon(Icons.draw_outlined),
-                title: Text('필기 포함 PDF 공유'),
+                title: Text('필기 포함 PDF 공유/인쇄'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -17439,7 +17441,9 @@ class _AnnotationToolbar extends StatelessWidget {
           icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
         ),
         IconButton(
-          tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+          tooltip: includeLayerInExport
+              ? 'PDF 공유/인쇄에서 필기 제외'
+              : 'PDF 공유/인쇄에 필기 포함',
           onPressed: onToggleLayerExport,
           icon: Icon(
             includeLayerInExport ? Icons.file_upload_outlined : Icons.block,

@@ -1344,3 +1344,11 @@ does not modify the original PDF, and does not claim MobileSheets-style content-
 crop. Regression coverage targets PDF CropBox detection and the crop sheet action. Targeted
 crop transformer/smoke tests passed; full 1,401-test suite, analyze and RC release check
 passed. No app build/version change/push/merge.
+
+S72 VERIFIED LOCAL: reduced the MobileSheets export/share/print discoverability gap without
+adding a native print engine or a new dependency. Clef already hands original PDFs and
+annotation-stamped PDF copies to the OS share sheet; the viewer/card menus now label those
+paths as `PDF 공유/인쇄` and `필기 포함 PDF 공유/인쇄` so users looking for print can find the
+handoff. Help/feedback now lists the same `PDF 공유/인쇄` checklist item. Targeted
+annotation/help tests passed, full 1,401-test suite passed, analyze passed, and RC release
+check passed. Actual printer target availability and output success remain DEVICE QA.

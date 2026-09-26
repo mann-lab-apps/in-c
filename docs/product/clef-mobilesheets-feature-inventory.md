@@ -66,7 +66,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Import / File Management | Direct file reference without copy on Android | official files page | 앱 내부 복사 정책이 기본이며 기존 폴더 직접 참조는 spike | spike backlog `기존 폴더 직접 참조` | Not Implemented | SAF/iOS Files 권한 정책 결정 필요 |
 | Import / File Management | CSV index / songbook split | official files page | CSV/PDF 북마크 기반 songbook 곡 항목 생성이 있다 | feature map `CSV index로 songbook 분할` | Implemented | 물리 PDF 분할은 후속 |
 | Import / File Management | File replacement / swapping files | user guide 목차 `Swapping Files` | viewer 도구의 `현재 PDF 교체`로 PDF 전용 replacement를 가져와 현재 파일로 승격하고 이전 PDF를 linked edited copy로 보존한다 | feature map linked files/page organize, controller/widget tests | Implemented | 외부 폴더 직접 참조/파일 provider live swap은 별도 spike |
-| Import / File Management | Export/share/print | user guide, collaboration page | PDF 공유, 필기 포함 PDF 사본, backup ZIP이 있다. print 전용 UX는 없다 | feature map `PDF 공유/export` | Partially Implemented | iOS/Android print intent는 별도 판단 |
+| Import / File Management | Export/share/print | user guide, collaboration page | PDF 공유/인쇄, 필기 포함 PDF 공유/인쇄, backup ZIP이 있다. OS 공유 시트에서 프린트 대상을 고르는 handoff이며 전용 native print 엔진은 없다 | feature map `PDF 공유/export/print handoff` | Partially Implemented | 별도 print intent/plugin은 사용자 요구와 플랫폼 UX 확인 후 판단 |
 | Import / File Management | Backup/restore and automatic DB backup | official files page | metadata JSON, full ZIP, 자동 metadata snapshot/복원이 있다 | feature map `로컬 백업/복원`, `자동 DB 백업` | Implemented | OS background scheduled full backup은 Later |
 | Import / File Management | PC companion app | official files page | 없다 | feature map `PC companion app` | Not Implemented | 별도 desktop app 영역 |
 | Viewer / Performance | Single/two-page/half-page/vertical display modes | official site, display page, user guide | 1페이지, 2페이지, 세로 스크롤, 반 페이지 넘김이 있다 | feature map `보기` | Implemented | 2페이지 정책은 `표지 단독`/`1-2쪽부터`로 단순화 |
@@ -166,7 +166,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
 | 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동을 추가했다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
 | 세트리스트 곡별 메모 표시 | 리허설 모드의 곡별 메모를 viewer 상단 context와 공연 진행 badge에도 노출한다. 저장 schema 추가 없이 기존 notes를 재사용한다. | 긴 메모가 악보를 가리지 않는지, 실제 공연 거리에서 한 줄 표시가 충분한지 DEVICE QA. |
-| PDF print/share intent | 원본 PDF 공유와 필기 포함 PDF 공유는 구현됨. 전용 print action은 아직 명시 요구가 없다. | 사용자 요구가 올라오면 OS print/share sheet의 프린트 경로로 충분한지 먼저 확인하고, 별도 print action은 v1.1 후보로 검토. |
+| PDF print/share intent | 원본 PDF와 필기 포함 PDF를 `공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상을 찾을 수 있게 했다. | 실제 iOS/Android 프린터 대상 노출과 사용자 이해도는 DEVICE QA. 별도 native print engine은 필요가 확인되면 v1.1 후보로 검토. |
 
 ### v1.1 제품 기능 후보
 

@@ -66,8 +66,8 @@ void main() {
           await tester.pumpAndSettle();
           await tester.tap(find.byTooltip('필기 모드'));
           await tester.pumpAndSettle();
-          final tooltip = export ? 'PDF 공유에서 필기 제외' : '필기 layer 숨기기';
-          final success = export ? '필기를 PDF 공유에서 제외합니다.' : '필기 layer를 숨깁니다.';
+          final tooltip = export ? 'PDF 공유/인쇄에서 필기 제외' : '필기 layer 숨기기';
+          final success = export ? '필기를 PDF 공유/인쇄에서 제외합니다.' : '필기 layer를 숨깁니다.';
           final button = find.byTooltip(tooltip).last;
           await tester.ensureVisible(button);
           store.pending = Completer<void>();
@@ -98,7 +98,7 @@ void main() {
           } else if (exit.startsWith('newer')) {
             store.pending = Completer<void>();
             final nextButton = find
-                .byTooltip(export ? 'PDF 공유에 필기 포함' : '필기 layer 표시')
+                .byTooltip(export ? 'PDF 공유/인쇄에 필기 포함' : '필기 layer 표시')
                 .last;
             await tester.ensureVisible(nextButton);
             await tester.tap(nextButton);
@@ -143,7 +143,7 @@ void main() {
               newerFails ? findsOneWidget : findsNothing,
             );
             expect(
-              find.text(export ? '필기를 PDF 공유에 포함합니다.' : '필기 layer를 표시합니다.'),
+              find.text(export ? '필기를 PDF 공유/인쇄에 포함합니다.' : '필기 layer를 표시합니다.'),
               newerFails ? findsNothing : findsOneWidget,
             );
             expect(tester.takeException(), isNull);

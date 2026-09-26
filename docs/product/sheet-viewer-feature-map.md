@@ -49,7 +49,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 구현됨: JPG/PNG를 PDF 악보로 변환 등록, 원본 이미지를 reference linkedFiles로 보존, 연결 파일 이미지 원본 viewer. HEIC 변환은 후속 |
 | 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 22차 보강: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶고 원본 이미지를 reference 파일로 연결 |
 | 파일 | 외부 앱에서 PDF 열기/import | 국내 공유 흐름 | MVP | 중간 | 16차 구현: Android ACTION_VIEW/SEND PDF 수신, iOS document open URL bridge. iOS Share Extension은 후속 |
-| 파일 | PDF 공유/export | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유 |
+| 파일 | PDF 공유/export/print handoff | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유. v1.1 보강: viewer와 카드 메뉴에서 `PDF 공유/인쇄`, `필기 포함 PDF 공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상까지 찾을 수 있게 한다. 전용 native print 엔진은 아직 없음 |
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |

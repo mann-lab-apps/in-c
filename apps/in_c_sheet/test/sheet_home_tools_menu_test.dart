@@ -114,6 +114,12 @@ void main() {
         );
         expect(find.text('지원 링크'), findsOneWidget);
         expect(find.text('심사/지원 URL 복사'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
         await tester.scrollUntilVisible(
           find.text('앱 상태 점검 열기'),
