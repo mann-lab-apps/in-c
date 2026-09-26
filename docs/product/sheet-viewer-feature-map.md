@@ -49,7 +49,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 파일 | 이미지 파일 지원 | MobileSheets 지원 | Partial | 중간 | 구현됨: JPG/PNG를 PDF 악보로 변환 등록, 원본 이미지를 reference linkedFiles로 보존, 연결 파일 이미지 원본 viewer. HEIC 변환은 후속 |
 | 파일 | 여러 이미지 PDF 묶기 | 스캔 자료 처리 | Partial | 중간 | 22차 보강: 파일 picker에서 여러 JPG/PNG를 A4 PDF로 묶고 원본 이미지를 reference 파일로 연결 |
 | 파일 | 외부 앱에서 PDF 열기/import | 국내 공유 흐름 | MVP | 중간 | 16차 구현: Android ACTION_VIEW/SEND PDF 수신, iOS document open URL bridge. iOS Share Extension은 후속 |
-| 파일 | PDF 공유/export | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유 |
+| 파일 | PDF 공유/export/print handoff | 국내 공유 흐름 | MVP | 낮음 | 17차 구현: share_plus 기반 현재 PDF/원본 후보 공유, 필기 포함 PDF 사본 공유. v1.1 보강: viewer와 카드 메뉴에서 `PDF 공유/인쇄`, `필기 포함 PDF 공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상까지 찾을 수 있게 한다. 전용 native print 엔진은 아직 없음 |
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
@@ -72,8 +72,8 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | 구현됨: balanced/large PDF render profile로 `pdfrx` rendering cache limit, memory cap, one-pass threshold 조정. 50-100페이지 실기기 계측 필요 |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영. v1.x 보강: 3/6/10% 빠른 여백 자르기 값으로 스캔 PDF 여백을 빠르게 시작하고 slider로 미세 조정 |
-| 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영. v1.x 보강: 3/6/10% 빠른 여백 자르기와 기존 PDF CropBox 감지값으로 시작하고 slider로 미세 조정 |
+| 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | 부분 보강: 기존 PDF CropBox 감지값 제안. 남은 gap은 스캔 이미지 내용 기반 margin detection |
 | 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: source page/virtual instance metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 instance override metadata, 실제 PDF page tree 적용 사본 생성 |
@@ -115,7 +115,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
 | 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
-| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력과 native MediaPlayer loop. waveform marker/timeline, saved markers, iOS parity는 후속 |
+| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력, linked audio 전용 마지막 A/B 구간 저장/복원, native MediaPlayer loop. PDF/이미지 연결 파일에 잘못 들어온 loop metadata는 정규화에서 제거한다. waveform marker/timeline, track marker list, iOS parity는 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
 | 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 로컬 keyboard substitute matrix는 통과했으며 실제 USB 페달 장비 QA는 blocker |
@@ -133,7 +133,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·앱 상태 점검·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
-| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
+| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 주요 테스트 항목, 피드백 템플릿 복사, 진단 요약 복사, 앱 상태 점검 바로 열기, App Store 심사용 마케팅/지원/개인정보 URL 표시와 복사, 외부 QA 체크리스트/known issues 문서 |
 | 설정/접근성 | 앱 상태 점검 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `앱 상태 점검` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 결과 복사·공유를 제공한다. 사용자 악보/세트리스트/필기를 수정하지 않으며 자동 서버 전송은 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:pdf_cos/pdf_cos.dart';
 import 'package:pdf_document/pdf_document.dart';
 
@@ -71,6 +72,48 @@ class SheetPdfPageArrangementResult {
 
 class SheetPdfPageTransformer {
   const SheetPdfPageTransformer._();
+
+  static Future<SheetCropSettings?> detectExistingCropForPage({
+    required String inputPath,
+    required int pageNumber,
+  }) async {
+    if (pageNumber < 1) {
+      return null;
+    }
+
+    final inputBytes = await File(inputPath).readAsBytes();
+    final document = PdfDocument.open(inputBytes);
+    if (pageNumber > document.pageCount) {
+      return null;
+    }
+
+    final page = document.page(pageNumber - 1);
+    final detected = cropSettingsFromBoxes(
+      mediaBox: page.mediaBox,
+      cropBox: page.cropBox,
+    );
+    return detected.hasCrop ? detected : null;
+  }
+
+  @visibleForTesting
+  static SheetCropSettings cropSettingsFromBoxes({
+    required PdfRect mediaBox,
+    required PdfRect cropBox,
+  }) {
+    final width = mediaBox.width;
+    final height = mediaBox.height;
+    if (width <= 0 || height <= 0) {
+      return SheetCropSettings.none;
+    }
+
+    final crop = SheetCropSettings(
+      left: _significantCrop((cropBox.left - mediaBox.left) / width),
+      right: _significantCrop((mediaBox.right - cropBox.right) / width),
+      top: _significantCrop((mediaBox.top - cropBox.top) / height),
+      bottom: _significantCrop((cropBox.bottom - mediaBox.bottom) / height),
+    ).normalized();
+    return crop.hasCrop ? crop : SheetCropSettings.none;
+  }
 
   static Future<SheetPdfPageRotationResult> createRotationAppliedCopy({
     required String inputPath,
@@ -339,6 +382,11 @@ class SheetPdfPageTransformer {
       return base;
     }
     return PdfRect(left, bottom, right, top);
+  }
+
+  static double _significantCrop(double value) {
+    final normalized = value.clamp(0.0, 0.5);
+    return normalized < 0.005 ? 0.0 : normalized;
   }
 
   static CosArray _rectArray(PdfRect rect) {

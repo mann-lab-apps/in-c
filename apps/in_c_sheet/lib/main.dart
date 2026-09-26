@@ -30,6 +30,7 @@ import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_metronome_player.dart';
+import 'sheet_pdf_page_transformer.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
@@ -43,7 +44,12 @@ import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.1+26';
+const String _clefAppVersion = '1.0.1+27';
+const String _clefMarketingUrl = 'https://in-c.mannlab.app/clef-and-staff/';
+const String _clefSupportUrl =
+    'https://in-c.mannlab.app/clef-and-staff/support.html';
+const String _clefPrivacyUrl =
+    'https://in-c.mannlab.app/clef-and-staff/privacy.html';
 const bool _launchInCDiscoveryHome =
     bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
@@ -545,12 +551,22 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showTesterInfo() async {
+    var openDeviceCheck = false;
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) =>
-          _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
+      builder: (context) => _TesterInfoSheet(
+        appVersion: _clefAppVersion,
+        controller: controller,
+        onOpenDeviceCheck: () {
+          openDeviceCheck = true;
+          Navigator.of(context).pop();
+        },
+      ),
     );
+    if (openDeviceCheck && mounted) {
+      await _showDeviceCheck();
+    }
   }
 
   Future<void> _showDeviceCheck() async {
@@ -3771,10 +3787,15 @@ class _EmptyLibrary extends StatelessWidget {
 }
 
 class _TesterInfoSheet extends StatelessWidget {
-  const _TesterInfoSheet({required this.appVersion, required this.controller});
+  const _TesterInfoSheet({
+    required this.appVersion,
+    required this.controller,
+    this.onOpenDeviceCheck,
+  });
 
   final String appVersion;
   final SheetLibraryController controller;
+  final VoidCallback? onOpenDeviceCheck;
 
   static const List<String> _quickHelpItems = <String>[
     '악보 추가: PDF 또는 이미지를 가져온 뒤 정보 편집으로 제목/작곡가를 정리합니다.',
@@ -3788,7 +3809,7 @@ class _TesterInfoSheet extends StatelessWidget {
     'PDF 본문 검색과 OCR 미지원 안내',
     'URL 링크 제거 사본',
     '필기/텍스트 주석',
-    '필기 포함 PDF 공유',
+    'PDF 공유/인쇄와 필기 포함 PDF 공유/인쇄',
     '페이지 적용 사본과 원본 보존',
     '튜너와 Bb Trumpet 표시',
     '메트로놈',
@@ -3804,6 +3825,18 @@ class _TesterInfoSheet extends StatelessWidget {
       appVersion: appVersion,
       debugSummary: _debugSummary(),
     );
+  }
+
+  Future<void> _copyToClipboard(
+    BuildContext context, {
+    required String text,
+    required String message,
+  }) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   String _debugSummary() {
@@ -3916,6 +3949,38 @@ pageMetadataScores=$pageMetadataCount
               title: Text(item),
             ),
           const SizedBox(height: 12),
+          if (onOpenDeviceCheck != null) ...[
+            FilledButton.icon(
+              onPressed: onOpenDeviceCheck,
+              icon: const Icon(Icons.health_and_safety_outlined),
+              label: const Text('앱 상태 점검 열기'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: () async {
+              await _copyToClipboard(
+                context,
+                text:
+                    'Marketing: $_clefMarketingUrl\nSupport: $_clefSupportUrl\nPrivacy: $_clefPrivacyUrl',
+                message: '심사/지원 URL을 복사했습니다.',
+              );
+            },
+            icon: const Icon(Icons.link),
+            label: const Text('심사/지원 URL 복사'),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            '지원 링크',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const _InfoRow(label: '마케팅 URL', value: _clefMarketingUrl),
+          const _InfoRow(label: '지원 URL', value: _clefSupportUrl),
+          const _InfoRow(label: '개인정보 URL', value: _clefPrivacyUrl),
+          const SizedBox(height: 18),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: '내부 테스트 빌드'),
@@ -3950,12 +4015,11 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: feedbackTemplate()));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('피드백 템플릿을 복사했습니다.')),
-                );
-              }
+              await _copyToClipboard(
+                context,
+                text: feedbackTemplate(),
+                message: '피드백 템플릿을 복사했습니다.',
+              );
             },
             icon: const Icon(Icons.content_copy),
             label: const Text('피드백 템플릿 복사'),
@@ -3963,12 +4027,11 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: _debugSummary()));
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('진단 요약을 복사했습니다.')));
-              }
+              await _copyToClipboard(
+                context,
+                text: _debugSummary(),
+                message: '진단 요약을 복사했습니다.',
+              );
             },
             icon: const Icon(Icons.bug_report_outlined),
             label: const Text('진단 요약 복사'),
@@ -6071,7 +6134,7 @@ class _ScoreTile extends StatelessWidget {
                               value: _ScoreTileAction.share,
                               child: ListTile(
                                 leading: Icon(Icons.ios_share),
-                                title: Text('PDF 공유'),
+                                title: Text('PDF 공유/인쇄'),
                                 contentPadding: EdgeInsets.zero,
                               ),
                             ),
@@ -9924,7 +9987,7 @@ setlist=$setlistLabel
         return;
       }
       if (_isSupportedLinkedAudio(selected.file)) {
-        await _showLinkedAudioPlayer(selected.file);
+        await _showLinkedAudioPlayer(currentScore, selected.file);
         return;
       }
       final didSwitch = await widget.controller.switchToLinkedFile(
@@ -9975,7 +10038,10 @@ setlist=$setlistLabel
     );
   }
 
-  Future<void> _showLinkedAudioPlayer(SheetLinkedFile linkedFile) async {
+  Future<void> _showLinkedAudioPlayer(
+    SheetScore score,
+    SheetLinkedFile linkedFile,
+  ) async {
     final audioFile = File(linkedFile.path);
     if (!await audioFile.exists()) {
       _showSnackBar('오디오 파일을 찾지 못했습니다.');
@@ -9987,7 +10053,12 @@ setlist=$setlistLabel
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _LinkedAudioPlayerSheet(linkedFile: linkedFile),
+      builder: (context) => _LinkedAudioPlayerSheet(
+        linkedFile: linkedFile,
+        onLinkedFileChanged: (updated) {
+          return widget.controller.updateLinkedFile(score, updated);
+        },
+      ),
     );
   }
 
@@ -11650,11 +11721,20 @@ setlist=$setlistLabel
             pageNumber,
             orderIndex: orderIndex,
           );
+    final detectedCrop = orderIndex == null
+        ? await _detectExistingPdfCrop(currentScore, pageNumber)
+        : null;
+    if (!mounted) {
+      return;
+    }
 
     final selected = await showModalBottomSheet<SheetCropSettings>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _CropSettingsSheet(initialCrop: initialCrop),
+      builder: (context) => _CropSettingsSheet(
+        initialCrop: initialCrop,
+        detectedCrop: detectedCrop,
+      ),
     );
     if (selected == null) {
       return;
@@ -11691,6 +11771,20 @@ setlist=$setlistLabel
           ? '$targetLabel자르기 맞춤 설정을 저장했습니다.'
           : '$targetLabel자르기 맞춤을 해제했습니다.',
     );
+  }
+
+  Future<SheetCropSettings?> _detectExistingPdfCrop(
+    SheetScore currentScore,
+    int pageNumber,
+  ) async {
+    try {
+      return await SheetPdfPageTransformer.detectExistingCropForPage(
+        inputPath: currentScore.filePath,
+        pageNumber: pageNumber,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _showCropPresets() async {
@@ -12212,7 +12306,7 @@ setlist=$setlistLabel
 
   Future<void> _shareCurrentScorePdf() async {
     if (_isPerformanceMode) {
-      _showSnackBar('공연 모드에서는 공유 기능을 숨깁니다.');
+      _showSnackBar('공연 모드에서는 공유/인쇄 기능을 숨깁니다.');
       return;
     }
     final currentScore = score;
@@ -12249,7 +12343,7 @@ setlist=$setlistLabel
 
   Future<void> _shareCurrentScoreAnnotatedPdf() async {
     if (_isPerformanceMode) {
-      _showSnackBar('공연 모드에서는 공유 기능을 숨깁니다.');
+      _showSnackBar('공연 모드에서는 공유/인쇄 기능을 숨깁니다.');
       return;
     }
 
@@ -12417,7 +12511,9 @@ setlist=$setlistLabel
     }, isCurrent: () => identical(_annotationLayerSaveRequest, request));
     if (saved != true) return;
     setState(() {});
-    _showSnackBar(nextValue ? '필기를 PDF 공유에 포함합니다.' : '필기를 PDF 공유에서 제외합니다.');
+    _showSnackBar(
+      nextValue ? '필기를 PDF 공유/인쇄에 포함합니다.' : '필기를 PDF 공유/인쇄에서 제외합니다.',
+    );
   }
 
   Future<void> _saveFavoriteAnnotationPreset() async {
@@ -13963,14 +14059,14 @@ setlist=$setlistLabel
           value: _ViewerMenuAction.sharePdf,
           child: ListTile(
             leading: Icon(Icons.ios_share),
-            title: Text('PDF 공유'),
+            title: Text('PDF 공유/인쇄'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
           value: _ViewerMenuAction.shareAnnotatedPdf,
           child: ListTile(
             leading: Icon(Icons.draw_outlined),
-            title: Text('필기 포함 PDF 공유'),
+            title: Text('필기 포함 PDF 공유/인쇄'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
@@ -14341,14 +14437,14 @@ setlist=$setlistLabel
               value: _ViewerMenuAction.sharePdf,
               child: ListTile(
                 leading: Icon(Icons.ios_share),
-                title: Text('PDF 공유'),
+                title: Text('PDF 공유/인쇄'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
               value: _ViewerMenuAction.shareAnnotatedPdf,
               child: ListTile(
                 leading: Icon(Icons.draw_outlined),
-                title: Text('필기 포함 PDF 공유'),
+                title: Text('필기 포함 PDF 공유/인쇄'),
               ),
             ),
             const PopupMenuItem<_ViewerMenuAction>(
@@ -16275,9 +16371,10 @@ class _PageMetadataBadge extends StatelessWidget {
 }
 
 class _CropSettingsSheet extends StatefulWidget {
-  const _CropSettingsSheet({required this.initialCrop});
+  const _CropSettingsSheet({required this.initialCrop, this.detectedCrop});
 
   final SheetCropSettings initialCrop;
+  final SheetCropSettings? detectedCrop;
 
   @override
   State<_CropSettingsSheet> createState() => _CropSettingsSheetState();
@@ -16332,6 +16429,31 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
             '스캔 PDF의 흰 여백을 빠르게 줄인 뒤 아래 슬라이더로 미세 조정하세요.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (widget.detectedCrop != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'PDF 여백 감지값',
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.auto_fix_high_outlined, size: 18),
+                  label: Text(_detectedCropLabel(widget.detectedCrop!)),
+                  onPressed: () => _applyDetectedCrop(widget.detectedCrop!),
+                ),
+                Text(
+                  'PDF에 저장된 CropBox 기준입니다.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           _CropSlider(
             label: '위',
@@ -16387,6 +16509,21 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
         bottom: value,
       );
     });
+  }
+
+  void _applyDetectedCrop(SheetCropSettings crop) {
+    setState(() {
+      _crop = crop.normalized();
+    });
+  }
+
+  static String _detectedCropLabel(SheetCropSettings crop) {
+    final normalized = crop.normalized();
+    return '감지값 적용 '
+        '상${(normalized.top * 100).round()}% '
+        '하${(normalized.bottom * 100).round()}% '
+        '좌${(normalized.left * 100).round()}% '
+        '우${(normalized.right * 100).round()}%';
   }
 }
 
@@ -17312,7 +17449,9 @@ class _AnnotationToolbar extends StatelessWidget {
           icon: Icon(isLayerVisible ? Icons.visibility : Icons.visibility_off),
         ),
         IconButton(
-          tooltip: includeLayerInExport ? 'PDF 공유에서 필기 제외' : 'PDF 공유에 필기 포함',
+          tooltip: includeLayerInExport
+              ? 'PDF 공유/인쇄에서 필기 제외'
+              : 'PDF 공유/인쇄에 필기 포함',
           onPressed: onToggleLayerExport,
           icon: Icon(
             includeLayerInExport ? Icons.file_upload_outlined : Icons.block,
@@ -18534,10 +18673,15 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 }
 
 class _LinkedAudioPlayerSheet extends StatefulWidget {
-  const _LinkedAudioPlayerSheet({required this.linkedFile, this.player});
+  const _LinkedAudioPlayerSheet({
+    required this.linkedFile,
+    this.player,
+    this.onLinkedFileChanged,
+  });
 
   final SheetLinkedFile linkedFile;
   final SheetAudioPlayer? player;
+  final Future<bool> Function(SheetLinkedFile linkedFile)? onLinkedFileChanged;
 
   @override
   State<_LinkedAudioPlayerSheet> createState() =>
@@ -18556,8 +18700,15 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   void initState() {
     super.initState();
     _player = widget.player ?? SheetAudioPlayer();
-    _loopStartController = TextEditingController();
-    _loopEndController = TextEditingController();
+    _loopStartController = TextEditingController(
+      text: _formatLoopSeconds(widget.linkedFile.audioLoopStartMs),
+    );
+    _loopEndController = TextEditingController(
+      text: _formatLoopSeconds(widget.linkedFile.audioLoopEndMs),
+    );
+    _loopEnabled =
+        widget.linkedFile.audioLoopStartMs != null &&
+        widget.linkedFile.audioLoopEndMs != null;
   }
 
   @override
@@ -18586,6 +18737,36 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     );
   }
 
+  static String _formatLoopSeconds(int? milliseconds) {
+    if (milliseconds == null) {
+      return '';
+    }
+    final seconds = milliseconds / 1000;
+    if (milliseconds % 1000 == 0) {
+      return seconds.toStringAsFixed(0);
+    }
+    return seconds
+        .toStringAsFixed(3)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
+    final onLinkedFileChanged = widget.onLinkedFileChanged;
+    if (onLinkedFileChanged == null) {
+      return true;
+    }
+    final updated = widget.linkedFile.copyWith(
+      audioLoopStartMs: loop.start.inMilliseconds,
+      audioLoopEndMs: loop.end.inMilliseconds,
+    );
+    try {
+      return await onLinkedFileChanged(updated);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
       await _player.stop();
@@ -18599,6 +18780,17 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     if (_loopEnabled && loop == null) {
       setState(() {
         _lastResult = SheetAudioPlaybackResult.failed('A-B 반복 구간을 확인해주세요.');
+      });
+      return;
+    }
+    if (loop != null && !await _saveLoopIfNeeded(loop)) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'A-B 반복 구간을 저장하지 못했습니다. 다시 시도해주세요.',
+        );
       });
       return;
     }
@@ -20118,17 +20310,24 @@ Widget buildAnnotationToolbarForTest() {
 }
 
 @visibleForTesting
-Widget buildLinkedAudioPlayerSheetForTest({MethodChannel? channel}) {
+Widget buildLinkedAudioPlayerSheetForTest({
+  MethodChannel? channel,
+  SheetLinkedFile? linkedFile,
+  Future<bool> Function(SheetLinkedFile linkedFile)? onLinkedFileChanged,
+}) {
   return MaterialApp(
     home: Scaffold(
       body: _LinkedAudioPlayerSheet(
-        linkedFile: SheetLinkedFile(
-          path: '/tmp/backing-track.m4a',
-          type: 'audio',
-          label: 'Backing Track',
-          createdAt: DateTime(2026, 9, 26),
-        ),
+        linkedFile:
+            linkedFile ??
+            SheetLinkedFile(
+              path: '/tmp/backing-track.m4a',
+              type: 'audio',
+              label: 'Backing Track',
+              createdAt: DateTime(2026, 9, 26),
+            ),
         player: SheetAudioPlayer(channel: channel),
+        onLinkedFileChanged: onLinkedFileChanged,
       ),
     ),
   );
@@ -20166,9 +20365,15 @@ Widget buildPagePickerSheetForTest({
 @visibleForTesting
 Widget buildCropSettingsSheetForTest({
   SheetCropSettings initialCrop = SheetCropSettings.none,
+  SheetCropSettings? detectedCrop,
 }) {
   return MaterialApp(
-    home: Scaffold(body: _CropSettingsSheet(initialCrop: initialCrop)),
+    home: Scaffold(
+      body: _CropSettingsSheet(
+        initialCrop: initialCrop,
+        detectedCrop: detectedCrop,
+      ),
+    ),
   );
 }
 

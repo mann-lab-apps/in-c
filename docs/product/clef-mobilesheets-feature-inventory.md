@@ -16,7 +16,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - Clef 앱: `Clef & Staff`
 - Android applicationId: `com.mannlab.clef`
 - Clef inventory baseline version: `1.0.0+25`
-- Current continuation source checked later: `1.0.1+26`
+- Current continuation source checked later: `1.0.1+27`
 - MobileSheets 공식 자료 확인일: 2026-09-25
 - 직접 관찰 기준: `docs/product/clef-mobilesheets-hands-on-analysis.md`의
   MobileSheets Trial `3.9.43 (Build 647)` Android emulator 기록
@@ -66,13 +66,13 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Import / File Management | Direct file reference without copy on Android | official files page | 앱 내부 복사 정책이 기본이며 기존 폴더 직접 참조는 spike | spike backlog `기존 폴더 직접 참조` | Not Implemented | SAF/iOS Files 권한 정책 결정 필요 |
 | Import / File Management | CSV index / songbook split | official files page | CSV/PDF 북마크 기반 songbook 곡 항목 생성이 있다 | feature map `CSV index로 songbook 분할` | Implemented | 물리 PDF 분할은 후속 |
 | Import / File Management | File replacement / swapping files | user guide 목차 `Swapping Files` | viewer 도구의 `현재 PDF 교체`로 PDF 전용 replacement를 가져와 현재 파일로 승격하고 이전 PDF를 linked edited copy로 보존한다 | feature map linked files/page organize, controller/widget tests | Implemented | 외부 폴더 직접 참조/파일 provider live swap은 별도 spike |
-| Import / File Management | Export/share/print | user guide, collaboration page | PDF 공유, 필기 포함 PDF 사본, backup ZIP이 있다. print 전용 UX는 없다 | feature map `PDF 공유/export` | Partially Implemented | iOS/Android print intent는 별도 판단 |
+| Import / File Management | Export/share/print | user guide, collaboration page | PDF 공유/인쇄, 필기 포함 PDF 공유/인쇄, backup ZIP이 있다. OS 공유 시트에서 프린트 대상을 고르는 handoff이며 전용 native print 엔진은 없다 | feature map `PDF 공유/export/print handoff` | Partially Implemented | 별도 print intent/plugin은 사용자 요구와 플랫폼 UX 확인 후 판단 |
 | Import / File Management | Backup/restore and automatic DB backup | official files page | metadata JSON, full ZIP, 자동 metadata snapshot/복원이 있다 | feature map `로컬 백업/복원`, `자동 DB 백업` | Implemented | OS background scheduled full backup은 Later |
 | Import / File Management | PC companion app | official files page | 없다 | feature map `PC companion app` | Not Implemented | 별도 desktop app 영역 |
 | Viewer / Performance | Single/two-page/half-page/vertical display modes | official site, display page, user guide | 1페이지, 2페이지, 세로 스크롤, 반 페이지 넘김이 있다 | feature map `보기` | Implemented | 2페이지 정책은 `표지 단독`/`1-2쪽부터`로 단순화 |
 | Viewer / Performance | Page scaling / fit modes | display page | fit page/fit width/fullscreen metadata와 viewer 적용이 있다 | feature map `page scaling` | Implemented | 실제 악보별 기본값 QA 필요 |
 | Viewer / Performance | Page ordering duplicate/rearrange/remove | display page | 숨김/순서/복제/빈 페이지/적용 사본이 있다 | feature map `페이지 정리` | Implemented | live rendered rotation은 spike |
-| Viewer / Performance | Manual crop / automatic crop / rotation | display page | 수동 crop, 빠른 여백 자르기 3/6/10%, 회전 metadata와 적용 사본은 있다. 실제 자동 edge detection은 없다 | feature map `수동 크롭`, `자동 크롭`, `페이지 회전` | Partially Implemented | 자동 crop은 margin detection 필요 |
+| Viewer / Performance | Manual crop / automatic crop / rotation | display page | 수동 crop, 빠른 여백 자르기 3/6/10%, 기존 PDF CropBox 감지값 적용, 회전 metadata와 적용 사본은 있다. 실제 자동 edge detection은 없다 | feature map `수동 크롭`, `자동 크롭`, `페이지 회전` | Partially Implemented | 내용 기반 자동 crop은 margin detection 필요 |
 | Viewer / Performance | Image caching | display page | render cache profile과 memory cap이 있다 | feature map `image caching/prefetch` | Partially Implemented | 50-100페이지 실기기 계측 필요 |
 | Viewer / Performance | Song overlay | display page | viewer `도구` 메뉴, toolbar, mini panel, tap zone hint가 있다 | feature map `이름으로 도구 찾기` | Implemented | Clef는 이름 있는 메뉴를 더 강조 |
 | Viewer / Performance | Automatic scrolling | utilities page | 곡별 duration/cue/rehearsal mark 기반 자동 스크롤이 있다 | feature map `자동 스크롤` | Implemented | 측정 기반 세밀 timeline editor는 후속 |
@@ -98,8 +98,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Annotation | Editable PDF annotation embed | annotation page | rendered stamp export fallback은 있으나 standard editable annotation export는 unsupported | spike backlog `PDF 표준 Annotation Embed/Export` | Partially Implemented | compatibility fixture 필요 |
 | Music Tools | Metronome count-in/accent/subdivision/visual modes | utilities page | count-in, subdivision, accent, visual strip, Android native tick이 있다 | feature map `메트로놈` | Partially Implemented | 빠른 BPM 실제 오디오 균일성은 Device QA |
 | Music Tools | Metronome page turn after measures / multiple visual modes | utilities page | 자동 스크롤과 metronome은 있으나 마디 수 기반 page turn/LED-circle-edge mode 선택은 제한적 | feature map `메트로놈`, `자동 스크롤` | Partially Implemented | 과한 설정 노출은 Clef 컨셉과 충돌 가능 |
-| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 초 단위 A-B 반복이 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/markers/route/iOS parity는 남음 |
-| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원한다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline/iOS parity는 남음 |
+| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 초 단위 A-B 반복, 마지막 A/B 구간 저장/복원이 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/route/iOS parity는 남음 |
+| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원하고 linked audio metadata에 마지막 구간을 저장한다. PDF/이미지 연결 파일의 잘못된 loop metadata는 정규화에서 제거된다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline, 여러 marker preset, iOS parity는 남음 |
 | Music Tools | Tempo change / pitch shift | utilities page | 없다 | feature map `tempo/pitch shift` | Not Implemented | DSP library/license 필요 |
 | Music Tools | Built-in chromatic tuner | 공식 자료에서는 MobileSheets chromatic tuner가 확인되지 않음 | Clef는 chromatic-only tuner와 pitch history chart가 있다 | feature map `튜너` | Implemented | Clef 차별점. 실제 정확도는 Device QA |
 | Music Tools | Drone / reference tone | MobileSheets 공식 주요 기능으로는 확인하지 못함 | Clef는 tuner A4 기준 공유 drone/tone이 있다 | feature map `기준음/드론` | Implemented | Clef 차별점. 음량은 Device QA |
@@ -140,11 +140,13 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
    same-library setlist sharing은 Clef에 없다.
 2. Text/ChordPro/docx: MobileSheets는 텍스트/ChordPro를 악보 유형으로 다루지만 Clef는 PDF/image 중심이다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
-4. Advanced audio: A-B loop, tempo/pitch shift, track markers는 없다.
+4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하고 비오디오
+   연결 파일의 loop metadata 오염은 정규화하지만, tempo/pitch shift, waveform marker
+   timeline, 여러 track marker preset은 없다.
 5. Advanced annotation: custom stamps, nudge, snipping, multi-layer, editable PDF annotation export가 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
-7. Automatic crop/direct file management: manual crop과 internal copy policy는 있으나 MobileSheets식
-   automatic crop, Android direct-reference library는 없다.
+7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
+   있으나 MobileSheets식 내용 기반 automatic crop, Android direct-reference library는 없다.
 
 ## Clef가 이미 충분히 커버하거나 다른 방향을 택한 영역
 
@@ -166,12 +168,12 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
 | 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동을 추가했다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
 | 세트리스트 곡별 메모 표시 | 리허설 모드의 곡별 메모를 viewer 상단 context와 공연 진행 badge에도 노출한다. 저장 schema 추가 없이 기존 notes를 재사용한다. | 긴 메모가 악보를 가리지 않는지, 실제 공연 거리에서 한 줄 표시가 충분한지 DEVICE QA. |
-| PDF print/share intent | 원본 PDF 공유와 필기 포함 PDF 공유는 구현됨. 전용 print action은 아직 명시 요구가 없다. | 사용자 요구가 올라오면 OS print/share sheet의 프린트 경로로 충분한지 먼저 확인하고, 별도 print action은 v1.1 후보로 검토. |
+| PDF print/share intent | 원본 PDF와 필기 포함 PDF를 `공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상을 찾을 수 있게 했다. | 실제 iOS/Android 프린터 대상 노출과 사용자 이해도는 DEVICE QA. 별도 native print engine은 필요가 확인되면 v1.1 후보로 검토. |
 
 ### v1.1 제품 기능 후보
 
-- 자동 crop 또는 semi-auto crop.
-- advanced audio player: A-B loop와 track marker부터 시작.
+- 내용 기반 자동 crop 또는 더 강한 semi-auto crop.
+- advanced audio player: waveform marker timeline, 여러 A-B marker preset, tempo/pitch shift.
 - custom stamp import보다 먼저 stamp set 관리/검색.
 - field schema 확장: album/year/signature/source type을 Clef에 맞게 단순화.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.

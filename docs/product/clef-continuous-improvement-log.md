@@ -8,7 +8,7 @@
   discovery home defaults to false, Android applicationId `com.mannlab.inc`,
   version `1.0.0+20`.
 - Current continuation source after later release prep: Android applicationId
-  `com.mannlab.clef`, source/app info `1.0.1+26`. Historical archived Android
+  `com.mannlab.clef`, source/app info `1.0.1+27`. Historical archived Android
   internal-test AABs include `1.0.0+22` through `1.0.0+24`; always confirm the
   actual installed build/version before using a tester result as current evidence.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
@@ -1310,3 +1310,63 @@ S68 DOCS VERIFIED: QA documents still mixed current source `1.0.1+26` with older
 AAB references like `1.0.0+22` and `1.0.0+24`. Updated the active RC plan, tester checklist
 and MobileSheets inventory to separate the current source version from historical build
 artifacts so tester reports include the actual installed build code.
+
+S69 VERIFIED LOCAL: Device QA could not be exercised on the local Android emulator because
+`clef_rc_tablet_api35` did not attach to ADB in this session, but the in-app tester handoff
+still needed less friction. The `도움말/피드백` sheet now shows the App Store review/support
+URLs, copies the review URL bundle, and opens `앱 상태 점검` directly after closing the help
+sheet. No diagnostics are uploaded automatically; testers still choose copy/share. Regression
+coverage extends the home named-menu widget test so the support URL and help-to-device-check
+handoff are visible on phone/tablet/landscape and large text sizes. Actual emulator install
+and Device QA sheet tapping remain a local environment GAP until an ADB-visible emulator is
+available.
+
+S70 IN PROGRESS: Preparing the next Android internal-test AAB for 실기기 QA. Because
+`1.0.1+26` already exists in the archived AAB folder, source/app info and active QA docs
+were bumped to `1.0.1+27`. The device runbook now points testers through
+`도움말/피드백` -> `앱 상태 점검 열기` so the copied Markdown report includes version,
+platform, key input, internal metronome timing and microphone permission evidence before
+manual audio, pedal, stylus, tuner and long-session checks.
+
+S70 VERIFIED LOCAL: `1.0.1+27` AAB was built for Android 실기기 QA and archived at
+`apps/in_c_sheet/releases/clef-and-staff-1.0.1+27-release.aab`. SHA-256:
+`1167bdf20c687fbce51775427d8356c5fea0eef561ba3532a56a71be21c3bc5f`. Release signing
+verification passed with the recorded Clef Play upload certificate. Local validation covered
+format, analyze, targeted Device QA/help tests, full 1,398-test suite and the RC release
+check. Actual audio uniformity, drone loudness, tuner accuracy, Bluetooth/USB pedal, stylus
+feel and long-session behavior remain DEVICE QA.
+
+S71 VERIFIED LOCAL: continuing the MobileSheets crop gap with a low-risk semi-auto step instead
+of introducing raster edge detection. Clef now detects an existing PDF `CropBox` on the
+current source page and offers it as `PDF 여백 감지값` in `자르기 맞춤`; applying it only seeds the
+same viewer crop sliders and metadata save path. This does not inspect scanned page pixels,
+does not modify the original PDF, and does not claim MobileSheets-style content-based auto
+crop. Regression coverage targets PDF CropBox detection and the crop sheet action. Targeted
+crop transformer/smoke tests passed; full 1,401-test suite, analyze and RC release check
+passed. No app build/version change/push/merge.
+
+S72 VERIFIED LOCAL: reduced the MobileSheets export/share/print discoverability gap without
+adding a native print engine or a new dependency. Clef already hands original PDFs and
+annotation-stamped PDF copies to the OS share sheet; the viewer/card menus now label those
+paths as `PDF 공유/인쇄` and `필기 포함 PDF 공유/인쇄` so users looking for print can find the
+handoff. Help/feedback now lists the same `PDF 공유/인쇄` checklist item. Targeted
+annotation/help tests passed, full 1,401-test suite passed, analyze passed, and RC release
+check passed. Actual printer target availability and output success remain DEVICE QA.
+
+S73 VERIFIED LOCAL: reduced the MobileSheets advanced audio gap with the smallest persistent
+A-B loop step before attempting waveform timelines, multiple markers, tempo/pitch shift or
+iOS parity. Clef linked audio metadata now stores optional A/B loop start/end milliseconds;
+the linked audio sheet preloads those values and saves the latest valid loop before
+playback. This keeps the loop with the score metadata/backup path and avoids a new audio
+engine. If saving the new loop fails, playback is blocked with an explicit retry prompt
+rather than letting the user assume the marker was persisted. Targeted store/audio/widget
+tests passed, full 1,403-test suite passed, analyze passed, and RC release check passed.
+Actual speaker/earphone loop timing and route behavior remain DEVICE QA.
+
+S74 VERIFIED LOCAL: tightened the S73 linked audio metadata boundary before expanding audio
+features further. `SheetLinkedFile` now keeps A-B loop markers only when the linked file is
+an audio file; PDF/image linked files with stale or malformed loop fields are normalized
+without those markers, and changing an audio linked file to a non-audio type clears the loop.
+This keeps backup/restore metadata from making non-audio attachments look loopable while
+preserving marker edits across audio label/role changes. Targeted score/store/audio/widget
+tests passed, full 1,404-test suite passed, analyze passed, and RC release check passed.
