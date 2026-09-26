@@ -6,6 +6,7 @@
 
 - v1 RC 전체 실행 순서와 기록 양식은 `docs/qa/clef-v1-rc-qa-plan.md`를 먼저 확인한다.
 - 실기기/외부장비 당일 실행표는 `docs/qa/clef-v1-device-qa-runbook.md`를 사용한다.
+- 스토어 제출용 화면을 캡처할 때는 `docs/qa/clef-store-screenshot-checklist.md`를 함께 확인한다.
 - 설치 후 런처/앱 이름이 `Clef & Staff`로 보이는지 확인한다.
 - 앱 첫 화면 오른쪽 위 `메뉴` > `도움말/피드백`에서 앱 이름, 버전/build를 확인한다.
 - 빠른 기기 상태 기록이 필요하면 `메뉴` > `앱 상태 점검`을 열어 `결과 복사` 또는 `결과 공유`로

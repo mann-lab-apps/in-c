@@ -85,6 +85,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 - 메트로놈 빠른 BPM, 드론/기준음 음량, 튜너 정확도, 페달/키보드, S Pen, 큰 PDF, backup/restore의
   주요 항목이 `PASS`이거나 제한사항으로 명확히 고지되어 있다.
 - 스토어 개인정보/콘텐츠 등급/스크린샷/지원 URL/마케팅 URL/테스터 안내가 최신 상태다.
+  제출용 스크린샷은 `docs/qa/clef-store-screenshot-checklist.md`의 capture gate를 통과해야 한다.
 - 남은 항목이 v1.1 spike 또는 Later로 분류되어 있고 v1 blocker로 남아 있지 않다.
 
 ### 앱 상태 점검으로 줄일 수 있는 실기기 QA

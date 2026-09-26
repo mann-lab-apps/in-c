@@ -15,6 +15,21 @@ import 'package:in_c_sheet/sheet_setlist.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('Clef app disables debug banner for store screenshots', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final controller = SheetLibraryController(store: SheetLibraryStore());
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    expect(app.title, 'Clef & Staff');
+    expect(app.debugShowCheckedModeBanner, isFalse);
+  });
+
   for (final tooltip in ['즐겨찾기', '고정']) {
     testWidgets('score card accepts two $tooltip taps before rebuilding', (
       tester,

@@ -1296,3 +1296,11 @@ the sheet. Closing the sheet during a running measurement cancelled the timer bu
 the awaiting collection future unresolved. The fix extracts a small cancellable sampler so
 sheet disposal and repeat collection complete the pending timing future with an empty result.
 This is a QA-tool lifecycle fix only; actual metronome audio uniformity still remains DEVICE QA.
+
+S67 VERIFIED LOCAL: App Store screenshot review exposed debug-banner and blank-context captures.
+Source already sets `debugShowCheckedModeBanner: false` on `InCSheetApp`, but the submission
+flow needed a guard and a checklist. Added a widget smoke assertion for the Clef MaterialApp
+title/debug-banner setting and a store screenshot checklist that rejects debug ribbons, empty
+viewer/annotation/tuner context, path leakage and unclear iPhone/iPad compositions. Targeted
+widget test and analyze passed; actual App Store screenshot capture remains a manual release
+task.
