@@ -231,6 +231,8 @@
 22. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
 23. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
 24. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
+    이미 CropBox가 들어 있는 PDF에서는 `자르기 맞춤`에 `PDF 여백 감지값`이 표시되고,
+    일반 PDF에서는 자동 스캔 감지처럼 과장되어 보이지 않아야 한다.
 25. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
 26. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입, 상단 context,
     공연 진행 badge에 반영되는지 확인한다.

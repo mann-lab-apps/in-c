@@ -30,6 +30,7 @@ import 'sheet_library_store.dart';
 import 'sheet_library_view_settings.dart';
 import 'sheet_metronome.dart';
 import 'sheet_metronome_player.dart';
+import 'sheet_pdf_page_transformer.dart';
 import 'sheet_pdf_search_support.dart';
 import 'sheet_rc_feedback.dart';
 import 'sheet_score.dart';
@@ -11712,11 +11713,20 @@ setlist=$setlistLabel
             pageNumber,
             orderIndex: orderIndex,
           );
+    final detectedCrop = orderIndex == null
+        ? await _detectExistingPdfCrop(currentScore, pageNumber)
+        : null;
+    if (!mounted) {
+      return;
+    }
 
     final selected = await showModalBottomSheet<SheetCropSettings>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _CropSettingsSheet(initialCrop: initialCrop),
+      builder: (context) => _CropSettingsSheet(
+        initialCrop: initialCrop,
+        detectedCrop: detectedCrop,
+      ),
     );
     if (selected == null) {
       return;
@@ -11753,6 +11763,20 @@ setlist=$setlistLabel
           ? '$targetLabel자르기 맞춤 설정을 저장했습니다.'
           : '$targetLabel자르기 맞춤을 해제했습니다.',
     );
+  }
+
+  Future<SheetCropSettings?> _detectExistingPdfCrop(
+    SheetScore currentScore,
+    int pageNumber,
+  ) async {
+    try {
+      return await SheetPdfPageTransformer.detectExistingCropForPage(
+        inputPath: currentScore.filePath,
+        pageNumber: pageNumber,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _showCropPresets() async {
@@ -16337,9 +16361,10 @@ class _PageMetadataBadge extends StatelessWidget {
 }
 
 class _CropSettingsSheet extends StatefulWidget {
-  const _CropSettingsSheet({required this.initialCrop});
+  const _CropSettingsSheet({required this.initialCrop, this.detectedCrop});
 
   final SheetCropSettings initialCrop;
+  final SheetCropSettings? detectedCrop;
 
   @override
   State<_CropSettingsSheet> createState() => _CropSettingsSheetState();
@@ -16394,6 +16419,31 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
             '스캔 PDF의 흰 여백을 빠르게 줄인 뒤 아래 슬라이더로 미세 조정하세요.',
             style: Theme.of(context).textTheme.bodySmall,
           ),
+          if (widget.detectedCrop != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              'PDF 여백 감지값',
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.auto_fix_high_outlined, size: 18),
+                  label: Text(_detectedCropLabel(widget.detectedCrop!)),
+                  onPressed: () => _applyDetectedCrop(widget.detectedCrop!),
+                ),
+                Text(
+                  'PDF에 저장된 CropBox 기준입니다.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           _CropSlider(
             label: '위',
@@ -16449,6 +16499,21 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
         bottom: value,
       );
     });
+  }
+
+  void _applyDetectedCrop(SheetCropSettings crop) {
+    setState(() {
+      _crop = crop.normalized();
+    });
+  }
+
+  static String _detectedCropLabel(SheetCropSettings crop) {
+    final normalized = crop.normalized();
+    return '감지값 적용 '
+        '상${(normalized.top * 100).round()}% '
+        '하${(normalized.bottom * 100).round()}% '
+        '좌${(normalized.left * 100).round()}% '
+        '우${(normalized.right * 100).round()}%';
   }
 }
 
@@ -20228,9 +20293,15 @@ Widget buildPagePickerSheetForTest({
 @visibleForTesting
 Widget buildCropSettingsSheetForTest({
   SheetCropSettings initialCrop = SheetCropSettings.none,
+  SheetCropSettings? detectedCrop,
 }) {
   return MaterialApp(
-    home: Scaffold(body: _CropSettingsSheet(initialCrop: initialCrop)),
+    home: Scaffold(
+      body: _CropSettingsSheet(
+        initialCrop: initialCrop,
+        detectedCrop: detectedCrop,
+      ),
+    ),
   );
 }
 

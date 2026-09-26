@@ -2391,6 +2391,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('crop settings sheet can apply detected PDF crop box', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      buildCropSettingsSheetForTest(
+        detectedCrop: const SheetCropSettings(
+          left: 0.04,
+          top: 0.08,
+          right: 0.06,
+          bottom: 0.10,
+        ),
+      ),
+    );
+
+    expect(find.text('PDF 여백 감지값'), findsOneWidget);
+    expect(find.textContaining('감지값 적용'), findsOneWidget);
+    expect(find.text('PDF에 저장된 CropBox 기준입니다.'), findsOneWidget);
+
+    await tester.tap(find.textContaining('감지값 적용'));
+    await tester.pump();
+
+    expect(find.text('4%'), findsAtLeastNWidgets(1));
+    expect(find.text('6%'), findsAtLeastNWidgets(1));
+    expect(find.text('8%'), findsAtLeastNWidgets(1));
+    expect(find.text('10%'), findsAtLeastNWidgets(1));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('annotation stamp picker exposes music rehearsal marks', (
     tester,
   ) async {

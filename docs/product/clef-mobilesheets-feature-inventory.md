@@ -72,7 +72,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Viewer / Performance | Single/two-page/half-page/vertical display modes | official site, display page, user guide | 1페이지, 2페이지, 세로 스크롤, 반 페이지 넘김이 있다 | feature map `보기` | Implemented | 2페이지 정책은 `표지 단독`/`1-2쪽부터`로 단순화 |
 | Viewer / Performance | Page scaling / fit modes | display page | fit page/fit width/fullscreen metadata와 viewer 적용이 있다 | feature map `page scaling` | Implemented | 실제 악보별 기본값 QA 필요 |
 | Viewer / Performance | Page ordering duplicate/rearrange/remove | display page | 숨김/순서/복제/빈 페이지/적용 사본이 있다 | feature map `페이지 정리` | Implemented | live rendered rotation은 spike |
-| Viewer / Performance | Manual crop / automatic crop / rotation | display page | 수동 crop, 빠른 여백 자르기 3/6/10%, 회전 metadata와 적용 사본은 있다. 실제 자동 edge detection은 없다 | feature map `수동 크롭`, `자동 크롭`, `페이지 회전` | Partially Implemented | 자동 crop은 margin detection 필요 |
+| Viewer / Performance | Manual crop / automatic crop / rotation | display page | 수동 crop, 빠른 여백 자르기 3/6/10%, 기존 PDF CropBox 감지값 적용, 회전 metadata와 적용 사본은 있다. 실제 자동 edge detection은 없다 | feature map `수동 크롭`, `자동 크롭`, `페이지 회전` | Partially Implemented | 내용 기반 자동 crop은 margin detection 필요 |
 | Viewer / Performance | Image caching | display page | render cache profile과 memory cap이 있다 | feature map `image caching/prefetch` | Partially Implemented | 50-100페이지 실기기 계측 필요 |
 | Viewer / Performance | Song overlay | display page | viewer `도구` 메뉴, toolbar, mini panel, tap zone hint가 있다 | feature map `이름으로 도구 찾기` | Implemented | Clef는 이름 있는 메뉴를 더 강조 |
 | Viewer / Performance | Automatic scrolling | utilities page | 곡별 duration/cue/rehearsal mark 기반 자동 스크롤이 있다 | feature map `자동 스크롤` | Implemented | 측정 기반 세밀 timeline editor는 후속 |
@@ -143,8 +143,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 4. Advanced audio: A-B loop, tempo/pitch shift, track markers는 없다.
 5. Advanced annotation: custom stamps, nudge, snipping, multi-layer, editable PDF annotation export가 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
-7. Automatic crop/direct file management: manual crop과 internal copy policy는 있으나 MobileSheets식
-   automatic crop, Android direct-reference library는 없다.
+7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
+   있으나 MobileSheets식 내용 기반 automatic crop, Android direct-reference library는 없다.
 
 ## Clef가 이미 충분히 커버하거나 다른 방향을 택한 영역
 
@@ -170,7 +170,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 
 ### v1.1 제품 기능 후보
 
-- 자동 crop 또는 semi-auto crop.
+- 내용 기반 자동 crop 또는 더 강한 semi-auto crop.
 - advanced audio player: A-B loop와 track marker부터 시작.
 - custom stamp import보다 먼저 stamp set 관리/검색.
 - field schema 확장: album/year/signature/source type을 Clef에 맞게 단순화.

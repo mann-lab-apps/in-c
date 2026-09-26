@@ -72,8 +72,8 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | 구현됨: balanced/large PDF render profile로 `pdfrx` rendering cache limit, memory cap, one-pass threshold 조정. 50-100페이지 실기기 계측 필요 |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영. v1.x 보강: 3/6/10% 빠른 여백 자르기 값으로 스캔 PDF 여백을 빠르게 시작하고 slider로 미세 조정 |
-| 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영. v1.x 보강: 3/6/10% 빠른 여백 자르기와 기존 PDF CropBox 감지값으로 시작하고 slider로 미세 조정 |
+| 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | 부분 보강: 기존 PDF CropBox 감지값 제안. 남은 gap은 스캔 이미지 내용 기반 margin detection |
 | 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: source page/virtual instance metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
 | 페이지 정리 | 페이지 순서 변경 | 양쪽 지원 | V1 | 중간 | 구현됨: virtual order와 instance override metadata, 실제 PDF page tree 적용 사본 생성 |

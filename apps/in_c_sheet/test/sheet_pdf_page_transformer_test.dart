@@ -137,6 +137,53 @@ void main() {
     expect(afterOriginalBytes, originalBytes);
   });
 
+  test('detects existing PDF crop box as viewer crop settings', () async {
+    final tempDir = await Directory.systemTemp.createTemp(
+      'clef-page-crop-detect-',
+    );
+    addTearDown(() async {
+      if (tempDir.existsSync()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+    final outputPath = '${tempDir.path}/short-score-cropped.pdf';
+
+    final result = await SheetPdfPageTransformer.createCropAppliedCopy(
+      inputPath: shortFixturePath,
+      outputPath: outputPath,
+      pageSettings: const SheetPageSettings(
+        hiddenPages: <int>[],
+        pageRotations: <int, int>{},
+        crop: SheetCropSettings(
+          left: 0.04,
+          top: 0.08,
+          right: 0.06,
+          bottom: 0.10,
+        ),
+      ),
+    );
+    final detected = await SheetPdfPageTransformer.detectExistingCropForPage(
+      inputPath: outputPath,
+      pageNumber: 1,
+    );
+
+    expect(result.didWrite, isTrue);
+    expect(detected, isNotNull);
+    expect(detected!.left, closeTo(0.04, 0.002));
+    expect(detected.top, closeTo(0.08, 0.002));
+    expect(detected.right, closeTo(0.06, 0.002));
+    expect(detected.bottom, closeTo(0.10, 0.002));
+  });
+
+  test('does not suggest crop when PDF crop box matches media box', () async {
+    final detected = await SheetPdfPageTransformer.detectExistingCropForPage(
+      inputPath: shortFixturePath,
+      pageNumber: 1,
+    );
+
+    expect(detected, isNull);
+  });
+
   test('uses page crop overrides when creating crop applied copy', () async {
     final tempDir = await Directory.systemTemp.createTemp(
       'clef-page-crop-overrides-',

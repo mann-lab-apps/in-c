@@ -1335,3 +1335,12 @@ verification passed with the recorded Clef Play upload certificate. Local valida
 format, analyze, targeted Device QA/help tests, full 1,398-test suite and the RC release
 check. Actual audio uniformity, drone loudness, tuner accuracy, Bluetooth/USB pedal, stylus
 feel and long-session behavior remain DEVICE QA.
+
+S71 VERIFIED LOCAL: continuing the MobileSheets crop gap with a low-risk semi-auto step instead
+of introducing raster edge detection. Clef now detects an existing PDF `CropBox` on the
+current source page and offers it as `PDF 여백 감지값` in `자르기 맞춤`; applying it only seeds the
+same viewer crop sliders and metadata save path. This does not inspect scanned page pixels,
+does not modify the original PDF, and does not claim MobileSheets-style content-based auto
+crop. Regression coverage targets PDF CropBox detection and the crop sheet action. Targeted
+crop transformer/smoke tests passed; full 1,401-test suite, analyze and RC release check
+passed. No app build/version change/push/merge.
