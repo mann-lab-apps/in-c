@@ -97,8 +97,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Annotation | Editable PDF annotation embed | annotation page | rendered stamp export fallback은 있으나 standard editable annotation export는 unsupported | spike backlog `PDF 표준 Annotation Embed/Export` | Partially Implemented | compatibility fixture 필요 |
 | Music Tools | Metronome count-in/accent/subdivision/visual modes | utilities page | count-in, subdivision, accent, visual strip, Android native tick이 있다 | feature map `메트로놈` | Partially Implemented | 빠른 BPM 실제 오디오 균일성은 Device QA |
 | Music Tools | Metronome page turn after measures / multiple visual modes | utilities page | 자동 스크롤과 metronome은 있으나 마디 수 기반 page turn/LED-circle-edge mode 선택은 제한적 | feature map `메트로놈`, `자동 스크롤` | Partially Implemented | 과한 설정 노출은 Clef 컨셉과 충돌 가능 |
-| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지가 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/markers/route/iOS parity는 남음 |
-| Music Tools | A-B loop | utilities page | 없다 | feature map `A-B loop` | Not Implemented | audio timeline model 필요 |
+| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 초 단위 A-B 반복이 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/markers/route/iOS parity는 남음 |
+| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원한다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline/iOS parity는 남음 |
 | Music Tools | Tempo change / pitch shift | utilities page | 없다 | feature map `tempo/pitch shift` | Not Implemented | DSP library/license 필요 |
 | Music Tools | Built-in chromatic tuner | 공식 자료에서는 MobileSheets chromatic tuner가 확인되지 않음 | Clef는 chromatic-only tuner와 pitch history chart가 있다 | feature map `튜너` | Implemented | Clef 차별점. 실제 정확도는 Device QA |
 | Music Tools | Drone / reference tone | MobileSheets 공식 주요 기능으로는 확인하지 못함 | Clef는 tuner A4 기준 공유 drone/tone이 있다 | feature map `기준음/드론` | Implemented | Clef 차별점. 음량은 Device QA |

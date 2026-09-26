@@ -2406,6 +2406,41 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked audio sheet sends A-B loop points to player', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_loop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '1.5');
+    await tester.enterText(find.byType(TextField).at(1), '8.2');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls.single.method, 'play');
+    expect(calls.single.arguments, <String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'loopStartMs': 1500,
+      'loopEndMs': 8200,
+    });
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('performance preset save failure reports and preserves input', (
     tester,
   ) async {

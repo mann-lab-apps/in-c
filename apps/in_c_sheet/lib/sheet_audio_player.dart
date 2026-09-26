@@ -6,11 +6,16 @@ class SheetAudioPlayer {
 
   final MethodChannel _channel;
 
-  Future<SheetAudioPlaybackResult> play(String path) async {
+  Future<SheetAudioPlaybackResult> play(
+    String path, {
+    SheetAudioLoop? loop,
+  }) async {
     try {
-      await _channel.invokeMethod<void>('play', <String, Object?>{
+      final arguments = <String, Object?>{
         'path': path.trim(),
-      });
+        if (loop != null) ...loop.toChannelArguments(),
+      };
+      await _channel.invokeMethod<void>('play', arguments);
       return SheetAudioPlaybackResult.playing;
     } on MissingPluginException {
       return SheetAudioPlaybackResult.unsupportedPlatform;
@@ -27,6 +32,21 @@ class SheetAudioPlayer {
     } on PlatformException {
       return;
     }
+  }
+}
+
+class SheetAudioLoop {
+  SheetAudioLoop({required this.start, required this.end})
+    : assert(end > start);
+
+  final Duration start;
+  final Duration end;
+
+  Map<String, Object?> toChannelArguments() {
+    return <String, Object?>{
+      'loopStartMs': start.inMilliseconds,
+      'loopEndMs': end.inMilliseconds,
+    };
   }
 }
 

@@ -29,6 +29,37 @@ void main() {
     });
   });
 
+  test('sends optional A-B loop points through method channel', () async {
+    final channel = const MethodChannel('clef/test_audio_loop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final player = SheetAudioPlayer(channel: channel);
+    final result = await player.play(
+      '/tmp/backing-track.m4a',
+      loop: SheetAudioLoop(
+        start: Duration(milliseconds: 1500),
+        end: Duration(milliseconds: 8200),
+      ),
+    );
+
+    expect(result.isPlaying, isTrue);
+    expect(calls.single.method, 'play');
+    expect(calls.single.arguments, <String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'loopStartMs': 1500,
+      'loopEndMs': 8200,
+    });
+  });
+
   test('reports playback errors', () async {
     final channel = const MethodChannel('clef/test_audio_error');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

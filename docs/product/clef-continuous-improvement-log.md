@@ -1229,3 +1229,18 @@ No app build performed; new changes have widget/source evidence only.
   and Korean rehearsal term. No annotation persistence or PDF export schema changed.
 - Regression evidence: widget smoke covers the named picker, category labels and search
   filtering. User-provided stamp packs remain a later MobileSheets-level feature.
+
+## MobileSheets Priority Follow-Up: Linked Audio A-B Loop (2026-09-26)
+
+- Selected slice: add the smallest useful A-B loop for backing tracks before attempting
+  waveform marker editing or tempo/pitch shifting. Clef linked audio sheets now expose
+  an `A-B 반복` toggle with second-based A/B fields.
+- Implementation intent: keep loop settings ephemeral to playback, pass `loopStartMs`
+  and `loopEndMs` through the existing audio method channel, and loop Android
+  `MediaPlayer` playback between normalized start/end points. No score persistence or
+  linked-file schema changed.
+- Regression evidence: Dart channel tests cover loop arguments and widget smoke covers
+  the linked-audio sheet controls. Android Gradle/Kotlin compile could not be run in
+  this worktree because no Gradle wrapper/system Gradle/Kotlin CLI is available; the
+  next debug/release Android build must be treated as the native compile gate. iOS audio
+  parity and real playback timing remain DEVICE QA.

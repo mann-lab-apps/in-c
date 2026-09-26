@@ -17940,9 +17940,10 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 }
 
 class _LinkedAudioPlayerSheet extends StatefulWidget {
-  const _LinkedAudioPlayerSheet({required this.linkedFile});
+  const _LinkedAudioPlayerSheet({required this.linkedFile, this.player});
 
   final SheetLinkedFile linkedFile;
+  final SheetAudioPlayer? player;
 
   @override
   State<_LinkedAudioPlayerSheet> createState() =>
@@ -17951,19 +17952,44 @@ class _LinkedAudioPlayerSheet extends StatefulWidget {
 
 class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   late final SheetAudioPlayer _player;
+  late final TextEditingController _loopStartController;
+  late final TextEditingController _loopEndController;
   bool _isPlaying = false;
+  bool _loopEnabled = false;
   SheetAudioPlaybackResult? _lastResult;
 
   @override
   void initState() {
     super.initState();
-    _player = SheetAudioPlayer();
+    _player = widget.player ?? SheetAudioPlayer();
+    _loopStartController = TextEditingController();
+    _loopEndController = TextEditingController();
   }
 
   @override
   void dispose() {
     unawaited(_player.stop());
+    _loopStartController.dispose();
+    _loopEndController.dispose();
     super.dispose();
+  }
+
+  SheetAudioLoop? _readLoop() {
+    if (!_loopEnabled) {
+      return null;
+    }
+    final startSeconds = double.tryParse(_loopStartController.text.trim());
+    final endSeconds = double.tryParse(_loopEndController.text.trim());
+    if (startSeconds == null ||
+        endSeconds == null ||
+        startSeconds < 0 ||
+        endSeconds <= startSeconds) {
+      return null;
+    }
+    return SheetAudioLoop(
+      start: Duration(milliseconds: (startSeconds * 1000).round()),
+      end: Duration(milliseconds: (endSeconds * 1000).round()),
+    );
   }
 
   Future<void> _togglePlayback() async {
@@ -17975,7 +18001,14 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       });
       return;
     }
-    final result = await _player.play(widget.linkedFile.path);
+    final loop = _readLoop();
+    if (_loopEnabled && loop == null) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed('A-B 반복 구간을 확인해주세요.');
+      });
+      return;
+    }
+    final result = await _player.play(widget.linkedFile.path, loop: loop);
     if (!mounted) {
       return;
     }
@@ -18025,6 +18058,53 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _loopEnabled,
+              title: const Text('A-B 반복'),
+              subtitle: const Text('구간을 초 단위로 입력해 반복 재생합니다.'),
+              onChanged: _isPlaying
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _loopEnabled = value;
+                        _lastResult = null;
+                      });
+                    },
+            ),
+            if (_loopEnabled)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _loopStartController,
+                      enabled: !_isPlaying,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'A 시작(초)',
+                        hintText: '0',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _loopEndController,
+                      enabled: !_isPlaying,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'B 끝(초)',
+                        hintText: '12.5',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             if (_lastResult?.status ==
                 SheetAudioPlaybackStatus.unsupportedPlatform)
               Padding(
@@ -19438,6 +19518,23 @@ Widget buildAnnotationToolbarForTest() {
         onToggleLayerExport: () {},
         onSaveFavorite: () {},
         onApplyFavorite: () {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildLinkedAudioPlayerSheetForTest({MethodChannel? channel}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _LinkedAudioPlayerSheet(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'audio',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+        ),
+        player: SheetAudioPlayer(channel: channel),
       ),
     ),
   );
