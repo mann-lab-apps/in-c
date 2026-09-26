@@ -85,7 +85,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Setlists / Collections | Recent setlists mixed with recent songs | user guide Recent tab, hands-on | `최근 악보`와 최근 세트리스트 rail을 분리해 제공 | hands-on analysis, quick access commit | Implemented | 의도적으로 구획 분리 |
 | Setlists / Collections | Per-song setlist settings | MobileSheets release/history and feature patterns | 세트리스트별 score metronome override, viewer/action preset override가 있다 | feature map `공연별 보기 preset override`, `메트로놈` | Implemented | 전체 MobileSheets 설정 범위보다는 작음 |
 | Setlists / Collections | Setlist merge | official library page | 목록 복사/복제는 있으나 merge 전용 UX는 없다 | feature map `세트리스트` | Not Implemented | 실제 사용 빈도를 본 뒤 결정 |
-| Setlists / Collections | Setlist/song notes display | user guide 목차 | 악보 메모와 setlist copy summary는 있으나 MobileSheets식 notes display는 제한적이다 | feature map, main.dart viewer notes | Partially Implemented | 공연 중 notes UX는 추후 관찰 필요 |
+| Setlists / Collections | Setlist/song notes display | user guide 목차 | 곡별 시작 쪽/시간/메모가 세트리스트 상세, 목록 복사, viewer context, 공연 진행 badge에 표시된다 | feature map, main.dart viewer notes | Implemented | 긴 메모의 실제 거리 가독성은 DEVICE QA |
 | Annotation | Pen/highlighter/text/eraser/stamps/shapes/arrows/hairpins/staff/grid | annotation page | 대응 도구 대부분이 있다 | feature map `주석` | Implemented | custom stamp pack 제외 |
 | Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형만 제공 | feature map `스탬프/기본 도형` | Partially Implemented | 사용자 stamp import는 없음 |
 | Annotation | Favorite annotation tools | annotation page | favorite annotation tool preset 저장/복원이 있다 | feature map `favorite tool` | Implemented | 실사용 발견성 QA 필요 |
@@ -164,6 +164,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 메트로놈 빠른 BPM | Android native click output 재사용, start 전 prepare, count-in phase, delayed tick phase, stale callback guard는 로컬 테스트로 보강됨. | 실제 오디오 균일성은 120/180/240 BPM, 4/4/6/8, subdivision, 이어폰/스피커/Bluetooth 별 실기기 QA. 오디오 기준 native scheduler는 현 버전 범위 밖. |
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
 | 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동을 추가했다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
+| 세트리스트 곡별 메모 표시 | 리허설 모드의 곡별 메모를 viewer 상단 context와 공연 진행 badge에도 노출한다. 저장 schema 추가 없이 기존 notes를 재사용한다. | 긴 메모가 악보를 가리지 않는지, 실제 공연 거리에서 한 줄 표시가 충분한지 DEVICE QA. |
 | PDF print/share intent | 원본 PDF 공유와 필기 포함 PDF 공유는 구현됨. 전용 print action은 아직 명시 요구가 없다. | 사용자 요구가 올라오면 OS print/share sheet의 프린트 경로로 충분한지 먼저 확인하고, 별도 print action은 v1.1 후보로 검토. |
 
 ### v1.1 제품 기능 후보

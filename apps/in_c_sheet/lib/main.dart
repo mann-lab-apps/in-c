@@ -7907,6 +7907,9 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     if (context.totalEstimatedSeconds > 0) {
       parts.add('총 ${_formatDuration(context.totalEstimatedSeconds)}');
     }
+    if (context.currentNote.isNotEmpty) {
+      parts.add(context.currentNote);
+    }
     return parts.join(' · ');
   }
 
@@ -7914,6 +7917,9 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     final parts = <String>[context.title, context.positionLabel];
     if (context.currentDurationSeconds > 0) {
       parts.add(_formatDuration(context.currentDurationSeconds));
+    }
+    if (context.currentNote.isNotEmpty) {
+      parts.add(context.currentNote);
     }
     return parts.join(' · ');
   }

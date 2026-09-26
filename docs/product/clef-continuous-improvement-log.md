@@ -1179,3 +1179,14 @@ No app build performed; new changes have widget/source evidence only.
 - Regression evidence: new widget smoke test covers long score direct jump, hidden page
   guidance and out-of-range typed input clamping. Actual large-PDF touch feel remains
   DEVICE QA.
+
+## v1.x Setlist Performance Notes Polish (2026-09-26)
+
+- Selected slice: setlist/song notes display. Clef already stored per-score rehearsal
+  notes and included them in setlist copy text, but the viewer progress context did not
+  surface those notes during performance.
+- Implementation intent: carry the existing setlist note into `SheetSetlistPlaybackContext`
+  and append it to the viewer context/progress badge without changing persistence schema.
+- Regression evidence: controller coverage checks playback context note propagation and
+  widget smoke coverage keeps the progress badge rendering a note-bearing subtitle.
+  Long-note distance readability remains DEVICE QA.

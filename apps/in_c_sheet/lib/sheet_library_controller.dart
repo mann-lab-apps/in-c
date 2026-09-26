@@ -3111,6 +3111,7 @@ class SheetLibraryController extends ChangeNotifier {
       totalCount: scores.length,
       currentDurationSeconds: setlist.scoreDurations[scoreId] ?? 0,
       totalEstimatedSeconds: setlist.totalEstimatedSeconds,
+      currentNote: setlist.scoreNotes[scoreId]?.trim() ?? '',
     );
   }
 
@@ -3448,6 +3449,7 @@ class SheetSetlistPlaybackContext {
     required this.totalCount,
     required this.currentDurationSeconds,
     required this.totalEstimatedSeconds,
+    this.currentNote = '',
   });
 
   final String title;
@@ -3455,6 +3457,7 @@ class SheetSetlistPlaybackContext {
   final int totalCount;
   final int currentDurationSeconds;
   final int totalEstimatedSeconds;
+  final String currentNote;
 
   String get positionLabel => '${currentIndex + 1}/$totalCount';
 }

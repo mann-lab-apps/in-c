@@ -996,12 +996,12 @@ void main() {
     await tester.pumpWidget(
       buildSetlistProgressBadgeForTest(
         scoreTitle: 'G선상의 아리아',
-        subtitle: '공연 순서 · 2/8 · 3분',
+        subtitle: '공연 순서 · 2/8 · 3분 · 반복 없이',
       ),
     );
 
     expect(find.text('G선상의 아리아'), findsOneWidget);
-    expect(find.text('공연 순서 · 2/8 · 3분'), findsOneWidget);
+    expect(find.text('공연 순서 · 2/8 · 3분 · 반복 없이'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>

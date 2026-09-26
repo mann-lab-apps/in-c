@@ -3178,6 +3178,7 @@ void main() {
             meter: SheetMetronomeMeter.threeFour,
           ),
         },
+        scoreNotes: const <String, String>{'score-2': '반복 없이 바로 다음 곡'},
       ),
     ]);
 
@@ -3191,6 +3192,7 @@ void main() {
 
     expect(context?.title, 'Recital');
     expect(context?.positionLabel, '2/2');
+    expect(context?.currentNote, '반복 없이 바로 다음 곡');
   });
 
   test('bulk adds scores to setlist and skips duplicates', () async {
