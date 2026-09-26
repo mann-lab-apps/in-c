@@ -4,8 +4,12 @@
 
 - Started: 2026-09-13, `dev` at `72b9314`, three local commits ahead of fetched `origin/dev`.
 - Restored worktree: `/private/tmp/clef-next-polish` (previous directory was removed).
-- Source: Clef & Staff, `lib/main.dart`, discovery home defaults to false,
-  Android applicationId `com.mannlab.inc`, version `1.0.0+20`.
+- Historical source at this execution start: Clef & Staff, `lib/main.dart`,
+  discovery home defaults to false, Android applicationId `com.mannlab.inc`,
+  version `1.0.0+20`.
+- Current continuation source after R1/release prep: Android applicationId
+  `com.mannlab.clef`, source/app info `1.0.0+22`; latest archived Android
+  internal-test AAB is `1.0.0+24` and does not include post-24 source changes.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
   installation is this source revision. No connected emulator at baseline.
 - No app builds, push, or merge authorized for this execution.
@@ -83,23 +87,135 @@ full tests and all other RC checks still cover the complete package.
 S54 draft remains untracked and excluded from this PR. Final integrated RC
 evidence is recorded in PR #759 after the scope fix is validated.
 
-S53 committed as `2b3e343`. S54 IN PROGRESS: metronome native output failures fall
-back to SystemSound without reporting the output path, and fallback failures are
-not caught. Full/mini callers discard results. Draft regression:
-`test/sheet_metronome_output_feedback_test.dart` (uncommitted).
-Acceptance: report degraded/unavailable output without repeated notices; successful
-retry clears the status; delayed native failure after stop/close must not trigger
-a fallback click. Preserve timing/settings and distinguish API success from sound.
-First run failed eight cases (`/private/tmp/clef-s54-red.log`), but Android button
-tap feedback also calls SystemSound and contaminated call counts/failure injection.
-The draft now invokes the actual button callback directly to isolate metronome
-output. Its rerun was denied twice by approval-service capacity errors; do not
-treat the revised draft as reproduced or passing. No production S54 edits yet.
-Next command in apps/in_c_sheet:
-`flutter test test/sheet_metronome_output_feedback_test.dart`.
-Then add scoped output results/cancellation only after isolated reproduction,
-cover old/new success/failure and retry, and run full RC before committing S54.
-Approval errors are environment blockers, not additional test failures.
+S53 committed as `2b3e343`. S54 VERIFIED LOCAL: metronome native output failures used
+to fall back to SystemSound without reporting the output path, and fallback
+failures were not caught. Full/mini callers discarded results, so users saw no
+reason when sound was degraded or unavailable. Recreated the slice without the
+lost untracked draft: `SheetMetronomeSoundPlayer.playClick` now returns
+native/fallback/unavailable/skipped status and checks caller ownership before
+playing fallback. Full metronome and mini panel show scoped fallback/unavailable
+warnings, clear them after a native retry, and ignore delayed failures after
+stop/close. Acceptance still distinguishes API success from audible quality:
+this does not prove fast-BPM physical timing is fixed. Targeted metronome
+unit/widget tests 45/45 PASS after one red widget location failure moved the
+warning to the first-screen area. Full 1,360/1,360, analyze and RC PASS.
+No app build/version change/push/merge. Fast-BPM audible timing, output route
+volume, Bluetooth/earphone behavior and iOS parity remain DEVICE QA.
+Follow-up test-only hardening: mini panel also clears fallback output after a
+native retry and ignores delayed unavailable output after stop. Targeted
+`sheet_metronome_lifecycle_test.dart` 19/19 PASS. No production code change.
+S55 VERIFIED LOCAL: icon-only annotation tools remained a discoverability risk
+after viewer/home/tool entrypoints gained names. Added a `필기 도구` named picker
+inside the annotation toolbar while retaining the fast segmented icon strip.
+Acceptance: named picker opens every annotation tool by label, selected tool name
+stays visible, stamp picker still exposes rehearsal marks, and no tool/storage
+behavior changed. First targeted run caught duplicate tooltip targets; removed the
+nested tooltip and kept one accessible target. Targeted 76/76 PASS. Full 1,362/1,362,
+analyze and RC PASS. No app build/version change/push/merge.
+S56 VERIFIED LOCAL: mini tuner panel still acted as a shortcut back to the full tuner,
+which weakened the promised mini-tool flow. Add a lightweight live chromatic readout
+inside the viewer panel: current note, cents/status, signal summary and a `상세 튜너`
+escape hatch. Reuse chromatic-only settings and keep drone/settings/history in the
+full tuner. Acceptance: injected state stream shows A4/in-tune and no-signal states,
+production panel starts/stops its own input service with panel lifecycle, and actual
+microphone accuracy remains DEVICE QA. Targeted 17/17 PASS, full 1,363/1,363 PASS,
+analyze PASS, and RC PASS. No app build/version change/push/merge.
+S57 VERIFIED LOCAL: performance preset storage had controller-level rollback coverage
+but the settings sheet did not convert save/delete callback failure into visible user
+feedback. Add sheet-level failure snackbars while preserving the typed preset name
+and existing template list. Acceptance: injected save exception keeps input and
+reports retry guidance; delete false/exception keeps the preset and reports retry
+guidance; existing controller recovery remains covered. Targeted 80/80 PASS, full
+1,366/1,366 PASS, analyze PASS, and RC PASS. No app build/version change/push/merge.
+S58 VERIFIED LOCAL: the store-only profile deletion path still wrote the profile
+index, active profile and scoped library data with unchecked preferences calls,
+outside the shared metadata queue. Red tests reproduced false success on failed
+writes, partial deletion after exceptions and a delayed deletion overwriting the
+next profile creation. Delete now reuses the checked metadata commit and removes
+scores, setlists, view settings, favorite preset and automatic backup together
+with the profile index/active fallback. Acceptance: false/throw at profile index,
+scoped scores and active profile all roll back to the previous disk/cache state;
+retry succeeds; delayed deletion preserves a following creation. Targeted 7/7 PASS;
+store suite 175/175 PASS; full 1,373/1,373 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
+S59 VERIFIED LOCAL: viewer page-organization preset actions still surfaced storage
+exceptions instead of retry guidance. A new actual viewer test first exposed a
+crop preset dialog lifecycle bug: its TextEditingController was disposed before
+the DialogRoute fully completed. Move the crop preset dialog to the same
+DialogRoute.completed pattern used by score metadata, and route crop preset plus
+page template add/apply/remove exceptions through scoped snackbar retry messages.
+Targeted crop-preset failure widget PASS; sheet viewer tools suite 11/11 PASS;
+full 1,374/1,374 PASS, analyze PASS, and RC PASS. No app build/version
+change/push/merge.
+S60 VERIFIED LOCAL: direct viewer page-organization commands still had unguarded
+storage and readiness edges. A new actual `회전값 저장` widget test first failed
+because the PDF controller page number was read before readiness, before it could
+reach the injected storage failure. Guard current-page rotation with the stored
+page fallback and retry snackbar, and route page hide/unhide, page order/duplicate
+and crop-setting save exceptions through scoped retry guidance. Targeted viewer
+tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
+S61 VERIFIED LOCAL: jump point and rehearsal mark edits shared the remaining direct
+viewer page-organization save calls. Route add/rename/delete failures through
+scoped retry snackbars and use the stored page fallback when the PDF controller
+is not ready. The attempted actual jump-point widget regression was discarded as
+an unstable PopupMenu/PDF-render hit-test harness, not product evidence. Viewer
+tools suite 12/12 PASS; full 1,375/1,375 PASS, analyze PASS, and RC PASS.
+No app build/version change/push/merge.
+S62 VERIFIED LOCAL: viewer bookmark add/remove/rename still let storage exceptions
+escape to the framework. New actual missing-PDF viewer test reproduced a
+`StateError` when the bookmark toolbar save failed. Route bookmark toggle,
+rename and delete through scoped retry snackbars while preserving the existing
+missing-target messages. Targeted bookmark failure widget PASS; full
+1,376/1,376 PASS, analyze PASS, and RC PASS. No app build/version
+change/push/merge.
+S63 DOCS VERIFIED: v1 RC finish criteria were easy to misread because source
+version, archived AAB versions and 실기기 QA status were scattered across QA docs.
+Clarified that current Clef worktree source remains `1.0.0+22`, archived AABs
+must not be reused as evidence for post-build source changes, and every device
+run must record the installed app version/build. Added a 10-15 minute 실기기
+smoke table with PASS/ISSUE/DEVICE QA CONTINUES/BLOCKER/NOT TESTED states,
+split internal-test candidate criteria from formal release readiness, refreshed
+tester messaging for backup/performance-update/copyright-safe feedback, and
+documented feature-map status wording so `구현됨` does not imply physical device
+quality. Docs-only verification: `git diff --check`, trailing whitespace scan
+and tab scan PASS; stale version scan found only explicitly dated historical
+build records, not current release guidance. No app code, version change, build,
+push or merge.
+S64 VERIFIED LOCAL: user reported home quick sections made `최근` and `정리 필요`
+feel similar, and questioned whether fixed two-page `1 / 2-3 / 4-5` spread
+behavior was the right default. Implemented clearer quick-section semantics:
+`정리 필요` now has task-oriented copy and a different accent, while `최근`
+states it is the last-opened score group. Based on forScore/Piascore/MobileSheets
+reference patterns, keep 2페이지 보기 but make its start policy explicit:
+`표지 단독` preserves the book-cover layout and `1-2쪽부터` supports scan/PDF
+pairs from the first page. 2페이지 previous/next now advances by spread anchors
+for ordinary page order; custom page-order scores keep the existing page-order
+navigation. Added `sheet_two_page_spread.dart` so the spread-anchor policy is
+unit-tested; the first targeted run caught the cover-single bug where page 1
+advanced to page 3 instead of the 2-3 spread, and the fix is covered by
+`sheet_two_page_spread_test.dart`. Added persistence to `SheetViewerSettings`,
+viewer menu/defaults/setlist preset UI, model tests and named-tools smoke
+expectations. Verification PASS: `dart format lib test tool`, `flutter analyze`,
+`flutter test` (1,379/1,379), and `dart run tool/rc_release_check.dart`.
+No app build/version change/push/merge.
+S65 VERIFIED LOCAL: fast-BPM metronome device QA reported audibly uneven click
+spacing. Existing S46/S49/S54 work already reused Android `AudioTrack`, skipped
+catch-up clicks and surfaced output failures, so this slice avoided a large audio
+engine rewrite and removed another plausible first-beat timing source. Android
+now exposes `prepare`, creates both regular/accented static click tracks before
+the first audible beat, and full/mini metronome start waits for that prepare
+before playing the first click. Sound-enabled settings also opportunistically
+prepare on sheet/panel open and when sound is re-enabled. Acceptance: unit
+channel tests verify `prepare` and silent/zero-volume no-op behavior; full and
+mini widget tests prove delayed prepare does not play or switch to `정지` until
+the preload completes. Targeted metronome tests 51/51 PASS; full 1,383/1,383,
+analyze and RC PASS. Native standalone script was updated for prepare coverage;
+its local Kotlin CLI classpath was unavailable, so the Android Kotlin path was
+verified instead with `flutter build apk --debug`, which completed
+`assembleDebug` and produced `build/app/outputs/flutter-apk/app-debug.apk`.
+Fast-BPM audible timing, Bluetooth/earphone output and physical latency remain
+DEVICE QA. No release build/version change/push/merge.
 
 S52 commit: `4277ed7`. S53 VERIFIED LOCAL: mini-panel entry was an unfamiliar icon
 in tuner/metronome sheets. Added a shared labelled `작은 창` command with a 48dp
@@ -975,7 +1091,8 @@ No app build performed; new changes have widget/source evidence only.
 - User confirmed Clef was renamed Clef & Staff and in C/classical discovery is separate.
   Restored the Clef Android namespace/applicationId/activity package to `com.mannlab.clef`
   in `/private/tmp/clef-next-polish` only. Root worktree changes were not modified or staged.
-- Candidate source/app-info version: `1.0.0+21`. Play Console code 21 availability is unverified.
+- Candidate source/app-info version at that time: `1.0.0+21`; Play Console availability was not
+  checked during that preparation step.
 - Removed release debug-signing fallback. Added a pre-release guard requiring the recorded
   upload certificate SHA1 `4C:78:A9:1A:12:98:5C:CE:7B:CE:3E:C0:61:A9:CE:08:F1:7C:A1:B9`.
   Local signing files were copied from the existing valid root files and remain ignored secrets.
@@ -997,3 +1114,176 @@ No app build performed; new changes have widget/source evidence only.
 - Next release action: confirm code 21 is unused in Play Console, then on user build request
   run `flutter build appbundle --release` from this worktree's `apps/in_c_sheet` and archive
   the verified artifact inside the project. Actual compile success and physical QA remain open.
+
+## MobileSheets-Informed Polish (2026-09-25)
+
+- Worktree: `/private/tmp/clef-mobilesheets-polish-20260925`, branch `dev`, based on
+  `410e350 fix: nest Clef app store pages`.
+- User resumed MobileSheets-reference polish after App Store review passed. This pass does not
+  introduce camera scanning, MusicXML/Chromatics linking, or passive practice-habit tracking.
+- Selected slice: home quick access clarity. User previously noted that recent items and items
+  needing information updates could read as adjacent but conceptually similar sections.
+- Implementation intent: distinguish metadata cleanup from recency without adopting
+  MobileSheets' denser tab/list UI. Home now labels the cleanup rail as `정보 정리 필요`,
+  describes it as missing title/composer information, and marks each cleanup card footer as
+  `정보 편집`. The recency rail is labelled `최근 악보` so it is distinct from
+  `최근 세트리스트`.
+- Verification: `dart format lib test tool`, focused widget smoke test, `flutter analyze`,
+  full `flutter test` (1,379 tests), `dart run tool/rc_release_check.dart`, `git diff --check`,
+  and RC whitespace/tab/stale wording scans passed. Device QA should still check
+  tablet-distance readability.
+
+## Low-Risk Help/Feedback Surface (2026-09-25)
+
+- Selected slice: make the existing tester/debug entry read as a user-facing help and
+  feedback surface. This addresses the low-risk MobileSheets gap around discoverability
+  without adding a dense manual or copying competitor screen structure.
+- Implementation intent: rename the home menu entry and empty-library CTA from tester
+  wording to `도움말/피드백`, keep app/build diagnostics and feedback template copy, and
+  add a short first-use flow for import, playing, tools and feedback.
+- This does not add an external help center, online support form or App Store support
+  URL change. It is an in-app discoverability/polish slice only.
+
+## v1.x Low-Risk Residual Triage (2026-09-26)
+
+- Worktree: `/private/tmp/clef-low-risk-20260926`, branch `dev`, based on
+  `f5f5943 chore: bump Clef release to 1.0.1+26`.
+- Selected slice: close the remaining low-risk MobileSheets inventory items without
+  expanding scope into a native audio engine, scanner, or print subsystem.
+- Recent rail: copy polish is already in source (`정보 정리 필요`, `최근 악보`,
+  `최근 세트리스트`). Remaining work is device-distance readability QA on phone/tablet
+  and large text; no code change was needed in this slice.
+- Metronome: S46/S48/S49/S65 already cover native output reuse, count-in phase,
+  delayed timer phase, stale callback guards, output feedback, and prepare-before-play.
+  This is local scheduling evidence only. Fast-BPM audible uniformity remains DEVICE QA
+  across 120/180/240 BPM, meter/subdivision, and speaker/earphone/Bluetooth outputs.
+- Drone: volume percent is always visible and the clipping-safe 35% default/gain policy
+  remains unchanged. The small-volume report is still a device/output-route QA item, not
+  a confirmed reason to raise gain.
+- PDF print/share: original PDF share and annotated PDF share already exist. A dedicated
+  print action is deferred until a user explicitly needs it; first check whether the OS
+  share sheet print destination is enough.
+- Documentation updated: MobileSheets inventory, RC QA plan, and device QA runbook now
+  separate local evidence from DEVICE QA and remove stale metronome implementation wording.
+  No app build, version bump, push, or merge was performed.
+
+## v1.x Long PDF Navigation Polish (2026-09-26)
+
+- Selected slice: MobileSheets-style long score navigation without adding thumbnails or a
+  new PDF engine. Existing `페이지 탐색` grid was useful for short scores but slow for
+  long songbooks.
+- Implementation intent: add current/selected page status, a page slider, and a `쪽 번호`
+  direct-jump field to the page picker sheet. Grid labels still show hidden, duplicated,
+  current and order-excluded pages. Actual movement continues through `_goToSheetPage`,
+  so hidden-page fallback, page-order cursor sync and page controls reuse existing paths.
+- Regression evidence: new widget smoke test covers long score direct jump, hidden page
+  guidance and out-of-range typed input clamping. Actual large-PDF touch feel remains
+  DEVICE QA.
+
+## v1.x Setlist Performance Notes Polish (2026-09-26)
+
+- Selected slice: setlist/song notes display. Clef already stored per-score rehearsal
+  notes and included them in setlist copy text, but the viewer progress context did not
+  surface those notes during performance.
+- Implementation intent: carry the existing setlist note into `SheetSetlistPlaybackContext`
+  and append it to the viewer context/progress badge without changing persistence schema.
+- Regression evidence: controller coverage checks playback context note propagation and
+  widget smoke coverage keeps the progress badge rendering a note-bearing subtitle.
+  Long-note distance readability remains DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Pedal Keyboard Substitute QA (2026-09-26)
+
+- Selected slice: strengthen the P0 pedal QA surrogate before requiring physical
+  Bluetooth/USB pedal time. MobileSheets-level external control still needs real
+  hardware QA, but the emulator can validate the keyboard/HID routing path.
+- Implementation intent: expand `sheet_viewer_input_test.dart` with a local keyboard
+  substitute matrix covering Arrow/Page/Space/Enter/Numpad Enter/Tab/Media keys,
+  shifted previous-page variants, input IDs and event consumption. This guards the
+  important behavior that direction keys turn pages instead of leaking through as
+  tiny PDF scrolls.
+- Regression boundary: this is local routing evidence only. Physical pedal pairing,
+  key repeat cadence, Bluetooth/USB transport quirks and setlist edge behavior on
+  real hardware remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Setlist Append/Merge (2026-09-26)
+
+- Selected slice: add a small MobileSheets-inspired setlist merge flow without copying
+  its dense management UI. Clef now lets a performer append another setlist to the
+  current setlist from the setlist detail toolbar.
+- Implementation intent: reuse the existing setlist save path and bulk-add policy.
+  Added songs keep source order; duplicates are skipped; library-missing songs are
+  skipped; newly appended songs carry source start page, note, duration and per-song
+  metronome override. Duplicate songs keep the target setlist's existing performance
+  settings.
+- Regression evidence: controller tests cover duplicates, missing songs, source/target
+  deletion and performance-setting transfer; widget smoke covers the toolbar action and
+  bottom-sheet selection. Actual long concert merge review remains DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Stamp Picker Discovery (2026-09-26)
+
+- Selected slice: improve stamp discovery before adding custom stamp import or a large
+  stamp asset library. Clef keeps the existing built-in rehearsal/tempo/repeat stamps
+  but opens them through a named picker sheet instead of a compact icon-only menu.
+- Implementation intent: show the current stamp label in the annotation toolbar, group
+  stamps by rehearsal/repeat/tempo role, and add search by symbol, English abbreviation
+  and Korean rehearsal term. No annotation persistence or PDF export schema changed.
+- Regression evidence: widget smoke covers the named picker, category labels and search
+  filtering. User-provided stamp packs remain a later MobileSheets-level feature.
+
+## MobileSheets Priority Follow-Up: Linked Audio A-B Loop (2026-09-26)
+
+- Selected slice: add the smallest useful A-B loop for backing tracks before attempting
+  waveform marker editing or tempo/pitch shifting. Clef linked audio sheets now expose
+  an `A-B 반복` toggle with second-based A/B fields.
+- Implementation intent: keep loop settings ephemeral to playback, pass `loopStartMs`
+  and `loopEndMs` through the existing audio method channel, and loop Android
+  `MediaPlayer` playback between normalized start/end points. No score persistence or
+  linked-file schema changed.
+- Regression evidence: Dart channel tests cover loop arguments and widget smoke covers
+  the linked-audio sheet controls. Android Gradle/Kotlin compile could not be run in
+  this worktree because no Gradle wrapper/system Gradle/Kotlin CLI is available; the
+  next debug/release Android build must be treated as the native compile gate. iOS audio
+  parity and real playback timing remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: PDF Replacement/Swap (2026-09-26)
+
+- Selected slice: cover the common MobileSheets-style "Swapping Files" need without
+  adding direct-folder references or a dense file manager. Clef now exposes `현재 PDF 교체`
+  from the viewer's named tool menu.
+- Implementation intent: pick a PDF-only replacement, copy it through the existing linked
+  file import path, promote it to the score's current `filePath`, and keep the previous
+  current PDF as an `Edited copy` linked file. Metadata, setlists, notes and annotations
+  stay attached to the score record; original source files are not modified or deleted.
+- Regression evidence: controller tests cover successful replacement and picker cancel;
+  viewer smoke keeps the named menu entry discoverable. Page-count mismatch handling and
+  real file-provider picker behavior remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Semi-Auto Crop Quick Presets (2026-09-26)
+
+- Selected slice: improve the MobileSheets-style auto-crop gap without introducing a
+  raster edge-detection engine. Clef now adds `좁게 3%`, `보통 6%`, and `강하게 10%`
+  quick margin presets to the existing `자르기 맞춤` sheet.
+- Implementation intent: keep source PDFs untouched, reuse existing crop metadata,
+  viewer crop-to-fit, crop preset and applied-copy paths, and make the quick values a
+  starting point for manual slider adjustment rather than claiming true automatic crop.
+- Regression evidence: widget smoke covers the quick preset controls and verifies that
+  one tap updates all four crop margins. Real scan detection, per-page automatic margins
+  and edge-detection quality remain future work.
+
+## Device QA Burden Reduction: App Status Check (2026-09-26)
+
+- Selected slice: reduce the recurring 10-15 minute manual pre-distribution check
+  without creating a separate QA app or uploading diagnostics automatically. Clef now
+  exposes `앱 상태 점검` from the home `메뉴` as a user-safe support/diagnostic surface.
+- Implementation intent: keep the feature inside the real app code path while avoiding
+  destructive actions and user-data writes. The sheet records app/version/platform/OS/build
+  mode, captures page-turn key input, measures internal metronome scheduling timing for
+  120/180/240 BPM, checks microphone permission on demand, and generates Markdown/JSON
+  that can be copied or shared by the user. Results sanitize local file paths and are not
+  sent anywhere automatically.
+- Boundary: the timing check measures Dart scheduling timestamps, not physical speaker or
+  earphone output. Real metronome audibility, drone volume, Bluetooth/USB pedal behavior,
+  stylus feel, tuner accuracy and long-session stability remain DEVICE QA.
+- Regression evidence: new model tests cover status/Markdown/path sanitization, key-input
+  reporting and timing PASS/WARN/FAIL classification; home menu smoke covers the named
+  entry point. Targeted tests PASS; full verification pending in this slice.

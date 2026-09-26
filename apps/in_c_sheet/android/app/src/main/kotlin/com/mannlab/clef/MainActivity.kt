@@ -6,6 +6,8 @@ import android.media.AudioManager
 import android.media.AudioTrack
 import android.media.MediaPlayer
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.provider.OpenableColumns
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -92,6 +94,18 @@ class MainActivity : FlutterActivity() {
         )
         metronomePlayerChannel?.setMethodCallHandler { call, result ->
             when (call.method) {
+                "prepare" -> {
+                    try {
+                        metronomePlayer.prepare()
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "playback_error",
+                            error.message ?: "Metronome playback failed.",
+                            null,
+                        )
+                    }
+                }
                 "playClick" -> {
                     val accent = call.argument<Boolean>("accent") ?: false
                     val volume =
@@ -118,6 +132,8 @@ class MainActivity : FlutterActivity() {
             when (call.method) {
                 "play" -> {
                     val path = call.argument<String>("path").orEmpty().trim()
+                    val loopStartMs = call.argument<Int>("loopStartMs")
+                    val loopEndMs = call.argument<Int>("loopEndMs")
                     if (path.isEmpty()) {
                         result.error(
                             "invalid_path",
@@ -127,7 +143,7 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
                     try {
-                        audioPlayer.play(path)
+                        audioPlayer.play(path, loopStartMs, loopEndMs)
                         result.success(null)
                     } catch (error: Exception) {
                         result.error(
@@ -352,9 +368,31 @@ private class ClefTonePlayer {
 
 private class ClefAudioPlayer {
     private var mediaPlayer: MediaPlayer? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var loopStartMs: Int? = null
+    private var loopEndMs: Int? = null
+    private val loopCheck = object : Runnable {
+        override fun run() {
+            val player = mediaPlayer ?: return
+            val startMs = loopStartMs
+            val endMs = loopEndMs
+            if (startMs == null || endMs == null || endMs <= startMs) {
+                return
+            }
+            try {
+                if (player.isPlaying && player.currentPosition >= endMs) {
+                    player.seekTo(startMs)
+                    player.start()
+                }
+                handler.postDelayed(this, 40L)
+            } catch (_: IllegalStateException) {
+                stop()
+            }
+        }
+    }
 
     @Synchronized
-    fun play(path: String) {
+    fun play(path: String, requestedLoopStartMs: Int?, requestedLoopEndMs: Int?) {
         stop()
         val file = File(path)
         if (!file.exists()) {
@@ -364,15 +402,48 @@ private class ClefAudioPlayer {
             setAudioStreamType(AudioManager.STREAM_MUSIC)
             setDataSource(path)
             setOnCompletionListener {
-                this@ClefAudioPlayer.stop()
+                val startMs = loopStartMs
+                val endMs = loopEndMs
+                if (startMs != null && endMs != null && endMs > startMs) {
+                    it.seekTo(startMs)
+                    it.start()
+                    scheduleLoopCheck()
+                } else {
+                    this@ClefAudioPlayer.stop()
+                }
             }
             prepare()
+            val durationMs = duration
+            val safeLoop = normalizeLoop(
+                requestedLoopStartMs,
+                requestedLoopEndMs,
+                durationMs,
+            )
+            loopStartMs = safeLoop?.first
+            loopEndMs = safeLoop?.second
+            loopStartMs?.let { startMs ->
+                if (startMs > 0) {
+                    seekTo(startMs)
+                }
+            }
             start()
+            scheduleLoopCheck()
+        }
+    }
+
+    @Synchronized
+    private fun scheduleLoopCheck() {
+        handler.removeCallbacks(loopCheck)
+        val startMs = loopStartMs
+        val endMs = loopEndMs
+        if (startMs != null && endMs != null && endMs > startMs) {
+            handler.postDelayed(loopCheck, 40L)
         }
     }
 
     @Synchronized
     fun stop() {
+        handler.removeCallbacks(loopCheck)
         mediaPlayer?.let { player ->
             try {
                 if (player.isPlaying) {
@@ -384,5 +455,20 @@ private class ClefAudioPlayer {
             }
         }
         mediaPlayer = null
+        loopStartMs = null
+        loopEndMs = null
+    }
+
+    private fun normalizeLoop(
+        requestedStartMs: Int?,
+        requestedEndMs: Int?,
+        durationMs: Int,
+    ): Pair<Int, Int>? {
+        if (requestedStartMs == null || requestedEndMs == null || durationMs <= 0) {
+            return null
+        }
+        val startMs = requestedStartMs.coerceAtLeast(0).coerceAtMost(durationMs - 1)
+        val endMs = requestedEndMs.coerceAtMost(durationMs).coerceAtLeast(0)
+        return if (endMs > startMs) Pair(startMs, endMs) else null
     }
 }

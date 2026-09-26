@@ -104,6 +104,8 @@ void main() {
         expect(find.text('연습과 공연'), findsOneWidget);
         expect(find.text('악보 정보'), findsOneWidget);
         expect(find.text('보기와 넘김'), findsOneWidget);
+        expect(find.text('2페이지 시작: 표지 단독'), findsOneWidget);
+        expect(find.text('2페이지 보기에서 설정'), findsOneWidget);
         expect(find.text('필기'), findsOneWidget);
         expect(find.text('공유와 입력'), findsOneWidget);
         const captureDirectory = String.fromEnvironment(
@@ -163,5 +165,167 @@ void main() {
         controller.dispose();
       });
     }
+  }
+
+  testWidgets('crop preset save failure shows retry notice', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final now = DateTime(2026, 9, 16);
+    final store = _FailingScoreSaveStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score',
+        title: 'Concert',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/clef-missing-crop-preset-fixture.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetViewerScreen(controller: controller, scoreId: 'score'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('페이지 정리'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('자르기 프리셋'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('현재 자르기 값을 프리셋으로 저장'));
+    await tester.pumpAndSettle();
+    store.failNextSave = true;
+    await tester.tap(find.widgetWithText(FilledButton, '저장'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('자르기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(controller.scores.single.pageSettings.cropPresets, isEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('page rotation save failure shows retry notice', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final now = DateTime(2026, 9, 16);
+    final store = _FailingScoreSaveStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score',
+        title: 'Concert',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/clef-missing-rotation-fixture.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetViewerScreen(controller: controller, scoreId: 'score'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('페이지 정리'));
+    await tester.pumpAndSettle();
+    store.failNextSave = true;
+    await tester.tap(find.text('회전값 저장'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('회전값을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(controller.scores.single.pageSettings.pageRotations, isEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+
+  testWidgets('bookmark save failure shows retry notice', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1600, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final now = DateTime(2026, 9, 16);
+    final store = _FailingScoreSaveStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'score',
+        title: 'Concert',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/clef-missing-bookmark-fixture.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    await tester.runAsync(() async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SheetViewerScreen(controller: controller, scoreId: 'score'),
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    });
+    await tester.pumpAndSettle();
+    store.failNextSave = true;
+    await tester.tap(find.byTooltip('현재 페이지 북마크'));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('북마크를 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(controller.scores.single.bookmarks, isEmpty);
+
+    await tester.pumpWidget(const SizedBox());
+    controller.dispose();
+  });
+}
+
+class _FailingScoreSaveStore extends SheetLibraryStore {
+  bool failNextSave = false;
+
+  @override
+  Future<void> saveScores(List<SheetScore> scores, {String? libraryId}) async {
+    if (failNextSave) {
+      failNextSave = false;
+      throw StateError('score save failed');
+    }
+    return super.saveScores(scores, libraryId: libraryId);
   }
 }

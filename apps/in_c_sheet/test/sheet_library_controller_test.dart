@@ -554,6 +554,82 @@ void main() {
   );
 
   test(
+    'appends another setlist while preserving target performance settings',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime(2026, 9, 26);
+      final store = SheetLibraryStore();
+      final scores = [
+        for (final id in ['a', 'b', 'c', 'd']) _score(now, id: id),
+      ];
+      await store.saveScores(scores);
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+      final target = await controller.createSetlist('Recital');
+      await controller.addScoresToSetlist(target, [scores[0], scores[1]]);
+      await controller.updateSetlistRehearsalSettings(
+        controller.setlistById(target.id),
+        scoreStartPages: const {'b': 2},
+        scoreNotes: const {'b': 'Keep target note'},
+        scoreDurations: const {'b': 45},
+      );
+      await controller.updateMetronomeSettingsForScore(
+        scores[1],
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 72),
+        setlistId: target.id,
+      );
+      final source = await controller.createSetlist('Second half');
+      await controller.addScoresToSetlist(source, [
+        scores[1],
+        scores[2],
+        scores[3],
+      ]);
+      await controller.updateSetlistRehearsalSettings(
+        controller.setlistById(source.id),
+        scoreStartPages: const {'b': 9, 'c': 4, 'd': 6},
+        scoreNotes: const {'b': 'Duplicate source note', 'c': 'Solo entry'},
+        scoreDurations: const {'b': 99, 'c': 120},
+      );
+      await controller.updateMetronomeSettingsForScore(
+        scores[2],
+        SheetMetronomeSettings.defaultSettings.copyWith(bpm: 108),
+        setlistId: source.id,
+      );
+      await controller.deleteScoresByIds({'d'});
+
+      final result = await controller.appendSetlistToSetlist(target, source);
+
+      expect(result.addedCount, 1);
+      expect(result.skippedDuplicateCount, 1);
+      expect(result.skippedMissingCount, 0);
+      final updated = controller.setlistById(target.id);
+      expect(updated.scoreIds, ['a', 'b', 'c']);
+      expect(updated.scoreStartPages, {'b': 2, 'c': 4});
+      expect(updated.scoreNotes, {'b': 'Keep target note', 'c': 'Solo entry'});
+      expect(updated.scoreDurations, {'b': 45, 'c': 120});
+      expect(updated.scoreMetronomeSettings['b']?.bpm, 72);
+      expect(updated.scoreMetronomeSettings['c']?.bpm, 108);
+
+      await controller.load();
+      expect(controller.setlistById(target.id).scoreIds, ['a', 'b', 'c']);
+      expect(controller.setlistById(target.id).scoreNotes['c'], 'Solo entry');
+      await controller.deleteSetlist(controller.setlistById(source.id));
+      final missingSource = await controller.appendSetlistToSetlist(
+        controller.setlistById(target.id),
+        source,
+      );
+      expect(missingSource.sourceMissing, isTrue);
+      expect(missingSource.didAddAny, isFalse);
+      await controller.deleteSetlist(controller.setlistById(target.id));
+      final missingTarget = await controller.appendSetlistToSetlist(
+        target,
+        target,
+      );
+      expect(missingTarget.targetMissing, isTrue);
+    },
+  );
+
+  test(
     'repeated setlist duplicates receive distinct case-insensitive names',
     () async {
       SharedPreferences.setMockInitialValues(<String, Object>{});
@@ -1230,6 +1306,54 @@ void main() {
       expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
     },
   );
+
+  test(
+    'replaces the current PDF while keeping the old file as a linked copy',
+    () async {
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      final now = DateTime.parse('2026-08-20T10:00:00.000');
+      final replacement = SheetLinkedFile(
+        path: '/tmp/revised-score.pdf',
+        type: 'pdf',
+        label: 'Revised score',
+        role: SheetLinkedFile.fullScoreRole,
+        createdAt: now,
+      );
+      final store = _LinkedPdfPickerStore(replacement);
+      await store.saveScores(<SheetScore>[_score(now)]);
+
+      final controller = SheetLibraryController(store: store);
+      await controller.load();
+
+      final didReplace = await controller.replaceScorePdf(
+        controller.scores.single,
+      );
+
+      final updated = controller.scores.single;
+      expect(didReplace, isTrue);
+      expect(updated.filePath, '/tmp/revised-score.pdf');
+      expect(updated.linkedFiles.single.path, '/tmp/score-1.pdf');
+      expect(updated.linkedFiles.single.role, SheetLinkedFile.editedCopyRole);
+    },
+  );
+
+  test('cancelled replacement keeps the current PDF unchanged', () async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    final now = DateTime.parse('2026-08-20T10:00:00.000');
+    final store = _LinkedPdfPickerStore(null);
+    await store.saveScores(<SheetScore>[_score(now)]);
+
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    final didReplace = await controller.replaceScorePdf(
+      controller.scores.single,
+    );
+
+    expect(didReplace, isFalse);
+    expect(controller.scores.single.filePath, '/tmp/score-1.pdf');
+    expect(controller.scores.single.linkedFiles, isEmpty);
+  });
 
   test(
     'updates and removes linked file metadata without deleting files',
@@ -3178,6 +3302,7 @@ void main() {
             meter: SheetMetronomeMeter.threeFour,
           ),
         },
+        scoreNotes: const <String, String>{'score-2': '반복 없이 바로 다음 곡'},
       ),
     ]);
 
@@ -3191,6 +3316,7 @@ void main() {
 
     expect(context?.title, 'Recital');
     expect(context?.positionLabel, '2/2');
+    expect(context?.currentNote, '반복 없이 바로 다음 곡');
   });
 
   test('bulk adds scores to setlist and skips duplicates', () async {
@@ -3840,6 +3966,17 @@ class _ImportScoreStore extends SheetLibraryStore {
   @override
   Future<List<SheetScore>> importPdfs() async {
     return batchScores;
+  }
+}
+
+class _LinkedPdfPickerStore extends SheetLibraryStore {
+  _LinkedPdfPickerStore(this.file);
+
+  final SheetLinkedFile? file;
+
+  @override
+  Future<SheetLinkedFile?> pickLinkedPdfFile() async {
+    return file;
   }
 }
 

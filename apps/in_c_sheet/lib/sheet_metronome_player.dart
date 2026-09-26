@@ -2,18 +2,38 @@ import 'package:flutter/services.dart';
 
 import 'sheet_metronome.dart';
 
+enum SheetMetronomeOutputStatus { skipped, native, fallback, unavailable }
+
 class SheetMetronomeSoundPlayer {
-  SheetMetronomeSoundPlayer({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('clef/metronome_player');
+  SheetMetronomeSoundPlayer({
+    MethodChannel? channel,
+    Future<void> Function(SystemSoundType type)? systemSoundPlay,
+  }) : _channel = channel ?? const MethodChannel('clef/metronome_player'),
+       _systemSoundPlay = systemSoundPlay ?? SystemSound.play;
 
   final MethodChannel _channel;
+  final Future<void> Function(SystemSoundType type) _systemSoundPlay;
 
-  Future<void> playClick({
-    required SheetMetronomeSettings settings,
-    required bool accent,
-  }) async {
+  Future<void> prepare(SheetMetronomeSettings settings) async {
     if (!settings.soundEnabled || settings.volumePercent <= 0) {
       return;
+    }
+    try {
+      await _channel.invokeMethod<void>('prepare');
+    } on MissingPluginException {
+      // Fallback output does not need a preload step.
+    } on PlatformException {
+      // playClick will surface fallback or unavailable output on the audible beat.
+    }
+  }
+
+  Future<SheetMetronomeOutputStatus> playClick({
+    required SheetMetronomeSettings settings,
+    required bool accent,
+    bool Function()? shouldFallback,
+  }) async {
+    if (!settings.soundEnabled || settings.volumePercent <= 0) {
+      return SheetMetronomeOutputStatus.skipped;
     }
 
     try {
@@ -21,10 +41,25 @@ class SheetMetronomeSoundPlayer {
         'accent': accent && settings.accentEnabled,
         'volume': settings.normalizedVolume,
       });
+      return SheetMetronomeOutputStatus.native;
     } on MissingPluginException {
-      await SystemSound.play(SystemSoundType.click);
+      return _playFallbackIfCurrent(shouldFallback);
     } on PlatformException {
-      await SystemSound.play(SystemSoundType.click);
+      return _playFallbackIfCurrent(shouldFallback);
+    }
+  }
+
+  Future<SheetMetronomeOutputStatus> _playFallbackIfCurrent(
+    bool Function()? shouldFallback,
+  ) async {
+    if (shouldFallback != null && !shouldFallback()) {
+      return SheetMetronomeOutputStatus.unavailable;
+    }
+    try {
+      await _systemSoundPlay(SystemSoundType.click);
+      return SheetMetronomeOutputStatus.fallback;
+    } catch (_) {
+      return SheetMetronomeOutputStatus.unavailable;
     }
   }
 }

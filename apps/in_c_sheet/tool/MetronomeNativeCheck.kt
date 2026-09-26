@@ -16,6 +16,10 @@ fun main() {
     val player = ClefMetronomePlayer { FakeTrack().also { tracks.add(it) } }
     player.playClick(false, 0.0)
     check(tracks.isEmpty())
+    player.prepare()
+    check(tracks.size == 2 && tracks.all { it.volumes.isEmpty() })
+    player.prepare()
+    check(tracks.size == 2)
     repeat(960) { index -> player.playClick(index % 4 == 0, 0.85) }
     check(tracks.size == 2)
     check(tracks[0].volumes.size == 720 && tracks[1].volumes.size == 240)
@@ -47,5 +51,5 @@ fun main() {
         check(samples.any { it > 0 } && samples.any { it < 0 })
         check(samples.all { kotlin.math.abs(it.toInt()) < 32767 })
     }
-    println("PASS: cached clicks, gain, preload/play failure, retry, close, PCM bounds")
+    println("PASS: prepare, cached clicks, gain, preload/play failure, retry, close, PCM bounds")
 }

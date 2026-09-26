@@ -10,26 +10,39 @@
 - Later: 협업, 크로스 플랫폼, 기관/팀 운영처럼 제품 검증 후 확장할 기능.
 
 상세 v1.1 spike backlog는 [`clef-v1-1-spike-backlog.md`](clef-v1-1-spike-backlog.md)에 분리한다.
+MobileSheets 기능별 인벤토리와 Clef 반영 상태는
+[`clef-mobilesheets-feature-inventory.md`](clef-mobilesheets-feature-inventory.md)에 별도로 정리한다.
 
 난이도는 Android 태블릿 앱 기준으로 낮음, 중간, 높음으로 표시한다.
 
 스토어/런처 표시 이름은 `Clef & Staff`로 정한다. 패키지명과 내부 코드 네임은 배포 연속성을
 위해 `com.mannlab.clef` / Clef 계열을 유지한다.
 
+## V1 RC 상태 해석
+
+- `구현됨`은 코드/UI/model/test가 연결된 상태를 뜻한다. 실제 악기, 페달, 스타일러스, 장시간 공연,
+  Bluetooth/이어폰 출력처럼 물리 환경이 필요한 품질까지 자동으로 보장하지 않는다.
+- `로컬 검증됨`은 Flutter/Kotlin 단위·위젯·RC 검사로 확인한 범위다. 새 설치본이나 실기기 결과가
+  필요하면 QA 문서에서 `DEVICE QA`로 별도 표시한다.
+- 내부테스트 배포 후보는 자동 검증과 signing/version 산출물 확인을 기준으로 판단한다. 정식 출시
+  준비 완료는 Android/iOS 실기기 smoke와 스토어 자료까지 포함한다.
+- 현재 튜너는 Chromatic-only 정책을 유지한다. 악기별 preset, 기타 줄 맞춤, custom target lock은
+  v1 전면 UI에 다시 넣지 않는다.
+
 ## Feature Coverage Matrix
 
 | 범주 | 기능 | 레퍼런스 기준 | 단계 | 난이도 | 주요 의존성/메모 |
 | --- | --- | --- | --- | --- | --- |
 | 라이브러리 | PDF 가져오기 | MobileSheets/Piascore 기본 | MVP | 중간 | 구현됨: Android/iOS file picker와 share import, 로컬 사본 정책, 단일/여러 PDF 가져오기, 가져오며 세트리스트 추가 action |
-| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 일괄 편집에서도 태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 custom field를 여러 악보에 한 번에 지정 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
-| 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB. 검색/필터/최근 악보/최근 세트리스트와 전체 목록을 하나의 세로 스크롤로 연결하고 악보 list/grid는 지연 렌더링 |
+| 라이브러리 | 제목/작곡가/태그/메모 | 양쪽 기본 | MVP | 낮음 | 2차 구현: SharedPreferences 기반 편집 UI, comma-separated 태그. 가져온 직후 `정보 편집` 안내, 홈 `정보 정리 필요` rail, viewer 안 `악보 정보 편집`으로 title/composer/tag/collection/group/rating/custom field를 바로 정리 가능. 해당 rail의 카드 footer는 `정보 편집`으로 표시해 최근 항목과 구분한다. 일괄 편집에서도 태그/컬렉션/그룹/별점/즐겨찾기/고정과 함께 custom field를 여러 악보에 한 번에 지정 가능. 사용자 필드에는 `조성`/`장르`/`난이도`/`편성` 추천 칩과 홈 빠른 facet 필터를 제공 |
+| 라이브러리 | 최근 열기/즐겨찾기 | 기본 기대 | MVP | 낮음 | 로컬 DB. 검색/필터/`최근 악보`/최근 세트리스트와 전체 목록을 하나의 세로 스크롤로 연결하고 악보 list/grid는 지연 렌더링. 홈 quick access는 `정보 정리 필요`, `고정`, `즐겨찾기`, `최근 악보`, `최근 세트리스트`를 이름과 footer action으로 구분한다 |
 | 라이브러리 | 제목/태그 검색 | 양쪽 기본 | MVP | 낮음 | 검색 index |
 | 라이브러리 | PDF 본문 검색/OCR 준비 | 양쪽 기대 | V1 | 중간 | 구현됨: `pdfrx` embedded text search UI와 OCR unsupported 안내, search index manifest/capability model. OCR engine 연동은 v1.1 spike |
 | 라이브러리 | 정렬/필터 | MobileSheets 지원 | MVP | 낮음 | 14차 구현: 최근 열기/제목/작곡가/가져온 날짜 정렬, 즐겨찾기/태그/작곡가/컬렉션/그룹/별점 필터. MobileSheets의 Artists 탭은 Clef에서 작곡가 facet으로, Key/Genre/Difficulty 축은 `조성`/`장르`/`난이도`/`편성` 사용자 필드 facet으로 가볍게 흡수한다. 적용 중인 검색/필터 조건은 해제 가능한 요약 칩으로 표시하고, facet 값이 많을 때는 `더 보기` sheet에서 검색으로 좁혀 숨겨진 값까지 선택 가능. 저장 실패 시 현재 요청의 설정만 복구하고 홈 오류 안내/재시도, 지연 저장의 원래 library 범위 유지 |
-| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 순서/시작 쪽/시간/메모를 담은 세트리스트 목록 복사, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지 |
+| 라이브러리 | 세트리스트 | 양쪽 기본 | MVP | 중간 | 구현됨: ordered score list, 생성/이름 변경/삭제, 중복 이름 생성/변경 안내, 빈 세트리스트 추가 CTA, 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, metadata가 빈 악보도 파일명/작곡가 subtitle로 식별, 카드 long press 기반 일괄 선택과 현재 목록 전체 선택/해제, 선택 AppBar 기반 정보 편집/bulk add/원본 보존 라이브러리 제거와 추가 후 `열기`로 상세 확인, 여러 PDF 가져오며 세트리스트 추가, 다른 세트리스트 이어붙이기/중복·누락 skip/새 곡 공연 설정 가져오기, 제거 후 `되돌리기`, drag reorder/위아래 이동/직접 순서 입력, 첫 곡 열기, 순서/시작 쪽/시간/메모를 담은 세트리스트 목록 복사, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간과 마지막 곡 이어보기, 좁은 viewer/공연 모드 진행 배지와 곡별 메모 표시 |
 | 라이브러리 | 북마크 | 양쪽 기본 | MVP | 낮음 | 2차 구현: score별 page anchor, label rename, 목록 삭제, PDF 목차 병합, CSV 북마크 가져오기 |
 | 라이브러리 | collection | MobileSheets 지원 | V1 | 중간 | 21차 구현: 세트리스트와 분리된 score metadata, 편집/검색/필터. 선택한 여러 악보를 기존/새 컬렉션으로 바로 묶고 `보기`로 필터를 여는 bulk action으로 MobileSheets의 `Create Collection from Songs` 흐름을 가볍게 흡수 |
-| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경은 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리. S42: 최신 읽기 요청만 완성된 상태/오류/로딩 종료를 반영. S43: 내용 읽기 실패 후 이전 활성 ID 복구 시도/복구 실패 안내. S44: 같은 라이브러리 재로드 중 새 편집/저장 복구 요청/오류를 보존하고, 전환 중 새 전역 설정도 유지 |
+| 라이브러리 | 여러 라이브러리 | MobileSheets 지원 | V1 | 중간 | 구현됨: library profile별 scores/setlists/view/favorite preset 저장 key 분리, 생성/전환/이름 변경/비우기/삭제. 프로필 조회는 저장하지 않으며 기본값 보정은 메모리에만 적용. 비우기는 관련 metadata/자동 백업 제거를 함께 저장하고 실패 시 롤백 시도/오류 안내. 큐에 들어간 비우기 완료가 후속 편집의 화면 상태를 지우지 않도록 항목별 소유권 확인. 생성/전환/이름 변경/삭제는 큐 안에서 최신 목록 확인과 저장/실패 복구; 생성은 목록과 활성 ID를 묶어서 처리하고 삭제는 목록/활성 ID fallback/프로필 데이터 제거를 묶어서 처리. S42: 최신 읽기 요청만 완성된 상태/오류/로딩 종료를 반영. S43: 내용 읽기 실패 후 이전 활성 ID 복구 시도/복구 실패 안내. S44: 같은 라이브러리 재로드 중 새 편집/저장 복구 요청/오류를 보존하고, 전환 중 새 전역 설정도 유지 |
 | 라이브러리 | 고급 메타데이터 필드 | MobileSheets 강점 | V1 | 중간 | 22차 구현: 악보별 custom key/value field, 편집/검색/백업 round-trip |
 | 라이브러리 | group/rating | MobileSheets 지원 | V1 | 중간 | 21차 구현: 편집/검색/필터/별점 정렬 |
 | 라이브러리 | 음성 검색 | MobileSheets 지원 | Later | 중간 | Android speech recognizer |
@@ -40,16 +53,17 @@
 | 파일 | 카메라 PDF 스캔 | 스캐너 앱 영역 | Later | 높음 | camera permission, edge detection, perspective correction, batch scan. MVP는 스캔 기능보다 스캔된 자료 처리 우선 |
 | 파일 | 텍스트/ChordPro 보기 | MobileSheets 지원 | V2 | 높음 | parser, renderer |
 | 파일 | ChordPro transpose/capo | MobileSheets 지원 | V2 | 높음 | chord parser |
-| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환 |
+| 파일 | 한 곡에 여러 파일 연결 | MobileSheets 지원 | V1 | 중간 | 21차 구현: linkedFiles metadata/backup round-trip, 관리 UI, viewer PDF 연결 파일 전환. v1.x 보강: `현재 PDF 교체`로 새 PDF 사본을 현재 파일로 승격하고 이전 PDF를 연결된 edited copy로 보존 |
 | 파일 | CSV index로 songbook 분할 | MobileSheets 지원 | V1 | 중간 | CSV/PDF 북마크로 같은 PDF를 참조하는 곡 항목을 생성한다. 곡 밖 페이지는 숨기고 표시 순서/자동 스크롤/점프/리허설 마크를 해당 구간으로 제한한다. 구간이 모두 숨겨져 있으면 새 곡의 첫 페이지 한 장을 표시한다. 같은 원본/표시 구간/제목은 중복 생성하지 않고 생성 직후 `세트리스트 만들기`로 곡 모음을 만든다. 원본 PDF/설정은 보존하며 물리 분할은 후속 |
 | 파일 | 기존 폴더 직접 참조 | MobileSheets Android 지원 | V1 | 높음 | 21차 spike 문서화: SAF persistent permission, iOS Files 제약 |
 | 파일 | 클라우드 파일 가져오기 | 양쪽 지원 | V1 | 중간 | 22차 정책화: 별도 SDK 없이 system file picker provider 우선. 접근 실패 시 기기 내려받기 안내 |
 | 파일 | PC companion app | MobileSheets 지원 | Later | 높음 | 별도 desktop app |
 | 보기 | 1페이지 보기 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx.layoutPages` 기반 가로 1페이지 배치, 페이지 간격 보정 |
-| 보기 | 2페이지 보기 | 양쪽 기본 | MVP | 중간 | 4차 구현: 넓은 화면 tablet spread, 첫 페이지 단독 후 2-3 spread |
+| 보기 | 2페이지 보기 | 양쪽 기본 | MVP | 중간 | 4차 구현: 넓은 화면 tablet spread. RC 보강: `표지 단독`(1 / 2-3 / 4-5)과 `1-2쪽부터`(1-2 / 3-4 / 5-6) 시작 정책을 제공하고, 2페이지 모드의 이전/다음은 같은 묶음 단위로 이동한다. forScore의 two-up page advance, Piascore의 2페이지 시작 위치, MobileSheets의 2쪽 넘김 옵션을 참고하되 Clef UI는 두 가지 시작 정책으로 단순화 |
 | 보기 | 세로 스크롤 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx` 기본 세로 연속 layout, 좁은 화면 기본값 |
 | 보기 | 가로 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: 1페이지 mode에서 가로 page layout. 첫 진입 tap zone hint와 `터치 영역 다시 보기` action으로 왼쪽 이전/가운데 메뉴/오른쪽 다음 영역을 안내 |
 | 보기 | 반 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 5차 구현: 곡별 저장, visible viewport 기반 반 페이지 이동, 2페이지 보기와 동시 사용 제한 |
+| 보기 | 긴 PDF 페이지 탐색 | MobileSheets 지원 | V1.x | 낮음 | 구현됨: viewer `페이지 탐색`에서 현재/선택 page, slider, 쪽 번호 직접 이동, 숨김/복제/순서 제외 표시를 제공한다. 이동은 기존 visible-page 보정과 page order cursor를 재사용한다 |
 | 보기 | 확대/축소/이동 | 양쪽 기본 | MVP | 중간 | `pdfrx` 기본 동작. 8차에서 annotation overlay를 page rect 기준으로 보강 |
 | 보기 | 마지막 위치 저장 | 기본 기대 | MVP | 낮음 | per-score setting |
 | 보기 | 곡별 보기 설정 | MobileSheets 지원 | MVP | 중간 | 5차 구현: displayMode, halfPageTurn 저장. 좁은 화면 2페이지 fallback |
@@ -58,7 +72,7 @@
 | 보기 | page scaling | MobileSheets 지원 | V1 | 중간 | 구현됨: fit page/fit width/fullscreen metadata와 viewer 적용 |
 | 보기 | landscape half-page policy | MobileSheets 지원 | V1 | 중간 | 구현됨: orientation별 half-page step 정책, 같은 page top anchor 이동, page boundary에서만 lastPage persistence |
 | 보기 | image caching/prefetch | MobileSheets 지원 | MVP | 높음 | 구현됨: balanced/large PDF render profile로 `pdfrx` rendering cache limit, memory cap, one-pass threshold 조정. 50-100페이지 실기기 계측 필요 |
-| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영 |
+| 보기 | 수동 크롭 | 양쪽 지원 | V1 | 중간 | 구현됨: 원본 보존 crop metadata, viewer mask, pageOrder instance별 crop override, crop metadata를 PDF CropBox/페이지 정리 적용 사본 metadata로 반영. v1.x 보강: 3/6/10% 빠른 여백 자르기 값으로 스캔 PDF 여백을 빠르게 시작하고 slider로 미세 조정 |
 | 보기 | 자동 크롭 | MobileSheets 지원 | V2 | 높음 | margin detection |
 | 보기 | 페이지 회전 | 양쪽 지원 | V1 | 중간 | 구현됨: source page/virtual instance metadata 저장, badge 표시, 회전 metadata를 적용한 앱 내부 PDF 사본 생성 |
 | 페이지 정리 | 페이지 숨김 | 양쪽 지원 | MVP | 중간 | 5차 구현: 원본 PDF 보존 metadata, navigation skip, 숨김 해제 |
@@ -78,7 +92,7 @@
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 구현됨: stroke/text/redo와 layer flag를 SharedPreferences inline metadata로 저장하고, file-backed annotation store adapter/external reference를 v1.1 준비 상태로 보유 |
-| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
+| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, 검색 가능한 stamp picker, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
 | 주석 | crescendo/diminuendo hairpin | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 헤어핀 필기, hit-test/delete, redo, PDF export rendering |
 | 주석 | staff/grid guide | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 오선/격자 guide, hit-test/delete, redo, viewer rendering. 세부 악보 paper template/custom stamp pack은 후속 |
@@ -90,22 +104,22 @@
 | 주석 | 필기 포함 PDF 공유 | 양쪽 기본 기대 | MVP | 중간 | 19차 구현: 원본 보존, `pdf_document` stamp 기반 stroke/ASCII text 사본 생성. 한글/비ASCII text는 깨진 glyph 방지를 위해 제외 안내/fallback, font embedding은 후속 |
 | 주석 | PDF annotation 객체 embed/export | 양쪽 지원 | V2 | 높음 | 표준 annotation export mode는 capability flag/unsupported result로 분리. 편집 가능한 PDF 표준 객체 생성은 PDF writer API/fixture 필요 |
 | 공연 | 공연 모드 | 양쪽 기본 | MVP | 낮음 | 3차 구현: session local UI lock, 관리 action 숨김, 큰 페이지 컨트롤 유지 |
-| 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: viewer context 표시, 좁은 viewer/공연 모드 진행 배지, 명시적 이전/다음 곡 이동 |
+| 공연 | 세트리스트 연속 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: viewer context 표시, 좁은 viewer/공연 모드 진행 배지, 리허설 모드 곡별 메모/시간 표시, 명시적 이전/다음 곡 이동 |
 | 공연 | quick action box | MobileSheets 지원 | V1 | 중간 | 구현됨: 공연 모드 quick action overlay, 페달/키보드 toggle action 연결 |
 | 공연 | 공연별 보기 preset override | MobileSheets 지원 | V1 | 중간 | 구현됨: 세트리스트별 viewer/action preset override, 곡별 설정 보존, 공연 preset template 생성/적용/삭제, 장비 profile metadata, metadata/full backup round-trip |
 | 공연 | 자동 스크롤 | 양쪽 기본 | MVP | 중간 | 구현됨: 곡별 duration/start/end 저장, 세로 스크롤 기반 진행, page별 duration weight, 시작 cue, rehearsal mark 기반 cue point, pause marker, 반복 구간, BPM 기반 duration preset, 세트리스트 자동 다음 곡 진행, 수동 입력 시 정지 |
 | 공연 | 고급 자동 스크롤 pause | MobileSheets 지원 | V2 | 높음 | measure 위치 기반 자동 감지와 page별 세부 timeline 편집은 후속 |
-| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 세트리스트별 score metronome override, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 박별 강세 패턴, Tap tempo, 0/1/2마디 count-in, 기본 ON tick toggle, Android native tick volume, 강박/약박 click 구분, `소리`/`시각만` 상태 표시, viewer mini panel, mini panel 시각 박자 strip. 저지연 audio/iOS parity는 후속 |
+| 음악 도구 | 메트로놈 | 양쪽 기본 | MVP | 중간 | 구현됨: visual/audible metronome, BPM/박자 저장, 악보별 metronome snapshot, 세트리스트별 score metronome override, 2/4·3/4·4/4·6/8, 8분/3연/16분 subdivision, 박별 강세 패턴, Tap tempo, 0/1/2마디 count-in, 기본 ON tick toggle, Android native tick volume, 강박/약박 click 구분, `소리`/`시각만` 상태 표시, native 실패 시 fallback/unavailable 안내, viewer mini panel, mini panel 시각 박자 strip. S65: Android static click tracks are prepared before full/mini playback starts to reduce first-beat timing jitter. 저지연 audio/iOS parity와 실제 빠른 BPM 청취는 후속 QA |
 | 음악 도구 | 튜너 | Piascore 참고/차별화 | MVP | 높음 | 구현됨: `record` PCM stream, Hybrid/YIN/autocorrelation detector, RMS gate/confidence, safe low-amplitude normalization, clipping confidence penalty, median smoothing, no-signal debounce, octave/저음 3배음 guard, note hysteresis, frequency-to-note/cents 계산, Chromatic-only 첫 화면, 확대된 pitch history chart 안의 현재 음/frequency/cents/signal 요약, sharp/flat 표기 선택, A4 저장/440-442 quick action/history/보정 제안, adaptive noise floor 1차, 소리 작음/주변 소음/잡는 중/낮음/높음/맞음 feedback, damping/in-tune hold, 감지 엔진/debug label, 기준음/드론 연계. synthetic sine/noise/plucked string/time-series/widget test 통과. 기타 줄 맞춤/악기별 preset/custom target/target lock과 별도 LED/input bar는 선택지·해석 부담으로 v1 UI에서 제외. 실기기 정확도/latency 검증 필요 |
 | 음악 도구 | 기준음/드론 | in C Chime와 연결 | V1 | 중간 | 구현됨: tuner A4 기준을 공유하는 Android native sine tone/drone, 기준음/5도/옥타브 mode, 볼륨 저장/백업 round-trip. latency/iOS parity는 QA 필요 |
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
-| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet. codec/latency/iOS parity는 QA 필요 |
-| 음악 도구 | A-B loop | MobileSheets 지원 | V2 | 중간 | time markers |
+| 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
+| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력과 native MediaPlayer loop. waveform marker/timeline, saved markers, iOS parity는 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
-| 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 실제 페달 검증 필요 |
-| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 실제 USB 페달 장비 QA는 blocker |
-| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, 진단 로그에서 unknown key를 직접 설정으로 전달, quick action/no-op/setlist action 저장 |
+| 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
+| 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 로컬 keyboard substitute matrix는 통과했으며 실제 USB 페달 장비 QA는 blocker |
+| 외부 장치 | 페달 action mapping | MobileSheets 강점 | V1 | 중간 | 구현됨: preset + input별 custom action dropdown, 진단 로그에서 unknown key를 직접 설정으로 전달, quick action/no-op/setlist action 저장. `동작 없음`도 입력을 소비해 PDF scroll leak을 막는다 |
 | 외부 장치 | face gesture page turn | MobileSheets 지원 | Later | 높음 | camera/privacy |
 | 외부 장치 | USB/Bluetooth MIDI | MobileSheets 지원 | V2 | 높음 | Android MIDI API |
 | 외부 장치 | MIDI registration/linking | MobileSheets 지원 | Later | 높음 | device profiles |
@@ -116,10 +130,11 @@
 | 협업 | leader/follower tablet | MobileSheets 강점 | Later | 높음 | session control |
 | 협업 | 주석 보존 sync | MobileSheets 강점 | Later | 높음 | merge/conflict rules |
 | 설정/접근성 | 큰 터치 영역 | 태블릿 기본 | MVP | 낮음 | 공연 모드 UX |
-| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·테스트 정보·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 자주 쓰는 아이콘 바로가기 유지. 개별 필기 발견성과 미니 튜너 실시간 감지는 후속 gap |
+| 설정/접근성 | 이름으로 도구 찾기 | 이름 메뉴/툴팁 패턴 참고 | V1 | 낮음 | viewer 모든 폭의 `도구` 메뉴, 연습·공연/정보/보기/필기/페이지/공유·입력 분류. 홈 `메뉴`에서 세트리스트·보기/입력 기본값·앱 상태 점검·도움말/피드백·백업/복원 접근. 튜너/메트로놈 sheet의 `작은 창` 이름 제공. 필기 toolbar는 `필기 도구` 이름 메뉴와 기존 빠른 아이콘 선택을 함께 제공. 미니 튜너는 악보 위 현재 음/cent/신호 readout과 상세 튜너 진입을 제공. 자주 쓰는 아이콘 바로가기 유지 |
 | 설정/접근성 | TalkBack label | Android 기본 | MVP | 낮음 | semantics |
 | 설정/접근성 | 다크/반전 표시 | Piascore 사용자 리뷰 참고 | V1 | 중간 | 18차 구현: 곡별 표시 효과, 어두운 배경, viewer 전체 색상 반전 |
-| 설정/접근성 | 베타 테스트 정보 | 테스터 전달 | MVP | 낮음 | 20차 보강: 앱 내 version/build, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
+| 설정/접근성 | 도움말/피드백 | 테스터 전달 | MVP | 낮음 | 앱 내 version/build, 처음 쓰는 흐름, 주요 테스트 항목, 피드백 템플릿 복사, 외부 QA 체크리스트/known issues 문서 |
+| 설정/접근성 | 앱 상태 점검 | 배포 전 Device QA 부담 완화 | V1.x | 낮음 | 구현됨: 홈 `메뉴`의 이름 있는 `앱 상태 점검` 화면에서 앱/버전/platform/OS/build mode, 페이지 넘김 키 입력 감지, 120/180/240 BPM 내부 메트로놈 scheduling timing, 마이크 권한 상태, Markdown/JSON 결과 복사·공유를 제공한다. 사용자 악보/세트리스트/필기를 수정하지 않으며 자동 서버 전송은 없다. 실제 메트로놈 청감, 드론 음량, Bluetooth/USB 페달, stylus 필기감, 튜너 정확도, 장시간 연주는 DEVICE QA로 남긴다 |
 | 설정/접근성 | 전역 gesture/action 설정 | MobileSheets 강점 | V1 | 중간 | 구현됨: 새 악보 기본 viewer/action/pedal mapping 설정 UI, input diagnostic, metadata/backup round-trip |
 | 설정/접근성 | 한국어 친화 UX | 국내 beta 요구 | V1 | 중간 | 구현됨: 주요 import/search/export/pedal 안내 문구를 한국어 기준으로 정리하고, 화면에 노출되는 preset/metadata/crop/debug 같은 혼합 표기를 프리셋/앱 설정/자르기/진단 요약 중심으로 정리 |
 
@@ -154,12 +169,19 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
 - 1페이지, 2페이지, 세로 스크롤, 반 페이지 넘김, 확대/축소/이동. 3차 구현에서 좁은 화면은
   세로 스크롤을 기본값으로 두고, 모바일 AppBar와 하단 페이지 컨트롤을 보강했다. 4차 구현에서
   넓은 화면 2페이지 spread와 visible viewport 기반 반 페이지 넘김을 추가했다. 5차 구현에서
-  보기 모드와 반 페이지 넘김을 곡별 metadata로 저장한다.
+  보기 모드와 반 페이지 넘김을 곡별 metadata로 저장한다. 2페이지 보기는 책 표지형 `표지 단독`
+  시작과 스캔 악보형 `1-2쪽부터` 시작을 선택할 수 있으며, 페이지 넘김은 현재 선택한 spread
+  묶음 단위로 이동한다.
 - 페이지 숨김. 5차 구현은 원본 PDF를 수정하지 않고 hidden page metadata로 이전/다음 이동에서
-  건너뛰는 방식이다.
+  건너뛰는 방식이다. 페이지 숨김/해제, 페이지 순서/복제, 회전값, 자르기 맞춤 저장 실패는
+  viewer를 끊지 않고 재시도 안내로 표시하며, PDF controller가 준비되기 전에는 저장된 현재 쪽
+  fallback을 사용한다.
+- 점프 포인트와 리허설 마크. D.S./Coda 이동, rename/delete, rehearsal/D.S./D.C./Coda/Segno
+  마크를 metadata로 저장한다. 저장 실패는 성공 안내 없이 재시도 안내로 표시하고 PDF controller
+  준비 전에는 저장된 현재 쪽 fallback을 사용한다.
 - 저지연 페이지 넘김을 위한 render cache profile. 50-100페이지 스캔 PDF 실기기 계측은 QA에서
   확인한다.
-- 세트리스트, 세트리스트 연속 넘김. 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, 일괄 선택 bulk add와 추가 후 상세 열기, bulk collection 지정, 제거 후 되돌리기, drag reorder/위아래 이동/직접 순서 입력,
+- 세트리스트, 세트리스트 연속 넘김. 세트리스트 상세에서 검색/체크/검색 결과 전체 선택 기반 여러 악보 추가, 일괄 선택 bulk add와 추가 후 상세 열기, bulk collection 지정, 다른 세트리스트 이어붙이기, 제거 후 되돌리기, drag reorder/위아래 이동/직접 순서 입력,
   첫 곡 열기, 최근 세트리스트 rail, `진행 n/m` pill, 최근 연 시간, 마지막 곡 이어보기, viewer context 표시, 명시적 이전/다음 곡
   이동이다.
 - 선택 툴바는 좁은 화면에서 선택 개수/전체 선택/세트리스트 추가를 유지하고,
@@ -220,7 +242,7 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   CSV 선택 중 라이브러리가 바뀌면 이전 결과를 적용하지 않고, 최신 악보에 병합한다.
   파일 읽기/형식/북마크 저장 실패와 제거된 대상 악보를 구분해 안내한다.
   북마크 추가/이름 변경/삭제도 최신 목록의 해당 페이지에만 적용해 다른 북마크와 악보 정보를
-  유지한다. 사라진 대상은 성공으로 안내하지 않는다.
+  유지한다. 저장 실패는 재시도 안내로 표시하고, 사라진 대상은 성공으로 안내하지 않는다.
   즐겨찾기/고정은 현재 상태를 토글하므로 카드 재표시 전 연속 탭도 반영하고 다른 악보 정보는 보존한다.
 - 일반 metadata 저장과 자동 백업은 쓰기/삭제 실패를 호출자에게 전달하고 이전 저장값 복구를
   시도한다. 악보/세트리스트/도구/보기/프리셋과 복원 저장은 같은 순서로 처리해 실패 복구가
@@ -250,8 +272,11 @@ MVP는 MobileSheets 전체 기능을 복제하지 않는다. 다만 Android 악�
   지연된 Timer.tick의 경과 pulse 수만큼 강세/카운트인 위치를 맞추고 놓친 클릭을 몰아서 재생하지 않는다.
   정지/재시작/종료한 타이머의 늦은 callback은 무시한다. 오디오 기준 스케줄링은 아직 아니다.
   Android 클릭 출력은 강세/일반 PCM과 AudioTrack 두 개를 재사용하며 매 박 스레드를 만들지 않는다.
+  native 출력 실패는 SystemSound fallback/unavailable 상태로 구분해 전체 창과 미니 패널에 안내하고,
+  정지/닫기 뒤 늦게 도착한 실패 응답은 fallback 클릭이나 새 안내를 만들지 않는다.
   초기화/재생 오류 전달, 자원 해제/재시도는 네이티브 단위 검증 범위다.
-  빠른 BPM의 실제 불규칙 간격 보고는 미해결 QA이며 출력 지터/이어폰 비교가 필요하다.
+  S65에서 시작 전 native click prepare를 추가하고 debug Android compile까지 확인했다.
+  빠른 BPM의 실제 균일한 청취감은 이어폰/스피커/Bluetooth 출력 경로별 실기기 재확인이 필요하다.
   기준음/드론은 별도 `드론 음량`과 현재 백분율을 상시 표시한다. 기본 35%와 기존 합성 gain은 유지하며,
   이어폰에서 작게 들린다는 관찰은 실제 출력 경로/연습실 재확인으로 분리한다.
   드론 음량/A4 변경은 저장 응답과 재생을 분리하며 닫기/정지 뒤 저장 완료로 재생을 재요청하지 않는다.

@@ -8,6 +8,7 @@ import 'package:in_c_sheet/main.dart';
 import 'package:in_c_sheet/sheet_library_backup.dart';
 import 'package:in_c_sheet/sheet_library_controller.dart';
 import 'package:in_c_sheet/sheet_library_store.dart';
+import 'package:in_c_sheet/sheet_library_view_settings.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
 import 'package:in_c_sheet/sheet_score.dart';
 import 'package:in_c_sheet/sheet_setlist.dart';
@@ -588,7 +589,8 @@ void main() {
     expect(find.byTooltip('악보 추가'), findsOneWidget);
     await tester.tap(find.byTooltip('라이브러리 메뉴'));
     await tester.pumpAndSettle();
-    expect(find.text('테스트 정보'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, '앱 상태 점검'), findsOneWidget);
+    expect(find.widgetWithText(ListTile, '도움말/피드백'), findsOneWidget);
     expect(find.byTooltip('클래식 듣기'), findsNothing);
   });
 
@@ -995,12 +997,12 @@ void main() {
     await tester.pumpWidget(
       buildSetlistProgressBadgeForTest(
         scoreTitle: 'G선상의 아리아',
-        subtitle: '공연 순서 · 2/8 · 3분',
+        subtitle: '공연 순서 · 2/8 · 3분 · 반복 없이',
       ),
     );
 
     expect(find.text('G선상의 아리아'), findsOneWidget);
-    expect(find.text('공연 순서 · 2/8 · 3분'), findsOneWidget);
+    expect(find.text('공연 순서 · 2/8 · 3분 · 반복 없이'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -1502,7 +1504,11 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    expect(find.text('정리 필요'), findsOneWidget);
+    expect(find.text('정보 정리 필요'), findsOneWidget);
+    expect(find.text('제목/작곡가 등이 비어 있어요. 누르면 정보 편집.'), findsOneWidget);
+    expect(find.text('정보 편집'), findsOneWidget);
+    expect(find.text('최근 악보'), findsOneWidget);
+    expect(find.text('마지막으로 연 악보'), findsOneWidget);
     expect(find.text('clef imported score'), findsWidgets);
     expect(find.textContaining('파일 · clef-imported-score'), findsWidgets);
 
@@ -1779,6 +1785,77 @@ void main() {
       },
     );
   }
+
+  testWidgets('setlist detail appends another setlist from toolbar action', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 26, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'a',
+        title: 'Prelude',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/a.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+      SheetScore(
+        id: 'b',
+        title: 'Fugue',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/b.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final target = await controller.createSetlist('First half');
+    await controller.addScoreToSetlist(target, controller.scoreById('a'));
+    final source = await controller.createSetlist('Second half');
+    await controller.addScoreToSetlist(source, controller.scoreById('b'));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: target.id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('다른 세트리스트 이어붙이기'));
+    await tester.pumpAndSettle();
+    expect(find.text('이어붙일 세트리스트'), findsOneWidget);
+    await tester.tap(find.text('Second half'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlistById(target.id).scoreIds, ['a', 'b']);
+    expect(find.text('1개 악보를 "Second half"에서 이어붙였습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('empty setlist detail exposes a single add action', (
     tester,
@@ -2244,8 +2321,58 @@ void main() {
 
     expect(find.text('북마크 목록'), findsOneWidget);
     expect(find.text('파트/버전'), findsOneWidget);
+    expect(find.text('현재 PDF 교체'), findsOneWidget);
     expect(find.text('악보 정보 편집'), findsOneWidget);
     expect(find.text('악보 메모'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('page picker supports long score direct jump', (tester) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 24,
+        currentPage: 3,
+        pageSettings: const SheetPageSettings(
+          hiddenPages: <int>[5],
+          pageRotations: <int, int>{},
+          pageOrder: <int>[1, 2, 2, 3, 4, 6],
+        ),
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('현재 3쪽 · 선택 3/24쪽'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('쪽 번호'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '5');
+    await tester.pump();
+    expect(find.text('숨김 페이지는 가까운 보이는 쪽으로 이동합니다.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '99');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[24]);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('crop settings sheet offers quick margin presets', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildCropSettingsSheetForTest());
+
+    expect(find.text('빠른 여백 자르기'), findsOneWidget);
+    expect(find.text('좁게 3%'), findsOneWidget);
+    expect(find.text('보통 6%'), findsOneWidget);
+    expect(find.text('강하게 10%'), findsOneWidget);
+
+    await tester.tap(find.text('보통 6%'));
+    await tester.pump();
+
+    expect(find.text('6%'), findsNWidgets(4));
     expect(tester.takeException(), isNull);
   });
 
@@ -2254,8 +2381,20 @@ void main() {
   ) async {
     await tester.pumpWidget(buildAnnotationToolbarForTest());
 
+    expect(find.text('필기 도구'), findsOneWidget);
+    expect(find.text('스탬프'), findsOneWidget);
     expect(find.byTooltip('오선'), findsOneWidget);
     expect(find.byTooltip('격자'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('필기 도구 선택'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('펜'), findsOneWidget);
+    expect(find.text('형광펜'), findsOneWidget);
+    expect(find.text('오선'), findsOneWidget);
+    expect(find.text('지우개'), findsOneWidget);
+    await tester.tap(find.text('지우개'));
+    await tester.pumpAndSettle();
 
     await tester.scrollUntilVisible(
       find.byTooltip('스탬프 선택'),
@@ -2265,14 +2404,134 @@ void main() {
     await tester.tap(find.byTooltip('스탬프 선택'));
     await tester.pumpAndSettle();
 
+    expect(find.text('스탬프 선택'), findsWidgets);
+    expect(find.text('리허설 표시'), findsWidgets);
+    expect(find.text('OK'), findsWidgets);
+
+    await tester.enterText(find.byType(TextField), '반복');
+    await tester.pumpAndSettle();
+
+    expect(find.text('반복/마침'), findsWidgets);
     expect(find.text('Fine'), findsOneWidget);
     expect(find.text('D.C.'), findsOneWidget);
-    expect(find.text('D.S.'), findsOneWidget);
-    expect(find.text('Coda'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '템포');
+    await tester.pumpAndSettle();
+
+    expect(find.text('템포 변화'), findsWidgets);
     expect(find.text('rit.'), findsOneWidget);
     expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('Fine'), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('linked audio sheet sends A-B loop points to player', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_loop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '1.5');
+    await tester.enterText(find.byType(TextField).at(1), '8.2');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls.single.method, 'play');
+    expect(calls.single.arguments, <String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'loopStartMs': 1500,
+      'loopEndMs': 8200,
+    });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('performance preset save failure reports and preserves input', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1200, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    await tester.pumpWidget(
+      buildPerformanceSettingsSheetForTest(
+        onSavePresetTemplate: (_, _, _) async {
+          throw StateError('injected save failure');
+        },
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField).first, 'Tablet preset');
+    await tester.scrollUntilVisible(
+      find.text('현재 설정 저장'),
+      220,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.text('현재 설정 저장'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('공연 보기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(find.text('Tablet preset'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final mode in ['false', 'throw']) {
+    testWidgets('performance preset delete $mode reports and keeps preset', (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1200, 1400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(
+        buildPerformanceSettingsSheetForTest(
+          presetTemplates: const [
+            SheetPerformancePresetTemplate(
+              id: 'concert',
+              name: 'Concert setup',
+              viewerSettings: SheetViewerSettings.defaultSettings,
+            ),
+          ],
+          onDeletePresetTemplate: (_) async {
+            if (mode == 'throw') {
+              throw StateError('injected delete failure');
+            }
+            return false;
+          },
+        ),
+      );
+
+      await tester.scrollUntilVisible(
+        find.byTooltip('삭제'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byTooltip('삭제'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+      expect(find.text('Concert setup'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('import nudge offers immediate score metadata editing', (
     tester,

@@ -106,6 +106,7 @@ class SheetViewerSettings {
     this.customPedalMapping = defaultCustomPedalMapping,
     this.renderProfile = balancedRenderProfile,
     this.pageTurnAnimation = naturalPageTurnAnimation,
+    this.twoPageSpreadStart = twoPageStartCoverSingle,
     this.keepAwakeInPerformance = false,
     this.showPerformancePrepNotice = true,
     this.confirmSetlistTransition = true,
@@ -134,6 +135,9 @@ class SheetViewerSettings {
       renderProfile: _normalizeRenderProfile(json?['renderProfile']),
       pageTurnAnimation: _normalizePageTurnAnimation(
         json?['pageTurnAnimation'],
+      ),
+      twoPageSpreadStart: _normalizeTwoPageSpreadStart(
+        json?['twoPageSpreadStart'],
       ),
       keepAwakeInPerformance: _boolFromJson(
         json?['keepAwakeInPerformance'],
@@ -204,6 +208,8 @@ class SheetViewerSettings {
   static const noPageTurnAnimation = 'none';
   static const fastPageTurnAnimation = 'fast';
   static const naturalPageTurnAnimation = 'natural';
+  static const twoPageStartCoverSingle = 'coverSingle';
+  static const twoPageStartPaired = 'paired';
 
   static const defaultSettings = SheetViewerSettings(
     displayMode: 'auto',
@@ -218,6 +224,7 @@ class SheetViewerSettings {
   final Map<String, String> customPedalMapping;
   final String renderProfile;
   final String pageTurnAnimation;
+  final String twoPageSpreadStart;
   final bool keepAwakeInPerformance;
   final bool showPerformancePrepNotice;
   final bool confirmSetlistTransition;
@@ -235,6 +242,7 @@ class SheetViewerSettings {
     Map<String, String>? customPedalMapping,
     String? renderProfile,
     String? pageTurnAnimation,
+    String? twoPageSpreadStart,
     bool? keepAwakeInPerformance,
     bool? showPerformancePrepNotice,
     bool? confirmSetlistTransition,
@@ -252,6 +260,7 @@ class SheetViewerSettings {
       customPedalMapping: customPedalMapping ?? this.customPedalMapping,
       renderProfile: renderProfile ?? this.renderProfile,
       pageTurnAnimation: pageTurnAnimation ?? this.pageTurnAnimation,
+      twoPageSpreadStart: twoPageSpreadStart ?? this.twoPageSpreadStart,
       keepAwakeInPerformance:
           keepAwakeInPerformance ?? this.keepAwakeInPerformance,
       showPerformancePrepNotice:
@@ -278,6 +287,7 @@ class SheetViewerSettings {
       'customPedalMapping': customPedalMapping,
       'renderProfile': renderProfile,
       'pageTurnAnimation': pageTurnAnimation,
+      'twoPageSpreadStart': twoPageSpreadStart,
       'keepAwakeInPerformance': keepAwakeInPerformance,
       'showPerformancePrepNotice': showPerformancePrepNotice,
       'confirmSetlistTransition': confirmSetlistTransition,
@@ -348,6 +358,13 @@ class SheetViewerSettings {
       return value.toString();
     }
     return naturalPageTurnAnimation;
+  }
+
+  static String _normalizeTwoPageSpreadStart(Object? value) {
+    if (value == twoPageStartPaired) {
+      return twoPageStartPaired;
+    }
+    return twoPageStartCoverSingle;
   }
 }
 

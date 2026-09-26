@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'classical_discovery_app.dart';
@@ -19,6 +20,7 @@ import 'sheet_annotation.dart';
 import 'sheet_annotation_geometry.dart';
 import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_device_check.dart';
 import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
@@ -36,11 +38,12 @@ import 'sheet_stylus_input.dart';
 import 'sheet_tone.dart';
 import 'sheet_tuner.dart';
 import 'sheet_tuner_input_service.dart';
+import 'sheet_two_page_spread.dart';
 import 'sheet_viewer_file_status.dart';
 import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
-const String _clefAppVersion = '1.0.0+22';
+const String _clefAppVersion = '1.0.1+26';
 const bool _launchInCDiscoveryHome =
     bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
@@ -547,6 +550,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       showDragHandle: true,
       builder: (context) =>
           _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
+    );
+  }
+
+  Future<void> _showDeviceCheck() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _DeviceCheckSheet(appVersion: _clefAppVersion),
     );
   }
 
@@ -1413,6 +1425,27 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
+                    initialValue: settings.twoPageSpreadStart,
+                    isExpanded: true,
+                    decoration: const InputDecoration(labelText: '2페이지 시작'),
+                    items: _SheetTwoPageSpreadStart.values
+                        .map(
+                          (start) => DropdownMenuItem<String>(
+                            value: start.settingValue,
+                            child: Text(start.label),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: (value) {
+                      if (value != null) {
+                        updateSettings(
+                          settings.copyWith(twoPageSpreadStart: value),
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
                     initialValue: settings.pageScale,
                     isExpanded: true,
                     decoration: const InputDecoration(labelText: '페이지 맞춤'),
@@ -1620,6 +1653,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         _openSetlists();
       case _LibraryToolsAction.viewerDefaults:
         await _showGlobalViewerDefaults();
+      case _LibraryToolsAction.deviceCheck:
+        await _showDeviceCheck();
       case _LibraryToolsAction.testerInfo:
         await _showTesterInfo();
       case _LibraryBackupAction():
@@ -1668,10 +1703,17 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   ),
                 ),
                 const PopupMenuItem(
+                  value: _LibraryToolsAction.deviceCheck,
+                  child: ListTile(
+                    leading: Icon(Icons.health_and_safety_outlined),
+                    title: Text('앱 상태 점검'),
+                  ),
+                ),
+                const PopupMenuItem(
                   value: _LibraryToolsAction.testerInfo,
                   child: ListTile(
-                    leading: Icon(Icons.info_outline),
-                    title: Text('테스트 정보'),
+                    leading: Icon(Icons.help_outline),
+                    title: Text('도움말/피드백'),
                   ),
                 ),
                 const PopupMenuDivider(),
@@ -2071,7 +2113,7 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
 
 enum _LibrarySelectionAction { collection, edit, remove }
 
-enum _LibraryToolsAction { setlists, viewerDefaults, testerInfo }
+enum _LibraryToolsAction { setlists, viewerDefaults, deviceCheck, testerInfo }
 
 List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
   bool enabled = true,
@@ -3714,8 +3756,8 @@ class _EmptyLibrary extends StatelessWidget {
                     ),
                     OutlinedButton.icon(
                       onPressed: onTesterInfoPressed,
-                      icon: const Icon(Icons.fact_check_outlined),
-                      label: const Text('테스트 항목'),
+                      icon: const Icon(Icons.help_outline),
+                      label: const Text('도움말/피드백'),
                     ),
                   ],
                 ),
@@ -3733,6 +3775,13 @@ class _TesterInfoSheet extends StatelessWidget {
 
   final String appVersion;
   final SheetLibraryController controller;
+
+  static const List<String> _quickHelpItems = <String>[
+    '악보 추가: PDF 또는 이미지를 가져온 뒤 정보 편집으로 제목/작곡가를 정리합니다.',
+    '연주: 악보를 열고 좌우 터치, 스와이프, 페달/키보드로 페이지를 넘깁니다.',
+    '도구: 악보 화면의 도구 메뉴에서 메트로놈, 튜너, 필기, 페이지 정리를 찾습니다.',
+    '피드백: 아래 템플릿을 복사해 기기, OS, 파일 정보와 재현 단계를 함께 보냅니다.',
+  ];
 
   static const List<String> _testItems = <String>[
     'PDF 가져오기와 페이지 넘김',
@@ -3839,11 +3888,11 @@ pageMetadataScores=$pageMetadataCount
         children: [
           Row(
             children: [
-              const Icon(Icons.info_outline),
+              const Icon(Icons.help_outline),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  'Clef & Staff 테스트 정보',
+                  'Clef & Staff 도움말/피드백',
                   style: theme.textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w900,
                   ),
@@ -3851,6 +3900,21 @@ pageMetadataScores=$pageMetadataCount
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          Text(
+            '처음 쓰는 흐름',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final item in _quickHelpItems)
+            ListTile(
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.arrow_right_alt),
+              title: Text(item),
+            ),
           const SizedBox(height: 12),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
@@ -3864,7 +3928,7 @@ pageMetadataScores=$pageMetadataCount
           _InfoRow(label: '페이지 설정', value: '$pageMetadataCount개 악보'),
           const SizedBox(height: 18),
           Text(
-            '확인할 항목',
+            '테스트할 항목',
             style: theme.textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w900,
             ),
@@ -3932,6 +3996,511 @@ pageMetadataScores=$pageMetadataCount
     }
     return '필기 $strokeCount · 텍스트 $textCount · '
         '포인트 $pointCount · ${_formatBytes(estimatedBytes)}';
+  }
+}
+
+class _DeviceCheckSheet extends StatefulWidget {
+  const _DeviceCheckSheet({required this.appVersion});
+
+  final String appVersion;
+
+  @override
+  State<_DeviceCheckSheet> createState() => _DeviceCheckSheetState();
+}
+
+class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
+  static const _timingBpms = <int>[120, 180, 240];
+
+  final FocusNode _focusNode = FocusNode(debugLabel: 'Clef device check keys');
+  final AudioRecorder _recorder = AudioRecorder();
+  SheetViewerInputDiagnosticEntry? _lastKeyEntry;
+  SheetDeviceCheckItem _microphoneItem = const SheetDeviceCheckItem(
+    id: 'microphone-permission',
+    title: 'Tuner microphone permission',
+    status: SheetDeviceCheckStatus.notTested,
+    details: '마이크 권한 상태를 확인하지 않았습니다.',
+  );
+  final List<SheetMetronomeTimingAnalysis> _timingResults =
+      <SheetMetronomeTimingAnalysis>[];
+  bool _isCheckingMicrophone = false;
+  bool _isCheckingTiming = false;
+  Timer? _timingTimer;
+
+  @override
+  void dispose() {
+    _timingTimer?.cancel();
+    _focusNode.dispose();
+    unawaited(_recorder.dispose());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final report = _report();
+    return SafeArea(
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.health_and_safety_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Clef & Staff 앱 상태 점검',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '주요 기능이 기기에서 열리고 입력을 받는지 점검합니다. '
+              '결과는 사용자가 복사하거나 공유하기 전까지 외부로 전송되지 않습니다.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 14),
+            _InfoRow(label: '앱', value: 'Clef & Staff'),
+            _InfoRow(label: '버전', value: widget.appVersion),
+            _InfoRow(label: '플랫폼', value: _platformLabel()),
+            _InfoRow(label: 'OS', value: _osVersionLabel()),
+            _InfoRow(label: '빌드 모드', value: _buildModeLabel()),
+            const SizedBox(height: 18),
+            _DeviceCheckActionCard(
+              title: '페이지 넘김 키 입력',
+              subtitle: _lastKeyEntry == null
+                  ? '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요.'
+                  : '${_lastKeyEntry!.inputId} · '
+                        '${_lastKeyEntry!.action.value}',
+              status: deviceCheckItemForKeyInput(_lastKeyEntry).status,
+              icon: Icons.keyboard_alt_outlined,
+            ),
+            const SizedBox(height: 10),
+            _DeviceCheckActionCard(
+              title: '메트로놈 타이밍 점검',
+              subtitle: _isCheckingTiming
+                  ? '120/180/240 BPM 내부 스케줄 간격을 측정하는 중입니다.'
+                  : _timingResults.isEmpty
+                  ? '실제 소리가 아니라 앱 내부 scheduling timestamp를 측정합니다.'
+                  : _timingResults
+                        .map(
+                          (result) =>
+                              '${result.bpm} BPM ${result.status.code} '
+                              'jitter ${result.maxJitterMs.toStringAsFixed(1)}ms',
+                        )
+                        .join(' · '),
+              status:
+                  _timingResults.any(
+                    (result) => result.status == SheetDeviceCheckStatus.fail,
+                  )
+                  ? SheetDeviceCheckStatus.fail
+                  : _timingResults.any(
+                      (result) => result.status == SheetDeviceCheckStatus.warn,
+                    )
+                  ? SheetDeviceCheckStatus.warn
+                  : _timingResults.length == _timingBpms.length
+                  ? SheetDeviceCheckStatus.pass
+                  : SheetDeviceCheckStatus.notTested,
+              icon: Icons.timer_outlined,
+              action: OutlinedButton.icon(
+                onPressed: _isCheckingTiming ? null : _runMetronomeTimingCheck,
+                icon: _isCheckingTiming
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow),
+                label: Text(_isCheckingTiming ? '측정 중' : '타이밍 측정'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _DeviceCheckActionCard(
+              title: '튜너 마이크 권한',
+              subtitle: _microphoneItem.details,
+              status: _microphoneItem.status,
+              icon: Icons.mic_none_outlined,
+              action: OutlinedButton.icon(
+                onPressed: _isCheckingMicrophone
+                    ? null
+                    : _checkMicrophonePermission,
+                icon: _isCheckingMicrophone
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.mic_none_outlined),
+                label: Text(_isCheckingMicrophone ? '확인 중' : '권한 확인'),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              '직접 확인 필요',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final item in _manualItems())
+              _DeviceCheckStatusTile(item: item),
+            const SizedBox(height: 18),
+            Text(
+              '결과',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              report.toMarkdown(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: report.toMarkdown()),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('상태 점검 결과를 복사했습니다.')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.content_copy),
+                  label: const Text('결과 복사'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          subject: 'Clef & Staff 앱 상태 점검',
+                          text: report.toMarkdown(),
+                        ),
+                      );
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('점검 결과를 공유하지 못했습니다.')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.ios_share),
+                  label: const Text('결과 공유'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    setState(() {
+      _lastKeyEntry = SheetViewerInputDiagnosticEntry.fromKeyEvent(
+        event: event,
+        isShiftPressed: HardwareKeyboard.instance.isShiftPressed,
+        pedalMapping: 'standard',
+        customMapping: const <String, String>{},
+      );
+    });
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _runMetronomeTimingCheck() async {
+    setState(() {
+      _isCheckingTiming = true;
+      _timingResults.clear();
+    });
+    for (final bpm in _timingBpms) {
+      final ticks = await _collectTimingTicks(bpm, tickCount: 8);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _timingResults.add(analyzeMetronomeTiming(bpm: bpm, ticks: ticks));
+      });
+    }
+    if (mounted) {
+      setState(() => _isCheckingTiming = false);
+    }
+  }
+
+  Future<List<DateTime>> _collectTimingTicks(
+    int bpm, {
+    required int tickCount,
+  }) async {
+    final ticks = <DateTime>[];
+    final completer = Completer<List<DateTime>>();
+    final interval = Duration(milliseconds: (60000 / bpm).round());
+    _timingTimer?.cancel();
+    _timingTimer = Timer.periodic(interval, (timer) {
+      ticks.add(DateTime.now());
+      if (ticks.length >= tickCount) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(List<DateTime>.unmodifiable(ticks));
+        }
+      }
+    });
+    return completer.future;
+  }
+
+  Future<void> _checkMicrophonePermission() async {
+    setState(() => _isCheckingMicrophone = true);
+    try {
+      final allowed = await _recorder.hasPermission();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _microphoneItem = SheetDeviceCheckItem(
+          id: 'microphone-permission',
+          title: 'Tuner microphone permission',
+          status: allowed
+              ? SheetDeviceCheckStatus.pass
+              : SheetDeviceCheckStatus.warn,
+          details: allowed
+              ? '마이크 권한을 사용할 수 있습니다.'
+              : '마이크 권한이 없거나 아직 허용되지 않았습니다.',
+        );
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _microphoneItem = SheetDeviceCheckItem(
+          id: 'microphone-permission',
+          title: 'Tuner microphone permission',
+          status: SheetDeviceCheckStatus.warn,
+          details: '권한 상태를 확인하지 못했습니다: ${error.runtimeType}',
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingMicrophone = false);
+      }
+    }
+  }
+
+  SheetDeviceCheckReport _report() {
+    return SheetDeviceCheckReport(
+      appVersion: widget.appVersion,
+      platform: _platformLabel(),
+      osVersion: _osVersionLabel(),
+      buildMode: _buildModeLabel(),
+      checkedAt: DateTime.now(),
+      items: <SheetDeviceCheckItem>[
+        const SheetDeviceCheckItem(
+          id: 'app-launch',
+          title: 'App launch',
+          status: SheetDeviceCheckStatus.pass,
+          details: '앱 상태 점검 화면이 열렸습니다.',
+        ),
+        deviceCheckItemForKeyInput(_lastKeyEntry),
+        if (_timingResults.isEmpty)
+          for (final bpm in _timingBpms)
+            SheetDeviceCheckItem(
+              id: 'metronome-$bpm',
+              title: 'Metronome $bpm BPM',
+              status: SheetDeviceCheckStatus.notTested,
+              details: '타이밍 점검을 아직 실행하지 않았습니다.',
+            )
+        else
+          for (final result in _timingResults) result.toCheckItem(),
+        _microphoneItem,
+        ..._manualItems(),
+      ],
+      notes: '내부 timing은 실제 스피커/이어폰 출력 품질을 보장하지 않습니다.',
+    );
+  }
+
+  List<SheetDeviceCheckItem> _manualItems() {
+    return const <SheetDeviceCheckItem>[
+      SheetDeviceCheckItem(
+        id: 'pdf-viewer',
+        title: 'PDF viewer',
+        status: SheetDeviceCheckStatus.manual,
+        details: '사용자 악보를 열어 렌더링과 페이지 넘김을 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'annotation-tools',
+        title: 'Annotation tools',
+        status: SheetDeviceCheckStatus.manual,
+        details: '필기 도구 진입과 stylus 필기감은 직접 확인이 필요합니다.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'metronome-audio',
+        title: 'Real metronome audio',
+        status: SheetDeviceCheckStatus.manual,
+        details: '빠른 BPM 청감, 이어폰/스피커/Bluetooth 출력은 직접 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'drone-volume',
+        title: 'Drone volume',
+        status: SheetDeviceCheckStatus.manual,
+        details: '연습실과 실제 출력 경로에서 음량을 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'pedal-device',
+        title: 'Bluetooth/USB pedal',
+        status: SheetDeviceCheckStatus.manual,
+        details: '실제 페달 pairing과 반복 입력 cadence는 장비로 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'tuner-accuracy',
+        title: 'Tuner accuracy',
+        status: SheetDeviceCheckStatus.manual,
+        details: '실제 악기/마이크/주변 소음 환경에서 확인하세요.',
+      ),
+    ];
+  }
+
+  static String _platformLabel() {
+    if (kIsWeb) {
+      return 'web';
+    }
+    return Platform.operatingSystem;
+  }
+
+  static String _osVersionLabel() {
+    if (kIsWeb) {
+      return 'web';
+    }
+    return Platform.operatingSystemVersion;
+  }
+
+  static String _buildModeLabel() {
+    if (kReleaseMode) {
+      return 'release';
+    }
+    if (kProfileMode) {
+      return 'profile';
+    }
+    return 'debug';
+  }
+}
+
+class _DeviceCheckActionCard extends StatelessWidget {
+  const _DeviceCheckActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    required this.icon,
+    this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final SheetDeviceCheckStatus status;
+  final IconData icon;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _DeviceCheckStatusChip(status: status),
+              ],
+            ),
+            if (action != null) ...[
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerLeft, child: action),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceCheckStatusTile extends StatelessWidget {
+  const _DeviceCheckStatusTile({required this.item});
+
+  final SheetDeviceCheckItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.fact_check_outlined),
+      title: Text(item.title),
+      subtitle: Text(item.details),
+      trailing: _DeviceCheckStatusChip(status: item.status),
+    );
+  }
+}
+
+class _DeviceCheckStatusChip extends StatelessWidget {
+  const _DeviceCheckStatusChip({required this.status});
+
+  final SheetDeviceCheckStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = switch (status) {
+      SheetDeviceCheckStatus.pass => colorScheme.primaryContainer,
+      SheetDeviceCheckStatus.warn => colorScheme.tertiaryContainer,
+      SheetDeviceCheckStatus.fail => colorScheme.errorContainer,
+      SheetDeviceCheckStatus.manual => colorScheme.secondaryContainer,
+      SheetDeviceCheckStatus.notTested => colorScheme.surfaceContainerHighest,
+    };
+    return Chip(
+      label: Text(status.koreanLabel),
+      backgroundColor: color,
+      visualDensity: VisualDensity.compact,
+    );
   }
 }
 
@@ -4094,22 +4663,34 @@ class _QuickAccessBand extends StatelessWidget {
     final groups = <_QuickAccessGroup>[
       if (!isSelecting)
         _QuickAccessGroup(
-          label: '정리 필요',
+          label: '정보 정리 필요',
+          description: '제목/작곡가 등이 비어 있어요. 누르면 정보 편집.',
           icon: Icons.edit_note,
           scores: metadataReviewScores,
           opensForEdit: true,
+          emphasized: true,
+          chipIcon: Icons.edit_note,
+          chipFooterLabel: (score) => '정보 편집',
         ),
       _QuickAccessGroup(
         label: '고정',
         icon: Icons.push_pin,
         scores: pinnedScores,
+        chipIcon: Icons.push_pin,
       ),
       _QuickAccessGroup(
         label: '즐겨찾기',
         icon: Icons.star,
         scores: favoriteScores,
+        chipIcon: Icons.star,
       ),
-      _QuickAccessGroup(label: '최근', icon: Icons.history, scores: recentScores),
+      _QuickAccessGroup(
+        label: '최근 악보',
+        description: '마지막으로 연 악보',
+        icon: Icons.history,
+        scores: recentScores,
+        chipIcon: Icons.history,
+      ),
     ].where((group) => group.scores.isNotEmpty).toList(growable: false);
     if (groups.isEmpty) {
       return const SizedBox.shrink();
@@ -4122,17 +4703,22 @@ class _QuickAccessBand extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemBuilder: (context, groupIndex) {
           final group = groups[groupIndex];
+          final groupColor = group.emphasized
+              ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.38)
+              : Colors.white;
+          final borderColor = group.emphasized
+              ? theme.colorScheme.tertiary.withValues(alpha: 0.58)
+              : theme.colorScheme.outlineVariant.withValues(alpha: 0.7);
+          final iconColor = group.emphasized
+              ? theme.colorScheme.tertiary
+              : theme.colorScheme.onSurfaceVariant;
           return SizedBox(
             width: 350,
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: groupColor,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.7,
-                  ),
-                ),
+                border: Border.all(color: borderColor),
               ),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -4141,17 +4727,31 @@ class _QuickAccessBand extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(group.icon, size: 18),
+                        Icon(group.icon, size: 18, color: iconColor),
                         const SizedBox(width: 6),
                         Text(
                           group.label,
                           style: theme.textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.w900,
+                            color: group.emphasized
+                                ? theme.colorScheme.onTertiaryContainer
+                                : null,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    if (group.description != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        group.description!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
                     Expanded(
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
@@ -4163,6 +4763,8 @@ class _QuickAccessBand extends StatelessWidget {
                             isSelecting: isSelecting,
                             isSelected: selectedIds.contains(score.id),
                             onSelectionChanged: onSelectionChanged,
+                            footerIcon: group.chipIcon,
+                            footerLabel: group.chipFooterLabel?.call(score),
                           );
                         },
                         separatorBuilder: (context, index) =>
@@ -4188,13 +4790,21 @@ class _QuickAccessGroup {
     required this.label,
     required this.icon,
     required this.scores,
+    this.description,
     this.opensForEdit = false,
+    this.emphasized = false,
+    this.chipIcon,
+    this.chipFooterLabel,
   });
 
   final String label;
+  final String? description;
   final IconData icon;
   final List<SheetScore> scores;
   final bool opensForEdit;
+  final bool emphasized;
+  final IconData? chipIcon;
+  final String Function(SheetScore score)? chipFooterLabel;
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {
@@ -4574,6 +5184,8 @@ class _QuickAccessScoreChip extends StatelessWidget {
     required this.isSelecting,
     required this.isSelected,
     required this.onSelectionChanged,
+    this.footerIcon,
+    this.footerLabel,
   });
 
   final SheetScore score;
@@ -4581,6 +5193,8 @@ class _QuickAccessScoreChip extends StatelessWidget {
   final bool isSelecting;
   final bool isSelected;
   final ValueChanged<SheetScore> onSelectionChanged;
+  final IconData? footerIcon;
+  final String? footerLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -4589,6 +5203,14 @@ class _QuickAccessScoreChip extends StatelessWidget {
     final openedLabel = score.lastOpenedAt == null
         ? '마지막 ${score.lastPage}쪽'
         : '${_formatShortDate(score.lastOpenedAt!)} · ${score.lastPage}쪽';
+    final resolvedFooterIcon =
+        footerIcon ??
+        (score.isPinned
+            ? Icons.push_pin
+            : score.isFavorite
+            ? Icons.star
+            : Icons.history);
+    final resolvedFooterLabel = footerLabel ?? openedLabel;
     return SizedBox(
       width: 176,
       height: 144,
@@ -4630,16 +5252,11 @@ class _QuickAccessScoreChip extends StatelessWidget {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        if (score.isPinned)
-                          const Icon(Icons.push_pin, size: 14)
-                        else if (score.isFavorite)
-                          const Icon(Icons.star, size: 14)
-                        else
-                          const Icon(Icons.history, size: 14),
+                        Icon(resolvedFooterIcon, size: 14),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            openedLabel,
+                            resolvedFooterLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall,
@@ -5746,7 +6363,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
   }
 }
 
-enum _SetlistDetailAction { copy, duplicate, rename, delete }
+enum _SetlistDetailAction { copy, append, duplicate, rename, delete }
 
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
@@ -5902,6 +6519,68 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     final message = result.didAddAny
         ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '이미 모두 세트리스트에 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  List<SheetSetlist> _appendCandidates(SheetSetlist currentSetlist) =>
+      controller.setlists
+          .where(
+            (candidate) =>
+                candidate.id != currentSetlist.id &&
+                candidate.scoreIds.isNotEmpty,
+          )
+          .toList(growable: false);
+
+  Future<void> _appendSetlist() async {
+    final currentSetlist = setlist;
+    final candidates = _appendCandidates(currentSetlist);
+    if (candidates.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('이어붙일 다른 세트리스트가 없습니다.')));
+      return;
+    }
+
+    final source = await showModalBottomSheet<SheetSetlist>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: _SetlistPickerSheet(title: '이어붙일 세트리스트', setlists: candidates),
+      ),
+    );
+    if (!mounted || source == null) {
+      return;
+    }
+    final result = await _trySetlistSave(
+      context,
+      () => controller.appendSetlistToSetlist(currentSetlist, source),
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    if (result.sourceMissing) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('가져올 세트리스트가 없어 이어붙이지 못했습니다.')),
+      );
+      return;
+    }
+    if (_showSetlistAddFailure(context, result)) return;
+
+    final skippedLabels = <String>[
+      if (result.skippedDuplicateCount > 0)
+        '이미 포함된 ${result.skippedDuplicateCount}개 제외',
+      if (result.skippedMissingCount > 0)
+        '라이브러리에 없는 ${result.skippedMissingCount}개 제외',
+    ];
+    final skippedLabel = skippedLabels.isEmpty
+        ? ''
+        : ' ${skippedLabels.join(', ')}.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 "${source.title}"에서 이어붙였습니다.$skippedLabel'
+        : skippedLabels.isEmpty
+        ? '이미 모두 세트리스트에 포함되어 있습니다.'
+        : '새로 추가된 악보가 없습니다.$skippedLabel';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -6065,6 +6744,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     }
     final scores = controller.scoresForSetlist(currentSetlist);
     final compactActions = MediaQuery.sizeOf(context).width < 720;
+    final canAppendSetlist = _appendCandidates(currentSetlist).isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -6097,6 +6777,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
               icon: const Icon(Icons.content_paste_go_outlined),
             ),
             IconButton(
+              tooltip: '다른 세트리스트 이어붙이기',
+              onPressed: canAppendSetlist ? _appendSetlist : null,
+              icon: const Icon(Icons.playlist_add_check),
+            ),
+            IconButton(
               tooltip: '세트리스트 복제',
               onPressed: _duplicateSetlist,
               icon: const Icon(Icons.content_copy),
@@ -6122,6 +6807,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 switch (action) {
                   case _SetlistDetailAction.copy:
                     await _copySetlistText();
+                  case _SetlistDetailAction.append:
+                    await _appendSetlist();
                   case _SetlistDetailAction.duplicate:
                     await _duplicateSetlist();
                   case _SetlistDetailAction.rename:
@@ -6130,8 +6817,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                     await _deleteSetlist();
                 }
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
+              itemBuilder: (_) => [
+                const PopupMenuItem(
                   value: _SetlistDetailAction.copy,
                   child: ListTile(
                     leading: Icon(Icons.content_paste_go_outlined),
@@ -6139,22 +6826,30 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   ),
                 ),
                 PopupMenuItem(
+                  value: _SetlistDetailAction.append,
+                  enabled: canAppendSetlist,
+                  child: const ListTile(
+                    leading: Icon(Icons.playlist_add_check),
+                    title: Text('다른 세트리스트 이어붙이기'),
+                  ),
+                ),
+                PopupMenuItem(
                   value: _SetlistDetailAction.duplicate,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.content_copy),
                     title: Text('세트리스트 복제'),
                   ),
                 ),
                 PopupMenuItem(
                   value: _SetlistDetailAction.rename,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.edit_outlined),
                     title: Text('이름 변경'),
                   ),
                 ),
                 PopupMenuItem(
                   value: _SetlistDetailAction.delete,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.delete_outline),
                     title: Text('삭제'),
                   ),
@@ -6327,6 +7022,90 @@ class _EmptySetlistDetail extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SetlistPickerSheet extends StatefulWidget {
+  const _SetlistPickerSheet({required this.title, required this.setlists});
+
+  final String title;
+  final List<SheetSetlist> setlists;
+
+  @override
+  State<_SetlistPickerSheet> createState() => _SetlistPickerSheetState();
+}
+
+class _SetlistPickerSheetState extends State<_SetlistPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = _query.trim().toLowerCase();
+    final filteredSetlists = widget.setlists
+        .where(
+          (setlist) =>
+              normalizedQuery.isEmpty ||
+              setlist.title.toLowerCase().contains(normalizedQuery),
+        )
+        .toList(growable: false);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: '세트리스트 검색',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          if (filteredSetlists.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('조건에 맞는 세트리스트가 없습니다.'),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: filteredSetlists.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final setlist = filteredSetlists[index];
+                  return ListTile(
+                    leading: const Icon(Icons.queue_music),
+                    title: Text(setlist.title),
+                    subtitle: Text('${setlist.scoreIds.length}곡'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).pop(setlist),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -6676,6 +7455,28 @@ class _SetlistRehearsalSheetState extends State<_SetlistRehearsalSheet> {
                     setState(() {
                       _viewerOverride = _viewerOverride.copyWith(
                         displayMode: value,
+                      );
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _viewerOverride.twoPageSpreadStart,
+                decoration: const InputDecoration(labelText: '2페이지 시작'),
+                items: _SheetTwoPageSpreadStart.values
+                    .map(
+                      (start) => DropdownMenuItem<String>(
+                        value: start.settingValue,
+                        child: Text(start.label),
+                      ),
+                    )
+                    .toList(growable: false),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _viewerOverride = _viewerOverride.copyWith(
+                        twoPageSpreadStart: value,
                       );
                     });
                   }
@@ -7048,6 +7849,36 @@ extension _SheetPageTurnAnimationSettings on _SheetPageTurnAnimation {
   }
 }
 
+enum _SheetTwoPageSpreadStart {
+  coverSingle('표지 단독', '1쪽 단독 · 2-3쪽부터 나란히', Icons.looks_one_outlined),
+  paired('1-2쪽부터', '1-2 · 3-4처럼 두 쪽씩 나란히', Icons.view_week_outlined);
+
+  const _SheetTwoPageSpreadStart(this.label, this.description, this.icon);
+
+  final String label;
+  final String description;
+  final IconData icon;
+}
+
+extension _SheetTwoPageSpreadStartSettings on _SheetTwoPageSpreadStart {
+  String get settingValue {
+    return switch (this) {
+      _SheetTwoPageSpreadStart.coverSingle =>
+        SheetViewerSettings.twoPageStartCoverSingle,
+      _SheetTwoPageSpreadStart.paired => SheetViewerSettings.twoPageStartPaired,
+    };
+  }
+}
+
+_SheetTwoPageSpreadStart _twoPageSpreadStartFromSettings(
+  SheetViewerSettings settings,
+) {
+  return switch (settings.twoPageSpreadStart) {
+    SheetViewerSettings.twoPageStartPaired => _SheetTwoPageSpreadStart.paired,
+    _ => _SheetTwoPageSpreadStart.coverSingle,
+  };
+}
+
 _SheetPageTurnAnimation _pageTurnAnimationFromSettings(
   SheetViewerSettings settings,
 ) {
@@ -7079,6 +7910,7 @@ enum _JumpPointAction { add, open, rename, delete }
 enum _ViewerMenuAction {
   bookmarks,
   scoreParts,
+  replaceScorePdf,
   editScoreMetadata,
   scoreNotes,
   displayMode,
@@ -7087,6 +7919,7 @@ enum _ViewerMenuAction {
   pedalMapping,
   renderProfile,
   pageTurnAnimation,
+  twoPageSpreadStart,
   showTapZoneHint,
   performanceSettings,
   toggleHalfPageTurn,
@@ -7147,6 +7980,14 @@ List<PopupMenuEntry<_ViewerMenuAction>> _viewerCompactLibraryMenuItems() =>
         child: ListTile(
           leading: Icon(Icons.library_music_outlined),
           title: Text('파트/버전'),
+        ),
+      ),
+      PopupMenuItem<_ViewerMenuAction>(
+        value: _ViewerMenuAction.replaceScorePdf,
+        child: ListTile(
+          leading: Icon(Icons.find_replace_outlined),
+          title: Text('현재 PDF 교체'),
+          subtitle: Text('기존 PDF는 연결 파일로 보존'),
         ),
       ),
       PopupMenuItem<_ViewerMenuAction>(
@@ -7242,6 +8083,36 @@ enum _AnnotationStamp {
       (stamp) => stamp.name == name,
       orElse: () => _AnnotationStamp.ok,
     );
+  }
+}
+
+extension _AnnotationStampMetadata on _AnnotationStamp {
+  String get categoryLabel {
+    return switch (this) {
+      _AnnotationStamp.ok ||
+      _AnnotationStamp.cue ||
+      _AnnotationStamp.mark => '리허설 표시',
+      _AnnotationStamp.fine ||
+      _AnnotationStamp.dc ||
+      _AnnotationStamp.ds ||
+      _AnnotationStamp.coda => '반복/마침',
+      _AnnotationStamp.rit || _AnnotationStamp.accel => '템포 변화',
+    };
+  }
+
+  String get searchText {
+    final aliases = switch (this) {
+      _AnnotationStamp.ok => '확인 완료 맞음 check',
+      _AnnotationStamp.cue => '큐 cue entry',
+      _AnnotationStamp.mark => '주의 강조 느낌표 important',
+      _AnnotationStamp.fine => '마침 끝 종료 fine',
+      _AnnotationStamp.dc => '다카포 처음 반복 da capo dc',
+      _AnnotationStamp.ds => '달세뇨 세뇨 반복 dal segno ds',
+      _AnnotationStamp.coda => '코다 coda',
+      _AnnotationStamp.rit => '리타르단도 느리게 ritardando slow',
+      _AnnotationStamp.accel => '아첼레란도 빠르게 accelerando fast',
+    };
+    return '$label $name $categoryLabel $aliases'.toLowerCase();
   }
 }
 
@@ -7351,6 +8222,224 @@ Map<ShortcutActivator, Intent> _viewerKeyboardShortcutsFor(
   return shortcuts;
 }
 
+class _PagePickerSheet extends StatefulWidget {
+  const _PagePickerSheet({
+    required this.pageCount,
+    required this.currentPage,
+    required this.pageSummary,
+    required this.pageSettings,
+    required this.duplicateCounts,
+    required this.onGoToPage,
+  });
+
+  final int pageCount;
+  final int currentPage;
+  final String pageSummary;
+  final SheetPageSettings pageSettings;
+  final Map<int, int> duplicateCounts;
+  final ValueChanged<int> onGoToPage;
+
+  @override
+  State<_PagePickerSheet> createState() => _PagePickerSheetState();
+}
+
+class _PagePickerSheetState extends State<_PagePickerSheet> {
+  late int _selectedPage;
+  late final TextEditingController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPage = _clampPage(widget.currentPage);
+    _pageController = TextEditingController(text: '$_selectedPage');
+  }
+
+  @override
+  void didUpdateWidget(covariant _PagePickerSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageCount != widget.pageCount ||
+        oldWidget.currentPage != widget.currentPage) {
+      _setSelectedPage(_clampPage(widget.currentPage));
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  int _clampPage(int page) => page.clamp(1, widget.pageCount).toInt();
+
+  void _setSelectedPage(int page) {
+    final next = _clampPage(page);
+    setState(() {
+      _selectedPage = next;
+      _pageController.text = '$next';
+      _pageController.selection = TextSelection.collapsed(
+        offset: _pageController.text.length,
+      );
+    });
+  }
+
+  void _submitTypedPage() {
+    final typed = int.tryParse(_pageController.text.trim());
+    _setSelectedPage(typed ?? _selectedPage);
+  }
+
+  void _goToSelectedPage() {
+    _submitTypedPage();
+    widget.onGoToPage(_selectedPage);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelectedPageHidden = widget.pageSettings.isHidden(_selectedPage);
+    final summary = widget.pageSummary.isEmpty
+        ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
+        : '${widget.pageSummary} · 원본 PDF는 그대로입니다.';
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '페이지 탐색',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(summary),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '현재 ${widget.currentPage}쪽 · 선택 $_selectedPage/${widget.pageCount}쪽',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 96,
+                  child: TextField(
+                    controller: _pageController,
+                    decoration: const InputDecoration(
+                      labelText: '쪽 번호',
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.go,
+                    onChanged: (value) {
+                      final typed = int.tryParse(value.trim());
+                      if (typed == null) return;
+                      final next = _clampPage(typed);
+                      if (next == _selectedPage) return;
+                      setState(() => _selectedPage = next);
+                    },
+                    onSubmitted: (_) => _goToSelectedPage(),
+                    onEditingComplete: _submitTypedPage,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _goToSelectedPage,
+                  child: const Text('이동'),
+                ),
+              ],
+            ),
+            if (isSelectedPageHidden)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '숨김 페이지는 가까운 보이는 쪽으로 이동합니다.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            if (widget.pageCount > 1) ...[
+              const SizedBox(height: 8),
+              Slider(
+                value: _selectedPage.toDouble(),
+                min: 1,
+                max: widget.pageCount.toDouble(),
+                divisions: widget.pageCount <= 300
+                    ? widget.pageCount - 1
+                    : null,
+                label: '$_selectedPage쪽',
+                onChanged: (value) => _setSelectedPage(value.round()),
+              ),
+            ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.46,
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 96,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.2,
+                ),
+                itemCount: widget.pageCount,
+                itemBuilder: (context, index) {
+                  final page = index + 1;
+                  final isCurrent = page == widget.currentPage;
+                  final isSelected = page == _selectedPage;
+                  final isHidden = widget.pageSettings.isHidden(page);
+                  final duplicateCount = widget.duplicateCounts[page] ?? 0;
+                  final isOutsideOrder =
+                      widget.pageSettings.hasCustomPageOrder &&
+                      duplicateCount == 0;
+                  return OutlinedButton(
+                    onPressed: isHidden ? null : () => widget.onGoToPage(page),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: isSelected || isCurrent
+                          ? theme.colorScheme.primaryContainer
+                          : null,
+                      foregroundColor: isHidden ? theme.disabledColor : null,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$page',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        if (isHidden)
+                          const Text('숨김', style: TextStyle(fontSize: 11))
+                        else if (duplicateCount > 1)
+                          Text(
+                            'x$duplicateCount',
+                            style: const TextStyle(fontSize: 11),
+                          )
+                        else if (isOutsideOrder)
+                          const Text('순서 제외', style: TextStyle(fontSize: 11))
+                        else if (isCurrent)
+                          const Text('현재', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class SheetViewerScreen extends StatefulWidget {
   const SheetViewerScreen({
     required this.controller,
@@ -7388,6 +8477,8 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   _SheetPedalMapping _pedalMapping = _SheetPedalMapping.standard;
   _SheetRenderProfile _renderProfile = _SheetRenderProfile.balanced;
   _SheetPageTurnAnimation _pageTurnAnimation = _SheetPageTurnAnimation.natural;
+  _SheetTwoPageSpreadStart _twoPageSpreadStart =
+      _SheetTwoPageSpreadStart.coverSingle;
   bool _useHalfPageTurn = false;
   bool _isAnnotationMode = false;
   bool _isSanitizingPdfLinks = false;
@@ -7404,6 +8495,7 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
   Set<int> _autoScrollConsumedPausePages = const <int>{};
   Set<String> _autoScrollConsumedCueKeys = const <String>{};
   bool _didAutoStartScroll = false;
+  DateTime? _lastViewerSheetDismissedAt;
   _AnnotationToolbarTool _annotationTool = _AnnotationToolbarTool.pen;
   _AnnotationStamp _annotationStamp = _AnnotationStamp.ok;
   _AnnotationPreset? _favoriteAnnotationPreset;
@@ -7541,6 +8633,9 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     if (context.totalEstimatedSeconds > 0) {
       parts.add('총 ${_formatDuration(context.totalEstimatedSeconds)}');
     }
+    if (context.currentNote.isNotEmpty) {
+      parts.add(context.currentNote);
+    }
     return parts.join(' · ');
   }
 
@@ -7548,6 +8643,9 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     final parts = <String>[context.title, context.positionLabel];
     if (context.currentDurationSeconds > 0) {
       parts.add(_formatDuration(context.currentDurationSeconds));
+    }
+    if (context.currentNote.isNotEmpty) {
+      parts.add(context.currentNote);
     }
     return parts.join(' · ');
   }
@@ -7636,6 +8734,7 @@ setlist=$setlistLabel
     _pedalMapping = _pedalMappingFromSettings(viewerSettings);
     _renderProfile = _renderProfileFromSettings(viewerSettings);
     _pageTurnAnimation = _pageTurnAnimationFromSettings(viewerSettings);
+    _twoPageSpreadStart = _twoPageSpreadStartFromSettings(viewerSettings);
     final favoritePreset = widget.controller.favoriteAnnotationPreset;
     _favoriteAnnotationPreset = favoritePreset == null
         ? null
@@ -7978,6 +9077,35 @@ setlist=$setlistLabel
     }
 
     final current = _pdfController.pageNumber ?? _pageNumber ?? 1;
+    if (_displayMode == _SheetViewerDisplayMode.twoPage &&
+        !score.pageSettings.hasCustomPageOrder) {
+      final target = twoPageSpreadTarget(
+        currentPage: current,
+        delta: delta,
+        pageCount: _pdfController.pageCount,
+        spreadStart: _twoPageSpreadStart.settingValue,
+        nextVisiblePage: (fromPage, step) => score.pageSettings.nextVisiblePage(
+          fromPage: fromPage,
+          delta: step,
+          pageCount: _pdfController.pageCount,
+        ),
+      );
+      if (target == null || target == current) {
+        if (_shouldAutoAdvanceSetlist(delta)) {
+          await _goToAdjacentSetlistScore(delta);
+          return;
+        }
+        _showSnackBar(_songPageBoundaryMessage(delta));
+        return;
+      }
+      await _pdfController.goToPage(
+        pageNumber: target,
+        duration: _pageTurnDuration,
+      );
+      _showPageControlsTemporarily();
+      return;
+    }
+
     final orderedTarget = score.pageSettings.nextPageOrderTarget(
       currentPage: current,
       currentIndex: _pageOrderCursor,
@@ -8554,10 +9682,11 @@ setlist=$setlistLabel
       currentScore,
       pageNumber,
     );
-    final didChange = await widget.controller.toggleBookmark(
-      currentScore,
-      pageNumber,
+    final didChange = await _runViewerScoreMutation(
+      () => widget.controller.toggleBookmark(currentScore, pageNumber),
+      '북마크를 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didChange == null) return;
     if (!mounted) return;
     _showSnackBar(
       didChange
@@ -8651,20 +9780,26 @@ setlist=$setlistLabel
         if (label == null || !mounted) {
           return;
         }
-        final didRename = await widget.controller.renameBookmark(
-          currentScore,
-          selected.bookmark,
-          label,
+        final didRename = await _runViewerScoreMutation(
+          () => widget.controller.renameBookmark(
+            currentScore,
+            selected.bookmark,
+            label,
+          ),
+          '북마크 이름을 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didRename == null) return;
         if (mounted && !didRename) {
           _showSnackBar('북마크가 없어 이름을 변경하지 못했습니다.');
         }
         return;
       case _BookmarkListAction.delete:
-        final didDelete = await widget.controller.deleteBookmark(
-          currentScore,
-          selected.bookmark,
+        final didDelete = await _runViewerScoreMutation(
+          () =>
+              widget.controller.deleteBookmark(currentScore, selected.bookmark),
+          '북마크 삭제를 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didDelete == null) return;
         if (!mounted) return;
         _showSnackBar(didDelete ? '북마크를 삭제했습니다.' : '이미 없어진 북마크입니다.');
         return;
@@ -8825,6 +9960,31 @@ setlist=$setlistLabel
         ),
       );
     }
+  }
+
+  Future<void> _replaceCurrentScorePdf() async {
+    final currentScore = score;
+    final didReplace = await _runViewerScoreMutation(
+      () => widget.controller.replaceScorePdf(currentScore),
+      '현재 PDF를 교체하지 못했습니다. 기존 PDF는 그대로 유지됩니다.',
+    );
+    if (didReplace == null || !mounted) {
+      return;
+    }
+    if (!didReplace) {
+      _showSnackBar('PDF 교체를 취소했습니다.');
+      return;
+    }
+    _showSnackBar('새 PDF로 교체했습니다. 기존 PDF는 연결 파일로 보존됩니다.');
+    await Navigator.of(context).pushReplacement<void, void>(
+      MaterialPageRoute<void>(
+        builder: (context) => SheetViewerScreen(
+          controller: widget.controller,
+          scoreId: currentScore.id,
+          setlistId: widget.setlistId,
+        ),
+      ),
+    );
   }
 
   Future<void> _showLinkedAudioPlayer(SheetLinkedFile linkedFile) async {
@@ -9099,6 +10259,48 @@ setlist=$setlistLabel
       score,
       score.viewerSettings.copyWith(displayEffect: selected.settingValue),
     );
+    _showPageControlsTemporarily();
+  }
+
+  Future<void> _selectTwoPageSpreadStart() async {
+    final selected = await showModalBottomSheet<_SheetTwoPageSpreadStart>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: _SheetTwoPageSpreadStart.values
+              .map(
+                (start) => ListTile(
+                  leading: Icon(start.icon),
+                  title: Text(start.label),
+                  subtitle: Text(start.description),
+                  trailing: start == _twoPageSpreadStart
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => Navigator.of(context).pop(start),
+                ),
+              )
+              .toList(growable: false),
+        ),
+      ),
+    );
+    if (selected == null || selected == _twoPageSpreadStart) {
+      return;
+    }
+    _stopAutoScroll(showMessage: false);
+    setState(() {
+      _twoPageSpreadStart = selected;
+    });
+    await widget.controller.updateViewerSettings(
+      score,
+      score.viewerSettings.copyWith(
+        displayMode: _displayMode.settingValue,
+        halfPageTurn: _useHalfPageTurn,
+        twoPageSpreadStart: _twoPageSpreadStart.settingValue,
+      ),
+    );
+    _pdfController.invalidate();
     _showPageControlsTemporarily();
   }
 
@@ -9567,11 +10769,15 @@ setlist=$setlistLabel
       fromPage: pageNumber,
       pageCount: pageCount,
     );
-    final didHide = await widget.controller.hidePage(
-      currentScore,
-      pageNumber: pageNumber,
-      pageCount: pageCount,
+    final didHide = await _runViewerScoreMutation(
+      () => widget.controller.hidePage(
+        currentScore,
+        pageNumber: pageNumber,
+        pageCount: pageCount,
+      ),
+      '페이지 숨김을 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didHide == null) return;
     if (!didHide || !_pdfController.isReady) {
       return;
     }
@@ -9621,7 +10827,12 @@ setlist=$setlistLabel
       return;
     }
 
-    await widget.controller.unhidePage(currentScore, selectedPage);
+    try {
+      await widget.controller.unhidePage(currentScore, selectedPage);
+    } catch (_) {
+      _showSnackBar('페이지 숨김 해제를 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
+    }
     if (_pdfController.isReady) {
       await _pdfController.goToPage(
         pageNumber: selectedPage,
@@ -9725,36 +10936,34 @@ setlist=$setlistLabel
       return;
     }
 
-    late final bool didUpdate;
-    switch (request.action) {
-      case _PageOrderAction.reset:
-        didUpdate = await widget.controller.resetPageOrder(currentScore);
-        break;
-      case _PageOrderAction.moveUp:
-        didUpdate = await widget.controller.movePageInOrder(
-          currentScore,
-          fromIndex: request.index ?? -1,
-          toIndex: (request.index ?? 0) - 1,
-          pageCount: pageCount,
-        );
-        break;
-      case _PageOrderAction.moveDown:
-        didUpdate = await widget.controller.movePageInOrder(
-          currentScore,
-          fromIndex: request.index ?? -1,
-          toIndex: (request.index ?? 0) + 1,
-          pageCount: pageCount,
-        );
-        break;
-      case _PageOrderAction.duplicate:
-        didUpdate = await widget.controller.duplicatePageInOrder(
-          currentScore,
-          pageNumber: request.index == null ? 0 : order[request.index!],
-          orderIndex: request.index,
-          pageCount: pageCount,
-        );
-        break;
-    }
+    final didUpdate = await _runViewerScoreMutation(() async {
+      switch (request.action) {
+        case _PageOrderAction.reset:
+          return widget.controller.resetPageOrder(currentScore);
+        case _PageOrderAction.moveUp:
+          return widget.controller.movePageInOrder(
+            currentScore,
+            fromIndex: request.index ?? -1,
+            toIndex: (request.index ?? 0) - 1,
+            pageCount: pageCount,
+          );
+        case _PageOrderAction.moveDown:
+          return widget.controller.movePageInOrder(
+            currentScore,
+            fromIndex: request.index ?? -1,
+            toIndex: (request.index ?? 0) + 1,
+            pageCount: pageCount,
+          );
+        case _PageOrderAction.duplicate:
+          return widget.controller.duplicatePageInOrder(
+            currentScore,
+            pageNumber: request.index == null ? 0 : order[request.index!],
+            orderIndex: request.index,
+            pageCount: pageCount,
+          );
+      }
+    }, '페이지 순서를 저장하지 못했습니다. 다시 시도해주세요.');
+    if (didUpdate == null) return;
     if (!didUpdate) {
       _showSnackBar('페이지 순서를 변경하지 않았습니다.');
       return;
@@ -9791,7 +11000,7 @@ setlist=$setlistLabel
           itemBuilder: (context, index) {
             if (index == 0) {
               final currentPage =
-                  _pdfController.pageNumber ??
+                  (_pdfController.isReady ? _pdfController.pageNumber : null) ??
                   _pageNumber ??
                   currentScore.lastPage;
               return ListTile(
@@ -9883,11 +11092,15 @@ setlist=$setlistLabel
         if (label == null) {
           return;
         }
-        final didUpdate = await widget.controller.updatePageJumpPoint(
-          currentScore,
-          pageCount: pageCount,
-          jumpPoint: jumpPoint.copyWith(label: label),
+        final didUpdate = await _runViewerScoreMutation(
+          () => widget.controller.updatePageJumpPoint(
+            currentScore,
+            pageCount: pageCount,
+            jumpPoint: jumpPoint.copyWith(label: label),
+          ),
+          '점프 포인트를 저장하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didUpdate == null) return;
         _showSnackBar(didUpdate ? '점프 포인트 이름을 수정했습니다.' : '점프 포인트를 수정하지 못했습니다.');
         return;
       case _JumpPointAction.delete:
@@ -9895,10 +11108,12 @@ setlist=$setlistLabel
         if (jumpPoint == null) {
           return;
         }
-        final didRemove = await widget.controller.removePageJumpPoint(
-          currentScore,
-          jumpPoint.id,
+        final didRemove = await _runViewerScoreMutation(
+          () =>
+              widget.controller.removePageJumpPoint(currentScore, jumpPoint.id),
+          '점프 포인트를 삭제하지 못했습니다. 다시 시도해주세요.',
         );
+        if (didRemove == null) return;
         final message = didRemove ? '점프 포인트를 삭제했습니다.' : '삭제할 점프 포인트가 없습니다.';
         _showSnackBar(message);
         return;
@@ -9908,7 +11123,9 @@ setlist=$setlistLabel
   Future<void> _createJumpPointFromCurrentPage(int pageCount) async {
     final currentScore = score;
     final sourcePage =
-        _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
+        (_pdfController.isReady ? _pdfController.pageNumber : null) ??
+        _pageNumber ??
+        currentScore.lastPage;
     final targetPages = currentScore.pageSettings
         .visiblePages(pageCount)
         .where((pageNumber) => pageNumber != sourcePage)
@@ -9942,17 +11159,21 @@ setlist=$setlistLabel
     }
 
     final now = DateTime.now();
-    final didAdd = await widget.controller.addPageJumpPoint(
-      currentScore,
-      pageCount: pageCount,
-      jumpPoint: SheetPageJumpPoint(
-        id: '${now.microsecondsSinceEpoch}-jump-$sourcePage-$targetPage',
-        sourcePage: sourcePage,
-        targetPage: targetPage,
-        label: '$targetPage쪽으로',
-        createdAt: now,
+    final didAdd = await _runViewerScoreMutation(
+      () => widget.controller.addPageJumpPoint(
+        currentScore,
+        pageCount: pageCount,
+        jumpPoint: SheetPageJumpPoint(
+          id: '${now.microsecondsSinceEpoch}-jump-$sourcePage-$targetPage',
+          sourcePage: sourcePage,
+          targetPage: targetPage,
+          label: '$targetPage쪽으로',
+          createdAt: now,
+        ),
       ),
+      '점프 포인트를 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didAdd == null) return;
     _showSnackBar(
       didAdd ? '$sourcePage쪽에 점프 포인트를 추가했습니다.' : '점프 포인트를 추가하지 못했습니다.',
     );
@@ -10080,10 +11301,14 @@ setlist=$setlistLabel
     }
     if (selected?.type == _RehearsalMarkActionType.remove &&
         selected?.mark != null) {
-      final didRemove = await widget.controller.removeRehearsalMark(
-        currentScore,
-        selected!.mark!.id,
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeRehearsalMark(
+          currentScore,
+          selected!.mark!.id,
+        ),
+        '리허설 마크를 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '리허설 마크를 삭제했습니다.' : '삭제할 마크가 없습니다.');
       return;
     }
@@ -10099,7 +11324,7 @@ setlist=$setlistLabel
       context: context,
       pageNumber:
           existingMark?.pageNumber ??
-          _pdfController.pageNumber ??
+          (_pdfController.isReady ? _pdfController.pageNumber : null) ??
           _pageNumber ??
           currentScore.lastPage,
       pageCount: pageCount,
@@ -10121,17 +11346,21 @@ setlist=$setlistLabel
       kind: input.kind,
       createdAt: existingMark?.createdAt ?? now,
     );
-    final didSave = existingMark == null
-        ? await widget.controller.addRehearsalMark(
-            currentScore,
-            pageCount: pageCount,
-            mark: mark,
-          )
-        : await widget.controller.updateRehearsalMark(
-            currentScore,
-            pageCount: pageCount,
-            mark: mark,
-          );
+    final didSave = await _runViewerScoreMutation(
+      () => existingMark == null
+          ? widget.controller.addRehearsalMark(
+              currentScore,
+              pageCount: pageCount,
+              mark: mark,
+            )
+          : widget.controller.updateRehearsalMark(
+              currentScore,
+              pageCount: pageCount,
+              mark: mark,
+            ),
+      '리허설 마크를 저장하지 못했습니다. 다시 시도해주세요.',
+    );
+    if (didSave == null) return;
     _showSnackBar(didSave ? '리허설 마크를 저장했습니다.' : '리허설 마크를 저장하지 못했습니다.');
   }
 
@@ -10231,16 +11460,27 @@ setlist=$setlistLabel
   Future<void> _rotateCurrentPageMetadata() async {
     final currentScore = score;
     final pageNumber =
-        _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
+        (_pdfController.isReady ? _pdfController.pageNumber : null) ??
+        _pageNumber ??
+        currentScore.lastPage;
     final orderIndex = _effectiveOrderIndexForPage(currentScore, pageNumber);
-    final degrees = orderIndex == null
-        ? await widget.controller.rotatePageClockwise(currentScore, pageNumber)
-        : await widget.controller.rotatePageInstanceClockwise(
-            currentScore,
-            orderIndex: orderIndex,
-            pageNumber: pageNumber,
-            pageCount: _pdfController.pageCount,
-          );
+    late final int degrees;
+    try {
+      degrees = orderIndex == null
+          ? await widget.controller.rotatePageClockwise(
+              currentScore,
+              pageNumber,
+            )
+          : await widget.controller.rotatePageInstanceClockwise(
+              currentScore,
+              orderIndex: orderIndex,
+              pageNumber: pageNumber,
+              pageCount: _pdfController.pageCount,
+            );
+    } catch (_) {
+      _showSnackBar('회전값을 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -10432,15 +11672,20 @@ setlist=$setlistLabel
       return;
     }
 
-    if (orderIndex == null) {
-      await widget.controller.updatePageCrop(currentScore, selected);
-    } else {
-      await widget.controller.updatePageInstanceCrop(
-        currentScore,
-        orderIndex: orderIndex,
-        pageCount: _pdfController.pageCount,
-        crop: selected,
-      );
+    try {
+      if (orderIndex == null) {
+        await widget.controller.updatePageCrop(currentScore, selected);
+      } else {
+        await widget.controller.updatePageInstanceCrop(
+          currentScore,
+          orderIndex: orderIndex,
+          pageCount: _pdfController.pageCount,
+          crop: selected,
+        );
+      }
+    } catch (_) {
+      _showSnackBar('자르기 맞춤을 저장하지 못했습니다. 다시 시도해주세요.');
+      return;
     }
     _resetCropFitPosition();
     if (selected.hasCrop) {
@@ -10514,13 +11759,17 @@ setlist=$setlistLabel
     if (selected?.type == _CropPresetActionType.apply &&
         selected?.preset != null) {
       final preset = selected!.preset!;
-      final didApply = await widget.controller.applyCropPreset(
-        currentScore,
-        preset.id,
-        pageCount: _pdfController.isReady
-            ? _pdfController.pageCount
-            : _pageCount,
+      final didApply = await _runViewerScoreMutation(
+        () => widget.controller.applyCropPreset(
+          currentScore,
+          preset.id,
+          pageCount: _pdfController.isReady
+              ? _pdfController.pageCount
+              : _pageCount,
+        ),
+        '자르기 프리셋을 적용하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didApply == null) return;
       if (didApply) {
         _resetCropFitPosition();
         _scheduleCropToFit(_pageNumber ?? currentScore.lastPage, force: true);
@@ -10535,10 +11784,11 @@ setlist=$setlistLabel
     if (selected?.type == _CropPresetActionType.remove &&
         selected?.preset != null) {
       final preset = selected!.preset!;
-      final didRemove = await widget.controller.removeCropPreset(
-        currentScore,
-        preset.id,
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeCropPreset(currentScore, preset.id),
+        '자르기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '자르기 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
@@ -10557,19 +11807,23 @@ setlist=$setlistLabel
       return;
     }
     final now = DateTime.now();
-    final didAdd = await widget.controller.addCropPreset(
-      currentScore,
-      SheetCropPreset(
-        id: '${now.microsecondsSinceEpoch}-crop',
-        label: input.label,
-        scope: input.scope,
-        crop: currentScore.pageSettings.crop,
-        alternateCrop: input.scope == SheetCropPreset.oddEvenScope
-            ? SheetCropSettings.none
-            : currentScore.pageSettings.crop,
-        createdAt: now,
+    final didAdd = await _runViewerScoreMutation(
+      () => widget.controller.addCropPreset(
+        currentScore,
+        SheetCropPreset(
+          id: '${now.microsecondsSinceEpoch}-crop',
+          label: input.label,
+          scope: input.scope,
+          crop: currentScore.pageSettings.crop,
+          alternateCrop: input.scope == SheetCropPreset.oddEvenScope
+              ? SheetCropSettings.none
+              : currentScore.pageSettings.crop,
+          createdAt: now,
+        ),
       ),
+      '자르기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.',
     );
+    if (didAdd == null) return;
     _showSnackBar(didAdd ? '자르기 프리셋을 저장했습니다.' : '자르기 프리셋을 저장하지 못했습니다.');
   }
 
@@ -10592,8 +11846,10 @@ setlist=$setlistLabel
     final labelController = TextEditingController(text: initialLabel);
     var selectedScope = initialScope;
     try {
-      return await showDialog<({String label, String scope})>(
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final route = DialogRoute<({String label, String scope})>(
         context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
         builder: (context) => StatefulBuilder(
           builder: (context, setDialogState) => AlertDialog(
             title: const Text('자르기 프리셋 저장'),
@@ -10655,6 +11911,9 @@ setlist=$setlistLabel
           ),
         ),
       );
+      final result = await navigator.push(route);
+      await route.completed;
+      return result;
     } finally {
       labelController.dispose();
     }
@@ -10740,16 +11999,20 @@ setlist=$setlistLabel
     if (action == 'blank') {
       final pageNumber =
           _pdfController.pageNumber ?? _pageNumber ?? currentScore.lastPage;
-      final didAdd = await widget.controller.addBlankPageInsertion(
-        currentScore,
-        pageCount: pageCount,
-        insertion: SheetBlankPageInsertion(
-          id: '${now.microsecondsSinceEpoch}-blank',
-          afterPage: pageNumber,
-          label: '$pageNumber쪽 뒤 빈 페이지',
-          createdAt: now,
+      final didAdd = await _runViewerScoreMutation(
+        () => widget.controller.addBlankPageInsertion(
+          currentScore,
+          pageCount: pageCount,
+          insertion: SheetBlankPageInsertion(
+            id: '${now.microsecondsSinceEpoch}-blank',
+            afterPage: pageNumber,
+            label: '$pageNumber쪽 뒤 빈 페이지',
+            createdAt: now,
+          ),
         ),
+        '빈 페이지를 저장하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didAdd == null) return;
       _showSnackBar(didAdd ? '빈 페이지를 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
@@ -10757,41 +12020,57 @@ setlist=$setlistLabel
       final hiddenPages = action == 'cover'
           ? const <int>[1]
           : currentScore.pageSettings.hiddenPages;
-      final didAdd = await widget.controller.addVisibilityPreset(
-        currentScore,
-        pageCount: pageCount,
-        preset: SheetPageVisibilityPreset(
-          id: '${now.microsecondsSinceEpoch}-visibility',
-          label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
-          hiddenPages: hiddenPages,
-          createdAt: now,
+      final didAdd = await _runViewerScoreMutation(
+        () => widget.controller.addVisibilityPreset(
+          currentScore,
+          pageCount: pageCount,
+          preset: SheetPageVisibilityPreset(
+            id: '${now.microsecondsSinceEpoch}-visibility',
+            label: action == 'cover' ? '표지 제외' : '현재 숨김 상태',
+            hiddenPages: hiddenPages,
+            createdAt: now,
+          ),
         ),
+        '숨김 프리셋을 저장하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didAdd == null) return;
       _showSnackBar(didAdd ? '숨김 프리셋을 저장했습니다.' : '저장하지 못했습니다.');
       return;
     }
     if (action.startsWith('apply:')) {
-      final didApply = await widget.controller.applyVisibilityPreset(
-        currentScore,
-        presetId: action.substring('apply:'.length),
-        pageCount: pageCount,
+      final didApply = await _runViewerScoreMutation(
+        () => widget.controller.applyVisibilityPreset(
+          currentScore,
+          presetId: action.substring('apply:'.length),
+          pageCount: pageCount,
+        ),
+        '숨김 프리셋을 적용하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didApply == null) return;
       _showSnackBar(didApply ? '숨김 프리셋을 적용했습니다.' : '적용하지 못했습니다.');
       return;
     }
     if (action.startsWith('removeVisibility:')) {
-      final didRemove = await widget.controller.removeVisibilityPreset(
-        currentScore,
-        action.substring('removeVisibility:'.length),
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeVisibilityPreset(
+          currentScore,
+          action.substring('removeVisibility:'.length),
+        ),
+        '숨김 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '숨김 프리셋을 삭제했습니다.' : '삭제할 프리셋이 없습니다.');
       return;
     }
     if (action.startsWith('removeBlank:')) {
-      final didRemove = await widget.controller.removeBlankPageInsertion(
-        currentScore,
-        action.substring('removeBlank:'.length),
+      final didRemove = await _runViewerScoreMutation(
+        () => widget.controller.removeBlankPageInsertion(
+          currentScore,
+          action.substring('removeBlank:'.length),
+        ),
+        '빈 페이지를 삭제하지 못했습니다. 다시 시도해주세요.',
       );
+      if (didRemove == null) return;
       _showSnackBar(didRemove ? '빈 페이지를 삭제했습니다.' : '삭제할 항목이 없습니다.');
     }
   }
@@ -11518,84 +12797,16 @@ setlist=$setlistLabel
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '페이지 탐색',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                pageSummary.isEmpty
-                    ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
-                    : '$pageSummary · 원본 PDF는 그대로입니다.',
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.58,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 96,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.2,
-                  ),
-                  itemCount: pageCount,
-                  itemBuilder: (context, index) {
-                    final page = index + 1;
-                    final isCurrent =
-                        page == (_pageNumber ?? currentScore.lastPage);
-                    final isHidden = pageSettings.isHidden(page);
-                    final duplicateCount = duplicateCounts[page] ?? 0;
-                    final isOutsideOrder =
-                        pageSettings.hasCustomPageOrder && duplicateCount == 0;
-                    return OutlinedButton(
-                      onPressed: isHidden
-                          ? null
-                          : () {
-                              Navigator.of(context).pop();
-                              unawaited(_goToSheetPage(page));
-                            },
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: isCurrent
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : null,
-                        foregroundColor: isHidden
-                            ? Theme.of(context).disabledColor
-                            : null,
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$page',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          if (isHidden)
-                            const Text('숨김', style: TextStyle(fontSize: 11))
-                          else if (duplicateCount > 1)
-                            Text(
-                              'x$duplicateCount',
-                              style: const TextStyle(fontSize: 11),
-                            )
-                          else if (isOutsideOrder)
-                            const Text('순서 제외', style: TextStyle(fontSize: 11)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => _PagePickerSheet(
+        pageCount: pageCount,
+        currentPage: _pageNumber ?? currentScore.lastPage,
+        pageSummary: pageSummary,
+        pageSettings: pageSettings,
+        duplicateCounts: duplicateCounts,
+        onGoToPage: (page) {
+          Navigator.of(context).pop();
+          unawaited(_goToSheetPage(page));
+        },
       ),
     );
   }
@@ -11607,12 +12818,19 @@ setlist=$setlistLabel
     }
     final textSearcher = _ensureTextSearcher();
     final queryController = TextEditingController();
+    final queryFocusNode = FocusNode(debugLabel: 'PDF text search');
     final currentPattern = textSearcher.pattern;
     if (currentPattern != null) {
       queryController.text = currentPattern.toString();
     }
     var didSearch = currentPattern != null;
     String? errorMessage;
+    Future<void> dismissSearchKeyboard() async {
+      queryFocusNode.unfocus();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
+    }
+
     try {
       await showModalBottomSheet<void>(
         context: context,
@@ -11633,6 +12851,7 @@ setlist=$setlistLabel
             }
 
             void startSearch() {
+              unawaited(dismissSearchKeyboard());
               final query = queryController.text.trim();
               if (query.isEmpty) {
                 textSearcher.resetTextSearch();
@@ -11665,6 +12884,7 @@ setlist=$setlistLabel
             void clearSearch() {
               queryController.clear();
               textSearcher.resetTextSearch();
+              queryFocusNode.requestFocus();
               setModalState(() {
                 didSearch = false;
                 errorMessage = null;
@@ -11710,6 +12930,7 @@ setlist=$setlistLabel
                       const SizedBox(height: 10),
                       TextField(
                         controller: queryController,
+                        focusNode: queryFocusNode,
                         decoration: InputDecoration(
                           labelText: '검색어',
                           helperText:
@@ -11735,6 +12956,7 @@ setlist=$setlistLabel
                         textInputAction: TextInputAction.search,
                         onSubmitted: (_) => startSearch(),
                         onChanged: (_) => setModalState(() {}),
+                        onTapOutside: (_) => dismissSearchKeyboard(),
                       ),
                       const SizedBox(height: 10),
                       Row(
@@ -11813,6 +13035,7 @@ setlist=$setlistLabel
                                         ? const Icon(Icons.check)
                                         : null,
                                     onTap: () async {
+                                      await dismissSearchKeyboard();
                                       await textSearcher.goToMatchOfIndex(
                                         index,
                                       );
@@ -11837,11 +13060,35 @@ setlist=$setlistLabel
         ),
       );
     } finally {
+      await dismissSearchKeyboard();
       queryController.dispose();
+      queryFocusNode.dispose();
+      _lastViewerSheetDismissedAt = DateTime.now();
+    }
+  }
+
+  Future<void> _settleAfterViewerSheetDismissal() async {
+    final dismissedAt = _lastViewerSheetDismissedAt;
+    if (dismissedAt == null) {
+      return;
+    }
+    final elapsed = DateTime.now().difference(dismissedAt);
+    const settleDelay = Duration(milliseconds: 180);
+    if (elapsed < settleDelay) {
+      await Future<void>.delayed(settleDelay - elapsed);
+    } else {
+      await Future<void>.delayed(Duration.zero);
+    }
+    if (mounted) {
+      _lastViewerSheetDismissedAt = null;
     }
   }
 
   Future<void> _showMetronome() async {
+    await _settleAfterViewerSheetDismissal();
+    if (!mounted) {
+      return;
+    }
     final currentScore = score;
     final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
@@ -11872,6 +13119,10 @@ setlist=$setlistLabel
   }
 
   Future<void> _showTuner() async {
+    await _settleAfterViewerSheetDismissal();
+    if (!mounted) {
+      return;
+    }
     final showMiniPanel = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
@@ -11947,6 +13198,9 @@ setlist=$setlistLabel
       case _ViewerMenuAction.scoreParts:
         await _showScoreParts();
         return;
+      case _ViewerMenuAction.replaceScorePdf:
+        await _replaceCurrentScorePdf();
+        return;
       case _ViewerMenuAction.editScoreMetadata:
         await _editCurrentScoreMetadata();
         return;
@@ -11970,6 +13224,13 @@ setlist=$setlistLabel
         return;
       case _ViewerMenuAction.pageTurnAnimation:
         await _selectPageTurnAnimation();
+        return;
+      case _ViewerMenuAction.twoPageSpreadStart:
+        if (_displayMode != _SheetViewerDisplayMode.twoPage) {
+          _showSnackBar('2페이지 보기에서만 시작 쪽을 바꿀 수 있습니다.');
+          return;
+        }
+        await _selectTwoPageSpreadStart();
         return;
       case _ViewerMenuAction.showTapZoneHint:
         setState(() {
@@ -12303,6 +13564,18 @@ setlist=$setlistLabel
     }
   }
 
+  Future<bool?> _runViewerScoreMutation(
+    Future<bool> Function() mutation,
+    String failureMessage,
+  ) async {
+    try {
+      return await mutation();
+    } catch (_) {
+      _showSnackBar(failureMessage);
+      return null;
+    }
+  }
+
   void _showSnackBar(String message, {SnackBarAction? action}) {
     if (!mounted) {
       return;
@@ -12444,6 +13717,17 @@ setlist=$setlistLabel
           child: ListTile(
             leading: Icon(_pageTurnAnimation.icon),
             title: Text('페이지 넘김: ${_pageTurnAnimation.label}'),
+          ),
+        ),
+        PopupMenuItem<_ViewerMenuAction>(
+          enabled: _displayMode == _SheetViewerDisplayMode.twoPage,
+          value: _ViewerMenuAction.twoPageSpreadStart,
+          child: ListTile(
+            leading: Icon(_twoPageSpreadStart.icon),
+            title: Text('2페이지 시작: ${_twoPageSpreadStart.label}'),
+            subtitle: _displayMode == _SheetViewerDisplayMode.twoPage
+                ? Text(_twoPageSpreadStart.description)
+                : const Text('2페이지 보기에서 설정'),
           ),
         ),
         const PopupMenuItem<_ViewerMenuAction>(
@@ -13194,7 +14478,8 @@ setlist=$setlistLabel
                             key: ValueKey(
                               '${currentScore.filePath}-${_displayMode.name}-'
                               '${_displayEffect.name}-${_pageScale.name}-'
-                              '${_renderProfile.name}-${status.sizeBytes}',
+                              '${_renderProfile.name}-'
+                              '${_twoPageSpreadStart.name}-${status.sizeBytes}',
                             ),
                             controller: _pdfController,
                             initialPageNumber: _initialViewerPage,
@@ -13230,7 +14515,11 @@ setlist=$setlistLabel
                                 _SheetViewerDisplayMode.singlePage =>
                                   _layoutPagesHorizontally,
                                 _SheetViewerDisplayMode.twoPage =>
-                                  _layoutPagesAsSpreads,
+                                  (pages, params) => _layoutPagesAsSpreads(
+                                    pages,
+                                    params,
+                                    spreadStart: _twoPageSpreadStart,
+                                  ),
                                 _SheetViewerDisplayMode.continuousVertical =>
                                   null,
                               },
@@ -13550,6 +14839,7 @@ setlist=$setlistLabel
                         child: _ViewerMiniToolPanel(
                           tool: _miniTool!,
                           metronomeSettings: _effectiveMetronomeSettings,
+                          tunerSettings: widget.controller.tunerSettings,
                           onMetronomeSettingsChanged: (settings) =>
                               widget.controller.updateMetronomeSettingsForScore(
                                 currentScore,
@@ -13771,17 +15061,25 @@ class _ViewerMiniToolPanel extends StatefulWidget {
   const _ViewerMiniToolPanel({
     required this.tool,
     required this.metronomeSettings,
+    required this.tunerSettings,
     required this.onMetronomeSettingsChanged,
     required this.onOpenTuner,
     required this.onClose,
+    this.soundPlayer,
+    this.tunerStateStream,
+    this.autoStartTunerInput = true,
   });
 
   final _ViewerMiniTool tool;
   final SheetMetronomeSettings metronomeSettings;
+  final SheetTunerSettings tunerSettings;
   final Future<void> Function(SheetMetronomeSettings settings)
   onMetronomeSettingsChanged;
   final VoidCallback onOpenTuner;
   final VoidCallback onClose;
+  final SheetMetronomeSoundPlayer? soundPlayer;
+  final Stream<SheetTunerState>? tunerStateStream;
+  final bool autoStartTunerInput;
 
   @override
   State<_ViewerMiniToolPanel> createState() => _ViewerMiniToolPanelState();
@@ -13794,12 +15092,19 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
   late SheetMetronomeBeat _beat;
   bool _isRunning = false;
   int _countInPulsesLeft = 0;
+  int _playbackRequest = 0;
+  String? _metronomeOutputWarning;
+  SheetTunerInputService? _miniTunerInputService;
+  StreamSubscription<SheetTunerState>? _miniTunerSubscription;
+  SheetTunerState _miniTunerState = SheetTunerState.idle;
 
   @override
   void initState() {
     super.initState();
-    _soundPlayer = SheetMetronomeSoundPlayer();
+    _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _beat = _initialBeat(widget.metronomeSettings);
+    unawaited(_soundPlayer.prepare(widget.metronomeSettings));
+    _syncMiniTunerInput();
   }
 
   @override
@@ -13808,16 +15113,83 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (oldWidget.metronomeSettings != widget.metronomeSettings ||
         oldWidget.tool != widget.tool) {
       _beat = _initialBeat(widget.metronomeSettings);
+      unawaited(_soundPlayer.prepare(widget.metronomeSettings));
       if (_isRunning) {
         _restartTimer();
       }
+    }
+    if (oldWidget.tool != widget.tool ||
+        oldWidget.tunerSettings != widget.tunerSettings ||
+        oldWidget.tunerStateStream != widget.tunerStateStream) {
+      _syncMiniTunerInput();
     }
   }
 
   @override
   void dispose() {
+    _playbackRequest++;
     _timer?.cancel();
+    _stopMiniTunerInput(resetState: false);
     super.dispose();
+  }
+
+  void _syncMiniTunerInput() {
+    _stopMiniTunerInput(resetState: widget.tool != _ViewerMiniTool.tuner);
+    if (widget.tool != _ViewerMiniTool.tuner) {
+      return;
+    }
+    if (widget.tunerStateStream != null) {
+      _miniTunerSubscription = widget.tunerStateStream!.listen(
+        _handleMiniTunerState,
+      );
+      return;
+    }
+    if (!widget.autoStartTunerInput) {
+      return;
+    }
+    final settings = _chromaticOnlyMiniTunerSettings(widget.tunerSettings);
+    _miniTunerInputService = SheetTunerInputService();
+    _miniTunerSubscription = _miniTunerInputService!.states.listen(
+      _handleMiniTunerState,
+    );
+    unawaited(_miniTunerInputService!.start(settings: settings));
+  }
+
+  void _stopMiniTunerInput({required bool resetState}) {
+    unawaited(_miniTunerSubscription?.cancel());
+    _miniTunerSubscription = null;
+    final inputService = _miniTunerInputService;
+    _miniTunerInputService = null;
+    if (inputService != null) {
+      unawaited(inputService.dispose());
+    }
+    if (resetState) {
+      _miniTunerState = SheetTunerState.idle;
+    }
+  }
+
+  void _handleMiniTunerState(SheetTunerState state) {
+    if (!mounted || widget.tool != _ViewerMiniTool.tuner) {
+      return;
+    }
+    setState(() {
+      _miniTunerState = state;
+    });
+  }
+
+  SheetTunerSettings _chromaticOnlyMiniTunerSettings(
+    SheetTunerSettings settings,
+  ) {
+    return settings.copyWith(
+      tuningMode: SheetTunerMode.chromatic,
+      tuningPreset: SheetTunerPreset.chromatic,
+      displayMode: SheetTunerDisplayMode.concert,
+      detectionProfile: SheetTunerDetectionProfile.chromatic,
+      targetLockEnabled: false,
+      clearTargetConcertMidiNumber: true,
+      clearCustomPresetId: true,
+      clearCustomTargets: true,
+    );
   }
 
   SheetMetronomeBeat _initialBeat(SheetMetronomeSettings settings) {
@@ -13828,13 +15200,19 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     );
   }
 
-  void _toggleRunning() {
+  Future<void> _toggleRunning() async {
     if (_isRunning) {
+      _playbackRequest++;
       _timer?.cancel();
       setState(() {
         _isRunning = false;
         _countInPulsesLeft = 0;
       });
+      return;
+    }
+    final request = ++_playbackRequest;
+    await _soundPlayer.prepare(widget.metronomeSettings);
+    if (!mounted || _isRunning || request != _playbackRequest) {
       return;
     }
     setState(() {
@@ -13887,12 +15265,33 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
     if (!widget.metronomeSettings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: widget.metronomeSettings,
-        accent: widget.metronomeSettings.isAccentBeat(_beat),
-      ),
+      _soundPlayer
+          .playClick(
+            settings: widget.metronomeSettings,
+            accent: widget.metronomeSettings.isAccentBeat(_beat),
+            shouldFallback: () =>
+                mounted && _isRunning && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || !_isRunning || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
+  }
+
+  void _handleMetronomeOutput(SheetMetronomeOutputStatus status) {
+    final nextWarning = switch (status) {
+      SheetMetronomeOutputStatus.native ||
+      SheetMetronomeOutputStatus.skipped => null,
+      SheetMetronomeOutputStatus.fallback => '기본 클릭음으로 재생 중입니다',
+      SheetMetronomeOutputStatus.unavailable => '메트로놈 소리를 내지 못했습니다',
+    };
+    if (_metronomeOutputWarning == nextWarning) return;
+    setState(() {
+      _metronomeOutputWarning = nextWarning;
+    });
   }
 
   @override
@@ -13957,6 +15356,18 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           isCountingIn: _isCountingIn,
           settings: settings,
         ),
+        if (_metronomeOutputWarning != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _metronomeOutputWarning!,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.error,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
         const SizedBox(height: 8),
         Row(
           children: [
@@ -13988,6 +15399,31 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
 
   Widget _buildTuner(BuildContext context) {
     final theme = Theme.of(context);
+    final reading = _miniTunerState.reading;
+    final feedback = SheetTunerFeedback.fromState(
+      inputStatus: _miniTunerState.inputStatus,
+      reading: reading,
+      centsOffset: reading?.centsOffset ?? 0,
+    );
+    final preferFlats = widget.tunerSettings.notationPreference.preferFlatsFor(
+      SheetTunerDisplayMode.concert,
+    );
+    final displayedPitch = reading == null
+        ? null
+        : SheetTunerPitch.displayPitch(
+            reading: reading,
+            displayMode: SheetTunerDisplayMode.concert,
+            referencePitchA4: widget.tunerSettings.referencePitchA4,
+          );
+    final noteLabel =
+        displayedPitch?.primaryLabelWith(preferFlats: preferFlats) ?? '--';
+    final centsLabel = reading == null
+        ? '소리를 내면 표시합니다'
+        : '${feedback.displayCents >= 0 ? '+' : ''}'
+              '${feedback.displayCents.toStringAsFixed(1)} cents';
+    final signalLabel = reading == null
+        ? feedback.label
+        : '${feedback.label} · 신호 ${(reading.signalLevel * 100).round()}%';
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -14012,9 +15448,51 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           ],
         ),
         const SizedBox(height: 6),
-        Text(
-          '상세 화면에서 현재 음과 pitch history를 봅니다.',
-          style: theme.textTheme.bodySmall,
+        Semantics(
+          label: '미니 튜너 현재 음 $noteLabel',
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  Text(
+                    noteLabel,
+                    style: theme.textTheme.displaySmall?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          centsLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          signalLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 8),
         Align(
@@ -14022,7 +15500,7 @@ class _ViewerMiniToolPanelState extends State<_ViewerMiniToolPanel> {
           child: FilledButton.tonalIcon(
             onPressed: widget.onOpenTuner,
             icon: const Icon(Icons.open_in_full),
-            label: const Text('튜너 열기'),
+            label: const Text('상세 튜너'),
           ),
         ),
       ],
@@ -14526,11 +16004,21 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   }
 
   Future<void> _saveCurrentPresetTemplate() async {
-    final template = await widget.onSavePresetTemplate(
-      _templateNameController.text,
-      _settings,
-      _templateDeviceController.text,
-    );
+    final SheetPerformancePresetTemplate template;
+    try {
+      template = await widget.onSavePresetTemplate(
+        _templateNameController.text,
+        _settings,
+        _templateDeviceController.text,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('공연 보기 프리셋을 저장하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
     if (!mounted) {
       return;
     }
@@ -14548,8 +16036,24 @@ class _PerformanceSettingsSheetState extends State<_PerformanceSettingsSheet> {
   Future<void> _deletePresetTemplate(
     SheetPerformancePresetTemplate template,
   ) async {
-    final didDelete = await widget.onDeletePresetTemplate(template.id);
-    if (!mounted || !didDelete) {
+    final bool didDelete;
+    try {
+      didDelete = await widget.onDeletePresetTemplate(template.id);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.')),
+        );
+      }
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    if (!didDelete) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('공연 보기 프리셋을 삭제하지 못했습니다. 다시 시도해주세요.')),
+      );
       return;
     }
     setState(() {
@@ -14808,6 +16312,39 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
+          Text(
+            '빠른 여백 자르기',
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Icons.crop_free_outlined, size: 18),
+                label: const Text('좁게 3%'),
+                onPressed: () => _applyEvenCrop(0.03),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.crop_outlined, size: 18),
+                label: const Text('보통 6%'),
+                onPressed: () => _applyEvenCrop(0.06),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.crop_16_9_outlined, size: 18),
+                label: const Text('강하게 10%'),
+                onPressed: () => _applyEvenCrop(0.10),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '스캔 PDF의 흰 여백을 빠르게 줄인 뒤 아래 슬라이더로 미세 조정하세요.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
           _CropSlider(
             label: '위',
             value: _crop.top,
@@ -14851,6 +16388,17 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
         ],
       ),
     );
+  }
+
+  void _applyEvenCrop(double value) {
+    setState(() {
+      _crop = SheetCropSettings(
+        left: value,
+        top: value,
+        right: value,
+        bottom: value,
+      );
+    });
   }
 }
 
@@ -15598,6 +17146,61 @@ class _AnnotationToolbar extends StatelessWidget {
       spacing: isCompact ? 6 : 10,
       runSpacing: 8,
       children: [
+        PopupMenuButton<_AnnotationToolbarTool>(
+          tooltip: '필기 도구 선택',
+          initialValue: selectedTool,
+          onSelected: onToolSelected,
+          itemBuilder: (context) => _AnnotationToolbarTool.values
+              .map(
+                (tool) => PopupMenuItem<_AnnotationToolbarTool>(
+                  value: tool,
+                  child: ListTile(
+                    leading: Icon(tool.icon),
+                    title: Text(tool.label),
+                  ),
+                ),
+              )
+              .toList(growable: false),
+          child: Semantics(
+            button: true,
+            label: '필기 도구 ${selectedTool.label}',
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: theme.colorScheme.secondaryContainer.withValues(
+                  alpha: 0.64,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 10 : 12,
+                  vertical: 8,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(selectedTool.icon, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '필기 도구',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      selectedTool.label,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_drop_down, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
         SegmentedButton<_AnnotationToolbarTool>(
           showSelectedIcon: false,
           segments: _AnnotationToolbarTool.values
@@ -15617,22 +17220,26 @@ class _AnnotationToolbar extends StatelessWidget {
           },
         ),
         if (selectedTool == _AnnotationToolbarTool.stamp)
-          PopupMenuButton<_AnnotationStamp>(
-            tooltip: '스탬프 선택',
-            icon: Icon(selectedStamp.icon),
-            initialValue: selectedStamp,
-            onSelected: onStampSelected,
-            itemBuilder: (context) => _AnnotationStamp.values
-                .map(
-                  (stamp) => PopupMenuItem<_AnnotationStamp>(
-                    value: stamp,
-                    child: ListTile(
-                      leading: Icon(stamp.icon),
-                      title: Text(stamp.label),
+          Tooltip(
+            message: '스탬프 선택',
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final selected = await showModalBottomSheet<_AnnotationStamp>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (context) => SafeArea(
+                    child: _AnnotationStampPickerSheet(
+                      selectedStamp: selectedStamp,
                     ),
                   ),
-                )
-                .toList(growable: false),
+                );
+                if (selected != null) {
+                  onStampSelected(selected);
+                }
+              },
+              icon: Icon(selectedStamp.icon),
+              label: Text(selectedStamp.label),
+            ),
           ),
         for (final color in _colors)
           Tooltip(
@@ -15760,6 +17367,89 @@ class _AnnotationToolbar extends StatelessWidget {
       0xffffcc25 => '노랑',
       _ => '색상',
     };
+  }
+}
+
+class _AnnotationStampPickerSheet extends StatefulWidget {
+  const _AnnotationStampPickerSheet({required this.selectedStamp});
+
+  final _AnnotationStamp selectedStamp;
+
+  @override
+  State<_AnnotationStampPickerSheet> createState() =>
+      _AnnotationStampPickerSheetState();
+}
+
+class _AnnotationStampPickerSheetState
+    extends State<_AnnotationStampPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final stamps = _AnnotationStamp.values
+        .where((stamp) => query.isEmpty || stamp.searchText.contains(query))
+        .toList(growable: false);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              '스탬프 선택',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: '이름, 역할, 기호 검색',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          if (stamps.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('조건에 맞는 스탬프가 없습니다.'),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: stamps.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final stamp = stamps[index];
+                  final selected = stamp == widget.selectedStamp;
+                  return ListTile(
+                    leading: Icon(stamp.icon),
+                    title: Text(stamp.label),
+                    subtitle: Text(stamp.categoryLabel),
+                    trailing: selected
+                        ? const Icon(Icons.check_circle)
+                        : const Icon(Icons.chevron_right),
+                    selected: selected,
+                    onTap: () => Navigator.of(context).pop(stamp),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
@@ -16856,9 +18546,10 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 }
 
 class _LinkedAudioPlayerSheet extends StatefulWidget {
-  const _LinkedAudioPlayerSheet({required this.linkedFile});
+  const _LinkedAudioPlayerSheet({required this.linkedFile, this.player});
 
   final SheetLinkedFile linkedFile;
+  final SheetAudioPlayer? player;
 
   @override
   State<_LinkedAudioPlayerSheet> createState() =>
@@ -16867,19 +18558,44 @@ class _LinkedAudioPlayerSheet extends StatefulWidget {
 
 class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   late final SheetAudioPlayer _player;
+  late final TextEditingController _loopStartController;
+  late final TextEditingController _loopEndController;
   bool _isPlaying = false;
+  bool _loopEnabled = false;
   SheetAudioPlaybackResult? _lastResult;
 
   @override
   void initState() {
     super.initState();
-    _player = SheetAudioPlayer();
+    _player = widget.player ?? SheetAudioPlayer();
+    _loopStartController = TextEditingController();
+    _loopEndController = TextEditingController();
   }
 
   @override
   void dispose() {
     unawaited(_player.stop());
+    _loopStartController.dispose();
+    _loopEndController.dispose();
     super.dispose();
+  }
+
+  SheetAudioLoop? _readLoop() {
+    if (!_loopEnabled) {
+      return null;
+    }
+    final startSeconds = double.tryParse(_loopStartController.text.trim());
+    final endSeconds = double.tryParse(_loopEndController.text.trim());
+    if (startSeconds == null ||
+        endSeconds == null ||
+        startSeconds < 0 ||
+        endSeconds <= startSeconds) {
+      return null;
+    }
+    return SheetAudioLoop(
+      start: Duration(milliseconds: (startSeconds * 1000).round()),
+      end: Duration(milliseconds: (endSeconds * 1000).round()),
+    );
   }
 
   Future<void> _togglePlayback() async {
@@ -16891,7 +18607,14 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       });
       return;
     }
-    final result = await _player.play(widget.linkedFile.path);
+    final loop = _readLoop();
+    if (_loopEnabled && loop == null) {
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed('A-B 반복 구간을 확인해주세요.');
+      });
+      return;
+    }
+    final result = await _player.play(widget.linkedFile.path, loop: loop);
     if (!mounted) {
       return;
     }
@@ -16941,6 +18664,53 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: 12),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _loopEnabled,
+              title: const Text('A-B 반복'),
+              subtitle: const Text('구간을 초 단위로 입력해 반복 재생합니다.'),
+              onChanged: _isPlaying
+                  ? null
+                  : (value) {
+                      setState(() {
+                        _loopEnabled = value;
+                        _lastResult = null;
+                      });
+                    },
+            ),
+            if (_loopEnabled)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _loopStartController,
+                      enabled: !_isPlaying,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'A 시작(초)',
+                        hintText: '0',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _loopEndController,
+                      enabled: !_isPlaying,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      decoration: const InputDecoration(
+                        labelText: 'B 끝(초)',
+                        hintText: '12.5',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             if (_lastResult?.status ==
                 SheetAudioPlaybackStatus.unsupportedPlatform)
               Padding(
@@ -18195,6 +19965,7 @@ class _MetronomeSheet extends StatefulWidget {
     required this.onSettingsChanged,
     required this.onShowMiniPanel,
     this.settingsScopeLabel,
+    this.soundPlayer,
   });
 
   final SheetMetronomeSettings initialSettings;
@@ -18202,6 +19973,7 @@ class _MetronomeSheet extends StatefulWidget {
   onSettingsChanged;
   final VoidCallback onShowMiniPanel;
   final String? settingsScopeLabel;
+  final SheetMetronomeSoundPlayer? soundPlayer;
 
   @override
   State<_MetronomeSheet> createState() => _MetronomeSheetState();
@@ -18212,6 +19984,7 @@ Widget buildMetronomeSheetForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
   Future<void> Function(SheetMetronomeSettings)? onSettingsChanged,
   VoidCallback? onShowMiniPanel,
+  SheetMetronomeSoundPlayer? soundPlayer,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -18220,6 +19993,7 @@ Widget buildMetronomeSheetForTest({
         onSettingsChanged: onSettingsChanged ?? (_) async {},
         onShowMiniPanel: onShowMiniPanel ?? () {},
         settingsScopeLabel: '이 악보에 저장됩니다',
+        soundPlayer: soundPlayer,
       ),
     ),
   );
@@ -18228,6 +20002,7 @@ Widget buildMetronomeSheetForTest({
 @visibleForTesting
 Widget buildViewerMiniMetronomePanelForTest({
   SheetMetronomeSettings settings = SheetMetronomeSettings.defaultSettings,
+  SheetMetronomeSoundPlayer? soundPlayer,
 }) {
   return MaterialApp(
     home: Scaffold(
@@ -18235,10 +20010,70 @@ Widget buildViewerMiniMetronomePanelForTest({
         child: _ViewerMiniToolPanel(
           tool: _ViewerMiniTool.metronome,
           metronomeSettings: settings,
+          tunerSettings: SheetTunerSettings.defaultSettings,
           onMetronomeSettingsChanged: (_) async {},
           onOpenTuner: () {},
           onClose: () {},
+          soundPlayer: soundPlayer,
         ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildViewerMiniTunerPanelForTest({
+  SheetTunerSettings settings = SheetTunerSettings.defaultSettings,
+  Stream<SheetTunerState>? tunerStateStream,
+  VoidCallback? onOpenTuner,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: Center(
+        child: _ViewerMiniToolPanel(
+          tool: _ViewerMiniTool.tuner,
+          metronomeSettings: SheetMetronomeSettings.defaultSettings,
+          tunerSettings: settings,
+          onMetronomeSettingsChanged: (_) async {},
+          onOpenTuner: onOpenTuner ?? () {},
+          onClose: () {},
+          tunerStateStream: tunerStateStream,
+          autoStartTunerInput: false,
+        ),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildPerformanceSettingsSheetForTest({
+  SheetViewerSettings initialSettings = SheetViewerSettings.defaultSettings,
+  List<SheetPerformancePresetTemplate> presetTemplates = const [],
+  Future<SheetPerformancePresetTemplate> Function(
+    String name,
+    SheetViewerSettings viewerSettings,
+    String deviceProfile,
+  )?
+  onSavePresetTemplate,
+  Future<bool> Function(String templateId)? onDeletePresetTemplate,
+}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _PerformanceSettingsSheet(
+        initialSettings: initialSettings,
+        presetTemplates: presetTemplates,
+        onSavePresetTemplate:
+            onSavePresetTemplate ??
+            (name, viewerSettings, deviceProfile) async =>
+                SheetPerformancePresetTemplate(
+                  id: 'test-template',
+                  name: name.trim().isEmpty
+                      ? SheetPerformancePresetTemplate.defaultName
+                      : name.trim(),
+                  viewerSettings: viewerSettings,
+                  deviceProfile: deviceProfile.trim(),
+                ),
+        onDeletePresetTemplate: onDeletePresetTemplate ?? (_) async => true,
       ),
     ),
   );
@@ -18295,6 +20130,61 @@ Widget buildAnnotationToolbarForTest() {
 }
 
 @visibleForTesting
+Widget buildLinkedAudioPlayerSheetForTest({MethodChannel? channel}) {
+  return MaterialApp(
+    home: Scaffold(
+      body: _LinkedAudioPlayerSheet(
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'audio',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+        ),
+        player: SheetAudioPlayer(channel: channel),
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildPagePickerSheetForTest({
+  int pageCount = 120,
+  int currentPage = 12,
+  SheetPageSettings pageSettings = const SheetPageSettings(
+    hiddenPages: <int>[5],
+    pageRotations: <int, int>{},
+    pageOrder: <int>[1, 2, 2, 3, 4],
+  ),
+  ValueChanged<int>? onGoToPage,
+}) {
+  final duplicateCounts = <int, int>{};
+  for (final page in pageSettings.effectivePageOrder(pageCount)) {
+    duplicateCounts[page] = (duplicateCounts[page] ?? 0) + 1;
+  }
+  return MaterialApp(
+    home: Scaffold(
+      body: _PagePickerSheet(
+        pageCount: pageCount,
+        currentPage: currentPage,
+        pageSummary: '숨김 ${pageSettings.hiddenPages.length}',
+        pageSettings: pageSettings,
+        duplicateCounts: duplicateCounts,
+        onGoToPage: onGoToPage ?? (_) {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildCropSettingsSheetForTest({
+  SheetCropSettings initialCrop = SheetCropSettings.none,
+}) {
+  return MaterialApp(
+    home: Scaffold(body: _CropSettingsSheet(initialCrop: initialCrop)),
+  );
+}
+
+@visibleForTesting
 Widget buildViewerCompactOptionsMenuForTest() {
   return MaterialApp(
     home: Scaffold(
@@ -18319,21 +20209,25 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
   DateTime? _lastBeatAt;
   final List<DateTime> _tapTempoMarks = <DateTime>[];
   int _settingsRequest = 0;
+  int _playbackRequest = 0;
+  String? _metronomeOutputWarning;
 
   @override
   void initState() {
     super.initState();
-    _soundPlayer = SheetMetronomeSoundPlayer();
+    _soundPlayer = widget.soundPlayer ?? SheetMetronomeSoundPlayer();
     _settings = widget.initialSettings;
     _beat = SheetMetronomeBeat(
       beatIndex: 0,
       beatsPerBar: _settings.meter.beatsPerBar,
       pulsesPerBeat: _settings.subdivision.pulsesPerBeat,
     );
+    unawaited(_soundPlayer.prepare(_settings));
   }
 
   @override
   void dispose() {
+    _playbackRequest++;
     _timer?.cancel();
     super.dispose();
   }
@@ -18386,6 +20280,9 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     setState(() {
       _settings = nextSettings;
     });
+    if (enabled) {
+      unawaited(_soundPlayer.prepare(nextSettings));
+    }
     await _persistSettings(nextSettings);
   }
 
@@ -18479,8 +20376,9 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     await _setBpm((60000 / averageMs).round());
   }
 
-  void _toggleRunning() {
+  Future<void> _toggleRunning() async {
     if (_isRunning) {
+      _playbackRequest++;
       _timer?.cancel();
       setState(() {
         _isRunning = false;
@@ -18489,6 +20387,11 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
       return;
     }
 
+    final request = ++_playbackRequest;
+    await _soundPlayer.prepare(_settings);
+    if (!mounted || _isRunning || request != _playbackRequest) {
+      return;
+    }
     setState(() {
       _isRunning = true;
       _beat = SheetMetronomeBeat(
@@ -18542,23 +20445,58 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
     if (!_settings.soundEnabled || !_beat.isBeatStart) {
       return;
     }
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: _settings,
-        accent: _settings.isAccentBeat(_beat),
-      ),
+      _soundPlayer
+          .playClick(
+            settings: _settings,
+            accent: _settings.isAccentBeat(_beat),
+            shouldFallback: () =>
+                mounted && _isRunning && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || !_isRunning || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
   }
 
   void _previewTickSound() {
+    final request = ++_playbackRequest;
     unawaited(
-      _soundPlayer.playClick(
-        settings: _settings.copyWith(soundEnabled: true),
-        accent: true,
-      ),
+      _soundPlayer
+          .playClick(
+            settings: _settings.copyWith(soundEnabled: true),
+            accent: true,
+            shouldFallback: () => mounted && request == _playbackRequest,
+          )
+          .then((status) {
+            if (!mounted || request != _playbackRequest) return;
+            _handleMetronomeOutput(status);
+          }),
     );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('소리가 들리지 않으면 기기 볼륨, 무음 모드, 이어폰 연결을 확인하세요.')),
+    );
+  }
+
+  void _handleMetronomeOutput(SheetMetronomeOutputStatus status) {
+    final nextWarning = switch (status) {
+      SheetMetronomeOutputStatus.native ||
+      SheetMetronomeOutputStatus.skipped => null,
+      SheetMetronomeOutputStatus.fallback => '기본 클릭음으로 재생 중입니다',
+      SheetMetronomeOutputStatus.unavailable => '메트로놈 소리를 내지 못했습니다',
+    };
+    if (_metronomeOutputWarning == nextWarning) return;
+    setState(() {
+      _metronomeOutputWarning = nextWarning;
+    });
+    if (nextWarning == null) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$nextWarning. 기기 볼륨과 출력 장치를 확인하세요.')),
     );
   }
 
@@ -18621,6 +20559,17 @@ class _MetronomeSheetState extends State<_MetronomeSheet> {
                 _miniToolEntryButton(widget.onShowMiniPanel),
               ],
             ),
+            if (_metronomeOutputWarning != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _metronomeOutputWarning!,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: colorScheme.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
             const SizedBox(height: 22),
             Center(
               child: Text(
@@ -18892,8 +20841,9 @@ double _initialFitWidthZoom({
 
 PdfPageLayout _layoutPagesAsSpreads(
   List<PdfPage> pages,
-  PdfViewerParams params,
-) {
+  PdfViewerParams params, {
+  required _SheetTwoPageSpreadStart spreadStart,
+}) {
   var height = 0.0;
   var widestPage = 0.0;
   for (final page in pages) {
@@ -18905,10 +20855,13 @@ PdfPageLayout _layoutPagesAsSpreads(
   final innerGap = math.max(params.margin * 2, widestPage * 0.04);
   final spreadGap = math.max(params.margin * 10, widestPage * 0.32);
   final groups = <List<PdfPage>>[];
-  if (pages.isNotEmpty) {
+  if (pages.isNotEmpty && spreadStart == _SheetTwoPageSpreadStart.coverSingle) {
     groups.add(<PdfPage>[pages.first]);
   }
-  for (var index = 1; index < pages.length; index += 2) {
+  final startIndex = spreadStart == _SheetTwoPageSpreadStart.coverSingle
+      ? 1
+      : 0;
+  for (var index = startIndex; index < pages.length; index += 2) {
     groups.add(pages.sublist(index, math.min(index + 2, pages.length)));
   }
 

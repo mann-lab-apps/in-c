@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:in_c_sheet/sheet_metronome.dart';
@@ -245,7 +247,7 @@ void main() {
       });
 
       final player = SheetMetronomeSoundPlayer(channel: channel);
-      await player.playClick(
+      final status = await player.playClick(
         settings: const SheetMetronomeSettings(
           bpm: 96,
           meter: SheetMetronomeMeter.fourFour,
@@ -260,6 +262,7 @@ void main() {
         'accent': true,
         'volume': 0.64,
       });
+      expect(status, SheetMetronomeOutputStatus.native);
     },
   );
 
@@ -278,23 +281,184 @@ void main() {
     });
 
     final player = SheetMetronomeSoundPlayer(channel: channel);
-    await player.playClick(
-      settings: const SheetMetronomeSettings(
-        bpm: 96,
-        meter: SheetMetronomeMeter.fourFour,
-        soundEnabled: false,
+    expect(
+      await player.playClick(
+        settings: const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+          soundEnabled: false,
+        ),
+        accent: true,
       ),
-      accent: true,
+      SheetMetronomeOutputStatus.skipped,
     );
-    await player.playClick(
-      settings: const SheetMetronomeSettings(
-        bpm: 96,
-        meter: SheetMetronomeMeter.fourFour,
-        volumePercent: 0,
+    expect(
+      await player.playClick(
+        settings: const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+          volumePercent: 0,
+        ),
+        accent: true,
       ),
-      accent: true,
+      SheetMetronomeOutputStatus.skipped,
     );
 
     expect(calls, isEmpty);
   });
+
+  test(
+    'metronome sound player prepares native output before playback',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/clef_metronome_player_prepare');
+      final calls = <MethodCall>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            return null;
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      final player = SheetMetronomeSoundPlayer(channel: channel);
+      await player.prepare(
+        const SheetMetronomeSettings(
+          bpm: 192,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+      );
+
+      expect(calls, hasLength(1));
+      expect(calls.single.method, 'prepare');
+    },
+  );
+
+  test('metronome sound player skips prepare for silent output', () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    const channel = MethodChannel('test/clef_metronome_player_prepare_skip');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    final player = SheetMetronomeSoundPlayer(channel: channel);
+    await player.prepare(
+      const SheetMetronomeSettings(
+        bpm: 192,
+        meter: SheetMetronomeMeter.fourFour,
+        soundEnabled: false,
+      ),
+    );
+    await player.prepare(
+      const SheetMetronomeSettings(
+        bpm: 192,
+        meter: SheetMetronomeMeter.fourFour,
+        volumePercent: 0,
+      ),
+    );
+
+    expect(calls, isEmpty);
+  });
+
+  test(
+    'metronome sound player reports fallback and unavailable output',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/clef_metronome_player_fallback');
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (_) async {
+            throw PlatformException(code: 'playback_error');
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      var fallbackCalls = 0;
+      final player = SheetMetronomeSoundPlayer(
+        channel: channel,
+        systemSoundPlay: (_) async {
+          fallbackCalls++;
+        },
+      );
+
+      expect(
+        await player.playClick(
+          settings: const SheetMetronomeSettings(
+            bpm: 96,
+            meter: SheetMetronomeMeter.fourFour,
+          ),
+          accent: true,
+        ),
+        SheetMetronomeOutputStatus.fallback,
+      );
+      expect(fallbackCalls, 1);
+
+      final failedFallbackPlayer = SheetMetronomeSoundPlayer(
+        channel: channel,
+        systemSoundPlay: (_) async {
+          throw StateError('system sound unavailable');
+        },
+      );
+      expect(
+        await failedFallbackPlayer.playClick(
+          settings: const SheetMetronomeSettings(
+            bpm: 96,
+            meter: SheetMetronomeMeter.fourFour,
+          ),
+          accent: true,
+        ),
+        SheetMetronomeOutputStatus.unavailable,
+      );
+    },
+  );
+
+  test(
+    'metronome sound player skips fallback after cancelled native output',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      const channel = MethodChannel('test/clef_metronome_player_cancelled');
+      final native = Completer<void>();
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (_) async {
+            await native.future;
+            throw PlatformException(code: 'playback_error');
+          });
+      addTearDown(() {
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null);
+      });
+
+      var active = true;
+      var fallbackCalls = 0;
+      final player = SheetMetronomeSoundPlayer(
+        channel: channel,
+        systemSoundPlay: (_) async {
+          fallbackCalls++;
+        },
+      );
+      final result = player.playClick(
+        settings: const SheetMetronomeSettings(
+          bpm: 96,
+          meter: SheetMetronomeMeter.fourFour,
+        ),
+        accent: true,
+        shouldFallback: () => active,
+      );
+      active = false;
+      native.complete();
+
+      expect(await result, SheetMetronomeOutputStatus.unavailable);
+      expect(fallbackCalls, 0);
+    },
+  );
 }

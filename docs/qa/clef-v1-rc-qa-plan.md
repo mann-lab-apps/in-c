@@ -15,11 +15,13 @@
 | 나머지 smoke 항목 | 사용자가 확인한 나머지는 이상 없음 | 사용자 보고 범위 PASS. 전체 기기/장시간/미실행 조합으로 확대 해석하지 않음 |
 | 페달 | 테스트하지 못함 | DEVICE QA, 미확인 |
 
-코드 점검: Android `ClefMetronomePlayer.playClick`은 매 클릭마다 새 스레드와
-정적 AudioTrack을 생성/재생/해제한다. Flutter Timer -> method channel -> 개별
-출력 시작 과정의 지터는 원인 후보이며, 실제 불규칙 간격의 원인 확정이나 수정 완료는 아니다.
-다음 검증은 일정한 BPM에서 연속 클릭 간격, BPM 변경, UI 부하, 정지/종료,
-강세·나눔과 실제 출력의 정합성을 포함한다. 오디오 경로 변경 후 실기기 재확인이 필요하다.
+초기 코드 점검에서는 Android `ClefMetronomePlayer.playClick`이 매 클릭마다 새 출력
+객체를 준비하는 경로가 지터 원인 후보였다. 현재 소스는 S46 이후 강세/일반
+`AudioTrack`을 재사용하고, S48/S49/S65에서 count-in phase, delayed tick phase,
+start 전 prepare를 보강했다. 이는 로컬 스케줄/호출 회귀에 대한 근거이며, 실제
+빠른 BPM 청취 품질 해결을 의미하지 않는다. 다음 검증은 일정한 BPM에서 연속 클릭 간격,
+BPM 변경, UI 부하, 정지/종료, 강세·나눔과 실제 출력의 정합성을 포함한다.
+오디오 경로 변경 후 실기기 재확인이 필요하다.
 
 S46 로컬 보강: 위 기존 경로를 강세/일반 클릭 출력 재사용으로 변경했다.
 현재 소스는 매 클릭 스레드 생성이 없고, 초기화/재생 오류는 호출자에게 전달한다.
@@ -54,11 +56,61 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 
 - 소스 후보: `Clef & Staff` `1.0.0+22`, Android applicationId/namespace `com.mannlab.clef`.
   in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
-- Play Console code 21 미사용 여부는 아직 확인하지 않았다. 확인 후 새 release 빌드를 진행한다.
+- 이 문서의 과거 기록에는 `1.0.0+20`, `1.0.0+22`, `1.0.0+24` 산출물이 함께 남아 있다.
+  QA 대상은 항상 앱 내 `테스트 정보`의 version/build, 설치 파일명, Play Console 업로드 code를
+  같이 기록해 구분한다.
+- 현재 작업 브랜치에 새 코드 변경이 있으면 기존 AAB를 최신 검증 근거로 재사용하지 않는다.
+  내부테스트에 반영하려면 미사용 versionCode를 확인하고 새 signed AAB를 만든다.
 - 서명 파일 누락/기존 디버그 키는 차단하고, 기록된 Clef 업로드 키는 Gradle 서명 검증을 통과했다.
 - `:app:bundleRelease --dry-run`으로 서명 검사 연결과 task graph를 확인했다.
   실제 앱 컴파일, APK/AAB/iOS 생성, 설치 및 업로드는 수행하지 않았다.
 - 아래 20번 빌드/에뮬레이터 기록은 당시 근거다. 최신 변경의 실기기 QA 결과로 사용하지 않는다.
+
+## RC Gate 구분
+
+내부테스트 배포 후보와 정식 출시 준비 완료는 서로 다른 기준이다. 10-15분 수동 QA가 번거롭다는
+이유만으로 내부테스트 배포를 항상 막지는 않지만, 알려진 blocker나 필수 자동 검증 실패를 숨기지 않는다.
+
+### 내부테스트 배포 후보
+
+- `flutter analyze`, 전체 `flutter test`, `dart run tool/rc_release_check.dart`가 통과한다.
+- versionCode가 Play Console에서 아직 쓰이지 않은 값이다.
+- release signing 검증과 산출물 경로/크기/해시 기록이 있다.
+- 최근 변경의 알려진 data loss, crash, import/export 불가, page turn 불가 blocker가 없다.
+- 실기기 미확인 항목은 테스터 안내문과 이 문서에 `DEVICE QA CONTINUES` 또는 `NOT TESTED`로 남긴다.
+
+### 정식 출시 준비 완료
+
+- Android 태블릿 smoke가 `PASS`이고, 가능하면 iPad/iPhone smoke도 `PASS`다.
+- 메트로놈 빠른 BPM, 드론/기준음 음량, 튜너 정확도, 페달/키보드, S Pen, 큰 PDF, backup/restore의
+  주요 항목이 `PASS`이거나 제한사항으로 명확히 고지되어 있다.
+- 스토어 개인정보/콘텐츠 등급/스크린샷/지원 URL/마케팅 URL/테스터 안내가 최신 상태다.
+- 남은 항목이 v1.1 spike 또는 Later로 분류되어 있고 v1 blocker로 남아 있지 않다.
+
+### 앱 상태 점검으로 줄일 수 있는 실기기 QA
+
+홈 `메뉴` > `앱 상태 점검`은 별도 QA 앱이 아니라 본앱의 지원/진단 화면이다.
+결과는 Markdown/JSON 텍스트로 만들고, 사용자가 `결과 복사` 또는 `결과 공유`를 누르기 전까지
+외부로 전송하지 않는다. 이 화면은 사용자 악보/세트리스트/필기 데이터를 수정하지 않는다.
+
+자동 또는 반자동으로 기록할 수 있는 항목:
+
+- 앱 이름, version/build, platform, OS, build mode.
+- 방향키/PageUp/PageDown/Space/Enter/페달 입력이 어떤 page-turn action으로 해석되는지.
+- 120/180/240 BPM 내부 metronome scheduling timestamp의 평균 간격과 최대 jitter.
+- 마이크 권한 상태.
+
+직접 확인으로 남는 항목:
+
+- 실제 메트로놈 청감과 이어폰/스피커/Bluetooth 출력 균일성.
+- 드론 음량과 출력 route.
+- Bluetooth/USB 페달의 pairing, repeat cadence, transport quirks.
+- S Pen/Apple Pencil/stylus 필기감.
+- 실제 악기/마이크/연습실 환경의 튜너 정확도.
+- 장시간 연주 안정성.
+
+앱 상태 점검의 `PASS`는 내부 상태와 입력 경로의 근거이며, 실제 오디오/마이크/페달/필기감 품질
+확인 완료로 확대 해석하지 않는다.
 
 ## 준비물
 
@@ -150,6 +202,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 | 15-7 | 복원 진행 UI | 진행 창으로 편집/중복 진입/뒤로가기를 막고 종료 시 해제한다. 공유 PDF는 복원 뒤 처리하며 PDF 가져오기 중에는 백업 메뉴를 잠근다. | 지연 JSON/자동/ZIP 결과 성공/취소/오류, 화면 종료 후 늦은 응답, 공유 채널 순서 widget 검증. native picker/앱 강제 종료 QA 별도 |
 | 15-1 | Cloud import | cloud provider PDF가 system picker에서 앱 내부 사본으로 등록된다. | provider, 내려받기 필요 여부, 실패 문구 |
 | 16 | 테스트 정보 | 테스트 정보에서 library/debug summary와 피드백 템플릿 복사가 동작한다. | score/setlist/annotation summary, sample file 공유 가능 여부, screenshot/screen recording 여부, blocker 여부 |
+| 16-1 | 앱 상태 점검 | 앱 상태 점검에서 version/platform/OS/build mode, 키 입력 감지, metronome timing, 마이크 권한 상태, 결과 복사/공유가 동작한다. | 결과 Markdown, 120/180/240 BPM timing summary, 감지된 key input, MANUAL로 남은 항목 |
 | 17 | 종료/재진입 | 마지막 page/view state와 최근/즐겨찾기/고정 접근이 유지된다. | 재진입 score, 마지막 page, half-page boundary 이동 후 저장 page, 보기 설정 |
 
 ## 기기별 필수 확인

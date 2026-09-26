@@ -180,13 +180,7 @@ class SheetLibraryStore {
     if (_profileById(profiles, id) == null) {
       return false;
     }
-    await _writeMetadataValues(preferences, {
-      _scopedKey(_scoresKey, id): null,
-      _scopedKey(_setlistsKey, id): null,
-      _scopedKey(_libraryViewSettingsKey, id): null,
-      _scopedKey(_favoriteAnnotationPresetKey, id): null,
-      _scopedKey(_automaticMetadataBackupKey, id): null,
-    });
+    await _writeMetadataValues(preferences, _libraryRemovalValues(id));
     return true;
   }
 
@@ -195,25 +189,26 @@ class SheetLibraryStore {
       return false;
     }
     final preferences = await SharedPreferences.getInstance();
-    final profiles = await loadLibraryProfiles();
-    if (_profileById(profiles, id) == null) {
-      return false;
-    }
-    final nextProfiles = profiles
-        .where((profile) => profile.id != id)
-        .toList(growable: false);
-    await preferences.setString(
-      _libraryProfilesKey,
-      SheetLibraryProfileCodec.encode(nextProfiles),
-    );
-    await _removeLibraryData(preferences, id);
-    if (preferences.getString(_activeLibraryProfileKey) == id) {
-      await preferences.setString(
-        _activeLibraryProfileKey,
-        SheetLibraryProfile.defaultId,
-      );
-    }
-    return true;
+    var didDelete = false;
+    await _queueMetadataWrite(() async {
+      final profiles = await loadLibraryProfiles();
+      if (_profileById(profiles, id) == null) {
+        return;
+      }
+      final nextProfiles = profiles
+          .where((profile) => profile.id != id)
+          .toList(growable: false);
+      final values = <String, String?>{
+        _libraryProfilesKey: SheetLibraryProfileCodec.encode(nextProfiles),
+        ..._libraryRemovalValues(id),
+      };
+      if (preferences.getString(_activeLibraryProfileKey) == id) {
+        values[_activeLibraryProfileKey] = SheetLibraryProfile.defaultId;
+      }
+      await _commitMetadataValues(preferences, values);
+      didDelete = true;
+    });
+    return didDelete;
   }
 
   Future<String> _activeLibraryId(SharedPreferences preferences) async {
@@ -225,19 +220,14 @@ class SheetLibraryStore {
     return active?.id ?? SheetLibraryProfile.defaultId;
   }
 
-  Future<void> _removeLibraryData(
-    SharedPreferences preferences,
-    String libraryId,
-  ) async {
-    await preferences.remove(_scopedKey(_scoresKey, libraryId));
-    await preferences.remove(_scopedKey(_setlistsKey, libraryId));
-    await preferences.remove(_scopedKey(_libraryViewSettingsKey, libraryId));
-    await preferences.remove(
-      _scopedKey(_favoriteAnnotationPresetKey, libraryId),
-    );
-    await preferences.remove(
-      _scopedKey(_automaticMetadataBackupKey, libraryId),
-    );
+  static Map<String, String?> _libraryRemovalValues(String libraryId) {
+    return {
+      _scopedKey(_scoresKey, libraryId): null,
+      _scopedKey(_setlistsKey, libraryId): null,
+      _scopedKey(_libraryViewSettingsKey, libraryId): null,
+      _scopedKey(_favoriteAnnotationPresetKey, libraryId): null,
+      _scopedKey(_automaticMetadataBackupKey, libraryId): null,
+    };
   }
 
   static SheetLibraryProfile? _profileById(
@@ -786,6 +776,22 @@ class SheetLibraryStore {
         'flac',
         'ogg',
       ],
+    );
+
+    if (file == null) {
+      return null;
+    }
+
+    return importLinkedFileBytes(
+      bytes: await file.readAsBytes(),
+      fileName: file.name,
+    );
+  }
+
+  Future<SheetLinkedFile?> pickLinkedPdfFile() async {
+    final file = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: const <String>['pdf'],
     );
 
     if (file == null) {
