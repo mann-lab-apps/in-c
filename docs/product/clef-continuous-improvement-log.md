@@ -1257,3 +1257,15 @@ No app build performed; new changes have widget/source evidence only.
 - Regression evidence: controller tests cover successful replacement and picker cancel;
   viewer smoke keeps the named menu entry discoverable. Page-count mismatch handling and
   real file-provider picker behavior remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Semi-Auto Crop Quick Presets (2026-09-26)
+
+- Selected slice: improve the MobileSheets-style auto-crop gap without introducing a
+  raster edge-detection engine. Clef now adds `좁게 3%`, `보통 6%`, and `강하게 10%`
+  quick margin presets to the existing `자르기 맞춤` sheet.
+- Implementation intent: keep source PDFs untouched, reuse existing crop metadata,
+  viewer crop-to-fit, crop preset and applied-copy paths, and make the quick values a
+  starting point for manual slider adjustment rather than claiming true automatic crop.
+- Regression evidence: widget smoke covers the quick preset controls and verifies that
+  one tap updates all four crop margins. Real scan detection, per-page automatic margins
+  and edge-detection quality remain future work.

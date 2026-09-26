@@ -15787,6 +15787,39 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 12),
+          Text(
+            '빠른 여백 자르기',
+            style: Theme.of(context).textTheme.labelLarge
+                ?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ActionChip(
+                avatar: const Icon(Icons.crop_free_outlined, size: 18),
+                label: const Text('좁게 3%'),
+                onPressed: () => _applyEvenCrop(0.03),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.crop_outlined, size: 18),
+                label: const Text('보통 6%'),
+                onPressed: () => _applyEvenCrop(0.06),
+              ),
+              ActionChip(
+                avatar: const Icon(Icons.crop_16_9_outlined, size: 18),
+                label: const Text('강하게 10%'),
+                onPressed: () => _applyEvenCrop(0.10),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '스캔 PDF의 흰 여백을 빠르게 줄인 뒤 아래 슬라이더로 미세 조정하세요.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
           _CropSlider(
             label: '위',
             value: _crop.top,
@@ -15830,6 +15863,17 @@ class _CropSettingsSheetState extends State<_CropSettingsSheet> {
         ],
       ),
     );
+  }
+
+  void _applyEvenCrop(double value) {
+    setState(() {
+      _crop = SheetCropSettings(
+        left: value,
+        top: value,
+        right: value,
+        bottom: value,
+      );
+    });
   }
 }
 
@@ -19603,6 +19647,15 @@ Widget buildPagePickerSheetForTest({
         onGoToPage: onGoToPage ?? (_) {},
       ),
     ),
+  );
+}
+
+@visibleForTesting
+Widget buildCropSettingsSheetForTest({
+  SheetCropSettings initialCrop = SheetCropSettings.none,
+}) {
+  return MaterialApp(
+    home: Scaffold(body: _CropSettingsSheet(initialCrop: initialCrop)),
   );
 }
 

@@ -2358,6 +2358,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('crop settings sheet offers quick margin presets', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildCropSettingsSheetForTest());
+
+    expect(find.text('빠른 여백 자르기'), findsOneWidget);
+    expect(find.text('좁게 3%'), findsOneWidget);
+    expect(find.text('보통 6%'), findsOneWidget);
+    expect(find.text('강하게 10%'), findsOneWidget);
+
+    await tester.tap(find.text('보통 6%'));
+    await tester.pump();
+
+    expect(find.text('6%'), findsNWidgets(4));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('annotation stamp picker exposes music rehearsal marks', (
     tester,
   ) async {
