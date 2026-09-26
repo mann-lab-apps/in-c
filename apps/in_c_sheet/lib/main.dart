@@ -7552,6 +7552,36 @@ enum _AnnotationStamp {
   }
 }
 
+extension _AnnotationStampMetadata on _AnnotationStamp {
+  String get categoryLabel {
+    return switch (this) {
+      _AnnotationStamp.ok ||
+      _AnnotationStamp.cue ||
+      _AnnotationStamp.mark => '리허설 표시',
+      _AnnotationStamp.fine ||
+      _AnnotationStamp.dc ||
+      _AnnotationStamp.ds ||
+      _AnnotationStamp.coda => '반복/마침',
+      _AnnotationStamp.rit || _AnnotationStamp.accel => '템포 변화',
+    };
+  }
+
+  String get searchText {
+    final aliases = switch (this) {
+      _AnnotationStamp.ok => '확인 완료 맞음 check',
+      _AnnotationStamp.cue => '큐 cue entry',
+      _AnnotationStamp.mark => '주의 강조 느낌표 important',
+      _AnnotationStamp.fine => '마침 끝 종료 fine',
+      _AnnotationStamp.dc => '다카포 처음 반복 da capo dc',
+      _AnnotationStamp.ds => '달세뇨 세뇨 반복 dal segno ds',
+      _AnnotationStamp.coda => '코다 coda',
+      _AnnotationStamp.rit => '리타르단도 느리게 ritardando slow',
+      _AnnotationStamp.accel => '아첼레란도 빠르게 accelerando fast',
+    };
+    return '$label $name $categoryLabel $aliases'.toLowerCase();
+  }
+}
+
 class _AnnotationPreset {
   const _AnnotationPreset({
     required this.tool,
@@ -16584,22 +16614,26 @@ class _AnnotationToolbar extends StatelessWidget {
           },
         ),
         if (selectedTool == _AnnotationToolbarTool.stamp)
-          PopupMenuButton<_AnnotationStamp>(
-            tooltip: '스탬프 선택',
-            icon: Icon(selectedStamp.icon),
-            initialValue: selectedStamp,
-            onSelected: onStampSelected,
-            itemBuilder: (context) => _AnnotationStamp.values
-                .map(
-                  (stamp) => PopupMenuItem<_AnnotationStamp>(
-                    value: stamp,
-                    child: ListTile(
-                      leading: Icon(stamp.icon),
-                      title: Text(stamp.label),
+          Tooltip(
+            message: '스탬프 선택',
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                final selected = await showModalBottomSheet<_AnnotationStamp>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (context) => SafeArea(
+                    child: _AnnotationStampPickerSheet(
+                      selectedStamp: selectedStamp,
                     ),
                   ),
-                )
-                .toList(growable: false),
+                );
+                if (selected != null) {
+                  onStampSelected(selected);
+                }
+              },
+              icon: Icon(selectedStamp.icon),
+              label: Text(selectedStamp.label),
+            ),
           ),
         for (final color in _colors)
           Tooltip(
@@ -16727,6 +16761,89 @@ class _AnnotationToolbar extends StatelessWidget {
       0xffffcc25 => '노랑',
       _ => '색상',
     };
+  }
+}
+
+class _AnnotationStampPickerSheet extends StatefulWidget {
+  const _AnnotationStampPickerSheet({required this.selectedStamp});
+
+  final _AnnotationStamp selectedStamp;
+
+  @override
+  State<_AnnotationStampPickerSheet> createState() =>
+      _AnnotationStampPickerSheetState();
+}
+
+class _AnnotationStampPickerSheetState
+    extends State<_AnnotationStampPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _query.trim().toLowerCase();
+    final stamps = _AnnotationStamp.values
+        .where((stamp) => query.isEmpty || stamp.searchText.contains(query))
+        .toList(growable: false);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.78,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Text(
+              '스탬프 선택',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: '이름, 역할, 기호 검색',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          if (stamps.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('조건에 맞는 스탬프가 없습니다.'),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: stamps.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final stamp = stamps[index];
+                  final selected = stamp == widget.selectedStamp;
+                  return ListTile(
+                    leading: Icon(stamp.icon),
+                    title: Text(stamp.label),
+                    subtitle: Text(stamp.categoryLabel),
+                    trailing: selected
+                        ? const Icon(Icons.check_circle)
+                        : const Icon(Icons.chevron_right),
+                    selected: selected,
+                    onTap: () => Navigator.of(context).pop(stamp),
+                  );
+                },
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 

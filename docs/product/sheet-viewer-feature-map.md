@@ -92,7 +92,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 주석 | 색상/두께 | 양쪽 기본 | MVP | 낮음 | 7차 구현: 검정/빨강/파랑/노랑, 두께 slider |
 | 주석 | undo/redo | 양쪽 기본 | MVP | 중간 | 구현됨: 현재 페이지 마지막 stroke/text undo와 redo |
 | 주석 | 자동 저장 | MobileSheets 기본 | MVP | 중간 | 구현됨: stroke/text/redo와 layer flag를 SharedPreferences inline metadata로 저장하고, file-backed annotation store adapter/external reference를 v1.1 준비 상태로 보유 |
-| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
+| 주석 | 스탬프/기본 도형 | 양쪽 지원 | V1 | 중간 | 구현됨: OK/CUE/!/Fine/D.C./D.S./Coda/rit./accel. stamp annotation tool, 검색 가능한 stamp picker, line/arrow/rectangle/crescendo/diminuendo/staff/grid, preset 저장, 화면 렌더/삭제/redo/export path. 전용 asset pack 고도화는 후속 |
 | 주석 | 도형/화살표 | 양쪽 지원 | V1 | 중간 | 구현됨: rectangle/arrow annotation tool, hit-test/delete, redo, PDF export rendering |
 | 주석 | crescendo/diminuendo hairpin | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 헤어핀 필기, hit-test/delete, redo, PDF export rendering |
 | 주석 | staff/grid guide | MobileSheets 지원 | V1 | 중간 | 구현됨: 두 점 입력 기반 오선/격자 guide, hit-test/delete, redo, viewer rendering. 세부 악보 paper template/custom stamp pack은 후속 |

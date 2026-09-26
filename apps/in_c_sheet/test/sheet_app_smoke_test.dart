@@ -2385,12 +2385,24 @@ void main() {
     await tester.tap(find.byTooltip('스탬프 선택'));
     await tester.pumpAndSettle();
 
+    expect(find.text('스탬프 선택'), findsWidgets);
+    expect(find.text('리허설 표시'), findsWidgets);
+    expect(find.text('OK'), findsWidgets);
+
+    await tester.enterText(find.byType(TextField), '반복');
+    await tester.pumpAndSettle();
+
+    expect(find.text('반복/마침'), findsWidgets);
     expect(find.text('Fine'), findsOneWidget);
     expect(find.text('D.C.'), findsOneWidget);
-    expect(find.text('D.S.'), findsOneWidget);
-    expect(find.text('Coda'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '템포');
+    await tester.pumpAndSettle();
+
+    expect(find.text('템포 변화'), findsWidgets);
     expect(find.text('rit.'), findsOneWidget);
     expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('Fine'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 

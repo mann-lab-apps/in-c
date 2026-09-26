@@ -87,7 +87,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Setlists / Collections | Setlist merge | official library page | 세트리스트 상세에서 다른 세트리스트 이어붙이기를 지원한다 | feature map `세트리스트` | Implemented | 중복/누락 곡은 건너뛰고 새로 붙는 곡의 공연 메모/시간/시작쪽/메트로놈 설정을 가져온다 |
 | Setlists / Collections | Setlist/song notes display | user guide 목차 | 곡별 시작 쪽/시간/메모가 세트리스트 상세, 목록 복사, viewer context, 공연 진행 badge에 표시된다 | feature map, main.dart viewer notes | Implemented | 긴 메모의 실제 거리 가독성은 DEVICE QA |
 | Annotation | Pen/highlighter/text/eraser/stamps/shapes/arrows/hairpins/staff/grid | annotation page | 대응 도구 대부분이 있다 | feature map `주석` | Implemented | custom stamp pack 제외 |
-| Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형만 제공 | feature map `스탬프/기본 도형` | Partially Implemented | 사용자 stamp import는 없음 |
+| Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형을 제공하고, 내장 stamp는 검색 가능한 picker로 찾는다 | feature map `스탬프/기본 도형` | Partially Implemented | 사용자 stamp import/대형 stamp pack은 없음 |
 | Annotation | Favorite annotation tools | annotation page | favorite annotation tool preset 저장/복원이 있다 | feature map `favorite tool` | Implemented | 실사용 발견성 QA 필요 |
 | Annotation | Stylus pressure, stylus button shortcut, inactivity exit | annotation page | pressure/palm rejection은 있으나 stylus button/inactivity exit는 없다 | feature map `스타일러스 pressure`, `palm rejection` | Partially Implemented | S Pen 실기기 QA 필요 |
 | Annotation | Undo/redo and autosave | annotation page | stroke/text undo/redo와 자동 저장이 있다 | feature map `undo/redo`, `자동 저장` | Implemented | 대량 stroke 성능은 file-backed migration 후보 |

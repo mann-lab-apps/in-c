@@ -1218,3 +1218,14 @@ No app build performed; new changes have widget/source evidence only.
 - Regression evidence: controller tests cover duplicates, missing songs, source/target
   deletion and performance-setting transfer; widget smoke covers the toolbar action and
   bottom-sheet selection. Actual long concert merge review remains DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Stamp Picker Discovery (2026-09-26)
+
+- Selected slice: improve stamp discovery before adding custom stamp import or a large
+  stamp asset library. Clef keeps the existing built-in rehearsal/tempo/repeat stamps
+  but opens them through a named picker sheet instead of a compact icon-only menu.
+- Implementation intent: show the current stamp label in the annotation toolbar, group
+  stamps by rehearsal/repeat/tempo role, and add search by symbol, English abbreviation
+  and Korean rehearsal term. No annotation persistence or PDF export schema changed.
+- Regression evidence: widget smoke covers the named picker, category labels and search
+  filtering. User-provided stamp packs remain a later MobileSheets-level feature.
