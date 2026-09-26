@@ -115,7 +115,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 음악 도구 | 음악 키보드 | Piascore 지원 | Later | 중간 | virtual instrument |
 | 음악 도구 | 녹음기 | Piascore 지원 | Later | 중간 | recording permission/storage |
 | 음악 도구 | 오디오 플레이어 | 양쪽 지원 | V1 | 중간 | 구현됨: linked audio file import/share MIME, Android native MediaPlayer 재생/정지 bottom sheet, 초 단위 A-B 반복. codec/latency/iOS parity는 QA 필요 |
-| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력과 native MediaPlayer loop. waveform marker/timeline, saved markers, iOS parity는 후속 |
+| 음악 도구 | A-B loop | MobileSheets 지원 | V1.x | 중간 | 구현됨: Android linked audio sheet의 A/B 초 단위 입력, 마지막 A/B 구간 저장/복원, native MediaPlayer loop. waveform marker/timeline, track marker list, iOS parity는 후속 |
 | 음악 도구 | tempo/pitch shift | MobileSheets 지원 | V2 | 높음 | DSP library |
 | 외부 장치 | Bluetooth 페달 기본 넘김 | 양쪽 기본 | MVP | 중간 | 구현됨: Arrow/Page/Space/Enter/Numpad Enter/Tab/Media logical key 기반 이전/다음 넘김. 방향키 방식 페달은 PDF 내부 스크롤이 아니라 페이지 단위 이동으로 소비하고 곡 처음/끝 안내를 표시한다. 로컬 keyboard substitute matrix로 입력 routing을 검증했으며 실제 페달 검증 필요 |
 | 외부 장치 | USB 페달 | MobileSheets 지원 | V1 | 중간 | 구현됨: keyboard/HID key input mapping path와 진단 로그, unknown inputId custom action 실행. 방향키/PageUp/PageDown 입력은 페이지 단위 전환으로 처리한다. 로컬 keyboard substitute matrix는 통과했으며 실제 USB 페달 장비 QA는 blocker |

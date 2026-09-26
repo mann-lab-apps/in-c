@@ -1352,3 +1352,13 @@ paths as `PDF 공유/인쇄` and `필기 포함 PDF 공유/인쇄` so users look
 handoff. Help/feedback now lists the same `PDF 공유/인쇄` checklist item. Targeted
 annotation/help tests passed, full 1,401-test suite passed, analyze passed, and RC release
 check passed. Actual printer target availability and output success remain DEVICE QA.
+
+S73 VERIFIED LOCAL: reduced the MobileSheets advanced audio gap with the smallest persistent
+A-B loop step before attempting waveform timelines, multiple markers, tempo/pitch shift or
+iOS parity. Clef linked audio metadata now stores optional A/B loop start/end milliseconds;
+the linked audio sheet preloads those values and saves the latest valid loop before
+playback. This keeps the loop with the score metadata/backup path and avoids a new audio
+engine. If saving the new loop fails, playback is blocked with an explicit retry prompt
+rather than letting the user assume the marker was persisted. Targeted store/audio/widget
+tests passed, full 1,403-test suite passed, analyze passed, and RC release check passed.
+Actual speaker/earphone loop timing and route behavior remain DEVICE QA.

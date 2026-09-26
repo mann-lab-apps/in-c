@@ -9987,7 +9987,7 @@ setlist=$setlistLabel
         return;
       }
       if (_isSupportedLinkedAudio(selected.file)) {
-        await _showLinkedAudioPlayer(selected.file);
+        await _showLinkedAudioPlayer(currentScore, selected.file);
         return;
       }
       final didSwitch = await widget.controller.switchToLinkedFile(
@@ -10038,7 +10038,10 @@ setlist=$setlistLabel
     );
   }
 
-  Future<void> _showLinkedAudioPlayer(SheetLinkedFile linkedFile) async {
+  Future<void> _showLinkedAudioPlayer(
+    SheetScore score,
+    SheetLinkedFile linkedFile,
+  ) async {
     final audioFile = File(linkedFile.path);
     if (!await audioFile.exists()) {
       _showSnackBar('오디오 파일을 찾지 못했습니다.');
@@ -10050,7 +10053,12 @@ setlist=$setlistLabel
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => _LinkedAudioPlayerSheet(linkedFile: linkedFile),
+      builder: (context) => _LinkedAudioPlayerSheet(
+        linkedFile: linkedFile,
+        onLinkedFileChanged: (updated) {
+          return widget.controller.updateLinkedFile(score, updated);
+        },
+      ),
     );
   }
 
@@ -18665,10 +18673,15 @@ class _AutoScrollSheetState extends State<_AutoScrollSheet> {
 }
 
 class _LinkedAudioPlayerSheet extends StatefulWidget {
-  const _LinkedAudioPlayerSheet({required this.linkedFile, this.player});
+  const _LinkedAudioPlayerSheet({
+    required this.linkedFile,
+    this.player,
+    this.onLinkedFileChanged,
+  });
 
   final SheetLinkedFile linkedFile;
   final SheetAudioPlayer? player;
+  final Future<bool> Function(SheetLinkedFile linkedFile)? onLinkedFileChanged;
 
   @override
   State<_LinkedAudioPlayerSheet> createState() =>
@@ -18687,8 +18700,15 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   void initState() {
     super.initState();
     _player = widget.player ?? SheetAudioPlayer();
-    _loopStartController = TextEditingController();
-    _loopEndController = TextEditingController();
+    _loopStartController = TextEditingController(
+      text: _formatLoopSeconds(widget.linkedFile.audioLoopStartMs),
+    );
+    _loopEndController = TextEditingController(
+      text: _formatLoopSeconds(widget.linkedFile.audioLoopEndMs),
+    );
+    _loopEnabled =
+        widget.linkedFile.audioLoopStartMs != null &&
+        widget.linkedFile.audioLoopEndMs != null;
   }
 
   @override
@@ -18717,6 +18737,36 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     );
   }
 
+  static String _formatLoopSeconds(int? milliseconds) {
+    if (milliseconds == null) {
+      return '';
+    }
+    final seconds = milliseconds / 1000;
+    if (milliseconds % 1000 == 0) {
+      return seconds.toStringAsFixed(0);
+    }
+    return seconds
+        .toStringAsFixed(3)
+        .replaceFirst(RegExp(r'0+$'), '')
+        .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
+    final onLinkedFileChanged = widget.onLinkedFileChanged;
+    if (onLinkedFileChanged == null) {
+      return true;
+    }
+    final updated = widget.linkedFile.copyWith(
+      audioLoopStartMs: loop.start.inMilliseconds,
+      audioLoopEndMs: loop.end.inMilliseconds,
+    );
+    try {
+      return await onLinkedFileChanged(updated);
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<void> _togglePlayback() async {
     if (_isPlaying) {
       await _player.stop();
@@ -18730,6 +18780,17 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     if (_loopEnabled && loop == null) {
       setState(() {
         _lastResult = SheetAudioPlaybackResult.failed('A-B 반복 구간을 확인해주세요.');
+      });
+      return;
+    }
+    if (loop != null && !await _saveLoopIfNeeded(loop)) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _lastResult = SheetAudioPlaybackResult.failed(
+          'A-B 반복 구간을 저장하지 못했습니다. 다시 시도해주세요.',
+        );
       });
       return;
     }
@@ -20249,17 +20310,24 @@ Widget buildAnnotationToolbarForTest() {
 }
 
 @visibleForTesting
-Widget buildLinkedAudioPlayerSheetForTest({MethodChannel? channel}) {
+Widget buildLinkedAudioPlayerSheetForTest({
+  MethodChannel? channel,
+  SheetLinkedFile? linkedFile,
+  Future<bool> Function(SheetLinkedFile linkedFile)? onLinkedFileChanged,
+}) {
   return MaterialApp(
     home: Scaffold(
       body: _LinkedAudioPlayerSheet(
-        linkedFile: SheetLinkedFile(
-          path: '/tmp/backing-track.m4a',
-          type: 'audio',
-          label: 'Backing Track',
-          createdAt: DateTime(2026, 9, 26),
-        ),
+        linkedFile:
+            linkedFile ??
+            SheetLinkedFile(
+              path: '/tmp/backing-track.m4a',
+              type: 'audio',
+              label: 'Backing Track',
+              createdAt: DateTime(2026, 9, 26),
+            ),
         player: SheetAudioPlayer(channel: channel),
+        onLinkedFileChanged: onLinkedFileChanged,
       ),
     ),
   );

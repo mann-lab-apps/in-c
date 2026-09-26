@@ -2055,6 +2055,8 @@ class SheetLinkedFile {
     required this.label,
     this.role = partRole,
     required this.createdAt,
+    this.audioLoopStartMs,
+    this.audioLoopEndMs,
   });
 
   factory SheetLinkedFile.fromJson(Map<String, Object?> json) {
@@ -2071,6 +2073,14 @@ class SheetLinkedFile {
       label: label.trim().isEmpty ? _fallbackLabel(path) : label.trim(),
       role: _normalizeRole(role),
       createdAt: createdAt,
+      audioLoopStartMs: _normalizeAudioLoopStartMs(
+        json['audioLoopStartMs'],
+        json['audioLoopEndMs'],
+      ),
+      audioLoopEndMs: _normalizeAudioLoopEndMs(
+        json['audioLoopStartMs'],
+        json['audioLoopEndMs'],
+      ),
     );
   }
 
@@ -2086,6 +2096,8 @@ class SheetLinkedFile {
   final String label;
   final String role;
   final DateTime createdAt;
+  final int? audioLoopStartMs;
+  final int? audioLoopEndMs;
 
   SheetLinkedFile copyWith({
     String? path,
@@ -2093,15 +2105,32 @@ class SheetLinkedFile {
     String? label,
     String? role,
     DateTime? createdAt,
+    int? audioLoopStartMs,
+    int? audioLoopEndMs,
+    bool clearAudioLoop = false,
   }) {
     final nextPath = (path ?? this.path).trim();
     final nextLabel = (label ?? this.label).trim();
+    final nextAudioLoopStartMs = clearAudioLoop
+        ? null
+        : _normalizeAudioLoopStartMs(
+            audioLoopStartMs ?? this.audioLoopStartMs,
+            audioLoopEndMs ?? this.audioLoopEndMs,
+          );
+    final nextAudioLoopEndMs = clearAudioLoop
+        ? null
+        : _normalizeAudioLoopEndMs(
+            audioLoopStartMs ?? this.audioLoopStartMs,
+            audioLoopEndMs ?? this.audioLoopEndMs,
+          );
     return SheetLinkedFile(
       path: nextPath,
       type: _normalizeType(type ?? this.type),
       label: nextLabel.isEmpty ? _fallbackLabel(nextPath) : nextLabel,
       role: _normalizeRole(role ?? this.role),
       createdAt: createdAt ?? this.createdAt,
+      audioLoopStartMs: nextAudioLoopStartMs,
+      audioLoopEndMs: nextAudioLoopEndMs,
     );
   }
 
@@ -2112,6 +2141,10 @@ class SheetLinkedFile {
       'label': label,
       'role': role,
       'createdAt': createdAt.toIso8601String(),
+      if (audioLoopStartMs != null && audioLoopEndMs != null)
+        'audioLoopStartMs': audioLoopStartMs,
+      if (audioLoopStartMs != null && audioLoopEndMs != null)
+        'audioLoopEndMs': audioLoopEndMs,
     };
   }
 
@@ -2138,6 +2171,31 @@ class SheetLinkedFile {
       return normalized;
     }
     return partRole;
+  }
+
+  static int? _normalizeAudioLoopStartMs(Object? start, Object? end) {
+    final startMs = _audioLoopMsFromJson(start);
+    final endMs = _audioLoopMsFromJson(end);
+    if (startMs == null || endMs == null || startMs < 0 || endMs <= startMs) {
+      return null;
+    }
+    return startMs;
+  }
+
+  static int? _normalizeAudioLoopEndMs(Object? start, Object? end) {
+    final startMs = _audioLoopMsFromJson(start);
+    final endMs = _audioLoopMsFromJson(end);
+    if (startMs == null || endMs == null || startMs < 0 || endMs <= startMs) {
+      return null;
+    }
+    return endMs;
+  }
+
+  static int? _audioLoopMsFromJson(Object? value) {
+    if (value is num) {
+      return value.round();
+    }
+    return int.tryParse(value?.toString() ?? '');
   }
 }
 

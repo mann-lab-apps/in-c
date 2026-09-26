@@ -2503,6 +2503,93 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked audio sheet preloads and saves A-B loop markers', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_saved_loop');
+    final calls = <MethodCall>[];
+    final savedFiles = <SheetLinkedFile>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        linkedFile: SheetLinkedFile(
+          path: '/tmp/backing-track.m4a',
+          type: 'm4a',
+          label: 'Backing Track',
+          createdAt: DateTime(2026, 9, 26),
+          audioLoopStartMs: 2000,
+          audioLoopEndMs: 9000,
+        ),
+        onLinkedFileChanged: (linkedFile) async {
+          savedFiles.add(linkedFile);
+          return true;
+        },
+      ),
+    );
+
+    expect(find.widgetWithText(SwitchListTile, 'A-B 반복'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(find.text('9'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(0), '3.5');
+    await tester.enterText(find.byType(TextField).at(1), '10');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(savedFiles.single.audioLoopStartMs, 3500);
+    expect(savedFiles.single.audioLoopEndMs, 10000);
+    expect(calls.single.arguments, <String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'loopStartMs': 3500,
+      'loopEndMs': 10000,
+    });
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('linked audio sheet blocks playback when loop save fails', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_save_failure');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(
+        channel: channel,
+        onLinkedFileChanged: (_) async => false,
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), '1');
+    await tester.enterText(find.byType(TextField).at(1), '4');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls, isEmpty);
+    expect(find.text('A-B 반복 구간을 저장하지 못했습니다. 다시 시도해주세요.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('performance preset save failure reports and preserves input', (
     tester,
   ) async {

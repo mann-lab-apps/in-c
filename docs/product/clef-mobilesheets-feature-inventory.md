@@ -98,8 +98,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Annotation | Editable PDF annotation embed | annotation page | rendered stamp export fallback은 있으나 standard editable annotation export는 unsupported | spike backlog `PDF 표준 Annotation Embed/Export` | Partially Implemented | compatibility fixture 필요 |
 | Music Tools | Metronome count-in/accent/subdivision/visual modes | utilities page | count-in, subdivision, accent, visual strip, Android native tick이 있다 | feature map `메트로놈` | Partially Implemented | 빠른 BPM 실제 오디오 균일성은 Device QA |
 | Music Tools | Metronome page turn after measures / multiple visual modes | utilities page | 자동 스크롤과 metronome은 있으나 마디 수 기반 page turn/LED-circle-edge mode 선택은 제한적 | feature map `메트로놈`, `자동 스크롤` | Partially Implemented | 과한 설정 노출은 Clef 컨셉과 충돌 가능 |
-| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 초 단위 A-B 반복이 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/markers/route/iOS parity는 남음 |
-| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원한다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline/iOS parity는 남음 |
+| Music Tools | Audio tracks / backing tracks | utilities page | linked audio import와 Android MediaPlayer 재생/정지, 초 단위 A-B 반복, 마지막 A/B 구간 저장/복원이 있다 | feature map `오디오 플레이어` | Partially Implemented | track list/route/iOS parity는 남음 |
+| Music Tools | A-B loop | utilities page | Android linked audio sheet에서 초 단위 A-B 반복을 지원하고 linked audio metadata에 마지막 구간을 저장한다 | feature map `A-B loop` | Partially Implemented | waveform/marker timeline, 여러 marker preset, iOS parity는 남음 |
 | Music Tools | Tempo change / pitch shift | utilities page | 없다 | feature map `tempo/pitch shift` | Not Implemented | DSP library/license 필요 |
 | Music Tools | Built-in chromatic tuner | 공식 자료에서는 MobileSheets chromatic tuner가 확인되지 않음 | Clef는 chromatic-only tuner와 pitch history chart가 있다 | feature map `튜너` | Implemented | Clef 차별점. 실제 정확도는 Device QA |
 | Music Tools | Drone / reference tone | MobileSheets 공식 주요 기능으로는 확인하지 못함 | Clef는 tuner A4 기준 공유 drone/tone이 있다 | feature map `기준음/드론` | Implemented | Clef 차별점. 음량은 Device QA |
@@ -140,7 +140,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
    same-library setlist sharing은 Clef에 없다.
 2. Text/ChordPro/docx: MobileSheets는 텍스트/ChordPro를 악보 유형으로 다루지만 Clef는 PDF/image 중심이다.
 3. Advanced external control: MIDI, face gesture, smart buttons, deeper touch action matrix는 없다.
-4. Advanced audio: A-B loop, tempo/pitch shift, track markers는 없다.
+4. Advanced audio: A-B loop는 linked audio별 마지막 구간 저장까지 지원하지만, tempo/pitch
+   shift, waveform marker timeline, 여러 track marker preset은 없다.
 5. Advanced annotation: custom stamps, nudge, snipping, multi-layer, editable PDF annotation export가 남아 있다.
 6. Desktop/companion workflow: PC companion app과 Wi-Fi transfer는 없다.
 7. Automatic crop/direct file management: manual crop과 internal copy policy, 기존 PDF CropBox 감지는
@@ -171,7 +172,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 ### v1.1 제품 기능 후보
 
 - 내용 기반 자동 crop 또는 더 강한 semi-auto crop.
-- advanced audio player: A-B loop와 track marker부터 시작.
+- advanced audio player: waveform marker timeline, 여러 A-B marker preset, tempo/pitch shift.
 - custom stamp import보다 먼저 stamp set 관리/검색.
 - field schema 확장: album/year/signature/source type을 Clef에 맞게 단순화.
 - help/support surface: icon glossary가 아니라 작업별 이름 메뉴와 짧은 도움말 중심.

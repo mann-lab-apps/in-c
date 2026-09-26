@@ -1652,11 +1652,13 @@ void main() {
       rating: 4,
       linkedFiles: <SheetLinkedFile>[
         SheetLinkedFile(
-          path: '/tmp/sonata-part.pdf',
-          type: 'pdf',
+          path: '/tmp/sonata-part.m4a',
+          type: 'm4a',
           label: 'Trumpet part',
           role: SheetLinkedFile.partRole,
           createdAt: now,
+          audioLoopStartMs: 1500,
+          audioLoopEndMs: 8200,
         ),
       ],
       customFields: const <SheetCustomMetadataField>[
@@ -1859,6 +1861,8 @@ void main() {
       backup.scores.single.linkedFiles.single.role,
       SheetLinkedFile.partRole,
     );
+    expect(backup.scores.single.linkedFiles.single.audioLoopStartMs, 1500);
+    expect(backup.scores.single.linkedFiles.single.audioLoopEndMs, 8200);
     expect(backup.scores.single.customFields.single.key, 'Publisher');
     expect(backup.scores.single.customFields.single.value, 'Mann Lab');
     expect(
@@ -1956,8 +1960,10 @@ void main() {
     expect(restoredScore.collection, 'Etudes');
     expect(restoredScore.group, 'Lesson A');
     expect(restoredScore.rating, 4);
-    expect(restoredScore.linkedFiles.single.path, '/tmp/sonata-part.pdf');
+    expect(restoredScore.linkedFiles.single.path, '/tmp/sonata-part.m4a');
     expect(restoredScore.linkedFiles.single.role, SheetLinkedFile.partRole);
+    expect(restoredScore.linkedFiles.single.audioLoopStartMs, 1500);
+    expect(restoredScore.linkedFiles.single.audioLoopEndMs, 8200);
     expect(restoredScore.customFields.single.value, 'Mann Lab');
     expect(
       restoredScore.viewerSettings.customPedalMapping['Space'],
