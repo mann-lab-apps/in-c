@@ -7,9 +7,10 @@
 - Historical source at this execution start: Clef & Staff, `lib/main.dart`,
   discovery home defaults to false, Android applicationId `com.mannlab.inc`,
   version `1.0.0+20`.
-- Current continuation source after R1/release prep: Android applicationId
-  `com.mannlab.clef`, source/app info `1.0.0+22`; latest archived Android
-  internal-test AAB is `1.0.0+24` and does not include post-24 source changes.
+- Current continuation source after later release prep: Android applicationId
+  `com.mannlab.clef`, source/app info `1.0.1+26`. Historical archived Android
+  internal-test AABs include `1.0.0+22` through `1.0.0+24`; always confirm the
+  actual installed build/version before using a tester result as current evidence.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
   installation is this source revision. No connected emulator at baseline.
 - No app builds, push, or merge authorized for this execution.
@@ -1284,6 +1285,28 @@ No app build performed; new changes have widget/source evidence only.
 - Boundary: the timing check measures Dart scheduling timestamps, not physical speaker or
   earphone output. Real metronome audibility, drone volume, Bluetooth/USB pedal behavior,
   stylus feel, tuner accuracy and long-session stability remain DEVICE QA.
-- Regression evidence: new model tests cover status/Markdown/path sanitization, key-input
-  reporting and timing PASS/WARN/FAIL classification; home menu smoke covers the named
-  entry point. Targeted tests PASS; full verification pending in this slice.
+- Regression evidence: model tests cover status/Markdown/path sanitization, key-input
+  reporting, timing PASS/WARN/FAIL classification and cancellable timing collection; home
+  menu smoke covers the named entry point. Full format/analyze/test/RC verification passed.
+- Integration checkpoint: PR #772 merged `dev` into `main` as
+  `15edba1ce6956611d103f3b315342e5dbefaa300`; GitHub `CI / test` and site build both
+  completed successfully after the merge.
+
+S66 VERIFIED LOCAL: the app status check timing measurement used a periodic timer directly in
+the sheet. Closing the sheet during a running measurement cancelled the timer but could leave
+the awaiting collection future unresolved. The fix extracts a small cancellable sampler so
+sheet disposal and repeat collection complete the pending timing future with an empty result.
+This is a QA-tool lifecycle fix only; actual metronome audio uniformity still remains DEVICE QA.
+
+S67 VERIFIED LOCAL: App Store screenshot review exposed debug-banner and blank-context captures.
+Source already sets `debugShowCheckedModeBanner: false` on `InCSheetApp`, but the submission
+flow needed a guard and a checklist. Added a widget smoke assertion for the Clef MaterialApp
+title/debug-banner setting and a store screenshot checklist that rejects debug ribbons, empty
+viewer/annotation/tuner context, path leakage and unclear iPhone/iPad compositions. Targeted
+widget test and analyze passed; actual App Store screenshot capture remains a manual release
+task.
+
+S68 DOCS VERIFIED: QA documents still mixed current source `1.0.1+26` with older archived
+AAB references like `1.0.0+22` and `1.0.0+24`. Updated the active RC plan, tester checklist
+and MobileSheets inventory to separate the current source version from historical build
+artifacts so tester reports include the actual installed build code.

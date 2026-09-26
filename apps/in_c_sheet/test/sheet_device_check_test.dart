@@ -18,6 +18,18 @@ void main() {
     expect(result.toCheckItem().details, contains('max jitter 0.0ms'));
   });
 
+  test(
+    'metronome timing sampler completes pending collection when cancelled',
+    () async {
+      final sampler = SheetDeviceCheckTimingSampler();
+
+      final pending = sampler.collect(bpm: 120, tickCount: 100);
+      sampler.cancel();
+
+      expect(await pending, isEmpty);
+    },
+  );
+
   test('metronome timing analyzer warns and fails on large jitter', () {
     final start = DateTime.utc(2026, 9, 26, 12);
     final warnTicks = <DateTime>[

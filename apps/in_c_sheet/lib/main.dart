@@ -4013,6 +4013,8 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
 
   final FocusNode _focusNode = FocusNode(debugLabel: 'Clef device check keys');
   final AudioRecorder _recorder = AudioRecorder();
+  final SheetDeviceCheckTimingSampler _timingSampler =
+      SheetDeviceCheckTimingSampler();
   SheetViewerInputDiagnosticEntry? _lastKeyEntry;
   SheetDeviceCheckItem _microphoneItem = const SheetDeviceCheckItem(
     id: 'microphone-permission',
@@ -4024,11 +4026,10 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
       <SheetMetronomeTimingAnalysis>[];
   bool _isCheckingMicrophone = false;
   bool _isCheckingTiming = false;
-  Timer? _timingTimer;
 
   @override
   void dispose() {
-    _timingTimer?.cancel();
+    _timingSampler.cancel();
     _focusNode.dispose();
     unawaited(_recorder.dispose());
     super.dispose();
@@ -4251,20 +4252,7 @@ class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
     int bpm, {
     required int tickCount,
   }) async {
-    final ticks = <DateTime>[];
-    final completer = Completer<List<DateTime>>();
-    final interval = Duration(milliseconds: (60000 / bpm).round());
-    _timingTimer?.cancel();
-    _timingTimer = Timer.periodic(interval, (timer) {
-      ticks.add(DateTime.now());
-      if (ticks.length >= tickCount) {
-        timer.cancel();
-        if (!completer.isCompleted) {
-          completer.complete(List<DateTime>.unmodifiable(ticks));
-        }
-      }
-    });
-    return completer.future;
+    return _timingSampler.collect(bpm: bpm, tickCount: tickCount);
   }
 
   Future<void> _checkMicrophonePermission() async {

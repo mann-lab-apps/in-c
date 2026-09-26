@@ -54,7 +54,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 
 ## 최신 배포 준비 (2026-09-13)
 
-- 소스 후보: `Clef & Staff` `1.0.0+22`, Android applicationId/namespace `com.mannlab.clef`.
+- 소스 후보: `Clef & Staff` `1.0.1+26`, Android applicationId/namespace `com.mannlab.clef`.
   in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
 - 이 문서의 과거 기록에는 `1.0.0+20`, `1.0.0+22`, `1.0.0+24` 산출물이 함께 남아 있다.
   QA 대상은 항상 앱 내 `테스트 정보`의 version/build, 설치 파일명, Play Console 업로드 code를
@@ -85,6 +85,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 - 메트로놈 빠른 BPM, 드론/기준음 음량, 튜너 정확도, 페달/키보드, S Pen, 큰 PDF, backup/restore의
   주요 항목이 `PASS`이거나 제한사항으로 명확히 고지되어 있다.
 - 스토어 개인정보/콘텐츠 등급/스크린샷/지원 URL/마케팅 URL/테스터 안내가 최신 상태다.
+  제출용 스크린샷은 `docs/qa/clef-store-screenshot-checklist.md`의 capture gate를 통과해야 한다.
 - 남은 항목이 v1.1 spike 또는 Later로 분류되어 있고 v1 blocker로 남아 있지 않다.
 
 ### 앱 상태 점검으로 줄일 수 있는 실기기 QA
@@ -98,6 +99,8 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 - 앱 이름, version/build, platform, OS, build mode.
 - 방향키/PageUp/PageDown/Space/Enter/페달 입력이 어떤 page-turn action으로 해석되는지.
 - 120/180/240 BPM 내부 metronome scheduling timestamp의 평균 간격과 최대 jitter.
+  측정 중 화면을 닫거나 다시 시작하면 진행 중인 내부 수집은 취소되며, 실제 클릭 소리 품질은
+  여전히 직접 들어서 확인한다.
 - 마이크 권한 상태.
 
 직접 확인으로 남는 항목:
