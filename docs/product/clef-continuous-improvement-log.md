@@ -1190,3 +1190,17 @@ No app build performed; new changes have widget/source evidence only.
 - Regression evidence: controller coverage checks playback context note propagation and
   widget smoke coverage keeps the progress badge rendering a note-bearing subtitle.
   Long-note distance readability remains DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Pedal Keyboard Substitute QA (2026-09-26)
+
+- Selected slice: strengthen the P0 pedal QA surrogate before requiring physical
+  Bluetooth/USB pedal time. MobileSheets-level external control still needs real
+  hardware QA, but the emulator can validate the keyboard/HID routing path.
+- Implementation intent: expand `sheet_viewer_input_test.dart` with a local keyboard
+  substitute matrix covering Arrow/Page/Space/Enter/Numpad Enter/Tab/Media keys,
+  shifted previous-page variants, input IDs and event consumption. This guards the
+  important behavior that direction keys turn pages instead of leaking through as
+  tiny PDF scrolls.
+- Regression boundary: this is local routing evidence only. Physical pedal pairing,
+  key repeat cadence, Bluetooth/USB transport quirks and setlist edge behavior on
+  real hardware remain DEVICE QA.

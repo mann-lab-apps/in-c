@@ -173,6 +173,163 @@ void main() {
     );
   });
 
+  test('covers local keyboard substitute matrix for pedal QA', () {
+    final cases =
+        <
+          ({
+            LogicalKeyboardKey key,
+            bool shift,
+            String inputId,
+            SheetViewerInputAction action,
+          })
+        >[
+          (
+            key: LogicalKeyboardKey.arrowRight,
+            shift: false,
+            inputId: 'ArrowRight',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.arrowDown,
+            shift: false,
+            inputId: 'ArrowDown',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.pageDown,
+            shift: false,
+            inputId: 'PageDown',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.space,
+            shift: false,
+            inputId: 'Space',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.enter,
+            shift: false,
+            inputId: 'Enter',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.numpadEnter,
+            shift: false,
+            inputId: 'Enter',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.tab,
+            shift: false,
+            inputId: 'Tab',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaTrackNext,
+            shift: false,
+            inputId: 'MediaNext',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaSkipForward,
+            shift: false,
+            inputId: 'MediaNext',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaStepForward,
+            shift: false,
+            inputId: 'MediaNext',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaSkip,
+            shift: false,
+            inputId: 'MediaNext',
+            action: SheetViewerInputAction.nextPage,
+          ),
+          (
+            key: LogicalKeyboardKey.arrowLeft,
+            shift: false,
+            inputId: 'ArrowLeft',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.arrowUp,
+            shift: false,
+            inputId: 'ArrowUp',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.pageUp,
+            shift: false,
+            inputId: 'PageUp',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.space,
+            shift: true,
+            inputId: 'Shift+Space',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.backspace,
+            shift: false,
+            inputId: 'Backspace',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.tab,
+            shift: true,
+            inputId: 'Shift+Tab',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaTrackPrevious,
+            shift: false,
+            inputId: 'MediaPrevious',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaSkipBackward,
+            shift: false,
+            inputId: 'MediaPrevious',
+            action: SheetViewerInputAction.previousPage,
+          ),
+          (
+            key: LogicalKeyboardKey.mediaStepBackward,
+            shift: false,
+            inputId: 'MediaPrevious',
+            action: SheetViewerInputAction.previousPage,
+          ),
+        ];
+
+    for (final entry in cases) {
+      final inputId = sheetViewerInputIdForKey(
+        key: entry.key,
+        isShiftPressed: entry.shift,
+      );
+      final action = resolveSheetViewerKeyAction(
+        key: entry.key,
+        isShiftPressed: entry.shift,
+      );
+
+      expect(inputId, entry.inputId, reason: entry.inputId);
+      expect(action, entry.action, reason: entry.inputId);
+      expect(
+        sheetViewerConsumesKeyEvent(
+          action: action,
+          pedalMapping: 'standard',
+          inputId: inputId,
+          customMapping: const <String, String>{},
+        ),
+        isTrue,
+        reason: entry.inputId,
+      );
+    }
+  });
+
   test('builds input diagnostic entries from key events', () {
     final entry = SheetViewerInputDiagnosticEntry.fromKeyEvent(
       event: const KeyDownEvent(

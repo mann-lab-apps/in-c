@@ -211,9 +211,11 @@
     안내와 파일 수가 표시되며, `확인`을 누를 때까지 읽을 수 있어야 한다.
 18. 색상 반전, 어두운 배경, crop mask, 페이지 숨김/회전 표시를 확인한다.
 19. 기본 viewer 배경이 악보 여백과 이질감 없이 paper/white 계열로 보이는지 확인한다.
-20. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow 키가 한 페이지씩 넘기고
-   PDF가 조금씩 스크롤되지 않는지 확인한다. 첫 page에서 이전, 마지막 page에서 다음을 누르면
-   `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
+20. hardware keyboard 또는 Bluetooth 페달이 있으면 Space/Page/Arrow/Enter/Tab/Media 키가
+   한 페이지씩 넘기고 PDF가 조금씩 스크롤되지 않는지 확인한다. 로컬 회귀 테스트는
+   같은 keyboard/HID 입력 경로를 대체 검증하지만, 실제 Bluetooth/USB 페달 pairing,
+   repeat cadence와 transport quirks는 DEVICE QA로 남긴다. 첫 page에서 이전, 마지막 page에서
+   다음을 누르면 `곡 처음` 또는 `곡 끝` 안내가 나와야 한다.
 21. 컬렉션/그룹/별점이 앱을 다시 열어도 유지되는지 확인한다.
 22. 연결 파일을 추가하고 role을 Full score/Part/Original 등으로 바꾼 뒤 viewer에서 전환한다.
 23. 리허설 마크를 추가/수정/삭제하고 quick jump로 이동한다.
@@ -226,7 +228,9 @@
     이동한다는 안내가 보이고 crash 없이 이동해야 한다.
 28. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
 29. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
-30. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.
+30. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter,
+    Numpad Enter, Tab, Shift+Tab, Media key action과 `동작 없음` 소비가 기대대로
+    동작하는지 확인한다.
 31. 큰 annotation layer가 있는 악보에서 필기 포함 PDF 공유 전 annotation 요약 안내가 표시되는지 확인한다.
 32. crop preset을 odd/even 또는 cover 제외로 적용한 뒤 페이지별 crop mask와 crop-to-fit이 맞는지 확인한다.
 33. metadata 백업/복원과 PDF 포함 전체 백업/복원 후 custom pedal, page별 crop, 세트리스트 예상 시간이 유지되는지 확인한다.

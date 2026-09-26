@@ -103,7 +103,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Music Tools | Built-in chromatic tuner | 공식 자료에서는 MobileSheets chromatic tuner가 확인되지 않음 | Clef는 chromatic-only tuner와 pitch history chart가 있다 | feature map `튜너` | Implemented | Clef 차별점. 실제 정확도는 Device QA |
 | Music Tools | Drone / reference tone | MobileSheets 공식 주요 기능으로는 확인하지 못함 | Clef는 tuner A4 기준 공유 drone/tone이 있다 | feature map `기준음/드론` | Implemented | Clef 차별점. 음량은 Device QA |
 | Music Tools | Recorder / music keyboard | Piascore에는 있으나 MobileSheets 공식 주요 기능으로는 확인 제한 | Clef에는 없다 | feature map `녹음기`, `음악 키보드` | Not Implemented | MobileSheets gap이라기보다 악보앱 확장 후보 |
-| External Control | Bluetooth/USB pedal action mapping | utilities page | key input/preset/custom mapping과 진단 로그가 있다 | feature map `Bluetooth 페달`, `페달 action mapping` | Needs Device QA | 실제 페달 장비 검증이 핵심 |
+| External Control | Bluetooth/USB pedal action mapping | utilities page | key input/preset/custom mapping, 진단 로그, 로컬 keyboard substitute matrix가 있다 | feature map `Bluetooth 페달`, `페달 action mapping` | Needs Device QA | 실제 페달 장비 pairing/repeat/transport 검증이 핵심 |
 | External Control | Touch action mapping | utilities page | tap zone hint와 action/pedal settings 일부가 있다 | feature map `전역 gesture/action 설정` | Partially Implemented | MobileSheets만큼 edge action matrix가 넓지는 않음 |
 | External Control | MIDI actions and registration linking | official site, utilities page, manual | 없다 | feature map `USB/Bluetooth MIDI`, `MIDI registration/linking` | Not Implemented | 키보드 연주자 파워유저 기능 |
 | External Control | Face gesture page turn | Google Play / official references | 없다 | feature map `face gesture page turn` | Not Implemented | camera/privacy 리스크 |
