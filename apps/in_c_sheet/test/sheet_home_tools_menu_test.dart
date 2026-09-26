@@ -79,6 +79,7 @@ void main() {
         await tester.tap(menu);
         await tester.pumpAndSettle();
         expect(find.text('보기/입력 기본값'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, '앱 상태 점검'), findsOneWidget);
         final helpMenuItem = find.widgetWithText(ListTile, '도움말/피드백');
         expect(helpMenuItem, findsOneWidget);
         expect(find.text('PDF 포함 전체 백업'), findsOneWidget);
@@ -90,6 +91,14 @@ void main() {
         expect(tester.takeException(), isNull, reason: 'viewer defaults');
         await capture('defaults');
         Navigator.of(tester.element(find.text('전역 보기/입력 기본값'))).pop();
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
+        await tester.pumpAndSettle();
+        await tester.tap(find.widgetWithText(ListTile, '앱 상태 점검'));
+        await tester.pumpAndSettle();
+        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
+        expect(tester.takeException(), isNull, reason: 'device check');
+        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();

@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
+import 'package:record/record.dart';
 import 'package:share_plus/share_plus.dart';
 
 import 'classical_discovery_app.dart';
@@ -19,6 +20,7 @@ import 'sheet_annotation.dart';
 import 'sheet_annotation_geometry.dart';
 import 'sheet_audio_player.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_device_check.dart';
 import 'sheet_file_import.dart';
 import 'sheet_half_page.dart';
 import 'sheet_library_backup.dart';
@@ -548,6 +550,15 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       showDragHandle: true,
       builder: (context) =>
           _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
+    );
+  }
+
+  Future<void> _showDeviceCheck() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _DeviceCheckSheet(appVersion: _clefAppVersion),
     );
   }
 
@@ -1642,6 +1653,8 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
         _openSetlists();
       case _LibraryToolsAction.viewerDefaults:
         await _showGlobalViewerDefaults();
+      case _LibraryToolsAction.deviceCheck:
+        await _showDeviceCheck();
       case _LibraryToolsAction.testerInfo:
         await _showTesterInfo();
       case _LibraryBackupAction():
@@ -1687,6 +1700,13 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                   child: ListTile(
                     leading: Icon(Icons.settings_applications_outlined),
                     title: Text('보기/입력 기본값'),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: _LibraryToolsAction.deviceCheck,
+                  child: ListTile(
+                    leading: Icon(Icons.health_and_safety_outlined),
+                    title: Text('앱 상태 점검'),
                   ),
                 ),
                 const PopupMenuItem(
@@ -2093,7 +2113,7 @@ String _globalViewerDisplayModeValue(SheetViewerSettings settings) {
 
 enum _LibrarySelectionAction { collection, edit, remove }
 
-enum _LibraryToolsAction { setlists, viewerDefaults, testerInfo }
+enum _LibraryToolsAction { setlists, viewerDefaults, deviceCheck, testerInfo }
 
 List<PopupMenuEntry<_LibraryBackupAction>> _libraryBackupMenuItems({
   bool enabled = true,
@@ -3976,6 +3996,511 @@ pageMetadataScores=$pageMetadataCount
     }
     return '필기 $strokeCount · 텍스트 $textCount · '
         '포인트 $pointCount · ${_formatBytes(estimatedBytes)}';
+  }
+}
+
+class _DeviceCheckSheet extends StatefulWidget {
+  const _DeviceCheckSheet({required this.appVersion});
+
+  final String appVersion;
+
+  @override
+  State<_DeviceCheckSheet> createState() => _DeviceCheckSheetState();
+}
+
+class _DeviceCheckSheetState extends State<_DeviceCheckSheet> {
+  static const _timingBpms = <int>[120, 180, 240];
+
+  final FocusNode _focusNode = FocusNode(debugLabel: 'Clef device check keys');
+  final AudioRecorder _recorder = AudioRecorder();
+  SheetViewerInputDiagnosticEntry? _lastKeyEntry;
+  SheetDeviceCheckItem _microphoneItem = const SheetDeviceCheckItem(
+    id: 'microphone-permission',
+    title: 'Tuner microphone permission',
+    status: SheetDeviceCheckStatus.notTested,
+    details: '마이크 권한 상태를 확인하지 않았습니다.',
+  );
+  final List<SheetMetronomeTimingAnalysis> _timingResults =
+      <SheetMetronomeTimingAnalysis>[];
+  bool _isCheckingMicrophone = false;
+  bool _isCheckingTiming = false;
+  Timer? _timingTimer;
+
+  @override
+  void dispose() {
+    _timingTimer?.cancel();
+    _focusNode.dispose();
+    unawaited(_recorder.dispose());
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final report = _report();
+    return SafeArea(
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: _handleKeyEvent,
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.health_and_safety_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Clef & Staff 앱 상태 점검',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '주요 기능이 기기에서 열리고 입력을 받는지 점검합니다. '
+              '결과는 사용자가 복사하거나 공유하기 전까지 외부로 전송되지 않습니다.',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 14),
+            _InfoRow(label: '앱', value: 'Clef & Staff'),
+            _InfoRow(label: '버전', value: widget.appVersion),
+            _InfoRow(label: '플랫폼', value: _platformLabel()),
+            _InfoRow(label: 'OS', value: _osVersionLabel()),
+            _InfoRow(label: '빌드 모드', value: _buildModeLabel()),
+            const SizedBox(height: 18),
+            _DeviceCheckActionCard(
+              title: '페이지 넘김 키 입력',
+              subtitle: _lastKeyEntry == null
+                  ? '방향키, PageUp/PageDown, Space, Enter 또는 페달을 눌러보세요.'
+                  : '${_lastKeyEntry!.inputId} · '
+                        '${_lastKeyEntry!.action.value}',
+              status: deviceCheckItemForKeyInput(_lastKeyEntry).status,
+              icon: Icons.keyboard_alt_outlined,
+            ),
+            const SizedBox(height: 10),
+            _DeviceCheckActionCard(
+              title: '메트로놈 타이밍 점검',
+              subtitle: _isCheckingTiming
+                  ? '120/180/240 BPM 내부 스케줄 간격을 측정하는 중입니다.'
+                  : _timingResults.isEmpty
+                  ? '실제 소리가 아니라 앱 내부 scheduling timestamp를 측정합니다.'
+                  : _timingResults
+                        .map(
+                          (result) =>
+                              '${result.bpm} BPM ${result.status.code} '
+                              'jitter ${result.maxJitterMs.toStringAsFixed(1)}ms',
+                        )
+                        .join(' · '),
+              status:
+                  _timingResults.any(
+                    (result) => result.status == SheetDeviceCheckStatus.fail,
+                  )
+                  ? SheetDeviceCheckStatus.fail
+                  : _timingResults.any(
+                      (result) => result.status == SheetDeviceCheckStatus.warn,
+                    )
+                  ? SheetDeviceCheckStatus.warn
+                  : _timingResults.length == _timingBpms.length
+                  ? SheetDeviceCheckStatus.pass
+                  : SheetDeviceCheckStatus.notTested,
+              icon: Icons.timer_outlined,
+              action: OutlinedButton.icon(
+                onPressed: _isCheckingTiming ? null : _runMetronomeTimingCheck,
+                icon: _isCheckingTiming
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.play_arrow),
+                label: Text(_isCheckingTiming ? '측정 중' : '타이밍 측정'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _DeviceCheckActionCard(
+              title: '튜너 마이크 권한',
+              subtitle: _microphoneItem.details,
+              status: _microphoneItem.status,
+              icon: Icons.mic_none_outlined,
+              action: OutlinedButton.icon(
+                onPressed: _isCheckingMicrophone
+                    ? null
+                    : _checkMicrophonePermission,
+                icon: _isCheckingMicrophone
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.mic_none_outlined),
+                label: Text(_isCheckingMicrophone ? '확인 중' : '권한 확인'),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              '직접 확인 필요',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            for (final item in _manualItems())
+              _DeviceCheckStatusTile(item: item),
+            const SizedBox(height: 18),
+            Text(
+              '결과',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            SelectableText(
+              report.toMarkdown(),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontFamily: 'monospace',
+              ),
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.icon(
+                  onPressed: () async {
+                    await Clipboard.setData(
+                      ClipboardData(text: report.toMarkdown()),
+                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('상태 점검 결과를 복사했습니다.')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.content_copy),
+                  label: const Text('결과 복사'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    try {
+                      await SharePlus.instance.share(
+                        ShareParams(
+                          subject: 'Clef & Staff 앱 상태 점검',
+                          text: report.toMarkdown(),
+                        ),
+                      );
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('점검 결과를 공유하지 못했습니다.')),
+                        );
+                      }
+                    }
+                  },
+                  icon: const Icon(Icons.ios_share),
+                  label: const Text('결과 공유'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    setState(() {
+      _lastKeyEntry = SheetViewerInputDiagnosticEntry.fromKeyEvent(
+        event: event,
+        isShiftPressed: HardwareKeyboard.instance.isShiftPressed,
+        pedalMapping: 'standard',
+        customMapping: const <String, String>{},
+      );
+    });
+    return KeyEventResult.handled;
+  }
+
+  Future<void> _runMetronomeTimingCheck() async {
+    setState(() {
+      _isCheckingTiming = true;
+      _timingResults.clear();
+    });
+    for (final bpm in _timingBpms) {
+      final ticks = await _collectTimingTicks(bpm, tickCount: 8);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _timingResults.add(analyzeMetronomeTiming(bpm: bpm, ticks: ticks));
+      });
+    }
+    if (mounted) {
+      setState(() => _isCheckingTiming = false);
+    }
+  }
+
+  Future<List<DateTime>> _collectTimingTicks(
+    int bpm, {
+    required int tickCount,
+  }) async {
+    final ticks = <DateTime>[];
+    final completer = Completer<List<DateTime>>();
+    final interval = Duration(milliseconds: (60000 / bpm).round());
+    _timingTimer?.cancel();
+    _timingTimer = Timer.periodic(interval, (timer) {
+      ticks.add(DateTime.now());
+      if (ticks.length >= tickCount) {
+        timer.cancel();
+        if (!completer.isCompleted) {
+          completer.complete(List<DateTime>.unmodifiable(ticks));
+        }
+      }
+    });
+    return completer.future;
+  }
+
+  Future<void> _checkMicrophonePermission() async {
+    setState(() => _isCheckingMicrophone = true);
+    try {
+      final allowed = await _recorder.hasPermission();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _microphoneItem = SheetDeviceCheckItem(
+          id: 'microphone-permission',
+          title: 'Tuner microphone permission',
+          status: allowed
+              ? SheetDeviceCheckStatus.pass
+              : SheetDeviceCheckStatus.warn,
+          details: allowed
+              ? '마이크 권한을 사용할 수 있습니다.'
+              : '마이크 권한이 없거나 아직 허용되지 않았습니다.',
+        );
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _microphoneItem = SheetDeviceCheckItem(
+          id: 'microphone-permission',
+          title: 'Tuner microphone permission',
+          status: SheetDeviceCheckStatus.warn,
+          details: '권한 상태를 확인하지 못했습니다: ${error.runtimeType}',
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingMicrophone = false);
+      }
+    }
+  }
+
+  SheetDeviceCheckReport _report() {
+    return SheetDeviceCheckReport(
+      appVersion: widget.appVersion,
+      platform: _platformLabel(),
+      osVersion: _osVersionLabel(),
+      buildMode: _buildModeLabel(),
+      checkedAt: DateTime.now(),
+      items: <SheetDeviceCheckItem>[
+        const SheetDeviceCheckItem(
+          id: 'app-launch',
+          title: 'App launch',
+          status: SheetDeviceCheckStatus.pass,
+          details: '앱 상태 점검 화면이 열렸습니다.',
+        ),
+        deviceCheckItemForKeyInput(_lastKeyEntry),
+        if (_timingResults.isEmpty)
+          for (final bpm in _timingBpms)
+            SheetDeviceCheckItem(
+              id: 'metronome-$bpm',
+              title: 'Metronome $bpm BPM',
+              status: SheetDeviceCheckStatus.notTested,
+              details: '타이밍 점검을 아직 실행하지 않았습니다.',
+            )
+        else
+          for (final result in _timingResults) result.toCheckItem(),
+        _microphoneItem,
+        ..._manualItems(),
+      ],
+      notes: '내부 timing은 실제 스피커/이어폰 출력 품질을 보장하지 않습니다.',
+    );
+  }
+
+  List<SheetDeviceCheckItem> _manualItems() {
+    return const <SheetDeviceCheckItem>[
+      SheetDeviceCheckItem(
+        id: 'pdf-viewer',
+        title: 'PDF viewer',
+        status: SheetDeviceCheckStatus.manual,
+        details: '사용자 악보를 열어 렌더링과 페이지 넘김을 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'annotation-tools',
+        title: 'Annotation tools',
+        status: SheetDeviceCheckStatus.manual,
+        details: '필기 도구 진입과 stylus 필기감은 직접 확인이 필요합니다.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'metronome-audio',
+        title: 'Real metronome audio',
+        status: SheetDeviceCheckStatus.manual,
+        details: '빠른 BPM 청감, 이어폰/스피커/Bluetooth 출력은 직접 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'drone-volume',
+        title: 'Drone volume',
+        status: SheetDeviceCheckStatus.manual,
+        details: '연습실과 실제 출력 경로에서 음량을 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'pedal-device',
+        title: 'Bluetooth/USB pedal',
+        status: SheetDeviceCheckStatus.manual,
+        details: '실제 페달 pairing과 반복 입력 cadence는 장비로 확인하세요.',
+      ),
+      SheetDeviceCheckItem(
+        id: 'tuner-accuracy',
+        title: 'Tuner accuracy',
+        status: SheetDeviceCheckStatus.manual,
+        details: '실제 악기/마이크/주변 소음 환경에서 확인하세요.',
+      ),
+    ];
+  }
+
+  static String _platformLabel() {
+    if (kIsWeb) {
+      return 'web';
+    }
+    return Platform.operatingSystem;
+  }
+
+  static String _osVersionLabel() {
+    if (kIsWeb) {
+      return 'web';
+    }
+    return Platform.operatingSystemVersion;
+  }
+
+  static String _buildModeLabel() {
+    if (kReleaseMode) {
+      return 'release';
+    }
+    if (kProfileMode) {
+      return 'profile';
+    }
+    return 'debug';
+  }
+}
+
+class _DeviceCheckActionCard extends StatelessWidget {
+  const _DeviceCheckActionCard({
+    required this.title,
+    required this.subtitle,
+    required this.status,
+    required this.icon,
+    this.action,
+  });
+
+  final String title;
+  final String subtitle;
+  final SheetDeviceCheckStatus status;
+  final IconData icon;
+  final Widget? action;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _DeviceCheckStatusChip(status: status),
+              ],
+            ),
+            if (action != null) ...[
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerLeft, child: action),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DeviceCheckStatusTile extends StatelessWidget {
+  const _DeviceCheckStatusTile({required this.item});
+
+  final SheetDeviceCheckItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.fact_check_outlined),
+      title: Text(item.title),
+      subtitle: Text(item.details),
+      trailing: _DeviceCheckStatusChip(status: item.status),
+    );
+  }
+}
+
+class _DeviceCheckStatusChip extends StatelessWidget {
+  const _DeviceCheckStatusChip({required this.status});
+
+  final SheetDeviceCheckStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = switch (status) {
+      SheetDeviceCheckStatus.pass => colorScheme.primaryContainer,
+      SheetDeviceCheckStatus.warn => colorScheme.tertiaryContainer,
+      SheetDeviceCheckStatus.fail => colorScheme.errorContainer,
+      SheetDeviceCheckStatus.manual => colorScheme.secondaryContainer,
+      SheetDeviceCheckStatus.notTested => colorScheme.surfaceContainerHighest,
+    };
+    return Chip(
+      label: Text(status.koreanLabel),
+      backgroundColor: color,
+      visualDensity: VisualDensity.compact,
+    );
   }
 }
 

@@ -1269,3 +1269,21 @@ No app build performed; new changes have widget/source evidence only.
 - Regression evidence: widget smoke covers the quick preset controls and verifies that
   one tap updates all four crop margins. Real scan detection, per-page automatic margins
   and edge-detection quality remain future work.
+
+## Device QA Burden Reduction: App Status Check (2026-09-26)
+
+- Selected slice: reduce the recurring 10-15 minute manual pre-distribution check
+  without creating a separate QA app or uploading diagnostics automatically. Clef now
+  exposes `앱 상태 점검` from the home `메뉴` as a user-safe support/diagnostic surface.
+- Implementation intent: keep the feature inside the real app code path while avoiding
+  destructive actions and user-data writes. The sheet records app/version/platform/OS/build
+  mode, captures page-turn key input, measures internal metronome scheduling timing for
+  120/180/240 BPM, checks microphone permission on demand, and generates Markdown/JSON
+  that can be copied or shared by the user. Results sanitize local file paths and are not
+  sent anywhere automatically.
+- Boundary: the timing check measures Dart scheduling timestamps, not physical speaker or
+  earphone output. Real metronome audibility, drone volume, Bluetooth/USB pedal behavior,
+  stylus feel, tuner accuracy and long-session stability remain DEVICE QA.
+- Regression evidence: new model tests cover status/Markdown/path sanitization, key-input
+  reporting and timing PASS/WARN/FAIL classification; home menu smoke covers the named
+  entry point. Targeted tests PASS; full verification pending in this slice.
