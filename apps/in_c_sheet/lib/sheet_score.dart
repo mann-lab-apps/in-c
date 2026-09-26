@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'sheet_annotation.dart';
 import 'sheet_auto_scroll.dart';
+import 'sheet_file_import.dart';
 import 'sheet_metronome.dart';
 
 Map<String, Object?>? _asJsonMap(Object? value) {
@@ -2067,20 +2068,30 @@ class SheetLinkedFile {
     final createdAt = json['createdAt'] is String
         ? DateTime.tryParse(json['createdAt'] as String) ?? DateTime(1970)
         : DateTime(1970);
+    final normalizedType = _normalizeType(type);
+    final canStoreAudioLoop = _canStoreAudioLoop(
+      path: path,
+      type: normalizedType,
+      rawType: type,
+    );
     return SheetLinkedFile(
       path: path,
-      type: _normalizeType(type),
+      type: normalizedType,
       label: label.trim().isEmpty ? _fallbackLabel(path) : label.trim(),
       role: _normalizeRole(role),
       createdAt: createdAt,
-      audioLoopStartMs: _normalizeAudioLoopStartMs(
-        json['audioLoopStartMs'],
-        json['audioLoopEndMs'],
-      ),
-      audioLoopEndMs: _normalizeAudioLoopEndMs(
-        json['audioLoopStartMs'],
-        json['audioLoopEndMs'],
-      ),
+      audioLoopStartMs: canStoreAudioLoop
+          ? _normalizeAudioLoopStartMs(
+              json['audioLoopStartMs'],
+              json['audioLoopEndMs'],
+            )
+          : null,
+      audioLoopEndMs: canStoreAudioLoop
+          ? _normalizeAudioLoopEndMs(
+              json['audioLoopStartMs'],
+              json['audioLoopEndMs'],
+            )
+          : null,
     );
   }
 
@@ -2110,14 +2121,21 @@ class SheetLinkedFile {
     bool clearAudioLoop = false,
   }) {
     final nextPath = (path ?? this.path).trim();
+    final rawNextType = type ?? this.type;
+    final nextType = _normalizeType(rawNextType);
     final nextLabel = (label ?? this.label).trim();
-    final nextAudioLoopStartMs = clearAudioLoop
+    final canStoreAudioLoop = _canStoreAudioLoop(
+      path: nextPath,
+      type: nextType,
+      rawType: rawNextType,
+    );
+    final nextAudioLoopStartMs = clearAudioLoop || !canStoreAudioLoop
         ? null
         : _normalizeAudioLoopStartMs(
             audioLoopStartMs ?? this.audioLoopStartMs,
             audioLoopEndMs ?? this.audioLoopEndMs,
           );
-    final nextAudioLoopEndMs = clearAudioLoop
+    final nextAudioLoopEndMs = clearAudioLoop || !canStoreAudioLoop
         ? null
         : _normalizeAudioLoopEndMs(
             audioLoopStartMs ?? this.audioLoopStartMs,
@@ -2125,7 +2143,7 @@ class SheetLinkedFile {
           );
     return SheetLinkedFile(
       path: nextPath,
-      type: _normalizeType(type ?? this.type),
+      type: nextType,
       label: nextLabel.isEmpty ? _fallbackLabel(nextPath) : nextLabel,
       role: _normalizeRole(role ?? this.role),
       createdAt: createdAt ?? this.createdAt,
@@ -2159,6 +2177,20 @@ class SheetLinkedFile {
   static String _normalizeType(String type) {
     final normalized = type.trim().toLowerCase();
     return normalized.isEmpty ? 'pdf' : normalized;
+  }
+
+  static bool _canStoreAudioLoop({
+    required String path,
+    required String type,
+    required String rawType,
+  }) {
+    if (SheetFileImportPolicy.isSupportedAudioExtension(type)) {
+      return true;
+    }
+    if (rawType.trim().isEmpty) {
+      return SheetFileImportPolicy.isSupportedAudioFileName(path);
+    }
+    return false;
   }
 
   static String _normalizeRole(String role) {

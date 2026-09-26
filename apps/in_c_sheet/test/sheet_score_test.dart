@@ -973,6 +973,49 @@ void main() {
     expect(fallbackLabel.label, 'cue.png');
   });
 
+  test('keeps audio loop markers only on linked audio files', () {
+    final audioFile = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/backing-track.m4a',
+      'type': 'm4a',
+      'label': 'Backing track',
+      'createdAt': '2026-09-26T10:00:00.000',
+      'audioLoopStartMs': 1500,
+      'audioLoopEndMs': 8200,
+    });
+    final audioFileWithoutType = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/click-track.mp3',
+      'type': '',
+      'label': 'Click track',
+      'createdAt': '2026-09-26T10:00:00.000',
+      'audioLoopStartMs': 2000,
+      'audioLoopEndMs': 5000,
+    });
+    final pdfFile = SheetLinkedFile.fromJson(<String, Object?>{
+      'path': '/tmp/full-score.pdf',
+      'type': 'pdf',
+      'label': 'Full score',
+      'createdAt': '2026-09-26T10:00:00.000',
+      'audioLoopStartMs': 1500,
+      'audioLoopEndMs': 8200,
+    });
+    final imageFile = audioFile.copyWith(
+      path: '/tmp/reference.png',
+      type: 'png',
+    );
+
+    expect(audioFile.audioLoopStartMs, 1500);
+    expect(audioFile.audioLoopEndMs, 8200);
+    expect(audioFile.copyWith(label: 'Band track').audioLoopStartMs, 1500);
+    expect(audioFileWithoutType.audioLoopStartMs, 2000);
+    expect(audioFileWithoutType.audioLoopEndMs, 5000);
+    expect(pdfFile.audioLoopStartMs, isNull);
+    expect(pdfFile.audioLoopEndMs, isNull);
+    expect(imageFile.audioLoopStartMs, isNull);
+    expect(imageFile.audioLoopEndMs, isNull);
+    expect(imageFile.toJson().containsKey('audioLoopStartMs'), isFalse);
+    expect(imageFile.toJson().containsKey('audioLoopEndMs'), isFalse);
+  });
+
   test('normalizes decimal JSON numbers in score metadata', () {
     final bookmark = SheetBookmark.fromJson(<String, Object?>{
       'pageNumber': 2.6,

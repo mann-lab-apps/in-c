@@ -1362,3 +1362,11 @@ engine. If saving the new loop fails, playback is blocked with an explicit retry
 rather than letting the user assume the marker was persisted. Targeted store/audio/widget
 tests passed, full 1,403-test suite passed, analyze passed, and RC release check passed.
 Actual speaker/earphone loop timing and route behavior remain DEVICE QA.
+
+S74 VERIFIED LOCAL: tightened the S73 linked audio metadata boundary before expanding audio
+features further. `SheetLinkedFile` now keeps A-B loop markers only when the linked file is
+an audio file; PDF/image linked files with stale or malformed loop fields are normalized
+without those markers, and changing an audio linked file to a non-audio type clears the loop.
+This keeps backup/restore metadata from making non-audio attachments look loopable while
+preserving marker edits across audio label/role changes. Targeted score/store/audio/widget
+tests passed, full 1,404-test suite passed, analyze passed, and RC release check passed.
