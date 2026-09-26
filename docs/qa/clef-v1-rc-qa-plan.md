@@ -54,7 +54,7 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 
 ## 최신 배포 준비 (2026-09-13)
 
-- 소스 후보: `Clef & Staff` `1.0.1+26`, Android applicationId/namespace `com.mannlab.clef`.
+- 소스 후보: `Clef & Staff` `1.0.1+27`, Android applicationId/namespace `com.mannlab.clef`.
   in C는 별도 앱이며, Clef 작업트리에서만 배포 식별자를 복구했다.
 - 이 문서의 과거 기록에는 `1.0.0+20`, `1.0.0+22`, `1.0.0+24` 산출물이 함께 남아 있다.
   QA 대상은 항상 앱 내 `테스트 정보`의 version/build, 설치 파일명, Play Console 업로드 code를

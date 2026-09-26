@@ -15,14 +15,20 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 
 - Clef & Staff Android applicationId/namespace는 `com.mannlab.clef`다. in C는 별도 앱이다.
 - 이 문서를 읽는 시점에는 반드시 앱 내 `테스트 정보`의 version/build와 설치 파일명을 함께 기록한다.
-  현재 Clef 개발선은 `1.0.1+26`까지 올라왔고, 과거 보관 AAB에는 `1.0.0+22`부터
+  현재 Clef 개발선은 `1.0.1+27`까지 올라왔고, 과거 보관 AAB에는 `1.0.0+22`부터
   `1.0.1+26`까지의 산출물이 섞여 있다. 새 내부테스트 배포는 Play Console에서
   미사용 versionCode를 확인한 뒤 새로 빌드한 산출물만 QA 대상으로 삼는다.
 - 서명 파일 누락과 디버그 키를 사용한 검증은 의도대로 실패했고, 기존 Clef 업로드 키 검증은 통과했다.
 - `android/`에서 `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`로
   앱 빌드 없이 서명을 재확인할 수 있다. 키 파일은 git에 포함하지 않는다.
-- 이번 준비 작업에서는 APK/AAB/iOS 빌드를 하지 않았다. 아래 20번 산출물은 과거 기록이며,
-  최신 코드가 반영된 배포 파일이 아니다. 새 빌드 후 실제 경로/해시/버전/서명을 기록한다.
+- 이번 준비 작업에서는 최신 `1.0.1+27` Android AAB를 만들어 실기기 QA 대상으로 삼는다.
+  아래 20번 산출물은 과거 기록이며, 최신 코드가 반영된 배포 파일이 아니다. 새 빌드 후 실제
+  경로/해시/버전/서명을 기록한다.
+- 2026-09-26 `1.0.1+27` 실기기 QA 후보 AAB:
+  `apps/in_c_sheet/releases/clef-and-staff-1.0.1+27-release.aab`.
+  SHA-256: `1167bdf20c687fbce51775427d8356c5fea0eef561ba3532a56a71be21c3bc5f`.
+  `flutter build appbundle --release`와
+  `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`가 통과했다.
 - 새로운 소스의 실기기 메트로놈, 튜너, 페달, 스타일러스 품질은 별도 QA가 필요하다.
 - v1.x 낮은 위험 잔여 항목 중 최근 rail copy, 메트로놈 로컬 phase guard, 드론 음량 표시,
   PDF 공유는 코드/문서상 반영되어 있다. 거리 가독성, 빠른 BPM 청취감, 드론 체감 음량,
@@ -132,19 +138,22 @@ Repo 포함 fixture:
 
 ## 당일 실행 순서
 
-1. Android debug APK 설치 후 첫 실행, 테스트 정보 화면, 피드백 템플릿 복사를 확인한다.
-2. Android release APK 또는 AAB 설치 경로가 있으면 같은 smoke flow를 반복한다.
-3. iOS TestFlight 또는 local no-codesign build에서 Files open-in, PDF/JPG/PNG import, viewer
-   rotation/two-page rendering을 확인한다.
-4. PDF import/viewer/search/export/backup 기본 흐름을 `clef-v1-rc-qa-plan.md` 순서대로 실행한다.
-5. S Pen pressure, palm rejection, 필기/스크롤 충돌을 집중 확인한다.
-6. Bluetooth/USB 페달과 hardware keyboard를 연결해 predefined/custom/unknown inputId mapping을
+1. Android debug APK 또는 내부테스트 AAB 설치 후 첫 실행, 테스트 정보 화면, 피드백 템플릿 복사를
    확인한다.
-7. Cloud provider PDF를 online/offline 상태에서 가져오고 실패 문구를 기록한다.
-8. 실제 CamScanner/object-stream PDF에서 URL link count, sanitizer 결과, 원본 linked file 보존을
+2. Android release APK 또는 AAB 설치 경로가 있으면 같은 smoke flow를 반복한다.
+3. 홈 `메뉴` > `도움말/피드백`에서 마케팅/지원/개인정보 URL이 보이고 `앱 상태 점검 열기`로
+   바로 진단 화면에 들어가는지 확인한다. `결과 복사` 또는 `결과 공유`로 Markdown 결과를 남긴다.
+4. iOS TestFlight 또는 local no-codesign build에서 Files open-in, PDF/JPG/PNG import, viewer
+   rotation/two-page rendering을 확인한다.
+5. PDF import/viewer/search/export/backup 기본 흐름을 `clef-v1-rc-qa-plan.md` 순서대로 실행한다.
+6. S Pen pressure, palm rejection, 필기/스크롤 충돌을 집중 확인한다.
+7. Bluetooth/USB 페달과 hardware keyboard를 연결해 predefined/custom/unknown inputId mapping을
+   확인한다.
+8. Cloud provider PDF를 online/offline 상태에서 가져오고 실패 문구를 기록한다.
+9. 실제 CamScanner/object-stream PDF에서 URL link count, sanitizer 결과, 원본 linked file 보존을
    기록한다.
-9. 기준음/드론, local audio playback, tuner latency와 no-signal behavior를 기록한다.
-10. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
+10. 기준음/드론, local audio playback, tuner latency와 no-signal behavior를 기록한다.
+11. blocker/high/medium/low/v1.1 spike 기준으로 이슈를 분류하고 sample file 공유 가능 여부를 남긴다.
 
 ## 기록 양식
 

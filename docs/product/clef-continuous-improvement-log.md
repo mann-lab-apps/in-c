@@ -8,7 +8,7 @@
   discovery home defaults to false, Android applicationId `com.mannlab.inc`,
   version `1.0.0+20`.
 - Current continuation source after later release prep: Android applicationId
-  `com.mannlab.clef`, source/app info `1.0.1+26`. Historical archived Android
+  `com.mannlab.clef`, source/app info `1.0.1+27`. Historical archived Android
   internal-test AABs include `1.0.0+22` through `1.0.0+24`; always confirm the
   actual installed build/version before using a tester result as current evidence.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
@@ -1320,3 +1320,18 @@ coverage extends the home named-menu widget test so the support URL and help-to-
 handoff are visible on phone/tablet/landscape and large text sizes. Actual emulator install
 and Device QA sheet tapping remain a local environment GAP until an ADB-visible emulator is
 available.
+
+S70 IN PROGRESS: Preparing the next Android internal-test AAB for 실기기 QA. Because
+`1.0.1+26` already exists in the archived AAB folder, source/app info and active QA docs
+were bumped to `1.0.1+27`. The device runbook now points testers through
+`도움말/피드백` -> `앱 상태 점검 열기` so the copied Markdown report includes version,
+platform, key input, internal metronome timing and microphone permission evidence before
+manual audio, pedal, stylus, tuner and long-session checks.
+
+S70 VERIFIED LOCAL: `1.0.1+27` AAB was built for Android 실기기 QA and archived at
+`apps/in_c_sheet/releases/clef-and-staff-1.0.1+27-release.aab`. SHA-256:
+`1167bdf20c687fbce51775427d8356c5fea0eef561ba3532a56a71be21c3bc5f`. Release signing
+verification passed with the recorded Clef Play upload certificate. Local validation covered
+format, analyze, targeted Device QA/help tests, full 1,398-test suite and the RC release
+check. Actual audio uniformity, drone loudness, tuner accuracy, Bluetooth/USB pedal, stylus
+feel and long-session behavior remain DEVICE QA.

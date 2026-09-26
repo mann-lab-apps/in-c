@@ -57,7 +57,7 @@ void main() {
 
   test('device check markdown omits absolute local paths', () {
     final report = SheetDeviceCheckReport(
-      appVersion: '1.0.1+26',
+      appVersion: '1.0.1+27',
       platform: 'android',
       osVersion: 'Android /Users/me/private-device',
       buildMode: 'debug',
@@ -81,7 +81,7 @@ void main() {
 
     final markdown = report.toMarkdown();
 
-    expect(markdown, contains('Clef & Staff 1.0.1+26'));
+    expect(markdown, contains('Clef & Staff 1.0.1+27'));
     expect(markdown, contains('Home: PASS'));
     expect(markdown, contains('Pedal: MANUAL'));
     expect(markdown, isNot(contains('/private/tmp')));
