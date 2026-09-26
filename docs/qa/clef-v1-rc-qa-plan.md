@@ -98,6 +98,8 @@ S49는 지연 시 건너뛴 타이머 주기를 반영하지 않아 강세가 �
 - 앱 이름, version/build, platform, OS, build mode.
 - 방향키/PageUp/PageDown/Space/Enter/페달 입력이 어떤 page-turn action으로 해석되는지.
 - 120/180/240 BPM 내부 metronome scheduling timestamp의 평균 간격과 최대 jitter.
+  측정 중 화면을 닫거나 다시 시작하면 진행 중인 내부 수집은 취소되며, 실제 클릭 소리 품질은
+  여전히 직접 들어서 확인한다.
 - 마이크 권한 상태.
 
 직접 확인으로 남는 항목:

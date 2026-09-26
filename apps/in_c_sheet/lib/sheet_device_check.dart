@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'sheet_metronome.dart';
 import 'sheet_viewer_input.dart';
@@ -162,6 +163,49 @@ class SheetMetronomeTimingAnalysis {
           'avg ${averageIntervalMs.toStringAsFixed(1)}ms, '
           'max jitter ${maxJitterMs.toStringAsFixed(1)}ms',
     );
+  }
+}
+
+class SheetDeviceCheckTimingSampler {
+  Timer? _timer;
+  Completer<List<DateTime>>? _pending;
+
+  Future<List<DateTime>> collect({required int bpm, required int tickCount}) {
+    cancel();
+    if (tickCount <= 0) {
+      return Future<List<DateTime>>.value(const <DateTime>[]);
+    }
+
+    final ticks = <DateTime>[];
+    final completer = Completer<List<DateTime>>();
+    _pending = completer;
+    final interval = Duration(
+      milliseconds: (60000 / SheetMetronomeSettings.clampBpm(bpm)).round(),
+    );
+    _timer = Timer.periodic(interval, (timer) {
+      ticks.add(DateTime.now());
+      if (ticks.length >= tickCount) {
+        timer.cancel();
+        if (identical(_pending, completer)) {
+          _timer = null;
+          _pending = null;
+        }
+        if (!completer.isCompleted) {
+          completer.complete(List<DateTime>.unmodifiable(ticks));
+        }
+      }
+    });
+    return completer.future;
+  }
+
+  void cancel() {
+    _timer?.cancel();
+    _timer = null;
+    final pending = _pending;
+    _pending = null;
+    if (pending != null && !pending.isCompleted) {
+      pending.complete(const <DateTime>[]);
+    }
   }
 }
 

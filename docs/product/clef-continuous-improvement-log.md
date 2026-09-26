@@ -1284,6 +1284,15 @@ No app build performed; new changes have widget/source evidence only.
 - Boundary: the timing check measures Dart scheduling timestamps, not physical speaker or
   earphone output. Real metronome audibility, drone volume, Bluetooth/USB pedal behavior,
   stylus feel, tuner accuracy and long-session stability remain DEVICE QA.
-- Regression evidence: new model tests cover status/Markdown/path sanitization, key-input
-  reporting and timing PASS/WARN/FAIL classification; home menu smoke covers the named
-  entry point. Targeted tests PASS; full verification pending in this slice.
+- Regression evidence: model tests cover status/Markdown/path sanitization, key-input
+  reporting, timing PASS/WARN/FAIL classification and cancellable timing collection; home
+  menu smoke covers the named entry point. Full format/analyze/test/RC verification passed.
+- Integration checkpoint: PR #772 merged `dev` into `main` as
+  `15edba1ce6956611d103f3b315342e5dbefaa300`; GitHub `CI / test` and site build both
+  completed successfully after the merge.
+
+S66 VERIFIED LOCAL: the app status check timing measurement used a periodic timer directly in
+the sheet. Closing the sheet during a running measurement cancelled the timer but could leave
+the awaiting collection future unresolved. The fix extracts a small cancellable sampler so
+sheet disposal and repeat collection complete the pending timing future with an empty result.
+This is a QA-tool lifecycle fix only; actual metronome audio uniformity still remains DEVICE QA.
