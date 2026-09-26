@@ -1204,3 +1204,17 @@ No app build performed; new changes have widget/source evidence only.
 - Regression boundary: this is local routing evidence only. Physical pedal pairing,
   key repeat cadence, Bluetooth/USB transport quirks and setlist edge behavior on
   real hardware remain DEVICE QA.
+
+## MobileSheets Priority Follow-Up: Setlist Append/Merge (2026-09-26)
+
+- Selected slice: add a small MobileSheets-inspired setlist merge flow without copying
+  its dense management UI. Clef now lets a performer append another setlist to the
+  current setlist from the setlist detail toolbar.
+- Implementation intent: reuse the existing setlist save path and bulk-add policy.
+  Added songs keep source order; duplicates are skipped; library-missing songs are
+  skipped; newly appended songs carry source start page, note, duration and per-song
+  metronome override. Duplicate songs keep the target setlist's existing performance
+  settings.
+- Regression evidence: controller tests cover duplicates, missing songs, source/target
+  deletion and performance-setting transfer; widget smoke covers the toolbar action and
+  bottom-sheet selection. Actual long concert merge review remains DEVICE QA.

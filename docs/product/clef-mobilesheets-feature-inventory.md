@@ -84,7 +84,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Setlists / Collections | Collection management | official library page | collection metadata, 필터, bulk 지정, `보기` snackbar가 있다 | feature map `collection` | Implemented | MobileSheets group tab 깊이와는 다름 |
 | Setlists / Collections | Recent setlists mixed with recent songs | user guide Recent tab, hands-on | `최근 악보`와 최근 세트리스트 rail을 분리해 제공 | hands-on analysis, quick access commit | Implemented | 의도적으로 구획 분리 |
 | Setlists / Collections | Per-song setlist settings | MobileSheets release/history and feature patterns | 세트리스트별 score metronome override, viewer/action preset override가 있다 | feature map `공연별 보기 preset override`, `메트로놈` | Implemented | 전체 MobileSheets 설정 범위보다는 작음 |
-| Setlists / Collections | Setlist merge | official library page | 목록 복사/복제는 있으나 merge 전용 UX는 없다 | feature map `세트리스트` | Not Implemented | 실제 사용 빈도를 본 뒤 결정 |
+| Setlists / Collections | Setlist merge | official library page | 세트리스트 상세에서 다른 세트리스트 이어붙이기를 지원한다 | feature map `세트리스트` | Implemented | 중복/누락 곡은 건너뛰고 새로 붙는 곡의 공연 메모/시간/시작쪽/메트로놈 설정을 가져온다 |
 | Setlists / Collections | Setlist/song notes display | user guide 목차 | 곡별 시작 쪽/시간/메모가 세트리스트 상세, 목록 복사, viewer context, 공연 진행 badge에 표시된다 | feature map, main.dart viewer notes | Implemented | 긴 메모의 실제 거리 가독성은 DEVICE QA |
 | Annotation | Pen/highlighter/text/eraser/stamps/shapes/arrows/hairpins/staff/grid | annotation page | 대응 도구 대부분이 있다 | feature map `주석` | Implemented | custom stamp pack 제외 |
 | Annotation | Large stamp library and user-provided stamps | annotation page | 기본 음악 stamp와 도형만 제공 | feature map `스탬프/기본 도형` | Partially Implemented | 사용자 stamp import는 없음 |

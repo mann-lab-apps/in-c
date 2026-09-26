@@ -5838,7 +5838,7 @@ class _SheetSetlistsScreenState extends State<SheetSetlistsScreen> {
   }
 }
 
-enum _SetlistDetailAction { copy, duplicate, rename, delete }
+enum _SetlistDetailAction { copy, append, duplicate, rename, delete }
 
 class SheetSetlistDetailScreen extends StatefulWidget {
   const SheetSetlistDetailScreen({
@@ -5994,6 +5994,68 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     final message = result.didAddAny
         ? '${result.addedCount}개 악보를 세트리스트에 추가했습니다.$skippedLabel${_setlistMissingScoreSuffix(result)}'
         : '이미 모두 세트리스트에 포함되어 있습니다.';
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  List<SheetSetlist> _appendCandidates(SheetSetlist currentSetlist) =>
+      controller.setlists
+          .where(
+            (candidate) =>
+                candidate.id != currentSetlist.id &&
+                candidate.scoreIds.isNotEmpty,
+          )
+          .toList(growable: false);
+
+  Future<void> _appendSetlist() async {
+    final currentSetlist = setlist;
+    final candidates = _appendCandidates(currentSetlist);
+    if (candidates.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('이어붙일 다른 세트리스트가 없습니다.')));
+      return;
+    }
+
+    final source = await showModalBottomSheet<SheetSetlist>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: _SetlistPickerSheet(title: '이어붙일 세트리스트', setlists: candidates),
+      ),
+    );
+    if (!mounted || source == null) {
+      return;
+    }
+    final result = await _trySetlistSave(
+      context,
+      () => controller.appendSetlistToSetlist(currentSetlist, source),
+    );
+    if (!mounted || result == null) {
+      return;
+    }
+    if (result.sourceMissing) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('가져올 세트리스트가 없어 이어붙이지 못했습니다.')),
+      );
+      return;
+    }
+    if (_showSetlistAddFailure(context, result)) return;
+
+    final skippedLabels = <String>[
+      if (result.skippedDuplicateCount > 0)
+        '이미 포함된 ${result.skippedDuplicateCount}개 제외',
+      if (result.skippedMissingCount > 0)
+        '라이브러리에 없는 ${result.skippedMissingCount}개 제외',
+    ];
+    final skippedLabel = skippedLabels.isEmpty
+        ? ''
+        : ' ${skippedLabels.join(', ')}.';
+    final message = result.didAddAny
+        ? '${result.addedCount}개 악보를 "${source.title}"에서 이어붙였습니다.$skippedLabel'
+        : skippedLabels.isEmpty
+        ? '이미 모두 세트리스트에 포함되어 있습니다.'
+        : '새로 추가된 악보가 없습니다.$skippedLabel';
     ScaffoldMessenger.of(context)
         .showSnackBar(SnackBar(content: Text(message)));
   }
@@ -6157,6 +6219,7 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
     }
     final scores = controller.scoresForSetlist(currentSetlist);
     final compactActions = MediaQuery.sizeOf(context).width < 720;
+    final canAppendSetlist = _appendCandidates(currentSetlist).isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -6189,6 +6252,11 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
               icon: const Icon(Icons.content_paste_go_outlined),
             ),
             IconButton(
+              tooltip: '다른 세트리스트 이어붙이기',
+              onPressed: canAppendSetlist ? _appendSetlist : null,
+              icon: const Icon(Icons.playlist_add_check),
+            ),
+            IconButton(
               tooltip: '세트리스트 복제',
               onPressed: _duplicateSetlist,
               icon: const Icon(Icons.content_copy),
@@ -6214,6 +6282,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                 switch (action) {
                   case _SetlistDetailAction.copy:
                     await _copySetlistText();
+                  case _SetlistDetailAction.append:
+                    await _appendSetlist();
                   case _SetlistDetailAction.duplicate:
                     await _duplicateSetlist();
                   case _SetlistDetailAction.rename:
@@ -6222,8 +6292,8 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                     await _deleteSetlist();
                 }
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(
+              itemBuilder: (_) => [
+                const PopupMenuItem(
                   value: _SetlistDetailAction.copy,
                   child: ListTile(
                     leading: Icon(Icons.content_paste_go_outlined),
@@ -6231,22 +6301,30 @@ class _SheetSetlistDetailScreenState extends State<SheetSetlistDetailScreen> {
                   ),
                 ),
                 PopupMenuItem(
+                  value: _SetlistDetailAction.append,
+                  enabled: canAppendSetlist,
+                  child: const ListTile(
+                    leading: Icon(Icons.playlist_add_check),
+                    title: Text('다른 세트리스트 이어붙이기'),
+                  ),
+                ),
+                PopupMenuItem(
                   value: _SetlistDetailAction.duplicate,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.content_copy),
                     title: Text('세트리스트 복제'),
                   ),
                 ),
                 PopupMenuItem(
                   value: _SetlistDetailAction.rename,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.edit_outlined),
                     title: Text('이름 변경'),
                   ),
                 ),
                 PopupMenuItem(
                   value: _SetlistDetailAction.delete,
-                  child: ListTile(
+                  child: const ListTile(
                     leading: Icon(Icons.delete_outline),
                     title: Text('삭제'),
                   ),
@@ -6419,6 +6497,90 @@ class _EmptySetlistDetail extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _SetlistPickerSheet extends StatefulWidget {
+  const _SetlistPickerSheet({required this.title, required this.setlists});
+
+  final String title;
+  final List<SheetSetlist> setlists;
+
+  @override
+  State<_SetlistPickerSheet> createState() => _SetlistPickerSheetState();
+}
+
+class _SetlistPickerSheetState extends State<_SetlistPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final normalizedQuery = _query.trim().toLowerCase();
+    final filteredSetlists = widget.setlists
+        .where(
+          (setlist) =>
+              normalizedQuery.isEmpty ||
+              setlist.title.toLowerCase().contains(normalizedQuery),
+        )
+        .toList(growable: false);
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            child: TextField(
+              onChanged: (value) {
+                setState(() {
+                  _query = value;
+                });
+              },
+              decoration: const InputDecoration(
+                hintText: '세트리스트 검색',
+                prefixIcon: Icon(Icons.search),
+              ),
+            ),
+          ),
+          if (filteredSetlists.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text('조건에 맞는 세트리스트가 없습니다.'),
+            )
+          else
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: filteredSetlists.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final setlist = filteredSetlists[index];
+                  return ListTile(
+                    leading: const Icon(Icons.queue_music),
+                    title: Text(setlist.title),
+                    subtitle: Text('${setlist.scoreIds.length}곡'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).pop(setlist),
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }

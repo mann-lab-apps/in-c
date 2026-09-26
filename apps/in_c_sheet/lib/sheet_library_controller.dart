@@ -24,12 +24,14 @@ class SheetSetlistBulkAddResult {
     required this.addedCount,
     required this.skippedDuplicateCount,
     this.targetMissing = false,
+    this.sourceMissing = false,
     this.skippedMissingCount = 0,
   });
 
   final int addedCount;
   final int skippedDuplicateCount;
   final bool targetMissing;
+  final bool sourceMissing;
   final int skippedMissingCount;
 
   bool get didAddAny => addedCount > 0;
@@ -2608,6 +2610,93 @@ class SheetLibraryController extends ChangeNotifier {
     }
     return SheetSetlistBulkAddResult(
       addedCount: addedCount,
+      skippedDuplicateCount: skippedDuplicateCount,
+      skippedMissingCount: skippedMissingCount,
+    );
+  }
+
+  Future<SheetSetlistBulkAddResult> appendSetlistToSetlist(
+    SheetSetlist target,
+    SheetSetlist source,
+  ) async {
+    final currentTarget = setlistByIdOrNull(target.id);
+    if (currentTarget == null) {
+      return const SheetSetlistBulkAddResult(
+        addedCount: 0,
+        skippedDuplicateCount: 0,
+        targetMissing: true,
+      );
+    }
+    final currentSource = setlistByIdOrNull(source.id);
+    if (currentSource == null) {
+      return const SheetSetlistBulkAddResult(
+        addedCount: 0,
+        skippedDuplicateCount: 0,
+        sourceMissing: true,
+      );
+    }
+
+    final validScoreIds = _scores.map((score) => score.id).toSet();
+    final existingScoreIds = currentTarget.scoreIds.toSet();
+    final nextScoreIds = currentTarget.scoreIds.toList();
+    final addedScoreIds = <String>[];
+    var skippedDuplicateCount = 0;
+    var skippedMissingCount = 0;
+
+    for (final scoreId in currentSource.scoreIds) {
+      if (!validScoreIds.contains(scoreId)) {
+        skippedMissingCount += 1;
+        continue;
+      }
+      if (existingScoreIds.add(scoreId)) {
+        nextScoreIds.add(scoreId);
+        addedScoreIds.add(scoreId);
+      } else {
+        skippedDuplicateCount += 1;
+      }
+    }
+
+    if (addedScoreIds.isNotEmpty) {
+      final nextStartPages = Map<String, int>.from(
+        currentTarget.scoreStartPages,
+      );
+      final nextNotes = Map<String, String>.from(currentTarget.scoreNotes);
+      final nextDurations = Map<String, int>.from(currentTarget.scoreDurations);
+      final nextMetronomeSettings = Map<String, SheetMetronomeSettings>.from(
+        currentTarget.scoreMetronomeSettings,
+      );
+      for (final scoreId in addedScoreIds) {
+        if (currentSource.scoreStartPages.containsKey(scoreId)) {
+          nextStartPages[scoreId] = currentSource.scoreStartPages[scoreId]!;
+        }
+        if (currentSource.scoreNotes.containsKey(scoreId)) {
+          nextNotes[scoreId] = currentSource.scoreNotes[scoreId]!;
+        }
+        if (currentSource.scoreDurations.containsKey(scoreId)) {
+          nextDurations[scoreId] = currentSource.scoreDurations[scoreId]!;
+        }
+        if (currentSource.scoreMetronomeSettings.containsKey(scoreId)) {
+          nextMetronomeSettings[scoreId] =
+              currentSource.scoreMetronomeSettings[scoreId]!;
+        }
+      }
+      await _replaceSetlist(
+        currentTarget.copyWith(
+          scoreIds: List<String>.unmodifiable(nextScoreIds),
+          scoreStartPages: Map<String, int>.unmodifiable(nextStartPages),
+          scoreNotes: Map<String, String>.unmodifiable(nextNotes),
+          scoreDurations: Map<String, int>.unmodifiable(nextDurations),
+          scoreMetronomeSettings:
+              Map<String, SheetMetronomeSettings>.unmodifiable(
+                nextMetronomeSettings,
+              ),
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+
+    return SheetSetlistBulkAddResult(
+      addedCount: addedScoreIds.length,
       skippedDuplicateCount: skippedDuplicateCount,
       skippedMissingCount: skippedMissingCount,
     );

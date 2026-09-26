@@ -1785,6 +1785,77 @@ void main() {
     );
   }
 
+  testWidgets('setlist detail appends another setlist from toolbar action', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(2560, 1600);
+    tester.view.devicePixelRatio = 2;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    final now = DateTime(2026, 9, 26, 10);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      SheetScore(
+        id: 'a',
+        title: 'Prelude',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/a.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+      SheetScore(
+        id: 'b',
+        title: 'Fugue',
+        composer: '',
+        tags: const [],
+        note: '',
+        filePath: '/tmp/b.pdf',
+        importedAt: now,
+        updatedAt: now,
+        lastOpenedAt: null,
+        lastPage: 1,
+        isFavorite: false,
+        bookmarks: const [],
+      ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+    final target = await controller.createSetlist('First half');
+    await controller.addScoreToSetlist(target, controller.scoreById('a'));
+    final source = await controller.createSetlist('Second half');
+    await controller.addScoreToSetlist(source, controller.scoreById('b'));
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SheetSetlistDetailScreen(
+          controller: controller,
+          setlistId: target.id,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('다른 세트리스트 이어붙이기'));
+    await tester.pumpAndSettle();
+    expect(find.text('이어붙일 세트리스트'), findsOneWidget);
+    await tester.tap(find.text('Second half'));
+    await tester.pumpAndSettle();
+
+    expect(controller.setlistById(target.id).scoreIds, ['a', 'b']);
+    expect(find.text('1개 악보를 "Second half"에서 이어붙였습니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('empty setlist detail exposes a single add action', (
     tester,
   ) async {
