@@ -63,6 +63,7 @@ MobileSheets 기능별 인벤토리와 Clef 반영 상태는
 | 보기 | 세로 스크롤 | 양쪽 기본 | MVP | 중간 | 3차 구현: `pdfrx` 기본 세로 연속 layout, 좁은 화면 기본값 |
 | 보기 | 가로 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 2차 구현: 1페이지 mode에서 가로 page layout. 첫 진입 tap zone hint와 `터치 영역 다시 보기` action으로 왼쪽 이전/가운데 메뉴/오른쪽 다음 영역을 안내 |
 | 보기 | 반 페이지 넘김 | 양쪽 기본 | MVP | 중간 | 5차 구현: 곡별 저장, visible viewport 기반 반 페이지 이동, 2페이지 보기와 동시 사용 제한 |
+| 보기 | 긴 PDF 페이지 탐색 | MobileSheets 지원 | V1.x | 낮음 | 구현됨: viewer `페이지 탐색`에서 현재/선택 page, slider, 쪽 번호 직접 이동, 숨김/복제/순서 제외 표시를 제공한다. 이동은 기존 visible-page 보정과 page order cursor를 재사용한다 |
 | 보기 | 확대/축소/이동 | 양쪽 기본 | MVP | 중간 | `pdfrx` 기본 동작. 8차에서 annotation overlay를 page rect 기준으로 보강 |
 | 보기 | 마지막 위치 저장 | 기본 기대 | MVP | 낮음 | per-score setting |
 | 보기 | 곡별 보기 설정 | MobileSheets 지원 | MVP | 중간 | 5차 구현: displayMode, halfPageTurn 저장. 좁은 화면 2페이지 fallback |

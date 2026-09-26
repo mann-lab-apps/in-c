@@ -7496,6 +7496,224 @@ Map<ShortcutActivator, Intent> _viewerKeyboardShortcutsFor(
   return shortcuts;
 }
 
+class _PagePickerSheet extends StatefulWidget {
+  const _PagePickerSheet({
+    required this.pageCount,
+    required this.currentPage,
+    required this.pageSummary,
+    required this.pageSettings,
+    required this.duplicateCounts,
+    required this.onGoToPage,
+  });
+
+  final int pageCount;
+  final int currentPage;
+  final String pageSummary;
+  final SheetPageSettings pageSettings;
+  final Map<int, int> duplicateCounts;
+  final ValueChanged<int> onGoToPage;
+
+  @override
+  State<_PagePickerSheet> createState() => _PagePickerSheetState();
+}
+
+class _PagePickerSheetState extends State<_PagePickerSheet> {
+  late int _selectedPage;
+  late final TextEditingController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedPage = _clampPage(widget.currentPage);
+    _pageController = TextEditingController(text: '$_selectedPage');
+  }
+
+  @override
+  void didUpdateWidget(covariant _PagePickerSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.pageCount != widget.pageCount ||
+        oldWidget.currentPage != widget.currentPage) {
+      _setSelectedPage(_clampPage(widget.currentPage));
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  int _clampPage(int page) => page.clamp(1, widget.pageCount).toInt();
+
+  void _setSelectedPage(int page) {
+    final next = _clampPage(page);
+    setState(() {
+      _selectedPage = next;
+      _pageController.text = '$next';
+      _pageController.selection = TextSelection.collapsed(
+        offset: _pageController.text.length,
+      );
+    });
+  }
+
+  void _submitTypedPage() {
+    final typed = int.tryParse(_pageController.text.trim());
+    _setSelectedPage(typed ?? _selectedPage);
+  }
+
+  void _goToSelectedPage() {
+    _submitTypedPage();
+    widget.onGoToPage(_selectedPage);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isSelectedPageHidden = widget.pageSettings.isHidden(_selectedPage);
+    final summary = widget.pageSummary.isEmpty
+        ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
+        : '${widget.pageSummary} · 원본 PDF는 그대로입니다.';
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '페이지 탐색',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(summary),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '현재 ${widget.currentPage}쪽 · 선택 $_selectedPage/${widget.pageCount}쪽',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 96,
+                  child: TextField(
+                    controller: _pageController,
+                    decoration: const InputDecoration(
+                      labelText: '쪽 번호',
+                      isDense: true,
+                    ),
+                    keyboardType: TextInputType.number,
+                    textInputAction: TextInputAction.go,
+                    onChanged: (value) {
+                      final typed = int.tryParse(value.trim());
+                      if (typed == null) return;
+                      final next = _clampPage(typed);
+                      if (next == _selectedPage) return;
+                      setState(() => _selectedPage = next);
+                    },
+                    onSubmitted: (_) => _goToSelectedPage(),
+                    onEditingComplete: _submitTypedPage,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                FilledButton(
+                  onPressed: _goToSelectedPage,
+                  child: const Text('이동'),
+                ),
+              ],
+            ),
+            if (isSelectedPageHidden)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '숨김 페이지는 가까운 보이는 쪽으로 이동합니다.',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            if (widget.pageCount > 1) ...[
+              const SizedBox(height: 8),
+              Slider(
+                value: _selectedPage.toDouble(),
+                min: 1,
+                max: widget.pageCount.toDouble(),
+                divisions: widget.pageCount <= 300
+                    ? widget.pageCount - 1
+                    : null,
+                label: '$_selectedPage쪽',
+                onChanged: (value) => _setSelectedPage(value.round()),
+              ),
+            ],
+            const SizedBox(height: 8),
+            SizedBox(
+              height: MediaQuery.sizeOf(context).height * 0.46,
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 96,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.2,
+                ),
+                itemCount: widget.pageCount,
+                itemBuilder: (context, index) {
+                  final page = index + 1;
+                  final isCurrent = page == widget.currentPage;
+                  final isSelected = page == _selectedPage;
+                  final isHidden = widget.pageSettings.isHidden(page);
+                  final duplicateCount = widget.duplicateCounts[page] ?? 0;
+                  final isOutsideOrder =
+                      widget.pageSettings.hasCustomPageOrder &&
+                      duplicateCount == 0;
+                  return OutlinedButton(
+                    onPressed: isHidden ? null : () => widget.onGoToPage(page),
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: isSelected || isCurrent
+                          ? theme.colorScheme.primaryContainer
+                          : null,
+                      foregroundColor: isHidden ? theme.disabledColor : null,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '$page',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                        if (isHidden)
+                          const Text('숨김', style: TextStyle(fontSize: 11))
+                        else if (duplicateCount > 1)
+                          Text(
+                            'x$duplicateCount',
+                            style: const TextStyle(fontSize: 11),
+                          )
+                        else if (isOutsideOrder)
+                          const Text('순서 제외', style: TextStyle(fontSize: 11))
+                        else if (isCurrent)
+                          const Text('현재', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class SheetViewerScreen extends StatefulWidget {
   const SheetViewerScreen({
     required this.controller,
@@ -11822,84 +12040,16 @@ setlist=$setlistLabel
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '페이지 탐색',
-                style: Theme.of(context).textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w900),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                pageSummary.isEmpty
-                    ? '원본 PDF는 그대로이고 앱 안 표시 설정만 반영됩니다.'
-                    : '$pageSummary · 원본 PDF는 그대로입니다.',
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: MediaQuery.sizeOf(context).height * 0.58,
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 96,
-                    mainAxisSpacing: 8,
-                    crossAxisSpacing: 8,
-                    childAspectRatio: 1.2,
-                  ),
-                  itemCount: pageCount,
-                  itemBuilder: (context, index) {
-                    final page = index + 1;
-                    final isCurrent =
-                        page == (_pageNumber ?? currentScore.lastPage);
-                    final isHidden = pageSettings.isHidden(page);
-                    final duplicateCount = duplicateCounts[page] ?? 0;
-                    final isOutsideOrder =
-                        pageSettings.hasCustomPageOrder && duplicateCount == 0;
-                    return OutlinedButton(
-                      onPressed: isHidden
-                          ? null
-                          : () {
-                              Navigator.of(context).pop();
-                              unawaited(_goToSheetPage(page));
-                            },
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: isCurrent
-                            ? Theme.of(context).colorScheme.primaryContainer
-                            : null,
-                        foregroundColor: isHidden
-                            ? Theme.of(context).disabledColor
-                            : null,
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            '$page',
-                            style: const TextStyle(fontWeight: FontWeight.w900),
-                          ),
-                          if (isHidden)
-                            const Text('숨김', style: TextStyle(fontSize: 11))
-                          else if (duplicateCount > 1)
-                            Text(
-                              'x$duplicateCount',
-                              style: const TextStyle(fontSize: 11),
-                            )
-                          else if (isOutsideOrder)
-                            const Text('순서 제외', style: TextStyle(fontSize: 11)),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+      builder: (context) => _PagePickerSheet(
+        pageCount: pageCount,
+        currentPage: _pageNumber ?? currentScore.lastPage,
+        pageSummary: pageSummary,
+        pageSettings: pageSettings,
+        duplicateCounts: duplicateCounts,
+        onGoToPage: (page) {
+          Navigator.of(context).pop();
+          unawaited(_goToSheetPage(page));
+        },
       ),
     );
   }
@@ -19003,6 +19153,35 @@ Widget buildAnnotationToolbarForTest() {
         onToggleLayerExport: () {},
         onSaveFavorite: () {},
         onApplyFavorite: () {},
+      ),
+    ),
+  );
+}
+
+@visibleForTesting
+Widget buildPagePickerSheetForTest({
+  int pageCount = 120,
+  int currentPage = 12,
+  SheetPageSettings pageSettings = const SheetPageSettings(
+    hiddenPages: <int>[5],
+    pageRotations: <int, int>{},
+    pageOrder: <int>[1, 2, 2, 3, 4],
+  ),
+  ValueChanged<int>? onGoToPage,
+}) {
+  final duplicateCounts = <int, int>{};
+  for (final page in pageSettings.effectivePageOrder(pageCount)) {
+    duplicateCounts[page] = (duplicateCounts[page] ?? 0) + 1;
+  }
+  return MaterialApp(
+    home: Scaffold(
+      body: _PagePickerSheet(
+        pageCount: pageCount,
+        currentPage: currentPage,
+        pageSummary: '숨김 ${pageSettings.hiddenPages.length}',
+        pageSettings: pageSettings,
+        duplicateCounts: duplicateCounts,
+        onGoToPage: onGoToPage ?? (_) {},
       ),
     ),
   );

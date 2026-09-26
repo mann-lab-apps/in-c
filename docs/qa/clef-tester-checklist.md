@@ -220,7 +220,9 @@
 24. crop preset을 모든 page/홀수짝수/cover 제외 scope로 저장하고 적용/삭제한다.
 25. page template에서 숨김/순서/빈 페이지/visibility preset 요약이 이해되는지 확인한다.
 26. 세트리스트 리허설 모드에서 곡별 시작 page와 메모가 viewer 진입에 반영되는지 확인한다.
-27. viewer의 페이지 탐색 grid에서 현재 page, 숨김 page, duplicate page 표시를 확인한다.
+27. viewer의 페이지 탐색에서 현재/선택 page 표시, slider, `쪽 번호` 직접 이동, 현재 page,
+    숨김 page, duplicate page 표시를 확인한다. 숨김 page 번호를 입력하면 가까운 보이는 쪽으로
+    이동한다는 안내가 보이고 crash 없이 이동해야 한다.
 28. 텍스트가 포함된 PDF에서 `PDF 본문 검색`으로 결과 page 이동, 이전/다음 결과, 검색어 지우기를 확인한다.
 29. 세트리스트를 복제하고 곡별 예상 시간/전환 시간/총 예상 시간이 보존되는지 확인한다.
 30. 페달 mapping을 `직접 설정`으로 바꾼 뒤 Space, Shift+Space, Arrow, Page, Enter, Tab, Media key action이 기대대로 동작하는지 확인한다.

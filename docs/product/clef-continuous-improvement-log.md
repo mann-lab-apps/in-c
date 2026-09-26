@@ -1166,3 +1166,16 @@ No app build performed; new changes have widget/source evidence only.
 - Documentation updated: MobileSheets inventory, RC QA plan, and device QA runbook now
   separate local evidence from DEVICE QA and remove stale metronome implementation wording.
   No app build, version bump, push, or merge was performed.
+
+## v1.x Long PDF Navigation Polish (2026-09-26)
+
+- Selected slice: MobileSheets-style long score navigation without adding thumbnails or a
+  new PDF engine. Existing `페이지 탐색` grid was useful for short scores but slow for
+  long songbooks.
+- Implementation intent: add current/selected page status, a page slider, and a `쪽 번호`
+  direct-jump field to the page picker sheet. Grid labels still show hidden, duplicated,
+  current and order-excluded pages. Actual movement continues through `_goToSheetPage`,
+  so hidden-page fallback, page-order cursor sync and page controls reuse existing paths.
+- Regression evidence: new widget smoke test covers long score direct jump, hidden page
+  guidance and out-of-range typed input clamping. Actual large-PDF touch feel remains
+  DEVICE QA.

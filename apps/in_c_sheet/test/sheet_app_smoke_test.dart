@@ -2254,6 +2254,38 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('page picker supports long score direct jump', (tester) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 24,
+        currentPage: 3,
+        pageSettings: const SheetPageSettings(
+          hiddenPages: <int>[5],
+          pageRotations: <int, int>{},
+          pageOrder: <int>[1, 2, 2, 3, 4, 6],
+        ),
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('현재 3쪽 · 선택 3/24쪽'), findsOneWidget);
+    expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('쪽 번호'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '5');
+    await tester.pump();
+    expect(find.text('숨김 페이지는 가까운 보이는 쪽으로 이동합니다.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '99');
+    await tester.pump();
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[24]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('annotation stamp picker exposes music rehearsal marks', (
     tester,
   ) async {
