@@ -44,6 +44,11 @@ import 'sheet_viewer_input.dart';
 
 const MethodChannel _sharedImportChannel = MethodChannel('clef/shared_imports');
 const String _clefAppVersion = '1.0.1+26';
+const String _clefMarketingUrl = 'https://in-c.mannlab.app/clef-and-staff/';
+const String _clefSupportUrl =
+    'https://in-c.mannlab.app/clef-and-staff/support.html';
+const String _clefPrivacyUrl =
+    'https://in-c.mannlab.app/clef-and-staff/privacy.html';
 const bool _launchInCDiscoveryHome =
     bool.fromEnvironment('IN_C_DISCOVERY_HOME') || appFlavor == 'inc';
 
@@ -545,12 +550,22 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
   }
 
   Future<void> _showTesterInfo() async {
+    var openDeviceCheck = false;
     await showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
-      builder: (context) =>
-          _TesterInfoSheet(appVersion: _clefAppVersion, controller: controller),
+      builder: (context) => _TesterInfoSheet(
+        appVersion: _clefAppVersion,
+        controller: controller,
+        onOpenDeviceCheck: () {
+          openDeviceCheck = true;
+          Navigator.of(context).pop();
+        },
+      ),
     );
+    if (openDeviceCheck && mounted) {
+      await _showDeviceCheck();
+    }
   }
 
   Future<void> _showDeviceCheck() async {
@@ -3771,10 +3786,15 @@ class _EmptyLibrary extends StatelessWidget {
 }
 
 class _TesterInfoSheet extends StatelessWidget {
-  const _TesterInfoSheet({required this.appVersion, required this.controller});
+  const _TesterInfoSheet({
+    required this.appVersion,
+    required this.controller,
+    this.onOpenDeviceCheck,
+  });
 
   final String appVersion;
   final SheetLibraryController controller;
+  final VoidCallback? onOpenDeviceCheck;
 
   static const List<String> _quickHelpItems = <String>[
     '악보 추가: PDF 또는 이미지를 가져온 뒤 정보 편집으로 제목/작곡가를 정리합니다.',
@@ -3804,6 +3824,18 @@ class _TesterInfoSheet extends StatelessWidget {
       appVersion: appVersion,
       debugSummary: _debugSummary(),
     );
+  }
+
+  Future<void> _copyToClipboard(
+    BuildContext context, {
+    required String text,
+    required String message,
+  }) async {
+    await Clipboard.setData(ClipboardData(text: text));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    }
   }
 
   String _debugSummary() {
@@ -3916,6 +3948,38 @@ pageMetadataScores=$pageMetadataCount
               title: Text(item),
             ),
           const SizedBox(height: 12),
+          if (onOpenDeviceCheck != null) ...[
+            FilledButton.icon(
+              onPressed: onOpenDeviceCheck,
+              icon: const Icon(Icons.health_and_safety_outlined),
+              label: const Text('앱 상태 점검 열기'),
+            ),
+            const SizedBox(height: 8),
+          ],
+          OutlinedButton.icon(
+            onPressed: () async {
+              await _copyToClipboard(
+                context,
+                text:
+                    'Marketing: $_clefMarketingUrl\nSupport: $_clefSupportUrl\nPrivacy: $_clefPrivacyUrl',
+                message: '심사/지원 URL을 복사했습니다.',
+              );
+            },
+            icon: const Icon(Icons.link),
+            label: const Text('심사/지원 URL 복사'),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            '지원 링크',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const _InfoRow(label: '마케팅 URL', value: _clefMarketingUrl),
+          const _InfoRow(label: '지원 URL', value: _clefSupportUrl),
+          const _InfoRow(label: '개인정보 URL', value: _clefPrivacyUrl),
+          const SizedBox(height: 18),
           _InfoRow(label: '앱', value: 'Clef & Staff'),
           _InfoRow(label: '버전', value: appVersion),
           const _InfoRow(label: '빌드', value: '내부 테스트 빌드'),
@@ -3950,12 +4014,11 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 14),
           FilledButton.icon(
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: feedbackTemplate()));
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('피드백 템플릿을 복사했습니다.')),
-                );
-              }
+              await _copyToClipboard(
+                context,
+                text: feedbackTemplate(),
+                message: '피드백 템플릿을 복사했습니다.',
+              );
             },
             icon: const Icon(Icons.content_copy),
             label: const Text('피드백 템플릿 복사'),
@@ -3963,12 +4026,11 @@ pageMetadataScores=$pageMetadataCount
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: () async {
-              await Clipboard.setData(ClipboardData(text: _debugSummary()));
-              if (context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('진단 요약을 복사했습니다.')));
-              }
+              await _copyToClipboard(
+                context,
+                text: _debugSummary(),
+                message: '진단 요약을 복사했습니다.',
+              );
             },
             icon: const Icon(Icons.bug_report_outlined),
             label: const Text('진단 요약 복사'),

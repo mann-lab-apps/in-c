@@ -1310,3 +1310,13 @@ S68 DOCS VERIFIED: QA documents still mixed current source `1.0.1+26` with older
 AAB references like `1.0.0+22` and `1.0.0+24`. Updated the active RC plan, tester checklist
 and MobileSheets inventory to separate the current source version from historical build
 artifacts so tester reports include the actual installed build code.
+
+S69 VERIFIED LOCAL: Device QA could not be exercised on the local Android emulator because
+`clef_rc_tablet_api35` did not attach to ADB in this session, but the in-app tester handoff
+still needed less friction. The `도움말/피드백` sheet now shows the App Store review/support
+URLs, copies the review URL bundle, and opens `앱 상태 점검` directly after closing the help
+sheet. No diagnostics are uploaded automatically; testers still choose copy/share. Regression
+coverage extends the home named-menu widget test so the support URL and help-to-device-check
+handoff are visible on phone/tablet/landscape and large text sizes. Actual emulator install
+and Device QA sheet tapping remain a local environment GAP until an ADB-visible emulator is
+available.

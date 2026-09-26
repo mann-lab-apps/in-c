@@ -107,8 +107,23 @@ void main() {
         expect(find.text('Clef & Staff 도움말/피드백'), findsOneWidget);
         expect(find.text('처음 쓰는 흐름'), findsOneWidget);
         expect(find.textContaining('악보 추가: PDF 또는 이미지를 가져온 뒤'), findsOneWidget);
+        await tester.scrollUntilVisible(
+          find.text('지원 링크'),
+          180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        expect(find.text('지원 링크'), findsOneWidget);
+        expect(find.text('심사/지원 URL 복사'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'tester info');
-        Navigator.of(tester.element(find.text('Clef & Staff 도움말/피드백'))).pop();
+        await tester.scrollUntilVisible(
+          find.text('앱 상태 점검 열기'),
+          -180,
+          scrollable: find.byType(Scrollable).last,
+        );
+        await tester.tap(find.text('앱 상태 점검 열기'));
+        await tester.pumpAndSettle();
+        expect(find.text('Clef & Staff 앱 상태 점검'), findsOneWidget);
+        Navigator.of(tester.element(find.text('Clef & Staff 앱 상태 점검'))).pop();
         await tester.pumpAndSettle();
         await tester.tap(menu);
         await tester.pumpAndSettle();
