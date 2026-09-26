@@ -158,10 +158,12 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 
 ### v1.x에 흡수할 만한 낮은 위험 기능
 
-- 최근 세트리스트/최근 악보 rail의 실기기 가독성 QA와 copy polish.
-- 메트로놈 빠른 BPM 실제 오디오 균일성 QA 후 scheduling 보정.
-- 드론 음량/출력 route QA 후 clipping 없는 gain 정책 조정.
-- PDF print/share intent가 실제 사용 요구로 올라오면 최소 print action 검토.
+| 항목 | 현재 처리 | 남은 확인 |
+| --- | --- | --- |
+| 최근 세트리스트/최근 악보 rail | `정보 정리 필요`, `최근 악보`, `최근 세트리스트`를 분리해 copy polish 완료. 최근 세트리스트는 진행 pill과 이어보기 곡명을 유지한다. | 휴대폰 세로, 태블릿 가로, 큰 글씨에서 거리 가독성은 실기기 QA. |
+| 메트로놈 빠른 BPM | Android native click output 재사용, start 전 prepare, count-in phase, delayed tick phase, stale callback guard는 로컬 테스트로 보강됨. | 실제 오디오 균일성은 120/180/240 BPM, 4/4/6/8, subdivision, 이어폰/스피커/Bluetooth 별 실기기 QA. 오디오 기준 native scheduler는 현 버전 범위 밖. |
+| 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
+| PDF print/share intent | 원본 PDF 공유와 필기 포함 PDF 공유는 구현됨. 전용 print action은 아직 명시 요구가 없다. | 사용자 요구가 올라오면 OS print/share sheet의 프린트 경로로 충분한지 먼저 확인하고, 별도 print action은 v1.1 후보로 검토. |
 
 ### v1.1 제품 기능 후보
 

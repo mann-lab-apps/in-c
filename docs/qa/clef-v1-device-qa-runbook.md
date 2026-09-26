@@ -11,18 +11,22 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 에뮬레이터에서 Codex가 사전에 재현/회귀 확인할 수 있는 항목은
 [`clef-v1-emulator-qa-tracker.md`](clef-v1-emulator-qa-tracker.md)에서 따로 관리한다.
 
-## 2026-09-13 다음 배포 준비
+## 2026-09-26 다음 배포 준비
 
 - Clef & Staff Android applicationId/namespace는 `com.mannlab.clef`다. in C는 별도 앱이다.
 - 이 문서를 읽는 시점에는 반드시 앱 내 `테스트 정보`의 version/build와 설치 파일명을 함께 기록한다.
-  현재 Clef 작업 브랜치의 소스 버전은 `1.0.0+22`이지만, 과거 보관 AAB에는 `1.0.0+24`도 있다.
-  새 내부테스트 배포는 Play Console에서 미사용 versionCode를 확인한 뒤 새로 빌드한 산출물만 QA 대상으로 삼는다.
+  현재 Clef 개발선은 `1.0.1+26`까지 올라왔고, 과거 보관 AAB에는 `1.0.0+22`부터
+  `1.0.1+26`까지의 산출물이 섞여 있다. 새 내부테스트 배포는 Play Console에서
+  미사용 versionCode를 확인한 뒤 새로 빌드한 산출물만 QA 대상으로 삼는다.
 - 서명 파일 누락과 디버그 키를 사용한 검증은 의도대로 실패했고, 기존 Clef 업로드 키 검증은 통과했다.
 - `android/`에서 `./gradlew :app:verifyClefReleaseSigning :app:validateSigningRelease`로
   앱 빌드 없이 서명을 재확인할 수 있다. 키 파일은 git에 포함하지 않는다.
 - 이번 준비 작업에서는 APK/AAB/iOS 빌드를 하지 않았다. 아래 20번 산출물은 과거 기록이며,
   최신 코드가 반영된 배포 파일이 아니다. 새 빌드 후 실제 경로/해시/버전/서명을 기록한다.
 - 새로운 소스의 실기기 메트로놈, 튜너, 페달, 스타일러스 품질은 별도 QA가 필요하다.
+- v1.x 낮은 위험 잔여 항목 중 최근 rail copy, 메트로놈 로컬 phase guard, 드론 음량 표시,
+  PDF 공유는 코드/문서상 반영되어 있다. 거리 가독성, 빠른 BPM 청취감, 드론 체감 음량,
+  전용 print action 필요성은 실기기/사용자 요구 확인 뒤 판정한다.
 
 ## 10-15분 RC Smoke 결과표
 

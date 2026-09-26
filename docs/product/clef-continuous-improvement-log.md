@@ -1143,3 +1143,26 @@ No app build performed; new changes have widget/source evidence only.
   add a short first-use flow for import, playing, tools and feedback.
 - This does not add an external help center, online support form or App Store support
   URL change. It is an in-app discoverability/polish slice only.
+
+## v1.x Low-Risk Residual Triage (2026-09-26)
+
+- Worktree: `/private/tmp/clef-low-risk-20260926`, branch `dev`, based on
+  `f5f5943 chore: bump Clef release to 1.0.1+26`.
+- Selected slice: close the remaining low-risk MobileSheets inventory items without
+  expanding scope into a native audio engine, scanner, or print subsystem.
+- Recent rail: copy polish is already in source (`정보 정리 필요`, `최근 악보`,
+  `최근 세트리스트`). Remaining work is device-distance readability QA on phone/tablet
+  and large text; no code change was needed in this slice.
+- Metronome: S46/S48/S49/S65 already cover native output reuse, count-in phase,
+  delayed timer phase, stale callback guards, output feedback, and prepare-before-play.
+  This is local scheduling evidence only. Fast-BPM audible uniformity remains DEVICE QA
+  across 120/180/240 BPM, meter/subdivision, and speaker/earphone/Bluetooth outputs.
+- Drone: volume percent is always visible and the clipping-safe 35% default/gain policy
+  remains unchanged. The small-volume report is still a device/output-route QA item, not
+  a confirmed reason to raise gain.
+- PDF print/share: original PDF share and annotated PDF share already exist. A dedicated
+  print action is deferred until a user explicitly needs it; first check whether the OS
+  share sheet print destination is enough.
+- Documentation updated: MobileSheets inventory, RC QA plan, and device QA runbook now
+  separate local evidence from DEVICE QA and remove stale metronome implementation wording.
+  No app build, version bump, push, or merge was performed.
