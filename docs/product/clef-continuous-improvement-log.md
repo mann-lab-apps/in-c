@@ -7,9 +7,10 @@
 - Historical source at this execution start: Clef & Staff, `lib/main.dart`,
   discovery home defaults to false, Android applicationId `com.mannlab.inc`,
   version `1.0.0+20`.
-- Current continuation source after R1/release prep: Android applicationId
-  `com.mannlab.clef`, source/app info `1.0.0+22`; latest archived Android
-  internal-test AAB is `1.0.0+24` and does not include post-24 source changes.
+- Current continuation source after later release prep: Android applicationId
+  `com.mannlab.clef`, source/app info `1.0.1+26`. Historical archived Android
+  internal-test AABs include `1.0.0+22` through `1.0.0+24`; always confirm the
+  actual installed build/version before using a tester result as current evidence.
 - The historical emulator analysis records `com.mannlab.clef`; do not assume that
   installation is this source revision. No connected emulator at baseline.
 - No app builds, push, or merge authorized for this execution.
@@ -1304,3 +1305,8 @@ title/debug-banner setting and a store screenshot checklist that rejects debug r
 viewer/annotation/tuner context, path leakage and unclear iPhone/iPad compositions. Targeted
 widget test and analyze passed; actual App Store screenshot capture remains a manual release
 task.
+
+S68 DOCS VERIFIED: QA documents still mixed current source `1.0.1+26` with older archived
+AAB references like `1.0.0+22` and `1.0.0+24`. Updated the active RC plan, tester checklist
+and MobileSheets inventory to separate the current source version from historical build
+artifacts so tester reports include the actual installed build code.

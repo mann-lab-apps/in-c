@@ -15,7 +15,8 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 - Clef 기준 커밋: `85d046a fix: clarify Clef home quick access sections`
 - Clef 앱: `Clef & Staff`
 - Android applicationId: `com.mannlab.clef`
-- Clef version: `1.0.0+25`
+- Clef inventory baseline version: `1.0.0+25`
+- Current continuation source checked later: `1.0.1+26`
 - MobileSheets 공식 자료 확인일: 2026-09-25
 - 직접 관찰 기준: `docs/product/clef-mobilesheets-hands-on-analysis.md`의
   MobileSheets Trial `3.9.43 (Build 647)` Android emulator 기록
