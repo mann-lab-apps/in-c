@@ -163,7 +163,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 
 | 항목 | 현재 처리 | 남은 확인 |
 | --- | --- | --- |
-| 최근 세트리스트/최근 악보 rail | `정보 정리 필요`, `최근 악보`, `최근 세트리스트`를 분리해 copy polish 완료. 최근 세트리스트는 진행 pill과 이어보기 곡명을 유지한다. | 휴대폰 세로, 태블릿 가로, 큰 글씨에서 거리 가독성은 실기기 QA. |
+| 최근 세트리스트/최근 악보 rail | `정보 정리 필요`는 악보 열기 rail이 아니라 별도 `정보 보강` 작업 패널로 분리했고, `최근 악보`, `최근 세트리스트`는 일반 열기 rail로 유지한다. 최근 세트리스트는 진행 pill과 이어보기 곡명을 유지한다. | 휴대폰 세로, 태블릿 가로, 큰 글씨에서 거리 가독성은 실기기 QA. |
 | 메트로놈 빠른 BPM | Android native click output 재사용, start 전 prepare, count-in phase, delayed tick phase, stale callback guard는 로컬 테스트로 보강됨. | 실제 오디오 균일성은 120/180/240 BPM, 4/4/6/8, subdivision, 이어폰/스피커/Bluetooth 별 실기기 QA. 오디오 기준 native scheduler는 현 버전 범위 밖. |
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
 | 긴 라이브러리 navigation | 12곡 이상 현재 목록에서 제목 첫 글자별 `빠른 찾기` sheet를 열어 해당 그룹의 악보를 바로 고를 수 있다. | MobileSheets식 edge alphabet scroll rail, user-configurable tabs, 음성 검색은 후속 후보. |

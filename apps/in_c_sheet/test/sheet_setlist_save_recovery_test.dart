@@ -320,7 +320,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(InCSheetApp(controller: controller));
       await tester.pumpAndSettle();
-      await tester.longPress(find.text('free').first);
+      await tester.longPress(find.text('free').last);
       await tester.pumpAndSettle();
       store.delayWrites = true;
       await _addSelected(tester, create: create);
@@ -341,7 +341,7 @@ void main() {
         addTearDown(tester.view.resetDevicePixelRatio);
         await tester.pumpWidget(InCSheetApp(controller: controller));
         await tester.pumpAndSettle();
-        await tester.longPress(find.text('free').first);
+        await tester.longPress(find.text('free').last);
         await tester.pumpAndSettle();
         store.failWrites = true;
         await _addSelected(tester, create: create);

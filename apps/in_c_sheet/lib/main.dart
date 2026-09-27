@@ -5056,17 +5056,6 @@ class _QuickAccessBand extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groups = <_QuickAccessGroup>[
-      if (!isSelecting)
-        _QuickAccessGroup(
-          label: '정보 정리 필요',
-          description: '제목/작곡가 등이 비어 있어요. 누르면 정보 편집.',
-          icon: Icons.edit_note,
-          scores: metadataReviewScores,
-          opensForEdit: true,
-          emphasized: true,
-          chipIcon: Icons.edit_note,
-          chipFooterLabel: (score) => '정보 편집',
-        ),
       _QuickAccessGroup(
         label: '고정',
         icon: Icons.push_pin,
@@ -5087,95 +5076,101 @@ class _QuickAccessBand extends StatelessWidget {
         chipIcon: Icons.history,
       ),
     ].where((group) => group.scores.isNotEmpty).toList(growable: false);
-    if (groups.isEmpty) {
+    final showMetadataReview = !isSelecting && metadataReviewScores.isNotEmpty;
+    if (groups.isEmpty && !showMetadataReview) {
       return const SizedBox.shrink();
     }
 
     final theme = Theme.of(context);
-    return SizedBox(
-      height: 208,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (context, groupIndex) {
-          final group = groups[groupIndex];
-          final groupColor = group.emphasized
-              ? theme.colorScheme.tertiaryContainer.withValues(alpha: 0.38)
-              : Colors.white;
-          final borderColor = group.emphasized
-              ? theme.colorScheme.tertiary.withValues(alpha: 0.58)
-              : theme.colorScheme.outlineVariant.withValues(alpha: 0.7);
-          final iconColor = group.emphasized
-              ? theme.colorScheme.tertiary
-              : theme.colorScheme.onSurfaceVariant;
-          return SizedBox(
-            width: 350,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: groupColor,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: borderColor),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(group.icon, size: 18, color: iconColor),
-                        const SizedBox(width: 6),
-                        Text(
-                          group.label,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            fontWeight: FontWeight.w900,
-                            color: group.emphasized
-                                ? theme.colorScheme.onTertiaryContainer
-                                : null,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showMetadataReview) ...[
+          _MetadataReviewBand(scores: metadataReviewScores, onEdit: onEdit),
+          if (groups.isNotEmpty) const SizedBox(height: 14),
+        ],
+        if (groups.isNotEmpty)
+          SizedBox(
+            height: 208,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemBuilder: (context, groupIndex) {
+                final group = groups[groupIndex];
+                return SizedBox(
+                  width: 350,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.colorScheme.outlineVariant.withValues(
+                          alpha: 0.7,
+                        ),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                group.icon,
+                                size: 18,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                group.label,
+                                style: theme.textTheme.labelLarge?.copyWith(
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
-                    ),
-                    if (group.description != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        group.description!,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
+                          if (group.description != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              group.description!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 6),
+                          Expanded(
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemBuilder: (context, scoreIndex) {
+                                final score = group.scores[scoreIndex];
+                                return _QuickAccessScoreChip(
+                                  score: score,
+                                  onOpen: onOpen,
+                                  isSelecting: isSelecting,
+                                  isSelected: selectedIds.contains(score.id),
+                                  onSelectionChanged: onSelectionChanged,
+                                  footerIcon: group.chipIcon,
+                                );
+                              },
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(width: 8),
+                              itemCount: group.scores.length,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                    const SizedBox(height: 6),
-                    Expanded(
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemBuilder: (context, scoreIndex) {
-                          final score = group.scores[scoreIndex];
-                          return _QuickAccessScoreChip(
-                            score: score,
-                            onOpen: group.opensForEdit ? onEdit : onOpen,
-                            isSelecting: isSelecting,
-                            isSelected: selectedIds.contains(score.id),
-                            onSelectionChanged: onSelectionChanged,
-                            footerIcon: group.chipIcon,
-                            footerLabel: group.chipFooterLabel?.call(score),
-                          );
-                        },
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(width: 8),
-                        itemCount: group.scores.length,
-                      ),
                     ),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
+              separatorBuilder: (context, index) => const SizedBox(width: 10),
+              itemCount: groups.length,
             ),
-          );
-        },
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-        itemCount: groups.length,
-      ),
+          ),
+      ],
     );
   }
 }
@@ -5186,20 +5181,91 @@ class _QuickAccessGroup {
     required this.icon,
     required this.scores,
     this.description,
-    this.opensForEdit = false,
-    this.emphasized = false,
     this.chipIcon,
-    this.chipFooterLabel,
   });
 
   final String label;
   final String? description;
   final IconData icon;
   final List<SheetScore> scores;
-  final bool opensForEdit;
-  final bool emphasized;
   final IconData? chipIcon;
-  final String Function(SheetScore score)? chipFooterLabel;
+}
+
+class _MetadataReviewBand extends StatelessWidget {
+  const _MetadataReviewBand({required this.scores, required this.onEdit});
+
+  final List<SheetScore> scores;
+  final ValueChanged<SheetScore> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colorScheme.tertiaryContainer.withValues(alpha: 0.32),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colorScheme.tertiary.withValues(alpha: 0.52)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.task_alt, color: colorScheme.tertiary, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '정보 정리 필요',
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '악보 열기 목록이 아니라 제목/작곡가를 보강할 작업입니다.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Chip(
+                  label: Text('${scores.length}개'),
+                  avatar: const Icon(Icons.edit_note, size: 16),
+                  visualDensity: VisualDensity.compact,
+                  backgroundColor: colorScheme.surface,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              height: 148,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemBuilder: (context, index) {
+                  return _MetadataReviewTaskCard(
+                    score: scores[index],
+                    onEdit: onEdit,
+                  );
+                },
+                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                itemCount: scores.length,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 String _scoreIdentitySubtitle(SheetScore score) {
@@ -5580,7 +5646,6 @@ class _QuickAccessScoreChip extends StatelessWidget {
     required this.isSelected,
     required this.onSelectionChanged,
     this.footerIcon,
-    this.footerLabel,
   });
 
   final SheetScore score;
@@ -5589,7 +5654,6 @@ class _QuickAccessScoreChip extends StatelessWidget {
   final bool isSelected;
   final ValueChanged<SheetScore> onSelectionChanged;
   final IconData? footerIcon;
-  final String? footerLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -5605,7 +5669,6 @@ class _QuickAccessScoreChip extends StatelessWidget {
             : score.isFavorite
             ? Icons.star
             : Icons.history);
-    final resolvedFooterLabel = footerLabel ?? openedLabel;
     return SizedBox(
       width: 176,
       height: 144,
@@ -5651,7 +5714,7 @@ class _QuickAccessScoreChip extends StatelessWidget {
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            resolvedFooterLabel,
+                            openedLabel,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: theme.textTheme.labelSmall,
@@ -5678,6 +5741,93 @@ class _QuickAccessScoreChip extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetadataReviewTaskCard extends StatelessWidget {
+  const _MetadataReviewTaskCard({required this.score, required this.onEdit});
+
+  final SheetScore score;
+  final ValueChanged<SheetScore> onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    return SizedBox(
+      width: 260,
+      child: Material(
+        color: colorScheme.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: colorScheme.tertiary.withValues(alpha: 0.42)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => onEdit(score),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.edit_note,
+                      size: 18,
+                      color: colorScheme.tertiary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        '정보 보강',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w900,
+                          color: colorScheme.tertiary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  score.displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _scoreIdentitySubtitle(score),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => onEdit(score),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('정보 편집'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

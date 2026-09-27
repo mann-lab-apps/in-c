@@ -1526,3 +1526,11 @@ remain unmapped so system volume is not stolen. The PDF viewer manual item repea
 reported key must turn pages rather than scroll the PDF surface. Targeted device-check tests,
 format, analyze and `git diff --check` passed. New build/device QA still needs to confirm the
 S92 route-scoped handler on the tablet.
+
+S94 VERIFIED LOCAL: user still found the home `정보 정리 필요` area too similar to normal
+score-opening rails. The metadata review section is now a separate task panel with `정보 보강`
+cards and explicit `정보 편집` buttons instead of reusing the quick-access score chip. `고정`,
+`즐겨찾기` and `최근 악보` remain regular score-opening rails. The metadata review smoke test
+now asserts the task-oriented copy and the layout no longer overflows at tablet size. Feature
+map, MobileSheets inventory and Device QA runbook were updated to describe the separated task
+panel.

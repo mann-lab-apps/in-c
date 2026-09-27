@@ -1261,7 +1261,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('long press score').first);
+    await tester.longPress(find.text('long press score').last);
     await tester.pumpAndSettle();
 
     expect(find.text('1개 선택'), findsOneWidget);
@@ -1324,7 +1324,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('bulk edit score').first);
+    await tester.longPress(find.text('bulk edit score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 정보 일괄 편집'));
     await tester.pumpAndSettle();
@@ -1432,7 +1432,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('delete me score').first);
+    await tester.longPress(find.text('delete me score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 라이브러리에서 제거'));
     await tester.pumpAndSettle();
@@ -1500,7 +1500,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('uncollected score').first);
+    await tester.longPress(find.text('uncollected score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보 컬렉션 지정'));
     await tester.pumpAndSettle();
@@ -1559,7 +1559,7 @@ void main() {
     await tester.pumpWidget(InCSheetApp(controller: controller));
     await tester.pumpAndSettle();
 
-    await tester.longPress(find.text('bulk setlist score').first);
+    await tester.longPress(find.text('bulk setlist score').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('선택 악보를 세트리스트에 추가'));
     await tester.pumpAndSettle();
@@ -1690,7 +1690,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('정보 정리 필요'), findsOneWidget);
-    expect(find.text('제목/작곡가 등이 비어 있어요. 누르면 정보 편집.'), findsOneWidget);
+    expect(find.text('악보 열기 목록이 아니라 제목/작곡가를 보강할 작업입니다.'), findsOneWidget);
+    expect(find.text('정보 보강'), findsOneWidget);
     expect(find.text('정보 편집'), findsOneWidget);
     expect(find.text('최근 악보'), findsOneWidget);
     expect(find.text('마지막으로 연 악보'), findsOneWidget);
