@@ -2867,6 +2867,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('linked audio sheet explains invalid A-B loop input', (
+    tester,
+  ) async {
+    final channel = const MethodChannel('clef/test_linked_audio_invalid_loop');
+    final calls = <MethodCall>[];
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          calls.add(call);
+          return null;
+        });
+    addTearDown(() {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, null);
+    });
+
+    await tester.pumpWidget(
+      buildLinkedAudioPlayerSheetForTest(channel: channel),
+    );
+
+    await tester.tap(find.widgetWithText(SwitchListTile, 'A-B 반복'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(0), 'intro');
+    await tester.enterText(find.byType(TextField).at(1), '8');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls, isEmpty);
+    expect(find.text('A-B 반복 구간은 초 단위 숫자로 입력해주세요.'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField).at(0), '9');
+    await tester.enterText(find.byType(TextField).at(1), '8');
+    await tester.tap(find.widgetWithText(FilledButton, '재생'));
+    await tester.pumpAndSettle();
+
+    expect(calls, isEmpty);
+    expect(find.text('B 끝은 A 시작보다 커야 합니다.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('linked audio sheet blocks playback when loop save fails', (
     tester,
   ) async {

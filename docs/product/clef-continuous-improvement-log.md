@@ -1415,3 +1415,11 @@ fixed the custom field dialog lifecycle by waiting for the dialog route to compl
 disposing text controllers. Targeted smoke tests cover single-score and bulk value reuse.
 Full 1,409-test suite, analyze and RC release check passed. No app build/version
 change/push/merge.
+
+S80 VERIFIED LOCAL: tightening the linked-audio A-B loop UX without adding waveform
+timelines or duration probing. Invalid loop input now reports the specific correction before
+playback starts: missing A/B values, non-numeric seconds, negative A start, or B not greater
+than A. This keeps the existing seconds-based loop model and prevents silent no-op playback
+attempts. Targeted linked-audio widget tests cover invalid input, save failure, clear failure,
+saved marker preload and playback arguments. Full 1,410-test suite, analyze and RC release
+check passed. No app build/version change/push/merge.

@@ -19026,6 +19026,13 @@ class _LinkedAudioPlayerSheet extends StatefulWidget {
       _LinkedAudioPlayerSheetState();
 }
 
+class _AudioLoopInputResult {
+  const _AudioLoopInputResult({required this.loop, required this.errorMessage});
+
+  final SheetAudioLoop? loop;
+  final String? errorMessage;
+}
+
 class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
   late final SheetAudioPlayer _player;
   late final TextEditingController _loopStartController;
@@ -19057,21 +19064,44 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     super.dispose();
   }
 
-  SheetAudioLoop? _readLoop() {
+  _AudioLoopInputResult _readLoopInput() {
     if (!_loopEnabled) {
-      return null;
+      return const _AudioLoopInputResult(loop: null, errorMessage: null);
     }
-    final startSeconds = double.tryParse(_loopStartController.text.trim());
-    final endSeconds = double.tryParse(_loopEndController.text.trim());
-    if (startSeconds == null ||
-        endSeconds == null ||
-        startSeconds < 0 ||
-        endSeconds <= startSeconds) {
-      return null;
+    final startText = _loopStartController.text.trim();
+    final endText = _loopEndController.text.trim();
+    if (startText.isEmpty || endText.isEmpty) {
+      return const _AudioLoopInputResult(
+        loop: null,
+        errorMessage: 'A 시작과 B 끝을 모두 입력해주세요.',
+      );
     }
-    return SheetAudioLoop(
-      start: Duration(milliseconds: (startSeconds * 1000).round()),
-      end: Duration(milliseconds: (endSeconds * 1000).round()),
+    final startSeconds = double.tryParse(startText);
+    final endSeconds = double.tryParse(endText);
+    if (startSeconds == null || endSeconds == null) {
+      return const _AudioLoopInputResult(
+        loop: null,
+        errorMessage: 'A-B 반복 구간은 초 단위 숫자로 입력해주세요.',
+      );
+    }
+    if (startSeconds < 0) {
+      return const _AudioLoopInputResult(
+        loop: null,
+        errorMessage: 'A 시작은 0초 이상이어야 합니다.',
+      );
+    }
+    if (endSeconds <= startSeconds) {
+      return const _AudioLoopInputResult(
+        loop: null,
+        errorMessage: 'B 끝은 A 시작보다 커야 합니다.',
+      );
+    }
+    return _AudioLoopInputResult(
+      loop: SheetAudioLoop(
+        start: Duration(milliseconds: (startSeconds * 1000).round()),
+        end: Duration(milliseconds: (endSeconds * 1000).round()),
+      ),
+      errorMessage: null,
     );
   }
 
@@ -19144,13 +19174,14 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
       });
       return;
     }
-    final loop = _readLoop();
-    if (_loopEnabled && loop == null) {
+    final loopInput = _readLoopInput();
+    if (loopInput.errorMessage != null) {
       setState(() {
-        _lastResult = SheetAudioPlaybackResult.failed('A-B 반복 구간을 확인해주세요.');
+        _lastResult = SheetAudioPlaybackResult.failed(loopInput.errorMessage!);
       });
       return;
     }
+    final loop = loopInput.loop;
     if (loop != null && !await _saveLoopIfNeeded(loop)) {
       if (!mounted) {
         return;
