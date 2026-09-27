@@ -520,6 +520,74 @@ void main() {
     });
   }
 
+  testWidgets('library quick index opens grouped title picker', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    final now = DateTime(2026, 9, 27);
+    final store = SheetLibraryStore();
+    await store.saveScores([
+      for (var index = 0; index < 6; index += 1)
+        SheetScore(
+          id: 'alpha-$index',
+          title: 'Alpha score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/alpha-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+      for (var index = 0; index < 6; index += 1)
+        SheetScore(
+          id: 'beta-$index',
+          title: 'Beta score $index',
+          composer: 'Composer',
+          tags: const <String>[],
+          note: '',
+          filePath: '/tmp/beta-$index.pdf',
+          importedAt: now,
+          updatedAt: now,
+          lastOpenedAt: null,
+          lastPage: 1,
+          isFavorite: false,
+          bookmarks: const <SheetBookmark>[],
+        ),
+    ]);
+    final controller = SheetLibraryController(store: store);
+    await controller.load();
+
+    await tester.pumpWidget(InCSheetApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    expect(find.text('빠른 찾기'), findsOneWidget);
+    expect(find.text('A 6'), findsOneWidget);
+    expect(find.text('B 6'), findsOneWidget);
+
+    await tester.tap(find.text('B 6'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('B 빠른 찾기'), findsOneWidget);
+    final sheet = find.byType(BottomSheet);
+    expect(
+      find.descendant(of: sheet, matching: find.text('Beta score 0')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: sheet, matching: find.text('Alpha score 5')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('untitled scores remain identifiable in library and setlist', (
     tester,
   ) async {

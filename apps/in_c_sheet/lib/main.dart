@@ -1934,6 +1934,10 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
                               onClearAll:
                                   controller.clearLibrarySearchAndFilters,
                             ),
+                            _LibraryQuickIndexBand(
+                              scores: scores,
+                              onOpen: _openScore,
+                            ),
                             if (!hasActiveLibraryCondition) ...[
                               const SizedBox(height: 10),
                               _LibraryFacetExplorer(
@@ -2061,6 +2065,135 @@ class _SheetLibraryScreenState extends State<SheetLibraryScreen> {
       ),
     );
   }
+}
+
+class _LibraryQuickIndexBand extends StatelessWidget {
+  const _LibraryQuickIndexBand({required this.scores, required this.onOpen});
+
+  final List<SheetScore> scores;
+  final ValueChanged<SheetScore> onOpen;
+
+  Future<void> _showGroup(
+    BuildContext context,
+    _LibraryIndexGroup group,
+  ) async {
+    final selected = await showModalBottomSheet<SheetScore>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: ListView.separated(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          itemBuilder: (context, index) {
+            if (index == 0) {
+              return ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: CircleAvatar(child: Text(group.label)),
+                title: Text('${group.label} 빠른 찾기'),
+                subtitle: Text('${group.scores.length}곡'),
+              );
+            }
+            final score = group.scores[index - 1];
+            return ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.description_outlined),
+              title: Text(
+                score.displayTitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                _scoreIdentitySubtitle(score),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () => Navigator.of(context).pop(score),
+            );
+          },
+          separatorBuilder: (context, index) => const Divider(height: 1),
+          itemCount: group.scores.length + 1,
+        ),
+      ),
+    );
+    if (selected != null) {
+      onOpen(selected);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (scores.length < 12) {
+      return const SizedBox.shrink();
+    }
+    final groups = _libraryIndexGroups(scores);
+    if (groups.length < 2) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        height: 42,
+        child: Row(
+          children: [
+            Text(
+              '빠른 찾기',
+              style: Theme.of(context).textTheme.labelLarge
+                  ?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final group in groups) ...[
+                      ActionChip(
+                        label: Text('${group.label} ${group.scores.length}'),
+                        onPressed: () => _showGroup(context, group),
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LibraryIndexGroup {
+  const _LibraryIndexGroup(this.label, this.scores);
+
+  final String label;
+  final List<SheetScore> scores;
+}
+
+List<_LibraryIndexGroup> _libraryIndexGroups(List<SheetScore> scores) {
+  final groups = <String, List<SheetScore>>{};
+  for (final score in scores) {
+    final label = _libraryIndexLabel(score);
+    groups.putIfAbsent(label, () => <SheetScore>[]).add(score);
+  }
+  return [
+    for (final entry in groups.entries)
+      _LibraryIndexGroup(entry.key, List<SheetScore>.unmodifiable(entry.value)),
+  ];
+}
+
+String _libraryIndexLabel(SheetScore score) {
+  final title = score.displayTitle.trim();
+  if (title.isEmpty) {
+    return '#';
+  }
+  final first = String.fromCharCode(title.runes.first).toUpperCase();
+  if (RegExp(r'^[0-9]').hasMatch(first)) {
+    return '#';
+  }
+  return first;
 }
 
 class _SearchField extends StatefulWidget {

@@ -1397,3 +1397,11 @@ new common fields. This keeps the lightweight custom-field model while making co
 library cleanup faster after import or bulk edit. Regression coverage targets the metadata
 dialog and bulk edit suggestion chips. Targeted smoke tests passed, full 1,407-test suite
 passed and analyze passed. Dedicated album/source-type tabs remain future work.
+
+S78 VERIFIED LOCAL: reducing the MobileSheets alphabet-list gap without adding an edge rail
+or configurable library tabs. Clef now shows a lightweight `빠른 찾기` band for current
+lists with at least 12 scores and multiple title initials. Each chip opens a grouped title
+picker so long libraries can jump to a score by first letter while keeping the existing
+search/facet/filter model unchanged. Regression coverage targets the quick-index chips
+and grouped picker. Targeted smoke passed, full 1,408-test suite passed and analyze
+passed. MobileSheets-style alphabet scroll rail and voice search remain future work.
