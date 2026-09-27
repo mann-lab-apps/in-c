@@ -18060,13 +18060,25 @@ class _AnnotationStampPickerSheet extends StatefulWidget {
 
 class _AnnotationStampPickerSheetState
     extends State<_AnnotationStampPickerSheet> {
+  static const _allCategoryLabel = '전체';
+
   String _query = '';
+  String _category = _allCategoryLabel;
 
   @override
   Widget build(BuildContext context) {
     final query = _query.trim().toLowerCase();
+    final categories = [
+      _allCategoryLabel,
+      ...{for (final stamp in _AnnotationStamp.values) stamp.categoryLabel},
+    ];
     final stamps = _AnnotationStamp.values
-        .where((stamp) => query.isEmpty || stamp.searchText.contains(query))
+        .where(
+          (stamp) =>
+              (_category == _allCategoryLabel ||
+                  stamp.categoryLabel == _category) &&
+              (query.isEmpty || stamp.searchText.contains(query)),
+        )
         .toList(growable: false);
 
     return ConstrainedBox(
@@ -18096,6 +18108,26 @@ class _AnnotationStampPickerSheetState
                 hintText: '이름, 역할, 기호 검색',
                 prefixIcon: Icon(Icons.search),
               ),
+            ),
+          ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Row(
+              children: [
+                for (final category in categories) ...[
+                  ChoiceChip(
+                    label: Text(category),
+                    selected: _category == category,
+                    onSelected: (_) {
+                      setState(() {
+                        _category = category;
+                      });
+                    },
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ],
             ),
           ),
           if (stamps.isEmpty)

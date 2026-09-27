@@ -1475,3 +1475,11 @@ performer can tell which backing track already has a practice loop before openin
 Regression coverage targets the linked-files editor subtitle. Targeted smoke passed, full
 1,413-test suite, analyze and RC release check passed. Actual loop timing and output route
 remain DEVICE QA. No app build/version change/push/merge.
+
+S88 VERIFIED LOCAL: tightening stamp discovery without adding custom stamp packs or a large
+asset library. The selected slice is category filtering in the existing stamp picker so
+performers can narrow built-in marks by rehearsal, repeat/ending and tempo-change roles
+without knowing the exact search keyword. Regression coverage extends the annotation stamp
+picker smoke test. Targeted smoke passed, full 1,413-test suite, analyze and RC release
+check passed. S Pen feel and palm rejection remain DEVICE QA. No app build/version
+change/push/merge.

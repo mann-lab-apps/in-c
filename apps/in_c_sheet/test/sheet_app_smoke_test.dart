@@ -2710,8 +2710,22 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('스탬프 선택'), findsWidgets);
+    expect(find.widgetWithText(ChoiceChip, '전체'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '리허설 표시'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '반복/마침'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, '템포 변화'), findsOneWidget);
     expect(find.text('리허설 표시'), findsWidgets);
     expect(find.text('OK'), findsWidgets);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '템포 변화'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('rit.'), findsOneWidget);
+    expect(find.text('accel.'), findsOneWidget);
+    expect(find.text('Fine'), findsNothing);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, '전체'));
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), '반복');
     await tester.pumpAndSettle();
