@@ -4011,9 +4011,9 @@ describe('App component shell', () => {
     expect(within(dialog).getByText('셋잇단음표')).toBeInTheDocument()
     expect(within(dialog).getByText('⌘/Ctrl+3')).toBeInTheDocument()
     expect(within(dialog).getByText('제자리표')).toBeInTheDocument()
-    expect(within(dialog).getByText('Alt/⌥+0')).toBeInTheDocument()
+    expect(within(dialog).getByText('N')).toBeInTheDocument()
     expect(within(dialog).getByText('샤프')).toBeInTheDocument()
-    expect(within(dialog).getByText('Alt/⌥+=')).toBeInTheDocument()
+    expect(within(dialog).getByText('+')).toBeInTheDocument()
     expect(within(dialog).getByText('다음/이전 마디')).toBeInTheDocument()
     expect(within(dialog).getByText('Tab / Shift+Tab')).toBeInTheDocument()
     expect(within(dialog).getByText('다음/이전 성부')).toBeInTheDocument()
@@ -4035,7 +4035,7 @@ describe('App component shell', () => {
     const accidentalPalette = screen.getByLabelText('임시표')
 
     expect(within(durationPalette).getByText('5')).toBeInTheDocument()
-    expect(within(accidentalPalette).getByText('Alt/⌥+0')).toBeInTheDocument()
+    expect(within(accidentalPalette).getByLabelText('N')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 숨기기' }))
 
@@ -4043,7 +4043,7 @@ describe('App component shell', () => {
       'aria-pressed',
       'false'
     )
-    expect(within(accidentalPalette).queryByText('Alt/⌥+0')).not.toBeInTheDocument()
+    expect(within(accidentalPalette).queryByLabelText('N')).not.toBeInTheDocument()
     expect(
       within(durationPalette).getByRole('button', {
         name: '4분음표, 단축키 3'
@@ -4053,7 +4053,7 @@ describe('App component shell', () => {
     fireEvent.click(screen.getByRole('button', { name: '단축키 도움말' }))
     expect(
       within(screen.getByRole('dialog', { name: '단축키 도움말' })).getByText(
-        'Alt/⌥+0'
+        'N'
       )
     ).toBeInTheDocument()
 
@@ -4064,7 +4064,7 @@ describe('App component shell', () => {
       )
     )
     fireEvent.click(screen.getByRole('button', { name: '단축키 힌트 표시' }))
-    expect(within(accidentalPalette).getByText('Alt/⌥+0')).toBeInTheDocument()
+    expect(within(accidentalPalette).getByLabelText('N')).toBeInTheDocument()
   })
 
   it('file.new-window opens an independent Electron editing window', async () => {
@@ -8985,7 +8985,7 @@ describe('App component shell', () => {
     ).toHaveTextContent('0')
 
     const sharp = within(inspector).getByRole('button', {
-      name: '샤프, 단축키 Alt/⌥+='
+      name: '샤프, 단축키 +'
     })
     fireEvent.click(sharp)
     expect(sharp).toHaveAttribute('aria-pressed', 'true')
@@ -8993,7 +8993,7 @@ describe('App component shell', () => {
     fireEvent.keyDown(window, { altKey: true, code: 'Digit0', key: '0' })
     expect(
       within(inspector).getByRole('button', {
-        name: '제자리표, 단축키 Alt/⌥+0'
+        name: '제자리표, 단축키 N'
       })
     ).toHaveAttribute('aria-pressed', 'true')
 
@@ -9073,7 +9073,7 @@ describe('App component shell', () => {
     ).not.toBeInTheDocument()
   })
 
-  it('keyboard.interval-chord-input stacks diatonic chord tones from the selected note before duration shortcuts', async () => {
+  it('keyboard.interval-chord-input stacks diatonic chord tones with Option digit aliases', async () => {
     window.history.replaceState({}, '', '/?fixture=release-test')
     const { App } = await import('./App')
     render(<App />)
@@ -9082,6 +9082,10 @@ describe('App component shell', () => {
     const initialDurations = preview.getAttribute('data-event-durations')
 
     fireEvent.keyDown(window, { code: 'Digit3', key: '3' })
+    expect(screen.queryByText('3도 위 화음 구성음을 추가했습니다.')).not.toBeInTheDocument()
+    expect(preview).toHaveAttribute('data-event-durations', initialDurations)
+
+    fireEvent.keyDown(window, { altKey: true, code: 'Digit3', key: '3' })
     expect(screen.getByText('3도 위 화음 구성음을 추가했습니다.')).toBeInTheDocument()
     expect(preview).toHaveAttribute(
       'data-event-chord-pitches',
@@ -9089,14 +9093,19 @@ describe('App component shell', () => {
     )
     expect(preview).toHaveAttribute('data-event-durations', initialDurations)
 
-    fireEvent.keyDown(window, { code: 'Digit5', key: '5' })
+    fireEvent.keyDown(window, { altKey: true, code: 'Digit5', key: '5' })
     expect(screen.getByText('5도 위 화음 구성음을 추가했습니다.')).toBeInTheDocument()
     expect(preview).toHaveAttribute(
       'data-event-chord-pitches',
       expect.stringContaining('m1-c4:C4/E4/G4')
     )
 
-    fireEvent.keyDown(window, { code: 'Digit3', key: '#', shiftKey: true })
+    fireEvent.keyDown(window, {
+      altKey: true,
+      code: 'Digit3',
+      key: '#',
+      shiftKey: true
+    })
     expect(screen.getByText('3도 아래 화음 구성음을 추가했습니다.')).toBeInTheDocument()
     expect(preview).toHaveAttribute(
       'data-event-chord-pitches',
@@ -9208,7 +9217,7 @@ describe('App component shell', () => {
     const { App } = await import('./App')
     render(<App />)
 
-    fireEvent.click(screen.getByRole('button', { name: '3도 위 화음 추가, 단축키 3' }))
+    fireEvent.click(screen.getByRole('button', { name: '3도 위 화음 추가, 단축키 Alt/⌥+3' }))
     expect(screen.getByText('화음 구성음을 추가했습니다.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '가사' }))
