@@ -3309,14 +3309,24 @@ void main() {
     final controller = SheetLibraryController(store: store);
     await controller.load();
 
+    final firstContext = controller.setlistPlaybackContext(
+      setlistId: 'setlist-1',
+      scoreId: 'score-1',
+    );
     final context = controller.setlistPlaybackContext(
       setlistId: 'setlist-1',
       scoreId: 'score-2',
     );
 
+    expect(firstContext?.title, 'Recital');
+    expect(firstContext?.positionLabel, '1/2');
+    expect(firstContext?.previousScoreTitle, isNull);
+    expect(firstContext?.nextScoreTitle, 'Second');
     expect(context?.title, 'Recital');
     expect(context?.positionLabel, '2/2');
     expect(context?.currentNote, '반복 없이 바로 다음 곡');
+    expect(context?.previousScoreTitle, 'First');
+    expect(context?.nextScoreTitle, isNull);
   });
 
   test('bulk adds scores to setlist and skips duplicates', () async {

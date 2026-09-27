@@ -1438,3 +1438,10 @@ human labels for PDF, image and audio attachments instead of a generic attachmen
 raw extension text. Targeted smoke test covers PDF/audio/image rows in the metadata editor
 linked-files list. Full 1,412-test suite, analyze and RC release check passed. No app
 build/version change/push/merge.
+
+S83 VERIFIED LOCAL: improving setlist continuation affordance without adding a separate
+MobileSheets-style next-song bar. The controller now exposes adjacent score titles in the
+viewer setlist context, and the viewer app bar/progress badge shows `다음: ...` when a
+following score exists. Targeted controller and progress-badge smoke tests passed. Full
+1,412-test suite, analyze and RC release check passed. No app build/version
+change/push/merge.

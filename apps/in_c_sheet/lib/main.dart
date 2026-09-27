@@ -9108,6 +9108,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     if (context.currentNote.isNotEmpty) {
       parts.add(context.currentNote);
     }
+    final nextScoreTitle = context.nextScoreTitle;
+    if (nextScoreTitle != null && nextScoreTitle.trim().isNotEmpty) {
+      parts.add('다음: ${nextScoreTitle.trim()}');
+    }
     return parts.join(' · ');
   }
 
@@ -9118,6 +9122,10 @@ class _SheetViewerScreenState extends State<SheetViewerScreen> {
     }
     if (context.currentNote.isNotEmpty) {
       parts.add(context.currentNote);
+    }
+    final nextScoreTitle = context.nextScoreTitle;
+    if (nextScoreTitle != null && nextScoreTitle.trim().isNotEmpty) {
+      parts.add('다음: ${nextScoreTitle.trim()}');
     }
     return parts.join(' · ');
   }
