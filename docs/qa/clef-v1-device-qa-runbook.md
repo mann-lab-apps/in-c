@@ -53,7 +53,7 @@ Clef v1 RC 실기기 QA 당일에 빌드, 샘플, 장비, 기록 양식을 한�
 | 라이브러리 긴 목록 | 검색/필터, metadata 추천칩, `빠른 찾기` 첫 글자 그룹 | NOT TESTED | 곡 수, 그룹 수, phone/tablet 가독성, 원하는 악보 찾기 체감 |
 | 필기/S Pen | pen/highlighter/text/eraser, 텍스트/스탬프 미세 이동, undo/redo, palm rejection | NOT TESTED | S Pen/손 입력 충돌, 저장/재열기 |
 | 메트로놈 빠른 BPM | 120/180/240 BPM, 4/4·6/8, 8분·3연·16분 | NOT TESTED | 스피커/이어폰/Bluetooth, 끊김/밀림/강세 |
-| 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, linked audio 재생, A/B 초 입력, 저장/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장/입력 실패 안내 체감 |
+| 연결 오디오/A-B | 연결 파일 목록의 오디오/PDF/이미지 구분, 저장된 A-B 구간 표시, linked audio 재생, A/B 초 입력, 저장/재열기, `구간 지우기`, 잘못된 구간 안내 | NOT TESTED | MP3/M4A/WAV, 이어폰/스피커, loop timing, 저장/입력 실패 안내 체감 |
 | 드론/기준음 | 기준음/5도/옥타브, 앱 음량, 기기 미디어 음량 | NOT TESTED | 이어폰/스피커/연습실, 작은 소리 여부 |
 | 튜너 | 기타/목소리/스피커 입력, 주변 소음, pitch chart | NOT TESTED | 기준 앱 대비 cents, 흔들림/latency |
 | 페달/키보드 | Arrow, PageUp/PageDown, Space, Shift+Space | NOT TESTED | 장비명, key, 페이지 단위 이동, 곡 처음/끝 안내 |

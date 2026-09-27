@@ -2978,6 +2978,8 @@ void main() {
           label: 'Backing Track',
           role: SheetLinkedFile.referenceRole,
           createdAt: DateTime(2026, 9, 27),
+          audioLoopStartMs: 1500,
+          audioLoopEndMs: 8250,
         ),
         SheetLinkedFile(
           path: '/tmp/cover.png',
@@ -2993,7 +2995,7 @@ void main() {
     expect(find.textContaining('Part · PDF · /tmp/part.pdf'), findsOneWidget);
     expect(find.text('Backing Track'), findsOneWidget);
     expect(
-      find.textContaining('Reference · 오디오 · /tmp/backing.m4a'),
+      find.textContaining('Reference · 오디오 · A-B 1.5-8.25초 · /tmp/backing.m4a'),
       findsOneWidget,
     );
     expect(find.text('Cover Scan'), findsOneWidget);

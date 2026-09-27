@@ -1467,3 +1467,11 @@ slice adds four small move actions for those annotation types only. Stroke/shape
 and multi-object nudge remain future work. Targeted model coverage checks normalized
 position clamping, and the full 1,413-test suite, analyze and RC release check passed.
 No app build/version change/push/merge.
+
+S87 VERIFIED LOCAL: continuing the linked-audio workflow without adding waveform timelines or
+multiple marker presets. The selected slice is saved-loop discoverability: linked audio rows
+now show the stored A-B range in the metadata editor and viewer part/version sheet so a
+performer can tell which backing track already has a practice loop before opening the player.
+Regression coverage targets the linked-files editor subtitle. Targeted smoke passed, full
+1,413-test suite, analyze and RC release check passed. Actual loop timing and output route
+remain DEVICE QA. No app build/version change/push/merge.

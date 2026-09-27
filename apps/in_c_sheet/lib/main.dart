@@ -3247,6 +3247,42 @@ String _linkedFileTypeLabel(SheetLinkedFile file) {
   return file.type.trim().isEmpty ? '파일' : file.type.toUpperCase();
 }
 
+String _linkedFileLoopLabel(SheetLinkedFile file) {
+  final startMs = file.audioLoopStartMs;
+  final endMs = file.audioLoopEndMs;
+  if (!_isSupportedLinkedAudio(file) || startMs == null || endMs == null) {
+    return '';
+  }
+  if (endMs <= startMs) {
+    return '';
+  }
+  final start = _formatAudioLoopSeconds(startMs);
+  final end = _formatAudioLoopSeconds(endMs);
+  return 'A-B $start-$end초';
+}
+
+String _linkedFileSubtitle(SheetLinkedFile file, {String? statusLabel}) {
+  return [
+    _linkedFileRoleLabel(file.role),
+    _linkedFileTypeLabel(file),
+    if (_linkedFileLoopLabel(file).isNotEmpty) _linkedFileLoopLabel(file),
+    if (statusLabel != null && statusLabel.trim().isNotEmpty)
+      statusLabel.trim(),
+    file.path,
+  ].join(' · ');
+}
+
+String _formatAudioLoopSeconds(int milliseconds) {
+  final seconds = milliseconds / 1000;
+  if (milliseconds % 1000 == 0) {
+    return seconds.toStringAsFixed(0);
+  }
+  return seconds
+      .toStringAsFixed(3)
+      .replaceFirst(RegExp(r'0+$'), '')
+      .replaceFirst(RegExp(r'\.$'), '');
+}
+
 IconData _linkedFileIcon(SheetLinkedFile file, {bool exists = true}) {
   if (!exists) {
     return Icons.error_outline;
@@ -3760,9 +3796,7 @@ class _LinkedFilesEditor extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 subtitle: Text(
-                  '${_linkedFileRoleLabel(linkedFiles[index].role)} · '
-                  '${_linkedFileTypeLabel(linkedFiles[index])} · '
-                  '${linkedFiles[index].path}',
+                  _linkedFileSubtitle(linkedFiles[index]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -10351,7 +10385,6 @@ setlist=$setlistLabel
                   final exists = File(linkedFile.path).existsSync();
                   final isImage = _isSupportedLinkedImage(linkedFile);
                   final isAudio = _isSupportedLinkedAudio(linkedFile);
-                  final typeLabel = _linkedFileTypeLabel(linkedFile);
                   final canOpen =
                       exists &&
                       (linkedFile.type == 'pdf' || isImage || isAudio);
@@ -10359,9 +10392,10 @@ setlist=$setlistLabel
                     leading: Icon(_linkedFileIcon(linkedFile, exists: exists)),
                     title: Text(linkedFile.label),
                     subtitle: Text(
-                      '${_linkedFileRoleLabel(linkedFile.role)} · '
-                      '$typeLabel · ${exists ? '파일 확인됨' : '파일 없음'} · '
-                      '${linkedFile.path}',
+                      _linkedFileSubtitle(
+                        linkedFile,
+                        statusLabel: exists ? '파일 확인됨' : '파일 없음',
+                      ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -19288,14 +19322,7 @@ class _LinkedAudioPlayerSheetState extends State<_LinkedAudioPlayerSheet> {
     if (milliseconds == null) {
       return '';
     }
-    final seconds = milliseconds / 1000;
-    if (milliseconds % 1000 == 0) {
-      return seconds.toStringAsFixed(0);
-    }
-    return seconds
-        .toStringAsFixed(3)
-        .replaceFirst(RegExp(r'0+$'), '')
-        .replaceFirst(RegExp(r'\.$'), '');
+    return _formatAudioLoopSeconds(milliseconds);
   }
 
   Future<bool> _saveLoopIfNeeded(SheetAudioLoop loop) async {
