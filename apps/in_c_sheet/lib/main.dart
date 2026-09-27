@@ -8338,6 +8338,30 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
     _setSelectedPage(typed ?? _selectedPage);
   }
 
+  List<MapEntry<String, int>> _quickPageTargets() {
+    final seenPages = <int>{};
+    final targets = <MapEntry<String, int>>[];
+
+    void add(String label, int page) {
+      final clamped = _clampPage(page);
+      if (!seenPages.add(clamped)) {
+        return;
+      }
+      targets.add(MapEntry<String, int>(label, clamped));
+    }
+
+    add('처음', 1);
+    if (widget.pageCount > 20) {
+      add('10쪽 전', widget.currentPage - 10);
+    }
+    add('현재', widget.currentPage);
+    if (widget.pageCount > 20) {
+      add('10쪽 후', widget.currentPage + 10);
+    }
+    add('끝', widget.pageCount);
+    return targets;
+  }
+
   void _goToSelectedPage() {
     _submitTypedPage();
     widget.onGoToPage(_selectedPage);
@@ -8429,6 +8453,28 @@ class _PagePickerSheetState extends State<_PagePickerSheet> {
                     : null,
                 label: '$_selectedPage쪽',
                 onChanged: (value) => _setSelectedPage(value.round()),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '빠른 이동',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final target in _quickPageTargets())
+                    ActionChip(
+                      label: Text(target.key),
+                      onPressed: () => _setSelectedPage(target.value),
+                      backgroundColor: target.value == _selectedPage
+                          ? theme.colorScheme.secondaryContainer
+                          : null,
+                    ),
+                ],
               ),
             ],
             const SizedBox(height: 8),

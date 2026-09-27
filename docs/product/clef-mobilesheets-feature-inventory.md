@@ -76,7 +76,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | Viewer / Performance | Image caching | display page | render cache profile과 memory cap이 있다 | feature map `image caching/prefetch` | Partially Implemented | 50-100페이지 실기기 계측 필요 |
 | Viewer / Performance | Song overlay | display page | viewer `도구` 메뉴, toolbar, mini panel, tap zone hint가 있다 | feature map `이름으로 도구 찾기` | Implemented | Clef는 이름 있는 메뉴를 더 강조 |
 | Viewer / Performance | Automatic scrolling | utilities page | 곡별 duration/cue/rehearsal mark 기반 자동 스크롤이 있다 | feature map `자동 스크롤` | Implemented | 측정 기반 세밀 timeline editor는 후속 |
-| Viewer / Performance | Page slider / direct page jump | user guide Song Overlay | page navigation/control이 있다 | feature map `가로 페이지 넘김`, viewer tests | Partially Implemented | MobileSheets식 preview slider 깊이는 아직 직접 대조 전 |
+| Viewer / Performance | Page slider / direct page jump | user guide Song Overlay | page navigation/control이 있다. 긴 PDF용 slider, 쪽 번호 입력, 처음/현재/끝/10쪽 전후 빠른 이동을 제공한다 | feature map `가로 페이지 넘김`, viewer tests | Partially Implemented | MobileSheets식 preview thumbnail slider 깊이는 아직 직접 대조 전 |
 | Viewer / Performance | Next song bar / setlist continuation | user guide 목차 | viewer context, 이전/다음 곡, 진행 배지가 있다 | feature map `세트리스트 연속 넘김` | Partially Implemented | MobileSheets와 같은 next song bar 표현은 아님 |
 | Viewer / Performance | Performance mode | utilities page | 공연 모드와 quick action overlay가 있다 | feature map `공연 모드`, `quick action box` | Implemented | 실제 연주 중 오작동 방지 QA 필요 |
 | Viewer / Performance | Two-tablet book mode | official site collaboration/display | 없다 | feature map `기기 간 페이지 전환`, `leader/follower tablet` | Not Implemented | 협업/동기화 영역 |
@@ -166,7 +166,7 @@ MobileSheets의 주요 기능을 기능 인벤토리로 정리하고, Clef & Sta
 | 최근 세트리스트/최근 악보 rail | `정보 정리 필요`, `최근 악보`, `최근 세트리스트`를 분리해 copy polish 완료. 최근 세트리스트는 진행 pill과 이어보기 곡명을 유지한다. | 휴대폰 세로, 태블릿 가로, 큰 글씨에서 거리 가독성은 실기기 QA. |
 | 메트로놈 빠른 BPM | Android native click output 재사용, start 전 prepare, count-in phase, delayed tick phase, stale callback guard는 로컬 테스트로 보강됨. | 실제 오디오 균일성은 120/180/240 BPM, 4/4/6/8, subdivision, 이어폰/스피커/Bluetooth 별 실기기 QA. 오디오 기준 native scheduler는 현 버전 범위 밖. |
 | 드론 음량/출력 route | `드론 음량`과 현재 퍼센트를 상시 표시하고, 기본 35%/clipping-safe gain 정책은 유지한다. 저장 응답과 재생 상태는 분리되어 있다. | 앱 음량, 기기 미디어 음량, 이어폰/스피커/연습실 출력 경로별 체감 확인. 결함 확정 전 자동 증폭하지 않는다. |
-| 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동을 추가했다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
+| 긴 PDF navigation | 기존 page picker grid에 현재/선택 page 표시, slider, 쪽 번호 직접 이동과 처음/현재/끝/10쪽 전후 빠른 이동을 추가했다. 숨김 page는 기존 visible-page 보정 경로를 따른다. | 실제 긴 PDF에서 손가락 조작/스크롤 체감은 실기기 QA. thumbnail/outline navigation은 후속 후보. |
 | 세트리스트 곡별 메모 표시 | 리허설 모드의 곡별 메모를 viewer 상단 context와 공연 진행 badge에도 노출한다. 저장 schema 추가 없이 기존 notes를 재사용한다. | 긴 메모가 악보를 가리지 않는지, 실제 공연 거리에서 한 줄 표시가 충분한지 DEVICE QA. |
 | PDF print/share intent | 원본 PDF와 필기 포함 PDF를 `공유/인쇄`로 표시해 OS 공유 시트의 프린트 대상을 찾을 수 있게 했다. | 실제 iOS/Android 프린터 대상 노출과 사용자 이해도는 DEVICE QA. 별도 native print engine은 필요가 확인되면 v1.1 후보로 검토. |
 

@@ -1380,3 +1380,12 @@ was removed. Regression coverage targets successful clear, failed clear and no a
 playback during clear. Targeted linked-audio widget tests and the audio-marker model test
 passed, full 1,406-test suite passed, analyze passed, and RC release check passed. Actual
 speaker/earphone loop timing remains DEVICE QA.
+
+S76 VERIFIED LOCAL: continuing the long-PDF navigation gap without adding thumbnails or a
+new PDF renderer. The page picker now adds `빠른 이동` chips for first/current/last page and,
+on long scores, ten pages back/forward. Chips only update the selected page; the existing
+`이동` action still performs the actual navigation, so hidden-page fallback and page-order
+cursor behavior continue to use the established viewer path. Regression coverage targets
+the quick-jump labels, selection updates and no immediate navigation before confirmation.
+Targeted page-picker tests passed, full 1,407-test suite passed, analyze passed, and RC
+release check passed. Actual finger ergonomics on large PDFs remain DEVICE QA.

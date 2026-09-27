@@ -2374,6 +2374,45 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('page picker offers quick jump targets for long scores', (
+    tester,
+  ) async {
+    final requestedPages = <int>[];
+    await tester.pumpWidget(
+      buildPagePickerSheetForTest(
+        pageCount: 120,
+        currentPage: 54,
+        onGoToPage: requestedPages.add,
+      ),
+    );
+
+    expect(find.text('빠른 이동'), findsOneWidget);
+    expect(find.text('처음'), findsOneWidget);
+    expect(find.text('10쪽 전'), findsOneWidget);
+    expect(find.text('현재'), findsOneWidget);
+    expect(find.text('10쪽 후'), findsOneWidget);
+    expect(find.text('끝'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, '10쪽 전'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 44/120쪽'), findsOneWidget);
+    expect(requestedPages, isEmpty);
+
+    await tester.tap(find.widgetWithText(ActionChip, '10쪽 후'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 64/120쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ActionChip, '끝'));
+    await tester.pump();
+    expect(find.text('현재 54쪽 · 선택 120/120쪽'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilledButton, '이동'));
+    await tester.pump();
+
+    expect(requestedPages, <int>[120]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('crop settings sheet offers quick margin presets', (
     tester,
   ) async {
